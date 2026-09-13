@@ -142,9 +142,7 @@ export default function DirectoryTokenPage() {
           accountUuid={userAccount?.uuid ?? null}
           busy={create.isPending}
           error={create.error}
-          onSubscribe={({ wallet, quantity }) =>
-            create.mutate({ offering: offering.uuid, userAccount: userAccount!.uuid, wallet, quantity })
-          }
+          onSubscribe={({ wallet, quantity }) => create.mutate({ offering: offering.uuid, wallet, quantity })}
         />
       )}
 

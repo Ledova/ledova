@@ -21,7 +21,6 @@ class WalletFilter(django_filters.FilterSet):
     chain = django_filters.CharFilter(field_name="chain", lookup_expr="iexact")
     verification_status = django_filters.CharFilter()
     address = django_filters.CharFilter(method="filter_address")
-    user_account = django_filters.UUIDFilter(field_name="user_account__uuid")
 
     class Meta:
         model = Wallet

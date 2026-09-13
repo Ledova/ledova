@@ -10,8 +10,8 @@ describe('wallet sync outcomes', () => {
   it('returns the refreshed wallet only when the complete sync succeeded', async () => {
     const response = { data: { success: true, wallet: { uuid: 'wallet' }, syncResult: { status: 'success' } } };
     post.mockResolvedValue(response);
-    await expect(syncWallet(client, 'wallet', 'account')).resolves.toBe(response);
-    expect(post).toHaveBeenCalledWith('/api/wallets/wallet/sync/', {}, { params: { user_account: 'account' } });
+    await expect(syncWallet(client, 'wallet')).resolves.toBe(response);
+    expect(post).toHaveBeenCalledWith('/api/wallets/wallet/sync/', {});
   });
 
   it.each([

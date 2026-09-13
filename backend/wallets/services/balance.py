@@ -7,7 +7,7 @@ from web3 import Web3
 from integrations.blockchain import get_blockchain_client
 from integrations.blockchain.bitcoin import is_bitcoin_address_valid
 from shared.constants import BLOCKCHAIN_BITCOIN, SUPPORTED_CHAINS
-from users.models import UserAccount
+from users.services.accounts import account_of
 from wallets.exceptions import InvalidTransactionException
 
 
@@ -15,8 +15,9 @@ class BalanceService:
     MAX_ADDRESSES_PER_REQUEST = 20
 
     @staticmethod
-    def batch_check_balances(user, *, user_account, addresses, chain):
-        if not UserAccount.objects.visible_to_user(user).filter(pk=user_account).exists():
+    def batch_check_balances(user, *, addresses, chain):
+        user_account = account_of(user)
+        if user_account is None:
             raise NotFound("Account not found.")
         if chain not in SUPPORTED_CHAINS:
             raise InvalidTransactionException("Select a supported wallet network.")
@@ -46,7 +47,7 @@ class BalanceService:
                     balances[address] = str(balance)
                 except Exception:
                     errors.append("A balance could not be read. Try again later.")
-        result = {"user_account": str(user_account), "chain": chain, "balances": balances}
+        result = {"user_account": str(user_account.uuid), "chain": chain, "balances": balances}
         if errors:
             result["errors"] = list(dict.fromkeys(errors))
         return result

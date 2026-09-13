@@ -281,17 +281,15 @@ export function BuyCryptoModal({
   const walletsQuery = useQuery({
     queryKey: [
       'wallets',
-      userAccountUuid,
       { chain: selectedAsset?.chain, verification_status: 'VERIFIED', order_by: 'signing_preference' },
     ],
     queryFn: () =>
       getWallets(apiClient, {
-        user_account: userAccountUuid!,
         chain: selectedAsset!.chain,
         verification_status: 'VERIFIED',
         order_by: 'signing_preference',
       }),
-    enabled: visible && !!userAccountUuid && !!selectedAsset,
+    enabled: visible && !!selectedAsset,
   });
 
   const matchingWallets = walletsQuery.data?.data.results || [];

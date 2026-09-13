@@ -80,7 +80,7 @@ class AccountExportDataSerializer(serializers.Serializer):
     profile = ExportedProfileSerializer(allow_null=True)
     preferences = ExportedPreferencesSerializer(allow_null=True)
     financial_profile = ExportedFinancialProfileSerializer(allow_null=True)
-    accounts = ExportedAccountSerializer(many=True)
+    account = ExportedAccountSerializer(allow_null=True)
     wallets = ExportedWalletSerializer(many=True)
     transactions = ExportedTransactionSerializer(many=True)
     portfolios = ExportedPortfolioSerializer(many=True)

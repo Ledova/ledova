@@ -36,12 +36,6 @@ def give_the_profile_back(apps, schema_editor):
             row.user_profiles.add(row.user_profile_id)
 
 
-def reinstall_the_policies(apps, schema_editor):
-    from shared.db.policy_sql import install
-
-    install(schema_editor)
-
-
 class Migration(migrations.Migration):
     dependencies = [
         ("users", "0022_drop_the_owner_columns_no_policy_reads"),
@@ -68,7 +62,6 @@ class Migration(migrations.Migration):
                 to="users.userprofile",
             ),
         ),
-        migrations.RunPython(reinstall_the_policies, reinstall_the_policies),
         migrations.RemoveField(model_name="useraccount", name="user_profiles"),
         migrations.RemoveField(model_name="userpreferences", name="selected_account"),
         migrations.AlterField(

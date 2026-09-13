@@ -1,7 +1,7 @@
 from users.services import eligibility, lifecycle
 from users.services.accounts import (
+    account_of,
     ensure_notification_preferences,
-    register_account,
 )
 from users.services.device_tokens import register_device_token, unregister_device_token
 from users.services.identity import IdentityVerificationService
@@ -17,7 +17,7 @@ __all__ = [
     "register_device_token",
     "unregister_device_token",
     "ensure_notification_preferences",
-    "register_account",
+    "account_of",
     "IdentityVerificationService",
     "NotificationService",
     "eligibility",

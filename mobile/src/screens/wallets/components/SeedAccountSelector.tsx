@@ -8,7 +8,6 @@ import type { DerivedAddress } from '@ledova/shared';
 import { getBlockchainDisplayName, importAddressKey } from '@ledova/shared';
 
 interface SeedAccountSelectorProps {
-  userAccountUuid: string | undefined;
   onNetworkChange: (network: string) => void;
   addresses: DerivedAddress[];
   selectedAddresses: Set<string>;
@@ -20,7 +19,6 @@ interface SeedAccountSelectorProps {
 }
 
 export function SeedAccountSelector({
-  userAccountUuid,
   onNetworkChange,
   addresses,
   selectedAddresses,
@@ -135,7 +133,6 @@ export function SeedAccountSelector({
         }
         onChange={onNetworkChange}
       />
-      {!userAccountUuid && <Text style={styles.errorText}>Select an account to import wallets.</Text>}
       <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView}>
         {addresses.map((addr) => {
           const isSelected = selectedAddresses.has(importAddressKey(addr));
@@ -173,11 +170,7 @@ export function SeedAccountSelector({
         <SecondaryButton onPress={onBack} style={styles.actionButton}>
           Back
         </SecondaryButton>
-        <PrimaryButton
-          onPress={onConfirm}
-          disabled={!userAccountUuid || selectedAddresses.size === 0}
-          style={styles.actionButton}
-        >
+        <PrimaryButton onPress={onConfirm} disabled={selectedAddresses.size === 0} style={styles.actionButton}>
           Create Wallet
         </PrimaryButton>
       </View>

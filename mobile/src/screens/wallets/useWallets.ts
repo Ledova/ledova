@@ -38,7 +38,6 @@ export function useWallets() {
         if (!chain) return;
 
         crud.createWallet({
-          userAccount: crud.userAccountUuid!,
           address: derivedAddress.address,
           chain: chain.code,
           signingPreference: 'hardware',
@@ -65,7 +64,6 @@ export function useWallets() {
         if (!chain) return;
 
         crud.createWallet({
-          userAccount: crud.userAccountUuid!,
           address: derivedAddress.address,
           chain: chain.code,
           signingPreference: 'software',
@@ -83,8 +81,6 @@ export function useWallets() {
   );
 
   return {
-    userAccountUuid: crud.userAccountUuid,
-
     isCreating: crud.isCreating,
 
     showAddModal,

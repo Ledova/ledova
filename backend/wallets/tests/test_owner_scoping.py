@@ -22,13 +22,10 @@ class WalletOwnerScopingTest(TestCase):
         request.user = user
         return WalletSerializer(context={"request": request})
 
-    def test_owner_field_scoped_to_caller_accounts(self):
-        qs = self._serializer_for(self.alice).fields["user_account"].queryset
-        ids = set(qs.values_list("uuid", flat=True))
-        self.assertIn(self.alice_account.uuid, ids)
-        self.assertNotIn(self.bob_account.uuid, ids)
+    def test_the_owner_field_is_not_writable_at_all(self):
+        self.assertTrue(self._serializer_for(self.alice).fields["user_account"].read_only)
 
-    def test_assigning_other_tenant_account_fails_validation(self):
+    def test_a_named_account_is_ignored_and_the_wallet_lands_on_the_callers(self):
         serializer = WalletSerializer(
             data={
                 "user_account": str(self.bob_account.uuid),
@@ -38,8 +35,8 @@ class WalletOwnerScopingTest(TestCase):
             },
             context=self._serializer_for(self.alice).context,
         )
-        self.assertFalse(serializer.is_valid())
-        self.assertIn("user_account", serializer.errors)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        self.assertEqual(serializer.validated_data["user_account"], self.alice_account)
 
     def test_verified_wallet_identity_fields_are_immutable(self):
         wallet = Wallet.objects.create(
@@ -51,7 +48,6 @@ class WalletOwnerScopingTest(TestCase):
         cases = (
             ({"address": "0x" + "d" * 40}, "address"),
             ({"chain": "base"}, "chain"),
-            ({"user_account": str(self.bob_account.uuid)}, "user_account"),
         )
         for payload, field in cases:
             with self.subTest(field=field):
@@ -81,7 +77,7 @@ class LiveMembershipScopingTest(TestCase):
         request.user = user
         return WalletSerializer(context={"request": request})
 
-    def test_staff_and_superuser_account_scope_follows_membership(self):
+    def test_staff_and_superuser_account_scope_follows_the_profile_link(self):
         staff = User.objects.create_user(email="staff-membership@ex.com", password="pw-12345678", is_staff=True)
         superuser = User.objects.create_user(
             email="superuser-membership@ex.com",
@@ -103,6 +99,4 @@ class LiveMembershipScopingTest(TestCase):
                     own_account.uuid,
                     UserAccount.objects.visible_to_user(privileged_user).values_list("uuid", flat=True),
                 )
-                serializer = self._serializer_for(privileged_user)
-                account_ids = set(serializer.fields["user_account"].queryset.values_list("uuid", flat=True))
-                self.assertEqual(account_ids, {own_account.uuid})
+                self.assertTrue(self._serializer_for(privileged_user).fields["user_account"].read_only)

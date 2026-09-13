@@ -105,7 +105,6 @@ export function InvestorEligibilityScreen() {
     try {
       const current = await document.submit(({ file: uploadFile, owner, sessionEpoch }) =>
         submitClaim({
-          userAccount: owner,
           sessionEpoch,
           category,
           declaredBasis: declaredBasis.trim(),

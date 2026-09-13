@@ -70,13 +70,13 @@ export interface AccountExportData {
     intendedUse: string | null;
     intendedUseOtherText: string | null;
   } | null;
-  accounts: Array<{
+  account: {
     uuid: string;
     accountNumber: string;
     accountType: string;
     activationDate: string | null;
     createdAt: string;
-  }>;
+  } | null;
   wallets: Array<{
     uuid: string;
     name: string | null;

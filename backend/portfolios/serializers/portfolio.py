@@ -1,20 +1,12 @@
 from rest_framework import serializers
 
 from portfolios.models.portfolio import Portfolio
-from users.models import UserAccount
 
 
 class PortfolioSerializer(serializers.ModelSerializer):
-    user_account = serializers.PrimaryKeyRelatedField(queryset=UserAccount.objects.none(), required=False)
+    user_account = serializers.PrimaryKeyRelatedField(read_only=True)
     wallet_uuids = serializers.SerializerMethodField()
     wallet_count = serializers.SerializerMethodField()
-
-    def get_fields(self):
-        fields = super().get_fields()
-
-        request = self.context.get("request")
-        fields["user_account"].queryset = UserAccount.objects.visible_to_user(getattr(request, "user", None))
-        return fields
 
     def get_wallet_uuids(self, obj) -> list[str]:
         return [str(wallet.uuid) for wallet in obj.account_wallets()]

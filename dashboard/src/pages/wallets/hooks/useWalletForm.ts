@@ -14,13 +14,12 @@ import type { CreateWallet, DerivedAddress, HardwareWalletImport } from '@ledova
 type FormStep = 'input' | 'selectAddresses';
 
 interface UseWalletFormProps {
-  userAccountUuid: string | undefined;
   onSubmit: (data: CreateWallet) => void;
   onBatchSubmit: (addresses: DerivedAddress[], importData: HardwareWalletImport) => void;
   preselectedChain?: 'BTC' | 'ETH' | null;
 }
 
-export function useWalletForm({ userAccountUuid, onSubmit, onBatchSubmit, preselectedChain }: UseWalletFormProps) {
+export function useWalletForm({ onSubmit, onBatchSubmit, preselectedChain }: UseWalletFormProps) {
   const [step, setStep] = useState<FormStep>('input');
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
@@ -237,17 +236,16 @@ export function useWalletForm({ userAccountUuid, onSubmit, onBatchSubmit, presel
   }, []);
 
   const handleSubmit = useCallback(() => {
-    if (!validate() || !selectedChain || !userAccountUuid) {
+    if (!validate() || !selectedChain) {
       return;
     }
 
     onSubmit({
-      userAccount: userAccountUuid,
       name: name.trim() || undefined,
       address: address.trim(),
       chain: selectedChain,
     });
-  }, [validate, selectedChain, userAccountUuid, name, address, onSubmit]);
+  }, [validate, selectedChain, name, address, onSubmit]);
 
   const toggleScanner = useCallback(() => {
     setShowScanner((prev) => !prev);

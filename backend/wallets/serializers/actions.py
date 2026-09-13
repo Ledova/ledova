@@ -105,6 +105,5 @@ class BatchBalanceResponseSerializer(serializers.Serializer):
 
 
 class BatchBalanceRequestSerializer(serializers.Serializer):
-    user_account = serializers.UUIDField()
     addresses = serializers.ListField(child=serializers.CharField(max_length=100), min_length=1, max_length=20)
     chain = serializers.ChoiceField(choices=sorted(SUPPORTED_CHAINS))

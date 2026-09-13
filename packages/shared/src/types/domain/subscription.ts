@@ -78,7 +78,6 @@ export interface IssuerSubscription {
 
 export interface SubscriptionInput {
   offering: string;
-  userAccount: string;
   wallet: string;
   quantity: number;
 }

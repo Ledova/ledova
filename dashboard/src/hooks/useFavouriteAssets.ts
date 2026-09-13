@@ -26,8 +26,7 @@ export function useFavouriteAssets() {
   const assetToFavouriteMap = useMemo(() => new Map(favourites.map((f) => [f.asset.uuid, f.uuid])), [favourites]);
 
   const addMutation = useMutation({
-    mutationFn: (assetUuid: string) =>
-      addFavouriteAsset(apiClient, { asset: assetUuid, userAccount: userAccount!.uuid }),
+    mutationFn: (assetUuid: string) => addFavouriteAsset(apiClient, { asset: assetUuid }),
     onMutate: async (assetUuid) => {
       await queryClient.cancelQueries({ queryKey: ['favouriteAssets'] });
       const previousFavourites = queryClient.getQueryData(['favouriteAssets']);

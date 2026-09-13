@@ -7,7 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BLOCKCHAIN, WALLET_ENDPOINTS, type Wallet } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { useUserTradingWallets } from './useTrading';
-import { accountUuid, response, wallet } from '../../../../packages/shared/tests/fixtures/order-submissions';
+import { response, wallet } from '../../../../packages/shared/tests/fixtures/order-submissions';
 vi.mock('@services/apiClient', async () => ({ default: (await import('axios')).default.create() }));
 vi.mock('@hooks/useSelectedPortfolio', () => ({
   useSelectedPortfolio: () => ({
@@ -53,5 +53,5 @@ it('retains unverified EVM action wallets and the existing verified-only create 
   await waitFor(() => expect(view.result.current.actionWallets).toEqual([verified, unverified]));
   expect(view.result.current.wallets).toEqual([verified]);
   expect(view.result.current.walletAddresses).toEqual([verified.address]);
-  expect(calls).toEqual([['get', WALLET_ENDPOINTS.BASE, { user_account: accountUuid }]]);
+  expect(calls).toEqual([['get', WALLET_ENDPOINTS.BASE, undefined]]);
 });

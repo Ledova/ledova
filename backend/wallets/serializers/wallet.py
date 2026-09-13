@@ -9,7 +9,7 @@ from shared.constants import (
     BLOCKCHAIN_ETHEREUM,
     SUPPORTED_CHAINS,
 )
-from users.models import UserAccount
+from users.services.accounts import account_of
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 from wallets.models.wallet import WalletSigningPreference
@@ -18,7 +18,7 @@ from wallets.services.registration import DUPLICATE_WALLET, update_wallet
 
 class WalletSerializer(serializers.ModelSerializer):
     uuid = serializers.CharField(read_only=True)
-    user_account = serializers.PrimaryKeyRelatedField(queryset=UserAccount.objects.none())
+    user_account = serializers.PrimaryKeyRelatedField(read_only=True)
     chain = serializers.ChoiceField(choices=sorted(SUPPORTED_CHAINS))
     signing_preference = serializers.ChoiceField(
         choices=WalletSigningPreference.choices(),
@@ -82,16 +82,6 @@ class WalletSerializer(serializers.ModelSerializer):
             "updated_at",
         )
 
-    def get_fields(self):
-        fields = super().get_fields()
-
-        request = self.context.get("request")
-        if request is not None and request.user.is_authenticated:
-            fields["user_account"].queryset = UserAccount.objects.visible_to_user(request.user)
-        else:
-            fields["user_account"].queryset = UserAccount.objects.none()
-        return fields
-
     def validate_address(self, value):
         if not value or not value.strip():
             raise serializers.ValidationError("Wallet address cannot be empty.")
@@ -109,14 +99,8 @@ class WalletSerializer(serializers.ModelSerializer):
             return {}
 
         immutable_changes = {}
-        for field in ("address", "chain", "user_account"):
-            if field not in data:
-                continue
-            current = getattr(instance, field)
-            proposed = data[field]
-            current_value = current.pk if field == "user_account" else current
-            proposed_value = proposed.pk if field == "user_account" else proposed
-            if proposed_value != current_value:
+        for field in ("address", "chain"):
+            if field in data and data[field] != getattr(instance, field):
                 immutable_changes[field] = "Verified wallet identity cannot be changed."
         return immutable_changes
 
@@ -133,7 +117,12 @@ class WalletSerializer(serializers.ModelSerializer):
 
         address = data.get("address", getattr(self.instance, "address", None))
         chain = data.get("chain", getattr(self.instance, "chain", None))
-        user_account = data.get("user_account", getattr(self.instance, "user_account", None))
+        if self.instance is None:
+            user_account = data["user_account"] = account_of(getattr(self.context.get("request"), "user", None))
+            if user_account is None:
+                raise serializers.ValidationError({"user_account": "This user has no account."})
+        else:
+            user_account = self.instance.user_account
 
         if address and chain in (BLOCKCHAIN_ETHEREUM, BLOCKCHAIN_BASE) and not Web3.is_address(address):
             raise serializers.ValidationError({"address": "Enter a valid EVM address."})

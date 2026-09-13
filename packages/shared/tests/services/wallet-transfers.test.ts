@@ -14,17 +14,15 @@ describe('wallet transfer services', () => {
 
     prepareTransfer(apiClient, 'wallet-uuid', data);
 
-    expect(post).toHaveBeenCalledWith('/api/wallets/wallet-uuid/prepare-transfer/', data, undefined);
+    expect(post).toHaveBeenCalledWith('/api/wallets/wallet-uuid/prepare-transfer/', data);
   });
 
   it('posts a Bitcoin prepare request with amountBtc to the same endpoint', () => {
     const data = { toAddress: `tb1q${'a'.repeat(38)}`, amountBtc: '0.001' };
 
-    prepareBitcoinTransfer(apiClient, 'wallet-uuid', data, 'account-uuid');
+    prepareBitcoinTransfer(apiClient, 'wallet-uuid', data);
 
-    expect(post).toHaveBeenCalledWith('/api/wallets/wallet-uuid/prepare-transfer/', data, {
-      params: { user_account: 'account-uuid' },
-    });
+    expect(post).toHaveBeenCalledWith('/api/wallets/wallet-uuid/prepare-transfer/', data);
   });
 
   it('posts the signed transaction to the wallet broadcast endpoint', () => {
@@ -32,6 +30,6 @@ describe('wallet transfer services', () => {
 
     broadcastTransfer(apiClient, 'wallet-uuid', data);
 
-    expect(post).toHaveBeenCalledWith('/api/wallets/wallet-uuid/broadcast-transfer/', data, undefined);
+    expect(post).toHaveBeenCalledWith('/api/wallets/wallet-uuid/broadcast-transfer/', data);
   });
 });

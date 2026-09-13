@@ -12,14 +12,14 @@ from users.models.investor_classification import (
     InvestorClassificationStatus,
     plus_years,
 )
-from users.models.user_account import UserAccount
+from users.services.accounts import account_of
 
 CERTIFIER_FIELDS = ("certificate_issued_at", "certifier_name", "certifier_body", "certifier_membership_number")
 
 
 class InvestorClassificationSerializer(serializers.ModelSerializer):
 
-    user_account = serializers.PrimaryKeyRelatedField(queryset=UserAccount.objects.none())
+    user_account = serializers.PrimaryKeyRelatedField(read_only=True)
     company = serializers.PrimaryKeyRelatedField(queryset=Company.objects.none(), required=False, allow_null=True)
 
     category_display = serializers.CharField(source="get_category_display", read_only=True)
@@ -79,7 +79,6 @@ class InvestorClassificationSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         user = getattr(request, "user", None)
         if user is not None and user.is_authenticated:
-            fields["user_account"].queryset = UserAccount.objects.visible_to_user(user)
             fields["company"].queryset = Company.objects.active()
         return fields
 
@@ -120,7 +119,9 @@ class InvestorClassificationSerializer(serializers.ModelSerializer):
         self._validate_company(attrs)
         self._validate_certificate(attrs)
 
-        account = attrs.get("user_account")
+        account = attrs["user_account"] = account_of(getattr(self.context.get("request"), "user", None))
+        if account is None:
+            raise serializers.ValidationError({"user_account": "This user has no account."})
         open_submissions = InvestorClassification.objects.filter(
             user_account=account, status=InvestorClassificationStatus.SUBMITTED
         )

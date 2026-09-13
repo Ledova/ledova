@@ -29,7 +29,7 @@ export function useWalletsCrud() {
 
   const walletsQuery = useQuery({
     queryKey: ['wallets', userAccount?.uuid, { order_by: 'address_index' }],
-    queryFn: () => getWallets(apiClient, { user_account: userAccount!.uuid, order_by: 'address_index' }),
+    queryFn: () => getWallets(apiClient, { order_by: 'address_index' }),
     enabled: !USE_MOCK_DATA && !!userAccount?.uuid,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
@@ -53,7 +53,7 @@ export function useWalletsCrud() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (uuid: string) => deleteWallet(apiClient, uuid, userAccount?.uuid),
+    mutationFn: (uuid: string) => deleteWallet(apiClient, uuid),
     onSuccess: () => {
       queryClient.refetchQueries({ queryKey: ['wallets'] });
       invalidateHome();
@@ -116,7 +116,6 @@ export function useWalletsCrud() {
       ethWallets: mockEthWallets,
       baseWallets: mockBaseWallets,
       totals: mockTotals,
-      userAccountUuid: 'user-account-1',
       isLoading: false,
       isCreating: false,
       isUpdating: false,
@@ -143,7 +142,6 @@ export function useWalletsCrud() {
     ethWallets,
     baseWallets,
     totals,
-    userAccountUuid: userAccount?.uuid,
 
     isLoading: walletsQuery.isLoading,
     isCreating: createMutation.isPending,

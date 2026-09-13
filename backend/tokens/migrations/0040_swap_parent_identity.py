@@ -22,7 +22,7 @@ RETURNS boolean LANGUAGE sql STABLE AS $$
     SELECT NULLIF(current_setting('app.user_id', true), '') IS NOT NULL AND EXISTS (
         SELECT 1 FROM tokens_transferorder owned
         JOIN wallets held ON held.uuid = owned.wallet_id
-        WHERE owned.owner_account_id IN (SELECT app_member_account_ids())
+        WHERE owned.owner_account_id IN (SELECT app_principal_account_ids())
           AND held.user_account_id = owned.owner_account_id
           AND lower(held.address) = lower(owned.wallet_address)
           AND held.verification_status = 'VERIFIED'
@@ -164,7 +164,7 @@ def unprotect_parent_identity(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [("tokens", "0039_swap_settlement_context")]
+    dependencies = [("tokens", "0039_swap_settlement_context"), ("shared", "0004_rls_policies")]
     operations = [
         migrations.RunPython(refuse_parent_drift, migrations.RunPython.noop),
         migrations.RunPython(protect_parent_identity, unprotect_parent_identity),

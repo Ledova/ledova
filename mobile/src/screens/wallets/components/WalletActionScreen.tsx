@@ -259,7 +259,6 @@ export function WalletActionScreen() {
   const handleDeriveConfirm = (derivedAddress: DerivedAddress) => {
     crud.createWallet(
       {
-        userAccount: crud.userAccountUuid!,
         address: derivedAddress.address,
         chain: wallet.chain,
         signingPreference: wallet.signingPreference ?? undefined,

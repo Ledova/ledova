@@ -31,12 +31,11 @@ export const tradingQueryKeys = {
 };
 
 export function useUserTradingWallets() {
-  const { portfolio, isLoading: isLoadingPortfolio } = useSelectedPortfolio();
+  const { isLoading: isLoadingPortfolio } = useSelectedPortfolio();
 
   const walletsQuery = useQuery({
-    queryKey: ['wallets', portfolio?.userAccount, 'trading'],
-    queryFn: () => getWallets(apiClient, { user_account: portfolio!.userAccount }),
-    enabled: !!portfolio?.userAccount,
+    queryKey: ['wallets', 'trading'],
+    queryFn: () => getWallets(apiClient),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
     select: (data) => ({

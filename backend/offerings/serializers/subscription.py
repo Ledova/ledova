@@ -131,12 +131,11 @@ class IssuerSubscriptionSerializer(serializers.ModelSerializer):
 class SubscriptionCreateSerializer(serializers.ModelSerializer):
 
     offering = serializers.SlugRelatedField(slug_field="uuid", queryset=Offering.objects.none())
-    user_account = serializers.SlugRelatedField(slug_field="uuid", queryset=UserAccount.objects.none())
     wallet = serializers.SlugRelatedField(slug_field="uuid", queryset=Wallet.objects.none())
 
     class Meta:
         model = Subscription
-        fields = ["offering", "user_account", "wallet", "quantity"]
+        fields = ["offering", "wallet", "quantity"]
 
     def get_fields(self):
         fields = super().get_fields()
@@ -144,9 +143,15 @@ class SubscriptionCreateSerializer(serializers.ModelSerializer):
         fields["offering"].queryset = Offering.objects.open_now().filter(
             token__company__in=eligible_investor_companies(user)
         )
-        fields["user_account"].queryset = UserAccount.objects.visible_to_user(user).investing()
         fields["wallet"].queryset = Wallet.objects.visible_to_user(user).verified_evm().filter(chain=BLOCKCHAIN_BASE)
         return fields
+
+    def validate(self, attrs):
+        user = getattr(self.context.get("request"), "user", None)
+        account = attrs["user_account"] = UserAccount.objects.visible_to_user(user).investing().first()
+        if account is None:
+            raise serializers.ValidationError({"user_account": "This user has no investing account."})
+        return attrs
 
     def create(self, validated_data):
         request = self.context.get("request")

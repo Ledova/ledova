@@ -62,9 +62,7 @@ class SeedDemoCommandTest(APITestCase):
         response = self.client.get("/api/user-accounts/")
 
         self.assertEqual(response.status_code, 200, response.content)
-        payload = response.json()
-        accounts = payload if isinstance(payload, list) else payload["results"]
-        self.assertEqual([account["role"] for account in accounts], ["company"])
+        self.assertEqual(response.json()["role"], "company")
 
     def test_the_company_is_active_with_a_verified_operator_wallet(self):
         company = Company.objects.get(acn=DEMO_ACN)

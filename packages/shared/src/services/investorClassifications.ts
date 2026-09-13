@@ -20,7 +20,6 @@ export const submitInvestorClassification = (
 ) => {
   const formData = new FormData();
   formData.append('evidence_file', data.file);
-  formData.append('user_account', data.userAccount);
   formData.append('category', data.category);
   formData.append('declaration_accepted', 'true');
   formData.append('declared_basis', data.declaredBasis);

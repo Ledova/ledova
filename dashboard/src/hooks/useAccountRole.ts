@@ -1,19 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
-import { CACHE_TIMING } from '@ledova/shared';
+import { CACHE_TIMING, getUserAccount } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 
 export type AccountRole = 'investor' | 'company' | 'both';
 
 export function useAccountRole() {
   const query = useQuery({
-    queryKey: ['userAccounts'],
-    queryFn: () => apiClient.get('/api/user-accounts/'),
+    queryKey: ['userAccount'],
+    queryFn: () => getUserAccount(apiClient),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
   });
 
-  const accountsData = query.data?.data as { results?: { role?: string }[] } | { role?: string }[] | undefined;
-  const account = Array.isArray(accountsData) ? accountsData[0] : accountsData?.results?.[0] || null;
-  const role: AccountRole = (account?.role as AccountRole) ?? 'investor';
+  const role: AccountRole = query.data?.data.role ?? 'investor';
 
   return {
     role,

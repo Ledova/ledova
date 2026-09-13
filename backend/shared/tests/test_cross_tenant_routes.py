@@ -52,7 +52,6 @@ from users.models.investor_classification import InvestorClassification
 def _classification_payload():
 
     return {
-        "user_account": "{account}",
         "category": "product_value",
         "declaration_accepted": True,
         "declared_basis": "Holdings above the threshold.",
@@ -67,7 +66,6 @@ def _clear_open_classifications(tenant):
 SIGNATURE = "0x" + "ab" * 65
 DIGEST = "0x" + "cd" * 32
 RECIPIENT = "0x" + "9" * 40
-NEW_WALLET_ADDRESS = "0x" + "e" * 40
 ALLOWANCE = {
     "token": "0x" + "7" * 40,
     "token_symbol": "TUSD",
@@ -162,7 +160,6 @@ OFFERING = {
     "useOfProceeds": "Working capital",
 }
 SUBSCRIPTION = {
-    "userAccount": "{account}",
     "wallet": "{wallet}",
     "quantity": 10,
 }
@@ -180,7 +177,6 @@ ROUTES = (
     Route("put", "/api/financial-profiles/{financial_profile}/", {"occupation": "Changed"}),
     Route("patch", "/api/financial-profiles/{financial_profile}/", {"occupation": "Changed"}),
     Route("get", "/api/user-accounts/{account}/"),
-    Route("put", "/api/user-accounts/{account}/", {"role": "both"}),
     Route("patch", "/api/user-accounts/{account}/", {"role": "both"}),
     Route("get", "/api/user-preferences/{preferences}/"),
     Route("put", "/api/user-preferences/{preferences}/", {"theme": "light"}),
@@ -199,14 +195,9 @@ ROUTES = (
     Route("patch", "/api/notification-preferences/{notification_preferences}/", {"marketing": True}),
     Route("get", "/api/wallets/{wallet}/"),
     Route(
-        "post",
-        "/api/wallets/batch-check-balances/",
-        {"userAccount": "{account}", "chain": "base", "addresses": [NEW_WALLET_ADDRESS]},
-    ),
-    Route(
         "put",
         "/api/wallets/{wallet}/",
-        {"userAccount": "{own_account}", "address": "{wallet_address}", "chain": "base"},
+        {"address": "{wallet_address}", "chain": "base"},
     ),
     Route("patch", "/api/wallets/{wallet}/", {"name": "Renamed"}),
     Route("delete", "/api/wallets/{spare_wallet}/"),
@@ -216,17 +207,6 @@ ROUTES = (
     Route("get", "/api/wallets/{wallet}/holdings/"),
     Route("post", "/api/wallets/{wallet}/prepare-transfer/", {"toAddress": "0x" + "c" * 40, "amountEth": "0.1"}),
     Route("post", "/api/wallets/{wallet}/broadcast-transfer/", {"signedTransaction": "{signed_transfer}"}),
-    Route(
-        "post",
-        "/api/wallets/",
-        {
-            "userAccount": "{account}",
-            "address": NEW_WALLET_ADDRESS,
-            "chain": "ethereum",
-            "walletType": "software",
-        },
-        foreign=400,
-    ),
     Route("get", "/api/transactions/{transaction}/"),
     Route("post", "/api/fiat-purchases/transak-widget-url/", {"walletUuid": "{wallet}"}),
     Route("get", "/api/portfolios/{portfolio}/"),
@@ -312,33 +292,10 @@ ROUTES = (
     ),
     Route(
         "post",
-        "/api/portfolios/",
-        {"name": "A portfolio", "userAccount": "{account}"},
-        foreign=400,
-        rejects="userAccount",
-    ),
-    Route(
-        "post",
-        "/api/favourite-assets/",
-        {"userAccount": "{account}", "asset": "{stablecoin}"},
-        foreign=400,
-        rejects="userAccount",
-    ),
-    Route(
-        "post",
         "/api/user-preferences/",
         {"selectedPortfolio": "{portfolio}"},
         foreign=400,
         rejects="selectedPortfolio",
-    ),
-    Route(
-        "post",
-        "/api/investor-classifications/",
-        _classification_payload,
-        foreign=400,
-        rejects="userAccount",
-        content_type="multipart",
-        prepare=_clear_open_classifications,
     ),
     Route(
         "get",
@@ -469,7 +426,6 @@ REGISTRY_ADMIN_ROUTES = (
 LIST_ROUTES = (
     ("/api/user-profiles/", ("profile",)),
     ("/api/financial-profiles/", ("financial_profile",)),
-    ("/api/user-accounts/", ("account",)),
     ("/api/favourite-assets/", ("favourite",)),
     ("/api/device-tokens/", ("device_token",)),
     ("/api/notifications/", ("notification",)),
@@ -490,6 +446,7 @@ LIST_ROUTES = (
     ("/api/v1/documents/", ("document",)),
 )
 SINGLETON_ROUTES = (
+    ("/api/user-accounts/", "account"),
     ("/api/user-preferences/", "preferences"),
     ("/api/notification-preferences/", "notification_preferences"),
 )

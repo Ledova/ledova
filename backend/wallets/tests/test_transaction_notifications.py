@@ -25,7 +25,7 @@ class TransactionNotificationProducerTest(TestCase):
     def transaction_rows(self, user):
         return Notification.objects.filter(user=user, notification_type="transaction")
 
-    def test_confirmation_creates_the_row_and_defers_one_job_per_member(self):
+    def test_confirmation_creates_the_row_and_defers_one_job_for_the_owner(self):
         with patch(TASK) as task:
             task.defer.side_effect = run_task
             result = transaction_confirmation.confirm_transaction(
@@ -48,7 +48,7 @@ class TransactionNotificationProducerTest(TestCase):
             )
         task.defer.assert_not_called()
 
-    def test_failure_creates_the_row_and_defers_one_job_per_member(self):
+    def test_failure_creates_the_row_and_defers_one_job_for_the_owner(self):
         with patch(TASK) as task:
             task.defer.side_effect = run_task
             result = transaction_confirmation.fail_transaction(

@@ -5,7 +5,7 @@ import apiClient from '@services/apiClient';
 export function useWalletsSummary(accountUuid: string | undefined) {
   const walletsQuery = useQuery({
     queryKey: ['home-wallets', accountUuid],
-    queryFn: () => getWallets(apiClient, { user_account: accountUuid! }),
+    queryFn: () => getWallets(apiClient),
     enabled: !!accountUuid,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,

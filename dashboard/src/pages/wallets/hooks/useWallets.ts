@@ -13,18 +13,15 @@ import {
   canDeriveNextWalletAddress,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { useSelectedPortfolio } from '@hooks/useSelectedPortfolio';
 import type { Wallet, CreateWallet, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
 
 export function useWallets() {
   const queryClient = useQueryClient();
-  const { portfolio } = useSelectedPortfolio();
   const [derivingWallet, setDerivingWallet] = useState<Wallet | null>(null);
 
   const walletsQuery = useQuery({
-    queryKey: ['wallets', portfolio?.userAccount, { order_by: 'address_index' }],
-    queryFn: () => getWallets(apiClient, { user_account: portfolio!.userAccount, order_by: 'address_index' }),
-    enabled: !!portfolio?.userAccount,
+    queryKey: ['wallets', { order_by: 'address_index' }],
+    queryFn: () => getWallets(apiClient, { order_by: 'address_index' }),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
   });
@@ -44,7 +41,7 @@ export function useWallets() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (uuid: string) => deleteWallet(apiClient, uuid, portfolio?.userAccount),
+    mutationFn: (uuid: string) => deleteWallet(apiClient, uuid),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wallets'] });
     },
@@ -59,8 +56,6 @@ export function useWallets() {
 
   const handleBatchCreateWallets = useCallback(
     async (addresses: DerivedAddress[], importData: HardwareWalletImport) => {
-      if (!portfolio?.userAccount) return;
-
       for (const addr of addresses) {
         const parentKey = importedParentKey(addr, importData);
 
@@ -68,7 +63,6 @@ export function useWallets() {
         if (!chain) continue;
 
         const walletData: CreateWallet = {
-          userAccount: portfolio.userAccount,
           address: addr.address,
           chain: chain.code,
           derivationPath: addr.derivationPath,
@@ -85,7 +79,7 @@ export function useWallets() {
         createMutation.mutate(walletData);
       }
     },
-    [portfolio?.userAccount, createMutation],
+    [createMutation],
   );
 
   const handleUpdateWalletName = useCallback(
@@ -114,11 +108,10 @@ export function useWallets() {
 
   const handleDeriveAddress = useCallback(
     (derivedAddress: DerivedAddress) => {
-      if (!derivingWallet || !portfolio?.userAccount) return;
+      if (!derivingWallet) return;
 
       createMutation.mutate(
         {
-          userAccount: portfolio.userAccount,
           address: derivedAddress.address,
           chain: derivingWallet.chain,
           derivationPath: derivedAddress.derivationPath,
@@ -135,7 +128,7 @@ export function useWallets() {
         },
       );
     },
-    [derivingWallet, portfolio?.userAccount, createMutation],
+    [derivingWallet, createMutation],
   );
 
   const wallets = walletsQuery.data?.data.results || [];
@@ -149,7 +142,6 @@ export function useWallets() {
 
   return {
     wallets,
-    userAccountUuid: portfolio?.userAccount,
     derivingWallet,
     isLoading: walletsQuery.isLoading,
     isCreating: createMutation.isPending,

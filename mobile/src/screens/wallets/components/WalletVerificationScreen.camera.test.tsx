@@ -179,7 +179,7 @@ it('decodes a real signature once and does not submit retained frames after succ
   });
   await waitFor(() => expect(view.getByText('Verification Successful!')).toBeTruthy());
   expect(mockVerifySignature.mock.calls).toEqual([
-    [{}, 'synthetic-wallet', { signature: '0x' + signatureBytes.toString('hex') }, 'synthetic-account'],
+    [{}, 'synthetic-wallet', { signature: '0x' + signatureBytes.toString('hex') }],
   ]);
   expect(view.queryByTestId('camera-preview')).toBeNull();
   await changeAppState('background');
@@ -302,6 +302,6 @@ it('keeps the verification step and challenge through app lock without submittin
   });
   await waitFor(() => expect(view.getByText('Verification Successful!')).toBeTruthy());
   expect(mockVerifySignature.mock.calls).toEqual([
-    [{}, 'synthetic-wallet', { signature: '0x' + signatureBytes.toString('hex') }, 'synthetic-account'],
+    [{}, 'synthetic-wallet', { signature: '0x' + signatureBytes.toString('hex') }],
   ]);
 });

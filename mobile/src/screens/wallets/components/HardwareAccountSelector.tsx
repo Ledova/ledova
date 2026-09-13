@@ -11,17 +11,11 @@ import { WalletNetworkSelector } from './WalletNetworkSelector';
 
 interface HardwareAccountSelectorProps {
   urString: string;
-  userAccountUuid: string | undefined;
   onSelectAccounts: (addresses: DerivedAddress[], importData: HardwareWalletImport) => void;
   onCancel: () => void;
 }
 
-export function HardwareAccountSelector({
-  urString,
-  userAccountUuid,
-  onSelectAccounts,
-  onCancel,
-}: HardwareAccountSelectorProps) {
+export function HardwareAccountSelector({ urString, onSelectAccounts, onCancel }: HardwareAccountSelectorProps) {
   const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
     container: {
@@ -114,7 +108,7 @@ export function HardwareAccountSelector({
   const [addresses, setAddresses] = useState<DerivedAddress[]>([]);
   const [importData, setImportData] = useState<HardwareWalletImport | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { balances, fetchBalances } = useFetchBalances(userAccountUuid);
+  const { balances, fetchBalances } = useFetchBalances();
 
   useEffect(() => {
     setIsLoading(true);
@@ -216,7 +210,6 @@ export function HardwareAccountSelector({
           onChange={(network) => setEvmNetwork(network === 'base' ? 'BASE' : 'ETH')}
         />
       )}
-      {!userAccountUuid && <Text style={styles.heroSubtitle}>Select an account to import wallets.</Text>}
       <ScrollView style={styles.addressList} showsVerticalScrollIndicator={false}>
         {addresses.map(renderAddressItem)}
       </ScrollView>
@@ -225,11 +218,7 @@ export function HardwareAccountSelector({
         <SecondaryButton onPress={onCancel} style={styles.actionButton}>
           Cancel
         </SecondaryButton>
-        <PrimaryButton
-          onPress={handleImport}
-          disabled={!userAccountUuid || selectedAddresses.size === 0}
-          style={styles.actionButton}
-        >
+        <PrimaryButton onPress={handleImport} disabled={selectedAddresses.size === 0} style={styles.actionButton}>
           Import Wallet
         </PrimaryButton>
       </View>

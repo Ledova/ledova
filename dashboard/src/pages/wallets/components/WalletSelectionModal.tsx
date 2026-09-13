@@ -25,20 +25,18 @@ interface WalletSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectWallet: (wallet: Wallet) => void;
-  userAccountUuid?: string;
 }
 
-export function WalletSelectionModal({ isOpen, onClose, onSelectWallet, userAccountUuid }: WalletSelectionModalProps) {
+export function WalletSelectionModal({ isOpen, onClose, onSelectWallet }: WalletSelectionModalProps) {
   const { formatDisplayCurrency } = useCurrency();
   const walletsQuery = useQuery({
-    queryKey: ['wallets', userAccountUuid, { verification_status: 'VERIFIED', order_by: 'signing_preference' }],
+    queryKey: ['wallets', { verification_status: 'VERIFIED', order_by: 'signing_preference' }],
     queryFn: () =>
       getWallets(apiClient, {
-        user_account: userAccountUuid!,
         verification_status: 'VERIFIED',
         order_by: 'signing_preference',
       }),
-    enabled: !!userAccountUuid && isOpen,
+    enabled: isOpen,
   });
 
   const wallets = walletsQuery.data?.data.results || [];

@@ -1,13 +1,17 @@
+from rest_framework import status
+from rest_framework.response import Response
+
 from shared.db import atomic
 from shared.views.base import AuthenticatedModelViewSet
 from users.models import UserAccount
 from users.serializers.user_account import UserAccountSerializer
-from users.services import register_account
+
+NO_ACCOUNT = "This user has no account."
 
 
 class UserAccountViewSet(AuthenticatedModelViewSet):
     serializer_class = UserAccountSerializer
-    http_method_names = ["get", "post", "put", "patch", "head", "options"]
+    http_method_names = ["get", "patch", "head", "options"]
 
     ordering = ["-activation_date"]
     ordering_fields = ["activation_date", "created_at"]
@@ -15,21 +19,19 @@ class UserAccountViewSet(AuthenticatedModelViewSet):
     scoped_model = UserAccount
 
     def narrow(self, queryset):
-        if getattr(self, "action", None) in {"update", "partial_update"}:
+        if getattr(self, "action", None) == "partial_update":
             return queryset.select_for_update()
         return queryset
 
-    def perform_create(self, serializer):
-        profile = self.request.user.userprofile
-        register_account(serializer.save(user_profile=profile, director=profile))
+    def list(self, request):
+        account = self.get_queryset().first()
+        if account is None:
+            return Response({"detail": NO_ACCOUNT}, status=status.HTTP_404_NOT_FOUND)
+        return Response(self.get_serializer(account).data)
 
     def perform_update(self, serializer):
         return serializer.save()
 
     @atomic()
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
-
-    @atomic()
-    def update(self, request, *args, **kwargs):
-        return super().update(request, *args, **kwargs)
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)

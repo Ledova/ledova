@@ -1,12 +1,9 @@
-from compliance.services.risk_assessment import RiskAssessmentService
-from shared.db import atomic
 from users.models import NotificationPreferences
 
 
-@atomic()
-def register_account(account):
-    RiskAssessmentService.create_pending_assessment(user_account=account)
-    return account
+def account_of(user):
+    profile = getattr(user, "userprofile", None) if user is not None and user.is_authenticated else None
+    return getattr(profile, "user_account", None)
 
 
 def ensure_notification_preferences(user_profile):

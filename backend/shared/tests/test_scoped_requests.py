@@ -124,37 +124,6 @@ class RequestTransactionsUseTheAppRoleTest(StubUploadDependencies, RunsOnTheScop
             format="multipart",
         )
 
-    def test_failed_account_creation_leaves_no_unlinked_row_visible_to_the_operator(self):
-        with patch(
-            "users.services.accounts.RiskAssessmentService.create_pending_assessment", side_effect=RuntimeError("probe")
-        ):
-            response = self.client.post("/api/user-accounts/", {"accountType": "individual"}, format="json")
-        self.assertEqual(response.status_code, 500, response.content)
-        with use_operator():
-            self.assertEqual(UserAccount.objects.count(), 0)
-
-    def test_successful_account_creation_commits_the_profile_link(self):
-        response = self.client.post("/api/user-accounts/", {"accountType": "individual"}, format="json")
-        self.assertEqual(response.status_code, 201, response.content)
-        with use_operator():
-            account = UserAccount.objects.get(uuid=response.json()["uuid"])
-            self.assertEqual(account.user_profile_id, self.profile.pk)
-
-    def test_a_client_supplied_director_cannot_replace_the_requester(self):
-        with use_operator():
-            other = User.objects.create_user(email="foreign-director@example.test", password=PASSWORD)
-            foreign_profile = UserProfile.objects.create(user=other)
-        response = self.client.post(
-            "/api/user-accounts/",
-            {"accountType": "individual", "director": str(foreign_profile.pk)},
-            format="json",
-        )
-        self.assertEqual(response.status_code, 201, response.content)
-        with use_operator():
-            account = UserAccount.objects.get(uuid=response.json()["uuid"])
-            self.assertEqual(account.director_id, self.profile.pk)
-            self.assertEqual(account.user_profile_id, self.profile.pk)
-
     def test_failed_document_enqueue_leaves_no_row_on_either_connection(self):
         with patch("documents.services.document.extract_document.defer", side_effect=RuntimeError("probe")) as defer:
             response = self.upload()

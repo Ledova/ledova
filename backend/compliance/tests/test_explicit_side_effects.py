@@ -15,7 +15,7 @@ from compliance.constants import (
 from compliance.models import ComplianceAlert, CustomerRiskAssessment, MonitoringRule
 from compliance.services.transaction_monitoring import TransactionMonitoringService
 from shared.tests.tenants import an_account
-from users.models import UserAccount, UserProfile
+from users.models import UserProfile
 from users.services.setup import ensure_defaults
 from wallets.models import Transaction, Wallet
 from wallets.services import transaction_confirmation
@@ -126,13 +126,4 @@ class PendingRiskAssessmentOnAccountCreateTest(APITestCase):
         _, account, _, _ = ensure_defaults(self.user)
         ensure_defaults(self.user)
 
-        self.assertEqual(self.pending_for(account).count(), 1)
-
-    def test_api_account_creation_creates_a_pending_assessment(self):
-        self.client.force_authenticate(self.user)
-
-        response = self.client.post("/api/user-accounts/", {"accountType": "individual"}, format="json")
-
-        self.assertEqual(response.status_code, 201, response.content)
-        account = UserAccount.objects.get(uuid=response.json()["uuid"])
         self.assertEqual(self.pending_for(account).count(), 1)
