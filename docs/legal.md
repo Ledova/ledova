@@ -1,5 +1,7 @@
 # Legal positions taken without advice
 
+[Documentation](README.md) · [Decisions](decisions.md)
+
 Five questions the project depends on — four on how it must behave, one on the
 licence it is published under. **Nobody qualified has been asked any of them.**
 This document records the position the project takes on each, what it is built
@@ -12,14 +14,12 @@ primary sources, written down.
 
 Questions 1 to 4 arise under the Corporations Act 2001 (Cth) and question 5
 under the project's own licence. Read the provision before relying on a summary
-of it: [the Act on the Federal Register of
-Legislation](https://www.legislation.gov.au/C2004A00818/latest/text), and
+of it: [the Act on the Federal Register of Legislation](https://www.legislation.gov.au/C2004A00818/latest/text), and
 [LICENSE](../LICENSE), which is short.
 
 ## What bites now, and what does not
 
-**None of these bite today**, and for the first four the reason is one fact
-rather than four arguments: the platform runs on a local chain or a supported
+**Questions 1–4 are not engaged by the project’s recorded use:** the platform runs on a local chain or a supported
 testnet, with synthetic data, and has never held a real security, a real
 investor's money or a real company's register. The chain guards refuse any
 mainnet chain id and mainnet configuration is absent from the repository. A
@@ -56,12 +56,7 @@ stopped being a member within the last seven years, the information the register
 held about them and the date they stopped. The Act expressly permits those
 entries to be **kept separately** from the rest of the register.
 
-**What the code does.** Current members are derived from on-chain balances;
-former members are stored in `FormerHolder`, written by the six-hourly
-`Transfer` fold, and exported as their own section of the register CSV.
-`FORMER_MEMBER_RETENTION_DAYS` defaults to 2557 and the service refuses to fold
-or purge below it. [ARCHITECTURE.md](ARCHITECTURE.md#former-members) describes
-the mechanism.
+**Implementation.** See [current and former members](architecture/register.md), including the seven-year minimum and the separate former-member export.
 
 **The position.** A derived current-holders view does not on its own satisfy
 169(3), so the stored record exists. Keeping it separately is what the section
@@ -85,13 +80,7 @@ the fold cannot reconstruct, and nothing imports it.
 **What the section says.** A company must set up and maintain a register of its
 members. The obligation is expressed as the company's.
 
-**What the code does.** The operator console names the deployment mode and, for
-each active company, who keeps the register on that deployment. It states that
-fact and stops: it does not assert who carries the obligation. Every relation on
-the spine `Company -> ShareToken -> {ShareIssuance, ShareIssuanceRequest,
-CapitalIncreaseRequest, Offering, TransferOrder}` is `PROTECT`, so an issuer
-with delete permission on its own company cannot destroy the register as a side
-effect of deleting it.
+**Implementation.** See [operator setup](operations/operator-console.md) and [register protection](architecture/register.md).
 
 **The position.** The company carries the obligation and the platform keeps the
 register as its agent. That is the plain reading, and it is also the only
@@ -117,12 +106,7 @@ records of this kind: the Corporations Act's financial-records provision, and
 the AML/CTF customer-identification record requirements. Seven years is the
 conventional Australian answer and the reason 2557 days was chosen.
 
-**What the code does.** `CLASSIFICATION_EVIDENCE_RETENTION_DAYS` defaults to
-2557 and is deploy-time rather than admin-editable, because purging is
-irreversible. The clock is `RETENTION_CLOCK`: `reviewed_at` for a rejected,
-revoked or withdrawn claim, `expires_at` for a verified one, and a submitted
-claim has no clock and is never swept. `0` retains indefinitely.
-`FORMER_MEMBER_RETENTION_DAYS` is independent and refuses to go below 2557.
+**Implementation.** [Retention configuration](operations/uploads.md) owns the independent evidence and former-member settings; [file lifecycles](architecture/files-and-retention.md) owns the serving and purge rules.
 
 **The position.** Seven years, from review or expiry. The basis is the
 convergence of the two obligations above rather than a considered view of which
@@ -179,12 +163,12 @@ provisions are named, the gaps are listed, and what the software actually does
 is written down. A fixed-fee opinion on a question that precise costs a small
 fraction of an open engagement that starts with explaining the product.
 
-**One dated fact to watch.** The `accountant_certificate` category depends on
+**Dated follow-up from the original position.** The `accountant_certificate` category depends on
 who counts as a qualified accountant, which is set by an ASIC legislative
 instrument rather than by the Act — ASIC Corporations (Qualified Accountant)
 Instrument 2016/786, due to sunset on 1 October 2026 and proposed to be remade.
 [RG 154](https://www.asic.gov.au/regulatory-resources/find-a-document/regulatory-guides/rg-154-certificate-by-a-qualified-accountant/)
-is the guide, and the thresholds a certificate attests to are in it. If the
+is the guide. Recheck the instrument status before relying on this dated note. If the
 remade instrument changes who may certify, this category's evidence rules change
 with it.
 
@@ -254,15 +238,8 @@ None of these is advice, and none of them knows anything about this deployment.
 What does not exist, and is worth knowing rather than searching for: community
 legal centres and legal aid do not take commercial financial-services work.
 
-## Where these are recorded elsewhere
+## Related documents
 
-- [ROADMAP.md](ROADMAP.md) — the wholesale-only decision, the four
-  classification categories and the deliberate absence of the fifth, under
-  Decisions taken.
-- [OPERATIONS.md](OPERATIONS.md) — the deployment mode and registrant, the two
-  retention settings and the account-deletion position.
-- [ARCHITECTURE.md](ARCHITECTURE.md) — the register's shape, the former-member
-  fold, and the `PROTECT` spine that stops the register being deleted.
-- [LICENSE](../LICENSE) and [README.md](../README.md) — the FSL terms, the
-  Licensor named in them, and Blueberry Money's stated role as sponsor and
-  prospective operator.
+[Product decisions](decisions.md), [operator setup](operations/operator-console.md),
+[retention configuration](operations/uploads.md), [register design](architecture/register.md),
+and the authoritative [LICENSE](../LICENSE).

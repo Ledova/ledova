@@ -1,0 +1,35 @@
+# Development troubleshooting
+
+[Contributing](../../CONTRIBUTING.md) · [Testing](testing.md)
+
+Start by checking the environment and the actual command outcome before changing
+application code. These are current remedies distilled from prior failures.
+
+| Symptom | Check and remedy |
+| --- | --- |
+| Dashboard serves old code after restart | Rebuild its image; Compose has no dashboard source volume. Keep backend and worker images aligned too. |
+| Signup has no email | On the local debug stack, read the backend log for the verification code. Check the configured provider outside debug. |
+| Cookie writes return CSRF 403 | Put the dashboard origin in `DJANGO_CSRF_TRUSTED_ORIGINS`; clearing localStorage does not clear cookies. |
+| Backend tests cannot start | Start PostgreSQL and supply the isolated test database/role settings. SQLite is no longer the default test environment. |
+| Type-check cannot find Expo configuration | Install mobile dependencies inside `mobile/`, or run `make check`. A root package copy is not proof Metro can resolve it. |
+| Many unrelated PostgreSQL failures | Check alias/principal selection, role credentials and another runner sharing the same test database before blaming a policy. Use a separate database per worktree. |
+| Missing rows only with `select_related` | Check parent policy visibility: an INNER JOIN can remove a child that an unjoined count sees. |
+| Database transaction remains aborted after a caught error | A caught permission/integrity error still aborts PostgreSQL's transaction. Verify the correct connection and savepoint/rollback boundary. |
+| A test hangs in JSON rendering | A mock probably returned another mock. Supply a concrete response value and inspect a faulthandler dump. |
+| All assertions pass but test process fails | Inspect exit status and teardown: leaked React queries, unmounted components or unresolved promises can fail after assertions finish. |
+| Migration test selects a nonexistent column | Query historical state through the migration executor; restore all migrations before current services run. |
+| Upload returns 503 | Check Redis and ClamAV readiness/signature loading; there is no scanner bypass. |
+| LLM or local chain on host times out from container | Check bridge-to-host reachability. Prefer a service on the Compose network and use the documented hostname allowlist for extraction. |
+
+For PostgreSQL authentication on an existing volume, see
+[role provisioning](../operations/configuration.md#row-level-security-roles).
+Changing `POSTGRES_HOST_AUTH_METHOD` after initialization does not rewrite its
+authentication configuration. A successful loopback connection does not prove
+that the container bridge can authenticate.
+
+For native build/device failures, use [native probes](native-probes.md). For a
+pending issuance, transfer or retained file, use [operator recovery](../operations/recovery.md).
+
+When an instrument caused the apparent failure, record that correction. Keep
+historical failure counts and old implementation shapes in their dated source
+records rather than turning them into current setup instructions.

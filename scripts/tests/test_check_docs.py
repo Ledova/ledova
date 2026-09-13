@@ -70,11 +70,46 @@ def a_schedule(rows: str) -> str:
 
 class TheDeadLinkRuleSeesBothDirections(unittest.TestCase):
 
+    def test_a_missing_link_inside_a_nested_guide_is_a_finding(self):
+        documents = {
+            "docs/reference/protocols/transfer.md": "See [recovery](missing.md).\n",
+        }
+        with a_tree(documents):
+            findings = gate.dead_links(gate.documented_files())
+        self.assertEqual(findings, ["docs/reference/protocols/transfer.md:1 missing file missing.md"])
+
+    def test_an_anchor_in_another_nested_guide_must_exist(self):
+        documents = {
+            "docs/architecture/transfers.md": "See [recovery](../operations/recovery.md#missing).\n",
+            "docs/operations/recovery.md": "# Recovery\n",
+        }
+        with a_tree(documents):
+            findings = gate.dead_links(gate.documented_files())
+        self.assertEqual(
+            findings,
+            ["docs/architecture/transfers.md:1 dead anchor ../operations/recovery.md#missing"],
+        )
+
+    def test_nested_parent_sibling_and_local_navigation_resolves(self):
+        documents = {
+            "docs/README.md": "# Documentation\n",
+            "docs/operations/README.md": "# Operations\n",
+            "docs/operations/jobs.md": (
+                "# Jobs\n\n[Schedule](#schedule) · [Operations](README.md)\n"
+                "[Documentation](../README.md) · [Recovery](recovery.md#receipts)\n\n## Schedule\n"
+            ),
+            "docs/operations/recovery.md": "# Recovery\n\n## Receipts\n",
+        }
+        with a_tree(documents):
+            files = gate.documented_files()
+            self.assertEqual(len(files), 4)
+            self.assertEqual(gate.dead_links(files), [])
+
     def test_a_link_to_a_missing_file_is_a_finding(self):
-        with a_tree({"README.md": "See [operations](docs/OPERATIONS.md).\n"}):
+        with a_tree({"README.md": "See [operations](docs/operations/jobs.md).\n"}):
             findings = gate.dead_links(gate.documented_files())
         self.assertEqual(len(findings), 1)
-        self.assertIn("missing file docs/OPERATIONS.md", findings[0])
+        self.assertIn("missing file docs/operations/jobs.md", findings[0])
 
     def test_a_link_to_a_heading_that_does_not_exist_is_a_finding(self):
         with a_tree({"README.md": "# Title\n\nSee [later](#no-such-heading).\n"}):
@@ -84,18 +119,18 @@ class TheDeadLinkRuleSeesBothDirections(unittest.TestCase):
 
     def test_a_link_into_another_document_checks_that_documents_headings(self):
         documents = {
-            "README.md": "See [jobs](docs/OPERATIONS.md#background-jobs).\n",
-            "docs/OPERATIONS.md": "## Something else\n",
+            "README.md": "See [jobs](docs/operations/jobs.md#background-jobs).\n",
+            "docs/operations/jobs.md": "## Something else\n",
         }
         with a_tree(documents):
             findings = gate.dead_links(gate.documented_files())
         self.assertEqual(len(findings), 1)
-        self.assertIn("dead anchor docs/OPERATIONS.md#background-jobs", findings[0])
+        self.assertIn("dead anchor docs/operations/jobs.md#background-jobs", findings[0])
 
     def test_a_link_that_resolves_is_not_a_finding(self):
         documents = {
-            "README.md": "See [jobs](docs/OPERATIONS.md#background-jobs).\n",
-            "docs/OPERATIONS.md": "## Background jobs\n",
+            "README.md": "See [jobs](docs/operations/jobs.md#background-jobs).\n",
+            "docs/operations/jobs.md": "## Background jobs\n",
         }
         with a_tree(documents):
             self.assertEqual(gate.dead_links(gate.documented_files()), [])
@@ -113,8 +148,8 @@ class TheDeadLinkRuleSeesBothDirections(unittest.TestCase):
         while the rendered page was fine.
         """
         documents = {
-            "README.md": "See [phase](docs/ROADMAP.md#phase-2--eligibility-and-the-register).\n",
-            "docs/ROADMAP.md": "## Phase 2 — Eligibility and the register\n",
+            "README.md": "See [phase](docs/roadmap.md#phase-2--eligibility-and-the-register).\n",
+            "docs/roadmap.md": "## Phase 2 — Eligibility and the register\n",
         }
         with a_tree(documents):
             self.assertEqual(gate.dead_links(gate.documented_files()), [])
@@ -123,31 +158,31 @@ class TheDeadLinkRuleSeesBothDirections(unittest.TestCase):
 class ThePeriodicTaskRuleSeesBothDirections(unittest.TestCase):
 
     def test_a_task_in_no_schedule_row_is_a_finding(self):
-        with a_tree({"docs/OPERATIONS.md": a_schedule("| daily | `something_else` |")}) as root:
+        with a_tree({"docs/operations/jobs.md": a_schedule("| daily | `something_else` |")}) as root:
             a_backend_task(root, "tokens/tasks/fold.py", "20 */6 * * *", "fold_every_share_class")
             findings = gate.periodic_findings()
         self.assertEqual(len(findings), 2)
         self.assertIn("`fold_every_share_class` (20 */6 * * *) is in no schedule row", findings[0])
 
     def test_a_schedule_row_naming_no_task_is_a_finding(self):
-        with a_tree({"docs/OPERATIONS.md": a_schedule("| daily | `a_task_that_was_deleted` |")}):
+        with a_tree({"docs/operations/jobs.md": a_schedule("| daily | `a_task_that_was_deleted` |")}):
             findings = gate.periodic_findings()
         self.assertEqual(len(findings), 1)
         self.assertIn("which is not an @app.periodic task", findings[0])
 
     def test_a_documented_task_is_not_a_finding(self):
-        with a_tree({"docs/OPERATIONS.md": a_schedule("| daily | `purge_the_thing` |")}) as root:
+        with a_tree({"docs/operations/jobs.md": a_schedule("| daily | `purge_the_thing` |")}) as root:
             a_backend_task(root, "users/tasks/retention.py", "0 3 * * *", "purge_the_thing")
             self.assertEqual(gate.periodic_findings(), [])
 
     def test_a_dotted_row_matches_on_the_task_name(self):
         row = "| daily | `offerings.expire_unpaid_subscriptions` |"
-        with a_tree({"docs/OPERATIONS.md": a_schedule(row)}) as root:
+        with a_tree({"docs/operations/jobs.md": a_schedule(row)}) as root:
             a_backend_task(root, "offerings/tasks/s.py", "0 3 * * *", "expire_unpaid_subscriptions")
             self.assertEqual(gate.periodic_findings(), [])
 
     def test_a_task_defined_under_tests_is_not_a_task(self):
-        with a_tree({"docs/OPERATIONS.md": a_schedule("| daily | `nothing` |")}) as root:
+        with a_tree({"docs/operations/jobs.md": a_schedule("| daily | `nothing` |")}) as root:
             a_backend_task(root, "tokens/tests/test_fold.py", "0 3 * * *", "a_fixture_task")
             self.assertNotIn("a_fixture_task", " ".join(gate.periodic_findings()))
 
@@ -155,37 +190,37 @@ class ThePeriodicTaskRuleSeesBothDirections(unittest.TestCase):
 class TheGateListRuleSeesBothDirections(unittest.TestCase):
 
     def test_a_script_with_no_row_is_a_finding(self):
-        documents = {"docs/GATES.md": a_gates_file("| `check-layers.py` | [Layers](#layers) |")}
+        documents = {"docs/development/gates.md": a_gates_file("| `check-layers.py` | [Layers](#layers) |")}
         with a_tree(documents, scripts=("check-layers.py", "check-newly-added.py")):
             findings = gate.gate_findings()
         self.assertEqual(len(findings), 1)
         self.assertIn("scripts/check-newly-added is a gate with no section", findings[0])
 
     def test_a_row_naming_no_script_is_a_finding(self):
-        documents = {"docs/GATES.md": a_gates_file("| `check-deleted.py` | [Gone](#gone) |")}
+        documents = {"docs/development/gates.md": a_gates_file("| `check-deleted.py` | [Gone](#gone) |")}
         with a_tree(documents, scripts=("check-layers.py",)):
             findings = gate.gate_findings()
         self.assertEqual(len(findings), 2)
         self.assertIn("names scripts/check-deleted, which does not exist", " ".join(findings))
 
     def test_a_documented_script_is_not_a_finding(self):
-        documents = {"docs/GATES.md": a_gates_file("| `check-layers.py` | [Layers](#layers) |")}
+        documents = {"docs/development/gates.md": a_gates_file("| `check-layers.py` | [Layers](#layers) |")}
         with a_tree(documents, scripts=("check-layers.py",)):
             self.assertEqual(gate.gate_findings(), [])
 
     def test_an_mjs_gate_counts_as_a_gate(self):
-        documents = {"docs/GATES.md": a_gates_file("| `check-self-imports.mjs` | [Shared](#shared) |")}
+        documents = {"docs/development/gates.md": a_gates_file("| `check-self-imports.mjs` | [Shared](#shared) |")}
         with a_tree(documents, scripts=("check-self-imports.mjs",)):
             self.assertEqual(gate.gate_findings(), [])
 
     def test_a_script_named_in_not_a_gate_needs_no_row(self):
-        documents = {"docs/GATES.md": a_gates_file("| `check-layers.py` | [Layers](#layers) |")}
+        documents = {"docs/development/gates.md": a_gates_file("| `check-layers.py` | [Layers](#layers) |")}
         with a_tree(documents, scripts=("check-layers.py", "check-port-free.py")):
             self.assertEqual(gate.gate_findings(), [])
 
     def test_documenting_a_not_a_gate_script_is_a_finding_from_the_other_side(self):
         rows = "| `check-layers.py` | [Layers](#layers) |\n| `check-port-free.py` | [Ports](#ports) |"
-        with a_tree({"docs/GATES.md": a_gates_file(rows)}, scripts=("check-layers.py", "check-port-free.py")):
+        with a_tree({"docs/development/gates.md": a_gates_file(rows)}, scripts=("check-layers.py", "check-port-free.py")):
             findings = gate.gate_findings()
         self.assertEqual(len(findings), 1)
         self.assertIn("NOT_A_GATE says is not a gate", findings[0])
@@ -202,20 +237,20 @@ class TheGateListRuleSeesBothDirections(unittest.TestCase):
             + "\nRun `make check-mobile-test-awaits` too, and POST to batch-\n"
             + "check-balances for a preview.\n"
         )
-        with a_tree({"docs/GATES.md": document}, scripts=("check-layers.py",)):
+        with a_tree({"docs/development/gates.md": document}, scripts=("check-layers.py",)):
             self.assertEqual(gate.gate_findings(), [])
 
 
 class TheGateRefusesToPassByFindingNothing(unittest.TestCase):
 
     def test_a_missing_gate_table_finds_every_script_rather_than_none(self):
-        with a_tree({"docs/GATES.md": "# Gates\n\nNo table here.\n"}, scripts=("check-layers.py",)):
+        with a_tree({"docs/development/gates.md": "# Gates\n\nNo table here.\n"}, scripts=("check-layers.py",)):
             findings = gate.gate_findings()
         self.assertEqual(len(findings), 1)
         self.assertIn("check-layers is a gate with no section", findings[0])
 
     def test_a_missing_schedule_table_finds_every_task_rather_than_none(self):
-        with a_tree({"docs/OPERATIONS.md": "# Operations\n\nNo table here.\n"}) as root:
+        with a_tree({"docs/operations/jobs.md": "# Operations\n\nNo table here.\n"}) as root:
             a_backend_task(root, "tokens/tasks/fold.py", "0 3 * * *", "a_real_task")
             findings = gate.periodic_findings()
         self.assertEqual(len(findings), 1)
