@@ -68,7 +68,7 @@ class EvidenceCase(StubUploadDependencies):
 
     def attach(self):
         with self.captureOnCommitCallbacks(execute=True):
-            self.document = attach_document(self.document, self.owner.user, self.claim.pk)
+            self.document = attach_document(self.document, self.claim.pk)
         return self.document
 
     def extraction(self):
@@ -486,7 +486,7 @@ class EvidenceCommitFailureTest(EvidenceCase, TransactionTestCase):
                                 },
                             )
                         else:
-                            result = attach_document(self.document, self.owner.user, self.claim.pk)
+                            result = attach_document(self.document, self.claim.pk)
                     except OSError as exc:
                         failure = exc
                         result = Document.objects.filter(classification=self.claim).latest("created_at")

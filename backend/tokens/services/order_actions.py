@@ -67,12 +67,12 @@ def _independent_boundary():
         raise ImproperlyConfigured("Order actions require autocommit outside every transaction block.")
 
 
-def _authorized_order(actor, account_id, order_id, *, lock=False):
+def _authorized_order(account_id, order_id, *, lock=False):
     try:
         order_id = UUID(str(order_id))
     except (ValueError, TypeError, AttributeError):
         raise NotFound(NOT_FOUND)
-    orders = TransferOrder.objects.visible_to_user(actor).filter(pk=order_id, owner_account_id=account_id)
+    orders = TransferOrder.objects.ownership_bound().filter(pk=order_id, owner_account_id=account_id)
     if lock:
         orders = TransferOrder.objects.filter(pk__in=orders.values("pk")).select_for_update(of=("self",))
     order = orders.first()
@@ -83,8 +83,7 @@ def _authorized_order(actor, account_id, order_id, *, lock=False):
 
 def _load_action(actor, account_id, action_id):
     action = (
-        OrderActionSubmission.objects.visible_to_user(actor)
-        .select_for_update(of=("self",))
+        OrderActionSubmission.objects.select_for_update(of=("self",))
         .filter(owner_account_id=account_id, action_id=action_id)
         .first()
     )
@@ -95,7 +94,7 @@ def _load_action(actor, account_id, action_id):
 
 def _authorize_action(actor, action):
     _lock_authorized_wallet(actor, action)
-    order = _authorized_order(actor, action.owner_account_id, action.order_id, lock=True)
+    order = _authorized_order(action.owner_account_id, action.order_id, lock=True)
     if (
         order.wallet_id != action.wallet_id
         or order.token_id != action.token_id
@@ -140,8 +139,8 @@ def _current_values(order):
     }
 
 
-def order_action_context(actor, account_id, order_id):
-    order = _authorized_order(actor, account_id, order_id)
+def order_action_context(account_id, order_id):
+    order = _authorized_order(account_id, order_id)
     token = _token_context(order)
     return {
         "protocol_version": 1,
@@ -175,7 +174,7 @@ def _register_action(actor, order_id, purpose, data):
     with atomic(durable=True):
         action = _load_action(actor, data["owner_account_uuid"], data["action_id"])
         if action is None:
-            order = _authorized_order(actor, data["owner_account_uuid"], order_id)
+            order = _authorized_order(data["owner_account_uuid"], order_id)
             token = _token_context(order)
             action, _ = OrderActionSubmission.objects.get_or_create(
                 owner_account_id=data["owner_account_uuid"],

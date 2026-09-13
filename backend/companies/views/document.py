@@ -22,14 +22,9 @@ class DocumentViewSet(UploadProtectedView, AuthenticatedModelViewSet):
     ordering_fields = ["created_at"]
 
     scoped_model = CompanyDocument
-    manage_actions = frozenset({"create", "destroy"})
-
-    def _writing(self):
-        return self.action in self.manage_actions
 
     def _company(self):
-        scope = Company.objects.manageable_by_user if self._writing() else Company.objects.visible_to_user
-        company = scope(self.request.user).filter(uuid=self.kwargs["company_uuid"]).first()
+        company = Company.objects.owned_by(self.request.user).filter(uuid=self.kwargs["company_uuid"]).first()
         if not company:
             raise NotFound("Company not found or permission denied")
         return company

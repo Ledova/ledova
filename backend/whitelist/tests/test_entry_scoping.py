@@ -1,7 +1,6 @@
 from unittest.mock import Mock, call, patch
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import AnonymousUser
 from rest_framework.test import APITestCase
 
 from blockchain.models import BlockchainTransaction
@@ -75,16 +74,6 @@ class WhitelistEntryScopingTest(APITestCase):
             ("patch", self.detail_url, {"status": "active"}),
             ("delete", self.detail_url, None),
         ]
-
-    def test_queryset_is_visible_only_to_authenticated_staff(self):
-        for actor in (None, AnonymousUser(), self.member, self.superuser_only):
-            with self.subTest(actor=actor):
-                self.assertFalse(WhitelistEntry.objects.visible_to_user(actor).exists())
-
-        self.assertEqual(
-            set(WhitelistEntry.objects.visible_to_user(self.staff)),
-            {self.entry, self.foreign_entry},
-        )
 
     @patch("whitelist.views.entry.WhitelistService")
     def test_nonoperators_cannot_use_operator_routes(self, whitelist_service):

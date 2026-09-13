@@ -386,7 +386,7 @@ Whether a row the caller can see implies its children are visible is a property 
 each relation, and no rule over the syntax can know it. The issuer subscriptions
 action illustrates why: reading an offering does not by itself authorize the
 caller to read every investor's subscriptions. Its child query now explicitly
-filters by `Offering.objects.manageable_by_user(request.user)` before applying
+filters by `Offering.objects.issued_by(request.user)` before applying
 the issuer read bundle. The [tenancy model](ARCHITECTURE.md#tenancy-model)
 describes pressure to widen company visibility, so the issuer boundary must not
 depend on the visible/manageable predicates retaining identical bodies. The

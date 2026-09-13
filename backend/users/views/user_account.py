@@ -19,6 +19,7 @@ class UserAccountViewSet(AuthenticatedModelViewSet):
     scoped_model = UserAccount
 
     def narrow(self, queryset):
+        queryset = queryset.for_holder(self.request.user)
         if getattr(self, "action", None) == "partial_update":
             return queryset.select_for_update()
         return queryset

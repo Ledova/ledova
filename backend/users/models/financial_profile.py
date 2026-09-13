@@ -2,7 +2,6 @@ from django.db import models
 
 from shared.models.base import BaseModel
 from users.constants import INTENDED_USE_CHOICES, SOURCE_OF_FUNDS_CHOICES
-from users.querysets.financial_profile import FinancialProfileQuerySet
 
 
 class FinancialProfile(BaseModel):
@@ -44,8 +43,6 @@ class FinancialProfile(BaseModel):
         null=True,
         help_text="Specification when 'other' is selected as intended use",
     )
-
-    objects = FinancialProfileQuerySet.as_manager()
 
     class Meta:
         verbose_name_plural = "Financial Profiles"

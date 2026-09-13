@@ -34,11 +34,7 @@ def resolve_verified_evm_wallets(user, requested_addresses: list[str]) -> Author
         raise NotFound("Wallet not found.")
 
     wallets = list(
-        Wallet.objects.visible_to_user(user)
-        .verified_evm()
-        .filter(address_query)
-        .only("uuid", "address")
-        .order_by("uuid")
+        Wallet.objects.owned_by(user).verified_evm().filter(address_query).only("uuid", "address").order_by("uuid")
     )
 
     wallets_by_address = {}

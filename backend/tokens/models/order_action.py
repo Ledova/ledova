@@ -4,7 +4,6 @@ from django.conf import settings
 from django.db import models
 
 from shared.models import BaseModel
-from tokens.querysets.order_action import OrderActionQuerySet
 
 
 class OrderActionPurpose(models.TextChoices):
@@ -19,7 +18,6 @@ class OrderActionStatus(models.TextChoices):
 
 
 class OrderActionSubmission(BaseModel):
-    objects = OrderActionQuerySet.as_manager()
 
     action_id = models.UUIDField(editable=False)
     protocol_version = models.PositiveSmallIntegerField(default=1, editable=False)

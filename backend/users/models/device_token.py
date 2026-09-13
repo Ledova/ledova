@@ -2,12 +2,9 @@ from django.conf import settings
 from django.db import models
 
 from shared.models import BaseModel
-from users.querysets.device_token import DeviceTokenQuerySet
 
 
 class DeviceToken(BaseModel):
-
-    objects = DeviceTokenQuerySet.as_manager()
 
     class DeviceType(models.TextChoices):
         IOS = "ios", "iOS"

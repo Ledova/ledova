@@ -46,7 +46,7 @@ def primary_wallet_for(company: Company, chain: str | None = None):
     if company.operator_wallet:
         return company.operator_wallet if company.operator_wallet.chain == chain else None
 
-    return Wallet.objects.visible_to_user(company.owner).verified_for_chain(chain)
+    return Wallet.objects.owned_by(company.owner).verified_for_chain(chain)
 
 
 def register_company(owner, name: str, acn: str, primary_contact_data: dict, **kwargs) -> Company:

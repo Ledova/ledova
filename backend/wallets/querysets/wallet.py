@@ -14,7 +14,7 @@ _MONEY = DecimalField(max_digits=40, decimal_places=18)
 
 
 class WalletQuerySet(QuerySet):
-    def visible_to_user(self, user):
+    def owned_by(self, user):
         if user is None or not user.is_authenticated:
             return self.none()
         return self.filter(user_account__user_profile__user=user)

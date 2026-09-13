@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APIRequestFactory
 
+from shared.tests.under_the_policies import what_the_policies_admit_to
 from users.models import UserAccount, UserProfile
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
@@ -93,10 +94,10 @@ class LiveMembershipScopingTest(TestCase):
             with self.subTest(user=privileged_user.email):
                 self.assertNotIn(
                     self.account.uuid,
-                    UserAccount.objects.visible_to_user(privileged_user).values_list("uuid", flat=True),
+                    what_the_policies_admit_to(privileged_user, UserAccount).values_list("uuid", flat=True),
                 )
                 self.assertIn(
                     own_account.uuid,
-                    UserAccount.objects.visible_to_user(privileged_user).values_list("uuid", flat=True),
+                    what_the_policies_admit_to(privileged_user, UserAccount).values_list("uuid", flat=True),
                 )
                 self.assertTrue(self._serializer_for(privileged_user).fields["user_account"].read_only)

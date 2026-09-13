@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 def _locked_wallet(user, uuid):
     return get_object_or_404(
-        Wallet.objects.visible_to_user(user).select_for_update(of=("self",)),
+        Wallet.objects.owned_by(user).select_for_update(of=("self",)),
         uuid=uuid,
     )
 

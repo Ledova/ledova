@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 
 from assets.models import Asset, AssetType
+from shared.tests.under_the_policies import what_the_policies_admit_to
 from users.models import UserAccount, UserProfile
 from wallets.models import Transaction, Wallet
 
@@ -97,7 +98,7 @@ class TransactionDirectionIsolationTest(APITestCase):
 
     def test_queryset_direction_filters_bind_to_owned_wallet_for_every_role(self):
         for actor, wallet, incoming, outgoing in self.actor_cases:
-            queryset = Transaction.objects.visible_to_user(actor)
+            queryset = what_the_policies_admit_to(actor, Transaction)
 
             with self.subTest(actor=actor.email, direction="incoming"):
                 self.assertEqual(

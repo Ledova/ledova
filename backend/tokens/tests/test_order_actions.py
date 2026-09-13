@@ -390,7 +390,7 @@ class ScopedOrderActionRecoveryTest(RunsOnTheScopedConnection, OrderActionRecove
             ShareToken.objects.filter(pk=self.order.token_id).update(status="paused")
         with acting_for(self.tenant.user.pk):
             self.assertFalse(ShareToken.objects.filter(pk=self.order.token_id).exists())
-            self.assertTrue(TransferOrder.objects.visible_to_user(self.tenant.user).filter(pk=self.order.pk).exists())
+            self.assertTrue(TransferOrder.objects.filter(pk=self.order.pk).exists())
         recovered = self.recover()
         self.assertEqual(recovered.status_code, 200, recovered.content)
         self.assertEqual(recovered.json()["order"]["tokenName"], first.json()["order"]["tokenName"])

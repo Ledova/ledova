@@ -115,9 +115,9 @@ class OfferingWriteSerializer(serializers.ModelSerializer):
     def get_fields(self):
         fields = super().get_fields()
         user = getattr(self.context.get("request"), "user", None)
-        fields["token"].queryset = ShareToken.objects.manageable_by_user(user)
+        fields["token"].queryset = ShareToken.objects.issued_by(user)
         fields["settlement_assets"].child_relation.queryset = settlement_assets()
-        fields["documents"].child_relation.queryset = CompanyDocument.objects.manageable_by_user(user)
+        fields["documents"].child_relation.queryset = CompanyDocument.objects.all()
         return fields
 
     def _value(self, attrs, name):

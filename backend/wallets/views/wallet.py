@@ -47,6 +47,7 @@ class WalletViewSet(AuthenticatedModelViewSet):
         return super().get_throttles()
 
     def narrow(self, queryset):
+        queryset = queryset.owned_by(self.request.user)
         if self.action in ("update", "partial_update"):
             return queryset.select_for_update(of=("self",))
         return queryset.with_market_value()
@@ -56,7 +57,7 @@ class WalletViewSet(AuthenticatedModelViewSet):
         return super().update(request, *args, **kwargs)
 
     def _with_market_value(self, wallet):
-        return Wallet.objects.visible_to_user(self.request.user).with_market_value().get(pk=wallet.pk)
+        return Wallet.objects.owned_by(self.request.user).with_market_value().get(pk=wallet.pk)
 
     def perform_update(self, serializer):
         serializer.instance = self._with_market_value(serializer.save())

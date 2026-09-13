@@ -49,7 +49,7 @@ class TransactionFilter(django_filters.FilterSet):
         chain = self.form.cleaned_data.get("chain")
         if not chain:
             chain = (
-                Wallet.objects.visible_to_user(self.request.user)
+                Wallet.objects.owned_by(self.request.user)
                 .filter(pk=self.form.cleaned_data["wallet"])
                 .values_list("chain", flat=True)
                 .first()

@@ -4,11 +4,6 @@ from django.utils import timezone
 
 class NotificationQuerySet(QuerySet):
 
-    def visible_to_user(self, user):
-        if user is None or not user.is_authenticated:
-            return self.none()
-        return self.filter(user=user)
-
     def unread(self):
         return self.filter(is_read=False)
 

@@ -1,7 +1,6 @@
 from django.db import models
 
 from shared.models.base import BaseModel
-from users.querysets.user_preferences import UserPreferencesQuerySet
 
 
 class UserPreferences(BaseModel):
@@ -30,8 +29,6 @@ class UserPreferences(BaseModel):
         default="AUD",
         help_text="Currency used for displaying prices and values",
     )
-
-    objects = UserPreferencesQuerySet.as_manager()
 
     class Meta:
         verbose_name_plural = "User Preferences"

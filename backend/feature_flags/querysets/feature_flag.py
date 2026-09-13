@@ -3,8 +3,5 @@ from django.db.models import QuerySet
 
 class FeatureFlagQuerySet(QuerySet):
 
-    def visible_to_user(self, user):
-        if user is None or not user.is_authenticated:
-            return self.none()
-
+    def enabled(self):
         return self.filter(enabled=True)

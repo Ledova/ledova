@@ -22,6 +22,7 @@ class UserProfileViewSet(AuthenticatedModelViewSet):
     scoped_model = UserProfile
 
     def narrow(self, queryset):
+        queryset = queryset.filter(user_id=self.request.user.pk)
         queryset = queryset.select_related("citizenship_country")
         if getattr(self, "action", None) in {"update", "partial_update"}:
             return queryset.select_for_update(of=("self",))

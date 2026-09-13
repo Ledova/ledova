@@ -28,20 +28,11 @@ from tokens.services.company_stats import company_stats
 class CompanyViewSet(AuthenticatedModelViewSet):
     administrative_actions = frozenset({"api_key", "status_update"})
     operator_actions = administrative_actions
-    manageable_actions = {
-        "destroy",
-        "partial_update",
-        "resubmit",
-        "submit",
-        "update",
-        "withdraw",
-    }
     filterset_class = CompanyFilter
     ordering = ["-created_at"]
     ordering_fields = ["created_at", "name", "status"]
 
     scoped_model = Company
-    manage_actions = manageable_actions
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -233,3 +224,8 @@ class CompanyViewSet(AuthenticatedModelViewSet):
     def application_status(self, request, uuid=None):
         company = self.get_object()
         return Response(ApplicationStatusSerializer(company).data)
+
+    def narrow(self, queryset):
+        if self.action in self.administrative_actions:
+            return queryset
+        return queryset.owned_by(self.request.user)

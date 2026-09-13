@@ -9,3 +9,6 @@ class FeatureFlagViewSet(AuthenticatedReadOnlyViewSet):
     ordering_fields = ["name", "created_at"]
 
     scoped_model = FeatureFlag
+
+    def narrow(self, queryset):
+        return queryset.enabled()

@@ -17,8 +17,6 @@ from tokens.serializers import (
 )
 from tokens.services.capital_increase import submit_capital_increase
 
-MANAGE_ACTIONS = ("create", "update", "partial_update", "destroy", "submit")
-
 
 class CapitalIncreaseViewSet(AuthenticatedModelViewSet):
     filterset_class = CapitalIncreaseFilter
@@ -26,7 +24,6 @@ class CapitalIncreaseViewSet(AuthenticatedModelViewSet):
     ordering_fields = ["created_at", "status", "additional_shares"]
 
     scoped_model = CapitalIncreaseRequest
-    manage_actions = MANAGE_ACTIONS
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -50,7 +47,7 @@ class CapitalIncreaseViewSet(AuthenticatedModelViewSet):
         token_uuid = request.data.get("token")
         if not token_uuid:
             raise ValidationError({"token": "Token UUID is required."})
-        token = get_object_or_404(ShareToken.objects.manageable_by_user(request.user), uuid=token_uuid)
+        token = get_object_or_404(ShareToken.objects.issued_by(request.user), uuid=token_uuid)
 
         serializer = self.get_serializer(data=request.data, context={**self.get_serializer_context(), "token": token})
         serializer.is_valid(raise_exception=True)

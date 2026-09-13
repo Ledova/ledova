@@ -240,7 +240,7 @@ DERIVED_FROM_A_MUTABLE_ATTRIBUTE = {
     "before it exists, and this is the entry that says so.",
 }
 
-BYPASSES_VISIBLE_TO_USER = {
+READS_WIDER_THAN_OWNERSHIP = {
     "Company.active for an associated-person claim": (
         "users/services/classification_issuer.py active_issuer_for_claim",
         "The operator validates only the supplied UUID against active issuers and returns only that key. "
@@ -259,14 +259,14 @@ BYPASSES_VISIBLE_TO_USER = {
         "tokens/tests/test_market_reads_scoped.py proves cross-issuer prices, one bounded summary query, "
         "private order refusal and no operator summary access for ineligible or unknown-token requests.",
     ),
-    "ScopesToThePrincipal on an administrative action": (
+    "PolicyQuerysets on an administrative action": (
         "shared/views/scope.py, the get_queryset every AuthenticatedViewSet inherits",
         "every row of the scoped model, and only for an action the view names in "
         "administrative_actions, which is the set get_permissions turns into IsAdminUser. Keyed to "
         "that set rather than to operator_actions, which only chooses a connection and which the "
         "coverage gate permits to be the wider of the two",
-        "shared/tests/test_views_scope_in_the_base.py - the branch tests record which predicate the "
-        "base called, and an operator_actions wider than administrative_actions is refused at import",
+        "shared/tests/test_views_scope_in_the_base.py - import-time checks require every model in the "
+        "catalogue and require an explanation for operator_actions wider than administrative_actions",
     ),
     "ShareIssuanceRequest on subscription reads and withdrawal": (
         "offerings/querysets/subscription.py with_relations and offerings/services/subscription.py _linked_request",
@@ -312,11 +312,11 @@ BYPASSES_VISIBLE_TO_USER = {
         "member does not own the company they administer",
         "shared/tests/test_principal_coverage.py - the administrative-action gate",
     ),
-    "AssetSnapshot.filter(asset=...) on the snapshots action": (
+    "Asset.snapshots on the snapshots action": (
         "assets/views/asset.py:42",
         "no policy term: asset_snapshots is UNSCOPED, price history for the catalogue that is identical "
         "for every tenant. The read is bounded anyway - the asset comes from get_object(), which goes "
-        "through a get_queryset() that does call visible_to_user, so the only snapshots reachable belong "
+        "through the policy queryset base and catalogue product filters, so the only snapshots reachable belong "
         "to an asset this principal can already see",
         "shared/tests/test_cross_tenant_routes_under_rls.py - the asset rows of the route matrix, which "
         "reach the action through the same get_object()",
@@ -348,7 +348,7 @@ PUBLIC_TERM = {
     "the two tables fails, which is why it holds by construction rather than by luck. The policy reads only "
     "this table's own columns, so it forms no cycle with the company term that reads it.",
     "offerings_subscription": "R12 at a third table, found by Omarch 2 measuring rather than reading. "
-    "OfferingViewSet.subscriptions reads Subscription.objects.for_issuer(offering) with no visible_to_user, "
+    "OfferingViewSet.subscriptions reads Subscription.objects.for_issuer(offering), "
     "deliberately - the scope is the offering's ownership rather than the subscriber's account - so a "
     "member-only policy shows an issuer their own subscriptions and silently drops everyone else's. "
     "Measured with two tenants: as the owner for_issuer returns 2, as the app role with the issuer's "
@@ -371,7 +371,7 @@ PUBLIC_TERM = {
     "user_profile_id is not nullable, so without this term select_related would delete the account row and "
     "the subscription with it. The term is the same subscription predicate, one link further.",
     "companies_company": "Two reasons past ownership, and both were measured rather than argued. The "
-    "directory reads companies through open_to_investors() rather than visible_to_user, so an owner-only "
+    "directory reads companies through open_to_investors(), so an owner-only "
     "policy empties the browse surface every investor starts on. And the secondary market joins the company "
     "with select_related, which is an INNER JOIN, so a company this policy hides deletes the token row that "
     "points at it - count() disagrees with the page, because Django strips the join for count(). The EXISTS "
@@ -380,7 +380,7 @@ PUBLIC_TERM = {
     "exact dual of the market term the token policy will carry: a company is visible because a token of its is "
     "on the market, and that token is visible because it is on the market. Removing either one leaves a row "
     "whose parent or child is hidden, which is the R13 failure.",
-    "offerings_offering": "open_now() is deliberately not visible_to_user - the subscription serializer and "
+    "offerings_offering": "open_now() deliberately admits investors - the subscription serializer and "
     "services/subscription.py re-read the offering under select_for_update, and an owner-only policy turns "
     "that into DoesNotExist on the subscribe path rather than a refusal.",
 }
@@ -449,8 +449,8 @@ OPERATOR_ONLY = {
 }
 
 NOT_TENANCY = {
-    "assets_asset": "A global catalogue. visible_to_user returns self, which is a shape rather than a scope.",
-    "feature_flags": "A kill switch wearing a tenancy method's name: visible_to_user filters on enabled.",
+    "assets_asset": "A global catalogue shared by every tenant; product filters select supported assets.",
+    "feature_flags": "Global kill switches; enabled() selects the active flags for every tenant.",
     "whitelist_whitelistentry": "Staff-only, which is authorisation rather than tenancy, and stays in code.",
     "signing_challenges": "Reached by address through a service rather than by any queryset; #256 deleted "
     "the two methods that looked like scoping. #305 gave it a wallet column, and it is nullable, so a "

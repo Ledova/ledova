@@ -13,4 +13,5 @@ class ShareIssuanceRequestViewSet(AuthenticatedReadOnlyViewSet):
     scoped_model = ShareIssuanceRequest
 
     def narrow(self, queryset):
+        queryset = queryset.issued_by(self.request.user)
         return queryset.with_relations()

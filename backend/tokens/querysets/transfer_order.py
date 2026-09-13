@@ -11,18 +11,6 @@ class TransferOrderQuerySet(QuerySet):
             wallet__address__iexact=models.F("wallet_address"),
         )
 
-    def visible_to_user(self, user):
-        if user is None or not user.is_authenticated:
-            return self.none()
-
-        return (
-            self.ownership_bound()
-            .filter(
-                owner_account__user_profile__user=user,
-            )
-            .distinct()
-        )
-
     def open(self):
         return self.filter(status=TransferOrderStatus.OPEN)
 

@@ -27,6 +27,7 @@ class SubscriptionViewSet(
     scoped_model = Subscription
 
     def narrow(self, queryset):
+        queryset = queryset.subscribed_by(self.request.user)
         return queryset.with_relations()
 
     def get_serializer_class(self):

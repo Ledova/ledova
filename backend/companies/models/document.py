@@ -4,7 +4,6 @@ import uuid as uuid_lib
 from django.conf import settings
 from django.db import models
 
-from companies.querysets.document import CompanyDocumentQuerySet
 from shared.models import BaseModel
 from shared.storage import private_storage
 
@@ -53,7 +52,6 @@ LISTING_REQUIRED_DOCUMENTS = [
 
 
 class CompanyDocument(BaseModel):
-    objects = CompanyDocumentQuerySet.as_manager()
 
     company = models.ForeignKey(
         "companies.Company",

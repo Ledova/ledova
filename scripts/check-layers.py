@@ -32,8 +32,10 @@ RULE_HELPERS = ("shared", "utils")
 
 SCOPING_CALLS = frozenset(
     {
-        "visible_to_user",
-        "manageable_by_user",
+        "owned_by",
+        "issued_by",
+        "for_holder",
+        "subscribed_by",
         "none",
         "get_object",
         "get_queryset",
@@ -57,7 +59,7 @@ ADMIN_BARE_VIEW = "bare-admin-view"
 SIGNAL_IMPORT = "django-signals"
 
 RULES = {
-    VIEW_ORM: "views reach the ORM only through visible_to_user or manageable_by_user",
+    VIEW_ORM: "views reach the ORM through the policy queryset base or a named product selector",
     VIEW_TRANSACTION: "a transaction the view opens around its own logic is a workflow; move it to a service",
     VIEW_LOCK: "select_for_update outside get_queryset or narrow means the view is orchestrating; move it to a service",
     VIEW_LOGGER: "log in services and tasks, not in views",
@@ -73,11 +75,10 @@ RULES = {
 ALLOWED: dict[str, tuple[int, str]] = {
     "backend/shared/views/scope.py:raw-orm-in-view": (
         1,
-        "ScopesToThePrincipal reaches the manager on behalf of every viewset, which is the point of it: "
-        "one file makes the scoping call so 25 views no longer each write their own. __init_subclass__ "
-        "reads _default_manager to refuse, at import, a view whose model cannot answer the predicate it "
-        "relies on. The rule this file would otherwise break is the rule it exists to enforce, and it is "
-        "the only entry here because it is the only place a view layer file may name a manager.",
+        "PolicyQuerysets reaches the manager for each view's declared model and hands the queryset "
+        "to narrow() for product filtering. Database policies enforce tenancy on that connection. "
+        "The base refuses a competing get_queryset/get_object or an unexplained operator action, "
+        "so this is the one place a view layer file names a manager.",
     ),
     "backend/shared/apps.py:django-signals": (
         1,
@@ -187,7 +188,7 @@ def receiver_of(node: ast.Attribute) -> str | None:
 
 
 def names_scoped_in(scope: ast.AST, parents: dict) -> set[str]:
-    # `queryset = Thing.objects.with_relations()` then `queryset.visible_to_user(...)`
+    # `queryset = Thing.objects.with_relations()` then `queryset.owned_by(...)`
     # scopes on the variable rather than in the chain. Collect the names that carry it.
     return {
         node.id

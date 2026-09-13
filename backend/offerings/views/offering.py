@@ -14,7 +14,6 @@ from offerings.serializers import (
 from offerings.services import submit_offering, transition_offering
 from shared.views import AuthenticatedModelViewSet
 
-MANAGE_ACTIONS = ("create", "update", "partial_update", "destroy", "submit", "withdraw")
 NOT_DELETABLE = "Only a draft offering can be deleted."
 
 
@@ -28,9 +27,9 @@ class OfferingViewSet(AuthenticatedModelViewSet):
     ordering_fields = ["created_at", "status", "opens_at"]
 
     scoped_model = Offering
-    manage_actions = MANAGE_ACTIONS
 
     def narrow(self, queryset):
+        queryset = queryset.issued_by(self.request.user)
         return queryset.with_relations()
 
     def get_serializer_class(self):
@@ -58,9 +57,9 @@ class OfferingViewSet(AuthenticatedModelViewSet):
     @action(detail=True, methods=["get"])
     def subscriptions(self, request, uuid=None):
         offering = self.get_object()
-        subscriptions = Subscription.objects.filter(
-            offering__in=Offering.objects.manageable_by_user(request.user)
-        ).for_issuer(offering)
+        subscriptions = Subscription.objects.filter(offering__in=Offering.objects.issued_by(request.user)).for_issuer(
+            offering
+        )
         page = self.paginate_queryset(subscriptions)
         return self.get_paginated_response(IssuerSubscriptionSerializer(page, many=True).data)
 

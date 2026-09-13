@@ -10,12 +10,12 @@ from django.test import TransactionTestCase
 from shared.db.policies import (
     AWAITING_R0,
     BYPASSES_THE_POLICIES,
-    BYPASSES_VISIBLE_TO_USER,
     DERIVED_FROM_A_MUTABLE_ATTRIBUTE,
     HELPERS,
     INSERTABLE,
     LEAF_TABLES,
     POLICIES,
+    READS_WIDER_THAN_OWNERSHIP,
     UNSCOPED,
 )
 
@@ -143,7 +143,7 @@ class EveryTenantTableIsScopedByAPolicyTest(TransactionTestCase):
                 self.assertEqual(self._ask(SCOPED, table), [(False, False)])
 
     def test_every_deliberate_bypass_names_its_call_site_term_and_proof(self):
-        for name, entry in BYPASSES_VISIBLE_TO_USER.items():
+        for name, entry in READS_WIDER_THAN_OWNERSHIP.items():
             with self.subTest(read=name):
                 site, term, proof = entry
                 self.assertGreater(len(site), 10, f"{name} must name where it is read")
@@ -152,7 +152,7 @@ class EveryTenantTableIsScopedByAPolicyTest(TransactionTestCase):
 
     @staticmethod
     def unaudited(views):
-        named = " ".join(site for site, _, _ in BYPASSES_VISIBLE_TO_USER.values())
+        named = " ".join(site for site, _, _ in READS_WIDER_THAN_OWNERSHIP.values())
         return [path for path in views if path not in named]
 
     def test_the_only_view_reaching_the_orm_raw_is_the_base_that_scopes_for_the_others(self):
@@ -167,7 +167,7 @@ class EveryTenantTableIsScopedByAPolicyTest(TransactionTestCase):
         self.assertEqual(self.unaudited([unnamed]), [unnamed])
 
     def test_the_eligibility_service_that_reads_past_the_scope_is_named(self):
-        named = " ".join(site for site, _, _ in BYPASSES_VISIBLE_TO_USER.values())
+        named = " ".join(site for site, _, _ in READS_WIDER_THAN_OWNERSHIP.values())
 
         for site in ("users/services/eligibility.py",):
             with self.subTest(site=site):

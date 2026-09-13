@@ -43,12 +43,12 @@ def resolve_order_swap_context(transfer_order, authorized_wallets):
 
 def resolve_exact_swap_context(user, order_id, identity, snapshot=None):
     order = (
-        TransferOrder.objects.visible_to_user(user)
+        TransferOrder.objects.ownership_bound()
         .filter(pk=order_id, owner_account_id=identity["owner_account_uuid"], wallet_id=identity["wallet_uuid"])
         .first()
     )
     wallet = (
-        Wallet.objects.visible_to_user(user)
+        Wallet.objects.owned_by(user)
         .verified_evm()
         .filter(pk=identity["wallet_uuid"], user_account_id=identity["owner_account_uuid"])
         .first()

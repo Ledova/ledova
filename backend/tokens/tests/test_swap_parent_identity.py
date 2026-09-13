@@ -441,7 +441,7 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
                 chain="base",
                 verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
             )
-        self.assertTrue(Wallet.objects.visible_to_user(self.parties["seller"].user).filter(pk=other.pk).exists())
+        self.assertTrue(Wallet.objects.filter(pk=other.pk).exists())
         control = TransferOrder.objects.create(
             token=self.orders["seller"].token,
             owner_account_id=other.user_account_id,
@@ -451,9 +451,7 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
             quantity=2,
             price_per_share="1.50",
         )
-        self.assertTrue(
-            TransferOrder.objects.visible_to_user(self.parties["seller"].user).filter(pk=control.pk).exists()
-        )
+        self.assertTrue(TransferOrder.objects.filter(pk=control.pk).exists())
         with self.assertRaisesMessage(IntegrityError, "An order owner identity cannot change"), atomic():
             TransferOrder.objects.filter(pk=self.orders["seller"].pk).update(wallet=other, wallet_address=other.address)
         self.assertEqual(TransferOrder.objects.get(pk=self.orders["seller"].pk).wallet_id, self.swap.seller_wallet_id)

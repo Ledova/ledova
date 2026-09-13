@@ -27,11 +27,6 @@ class SwapOrderQuerySet(QuerySet):
             return self.none()
         return self.filter(Q(seller_wallet_id__in=wallet_ids) | Q(buyer_wallet_id__in=wallet_ids))
 
-    def visible_to_user(self, user):
-        if user is None or not user.is_authenticated:
-            return self.none()
-        return self
-
     def awaiting_signature(self):
         return self.filter(
             status__in=[

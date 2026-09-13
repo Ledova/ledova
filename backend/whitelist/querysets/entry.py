@@ -27,11 +27,6 @@ class WhitelistEntryQuerySet(QuerySet):
     def with_holder_identity(self):
         return self.select_related("wallet__user_account").prefetch_related("wallet__user_account__user_profile__user")
 
-    def visible_to_user(self, user):
-        if user is not None and user.is_authenticated and user.is_staff:
-            return self
-        return self.none()
-
     def active(self):
         from whitelist.models import WhitelistStatus
 

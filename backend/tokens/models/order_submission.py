@@ -5,7 +5,6 @@ from django.db import models
 
 from shared.models import BaseModel
 from tokens.models.choices import TransferOrderType
-from tokens.querysets.order_submission import OrderSubmissionQuerySet
 
 
 class OrderSubmissionStatus(models.TextChoices):
@@ -15,7 +14,6 @@ class OrderSubmissionStatus(models.TextChoices):
 
 
 class OrderSubmission(BaseModel):
-    objects = OrderSubmissionQuerySet.as_manager()
 
     submission_id = models.UUIDField(editable=False)
     owner_account = models.ForeignKey("users.UserAccount", on_delete=models.PROTECT, related_name="+")
