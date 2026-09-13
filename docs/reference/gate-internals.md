@@ -80,8 +80,17 @@ through locked compiler declarations, not the name of a `.get` method. Request r
 sites cannot change destination, method or origin. The mobile stored-file download
 has explicit binary-route accounting, while externally linked documents are not
 registered API operations. Browser/mobile stream builders are accounted for too.
-Operation coverage does not certify external destination policy or generated-client
-readiness. Generation environment, diagnostics and drift artifacts remain CI evidence.
+For typed Axios calls, every member of the claimed response union must accept a
+generated successful response variant from the actual operation. This covers
+nested values and arrays, rejects invented required fields, and retains legitimate
+branches selected by a caller. Literal `blob`/`arraybuffer` response decoders use
+their browser result types; bodyless responses remain `void`. Unavailable generated
+operations and unresolved explicit types fail closed. Untyped calls remain in the
+route census without claiming a response-type proof.
+
+The checker does not establish which response branch a runtime request selects or
+certify external destination policy. Generation environment, diagnostics and drift
+artifacts remain CI evidence.
 
 ## Errors and logging
 

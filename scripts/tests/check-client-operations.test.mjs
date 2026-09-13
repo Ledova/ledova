@@ -6,6 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 import vm from 'node:vm';
 import { checkClientOperations } from '../check-client-operations.mjs';
+import { generateApiTypes } from '../check-api-types.mjs';
 
 const require = createRequire(new URL('../../packages/shared/package.json', import.meta.url));
 const ts = require('typescript');
@@ -357,4 +358,133 @@ test('a dynamic Axios verb cannot inherit one arbitrary resolved signature', asy
   );
   assert.match(result.failures.join('\n'), /Unsupported client HTTP method dynamic/);
   assert.equal(result.operations.length, 1);
+});
+
+async function typedFixture(t, paths, calls) {
+  const document = {
+    openapi: '3.0.3',
+    info: { title: 'Operation binding control', version: '1' },
+    paths: {
+      ...paths,
+      '/api/v1/trading/events/stream/': {
+        get: {
+          responses: {
+            200: {
+              content: {
+                'text/event-stream': {
+                  schema: {
+                    type: 'string',
+                    'x-sse-events': ['connected', 'changed'],
+                    'x-sse-connection-event': 'connected',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+  return fixture(
+    t,
+    {
+      'packages/shared/src/generated/api.ts': await generateApiTypes(document),
+      'mobile/src/service.ts':
+        client + "import type { ApiOperations } from '../../packages/shared/src/generated/api';\n" + calls.join('\n'),
+    },
+    paths,
+  );
+}
+
+test('typed responses remain bound to the called method and path, including nested and array values', async (t) => {
+  const item = {
+    type: 'object',
+    required: ['uuid', 'value'],
+    properties: {
+      uuid: { type: 'string' },
+      value: { type: 'object', required: ['amount'], properties: { amount: { type: 'string' } } },
+    },
+  };
+  const response = (schema) => ({ description: 'Response', content: { 'application/json': { schema } } });
+  const result = await typedFixture(
+    t,
+    {
+      '/items/': {
+        get: { operationId: 'item_list', responses: { 200: response({ type: 'array', items: item }) } },
+        post: { operationId: 'item_create', responses: { 201: response(item) } },
+      },
+      '/accounts/': {
+        get: {
+          operationId: 'account_list',
+          responses: {
+            200: response({ type: 'object', required: ['accounts'], properties: { accounts: { type: 'integer' } } }),
+          },
+        },
+      },
+    },
+    [
+      "type Item = ApiOperations['item_create']['responses'][201]['content']['application/json'];",
+      "client.post<Item>('/items/');",
+      "client.get<Item[]>('/items/');",
+      "client.get<Item>('/accounts/');",
+      "client.get<Item>('/items/');",
+      "client.post<Item & { invented: string }>('/items/');",
+      "client.post<{ uuid: string; value: { amount: number } }>('/items/');",
+    ],
+  );
+  assert.equal(result.operations.length, 6);
+  assert.equal(result.failures.length, 4, result.failures.join('\n'));
+  assert.ok(result.failures.every((failure) => failure.includes('Declared Axios response')));
+});
+
+test('valid narrowed response branches, binary and bodyless contracts pass while invented branches fail', async (t) => {
+  const result = await typedFixture(
+    t,
+    {
+      '/status/': {
+        get: {
+          operationId: 'status_read',
+          responses: {
+            200: {
+              content: {
+                'application/json': {
+                  schema: {
+                    oneOf: [
+                      { type: 'object', required: ['done'], properties: { done: { type: 'boolean', enum: [true] } } },
+                      { type: 'object', required: ['queued'], properties: { queued: { type: 'string' } } },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/file/': { get: { operationId: 'file_read', ...binary } },
+      '/empty/': { delete: { operationId: 'item_delete', responses: { 204: { description: 'Deleted' } } } },
+    },
+    [
+      "client.get<{done: true}>('/status/');",
+      "client.get<{done: true} | {queued: string}>('/status/');",
+      "client.get<Blob>('/file/');",
+      "client.get<Blob>('/file/', {responseType: 'blob'});",
+      "client.get<ArrayBuffer>('/file/', {responseType: 'arraybuffer'});",
+      "client.delete<void>('/empty/');",
+      "client.get<{done: true} | {invented: string}>('/status/');",
+      "client.get<string>('/file/');",
+      "client.get<Blob>('/file/', {responseType: 'arraybuffer'});",
+      "client.delete<{detail: string}>('/empty/');",
+    ],
+  );
+  assert.equal(result.operations.length, 10);
+  assert.equal(result.failures.length, 4, result.failures.join('\n'));
+});
+
+test('a typed caller cannot be checked without its generated operation', async (t) => {
+  const result = await fixture(
+    t,
+    { 'mobile/src/service.ts': client + "client.get<{uuid: string}>('/items/');" },
+    { '/items/': { get: { operationId: 'item_read', ...good } } },
+  );
+  assert.match(result.failures.join('\n'), /Generated operation item_read is unavailable/);
 });

@@ -185,7 +185,9 @@ for every event and must not retain a removed event. Mutation tests exercise bot
 
 `make check-client-operations` uses installed root Node dependencies and the committed
 schema to account for shared/dashboard/mobile HTTP operations and their successful
-response kinds, including 204, binary and streams. It is separate from type checking.
+response kinds, including 204, binary and streams. Each explicitly typed Axios
+response must accept a generated response variant from the method/path it calls.
+This preserves the old gate's endpoint binding while also checking nested values.
 Unresolved transports need explicit tested accounting, not a silent exemption.
 See [schema and operation internals](../reference/gate-internals.md#schema-and-client-operations).
 

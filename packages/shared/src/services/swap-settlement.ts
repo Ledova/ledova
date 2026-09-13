@@ -1,7 +1,7 @@
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { TRADING_ENDPOINTS } from '../constants';
 import type {
-  SettlementSwapOrder,
+  ApiResponse,
   SwapSettlementApprovalConfirmed,
   SwapSettlementApprovalRequired,
   SwapSettlementApprovalSufficient,
@@ -35,7 +35,7 @@ export const submitSwapSettlementSignature = (
   signature: SwapSettlementSignature,
   config?: AxiosRequestConfig,
 ) =>
-  apiClient.post<SettlementSwapOrder>(
+  apiClient.post<ApiResponse<'api_v1_trading_orders_swap_sign_create'>>(
     TRADING_ENDPOINTS.ORDERS.SWAP_SIGN(identity.orderUuid),
     { ...identityBody(identity), signature: signature.signature, signer_address: signature.signerAddress },
     config,

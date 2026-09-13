@@ -8,6 +8,10 @@ const ts = require('typescript');
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const AXIOS_TYPES = path.join(path.dirname(require.resolve('axios/package.json')), 'index.d.ts');
 const METHODS = new Set(['get', 'post', 'put', 'patch', 'delete']);
+const RESPONSE_TYPES = new Map([
+  ['blob', 'Blob'],
+  ['arraybuffer', 'ArrayBuffer'],
+]);
 const ORIGIN = 'https://configured-api.invalid';
 const SOURCE_ROOTS = ['packages/shared/src', 'dashboard/src', 'mobile/src'];
 
@@ -62,6 +66,11 @@ export function checkClientOperations(root, document) {
     paths: { axios: [AXIOS_TYPES], '@ledova/shared': ['packages/shared/src/index.ts'] },
   });
   const checker = program.getTypeChecker();
+  const generated = program.getSourceFile(path.join(root, 'packages/shared/src/generated/api.ts'));
+  const generatedModule = generated && checker.getSymbolAtLocation(generated);
+  const operationSymbol =
+    generatedModule && checker.getExportsOfModule(generatedModule).find((entry) => entry.name === 'ApiOperations');
+  const generatedOperations = operationSymbol && checker.getDeclaredTypeOfSymbol(operationSymbol);
   const failures = [];
   const operations = [];
   const replays = [];
@@ -293,11 +302,6 @@ export function checkClientOperations(root, document) {
   function linkedFile(node) {
     const declared = declaration(unwrap(node));
     if (!declared || !ts.isPropertySignature(declared) || declared.name.getText() !== 'fileUrl') return false;
-    if (
-      declared.parent.name?.text === 'CompanyDocument' &&
-      path.relative(root, declared.getSourceFile().fileName) === 'packages/shared/src/types/domain/company.ts'
-    )
-      return true;
     let parent = declared.parent;
     let property;
     while (parent && !ts.isInterfaceDeclaration(parent)) {
@@ -309,6 +313,54 @@ export function checkClientOperations(root, document) {
       parent?.name.text === 'DocumentRowProps' &&
       path.relative(root, declared.getSourceFile().fileName) === 'mobile/src/screens/listing/index.tsx'
     );
+  }
+
+  function propertyType(type, name, node) {
+    const property = type?.getProperty(name);
+    return property && checker.getTypeOfSymbolAtLocation(property, node);
+  }
+
+  function variants(type) {
+    return type.isUnion() ? type.types : [type];
+  }
+
+  function decodedResponseType(call, method) {
+    const config = call.arguments[['post', 'put', 'patch'].includes(method) ? 2 : 1];
+    const type = config && propertyType(checker.getTypeAtLocation(config), 'responseType', call);
+    const name = type?.isStringLiteral() && RESPONSE_TYPES.get(type.value);
+    const symbol = name && checker.resolveName(name, undefined, ts.SymbolFlags.Type, false);
+    return symbol && checker.getDeclaredTypeOfSymbol(symbol);
+  }
+
+  function checkResponseType(call, declared, operation) {
+    const argument = call.typeArguments?.[0];
+    if (!argument || !ts.isCallExpression(call)) return;
+    const contract = propertyType(generatedOperations, declared.operationId, call);
+    if (!contract) return fail(call, `Generated operation ${declared.operationId} is unavailable for a typed caller.`);
+    const responses = propertyType(contract, 'responses', call);
+    const decoded = decodedResponseType(call, operation.method);
+    const bodies = (responses?.getProperties() ?? [])
+      .filter((entry) => /^2\d\d$/.test(entry.name))
+      .flatMap((entry) => {
+        const response = checker.getTypeOfSymbolAtLocation(entry, call);
+        const content = propertyType(response, 'content', call);
+        return content && !(checker.getNonNullableType(content).flags & ts.TypeFlags.Never)
+          ? checker
+              .getNonNullableType(content)
+              .getProperties()
+              .flatMap((media) => variants(decoded || checker.getTypeOfSymbolAtLocation(media, call)))
+          : [checker.getVoidType()];
+      });
+    const claimed = checker.getTypeFromTypeNode(argument);
+    if (
+      claimed.flags & (ts.TypeFlags.Any | ts.TypeFlags.Never) ||
+      !variants(claimed).every((variant) => bodies.some((body) => checker.isTypeAssignableTo(body, variant)))
+    )
+      fail(
+        call,
+        `Declared Axios response does not match a successful response variant of ${operation.method.toUpperCase()} ${operation.path}.`,
+      );
+    operation.responseTypeChecked = true;
   }
 
   function record(call, method, url, mechanism, expectedMedia) {
@@ -341,6 +393,7 @@ export function checkClientOperations(root, document) {
       )
     )
       fail(call, `${method.toUpperCase()} ${operation.path} must declare ${expectedMedia}.`);
+    checkResponseType(call, declared, operation);
   }
 
   function networkConstructor(node) {
@@ -430,7 +483,7 @@ export function main(arguments_ = process.argv.slice(2)) {
   }
   const pairs = new Set(result.operations.map(({ method, path: url }) => `${method} ${url}`));
   console.log(
-    `${result.operations.length} client HTTP sites (${pairs.size} distinct operations) and ${result.replays.length} original-request replays are accounted for across ${result.scanned} source files.`,
+    `${result.operations.length} client HTTP sites (${pairs.size} distinct operations, ${result.operations.filter((operation) => operation.responseTypeChecked).length} typed responses) and ${result.replays.length} original-request replays are accounted for across ${result.scanned} source files.`,
   );
   return 0;
 }

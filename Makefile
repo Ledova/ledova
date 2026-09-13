@@ -155,9 +155,9 @@ check-api-schema: generate-api-schema
 	$(PYTHON) scripts/check-api-schema.py --schema "$(SCHEMA)" --report "$(SCHEMA_COMPARISON)"
 
 update-api-schema: generate-api-schema
-	node scripts/check-client-operations.mjs --schema "$(SCHEMA)" --report "$(CLIENT_OPERATIONS_REPORT)"
 	$(PYTHON) scripts/check-api-schema.py --schema "$(SCHEMA)" --report "$(SCHEMA_COMPARISON)" --update
 	node scripts/check-api-types.mjs --schema "$(SCHEMA)" --update
+	node scripts/check-client-operations.mjs --schema "$(SCHEMA)" --report "$(CLIENT_OPERATIONS_REPORT)"
 
 check-client-operations:
 	node --test scripts/tests/check-client-operations.test.mjs
