@@ -181,7 +181,7 @@ jobs:
             --health-cmd 'clamdscan --ping=1 --config-file=/etc/clamav/clamd.conf' \
             --health-interval 5s --health-timeout 3s --health-retries 60 \
             -v "$GITHUB_WORKSPACE/backend/clamav/clamd.conf:/etc/clamav/clamd.conf:ro" \
-            clamav/clamav:1.5.4
+            clamav/clamav:1.5.4 sh -c 'freshclam --foreground --stdout && exec clamd --foreground'
           deadline=$((SECONDS + 300))
           until [ "$(docker inspect -f '{{.State.Health.Status}}' ledova-upload-clamav)" = healthy ]; do
             if [ "$SECONDS" -ge "$deadline" ]; then
@@ -190,7 +190,7 @@ jobs:
             fi
             sleep 2
           done
-          scanner_host=$(docker inspect -f '{{.NetworkSettings.IPAddress}}' ledova-upload-clamav)
+          scanner_host=$(docker inspect -f '{{.NetworkSettings.Networks.bridge.IPAddress}}' ledova-upload-clamav)
           echo "UPLOAD_TEST_CLAMAV_HOST=$scanner_host" >> "$GITHUB_ENV"
       - name: Upload scanning (real signatures, clean documents and EICAR)
         run: >-
