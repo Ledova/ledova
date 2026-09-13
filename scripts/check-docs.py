@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fail when the documentation disagrees with the tree it describes.
 
-The rule and its scope are stated in docs/GATES.md under "The documentation
+The rule and its scope are stated in docs/development/gates.md under "The documentation
 gate". This script is the mechanical half of that rule; keep the two in step.
 
 Every other gate here protects source from drifting away from a rule. This one
@@ -15,9 +15,9 @@ had been rendering as literal text.
 Three rules, each decidable from the files alone:
 
 dead-link      every relative link and #anchor in the documented set resolves.
-periodic-task  the schedule table in OPERATIONS.md is exactly the set of
+periodic-task  the schedule table in docs/operations/jobs.md is exactly the set of
                @app.periodic tasks in backend/.
-gate-list      every scripts/check-* script has a section in GATES.md, and
+gate-list      every scripts/check-* gate is listed in docs/development/gates.md, and
                every section names a script that exists.
 
 All three are checked in BOTH directions, which is the property that makes them
@@ -47,8 +47,8 @@ DOCUMENTS = ("README.md", "CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md"
 DOC_DIR = "docs"
 
 BACKEND = "backend"
-OPERATIONS = "docs/OPERATIONS.md"
-GATES = "docs/GATES.md"
+OPERATIONS = "docs/operations/jobs.md"
+GATES = "docs/development/gates.md"
 SCRIPT_GLOB = "check-*"
 
 PERIODIC = re.compile(r"@app\.periodic\(\s*cron\s*=\s*[\"']([^\"']+)[\"']")
@@ -57,11 +57,11 @@ LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
 HEADING = re.compile(r"^#{1,6}\s+(.*?)\s*$")
 BACKTICKED = re.compile(r"`([^`\n]+)`")
 
-SCHEDULE_HEADING = "## Background jobs"
+SCHEDULE_HEADING = "## Schedule"
 GATE_TABLE_HEADING = "## Every gate, and where its rule is written"
 
 # A script that is deliberately not a gate: it is tooling the gates and the
-# Makefile call, not a rule anything is held to, so GATES.md has no section for
+# Makefile call, not a rule anything is held to, so development/gates.md has no section for
 # it and should not grow one.
 NOT_A_GATE = {
     "check-port-free": "Makefile plumbing: refuses to start the chain test when its port is taken.",
@@ -70,7 +70,7 @@ NOT_A_GATE = {
 
 def documented_files() -> list[Path]:
     files = [REPO_ROOT / name for name in DOCUMENTS]
-    files += sorted((REPO_ROOT / DOC_DIR).glob("*.md"))
+    files += sorted((REPO_ROOT / DOC_DIR).rglob("*.md"))
     return [path for path in files if path.exists()]
 
 
@@ -175,7 +175,7 @@ def gates_documented() -> set[str]:
     # check-* name in the file instead was the first shape of this rule, and it
     # could not tell a script from `make check-mobile-test-awaits`, which is a
     # Makefile target, or from the route `batch-check-balances` wrapped so that
-    # its second half opened a line. The table is what GATES.md declares this
+    # its second half opened a line. The table is what development/gates.md declares this
     # rule holds it to, so the table is what it reads.
     text = (REPO_ROOT / GATES).read_text(encoding="utf-8")
     start = text.find(GATE_TABLE_HEADING)
@@ -244,14 +244,14 @@ def main() -> int:
             "\nEach of these is a thing that exists and is undocumented, or is documented"
             "\nand does not exist. Fix the document, or the tree, or say which list it"
             "\nbelongs on - do not silence the finding."
-            '\n\nThe rule and its scope are in docs/GATES.md, "The documentation gate".',
+            '\n\nThe rule and its scope are in docs/development/gates.md, "The documentation gate".',
             file=sys.stderr,
         )
         return 1
 
     print(
         f"Documentation agrees with the tree: {scanned} documents, "
-        f"{len(periodic_tasks())} periodic tasks, {len(gate_scripts())} gate scripts."
+        f"{len(periodic_tasks())} periodic tasks, {len(gate_scripts() - set(NOT_A_GATE))} gate scripts."
     )
     return 0
 

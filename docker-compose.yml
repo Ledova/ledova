@@ -35,7 +35,7 @@ services:
       # deliberately: a credential does not belong in a migration. Without this the
       # image initdb's with scram-sha-256, the two roles can never authenticate over
       # the compose bridge, and the stack dies at the first post-migrate ORM call.
-      # docs/OPERATIONS.md says local work uses trust as CI does; this is where it is
+      # docs/operations/configuration.md says local work uses trust as CI does; this is where it is
       # applied. initdb reads it on FIRST start only - an existing volume needs the
       # ALTER ROLE recipe in that section instead.
       POSTGRES_HOST_AUTH_METHOD: trust

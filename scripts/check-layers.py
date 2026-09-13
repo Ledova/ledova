@@ -2,7 +2,7 @@
 """Fail when a backend layer contains something the layer table forbids.
 
 The layers, what each owns and what each never contains are stated in
-docs/ARCHITECTURE.md under "Backend layers". This script is the mechanical half
+docs/architecture/backend.md under "Backend layers". This script is the mechanical half
 of the "Never contains" column; keep the two in step.
 
 Every offender that exists today is listed in LEGACY, so the gate is green on
@@ -85,7 +85,7 @@ ALLOWED: dict[str, tuple[int, str]] = {
         "The post_delete receiver that deletes a private file when its row is gone. A cascade delete "
         "never reaches a service, so an explicit call in each delete path cannot cover it: deleting a "
         "Company takes its CompanyDocument rows and deleting a user takes their Document rows, and the "
-        "files would outlive both. Stated in docs/ARCHITECTURE.md; the receiver is shared/storage.py.",
+        "files would outlive both. Stated in docs/architecture/backend.md; the receiver is shared/storage.py.",
     ),
 }
 
@@ -430,7 +430,7 @@ def main() -> int:
             for entry in lines[key]:
                 print(f"    {entry}", file=sys.stderr)
         print(
-            "\nThe layer that owns this is named in docs/ARCHITECTURE.md, "
+            "\nThe layer that owns this is named in docs/architecture/backend.md, "
             '"Backend layers".\nMove the logic rather than raising a LEGACY count: '
             "those only fall.",
             file=sys.stderr,

@@ -40,19 +40,10 @@ before opening your first pull request.
 
 ## Development setup
 
-The [README quick start](README.md#quick-start) covers the full local stack.
-In short:
-
-| Target | Commands |
-| --- | --- |
-| Whole stack in Docker | `make init-local && make dev-up` |
-| Dashboard and shared package | `npm ci && npm run dev:dashboard` (the dashboard compiles `packages/shared` from source; there is no build step) |
-| Backend outside Docker | `cd backend && make install && make run`, with a `.env` present |
-| Contracts | `cd contracts && npm ci && npx hardhat compile && npx hardhat test` |
-| Mobile | `cd mobile && make install && make start`; native builds/probes: [docs/MOBILE.md](docs/MOBILE.md) |
-
-Local compilation and the contract tests need no credentials.
-[docs/OPERATIONS.md](docs/OPERATIONS.md) documents every environment variable.
+Follow [local setup](docs/getting-started.md), then the
+[engineering standards](docs/development/standards.md) and
+[testing guide](docs/development/testing.md). Native builds have their own
+[mobile guide](docs/development/mobile-builds.md).
 
 ## Making changes
 
@@ -63,7 +54,7 @@ Local compilation and the contract tests need no credentials.
    come with a regression test. A new detail route or custom action also needs a
    cross-tenant row in `backend/shared/tests/test_cross_tenant_routes.py`.
 4. Follow the coding rules in
-   [docs/GATES.md](docs/GATES.md#the-rules). The one that
+   [engineering standards](docs/development/standards.md#the-rules). The one that
    surprises people most: **source carries no comments and no docstrings**. Only
    functional directives the tooling reads (`# noqa`, `eslint-disable`,
    `// SPDX-License-Identifier` and the rest of the list) are allowed, and that
@@ -105,7 +96,7 @@ An automated PR arrives as a proposal. During triage, reuse an issue whose scope
 fits or create a focused one, then correct its title and body before review and
 merge. Bots have no exemption and do not create tracking issues automatically.
 Recheck metadata after a bot refreshes its PR. The
-[PR metadata gate](docs/GATES.md#the-pr-metadata-gate) verifies the format and the
+[PR metadata gate](docs/development/gates.md#the-pr-metadata-gate) verifies the format and the
 referenced issue; reviewers establish that the issue actually owns the work.
 
 ## Review and merge
@@ -138,60 +129,14 @@ grows.
    also require the owner's explicit direction.
 
 How to establish that a change does what it claims is a separate question, and is
-in [docs/PRACTICES.md](docs/PRACTICES.md).
+in [testing and review](docs/development/testing.md).
 
 ## Gates
 
-Run these locally before opening a pull request. Most are also CI gates; the
-exceptions are noted below the table.
-
-| Area | Command |
-| --- | --- |
-| All source gates at once | `make check` from the root, which also type-checks every workspace; see the [gate inventory](docs/GATES.md#every-gate-and-where-its-rule-is-written) |
-| Comments and docstrings | `make check-comments` from the root (no dependencies needed) |
-| Type-check scripts | `make check-type-check` from the root (no dependencies needed) |
-| Backend layers | `make check-layers` from the root (no dependencies needed) |
-| Logging privacy | `make check-logging` and `make test-gates` from the root (no dependencies needed) |
-| Connection binding | `make check-connection-binding` from the root |
-| Error bodies | `make check-error-bodies` from the root |
-| Schema responses | `make check-schema-responses` from the root |
-| Test shadowing | `make check-test-shadowing` from the root |
-| Documentation | `make check-docs` from the root |
-| Self-imports and mobile resolution | `make check-self-imports`, `npm --prefix mobile run check:resolution` |
-| API schema snapshot | `make check-api-schema` generates the schema using the [pinned schema environment](docs/GATES.md#the-api-type-drift-gate) |
-| API type drift | `make check-api-types` reads an existing generated schema at `SCHEMA`; it does not generate one |
-| Client operation coverage | `make check-client-operations` uses Node and the committed schema after root dependencies are installed |
-| Dependency advisories | `make audit` from the root |
-| Everything JavaScript | `make build`, `make check`, `make test` from the root. `make check` installs any workspace whose `node_modules` is missing before it runs |
-| Design tokens | `make generate-tokens`, then confirm `dashboard/src/styles/tokens.css` and `marketing/src/tokens.css` are unchanged |
-| Backend | from `backend/`: `make lint` (black, isort, flake8), `make check`, `make test` |
-| Backend migrations | from `backend/`: `python manage.py makemigrations --check --dry-run` |
-| Contracts | from `contracts/`: `npm run format:check && npx hardhat test` |
-| Lint | `make lint` from the root (ESLint across the workspaces, solhint for the contracts) |
-| Real chain | `make chain-test` from the root |
-| Dashboard smoke | `make build`, then `make smoke` from the root |
-
-Each workspace resolves from its own `node_modules`, so running a workspace's
-check by hand needs that workspace installed. `npm --prefix mobile run type-check`
-is the one that catches people out: without `npm ci` inside `mobile/` it fails on
-`expo/tsconfig.base` before reading a line of project code, which reads as a type
-error in the project and is not. `make check` now installs what it needs, so reach
-for that if a bare workspace command fails on something you did not write. That
-check earns its place — it has caught a narrowing the dashboard's own type-check
-compiled happily.
-
-Local-only: `.github/workflows/ci.yml` has no format step for any workspace, so
-`npm run format:check` is yours to run. Linting is no longer in that list — CI
-runs `make lint` on every pull request.
-
-CI runs `make lint`, `make test` (dashboard, `packages/shared`, mobile and
-contracts) and `make smoke` on every pull request. It additionally runs the whole Django suite
-on PostgreSQL, the SQLite migration tests, and `make chain-test` twice, the
-second time on PostgreSQL. The source gates are their own CI job, running the
-scripts assigned to it in the [gate inventory](docs/GATES.md#every-gate-and-where-its-rule-is-written)
-and then `make test-gates`, so a stray comment, a new layer violation or a log
-line that can carry a credential fails the pipeline without waiting for
-anything to be built.
+Run the checks appropriate to the change before opening a pull request.
+The [gate inventory](docs/development/gates.md#every-gate-and-where-its-rule-is-written)
+owns source rules, commands and CI coverage. The [testing command table](docs/development/testing.md#commands)
+covers workspace, backend, chain and device checks, including local-only formatting.
 
 ## Reporting security issues
 
@@ -210,8 +155,8 @@ it is published.
 Ledova is source-available rather than open source in the OSI sense: the licence
 permits any use except competing with the project commercially, and converts to
 Apache 2.0 on a fixed two-year schedule. Copyright is held by Ronildo da Rocha
-Braga Junior. The full terms are set out under **License** in
-[README.md](README.md).
+Braga Junior. The full terms are set out in [LICENSE](LICENSE), with a summary in
+[README.md](README.md#ownership-and-license).
 
 Ledova makes no claim of regulatory compliance or legal recognition.
 Contributions are volunteered on that basis.

@@ -20,7 +20,7 @@ CREATES_OWN_ROW_SCOPED_FK = (
 SELF_SCOPED = "Acts only on the caller's own rows and takes no identifier."
 ELIGIBILITY_SCOPED = (
     "Cross-tenant listing scoped by users.services.eligibility rather than by owner, "
-    "and the documented exception in ARCHITECTURE.md. Pinned by MARKET_ROUTES and DIRECTORY_ROUTES."
+    "and the documented exception in docs/architecture/tenancy.md. Pinned by MARKET_ROUTES and DIRECTORY_ROUTES."
 )
 SIGNED_RELAY = (
     "Relays an already-signed transaction and takes no tenant identifier at all, so the signature is the only "
