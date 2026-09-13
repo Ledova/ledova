@@ -13,14 +13,24 @@ from users.models.investor_classification import (
     plus_years,
 )
 from users.services.accounts import account_of
+from users.services.classification_issuer import active_issuer_for_claim
 
 CERTIFIER_FIELDS = ("certificate_issued_at", "certifier_name", "certifier_body", "certifier_membership_number")
+
+
+class ActiveIssuerField(serializers.PrimaryKeyRelatedField):
+    def to_internal_value(self, data):
+        request = self.context.get("request")
+        company = active_issuer_for_claim(getattr(request, "user", None), data)
+        if company is None:
+            self.fail("does_not_exist", pk_value=data)
+        return company
 
 
 class InvestorClassificationSerializer(serializers.ModelSerializer):
 
     user_account = serializers.PrimaryKeyRelatedField(read_only=True)
-    company = serializers.PrimaryKeyRelatedField(queryset=Company.objects.none(), required=False, allow_null=True)
+    company = ActiveIssuerField(queryset=Company.objects.none(), required=False, allow_null=True)
 
     category_display = serializers.CharField(source="get_category_display", read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
@@ -73,14 +83,6 @@ class InvestorClassificationSerializer(serializers.ModelSerializer):
             "expires_at",
             "created_at",
         ]
-
-    def get_fields(self):
-        fields = super().get_fields()
-        request = self.context.get("request")
-        user = getattr(request, "user", None)
-        if user is not None and user.is_authenticated:
-            fields["company"].queryset = Company.objects.active()
-        return fields
 
     def get_evidence_url(self, obj) -> str | None:
         if not obj.evidence_retained:

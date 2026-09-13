@@ -241,6 +241,24 @@ DERIVED_FROM_A_MUTABLE_ATTRIBUTE = {
 }
 
 BYPASSES_VISIBLE_TO_USER = {
+    "Company.active for an associated-person claim": (
+        "users/services/classification_issuer.py active_issuer_for_claim",
+        "The operator validates only the supplied UUID against active issuers and returns only that key. "
+        "The owner confirmed on 2026-09-13 that an applicant may name an active issuer before it is listed; "
+        "the claim is still written under the applicant and company details remain hidden.",
+        "users/tests/test_classification_issuer_scoped.py proves a hidden active issuer succeeds, inactive "
+        "and unknown issuers fail, the lookup selects only its UUID, and the claim writes use the app role.",
+    ),
+    "Market prices for already admitted tokens": (
+        "tokens/services/market_data_service.py market_summaries and get_market_data; "
+        "tokens/services/trading_order_service.py get_order_book",
+        "The operator publishes only price summaries, the last trade's public amounts and aggregated "
+        "order-book levels for tokens already admitted under issuer ownership or investor eligibility. "
+        "Lists resolve their page under the app role before one operator query bounded to those UUIDs. "
+        "No order, wallet or counterparty identity is returned, and their RLS policies remain unchanged.",
+        "tokens/tests/test_market_reads_scoped.py proves cross-issuer prices, one bounded summary query, "
+        "private order refusal and no operator summary access for ineligible or unknown-token requests.",
+    ),
     "ScopesToThePrincipal on an administrative action": (
         "shared/views/scope.py, the get_queryset every AuthenticatedViewSet inherits",
         "every row of the scoped model, and only for an action the view names in "

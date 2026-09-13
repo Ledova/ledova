@@ -20,6 +20,8 @@ SCOPED_TEST_LABELS = (
     "wallets.tests.test_sync_under_scoped_roles.ScopedWalletSyncTest",
     "tokens.tests.test_deployment_under_scoped_roles.ScopedTokenDeploymentTest",
     "tokens.tests.test_operator_execution.OperatorExecutionFromScopedContextTest",
+    "tokens.tests.test_market_reads_scoped.ScopedMarketReadsTest",
+    "users.tests.test_classification_issuer_scoped.ScopedClassificationIssuerTest",
     "tokens.tests.test_modification_refusals.ScopedModificationRefusalTest",
     "shared.tests.test_cross_tenant_routes.ScopedOrderActionRouteMatrixTest",
     "tokens.tests.test_order_actions.ScopedOrderActionRecoveryTest",

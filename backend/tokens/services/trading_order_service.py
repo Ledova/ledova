@@ -2,6 +2,7 @@ import logging
 from decimal import Decimal
 from typing import Optional
 
+from shared.db import use_operator
 from tokens.exceptions import SignatureRequiredException
 from tokens.models import (
     ShareToken,
@@ -107,29 +108,30 @@ class TradingOrderService:
 
     @staticmethod
     def get_order_book(token: ShareToken) -> dict:
-        buy_levels = TransferOrder.objects.order_book_levels(token, TransferOrderType.BUY)
-        sell_levels = TransferOrder.objects.order_book_levels(token, TransferOrderType.SELL)
+        with use_operator():
+            buy_levels = TransferOrder.objects.order_book_levels(token, TransferOrderType.BUY)
+            sell_levels = TransferOrder.objects.order_book_levels(token, TransferOrderType.SELL)
 
-        logger.info(
-            f"Order book fetched for {token.symbol}: {len(buy_levels)} buy levels, {len(sell_levels)} sell levels"
-        )
+            logger.info(
+                f"Order book fetched for {token.symbol}: {len(buy_levels)} buy levels, {len(sell_levels)} sell levels"
+            )
 
-        return {
-            "token": str(token.uuid),
-            "buy_orders": [
-                {
-                    "price": str(o["price_per_share"]),
-                    "quantity": o["total_quantity"],
-                    "orders": o["order_count"],
-                }
-                for o in buy_levels
-            ],
-            "sell_orders": [
-                {
-                    "price": str(o["price_per_share"]),
-                    "quantity": o["total_quantity"],
-                    "orders": o["order_count"],
-                }
-                for o in sell_levels
-            ],
-        }
+            return {
+                "token": str(token.uuid),
+                "buy_orders": [
+                    {
+                        "price": str(o["price_per_share"]),
+                        "quantity": o["total_quantity"],
+                        "orders": o["order_count"],
+                    }
+                    for o in buy_levels
+                ],
+                "sell_orders": [
+                    {
+                        "price": str(o["price_per_share"]),
+                        "quantity": o["total_quantity"],
+                        "orders": o["order_count"],
+                    }
+                    for o in sell_levels
+                ],
+            }

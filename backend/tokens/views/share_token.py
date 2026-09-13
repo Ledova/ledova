@@ -59,10 +59,7 @@ class ShareTokenViewSet(AuthenticatedModelViewSet):
         return ShareTokenDetailSerializer
 
     def narrow(self, queryset):
-        queryset = queryset.with_company()
-        if self.action == "list":
-            queryset = queryset.with_market_summary()
-        return queryset
+        return queryset.with_company()
 
     def perform_destroy(self, instance):
         delete_share_token(instance)

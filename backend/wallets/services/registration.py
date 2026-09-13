@@ -1,6 +1,7 @@
 from django.db import IntegrityError
 from rest_framework.exceptions import ValidationError
 
+from portfolios.models import Portfolio
 from shared.db import atomic
 from wallets.constants import WALLET_VERIFICATION_STATUS_PENDING
 from wallets.models import Wallet
@@ -24,8 +25,14 @@ def register_wallet(user, **fields):
         with atomic():
             wallet.save(force_insert=True)
             preferences = getattr(getattr(user, "userprofile", None), "preferences", None)
-            portfolio = preferences.selected_portfolio if preferences else None
-            if portfolio and portfolio.user_account_id == wallet.user_account_id:
+            portfolio = (
+                Portfolio.objects.filter(
+                    pk=preferences.selected_portfolio_id, user_account_id=wallet.user_account_id
+                ).first()
+                if preferences
+                else None
+            )
+            if portfolio:
                 portfolio.wallets.add(wallet)
     except IntegrityError:
         _refuse_duplicate(wallet)

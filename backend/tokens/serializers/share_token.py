@@ -1,16 +1,20 @@
-from decimal import Decimal
-
 from rest_framework import serializers
 
 from companies.models import Company
 from tokens.models import ShareToken
-
-PRICE_PLACES = Decimal("0.01")
+from tokens.services.market_data_service import market_summaries
 
 SHARES_ARE_WHOLE = (
     "A share is a whole unit. The ShareToken contract returns 0 from decimals() and takes no decimals "
     "argument at deployment, so a share class cannot record any other value."
 )
+
+
+class MarketSummaryListSerializer(serializers.ListSerializer):
+    def to_representation(self, data):
+        rows = list(data)
+        self.child.market_summaries = market_summaries(rows)
+        return super().to_representation(rows)
 
 
 class ShareTokenListSerializer(serializers.ModelSerializer):
@@ -24,6 +28,7 @@ class ShareTokenListSerializer(serializers.ModelSerializer):
     best_ask = serializers.SerializerMethodField()
 
     class Meta:
+        list_serializer_class = MarketSummaryListSerializer
         model = ShareToken
         fields = [
             "uuid",
@@ -50,17 +55,19 @@ class ShareTokenListSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
+    def market_summary(self, obj):
+        if not hasattr(self, "market_summaries"):
+            self.market_summaries = market_summaries([obj])
+        return self.market_summaries.get(obj.pk, {"last_price": None, "best_bid": None, "best_ask": None})
+
     def get_last_price(self, obj) -> str | None:
-        if obj.last_trade_share_amount is None:
-            return None
-        payment_full_units = Decimal(obj.last_trade_payment_amount) / (10**obj.last_trade_decimals)
-        return str(payment_full_units / Decimal(obj.last_trade_share_amount))
+        return self.market_summary(obj)["last_price"]
 
     def get_best_bid(self, obj) -> str | None:
-        return None if obj.best_bid is None else str(obj.best_bid.quantize(PRICE_PLACES))
+        return self.market_summary(obj)["best_bid"]
 
     def get_best_ask(self, obj) -> str | None:
-        return None if obj.best_ask is None else str(obj.best_ask.quantize(PRICE_PLACES))
+        return self.market_summary(obj)["best_ask"]
 
 
 class ShareTokenDetailSerializer(serializers.ModelSerializer):

@@ -1,8 +1,6 @@
 from django.db import models
 from django.db.models import OuterRef, QuerySet, Subquery
 
-from tokens.models.choices import SwapOrderStatus
-
 
 class ShareTokenQuerySet(QuerySet):
 
@@ -64,21 +62,6 @@ class ShareTokenQuerySet(QuerySet):
             open_offering_currency=Subquery(offering.values("price_currency")[:1]),
             open_offering_opens_at=Subquery(offering.values("opens_at")[:1]),
             open_offering_closes_at=Subquery(offering.values("closes_at")[:1]),
-        )
-
-    def with_market_summary(self):
-        from tokens.models import SwapOrder, TransferOrder
-
-        open_orders = TransferOrder.objects.ownership_bound().open().filter(token=OuterRef("pk"))
-        last_trade = SwapOrder.objects.filter(share_token=OuterRef("pk"), status=SwapOrderStatus.COMPLETED).order_by(
-            "-completed_at"
-        )
-        return self.annotate(
-            best_bid=Subquery(open_orders.buy_orders().order_by("-price_per_share").values("price_per_share")[:1]),
-            best_ask=Subquery(open_orders.sell_orders().order_by("price_per_share").values("price_per_share")[:1]),
-            last_trade_payment_amount=Subquery(last_trade.values("payment_amount")[:1]),
-            last_trade_share_amount=Subquery(last_trade.values("share_amount")[:1]),
-            last_trade_decimals=Subquery(last_trade.values("payment_asset__decimals")[:1]),
         )
 
     def search(self, query):
