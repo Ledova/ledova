@@ -20,6 +20,27 @@ is the part that cannot be: how to establish that a change does what it claims.
 Every rule here was bought by a specific failure, and [TRAPS.md](TRAPS.md) holds
 the individual cases under **Test traps** and **Measurement traps**.
 
+**Less is more, and it applies to capability as well as code.** Where
+functionality or complexity is not necessary, the simpler option wins by
+default; where the trade-off is meaningful, say what it costs and ask rather
+than deciding alone. A proposal should say what could be removed as well as what
+could be added. Joint and shared accounts were the first case: `UserProfile` and
+`UserAccount` were many-to-many in both directions, which made every tenancy
+policy compare against a *set* of accounts instead of one, and carried a
+selected-account concept through serializers, views and admin — to support two
+people on one account, which this product does not do. Price a simplification
+honestly: that one does not fix the join problems described in
+[TRAPS.md](TRAPS.md), and was chosen for its own sake.
+
+Removing a capability is two changes, not one. The second is the layer that
+existed *because* of it, and it does not come out on its own: after the accounts
+went one-to-one, five write endpoints still asked the client which of its
+accounts it meant, and the server still checked the answer. Ask what callers had
+to say, pass, or guard against only because the capability existed — query
+parameters that can now mean one thing, props threaded through components,
+loading guards, list endpoints answering a page of one, and tests whose subject
+was the choice.
+
 **Delete what a change makes redundant, in that change.** Not deprecated, not
 left in case, not carried forward behind a comment: removed, and named in the
 body. A dead thing reads as load-bearing to the next person, and the cost is not
