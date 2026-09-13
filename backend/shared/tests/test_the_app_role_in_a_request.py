@@ -120,7 +120,7 @@ class ThePoliciesActuallyApplyTest(TestCase):
         self.assertEqual(self.profiles_visible(), 0)
 
 
-ONLY_THESE_SETTINGS_MAY_TURN_IT_ON = {"test_behind_the_policies.py"}
+ONLY_THESE_SETTINGS_MAY_TURN_IT_ON = {"test.py"}
 
 
 class NoDeployedSettingsModuleTurnsItOnTest(SimpleTestCase):
@@ -133,7 +133,7 @@ class NoDeployedSettingsModuleTurnsItOnTest(SimpleTestCase):
             if "RLS_ROLE_PER_REQUEST = True" in path.read_text(encoding="utf-8")
         }
 
-    def test_the_switch_is_only_on_where_the_ratchet_runs(self):
+    def test_only_the_test_settings_switch_roles_on_a_shared_connection(self):
         self.assertEqual(self.modules_that_set_it_true(), ONLY_THESE_SETTINGS_MAY_TURN_IT_ON)
 
     def test_the_scan_is_looking_at_real_settings_modules(self):
