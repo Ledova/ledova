@@ -17017,13 +17017,6 @@
                         "type": "string",
                         "readOnly": true
                     },
-                    "director": {
-                        "type": "string",
-                        "format": "uuid",
-                        "description": "Unique identifier (primary key)",
-                        "readOnly": true,
-                        "nullable": true
-                    },
                     "accountNumber": {
                         "type": "string",
                         "readOnly": true
@@ -20853,13 +20846,6 @@
                         "type": "string",
                         "readOnly": true
                     },
-                    "director": {
-                        "type": "string",
-                        "format": "uuid",
-                        "description": "Unique identifier (primary key)",
-                        "readOnly": true,
-                        "nullable": true
-                    },
                     "accountNumber": {
                         "type": "string",
                         "readOnly": true
@@ -20880,7 +20866,6 @@
                 "required": [
                     "accountNumber",
                     "activationDate",
-                    "director",
                     "uuid"
                 ]
             },

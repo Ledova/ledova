@@ -63,15 +63,3 @@ class AnAccountIsInsertedForItsOwnPersonOnlyTest(TestCase):
             UserAccount.objects.create(account_number="ACC-STRANGER", user_profile=self.profile)
 
         self.assertIn("row-level security policy", str(refused.exception))
-
-    def test_no_policy_carries_a_director_term(self):
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT policyname, coalesce(qual, '') || ' ' || coalesce(with_check, '') FROM pg_policies "
-                "WHERE tablename = 'customer_accounts_account' ORDER BY policyname"
-            )
-            installed = dict(cursor.fetchall())
-
-        for command in ("read", "insert", "update", "delete"):
-            with self.subTest(policy=command):
-                self.assertNotIn("director_id", installed[f"customer_accounts_account_{command}"])

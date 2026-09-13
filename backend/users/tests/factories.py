@@ -27,7 +27,6 @@ def make_investor(label, *, account_status="active", id_verified=True, staff=Fal
         account_number=f"ACC-{label.upper()}"[:20],
         account_status=account_status,
         role=role,
-        director=profile,
         user_profile=profile,
     )
     return user, account

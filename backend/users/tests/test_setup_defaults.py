@@ -17,7 +17,6 @@ class EnsureDefaultsTest(TestCase):
 
         self.assertEqual(profile.user, self.user)
         self.assertEqual(account.account_number, f"ACC-{self.user.id:06d}")
-        self.assertEqual(account.director, profile)
         self.assertEqual(account.user_profile, profile)
         self.assertEqual(portfolio.user_account, account)
         self.assertEqual(portfolio.name, "My Portfolio")
@@ -35,7 +34,7 @@ class EnsureDefaultsTest(TestCase):
 
     def test_existing_account_without_portfolio_gets_one_and_empty_preferences_are_filled(self):
         profile = UserProfile.objects.create(user=self.user)
-        account = UserAccount.objects.create(account_number="EXISTING", director=profile, user_profile=profile)
+        account = UserAccount.objects.create(account_number="EXISTING", user_profile=profile)
         preferences = UserPreferences.objects.create(user_profile=profile)
 
         _, returned_account, portfolio, returned_preferences = ensure_defaults(self.user)
@@ -48,7 +47,7 @@ class EnsureDefaultsTest(TestCase):
 
     def test_populated_preferences_are_left_alone(self):
         profile = UserProfile.objects.create(user=self.user)
-        account = UserAccount.objects.create(account_number="EXISTING", director=profile, user_profile=profile)
+        account = UserAccount.objects.create(account_number="EXISTING", user_profile=profile)
         first_portfolio = Portfolio.objects.create(user_account=account, name="First")
         chosen_portfolio = Portfolio.objects.create(user_account=account, name="Chosen")
         UserPreferences.objects.create(user_profile=profile, selected_portfolio=chosen_portfolio)

@@ -125,9 +125,7 @@ class RiskAssessmentTest(TestCase):
         self.profile = UserProfile.objects.create(
             user=user, citizenship_country=Country.objects.create(code="au", name="Australia")
         )
-        self.account = UserAccount.objects.create(
-            account_number="ACC-RISK", director=self.profile, user_profile=self.profile
-        )
+        self.account = UserAccount.objects.create(account_number="ACC-RISK", user_profile=self.profile)
 
     def test_rating_thresholds(self):
         self.assertEqual(

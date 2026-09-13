@@ -99,10 +99,10 @@ class RiskAssessmentService:
 
     @staticmethod
     def calculate_and_create(user_account, pep_data: Optional[Dict] = None) -> CustomerRiskAssessment:
-        director = user_account.director or user_account.user_profile
+        holder = user_account.user_profile
 
-        customer_score, customer_factors = customer_risk(director, pep_data)
-        geographic_score, geographic_factors = geographic_risk(director)
+        customer_score, customer_factors = customer_risk(holder, pep_data)
+        geographic_score, geographic_factors = geographic_risk(holder)
         total = customer_score + geographic_score + PRODUCT_RISK_SCORE
         rating = overall_rating(total)
         now = timezone.now()

@@ -14,9 +14,7 @@ def ensure_defaults(user):
 
     account = getattr(profile, "user_account", None)
     if account is None:
-        account = UserAccount.objects.create(
-            account_number=f"ACC-{user.id:06d}", user_profile=profile, director=profile
-        )
+        account = UserAccount.objects.create(account_number=f"ACC-{user.id:06d}", user_profile=profile)
         RiskAssessmentService.create_pending_assessment(user_account=account)
         logger.info(f"Created account {account.uuid} for user {user.pk}")
 

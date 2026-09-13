@@ -50,9 +50,7 @@ class NotificationTasksUseRecipientRolesTest(RunsOnTheScopedConnection, Transact
     def make_recipient(self, label, digit):
         user = User.objects.create_user(email=f"{label}@notification.example.test", password="synthetic-password")
         profile = UserProfile.objects.create(user=user)
-        account = UserAccount.objects.create(
-            account_number=f"NOTIF-{label}"[:20], director=profile, user_profile=profile
-        )
+        account = UserAccount.objects.create(account_number=f"NOTIF-{label}"[:20], user_profile=profile)
         wallet = Wallet.objects.create(user_account=account, address="0x" + digit * 40, chain="base")
         transaction = Transaction.objects.create(
             wallet=wallet,

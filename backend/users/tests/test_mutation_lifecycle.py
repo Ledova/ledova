@@ -52,7 +52,6 @@ class UserMutationLifecycleTest(APITestCase):
         )
         self.account = UserAccount.objects.create(
             account_number="LIFECYCLE-ACCOUNT",
-            director=self.owner_profile,
             user_profile=self.owner_profile,
         )
         self.asset = Asset.objects.create(
@@ -86,7 +85,6 @@ class UserMutationLifecycleTest(APITestCase):
         self.assertTrue(FavouriteAsset.objects.filter(pk=self.favourite.pk).exists())
 
         self.account.refresh_from_db()
-        self.assertEqual(self.account.director_id, self.owner_profile.pk)
         self.assertEqual(self.account.user_profile_id, self.owner_profile.pk)
 
     def test_detail_options_do_not_advertise_delete(self):
@@ -136,7 +134,6 @@ class UserMutationLifecycleTest(APITestCase):
         self.assertTrue(FinancialProfile.objects.filter(pk=self.financial_profile.pk).exists())
         self.assertTrue(UserAccount.objects.filter(pk=self.account.pk).exists())
         self.assertTrue(FavouriteAsset.objects.filter(pk=self.favourite.pk).exists())
-        self.assertEqual(self.account.director_id, self.owner_profile.pk)
         self.assertEqual(self.account.user_profile_id, self.owner_profile.pk)
 
     def test_account_deletion_fails_before_mutation_when_tombstone_is_unavailable(self):
