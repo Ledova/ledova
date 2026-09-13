@@ -1,5 +1,3 @@
-from decimal import Decimal
-
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
@@ -14,6 +12,7 @@ from shared.tests.tenants import (
     open_to_investors,
 )
 from tokens.models import ShareToken, SwapOrder
+from tokens.services.market_data_service import market_summaries
 
 DIRECTORY = "/api/v1/directory/tokens/"
 TRADING = "/api/v1/trading/tokens/"
@@ -35,17 +34,17 @@ class MarketSummaryTest(APITestCase):
         body = response.json()
         return {row["uuid"]: row for row in body.get("results", body)}
 
-    def test_queryset_annotations_match_the_per_row_queries(self):
-        summary = {token.uuid: token for token in ShareToken.objects.with_market_summary()}
-        traded = summary[self.alice.deployed_token.uuid]
-        self.assertEqual((traded.best_bid, traded.best_ask), (Decimal("1.50"), Decimal("1.50")))
-        self.assertEqual((traded.last_trade_payment_amount, traded.last_trade_share_amount), (1500, 10))
-        self.assertEqual(traded.last_trade_decimals, 2)
-
-        untraded = summary[self.bob.deployed_token.uuid]
-        self.assertIsNone(untraded.last_trade_share_amount)
-        draft = summary[self.alice.token.uuid]
-        self.assertEqual((draft.best_bid, draft.best_ask, draft.last_trade_share_amount), (None, None, None))
+    def test_market_summaries_contain_only_prices_for_the_resolved_tokens(self):
+        summaries = market_summaries(
+            ShareToken.objects.filter(pk__in=[self.alice.deployed_token.pk, self.alice.token.pk])
+        )
+        self.assertEqual(
+            summaries,
+            {
+                self.alice.deployed_token.pk: {"last_price": "1.5", "best_bid": "1.50", "best_ask": "1.50"},
+                self.alice.token.pk: {"last_price": None, "best_bid": None, "best_ask": None},
+            },
+        )
 
     def test_lists_expose_market_fields_without_per_row_queries(self):
         for position, path in enumerate((TRADING, DIRECTORY, "/api/v1/tokens/")):

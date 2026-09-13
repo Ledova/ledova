@@ -20,7 +20,6 @@ class DirectoryTokenViewSet(AuthenticatedReadOnlyViewSet):
             ShareToken.objects.with_company()
             .in_directory()
             .filter(company__in=eligible_investor_companies(self.request.user))
-            .with_market_summary()
             .with_issued_shares()
             .with_open_offering()
         )

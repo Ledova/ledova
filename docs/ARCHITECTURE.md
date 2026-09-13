@@ -1336,6 +1336,23 @@ execution entry point would require a new authority design, not reuse of that
 audit argument. Every currently principal-bearing task has been converted;
 `CONVERTED_IN` retains the implementing PRs without a pending-conversion state.
 
+The whole request suite now passes behind the policies without an expected-failure
+list or custom runner. Two bounded operator reads preserve existing product
+contracts: associated-person claims may name any active issuer by UUID, including
+an unlisted issuer, and market responses publish prices across investors. The
+claim lookup returns only the supplied active issuer's key; its insertion remains
+under the applicant. Market lists first resolve and paginate eligible tokens under
+the app role, then fetch price summaries in one operator query limited to that
+page's UUIDs. Market detail and order-book reads return public prices, amounts and
+aggregate levels for the already admitted token. Orders, wallets and counterparties
+remain private. These reads are recorded in the RLS catalogue with scoped proofs.
+
+A selected portfolio can become invisible after its account changes. Wallet
+registration resolves its recorded key with the wallet's account rather than
+dereferencing a hidden relationship; an unrelated selection leaves registration
+successful and assigns nothing. Query-count tests exclude principal and role
+plumbing explicitly, while continuing to count every business query.
+
 **Why R1 and R2 are separate releases.** With policies on and querysets still in,
 a green matrix says the policy is *sufficient*. With the querysets removed, a
 green matrix says they were not doing anything the policy misses. Both directions

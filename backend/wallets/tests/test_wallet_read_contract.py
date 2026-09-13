@@ -27,8 +27,14 @@ class WalletReadContractTest(APITestCase):
         with CaptureQueriesContext(connection) as captured:
             response = self.client.get("/api/wallets/")
 
-        principal = [entry for entry in captured.captured_queries if "app.user_id" in entry["sql"]]
-        self.assertEqual(len(captured), len(principal) + 2)
+        business_queries = [
+            entry["sql"]
+            for entry in captured.captured_queries
+            if "app.user_id" not in entry["sql"]
+            and not entry["sql"].startswith("SET ROLE ")
+            and entry["sql"] != "RESET ROLE"
+        ]
+        self.assertEqual(len(business_queries), 2, business_queries)
 
         self.assertEqual(response.status_code, 200)
         rows = {row["uuid"]: row for row in response.json()["results"]}
