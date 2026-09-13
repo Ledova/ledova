@@ -231,4 +231,4 @@ class ScopedWalletNetworkIdentityTest(RunsOnTheScopedConnection, APITransactionT
         with patch("wallets.tasks.sync_wallet.defer") as sync:
             response = post_webhook(self.client, payload)
         self.assertEqual(response.status_code, 200, response.content)
-        sync.assert_called_once_with(wallet_uuid=str(self.foreign.pk))
+        sync.assert_called_once_with(wallet_uuid=str(self.foreign.pk), principal_id=None)

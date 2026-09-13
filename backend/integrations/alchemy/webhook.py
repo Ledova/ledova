@@ -139,7 +139,7 @@ class AlchemyWebhookView(RunsOnTheOperatorConnection, APIView):
             elif not tx:
                 from wallets.tasks import sync_wallet
 
-                sync_wallet.defer(wallet_uuid=str(wallet.uuid))
+                sync_wallet.defer(wallet_uuid=str(wallet.uuid), principal_id=None)
 
         except Exception:
             logger.exception("Error processing a webhook transaction")

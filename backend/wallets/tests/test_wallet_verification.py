@@ -42,7 +42,7 @@ class WalletVerificationTest(APITestCase):
         self.assertEqual(self.wallet.verification_signature, "0x01")
         self.assertIsNotNone(self.wallet.verified_at)
         verify_signature.assert_called_once_with(self.wallet.address, issued.json()["challenge"], "0x01", "ETHEREUM")
-        sync_task.defer.assert_called_once_with(wallet_uuid=str(self.wallet.uuid))
+        sync_task.defer.assert_called_once_with(wallet_uuid=str(self.wallet.uuid), principal_id=self.tenant.user.pk)
 
     @patch("wallets.tasks.sync_wallet")
     @patch("wallets.services.verification.verify_wallet_signature", return_value=True)

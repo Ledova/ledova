@@ -78,7 +78,12 @@ PRINCIPAL_BEARING = {
     'the task answers "Wallet not found" - fails closed and quiet, with the sweep finishing the row as '
     "the operator. The design covers it; the sentence exists so the next conversion with a longer delay "
     "knows the gap is proportional to it.",
-    "wallets.tasks.sync.sync_wallet": "Reads and writes the holdings of exactly one wallet.",
+    "wallets.tasks.sync.sync_wallet": "Reads and writes one wallet's history, holdings and snapshots. "
+    "Converted: the principal is required with no default. Verification captures its user; the wallet "
+    "admin, Alchemy webhook and hourly sweep explicitly choose None for operator work. Lookup and every "
+    "sync write run inside that context. A user who lost account access after enqueue resolves no wallet, "
+    "and the operator sweep remains able to finish it. Compliance screening is durably queued on the "
+    "producer connection and handled by a separate operator task.",
     "documents.tasks.extract.extract_document": "Reads one uploader's document and writes an "
     "extraction against it. Converted: the principal is a required argument with no default, the "
     "upload passes its uploader and the staff rerun passes None, because a re-extraction is the "
@@ -129,15 +134,7 @@ CONVERSIONS = {
         "recipient-holding step before the issuer work can run scoped without dropping that side effect.",
     ),
     "wallets.tasks.confirmation.confirm_pending_transaction": TaskConversion(status="converted", converted_pr=327),
-    "wallets.tasks.sync.sync_wallet": TaskConversion(
-        status="pending",
-        waiting_reason="Verification, the wallet admin, the Alchemy webhook and sync_all_wallets all "
-        "enqueue only wallet_uuid. The worker never selects a principal for its wallet and transaction "
-        "writes. Conversion must preserve the verifying user's principal, make the admin/webhook/sweep "
-        "operator choices explicit, and test membership lost between enqueue and execution. The deployed "
-        "share-token read prerequisite is already resolved, as recorded in READS_MUST_SURVIVE_THE_POLICIES; "
-        "it is not a reason to wait for tokens/0024.",
-    ),
+    "wallets.tasks.sync.sync_wallet": TaskConversion(status="converted", converted_pr=544),
     "documents.tasks.extract.extract_document": TaskConversion(status="converted", converted_pr=525),
     "users.tasks.notifications.send_push_notification": TaskConversion(status="converted", converted_pr=523),
     "users.tasks.notifications.send_transaction_notification": TaskConversion(status="converted", converted_pr=523),
@@ -146,13 +143,11 @@ CONVERSIONS = {
 OPERATOR_READS: dict[str, str] = {}
 
 READS_MUST_SURVIVE_THE_POLICIES = {
-    "wallets.tasks.sync.sync_wallet": "Resolved prerequisite to retain during conversion: "
-    "tokens/0024_r0_sharetoken_owner already supplies non-null owner_id, and POLICIES now gives "
-    "tokens_sharetoken an owner OR deployed-with-contract market SELECT term. "
-    "wallets.services.chain._share_balance uses deployed_at, so its share class is visible to an investor "
-    "without issuer ownership. Removing the market term would make that lookup return None and leave "
-    "the share holding unsynced. The remaining work is principal capture and scoped execution, recorded "
-    "in CONVERSIONS, rather than a missing migration or token-read policy.",
+    "wallets.tasks.sync.sync_wallet": "Retained market read: POLICIES gives tokens_sharetoken an "
+    "issuer-owner OR deployed-with-contract market SELECT term. wallets.services.chain._share_balance "
+    "uses deployed_at, so a deployed share class remains visible to an investor without issuer ownership. "
+    "Removing that term would leave the share holding unsynced. ScopedWalletSyncTest proves this read "
+    "reaches another issuer's deployed token and updates the investor's holding under the user principal.",
 }
 
 CLASSIFIED = {**SYSTEM_WIDE, **PRINCIPAL_BEARING}

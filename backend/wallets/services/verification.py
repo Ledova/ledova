@@ -74,14 +74,14 @@ def complete_wallet_verification(user, uuid, signature):
         ]
     )
 
-    _queue_sync(wallet)
+    _queue_sync(wallet, principal_id=user.pk)
     return wallet
 
 
-def _queue_sync(wallet):
+def _queue_sync(wallet, *, principal_id):
     from wallets.tasks import sync_wallet
 
     try:
-        sync_wallet.defer(wallet_uuid=str(wallet.uuid))
+        sync_wallet.defer(wallet_uuid=str(wallet.uuid), principal_id=principal_id)
     except Exception:
         logger.error(f"Failed to queue a sync for wallet {wallet.uuid} after verification", exc_info=True)

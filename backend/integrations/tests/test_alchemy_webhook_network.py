@@ -48,7 +48,7 @@ class AlchemyWebhookNetworkTest(TestCase):
         self.assertCountEqual(
             sync.call_args_list,
             [
-                call(wallet_uuid=str(wallet.pk))
+                call(wallet_uuid=str(wallet.pk), principal_id=None)
                 for wallet in (self.sender.wallet, self.recipient.wallet, self.other_owner)
             ],
         )
@@ -58,7 +58,7 @@ class AlchemyWebhookNetworkTest(TestCase):
         with patch("wallets.tasks.sync_wallet.defer") as sync:
             response = post_webhook(self.client, self.activity("ETH_SEPOLIA"))
         self.assertEqual(response.status_code, 200, response.content)
-        sync.assert_called_once_with(wallet_uuid=str(self.ethereum.pk))
+        sync.assert_called_once_with(wallet_uuid=str(self.ethereum.pk), principal_id=None)
 
     def test_pending_receipts_are_queued_only_for_the_matching_wallet_network(self):
         for wallet in (self.sender.wallet, self.ethereum):
@@ -91,7 +91,7 @@ class AlchemyWebhookNetworkTest(TestCase):
         with patch("wallets.tasks.sync_wallet.defer") as sync:
             response = post_webhook(self.client, payload)
         self.assertEqual(response.status_code, 200, response.content)
-        sync.assert_called_once_with(wallet_uuid=str(self.ethereum.pk))
+        sync.assert_called_once_with(wallet_uuid=str(self.ethereum.pk), principal_id=None)
 
     def test_unknown_or_missing_networks_never_queue_work(self):
         for network in (None, "", "BASE_MAINNET", "ETH_MAINNET", "MATIC_MUMBAI", {}):
