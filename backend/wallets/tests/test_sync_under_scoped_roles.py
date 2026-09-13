@@ -11,6 +11,7 @@ from django.utils import timezone
 from assets.models import AssetChainDeployment
 from compliance.constants import RULE_TYPE_THRESHOLD
 from compliance.models import ComplianceAlert, MonitoringRule
+from compliance.tasks import screen_transaction
 from shared.db import (
     APP_ALIAS,
     OPERATOR_ALIAS,
@@ -69,6 +70,8 @@ class ScopedWalletSyncTest(RunsOnTheScopedConnection, TransactionTestCase):
         self.balance = balance.start().return_value.get_token_balance
         self.balance.return_value = 9
         self.observed = []
+        self.initial_jobs = set(self.queued())
+        self.addCleanup(lambda: self.delete_jobs(set(self.queued()) - self.initial_jobs))
 
     def transaction_history(self, address):
         alias = current_alias()
@@ -129,7 +132,6 @@ class ScopedWalletSyncTest(RunsOnTheScopedConnection, TransactionTestCase):
             {
                 ("INSERT", Transaction._meta.db_table),
                 ("INSERT", HoldingSnapshot._meta.db_table),
-                ("INSERT", ComplianceAlert._meta.db_table),
                 ("UPDATE", Holding._meta.db_table),
                 ("UPDATE", Wallet._meta.db_table),
                 ("SELECT", ShareToken._meta.db_table),
@@ -139,8 +141,14 @@ class ScopedWalletSyncTest(RunsOnTheScopedConnection, TransactionTestCase):
         self.balance.assert_called_once_with(self.other.deployed_token.contract_address, self.owner.wallet.address)
         last_synced, quantity, transactions, snapshots, alerts = self.state_of(self.owner)
         self.assertIsNotNone(last_synced)
-        self.assertEqual((quantity, transactions, snapshots, alerts), (Decimal("9"), 1, 1, 1))
+        self.assertEqual((quantity, transactions, snapshots, alerts), (Decimal("9"), 1, 1, 0))
         self.assertEqual(self.state_of(self.other), other_before)
+        jobs = [row for key, row in self.queued().items() if key not in self.initial_jobs]
+        self.assertEqual(len(jobs), 1)
+        name, payload = jobs[0]
+        self.assertEqual(name, screen_transaction.name)
+        self.assertEqual(screen_transaction.func(**payload), {"status": "completed", "alerts": 1})
+        self.assertEqual(self.state_of(self.owner)[-1], 1)
 
     def test_a_foreign_wallet_is_refused_before_the_chain_and_its_owner_can_sync_it(self):
         before = self.state_of(self.other)
@@ -183,7 +191,6 @@ class ScopedWalletSyncTest(RunsOnTheScopedConnection, TransactionTestCase):
             )
             complete_wallet_verification(self.owner.user, self.owner.wallet.pk, "0x01")
         jobs = {key: row for key, row in self.queued().items() if key not in before}
-        self.addCleanup(self.delete_jobs, list(jobs))
         self.assertEqual(len(jobs), 1)
         name, args = next(iter(jobs.values()))
         self.assertEqual(name, sync_wallet.name)
