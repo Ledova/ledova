@@ -13,8 +13,17 @@ from compliance.constants import (
     BATCH_MONITORING_LOOKBACK_HOURS,
 )
 from ledova_backend.procrastinate_app import app
+from shared.db import use_operator
 
 logger = logging.getLogger(__name__)
+
+
+@app.task(retry=RetryStrategy(max_attempts=4, wait=60))
+def screen_transaction(transaction_uuid: str):
+    from compliance.services.transaction_monitoring import TransactionMonitoringService
+
+    with use_operator():
+        return TransactionMonitoringService.check_recorded_transaction(transaction_uuid)
 
 
 @app.periodic(cron="0 * * * *")

@@ -99,6 +99,16 @@ so an account is visible and deletable by the person it names from the moment it
 exists. The serializer keeps that field read-only; a client cannot choose whose
 account it creates.
 
+**A caught PostgreSQL permission error still aborts its transaction.** Moving
+wallet sync onto the app role exposed inline monitoring that wrote an
+operator-only compliance alert. Catching that insert's error did not let the
+wallet transaction continue. Screening is now a durable operator job, inserted
+through a Django connector bound to the producer's current alias. Using the
+queue's default connection would let the job survive a wallet rollback; an
+after-commit callback would instead leave a crash gap before enqueue. The scoped
+test observes the uncommitted job on `app`, its absence on `operator`, and both
+the job and wallet transaction disappearing on rollback.
+
 Three fixture rules follow:
 
 - **A bare `transaction.atomic()` in a test is exempt from

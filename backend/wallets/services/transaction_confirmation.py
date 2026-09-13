@@ -75,7 +75,7 @@ def create_pending_transaction(
             block_timestamp=None,
             block_number=None,
         )
-        TransactionMonitoringService.check_new_transaction(tx)
+        TransactionMonitoringService.queue_new_transaction(tx)
 
         fee = transaction_fee or Decimal("0")
         native = native_asset_for_chain(wallet.chain)

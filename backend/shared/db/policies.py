@@ -401,7 +401,8 @@ FRAMEWORK = {
     "token_blacklist_outstandingtoken": "Issued refresh tokens, read during authentication, before a "
     "principal exists.",
     "token_blacklist_blacklistedtoken": "Revoked refresh tokens, read during authentication for the same reason.",
-    "procrastinate_jobs": "The worker queue, which runs on the operator connection and has no acting user.",
+    "procrastinate_jobs": "The worker queue, consumed on the operator connection. Transaction screening "
+    "jobs are inserted on the producer's connection so they commit with the transaction they screen.",
     "procrastinate_events": "Worker job history, written by the queue on the operator connection.",
     "procrastinate_periodic_defers": "Worker schedule bookkeeping, with no tenant in it at all.",
     "procrastinate_workers": "Worker registration rows, one per running worker process.",

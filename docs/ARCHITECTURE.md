@@ -1301,6 +1301,19 @@ needs to see every tenant, and the wrong one for a task acting for a user, which
 would then read rows its principal may not. Nothing in the task says which it is;
 only the catalogue does.
 
+Transaction monitoring crosses a separate boundary: wallet writes can run scoped,
+while alerts and crypto screening records belong to the operator. The two wallet
+creation paths enqueue `compliance.tasks.screen_transaction` on their current
+connection inside the transaction that inserts the wallet transaction. Historical
+imports outside the monitoring window are excluded at enqueue; worker delay does
+not change that decision. The worker explicitly selects the operator role, locks
+the recorded transaction and commits its alerts with `monitoring_completed_at`.
+A failed attempt rolls those writes back and remains retryable in Procrastinate;
+redelivery after completion does not screen again. This retains the existing
+screening service and its provider behavior, including manual handling of recorded
+provider failures. The worker can hold the transaction lock while that service
+calls the provider; it does not hold the wallet lock used by the producer.
+
 **Why R1 and R2 are separate releases.** With policies on and querysets still in,
 a green matrix says the policy is *sufficient*. With the querysets removed, a
 green matrix says they were not doing anything the policy misses. Both directions

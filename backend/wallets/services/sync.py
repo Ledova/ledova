@@ -116,7 +116,7 @@ def _process_single_transaction(wallet: Wallet, tx_data: Dict) -> Dict[str, bool
     )
     result["tx"] = created
     if created:
-        TransactionMonitoringService.check_new_transaction(tx)
+        TransactionMonitoringService.queue_new_transaction(tx)
 
     if created and asset.is_verified:
         holding, _ = Holding.objects.get_or_create(

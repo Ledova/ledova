@@ -16,6 +16,10 @@ SYSTEM_WIDE = {
     "for queued legacy jobs; receipt recovery runs in check_pending_transactions.",
     "compliance.tasks.run_batch_monitoring": "Screens every account against the operator's rules, which is "
     "the operator's question rather than any customer's.",
+    "compliance.tasks.screen_transaction": "Applies the operator's monitoring rules to a recorded transaction "
+    "and its account history, writing operator-only alerts and screening records. The transaction and job "
+    "commit together on the producer's connection; the task explicitly uses the operator role and records "
+    "completion with its alert writes so a retried delivery cannot duplicate them.",
     "compliance.tasks.check_periodic_reviews": "Finds which reviews are due across every account.",
     "offerings.tasks.subscription.reconcile_subscriptions": "Matching a bank line means searching every tenant's "
     "subscriptions, because the line does not say whose it is.",
