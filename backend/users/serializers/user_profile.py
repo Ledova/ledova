@@ -3,6 +3,7 @@ from rest_framework import serializers
 
 from shared.models.country import Country
 from users.models.user_profile import UserProfile
+from users.serializers.identity_verification import RejectionLabelsField
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -16,6 +17,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     is_staff = serializers.SerializerMethodField()
     date_joined = serializers.SerializerMethodField()
     last_login = serializers.SerializerMethodField()
+    rejection_labels = RejectionLabelsField(read_only=True, allow_null=True)
 
     class Meta:
         model = UserProfile

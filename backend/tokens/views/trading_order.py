@@ -43,6 +43,7 @@ from tokens.serializers.order_submission import (
     SignedOrderSubmissionSerializer,
     submission_snapshot,
 )
+from tokens.serializers.signing import SwapTypedDataField
 from tokens.serializers.swap_order import (
     SettlementApprovalBroadcastSerializer,
     SettlementIdentitySerializer,
@@ -254,7 +255,7 @@ class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
             name="SwapOrderForSigning",
             fields={
                 "swap_order": SwapOrderDetailSerializer(),
-                "typed_data": serializers.JSONField(),
+                "typed_data": SwapTypedDataField(),
                 "user_role": serializers.CharField(),
                 "has_signed": serializers.BooleanField(),
                 "can_sign": serializers.BooleanField(required=False),

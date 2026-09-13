@@ -18,6 +18,11 @@ from tokens.models import (
     TransferOrderType,
 )
 from tokens.serializers.order_submission import SubmissionOrderSerializer
+from tokens.serializers.signing import (
+    SigningDomainSerializer,
+    SigningMessageField,
+    SigningTypesField,
+)
 
 
 class ActionQuantityField(serializers.RegexField):
@@ -71,13 +76,6 @@ class OrderActionLookupSerializer(serializers.Serializer):
     owner_account_uuid = serializers.UUIDField()
 
 
-class OrderActionDomainSerializer(serializers.Serializer):
-    name = serializers.CharField()
-    version = serializers.CharField()
-    chain_id = serializers.IntegerField(source="chainId")
-    verifying_contract = serializers.CharField(source="verifyingContract")
-
-
 class OrderActionTokenSerializer(serializers.Serializer):
     name = serializers.CharField()
     symbol = serializers.CharField()
@@ -107,13 +105,13 @@ class OrderActionContextSerializer(serializers.Serializer):
     wallet_uuid = serializers.UUIDField()
     token_uuid = serializers.UUIDField()
     wallet_address = serializers.CharField()
-    domain = OrderActionDomainSerializer()
+    domain = SigningDomainSerializer()
     token = OrderActionTokenSerializer()
     current_values = OrderActionCurrentValuesSerializer()
 
 
 class OrderActionIntentSerializer(serializers.Serializer):
-    domain = OrderActionDomainSerializer()
+    domain = SigningDomainSerializer()
     modifications = OrderActionValuesSerializer(allow_null=True)
 
 
@@ -151,9 +149,9 @@ class OrderActionRefusalSerializer(serializers.Serializer):
 class OrderActionChallengeSerializer(serializers.Serializer):
     purpose = serializers.ChoiceField(choices=["order_cancel", "order_modify"])
     digest = serializers.CharField()
-    domain = OrderActionDomainSerializer()
-    types = serializers.JSONField()
-    message = serializers.JSONField()
+    domain = SigningDomainSerializer()
+    types = SigningTypesField()
+    message = SigningMessageField()
     expires_at = serializers.DateTimeField()
 
 

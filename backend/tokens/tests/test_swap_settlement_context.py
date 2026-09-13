@@ -253,6 +253,42 @@ class SwapSettlementRouteTest(APITransactionTestCase):
         }
         self.url = f"/api/v1/trading/orders/{self.seller_order.pk}/swap"
 
+    def test_signing_schema_preserves_recorded_context_and_legacy_chain_id_types(self):
+        document = SchemaGenerator().get_schema(request=None, public=True)
+        response = self.client.get(self.url + "/", self.identity)
+        self.assertEqual(response.status_code, 200, response.content)
+        body = response.json()
+        components = document["components"]["schemas"]
+        typed_data = Draft7Validator(
+            components["SwapOrderForSigning"]["properties"]["typedData"],
+            resolver=RefResolver.from_schema(document),
+        )
+        context = Draft7Validator(
+            components["SwapOrderDetail"]["properties"]["settlementContext"],
+            resolver=RefResolver.from_schema(document),
+        )
+        self.assertEqual(list(typed_data.iter_errors(body["typedData"])), [])
+        self.assertEqual(list(context.iter_errors(body["swapOrder"]["settlementContext"])), [])
+        legacy_swap = deepcopy(self.swap)
+        legacy_swap.settlement_protocol_version = 0
+        legacy_data = swap_service().get_typed_data(legacy_swap)
+        self.assertIsInstance(legacy_data["domain"]["chainId"], int)
+        self.assertIsInstance(body["typedData"]["domain"]["chainId"], str)
+        self.assertEqual(list(typed_data.iter_errors(legacy_data)), [])
+        for source in (body["typedData"], legacy_data):
+            invalid = deepcopy(source)
+            invalid["message"]["shareAmount"] = 9007199254740993
+            self.assertFalse(typed_data.is_valid(invalid))
+        invalid_party = deepcopy(body["swapOrder"]["settlementContext"])
+        del invalid_party["seller"]["walletUuid"]
+        invalid_chain = deepcopy(body["swapOrder"]["settlementContext"])
+        invalid_chain["typedData"]["domain"]["chainId"] = 84532
+        invalid_types = deepcopy(body["swapOrder"]["settlementContext"])
+        invalid_types["typedData"]["types"]["SwapOrder"][0]["type"] = 1
+        for invalid in (invalid_party, invalid_chain, invalid_types):
+            with self.subTest(invalid=invalid):
+                self.assertFalse(context.is_valid(invalid))
+
     def test_exact_recovery_preserves_original_display_after_expiry_and_config_drift(self):
         ShareToken.objects.filter(pk=self.swap.share_token_id).update(name="Changed", symbol="CHANGED")
         with override_settings(ATOMIC_SWAP_ADDRESS="0x" + "69" * 20):

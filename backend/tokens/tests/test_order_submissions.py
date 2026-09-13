@@ -10,7 +10,7 @@ from django.db import DatabaseError, connections
 from django.test import override_settings
 from django.utils import timezone
 from drf_spectacular.generators import SchemaGenerator
-from jsonschema import Draft4Validator
+from jsonschema import Draft4Validator, RefResolver
 from rest_framework.test import APITransactionTestCase
 
 from shared.db import acting_for, atomic, current_alias, use_operator
@@ -251,6 +251,25 @@ class SubmissionBoundaryChecks:
 
 
 class OrderSubmissionProtocolTest(SubmissionBoundaryChecks, SubmissionFixtures, APITransactionTestCase):
+    def test_create_challenge_schema_validates_nested_signing_fields(self):
+        document = SchemaGenerator().get_schema(request=None, public=True)
+        response = self.message(self.body())
+        self.assertEqual(response.status_code, 200, response.content)
+        challenge = response.json()["challenge"]
+        validator = Draft4Validator(
+            {"$ref": "#/components/schemas/OrderCreateChallenge"}, resolver=RefResolver.from_schema(document)
+        )
+        self.assertEqual(list(validator.iter_errors(challenge)), [])
+        invalid_domain = deepcopy(challenge)
+        del invalid_domain["domain"]["chainId"]
+        invalid_types = deepcopy(challenge)
+        invalid_types["types"][next(iter(challenge["types"]))][0]["type"] = 1
+        invalid_message = deepcopy(challenge)
+        invalid_message["message"][next(iter(challenge["message"]))] = {"value": "invalid"}
+        for invalid in (invalid_domain, invalid_types, invalid_message):
+            with self.subTest(invalid=invalid):
+                self.assertFalse(validator.is_valid(invalid))
+
     def test_create_request_schemas_accept_lossless_integer_strings_and_numeric_drafts(self):
         schema = SchemaGenerator().get_schema(request=None, public=True)
         for path in ("/api/v1/trading/orders/create/message/", "/api/v1/trading/orders/create/"):

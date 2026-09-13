@@ -1,5 +1,7 @@
 from django.contrib.auth import get_user_model
 from djangorestframework_camel_case.util import camelize
+from drf_spectacular.generators import SchemaGenerator
+from jsonschema import Draft4Validator
 from rest_framework.test import APITestCase
 
 from users.models import UserProfile
@@ -41,3 +43,24 @@ class UserProfileContractTest(APITestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.json()["results"]), 1)
+
+    def test_rejection_labels_schema_preserves_nullable_lists_of_strings(self):
+        document = SchemaGenerator().get_schema(request=None, public=True)
+        for name in ("UserProfile", "PatchedUserProfile"):
+            schema = document["components"]["schemas"][name]["properties"]["rejectionLabels"]
+            self.assertTrue(schema["nullable"])
+            self.assertTrue(schema["readOnly"])
+            self.profile.rejection_labels = ["DOCUMENT_EXPIRED"]
+            self.profile.save(update_fields=["rejection_labels"])
+            response = self.client.get("/api/user-profiles/")
+            self.assertEqual(response.status_code, 200, response.content)
+            labels = response.json()["results"][0]["rejectionLabels"]
+            self.assertEqual(labels, ["DOCUMENT_EXPIRED"])
+            validator = Draft4Validator(schema)
+            self.assertEqual(list(validator.iter_errors(labels)), [])
+            for invalid in ("DOCUMENT_EXPIRED", [1], [{"label": "DOCUMENT_EXPIRED"}]):
+                with self.subTest(schema=name, invalid=invalid):
+                    self.assertFalse(validator.is_valid(invalid))
+        self.profile.rejection_labels = None
+        self.profile.save(update_fields=["rejection_labels"])
+        self.assertIsNone(self.client.get("/api/user-profiles/").json()["results"][0]["rejectionLabels"])
