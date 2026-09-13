@@ -3,6 +3,7 @@ from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
+from django.db import connections
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APITestCase
@@ -13,7 +14,8 @@ from compliance.constants import (
     TRANSACTION_MONITORING_WINDOW_HOURS,
 )
 from compliance.models import ComplianceAlert, CustomerRiskAssessment, MonitoringRule
-from compliance.services.transaction_monitoring import TransactionMonitoringService
+from compliance.tasks import screen_transaction
+from shared.db import current_alias
 from shared.tests.tenants import an_account
 from users.models import UserProfile
 from users.services.setup import ensure_defaults
@@ -53,39 +55,56 @@ class TransactionMonitoringOnCreateTest(TestCase):
         with patch("wallets.services.sync.get_blockchain_client", return_value=client):
             return sync_wallet(self.wallet)
 
-    def test_sync_screens_each_newly_created_transaction_once(self):
-        with patch(CHECK, return_value=[]) as check:
+    def jobs_for(self, tx_hash):
+        with connections[current_alias()].cursor() as cursor:
+            cursor.execute(
+                "SELECT id FROM procrastinate_jobs WHERE task_name = %s "
+                "AND args->>'transaction_uuid' IN (SELECT uuid::text FROM transactions WHERE tx_hash = %s)",
+                [screen_transaction.name, tx_hash],
+            )
+            return [row[0] for row in cursor.fetchall()]
+
+    def test_sync_queues_each_newly_created_transaction_once_without_inline_screening(self):
+        with patch(CHECK) as check:
             self.assertEqual(self.sync(tx_payload("0xnew", timezone.now()))["transactions"], 1)
             self.assertEqual(self.sync(tx_payload("0xnew", timezone.now()))["transactions"], 0)
-
-        check.assert_called_once()
-        tx = Transaction.objects.get(tx_hash="0xnew")
-        self.assertEqual(check.call_args.kwargs, {"transaction": tx, "user_account": self.account})
+        check.assert_not_called()
+        self.assertEqual(len(self.jobs_for("0xnew")), 1)
 
     def test_sync_skips_screening_for_transactions_older_than_the_window(self):
         old = timezone.now() - timedelta(hours=TRANSACTION_MONITORING_WINDOW_HOURS, minutes=1)
-        with patch(CHECK, return_value=[]) as check:
-            self.assertEqual(self.sync(tx_payload("0xold", old))["transactions"], 1)
-        check.assert_not_called()
+        self.assertEqual(self.sync(tx_payload("0xold", old))["transactions"], 1)
+        self.assertEqual(self.jobs_for("0xold"), [])
+        self.assertEqual(self.sync(tx_payload("0xcurrent", timezone.now()))["transactions"], 1)
+        self.assertEqual(len(self.jobs_for("0xcurrent")), 1)
 
-    def test_monitoring_failure_does_not_roll_back_the_sync(self):
-        with patch(CHECK, side_effect=RuntimeError("screening down")):
+    def test_enqueue_failure_rolls_back_the_sync_transaction(self):
+        with patch("compliance.services.transaction_monitoring.App.configure_task", side_effect=RuntimeError("down")):
             result = self.sync(tx_payload("0xboom", timezone.now()))
+        self.assertEqual(result["status"], "error")
+        self.assertFalse(Transaction.objects.filter(tx_hash="0xboom", wallet=self.wallet).exists())
+        self.assertEqual(self.sync(tx_payload("0xboom", timezone.now()))["transactions"], 1)
+        self.assertEqual(len(self.jobs_for("0xboom")), 1)
 
-        self.assertEqual(result["status"], "success")
-        self.assertTrue(Transaction.objects.filter(tx_hash="0xboom", wallet=self.wallet).exists())
-
-    def test_monitoring_failure_does_not_roll_back_a_pending_transfer(self):
-        with patch(CHECK, side_effect=RuntimeError("screening down")) as check:
+    def test_a_pending_transfer_commits_a_screening_job(self):
+        with patch(CHECK) as check:
             result = transaction_confirmation.create_pending_transaction(
                 wallet=self.wallet, tx_hash="0xpending", to_address="0x" + "e" * 40, amount=Decimal("0.5")
             )
-
         self.assertEqual(result["status"], "pending")
-        tx = Transaction.objects.get(tx_hash="0xpending")
-        self.assertEqual(check.call_args.kwargs, {"transaction": tx, "user_account": self.account})
+        check.assert_not_called()
+        self.assertEqual(len(self.jobs_for("0xpending")), 1)
 
-    def test_active_rule_creates_an_alert_for_the_new_transaction(self):
+    def test_enqueue_failure_rolls_back_a_pending_transfer(self):
+        with patch("compliance.services.transaction_monitoring.App.configure_task", side_effect=RuntimeError("down")):
+            with self.assertRaisesRegex(RuntimeError, "down"):
+                transaction_confirmation.create_pending_transaction(
+                    wallet=self.wallet, tx_hash="0xpending", to_address="0x" + "e" * 40, amount=Decimal("0.5")
+                )
+        self.assertFalse(Transaction.objects.filter(tx_hash="0xpending", wallet=self.wallet).exists())
+        self.assertEqual(self.jobs_for("0xpending"), [])
+
+    def test_the_worker_creates_an_alert_once_for_the_recorded_transaction(self):
         rule = MonitoringRule.objects.create(
             rule_code="MON-002",
             name="Rapid",
@@ -93,25 +112,15 @@ class TransactionMonitoringOnCreateTest(TestCase):
             rule_type=RULE_TYPE_RAPID_TRANSACTIONS,
             parameters={"max_transactions": 1, "period_minutes": 60},
         )
-
         self.assertEqual(self.sync(tx_payload("0xrapid", timezone.now()))["transactions"], 1)
-
+        self.assertFalse(ComplianceAlert.objects.filter(monitoring_rule=rule).exists())
+        tx = Transaction.objects.get(tx_hash="0xrapid")
+        self.assertEqual(screen_transaction.func(str(tx.pk)), {"status": "completed", "alerts": 1})
+        self.assertEqual(screen_transaction.func(str(tx.pk)), {"status": "already_completed"})
         alert = ComplianceAlert.objects.get(monitoring_rule=rule)
-        self.assertEqual(alert.transaction, Transaction.objects.get(tx_hash="0xrapid"))
-        self.assertEqual(alert.user_account, self.account)
-
-    def test_check_new_transaction_swallows_errors(self):
-        tx = Transaction.objects.create(
-            tx_hash="0xdirect",
-            chain="ethereum",
-            from_address=self.wallet.address,
-            to_address="0x" + "e" * 40,
-            asset=Transaction._meta.get_field("asset").related_model.objects.create(symbol="ETH", name="Ether"),
-            amount=Decimal("1"),
-            wallet=self.wallet,
-        )
-        with patch(CHECK, side_effect=RuntimeError("boom")):
-            self.assertIsNone(TransactionMonitoringService.check_new_transaction(tx))
+        self.assertEqual((alert.transaction, alert.user_account), (tx, self.account))
+        tx.refresh_from_db()
+        self.assertIsNotNone(tx.monitoring_completed_at)
 
 
 class PendingRiskAssessmentOnAccountCreateTest(APITestCase):

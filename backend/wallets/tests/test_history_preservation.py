@@ -47,7 +47,6 @@ class HistoryPreservationChecks:
         for target in (
             "wallets.services.transaction_confirmation.send_transaction_notification.defer",
             "wallets.services.transaction_confirmation.sync_holding",
-            "wallets.services.sync.TransactionMonitoringService.check_new_transaction",
         ):
             patched = patch(target, return_value=None)
             self.addCleanup(patched.stop)
@@ -519,7 +518,7 @@ class HistoryPreservationChecks:
     @skipUnless(connections[configured(APP_ALIAS)].vendor == "postgresql", "Concurrent row locks need PostgreSQL")
     def test_history_waits_for_pending_creation_and_preserves_its_original_deduction(self):
         first, second = self.overlapping_history(
-            self.pending, "wallets.services.sync.TransactionMonitoringService.check_new_transaction"
+            self.pending, "wallets.services.sync.TransactionMonitoringService.queue_new_transaction"
         )
         self.assertEqual(second, {"status": "success", "transactions": 0, "snapshots": 0})
         with use_operator():
@@ -557,7 +556,7 @@ class HistoryPreservationChecks:
     def test_overlapping_history_imports_keep_the_first_observation_and_one_snapshot(self):
         first, second = self.overlapping_history(
             lambda: self.import_history(self.history()),
-            "wallets.services.sync.TransactionMonitoringService.check_new_transaction",
+            "wallets.services.sync.TransactionMonitoringService.queue_new_transaction",
         )
         self.assertEqual(first, {"status": "success", "transactions": 1, "snapshots": 1})
         self.assertEqual(second, {"status": "success", "transactions": 0, "snapshots": 0})

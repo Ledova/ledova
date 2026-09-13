@@ -49,6 +49,7 @@ class Transaction(DerivesAccountFromWallet, BaseModel):
     )
     status = models.CharField(max_length=20, choices=TRANSACTION_STATUS_CHOICES, default=TRANSACTION_STATUS_PENDING)
     imported_from_history = models.BooleanField(default=False, editable=False)
+    monitoring_completed_at = models.DateTimeField(null=True, blank=True, editable=False)
     transaction_fee_estimated = models.DecimalField(max_digits=30, decimal_places=18, null=True, blank=True)
     transaction_fee = models.DecimalField(max_digits=30, decimal_places=18, null=True, blank=True)
     deducted_amount = models.DecimalField(

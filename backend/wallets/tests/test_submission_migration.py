@@ -10,7 +10,7 @@ from rest_framework.test import APITransactionTestCase
 
 from shared.db import use_operator
 from shared.tests.schema import restore_every_migration
-from wallets.models import Transaction, WalletSubmission
+from wallets.models import WalletSubmission
 from wallets.tests.test_submission_durability import SubmissionFixture
 
 BEFORE = ("wallets", "0015_transaction_imported_from_history")
@@ -52,8 +52,9 @@ class SubmissionMigrationTest(SubmissionFixture, APITransactionTestCase):
         executor = MigrationExecutor(connection)
         executor.migrate([AFTER])
         with use_operator():
-            self.assertEqual(list(Transaction.objects.order_by("pk").values()), before)
+            self.assertEqual(list(transactions.order_by("pk").values()), before)
             self.assertEqual(WalletSubmission.objects.count(), 0)
+        restore_every_migration()
         signed = self.signed()
         with patch("wallets.services.submissions.get_blockchain_client", return_value=self.provider(signed)):
             self.assertEqual(self.submit_direct(signed)["status"], "pending")
@@ -67,5 +68,6 @@ class SubmissionMigrationTest(SubmissionFixture, APITransactionTestCase):
         before = self.financial_state()
         with self.assertRaisesRegex(RuntimeError, "cannot discard recorded intent"):
             MigrationExecutor(connection).migrate([BEFORE])
+        restore_every_migration()
         self.assertEqual(self.financial_state(), before)
         self.assertEqual(bytes(self.submission().raw_transaction), bytes(signed.raw_transaction))

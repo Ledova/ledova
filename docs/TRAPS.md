@@ -99,6 +99,16 @@ so an account is visible and deletable by the person it names from the moment it
 exists. The serializer keeps that field read-only; a client cannot choose whose
 account it creates.
 
+**A caught PostgreSQL permission error still aborts its transaction.** Moving
+wallet sync onto the app role exposed inline monitoring that wrote an
+operator-only compliance alert. Catching that insert's error did not let the
+wallet transaction continue. Screening is now a durable operator job, inserted
+through a Django connector bound to the producer's current alias. Using the
+queue's default connection would let the job survive a wallet rollback; an
+after-commit callback would instead leave a crash gap before enqueue. The scoped
+test observes the uncommitted job on `app`, its absence on `operator`, and both
+the job and wallet transaction disappearing on rollback.
+
 Three fixture rules follow:
 
 - **A bare `transaction.atomic()` in a test is exempt from
@@ -353,6 +363,14 @@ itself. Editing by line number rather than by content trades one failure mode
 for another; if you do, assert the line reads what you think it reads first.
 A red proof that reports the clean count and a mutation that never landed look
 identical, and they mean opposite things.
+
+**A migration test needs the model from that migration.** Adding the nullable
+transaction screening marker exposed nine errors in older wallet migration tests:
+they rolled the schema back and then queried the current `Transaction` model,
+which selected a column the old schema did not have. Use the executor's historical
+models for old rows and restore every migration before calling current services.
+A refused rollback can already have unapplied later migrations; restore after
+that refusal too, before comparing current-model snapshots.
 
 **`makemigrations --check` under the test settings cannot fail.**
 `ledova_backend/settings/test.py` ends with a `MIGRATION_MODULES` mapping that

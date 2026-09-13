@@ -45,7 +45,6 @@ class BitcoinSubmissionFixture:
         self.rpc_overrides = {}
         for target in (
             "wallets.tasks.confirm_pending_transaction.configure",
-            "wallets.services.transaction_confirmation.TransactionMonitoringService.check_new_transaction",
             "wallets.services.transaction_confirmation.send_transaction_notification.defer",
             "wallets.services.transaction_confirmation.sync_holding",
         ):

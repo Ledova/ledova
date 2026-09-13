@@ -24,8 +24,8 @@ MIGRATIONS_ENABLED = not ("wallets" in modules and modules["wallets"] is None)
 class ChainObservationMigrationTest(ChainObservationFixture, APITransactionTestCase):
     def test_installation_keeps_signed_journals_and_existing_accounting_without_inventing_observations(self):
         self.addCleanup(restore_every_migration)
-        MigrationExecutor(connection).migrate([BEFORE])
         before = self.financial_state()
+        MigrationExecutor(connection).migrate([BEFORE])
         with use_operator():
             journal = list(WalletSubmission.objects.values())
         MigrationExecutor(connection).migrate([AFTER])
@@ -33,6 +33,7 @@ class ChainObservationMigrationTest(ChainObservationFixture, APITransactionTestC
             self.assertEqual(list(WalletSubmission.objects.values()), journal)
             self.assertEqual(WalletChainWatch.objects.count(), 0)
             self.assertEqual(WalletChainObservation.objects.count(), 0)
+        restore_every_migration()
         self.assertEqual(self.financial_state(), before)
         self.assertEqual(observe_wallet_chain(self.tx_id), "recorded")
 
@@ -43,6 +44,7 @@ class ChainObservationMigrationTest(ChainObservationFixture, APITransactionTestC
         financial = self.financial_state()
         with self.assertRaisesRegex(RuntimeError, "cannot discard recorded evidence"):
             MigrationExecutor(connection).migrate([BEFORE])
+        restore_every_migration()
         self.assertEqual(self.observations(), before)
         self.assertEqual(self.financial_state(), financial)
 
@@ -51,5 +53,6 @@ class ChainObservationMigrationTest(ChainObservationFixture, APITransactionTestC
         claim = claim_chain_observation(self.tx_id)
         with self.assertRaisesRegex(RuntimeError, "cannot discard recorded evidence"):
             MigrationExecutor(connection).migrate([BEFORE])
+        restore_every_migration()
         self.assertEqual(self.watch().generation, claim.generation)
         self.assertEqual(self.observations(), [])

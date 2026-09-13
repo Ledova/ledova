@@ -5,6 +5,8 @@ from typing import Dict, List, Optional, Tuple
 
 from django.db.models import Avg, Sum
 from django.utils import timezone
+from procrastinate import App
+from procrastinate.contrib.django.django_connector import DjangoConnector
 
 from compliance.constants import (
     AGGREGATE_VOLUME_PERIOD_DAYS,
@@ -52,6 +54,7 @@ from compliance.constants import (
 )
 from compliance.models import ComplianceAlert, CustomerRiskAssessment, MonitoringRule
 from compliance.services.crypto_screening import CryptoScreeningService
+from shared.db import atomic, current_alias
 from wallets.models import Transaction
 
 logger = logging.getLogger(__name__)
@@ -358,16 +361,27 @@ def check_rule(rule: MonitoringRule, transaction, user_account) -> RuleResult:
 
 class TransactionMonitoringService:
     @classmethod
-    def check_new_transaction(cls, tx) -> None:
+    def queue_new_transaction(cls, tx) -> None:
         cutoff = timezone.now() - timedelta(hours=TRANSACTION_MONITORING_WINDOW_HOURS)
         if tx.block_timestamp and tx.block_timestamp < cutoff:
             return
-        try:
+        from compliance.tasks import screen_transaction
+
+        queue = App(connector=DjangoConnector(alias=current_alias()))
+        queue.configure_task(screen_transaction.name).defer(transaction_uuid=str(tx.pk))
+
+    @classmethod
+    def check_recorded_transaction(cls, transaction_uuid):
+        with atomic():
+            tx = Transaction.objects.select_for_update().filter(pk=transaction_uuid).first()
+            if tx is None:
+                return {"status": "not_found"}
+            if tx.monitoring_completed_at is not None:
+                return {"status": "already_completed"}
             alerts = cls.check_transaction(transaction=tx, user_account=tx.wallet.user_account)
-            if alerts:
-                logger.info(f"Created {len(alerts)} alert(s) for transaction {tx.uuid}")
-        except Exception:
-            logger.exception(f"Error checking transaction {tx.uuid}")
+            tx.monitoring_completed_at = timezone.now()
+            tx.save(update_fields=["monitoring_completed_at"])
+        return {"status": "completed", "alerts": len(alerts)}
 
     @classmethod
     def check_transaction(cls, transaction, user_account) -> List[ComplianceAlert]:
