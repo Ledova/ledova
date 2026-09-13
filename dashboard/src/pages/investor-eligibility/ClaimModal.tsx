@@ -89,7 +89,6 @@ export function ClaimModal({ isOpen, onClose, category, userAccount, onSuccess }
     setError(null);
     try {
       await submitInvestorClassification(apiClient, {
-        userAccount,
         category,
         declaredBasis: declaredBasis.trim(),
         file,

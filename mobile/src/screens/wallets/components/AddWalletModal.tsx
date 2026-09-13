@@ -16,7 +16,6 @@ import { useAddWalletForm, FORM_STEPS } from '../useAddWalletForm';
 interface AddWalletModalProps {
   visible: boolean;
   isLoading: boolean;
-  userAccountUuid: string | undefined;
   preselectedChain?: 'BTC' | 'ETH' | null;
   onClose: () => void;
   onSubmit: (data: CreateWallet) => void;
@@ -27,7 +26,6 @@ interface AddWalletModalProps {
 export function AddWalletModal({
   visible,
   isLoading,
-  userAccountUuid,
   preselectedChain,
   onClose,
   onSubmit,
@@ -104,7 +102,6 @@ export function AddWalletModal({
     },
   }));
   const form = useAddWalletForm({
-    userAccountUuid,
     onSubmit: (data) => {
       onSubmit(data);
     },
@@ -167,7 +164,6 @@ export function AddWalletModal({
       case FORM_STEPS.SEED_PHRASE:
         return (
           <SeedPhraseSetup
-            userAccountUuid={userAccountUuid}
             visible={visible}
             onClose={handleClose}
             onComplete={handleSoftwareWalletComplete}
@@ -179,7 +175,6 @@ export function AddWalletModal({
         return (
           <CustomModal {...modalProps}>
             <HardwareAccountSelector
-              userAccountUuid={userAccountUuid}
               urString={form.scannedURString!}
               onSelectAccounts={form.handleAddressSelection}
               onCancel={form.handleBackToInput}
@@ -197,7 +192,7 @@ export function AddWalletModal({
             confirmLabel="Add Wallet"
             onConfirm={form.handleSubmit}
             confirmLoading={isLoading}
-            confirmDisabled={isLoading || !userAccountUuid}
+            confirmDisabled={isLoading}
           >
             <WalletNetworkSelector network={form.selectedChain ?? ''} onChange={form.setSelectedChain} />
             <View style={styles.heroSection}>
@@ -226,7 +221,7 @@ export function AddWalletModal({
 
               {form.showScanner ? (
                 <View style={styles.scannerContainer}>
-                  <AnimatedQRScanner key={userAccountUuid} active={visible} onComplete={form.handleQRScan} />
+                  <AnimatedQRScanner active={visible} onComplete={form.handleQRScan} />
                 </View>
               ) : (
                 <>

@@ -30,12 +30,7 @@ it('shows the Base balance and imports on Base after changing the network', asyn
   }));
   const selected = jest.fn();
   const view = await render(
-    <HardwareAccountSelector
-      urString="synthetic-qr"
-      userAccountUuid="account"
-      onSelectAccounts={selected}
-      onCancel={jest.fn()}
-    />,
+    <HardwareAccountSelector urString="synthetic-qr" onSelectAccounts={selected} onCancel={jest.fn()} />,
   );
   await view.findByText('5 ETH');
   await fireEvent.press(view.getByLabelText('Base network'));
@@ -45,20 +40,4 @@ it('shows the Base balance and imports on Base after changing the network', asyn
     ...data,
     addresses: [{ ...data.addresses[0], networkType: 'BASE' }],
   });
-});
-
-it('displays unavailable balances and prevents imports without an account', async () => {
-  const selected = jest.fn();
-  const view = await render(
-    <HardwareAccountSelector
-      urString="synthetic-qr"
-      userAccountUuid={undefined}
-      onSelectAccounts={selected}
-      onCancel={jest.fn()}
-    />,
-  );
-  await view.findByText('Unavailable');
-  await fireEvent.press(view.getByText('Import Wallet'));
-  expect(post).not.toHaveBeenCalled();
-  expect(selected).not.toHaveBeenCalled();
 });

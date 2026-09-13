@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserIcon, BuildingsIcon } from 'phosphor-react-native';
-import { CACHE_TIMING, describeFailure } from '@ledova/shared';
+import { CACHE_TIMING, describeFailure, getUserAccount, setAccountRole } from '@ledova/shared';
 import { GradientBackground } from '../../../components/GradientBackground';
 import { apiClient } from '../../../services/apiClient';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
@@ -127,20 +127,18 @@ export function AccountTypeScreen() {
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: accountsResponse } = useQuery({
-    queryKey: ['userAccounts'],
-    queryFn: () => apiClient.get('/api/user-accounts/'),
+  const { data: accountResponse } = useQuery({
+    queryKey: ['userAccount'],
+    queryFn: () => getUserAccount(apiClient),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const accountsData = accountsResponse?.data as any;
-  const account = accountsData?.results?.[0] || accountsData?.[0] || null;
+  const account = accountResponse?.data ?? null;
 
   const updateRoleMutation = useMutation({
-    mutationFn: (role: AccountRole) => apiClient.patch(`/api/user-accounts/${account?.uuid}/`, { role }),
+    mutationFn: (role: AccountRole) => setAccountRole(apiClient, account!.uuid, role),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userAccounts'] });
+      queryClient.invalidateQueries({ queryKey: ['userAccount'] });
       queryClient.invalidateQueries({ queryKey: ['userPreferences'] });
     },
   });

@@ -12,7 +12,7 @@ class MissingOwnerColumns(NamedTuple):
 PRINCIPAL = "NULLIF(current_setting('app.user_id', true), '')::bigint"
 ADMITTED = f"{PRINCIPAL} IS NOT NULL"
 
-MEMBER_ACCOUNTS = "app_member_account_ids"
+PRINCIPAL_ACCOUNTS = "app_principal_account_ids"
 PRINCIPAL_PROFILES = "app_principal_profile_ids"
 VISIBLE_COMPANIES = "app_visible_company_ids"
 MANAGEABLE_COMPANIES = "app_manageable_company_ids"
@@ -36,7 +36,7 @@ HAS_A_TOKEN_ON_THE_MARKET = (
 
 HELPERS = {
     PRINCIPAL_PROFILES: f"SELECT uuid FROM users_userprofile WHERE user_id = {PRINCIPAL}",
-    MEMBER_ACCOUNTS: f"""
+    PRINCIPAL_ACCOUNTS: f"""
         SELECT uuid
           FROM customer_accounts_account
          WHERE user_profile_id IN (SELECT {PRINCIPAL_PROFILES}())
@@ -48,7 +48,7 @@ HELPERS = {
 
 IDENTICAL_TODAY = (VISIBLE_COMPANIES, MANAGEABLE_COMPANIES)
 
-BYPASSES_THE_POLICIES = (PRINCIPAL_PROFILES, MEMBER_ACCOUNTS)
+BYPASSES_THE_POLICIES = (PRINCIPAL_PROFILES, PRINCIPAL_ACCOUNTS)
 
 OWNS_THE_ACCOUNT = f"user_profile_id IN (SELECT {PRINCIPAL_PROFILES}())"
 
@@ -78,8 +78,8 @@ def _owned_through_the_profile(table):
     return f"{table}.user_profile_id IN (SELECT {PRINCIPAL_PROFILES}())"
 
 
-def _member(column):
-    return f"{column} IN (SELECT {MEMBER_ACCOUNTS}())"
+def _owned(column):
+    return f"{column} IN (SELECT {PRINCIPAL_ACCOUNTS}())"
 
 
 def _company(column, helper):
@@ -99,12 +99,12 @@ OWNERSHIP_BOUND = (
 
 THROUGH_ITS_WALLET = (
     "EXISTS (SELECT 1 FROM wallets held WHERE held.uuid = holdings.wallet_id "
-    f"AND held.user_account_id IN (SELECT {MEMBER_ACCOUNTS}()))"
+    f"AND held.user_account_id IN (SELECT {PRINCIPAL_ACCOUNTS}()))"
 )
 THROUGH_ITS_HOLDING = (
     "EXISTS (SELECT 1 FROM holdings counted JOIN wallets held ON held.uuid = counted.wallet_id "
     "WHERE counted.uuid = holding_snapshots.holding_id "
-    f"AND held.user_account_id IN (SELECT {MEMBER_ACCOUNTS}()))"
+    f"AND held.user_account_id IN (SELECT {PRINCIPAL_ACCOUNTS}()))"
 )
 THROUGH_ITS_DOCUMENT = (
     "EXISTS (SELECT 1 FROM documents carrying WHERE carrying.uuid = document_extractions.document_id "
@@ -113,7 +113,7 @@ THROUGH_ITS_DOCUMENT = (
 THROUGH_THE_ORDER_IT_MODIFIED = (
     "EXISTS (SELECT 1 FROM tokens_transferorder modified "
     "WHERE modified.uuid = tokens_ordermodificationlog.order_id "
-    f"AND modified.owner_account_id IN (SELECT {MEMBER_ACCOUNTS}()))"
+    f"AND modified.owner_account_id IN (SELECT {PRINCIPAL_ACCOUNTS}()))"
 )
 THROUGH_ITS_TOKEN = (
     "EXISTS (SELECT 1 FROM tokens_sharetoken issued "
@@ -125,12 +125,12 @@ THROUGH_ITS_TOKEN = (
 A_PARTY_TO_THE_SWAP = (
     "EXISTS (SELECT 1 FROM wallets party "
     "WHERE party.uuid IN (tokens_swaporder.seller_wallet_id, tokens_swaporder.buyer_wallet_id) "
-    f"AND party.user_account_id IN (SELECT {MEMBER_ACCOUNTS}()))"
+    f"AND party.user_account_id IN (SELECT {PRINCIPAL_ACCOUNTS}()))"
 )
 A_VERIFIED_PARTY_TO_THE_SWAP = (
     "EXISTS (SELECT 1 FROM wallets party "
     "WHERE party.uuid IN (tokens_swaporder.seller_wallet_id, tokens_swaporder.buyer_wallet_id) "
-    f"AND party.user_account_id IN (SELECT {MEMBER_ACCOUNTS}()) "
+    f"AND party.user_account_id IN (SELECT {PRINCIPAL_ACCOUNTS}()) "
     f"AND party.verification_status = '{WALLET_VERIFICATION_STATUS_VERIFIED}' "
     f"AND party.chain IN ('{BLOCKCHAIN_ETHEREUM}', '{BLOCKCHAIN_BASE}'))"
 )
@@ -158,33 +158,33 @@ POLICIES = {
         _owned_through_the_profile("users_userpreferences"),
     ),
     "customer_accounts_account": (f"{OWNS_THE_ACCOUNT} OR {A_SUBSCRIBING_ACCOUNT}", OWNS_THE_ACCOUNT),
-    "wallets": (f"{_member('user_account_id')} OR {A_SUBSCRIBING_WALLET}", _member("user_account_id")),
-    "transactions": (_member("user_account_id"), _member("user_account_id")),
-    "wallets_walletsubmission": (_member("user_account_id"), _member("user_account_id")),
-    "wallets_bitcoinsubmission": (_member("user_account_id"), _member("user_account_id")),
-    "wallets_bitcoinsubmissioninput": (_member("user_account_id"), _member("user_account_id")),
-    "wallets_walletchainwatch": (_member("user_account_id"), "false"),
-    "wallets_walletchainobservation": (_member("user_account_id"), "false"),
-    "portfolios": (_member("user_account_id"), _member("user_account_id")),
-    "favourite_assets": (_member("user_account_id"), _member("user_account_id")),
-    "users_investorclassification": (_member("user_account_id"), _member("user_account_id")),
+    "wallets": (f"{_owned('user_account_id')} OR {A_SUBSCRIBING_WALLET}", _owned("user_account_id")),
+    "transactions": (_owned("user_account_id"), _owned("user_account_id")),
+    "wallets_walletsubmission": (_owned("user_account_id"), _owned("user_account_id")),
+    "wallets_bitcoinsubmission": (_owned("user_account_id"), _owned("user_account_id")),
+    "wallets_bitcoinsubmissioninput": (_owned("user_account_id"), _owned("user_account_id")),
+    "wallets_walletchainwatch": (_owned("user_account_id"), "false"),
+    "wallets_walletchainobservation": (_owned("user_account_id"), "false"),
+    "portfolios": (_owned("user_account_id"), _owned("user_account_id")),
+    "favourite_assets": (_owned("user_account_id"), _owned("user_account_id")),
+    "users_investorclassification": (_owned("user_account_id"), _owned("user_account_id")),
     "offerings_subscription": (
-        f"{_member('user_account_id')} OR {ISSUES_THE_OFFERING}",
-        _member("user_account_id"),
+        f"{_owned('user_account_id')} OR {ISSUES_THE_OFFERING}",
+        _owned("user_account_id"),
     ),
     "tokens_transferorder": (
-        f"{_member('owner_account_id')} AND {OWNERSHIP_BOUND}",
-        f"{_member('owner_account_id')} AND {OWNERSHIP_BOUND}",
+        f"{_owned('owner_account_id')} AND {OWNERSHIP_BOUND}",
+        f"{_owned('owner_account_id')} AND {OWNERSHIP_BOUND}",
     ),
-    "tokens_ordersubmission": (_member("owner_account_id"), _member("owner_account_id")),
+    "tokens_ordersubmission": (_owned("owner_account_id"), _owned("owner_account_id")),
     "tokens_swaporder": (A_PARTY_TO_THE_SWAP, "false"),
-    "compliance_customerriskassessment": (_member("user_account_id"), _member("user_account_id")),
+    "compliance_customerriskassessment": (_owned("user_account_id"), _owned("user_account_id")),
     "holdings": (THROUGH_ITS_WALLET, THROUGH_ITS_WALLET),
     "holding_snapshots": (THROUGH_ITS_HOLDING, THROUGH_ITS_HOLDING),
     "document_extractions": (THROUGH_ITS_DOCUMENT, THROUGH_ITS_DOCUMENT),
     "tokens_ordermodificationlog": (THROUGH_THE_ORDER_IT_MODIFIED, THROUGH_THE_ORDER_IT_MODIFIED),
     "tokens_shareissuance": (THROUGH_ITS_TOKEN, "false"),
-    "tokens_orderactionsubmission": (_member("owner_account_id"), _member("owner_account_id")),
+    "tokens_orderactionsubmission": (_owned("owner_account_id"), _owned("owner_account_id")),
     "companies_companydocument": (
         _company("company_id", VISIBLE_COMPANIES),
         _company("company_id", MANAGEABLE_COMPANIES),
@@ -204,7 +204,7 @@ POLICIES = {
     ),
     "tokens_shareissuancerequest": (
         f"{_company('company_id', VISIBLE_COMPANIES)} OR uuid IN "
-        f"(SELECT issuance_request_id FROM offerings_subscription WHERE {_member('user_account_id')})",
+        f"(SELECT issuance_request_id FROM offerings_subscription WHERE {_owned('user_account_id')})",
         _company("company_id", MANAGEABLE_COMPANIES),
     ),
     "tokens_formerholder": (f"owner_id = {PRINCIPAL}", "false"),

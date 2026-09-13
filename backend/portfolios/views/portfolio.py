@@ -16,7 +16,7 @@ from portfolios.serializers.portfolio import (
 from portfolios.services import PortfolioWalletService, portfolio_value_series
 from shared.utils.querysets import sample_evenly
 from shared.views.base import AuthenticatedModelViewSet
-from users.models import UserAccount
+from users.services.accounts import account_of
 
 
 class PortfolioViewSet(AuthenticatedModelViewSet):
@@ -31,9 +31,7 @@ class PortfolioViewSet(AuthenticatedModelViewSet):
         return queryset.active()
 
     def perform_create(self, serializer):
-        user_account = serializer.validated_data.get("user_account")
-        if user_account is None:
-            user_account = UserAccount.objects.visible_to_user(self.request.user).first()
+        user_account = account_of(self.request.user)
         if user_account is None:
             raise ValidationError({"userAccount": "This user has no account."})
 

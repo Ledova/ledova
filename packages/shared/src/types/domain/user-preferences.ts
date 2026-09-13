@@ -1,5 +1,14 @@
 export type AccountRole = 'investor' | 'company' | 'both';
 
+export interface UserAccount {
+  uuid: string;
+  accountNumber: string;
+  accountType: string;
+  activationDate: string | null;
+  role: AccountRole;
+  director: string | null;
+}
+
 export interface AccountSummary {
   uuid: string;
   accountNumber: string;

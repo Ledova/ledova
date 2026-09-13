@@ -31,13 +31,12 @@ type InputMode = 'create' | 'import';
 
 interface SeedPhraseSetupProps {
   visible: boolean;
-  userAccountUuid: string | undefined;
   onClose: () => void;
   onComplete: (addresses: DerivedAddress[], importData: SoftwareWalletImport) => void;
   onCancel: () => void;
 }
 
-export function SeedPhraseSetup({ visible, userAccountUuid, onClose, onComplete, onCancel }: SeedPhraseSetupProps) {
+export function SeedPhraseSetup({ visible, onClose, onComplete, onCancel }: SeedPhraseSetupProps) {
   const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
     storingContainer: {
@@ -63,7 +62,7 @@ export function SeedPhraseSetup({ visible, userAccountUuid, onClose, onComplete,
 
   const [derivedData, setDerivedData] = useState<SoftwareWalletImport | null>(null);
   const [selectedAddresses, setSelectedAddresses] = useState<Set<string>>(new Set());
-  const { balances, fetchBalances } = useFetchBalances(userAccountUuid);
+  const { balances, fetchBalances } = useFetchBalances();
 
   const [storeError, setStoreError] = useState<string | null>(null);
 
@@ -175,7 +174,7 @@ export function SeedPhraseSetup({ visible, userAccountUuid, onClose, onComplete,
   }, []);
 
   const handleStoreAndCreate = useCallback(async () => {
-    if (!userAccountUuid || !derivedData || selectedAddresses.size === 0) return;
+    if (!derivedData || selectedAddresses.size === 0) return;
 
     setStep(SEED_STEP.STORING);
     setStoreError(null);
@@ -201,7 +200,7 @@ export function SeedPhraseSetup({ visible, userAccountUuid, onClose, onComplete,
       setStoreError(err instanceof Error ? err.message : 'Failed to store recovery phrase');
       setStep(SEED_STEP.SELECT_ACCOUNTS);
     }
-  }, [derivedData, selectedAddresses, mnemonic, onComplete, userAccountUuid]);
+  }, [derivedData, selectedAddresses, mnemonic, onComplete]);
 
   const getFooterProps = () => {
     switch (step) {
@@ -256,7 +255,6 @@ export function SeedPhraseSetup({ visible, userAccountUuid, onClose, onComplete,
         if (!derivedData) return null;
         return (
           <SeedAccountSelector
-            userAccountUuid={userAccountUuid}
             onNetworkChange={selectEvmNetwork}
             addresses={derivedData.addresses}
             selectedAddresses={selectedAddresses}

@@ -80,22 +80,16 @@ def account_eligibility(account, company=None, amount_aud=None) -> InvestorEligi
 
 
 def investor_eligibility(user, company=None) -> InvestorEligibility:
-    accounts = list(UserAccount.objects.visible_to_user(user).investing().order_by("created_at"))
-    if not accounts:
+    account = UserAccount.objects.visible_to_user(user).investing().first()
+    if account is None:
         return InvestorEligibility(is_eligible=False, account=None, classification=None, reasons=(NO_INVESTOR_ACCOUNT,))
 
-    investor_kyc_required = Operator.get().investor_kyc_required
-    outcomes = [_evaluate(account, investor_kyc_required, company) for account in accounts]
-    for outcome in outcomes:
-        if outcome.is_eligible:
-            return outcome
-    return outcomes[0]
+    return _evaluate(account, Operator.get().investor_kyc_required, company)
 
 
 def _associated_company_ids(user):
-    accounts = UserAccount.objects.visible_to_user(user).investing()
     return (
-        InvestorClassification.objects.filter(user_account__in=accounts)
+        InvestorClassification.objects.filter(user_account__in=UserAccount.objects.visible_to_user(user).investing())
         .live()
         .filter(category=InvestorCategory.ASSOCIATED_PERSON)
         .values_list("company_id", flat=True)

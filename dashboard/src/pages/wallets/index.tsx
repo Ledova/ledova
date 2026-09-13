@@ -23,7 +23,6 @@ export function WalletsPage() {
   const { formatDisplayCurrency } = useCurrency();
   const {
     wallets,
-    userAccountUuid,
     handleCreateWallet,
     handleBatchCreateWallets,
     handleUpdateWalletName,
@@ -200,7 +199,6 @@ export function WalletsPage() {
       <AddWalletModal
         isOpen={showAddModal}
         isLoading={isCreating}
-        userAccountUuid={userAccountUuid}
         onClose={() => setShowAddModal(false)}
         onSubmit={handleAddWalletSubmit}
         onBatchSubmit={handleBatchSubmit}

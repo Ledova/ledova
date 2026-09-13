@@ -11,8 +11,4 @@ export const createWallet = (apiClient: AxiosInstance, data: CreateWallet) =>
 export const updateWallet = (apiClient: AxiosInstance, uuid: string, data: Partial<Pick<Wallet, 'name'>>) =>
   apiClient.patch<Wallet>(WALLET_ENDPOINTS.DETAIL(uuid), data);
 
-export const deleteWallet = (apiClient: AxiosInstance, uuid: string, userAccountUuid?: string) =>
-  apiClient.delete(
-    WALLET_ENDPOINTS.DETAIL(uuid),
-    userAccountUuid ? { params: { user_account: userAccountUuid } } : undefined,
-  );
+export const deleteWallet = (apiClient: AxiosInstance, uuid: string) => apiClient.delete(WALLET_ENDPOINTS.DETAIL(uuid));

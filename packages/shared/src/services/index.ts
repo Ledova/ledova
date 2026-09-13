@@ -10,6 +10,7 @@ export {
 } from './auth';
 export { getAssets, getAssetsNextPage, getAssetByUuid } from './assets';
 export { getAssetSnapshots } from './assetSnapshots';
+export { getUserAccount, setAccountRole } from './userAccount';
 export { createFinancialProfile, updateFinancialProfile, getFinancialProfiles } from './financialProfile';
 export { getPortfolios, getPortfolioSnapshots as getPortfolioSnapshotsTimeSeries } from './portfolios';
 export {

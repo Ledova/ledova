@@ -18,18 +18,12 @@ export const FORM_STEPS = {
 type FormStep = (typeof FORM_STEPS)[keyof typeof FORM_STEPS];
 
 interface UseAddWalletFormProps {
-  userAccountUuid: string | undefined;
   onSubmit: (data: CreateWallet) => void;
   onBatchSubmit: (addresses: DerivedAddress[], importData: HardwareWalletImport) => void;
   preselectedChain?: 'BTC' | 'ETH' | null;
 }
 
-export function useAddWalletForm({
-  userAccountUuid,
-  onSubmit,
-  onBatchSubmit,
-  preselectedChain,
-}: UseAddWalletFormProps) {
+export function useAddWalletForm({ onSubmit, onBatchSubmit, preselectedChain }: UseAddWalletFormProps) {
   const [step, setStep] = useState<FormStep>(FORM_STEPS.SELECT_TYPE);
   const [signingPreference, setWalletSigningPreference] = useState<WalletSigningPreference | null>(null);
   const [name, setName] = useState('');
@@ -155,18 +149,17 @@ export function useAddWalletForm({
   }, []);
 
   const handleSubmit = useCallback(() => {
-    if (!validate() || !selectedChain || !userAccountUuid) {
+    if (!validate() || !selectedChain) {
       return;
     }
 
     onSubmit({
-      userAccount: userAccountUuid,
       name: name.trim() || undefined,
       address: address.trim(),
       chain: selectedChain,
       signingPreference: signingPreference ?? undefined,
     });
-  }, [validate, selectedChain, userAccountUuid, name, address, signingPreference, onSubmit]);
+  }, [validate, selectedChain, name, address, signingPreference, onSubmit]);
 
   const toggleScanner = useCallback(() => {
     setShowScanner((prev) => !prev);

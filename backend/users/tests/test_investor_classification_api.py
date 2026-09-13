@@ -104,11 +104,6 @@ class InvestorClassificationApiTest(StubUploadDependencies, APITestCase):
         self.assertEqual(response.status_code, 400, response.content)
         self.assertIn("awaiting review", str(response.json()))
 
-    def test_another_tenants_account_cannot_be_named(self):
-        response = self.client.post(BASE, self._payload(user_account=str(self.other_account.uuid)), format="multipart")
-
-        self.assertEqual(response.status_code, 400, response.content)
-
     def test_an_associated_person_claim_must_name_an_active_issuer(self):
         owner = User.objects.create_user(email="assoc-owner@example.test", password="pw-12345678")
         company = Company.objects.create(

@@ -18,7 +18,7 @@ beforeEach(() => post.mockReset());
 
 it('keeps a failed mobile preview unavailable', async () => {
   post.mockRejectedValue(new Error('offline'));
-  const { result } = await renderHook(() => useFetchBalances('account'));
+  const { result } = await renderHook(() => useFetchBalances());
   await act(async () => {
     await result.current!.fetchBalances([address]);
   });
@@ -26,31 +26,30 @@ it('keeps a failed mobile preview unavailable', async () => {
   expect(result.current!.isLoadingBalances).toBe(false);
 });
 
-it('does not reuse a pending response from a previous account', async () => {
+it('does not let a slower earlier read overwrite the one that replaced it', async () => {
   let finish!: (response: unknown) => void;
-  post.mockImplementation(async (_url, body) =>
-    body.userAccount === 'old'
-      ? new Promise((resolve) => {
-          finish = resolve;
-        })
-      : { data: { userAccount: 'current', chain: 'base', balances: { [address.address]: '7' } } },
-  );
-  const { result, rerender } = await renderHook(({ account }: { account: string }) => useFetchBalances(account), {
-    initialProps: { account: 'old' },
+  let first = true;
+  post.mockImplementation(async () => {
+    if (first) {
+      first = false;
+      return new Promise((resolve) => {
+        finish = resolve;
+      });
+    }
+    return { data: { chain: 'base', balances: { [address.address]: '7' } } };
   });
+  const { result } = await renderHook(() => useFetchBalances());
   let pending: Promise<void> | undefined;
   await act(async () => {
     pending = result.current!.fetchBalances([address]);
   });
   await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
-  await rerender({ account: 'current' });
-  expect(result.current!.balances.size).toBe(0);
   await act(async () => {
     await result.current!.fetchBalances([address]);
   });
   expect(result.current!.balances.get(importAddressKey(address))).toBe('7 ETH');
   await act(async () => {
-    finish({ data: { userAccount: 'old', chain: 'base', balances: { [address.address]: '99' } } });
+    finish({ data: { chain: 'base', balances: { [address.address]: '99' } } });
     await pending;
   });
   expect(result.current!.balances.get(importAddressKey(address))).toBe('7 ETH');

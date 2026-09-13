@@ -104,16 +104,14 @@ class TheVerifiedWalletIdentityIsReadOnlyInTheAdminTest(TestCase):
         self.request = RequestFactory().get("/admin/")
         self.tenant = make_tenant("r17admin")
 
-    def _serializer_would_refuse(self, wallet):
-        elsewhere = make_tenant(f"r17elsewhere{wallet.pk.hex[:6]}").account
-        return bool(WalletSerializer._verified_identity_change_errors(wallet, {"user_account": elsewhere}))
+    def test_the_api_never_accepts_the_account_and_the_admin_still_may(self):
+        self.assertTrue(WalletSerializer().fields["user_account"].read_only)
+        offered = {
+            wallet.verification_status: "user_account" not in self.admin.get_readonly_fields(self.request, wallet)
+            for wallet in (self.tenant.wallet, self.tenant.spare_wallet)
+        }
 
-    def test_the_form_offers_the_field_exactly_when_the_serializer_would_accept_it(self):
-        for wallet in (self.tenant.wallet, self.tenant.spare_wallet):
-            with self.subTest(status=wallet.verification_status):
-                read_only = "user_account" in self.admin.get_readonly_fields(self.request, wallet)
-
-                self.assertEqual(read_only, self._serializer_would_refuse(wallet))
+        self.assertEqual(offered, {WALLET_VERIFICATION_STATUS_VERIFIED: False, "PENDING": True})
 
     def test_the_add_form_still_asks_for_the_account(self):
         self.assertNotIn("user_account", self.admin.get_readonly_fields(self.request, None))

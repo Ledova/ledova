@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useSelectedPortfolio } from './useSelectedPortfolio';
 import { useTransferFlow } from '@pages/wallets/hooks/useTransferFlow';
 import { WalletSelectionModal } from '@pages/wallets/components/WalletSelectionModal';
 import { SendFormModal } from '@pages/wallets/components/SendFormModal';
@@ -14,9 +13,7 @@ interface SendTransferContextValue {
 const SendTransferContext = createContext<SendTransferContextValue | null>(null);
 
 export function SendTransferProvider({ children }: { children: ReactNode }) {
-  const { userAccount } = useSelectedPortfolio();
   const queryClient = useQueryClient();
-  const userAccountUuid = userAccount?.uuid;
 
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [selectedWallet, setSelectedWallet] = useState<Wallet | null>(null);
@@ -62,12 +59,7 @@ export function SendTransferProvider({ children }: { children: ReactNode }) {
     <SendTransferContext.Provider value={{ openSendTransfer }}>
       {children}
 
-      <WalletSelectionModal
-        isOpen={walletModalOpen}
-        onClose={resetAll}
-        onSelectWallet={handleWalletSelected}
-        userAccountUuid={userAccountUuid}
-      />
+      <WalletSelectionModal isOpen={walletModalOpen} onClose={resetAll} onSelectWallet={handleWalletSelected} />
 
       {selectedWallet && (
         <SendFormModal

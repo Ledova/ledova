@@ -137,7 +137,6 @@ it('forwards the eligibility session fence and suppresses stale completion inval
   const epoch = getSessionEpoch();
   await act(async () => {
     pending = view.result.current!.submitClaim({
-      userAccount: 'account-a',
       sessionEpoch: epoch,
       category: 'product_value',
       declaredBasis: 'Synthetic evidence',

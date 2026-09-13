@@ -141,13 +141,13 @@ class UserLiveAuthorizationTest(APITestCase):
         )
 
     def test_update_actions_request_database_row_locks(self):
-        for action in ("update", "partial_update"):
-            cases = (
-                (UserProfileViewSet, self.staff, ("self",)),
-                (FinancialProfileViewSet, self.staff, ()),
-                (UserAccountViewSet, self.alice, ()),
-            )
-            for view_class, user, expected_of in cases:
+        cases = (
+            (UserProfileViewSet, self.staff, ("self",), ("update", "partial_update")),
+            (FinancialProfileViewSet, self.staff, (), ("update", "partial_update")),
+            (UserAccountViewSet, self.alice, (), ("partial_update",)),
+        )
+        for view_class, user, expected_of, actions in cases:
+            for action in actions:
                 view = view_class()
                 view.request = SimpleNamespace(user=user)
                 view.action = action

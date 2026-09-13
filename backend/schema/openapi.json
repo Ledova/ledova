@@ -2943,53 +2943,6 @@
                         "description": ""
                     }
                 }
-            },
-            "post": {
-                "operationId": "api_user_accounts_create",
-                "tags": [
-                    "api"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/UserAccount"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/UserAccount"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/UserAccount"
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    },
-                    {
-                        "cookieAuth": [],
-                        "csrfHeader": [],
-                        "csrfCookie": []
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/UserAccount"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
             }
         },
         "/api/user-accounts/{uuid}/": {
@@ -3016,65 +2969,6 @@
                     },
                     {
                         "cookieAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/UserAccount"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            },
-            "put": {
-                "operationId": "api_user_accounts_update",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "uuid",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid",
-                            "description": "Unique identifier (primary key)"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "api"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/UserAccount"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/UserAccount"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/UserAccount"
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    },
-                    {
-                        "cookieAuth": [],
-                        "csrfHeader": [],
-                        "csrfCookie": []
                     }
                 ],
                 "responses": {
@@ -9538,14 +9432,6 @@
                     },
                     {
                         "in": "query",
-                        "name": "user_account",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    },
-                    {
-                        "in": "query",
                         "name": "verification_status",
                         "schema": {
                             "type": "string"
@@ -9904,14 +9790,6 @@
                         "description": "Which field to use when ordering the results.",
                         "schema": {
                             "type": "string"
-                        }
-                    },
-                    {
-                        "in": "query",
-                        "name": "user_account",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
                         }
                     },
                     {
@@ -10322,11 +10200,13 @@
                         ],
                         "nullable": true
                     },
-                    "accounts": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ExportedAccount"
-                        }
+                    "account": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/ExportedAccount"
+                            }
+                        ],
+                        "nullable": true
                     },
                     "wallets": {
                         "type": "array",
@@ -10348,7 +10228,7 @@
                     }
                 },
                 "required": [
-                    "accounts",
+                    "account",
                     "exportedAt",
                     "financialProfile",
                     "portfolios",
@@ -11203,10 +11083,6 @@
             "BatchBalanceRequest": {
                 "type": "object",
                 "properties": {
-                    "userAccount": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
                     "addresses": {
                         "type": "array",
                         "items": {
@@ -11222,8 +11098,7 @@
                 },
                 "required": [
                     "addresses",
-                    "chain",
-                    "userAccount"
+                    "chain"
                 ]
             },
             "BatchBalanceResponse": {
@@ -13310,7 +13185,8 @@
                     "userAccount": {
                         "type": "string",
                         "format": "uuid",
-                        "description": "Unique identifier (primary key)"
+                        "description": "Unique identifier (primary key)",
+                        "readOnly": true
                     },
                     "asset": {
                         "type": "string",
@@ -13910,7 +13786,8 @@
                     "userAccount": {
                         "type": "string",
                         "format": "uuid",
-                        "description": "Unique identifier (primary key)"
+                        "description": "Unique identifier (primary key)",
+                        "readOnly": true
                     },
                     "company": {
                         "type": "string",
@@ -16993,7 +16870,8 @@
                     "userAccount": {
                         "type": "string",
                         "format": "uuid",
-                        "description": "Unique identifier (primary key)"
+                        "description": "Unique identifier (primary key)",
+                        "readOnly": true
                     },
                     "name": {
                         "type": "string",
@@ -17376,7 +17254,8 @@
                     "userAccount": {
                         "type": "string",
                         "format": "uuid",
-                        "description": "Unique identifier (primary key)"
+                        "description": "Unique identifier (primary key)",
+                        "readOnly": true
                     },
                     "name": {
                         "type": "string",
@@ -17558,7 +17437,8 @@
                     "userAccount": {
                         "type": "string",
                         "format": "uuid",
-                        "description": "Unique identifier (primary key)"
+                        "description": "Unique identifier (primary key)",
+                        "readOnly": true
                     },
                     "name": {
                         "type": "string",
@@ -17593,6 +17473,7 @@
                     "createdAt",
                     "name",
                     "updatedAt",
+                    "userAccount",
                     "uuid",
                     "walletCount",
                     "walletUuids"
@@ -19511,11 +19392,6 @@
                         "format": "uuid",
                         "description": "Unique identifier (primary key)"
                     },
-                    "userAccount": {
-                        "type": "string",
-                        "format": "uuid",
-                        "description": "Unique identifier (primary key)"
-                    },
                     "wallet": {
                         "type": "string",
                         "format": "uuid",
@@ -19530,7 +19406,6 @@
                 "required": [
                     "offering",
                     "quantity",
-                    "userAccount",
                     "wallet"
                 ]
             },
@@ -21328,7 +21203,8 @@
                     "userAccount": {
                         "type": "string",
                         "format": "uuid",
-                        "description": "Unique identifier (primary key)"
+                        "description": "Unique identifier (primary key)",
+                        "readOnly": true
                     },
                     "name": {
                         "type": "string",

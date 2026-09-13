@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserIcon, BuildingsIcon } from '@phosphor-icons/react';
-import { CACHE_TIMING, DESIGN_TOKENS, describeFailure } from '@ledova/shared';
+import { CACHE_TIMING, DESIGN_TOKENS, describeFailure, getUserAccount, setAccountRole } from '@ledova/shared';
 import { AuthLayout } from '@components/AuthLayout';
 import apiClient from '@services/apiClient';
 
@@ -37,20 +37,18 @@ export function SignupAccountType() {
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: accountsResponse } = useQuery({
-    queryKey: ['userAccounts'],
-    queryFn: () => apiClient.get('/api/user-accounts/'),
+  const { data: accountResponse } = useQuery({
+    queryKey: ['userAccount'],
+    queryFn: () => getUserAccount(apiClient),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const accountsData = accountsResponse?.data as any;
-  const account = accountsData?.results?.[0] || accountsData?.[0] || null;
+  const account = accountResponse?.data ?? null;
 
   const updateRoleMutation = useMutation({
-    mutationFn: (role: AccountRole) => apiClient.patch(`/api/user-accounts/${account?.uuid}/`, { role }),
+    mutationFn: (role: AccountRole) => setAccountRole(apiClient, account!.uuid, role),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userAccounts'] });
+      queryClient.invalidateQueries({ queryKey: ['userAccount'] });
       queryClient.invalidateQueries({ queryKey: ['userPreferences'] });
     },
   });

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, waitFor, act } from '@testing-library/react';
+import { cleanup, fireEvent, render } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type { HardwareWalletImport } from '@ledova/shared';
 
@@ -27,26 +27,18 @@ afterEach(cleanup);
 it('queries and imports the selected Base network', async () => {
   api.post.mockImplementation(async (_url, body) => ({
     data: {
-      userAccount: body.userAccount,
       chain: body.chain,
       balances: { [address]: body.chain === 'base' ? '2' : '5' },
     },
   }));
   const selected = vi.fn();
   const view = render(
-    <AccountSelector
-      urString="synthetic-qr"
-      userAccountUuid="account"
-      onSelectAccounts={selected}
-      onCancel={vi.fn()}
-      isLoading={false}
-    />,
+    <AccountSelector urString="synthetic-qr" onSelectAccounts={selected} onCancel={vi.fn()} isLoading={false} />,
   );
   await view.findByText('5 ETH');
   fireEvent.change(view.getByLabelText('Import EVM network'), { target: { value: 'BASE' } });
   await view.findByText('2 ETH');
   expect(api.post).toHaveBeenLastCalledWith('/api/wallets/batch-check-balances/', {
-    userAccount: 'account',
     chain: 'base',
     addresses: [address],
   });
@@ -60,50 +52,8 @@ it('queries and imports the selected Base network', async () => {
 it('does not display a zero when the provider fails', async () => {
   api.post.mockRejectedValue(new Error('offline'));
   const view = render(
-    <AccountSelector
-      urString="synthetic-qr"
-      userAccountUuid="account"
-      onSelectAccounts={vi.fn()}
-      onCancel={vi.fn()}
-      isLoading={false}
-    />,
+    <AccountSelector urString="synthetic-qr" onSelectAccounts={vi.fn()} onCancel={vi.fn()} isLoading={false} />,
   );
   await view.findByText('Unavailable');
   expect(view.queryByText('0 ETH')).toBeNull();
-});
-
-it('ignores an earlier account response after the selected account changes', async () => {
-  let finish!: (response: unknown) => void;
-  api.post.mockImplementation(async (_url, body) =>
-    body.userAccount === 'old'
-      ? new Promise((resolve) => {
-          finish = resolve;
-        })
-      : { data: { userAccount: 'current', chain: 'ethereum', balances: { [address]: '7' } } },
-  );
-  const props = { urString: 'synthetic-qr', onSelectAccounts: vi.fn(), onCancel: vi.fn(), isLoading: false };
-  const view = render(<AccountSelector {...props} userAccountUuid="old" />);
-  await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
-  view.rerender(<AccountSelector {...props} userAccountUuid="current" />);
-  await view.findByText('7 ETH');
-  await act(async () => finish({ data: { userAccount: 'old', chain: 'ethereum', balances: { [address]: '99' } } }));
-  expect(view.queryByText('99 ETH')).toBeNull();
-  expect(view.getByText('7 ETH')).toBeTruthy();
-});
-
-it('requires an account before querying or importing', async () => {
-  const selected = vi.fn();
-  const view = render(
-    <AccountSelector
-      urString="synthetic-qr"
-      userAccountUuid={undefined}
-      onSelectAccounts={selected}
-      onCancel={vi.fn()}
-      isLoading={false}
-    />,
-  );
-  await view.findByText('Unavailable');
-  expect(api.post).not.toHaveBeenCalled();
-  fireEvent.click(view.getByRole('button', { name: 'Import 1 Wallet' }));
-  expect(selected).not.toHaveBeenCalled();
 });

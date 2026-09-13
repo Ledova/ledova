@@ -22,22 +22,13 @@ import { extractFromKeystoneQR } from '@utils/keystone/bcurDecoder';
 interface AddWalletModalProps {
   isOpen: boolean;
   isLoading: boolean;
-  userAccountUuid: string | undefined;
   onClose: () => void;
   onSubmit: (data: CreateWallet) => void;
   onBatchSubmit: (addresses: DerivedAddress[], importData: HardwareWalletImport) => void;
 }
 
-export function AddWalletModal({
-  isOpen,
-  isLoading,
-  userAccountUuid,
-  onClose,
-  onSubmit,
-  onBatchSubmit,
-}: AddWalletModalProps) {
+export function AddWalletModal({ isOpen, isLoading, onClose, onSubmit, onBatchSubmit }: AddWalletModalProps) {
   const form = useWalletForm({
-    userAccountUuid,
     onSubmit,
     onBatchSubmit,
   });
@@ -59,7 +50,6 @@ export function AddWalletModal({
       <Modal isOpen={isOpen} onClose={handleClose} showFooter={false}>
         <AccountSelector
           urString={form.scannedURString}
-          userAccountUuid={userAccountUuid}
           onSelectAccounts={form.handleAddressSelection}
           onCancel={form.handleBackToInput}
           isLoading={isLoading}
@@ -169,10 +159,6 @@ export function AddWalletModal({
             />
           </div>
         )}
-
-        {!userAccountUuid && !form.showScanner && (
-          <p className="text-xs text-error-light">Select a portfolio first to add wallets.</p>
-        )}
       </div>
     </Modal>
   );
@@ -180,7 +166,6 @@ export function AddWalletModal({
 
 interface AccountSelectorProps {
   urString: string;
-  userAccountUuid: string | undefined;
   onSelectAccounts: (addresses: DerivedAddress[], importData: HardwareWalletImport) => void;
   onCancel: () => void;
   isLoading: boolean;
@@ -188,7 +173,6 @@ interface AccountSelectorProps {
 
 export function AccountSelector({
   urString,
-  userAccountUuid,
   onSelectAccounts,
   onCancel,
   isLoading: isImporting,
@@ -211,7 +195,7 @@ export function AccountSelector({
         setAddresses(result.addresses);
         setImportData(result);
         setSelectedAddresses(new Set(result.addresses.map(importAddressKey)));
-        void fetchImportBalances(apiClient, result.addresses, userAccountUuid).then((next) => {
+        void fetchImportBalances(apiClient, result.addresses).then((next) => {
           if (active) setBalances(next);
         });
       }
@@ -223,7 +207,7 @@ export function AccountSelector({
     return () => {
       active = false;
     };
-  }, [urString, userAccountUuid, evmNetwork]);
+  }, [urString, evmNetwork]);
 
   const toggleSelection = (address: string) => {
     const newSelected = new Set(selectedAddresses);
@@ -271,7 +255,6 @@ export function AccountSelector({
           </select>
         </label>
       )}
-      {!userAccountUuid && <p className="text-sm text-error-light">Select an account to import wallets.</p>}
       <div className="space-y-2 max-h-[300px] overflow-y-auto">
         {addresses.map((derivedAddress) => {
           const isSelected = selectedAddresses.has(importAddressKey(derivedAddress));
@@ -322,7 +305,7 @@ export function AccountSelector({
         <button
           type="button"
           onClick={handleImport}
-          disabled={!userAccountUuid || selectedAddresses.size === 0 || isImporting}
+          disabled={selectedAddresses.size === 0 || isImporting}
           className="flex-1 px-4 py-2.5 bg-brand-mid text-white rounded-lg text-sm font-medium hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isImporting

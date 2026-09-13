@@ -40,7 +40,7 @@ export const useHome = () => {
 
   const walletsQuery = useQuery({
     queryKey: ['wallets', userAccount?.uuid],
-    queryFn: () => getWallets(apiClient, { user_account: userAccount!.uuid }),
+    queryFn: () => getWallets(apiClient),
     enabled: !!userAccount?.uuid,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,

@@ -26,13 +26,11 @@ export interface Wallet extends BaseEntity {
 }
 
 export interface WalletQueryParams extends BaseQueryParams {
-  user_account?: string;
   chain?: string;
   verification_status?: 'PENDING' | 'VERIFIED';
 }
 
 export type CreateWallet = {
-  userAccount: string;
   name?: string;
   address: string;
   chain: string;

@@ -75,7 +75,6 @@ export function BuyCryptoModal({
     ],
     queryFn: () =>
       getWallets(apiClient, {
-        user_account: userAccountUuid!,
         chain: selectedAsset!.chain,
         verification_status: 'VERIFIED',
         order_by: 'signing_preference',

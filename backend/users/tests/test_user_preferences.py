@@ -61,7 +61,7 @@ class UserPreferencesEndpointTest(APITestCase):
         self.assertEqual(list(response.json()), ["selectedPortfolio"])
         self.assertFalse(UserPreferences.objects.filter(user_profile=self.profile).exists())
 
-    def test_model_layer_no_longer_validates_membership(self):
+    def test_model_layer_no_longer_validates_the_owning_account(self):
         preferences = UserPreferences.objects.create(
             user_profile=self.profile, selected_portfolio=self.foreign_portfolio
         )

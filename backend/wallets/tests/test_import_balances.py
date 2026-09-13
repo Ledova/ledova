@@ -38,8 +38,7 @@ class ImportBalancePreviewTest(APITestCase):
 
     def test_missing_scope_and_invalid_addresses_are_rejected_before_a_provider_call(self):
         invalid = [
-            {key: value for key, value in self.payload.items() if key != omitted}
-            for omitted in ("userAccount", "chain", "addresses")
+            {key: value for key, value in self.payload.items() if key != omitted} for omitted in ("chain", "addresses")
         ]
         invalid.extend(
             {**self.payload, **change}

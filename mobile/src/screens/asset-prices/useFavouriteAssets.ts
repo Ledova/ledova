@@ -32,8 +32,7 @@ export function useFavouriteAssets() {
   );
 
   const addMutation = useMutation({
-    mutationFn: (assetUuid: string) =>
-      addFavouriteAsset(apiClient, { asset: assetUuid, userAccount: userAccount!.uuid }),
+    mutationFn: (assetUuid: string) => addFavouriteAsset(apiClient, { asset: assetUuid }),
     onMutate: async (assetUuid) => {
       await queryClient.cancelQueries({ queryKey: ['favouriteAssets'] });
 

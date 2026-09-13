@@ -88,7 +88,6 @@ it('retains evidence after refusal and cleans it after the eligibility retry suc
   expect(view.getByText('1.pdf')).toBeTruthy();
   await fireEvent.press(view.getByText('Submit for review'));
   expect(submitClaim.mock.calls[1][0].file).toEqual(first.file);
-  expect(first.userAccount).toBe('account-a');
   expect(files.has(first.file.uri)).toBe(false);
   expect(files.has(returned.assets[0].uri)).toBe(false);
   expect(view.queryByText('1.pdf')).toBeNull();

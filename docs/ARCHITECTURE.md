@@ -1186,14 +1186,16 @@ principal, and a policy on every tenant table, while `visible_to_user` still run
   before it was fixed — `count 1`, `rows 0`, same transaction. An invariant test
   enumerates the foreign-key graph and asserts closure per principal, rather than
   the rule being remembered per view.
-- **Rows the platform owns are readable by every principal.** A wallet named as a
-  company's `operator_wallet` is not a tenant's row; hiding it from someone who
-  may see the company is the same defect one column along, and the account that
-  holds such a wallet follows, because a wallet's `user_account` is not nullable.
-  Writes on those rows stay on the operator connection. The wrong fix is to
-  narrow the company's public term to companies whose operator wallet happens to
-  be visible — that makes a company's public visibility depend on a wallet's
-  ownership, which nobody would find by reading.
+- **A row's reach stops where the chain of non-nullable links would carry it into
+  a person.** R14 read a company's `operator_wallet`, and the account holding it,
+  to everyone who could see the company — hiding it would have been the deleted-row
+  defect one column along. One account per person carried that chain a link
+  further, into the holder's name, phone and address, so the chain is cut at the
+  top instead: `operator_wallet` is nullable, and a stranger reads the company
+  with a null wallet. What replaced it is narrower and better justified — an
+  issuer reads the account, wallet and profile behind a subscription to their own
+  offering, which is the register. Writes on those rows stay on the operator
+  connection.
 - **Every table is classified, and the classification is enumerated rather than
   described.** `shared/db/policies.py` is the catalogue: a policy, a stated
   reason for carrying none, or a named R0 column it is still waiting for. The

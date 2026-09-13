@@ -51,6 +51,10 @@ export const FINANCIAL_PROFILE_ENDPOINTS = {
   DETAIL: (uuid: string) => `/api/financial-profiles/${uuid}/` as const,
 } as const;
 export const USER_PREFERENCES_ENDPOINTS = { BASE: '/api/user-preferences/' } as const;
+export const USER_ACCOUNT_ENDPOINTS = {
+  BASE: '/api/user-accounts/',
+  DETAIL: (uuid: string) => `/api/user-accounts/${uuid}/` as const,
+} as const;
 export const IDENTITY_VERIFICATION_ENDPOINTS = {
   TOKEN: '/api/users/identity-verification/token/',
   STATUS: '/api/users/identity-verification/status/',

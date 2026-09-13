@@ -52,7 +52,7 @@ class AccountExportTest(APITestCase):
                 "profile",
                 "preferences",
                 "financialProfile",
-                "accounts",
+                "account",
                 "wallets",
                 "transactions",
                 "portfolios",
@@ -79,10 +79,8 @@ class AccountExportTest(APITestCase):
             set(body["financialProfile"]),
             {"occupation", "sourceOfFunds", "sourceOfFundsOtherText", "intendedUse", "intendedUseOtherText"},
         )
-        self.assertEqual(
-            set(body["accounts"][0]), {"uuid", "accountNumber", "accountType", "activationDate", "createdAt"}
-        )
-        self.assertEqual(body["accounts"][0]["uuid"], str(self.account.uuid))
+        self.assertEqual(set(body["account"]), {"uuid", "accountNumber", "accountType", "activationDate", "createdAt"})
+        self.assertEqual(body["account"]["uuid"], str(self.account.uuid))
         self.assertEqual(
             set(body["wallets"][0]),
             {"uuid", "name", "chain", "address", "nativeBalance", "marketValue", "isVerified", "createdAt"},
@@ -121,7 +119,7 @@ class AccountExportTest(APITestCase):
         self.assertIsNone(body["profile"])
         self.assertIsNone(body["preferences"])
         self.assertIsNone(body["financialProfile"])
-        self.assertEqual(body["accounts"], [])
+        self.assertIsNone(body["account"])
         self.assertEqual(body["wallets"], [])
         self.assertEqual(body["transactions"], [])
         self.assertEqual(body["portfolios"], [])
@@ -134,4 +132,4 @@ class AccountExportTest(APITestCase):
 
         self.assertIsNone(body["financialProfile"])
         self.assertIsNone(body["preferences"])
-        self.assertEqual(len(body["accounts"]), 1)
+        self.assertEqual(body["account"]["uuid"], str(self.account.uuid))

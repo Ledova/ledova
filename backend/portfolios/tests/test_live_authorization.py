@@ -103,15 +103,8 @@ class PortfolioCreateAccountSelectionTest(PortfolioFixtureMixin, APITestCase):
         self.assertEqual(response.json()["userAccount"], str(self.account_a.uuid))
         self.assertEqual(Portfolio.objects.get(name="Defaulted").user_account, self.account_a)
 
-    def test_naming_your_own_account_is_accepted(self):
-        response = self._create({"name": "Explicit", "userAccount": str(self.account_a.uuid)})
-
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(Portfolio.objects.get(name="Explicit").user_account, self.account_a)
-
-    def test_foreign_account_is_rejected(self):
+    def test_a_named_account_is_ignored_and_the_portfolio_lands_on_the_callers(self):
         response = self._create({"name": "Stolen", "userAccount": str(self.bob_account.uuid)})
 
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("userAccount", response.json())
-        self.assertFalse(Portfolio.objects.filter(name="Stolen").exists())
+        self.assertEqual(response.status_code, 201, response.content)
+        self.assertEqual(Portfolio.objects.get(name="Stolen").user_account, self.account_a)

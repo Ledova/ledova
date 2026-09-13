@@ -48,7 +48,6 @@ export interface InvestorEligibility {
 }
 
 export interface InvestorClassificationSubmission {
-  userAccount: string;
   category: InvestorCategory;
   declaredBasis: string;
   file: File;

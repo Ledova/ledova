@@ -8,20 +8,19 @@ export const getWalletHoldings = (apiClient: AxiosInstance, uuid: string) =>
 
 export const fetchBatchBalances = async (
   apiClient: AxiosInstance,
-  { addresses, chain, userAccount }: { addresses: string[]; chain: WalletPreviewChain; userAccount: string },
+  { addresses, chain }: { addresses: string[]; chain: WalletPreviewChain },
 ): Promise<BatchBalanceResponse> => {
-  if (!userAccount || !['ethereum', 'base', 'bitcoin'].includes(chain) || !addresses.length || addresses.length > 20) {
-    throw new Error('Select an account, network and between 1 and 20 addresses');
+  if (!['ethereum', 'base', 'bitcoin'].includes(chain) || !addresses.length || addresses.length > 20) {
+    throw new Error('Select a network and between 1 and 20 addresses');
   }
 
   const response = await apiClient.post<BatchBalanceResponse>(WALLET_ENDPOINTS.BATCH_BALANCES, {
     addresses,
     chain,
-    userAccount,
   });
 
-  if (response.data.userAccount !== userAccount || response.data.chain !== chain) {
-    throw new Error('Balance response does not match the selected account and network');
+  if (response.data.chain !== chain) {
+    throw new Error('Balance response does not match the selected network');
   }
   return response.data;
 };
@@ -29,10 +28,8 @@ export const fetchBatchBalances = async (
 export async function fetchImportBalances(
   apiClient: AxiosInstance,
   addresses: DerivedAddress[],
-  userAccount: string | undefined,
 ): Promise<Map<string, string>> {
   const balances = new Map(addresses.map((address) => [importAddressKey(address), 'Unavailable']));
-  if (!userAccount) return balances;
   const chains: WalletPreviewChain[] = ['ethereum', 'base', 'bitcoin'];
   await Promise.all(
     chains.map(async (chain) => {
@@ -41,7 +38,6 @@ export async function fetchImportBalances(
         const batch = group.slice(offset, offset + 20);
         try {
           const response = await fetchBatchBalances(apiClient, {
-            userAccount,
             chain,
             addresses: batch.map((item) => item.address),
           });

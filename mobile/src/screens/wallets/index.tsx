@@ -104,7 +104,6 @@ export function WalletsScreen() {
     showAddModal,
     preselectedChain,
     isCreating,
-    userAccountUuid,
     handleCreateWallet,
     handleBatchCreateWallets,
     handleSoftwareWalletCreate,
@@ -212,7 +211,6 @@ export function WalletsScreen() {
       <AddWalletModal
         visible={showAddModal}
         isLoading={isCreating}
-        userAccountUuid={userAccountUuid}
         preselectedChain={preselectedChain}
         onClose={closeAddModal}
         onSubmit={handleCreateWallet}

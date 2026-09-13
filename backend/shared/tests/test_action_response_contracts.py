@@ -537,7 +537,7 @@ class ActionResponseContractTest(APITransactionTestCase):
                 "profile": "object",
                 "preferences": "object",
                 "financialProfile": "object",
-                "accounts": "array",
+                "account": "object",
                 "wallets": "array",
                 "transactions": "array",
                 "portfolios": "array",
@@ -572,13 +572,6 @@ class ActionResponseContractTest(APITransactionTestCase):
         for name, fields in sections.items():
             self.assert_fields(schema["properties"][name], body[name], fields)
         arrays = {
-            "accounts": {
-                "uuid": "string",
-                "accountNumber": "string",
-                "accountType": "string",
-                "activationDate": "string",
-                "createdAt": "string",
-            },
             "wallets": {
                 "uuid": "string",
                 "name": "string",
@@ -608,7 +601,18 @@ class ActionResponseContractTest(APITransactionTestCase):
             self.assertTrue(body[name])
             for row in body[name]:
                 self.assert_fields(schema["properties"][name]["items"], row, fields)
-        self.assertEqual({row["uuid"] for row in body["accounts"]}, {str(self.owner.account.uuid)})
+        self.assert_fields(
+            schema["properties"]["account"],
+            body["account"],
+            {
+                "uuid": "string",
+                "accountNumber": "string",
+                "accountType": "string",
+                "activationDate": "string",
+                "createdAt": "string",
+            },
+        )
+        self.assertEqual(body["account"]["uuid"], str(self.owner.account.uuid))
         self.assertNotIn(str(self.other.account.uuid), str(body))
 
     def test_export_preserves_arbitrary_json_source_of_funds(self):
@@ -625,18 +629,19 @@ class ActionResponseContractTest(APITransactionTestCase):
         user = get_user_model().objects.create_user(email="schema-bare@example.test", password="pw-12345678")
         self.client.force_authenticate(user)
         body, _schema = self.export_response()
-        self.assertEqual([body[name] for name in ("profile", "preferences", "financialProfile")], [None, None, None])
         self.assertEqual(
-            [body[name] for name in ("accounts", "wallets", "transactions", "portfolios")], [[], [], [], []]
+            [body[name] for name in ("profile", "preferences", "financialProfile", "account")],
+            [None, None, None, None],
         )
+        self.assertEqual([body[name] for name in ("wallets", "transactions", "portfolios")], [[], [], []])
 
-    def test_export_with_missing_optional_records_keeps_account_rows(self):
+    def test_export_with_missing_optional_records_keeps_the_account(self):
         FinancialProfile.objects.filter(pk=self.owner.financial_profile.pk).delete()
         UserPreferences.objects.filter(pk=self.owner.preferences.pk).delete()
         body, _schema = self.export_response()
         self.assertIsNone(body["preferences"])
         self.assertIsNone(body["financialProfile"])
-        self.assertEqual(len(body["accounts"]), 1)
+        self.assertEqual(body["account"]["uuid"], str(self.owner.account.uuid))
 
     def test_subscription_create_schema_names_the_actual_detail_response(self):
         Subscription.objects.filter(user_account=self.owner.account).delete()

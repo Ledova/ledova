@@ -34,19 +34,16 @@ describe('import balance previews', () => {
   it('keeps the same EVM address separate on Ethereum and Base', async () => {
     post.mockImplementation(async (_url, body) => ({
       data: {
-        userAccount: body.userAccount,
         chain: body.chain,
         balances: { [address.address]: body.chain === 'base' ? '5' : '2' },
       },
     }));
-    const result = await fetchImportBalances(api, [address, base], 'account');
+    const result = await fetchImportBalances(api, [address, base]);
     expect(post).toHaveBeenCalledWith('/api/wallets/batch-check-balances/', {
-      userAccount: 'account',
       chain: 'ethereum',
       addresses: [address.address],
     });
     expect(post).toHaveBeenCalledWith('/api/wallets/batch-check-balances/', {
-      userAccount: 'account',
       chain: 'base',
       addresses: [address.address],
     });
@@ -57,32 +54,25 @@ describe('import balance previews', () => {
   it('preserves an actual zero and labels an unavailable balance', async () => {
     post.mockImplementation(async (_url, body) => ({
       data: {
-        userAccount: 'account',
         chain: body.chain,
         balances: { [address.address]: body.chain === 'base' ? null : '0' },
       },
     }));
-    const result = await fetchImportBalances(api, [address, base], 'account');
+    const result = await fetchImportBalances(api, [address, base]);
     expect(result.get(importAddressKey(address))).toBe('0 ETH');
     expect(result.get(importAddressKey(base))).toBe('Unavailable');
   });
 
-  it('does not invent a zero after transport failure or query without an account', async () => {
+  it('does not invent a zero after a transport failure', async () => {
     post.mockRejectedValue(new Error('offline'));
-    expect((await fetchImportBalances(api, [base], 'account')).get(importAddressKey(base))).toBe('Unavailable');
-    post.mockClear();
-    expect((await fetchImportBalances(api, [base], undefined)).get(importAddressKey(base))).toBe('Unavailable');
-    expect(post).not.toHaveBeenCalled();
+    expect((await fetchImportBalances(api, [base])).get(importAddressKey(base))).toBe('Unavailable');
   });
 
-  it.each([
-    { userAccount: 'other', chain: 'base' },
-    { userAccount: 'account', chain: 'ethereum' },
-  ])('refuses a response with a different scope: %j', async (scope) => {
-    post.mockResolvedValue({ data: { ...scope, balances: { [address.address]: '50' } } });
-    await expect(
-      fetchBatchBalances(api, { userAccount: 'account', chain: 'base', addresses: [address.address] }),
-    ).rejects.toThrow('does not match');
+  it('refuses a response for a network it did not ask about', async () => {
+    post.mockResolvedValue({ data: { chain: 'ethereum', balances: { [address.address]: '50' } } });
+    await expect(fetchBatchBalances(api, { chain: 'base', addresses: [address.address] })).rejects.toThrow(
+      'does not match',
+    );
   });
 
   it('splits imports into bounded requests without changing their network', async () => {
@@ -92,12 +82,11 @@ describe('import balance previews', () => {
     }));
     post.mockImplementation(async (_url, body) => ({
       data: {
-        userAccount: 'account',
         chain: body.chain,
         balances: Object.fromEntries(body.addresses.map((item: string) => [item, '1'])),
       },
     }));
-    const result = await fetchImportBalances(api, addresses, 'account');
+    const result = await fetchImportBalances(api, addresses);
     expect(post.mock.calls.map(([, body]) => [body.chain, body.addresses.length])).toEqual([
       ['base', 20],
       ['base', 1],

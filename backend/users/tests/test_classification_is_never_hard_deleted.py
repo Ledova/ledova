@@ -76,7 +76,7 @@ class TheMemberWithdrawsRatherThanDeletesTest(_EvidenceCase, APITestCase):
         self.assertEqual(self.stored_files(), stored)
         self.assertTrue(claim.evidence_file)
 
-    def test_a_claim_an_operator_has_ruled_on_is_out_of_the_members_reach(self):
+    def test_a_claim_an_operator_has_ruled_on_is_out_of_the_holders_reach(self):
         for ruled in (
             InvestorClassificationStatus.VERIFIED,
             InvestorClassificationStatus.REJECTED,

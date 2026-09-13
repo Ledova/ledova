@@ -587,10 +587,10 @@ known holding cannot be refreshed. Both clients display that reason. A partial
 refresh keeps any balances it did read, and leaves the wallet's last successful
 sync time unchanged.
 
-Wallet import previews use `POST /api/wallets/batch-check-balances/` with an
-explicit `userAccount`, `chain` (`ethereum`, `base`, or `bitcoin`) and 1–20
-addresses. The account must still belong to the signed-in user; staff status
-does not bypass that. Addresses need not be registered yet. The response
+Wallet import previews use `POST /api/wallets/batch-check-balances/` with a
+`chain` (`ethereum`, `base`, or `bitcoin`) and 1–20 addresses. The account is
+the signed-in user's own and is not named in the request; staff status does not
+widen it. Addresses need not be registered yet. The response
 repeats the account and network and returns `balances[address]` as a decimal
 string or `null` when the provider cannot supply a valid balance. A confirmed
 zero remains `"0"`. Preview reads do not create or update wallets or holdings.

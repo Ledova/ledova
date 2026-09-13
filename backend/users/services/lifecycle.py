@@ -58,7 +58,7 @@ def export_account_data(user):
         "profile": None,
         "preferences": None,
         "financial_profile": None,
-        "accounts": [],
+        "account": None,
         "wallets": [],
         "transactions": [],
         "portfolios": [],
@@ -79,15 +79,14 @@ def export_account_data(user):
         "created_at": profile.created_at,
     }
 
-    accounts = UserAccount.objects.filter(user_profile=profile)
-    live_account_ids = set(accounts.values_list("pk", flat=True))
+    account = UserAccount.objects.filter(user_profile=profile).first()
 
     preferences = UserPreferences.objects.filter(user_profile=profile).select_related("selected_portfolio").first()
     if preferences is not None:
         portfolio = preferences.selected_portfolio
         data["preferences"] = {
             "selected_portfolio": (
-                portfolio.uuid if portfolio and portfolio.user_account_id in live_account_ids else None
+                portfolio.uuid if portfolio and account and portfolio.user_account_id == account.pk else None
             ),
         }
 
@@ -98,7 +97,13 @@ def export_account_data(user):
         )
         .first()
     )
-    data["accounts"] = list(accounts.values("uuid", "account_number", "account_type", "activation_date", "created_at"))
+    data["account"] = (
+        UserAccount.objects.filter(pk=account.pk)
+        .values("uuid", "account_number", "account_type", "activation_date", "created_at")
+        .first()
+        if account
+        else None
+    )
     data["wallets"] = [
         {
             "uuid": wallet.uuid,
@@ -110,10 +115,10 @@ def export_account_data(user):
             "is_verified": wallet.is_verified,
             "created_at": wallet.created_at,
         }
-        for wallet in Wallet.objects.filter(user_account__in=accounts).with_market_value()
+        for wallet in Wallet.objects.filter(user_account=account).with_market_value()
     ]
     transactions = (
-        Transaction.objects.filter(wallet__user_account__in=accounts)
+        Transaction.objects.filter(wallet__user_account=account)
         .select_related("asset")
         .order_by("-block_timestamp")[:1000]
     )
@@ -134,7 +139,7 @@ def export_account_data(user):
         for tx in transactions
     ]
     data["portfolios"] = list(
-        Portfolio.objects.filter(user_account__in=accounts).values("uuid", "name", "is_active", "created_at")
+        Portfolio.objects.filter(user_account=account).values("uuid", "name", "is_active", "created_at")
     )
 
     logger.info("Data export completed")
