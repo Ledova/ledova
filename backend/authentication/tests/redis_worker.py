@@ -47,7 +47,7 @@ def run():
         return {"status": response.status_code, "retry_after": response.get("Retry-After")}
 
     try:
-        with override_settings(CACHES=configuration, ALLOWED_HOSTS=["testserver"]), patch(
+        with override_settings(CACHES=configuration, ALLOWED_HOSTS=["testserver"], RLS_ROLE_PER_REQUEST=False), patch(
             "authentication.views.user.SessionService.login", side_effect=AuthenticationFailed("Invalid credentials")
         ) as login:
             if parameters.get("concurrent"):
