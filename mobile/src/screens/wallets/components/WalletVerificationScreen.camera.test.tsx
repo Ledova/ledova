@@ -49,7 +49,7 @@ jest.mock('@ledova/shared', () => ({
   verifyWalletSignature: (...args: unknown[]) => mockVerifySignature(...args),
 }));
 jest.mock('../../../hooks/useUserPreferences', () => ({
-  useUserPreferences: () => ({ selectedAccount: { uuid: 'synthetic-account' } }),
+  useUserPreferences: () => ({ userAccount: { uuid: 'synthetic-account' } }),
 }));
 jest.mock('../../../services/apiClient', () => ({ apiClient: {} }));
 jest.mock('../../../services/secureKeyStorage', () => ({ getSeedPhrase: async () => null }));

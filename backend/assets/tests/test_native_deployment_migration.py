@@ -7,7 +7,7 @@ from django.test import TransactionTestCase
 
 from assets.models import Asset, AssetChainDeployment
 from shared.tests.schema import migrate_to, restore_every_migration
-from users.models import UserAccount
+from shared.tests.tenants import an_account
 from wallets.models import Holding, Wallet
 
 modules = getattr(settings, "MIGRATION_MODULES", {})
@@ -24,7 +24,7 @@ class NativeDeploymentMigrationTest(TransactionTestCase):
         OldAsset = self.before()
         asset = OldAsset.objects.create(symbol="ETH", name="Ether", asset_type="native_crypto", current_price=7)
         original = AssetChainDeployment.objects.create(asset_id=asset.pk, chain="ethereum", is_active=False)
-        account = UserAccount.objects.create(account_number="NATIVE-MIGRATION")
+        account = an_account("native-deployment-migration", account_number="NATIVE-MIGRATION")
         wallet = Wallet.objects.create(user_account=account, address="0x" + "a" * 40, chain="base")
         holding = Holding.objects.create(wallet=wallet, asset_id=asset.pk, quantity=Decimal("2.5"))
 

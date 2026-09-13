@@ -14,6 +14,7 @@ from compliance.constants import (
 )
 from compliance.models import ComplianceAlert, CustomerRiskAssessment, MonitoringRule
 from compliance.services.transaction_monitoring import TransactionMonitoringService
+from shared.tests.tenants import an_account
 from users.models import UserAccount, UserProfile
 from users.services.setup import ensure_defaults
 from wallets.models import Transaction, Wallet
@@ -38,7 +39,7 @@ def tx_payload(tx_hash, block_timestamp):
 
 class TransactionMonitoringOnCreateTest(TestCase):
     def setUp(self):
-        self.account = UserAccount.objects.create(account_number="MON-ACC")
+        self.account = an_account("explicit-side-effects", account_number="MON-ACC")
         self.wallet = Wallet.objects.create(
             user_account=self.account,
             address="0x" + "c" * 40,

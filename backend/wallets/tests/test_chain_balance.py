@@ -5,7 +5,7 @@ from django.test import TestCase, override_settings
 
 from assets.models import Asset, AssetChainDeployment
 from assets.services.sync import AssetSyncService
-from users.models import UserAccount
+from shared.tests.tenants import an_account
 from wallets.models import Holding, Transaction, Wallet
 from wallets.services import transaction_confirmation, transfers
 from wallets.services.chain import fetch_chain_balance
@@ -17,7 +17,7 @@ AUDY_TOKEN = "0x" + "a2" * 20
 
 class ChainBalanceTest(TestCase):
     def setUp(self):
-        account = UserAccount.objects.create(account_number="CHAIN-ACC")
+        account = an_account("chain-balance", account_number="CHAIN-ACC")
         self.wallet = Wallet.objects.create(
             user_account=account, address="0x" + "a" * 40, chain="base", verification_status="VERIFIED"
         )

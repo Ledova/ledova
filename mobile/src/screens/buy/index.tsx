@@ -13,7 +13,7 @@ export function BuyScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<BuyStackParamList>>();
   const rootNavigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<BuyStackParamList, 'BuySelect'>>();
-  const { selectedAccount } = useUserPreferences();
+  const { userAccount } = useUserPreferences();
   const [showModal, setShowModal] = useState(false);
 
   const initialAsset = route.params?.asset;
@@ -47,7 +47,7 @@ export function BuyScreen() {
         onClose={handleClose}
         onNavigateToWebView={handleNavigateToWebView}
         onNavigateToProfile={handleNavigateToProfile}
-        userAccountUuid={selectedAccount?.uuid}
+        userAccountUuid={userAccount?.uuid}
         initialAsset={initialAsset}
       />
     </GradientBackground>

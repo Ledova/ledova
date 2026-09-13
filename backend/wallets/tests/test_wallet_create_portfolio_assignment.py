@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 
 from portfolios.models import Portfolio
+from shared.tests.tenants import an_account
 from users.models import UserAccount, UserPreferences, UserProfile
 from wallets.models import Wallet
 
@@ -12,12 +13,10 @@ class WalletCreatePortfolioAssignmentTest(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(email="wallet-create@example.test", password="pw-12345678")
         self.profile = UserProfile.objects.create(user=self.user)
-        self.account = UserAccount.objects.create(account_number="WALLET-CREATE")
-        self.account.user_profiles.add(self.profile)
+        self.account = UserAccount.objects.create(account_number="WALLET-CREATE", user_profile=self.profile)
         self.portfolio = Portfolio.objects.create(user_account=self.account, name="Selected portfolio")
         self.preferences = UserPreferences.objects.create(
             user_profile=self.profile,
-            selected_account=self.account,
             selected_portfolio=self.portfolio,
         )
 
@@ -39,7 +38,7 @@ class WalletCreatePortfolioAssignmentTest(APITestCase):
         self.assertTrue(self.portfolio.wallets.filter(pk=wallet.pk).exists())
 
     def test_new_wallet_is_not_added_when_the_selected_portfolio_belongs_to_another_account(self):
-        foreign_account = UserAccount.objects.create(account_number="WALLET-FOREIGN")
+        foreign_account = an_account("wallet-create-portfolio-assi", account_number="WALLET-FOREIGN")
         foreign_portfolio = Portfolio.objects.create(user_account=foreign_account, name="Foreign portfolio")
 
         UserPreferences.objects.filter(pk=self.preferences.pk).update(selected_portfolio=foreign_portfolio)

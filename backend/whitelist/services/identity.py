@@ -5,8 +5,6 @@ from whitelist.models import HolderType, WhitelistEntry
 
 TREASURY_FALLBACK = "Operator (treasury/custodian)"
 AMBIGUOUS_NAME = "Two wallets share this address"
-NAME_SEPARATOR = " & "
-ADDRESS_SEPARATOR = "; "
 ADDRESS_CHUNK = 500
 
 
@@ -27,10 +25,10 @@ class UnnameableAddresses(NamedTuple):
     unidentified: int
 
 
-def _profiles(entry: WhitelistEntry) -> list:
+def _holder(entry: WhitelistEntry):
     if entry.wallet_id is None or entry.wallet.user_account_id is None:
-        return []
-    return list(entry.wallet.user_account.user_profiles.all())
+        return None
+    return entry.wallet.user_account.user_profile
 
 
 def profile_name(profile) -> str:
@@ -42,15 +40,14 @@ def entry_identity(entry: WhitelistEntry) -> HolderIdentity:
         return HolderIdentity(
             HolderType.TREASURY.value, entry.label or TREASURY_FALLBACK, "", entry.get_status_display()
         )
-    profiles = _profiles(entry)
-    names = [profile_name(profile) for profile in profiles]
-    addresses = [(profile.residential_address or "").strip() for profile in profiles]
-    if not any(names):
+    holder = _holder(entry)
+    name = profile_name(holder) if holder else ""
+    if not name:
         return HolderIdentity(HolderType.UNIDENTIFIED.value, "", "", entry.get_status_display())
     return HolderIdentity(
         HolderType.MEMBER.value,
-        NAME_SEPARATOR.join(name for name in names if name),
-        ADDRESS_SEPARATOR.join(address for address in addresses if address),
+        name,
+        (holder.residential_address or "").strip(),
         entry.get_status_display(),
     )
 

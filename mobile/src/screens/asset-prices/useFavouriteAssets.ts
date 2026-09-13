@@ -8,7 +8,7 @@ import { useUserPreferences } from '../../hooks/useUserPreferences';
 
 export function useFavouriteAssets() {
   const { isAuthenticated } = useAuth();
-  const { selectedAccount } = useUserPreferences();
+  const { userAccount } = useUserPreferences();
   const queryClient = useQueryClient();
 
   const favouritesQuery = useQuery({
@@ -33,7 +33,7 @@ export function useFavouriteAssets() {
 
   const addMutation = useMutation({
     mutationFn: (assetUuid: string) =>
-      addFavouriteAsset(apiClient, { asset: assetUuid, userAccount: selectedAccount!.uuid }),
+      addFavouriteAsset(apiClient, { asset: assetUuid, userAccount: userAccount!.uuid }),
     onMutate: async (assetUuid) => {
       await queryClient.cancelQueries({ queryKey: ['favouriteAssets'] });
 
@@ -90,11 +90,11 @@ export function useFavouriteAssets() {
         if (favouriteUuid) {
           removeMutation.mutate(favouriteUuid);
         }
-      } else if (selectedAccount?.uuid) {
+      } else if (userAccount?.uuid) {
         addMutation.mutate(assetUuid);
       }
     },
-    [favouriteAssetUuids, assetToFavouriteMap, addMutation, removeMutation, selectedAccount?.uuid],
+    [favouriteAssetUuids, assetToFavouriteMap, addMutation, removeMutation, userAccount?.uuid],
   );
 
   return {

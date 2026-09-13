@@ -7,7 +7,7 @@ from django.urls import reverse
 from rest_framework.test import APITestCase
 
 from blockchain.models import BlockchainTransaction
-from users.models import UserAccount
+from shared.tests.tenants import an_account
 from wallets.models import Wallet
 from whitelist.exceptions import WalletNotRegisteredException
 from whitelist.models import WhitelistEntry, WhitelistStatus
@@ -30,7 +30,9 @@ def treasury_entry(label="Treasury"):
 class TreasuryEntryModelTest(TestCase):
     def test_address_falls_back_to_the_stored_one_and_an_entry_needs_one_of_the_two(self):
         entry = treasury_entry()
-        wallet = Wallet.objects.create(user_account=UserAccount.objects.create(), address="0x" + "c" * 40, chain="base")
+        wallet = Wallet.objects.create(
+            user_account=an_account("treasury-entries"), address="0x" + "c" * 40, chain="base"
+        )
         backed = WhitelistEntry.objects.create(wallet=wallet)
 
         self.assertEqual((entry.wallet_address, str(entry)), (TREASURY_CHECKSUM, f"{TREASURY_CHECKSUM[:10]}..."))
@@ -43,7 +45,7 @@ class TreasuryEntryModelTest(TestCase):
 
     def test_a_treasury_address_cannot_be_duplicated_while_wallet_entries_share_the_blank_address(self):
         treasury_entry()
-        account = UserAccount.objects.create()
+        account = an_account("treasury-entries")
         for suffix in ("d", "e"):
             wallet = Wallet.objects.create(user_account=account, address="0x" + suffix * 40, chain="base")
             WhitelistEntry.objects.create(wallet=wallet)
@@ -125,7 +127,9 @@ class TreasuryEntryAdminTest(TestCase):
         self.assertContains(duplicate, "already has a whitelist entry")
 
     def test_a_users_wallet_still_binds_the_entry_to_the_wallet(self):
-        wallet = Wallet.objects.create(user_account=UserAccount.objects.create(), address="0x" + "c" * 40, chain="base")
+        wallet = Wallet.objects.create(
+            user_account=an_account("treasury-entries"), address="0x" + "c" * 40, chain="base"
+        )
 
         response = self.client.post(self.add_url, {"wallet_address": wallet.address, "label": "", "notes": ""})
 

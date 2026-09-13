@@ -23,8 +23,8 @@ class UserMutationLifecycleTest(APITestCase):
             is_active=True,
             is_email_verified=True,
         )
-        self.member = User.objects.create_user(
-            email="lifecycle-member@example.test",
+        self.stranger = User.objects.create_user(
+            email="lifecycle-stranger@example.test",
             password="pw-12345678",
             is_active=True,
             is_email_verified=True,
@@ -42,9 +42,9 @@ class UserMutationLifecycleTest(APITestCase):
             phone_number="400000000",
             residential_address="Original address",
         )
-        self.member_profile = UserProfile.objects.create(
-            user=self.member,
-            full_name="Lifecycle Member",
+        self.stranger_profile = UserProfile.objects.create(
+            user=self.stranger,
+            full_name="Lifecycle Stranger",
         )
         self.financial_profile = FinancialProfile.objects.create(
             user_profile=self.owner_profile,
@@ -53,8 +53,8 @@ class UserMutationLifecycleTest(APITestCase):
         self.account = UserAccount.objects.create(
             account_number="LIFECYCLE-ACCOUNT",
             director=self.owner_profile,
+            user_profile=self.owner_profile,
         )
-        self.account.user_profiles.add(self.owner_profile, self.member_profile)
         self.asset = Asset.objects.create(
             symbol="LIFECYCLE",
             name="Lifecycle asset",
@@ -74,7 +74,7 @@ class UserMutationLifecycleTest(APITestCase):
         )
 
     def test_generic_deletes_are_disabled_for_every_authenticated_role(self):
-        for actor in (self.owner, self.member, self.staff, self.superuser):
+        for actor in (self.owner, self.stranger, self.staff, self.superuser):
             self.client.force_authenticate(actor)
             for url in self.detail_urls():
                 with self.subTest(actor=actor.email, url=url):
@@ -87,10 +87,7 @@ class UserMutationLifecycleTest(APITestCase):
 
         self.account.refresh_from_db()
         self.assertEqual(self.account.director_id, self.owner_profile.pk)
-        self.assertEqual(
-            set(self.account.user_profiles.values_list("pk", flat=True)),
-            {self.owner_profile.pk, self.member_profile.pk},
-        )
+        self.assertEqual(self.account.user_profile_id, self.owner_profile.pk)
 
     def test_detail_options_do_not_advertise_delete(self):
         self.client.force_authenticate(self.owner)
@@ -106,7 +103,7 @@ class UserMutationLifecycleTest(APITestCase):
     def test_dedicated_account_deletion_keeps_shared_records_and_deactivates_only_requester(self):
         TokenService.issue(self.owner)
         TokenService.issue(self.owner)
-        member_email = self.member.email
+        stranger_email = self.stranger.email
         self.client.force_authenticate(self.owner)
 
         with (
@@ -118,7 +115,7 @@ class UserMutationLifecycleTest(APITestCase):
 
         self.assertEqual(response.status_code, 200)
         self.owner.refresh_from_db()
-        self.member.refresh_from_db()
+        self.stranger.refresh_from_db()
         self.owner_profile.refresh_from_db()
         self.account.refresh_from_db()
 
@@ -128,8 +125,8 @@ class UserMutationLifecycleTest(APITestCase):
         self.assertEqual(self.owner.email, expected_email)
         self.assertEqual(normalize_email(self.owner.email), self.owner.email)
         self.assertNotEqual(self.owner.email, "lifecycle-owner@example.test")
-        self.assertEqual(self.member.email, member_email)
-        self.assertTrue(self.member.is_active)
+        self.assertEqual(self.stranger.email, stranger_email)
+        self.assertTrue(self.stranger.is_active)
         self.assertEqual(self.owner_profile.full_name, "Deleted User")
         self.assertIsNone(self.owner_profile.phone_country_code)
         self.assertIsNone(self.owner_profile.phone_number)
@@ -140,10 +137,7 @@ class UserMutationLifecycleTest(APITestCase):
         self.assertTrue(UserAccount.objects.filter(pk=self.account.pk).exists())
         self.assertTrue(FavouriteAsset.objects.filter(pk=self.favourite.pk).exists())
         self.assertEqual(self.account.director_id, self.owner_profile.pk)
-        self.assertEqual(
-            set(self.account.user_profiles.values_list("pk", flat=True)),
-            {self.owner_profile.pk, self.member_profile.pk},
-        )
+        self.assertEqual(self.account.user_profile_id, self.owner_profile.pk)
 
     def test_account_deletion_fails_before_mutation_when_tombstone_is_unavailable(self):
         original_email = self.owner.email

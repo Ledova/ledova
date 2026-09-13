@@ -6,7 +6,6 @@ from django.utils import timezone
 
 from compliance.constants import (
     ASSESSMENT_STATUS_COMPLETE,
-    ASSESSMENT_STATUS_INCOMPLETE,
     ASSESSMENT_STATUS_PENDING,
     DOMESTIC_PEP_RISK_ADJUSTMENT,
     HIGH_RISK_OCCUPATIONS,
@@ -100,15 +99,7 @@ class RiskAssessmentService:
 
     @staticmethod
     def calculate_and_create(user_account, pep_data: Optional[Dict] = None) -> CustomerRiskAssessment:
-        director = user_account.director or user_account.user_profiles.first()
-        if not director:
-            logger.warning(f"No user profile found for user_account {user_account.uuid}")
-            return CustomerRiskAssessment.objects.create(
-                user_account=user_account,
-                assessment_status=ASSESSMENT_STATUS_INCOMPLETE,
-                is_automated=True,
-                assessment_reason="Incomplete: No user profile available",
-            )
+        director = user_account.director or user_account.user_profile
 
         customer_score, customer_factors = customer_risk(director, pep_data)
         geographic_score, geographic_factors = geographic_risk(director)

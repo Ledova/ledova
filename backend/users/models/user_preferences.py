@@ -7,15 +7,6 @@ from users.querysets.user_preferences import UserPreferencesQuerySet
 class UserPreferences(BaseModel):
     user_profile = models.OneToOneField("users.UserProfile", on_delete=models.CASCADE, related_name="preferences")
 
-    selected_account = models.ForeignKey(
-        "users.UserAccount",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="selected_by_users",
-        help_text="User's selected account for quick access",
-    )
-
     selected_portfolio = models.ForeignKey(
         "portfolios.Portfolio",
         on_delete=models.SET_NULL,

@@ -37,8 +37,7 @@ STORAGES = {
 def evidence_owner(label):
     user = get_user_model().objects.create_user(email=f"{label}@example.test", password="pw-12345678")
     profile = UserProfile.objects.create(user=user)
-    account = UserAccount.objects.create()
-    account.user_profiles.add(profile)
+    account = UserAccount.objects.create(user_profile=profile)
     return SimpleNamespace(user=user, profile=profile, account=account)
 
 
@@ -157,13 +156,12 @@ class SupportingPayslipApiTest(EvidenceCase, APITestCase):
     def test_attached_evidence_cannot_be_retargeted_or_deleted(self):
         self.attach()
         self.assertEqual(self.client.delete(self.url).status_code, 400)
-        second_account = self.other.account
-        second_account.user_profiles.add(self.owner.profile)
         other_claim = InvestorClassification.objects.create(
-            user_account=second_account, category="professional_investor"
+            user_account=self.owner.account, category="professional_investor", status="withdrawn"
         )
         response = self.client.post(self.url + "attach/", {"classification": str(other_claim.pk)}, format="json")
         self.assertEqual(response.status_code, 400)
+        self.assertIn("already attached", str(response.json()))
         self.document.refresh_from_db()
         self.assertEqual(self.document.classification_id, self.claim.pk)
         self.assertEqual(

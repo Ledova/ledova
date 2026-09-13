@@ -73,7 +73,7 @@ export default function DirectoryTokenPage() {
   const { uuid } = useParams<{ uuid: string }>();
   const navigate = useNavigate();
   const { token, operator, isLoading, notFound } = useDirectoryToken(uuid);
-  const { selectedAccount } = useSelectedPortfolio();
+  const { userAccount } = useSelectedPortfolio();
   const { wallets } = useSubscribableWallets();
   const create = useCreateSubscription((created) => navigate(`/subscriptions/${created}`));
 
@@ -139,11 +139,11 @@ export default function DirectoryTokenPage() {
         <SubscribeForm
           offering={offering}
           wallets={wallets}
-          accountUuid={selectedAccount?.uuid ?? null}
+          accountUuid={userAccount?.uuid ?? null}
           busy={create.isPending}
           error={create.error}
           onSubscribe={({ wallet, quantity }) =>
-            create.mutate({ offering: offering.uuid, userAccount: selectedAccount!.uuid, wallet, quantity })
+            create.mutate({ offering: offering.uuid, userAccount: userAccount!.uuid, wallet, quantity })
           }
         />
       )}

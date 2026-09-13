@@ -79,7 +79,7 @@ def export_account_data(user):
         "created_at": profile.created_at,
     }
 
-    accounts = UserAccount.objects.filter(user_profiles=profile)
+    accounts = UserAccount.objects.filter(user_profile=profile)
     live_account_ids = set(accounts.values_list("pk", flat=True))
 
     preferences = UserPreferences.objects.filter(user_profile=profile).select_related("selected_portfolio").first()
@@ -88,9 +88,6 @@ def export_account_data(user):
         data["preferences"] = {
             "selected_portfolio": (
                 portfolio.uuid if portfolio and portfolio.user_account_id in live_account_ids else None
-            ),
-            "selected_account": (
-                preferences.selected_account.uuid if preferences.selected_account_id in live_account_ids else None
             ),
         }
 

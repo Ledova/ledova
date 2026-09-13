@@ -9,6 +9,7 @@ from django.test import TransactionTestCase
 
 from shared.db.policies import (
     AWAITING_R0,
+    BYPASSES_THE_POLICIES,
     BYPASSES_VISIBLE_TO_USER,
     DERIVED_FROM_A_MUTABLE_ATTRIBUTE,
     HELPERS,
@@ -27,6 +28,7 @@ POLICY_EXPRESSIONS = (
 )
 
 NEGATIONS = (" not in ", "<>", "!=", " is distinct from ")
+
 
 LAYER_GATE = Path(settings.BASE_DIR).parent / "scripts" / "check-layers.py"
 
@@ -118,7 +120,7 @@ class EveryTenantTableIsScopedByAPolicyTest(TransactionTestCase):
 
                 self.assertNotEqual(checks[f"{table}_insert"], checks[f"{table}_update"])
 
-    def test_the_membership_tables_carry_leaf_policies(self):
+    def test_the_tables_an_invoker_helper_reads_carry_leaf_policies(self):
         for table in LEAF_TABLES:
             with self.subTest(table=table):
                 for _, qual, check in self._ask(POLICY_EXPRESSIONS, table):
@@ -183,7 +185,7 @@ class EveryTenantTableIsScopedByAPolicyTest(TransactionTestCase):
             with self.subTest(table=table):
                 self.assertGreater(len(reason), 20)
 
-    def test_the_helpers_exist_and_are_stable_rather_than_security_definer(self):
+    def test_the_helpers_exist_and_only_the_ones_that_define_the_scope_bypass_it(self):
         with connection.cursor() as cursor:
             cursor.execute(
                 "SELECT proname, provolatile, prosecdef FROM pg_proc WHERE proname = ANY(%s) ORDER BY proname",
@@ -195,4 +197,4 @@ class EveryTenantTableIsScopedByAPolicyTest(TransactionTestCase):
         for name, volatility, definer in rows:
             with self.subTest(helper=name):
                 self.assertEqual(volatility, "s")
-                self.assertFalse(definer)
+                self.assertEqual(definer, name in BYPASSES_THE_POLICIES)

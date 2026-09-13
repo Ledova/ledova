@@ -6,7 +6,7 @@ class UserAccountQuerySet(QuerySet):
     def visible_to_user(self, user):
         if user is None or not user.is_authenticated:
             return self.none()
-        return self.filter(user_profiles__user=user)
+        return self.filter(user_profile__user=user)
 
     def investing(self):
         from users.models.user_account import AccountRole

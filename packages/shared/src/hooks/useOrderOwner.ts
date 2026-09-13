@@ -17,14 +17,14 @@ export function useOrderOwner(session?: OrderSubmissionSession) {
       const preferences = queryClient.getQueryData<{ data: UserPreferences }>(USER_PREFERENCES_QUERY_KEY)?.data;
       const authorized = queryClient.getQueryState(AUTH_QUERY_KEY)?.status === 'success' && auth?.data.valid;
       const next =
-        authorized && preferences?.userProfile && preferences.selectedAccount
-          ? `${preferences.userProfile}/${preferences.selectedAccount.uuid}/${session?.getEpoch() ?? 0}`
+        authorized && preferences?.userProfile && preferences.userAccount
+          ? `${preferences.userProfile}/${preferences.userAccount.uuid}/${session?.getEpoch() ?? 0}`
           : null;
       if (key !== next) {
         key = next;
         value =
-          next && preferences?.selectedAccount
-            ? { userUuid: preferences.userProfile, ownerAccountUuid: preferences.selectedAccount.uuid }
+          next && preferences?.userAccount
+            ? { userUuid: preferences.userProfile, ownerAccountUuid: preferences.userAccount.uuid }
             : null;
       }
       return value;

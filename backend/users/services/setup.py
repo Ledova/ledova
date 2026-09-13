@@ -12,10 +12,11 @@ logger = logging.getLogger(__name__)
 def ensure_defaults(user):
     profile, _ = UserProfile.objects.get_or_create(user=user)
 
-    account = profile.user_accounts.first()
+    account = getattr(profile, "user_account", None)
     if account is None:
-        account = UserAccount.objects.create(account_number=f"ACC-{user.id:06d}", director=profile)
-        account.user_profiles.add(profile)
+        account = UserAccount.objects.create(
+            account_number=f"ACC-{user.id:06d}", user_profile=profile, director=profile
+        )
         RiskAssessmentService.create_pending_assessment(user_account=account)
         logger.info(f"Created account {account.uuid} for user {user.pk}")
 
@@ -26,12 +27,11 @@ def ensure_defaults(user):
 
     preferences, created = UserPreferences.objects.get_or_create(
         user_profile=profile,
-        defaults={"selected_account": account, "selected_portfolio": portfolio},
+        defaults={"selected_portfolio": portfolio},
     )
-    if not created and (preferences.selected_account_id is None or preferences.selected_portfolio_id is None):
-        preferences.selected_account = account
+    if not created and preferences.selected_portfolio_id is None:
         preferences.selected_portfolio = portfolio
-        preferences.save(update_fields=["selected_account", "selected_portfolio"])
+        preferences.save(update_fields=["selected_portfolio"])
 
     logger.info(f"Defaults ready for user {user.pk}: Account {account.uuid}, Portfolio {portfolio.uuid}")
     return profile, account, portfolio, preferences

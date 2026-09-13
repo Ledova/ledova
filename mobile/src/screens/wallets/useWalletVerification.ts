@@ -21,7 +21,7 @@ interface UseWalletVerificationProps {
 
 export function useWalletVerification({ wallet }: UseWalletVerificationProps) {
   const queryClient = useQueryClient();
-  const { selectedAccount } = useUserPreferences();
+  const { userAccount } = useUserPreferences();
 
   const [verificationChallenge, setVerificationChallenge] = useState<string | null>(null);
   const [verificationStep, setVerificationStep] = useState<VerificationStep>('instructions');
@@ -31,7 +31,7 @@ export function useWalletVerification({ wallet }: UseWalletVerificationProps) {
   const autoVerifyingRef = useRef(false);
 
   const requestChallengeMutation = useMutation({
-    mutationFn: () => requestVerificationChallenge(apiClient, wallet.uuid, selectedAccount?.uuid),
+    mutationFn: () => requestVerificationChallenge(apiClient, wallet.uuid, userAccount?.uuid),
     onSuccess: (response) => {
       setVerificationChallenge(response.data.challenge);
       setVerificationStep('show-challenge-qr');
@@ -39,8 +39,7 @@ export function useWalletVerification({ wallet }: UseWalletVerificationProps) {
   });
 
   const verifySignatureMutation = useMutation({
-    mutationFn: (data: VerifyWalletRequest) =>
-      verifyWalletSignature(apiClient, wallet.uuid, data, selectedAccount?.uuid),
+    mutationFn: (data: VerifyWalletRequest) => verifyWalletSignature(apiClient, wallet.uuid, data, userAccount?.uuid),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wallets'] });
     },
@@ -81,7 +80,7 @@ export function useWalletVerification({ wallet }: UseWalletVerificationProps) {
     setAutoVerifyLoading(true);
 
     try {
-      const challengeResponse = await requestVerificationChallenge(apiClient, wallet.uuid, selectedAccount?.uuid);
+      const challengeResponse = await requestVerificationChallenge(apiClient, wallet.uuid, userAccount?.uuid);
       const challenge = challengeResponse.data.challenge;
       setVerificationChallenge(challenge);
 
@@ -98,7 +97,7 @@ export function useWalletVerification({ wallet }: UseWalletVerificationProps) {
         ? await signBitcoinMessage(mnemonic, wallet.derivationPath, challenge)
         : await signEthereumMessage(mnemonic, wallet.derivationPath, challenge);
 
-      await verifyWalletSignature(apiClient, wallet.uuid, { signature }, selectedAccount?.uuid);
+      await verifyWalletSignature(apiClient, wallet.uuid, { signature }, userAccount?.uuid);
       queryClient.refetchQueries({ queryKey: ['wallets'] });
       setAutoVerifySuccess(true);
     } catch (err) {
@@ -113,7 +112,7 @@ export function useWalletVerification({ wallet }: UseWalletVerificationProps) {
     wallet.chain,
     wallet.derivationPath,
     wallet.masterFingerprint,
-    selectedAccount?.uuid,
+    userAccount?.uuid,
     queryClient,
   ]);
 

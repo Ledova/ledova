@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { CACHE_TIMING, getCurrentUserPreferences } from '@ledova/shared';
+import { AccountRole, CACHE_TIMING, getCurrentUserPreferences } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { useAuth } from './useAuth';
 
-export type AccountRole = 'investor' | 'company' | 'both';
+export type { AccountRole };
 
 export function useRole() {
   const { isAuthenticated } = useAuth();
@@ -17,7 +17,7 @@ export function useRole() {
   });
 
   const preferences = query.data?.data;
-  const role: AccountRole = (preferences?.selectedAccount as { role?: AccountRole })?.role ?? 'investor';
+  const role: AccountRole = preferences?.userAccount?.role ?? 'investor';
 
   return {
     role,

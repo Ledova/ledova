@@ -11,6 +11,7 @@ from assets.models import Asset, AssetChainDeployment
 from companies.models import Company, CompanyStatus
 from offerings.models import Offering, OfferingExemption
 from shared.tests.settlement import save_swap_with_context
+from shared.tests.tenants import an_account
 from tokens.models import (
     CapitalIncreaseRequest,
     IssuanceStatus,
@@ -22,7 +23,6 @@ from tokens.models import (
     TransferOrder,
 )
 from tokens.models.choices import TransferOrderType
-from users.models import UserAccount
 from wallets.models import Wallet
 
 User = get_user_model()
@@ -68,7 +68,7 @@ class RegisterSpineProtectionTest(TestCase):
         )
 
     def _transfer_order(self):
-        account = UserAccount.objects.create(account_number="PROTECT-1")
+        account = an_account("register-protection", account_number="PROTECT-1")
         wallet = Wallet.objects.create(user_account=account, address=HOLDER, chain="base")
         asset = Asset.objects.create(symbol="PUSD", name="Protected dollar", asset_type="stablecoin", decimals=2)
         return TransferOrder.objects.create(

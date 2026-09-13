@@ -20,7 +20,6 @@ from users.exceptions import InvestorNotEligibleException
 from users.models import (
     InvestorCategory,
     InvestorClassification,
-    UserAccount,
     UserProfile,
 )
 from users.models.user_account import AccountRole
@@ -99,7 +98,7 @@ class InvestorEligibilityTest(TestCase):
                 _, account = make_investor(f"cat-{category}")
                 company = self.company if category == InvestorCategory.ASSOCIATED_PERSON else None
                 verified_classification(account, self.reviewer, category=category, company=company)
-                user = account.user_profiles.first().user
+                user = account.user_profile.user
 
                 outcome = investor_eligibility(user, company=self.company)
 
@@ -166,7 +165,8 @@ class InvestorEligibilityTest(TestCase):
         user = User.objects.create_user(email="issuer-only@example.test", password="pw-12345678")
         profile = UserProfile.objects.create(user=user, full_name="Issuer only")
         _, account = make_investor("issuer-role", role=AccountRole.COMPANY)
-        account.user_profiles.add(profile)
+        account.user_profile = profile
+        account.save(update_fields=["user_profile"])
 
         outcome = investor_eligibility(user)
 
@@ -231,15 +231,6 @@ class AccountStandingMatrixTest(TestCase):
 
         self.assertIn(IDENTITY_NOT_VERIFIED, refused.reasons)
         self.assertTrue(allowed.is_eligible, allowed.reasons)
-
-    def test_every_holder_on_a_joint_account_must_be_verified(self):
-        _set_kyc_required(True)
-        user, account = make_investor("joint", account_status=ACCOUNT_STATUS_ACTIVE)
-        second = User.objects.create_user(email="second-holder@example.test", password="pw-12345678")
-        account.user_profiles.add(UserProfile.objects.create(user=second, full_name="Second", is_id_verified=False))
-        verified_classification(account, self.reviewer)
-
-        self.assertIn(IDENTITY_NOT_VERIFIED, investor_eligibility(user).reasons)
 
 
 class SubscriptionEligibilityTest(TestCase):
@@ -312,28 +303,22 @@ class AccountScopedEligibilityTest(TestCase):
             owner=self.owner, name="Scope Pty Ltd", company_type=CompanyType.PROPRIETARY, acn="444555666"
         )
         _set_kyc_required(True)
-        self.user, self.qualified = make_investor("two-accounts")
-        self.profile = self.qualified.user_profiles.first()
-        self.unqualified = UserAccount.objects.create(
-            account_number="ACC-SECOND",
-            account_status=ACCOUNT_STATUS_ACTIVE,
-            role=AccountRole.INVESTOR,
-            director=self.profile,
-        )
-        self.unqualified.user_profiles.add(self.profile)
+        self.user, self.qualified = make_investor("qualified")
+        self.profile = self.qualified.user_profile
+        _, self.unqualified = make_investor("unqualified")
         verified_classification(self.qualified, self.reviewer)
 
-    def test_the_user_scoped_answer_is_true_because_one_account_qualifies(self):
+    def test_the_user_scoped_answer_names_the_account_it_answered_for(self):
         self.assertTrue(investor_eligibility(self.user).is_eligible)
         self.assertEqual(investor_eligibility(self.user).account, self.qualified)
 
-    def test_the_unqualified_account_of_an_eligible_user_cannot_subscribe(self):
+    def test_an_unclassified_account_cannot_subscribe(self):
         with self.assertRaises(InvestorNotEligibleException) as caught:
             require_subscription_eligibility(self.unqualified, self.company, Decimal("900000.00"))
 
         self.assertEqual(caught.exception.reasons, (NO_LIVE_CLASSIFICATION,))
 
-    def test_the_unqualified_account_of_an_eligible_user_is_refused_without_an_amount(self):
+    def test_an_unclassified_account_is_refused_without_an_amount(self):
         outcome = account_eligibility(self.unqualified, self.company)
 
         self.assertFalse(outcome.is_eligible)

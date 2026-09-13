@@ -38,8 +38,7 @@ class _EvidenceCase(StubUploadDependencies):
 
         self.user = User.objects.create_user(email="claimant@example.test", password="pw-12345678")
         self.profile = UserProfile.objects.create(user=self.user)
-        self.account = UserAccount.objects.create()
-        self.account.user_profiles.add(self.profile)
+        self.account = UserAccount.objects.create(user_profile=self.profile)
 
     def stored_files(self):
         return sorted(str(p.relative_to(self.root.name)) for p in Path(self.root.name).rglob("*") if p.is_file())
@@ -182,11 +181,12 @@ class NoOperatorPathHardDeletesTest(_EvidenceCase, TestCase):
         self.assertTrue(InvestorClassification.objects.filter(pk=claim.pk).exists())
         self.assertEqual(len(self.stored_files()), 1)
 
-    def test_deleting_the_user_does_not_reach_the_classification(self):
+    def test_deleting_the_user_is_refused_before_it_reaches_the_classification(self):
         claim = self.a_claim()
         stored = self.stored_files()
 
-        self.user.delete()
+        with self.assertRaises(ProtectedError):
+            self.user.delete()
 
         self.assertTrue(InvestorClassification.objects.filter(pk=claim.pk).exists())
         self.assertEqual(self.stored_files(), stored)

@@ -24,7 +24,6 @@ class ExportedProfileSerializer(serializers.Serializer):
 
 class ExportedPreferencesSerializer(serializers.Serializer):
     selected_portfolio = serializers.UUIDField(allow_null=True)
-    selected_account = serializers.UUIDField(allow_null=True)
 
 
 class ExportedFinancialProfileSerializer(serializers.Serializer):

@@ -1,6 +1,5 @@
 from decimal import Decimal
 from unittest.mock import patch
-from uuid import uuid4
 
 from django.test import override_settings
 from rest_framework.test import APITestCase
@@ -36,17 +35,6 @@ class ImportBalancePreviewTest(APITestCase):
                 get_client.assert_called_once_with(chain)
                 get_client.return_value.get_native_balance.assert_called_once_with(ADDRESS)
         self.assertEqual(Wallet.objects.count(), before)
-
-    def test_foreign_phantom_and_removed_membership_accounts_never_reach_a_provider(self):
-        self.owner.account.user_profiles.remove(self.owner.profile)
-        bodies = []
-        with patch("wallets.services.balance.get_blockchain_client") as provider:
-            for account in (self.owner.account.pk, self.foreign.account.pk, uuid4()):
-                response = self.post_preview(userAccount=str(account))
-                self.assertEqual(response.status_code, 404, response.content)
-                bodies.append(response.json())
-        self.assertTrue(all(body == bodies[0] for body in bodies))
-        provider.assert_not_called()
 
     def test_missing_scope_and_invalid_addresses_are_rejected_before_a_provider_call(self):
         invalid = [

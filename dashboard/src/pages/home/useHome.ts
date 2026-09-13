@@ -18,9 +18,9 @@ import { useRecentTransactions } from './hooks/useRecentTransactions';
 import { usePerformanceChart } from './hooks/usePerformanceChart';
 
 export function useHome() {
-  const { selectedPortfolio, selectedAccount, isLoading: preferencesLoading } = useSelectedPortfolio();
+  const { selectedPortfolio, userAccount, isLoading: preferencesLoading } = useSelectedPortfolio();
 
-  const walletsSummary = useWalletsSummary(selectedAccount?.uuid);
+  const walletsSummary = useWalletsSummary(userAccount?.uuid);
   const holdings = useHoldings(walletsSummary.walletsList);
   const transactions = useRecentTransactions();
   const performance = usePerformanceChart(selectedPortfolio?.uuid);
@@ -45,7 +45,7 @@ export function useHome() {
   const favouritesQuery = useQuery({
     queryKey: ['favouriteAssets'],
     queryFn: () => getFavouriteAssets(apiClient),
-    enabled: !!selectedAccount?.uuid,
+    enabled: !!userAccount?.uuid,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
   });

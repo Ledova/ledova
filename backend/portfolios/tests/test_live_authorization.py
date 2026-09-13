@@ -2,8 +2,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 
 from portfolios.models import Portfolio
-from shared.tests.under_the_policies import what_the_policies_admit_to
-from users.models import UserAccount, UserPreferences, UserProfile
+from users.models import UserAccount, UserProfile
 from wallets.models import Wallet
 
 User = get_user_model()
@@ -13,8 +12,7 @@ class PortfolioFixtureMixin:
     def make_tenant(self, label):
         user = User.objects.create_user(email=f"{label}@portfolio.example.test", password="pw-12345678")
         profile = UserProfile.objects.create(user=user)
-        account = UserAccount.objects.create(account_number=f"ACCOUNT-{label.upper()}")
-        account.user_profiles.add(profile)
+        account = UserAccount.objects.create(account_number=f"ACCOUNT-{label.upper()}", user_profile=profile)
         portfolio = Portfolio.objects.create(user_account=account, name=f"{label.title()} Portfolio")
         wallet = Wallet.objects.create(
             user_account=account,
@@ -27,43 +25,6 @@ class PortfolioFixtureMixin:
     def rows(response):
         body = response.json()
         return body.get("results", body) if isinstance(body, dict) else body
-
-
-class PortfolioLiveAuthorizationTest(PortfolioFixtureMixin, APITestCase):
-    def setUp(self):
-        self.alice, self.alice_profile, self.alice_account, self.alice_portfolio, _ = self.make_tenant("alice")
-        self.bob, self.bob_profile, self.bob_account, self.bob_portfolio, _ = self.make_tenant("bob")
-        self.preferences = UserPreferences.objects.create(
-            user_profile=self.alice_profile,
-            selected_account=self.alice_account,
-            selected_portfolio=self.alice_portfolio,
-        )
-
-    def test_membership_removal_revokes_full_tree(self):
-        self.alice_account.user_profiles.remove(self.alice_profile)
-
-        self.assertNotIn(self.alice_portfolio, what_the_policies_admit_to(self.alice, Portfolio))
-
-        self.client.force_authenticate(self.alice)
-        self.assertEqual(
-            self.client.get(f"/api/portfolios/{self.alice_portfolio.uuid}/").status_code,
-            404,
-        )
-        preferences_response = self.client.get("/api/user-preferences/")
-        self.assertEqual(preferences_response.status_code, 200)
-        self.assertIsNone(preferences_response.json()["selectedAccount"])
-        self.assertIsNone(preferences_response.json()["selectedPortfolio"])
-
-        export_response = self.client.get("/api/user-profiles/export-data/")
-        self.assertEqual(export_response.status_code, 200)
-        self.assertIsNone(export_response.json()["preferences"]["selectedAccount"])
-        self.assertIsNone(export_response.json()["preferences"]["selectedPortfolio"])
-        self.assertEqual(export_response.json()["portfolios"], [])
-
-    def test_reverse_membership_addition_reveals_preexisting_tree(self):
-        self.alice_profile.user_accounts.add(self.bob_account)
-
-        self.assertIn(self.bob_portfolio, what_the_policies_admit_to(self.alice, Portfolio))
 
 
 class PortfolioEndpointIsolationTest(PortfolioFixtureMixin, APITestCase):
@@ -130,25 +91,19 @@ class PortfolioCreateAccountSelectionTest(PortfolioFixtureMixin, APITestCase):
     def setUp(self):
         self.alice, self.alice_profile, self.account_a, _, _ = self.make_tenant("alice")
         self.bob, _, self.bob_account, _, _ = self.make_tenant("bob")
-        self.account_b = UserAccount.objects.create(account_number="ACCOUNT-ALICE-B")
-        self.account_b.user_profiles.add(self.alice_profile)
         self.client.force_authenticate(self.alice)
 
     def _create(self, payload):
         return self.client.post("/api/portfolios/", payload, format="json")
 
-    def test_defaults_to_selected_account(self):
-        UserPreferences.objects.create(user_profile=self.alice_profile, selected_account=self.account_b)
-
-        response = self._create({"name": "Selected"})
+    def test_defaults_to_the_one_account(self):
+        response = self._create({"name": "Defaulted"})
 
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.json()["userAccount"], str(self.account_b.uuid))
-        self.assertEqual(Portfolio.objects.get(name="Selected").user_account, self.account_b)
+        self.assertEqual(response.json()["userAccount"], str(self.account_a.uuid))
+        self.assertEqual(Portfolio.objects.get(name="Defaulted").user_account, self.account_a)
 
-    def test_explicit_own_account_wins_over_selected_account(self):
-        UserPreferences.objects.create(user_profile=self.alice_profile, selected_account=self.account_b)
-
+    def test_naming_your_own_account_is_accepted(self):
         response = self._create({"name": "Explicit", "userAccount": str(self.account_a.uuid)})
 
         self.assertEqual(response.status_code, 201)
@@ -160,27 +115,3 @@ class PortfolioCreateAccountSelectionTest(PortfolioFixtureMixin, APITestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("userAccount", response.json())
         self.assertFalse(Portfolio.objects.filter(name="Stolen").exists())
-
-    def test_ambiguous_accounts_without_selection_are_rejected(self):
-        response = self._create({"name": "Ambiguous"})
-
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("userAccount", response.json())
-        self.assertFalse(Portfolio.objects.filter(name="Ambiguous").exists())
-
-    def test_single_account_without_preferences_is_used(self):
-        self.account_b.user_profiles.remove(self.alice_profile)
-
-        response = self._create({"name": "Only"})
-
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(Portfolio.objects.get(name="Only").user_account, self.account_a)
-
-    def test_stale_selected_account_is_not_used(self):
-        UserPreferences.objects.create(user_profile=self.alice_profile, selected_account=self.account_b)
-        self.account_b.user_profiles.remove(self.alice_profile)
-
-        response = self._create({"name": "Stale"})
-
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(Portfolio.objects.get(name="Stale").user_account, self.account_a)

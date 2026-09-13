@@ -11,7 +11,7 @@ import { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from '../../src/hooks/
 
 const preferences = {
   displayCurrency: 'AUD',
-  selectedAccount: { uuid: 'account-1' },
+  userAccount: { uuid: 'account-1' },
   selectedPortfolio: { uuid: 'portfolio-1' },
 };
 const clients: QueryClient[] = [];
@@ -44,7 +44,7 @@ describe('shared user preferences', () => {
 
     expect(get).not.toHaveBeenCalled();
     expect(result.current.preferences).toBeUndefined();
-    expect(result.current.selectedAccount).toBeNull();
+    expect(result.current.userAccount).toBeNull();
     expect(result.current.selectedPortfolio).toBeNull();
   });
 
@@ -59,7 +59,7 @@ describe('shared user preferences', () => {
 
     await waitFor(() => expect(result.current.preferences).toEqual(preferences));
     expect(get).toHaveBeenCalledWith(USER_PREFERENCES_ENDPOINTS.BASE);
-    expect(result.current.selectedAccount).toEqual(preferences.selectedAccount);
+    expect(result.current.userAccount).toEqual(preferences.userAccount);
     expect(result.current.selectedPortfolio).toEqual(preferences.selectedPortfolio);
   });
 
@@ -81,7 +81,7 @@ describe('shared user preferences', () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.preferences).toBeUndefined();
-    expect(result.current.selectedAccount).toBeNull();
+    expect(result.current.userAccount).toBeNull();
     expect(result.current.selectedPortfolio).toBeNull();
   });
 
@@ -91,7 +91,7 @@ describe('shared user preferences', () => {
     const { result } = renderHook(() => useUserPreferences(), { wrapper });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(result.current.selectedAccount).toBeNull();
+    expect(result.current.userAccount).toBeNull();
     expect(result.current.selectedPortfolio).toBeNull();
   });
 });

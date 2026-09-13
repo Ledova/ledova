@@ -57,7 +57,7 @@ vi.mock('@ledova/shared', async () => {
 });
 
 vi.mock('./useSelectedPortfolio', () => ({
-  useSelectedPortfolio: () => ({ selectedAccount: { uuid: 'account-1' } }),
+  useSelectedPortfolio: () => ({ userAccount: { uuid: 'account-1' } }),
 }));
 
 vi.mock('@pages/wallets/components/WalletSelectionModal', () => ({

@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
+from shared.tests.tenants import a_profile
 from users.models import UserAccount
 from users.models.user_account import AccountRole
 from users.tests.factories import make_investor, verified_classification
@@ -71,13 +72,14 @@ class WhitelistAdminEligibilityReadTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "not an eligible wholesale investor")
 
-    def test_a_wallet_on_the_unqualified_account_of_an_eligible_user_is_not_marked_eligible(self):
-        _, qualified = make_investor("wl-two-accounts")
-        profile = qualified.user_profiles.first()
+    def test_a_wallet_on_an_unqualified_account_is_not_marked_eligible(self):
+        _, qualified = make_investor("wl-qualified")
         unqualified = UserAccount.objects.create(
-            account_number="ACC-WL-SECOND", account_status="active", role=AccountRole.INVESTOR, director=profile
+            account_number="ACC-WL-SECOND",
+            account_status="active",
+            role=AccountRole.INVESTOR,
+            user_profile=a_profile("wl-unqualified"),
         )
-        unqualified.user_profiles.add(profile)
         verified_classification(qualified, self.reviewer)
         Wallet.objects.create(user_account=unqualified, address="0x" + "5" * 40, chain="base")
         WhitelistEntry.objects.create(wallet=Wallet.objects.get(address="0x" + "5" * 40))

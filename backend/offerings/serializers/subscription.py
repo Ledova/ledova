@@ -120,11 +120,8 @@ class IssuerSubscriptionSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_investor_name(self, subscription) -> str:
-        names = [
-            (profile.full_name or "").strip() or profile.user.email
-            for profile in subscription.user_account.user_profiles.all()
-        ]
-        return " & ".join(name for name in names if name)
+        holder = subscription.user_account.user_profile
+        return (holder.full_name or "").strip() or holder.user.email
 
     def get_allotment_state(self, subscription) -> str:
         request = subscription.issuance_request

@@ -19,7 +19,7 @@ export function useSelectedPortfolio() {
   return {
     portfolio: preferences?.selectedPortfolio ?? null,
     selectedPortfolio: preferences?.selectedPortfolio ?? null,
-    selectedAccount: preferences?.selectedAccount ?? null,
+    userAccount: preferences?.userAccount ?? null,
     isLoading: preferencesQuery.isLoading,
   };
 }

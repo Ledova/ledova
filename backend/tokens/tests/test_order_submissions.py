@@ -38,7 +38,6 @@ from tokens.tests.order_submission_fixtures import (
     SubmissionFixtures,
     pending_submission,
 )
-from users.models import UserAccount
 from wallets.models import Wallet
 
 
@@ -189,20 +188,6 @@ class SubmissionRecoveryChecks(SubmissionFixtures):
         fresh = self.create(self.signed_body(self.body(order_type="sell", submission_id=str(uuid4()))))
         self.assertEqual(fresh.status_code, 201, fresh.content)
 
-    def test_removed_membership_cannot_poison_or_recover_an_account_submission(self):
-        signed = self.signed_body()
-        with use_operator():
-            self.tenant.account.user_profiles.remove(self.tenant.profile)
-        refused = self.create(signed)
-        self.assertEqual(refused.status_code, 400, refused.content)
-        hidden = self.recover()
-        self.assertEqual(hidden.status_code, 404, hidden.content)
-        self.assertEqual(self.recover(uuid4()).json(), hidden.json())
-        self.assert_pending_and_unspent(signed)
-        with use_operator():
-            self.tenant.account.user_profiles.add(self.tenant.profile)
-        self.assertEqual(self.create(signed).status_code, 201)
-
     def test_foreign_account_lookup_hides_pending_and_created_outcomes(self):
         signed = self.signed_body()
         with use_operator():
@@ -340,32 +325,6 @@ class OrderSubmissionProtocolTest(SubmissionBoundaryChecks, SubmissionFixtures, 
             challenge = SigningChallenge.objects.get(digest=issued["digest"])
         self.assertEqual(challenge.submission_id, submission.pk)
         self.assertEqual(submission.initiated_by_id, self.tenant.user.pk)
-
-    def test_same_uuid_in_a_second_authorized_account_is_a_distinct_submission(self):
-        first = self.create(self.signed_body())
-        with use_operator():
-            second_account = UserAccount.objects.create()
-            second_account.user_profiles.add(self.tenant.profile)
-            second_wallet = Wallet.objects.create(
-                user_account=second_account, address=OWNER.address, chain="base", verification_status="VERIFIED"
-            )
-        second = self.create(
-            self.signed_body(self.body(owner_account_uuid=str(second_account.pk), wallet_uuid=str(second_wallet.pk)))
-        )
-        self.assertEqual((first.status_code, second.status_code), (201, 201))
-        self.assertNotEqual(first.json()["order"]["uuid"], second.json()["order"]["uuid"])
-
-    def test_a_current_account_member_can_recover_the_initiators_result(self):
-        signed = self.signed_body()
-        first = self.create(signed)
-        with use_operator():
-            other = make_tenant("submission-member")
-            self.tenant.account.user_profiles.add(other.profile)
-        self.client.force_authenticate(other.user)
-        recovered = self.recover()
-        self.assertEqual(recovered.status_code, 200, recovered.content)
-        self.assertEqual(first.json(), recovered.json())
-        self.assertEqual(self.submission().initiated_by_id, self.tenant.user.pk)
 
     def test_a_signature_for_one_submission_cannot_create_another(self):
         first = self.signed_body()

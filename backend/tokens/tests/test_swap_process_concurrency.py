@@ -258,13 +258,13 @@ class SwapWorkersUseOneCurrentClaimTest(TransactionTestCase):
                 swap_service()._record_receipt(self.swap, self.swap.transaction, TX_HASH, first_receipt)
                 if first_receipt == REVERTED:
                     order = TransferOrder.objects.get(pk=self.swap.sell_order_id)
-                    issued = cancel_message_for_order(order.owner_account.user_profiles.first().user, order)
+                    issued = cancel_message_for_order(order.owner_account.user_profile.user, order)
                     signature = SELLER.sign_message(
                         encode_typed_data(
                             domain_data=issued["domain"], message_types=issued["types"], message_data=issued["message"]
                         )
                     ).signature.to_0x_hex()
-                    cancel_for_order(order.owner_account.user_profiles.first().user, order, issued["digest"], signature)
+                    cancel_for_order(order.owner_account.user_profile.user, order, issued["digest"], signature)
                 before = persisted_outcome(self.swap)
                 child.send("apply")
                 self.assertIsNone(child.done()["result"])

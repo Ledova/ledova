@@ -14,9 +14,9 @@ interface SendTransferContextValue {
 const SendTransferContext = createContext<SendTransferContextValue | null>(null);
 
 export function SendTransferProvider({ children }: { children: ReactNode }) {
-  const { selectedAccount } = useSelectedPortfolio();
+  const { userAccount } = useSelectedPortfolio();
   const queryClient = useQueryClient();
-  const userAccountUuid = selectedAccount?.uuid;
+  const userAccountUuid = userAccount?.uuid;
 
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [selectedWallet, setSelectedWallet] = useState<Wallet | null>(null);

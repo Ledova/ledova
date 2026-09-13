@@ -242,7 +242,7 @@ class SwapSettlementRouteTest(APITransactionTestCase):
             Wallet.objects.filter(pk__in=[self.swap.seller_wallet_id, self.swap.buyer_wallet_id]).update(
                 verification_status=WALLET_VERIFICATION_STATUS_VERIFIED
             )
-            self.user = self.seller_order.owner_account.user_profiles.first().user
+            self.user = self.seller_order.owner_account.user_profile.user
         self.client = APIClient()
         self.client.force_authenticate(self.user)
         self.identity = {
@@ -612,19 +612,6 @@ class SwapSettlementRouteTest(APITransactionTestCase):
             self.buyer_order.save(update_fields=["payment_asset"])
         refused = self.client.get(url, identity)
         self.assertEqual(refused.status_code, 404, refused.content)
-
-    def test_shared_current_membership_is_admitted_and_retirement_refuses_the_same_context(self):
-        with use_operator():
-            other = make_tenant("context-shared")
-            account = self.seller_order.owner_account
-            account.user_profiles.add(other.profile)
-        self.client.force_authenticate(other.user)
-        positive = self.client.get(self.url + "/", self.identity)
-        self.assertEqual(positive.status_code, 200, positive.content)
-        with use_operator():
-            account.user_profiles.remove(other.profile)
-        retired = self.client.get(self.url + "/", self.identity)
-        self.assertEqual(retired.status_code, 404, retired.content)
 
     def test_another_account_with_the_same_address_does_not_own_the_recorded_side(self):
         with use_operator():

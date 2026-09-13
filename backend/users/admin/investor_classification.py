@@ -121,7 +121,7 @@ class InvestorClassificationAdmin(admin.ModelAdmin):
     list_filter = ["status", "category", "created_at"]
     search_fields = [
         "user_account__account_number",
-        "user_account__user_profiles__user__email",
+        "user_account__user_profile__user__email",
         "certifier_name",
         "certifier_membership_number",
     ]
@@ -184,7 +184,7 @@ class InvestorClassificationAdmin(admin.ModelAdmin):
 
     @admin.display(description="Account")
     def account_email(self, obj):
-        profile = obj.user_account.user_profiles.first()
+        profile = obj.user_account.user_profile
         return profile.user.email if profile else obj.user_account.account_number
 
     @admin.display(description="Live")

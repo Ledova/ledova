@@ -27,8 +27,7 @@ class WalletActionContractTest(APITestCase):
     def setUpTestData(cls):
         cls.user = get_user_model().objects.create_user(email="wallet-contract@example.test", password="pw-12345678")
         profile = UserProfile.objects.create(user=cls.user)
-        cls.account = UserAccount.objects.create(account_number="WALLET-CONTRACT")
-        cls.account.user_profiles.add(profile)
+        cls.account = UserAccount.objects.create(account_number="WALLET-CONTRACT", user_profile=profile)
         cls.wallet = Wallet.objects.create(
             user_account=cls.account, address=SIGNER.address, chain="base", verification_status="VERIFIED"
         )

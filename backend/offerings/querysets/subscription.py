@@ -6,7 +6,7 @@ class SubscriptionQuerySet(QuerySet):
     def visible_to_user(self, user):
         if user is None or not user.is_authenticated:
             return self.none()
-        return self.filter(user_account__user_profiles__user=user)
+        return self.filter(user_account__user_profile__user=user)
 
     def for_offering(self, offering):
         return self.filter(offering=offering)
@@ -68,7 +68,7 @@ class SubscriptionQuerySet(QuerySet):
         return (
             self.for_offering(offering)
             .with_relations()
-            .prefetch_related("user_account__user_profiles__user")
+            .prefetch_related("user_account__user_profile__user")
             .order_by("-created_at")
         )
 

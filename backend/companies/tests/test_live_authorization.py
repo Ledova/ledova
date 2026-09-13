@@ -205,8 +205,7 @@ class CompanyLiveAuthorizationTest(APITestCase):
                 baseline[actor.pk] = response.json()
 
         foreign_profile = UserProfile.objects.create(user=self.bob)
-        foreign_account = UserAccount.objects.create(account_number="FOREIGN-STATS")
-        foreign_account.user_profiles.add(foreign_profile)
+        foreign_account = UserAccount.objects.create(account_number="FOREIGN-STATS", user_profile=foreign_profile)
         foreign_wallet = Wallet.objects.create(
             user_account=foreign_account,
             address="0x" + "f" * 40,

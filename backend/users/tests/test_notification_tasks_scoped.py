@@ -15,7 +15,6 @@ from ledova_backend.procrastinate_app import app
 from shared.db import (
     APP_ALIAS,
     OPERATOR_ALIAS,
-    acting_for,
     current_alias,
     principal_of,
     use_operator,
@@ -33,7 +32,6 @@ from users.tasks.notifications import (
     send_transaction_notification,
 )
 from wallets.models import Transaction, Wallet
-from wallets.services.transaction_confirmation import _notify_wallet_users
 
 User = get_user_model()
 
@@ -52,8 +50,9 @@ class NotificationTasksUseRecipientRolesTest(RunsOnTheScopedConnection, Transact
     def make_recipient(self, label, digit):
         user = User.objects.create_user(email=f"{label}@notification.example.test", password="synthetic-password")
         profile = UserProfile.objects.create(user=user)
-        account = UserAccount.objects.create(account_number=f"NOTIF-{label}"[:20], director=profile)
-        account.user_profiles.add(profile)
+        account = UserAccount.objects.create(
+            account_number=f"NOTIF-{label}"[:20], director=profile, user_profile=profile
+        )
         wallet = Wallet.objects.create(user_account=account, address="0x" + digit * 40, chain="base")
         transaction = Transaction.objects.create(
             wallet=wallet,
@@ -240,56 +239,6 @@ class NotificationTasksUseRecipientRolesTest(RunsOnTheScopedConnection, Transact
         with use_operator(), connections[OPERATOR_ALIAS].cursor() as cursor:
             for identifier in identifiers:
                 cursor.execute("DELETE FROM procrastinate_jobs WHERE id = %s", [identifier])
-
-    def test_actual_member_fanout_payload_rechecks_each_recipient_after_membership_removal(self):
-        with use_operator():
-            colleague = self.make_recipient("colleague", "4")
-            self.recipient.account.user_profiles.add(colleague.profile)
-        before = self.queued_rows()
-        with acting_for(self.recipient.user.pk):
-            transaction = Transaction.objects.select_related("wallet__user_account").get(
-                pk=self.recipient.transaction.pk
-            )
-            self.assertFalse(UserProfile.objects.filter(pk=colleague.profile.pk).exists())
-            _notify_wallet_users(transaction, "confirmed")
-        jobs = {key: row for key, row in self.queued_rows().items() if key not in before}
-        self.addCleanup(self.delete_jobs, list(jobs))
-        self.assertEqual(len(jobs), 2)
-        expected_ids = {str(self.recipient.user.pk), str(colleague.user.pk)}
-        self.assertEqual({args["user_id"] for _, args in jobs.values()}, expected_ids)
-        for name, args in jobs.values():
-            self.assertEqual(name, send_transaction_notification.name)
-            self.assertEqual(set(args), {"user_id", "transaction_id", "event_type"})
-            self.assertEqual(args["transaction_id"], str(self.recipient.transaction.pk))
-        with use_operator():
-            self.recipient.account.user_profiles.remove(self.recipient.profile)
-        delivered = []
-
-        def send(messages):
-            self.assert_scoped_to(colleague)
-            delivered.extend(messages)
-            return [{"status": "ok"}]
-
-        self.push.side_effect = send
-        by_recipient = {args["user_id"]: (name, args) for name, args in jobs.values()}
-        removed_name, removed_args = by_recipient[str(self.recipient.user.pk)]
-        removed = self.run_task(app.tasks[removed_name], **removed_args)
-        self.assertEqual(removed, {"status": "error", "error": "Transaction not found"})
-        self.push.assert_not_called()
-        name, args = by_recipient[str(colleague.user.pk)]
-        result = self.run_task(app.tasks[name], **args)
-        self.assertEqual(result["status"], "sent")
-        self.assertEqual([message["to"] for message in delivered], [colleague.device.push_token])
-        self.assertEqual(self.inbox(), [])
-        self.assertEqual(self.inbox(self.other), [])
-        (row,) = self.inbox(colleague)
-        self.assertEqual(row.title, "Transaction Confirmed")
-        self.assertIn("2.5", row.body)
-        self.assertIn(self.asset.symbol, row.body)
-        self.assertEqual(
-            row.data,
-            {"type": "transaction", "event": "confirmed", "transaction_id": str(self.recipient.transaction.pk)},
-        )
 
     def test_deferred_push_preserves_its_payload_and_refuses_a_deleted_recipient(self):
         with use_operator():

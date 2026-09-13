@@ -34,12 +34,12 @@ export const tradingQueryKeys = {
 };
 
 export function useUserTradingWallets() {
-  const { selectedAccount, isLoading: isLoadingPreferences } = useUserPreferences();
+  const { userAccount, isLoading: isLoadingPreferences } = useUserPreferences();
 
   const walletsQuery = useQuery({
-    queryKey: ['wallets', selectedAccount?.uuid, 'trading'],
-    queryFn: () => getWallets(apiClient, { user_account: selectedAccount!.uuid }),
-    enabled: !!selectedAccount?.uuid,
+    queryKey: ['wallets', userAccount?.uuid, 'trading'],
+    queryFn: () => getWallets(apiClient, { user_account: userAccount!.uuid }),
+    enabled: !!userAccount?.uuid,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
     select: (data) => ({

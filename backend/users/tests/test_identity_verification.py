@@ -26,8 +26,7 @@ class IdentityVerificationApprovalTest(TestCase):
         profile = UserProfile.objects.create(
             user=user, citizenship_country=Country.objects.create(name="Test", code=code)
         )
-        account = UserAccount.objects.create(account_number=f"ACC-{code}")
-        account.user_profiles.add(profile)
+        account = UserAccount.objects.create(account_number=f"ACC-{code}", user_profile=profile)
         return profile, account
 
     @staticmethod

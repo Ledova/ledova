@@ -7,14 +7,6 @@ def ids(module, case, *tests):
     return tuple(f"{module}.{case}.{test}" for test in tests)
 
 
-LISTINGS_THAT_COME_BACK_EMPTY_FOR_THEIR_OWN_OWNER = (
-    *ids(
-        "offerings.tests.test_issuer_subscriptions",
-        "IssuerSubscriptionReadTest",
-        "test_the_issuer_keeps_other_investors_on_newest_first_pages",
-    ),
-)
-
 A_SECOND_MODEL_THE_VIEW_READS_OUTSIDE_THE_PRINCIPALS_SCOPE = (
     *ids(
         "users.tests.test_investor_classification_api",
@@ -42,7 +34,6 @@ MARKET_AND_BALANCE_FIELDS_THAT_GO_QUIET = (
 )
 
 NOT_YET_BEHIND_THE_POLICIES = (
-    *LISTINGS_THAT_COME_BACK_EMPTY_FOR_THEIR_OWN_OWNER,
     *A_SECOND_MODEL_THE_VIEW_READS_OUTSIDE_THE_PRINCIPALS_SCOPE,
     *MARKET_AND_BALANCE_FIELDS_THAT_GO_QUIET,
 )

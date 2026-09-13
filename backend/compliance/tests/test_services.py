@@ -10,7 +10,6 @@ from compliance.constants import (
     ALERT_STATUS_CLOSED,
     ALERT_TYPE_PERIODIC_REVIEW,
     ASSESSMENT_STATUS_COMPLETE,
-    ASSESSMENT_STATUS_INCOMPLETE,
     ASSESSMENT_STATUS_PENDING,
     PEP_TYPE_DOMESTIC,
     PEP_TYPE_FOREIGN,
@@ -35,6 +34,7 @@ from compliance.services.transaction_monitoring import (
 )
 from compliance.tasks import check_periodic_reviews
 from shared.models import Country
+from shared.tests.tenants import an_account
 from users.models import FinancialProfile, UserAccount, UserProfile
 from wallets.models import Transaction, Wallet
 
@@ -43,7 +43,7 @@ User = get_user_model()
 
 class RuleDispatchTest(TestCase):
     def setUp(self):
-        self.account = UserAccount.objects.create(account_number="ACC-RULE")
+        self.account = an_account("services", account_number="ACC-RULE")
         wallet = Wallet.objects.create(
             user_account=self.account, address="0x" + "a" * 40, chain="ethereum", verification_status="VERIFIED"
         )
@@ -125,8 +125,9 @@ class RiskAssessmentTest(TestCase):
         self.profile = UserProfile.objects.create(
             user=user, citizenship_country=Country.objects.create(code="au", name="Australia")
         )
-        self.account = UserAccount.objects.create(account_number="ACC-RISK", director=self.profile)
-        self.account.user_profiles.add(self.profile)
+        self.account = UserAccount.objects.create(
+            account_number="ACC-RISK", director=self.profile, user_profile=self.profile
+        )
 
     def test_rating_thresholds(self):
         self.assertEqual(
@@ -177,16 +178,10 @@ class RiskAssessmentTest(TestCase):
         self.assertEqual(assessment.pep_type, PEP_TYPE_FOREIGN)
         self.assertEqual(assessment.overall_risk_rating, RISK_RATING_LOW)
 
-    def test_account_without_profile_gets_an_incomplete_assessment(self):
-        orphan = UserAccount.objects.create(account_number="ACC-NOPROFILE")
-        assessment = RiskAssessmentService.calculate_and_create(orphan)
-        self.assertEqual(assessment.assessment_status, ASSESSMENT_STATUS_INCOMPLETE)
-        self.assertEqual(assessment.assessment_reason, "Incomplete: No user profile available")
-
 
 class PeriodicReviewTaskTest(TestCase):
     def test_raises_one_open_periodic_review_alert_per_overdue_assessment(self):
-        account = UserAccount.objects.create(account_number="ACC-REVIEW")
+        account = an_account("services", account_number="ACC-REVIEW")
         CustomerRiskAssessment.objects.create(
             user_account=account,
             assessment_status=ASSESSMENT_STATUS_COMPLETE,
@@ -194,7 +189,7 @@ class PeriodicReviewTaskTest(TestCase):
             next_review_date=timezone.now() - timedelta(days=1),
         )
         CustomerRiskAssessment.objects.create(
-            user_account=UserAccount.objects.create(account_number="ACC-FRESH"),
+            user_account=an_account("services", account_number="ACC-FRESH"),
             assessment_status=ASSESSMENT_STATUS_COMPLETE,
             next_review_date=timezone.now() + timedelta(days=30),
         )

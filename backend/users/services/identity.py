@@ -184,7 +184,7 @@ class IdentityVerificationService:
 
         pep_type = pep_data.get("pep_type", "none")
 
-        user_account = user_profile.user_accounts.first()
+        user_account = getattr(user_profile, "user_account", None)
         if not user_account:
             logger.warning(f"No user_account found for user_profile {user_profile.uuid}")
             return

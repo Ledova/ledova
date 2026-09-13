@@ -235,8 +235,7 @@ class StablecoinFoldMigrationTest(TransactionTestCase):
 
         user = get_user_model().objects.create_user(email="fold@example.test", password="pw-12345678")
         profile = UserProfile.objects.create(user=user, full_name="Fold owner")
-        account = UserAccount.objects.create(account_number="FOLD-1")
-        account.user_profiles.add(profile)
+        account = UserAccount.objects.create(account_number="FOLD-1", user_profile=profile)
         wallet = Wallet.objects.create(user_account=account, address="0x" + "a" * 40, chain=BASE)
         company = Company.objects.create(
             owner=user, name="Fold Pty Ltd", company_type=CompanyType.PROPRIETARY, acn="123456789"

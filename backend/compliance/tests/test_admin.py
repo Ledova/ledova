@@ -26,7 +26,7 @@ from compliance.models import (
     MonitoringRule,
     TransactionScreening,
 )
-from users.models import UserAccount
+from shared.tests.tenants import an_account
 from wallets.models import Transaction, Wallet
 
 User = get_user_model()
@@ -43,7 +43,7 @@ class ComplianceAdminTest(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.officer = User.objects.create_superuser(email="officer@example.test", password="pw-12345678")
-        cls.account = UserAccount.objects.create(account_number="ACC-ADMIN")
+        cls.account = an_account("admin", account_number="ACC-ADMIN")
         wallet = Wallet.objects.create(
             user_account=cls.account, address="0x" + "a" * 40, chain="ethereum", verification_status="VERIFIED"
         )

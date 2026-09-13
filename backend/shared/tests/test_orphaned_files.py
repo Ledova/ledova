@@ -24,7 +24,7 @@ from shared.storage import (
     private_storage,
     swept_file_fields,
 )
-from users.models import UserAccount
+from shared.tests.tenants import an_account
 from users.models.investor_classification import InvestorClassification
 
 User = get_user_model()
@@ -162,7 +162,7 @@ class FilesFollowTheirRowsTest(_StorageCase, TransactionTestCase):
         self.assertEqual(self.stored_files(), [])
 
     def test_classification_evidence_outlives_its_row(self):
-        account = UserAccount.objects.create()
+        account = an_account("orphaned-files")
         classification = InvestorClassification.objects.create(
             user_account=account,
             category="product_value",

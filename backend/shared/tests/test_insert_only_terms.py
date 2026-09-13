@@ -7,8 +7,8 @@ from django.test import TestCase
 
 from shared.db.policies import INSERT_ONLY_REASONS, INSERTABLE, POLICIES
 from shared.db.principal import PRINCIPAL_SETTING
-from shared.tests.tenants import make_tenant
-from users.models import UserAccount, UserProfile
+from shared.tests.tenants import a_profile
+from users.models import UserAccount
 
 POSTGRES = connection.vendor == "postgresql"
 REASON = "row-level security exists only in PostgreSQL, and on SQLite every write here would be allowed"
@@ -31,13 +31,12 @@ class TheCatalogueKeepsTheOverrideHonestTest(TestCase):
 
 
 @skipUnless(POSTGRES, REASON)
-class ADirectorCanCreateTheAccountTheyDirectTest(TestCase):
+class AnAccountIsInsertedForItsOwnPersonOnlyTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.tenant = make_tenant("director")
-        cls.profile = UserProfile.objects.get(user=cls.tenant.user)
-        cls.stranger = make_tenant("stranger")
+        cls.profile = a_profile("unaccounted")
+        cls.stranger = a_profile("stranger")
 
     def as_the_app_role_for(self, user):
         self.addCleanup(self.back_to_the_owner)
@@ -50,25 +49,22 @@ class ADirectorCanCreateTheAccountTheyDirectTest(TestCase):
             cursor.execute("RESET ROLE")
             cursor.execute("SELECT set_config(%s, NULL, false)", [PRINCIPAL_SETTING])
 
-    def test_a_principal_creates_an_account_it_directs_and_then_joins_it(self):
-        self.as_the_app_role_for(self.tenant.user)
+    def test_a_principal_creates_the_account_that_names_its_own_profile(self):
+        self.as_the_app_role_for(self.profile.user)
 
-        account = UserAccount.objects.create(account_number="ACC-DIRECTED", director=self.profile)
-        account.user_profiles.add(self.profile)
+        account = UserAccount.objects.create(account_number="ACC-OWNED", user_profile=self.profile)
 
         self.assertIn(account, UserAccount.objects.all())
 
-    def test_the_director_term_does_not_let_it_delete_before_membership_exists(self):
-        self.as_the_app_role_for(self.tenant.user)
-        account = UserAccount.objects.create(account_number="ACC-UNJOINED", director=self.profile)
+    def test_a_principal_cannot_create_an_account_for_somebody_else(self):
+        self.as_the_app_role_for(self.stranger.user)
 
-        with transaction.atomic():
-            UserAccount.objects.filter(pk=account.pk).delete()
+        with self.assertRaises(ProgrammingError) as refused, transaction.atomic():
+            UserAccount.objects.create(account_number="ACC-STRANGER", user_profile=self.profile)
 
-        self.back_to_the_owner()
-        self.assertTrue(UserAccount.objects.filter(pk=account.pk).exists())
+        self.assertIn("row-level security policy", str(refused.exception))
 
-    def test_only_the_insert_policy_carries_the_director_term(self):
+    def test_no_policy_carries_a_director_term(self):
         with connection.cursor() as cursor:
             cursor.execute(
                 "SELECT policyname, coalesce(qual, '') || ' ' || coalesce(with_check, '') FROM pg_policies "
@@ -76,15 +72,6 @@ class ADirectorCanCreateTheAccountTheyDirectTest(TestCase):
             )
             installed = dict(cursor.fetchall())
 
-        self.assertIn("director_id", installed["customer_accounts_account_insert"])
-        for command in ("read", "update", "delete"):
+        for command in ("read", "insert", "update", "delete"):
             with self.subTest(policy=command):
                 self.assertNotIn("director_id", installed[f"customer_accounts_account_{command}"])
-
-    def test_a_principal_that_is_neither_director_nor_member_inserts_nothing(self):
-        self.as_the_app_role_for(self.stranger.user)
-
-        with self.assertRaises(ProgrammingError) as refused, transaction.atomic():
-            UserAccount.objects.create(account_number="ACC-STRANGER", director=self.profile)
-
-        self.assertIn("row-level security policy", str(refused.exception))

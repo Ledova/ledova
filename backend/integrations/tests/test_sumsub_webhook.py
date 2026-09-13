@@ -22,8 +22,9 @@ class SumSubWebhookTest(APITestCase):
     def setUp(self):
         user = User.objects.create_user(email="sumsub@example.test", password="pw-12345678")
         self.profile = UserProfile.objects.create(user=user, kyc_provider="sumsub", sumsub_applicant_id="app-1")
-        self.account = UserAccount.objects.create(account_number="SUMSUB-ACC", director=self.profile)
-        self.account.user_profiles.add(self.profile)
+        self.account = UserAccount.objects.create(
+            account_number="SUMSUB-ACC", director=self.profile, user_profile=self.profile
+        )
 
     def post_event(self, event_type, applicant_id="app-1", **extra):
 

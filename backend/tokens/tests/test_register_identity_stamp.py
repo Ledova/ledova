@@ -20,7 +20,6 @@ from tokens.services.register import (
     export_rows,
     token_register,
 )
-from users.models import UserAccount
 from wallets.models import Wallet
 from whitelist.models import HolderType, WhitelistEntry
 
@@ -54,8 +53,7 @@ class IdentitySurvivesAWalletDeletionTest(TestCase):
         profile.full_name = "Ada Lovelace"
         profile.residential_address = "1 Analytical Way"
         profile.save(update_fields=["full_name", "residential_address"])
-        self.account = UserAccount.objects.create()
-        self.account.user_profiles.add(profile)
+        self.account = self.tenant.account
         self.wallet = Wallet.objects.create(user_account=self.account, address=HOLDER, chain="base")
         WhitelistEntry.objects.create(wallet=self.wallet)
         self.chain = Mock()
@@ -178,9 +176,7 @@ class TheIssuancePathStampsWhatItAllotsTest(TestCase):
         profile.full_name = "Grace Hopper"
         profile.residential_address = "3 Compiler Court"
         profile.save(update_fields=["full_name", "residential_address"])
-        account = UserAccount.objects.create()
-        account.user_profiles.add(profile)
-        Wallet.objects.create(user_account=account, address=HOLDER, chain="base")
+        Wallet.objects.create(user_account=self.tenant.account, address=HOLDER, chain="base")
 
         self.service = ShareTokenService()
 

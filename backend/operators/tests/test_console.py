@@ -85,8 +85,7 @@ class WorklistTest(TestCase):
             owner=self.owner, name="Console Pty Ltd", acn="900900900", status=CompanyStatus.ACTIVE
         )
         self.profile = UserProfile.objects.create(user=self.owner, full_name="Console Owner")
-        self.account = UserAccount.objects.create(account_number="CONSOLE")
-        self.account.user_profiles.add(self.profile)
+        self.account = UserAccount.objects.create(account_number="CONSOLE", user_profile=self.profile)
         self.wallet = Wallet.objects.create(
             user_account=self.account, address=Web3.to_checksum_address("0x" + "a7" * 20), chain="base"
         )
@@ -267,11 +266,8 @@ class WorklistTest(TestCase):
         register, _ = token_register(token, service=_chain_reader({SHARED: 25}))
         self.assertEqual([row["holder_type"] for row in register], [HolderType.AMBIGUOUS.value])
 
-    def test_a_whitelisted_address_whose_wallet_names_nobody_raises_the_red_queue(self):
+    def test_an_address_no_whitelist_entry_claims_raises_the_red_queue(self):
         token = self._token("NON")
-        nameless = UserAccount.objects.create(account_number="NAMELESS")
-        wallet = Wallet.objects.create(user_account=nameless, address=NAMELESS_ADDRESS, chain="base")
-        WhitelistEntry.objects.create(wallet=wallet, status=WhitelistStatus.ACTIVE)
         ShareIssuance.objects.create(
             token=token, recipient_address=NAMELESS_ADDRESS, amount="40", status=IssuanceStatus.COMPLETED
         )
@@ -354,8 +350,7 @@ class WorklistTest(TestCase):
     def _whitelisted_wallet(self, email, number, name, address):
         user = User.objects.create_user(email=email, password="pw-12345678")
         profile = UserProfile.objects.create(user=user, full_name=name)
-        account = UserAccount.objects.create(account_number=number)
-        account.user_profiles.add(profile)
+        account = UserAccount.objects.create(account_number=number, user_profile=profile)
         wallet = Wallet.objects.create(user_account=account, address=address, chain="base")
         return WhitelistEntry.objects.create(wallet=wallet, status=WhitelistStatus.ACTIVE)
 

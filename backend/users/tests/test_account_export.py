@@ -22,12 +22,11 @@ class AccountExportTest(APITestCase):
             citizenship_country=Country.objects.create(name="Australia", code="AU"),
         )
         FinancialProfile.objects.create(user_profile=self.profile, occupation="Engineer")
-        self.account = UserAccount.objects.create(account_number="EXPORT-ACC", director=self.profile)
-        self.account.user_profiles.add(self.profile)
-        self.portfolio = Portfolio.objects.create(user_account=self.account, name="Main")
-        UserPreferences.objects.create(
-            user_profile=self.profile, selected_account=self.account, selected_portfolio=self.portfolio
+        self.account = UserAccount.objects.create(
+            account_number="EXPORT-ACC", director=self.profile, user_profile=self.profile
         )
+        self.portfolio = Portfolio.objects.create(user_account=self.account, name="Main")
+        UserPreferences.objects.create(user_profile=self.profile, selected_portfolio=self.portfolio)
         self.wallet = Wallet.objects.create(user_account=self.account, address="0x" + "a" * 40, chain="base")
         asset = Asset.objects.create(symbol="EXP", name="Export asset", asset_type="tokenized_security", is_active=True)
         Transaction.objects.create(
@@ -75,10 +74,7 @@ class AccountExportTest(APITestCase):
             },
         )
         self.assertEqual(body["profile"]["citizenshipCountry"], "Australia")
-        self.assertEqual(
-            body["preferences"],
-            {"selectedPortfolio": str(self.portfolio.uuid), "selectedAccount": str(self.account.uuid)},
-        )
+        self.assertEqual(body["preferences"], {"selectedPortfolio": str(self.portfolio.uuid)})
         self.assertEqual(
             set(body["financialProfile"]),
             {"occupation", "sourceOfFunds", "sourceOfFundsOtherText", "intendedUse", "intendedUseOtherText"},

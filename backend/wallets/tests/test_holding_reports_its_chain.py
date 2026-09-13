@@ -4,8 +4,7 @@ from django.test import TestCase
 from rest_framework.test import APITestCase
 
 from assets.models import Asset, AssetChainDeployment
-from shared.tests.tenants import make_tenant
-from users.models import UserAccount
+from shared.tests.tenants import an_account, make_tenant
 from wallets.models import Holding, Wallet
 from wallets.serializers.holding import HoldingSerializer
 
@@ -43,7 +42,7 @@ class HoldingReportsItsWalletsChainTest(TestCase):
 
     def _holding(self, chain):
         wallet = Wallet.objects.create(
-            user_account=UserAccount.objects.create(), address="0x" + chain[0] * 40, chain=chain
+            user_account=an_account("holding-reports-its-chain"), address="0x" + chain[0] * 40, chain=chain
         )
         return Holding.objects.create(wallet=wallet, asset=self.asset, quantity=Decimal("1"))
 

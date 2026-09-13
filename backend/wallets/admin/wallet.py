@@ -20,8 +20,8 @@ class WalletAdmin(admin.ModelAdmin):
     search_fields = (
         "name",
         "address",
-        "user_account__user_profiles__user__email",
-        "user_account__user_profiles__full_name",
+        "user_account__user_profile__user__email",
+        "user_account__user_profile__full_name",
         "chain",
     )
     list_filter = (

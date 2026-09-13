@@ -21,8 +21,9 @@ class ChoosingAnAccountTypeUnderTheAppRoleTest(RunsOnTheScopedConnection, APITra
         with self.as_an_operator_would():
             self.user = User.objects.create_user(email="type@example.test", password="pw-12345678", is_active=True)
             self.profile = UserProfile.objects.create(user=self.user, is_signup_completed=True)
-            self.account = UserAccount.objects.create(account_number="ACC-TYPE", director=self.profile)
-            self.account.user_profiles.add(self.profile)
+            self.account = UserAccount.objects.create(
+                account_number="ACC-TYPE", director=self.profile, user_profile=self.profile
+            )
         self.signed_in_as(self.user)
 
     def test_the_suite_is_running_on_the_scoped_connection_so_the_assertion_below_means_something(self):

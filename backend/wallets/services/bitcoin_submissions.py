@@ -44,7 +44,7 @@ def _wallet_context(wallet):
 
 
 def _request_wallet(wallet_id, principal_id, *, lock=False):
-    query = Wallet.objects.filter(pk=wallet_id, user_account__user_profiles__user_id=principal_id)
+    query = Wallet.objects.filter(pk=wallet_id, user_account__user_profile__user_id=principal_id)
     if lock:
         query = query.select_for_update(of=("self",))
     wallet = query.first()

@@ -11,7 +11,7 @@ from portfolios.models import Portfolio
 from shared.db.principal import PRINCIPAL_SETTING
 from shared.tests.tenants import make_tenant
 from tokens.models import ShareToken
-from users.models import UserAccount, UserPreferences
+from users.models import UserAccount, UserPreferences, UserProfile
 from wallets.models import Transaction, Wallet
 
 POSTGRES = connection.vendor == "postgresql"
@@ -73,11 +73,13 @@ class ThePolicyScopesWhatTheQuerysetScopedTest(TestCase):
         self.assertEqual({row.user_account_id for row in Portfolio.objects.all()}, {self.one.account.uuid})
         self.assertIn(self.one.account, UserAccount.objects.all())
 
-    def test_a_wallet_that_signs_for_a_company_is_visible_to_every_principal(self):
+    def test_a_wallet_that_signs_for_a_visible_company_stays_with_its_owner(self):
         self.as_the_app_role_for(self.one.user)
 
-        self.assertIn(self.two.wallet.uuid, {wallet.uuid for wallet in Wallet.objects.all()})
-        self.assertIn(self.two.account, UserAccount.objects.all())
+        self.assertIn(self.two.company, Company.objects.all())
+        self.assertNotIn(self.two.wallet.uuid, {wallet.uuid for wallet in Wallet.objects.all()})
+        self.assertNotIn(self.two.account, UserAccount.objects.all())
+        self.assertNotIn(self.two.profile, UserProfile.objects.all())
 
     def test_a_profile_owned_table_is_scoped_through_the_profile_that_owns_it(self):
         self.as_the_app_role_for(self.one.user)

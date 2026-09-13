@@ -32,7 +32,7 @@ class FavouriteAssetSerializer(serializers.ModelSerializer):
         if request and request.user:
             user_profile = getattr(request.user, "userprofile", None)
             if user_profile:
-                fields["user_account"].queryset = user_profile.user_accounts.all()
+                fields["user_account"].queryset = UserAccount.objects.filter(user_profile=user_profile)
 
         return fields
 
@@ -40,8 +40,8 @@ class FavouriteAssetSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         if request and request.user:
             user_profile = getattr(request.user, "userprofile", None)
-            if user_profile and value not in user_profile.user_accounts.all():
-                raise serializers.ValidationError("The user account must be one of your accounts.")
+            if user_profile and value != getattr(user_profile, "user_account", None):
+                raise serializers.ValidationError("The user account must be your own.")
         return value
 
     def validate(self, attrs):

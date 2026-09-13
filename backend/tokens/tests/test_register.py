@@ -56,8 +56,7 @@ def _raise():
 def _account(email, name, residence=""):
     user = User.objects.create_user(email=email, password="pw-12345678")
     profile = UserProfile.objects.create(user=user, full_name=name, residential_address=residence)
-    account = UserAccount.objects.create(account_number=email[:20])
-    account.user_profiles.add(profile)
+    account = UserAccount.objects.create(account_number=email[:20], user_profile=profile)
     return account
 
 

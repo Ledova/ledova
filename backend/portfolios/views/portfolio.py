@@ -33,16 +33,9 @@ class PortfolioViewSet(AuthenticatedModelViewSet):
     def perform_create(self, serializer):
         user_account = serializer.validated_data.get("user_account")
         if user_account is None:
-
-            accounts = UserAccount.objects.visible_to_user(self.request.user)
-            preferences = getattr(self.request.user.userprofile, "preferences", None)
-            selected_id = getattr(preferences, "selected_account_id", None)
-            user_account = accounts.filter(pk=selected_id).first() if selected_id else None
+            user_account = UserAccount.objects.visible_to_user(self.request.user).first()
         if user_account is None:
-            candidates = list(accounts[:2])
-            if len(candidates) != 1:
-                raise ValidationError({"userAccount": "Select the account this portfolio belongs to."})
-            user_account = candidates[0]
+            raise ValidationError({"userAccount": "This user has no account."})
 
         return serializer.save(user_account=user_account)
 
