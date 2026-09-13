@@ -816,16 +816,18 @@ required rate cannot be read.
 
 ## Tenancy model
 
-There is one database and one operator per deployment. Isolation is enforced in
-the ORM today, and PostgreSQL row-level security is being added underneath it in
-stages, tracked on
-[issue #520](https://github.com/RonildoBraga/ledova/issues/520). The ORM rules
-below stay the live mechanism; RLS is a second floor under them, not a
-replacement.
+There is one database and one operator per deployment. PostgreSQL row-level
+security enforces tenant isolation. Customer requests and principal-bearing jobs
+select their authority at the boundary; ORM selectors retain product and
+eligibility rules where database read scopes are wider. The staged conversion is
+tracked on [issue #520](https://github.com/RonildoBraga/ledova/issues/520).
 
-**Stage R0 — the owner column.** A table whose owner is reachable only through a
-parent cannot be read by a policy without a join, so each such table gains a
-direct owner column.
+**Stage R0 — the owner-column rollout (historical).** The initial design added
+direct owner columns to avoid policy joins. The migration lessons below record
+that rollout. R1 subsequently replaced redundant stored owners with live
+relationship policies and removed their columns, triggers and mixins. The current
+classification is in `backend/shared/db/policies.py`; testing now uses PostgreSQL
+only.
 
 - The column is added **nullable**, backfilled from the parent link, altered to
   **`NOT NULL`**, and indexed by Django's own foreign-key index. `related_name`
@@ -984,15 +986,12 @@ and queued jobs run under their declared principals:
   a hand-issued `GRANT` and a table created after the grant migration; it
   cannot catch a change to the catalogue itself, because the grant is derived
   from it and the two agree by construction.
-- **Five tables are listed reachable against their own classification, and the
-  list is the finding.** `REACHED_DESPITE_OPERATOR_ONLY` names the tables the
-  catalogue calls operator-only that customer-path code demonstrably reads on
-  the scoped connection, each with the file and line that reaches it — a share
-  issuance listed through its scoped parent, the yield token behind every
-  asset's NAV field, an order's own modification log, and the two compliance
-  rows written when an account is created. Granting them changes nothing about
-  today's behaviour; the point is that the discrepancy is now written down
-  where the grant is derived rather than hidden inside a blanket one.
+- **Two operator tables have explicit customer-read grants.**
+  `REACHED_DESPITE_OPERATOR_ONLY` records `tokens_yieldtoken`, read for an asset's
+  NAV, and `compliance_monitoringrule`, read while scoring a new account. Neither
+  carries a tenant key. Share issuances, modification logs and risk assessments
+  now have policies, so they no longer need this grant exception. The catalogue
+  keeps the remaining read reasons beside the grant definition.
 - **The principal is set where DRF resolves the user, not in middleware.**
   `HybridJWTAuthentication` runs in `APIView.initial()`, after every Django
   middleware, and a bearer request carries no session — so in middleware
@@ -1249,9 +1248,9 @@ and queued jobs run under their declared principals:
   refusal; only the issuer can change or delete the request. Their R0 columns
   already exist when `shared/0004` first reads the catalogue on a fresh database.
   `AWAITING_R0` entries explicitly name their missing columns, and the command
-  fails when one is already `NOT NULL` in the migrated schema. Swap wallet
-  columns are complete; `AWAITING_RLS` records their remaining trading-policy
-  work instead of claiming that R0 is unfinished.
+  fails when one is already `NOT NULL` in the migrated schema. Both `AWAITING_R0`
+  and `AWAITING_RLS` are empty; swap wallet columns and their trading policies
+  are installed and tested.
 
 **How R1 is proven, and where the proof deliberately diverges from production.**
 Three aliases are three *connections*, and Django's `TestCase` opens a separate
