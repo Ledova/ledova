@@ -26,6 +26,7 @@ fails, and an entry naming no script fails.
 | `check-error-bodies.py` | [The error body gate](#the-error-body-gate) | yes | source gates |
 | `check-logging.py` | [The logging privacy gate](#the-logging-privacy-gate) | yes | source gates |
 | `check-docs.py` | [The documentation gate](#the-documentation-gate) | yes | source gates |
+| `check-pr-metadata.py` | [The PR metadata gate](#the-pr-metadata-gate) | no | PR metadata |
 | `check-api-schema.py` | [The API type drift gate](#the-api-type-drift-gate) | no | Django |
 | `check-api-types.py` | [The API type drift gate](#the-api-type-drift-gate) | no | Django |
 | `check-client-operations.mjs` | [The API type drift gate](#the-api-type-drift-gate) | no | JavaScript |
@@ -42,6 +43,29 @@ change, through CI's `makemigrations --check --dry-run`, and the generated
 design tokens, through `git diff --exit-code` after `make build`. Two more
 checks run from the Makefile rather than from `scripts/`:
 `make check-mobile-test-awaits` and `npm --prefix mobile run check:resolution`.
+
+## The PR metadata gate
+
+`scripts/check-pr-metadata.py` requires a `type(#issue): description` title and a
+matching `Refs #issue` or `Closes #issue` as the first nonblank body line. It
+checks through GitHub that the referenced number is an issue in this repository,
+rather than a PR or an unavailable number. The types and ownership convention
+are in
+[CONTRIBUTING.md](../CONTRIBUTING.md#pull-request-titles-and-issue-ownership).
+
+The separate `PR metadata` workflow runs on creation, edits, new commits,
+reopening and readiness changes, including bot PRs. It uses `pull_request_target`
+with read-only permissions and checks out only the repository's default branch.
+It never checks out or executes the PR's code. Titles and bodies are fetched as
+data through the API, rather than interpolated into a shell command. Concurrent
+runs for the same PR cancel older runs; each check fetches the current metadata.
+
+This check needs GitHub access and is not part of `make check`; its regression
+tests run in `make test-gates`. To check a PR locally, run
+`python scripts/check-pr-metadata.py --repository OWNER/REPO --pr NUMBER` with
+an authenticated `gh` CLI. The gate verifies traceability, not whether the issue
+is a sensible match or whether its full scope has been completed. Review owns
+those judgments. The workflow starts enforcing once it is on the default branch.
 
 ## The rules
 

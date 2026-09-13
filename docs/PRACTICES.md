@@ -116,6 +116,12 @@ context, intended outcome and completion checks. Scope stays at the issue:
 distinct problems found on the way get follow-up issues after checking for
 duplicates. Close an issue only when its work is complete.
 
+The PR title identifies both its change type and owning issue using
+`type(#issue): description`; its body starts with the matching `Refs #issue` or
+`Closes #issue`. This includes automated dependency PRs. The complete convention
+and type list live in
+[Pull request titles and issue ownership](../CONTRIBUTING.md#pull-request-titles-and-issue-ownership).
+
 Delegation, review and merge permissions, and decisions reserved for the owner,
 are stated under **Review and merge** in [CONTRIBUTING.md](../CONTRIBUTING.md).
 

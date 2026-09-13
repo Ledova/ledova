@@ -72,8 +72,41 @@ Local compilation and the contract tests need no credentials.
    fails on anything else, so run it before you push. Configuration and
    documentation files keep their comments.
 5. Write a clear pull request description: what changed, why, and how you
-   verified it. Link the issue it addresses (`Closes #12` when the PR completes
-   the issue, otherwise `Refs #12`).
+   verified it. Follow the title and issue-reference format below.
+
+### Pull request titles and issue ownership
+
+Every PR, including Dependabot and other automated PRs, has one owning issue in
+this repository. Use `type(#issue): description` for its title, for example
+`feat(#123): add portfolio export`, `fix(#124): reject expired signatures`, or
+`deps(#518): update marketing dependencies`.
+
+| Type | Change |
+| --- | --- |
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `refactor` | Internal restructuring |
+| `perf` | Performance improvement |
+| `docs` | Documentation |
+| `test` | Tests or test tooling |
+| `build` | Build tooling or packaging |
+| `ci` | Continuous integration |
+| `deps` | Dependency updates |
+| `chore` | Other maintenance |
+| `revert` | Reversal of a previous change |
+
+Start the body with `Refs #issue` on its own line, matching the title. Use
+`Closes #issue` instead only when this PR completes the entire issue. For several
+PRs sharing an issue, keep the remaining work listed there and reserve `Closes`
+for the final one. A PR number or an upstream dependency's issue is not an owning
+issue in this repository. Additional related issues can be linked in the body.
+
+An automated PR arrives as a proposal. During triage, reuse an issue whose scope
+fits or create a focused one, then correct its title and body before review and
+merge. Bots have no exemption and do not create tracking issues automatically.
+Recheck metadata after a bot refreshes its PR. The
+[PR metadata gate](docs/GATES.md#the-pr-metadata-gate) verifies the format and the
+referenced issue; reviewers establish that the issue actually owns the work.
 
 ## Review and merge
 
