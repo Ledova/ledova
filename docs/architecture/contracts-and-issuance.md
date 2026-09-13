@@ -137,7 +137,8 @@ prove that the provider accepted it. A provider that answers with a different
 hash is treated as an unconfirmed broadcast.
 
 A lost send acknowledgement leaves the token `DEPLOYING` with its original hash
-and the journal row marked outcome-unknown. Retry and reconciliation resolve
+and the journal row still submitted, with the unconfirmed-broadcast message
+recorded on it. Retry and reconciliation resolve
 through the recorded transaction; an unavailable receipt does not authorize
 another create. A failure before the callback returns an unbound token to
 `DRAFT`. Existing confirmed-revert and factory-adoption paths remain. Do not

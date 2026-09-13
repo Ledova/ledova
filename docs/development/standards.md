@@ -11,7 +11,8 @@ Rules for new and changed code. [Gates](gates.md) names the mechanical checks;
   complexity is not necessary, the simpler option wins by default; where the
   trade-off is meaningful, say what it costs and ask rather than deciding alone.
   That applies to engineering trade-offs, not only product ones: explaining a
-  cost is not authorization to accept it. Remove what a change makes redundant
+  cost is not authorization to accept it. A proposal says what could be removed
+  as well as what could be added. Remove what a change makes redundant
   in the same change, including caller parameters, guards and tests that
   existed only for a removed capability.
 - Follow the [backend layer table](../architecture/backend.md#backend-layers).

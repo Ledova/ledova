@@ -55,7 +55,9 @@ others cannot. From `backend/`, exactly as CI runs them:
 python manage.py test --settings=ledova_backend.settings.test --parallel 4 --noinput
 python manage.py test --settings=ledova_backend.settings.test_behind_the_policies --parallel 4 --noinput
 python manage.py test --settings=ledova_backend.settings.test_scoped --require-scoped-coverage --noinput
-python manage.py migrate --noinput && python manage.py check_rls_roles && python manage.py check_rls_catalogue
+python manage.py migrate --noinput
+python manage.py check_rls_roles
+python manage.py check_rls_catalogue
 ```
 
 | Suite | What only it sees |
@@ -73,9 +75,11 @@ explains what the last two suites establish.
 backend image, so running the source gates inside that image proves nothing
 about CI's Lint step, which runs before the tests and stops the job when it
 fails. Install them with `make install-backend` from the repository root
-(`make check` does the same), or `pip install -r requirements-dev.txt` from
-`backend/` as CI does, then run `cd backend && make lint`: `black --check`,
-`isort --check-only` and `flake8` with the repository's `pyproject.toml`.
+(`make check` does the same); CI installs the same file with
+`pip install -r requirements-dev.txt -c schema/requirements.txt` from
+`backend/`. Then run `cd backend && make lint`: `black --check` and
+`isort --check-only` against `backend/pyproject.toml`, and `flake8` against
+`backend/.flake8`.
 
 ## Test traps
 
