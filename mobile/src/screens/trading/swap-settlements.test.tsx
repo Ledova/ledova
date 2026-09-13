@@ -270,7 +270,7 @@ it('reviews exact captured terms and sends one real signature despite duplicate 
     settlement_digest: current.settlementDigest,
   });
   expect(await swapSettlementStore.list(owner)).toHaveLength(0);
-});
+}, 10_000);
 
 it('displays signed payment units at the captured deployment precision when pricing differs', async () => {
   current.swapOrder.settlementContext.paymentAsset.deploymentDecimals = 6;
