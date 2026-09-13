@@ -86,7 +86,7 @@ class WalletAdmin(admin.ModelAdmin):
 
         queued_count = 0
         for wallet in verified_wallets:
-            sync_wallet.defer(wallet_uuid=str(wallet.uuid))
+            sync_wallet.defer(wallet_uuid=str(wallet.uuid), principal_id=None)
             queued_count += 1
 
         self.message_user(request, f"Queued sync for {queued_count} wallet(s). Balances will be updated shortly.")

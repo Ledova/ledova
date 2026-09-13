@@ -57,4 +57,4 @@ class WalletsAdminPagesTest(TestCase):
 
         with patch("wallets.tasks.sync_wallet") as sync_wallet:
             self.client.post(url, {"action": "sync_holdings_action", "_selected_action": [spare.pk]})
-        sync_wallet.defer.assert_called_once_with(wallet_uuid=str(spare.uuid))
+        sync_wallet.defer.assert_called_once_with(wallet_uuid=str(spare.uuid), principal_id=None)
