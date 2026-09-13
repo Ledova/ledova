@@ -1325,6 +1325,17 @@ also accepts historical records linked by the token's foreign key without generi
 `related_uuid` metadata. `OPERATOR_BOUNDARIES` in the task catalogue records these
 steps; it is not permission to run the rest of deployment as the operator.
 
+Issuance execution and subscription allotment are explicitly operator jobs. Their
+only producers are staff admin execution, bulk allotment and retry actions, all
+requiring change permission. `executed_by` records the approving staff actor for
+audit; it does not choose a tenant database principal. The owner confirmed this
+classification on 2026-09-13 in #520. Both workers select the operator connection
+around lookup and execution, including issuer ledger and investor holding writes,
+and restore the caller's connection on success or failure. A future customer
+execution entry point would require a new authority design, not reuse of that
+audit argument. Every currently principal-bearing task has been converted;
+`CONVERTED_IN` retains the implementing PRs without a pending-conversion state.
+
 **Why R1 and R2 are separate releases.** With policies on and querysets still in,
 a green matrix says the policy is *sufficient*. With the querysets removed, a
 green matrix says they were not doing anything the policy misses. Both directions

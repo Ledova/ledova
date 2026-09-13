@@ -11,12 +11,11 @@ from django.test import SimpleTestCase
 from ledova_backend.procrastinate_app import app
 from shared.tasks.catalogue import (
     CLASSIFIED,
-    CONVERSIONS,
+    CONVERTED_IN,
     OPERATOR_BOUNDARIES,
     PRINCIPAL_BEARING,
     READS_MUST_SURVIVE_THE_POLICIES,
     SYSTEM_WIDE,
-    TaskConversion,
 )
 
 WHAT_IS_DECLARED = """
@@ -92,78 +91,45 @@ class EveryPrincipalBearingTaskAccountsForItsConversionTest(SimpleTestCase):
 
     def assert_accounted(self, conversions):
         self.assertEqual(set(conversions), set(PRINCIPAL_BEARING), "Every principal-bearing task needs accounting")
-        for name, conversion in conversions.items():
-            self.assertIn(conversion.status, {"pending", "converted"}, f"{name} needs an explicit conversion status")
-            if conversion.status == "converted":
-                self.assertIs(type(conversion.converted_pr), int, f"{name} needs the PR that converted it")
-                self.assertGreater(conversion.converted_pr, 0, f"{name} needs the PR that converted it")
-                self.assertEqual(conversion.waiting_reason, "", f"{name} cannot be converted and still waiting")
-            else:
-                self.assertIsNone(conversion.converted_pr, f"{name} is waiting, not converted by a PR")
-                self.assertTrue(conversion.waiting_reason.strip(), f"{name} needs the current reason it is waiting")
+        for name, pull_request in conversions.items():
+            self.assertIs(type(pull_request), int, f"{name} needs the PR that converted it")
+            self.assertGreater(pull_request, 0, f"{name} needs the PR that converted it")
 
     @staticmethod
-    def contradicted_by_the_code(conversions):
+    def tasks_without_a_principal(tasks):
         entered = entered_acting_for()
-        return sorted(
-            name
-            for name, conversion in conversions.items()
-            if entered.get(name) is not (conversion.status == "converted")
-        )
+        return sorted(name for name in tasks if not entered.get(name))
 
-    def test_the_recorded_status_matches_what_the_task_actually_does(self):
-        self.assertEqual(self.contradicted_by_the_code(CONVERSIONS), [])
+    def test_every_principal_bearing_task_enters_its_principal_context(self):
+        self.assertEqual(self.tasks_without_a_principal(PRINCIPAL_BEARING), [])
 
-    def test_a_status_the_code_contradicts_is_reported(self):
-        name = next(task for task, conversion in CONVERSIONS.items() if conversion.status == "converted")
-        claimed = {name: CONVERSIONS[name]._replace(status="pending", converted_pr=None, waiting_reason="claimed")}
-
-        self.assertEqual(self.contradicted_by_the_code(claimed), [name])
+    def test_an_operator_task_cannot_be_claimed_as_converted(self):
+        name = "tokens.tasks.review_request.execute_review_request_task"
+        self.assertEqual(self.tasks_without_a_principal([name]), [name])
 
     def test_a_conversion_that_names_no_registered_task_is_reported(self):
-        absent = {"shared.tasks.a_task_that_was_deleted": TaskConversion(status="converted", converted_pr=1)}
-
-        self.assertEqual(self.contradicted_by_the_code(absent), ["shared.tasks.a_task_that_was_deleted"])
+        name = "shared.tasks.a_task_that_was_deleted"
+        self.assertEqual(self.tasks_without_a_principal([name]), [name])
 
     def test_every_principal_bearing_task_has_complete_conversion_accounting(self):
-        self.assert_accounted(CONVERSIONS)
+        self.assert_accounted(CONVERTED_IN)
 
     def test_missing_conversion_accounting_is_rejected(self):
         name = next(iter(PRINCIPAL_BEARING))
-        conversions = {task: conversion for task, conversion in CONVERSIONS.items() if task != name}
-
+        conversions = {task: pull_request for task, pull_request in CONVERTED_IN.items() if task != name}
         with self.assertRaisesRegex(AssertionError, name):
             self.assert_accounted(conversions)
 
     def test_accounting_cannot_outlive_its_principal_bearing_task(self):
         name = "shared.tasks.removed_probe"
-        conversions = {**CONVERSIONS, name: TaskConversion(status="pending", waiting_reason="Removed task")}
-
         with self.assertRaisesRegex(AssertionError, name):
-            self.assert_accounted(conversions)
+            self.assert_accounted({**CONVERTED_IN, name: 1})
 
-    def test_missing_or_unknown_conversion_status_is_rejected(self):
+    def test_a_conversion_requires_a_pull_request_number(self):
         name = next(iter(PRINCIPAL_BEARING))
-        for status in (None, "", "unknown"):
-            with self.subTest(status=status):
-                conversions = {**CONVERSIONS, name: CONVERSIONS[name]._replace(status=status)}
-                with self.assertRaisesRegex(AssertionError, name):
-                    self.assert_accounted(conversions)
-
-    def test_conversion_status_requires_its_own_evidence(self):
-        name = next(iter(PRINCIPAL_BEARING))
-        invalid = (
-            TaskConversion(status="converted"),
-            TaskConversion(status="converted", converted_pr=0),
-            TaskConversion(status="converted", converted_pr=True),
-            TaskConversion(status="converted", converted_pr=327, waiting_reason="Still waiting"),
-            TaskConversion(status="pending", waiting_reason=" \n"),
-            TaskConversion(status="pending", converted_pr=327, waiting_reason="Still waiting"),
-        )
-        for conversion in invalid:
-            with self.subTest(conversion=conversion):
-                with self.assertRaisesRegex(AssertionError, name):
-                    self.assert_accounted({**CONVERSIONS, name: conversion})
+        for pull_request in (None, 0, -1, True, "pending"):
+            with self.subTest(pull_request=pull_request), self.assertRaisesRegex(AssertionError, name):
+                self.assert_accounted({**CONVERTED_IN, name: pull_request})
 
 
 class AConversionMustProveItsReadsSurviveTheSelectPoliciesTest(SimpleTestCase):

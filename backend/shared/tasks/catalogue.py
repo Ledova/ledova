@@ -1,13 +1,12 @@
-from typing import Literal, NamedTuple
-
-
-class TaskConversion(NamedTuple):
-    status: Literal["pending", "converted"]
-    converted_pr: int | None = None
-    waiting_reason: str = ""
-
-
 SYSTEM_WIDE = {
+    "tokens.tasks.review_request.execute_review_request_task": "Executes approved issuance and capital increases "
+    "only enqueued by the staff admin with change permission. The explicit operator context writes the "
+    "issuer ledger and recipient holdings; executed_by is the staff audit actor, not a tenant principal. "
+    "The owner confirmed this operator classification on 2026-09-13 in #520.",
+    "offerings.tasks.subscription.allot_subscription_task": "Executes allotment and retries enqueued only by "
+    "staff admin actions with change permission. It explicitly uses the operator role across issuer and "
+    "investor writes, retaining executed_by for audit. The owner confirmed this classification on "
+    "2026-09-13 in #520; there is no customer execution caller.",
     "assets.sync_all_assets": "Refreshes the global asset catalogue, which belongs to no tenant.",
     "assets.sync_exchange_rates": "Fetches published rates, identical for every tenant.",
     "blockchain.tasks.check_pending_transactions": "Polls recorded hashes of this deployment's pending and "
@@ -63,12 +62,7 @@ SYSTEM_WIDE = {
 }
 
 PRINCIPAL_BEARING = {
-    "offerings.tasks.subscription.allot_subscription_task": "Allots shares for one investor's "
-    "subscription, on the money path: it executes the issuer's issuance request, seeds the recipient's "
-    "holding and marks the investor's subscription allotted.",
     "tokens.tasks.deployment.deploy_share_token_task": "Deploys one issuer's token and writes back to it.",
-    "tokens.tasks.review_request.execute_review_request_task": "Executes one issuer's issuance request, on the "
-    "money path, and records the issuance against it.",
     "wallets.tasks.confirmation.confirm_pending_transaction": "Confirms one wallet's transaction and moves the "
     "balance it belongs to, on the money path. Converted: its principal is a required argument, the "
     "request that broadcast the transfer passes its user, and the Alchemy webhook and the "
@@ -104,32 +98,13 @@ PRINCIPAL_BEARING = {
     'and answers "Transaction not found" while the remaining members are notified normally.',
 }
 
-CONVERSIONS = {
-    "offerings.tasks.subscription.allot_subscription_task": TaskConversion(
-        status="pending",
-        waiting_reason="allot and retry_allotment enqueue the subscription UUID and executed_by, which is "
-        "the approving operator's audit identity, not a scoped investor principal. Execution crosses two "
-        "write scopes: offerings_subscription is member-written, while tokens_shareissuancerequest is "
-        "issuer-written. The subscriber can now read the linked request but still cannot execute its "
-        "writes. Conversion needs explicit principal capture and separate bounded issuance and investor "
-        "steps, including the recipient holding and final subscription update; one acting_for block "
-        "cannot cover an investor subscribing to another issuer.",
-    ),
-    "tokens.tasks.deployment.deploy_share_token_task": TaskConversion(status="converted", converted_pr=545),
-    "tokens.tasks.review_request.execute_review_request_task": TaskConversion(
-        status="pending",
-        waiting_reason="ReviewWorkflowAdmin.execute_view passes the staff actor as executed_by for audit "
-        "without selecting a database principal. CapitalIncreaseRequest and ShareIssuanceRequest writes "
-        "require the issuer's company owner. Share issuance also calls _seed_recipient_holding, which "
-        "joins and locks the recipient wallet; an issuer principal cannot reach an unrelated investor's "
-        "private wallet. Conversion needs an explicit enqueue principal/operator choice and a bounded "
-        "recipient-holding step before the issuer work can run scoped without dropping that side effect.",
-    ),
-    "wallets.tasks.confirmation.confirm_pending_transaction": TaskConversion(status="converted", converted_pr=327),
-    "wallets.tasks.sync.sync_wallet": TaskConversion(status="converted", converted_pr=544),
-    "documents.tasks.extract.extract_document": TaskConversion(status="converted", converted_pr=525),
-    "users.tasks.notifications.send_push_notification": TaskConversion(status="converted", converted_pr=523),
-    "users.tasks.notifications.send_transaction_notification": TaskConversion(status="converted", converted_pr=523),
+CONVERTED_IN = {
+    "tokens.tasks.deployment.deploy_share_token_task": 545,
+    "wallets.tasks.confirmation.confirm_pending_transaction": 327,
+    "wallets.tasks.sync.sync_wallet": 544,
+    "documents.tasks.extract.extract_document": 525,
+    "users.tasks.notifications.send_push_notification": 523,
+    "users.tasks.notifications.send_transaction_notification": 523,
 }
 
 OPERATOR_BOUNDARIES = {

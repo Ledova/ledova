@@ -7,6 +7,7 @@ from django.utils import timezone
 from procrastinate import RetryStrategy
 
 from ledova_backend.procrastinate_app import app
+from shared.db import use_operator
 from tokens.exceptions import (
     InvalidRecipientAddressException,
     InvalidTokenStateException,
@@ -22,20 +23,21 @@ STALE_EXECUTION_AGE = timedelta(minutes=10)
 
 @app.task(retry=RetryStrategy(max_attempts=4, wait=30))
 def execute_review_request_task(model_label: str, request_uuid: str, executed_by: int | None = None):
-    model = apps.get_model(model_label)
-    request = model.objects.select_related("token", "token__company").filter(uuid=request_uuid).first()
-    if request is None:
-        logger.error(f"Request not found: {model_label} {request_uuid}")
-        return {"success": False, "error": "Request not found"}
-    user = get_user_model().objects.filter(pk=executed_by).first() if executed_by else None
+    with use_operator():
+        model = apps.get_model(model_label)
+        request = model.objects.select_related("token", "token__company").filter(uuid=request_uuid).first()
+        if request is None:
+            logger.error(f"Request not found: {model_label} {request_uuid}")
+            return {"success": False, "error": "Request not found"}
+        user = get_user_model().objects.filter(pk=executed_by).first() if executed_by else None
 
-    try:
-        result = ShareTokenService().execute_request(request, executed_by=user)
-    except (InvalidRecipientAddressException, InvalidTokenStateException, IssuanceRefusedException) as exc:
-        logger.warning(f"Request {request_uuid} not executed: {exc.detail}")
-        return {"success": False, "error": str(exc.detail)}
+        try:
+            result = ShareTokenService().execute_request(request, executed_by=user)
+        except (InvalidRecipientAddressException, InvalidTokenStateException, IssuanceRefusedException) as exc:
+            logger.warning(f"Request {request_uuid} not executed: {exc.detail}")
+            return {"success": False, "error": str(exc.detail)}
 
-    return {"success": True, **result}
+        return {"success": True, **result}
 
 
 @app.periodic(cron="*/5 * * * *")
