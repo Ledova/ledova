@@ -8,6 +8,7 @@ from rest_framework.viewsets import ViewSet
 
 from shared.views.principal import SetsThePrincipalOnTheConnection
 from users.models import UserProfile
+from users.serializers.identity_verification import ExtractedApplicantDataField
 from users.services import IdentityVerificationService
 
 
@@ -53,7 +54,7 @@ class IdentityVerificationViewSet(SetsThePrincipalOnTheConnection, ViewSet):
                 "verifiedAt": serializers.DateTimeField(allow_null=True),
                 "rejectionLabels": serializers.ListField(child=serializers.CharField()),
                 "needsRetry": serializers.BooleanField(),
-                "extractedData": serializers.JSONField(allow_null=True),
+                "extractedData": ExtractedApplicantDataField(allow_null=True),
             },
         )
     )

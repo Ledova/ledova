@@ -1,12 +1,17 @@
+from copy import deepcopy
 from unittest.mock import ANY, patch
 
 from django.contrib.auth import get_user_model
 from django.db import connection
 from django.test import TestCase, override_settings
+from drf_spectacular.generators import SchemaGenerator
+from jsonschema import Draft4Validator, RefResolver
 from rest_framework.test import APITestCase
 
 from compliance.services.risk_assessment import RiskAssessmentService
 from integrations.kyc.base import NormalizedVerificationResult
+from integrations.kycaid.client import KYCAIDService
+from integrations.sumsub.client import SumSubService
 from shared.models import Country
 from users.models import Notification, UserAccount, UserProfile
 from users.services.identity import REVIEW_OUTCOME_MESSAGES, IdentityVerificationService
@@ -143,6 +148,52 @@ class IdentityVerificationApprovalTest(TestCase):
 
 
 class IdentityVerificationStatusEndpointTest(APITestCase):
+    def test_status_schema_describes_both_providers_extracted_applicant_fields(self):
+        document = SchemaGenerator().get_schema(request=None, public=True)
+        schema = document["components"]["schemas"]["IdentityVerificationStatus"]["properties"]["extractedData"]
+        validator = Draft4Validator(schema, resolver=RefResolver.from_schema(document))
+        self.assertTrue(schema["nullable"])
+        user = User.objects.create_user(email="identity-schema@example.test", password="pw-12345678")
+        profile = UserProfile.objects.create(
+            user=user,
+            is_id_verified=True,
+            sumsub_applicant_id="synthetic-applicant",
+            kycaid_applicant_id="synthetic-applicant",
+        )
+        self.client.force_authenticate(user)
+        for provider, applicant in (
+            (
+                SumSubService(),
+                {"info": {"firstName": "Synthetic", "dob": "2000-01-01", "addresses": [{"formattedAddress": "Test"}]}},
+            ),
+            (
+                KYCAIDService(),
+                {
+                    "first_name": "Synthetic",
+                    "dob": "2000-01-01",
+                    "addresses": [{"full_address": "Test"}],
+                    "residence_country": "AU",
+                },
+            ),
+        ):
+            profile.kyc_provider = provider.get_provider_name()
+            profile.save(update_fields=["kyc_provider"])
+            with patch("users.services.identity.get_kyc_provider", return_value=provider), patch.object(
+                provider, "get_applicant_data", return_value=applicant
+            ):
+                response = self.client.get("/api/users/identity-verification/status/")
+            self.assertEqual(response.status_code, 200, response.content)
+            extracted = response.json()["extractedData"]
+            self.assertEqual(extracted["fullName"], "Synthetic")
+            self.assertEqual(list(validator.iter_errors(extracted)), [])
+            for field in ("fullName", "dateOfBirth", "address"):
+                invalid = deepcopy(extracted)
+                del invalid[field]
+                with self.subTest(provider=profile.kyc_provider, field=field):
+                    self.assertFalse(validator.is_valid(invalid))
+            invalid = {**extracted, "fullName": {"value": "invalid"}}
+            self.assertFalse(validator.is_valid(invalid))
+
     @override_settings(KYC_PROVIDER="")
     def test_a_blank_provider_is_a_503_that_names_no_setting(self):
         user = User.objects.create_user(email="unconfigured@example.test", password="pw-12345678")

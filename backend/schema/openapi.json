@@ -13173,6 +13173,32 @@
                     "uuid"
                 ]
             },
+            "ExtractedApplicantData": {
+                "type": "object",
+                "properties": {
+                    "fullName": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "dateOfBirth": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "address": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "residenceCountry": {
+                        "type": "string",
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "address",
+                    "dateOfBirth",
+                    "fullName"
+                ]
+            },
             "FavouriteAsset": {
                 "type": "object",
                 "properties": {
@@ -13748,6 +13774,11 @@
                         "type": "boolean"
                     },
                     "extractedData": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/ExtractedApplicantData"
+                            }
+                        ],
                         "nullable": true
                     }
                 },
@@ -14099,6 +14130,29 @@
                 "type": "string",
                 "description": "* `sumsub` - Sumsub\n* `kycaid` - KYCAID"
             },
+            "LegacySwapTypedData": {
+                "type": "object",
+                "properties": {
+                    "types": {
+                        "$ref": "#/components/schemas/SigningTypes"
+                    },
+                    "primaryType": {
+                        "$ref": "#/components/schemas/PrimaryTypeEnum"
+                    },
+                    "domain": {
+                        "$ref": "#/components/schemas/SigningDomain"
+                    },
+                    "message": {
+                        "$ref": "#/components/schemas/SwapMessage"
+                    }
+                },
+                "required": [
+                    "domain",
+                    "message",
+                    "primaryType",
+                    "types"
+                ]
+            },
             "MarkAllReadResponse": {
                 "type": "object",
                 "properties": {
@@ -14183,6 +14237,13 @@
                     "price",
                     "shares"
                 ]
+            },
+            "NameEnum": {
+                "enum": [
+                    "LedovaAtomicSwap"
+                ],
+                "type": "string",
+                "description": "* `LedovaAtomicSwap` - LedovaAtomicSwap"
             },
             "NetworkEnum": {
                 "enum": [
@@ -14942,10 +15003,14 @@
                         "type": "string"
                     },
                     "domain": {
-                        "$ref": "#/components/schemas/OrderActionDomain"
+                        "$ref": "#/components/schemas/SigningDomain"
                     },
-                    "types": {},
-                    "message": {},
+                    "types": {
+                        "$ref": "#/components/schemas/SigningTypes"
+                    },
+                    "message": {
+                        "$ref": "#/components/schemas/SigningMessage"
+                    },
                     "expiresAt": {
                         "type": "string",
                         "format": "date-time"
@@ -15013,7 +15078,7 @@
                         "type": "string"
                     },
                     "domain": {
-                        "$ref": "#/components/schemas/OrderActionDomain"
+                        "$ref": "#/components/schemas/SigningDomain"
                     },
                     "token": {
                         "$ref": "#/components/schemas/OrderActionToken"
@@ -15087,29 +15152,6 @@
                     "status"
                 ]
             },
-            "OrderActionDomain": {
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "type": "string"
-                    },
-                    "version": {
-                        "type": "string"
-                    },
-                    "chainId": {
-                        "type": "integer"
-                    },
-                    "verifyingContract": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "chainId",
-                    "name",
-                    "verifyingContract",
-                    "version"
-                ]
-            },
             "OrderActionExecuteRequest": {
                 "type": "object",
                 "properties": {
@@ -15154,7 +15196,7 @@
                 "type": "object",
                 "properties": {
                     "domain": {
-                        "$ref": "#/components/schemas/OrderActionDomain"
+                        "$ref": "#/components/schemas/SigningDomain"
                     },
                     "modifications": {
                         "allOf": [
@@ -15485,9 +15527,15 @@
                     "digest": {
                         "type": "string"
                     },
-                    "domain": {},
-                    "types": {},
-                    "message": {},
+                    "domain": {
+                        "$ref": "#/components/schemas/SigningDomain"
+                    },
+                    "types": {
+                        "$ref": "#/components/schemas/SigningTypes"
+                    },
+                    "message": {
+                        "$ref": "#/components/schemas/SigningMessage"
+                    },
                     "expiresAt": {
                         "type": "string",
                         "format": "date-time"
@@ -17204,6 +17252,10 @@
                         ]
                     },
                     "rejectionLabels": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
                         "readOnly": true,
                         "nullable": true
                     },
@@ -17885,6 +17937,20 @@
                 "type": "string",
                 "description": "* `AUD` - Australian Dollar\n* `USD` - US Dollar\n* `EUR` - Euro\n* `GBP` - British Pound\n* `CAD` - Canadian Dollar\n* `JPY` - Japanese Yen\n* `NZD` - New Zealand Dollar\n* `SGD` - Singapore Dollar"
             },
+            "PrimaryTypeEnum": {
+                "enum": [
+                    "SwapOrder"
+                ],
+                "type": "string",
+                "description": "* `SwapOrder` - SwapOrder"
+            },
+            "ProtocolVersionEnum": {
+                "enum": [
+                    1
+                ],
+                "type": "integer",
+                "description": "* `1` - 1"
+            },
             "ResendVerification": {
                 "type": "object",
                 "properties": {
@@ -18206,6 +18272,150 @@
                     "uuid"
                 ]
             },
+            "SettlementContext": {
+                "type": "object",
+                "properties": {
+                    "protocolVersion": {
+                        "$ref": "#/components/schemas/ProtocolVersionEnum"
+                    },
+                    "swapUuid": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "seller": {
+                        "$ref": "#/components/schemas/SettlementParty"
+                    },
+                    "buyer": {
+                        "$ref": "#/components/schemas/SettlementParty"
+                    },
+                    "shareToken": {
+                        "$ref": "#/components/schemas/SettlementShareToken"
+                    },
+                    "paymentAsset": {
+                        "$ref": "#/components/schemas/SettlementPaymentAsset"
+                    },
+                    "pricePerShare": {
+                        "type": "string"
+                    },
+                    "typedData": {
+                        "$ref": "#/components/schemas/SettlementTypedData"
+                    },
+                    "digest": {
+                        "type": "string"
+                    },
+                    "orderHash": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "buyer",
+                    "digest",
+                    "orderHash",
+                    "paymentAsset",
+                    "pricePerShare",
+                    "protocolVersion",
+                    "seller",
+                    "shareToken",
+                    "swapUuid",
+                    "typedData"
+                ]
+            },
+            "SettlementDomain": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "$ref": "#/components/schemas/NameEnum"
+                    },
+                    "version": {
+                        "$ref": "#/components/schemas/VersionEnum"
+                    },
+                    "chainId": {
+                        "type": "string"
+                    },
+                    "verifyingContract": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "chainId",
+                    "name",
+                    "verifyingContract",
+                    "version"
+                ]
+            },
+            "SettlementParty": {
+                "type": "object",
+                "properties": {
+                    "orderUuid": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "ownerAccountUuid": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "walletUuid": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "paymentAssetUuid": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "address": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "address",
+                    "orderUuid",
+                    "ownerAccountUuid",
+                    "paymentAssetUuid",
+                    "walletUuid"
+                ]
+            },
+            "SettlementPaymentAsset": {
+                "type": "object",
+                "properties": {
+                    "uuid": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "symbol": {
+                        "type": "string"
+                    },
+                    "pricingDecimals": {
+                        "type": "integer"
+                    },
+                    "deploymentUuid": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "deploymentChain": {
+                        "type": "string"
+                    },
+                    "deploymentAddress": {
+                        "type": "string"
+                    },
+                    "deploymentDecimals": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "deploymentAddress",
+                    "deploymentChain",
+                    "deploymentDecimals",
+                    "deploymentUuid",
+                    "name",
+                    "pricingDecimals",
+                    "symbol",
+                    "uuid"
+                ]
+            },
             "SettlementRailEnum": {
                 "enum": [
                     "bank_transfer",
@@ -18213,6 +18423,38 @@
                 ],
                 "type": "string",
                 "description": "* `bank_transfer` - Bank transfer\n* `stablecoin` - Stablecoin"
+            },
+            "SettlementShareToken": {
+                "type": "object",
+                "properties": {
+                    "uuid": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "address": {
+                        "type": "string"
+                    },
+                    "chain": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "symbol": {
+                        "type": "string"
+                    },
+                    "decimals": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "address",
+                    "chain",
+                    "decimals",
+                    "name",
+                    "symbol",
+                    "uuid"
+                ]
             },
             "SettlementSignature": {
                 "type": "object",
@@ -18301,6 +18543,29 @@
                     "swapUuid",
                     "userRole",
                     "walletUuid"
+                ]
+            },
+            "SettlementTypedData": {
+                "type": "object",
+                "properties": {
+                    "types": {
+                        "$ref": "#/components/schemas/SigningTypes"
+                    },
+                    "primaryType": {
+                        "$ref": "#/components/schemas/PrimaryTypeEnum"
+                    },
+                    "domain": {
+                        "$ref": "#/components/schemas/SettlementDomain"
+                    },
+                    "message": {
+                        "$ref": "#/components/schemas/SwapMessage"
+                    }
+                },
+                "required": [
+                    "domain",
+                    "message",
+                    "primaryType",
+                    "types"
                 ]
             },
             "ShareIssuanceCreate": {
@@ -19192,6 +19457,56 @@
                     "walletUuid"
                 ]
             },
+            "SigningDomain": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "string"
+                    },
+                    "chainId": {
+                        "type": "integer"
+                    },
+                    "verifyingContract": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "chainId",
+                    "name",
+                    "verifyingContract",
+                    "version"
+                ]
+            },
+            "SigningMessage": {
+                "type": "object",
+                "additionalProperties": {
+                    "type": "string"
+                }
+            },
+            "SigningTypes": {
+                "type": "object",
+                "additionalProperties": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "type": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "type"
+                        ]
+                    }
+                }
+            },
             "SubmissionOrder": {
                 "type": "object",
                 "properties": {
@@ -19786,6 +20101,45 @@
                     }
                 ]
             },
+            "SwapMessage": {
+                "type": "object",
+                "properties": {
+                    "seller": {
+                        "type": "string"
+                    },
+                    "buyer": {
+                        "type": "string"
+                    },
+                    "shareToken": {
+                        "type": "string"
+                    },
+                    "paymentToken": {
+                        "type": "string"
+                    },
+                    "shareAmount": {
+                        "type": "string"
+                    },
+                    "paymentAmount": {
+                        "type": "string"
+                    },
+                    "nonce": {
+                        "type": "string"
+                    },
+                    "deadline": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "buyer",
+                    "deadline",
+                    "nonce",
+                    "paymentAmount",
+                    "paymentToken",
+                    "seller",
+                    "shareAmount",
+                    "shareToken"
+                ]
+            },
             "SwapOrderDetail": {
                 "type": "object",
                 "properties": {
@@ -19860,6 +20214,11 @@
                         "readOnly": true
                     },
                     "settlementContext": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/SettlementContext"
+                            }
+                        ],
                         "readOnly": true,
                         "nullable": true
                     },
@@ -19962,7 +20321,9 @@
                     "swapOrder": {
                         "$ref": "#/components/schemas/SwapOrderDetail"
                     },
-                    "typedData": {},
+                    "typedData": {
+                        "$ref": "#/components/schemas/SwapTypedData"
+                    },
                     "userRole": {
                         "type": "string"
                     },
@@ -20123,6 +20484,16 @@
                     },
                     {
                         "$ref": "#/components/schemas/SettlementSignature"
+                    }
+                ]
+            },
+            "SwapTypedData": {
+                "oneOf": [
+                    {
+                        "$ref": "#/components/schemas/LegacySwapTypedData"
+                    },
+                    {
+                        "$ref": "#/components/schemas/SettlementTypedData"
                     }
                 ]
             },
@@ -21053,6 +21424,10 @@
                         ]
                     },
                     "rejectionLabels": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
                         "readOnly": true,
                         "nullable": true
                     },
@@ -21177,6 +21552,13 @@
                 ],
                 "type": "string",
                 "description": "* `market` - Market price\n* `nav` - NAV\n* `par` - Par\n* `unpriced` - Unpriced"
+            },
+            "VersionEnum": {
+                "enum": [
+                    "1"
+                ],
+                "type": "string",
+                "description": "* `1` - 1"
             },
             "Wallet": {
                 "type": "object",

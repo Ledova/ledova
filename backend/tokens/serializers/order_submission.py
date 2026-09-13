@@ -1,6 +1,11 @@
 from rest_framework import serializers
 
 from tokens.models import OrderSubmissionStatus, ShareToken
+from tokens.serializers.signing import (
+    SigningDomainField,
+    SigningMessageField,
+    SigningTypesField,
+)
 from tokens.serializers.transfer_order import (
     TransferOrderCreateSerializer,
     TransferOrderDetailSerializer,
@@ -41,9 +46,9 @@ class OrderCreateChallengeSerializer(serializers.Serializer):
     token_uuid = serializers.UUIDField()
     wallet_address = serializers.CharField()
     digest = serializers.CharField()
-    domain = serializers.JSONField()
-    types = serializers.JSONField()
-    message = serializers.JSONField()
+    domain = SigningDomainField()
+    types = SigningTypesField()
+    message = SigningMessageField()
     expires_at = serializers.DateTimeField()
 
 

@@ -1,7 +1,8 @@
+from copy import deepcopy
 from uuid import uuid4
 
 from drf_spectacular.generators import SchemaGenerator
-from jsonschema import Draft4Validator
+from jsonschema import Draft4Validator, RefResolver
 from rest_framework.test import APITransactionTestCase
 
 from shared.db import use_operator
@@ -93,6 +94,26 @@ class OrderActionSchemaTest(ActionFixtures, APITransactionTestCase):
             self.assertTrue(validator.is_valid(value))
             for invalid in (int(value), "01", "invalid", "9" * 20):
                 self.assertFalse(validator.is_valid(invalid), (name, invalid))
+
+    def test_challenge_schema_validates_nested_signing_fields_for_both_actions(self):
+        for purpose in ("cancel", "modify"):
+            body = self.identity() if purpose == "cancel" else self.modify_body()
+            body["action_id"] = str(uuid4())
+            response = self.message(purpose, body)
+            self.assertEqual(response.status_code, 200, response.content)
+            challenge = response.json()["challenge"]
+            schema = self.response_schema(f"/api/v1/trading/orders/{{uuid}}/{purpose}/message/")
+            validator = Draft4Validator(
+                schema["properties"]["challenge"], resolver=RefResolver.from_schema(self.document)
+            )
+            self.assertEqual(list(validator.iter_errors(challenge)), [])
+            invalid_types = deepcopy(challenge)
+            invalid_types["types"][next(iter(challenge["types"]))][0]["type"] = 1
+            invalid_message = deepcopy(challenge)
+            invalid_message["message"]["actionId"] = {"value": "invalid"}
+            for invalid in (invalid_types, invalid_message):
+                with self.subTest(purpose=purpose, invalid=invalid):
+                    self.assertFalse(validator.is_valid(invalid))
 
     def test_applied_and_recorded_refusal_results_match_declared_discriminators(self):
         signed = self.signed()

@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from operators.settlement import deployment_for
 from tokens.models import SwapOrder
+from tokens.serializers.signing import SettlementContextField
 from tokens.services.settlement_context import recorded_settlement_context
 
 
@@ -65,6 +66,7 @@ class SwapOrderListSerializer(RecordedSwapDisplay, serializers.ModelSerializer):
 
 class SwapOrderDetailSerializer(RecordedSwapDisplay, serializers.ModelSerializer):
 
+    settlement_context = SettlementContextField(read_only=True, allow_null=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     share_token_symbol = serializers.CharField(source="share_token.symbol", read_only=True)
     share_token_name = serializers.CharField(source="share_token.name", read_only=True)
