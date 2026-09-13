@@ -29,6 +29,9 @@ contract, so a dependency update that needs one of them is not a dependency
 update.
 
 A compiler target or library change needs a deliberate bytecode/toolchain review.
+Why the pin stays, what would reopen it, and why the contracts package's
+advisories need their own reading are recorded in the
+[contracts toolchain decision](../decisions.md#contracts-compiler-and-toolchain).
 See [testing](../development/testing.md) for compilation, chain checks and advisory review.
 
 ## Data flow of an issuance
@@ -47,12 +50,13 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
    already holds an address, that address is adopted and nothing is sent. The
    ACN is required and unique, so the identifier survives a later ABN, and a
    company can hold several share classes under distinct symbols.
-4. Otherwise `createShareToken` is sent and the hash is stored before the
-   receipt is awaited, so only a failure *before* any transaction returns the
-   token to `DRAFT`; otherwise it stays `DEPLOYING` until
-   `check_pending_token_deployments` (every 5 minutes) resolves it or an admin
-   uses "Retry Deployment". Deployment mints nothing: `totalSupply` starts at
-   zero.
+4. Otherwise `createShareToken` is signed, its hash is committed together with
+   the token's binding to that transaction, and only then is it broadcast and
+   the receipt awaited (see [deployment persistence](#deployment-persistence)).
+   Only a failure *before* that commit returns the token to `DRAFT`; otherwise
+   it stays `DEPLOYING` until `check_pending_token_deployments` (every 5
+   minutes) resolves it or an admin uses "Retry Deployment". Deployment mints
+   nothing: `totalSupply` starts at zero.
 5. An investor wallet is verified, then whitelisted. `WhitelistEntry` either
    points at a `Wallet` or carries a bare `address` plus a `label` for an
    operator-held treasury address; a database constraint requires one of the two
@@ -116,18 +120,30 @@ execution of an approved request.
 
 ## Deployment persistence
 
-association in one independent database transaction before broadcasting. An
-enclosing transaction, disabled autocommit, failed persistence or competing
-binding refuses that broadcast. The transaction row is marked submitted at this
+`_create_share_token` in `backend/tokens/services/share_token_service.py` first
+writes a pending `BlockchainTransaction` journal row for the token, then signs
+`createShareToken`. The chain client's `on_signed` callback runs before
+`send_raw_transaction`: `record_signed_deployment` in
+`backend/tokens/services/deployment_journal.py` commits the signed
+transaction's hash on that journal row and the token's binding to it
+(`deployment_tx_hash` and `deployment_transaction`) together, in one durable
+transaction on the operator connection, before anything is broadcast. That
+commit refuses an enclosing transaction or disabled autocommit, a journal row
+that belongs to another token, a binding the token already carries, and, for a
+scoped issuer caller, a company or token whose ownership changed since enqueue
+(rechecked under a row lock). The journal row is marked submitted at this
 boundary; that label and the hash identify the prepared transaction and do not
-prove that the provider accepted it.
+prove that the provider accepted it. A provider that answers with a different
+hash is treated as an unconfirmed broadcast.
 
-A lost send acknowledgement leaves the token Deploying with its original hash.
-Retry and reconciliation use the recorded transaction; an unavailable receipt
-does not authorize another create. Failures before the persistence callback can
-return an unbound token to Draft. Existing confirmed-revert and factory-adoption
-paths remain. Do not clear a hash to retry. This boundary does not persist signed
-bytes, freeze all deployment terms or historical identities, activate the
-outgoing signer foundation, or establish all-writer cutover or finality.
+A lost send acknowledgement leaves the token `DEPLOYING` with its original hash
+and the journal row marked outcome-unknown. Retry and reconciliation resolve
+through the recorded transaction; an unavailable receipt does not authorize
+another create. A failure before the callback returns an unbound token to
+`DRAFT`. Existing confirmed-revert and factory-adoption paths remain. Do not
+clear a hash to retry. This boundary does not persist signed bytes, freeze all
+deployment terms or historical identities, activate the
+[outgoing signer foundation](outgoing-signing.md), or establish all-writer
+cutover or finality.
 
 Next: [offerings](offerings.md), [subscriptions](subscriptions.md), and [chain setup](../operations/chains.md).
