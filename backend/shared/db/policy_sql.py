@@ -3,6 +3,7 @@ from django.conf import settings
 from shared.db.policies import (
     ADMITTED,
     AWAITING_RLS,
+    BYPASSES_THE_POLICIES,
     FRAMEWORK,
     HELPERS,
     INSERTABLE,
@@ -27,7 +28,11 @@ def install(schema_editor):
 
     with schema_editor.connection.cursor() as cursor:
         for name, body in HELPERS.items():
-            cursor.execute(f"CREATE OR REPLACE FUNCTION {name}() RETURNS SETOF uuid LANGUAGE sql STABLE AS $${body}$$")
+            reading = "SECURITY DEFINER SET search_path = pg_catalog, public" if name in BYPASSES_THE_POLICIES else ""
+            cursor.execute(
+                f"CREATE OR REPLACE FUNCTION {name}() RETURNS SETOF uuid "
+                f"LANGUAGE sql STABLE {reading} AS $${body}$$"
+            )
 
     install_tables(schema_editor, POLICIES)
 

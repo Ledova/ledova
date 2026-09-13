@@ -10,6 +10,8 @@ from django.utils import timezone
 from drf_spectacular.generators import SchemaGenerator
 from rest_framework.test import APITransactionTestCase
 
+from companies.models import Company
+from companies.models.company import CompanyType
 from feature_flags.models import FeatureFlag
 from offerings.models import Subscription
 from offerings.tests.factories import (
@@ -18,7 +20,7 @@ from offerings.tests.factories import (
     open_offering,
 )
 from shared.tests.schema import migrate_to, restore_every_migration
-from shared.tests.tenants import make_eligible, make_tenant, open_to_investors
+from shared.tests.tenants import an_acn, make_eligible, make_tenant, open_to_investors
 from tokens.models import ShareIssuance, SwapOrder
 from tokens.services.atomic_swap_service import AtomicSwapService
 from tokens.services.token_transfer_service import TokenTransferService
@@ -469,12 +471,21 @@ class ActionResponseContractTest(APITransactionTestCase):
         self.assert_fields(contact, body["primaryContact"], {"fullName": "string"})
 
     def test_company_contact_declares_an_absent_owner_profile(self):
-        endpoint = f"/api/v1/companies/{self.owner.company.uuid}/"
-        present = self.client.get(endpoint)
+        present = self.client.get(f"/api/v1/companies/{self.owner.company.uuid}/")
         self.assertEqual(present.status_code, 200)
         self.assertEqual(present.json()["primaryContact"], {"fullName": self.owner.profile.full_name})
-        self.owner.profile.delete()
-        response = self.client.get(endpoint)
+
+        unprofiled = get_user_model().objects.create_user(
+            email="no-profile@schema.example.test", password="pw-12345678"
+        )
+        company = Company.objects.create(
+            owner=unprofiled,
+            name="No Contact Pty Ltd",
+            company_type=CompanyType.PROPRIETARY,
+            acn=an_acn(987654),
+        )
+        self.client.force_authenticate(unprofiled)
+        response = self.client.get(f"/api/v1/companies/{company.uuid}/")
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.json()["primaryContact"])
         schema = self.response_schema("/api/v1/companies/{uuid}/")
@@ -549,7 +560,7 @@ class ActionResponseContractTest(APITransactionTestCase):
                 "isIdVerified": "boolean",
                 "createdAt": "string",
             },
-            "preferences": {"selectedPortfolio": "string", "selectedAccount": "string"},
+            "preferences": {"selectedPortfolio": "string"},
             "financialProfile": {
                 "occupation": "string",
                 "sourceOfFunds": "json",

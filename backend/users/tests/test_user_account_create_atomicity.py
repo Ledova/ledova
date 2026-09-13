@@ -28,7 +28,7 @@ class UserAccountCreateIsAllOrNothingTest(APITransactionTestCase):
         self.assertEqual(response.status_code, 500)
         self.assertEqual(UserAccount.objects.count(), 0)
 
-    def test_a_failure_between_the_insert_and_the_profile_link_leaves_no_account_behind(self):
+    def test_a_failure_after_the_insert_leaves_no_account_behind(self):
         with patch("users.views.user_account.register_account", side_effect=RuntimeError("link failed")):
             response = self._create()
 
@@ -50,5 +50,5 @@ class UserAccountCreateIsAllOrNothingTest(APITransactionTestCase):
 
         self.assertEqual(response.status_code, 201)
         account = UserAccount.objects.get(uuid=response.json()["uuid"])
-        self.assertEqual(list(account.user_profiles.values_list("pk", flat=True)), [self.profile.pk])
+        self.assertEqual(account.user_profile_id, self.profile.pk)
         self.assertEqual(account.director_id, self.profile.pk)

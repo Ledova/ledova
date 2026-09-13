@@ -18,7 +18,7 @@ class AccountRole(models.TextChoices):
 
 
 class UserAccount(BaseModel):
-    user_profiles = models.ManyToManyField(UserProfile, related_name="user_accounts")
+    user_profile = models.OneToOneField(UserProfile, on_delete=models.CASCADE, related_name="user_account")
     director = models.ForeignKey(
         UserProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name="directed_user_accounts"
     )

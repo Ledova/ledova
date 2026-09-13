@@ -93,15 +93,15 @@ function buildTransferableAssets(wallet: Wallet, holdings: WalletHolding[]): Tra
 export function useTransfers() {
   const USE_MOCK_DATA = mockDataEnabled();
   const queryClient = useQueryClient();
-  const { selectedAccount } = useUserPreferences();
+  const { userAccount } = useUserPreferences();
   const [state, setState] = useState<TransferState>(INITIAL_STATE);
   const [pendingBroadcast, setPendingBroadcast] = useState(false);
   const [transferableAssets, setTransferableAssets] = useState<TransferableAsset[]>([]);
 
   const walletsQuery = useQuery({
-    queryKey: ['wallets', selectedAccount?.uuid, { order_by: 'name' }],
-    queryFn: () => getWallets(apiClient, { user_account: selectedAccount!.uuid, order_by: 'name' }),
-    enabled: !USE_MOCK_DATA && !!selectedAccount?.uuid,
+    queryKey: ['wallets', userAccount?.uuid, { order_by: 'name' }],
+    queryFn: () => getWallets(apiClient, { user_account: userAccount!.uuid, order_by: 'name' }),
+    enabled: !USE_MOCK_DATA && !!userAccount?.uuid,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
   });

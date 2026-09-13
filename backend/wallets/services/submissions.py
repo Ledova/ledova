@@ -85,7 +85,7 @@ def submit_evm_transfer(wallet, signed_transaction, *, principal_id, token_contr
 def _lock_wallet(wallet_id, principal_id, decoded):
     wallet = (
         Wallet.objects.select_for_update(of=("self",))
-        .filter(user_account__user_profiles__user_id=principal_id)
+        .filter(user_account__user_profile__user_id=principal_id)
         .get(pk=wallet_id)
     )
     if decoded.sender.lower() != wallet.address.lower() or decoded.chain_id != expected_chain_id(wallet.chain):

@@ -30,6 +30,7 @@ from tokens.models import (
     TransferOrderType,
 )
 from tokens.services.trading_locks import lock_orders
+from users.models import UserAccount
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 from wallets.models.wallet import Blockchain
@@ -314,18 +315,14 @@ class TokenTransferService:
         if wallet.user_account_id != owner_account.pk:
             raise InvalidRecipientAddressException()
 
-        membership_model = wallet.user_account.user_profiles.through
-        actor_is_current_member = (
+        actor_owns_the_account = (
             actor is not None
             and actor.is_authenticated
-            and membership_model.objects.select_for_update(of=("self",))
-            .filter(
-                useraccount_id=wallet.user_account_id,
-                userprofile__user=actor,
-            )
+            and UserAccount.objects.select_for_update(of=("self",))
+            .filter(pk=wallet.user_account_id, user_profile__user=actor)
             .exists()
         )
-        if not actor_is_current_member:
+        if not actor_owns_the_account:
             raise InvalidRecipientAddressException()
 
         if wallet.verification_status != WALLET_VERIFICATION_STATUS_VERIFIED:

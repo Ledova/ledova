@@ -22,10 +22,8 @@ class WalletHoldingReadContractTest(APITestCase):
         )
         self.alice_profile = UserProfile.objects.create(user=self.alice)
         self.bob_profile = UserProfile.objects.create(user=self.bob)
-        self.alice_account = UserAccount.objects.create(account_number="HOLDING-ALICE")
-        self.bob_account = UserAccount.objects.create(account_number="HOLDING-BOB")
-        self.alice_account.user_profiles.add(self.alice_profile)
-        self.bob_account.user_profiles.add(self.bob_profile)
+        self.alice_account = UserAccount.objects.create(account_number="HOLDING-ALICE", user_profile=self.alice_profile)
+        self.bob_account = UserAccount.objects.create(account_number="HOLDING-BOB", user_profile=self.bob_profile)
         self.alice_wallet = Wallet.objects.create(
             user_account=self.alice_account,
             address="0x" + "a" * 40,
@@ -82,21 +80,3 @@ class WalletHoldingReadContractTest(APITestCase):
     @staticmethod
     def holdings_url(wallet):
         return f"/api/wallets/{wallet.uuid}/holdings/?include_asset=true"
-
-    def test_parent_wallet_membership_controls_holding_visibility(self):
-        self.client.force_authenticate(self.alice)
-
-        own_response = self.client.get(self.holdings_url(self.alice_wallet))
-        foreign_response = self.client.get(self.holdings_url(self.bob_wallet))
-
-        self.assertEqual(own_response.status_code, 200)
-        self.assertEqual(
-            {row["uuid"] for row in own_response.json()},
-            {str(self.alice_holding.uuid)},
-        )
-        self.assertEqual(foreign_response.status_code, 404)
-
-        self.alice_account.user_profiles.remove(self.alice_profile)
-
-        revoked_response = self.client.get(self.holdings_url(self.alice_wallet))
-        self.assertEqual(revoked_response.status_code, 404)

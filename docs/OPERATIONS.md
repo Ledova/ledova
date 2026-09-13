@@ -286,7 +286,7 @@ request presenting an unlinked legacy challenge receives
 
 After an uncertain response, read
 `GET /api/v1/trading/orders/submissions/{submission_id}/?owner_account_uuid=...`.
-Current account membership and wallet ownership/address are still required.
+Account ownership and the wallet's ownership and address are still required.
 Unknown and inaccessible submissions share a 404; that response does not prove
 that a preceding request failed to commit. Keep the same ID when retrying.
 Changed original terms return `submission_conflict` and never spend a challenge.
@@ -317,13 +317,13 @@ outgoing signer activation or settlement finality guarantee.
 
 Order-submission admission and matching lock the current wallet with PostgreSQL
 `FOR NO KEY UPDATE`. Wallet changes and deletion still wait, while the foreign-key
-checks for a counterparty's swap may proceed. Two members of one account can
-therefore submit through different wallets without each transaction waiting for
-the other wallet at commit. The current membership row remains locked through
-the decision; removing membership waits and prevents a fresh submission afterward.
+checks for a counterparty's swap may proceed. One account's two wallets can
+therefore submit without each transaction waiting for the other wallet at commit.
+The account row stays locked through the decision; moving the account to another
+person waits, and prevents a fresh submission afterward.
 These are [PostgreSQL row-lock semantics](https://www.postgresql.org/docs/16/explicit-locking.html#LOCKING-ROWS),
-not a replacement for the membership, wallet address, verification or deployment
-checks. They do not establish aggregate buying power or the complete trading
+not a replacement for the account-ownership, wallet address, verification or
+deployment checks. They do not establish aggregate buying power or the complete trading
 lock graph.
 
 Cancel and modify requests use a separate account-scoped `action_id`, introduced
@@ -351,7 +351,7 @@ A 404 means absent or currently inaccessible; it does not authorize deleting the
 reminder, generating a replacement ID or claiming recovered terms. The execute
 POST identifies the action before checking a pending signature, so an authorized
 recorded result remains recoverable with absent, expired or irrelevant old
-credentials. Current account membership and wallet/order ownership still apply.
+credentials. Account ownership and wallet/order ownership still apply.
 The response separates immutable `intent`, `review`, `result` and `refusal` from
 the current `order`. HTTP responses use the existing camel-case renderer.
 
@@ -590,12 +590,12 @@ sync time unchanged.
 Wallet import previews use `POST /api/wallets/batch-check-balances/` with an
 explicit `userAccount`, `chain` (`ethereum`, `base`, or `bitcoin`) and 1–20
 addresses. The account must still belong to the signed-in user; staff status
-does not bypass membership. Addresses need not be registered yet. The response
+does not bypass that. Addresses need not be registered yet. The response
 repeats the account and network and returns `balances[address]` as a decimal
 string or `null` when the provider cannot supply a valid balance. A confirmed
 zero remains `"0"`. Preview reads do not create or update wallets or holdings.
 Both clients display failed reads as **Unavailable** and discard pending
-responses when the selected account or network changes. Hardware and software
+responses when the network changes. Hardware and software
 import screens let the user choose Ethereum or Base for their EVM addresses.
 
 Alchemy transfer history follows each direction's `pageKey` through the final
@@ -1162,7 +1162,7 @@ request's declared amount and fee cannot override those signed terms. Retrying
 the same bytes reuses the transaction and deduction. Different bytes at a
 recorded nonce, and hashes represented only by history or legacy transaction
 rows, are refused before broadcast. The submission entry point requires the
-requesting user's wallet membership and an outermost transaction boundary so
+requesting user's ownership of the wallet and an outermost transaction boundary so
 that no caller can roll back the record after sending.
 
 Before reserving a transfer, the wallet validates the signed gas limit against
@@ -1238,7 +1238,7 @@ public-testnet acceptance decisions.
 Apply `wallets/0019_chain_observations` before starting the new worker. Existing
 journals and financial rows remain unchanged; legacy rows without authoritative
 journals are not adopted. Only the operator role writes watches and observations;
-account members can read their own evidence under RLS. PostgreSQL binds every
+an account's owner can read their own evidence under RLS. PostgreSQL binds every
 watch to its journal, protects claim generations and observation links, and
 refuses evidence rewrites, deletion or migration rollback with retained watches.
 Preserve this history when investigating reorgs or recovering a stopped worker.

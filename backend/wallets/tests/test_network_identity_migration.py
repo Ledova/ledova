@@ -7,7 +7,7 @@ from django.test import TransactionTestCase
 
 from assets.models import Asset
 from shared.tests.schema import migrate_to, restore_every_migration
-from users.models import UserAccount
+from shared.tests.tenants import an_account
 from wallets.models import Holding, Wallet
 
 modules = getattr(settings, "MIGRATION_MODULES", {})
@@ -23,7 +23,7 @@ class WalletNetworkIdentityMigrationTest(TransactionTestCase):
     def test_adding_a_network_preserves_the_original_wallet_and_its_financial_records(self):
         OldWallet = self.before()
         OldTransaction = OldWallet._meta.apps.get_model("wallets", "Transaction")
-        account = UserAccount.objects.create(account_number="WALLET-MIGRATION")
+        account = an_account("network-identity-migration", account_number="WALLET-MIGRATION")
         original = OldWallet.objects.create(user_account_id=account.pk, address="0x" + "a" * 40, chain="ethereum")
         asset = Asset.objects.create(symbol="MIG", name="Migration", asset_type="erc20_token")
         holding = Holding.objects.create(wallet_id=original.pk, asset=asset, quantity=Decimal("2.5"))
@@ -47,7 +47,7 @@ class WalletNetworkIdentityMigrationTest(TransactionTestCase):
 
     def test_existing_case_collisions_stop_the_migration_without_merging_or_deleting(self):
         OldWallet = self.before()
-        account = UserAccount.objects.create(account_number="WALLET-COLLISION")
+        account = an_account("network-identity-migration", account_number="WALLET-COLLISION")
         original = OldWallet.objects.create(user_account_id=account.pk, address="0x" + "ab" * 20, chain="base")
         duplicate = OldWallet.objects.create(user_account_id=account.pk, address="0x" + "AB" * 20, chain="base")
         asset = Asset.objects.create(symbol="COL", name="Collision", asset_type="erc20_token")
@@ -63,7 +63,7 @@ class WalletNetworkIdentityMigrationTest(TransactionTestCase):
             restore_every_migration()
 
     def test_reversing_cannot_discard_wallets_to_restore_the_old_constraint(self):
-        account = UserAccount.objects.create(account_number="WALLET-REVERSE")
+        account = an_account("network-identity-migration", account_number="WALLET-REVERSE")
         original = Wallet.objects.create(user_account=account, address="0x" + "a" * 40, chain="ethereum")
         added = Wallet.objects.create(user_account=account, address=original.address, chain="base")
         self.addCleanup(restore_every_migration)

@@ -24,6 +24,7 @@ from tokens.models import (
 from tokens.services.signing_challenge import spend
 from tokens.services.token_transfer_service import TokenTransferService
 from tokens.services.trading_order_service import TradingOrderService
+from users.models import UserAccount
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 from wallets.models.wallet import Blockchain
@@ -86,12 +87,11 @@ def _lock_authorized_wallet(actor, submission):
     wallet = Wallet.objects.select_for_update(of=("self",), no_key=True).filter(pk=submission.wallet_id).first()
     if wallet is None or wallet.user_account_id != submission.owner_account_id:
         raise NotFound(NOT_FOUND)
-    membership = wallet.user_account.user_profiles.through
     if not (
         actor is not None
         and actor.is_authenticated
-        and membership.objects.select_for_update(of=("self",))
-        .filter(useraccount_id=submission.owner_account_id, userprofile__user=actor)
+        and UserAccount.objects.select_for_update(of=("self",))
+        .filter(pk=submission.owner_account_id, user_profile__user=actor)
         .exists()
     ):
         raise NotFound(NOT_FOUND)
@@ -105,7 +105,7 @@ def _eligible_token(token_id, wallet):
         Blockchain.ETHEREUM.value,
         Blockchain.BASE.value,
     ):
-        raise ValidationError({"wallet_uuid": "Select a verified EVM wallet from one of your accounts."})
+        raise ValidationError({"wallet_uuid": "Select a verified EVM wallet from your own account."})
     token = ShareToken.objects.filter(pk=token_id).first()
     if token is None:
         raise ValidationError({"token": "Token not found"})

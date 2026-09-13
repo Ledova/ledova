@@ -9,6 +9,7 @@ from web3 import Web3
 
 from companies.models import Company
 from feature_flags.models import FeatureFlag
+from shared.tests.tenants import a_profile
 from shared.tests.under_the_policies import what_the_policies_admit_to
 from tokens.exceptions import InvalidRecipientAddressException
 from tokens.models import ShareToken, TransferOrder
@@ -33,8 +34,7 @@ class TenantOrderIsolationTest(APITestCase):
         user.is_email_verified = True
         user.save()
         profile = UserProfile.objects.create(user=user)
-        account = UserAccount.objects.create()
-        account.user_profiles.add(profile)
+        account = UserAccount.objects.create(user_profile=profile)
         wallet = Wallet.objects.create(
             user_account=account,
             address=address,
@@ -153,8 +153,7 @@ class TransferOrderOwnershipBindingTest(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(email="owner@example.test", password="pw-12345678")
         self.profile = UserProfile.objects.create(user=self.user)
-        self.account = UserAccount.objects.create()
-        self.account.user_profiles.add(self.profile)
+        self.account = UserAccount.objects.create(user_profile=self.profile)
         self.wallet = Wallet.objects.create(
             user_account=self.account,
             address="0x" + "a" * 40,
@@ -229,8 +228,7 @@ class TransferOrderOwnershipBindingTest(APITestCase):
     def test_foreign_wallet_is_rejected(self):
         other_user = User.objects.create_user(email="other@example.test", password="pw-12345678")
         other_profile = UserProfile.objects.create(user=other_user)
-        other_account = UserAccount.objects.create()
-        other_account.user_profiles.add(other_profile)
+        other_account = UserAccount.objects.create(user_profile=other_profile)
         foreign_wallet = Wallet.objects.create(
             user_account=other_account,
             address="0x" + "d" * 40,
@@ -245,20 +243,6 @@ class TransferOrderOwnershipBindingTest(APITestCase):
         serializer = self._serializer(self._payload(address="0x" + "e" * 40))
         self.assertFalse(serializer.is_valid())
         self.assertIn("wallet_address", serializer.errors)
-
-    def test_one_user_can_select_the_exact_wallet_from_two_accounts(self):
-        second_account = UserAccount.objects.create()
-        second_account.user_profiles.add(self.profile)
-        second_wallet = Wallet.objects.create(
-            user_account=second_account,
-            address=self.wallet.address.upper().replace("0X", "0x"),
-            chain="base",
-            verification_status="VERIFIED",
-        )
-        serializer = self._serializer(self._payload(wallet=second_wallet))
-        self.assertTrue(serializer.is_valid(), serializer.errors)
-        self.assertEqual(serializer.validated_data["wallet"], second_wallet)
-        self.assertEqual(serializer.validated_data["owner_account"], second_account)
 
     def test_wallet_chain_eligibility_is_deferred_until_after_outcome_recovery(self):
         bitcoin_wallet = Wallet.objects.create(
@@ -284,8 +268,7 @@ class TransferOrderOwnershipBindingTest(APITestCase):
         )
         counter_user = User.objects.create_user(email="counter@example.test", password="pw-12345678")
         counter_profile = UserProfile.objects.create(user=counter_user)
-        counter_account = UserAccount.objects.create()
-        counter_account.user_profiles.add(counter_profile)
+        counter_account = UserAccount.objects.create(user_profile=counter_profile)
         counter_wallet = Wallet.objects.create(
             user_account=counter_account,
             address="0x" + "c" * 40,
@@ -376,8 +359,7 @@ class TransferOrderOwnershipBindingTest(APITestCase):
             )
 
         Wallet.objects.filter(pk=self.wallet.pk).update(verification_status="VERIFIED")
-        replacement_account = UserAccount.objects.create()
-        replacement_account.user_profiles.add(self.profile)
+        replacement_account = UserAccount.objects.create(user_profile=a_profile("wallet-moved-to"))
         Wallet.objects.filter(pk=self.wallet.pk).update(user_account=replacement_account)
 
         with self.assertRaises(InvalidRecipientAddressException):
@@ -391,25 +373,3 @@ class TransferOrderOwnershipBindingTest(APITestCase):
                 quantity=2,
                 price_per_share=Decimal("1.50"),
             )
-
-    @patch("tokens.services.token_transfer_service.WhitelistService")
-    @patch("tokens.services.token_transfer_service.get_base_chain_client")
-    def test_service_rechecks_actor_membership_after_validation(self, get_client, whitelist_service):
-        serializer = self._serializer(self._payload())
-        self.assertTrue(serializer.is_valid(), serializer.errors)
-
-        self.account.user_profiles.remove(self.profile)
-
-        with self.assertRaises(InvalidRecipientAddressException):
-            TokenTransferService().create_order_and_match(
-                token=self.token,
-                order_type=TransferOrderType.BUY,
-                actor=self.user,
-                wallet=serializer.validated_data["wallet"],
-                owner_account=serializer.validated_data["owner_account"],
-                wallet_address=serializer.validated_data["wallet_address"],
-                quantity=2,
-                price_per_share=Decimal("1.50"),
-            )
-
-        self.assertFalse(TransferOrder.objects.exists())

@@ -90,7 +90,7 @@ def _latest_complete_assessment(user_account) -> Optional[CustomerRiskAssessment
 
 
 def _has_sof_documentation(user_account) -> bool:
-    director = user_account.director or user_account.user_profiles.first()
+    director = user_account.director or user_account.user_profile
     financial_profile = getattr(director, "financial_profile", None)
     sof = financial_profile.source_of_funds if financial_profile else None
     return bool(sof) and sof != "other" and sof != ["other"]

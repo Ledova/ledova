@@ -33,8 +33,7 @@ class CompanyPrimaryContactTest(TestCase):
 class CompanyPrimaryWalletTest(TestCase):
     def setUp(self):
         self.owner = User.objects.create_user(email="wallets@example.test", password="pw-12345678")
-        self.account = UserAccount.objects.create()
-        self.account.user_profiles.add(UserProfile.objects.create(user=self.owner))
+        self.account = UserAccount.objects.create(user_profile=UserProfile.objects.create(user=self.owner))
         self.company = Company.objects.create(
             owner=self.owner, name="Wallets Pty Ltd", company_type=CompanyType.PROPRIETARY, acn="000000778"
         )
@@ -60,7 +59,8 @@ class CompanyPrimaryWalletTest(TestCase):
         self.assertEqual(primary_wallet_for(self.company), base)
         self.assertEqual(primary_wallet_for(self.company, "ethereum"), ethereum)
 
-        other_account = UserAccount.objects.create()
+        other = User.objects.create_user(email="operator-holder@example.test", password="pw-12345678")
+        other_account = UserAccount.objects.create(user_profile=UserProfile.objects.create(user=other))
         operator = self._wallet("base", "3", account=other_account)
         self.company.operator_wallet = operator
         self.company.save(update_fields=["operator_wallet"])
@@ -69,8 +69,7 @@ class CompanyPrimaryWalletTest(TestCase):
 
     def test_wallets_of_other_users_are_never_primary(self):
         stranger = User.objects.create_user(email="stranger@example.test", password="pw-12345678")
-        stranger_account = UserAccount.objects.create()
-        stranger_account.user_profiles.add(UserProfile.objects.create(user=stranger))
+        stranger_account = UserAccount.objects.create(user_profile=UserProfile.objects.create(user=stranger))
         self._wallet("base", "4", account=stranger_account)
 
         self.assertIsNone(primary_wallet_for(self.company))

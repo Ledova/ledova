@@ -78,7 +78,7 @@ class CryptoScreeningService:
             return "No destination address to screen"
         if not self.enabled:
             return "Crypto monitoring is disabled"
-        profile = screening.user_account.user_profiles.first()
+        profile = screening.user_account.user_profile
         if not profile:
             return "No user profile found"
         if not profile.active_applicant_id:
@@ -89,7 +89,7 @@ class CryptoScreeningService:
         transaction = screening.transaction
         try:
             response = self.provider.submit_crypto_transaction(
-                applicant_id=screening.user_account.user_profiles.first().active_applicant_id,
+                applicant_id=screening.user_account.user_profile.active_applicant_id,
                 transaction_id=screening.provider_transaction_id,
                 to_address=screening.to_address,
                 from_address=screening.from_address,

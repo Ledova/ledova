@@ -21,7 +21,7 @@ class UserAccountViewSet(AuthenticatedModelViewSet):
 
     def perform_create(self, serializer):
         profile = self.request.user.userprofile
-        register_account(serializer.save(director=profile), profile)
+        register_account(serializer.save(user_profile=profile, director=profile))
 
     def perform_update(self, serializer):
         return serializer.save()

@@ -51,8 +51,7 @@ class TransactionDirectionIsolationTest(APITestCase):
             **privileges,
         )
         profile = UserProfile.objects.create(user=user)
-        account = UserAccount.objects.create(account_number=label[:20])
-        account.user_profiles.add(profile)
+        account = UserAccount.objects.create(account_number=label[:20], user_profile=profile)
         wallet = Wallet.objects.create(
             user_account=account,
             address="0x" + address_character * 40,

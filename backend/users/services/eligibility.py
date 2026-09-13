@@ -41,9 +41,8 @@ def _standing_refused(account, investor_kyc_required):
     return investor_kyc_required and account.account_status == ACCOUNT_STATUS_PENDING
 
 
-def _every_holder_verified(account):
-    profiles = account.user_profiles.all()
-    return profiles.exists() and not profiles.filter(is_id_verified=False).exists()
+def _holder_is_verified(account):
+    return account.user_profile.is_id_verified
 
 
 def _permits_amount(classification, amount_aud):
@@ -56,7 +55,7 @@ def _evaluate(account, investor_kyc_required, company, amount_aud=None):
     reasons = []
     if _standing_refused(account, investor_kyc_required):
         reasons.append(ACCOUNT_NOT_IN_GOOD_STANDING)
-    if investor_kyc_required and not _every_holder_verified(account):
+    if investor_kyc_required and not _holder_is_verified(account):
         reasons.append(IDENTITY_NOT_VERIFIED)
 
     live = list(InvestorClassification.objects.filter(user_account=account).live().for_company(company))

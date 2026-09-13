@@ -1,11 +1,13 @@
+import { AccountRole } from '@ledova/shared';
+
 import { useUserPreferences } from './useUserPreferences';
 
-export type AccountRole = 'investor' | 'company' | 'both';
+export type { AccountRole };
 
 export function useRole() {
-  const { selectedAccount, isLoading } = useUserPreferences();
+  const { userAccount, isLoading } = useUserPreferences();
 
-  const role: AccountRole = (selectedAccount as { role?: AccountRole } | null)?.role ?? 'investor';
+  const role: AccountRole = userAccount?.role ?? 'investor';
 
   return {
     role,

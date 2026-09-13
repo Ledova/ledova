@@ -9,6 +9,8 @@ from rest_framework.test import APITransactionTestCase
 from integrations.blockchain.ethereum import EthereumClient
 from shared.db import current_alias, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
+from shared.tests.tenants import a_profile
+from users.models import UserAccount
 from wallets.models import Wallet, WalletSubmission
 from wallets.tests.test_submission_durability import SubmissionFixture
 
@@ -142,18 +144,20 @@ class SubmissionNonceChecks(SubmissionFixture):
         self.assertEqual(self.financial_state(), before)
         provider.broadcast_transaction.assert_not_called()
 
-    def test_membership_revoked_during_nonce_read_refuses_admission(self):
+    def test_account_reassigned_during_nonce_read_refuses_admission(self):
         signed = self.signed()
         provider = self.provider(signed)
         observed = provider.get_mined_nonce(self.signer.address)
         before = self.financial_state()
+        with use_operator():
+            successor = a_profile("nonce-successor")
 
-        def revoke_membership(address):
+        def reassign_the_account(address):
             with use_operator():
-                self.tenant.account.user_profiles.clear()
+                UserAccount.objects.filter(pk=self.tenant.account.pk).update(user_profile=successor)
             return observed
 
-        provider.get_mined_nonce.side_effect = revoke_membership
+        provider.get_mined_nonce.side_effect = reassign_the_account
         with patch("wallets.services.submissions.get_blockchain_client", return_value=provider):
             response = self.broadcast(signed)
         self.assertEqual(response.status_code, 400)

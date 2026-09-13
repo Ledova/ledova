@@ -13,7 +13,6 @@ from assets.services.identity import (
 from compliance.services.transaction_monitoring import TransactionMonitoringService
 from shared.constants import get_native_asset_symbol, normalize_chain
 from shared.db import atomic
-from users.services.accounts import account_members
 from users.tasks.notifications import send_transaction_notification
 from wallets.constants import (
     SNAPSHOT_REASON_TRANSACTION,
@@ -265,8 +264,8 @@ def _on_this_wallets_row(tx_hash: str, wallet: Wallet, act, *, expected=None) ->
 
 
 def _notify_wallet_users(tx: Transaction, event: str) -> None:
-    for user in account_members(tx.wallet.user_account):
-        send_transaction_notification.defer(user_id=str(user.pk), transaction_id=str(tx.uuid), event_type=event)
+    owner = tx.wallet.user_account.user_profile.user
+    send_transaction_notification.defer(user_id=str(owner.pk), transaction_id=str(tx.uuid), event_type=event)
 
 
 def _move_holding(tx: Transaction, asset: Asset, delta: Decimal) -> tuple[Holding, Decimal]:

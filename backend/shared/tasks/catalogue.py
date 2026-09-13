@@ -139,19 +139,7 @@ CONVERSIONS = {
     "users.tasks.notifications.send_transaction_notification": TaskConversion(status="converted", converted_pr=523),
 }
 
-OPERATOR_READS = {
-    "users.services.accounts.account_members": "R15, and the first catalogue entry whose boundary is a "
-    "function rather than a table: what makes it safe is not the operator connection but the account it is "
-    "handed. transaction_confirmation.py:168 passes tx.wallet.user_account, from a wallet the task already "
-    "resolved under its own principal, so a caller cannot ask for an account it could not reach. A future "
-    "caller that took the account from a request body would break that without touching this function. "
-    "Deciding who to tell about an account's transaction is "
-    "an account-level question, and users_userprofile's policy answers a user-level one - scoped, the "
-    "notification reaches only the member who acted. Measured: as the owner two members, as the app role "
-    "one. The helper runs on the operator connection, takes the account as its only input, and filters to "
-    "that account's members itself, so BYPASSRLS cannot return anyone else. Widening the profile policy "
-    "instead would change what UserProfile.visible_to_user means everywhere to fix one service.",
-}
+OPERATOR_READS: dict[str, str] = {}
 
 READS_MUST_SURVIVE_THE_POLICIES = {
     "wallets.tasks.sync.sync_wallet": "Resolved prerequisite to retain during conversion: "

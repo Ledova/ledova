@@ -24,7 +24,7 @@ import { usePortfolio } from '../portfolio/usePortfolio';
 
 export const useHome = () => {
   const queryClient = useQueryClient();
-  const { selectedPortfolio, selectedAccount, isLoading: preferencesLoading } = useUserPreferences();
+  const { selectedPortfolio, userAccount, isLoading: preferencesLoading } = useUserPreferences();
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('3M');
   const [selectedAssetUuid, setSelectedAssetUuid] = useState<string | null>(null);
   const { start_date, end_date } = getDateRange(selectedTimeRange);
@@ -39,9 +39,9 @@ export const useHome = () => {
   });
 
   const walletsQuery = useQuery({
-    queryKey: ['wallets', selectedAccount?.uuid],
-    queryFn: () => getWallets(apiClient, { user_account: selectedAccount!.uuid }),
-    enabled: !!selectedAccount?.uuid,
+    queryKey: ['wallets', userAccount?.uuid],
+    queryFn: () => getWallets(apiClient, { user_account: userAccount!.uuid }),
+    enabled: !!userAccount?.uuid,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
   });
@@ -75,7 +75,7 @@ export const useHome = () => {
   const favouritesQuery = useQuery({
     queryKey: ['favouriteAssets'],
     queryFn: () => getFavouriteAssets(apiClient),
-    enabled: !!selectedAccount?.uuid,
+    enabled: !!userAccount?.uuid,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
   });

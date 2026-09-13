@@ -89,14 +89,15 @@ checks the database's actual role, performs its reads and writes, and must refus
 a foreign private wallet before contacting the chain. A system invocation uses
 the operator connection. The test replaces provider and delivery boundaries, not
 the task body or its database services. Removing `acting_for` must fail these
-checks. Company operator wallets are intentionally readable under R14; they are
-not suitable fixtures for a private-wallet refusal.
+checks. A company's operator wallet is its owner's wallet and nobody else's;
+R14 read it to every viewer of the company until one account per person carried
+that reach into the holder's profile, and the chain is cut at the wallet now.
 
-The scoped account-create path must provide its authenticated profile as director
-on INSERT, then add membership in the same app transaction. Adding the director
-only after INSERT fails the existing R19 policy, before registration can run.
-After membership exists, a joint account retains its original null director.
-The serializer keeps director read-only; a client cannot choose that principal.
+The scoped account-create path must name its authenticated profile as
+`user_profile` on INSERT. That is the same term the read and write policies use,
+so an account is visible and deletable by the person it names from the moment it
+exists. The serializer keeps that field read-only; a client cannot choose whose
+account it creates.
 
 Three fixture rules follow:
 

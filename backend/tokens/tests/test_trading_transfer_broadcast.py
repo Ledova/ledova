@@ -30,8 +30,7 @@ class TradingTransferBroadcastContractTest(APITestCase):
         FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
         self.user = User.objects.create_user(email="signer@example.test", password="pw-12345678")
         profile = UserProfile.objects.create(user=self.user)
-        self.account = UserAccount.objects.create()
-        self.account.user_profiles.add(profile)
+        self.account = UserAccount.objects.create(user_profile=profile)
         self.wallet = Wallet.objects.create(
             user_account=self.account, address=SIGNER.address, chain="base", verification_status="VERIFIED"
         )

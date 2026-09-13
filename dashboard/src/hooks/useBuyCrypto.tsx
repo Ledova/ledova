@@ -11,9 +11,9 @@ interface BuyCryptoContextValue {
 const BuyCryptoContext = createContext<BuyCryptoContextValue | null>(null);
 
 export function BuyCryptoProvider({ children }: { children: ReactNode }) {
-  const { selectedAccount } = useSelectedPortfolio();
+  const { userAccount } = useSelectedPortfolio();
   const queryClient = useQueryClient();
-  const userAccountUuid = selectedAccount?.uuid;
+  const userAccountUuid = userAccount?.uuid;
 
   const [buyModalOpen, setBuyModalOpen] = useState(false);
   const [buyInitialAsset, setBuyInitialAsset] = useState<string | undefined>();

@@ -47,8 +47,7 @@ class TradingReadIsolationTest(APITransactionTestCase):
     def _make_tenant(self, email, address):
         user = User.objects.create_user(email=email, password="pw-12345678")
         profile = UserProfile.objects.create(user=user)
-        account = UserAccount.objects.create()
-        account.user_profiles.add(profile)
+        account = UserAccount.objects.create(user_profile=profile)
         wallet = Wallet.objects.create(
             user_account=account,
             address=address,

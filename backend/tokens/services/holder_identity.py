@@ -1,5 +1,5 @@
 from wallets.models import Wallet
-from whitelist.services.identity import ADDRESS_SEPARATOR, NAME_SEPARATOR, profile_name
+from whitelist.services.identity import profile_name
 
 
 class StampedIdentity:
@@ -16,11 +16,6 @@ def identity_at_allotment(address: str, *, chain: str) -> StampedIdentity:
     if len(wallets) != 1 or wallets[0].user_account_id is None:
         return StampedIdentity()
 
-    profiles = list(wallets[0].user_account.user_profiles.all())
-    names = [profile_name(profile) for profile in profiles]
-    addresses = [(profile.residential_address or "").strip() for profile in profiles]
+    holder = wallets[0].user_account.user_profile
 
-    return StampedIdentity(
-        NAME_SEPARATOR.join(name for name in names if name),
-        ADDRESS_SEPARATOR.join(address for address in addresses if address),
-    )
+    return StampedIdentity(profile_name(holder), (holder.residential_address or "").strip())

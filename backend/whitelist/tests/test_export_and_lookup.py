@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APITestCase
 
-from users.models import UserAccount
+from shared.tests.tenants import an_account
 from wallets.models import Wallet
 from whitelist.exceptions import WalletNotRegisteredException
 from whitelist.models import WhitelistEntry
@@ -46,7 +46,9 @@ class WhitelistExportEscapingTest(APITestCase):
             self.assertTrue(cell.startswith("'"), cell)
 
     def test_an_ordinary_address_is_written_unchanged(self):
-        wallet = Wallet.objects.create(user_account=UserAccount.objects.create(), address="0x" + "a" * 40, chain="base")
+        wallet = Wallet.objects.create(
+            user_account=an_account("export-and-lookup"), address="0x" + "a" * 40, chain="base"
+        )
         WhitelistEntry.objects.create(wallet=wallet)
 
         self.assertEqual(self._rows()[1][0], wallet.address)
@@ -58,7 +60,7 @@ class UniqueWalletUuidForTest(TestCase):
 
     def _wallet(self, address=None, chain="base"):
         return Wallet.objects.create(
-            user_account=UserAccount.objects.create(), address=address or self.address, chain=chain
+            user_account=an_account("export-and-lookup"), address=address or self.address, chain=chain
         )
 
     def test_exactly_one_wallet_gives_its_uuid(self):

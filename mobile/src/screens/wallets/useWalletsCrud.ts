@@ -23,14 +23,14 @@ import { mockDataEnabled } from '../../_mock/mockDataEnabled';
 export function useWalletsCrud() {
   const USE_MOCK_DATA = mockDataEnabled();
   const queryClient = useQueryClient();
-  const { selectedAccount } = useUserPreferences();
+  const { userAccount } = useUserPreferences();
   const [syncingWalletIds, setSyncingWalletIds] = useState<Set<string>>(() => new Set());
   const pendingSyncs = useRef(new Map<string, ReturnType<typeof syncWallet>>());
 
   const walletsQuery = useQuery({
-    queryKey: ['wallets', selectedAccount?.uuid, { order_by: 'address_index' }],
-    queryFn: () => getWallets(apiClient, { user_account: selectedAccount!.uuid, order_by: 'address_index' }),
-    enabled: !USE_MOCK_DATA && !!selectedAccount?.uuid,
+    queryKey: ['wallets', userAccount?.uuid, { order_by: 'address_index' }],
+    queryFn: () => getWallets(apiClient, { user_account: userAccount!.uuid, order_by: 'address_index' }),
+    enabled: !USE_MOCK_DATA && !!userAccount?.uuid,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
   });
@@ -53,7 +53,7 @@ export function useWalletsCrud() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (uuid: string) => deleteWallet(apiClient, uuid, selectedAccount?.uuid),
+    mutationFn: (uuid: string) => deleteWallet(apiClient, uuid, userAccount?.uuid),
     onSuccess: () => {
       queryClient.refetchQueries({ queryKey: ['wallets'] });
       invalidateHome();
@@ -143,7 +143,7 @@ export function useWalletsCrud() {
     ethWallets,
     baseWallets,
     totals,
-    userAccountUuid: selectedAccount?.uuid,
+    userAccountUuid: userAccount?.uuid,
 
     isLoading: walletsQuery.isLoading,
     isCreating: createMutation.isPending,

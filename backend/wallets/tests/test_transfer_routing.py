@@ -114,8 +114,7 @@ class QuarantinedContractTransferApiTest(APITestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(email="routing@example.test", password="pw-12345678")
         profile = UserProfile.objects.create(user=self.user)
-        account = UserAccount.objects.create(account_number="ROUTING")
-        account.user_profiles.add(profile)
+        account = UserAccount.objects.create(account_number="ROUTING", user_profile=profile)
         self.wallet = Wallet.objects.create(
             user_account=account, address=FROM, chain="ethereum", verification_status="VERIFIED"
         )
@@ -157,8 +156,7 @@ class TokenizedSecurityTransferApiTest(APITestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(email="shares@example.test", password="pw-12345678")
         profile = UserProfile.objects.create(user=self.user)
-        account = UserAccount.objects.create(account_number="SHARES")
-        account.user_profiles.add(profile)
+        account = UserAccount.objects.create(account_number="SHARES", user_profile=profile)
         self.wallet = Wallet.objects.create(
             user_account=account, address=FROM, chain="base", verification_status="VERIFIED"
         )

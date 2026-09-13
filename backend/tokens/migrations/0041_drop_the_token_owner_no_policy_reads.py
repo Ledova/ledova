@@ -16,7 +16,6 @@ def drop_the_derivation(apps, schema_editor):
 class Migration(migrations.Migration):
     dependencies = [
         ("tokens", "0040_swap_parent_identity"),
-        ("shared", "0010_policies_for_the_tables_that_had_none"),
     ]
 
     operations = [

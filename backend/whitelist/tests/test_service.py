@@ -5,7 +5,7 @@ from django.test import TestCase, TransactionTestCase
 
 from blockchain.models import BlockchainTransaction, TransactionStatus, TransactionType
 from integrations.base_chain.exceptions import BaseChainTransactionError
-from users.models import UserAccount
+from shared.tests.tenants import an_account
 from wallets.models import Wallet
 from whitelist.exceptions import (
     AddressAlreadyWhitelistedException,
@@ -24,7 +24,7 @@ REMOVE_HASH = "0x" + "22" * 32
 
 class WhitelistServiceTransactionTest(TransactionTestCase):
     def setUp(self):
-        self.account = UserAccount.objects.create()
+        self.account = an_account("service")
         self.wallet = Wallet.objects.create(user_account=self.account, address="0x" + "a" * 40, chain="base")
         self.entry = WhitelistEntry.objects.create(wallet=self.wallet)
 
@@ -76,7 +76,7 @@ class WhitelistServiceTransactionTest(TransactionTestCase):
         self.assertEqual(entry.status, WhitelistStatus.ACTIVE)
 
     def test_add_uses_the_given_wallet_when_the_address_is_duplicated(self):
-        Wallet.objects.create(user_account=UserAccount.objects.create(), address=self.wallet.address, chain="base")
+        Wallet.objects.create(user_account=an_account("service"), address=self.wallet.address, chain="base")
 
         _, entry = self._service().add_to_whitelist(self.wallet.address, wallet_uuid=self.wallet.uuid)
 
@@ -222,7 +222,7 @@ class WhitelistServiceTransactionTest(TransactionTestCase):
 
     def test_remove_refuses_to_attribute_an_ambiguous_address_to_the_first_account(self):
         another_wallet = Wallet.objects.create(
-            user_account=UserAccount.objects.create(), address=self.wallet.address, chain="base"
+            user_account=an_account("service"), address=self.wallet.address, chain="base"
         )
         another_entry = WhitelistEntry.objects.create(wallet=another_wallet)
         self.entry.mark_active("0xearlier")
@@ -257,7 +257,7 @@ class WhitelistServiceTransactionTest(TransactionTestCase):
 
 class WhitelistServiceEnsureTest(TestCase):
     def setUp(self):
-        account = UserAccount.objects.create()
+        account = an_account("service")
         self.entries = {}
         for label in ("new", "onchain", "active", "broken"):
             wallet = Wallet.objects.create(user_account=account, address="0x" + label.ljust(40, "0"), chain="base")

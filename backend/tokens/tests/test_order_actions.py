@@ -257,33 +257,6 @@ class OrderActionRecoveryChecks(ActionFixtures):
         fresh = self.message(body=self.identity(action_id=str(uuid4())))
         self.assertEqual(fresh.status_code, 409, fresh.content)
 
-    def test_current_account_membership_is_required_before_pending_or_terminal_access(self):
-        signed = self.signed()
-        with use_operator():
-            colleague = make_tenant("action-colleague")
-            self.tenant.account.user_profiles.add(colleague.profile)
-        self.client.force_authenticate(colleague.user)
-        self.assertEqual(self.recover().status_code, 200)
-        self.assertEqual(self.execute("cancel", signed).status_code, 200)
-        self.assertEqual(self.journal().executed_by_id, colleague.user.pk)
-        with use_operator():
-            self.tenant.account.user_profiles.remove(colleague.profile)
-        for response in (self.context(), self.message(), self.execute("cancel", self.identity()), self.recover()):
-            self.assertEqual(response.status_code, 404, response.content)
-        self.client.force_authenticate(self.tenant.user)
-        self.assertEqual(self.recover().status_code, 200)
-
-    def test_removed_membership_cannot_spend_or_poison_a_pending_action(self):
-        signed = self.signed()
-        with use_operator():
-            self.tenant.account.user_profiles.remove(self.tenant.profile)
-        for response in (self.execute("cancel", signed), self.message(), self.recover()):
-            self.assertEqual(response.status_code, 404, response.content)
-        self.assert_pending(signed)
-        with use_operator():
-            self.tenant.account.user_profiles.add(self.tenant.profile)
-        self.assertEqual(self.execute("cancel", signed).status_code, 200)
-
     def test_modified_signature_fields_and_domain_are_refused_without_spending(self):
         response = self.message("modify", self.modify_body())
         self.assertEqual(response.status_code, 200, response.content)

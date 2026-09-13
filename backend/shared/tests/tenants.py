@@ -122,6 +122,16 @@ def an_acn(number: int) -> str:
     return base + str(acn_check_digit(base))
 
 
+def a_profile(label):
+    number = next(_sequence)
+    user = User.objects.create_user(email=f"{label}-{number}@accounts.example.test", password=PASSWORD)
+    return UserProfile.objects.create(user=user, full_name=f"{label} owner")
+
+
+def an_account(label, **fields):
+    return UserAccount.objects.create(user_profile=a_profile(label), **fields)
+
+
 def make_tenant(label, *, staff=False, superuser=False, with_swap=True):
     number = next(_sequence)
     refs = reference_data()
@@ -134,8 +144,9 @@ def make_tenant(label, *, staff=False, superuser=False, with_swap=True):
         )
     profile = UserProfile.objects.create(user=user, full_name=f"{label} owner", citizenship_country=refs.country)
     financial_profile = FinancialProfile.objects.create(user_profile=profile, occupation=f"{label} occupation")
-    account = UserAccount.objects.create(account_number=f"ACCT-{label.upper()}"[:20], director=profile)
-    account.user_profiles.add(profile)
+    account = UserAccount.objects.create(
+        account_number=f"ACCT-{label.upper()}"[:20], director=profile, user_profile=profile
+    )
 
     wallet_key = _wallet_key(number)
     wallet = Wallet.objects.create(
@@ -168,9 +179,7 @@ def make_tenant(label, *, staff=False, superuser=False, with_swap=True):
 
     portfolio = Portfolio.objects.create(user_account=account, name=f"{label} portfolio")
     portfolio.wallets.add(wallet)
-    preferences = UserPreferences.objects.create(
-        user_profile=profile, selected_account=account, selected_portfolio=portfolio
-    )
+    preferences = UserPreferences.objects.create(user_profile=profile, selected_portfolio=portfolio)
     favourite = FavouriteAsset.objects.create(user_account=account, asset=refs.asset)
     device_token = DeviceToken.objects.create(user=user, push_token=f"ExponentPushToken[{label}]", device_type="ios")
     notification = Notification.objects.create(user=user, title=f"For {label}", body="Body")
@@ -378,6 +387,6 @@ def snapshot(tenant):
         fresh = type(row).objects.get(pk=row.pk)
         rows[name] = {field.attname: getattr(fresh, field.attname) for field in fresh._meta.concrete_fields}
     rows["portfolio_wallets"] = sorted(tenant.portfolio.wallets.values_list("uuid", flat=True))
-    rows["account_profiles"] = sorted(tenant.account.user_profiles.values_list("pk", flat=True))
+    rows["account_profile"] = tenant.account.user_profile_id
     counts = {type(row)._meta.label: type(row).objects.count() for row in _rows(tenant).values()}
     return rows, counts

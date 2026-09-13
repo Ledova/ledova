@@ -5,6 +5,7 @@ from django.contrib.auth.models import AnonymousUser
 from rest_framework.test import APITestCase
 
 from blockchain.models import BlockchainTransaction
+from shared.tests.tenants import an_account
 from users.models import UserAccount, UserProfile
 from wallets.models import Wallet
 from whitelist.exceptions import WalletNotRegisteredException
@@ -18,15 +19,14 @@ class WhitelistEntryScopingTest(APITestCase):
     def setUp(self):
         self.member = User.objects.create_user(email="member-whitelist@ex.com", password="pw-12345678")
         profile = UserProfile.objects.create(user=self.member)
-        account = UserAccount.objects.create()
-        account.user_profiles.add(profile)
+        account = UserAccount.objects.create(user_profile=profile)
         self.wallet = Wallet.objects.create(
             user_account=account,
             address="0x" + "a" * 40,
             chain="base",
         )
         self.entry = WhitelistEntry.objects.create(wallet=self.wallet)
-        foreign_account = UserAccount.objects.create()
+        foreign_account = an_account("entry-scoping")
         self.foreign_wallet = Wallet.objects.create(
             user_account=foreign_account,
             address="0x" + "b" * 40,
@@ -216,7 +216,7 @@ class WhitelistEntryScopingTest(APITestCase):
         self.assertEqual(response.json()["uuid"], str(self.entry.uuid))
 
     def test_staff_by_address_fails_closed_when_address_is_ambiguous(self):
-        other_account = UserAccount.objects.create()
+        other_account = an_account("entry-scoping")
         duplicate_wallet = Wallet.objects.create(
             user_account=other_account,
             address=self.wallet.address,
@@ -254,7 +254,7 @@ class WhitelistEntryScopingTest(APITestCase):
 
     @patch("whitelist.views.entry.WhitelistService")
     def test_staff_sync_fails_closed_when_wallet_address_is_ambiguous(self, whitelist_service):
-        other_account = UserAccount.objects.create()
+        other_account = an_account("entry-scoping")
         Wallet.objects.create(
             user_account=other_account,
             address=self.wallet.address,
@@ -268,7 +268,7 @@ class WhitelistEntryScopingTest(APITestCase):
         whitelist_service.assert_not_called()
 
     def test_sync_service_uses_explicit_wallet_uuid_when_duplicate_is_added(self):
-        other_account = UserAccount.objects.create()
+        other_account = an_account("entry-scoping")
         Wallet.objects.create(
             user_account=other_account,
             address=self.wallet.address,
@@ -312,7 +312,7 @@ class WhitelistEntryScopingTest(APITestCase):
         self.assertFalse(BlockchainTransaction.objects.exists())
 
     def test_add_rejects_ambiguous_address(self):
-        Wallet.objects.create(user_account=UserAccount.objects.create(), address=self.wallet.address, chain="base")
+        Wallet.objects.create(user_account=an_account("entry-scoping"), address=self.wallet.address, chain="base")
 
         with self.assertRaises(WalletNotRegisteredException):
             self._service_with_mocked_chain().add_to_whitelist(self.wallet.address)

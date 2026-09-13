@@ -10359,13 +10359,56 @@
                     "wallets"
                 ]
             },
+            "AccountSummary": {
+                "type": "object",
+                "properties": {
+                    "uuid": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true,
+                        "description": "Unique identifier (primary key)"
+                    },
+                    "accountNumber": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "accountType": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/AccountTypeEnum"
+                            }
+                        ],
+                        "readOnly": true
+                    },
+                    "activationDate": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "role": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/RoleEnum"
+                            }
+                        ],
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "accountNumber",
+                    "accountType",
+                    "activationDate",
+                    "role",
+                    "uuid"
+                ]
+            },
             "AccountTypeEnum": {
                 "enum": [
-                    "individual",
-                    "joint"
+                    "individual"
                 ],
                 "type": "string",
-                "description": "* `individual` - Individual\n* `joint` - Joint"
+                "description": "* `individual` - Individual"
             },
             "ApplicationResubmit": {
                 "type": "object",
@@ -13081,15 +13124,9 @@
                         "type": "string",
                         "format": "uuid",
                         "nullable": true
-                    },
-                    "selectedAccount": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
                     }
                 },
                 "required": [
-                    "selectedAccount",
                     "selectedPortfolio"
                 ]
             },
@@ -17142,11 +17179,13 @@
                         "description": "Unique identifier (primary key)",
                         "readOnly": true
                     },
-                    "selectedAccount": {
-                        "type": "string",
-                        "format": "uuid",
-                        "description": "Unique identifier (primary key)",
-                        "nullable": true
+                    "userAccount": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/AccountSummary"
+                            }
+                        ],
+                        "readOnly": true
                     },
                     "selectedPortfolio": {
                         "type": "string",
@@ -20995,11 +21034,13 @@
                         "description": "Unique identifier (primary key)",
                         "readOnly": true
                     },
-                    "selectedAccount": {
-                        "type": "string",
-                        "format": "uuid",
-                        "description": "Unique identifier (primary key)",
-                        "nullable": true
+                    "userAccount": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/AccountSummary"
+                            }
+                        ],
+                        "readOnly": true
                     },
                     "selectedPortfolio": {
                         "type": "string",
@@ -21020,6 +21061,7 @@
                     }
                 },
                 "required": [
+                    "userAccount",
                     "userProfile",
                     "uuid"
                 ]

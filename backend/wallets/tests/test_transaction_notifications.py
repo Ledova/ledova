@@ -77,22 +77,19 @@ class TransactionNotificationJobRowTest(TestCase):
 
     def setUp(self):
         self.tenant = make_tenant("jobrow")
-        second = make_tenant("jobrow-second")
-        self.tenant.account.user_profiles.add(second.profile)
         self.tx = self.tenant.transaction
 
     def job_rows(self):
         return ProcrastinateJob.objects.filter(task_name=run_task.name)
 
-    def test_confirmation_writes_one_todo_job_per_account_member(self):
+    def test_confirmation_writes_one_todo_job_for_the_account_owner(self):
         self.assertEqual(
             transaction_confirmation.confirm_transaction(self.tx.tx_hash, wallet=self.tx.wallet)["status"],
             "confirmed",
         )
 
         rows = list(self.job_rows())
-        members = self.tenant.account.user_profiles.values_list("user_id", flat=True)
-        self.assertEqual(sorted(row.args["user_id"] for row in rows), sorted(str(pk) for pk in members))
+        self.assertEqual([row.args["user_id"] for row in rows], [str(self.tenant.account.user_profile.user_id)])
         self.assertEqual({row.status for row in rows}, {"todo"})
         self.assertEqual({row.args["transaction_id"] for row in rows}, {str(self.tx.uuid)})
         self.assertEqual({row.args["event_type"] for row in rows}, {"confirmed"})

@@ -1123,13 +1123,24 @@ principal, and a policy on every tenant table, while `visible_to_user` still run
   equal only *transitively* through `Company`, and there is standing pressure to
   widen `Company.visible_to_user`; one helper would destroy the distinction just
   as it starts mattering.
-- **Neither helper is `SECURITY DEFINER`.** Running as the caller means
-  `users_userprofile`'s own policy applies inside the function, so the helper's
-  `WHERE` is a second opinion rather than the only guard. The cost is a rule:
-  `companies_company`, `users_userprofile` and the membership table carry **leaf
-  policies** — direct comparisons against `current_setting`, never a helper call
-  — or a policy calls a function that queries the table the policy is on, and
-  PostgreSQL's error for that is stack-depth exhaustion.
+- **Two helpers are `SECURITY DEFINER`, and they are the two that *define* the
+  scope.** `app_principal_profile_ids()` and `app_member_account_ids()` answer
+  "who is the principal" and "which account is theirs". Asking a policy to gate
+  the lookup that the policy is written in terms of is circular by construction,
+  and PostgreSQL reports that circle as stack-depth exhaustion rather than as a
+  cycle. Both filter on `current_setting` alone, so they can only ever return the
+  caller's own rows; `BYPASSES_THE_POLICIES` names them and a test asserts that
+  the set of `prosecdef` functions is exactly that set. The company helpers run as
+  the caller, so the rule survives for them: every table an **invoker** helper
+  reads carries a **leaf policy** — no helper call of its own. `LEAF_TABLES` names
+  them and a test reads `pg_policies` for `app_`.
+
+  One account per person is what forced this. It moved the profile link onto
+  `customer_accounts_account`, putting that table inside `app_member_account_ids()`
+  — and an issuer reading their own subscriptions has to see the subscribing
+  account, its wallet and its holder's profile, or `select_related` deletes the
+  subscription row the issuer was allowed to see. Those two facts cannot both hold
+  while the identity helpers are gated by the policies they feed.
 - **Tenancy predicates are positive.** `owner_id IN (SELECT …)` is NULL for a
   NULL owner and hides the row, which is the fail-closed behaviour a nullable
   owner column relies on; `NOT IN` and `<>` invert under NULL and make a legacy
@@ -1146,18 +1157,16 @@ principal, and a policy on every tenant table, while `visible_to_user` still run
 - **`INSERT`'s `WITH CHECK` is the one command that may differ, and only where
   the catalogue says so.** `INSERTABLE` names the tables where creating a row and
   writing to an existing one are not the same permission, and the installer
-  applies it to `INSERT` alone. There is one today: a new user's first
-  `customer_accounts_account` cannot satisfy the member term at insert, because
-  `ensure_defaults` creates the row and adds the membership on the next line. The
-  director is known at insert, so `INSERT` admits it, while `UPDATE` and `DELETE`
-  do not, since widening deletion to a director is a separate decision nobody has
-  taken (R19). `INSERT_ONLY_REASONS` carries that sentence beside the term and a
-  test refuses a reason shorter than 200 characters. **The read term is not
-  widened either**, so between the insert and the membership the director holds a
-  row it can neither see nor delete; `ensure_defaults` carries `@atomic()` from
-  `shared.db`, which opens on the alias its queries go to. R23 is why that
-  decorator is enough: a bare `@transaction.atomic` would have opened on
-  `default` while the router sent these writes elsewhere.
+  applies it to `INSERT` alone. `INSERT_ONLY_REASONS` carries the sentence beside
+  the term and a test refuses a reason shorter than 200 characters. There was a
+  second entry until one account per person: an account's first row could not
+  satisfy a member term at insert, because membership was a row written after it,
+  so `INSERT` admitted the director instead (R19). `user_profile_id` is now on the
+  account and set at insert, so the ordinary write term admits the row and the
+  override is gone. `ensure_defaults` still carries `@atomic()` from `shared.db`,
+  which opens on the alias its queries go to. R23 is why that decorator is enough:
+  a bare `@transaction.atomic` would have opened on `default` while the router
+  sent these writes elsewhere.
 - `companies_company` is read at two scopes on purpose — `visible_to_user` for
   issuer surfaces and `all()` for the market — and one `FOR ALL` policy under
   `FORCE` can only encode the stricter of the two.

@@ -5,14 +5,14 @@ from django.test import TestCase
 
 from assets.models import Asset, AssetChainDeployment
 from assets.services.identity import native_asset_for_chain
-from users.models import UserAccount
+from shared.tests.tenants import an_account
 from wallets.models import Holding, Transaction, Wallet
 from wallets.services import transaction_confirmation
 
 
 class DisabledNativeSettlementTest(TestCase):
     def setUp(self):
-        account = UserAccount.objects.create(account_number="NATIVE-SETTLEMENT")
+        account = an_account("disabled-native-settlement", account_number="NATIVE-SETTLEMENT")
         self.wallet = Wallet.objects.create(user_account=account, address="0x" + "a" * 40, chain="base")
         self.native = native_asset_for_chain("base")
         self.token = Asset.objects.create(symbol="PAY", name="Payment", asset_type="erc20_token", is_verified=True)

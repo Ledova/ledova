@@ -143,9 +143,7 @@ class TransferOrderCreateSerializer(serializers.Serializer):
         )
 
         if wallet is None:
-            raise serializers.ValidationError(
-                {"wallet_uuid": "Select a wallet from the specified account that you currently belong to."}
-            )
+            raise serializers.ValidationError({"wallet_uuid": "Select a wallet from your own account."})
 
         if not Web3.is_address(wallet.address):
             raise serializers.ValidationError({"wallet_uuid": "The selected wallet has an invalid EVM address."})

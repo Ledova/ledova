@@ -34,17 +34,14 @@ class UsersAdminPagesTest(TestCase):
         self.client.force_login(self.admin)
         user = User.objects.create_user(email="member@example.test", password="pw-12345678")
         profile = UserProfile.objects.create(user=user, full_name="Member", phone_country_code="+61", phone_number="4")
-        account = UserAccount.objects.create(account_number="ADMIN-ACC", director=profile)
-        account.user_profiles.add(profile)
+        account = UserAccount.objects.create(account_number="ADMIN-ACC", director=profile, user_profile=profile)
         portfolio = Portfolio.objects.create(user_account=account, name="Admin portfolio")
         asset = Asset.objects.create(symbol="ADM", name="Admin asset", asset_type="tokenized_security", is_active=True)
         self.instances = [
             profile,
             account,
             FinancialProfile.objects.create(user_profile=profile, occupation="Tester"),
-            UserPreferences.objects.create(
-                user_profile=profile, selected_account=account, selected_portfolio=portfolio
-            ),
+            UserPreferences.objects.create(user_profile=profile, selected_portfolio=portfolio),
             NotificationPreferences.objects.create(user_profile=profile),
             FavouriteAsset.objects.create(user_account=account, asset=asset),
             DeviceToken.objects.create(user=user, push_token="ExponentPushToken[admin]", device_type="ios"),

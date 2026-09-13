@@ -62,7 +62,6 @@ export interface AccountExportData {
   } | null;
   preferences: {
     selectedPortfolio: string | null;
-    selectedAccount: string | null;
   } | null;
   financialProfile: {
     occupation: string | null;

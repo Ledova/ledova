@@ -91,8 +91,7 @@ class BroadcastTransferGuardTestCase(APITestCase):
 
         self.user = get_user_model().objects.create_user(email="broadcast@example.test", password="pw-12345678")
         profile = UserProfile.objects.create(user=self.user)
-        self.account = UserAccount.objects.create(account_number="BROADCAST")
-        self.account.user_profiles.add(profile)
+        self.account = UserAccount.objects.create(account_number="BROADCAST", user_profile=profile)
         self.wallet = Wallet.objects.create(
             user_account=self.account, address=WALLET_ADDRESS, chain="base", verification_status="VERIFIED"
         )

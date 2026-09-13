@@ -109,7 +109,7 @@ let handler: (config: InternalAxiosRequestConfig) => Promise<AxiosResponse>;
 function setAccount(account = accountUuid) {
   client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
-    data: { userProfile: userUuid, selectedAccount: { uuid: account } },
+    data: { userProfile: userUuid, userAccount: { uuid: account } },
   });
 }
 function wrapper({ children }: PropsWithChildren) {

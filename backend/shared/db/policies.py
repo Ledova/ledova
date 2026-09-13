@@ -13,6 +13,7 @@ PRINCIPAL = "NULLIF(current_setting('app.user_id', true), '')::bigint"
 ADMITTED = f"{PRINCIPAL} IS NOT NULL"
 
 MEMBER_ACCOUNTS = "app_member_account_ids"
+PRINCIPAL_PROFILES = "app_principal_profile_ids"
 VISIBLE_COMPANIES = "app_visible_company_ids"
 MANAGEABLE_COMPANIES = "app_manageable_company_ids"
 PUBLIC_COMPANIES = "app_public_company_ids"
@@ -28,25 +29,17 @@ ISSUES_THE_OFFERING = (
     "offering_id IN (SELECT uuid FROM offerings_offering " f"WHERE company_id IN (SELECT {VISIBLE_COMPANIES}()))"
 )
 
-SIGNS_FOR_A_COMPANY = (
-    "EXISTS (SELECT 1 FROM companies_company operating WHERE operating.operator_wallet_id = wallets.uuid)"
-)
-HOLDS_A_SIGNING_WALLET = (
-    "EXISTS (SELECT 1 FROM wallets signing JOIN companies_company operating "
-    "ON operating.operator_wallet_id = signing.uuid "
-    "WHERE signing.user_account_id = customer_accounts_account.uuid)"
-)
 HAS_A_TOKEN_ON_THE_MARKET = (
     "EXISTS (SELECT 1 FROM tokens_sharetoken listed "
     f"WHERE listed.company_id = companies_company.uuid AND {on_the_market('listed.')})"
 )
 
 HELPERS = {
+    PRINCIPAL_PROFILES: f"SELECT uuid FROM users_userprofile WHERE user_id = {PRINCIPAL}",
     MEMBER_ACCOUNTS: f"""
-        SELECT membership.useraccount_id
-          FROM customer_accounts_account_user_profiles membership
-          JOIN users_userprofile profile ON profile.uuid = membership.userprofile_id
-         WHERE profile.user_id = {PRINCIPAL}
+        SELECT uuid
+          FROM customer_accounts_account
+         WHERE user_profile_id IN (SELECT {PRINCIPAL_PROFILES}())
     """,
     VISIBLE_COMPANIES: f"SELECT uuid FROM companies_company WHERE owner_id = {PRINCIPAL}",
     MANAGEABLE_COMPANIES: f"SELECT uuid FROM companies_company WHERE owner_id = {PRINCIPAL}",
@@ -55,16 +48,34 @@ HELPERS = {
 
 IDENTICAL_TODAY = (VISIBLE_COMPANIES, MANAGEABLE_COMPANIES)
 
-DIRECTS_THE_ACCOUNT = f"director_id IN (SELECT uuid FROM users_userprofile WHERE user_id = {PRINCIPAL})"
+BYPASSES_THE_POLICIES = (PRINCIPAL_PROFILES, MEMBER_ACCOUNTS)
 
-LEAF_TABLES = ("companies_company", "users_userprofile", "customer_accounts_account_user_profiles")
+OWNS_THE_ACCOUNT = f"user_profile_id IN (SELECT {PRINCIPAL_PROFILES}())"
+
+LEAF_TABLES = ("companies_company",)
+
+
+def subscribed_to_my_offering(column, table):
+    return (
+        "EXISTS (SELECT 1 FROM offerings_subscription bid "
+        "JOIN offerings_offering listed ON listed.uuid = bid.offering_id "
+        f"WHERE listed.company_id IN (SELECT {VISIBLE_COMPANIES}()) AND bid.{column} = {table}.uuid)"
+    )
+
+
+A_SUBSCRIBING_ACCOUNT = subscribed_to_my_offering("user_account_id", "customer_accounts_account")
+A_SUBSCRIBING_WALLET = subscribed_to_my_offering("wallet_id", "wallets")
+A_SUBSCRIBING_HOLDER = (
+    "EXISTS (SELECT 1 FROM customer_accounts_account holding "
+    "JOIN offerings_subscription bid ON bid.user_account_id = holding.uuid "
+    "JOIN offerings_offering listed ON listed.uuid = bid.offering_id "
+    f"WHERE listed.company_id IN (SELECT {VISIBLE_COMPANIES}()) "
+    "AND holding.user_profile_id = users_userprofile.uuid)"
+)
 
 
 def _owned_through_the_profile(table):
-    return (
-        f"EXISTS (SELECT 1 FROM users_userprofile owning "
-        f"WHERE owning.uuid = {table}.user_profile_id AND owning.user_id = {PRINCIPAL})"
-    )
+    return f"{table}.user_profile_id IN (SELECT {PRINCIPAL_PROFILES}())"
 
 
 def _member(column):
@@ -130,11 +141,7 @@ POLICIES = {
         f"owner_id = {PRINCIPAL} OR ({OPEN_TO_INVESTORS}) OR {HAS_A_TOKEN_ON_THE_MARKET}",
         f"owner_id = {PRINCIPAL}",
     ),
-    "users_userprofile": (f"user_id = {PRINCIPAL}", f"user_id = {PRINCIPAL}"),
-    "customer_accounts_account_user_profiles": (
-        f"userprofile_id IN (SELECT uuid FROM users_userprofile WHERE user_id = {PRINCIPAL})",
-        f"userprofile_id IN (SELECT uuid FROM users_userprofile WHERE user_id = {PRINCIPAL})",
-    ),
+    "users_userprofile": (f"user_id = {PRINCIPAL} OR {A_SUBSCRIBING_HOLDER}", f"user_id = {PRINCIPAL}"),
     "documents": (f"uploaded_by_id = {PRINCIPAL}", f"uploaded_by_id = {PRINCIPAL}"),
     "users_device_token": (f"user_id = {PRINCIPAL}", f"user_id = {PRINCIPAL}"),
     "notifications": (f"user_id = {PRINCIPAL}", f"user_id = {PRINCIPAL}"),
@@ -150,8 +157,8 @@ POLICIES = {
         _owned_through_the_profile("users_userpreferences"),
         _owned_through_the_profile("users_userpreferences"),
     ),
-    "customer_accounts_account": (f"{_member('uuid')} OR {HOLDS_A_SIGNING_WALLET}", _member("uuid")),
-    "wallets": (f"{_member('user_account_id')} OR {SIGNS_FOR_A_COMPANY}", _member("user_account_id")),
+    "customer_accounts_account": (f"{OWNS_THE_ACCOUNT} OR {A_SUBSCRIBING_ACCOUNT}", OWNS_THE_ACCOUNT),
+    "wallets": (f"{_member('user_account_id')} OR {A_SUBSCRIBING_WALLET}", _member("user_account_id")),
     "transactions": (_member("user_account_id"), _member("user_account_id")),
     "wallets_walletsubmission": (_member("user_account_id"), _member("user_account_id")),
     "wallets_bitcoinsubmission": (_member("user_account_id"), _member("user_account_id")),
@@ -331,17 +338,20 @@ PUBLIC_TERM = {
     "The read term adds the offerings the principal's companies own; WITH CHECK stays member-only, because "
     "an issuer does not write a subscription on someone's behalf. No cycle: offerings_offering's policy "
     "does not read subscriptions.",
-    "customer_accounts_account": "R14, one link along from wallets: the account that holds a company's "
-    "operator wallet is the platform's account. R13 found it the moment the wallet became visible - the "
-    "wallet's user_account is not nullable, so select_related would have deleted the wallet row it had just "
-    "been allowed to see. The term reads wallets, which reads companies_company, which reads "
-    "tokens_sharetoken, which reads nothing back.",
-    "wallets": "R14: a wallet named as a company's operator_wallet is the platform's row, not a tenant's. A "
-    "viewer who may see the company must be able to see it, or the join reports a company with no operator "
-    "wallet - the same defect as a deleted row, one column along and quieter. The term reads "
-    "companies_company, which reads tokens_sharetoken, which reads nothing back, so there is no cycle now "
-    "and none after tokens/0024 makes that policy a leaf. Writes stay owner-only: nobody edits the "
-    "platform's wallet from the scoped connection.",
+    "customer_accounts_account": "An issuer must know who subscribed to their own offering: "
+    "for_issuer select_relates the subscribing account, and a hidden account deletes the subscription row "
+    "the issuer was allowed to see. The term is the subscription, not the market - a stranger browsing "
+    "companies reaches no account at all. R14 used to let an account through for holding a company's "
+    "operator wallet, and one account per person turned that into the holder's name, phone and address, "
+    "so it is gone. The term reads offerings_subscription, which reads offerings_offering, which reads "
+    "companies_company, which reads nothing back.",
+    "wallets": "The same subscription, one column along: for_issuer select_relates the wallet as well, and "
+    "the subscription serializer prints its address. A wallet is on the account that subscribed, so the "
+    "wallet term and the account term open together and R13's closure holds by construction.",
+    "users_userprofile": "The register is a name and an address, so an issuer reading their own "
+    "subscriptions reads the subscriber's profile. The account is visible to that issuer already and "
+    "user_profile_id is not nullable, so without this term select_related would delete the account row and "
+    "the subscription with it. The term is the same subscription predicate, one link further.",
     "companies_company": "Two reasons past ownership, and both were measured rather than argued. The "
     "directory reads companies through open_to_investors() rather than visible_to_user, so an owner-only "
     "policy empties the browse surface every investor starts on. And the secondary market joins the company "
@@ -358,7 +368,6 @@ PUBLIC_TERM = {
 }
 
 INSERTABLE = {
-    "customer_accounts_account": f"{_member('uuid')} OR {DIRECTS_THE_ACCOUNT}",
     "tokens_swaporder": A_VERIFIED_PARTY_TO_THE_SWAP,
 }
 
@@ -373,17 +382,6 @@ INSERT_ONLY_REASONS = {
         "together, so it cannot move to another connection without the swap surviving a rollback that "
         "takes the rest. Every transition afterwards - executing, failed, completed, the hashes - is "
         "the relayer's work and runs as the operator, so no counterparty can move a swap it is in."
-    ),
-    "customer_accounts_account": (
-        "You may create an account you direct, and write to accounts you are a member of. A new user's "
-        "first account cannot satisfy the member term at insert: ensure_defaults creates the row and adds "
-        "the membership on the next line, so the member term is false for the statement that creates it "
-        "and true for every statement after. The director is known at insert, so INSERT WITH CHECK admits "
-        "it and UPDATE WITH CHECK and DELETE USING do not - widening deletion to a director is a separate "
-        "decision nobody has taken (R19). The read term is not widened either, so between the insert and "
-        "the membership a director holds a row it can neither see nor delete: ensure_defaults carries "
-        "@atomic() from shared.db, which opens on the alias its queries go to and wraps the create and "
-        "the membership together, so there is no state where one exists without the other."
     ),
 }
 

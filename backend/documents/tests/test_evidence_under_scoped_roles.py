@@ -58,18 +58,6 @@ class ScopedSupportingEvidenceTest(RunsOnTheScopedConnection, APITransactionTest
             )
             self.assertEqual(Document.objects.filter(pk=self.owner.document.pk).count(), 1)
 
-    def test_losing_claim_membership_hides_the_linked_document_without_a_broken_join(self):
-        self.signed_in_as(self.owner.user)
-        url = f"/api/v1/documents/{self.owner.document.pk}/"
-        response = self.client.post(
-            url + "attach/", {"classification": str(self.owner.investor_classification.pk)}, format="json"
-        )
-        self.assertEqual(response.status_code, 200, response.content)
-        with use_operator():
-            self.owner.account.user_profiles.remove(self.owner.profile)
-        for suffix in ("", "file/"):
-            self.assertEqual(self.client.get(url + suffix).status_code, 404)
-
     @override_settings(UNATTACHED_DOCUMENT_RETENTION_DAYS=1)
     def test_the_periodic_retention_sweep_uses_operator_scope_across_uploaders(self):
         ids = [self.owner.document.pk, self.other.document.pk]

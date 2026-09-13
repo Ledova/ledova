@@ -24,9 +24,12 @@ def make_investor(label, *, account_status="active", id_verified=True, staff=Fal
     )
     profile = UserProfile.objects.create(user=user, full_name=f"{label} holder", is_id_verified=id_verified)
     account = UserAccount.objects.create(
-        account_number=f"ACC-{label.upper()}"[:20], account_status=account_status, role=role, director=profile
+        account_number=f"ACC-{label.upper()}"[:20],
+        account_status=account_status,
+        role=role,
+        director=profile,
+        user_profile=profile,
     )
-    account.user_profiles.add(profile)
     return user, account
 
 

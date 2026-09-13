@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from assets.models import Asset
-from users.models import UserAccount
+from shared.tests.tenants import an_account
 from wallets.constants import (
     SNAPSHOT_REASON_CHOICES,
     SNAPSHOT_REASON_DAILY,
@@ -17,7 +17,7 @@ from wallets.services.sync import sync_wallet
 
 class WalletSyncServiceTest(TestCase):
     def setUp(self):
-        account = UserAccount.objects.create(account_number="SYNC-ACC")
+        account = an_account("sync-service", account_number="SYNC-ACC")
         self.wallet = Wallet.objects.create(
             user_account=account,
             address="0x" + "c" * 40,

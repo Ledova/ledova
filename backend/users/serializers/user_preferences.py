@@ -4,7 +4,7 @@ from portfolios.models.portfolio import Portfolio
 from users.models import UserAccount, UserPreferences
 
 
-class SelectedAccountSerializer(serializers.ModelSerializer):
+class AccountSummarySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserAccount
@@ -25,9 +25,7 @@ class SelectedPortfolioSerializer(serializers.ModelSerializer):
 class UserPreferencesSerializer(serializers.ModelSerializer):
 
     user_profile = serializers.PrimaryKeyRelatedField(read_only=True)
-    selected_account = serializers.PrimaryKeyRelatedField(
-        required=False, allow_null=True, queryset=UserAccount.objects.none()
-    )
+    user_account = AccountSummarySerializer(source="user_profile.user_account", read_only=True)
     selected_portfolio = serializers.PrimaryKeyRelatedField(
         required=False, allow_null=True, queryset=Portfolio.objects.none()
     )
@@ -42,39 +40,16 @@ class UserPreferencesSerializer(serializers.ModelSerializer):
 
         if request and request.user:
             user_profile = getattr(request.user, "userprofile", None)
-            if user_profile:
-                fields["selected_account"].queryset = user_profile.user_accounts.all()
-
-                user_portfolios = Portfolio.objects.filter(user_account__in=user_profile.user_accounts.all())
-                fields["selected_portfolio"].queryset = user_portfolios
+            account = getattr(user_profile, "user_account", None) if user_profile else None
+            if account:
+                fields["selected_portfolio"].queryset = Portfolio.objects.filter(user_account=account)
 
         return fields
 
-    def validate(self, data):
-        selected_account = data.get("selected_account")
-        selected_portfolio = data.get("selected_portfolio")
-
-        if selected_portfolio and not selected_account:
-            data["selected_account"] = selected_account = selected_portfolio.user_account
-
-        if selected_portfolio and selected_account and selected_portfolio.user_account != selected_account:
-            raise serializers.ValidationError(
-                {"selected_portfolio": "The selected portfolio must belong to the selected account."}
-            )
-
-        return data
-
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        live_account_ids = set(instance.user_profile.user_accounts.values_list("pk", flat=True))
-
-        if instance.selected_account_id in live_account_ids:
-            representation["selected_account"] = SelectedAccountSerializer(instance.selected_account).data
-        else:
-            representation["selected_account"] = None
-
         still_visible = Portfolio.objects.filter(
-            pk=instance.selected_portfolio_id, user_account__in=live_account_ids
+            pk=instance.selected_portfolio_id, user_account=instance.user_profile.user_account
         ).first()
         representation["selected_portfolio"] = (
             SelectedPortfolioSerializer(still_visible).data if still_visible else None

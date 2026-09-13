@@ -68,7 +68,7 @@ class AuthRequestsUseTheAppRoleTest(RunsOnTheScopedConnection, APITransactionTes
         with use_operator():
             user = User.objects.get(email="new-scoped@example.test")
             profile = UserProfile.objects.get(user=user)
-            account = profile.user_accounts.get()
+            account = profile.user_account
             self.assertEqual(account.director_id, profile.pk)
             self.assertTrue(account.portfolios.exists())
             self.assertFalse(profile.is_signup_completed)
@@ -138,20 +138,22 @@ class RequestTransactionsUseTheAppRoleTest(StubUploadDependencies, RunsOnTheScop
         self.assertEqual(response.status_code, 201, response.content)
         with use_operator():
             account = UserAccount.objects.get(uuid=response.json()["uuid"])
-            self.assertEqual(list(account.user_profiles.values_list("pk", flat=True)), [self.profile.pk])
+            self.assertEqual(account.user_profile_id, self.profile.pk)
 
-    def test_joint_account_retains_no_director_and_cannot_link_a_client_supplied_profile(self):
+    def test_a_client_supplied_director_cannot_replace_the_requester(self):
         with use_operator():
             other = User.objects.create_user(email="foreign-director@example.test", password=PASSWORD)
             foreign_profile = UserProfile.objects.create(user=other)
         response = self.client.post(
-            "/api/user-accounts/", {"accountType": "joint", "director": str(foreign_profile.pk)}, format="json"
+            "/api/user-accounts/",
+            {"accountType": "individual", "director": str(foreign_profile.pk)},
+            format="json",
         )
         self.assertEqual(response.status_code, 201, response.content)
         with use_operator():
             account = UserAccount.objects.get(uuid=response.json()["uuid"])
-            self.assertIsNone(account.director_id)
-            self.assertEqual(list(account.user_profiles.values_list("pk", flat=True)), [self.profile.pk])
+            self.assertEqual(account.director_id, self.profile.pk)
+            self.assertEqual(account.user_profile_id, self.profile.pk)
 
     def test_failed_document_enqueue_leaves_no_row_on_either_connection(self):
         with patch("documents.services.document.extract_document.defer", side_effect=RuntimeError("probe")) as defer:

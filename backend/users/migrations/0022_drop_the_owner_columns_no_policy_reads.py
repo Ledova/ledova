@@ -32,7 +32,6 @@ def _column(table, model):
 class Migration(migrations.Migration):
     dependencies = [
         ("users", "0021_trigger_types_from_the_column"),
-        ("shared", "0010_policies_for_the_tables_that_had_none"),
     ]
 
     operations = [migrations.RunPython(drop_the_derivation, migrations.RunPython.noop)] + [

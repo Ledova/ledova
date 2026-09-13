@@ -6,7 +6,7 @@ from unittest import skipUnless
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
-from django.db import ProgrammingError, connections
+from django.db import connections
 from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
 
@@ -583,13 +583,13 @@ class ScopedHistoryPreservationTest(RunsOnTheScopedConnection, HistoryPreservati
         self.assertEqual(self.state(), before)
         self.assertEqual(self.check_receipt(data, self.receipt_client())["status"], "confirmed")
 
-    def test_a_visible_foreign_operator_wallet_cannot_receive_history(self):
+    def test_a_foreign_operator_wallet_is_hidden_and_cannot_receive_history(self):
         with use_operator():
             other = make_tenant("foreign-history")
             before = list(Transaction.objects.filter(wallet=other.wallet).values())
         with acting_for(self.tenant.user.pk):
-            self.assertTrue(Wallet.objects.filter(pk=other.wallet.pk).exists())
-        with self.assertRaisesRegex(ProgrammingError, "row-level security policy"):
+            self.assertFalse(Wallet.objects.filter(pk=other.wallet.pk).exists())
+        with self.assertRaises(Wallet.DoesNotExist):
             self.import_history(self.history(), wallet=other.wallet)
         with use_operator():
             self.assertEqual(list(Transaction.objects.filter(wallet=other.wallet).values()), before)

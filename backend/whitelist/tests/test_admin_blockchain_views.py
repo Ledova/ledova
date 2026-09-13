@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from users.models import UserAccount
+from shared.tests.tenants import an_account
 from wallets.models import Wallet
 from whitelist.models import WhitelistEntry
 from whitelist.models.choices import WhitelistStatus
@@ -21,7 +21,7 @@ class WhitelistAdminBlockchainConfirmViewsTest(TestCase):
     def setUp(self):
         self.admin = User.objects.create_superuser(email="admin-whitelist@ex.com", password="pw-12345678")
         self.client.force_login(self.admin)
-        account = UserAccount.objects.create()
+        account = an_account("admin-blockchain-views")
         self.pending_entry = WhitelistEntry.objects.create(
             wallet=Wallet.objects.create(user_account=account, address="0x" + "c" * 40, chain="ethereum")
         )

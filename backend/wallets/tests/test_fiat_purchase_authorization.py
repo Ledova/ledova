@@ -14,8 +14,7 @@ class FiatPurchaseAuthorizationTest(APITestCase):
     def make_tenant(self, label):
         user = User.objects.create_user(email=f"{label}@fiat.example.test", password="pw-12345678")
         profile = UserProfile.objects.create(user=user)
-        account = UserAccount.objects.create(account_number=f"FIAT-{label.upper()}")
-        account.user_profiles.add(profile)
+        account = UserAccount.objects.create(account_number=f"FIAT-{label.upper()}", user_profile=profile)
         wallet = Wallet.objects.create(
             user_account=account,
             address="0x" + ("a" if label == "alice" else "b") * 40,

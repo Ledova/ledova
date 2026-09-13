@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from blockchain.models import BlockchainTransaction, TransactionStatus, TransactionType
-from users.models import UserAccount
+from shared.tests.tenants import an_account
 from wallets.models import Wallet
 from whitelist.models import WhitelistEntry, WhitelistStatus
 from whitelist.services import WhitelistService
@@ -17,7 +17,7 @@ REMOVE_HASH = "0x" + "22" * 32
 class AFailedAddTheChainContradictsIsReconciledTest(TestCase):
 
     def setUp(self):
-        self.account = UserAccount.objects.create()
+        self.account = an_account("failed-adds-are-reconciled")
         self.wallet = Wallet.objects.create(user_account=self.account, address="0x" + "a" * 40, chain="base")
 
     def an_entry(

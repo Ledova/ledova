@@ -23,7 +23,7 @@ function setup() {
   });
   clients.push(query);
   const preferences = {
-    data: { userProfile: settlementOwner.userUuid, selectedAccount: { uuid: settlementOwner.ownerAccountUuid } },
+    data: { userProfile: settlementOwner.userUuid, userAccount: { uuid: settlementOwner.ownerAccountUuid } },
   };
   query.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   query.setQueryData(USER_PREFERENCES_QUERY_KEY, preferences);
@@ -142,7 +142,7 @@ test.each(['account', 'session', 'logout', 'wallet'] as const)(
     act(() => {
       if (change === 'account')
         f.query.setQueryData(USER_PREFERENCES_QUERY_KEY, {
-          data: { ...f.preferences.data, selectedAccount: { uuid: '20000000-0000-4000-8000-000000000099' } },
+          data: { ...f.preferences.data, userAccount: { uuid: '20000000-0000-4000-8000-000000000099' } },
         });
       if (change === 'session') f.nextEpoch();
       if (change === 'logout') f.query.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } });

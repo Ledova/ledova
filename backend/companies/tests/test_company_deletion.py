@@ -75,8 +75,7 @@ class CompanyDeletionTest(APITestCase):
         )
         investor = User.objects.create_user(email="investor@deletion.test", password="pw-12345678")
         profile = UserProfile.objects.create(user=investor, full_name="Ivy Investor")
-        self.account = UserAccount.objects.create(account_number="DEL-1")
-        self.account.user_profiles.add(profile)
+        self.account = UserAccount.objects.create(account_number="DEL-1", user_profile=profile)
         self.wallet = Wallet.objects.create(user_account=self.account, address=HOLDER, chain="base")
         self.subscription = Subscription.objects.create(
             offering=self.offering,

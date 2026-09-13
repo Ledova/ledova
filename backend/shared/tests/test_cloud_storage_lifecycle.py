@@ -17,7 +17,8 @@ from companies.models import Company, CompanyDocument
 from documents.models import Document, DocumentType
 from shared.services.orphaned_files import GRACE, sweep_orphaned_files
 from shared.storage import private_file_fields
-from users.models import InvestorClassification, UserAccount
+from shared.tests.tenants import an_account
+from users.models import InvestorClassification
 
 PDF = b"%PDF-1.4 synthetic cloud lifecycle fixture"
 
@@ -182,7 +183,7 @@ class CloudStorageLifecycleTest(TransactionTestCase):
         for backend in ("s3", "gcs"):
             with self.subTest(backend=backend), self.cloud_storage(backend) as (storage, objects):
                 classification = InvestorClassification.objects.create(
-                    user_account=UserAccount.objects.create(),
+                    user_account=an_account("cloud-storage-lifecycle"),
                     category="product_value",
                     declaration_accepted=True,
                     declaration_text="Synthetic declaration",

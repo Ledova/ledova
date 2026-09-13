@@ -18,7 +18,7 @@ class TransferOrderQuerySet(QuerySet):
         return (
             self.ownership_bound()
             .filter(
-                owner_account__user_profiles__user=user,
+                owner_account__user_profile__user=user,
             )
             .distinct()
         )

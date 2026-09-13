@@ -11,22 +11,18 @@ from offerings.tests.factories import (
     configure_operator,
     draft_subscription,
     eligible_subscriber,
-    extra_wallet,
     open_offering,
 )
 from shared.tests.tenants import make_tenant
-from users.constants import ACCOUNT_STATUS_ACTIVE
 from users.exceptions import InvestorNotEligibleException
 from users.models import (
     InvestorCategory,
     InvestorClassification,
     InvestorClassificationStatus,
-    UserAccount,
 )
 from users.services.eligibility import (
     AMOUNT_BELOW_PRODUCT_VALUE_THRESHOLD,
     NO_LIVE_CLASSIFICATION,
-    investor_eligibility,
 )
 
 
@@ -37,29 +33,10 @@ class SubscriptionEligibilityScopeTest(TestCase):
         self.offering = open_offering(self.tenant)
         eligible_subscriber(self.tenant)
 
-        self.unqualified = UserAccount.objects.create(
-            account_number="ACCT-SECOND", account_status=ACCOUNT_STATUS_ACTIVE
-        )
-        self.unqualified.user_profiles.add(self.tenant.profile)
-        self.second_wallet = extra_wallet(self.tenant, "7")
-        self.second_wallet.user_account = self.unqualified
-        self.second_wallet.save(update_fields=["user_account"])
-
     def _draft_on(self, account, wallet, quantity=10):
         return create_draft(self.offering, account, wallet, quantity, submitted_by=self.tenant.user)
 
-    def test_the_users_first_account_qualifying_does_not_carry_the_second(self):
-        self.assertTrue(investor_eligibility(self.tenant.user).is_eligible)
-
-        subscription = self._draft_on(self.unqualified, self.second_wallet)
-        with self.assertRaises(InvestorNotEligibleException) as raised:
-            submit(subscription, submitted_by=self.tenant.user)
-
-        self.assertEqual(raised.exception.reasons, (NO_LIVE_CLASSIFICATION,))
-        subscription.refresh_from_db()
-        self.assertEqual(subscription.status, SubscriptionStatus.DRAFT)
-
-    def test_the_qualified_account_of_the_same_user_still_subscribes(self):
+    def test_a_qualified_account_subscribes(self):
         subscription = self._draft_on(self.tenant.account, self.tenant.wallet)
         submit(subscription, submitted_by=self.tenant.user)
         subscription.refresh_from_db()

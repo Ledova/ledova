@@ -7,7 +7,7 @@ import { useWalletsCrud } from './useWalletsCrud';
 
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));
 jest.mock('../../hooks/useUserPreferences', () => ({
-  useUserPreferences: () => ({ selectedAccount: { uuid: 'owner' } }),
+  useUserPreferences: () => ({ userAccount: { uuid: 'owner' } }),
 }));
 jest.mock('../../_mock/mockDataEnabled', () => ({ mockDataEnabled: () => false }));
 

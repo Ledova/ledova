@@ -22,7 +22,7 @@ export function useUserPreferences() {
   return {
     preferences,
     selectedPortfolio: preferences?.selectedPortfolio ?? null,
-    selectedAccount: preferences?.selectedAccount ?? null,
+    userAccount: preferences?.userAccount ?? null,
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,

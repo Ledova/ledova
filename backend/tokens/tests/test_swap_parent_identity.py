@@ -16,7 +16,7 @@ from feature_flags.models import FeatureFlag
 from shared.db import atomic, current_alias, reset_principal, use_operator
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
-from shared.tests.tenants import make_tenant
+from shared.tests.tenants import a_profile, make_tenant
 from tokens.models import (
     SwapOrder,
     SwapOrderStatus,
@@ -33,6 +33,7 @@ from tokens.tests.swap_state_fixtures import (
     make_swap,
     swap_service,
 )
+from users.models import UserAccount
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 
@@ -226,9 +227,10 @@ class SwapParentMigrationTest(TransactionTestCase):
                     orders.filter(pk=self.parent.pk).update(**{k: self.parent_before[k] for k in changes})
         migrate_to(AFTER)
 
-    def test_valid_v1_history_survives_retired_verification_and_membership(self):
+    def test_valid_v1_history_survives_retired_verification_and_reassignment(self):
         Wallet.objects.filter(pk=self.swap.seller_wallet_id).update(verification_status="UNVERIFIED")
-        self.parent.owner_account.user_profiles.clear()
+        successor = a_profile("parent-drift-successor")
+        UserAccount.objects.filter(pk=self.parent.owner_account_id).update(user_profile=successor)
         swaps = self.old_apps.get_model("tokens", "SwapOrder").objects
         orders = self.old_apps.get_model("tokens", "TransferOrder").objects
         before = list(swaps.order_by("pk").values()), list(orders.order_by("pk").values())
@@ -497,14 +499,17 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
         self.assertTrue(SwapOrder.objects.filter(pk=new_swap.pk).exists())
         self.assert_private_boundary()
 
-    def test_membership_removed_after_verification_prevents_real_route_persistence(self):
+    def test_seller_account_reassigned_after_verification_prevents_real_route_persistence(self):
         verify = AtomicSwapService.verify_signature
+        with use_operator():
+            successor = a_profile("private-successor")
+        seller_account = self.parties["seller"].account
 
         def retire(service, *args):
             valid = verify(service, *args)
             self.assertTrue(valid)
             with use_operator():
-                self.parties["seller"].account.user_profiles.remove(self.parties["seller"].profile)
+                UserAccount.objects.filter(pk=seller_account.pk).update(user_profile=successor)
             return valid
 
         with patch.object(AtomicSwapService, "verify_signature", retire):
@@ -515,7 +520,7 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
         self.assertFalse(self.swap.buyer_signature)
         self.event.assert_not_called()
         with use_operator():
-            self.parties["seller"].account.user_profiles.add(self.parties["seller"].profile)
+            UserAccount.objects.filter(pk=seller_account.pk).update(user_profile=self.parties["seller"].profile)
         self.assertEqual(self.post_signature("buyer").status_code, 200)
 
     def test_bound_caller_cannot_rebind_child_identity_or_use_wrong_route_identity(self):

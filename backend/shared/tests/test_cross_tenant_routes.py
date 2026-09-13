@@ -327,9 +327,9 @@ ROUTES = (
     Route(
         "post",
         "/api/user-preferences/",
-        {"selectedAccount": "{account}"},
+        {"selectedPortfolio": "{portfolio}"},
         foreign=400,
-        rejects="selectedAccount",
+        rejects="selectedPortfolio",
     ),
     Route(
         "post",

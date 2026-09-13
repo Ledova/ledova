@@ -41,8 +41,7 @@ class UnknownTokenQuarantineTest(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(email="quarantine@example.test", password="pw-12345678")
         profile = UserProfile.objects.create(user=self.user)
-        self.account = UserAccount.objects.create(account_number="QUARANTINE")
-        self.account.user_profiles.add(profile)
+        self.account = UserAccount.objects.create(account_number="QUARANTINE", user_profile=profile)
         self.wallet = Wallet.objects.create(
             user_account=self.account, address="0x" + "d" * 40, chain="ethereum", verification_status="VERIFIED"
         )

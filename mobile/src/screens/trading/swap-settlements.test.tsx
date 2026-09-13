@@ -149,7 +149,7 @@ function selectedWallet(role: 'seller' | 'buyer' = 'seller'): Wallet {
 function account(value = current.ownerAccountUuid) {
   client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
-    data: { userProfile: owner.userUuid, selectedAccount: { uuid: value } },
+    data: { userProfile: owner.userUuid, userAccount: { uuid: value } },
   });
 }
 function wrapper({ children }: { children: React.ReactNode }) {

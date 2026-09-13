@@ -11,7 +11,7 @@ class FavouriteAssetAdmin(admin.ModelAdmin):
         "asset__symbol",
         "asset__name",
         "user_account__account_number",
-        "user_account__user_profiles__user__email",
+        "user_account__user_profile__user__email",
     )
     list_filter = ("asset__asset_type", "user_account", "created_at")
     readonly_fields = ("uuid", "created_at", "updated_at")
