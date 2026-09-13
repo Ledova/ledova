@@ -116,10 +116,10 @@ Where a rule and a file disagree, the rule wins and the file is the backlog.
 | Layer | Owns | Never contains | Reference |
 | --- | --- | --- | --- |
 | `models/` | Fields, `TextChoices`, constraints, `__str__`, properties over own fields, single-row transitions (guard, set fields, `save(update_fields=...)`, at most about ten lines, raising the app's `APIException` on a bad state) | Queries on other models, multi-step workflows, external I/O | `offerings/models/offering.py` |
-| `querysets/` | Every reusable query: `visible_to_user`, `manageable_by_user`, status filters, `select_related` bundles, annotations, aggregates; wired with `objects = XQuerySet.as_manager()` | Saves, side effects, calls into services | `offerings/querysets/offering.py` |
+| `querysets/` | Every reusable query: product selectors, status filters, `select_related` bundles, annotations, aggregates; wired with `objects = XQuerySet.as_manager()` | Saves, side effects, calls into services | `offerings/querysets/offering.py` |
 | `services/` | Orchestration across models, external I/O (chain, KYC, email), `transaction.atomic` and `select_for_update`; the one place a multi-model workflow lives. Plain module-level `verb_noun` functions, named after the noun | HTTP objects, serializers, `Response` | `offerings/services/subscription.py` |
-| `serializers/` | JSON shape and input validation; writable FKs scoped in `get_fields()` with `visible_to_user` | Business rules, locking, queries beyond FK scoping | `offerings/serializers/subscription.py` |
-| `views/` | Permissions, `get_queryset()` returning `Model.objects.visible_to_user(user)...`, serializer choice, one service call, `Response` | Raw `.objects.filter`, try/except that re-wraps an `APIException`, log lines that restate the request | `offerings/views/subscription.py` |
+| `serializers/` | JSON shape and input validation; writable FKs constrained in `get_fields()` by policies and product selectors | Business rules, locking, queries beyond FK scoping | `offerings/serializers/subscription.py` |
+| `views/` | Permissions, `scoped_model` plus product filtering in `narrow()`, serializer choice, one service call, `Response` | Raw `.objects.filter`, try/except that re-wraps an `APIException`, log lines that restate the request | `offerings/views/subscription.py` |
 | `tasks/` | `@app.task` / `@app.periodic`: load the row by uuid, call one service, return a dict | Orchestration, state machines | `users/tasks/retention.py` |
 | `admin/` | Registration, list/search/filter, operator actions that call the same model transition or service the API calls | A second implementation of a workflow, HTML badge builders | `users/admin/investor_classification.py` |
 
@@ -399,7 +399,7 @@ reconstruct overwritten reviewer notes or infer missing execution events.
    whole number of shares. Every writable FK is scoped in `get_fields()`: the
    offering to `Offering.objects.open_now()` inside
    `eligible_investor_companies(user)`, the account to the caller's investing
-   accounts, the wallet to `visible_to_user(user).verified_evm()` on Base.
+   accounts, the wallet to `owned_by(user).verified_evm()` on Base.
    `create_draft` snapshots the offering price onto the row, so a later price
    edit cannot move a live subscription.
 2. `POST .../submit/` runs `require_subscription_eligibility(account, company,
@@ -504,7 +504,7 @@ reconstruct overwritten reviewer notes or infer missing execution events.
    and withdraw for the investor and no operator write route. The issuer reads
    its own offering's subscriptions at `GET
    /api/v1/offerings/{uuid}/subscriptions/`, scoped by the offering's own
-   `visible_to_user` and read-only, so payment confirmed and allotment pending
+   `subscribed_by(user)` and read-only, so payment confirmed and allotment pending
    are visible without a second writable surface. `ShareIssuanceListSerializer`
    carries `subscriptionReference`, so an allotment links back to the payment
    that bought it.
@@ -624,7 +624,7 @@ block reached, and the word `stale` when the fold is over 24 hours old or has
 never run. Only the first section is twelve columns wide, so a parser that
 assumes one width is wrong.
 
-Both routes are scoped by `ShareToken.objects.visible_to_user` and pinned in the
+Both routes are scoped by `ShareToken.objects.issued_by` and pinned in the
 cross-tenant route matrix. For current members the dashboard shows name, holder
 type and holding, and the residential address appears in the CSV only. Former
 members are the exception — `FormerMemberSerializer` includes
@@ -816,16 +816,18 @@ required rate cannot be read.
 
 ## Tenancy model
 
-There is one database and one operator per deployment. Isolation is enforced in
-the ORM today, and PostgreSQL row-level security is being added underneath it in
-stages, tracked on
-[issue #520](https://github.com/RonildoBraga/ledova/issues/520). The ORM rules
-below stay the live mechanism; RLS is a second floor under them, not a
-replacement.
+There is one database and one operator per deployment. PostgreSQL row-level
+security enforces tenant isolation. Customer requests and principal-bearing jobs
+select their authority at the boundary; ORM selectors retain product and
+eligibility rules where database read scopes are wider. The staged conversion is
+tracked on [issue #520](https://github.com/RonildoBraga/ledova/issues/520).
 
-**Stage R0 — the owner column.** A table whose owner is reachable only through a
-parent cannot be read by a policy without a join, so each such table gains a
-direct owner column.
+**Stage R0 — the owner-column rollout (historical).** The initial design added
+direct owner columns to avoid policy joins. The migration lessons below record
+that rollout. R1 subsequently replaced redundant stored owners with live
+relationship policies and removed their columns, triggers and mixins. The current
+classification is in `backend/shared/db/policies.py`; testing now uses PostgreSQL
+only.
 
 - The column is added **nullable**, backfilled from the parent link, altered to
   **`NOT NULL`**, and indexed by Django's own foreign-key index. `related_name`
@@ -958,9 +960,10 @@ direct owner column.
   into a *required writable API field*; two in `users` did exactly that, and
   nothing but the suite says so. An explicit `fields` tuple is unaffected.
 
-**Stage R1 — the mechanism, beside the querysets.** Roles, aliases, the
-principal, and a policy on every tenant table, while `visible_to_user` still runs
-— both mechanisms at once, on purpose:
+**Stage R1 — the database boundary.** Roles, aliases, the principal, and a policy
+on every tenant table. The initial rollout kept the Python tenancy predicates
+alongside the policies. #520 removes those duplicates after the request suite
+and queued jobs run under their declared principals:
 
 - **Three roles on one database, and the third is what makes the second
   possible.** `ledova_app` connects for the API: not an owner, no `BYPASSRLS`.
@@ -983,15 +986,12 @@ principal, and a policy on every tenant table, while `visible_to_user` still run
   a hand-issued `GRANT` and a table created after the grant migration; it
   cannot catch a change to the catalogue itself, because the grant is derived
   from it and the two agree by construction.
-- **Five tables are listed reachable against their own classification, and the
-  list is the finding.** `REACHED_DESPITE_OPERATOR_ONLY` names the tables the
-  catalogue calls operator-only that customer-path code demonstrably reads on
-  the scoped connection, each with the file and line that reaches it — a share
-  issuance listed through its scoped parent, the yield token behind every
-  asset's NAV field, an order's own modification log, and the two compliance
-  rows written when an account is created. Granting them changes nothing about
-  today's behaviour; the point is that the discrepancy is now written down
-  where the grant is derived rather than hidden inside a blanket one.
+- **Two operator tables have explicit customer-read grants.**
+  `REACHED_DESPITE_OPERATOR_ONLY` records `tokens_yieldtoken`, read for an asset's
+  NAV, and `compliance_monitoringrule`, read while scoring a new account. Neither
+  carries a tenant key. Share issuances, modification logs and risk assessments
+  now have policies, so they no longer need this grant exception. The catalogue
+  keeps the remaining read reasons beside the grant definition.
 - **The principal is set where DRF resolves the user, not in middleware.**
   `HybridJWTAuthentication` runs in `APIView.initial()`, after every Django
   middleware, and a bearer request carries no session — so in middleware
@@ -1121,7 +1121,7 @@ principal, and a policy on every tenant table, while `visible_to_user` still run
   `app_manageable_company_ids()` have identical bodies and are called by `USING`
   and `WITH CHECK` respectively. Five of the seven company-derived tables are
   equal only *transitively* through `Company`, and there is standing pressure to
-  widen `Company.visible_to_user`; one helper would destroy the distinction just
+  widen company read visibility; one helper would destroy the distinction just
   as it starts mattering.
 - **Two helpers are `SECURITY DEFINER`, and they are the two that *define* the
   scope.** `app_principal_profile_ids()` and `app_member_account_ids()` answer
@@ -1167,7 +1167,7 @@ principal, and a policy on every tenant table, while `visible_to_user` still run
   which opens on the alias its queries go to. R23 is why that decorator is enough:
   a bare `@transaction.atomic` would have opened on `default` while the router
   sent these writes elsewhere.
-- `companies_company` is read at two scopes on purpose — `visible_to_user` for
+- `companies_company` is read at two scopes on purpose — `owned_by(user)` for
   issuer surfaces and `all()` for the market — and one `FOR ALL` policy under
   `FORCE` can only encode the stricter of the two.
 - **A table reached past a company carries the public-visibility term its own
@@ -1248,9 +1248,9 @@ principal, and a policy on every tenant table, while `visible_to_user` still run
   refusal; only the issuer can change or delete the request. Their R0 columns
   already exist when `shared/0004` first reads the catalogue on a fresh database.
   `AWAITING_R0` entries explicitly name their missing columns, and the command
-  fails when one is already `NOT NULL` in the migrated schema. Swap wallet
-  columns are complete; `AWAITING_RLS` records their remaining trading-policy
-  work instead of claiming that R0 is unfinished.
+  fails when one is already `NOT NULL` in the migrated schema. Both `AWAITING_R0`
+  and `AWAITING_RLS` are empty; swap wallet columns and their trading policies
+  are installed and tested.
 
 **How R1 is proven, and where the proof deliberately diverges from production.**
 Three aliases are three *connections*, and Django's `TestCase` opens a separate
@@ -1360,13 +1360,22 @@ are needed and only this ordering gives you both — the interval of double
 enforcement is not a cost to be minimised, it is the only window in which the
 migration is checkable.
 
-- Every customer-facing queryset has `visible_to_user(user)` (and
-  `manageable_by_user` for writes) that returns `none()` for an anonymous or
-  `None` user, and every viewset calls it from `get_queryset`, with one explicit
-  exception: the two cross-tenant share-class listings, `DirectoryTokenViewSet`
+- Database policies enforce tenancy for customer reads and writes. `PolicyQuerysets`
+  starts with the model's manager and applies only the view's explicit product
+  filtering in `narrow()`. The old visibility and management predicates and their
+  dispatch state are gone. Issuer management lists use `owned_by` or `issued_by`;
+  personal wallet, profile, account and subscription surfaces keep their narrower
+  owner/holder selections because policy reads also admit an issuer's subscribers.
+  Submitted-only withdrawal and matching claim ownership remain product rules.
+  Request-only services rely on the principal already established at the boundary;
+  operator wallet selection still names its target owner explicitly.
+- Ordinary and behind-policy settings both take the app role for requests, while
+  direct fixture and operator service work still uses the owner connection. The
+  separately configured full-suite commands remain in CI; split-connection scoped
+  coverage and role/catalogue checks continue to verify the other boundaries.
+- The two cross-tenant share-class listings, `DirectoryTokenViewSet`
   (`offerings/views/directory.py`) and `TradingTokenViewSet`
-  (`tokens/views/trading_token.py`). Neither is owner-scoped and neither ever
-  was, but neither is unscoped either: both are scoped by
+  (`tokens/views/trading_token.py`), keep their eligibility selection through
   `users.services.eligibility`, so an ineligible caller gets an empty list and a
   404 on every detail that is byte-identical to a phantom uuid; neither answers
   403, which would confirm the row exists. The market asks
@@ -1512,7 +1521,7 @@ strand bytes the target mode can neither read nor purge.
   `shared.views.stream_stored_file`. A foreign row is the same 404 as a phantom
   uuid; an anonymous caller is 401. The serializer's `file_url` is that route,
   never a media path. **Staff read a company document through the admin, never
-  through the API**: `CompanyQuerySet.visible_to_user` is `filter(owner=user)`
+  through the API**: `CompanyQuerySet.owned_by` is `filter(owner=user)`
   with no staff exception, so the staff-only
   `POST /api/v1/companies/{uuid}/status/` response nests document payloads whose
   `fileUrl` a staff caller cannot fetch — deliberate, because widening the
@@ -1661,8 +1670,8 @@ them at the same two boundaries: `IMMUTABLE_AFTER_DRAFT` (`company_type`, `acn`,
 window `update_company` itself uses.
 
 `owner` locks on every existing company rather than only after `DRAFT`, because
-ownership is the tenancy root: `Company.visible_to_user` and
-`manageable_by_user` are both `filter(owner=user)`, so reassigning it moves
+ownership is the tenancy root: the company policy and the `owned_by(user)`
+product selector use `owner_id`, so reassigning it moves
 every company-scoped row to another tenant with no record beyond a generic
 admin history entry. It stays editable on the *add* form, because the column is
 `NOT NULL` and locking it there would make an admin-created company impossible.

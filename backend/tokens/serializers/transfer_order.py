@@ -136,7 +136,7 @@ class TransferOrderCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError({"wallet_uuid": "An authenticated wallet owner is required."})
 
         wallet = (
-            Wallet.objects.visible_to_user(request.user)
+            Wallet.objects.owned_by(request.user)
             .select_related("user_account")
             .filter(uuid=data["wallet_uuid"], user_account_id=data["owner_account_uuid"])
             .first()

@@ -8,23 +8,10 @@ class ShareIssuanceRequestQuerySet(QuerySet):
     def with_relations(self):
         return self.select_related("token", "company", "submitted_by", "reviewed_by")
 
-    def visible_to_user(self, user):
+    def issued_by(self, user):
         if user is None or not user.is_authenticated:
             return self.none()
-
-        from companies.models import Company
-
-        user_companies = Company.objects.visible_to_user(user)
-        return self.filter(company__in=user_companies)
-
-    def manageable_by_user(self, user):
-        if user is None or not user.is_authenticated:
-            return self.none()
-
-        from companies.models import Company
-
-        user_companies = Company.objects.manageable_by_user(user)
-        return self.filter(company__in=user_companies)
+        return self.filter(company__owner=user)
 
     def needing_attention(self):
         return self.filter(

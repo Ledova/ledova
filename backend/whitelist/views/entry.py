@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from shared.db.middleware import RunsOnTheOperatorConnection
 from shared.utils import csv_cell
 from shared.views.principal import SetsThePrincipalOnTheConnection
-from shared.views.scope import ScopesToThePrincipal
+from shared.views.scope import PolicyQuerysets
 from whitelist.exceptions import (
     BatchEntriesRequiredException,
     BatchSizeLimitExceededException,
@@ -30,7 +30,7 @@ from whitelist.services import WhitelistService, unique_wallet_uuid_for
 
 class WhitelistEntryViewSet(
     RunsOnTheOperatorConnection,
-    ScopesToThePrincipal,
+    PolicyQuerysets,
     SetsThePrincipalOnTheConnection,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,

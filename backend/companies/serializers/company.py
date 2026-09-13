@@ -201,9 +201,7 @@ class CompanyUpdateSerializer(serializers.ModelSerializer):
     def get_fields(self):
         fields = super().get_fields()
         request = self.context.get("request")
-        fields["operator_wallet"].queryset = Wallet.objects.visible_to_user(
-            getattr(request, "user", None)
-        ).verified_evm()
+        fields["operator_wallet"].queryset = Wallet.objects.owned_by(getattr(request, "user", None)).verified_evm()
         return fields
 
     def validate_name(self, value):

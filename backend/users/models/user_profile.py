@@ -9,7 +9,6 @@ from integrations.kyc.constants import (
     VERIFICATION_STATUS_CHOICES,
 )
 from shared.models import BaseModel, Country
-from users.querysets.user_profile import UserProfileQuerySet
 
 
 class UserProfile(BaseModel):
@@ -68,8 +67,6 @@ class UserProfile(BaseModel):
         blank=True,
         null=True,
     )
-
-    objects = UserProfileQuerySet.as_manager()
 
     class Meta:
         ordering = ["-created_at"]

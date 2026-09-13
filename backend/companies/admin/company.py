@@ -484,7 +484,7 @@ class CompanyAdmin(admin.ModelAdmin):
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "operator_wallet":
             owner = getattr(request, "_operator_wallet_owner", None)
-            kwargs["queryset"] = Wallet.objects.visible_to_user(owner).verified_evm().select_related("user_account")
+            kwargs["queryset"] = Wallet.objects.owned_by(owner).verified_evm().select_related("user_account")
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def owner_email(self, obj):

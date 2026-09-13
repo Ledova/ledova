@@ -168,7 +168,7 @@ class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
     def action_context(self, request, uuid=None):
         serializer = OrderActionLookupSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
-        return Response(order_action_context(request.user, serializer.validated_data["owner_account_uuid"], uuid))
+        return Response(order_action_context(serializer.validated_data["owner_account_uuid"], uuid))
 
     @extend_schema(
         parameters=[

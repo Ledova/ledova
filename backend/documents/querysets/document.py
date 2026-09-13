@@ -6,14 +6,10 @@ from django.utils import timezone
 
 
 class DocumentQuerySet(models.QuerySet):
-    def visible_to_user(self, user) -> "DocumentQuerySet":
-        from users.models import InvestorClassification
-
-        if user is None or not user.is_authenticated:
-            return self.none()
-        return self.filter(uploaded_by=user).filter(
+    def with_matching_claim_owner(self):
+        return self.filter(
             models.Q(classification__isnull=True)
-            | models.Q(classification__in=InvestorClassification.objects.visible_to_user(user))
+            | models.Q(classification__user_account__user_profile__user_id=models.F("uploaded_by_id"))
         )
 
     def retention_due(self, moment):

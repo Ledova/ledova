@@ -36,7 +36,7 @@ def create_document(uploaded_by, validated_data) -> Document:
                 file=upload,
             )
             if validated_data.get("classification"):
-                document = attach_document(document, uploaded_by, validated_data["classification"])
+                document = attach_document(document, validated_data["classification"])
                 retained_copy = (document.file.storage, document.file.name)
             extract_document.defer(document_uuid=str(document.uuid), principal_id=uploaded_by.pk)
     except Exception:
@@ -46,16 +46,16 @@ def create_document(uploaded_by, validated_data) -> Document:
     return document
 
 
-def attach_document(document, user, classification_uuid):
+def attach_document(document, classification_uuid):
     require_documents_enabled()
     copied = None
     storage = document.file.storage
     try:
         with atomic():
-            claim = get_object_or_404(
-                InvestorClassification.objects.visible_to_user(user).select_for_update(), pk=classification_uuid
+            claim = get_object_or_404(InvestorClassification.objects.select_for_update(), pk=classification_uuid)
+            document = get_object_or_404(
+                Document.objects.with_matching_claim_owner().select_for_update(of=("self",)), pk=document.pk
             )
-            document = get_object_or_404(Document.objects.visible_to_user(user).select_for_update(), pk=document.pk)
             if document.classification_id == claim.pk:
                 return document
             if document.classification_id:
@@ -80,9 +80,11 @@ def attach_document(document, user, classification_uuid):
 
 
 @atomic()
-def delete_document(document, user):
+def delete_document(document):
     require_documents_enabled()
-    document = get_object_or_404(Document.objects.visible_to_user(user).select_for_update(), pk=document.pk)
+    document = get_object_or_404(
+        Document.objects.with_matching_claim_owner().select_for_update(of=("self",)), pk=document.pk
+    )
     if document.classification_id:
         raise ValidationError("Supporting evidence is retained with its classification claim and cannot be deleted.")
     document.delete()

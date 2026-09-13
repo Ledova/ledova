@@ -32,8 +32,6 @@ from tokens.services.register import (
 )
 from tokens.services.share_token_service import delete_share_token
 
-MANAGE_ACTIONS = ("create", "update", "partial_update", "destroy", "deploy", "pause", "unpause", "issue")
-
 
 class ShareTokenViewSet(AuthenticatedModelViewSet):
     filterset_class = ShareTokenFilter
@@ -49,7 +47,6 @@ class ShareTokenViewSet(AuthenticatedModelViewSet):
         "'unidentified' and blank addresses, which is a legally wrong document produced confidently. "
         "The reader stays IsAuthenticated: an issuer is entitled to this and is not an administrator."
     )
-    manage_actions = MANAGE_ACTIONS
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -59,6 +56,7 @@ class ShareTokenViewSet(AuthenticatedModelViewSet):
         return ShareTokenDetailSerializer
 
     def narrow(self, queryset):
+        queryset = queryset.issued_by(self.request.user)
         return queryset.with_company()
 
     def perform_destroy(self, instance):
@@ -71,7 +69,7 @@ class ShareTokenViewSet(AuthenticatedModelViewSet):
 
     @extend_schema(responses=ShareTokenDetailSerializer)
     def create(self, request, *args, **kwargs):
-        if not Company.objects.manageable_by_user(request.user).exists():
+        if not Company.objects.owned_by(request.user).exists():
             raise PermissionDenied("You must be associated with a company to create tokens.")
 
         serializer = self.get_serializer(data=request.data)
@@ -154,7 +152,7 @@ class ShareTokenViewSet(AuthenticatedModelViewSet):
     def issuances(self, request, uuid=None):
         token = self.get_object()
         issuances = (
-            ShareIssuance.objects.filter(token__in=ShareToken.objects.visible_to_user(request.user))
+            ShareIssuance.objects.filter(token__in=ShareToken.objects.issued_by(request.user))
             .with_token()
             .with_initiated_by()
             .with_subscription()

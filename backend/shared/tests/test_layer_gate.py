@@ -138,7 +138,7 @@ class ThingViewSet:
         allowed = """
 class ThingViewSet:
     def get_queryset(self):
-        queryset = Thing.objects.visible_to_user(self.request.user)
+        queryset = Thing.objects.owned_by(self.request.user)
         if self.action in {"update", "partial_update"}:
             return queryset.select_for_update()
         return queryset
@@ -156,7 +156,7 @@ class ThingViewSet:
         scoped = """
 class ThingViewSet:
     def get_queryset(self):
-        return Thing.objects.visible_to_user(self.request.user)
+        return Thing.objects.owned_by(self.request.user)
 """
         bare = """
 class ThingViewSet:
@@ -170,7 +170,7 @@ class ThingViewSet:
         source = """
 class ThingViewSet:
     def get_queryset(self):
-        return Thing.objects.visible_to_user(self.request.user).select_for_update()
+        return Thing.objects.owned_by(self.request.user).select_for_update()
 """
         self.assertEqual(rules_for(source, "views"), [gate.VIEW_LOCK])
 
@@ -178,7 +178,7 @@ class ThingViewSet:
         source = """
 class ThingViewSet:
     def get_queryset(self):
-        queryset = Thing.objects.visible_to_user(self.request.user)
+        queryset = Thing.objects.owned_by(self.request.user)
         if getattr(self, "action", None) in {"update"}:
             return queryset.select_for_update()
         return queryset
@@ -192,7 +192,7 @@ logger = logging.getLogger(__name__)
 
 class ThingViewSet:
     def get_queryset(self):
-        return Thing.objects.visible_to_user(self.request.user)
+        return Thing.objects.owned_by(self.request.user)
 """
         self.assertEqual(rules_for(source, "views"), [gate.VIEW_LOGGER])
 
@@ -202,7 +202,7 @@ class ThingViewSet:
     def get_queryset(self):
         if self.request.user.is_staff:
             return Thing.objects.all()
-        return Thing.objects.visible_to_user(self.request.user)
+        return Thing.objects.owned_by(self.request.user)
 """
         self.assertEqual(rules_for(source, "views"), [gate.VIEW_ORM])
 
@@ -212,7 +212,7 @@ class ThingViewSet:
     queryset = Thing.objects.all()
 
     def get_queryset(self):
-        return Thing.objects.visible_to_user(self.request.user)
+        return Thing.objects.owned_by(self.request.user)
 """
         self.assertEqual(rules_for(source, "views"), [gate.VIEW_ORM])
 
@@ -222,8 +222,8 @@ class ThingViewSet:
     def get_queryset(self):
         queryset = Thing.objects.with_relations()
         if self.action in MANAGE:
-            return queryset.manageable_by_user(self.request.user)
-        return queryset.visible_to_user(self.request.user)
+            return queryset.owned_by(self.request.user)
+        return queryset.owned_by(self.request.user)
 """
         self.assertEqual(rules_for(source, "views"), [])
 

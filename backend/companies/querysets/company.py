@@ -3,12 +3,7 @@ from django.db.models import Q, QuerySet
 
 class CompanyQuerySet(QuerySet):
 
-    def visible_to_user(self, user):
-        if user is None or not user.is_authenticated:
-            return self.none()
-        return self.filter(owner=user)
-
-    def manageable_by_user(self, user):
+    def owned_by(self, user):
         if user is None or not user.is_authenticated:
             return self.none()
         return self.filter(owner=user)

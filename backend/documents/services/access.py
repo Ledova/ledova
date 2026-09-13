@@ -30,9 +30,7 @@ def may_review_documents(user):
         return False
     if Company.objects.filter(owner=user).exists():
         return False
-    return (
-        not UserAccount.objects.visible_to_user(user).filter(role__in=[AccountRole.COMPANY, AccountRole.BOTH]).exists()
-    )
+    return not UserAccount.objects.for_holder(user).filter(role__in=[AccountRole.COMPANY, AccountRole.BOTH]).exists()
 
 
 def record_document_read(user, document, kind):

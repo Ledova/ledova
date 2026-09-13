@@ -33,7 +33,7 @@ STAFF_ACTIONS_ON_THE_SCOPED_CONNECTION = {
     "whitelist.views.entry.WhitelistEntryViewSet": (
         "Staff-only for every action through IsAdminUser at class level, and it stays on the scoped "
         "connection because the table it reads carries no policy: the whitelist is an authorisation surface "
-        "rather than a tenancy one, and WhitelistEntry.visible_to_user returns self for staff. Putting it on "
+        "rather than a tenancy one. WhitelistEntry is reached only through staff-authorized actions. Putting it on "
         "the operator connection would hand BYPASSRLS to a staff API surface that does not need it. The day "
         "the table gains a policy this must move, and the test below is what says so.",
         ("whitelist_whitelistentry",),

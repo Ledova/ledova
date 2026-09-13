@@ -18,12 +18,12 @@ from documents.services.document import (
 )
 from shared.views import stream_stored_file
 from shared.views.principal import SetsThePrincipalOnTheConnection
-from shared.views.scope import ScopesToThePrincipal
+from shared.views.scope import PolicyQuerysets
 from shared.views.uploads import UploadProtectedView
 
 
 class DocumentViewSet(
-    ScopesToThePrincipal,
+    PolicyQuerysets,
     UploadProtectedView,
     SetsThePrincipalOnTheConnection,
     mixins.CreateModelMixin,
@@ -40,6 +40,7 @@ class DocumentViewSet(
     scoped_model = Document
 
     def narrow(self, queryset):
+        queryset = queryset.with_matching_claim_owner()
         return queryset.with_available_content().select_related("classification").prefetch_related("extractions")
 
     def get_serializer_class(self):
@@ -61,11 +62,11 @@ class DocumentViewSet(
         document = self.get_object()
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        attached = attach_document(document, request.user, serializer.validated_data["classification"])
+        attached = attach_document(document, serializer.validated_data["classification"])
         return Response(DocumentSerializer(attached, context=self.get_serializer_context()).data)
 
     def perform_destroy(self, instance):
-        delete_document(instance, self.request.user)
+        delete_document(instance)
 
     @extend_schema(responses=DocumentSerializer)
     def create(self, request, *args, **kwargs):

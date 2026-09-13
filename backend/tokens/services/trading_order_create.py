@@ -49,10 +49,9 @@ def _independent_boundary():
         raise ImproperlyConfigured("Order submissions require autocommit outside every transaction block.")
 
 
-def _find_submission(actor, account_id, submission_id):
+def _find_submission(account_id, submission_id):
     return (
-        OrderSubmission.objects.visible_to_user(actor)
-        .select_for_update(of=("self",))
+        OrderSubmission.objects.select_for_update(of=("self",))
         .filter(owner_account_id=account_id, submission_id=submission_id)
         .first()
     )
@@ -123,9 +122,9 @@ def _pending_token(submission, wallet):
     return token
 
 
-def _recover_order(submission, actor):
+def _recover_order(submission):
     if submission.order_id is not None:
-        order = TransferOrder.objects.visible_to_user(actor).filter(pk=submission.order_id).first()
+        order = TransferOrder.objects.ownership_bound().filter(pk=submission.order_id).first()
         if order is None or (order.wallet_id, order.owner_account_id, order.token_id, order.wallet_address) != (
             submission.wallet_id,
             submission.owner_account_id,
@@ -139,7 +138,7 @@ def _recover_order(submission, actor):
 def issue_order_submission(actor, data):
     _independent_boundary()
     with atomic(durable=True):
-        submission = _find_submission(actor, data["owner_account_uuid"], data["submission_id"])
+        submission = _find_submission(data["owner_account_uuid"], data["submission_id"])
         if submission is None:
             token = _eligible_token(data["token"], data["wallet"])
             submission, _ = OrderSubmission.objects.get_or_create(
@@ -163,7 +162,7 @@ def issue_order_submission(actor, data):
         _assert_original_terms(submission, data)
         wallet = _lock_authorized_wallet(actor, submission)
         if submission.status != OrderSubmissionStatus.PENDING:
-            _recover_order(submission, actor)
+            _recover_order(submission)
             return SubmissionResult(submission)
         token = _pending_token(submission, wallet)
         challenge = TradingOrderService.get_order_create_message(
@@ -182,13 +181,13 @@ def issue_order_submission(actor, data):
 def execute_order_submission(actor, data):
     _independent_boundary()
     with atomic(durable=True):
-        submission = _find_submission(actor, data["owner_account_uuid"], data["submission_id"])
+        submission = _find_submission(data["owner_account_uuid"], data["submission_id"])
         if submission is None:
             raise NotFound(NOT_FOUND)
         _assert_original_terms(submission, data)
         wallet = _lock_authorized_wallet(actor, submission)
         if submission.status != OrderSubmissionStatus.PENDING:
-            _recover_order(submission, actor)
+            _recover_order(submission)
             return SubmissionResult(submission)
         token = _pending_token(submission, wallet)
         challenge = TradingOrderService.verify_order_create_signature(
@@ -245,15 +244,15 @@ def execute_order_submission(actor, data):
                 "updated_at",
             ]
         )
-        _recover_order(submission, actor)
+        _recover_order(submission)
         return SubmissionResult(submission, created=submission.status == OrderSubmissionStatus.CREATED)
 
 
 @atomic()
 def recover_order_submission(actor, account_id, submission_id):
-    submission = _find_submission(actor, account_id, submission_id)
+    submission = _find_submission(account_id, submission_id)
     if submission is None:
         raise NotFound(NOT_FOUND)
     _lock_authorized_wallet(actor, submission)
-    _recover_order(submission, actor)
+    _recover_order(submission)
     return SubmissionResult(submission)

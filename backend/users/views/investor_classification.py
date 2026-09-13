@@ -24,9 +24,10 @@ class InvestorClassificationViewSet(UploadProtectedView, AuthenticatedModelViewS
     ordering_fields = ["created_at"]
 
     scoped_model = InvestorClassification
-    manage_actions = frozenset({"create", "destroy"})
 
     def narrow(self, queryset):
+        if self.action == "destroy":
+            queryset = queryset.submitted()
         return queryset.select_related("user_account", "company")
 
     def destroy(self, request, *args, **kwargs):

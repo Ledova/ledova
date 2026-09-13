@@ -6,14 +6,6 @@ from django.utils import timezone
 
 class InvestorClassificationQuerySet(QuerySet):
 
-    def visible_to_user(self, user):
-        if user is None or not user.is_authenticated:
-            return self.none()
-        return self.filter(user_account__user_profile__user=user)
-
-    def manageable_by_user(self, user):
-        return self.visible_to_user(user).submitted()
-
     def submitted(self):
         from users.models.investor_classification import InvestorClassificationStatus
 

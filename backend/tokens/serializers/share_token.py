@@ -123,7 +123,7 @@ class ShareTokenCreateSerializer(serializers.ModelSerializer):
     def get_fields(self):
         fields = super().get_fields()
         request = self.context.get("request")
-        fields["company"].queryset = Company.objects.manageable_by_user(getattr(request, "user", None))
+        fields["company"].queryset = Company.objects.owned_by(getattr(request, "user", None))
         return fields
 
     def validate_symbol(self, value):

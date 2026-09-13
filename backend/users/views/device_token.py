@@ -52,7 +52,7 @@ class DeviceTokenViewSet(AuthenticatedModelViewSet):
         serializer = UnregisterDeviceTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        if unregister_device_token(request.user, serializer.validated_data["push_token"]):
+        if unregister_device_token(serializer.validated_data["push_token"]):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         return Response(

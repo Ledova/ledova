@@ -19,3 +19,5 @@ atexit.register(shutil.rmtree, MEDIA_ROOT, ignore_errors=True)
 atexit.register(shutil.rmtree, PRIVATE_MEDIA_ROOT, ignore_errors=True)
 
 RLS_AMBIENT_ALIAS = "default"
+
+RLS_ROLE_PER_REQUEST = True

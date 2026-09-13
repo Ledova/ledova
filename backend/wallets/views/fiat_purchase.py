@@ -36,7 +36,7 @@ class FiatPurchaseViewSet(SetsThePrincipalOnTheConnection, viewsets.ViewSet):
         if not wallet_uuid:
             raise WalletUuidRequiredException()
 
-        wallet = get_object_or_404(Wallet.objects.visible_to_user(request.user), uuid=wallet_uuid)
+        wallet = get_object_or_404(Wallet.objects.owned_by(request.user), uuid=wallet_uuid)
 
         crypto_currency_code = request.data.get("crypto_currency_code")
         if not crypto_currency_code:

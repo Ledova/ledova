@@ -25,10 +25,5 @@ class TransactionQuerySet(QuerySet):
             wallet_addr_lower=Lower("wallet__address"), from_addr_lower=Lower("from_address")
         ).filter(from_addr_lower=F("wallet_addr_lower"))
 
-    def visible_to_user(self, user):
-        if user is None or not user.is_authenticated:
-            return self.none()
-        return self.filter(wallet__user_account__user_profile__user=user)
-
     def with_optimized_data(self):
         return self.select_related("asset", "wallet", "wallet__user_account")

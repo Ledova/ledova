@@ -3,7 +3,7 @@ from django.db.models import QuerySet
 
 class UserAccountQuerySet(QuerySet):
 
-    def visible_to_user(self, user):
+    def for_holder(self, user):
         if user is None or not user.is_authenticated:
             return self.none()
         return self.filter(user_profile__user=user)

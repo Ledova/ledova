@@ -21,6 +21,7 @@ from shared.api.exceptions import CACHE_UNAVAILABLE
 LOGIN = "authentication.views.user.SessionService.login"
 
 
+@override_settings(RLS_ROLE_PER_REQUEST=False)
 class SharedRedisThrottleTests(SimpleTestCase):
     def setUp(self):
         self.url = os.environ["THROTTLE_TEST_REDIS_URL"]

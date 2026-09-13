@@ -1,6 +1,4 @@
 import ast
-import inspect
-import textwrap
 from pathlib import Path
 
 from django.db import models
@@ -9,6 +7,7 @@ from django.urls import get_resolver
 from rest_framework.relations import ManyRelatedField, RelatedField
 
 from shared.api.routes import _methods, _normalise, _walk
+from shared.db.policies import UNSCOPED
 from shared.tests import test_cross_tenant_routes as matrix
 from shared.tests import test_route_coverage as coverage
 from shared.tests.test_route_coverage import EXEMPT
@@ -16,8 +15,6 @@ from shared.tests.test_route_coverage import EXEMPT
 BACKEND = coverage.__file__.rsplit("/backend/", 1)[0] + "/backend"
 
 OWNER_MODELS = ("CustomUser", "UserProfile", "UserAccount", "Company")
-
-IDENTITY_FREE_USER_READS = frozenset({"is_authenticated"})
 
 
 def reasons_this_module_exercises():
@@ -191,16 +188,7 @@ class CataloguesAndListingsTest(SimpleTestCase):
             model = model_for(route)
             with self.subTest(route=route):
                 self.assertIsNotNone(model)
-                scoping = ast.parse(textwrap.dedent(inspect.getsource(model.objects.visible_to_user)))
-
-                for node in ast.walk(scoping):
-                    if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
-                        if node.value.id == "user":
-                            self.assertIn(node.attr, IDENTITY_FREE_USER_READS)
-                    if isinstance(node, ast.Call):
-                        for argument in node.args + [keyword.value for keyword in node.keywords]:
-                            if isinstance(argument, ast.Name):
-                                self.assertNotEqual(argument.id, "user")
+                self.assertIn(model._meta.db_table, UNSCOPED)
 
     def test_the_eligibility_scoped_listings_are_pinned_by_the_matrix(self):
         self.assertNotEqual(routes_for("ELIGIBILITY_SCOPED"), [])

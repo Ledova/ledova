@@ -14,21 +14,10 @@ from django.utils import timezone
 
 class OfferingQuerySet(QuerySet):
 
-    def visible_to_user(self, user):
+    def issued_by(self, user):
         if user is None or not user.is_authenticated:
             return self.none()
-
-        from companies.models import Company
-
-        return self.filter(token__company__in=Company.objects.visible_to_user(user))
-
-    def manageable_by_user(self, user):
-        if user is None or not user.is_authenticated:
-            return self.none()
-
-        from companies.models import Company
-
-        return self.filter(token__company__in=Company.objects.manageable_by_user(user))
+        return self.filter(token__company__owner=user)
 
     def live(self):
         from offerings.models.offering import LIVE_OFFERING_STATUSES

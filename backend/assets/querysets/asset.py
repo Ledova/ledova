@@ -53,6 +53,3 @@ class AssetQuerySet(QuerySet):
         if not search_query:
             return self
         return self.filter(Q(symbol__icontains=search_query) | Q(name__icontains=search_query))
-
-    def visible_to_user(self, user):
-        return self

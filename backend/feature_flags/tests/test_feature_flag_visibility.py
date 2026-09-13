@@ -13,15 +13,16 @@ class FeatureFlagVisibilityTests(APITestCase):
         self.user = User.objects.create_user(email="investor@example.com", password="pw")
 
     def test_queryset_hides_disabled_flags(self):
-        visible = FeatureFlag.objects.visible_to_user(self.user)
+        visible = FeatureFlag.objects.enabled()
 
         self.assertEqual([flag.name for flag in visible], ["enable_dark_mode"])
 
-    def test_queryset_gives_an_anonymous_caller_nothing(self):
-        from django.contrib.auth.models import AnonymousUser
-
-        self.assertFalse(FeatureFlag.objects.visible_to_user(AnonymousUser()).exists())
-        self.assertFalse(FeatureFlag.objects.visible_to_user(None).exists())
+    def test_the_route_requires_authentication_before_listing_enabled_flags(self):
+        self.assertEqual(self.client.get("/api/feature-flags/").status_code, 401)
+        self.client.force_authenticate(self.user)
+        response = self.client.get("/api/feature-flags/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([row["name"] for row in response.data["results"]], [self.enabled.name])
 
     def test_list_route_serves_only_enabled_flags(self):
         self.client.force_authenticate(self.user)
