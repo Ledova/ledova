@@ -43,9 +43,9 @@
     "ethers": "^6.17.0",
     "html5-qrcode": "^2.3.8",
     "qrcode.react": "^4.2.0",
-    "react": "19.2.8",
+    "react": "19.3.0",
     "react-chartjs-2": "^5.3.0",
-    "react-dom": "19.2.8",
+    "react-dom": "19.3.0",
     "react-router-dom": "^7.18.3",
     "tailwindcss": "^4.3.3",
     "uuid": "^14.0.2"
