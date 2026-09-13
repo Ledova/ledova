@@ -427,7 +427,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
         }
         return render(request, "admin/offerings/subscription/action_form.html", context)
 
-    @admin.action(description="Allot selected subscriptions")
+    @admin.action(description="Allot selected subscriptions", permissions=["change"])
     def allot_selected(self, request, queryset):
         rows = list(queryset.with_relations())
         result = allot_batch(rows, request.user)

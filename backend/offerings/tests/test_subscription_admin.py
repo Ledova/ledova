@@ -4,6 +4,7 @@ from unittest.mock import patch
 from django import forms
 from django.contrib.admin.models import LogEntry
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -90,6 +91,44 @@ class SubscriptionAdminTestCase(TestCase):
 
 
 class SubscriptionAdminTest(SubscriptionAdminTestCase):
+    def test_allotment_and_retry_require_staff_with_change_permission(self):
+        subscription = paid_subscription(self.tenant)
+        staff = User.objects.create_user(email="allot-staff@example.test", password="pw", is_staff=True, is_active=True)
+        staff.user_permissions.add(Permission.objects.get(codename="view_subscription"))
+        changelist = reverse("admin:offerings_subscription_changelist")
+        payload = {"action": "allot_selected", "_selected_action": [str(subscription.pk)]}
+        with patch(SUPPLY, return_value=(1000, 0)):
+            for user in (None, self.tenant.user, staff):
+                self.client.logout()
+                if user is not None:
+                    self.client.force_login(user)
+                response = self.client.post(changelist, payload)
+                self.defer.assert_not_called()
+                self.assertEqual(response.status_code, 302)
+                if user != staff:
+                    self.assertIn(reverse("admin:login"), response.url)
+                else:
+                    self.assertEqual(self.client.get(changelist).status_code, 200)
+                subscription.refresh_from_db()
+                self.assertIsNone(subscription.issuance_request_id)
+            staff.user_permissions.add(Permission.objects.get(codename="change_subscription"))
+            self.assertEqual(self.client.post(changelist, payload).status_code, 302)
+            self.defer.assert_called_once_with(subscription_uuid=str(subscription.uuid), executed_by=staff.pk)
+        self.defer.reset_mock()
+        staff.user_permissions.remove(Permission.objects.get(codename="change_subscription"))
+        for user, status in ((None, 302), (self.tenant.user, 302), (staff, 403)):
+            self.client.logout()
+            if user is not None:
+                self.client.force_login(user)
+            response = self.client.post(self._url(subscription, "retry"))
+            self.assertEqual(response.status_code, status)
+            if status == 302:
+                self.assertIn(reverse("admin:login"), response.url)
+            self.defer.assert_not_called()
+        staff.user_permissions.add(Permission.objects.get(codename="change_subscription"))
+        self.assertEqual(self.client.post(self._url(subscription, "retry")).status_code, 302)
+        self.defer.assert_called_once_with(subscription_uuid=str(subscription.uuid), executed_by=staff.pk)
+
     def test_the_add_form_is_closed_and_every_field_is_read_only(self):
         subscription = draft_subscription(self.tenant)
         add = self.client.get(reverse("admin:offerings_subscription_add"))

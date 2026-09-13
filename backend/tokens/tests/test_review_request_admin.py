@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from django.contrib.admin.sites import site
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
@@ -48,6 +49,31 @@ class ReviewRequestAdminTest(TestCase):
             submitted_at=timezone.now(),
         )
         self.requests = (self.capital_increase, self.issuance)
+
+    def test_execution_requires_active_staff_with_change_permission(self):
+        staff = User.objects.create_user(
+            email="review-staff@example.test", password="pw", is_staff=True, is_active=True
+        )
+        for obj in self.requests:
+            obj.approve(self.admin)
+            with self.subTest(model=obj._meta.model_name), patch(
+                "tokens.admin.review_workflow.execute_review_request_task"
+            ) as task:
+                for user, status in ((None, 302), (self.tenant.user, 302), (staff, 403)):
+                    self.client.logout()
+                    if user is not None:
+                        self.client.force_login(user)
+                    response = self.client.post(url(obj, "execute"))
+                    self.assertEqual(response.status_code, status)
+                    if status == 302:
+                        self.assertIn(reverse("admin:login"), response.url)
+                    task.defer.assert_not_called()
+                staff.user_permissions.add(Permission.objects.get(codename=f"change_{obj._meta.model_name}"))
+                response = self.client.post(url(obj, "execute"))
+                self.assertRedirects(response, url(obj, "change"), fetch_redirect_response=False)
+                task.defer.assert_called_once_with(
+                    model_label=obj._meta.label, request_uuid=str(obj.uuid), executed_by=staff.pk
+                )
 
     def test_changelist_and_change_pages_render_with_the_review_buttons(self):
         for obj in self.requests:
