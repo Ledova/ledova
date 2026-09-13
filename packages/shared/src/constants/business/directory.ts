@@ -1,11 +1,8 @@
-export type OfferingStatus = 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'closed' | 'withdrawn';
+import type { ApiComponents } from '../../generated/api';
 
-export type OfferingExemption =
-  | 's708_8_minimum_amount'
-  | 's708_8_net_assets'
-  | 's708_8_gross_income'
-  | 's708_11_professional'
-  | 's761g_wholesale_client';
+export type OfferingStatus = ApiComponents['schemas']['OfferingStatusEnum'];
+
+export type OfferingExemption = ApiComponents['schemas']['ExemptionEnum'];
 
 export const DIRECTORY_ENDPOINTS = {
   TOKENS: {

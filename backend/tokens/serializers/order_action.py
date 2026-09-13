@@ -176,7 +176,7 @@ class OrderActionSubmissionSerializer(serializers.Serializer):
         PolymorphicProxySerializer(
             component_name="OrderActionAppliedResult",
             serializers=[OrderActionCancelResultSerializer, OrderActionModifyResultSerializer],
-            resource_type_field_name="kind",
+            resource_type_field_name=None,
             allow_null=True,
         )
     )

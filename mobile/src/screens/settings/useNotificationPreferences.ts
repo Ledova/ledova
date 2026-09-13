@@ -29,7 +29,7 @@ export function useNotificationPreferences() {
   const toggleTransactionAlerts = useCallback(
     async (value: boolean) => {
       try {
-        await updateMutation.mutateAsync({ transaction_alerts: value });
+        await updateMutation.mutateAsync({ transactionAlerts: value });
       } catch {
         Alert.alert('Error', 'Failed to update notification settings. Please try again.', [{ text: 'OK' }]);
       }
@@ -40,7 +40,7 @@ export function useNotificationPreferences() {
   const togglePriceAlerts = useCallback(
     async (value: boolean) => {
       try {
-        await updateMutation.mutateAsync({ price_alerts: value });
+        await updateMutation.mutateAsync({ priceAlerts: value });
       } catch {
         Alert.alert('Error', 'Failed to update notification settings. Please try again.', [{ text: 'OK' }]);
       }

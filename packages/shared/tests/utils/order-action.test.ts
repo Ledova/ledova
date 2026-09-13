@@ -214,7 +214,7 @@ test.each<[string, (snapshot: OrderActionSnapshot) => void]>([
   [
     'ordinary conflict code',
     (s) => {
-      s.refusal!.code = 'action_context_conflict';
+      Object.assign(s.refusal!, { code: 'action_context_conflict' });
     },
   ],
   [

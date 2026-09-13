@@ -24,7 +24,7 @@ fails, and an entry naming no script fails.
 | `check-docs.py` | [The documentation gate](#the-documentation-gate) | yes | source gates |
 | `check-pr-metadata.py` | [The PR metadata gate](#the-pr-metadata-gate) | no | PR metadata |
 | `check-api-schema.py` | [The API type drift gate](#the-api-type-drift-gate) | no | Django |
-| `check-api-types.py` | [The API type drift gate](#the-api-type-drift-gate) | no | Django |
+| `check-api-types.mjs` | [The API type drift gate](#the-api-type-drift-gate) | yes | JavaScript |
 | `check-client-operations.mjs` | [The API type drift gate](#the-api-type-drift-gate) | no | JavaScript |
 | `check-self-imports.mjs` | [Clients and the shared package](../architecture/clients.md) | yes | JavaScript |
 
@@ -174,10 +174,14 @@ constraints, request/response metadata and nullability remain significant.
 Fix diagnostics through real declarations and existing enum definitions, without
 bypassing authorization or suppressing warnings.
 
-`make check-api-types SCHEMA=...` reads an already generated schema. Required shared
-response fields must exist at the called method/path; event names are compared in
-both directions. Type debt and schema debt are separate, counted inventories.
-The field check does not establish complete nested type compatibility.
+`make check-api-types` regenerates shared TypeScript contracts from the committed
+snapshot with the pinned root `openapi-typescript` dependency and compares bytes.
+It does not write files. `make update-api-types` explicitly replaces the generated
+file; `make update-api-schema` updates both the schema and generated types.
+`API_TYPES_SCHEMA=...` selects another input for the type target. The shared,
+dashboard and mobile compiler checks validate consumers against those contracts.
+Trading events come from the stream extension: the invalidation map must account
+for every event and must not retain a removed event. Mutation tests exercise both.
 
 `make check-client-operations` uses installed root Node dependencies and the committed
 schema to account for shared/dashboard/mobile HTTP operations and their successful
@@ -185,6 +189,6 @@ response kinds, including 204, binary and streams. It is separate from type chec
 Unresolved transports need explicit tested accounting, not a silent exemption.
 See [schema and operation internals](../reference/gate-internals.md#schema-and-client-operations).
 
-Reliable snapshots do not alone authorize generated shared types. The clean-release
-prerequisite in [the type-generation decision](../decisions.md#clients-and-api-types)
-remains in place.
+The owner accepted PR #562 as the clean-release checkpoint before this conversion;
+see [the recorded approval](https://github.com/RonildoBraga/ledova/issues/115#issuecomment-5656632666)
+and [the type-generation decision](../decisions.md#clients-and-api-types).

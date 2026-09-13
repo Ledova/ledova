@@ -1,8 +1,4 @@
-export type WalletPreviewChain = 'ethereum' | 'base' | 'bitcoin';
+import type { ApiResponse } from '../contracts';
+export type WalletPreviewChain = BatchBalanceResponse['chain'];
 
-export interface BatchBalanceResponse {
-  userAccount: string;
-  chain: WalletPreviewChain;
-  balances: Record<string, string | null>;
-  errors?: string[];
-}
+export type BatchBalanceResponse = ApiResponse<'api_wallets_batch_check_balances_create'>;

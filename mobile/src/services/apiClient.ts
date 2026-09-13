@@ -60,6 +60,7 @@ export async function rotateRefreshToken(refresh: string, expectedEpoch?: number
       { refresh },
       expectedEpoch === undefined ? undefined : { ledovaSessionEpoch: expectedEpoch },
     );
+    if (!('access' in data) || !('refresh' in data)) throw new Error('The bearer refresh response has no tokens.');
     await storeTokens({ accessToken: data.access, refreshToken: data.refresh }, generation);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {

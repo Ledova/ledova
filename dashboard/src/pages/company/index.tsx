@@ -280,7 +280,7 @@ export default function CompanyPage() {
             <p className="text-xs text-text-muted px-4 -mt-1 mb-2">Trading as {company.tradingName}</p>
           )}
           <div className="divide-y divide-border-subtle">
-            <DetailRow label="Type" value={company.companyTypeDisplay || company.companyType} />
+            <DetailRow label="Type" value={company.companyTypeDisplay || company.companyType || '—'} />
             <DetailRow label="ACN" value={company.acn} mono />
             {company.abn && <DetailRow label="ABN" value={company.abn} mono />}
             {company.email && <DetailRow label="Email" value={company.email} />}

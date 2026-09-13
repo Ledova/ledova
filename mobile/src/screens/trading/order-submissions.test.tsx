@@ -191,7 +191,7 @@ it('uses real draft and biometric callbacks and recovers a lost response across 
   await waitFor(() => expect(restarted.getByText('Check saved order 1')).toBeTruthy());
   await fireEvent.press(restarted.getByText('Check saved order 1'));
   await waitFor(() => expect(restarted.getByText('Order recovered')).toBeTruthy());
-  expect(restarted.getByText('Current status: cancelled')).toBeTruthy();
+  expect(restarted.getByText('Current status: Cancelled')).toBeTruthy();
   expect(messages()).toHaveLength(1);
   expect(getSeedPhrase).toHaveBeenCalledTimes(1);
   expect(signEthereumTypedData).toHaveBeenCalledTimes(1);

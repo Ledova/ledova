@@ -53,10 +53,9 @@ export const useHome = () => {
   const baseWallets = useMemo(() => filterWalletsByChain(walletsList, BLOCKCHAIN.BASE), [walletsList]);
   const walletTotals = useMemo(() => calculateWalletTotals(walletsList), [walletsList]);
 
-  const TRANSACTIONS_PAGE_SIZE = 5;
   const transactionsQuery = useInfiniteQuery({
     queryKey: ['home-transactions'],
-    queryFn: ({ pageParam = 1 }) => getTransactions(apiClient, { page_size: TRANSACTIONS_PAGE_SIZE, page: pageParam }),
+    queryFn: ({ pageParam = 1 }) => getTransactions(apiClient, { page: pageParam }),
     getNextPageParam: getTransactionsNextPage,
     initialPageParam: 1,
     staleTime: CACHE_TIMING.VERY_SHORT_STALE_TIME,
@@ -65,7 +64,7 @@ export const useHome = () => {
 
   const marketAssetsQuery = useQuery({
     queryKey: ['home-market-assets'],
-    queryFn: () => getAssets(apiClient, { is_active: 'true', order_by: 'favourites_first' }),
+    queryFn: () => getAssets(apiClient, { is_active: true }),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
   });

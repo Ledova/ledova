@@ -99,8 +99,8 @@ export function useTransfers() {
   const [transferableAssets, setTransferableAssets] = useState<TransferableAsset[]>([]);
 
   const walletsQuery = useQuery({
-    queryKey: ['wallets', userAccount?.uuid, { order_by: 'name' }],
-    queryFn: () => getWallets(apiClient, { order_by: 'name' }),
+    queryKey: ['wallets', userAccount?.uuid],
+    queryFn: () => getWallets(apiClient),
     enabled: !USE_MOCK_DATA && !!userAccount?.uuid,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,

@@ -1,16 +1,7 @@
-import type { BaseQueryParams } from '../api';
-import type { Asset } from './asset';
+import type { ApiRequest, ApiResponse, ApiQuery } from '../contracts';
 
-export interface FavouriteAsset {
-  uuid: string;
-  userAccount: string;
-  asset: Asset;
-  createdAt: string;
-  updatedAt: string;
-}
+export type FavouriteAsset = ApiResponse<'api_favourite_assets_retrieve'>;
 
-export type CreateFavouriteAsset = { asset: string };
+export type CreateFavouriteAsset = ApiRequest<'api_favourite_assets_create'>;
 
-export interface FavouriteAssetQueryParams extends BaseQueryParams {
-  asset?: string;
-}
+export type FavouriteAssetQueryParams = ApiQuery<'api_favourite_assets_list'>;

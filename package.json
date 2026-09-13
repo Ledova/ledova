@@ -19,6 +19,9 @@
     "npm": "11.5.2"
   },
   "devDependencies": {
-    "tsx": "^4.23.13"
+    "openapi-typescript": "7.13.0",
+    "prettier": "3.9.6",
+    "tsx": "^4.23.13",
+    "typescript": "5.9.3"
   }
 }

@@ -1,30 +1,14 @@
-export type OrderType = 'buy' | 'sell';
+import type { ApiComponents, TradingEventType } from '../../generated/api';
 
-export type OrderStatus =
-  | 'open'
-  | 'partially_filled'
-  | 'matched'
-  | 'pending_signature'
-  | 'executing'
-  | 'completed'
-  | 'cancelled'
-  | 'expired'
-  | 'failed';
+export type { TradingEventType } from '../../generated/api';
 
-export type SwapStatus =
-  'created' | 'seller_signed' | 'buyer_signed' | 'ready' | 'executing' | 'completed' | 'failed' | 'expired';
+export type OrderType = ApiComponents['schemas']['TransferOrderTypeEnum'];
 
-export type SwapUserRole = 'seller' | 'buyer';
+export type OrderStatus = ApiComponents['schemas']['TransferOrderStatusEnum'];
 
-export type TradingEventType =
-  | 'order_created'
-  | 'order_cancelled'
-  | 'order_modified'
-  | 'order_matched'
-  | 'swap_signed'
-  | 'swap_completed'
-  | 'swap_failed'
-  | 'swap_expired';
+export type SwapStatus = ApiComponents['schemas']['SwapOrderStatusEnum'];
+
+export type SwapUserRole = ApiComponents['schemas']['UserRoleEnum'];
 
 export const TRADING_EVENT_INVALIDATION_MAP: Record<TradingEventType, string[][]> = {
   order_created: [

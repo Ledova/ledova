@@ -3,7 +3,7 @@ import { getCompanies, getCompany, getCompanyStats, updateCompany } from '@ledov
 import type { Company, CompanyListItem, CompanyStats, CompanyUpdate } from '@ledova/shared';
 import { apiClient } from '../services/apiClient';
 
-type CompanyView = CompanyListItem & Partial<Company>;
+type CompanyView = (Company | CompanyListItem) & Partial<Company>;
 
 export function useCompanyProfile() {
   const queryClient = useQueryClient();

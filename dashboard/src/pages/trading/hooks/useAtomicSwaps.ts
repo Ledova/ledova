@@ -8,14 +8,10 @@ import {
   getOrderSwapApprovalStatus,
   getOrderSwapApprovalData,
 } from '@ledova/shared';
-import type { SubmitSignatureRequest, SwapOrder } from '@ledova/shared';
+import type { ApiResponse, SubmitSignatureRequest, SwapOrder } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 
-export interface BroadcastResponse {
-  txHash: string;
-  blockNumber: number;
-  gasUsed: number;
-}
+export type BroadcastResponse = ApiResponse<'api_v1_trading_transfers_broadcast_create'>;
 
 export const swapQueryKeys = {
   swaps: (walletAddress: string) => ['trading', 'swaps', walletAddress] as const,
@@ -34,7 +30,7 @@ export function useSwapOrdersMulti(walletAddresses: string[]) {
     queryFn: async () => {
       if (walletAddresses.length === 0) return [] as SwapOrder[];
       const results = await Promise.all(
-        walletAddresses.map((addr) => getSwapOrders(apiClient, addr).then((res) => res.data.results as SwapOrder[])),
+        walletAddresses.map((addr) => getSwapOrders(apiClient, addr).then((res) => res.data.results)),
       );
       const swapMap = new Map<string, SwapOrder>();
       results.flat().forEach((swap) => {

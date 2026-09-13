@@ -49,7 +49,8 @@ export function useAtomicSwapSigning({ orderUuid, walletAddress, wallet }: UseAt
   const broadcastTransaction = useBroadcastTransaction();
 
   const needsApproval = approvalStatus?.needsApproval ?? null;
-  const approvalTokenSymbol = approvalStatus?.tokenSymbol ?? approvalData?.tokenSymbol ?? null;
+  const approvalTokenSymbol =
+    approvalStatus?.tokenSymbol ?? (approvalData?.needsApproval ? approvalData.tokenSymbol : null);
   const isSoftwareWallet = wallet?.signingPreference === 'software';
 
   const handleSignatureScanned = useCallback(
@@ -165,7 +166,7 @@ export function useAtomicSwapSigning({ orderUuid, walletAddress, wallet }: UseAt
   );
 
   const handleSoftwareApprovalSigning = useCallback(async () => {
-    if (!approvalData?.transaction || !wallet?.derivationPath || !wallet?.masterFingerprint) {
+    if (!approvalData?.needsApproval || !wallet?.derivationPath || !wallet?.masterFingerprint) {
       setSigningError('Missing approval data or wallet');
       setSigningStep('error');
       return;

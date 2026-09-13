@@ -210,7 +210,7 @@ it('recovers the current order after a lost response and remount without signing
   render(<TradingPage />, { wrapper });
   await waitFor(() => expect(screen.getByText('Check saved order 1')).toBeTruthy());
   fireEvent.click(screen.getByText('Check saved order 1'));
-  await waitFor(() => expect(screen.getByText('Current status: cancelled.')).toBeTruthy());
+  await waitFor(() => expect(screen.getByText('Current status: Cancelled.')).toBeTruthy());
   expect(messagePosts()).toHaveLength(1);
   expect(orderPosts()).toHaveLength(1);
   expect(signEthereumTypedData).toHaveBeenCalledTimes(1);

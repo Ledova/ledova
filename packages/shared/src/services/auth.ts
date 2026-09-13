@@ -1,6 +1,7 @@
 import { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { AUTH_ENDPOINTS } from '../constants';
 import type {
+  ApiResponse,
   SigninRequest,
   SignupRequest,
   EmailVerificationRequest,
@@ -13,23 +14,23 @@ import type {
 } from '../types';
 
 export const signin = (apiClient: AxiosInstance, data: SigninRequest) => {
-  return apiClient.post(AUTH_ENDPOINTS.SIGNIN, data);
+  return apiClient.post<ApiResponse<'api_signin_create'>>(AUTH_ENDPOINTS.SIGNIN, data);
 };
 
 export const signout = (apiClient: AxiosInstance) => {
-  return apiClient.post(AUTH_ENDPOINTS.SIGNOUT);
+  return apiClient.post<ApiResponse<'api_signout_create'>>(AUTH_ENDPOINTS.SIGNOUT);
 };
 
 export const signup = (apiClient: AxiosInstance, data: SignupRequest) => {
-  return apiClient.post(AUTH_ENDPOINTS.SIGNUP, data);
+  return apiClient.post<ApiResponse<'api_signup_create'>>(AUTH_ENDPOINTS.SIGNUP, data);
 };
 
 export const verifyEmail = (apiClient: AxiosInstance, data: EmailVerificationRequest) => {
-  return apiClient.post(AUTH_ENDPOINTS.EMAIL_VERIFICATION, data);
+  return apiClient.post<ApiResponse<'api_email_verification_create'>>(AUTH_ENDPOINTS.EMAIL_VERIFICATION, data);
 };
 
 export const resendVerificationCode = (apiClient: AxiosInstance, data: ResendVerificationRequest) => {
-  return apiClient.post(AUTH_ENDPOINTS.RESEND_VERIFICATION, data);
+  return apiClient.post<ApiResponse<'api_resend_verification_create'>>(AUTH_ENDPOINTS.RESEND_VERIFICATION, data);
 };
 
 export const refreshToken = (apiClient: AxiosInstance, data: TokenRefreshRequest, config?: AxiosRequestConfig) => {

@@ -60,12 +60,20 @@ explicit provider-webhook exclusions are Alchemy, KYCAID identity, KYCAID crypto
 and Sumsub. Missing routes, phantom operations and stale exclusions fail; unused
 application routes and error-only compatibility routes still count.
 
-[Type-drift checker](../../scripts/check-api-types.py) binds a client's declared
-response type to its method/path, not a coincidentally similar serializer name.
-It normalizes wire-field spelling. Required response fields are checked in one
-direction; trading event names are checked in both. This is not full recursive
-schema/type equivalence. `TYPE_DEBT` and `SCHEMA_DEBT` represent different failures
-and must not be substituted for each other.
+[Type generator and comparison](../../scripts/check-api-types.mjs) uses the committed
+OpenAPI snapshot to produce [shared contracts](../../packages/shared/src/generated/api.ts).
+Named domain aliases select operation responses, requests and queries; nested types
+select schema components. Input and output components are split by Django metadata,
+so read-only server fields are absent from requests and write-only inputs are absent
+from responses. Nullability, required fields, enums and exact decimal strings remain
+in the generated types. Binary payloads use `Blob`. Received objects remain mutable
+JavaScript data; OpenAPI `readOnly` does not freeze them in the client.
+
+Generation is deterministic and check mode never writes. The former partial parser
+and its type/schema debt inventories have been removed. Trading event types come
+from the schema extension, and the real invalidation map is compiled against both
+added and removed event mutations. Generation checks run in the JavaScript CI job;
+the Django job independently establishes that the committed schema is current.
 
 [Client-operation checker](../../scripts/check-client-operations.mjs) recognizes Axios
 through locked compiler declarations, not the name of a `.get` method. Request replay

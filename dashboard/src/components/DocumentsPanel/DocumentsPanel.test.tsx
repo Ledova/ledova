@@ -59,6 +59,40 @@ function showPanel() {
 }
 
 describe('supporting payslips', () => {
+  it('renders supported extraction fields without trusting arbitrary JSON value types', async () => {
+    rows = [
+      {
+        ...document,
+        latestExtraction: {
+          uuid: 'synthetic-extraction',
+          status: 'succeeded',
+          modelName: 'synthetic-parser',
+          parsedJson: {
+            employeeName: 'Synthetic Employee',
+            employerName: { invalid: 'object' },
+            grossPay: '1234.50',
+            confidence: 'not-a-number',
+            extractionWarnings: ['Check the pay period', 7, { invalid: 'warning' }],
+          },
+          confidence: null,
+          warnings: [],
+          error: '',
+          durationMs: null,
+          startedAt: null,
+          finishedAt: null,
+          createdAt: document.createdAt,
+          updatedAt: document.updatedAt,
+        },
+      },
+    ];
+    showPanel();
+    expect(await screen.findByText('Synthetic Employee')).toBeTruthy();
+    expect(screen.getByText(/1,234\.50/)).toBeTruthy();
+    expect(screen.getByText('Check the pay period')).toBeTruthy();
+    expect(screen.getByText('Confidence: Unknown')).toBeTruthy();
+    expect(screen.queryByText(/not-a-number/)).toBeNull();
+  });
+
   it('does not render or fetch payslips in single-issuer mode', async () => {
     mode = 'single_issuer';
     const view = showPanel();

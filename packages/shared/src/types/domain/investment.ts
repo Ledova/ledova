@@ -1,15 +1,7 @@
-import type { JsonValue } from '../common';
+import type { ApiRequest, ApiResponse } from '../contracts';
 
-export interface FinancialProfile {
-  uuid: string;
-  userProfile: string;
-  occupation: string | null;
-  sourceOfFunds: JsonValue;
-  sourceOfFundsOtherText: string | null;
-  intendedUse: string | null;
-  intendedUseOtherText: string | null;
-}
+export type FinancialProfile = ApiResponse<'api_financial_profiles_retrieve'>;
 
-export type CreateFinancialProfile = Omit<FinancialProfile, 'uuid' | 'userProfile'>;
+export type CreateFinancialProfile = ApiRequest<'api_financial_profiles_create'>;
 
-export type UpdateFinancialProfile = Partial<CreateFinancialProfile>;
+export type UpdateFinancialProfile = ApiRequest<'api_financial_profiles_partial_update'>;

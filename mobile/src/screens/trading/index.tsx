@@ -204,7 +204,7 @@ export function TradingScreen() {
     submissions.close();
     actions.close();
     setShowCreateOrder(false);
-    if (swap.settlementProtocolVersion === 0) {
+    if ('settlementProtocolVersion' in swap && swap.settlementProtocolVersion === 0) {
       const isSeller =
         !swap.sellerHasSigned &&
         walletAddresses.some((address) => address.toLowerCase() === swap.sellerAddress.toLowerCase());
@@ -456,16 +456,19 @@ export function TradingScreen() {
         onCancel={handleCancelOrder}
       />
 
-      {showSwapSigning && signSwap?.settlementProtocolVersion === 0 && (
-        <SwapSigningModal
-          key={`${signSwap.uuid}/${signSwapWallet?.uuid}`}
-          visible={true}
-          onClose={closeSettlement}
-          swap={signSwap}
-          wallet={signSwapWallet}
-          onSuccess={handleSwapSuccess}
-        />
-      )}
+      {showSwapSigning &&
+        signSwap &&
+        'settlementProtocolVersion' in signSwap &&
+        signSwap.settlementProtocolVersion === 0 && (
+          <SwapSigningModal
+            key={`${signSwap.uuid}/${signSwapWallet?.uuid}`}
+            visible={true}
+            onClose={closeSettlement}
+            swap={signSwap}
+            wallet={signSwapWallet}
+            onSuccess={handleSwapSuccess}
+          />
+        )}
       {settlements.active && (
         <SwapSettlementModal
           key={`${settlements.active.selection.swapUuid}/${currentSettlementGeneration}`}

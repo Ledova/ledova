@@ -1,16 +1,11 @@
+import type { ApiSchema, ApiRequest, ApiResponse } from '../contracts';
 import type { Wallet } from './wallet';
 
-export interface PrepareTransferRequest {
-  toAddress: string;
-  amountEth?: string;
-  amountToken?: string;
-  tokenContract?: string;
-}
+export type PrepareTransferRequest = Omit<ApiRequest<'api_wallets_prepare_transfer_create'>, 'amountBtc'>;
 
-export interface PrepareBitcoinTransferRequest {
-  toAddress: string;
-  amountBtc: string;
-}
+export type PrepareBitcoinTransferRequest = Required<
+  Pick<ApiRequest<'api_wallets_prepare_transfer_create'>, 'toAddress' | 'amountBtc'>
+>;
 
 export interface TransferableAsset {
   uuid: string;
@@ -24,74 +19,15 @@ export interface TransferableAsset {
   chain: string;
 }
 
-export interface PrepareTransferResponse {
-  transaction: {
-    nonce: number;
-    to: string;
-    value: number;
-    gas: number;
-    chainId: number;
-    data?: string;
-    type?: number;
-    gasPrice?: number;
-    maxFeePerGas?: number;
-    maxPriorityFeePerGas?: number;
-  };
-  amountEth?: string;
-  amountToken?: string;
-  tokenSymbol?: string;
-  tokenDecimals?: number;
-  tokenContract?: string;
-  gasPriceWei: string;
-  gasPriceGwei: string;
-  maxFeePerGasWei?: string;
-  maxFeePerGasGwei?: string;
-  maxPriorityFeePerGasWei?: string;
-  maxPriorityFeePerGasGwei?: string;
-  baseFeePerGasWei?: string;
-  baseFeePerGasGwei?: string;
-  gasLimit: number;
-  gasCostEth: string;
-  totalCostEth?: string;
-  fromAddress: string;
-  toAddress: string;
-}
+export type PrepareTransferResponse = ApiSchema<'PreparedEvmTransfer'>;
 
-export interface PrepareBitcoinTransferResponse {
-  fromAddress: string;
-  toAddress: string;
-  amountBtc: string;
-  amountSatoshis: number;
-  feePerByte: string;
-  estimatedTxSize: number;
-  feeSatoshis: number;
-  feeBtc: string;
-  totalCostBtc: string;
-  network: 'BTC';
-}
+export type PrepareBitcoinTransferResponse = ApiSchema<'PreparedBitcoinTransfer'>;
 
-export type PreparedWalletTransfer = PrepareTransferResponse | PrepareBitcoinTransferResponse;
+export type PreparedWalletTransfer = ApiResponse<'api_wallets_prepare_transfer_create'>;
 
-export interface BroadcastTransferRequest {
-  signedTransaction: string;
-  toAddress?: string;
-  amount?: string;
-  transactionFee?: string;
-  tokenContract?: string;
-}
+export type BroadcastTransferRequest = ApiRequest<'api_wallets_broadcast_transfer_create'>;
 
-export interface BroadcastTransferResponse {
-  success: boolean;
-  txHash: string;
-  status: 'pending' | 'confirmed' | 'failed' | 'reorged' | 'replaced';
-  message: string;
-  pendingTransaction?: {
-    transactionId: string;
-    txHash: string;
-    status: string;
-    holdingQuantity: string;
-  } | null;
-}
+export type BroadcastTransferResponse = ApiResponse<'api_wallets_broadcast_transfer_create'>;
 
 export type TransferStepSimple = 'select-wallet' | 'enter-details' | 'review' | 'sign' | 'broadcast' | 'success';
 

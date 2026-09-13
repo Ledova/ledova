@@ -1,213 +1,39 @@
-import type { BaseEntity } from '../common';
+import type { ApiSchema, ApiRequest, ApiResponse } from '../contracts';
 
-export type CompanyStatus =
-  | 'draft'
-  | 'submitted'
-  | 'review'
-  | 'info_required'
-  | 'approved'
-  | 'active'
-  | 'warning'
-  | 'suspended'
-  | 'delisted'
-  | 'rejected'
-  | 'withdrawn';
+export type CompanyStatus = ApiSchema<'CompanyStatusEnum'>;
 
-export type CompanyType = 'pty' | 'public' | 'unlisted';
+export type CompanyType = ApiSchema<'CompanyTypeEnum'>;
 
-export type DocumentType =
-  | 'cert_inc'
-  | 'asic'
-  | 'constitution'
-  | 'share_register'
-  | 'financials'
-  | 'auditor_report'
-  | 'director_id'
-  | 'beneficial_ownership'
-  | 'shareholder'
-  | 'business_plan'
-  | 'risk_disclosure'
-  | 'prospectus'
-  | 'legal_opinion'
-  | 'tax_return'
-  | 'bank_statement'
-  | 'other';
+export type DocumentType = ApiSchema<'CompanyDocumentDocumentTypeEnum'>;
 
-export interface CompanyDocument {
-  uuid: string;
-  documentType: DocumentType;
-  documentTypeDisplay: string;
-  name: string;
-  fileUrl: string;
-  fileSize: number;
-  mimeType: string;
-  isVerified: boolean;
-  verifiedAt: string | null;
-  createdAt: string;
-}
+export type CompanyDocument = ApiResponse<'api_v1_companies_documents_retrieve'>;
 
-export interface CompanyUserProfile {
-  fullName: string | null;
-}
+export type CompanyUserProfile = ApiSchema<'_CompanyUserProfile'>;
 
-export interface Company extends BaseEntity {
-  name: string;
-  tradingName: string;
-  displayName: string;
-  companyType: CompanyType;
-  companyTypeDisplay: string;
-  acn: string;
-  abn: string;
-  status: CompanyStatus;
-  statusDisplay: string;
-  email: string;
-  phone: string;
-  addressLine1: string;
-  addressLine2: string;
-  city: string;
-  state: string;
-  postcode: string;
-  country: string;
+export type Company = ApiResponse<'api_v1_companies_retrieve'>;
 
-  submittedAt: string | null;
-  reviewStartedAt: string | null;
-  approvedAt: string | null;
-  activatedAt: string | null;
-  infoRequestedAt: string | null;
-  infoRequestReason: string;
+export type CompanyListItem = ApiResponse<'api_v1_companies_list'>['results'][number];
 
-  additionalInfoResponse: string;
-  rejectionAt: string | null;
-  rejectionReason: string;
-  withdrawnAt: string | null;
-  withdrawalReason: string;
+export type CompanyUpdateResponse = ApiResponse<'api_v1_companies_partial_update'>;
 
-  operatorWallet: string | null;
-  description: string;
-  industry: string;
-  foundedYear: number | null;
-  isActive: boolean;
-  isApproved: boolean;
-  isPendingReview: boolean;
-  canIssueTokens: boolean;
-  isOpenToInvestors: boolean;
-  primaryContact: CompanyUserProfile | null;
-  documents: CompanyDocument[];
-}
+export type CompanyUpdate = ApiRequest<'api_v1_companies_partial_update'>;
 
-export interface CompanyListItem {
-  uuid: string;
-  name: string;
-  tradingName: string;
-  displayName: string;
-  acn: string;
-  companyType: CompanyType;
-  companyTypeDisplay: string;
-  status: CompanyStatus;
-  statusDisplay: string;
-  industry: string;
-  city: string;
-  state: string;
-  isActive: boolean;
-  isApproved: boolean;
-  createdAt: string;
-}
+export type CompanyStats = ApiResponse<'api_v1_companies_stats_retrieve'>;
 
-export interface CompanyUpdateResponse {
-  name: string;
-  tradingName: string;
-  companyType: CompanyType;
-  acn: string;
-  abn: string;
-  addressLine1: string;
-  addressLine2: string;
-  city: string;
-  state: string;
-  postcode: string;
-  phone: string;
-  description: string;
-  industry: string;
-  operatorWallet: string | null;
-  isOpenToInvestors: boolean;
-}
+export type CompanyRegistration = ApiRequest<'api_v1_companies_create'>;
 
-export interface CompanyUpdate {
-  name?: string;
-  tradingName?: string;
-  companyType?: CompanyType;
-  acn?: string;
-  abn?: string;
-  addressLine1?: string;
-  addressLine2?: string;
-  city?: string;
-  state?: string;
-  postcode?: string;
-  phone?: string;
-  description?: string;
-  industry?: string;
-  isOpenToInvestors?: boolean;
-}
+export type CompanyRegistrationResponse = ApiResponse<'api_v1_companies_create'>;
 
-export interface CompanyStats {
-  totalTokens: number;
-  totalShareholders: number;
-  pendingActions: number;
-}
+export type ApplicationStatus = ApiResponse<'api_v1_companies_application_status_retrieve'>;
 
-export interface CompanyRegistration {
-  name: string;
-  tradingName?: string;
-  companyType: CompanyType;
-  acn: string;
-  abn?: string;
-  primaryContact: {
-    firstName: string;
-    lastName: string;
-    phone?: string;
-  };
-}
+export type ApplicationResponse =
+  | ApiResponse<'api_v1_companies_submit_create'>
+  | ApiResponse<'api_v1_companies_resubmit_create'>
+  | ApiResponse<'api_v1_companies_withdraw_create'>;
 
-export interface CompanyRegistrationResponse {
-  message: string;
-  company: Company;
-}
+export type ApplicationResubmit = ApiRequest<'api_v1_companies_resubmit_create'>;
 
-export interface ApplicationStatus {
-  uuid: string;
-  name: string;
-  status: CompanyStatus;
-  statusDisplay: string;
-  submittedAt: string | null;
-  reviewStartedAt: string | null;
-  reviewCompletedAt: string | null;
-  approvedAt: string | null;
-  activatedAt: string | null;
-  infoRequestedAt: string | null;
-  infoRequestReason: string;
-  rejectionAt: string | null;
-  rejectionReason: string;
-  withdrawnAt: string | null;
-  withdrawalReason: string;
-  isPendingReview: boolean;
-  isApproved: boolean;
-  isActive: boolean;
-}
+export type ApplicationWithdraw = ApiRequest<'api_v1_companies_withdraw_create'>;
 
-export interface ApplicationResponse {
-  message: string;
-  company: ApplicationStatus;
-}
-
-export interface ApplicationResubmit {
-  response: string;
-}
-
-export interface ApplicationWithdraw {
-  reason?: string;
-}
-
-export interface DocumentUpload {
-  documentType: DocumentType;
-  name: string;
-  file: File;
-}
+export type DocumentUpload = ApiRequest<'api_v1_companies_documents_create'> &
+  Required<Pick<ApiRequest<'api_v1_companies_documents_create'>, 'file'>>;

@@ -27,8 +27,8 @@ export function useAssetPrices() {
 
   const buildQueryParams = (filters: AssetFilters): AssetQueryParams => {
     const params: AssetQueryParams = {
-      is_active: 'true',
-      order_by: 'symbol',
+      is_active: true,
+      ordering: 'symbol',
     };
 
     if (filters.search) {
@@ -109,7 +109,6 @@ export function useAssetPriceHistory(assetUuid: string | null) {
       getAssetSnapshots(apiClient, assetUuid!, {
         start_date,
         end_date,
-        limit: 0,
         order_by: 'source_timestamp',
       }),
     enabled: !!assetUuid,

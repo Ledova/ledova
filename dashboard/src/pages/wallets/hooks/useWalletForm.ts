@@ -240,10 +240,13 @@ export function useWalletForm({ onSubmit, onBatchSubmit, preselectedChain }: Use
       return;
     }
 
+    const chain = getChainConfig(selectedChain);
+    if (!chain?.isActive) return;
+
     onSubmit({
       name: name.trim() || undefined,
       address: address.trim(),
-      chain: selectedChain,
+      chain: chain.code,
     });
   }, [validate, selectedChain, name, address, onSubmit]);
 

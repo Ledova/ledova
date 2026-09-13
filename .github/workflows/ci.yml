@@ -58,6 +58,8 @@ jobs:
         run: make install
       - name: Workspace packages do not import themselves
         run: make check-self-imports
+      - name: Generated API types and trading event coverage
+        run: make check-api-types
       - name: Shared, dashboard and mobile HTTP operation coverage
         run: make check-client-operations
       - name: Client operation coverage artefact
@@ -211,9 +213,6 @@ jobs:
         run: >-
           python ../scripts/check-api-schema.py --schema /tmp/ledova-schema.json
           --report /tmp/ledova-schema-comparison.json
-      - name: API type and trading event drift gate
-        if: ${{ !cancelled() && steps.generate-schema.outcome == 'success' }}
-        run: python ../scripts/check-api-types.py --schema /tmp/ledova-schema.json
       - name: Generated schema, diagnostics, environment and comparison
         if: always()
         uses: actions/upload-artifact@v7

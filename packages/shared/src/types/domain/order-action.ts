@@ -1,89 +1,26 @@
-import type { OrderStatus, OrderType } from '../../constants';
-import type { SigningChallengeTypedData, TransferOrder } from './trading';
+import type { ApiSchema, ApiRequest, ApiResponse } from '../contracts';
 
-export type OrderActionPurpose = 'cancel' | 'modify';
-export type OrderActionDomain = SigningChallengeTypedData['domain'];
+export type OrderActionPurpose = OrderActionSnapshot['purpose'];
+export type OrderActionDomain = ApiSchema<'SigningDomain'>;
 
-export interface OrderActionValues {
-  quantity: string;
-  minQuantity: string;
-  pricePerShare: string;
-}
+export type OrderActionValues = ApiSchema<'OrderActionValues'>;
 
-export interface OrderActionCurrentValues extends OrderActionValues {
-  orderType: OrderType;
-  status: OrderStatus;
-  modificationCount: number;
-  filledQuantity: string;
-  remainingQuantity: string;
-  canCancel: boolean;
-  canModify: boolean;
-}
+export type OrderActionCurrentValues = ApiSchema<'OrderActionCurrentValues'>;
 
-export interface OrderActionToken {
-  name: string;
-  symbol: string;
-  contractAddress: string;
-}
+export type OrderActionToken = ApiSchema<'OrderActionToken'>;
 
-export interface OrderActionContext {
-  protocolVersion: 1;
-  ownerAccountUuid: string;
-  orderUuid: string;
-  walletUuid: string;
-  tokenUuid: string;
-  walletAddress: string;
-  domain: OrderActionDomain;
-  token: OrderActionToken;
-  currentValues: OrderActionCurrentValues;
-}
+export type OrderActionContext = ApiResponse<'api_v1_trading_orders_action_context_retrieve'>;
 
-export interface OrderActionChallenge extends SigningChallengeTypedData {
-  purpose: 'order_cancel' | 'order_modify';
-  digest: string;
-  expiresAt: string;
-}
+export type OrderActionChallenge = ApiSchema<'OrderActionChallenge'>;
 
-export interface OrderActionChange {
-  field: 'quantity' | 'min_quantity' | 'price_per_share';
-  old: string;
-  new: string;
-}
+export type OrderActionChange = ApiSchema<'OrderActionChange'>;
 
-export type OrderActionResult =
-  | { kind: 'cancel'; fromStatus: OrderStatus; toStatus: 'cancelled' }
-  | { kind: 'modify'; modificationCount: number; changes: OrderActionChange[] };
+export type OrderActionResult = ApiSchema<'OrderActionAppliedResult'>;
 
-export interface OrderActionSnapshot {
-  protocolVersion: 1;
-  actionId: string;
-  ownerAccountUuid: string;
-  orderUuid: string;
-  walletUuid: string;
-  tokenUuid: string;
-  walletAddress: string;
-  purpose: OrderActionPurpose;
-  status: 'pending' | 'applied' | 'refused';
-  intent: { domain: OrderActionDomain; modifications: OrderActionValues | null };
-  review: { token: OrderActionToken; currentValues: OrderActionCurrentValues };
-  order: TransferOrder;
-  result: OrderActionResult | null;
-  refusal: { code: string; detail: string; httpStatus: 400 | 409 } | null;
-  challenge: OrderActionChallenge | null;
-}
+export type OrderActionSnapshot = ApiResponse<'api_v1_trading_orders_actions_retrieve'>;
 
-export interface OrderActionRequest {
-  actionId: string;
-  ownerAccountUuid: string;
-}
+export type OrderActionRequest = ApiRequest<'api_v1_trading_orders_cancel_message_create'>;
 
-export interface OrderActionModificationRequest extends OrderActionRequest {
-  newQuantity: string;
-  newMinQuantity: string;
-  newPricePerShare: string;
-}
+export type OrderActionModificationRequest = ApiRequest<'api_v1_trading_orders_modify_message_create'>;
 
-export interface OrderActionExecuteRequest extends OrderActionRequest {
-  digest?: string;
-  signature?: string;
-}
+export type OrderActionExecuteRequest = ApiRequest<'api_v1_trading_orders_cancel_create'>;

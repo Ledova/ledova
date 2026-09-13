@@ -312,7 +312,7 @@ export function OrdersPanel({
                   <span className="text-sm font-medium text-text-primary">{swap.shareTokenSymbol}</span>
                   <span className="text-xs text-text-muted">•</span>
                   <span className="text-sm text-text-primary">
-                    {swap.settlementProtocolVersion === 0
+                    {'settlementProtocolVersion' in swap && swap.settlementProtocolVersion === 0
                       ? `${swap.shareAmount}@$${(swap.paymentAmount / 100).toFixed(2)}`
                       : (capturedDisplay ?? 'Trade details need refreshing')}
                   </span>

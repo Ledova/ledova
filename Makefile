@@ -4,12 +4,8 @@
 NPM ?= npm
 PYTHON ?= python3
 
-# The API type drift gate reads a generated OpenAPI schema rather than generating one,
-# so it needs no Django on the host. CI generates it in the Django job, where the
-# database schema generation touches already exists, and writes it to this same path -
-# two files naming one artefact differently is how `make check-api-types` comes to say
-# no schema exists while CI has just written one.
 SCHEMA ?= /tmp/ledova-schema.json
+API_TYPES_SCHEMA ?= backend/schema/openapi.json
 SCHEMA_ENVIRONMENT ?= /tmp/ledova-schema-environment.json
 SCHEMA_COMPARISON ?= /tmp/ledova-schema-comparison.json
 CLIENT_OPERATIONS_REPORT ?= /tmp/ledova-client-operations.json
@@ -18,7 +14,7 @@ CLIENT_OPERATIONS_REPORT ?= /tmp/ledova-client-operations.json
 	check-logging check-schema-responses check-test-shadowing check-docs check-api-types check-self-imports check-mobile-test-awaits test-gates audit test \
 	dev-up dev-down dev-logs contracts-compile contracts-test contracts-deploy-local \
 	contracts-deploy-testnet chain-test smoke lint check-type-check \
-	install-schema-environment generate-api-schema check-api-schema update-api-schema check-client-operations
+	install-schema-environment generate-api-schema check-api-schema update-api-schema update-api-types check-client-operations
 
 # CHAIN_TEST_PORT is the single knob for the local chain: it moves the Hardhat node, the backend's
 # BLOCKCHAIN_RPC_URL and, through LOCALHOST_RPC_URL, the `localhost` network in contracts/hardhat.config.ts
@@ -55,10 +51,11 @@ help:
 	@echo "  make check-test-shadowing     Fail on a test helper that shadows a TestCase method"
 	@echo "  make check-docs               Fail when a document disagrees with the tree it describes"
 	@echo "  make check-connection-binding  Fail on a transaction or cursor bound to the default connection"
-	@echo "  make check-api-types          Fail on a shared type that requires a field the API never sends"
+	@echo "  make check-api-types          Regenerate and compare the shared API types and trading events"
 	@echo "  make install-schema-environment Install development dependencies with the schema toolchain constraints"
 	@echo "  make generate-api-schema      Generate JSON from an already migrated isolated PostgreSQL database"
 	@echo "  make check-api-schema         Generate and compare the complete committed OpenAPI snapshot"
+	@echo "  make update-api-types         Explicitly regenerate shared types from the committed schema"
 	@echo "  make update-api-schema        Generate, check contracts and explicitly replace the snapshot"
 	@echo "  make check-client-operations  Check shared, dashboard and mobile HTTP operations against the snapshot"
 	@echo "  make check-error-bodies       Fail on an API error body built from an exception's text"
@@ -109,6 +106,7 @@ generate-tokens:
 
 check: check-comments check-layers check-logging check-connection-binding check-error-bodies check-type-check check-schema-responses check-test-shadowing check-docs install-backend install-node-if-missing
 	$(MAKE) check-self-imports
+	$(MAKE) check-api-types
 	$(NPM) run typecheck
 	$(NPM) --prefix mobile run check:resolution
 	$(MAKE) check-mobile-test-awaits
@@ -143,12 +141,11 @@ check-test-shadowing:
 check-docs:
 	$(PYTHON) scripts/check-docs.py
 check-api-types:
-	@test -f $(SCHEMA) || { \
-	  echo "No schema at $(SCHEMA). Generate one first:"; \
-	  echo "  make generate-api-schema SCHEMA=$(SCHEMA)"; \
-	  echo "or pass SCHEMA=<path>. CI generates it in the Django job."; \
-	  exit 1; }
-	$(PYTHON) scripts/check-api-types.py --schema $(SCHEMA)
+	node --test scripts/tests/check-api-types.test.mjs
+	node scripts/check-api-types.mjs --schema "$(API_TYPES_SCHEMA)"
+
+update-api-types:
+	node scripts/check-api-types.mjs --schema "$(API_TYPES_SCHEMA)" --update
 
 generate-api-schema:
 	cd backend && $(PYTHON) manage.py export_api_schema --settings=ledova_backend.settings.test_postgres \
@@ -158,9 +155,9 @@ check-api-schema: generate-api-schema
 	$(PYTHON) scripts/check-api-schema.py --schema "$(SCHEMA)" --report "$(SCHEMA_COMPARISON)"
 
 update-api-schema: generate-api-schema
-	$(PYTHON) scripts/check-api-types.py --schema "$(SCHEMA)"
 	node scripts/check-client-operations.mjs --schema "$(SCHEMA)" --report "$(CLIENT_OPERATIONS_REPORT)"
 	$(PYTHON) scripts/check-api-schema.py --schema "$(SCHEMA)" --report "$(SCHEMA_COMPARISON)" --update
+	node scripts/check-api-types.mjs --schema "$(SCHEMA)" --update
 
 check-client-operations:
 	node --test scripts/tests/check-client-operations.test.mjs

@@ -85,10 +85,10 @@ export function SignupReview() {
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-text-muted">Phone:</span>
                   <span className="text-sm text-text-primary font-medium">
-                    {formatPhoneNumber(userProfile.phoneNumber)}
+                    {formatPhoneNumber(userProfile.phoneNumber ?? '')}
                   </span>
                 </div>
-                {getAddressDisplayLines(parseAddress(userProfile.residentialAddress)).map((line, index) => (
+                {getAddressDisplayLines(parseAddress(userProfile.residentialAddress ?? '')).map((line, index) => (
                   <div key={index} className="flex justify-between items-center">
                     <span className="text-sm text-text-muted">{line.label}</span>
                     <span className="text-sm text-text-primary font-medium">{line.value}</span>

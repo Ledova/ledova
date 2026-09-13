@@ -16,7 +16,7 @@ const FIELD_CLASS =
   'placeholder:text-text-muted focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid';
 
 interface OfferingFormProps {
-  tokens: CompanyShareTokenListItem[];
+  tokens: Pick<CompanyShareTokenListItem, 'uuid' | 'name' | 'symbol'>[];
   busy: boolean;
   settlementAssets: OperatorSettlementAsset[];
   onCreate: (input: OfferingInput) => void;

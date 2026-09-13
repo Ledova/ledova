@@ -87,7 +87,7 @@ describe('the historical network breakdown', () => {
     'does not invent a split for older or single-network data',
     (perChain) => {
       const snapshot = point(0, '1');
-      snapshot.assetHoldings.ETH.perChain = perChain;
+      Object.assign(snapshot.assetHoldings.ETH, { perChain });
       const view = show([snapshot]);
       expect(view.queryByLabelText('Show ETH by network')).toBeNull();
     },
