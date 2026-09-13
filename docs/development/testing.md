@@ -84,6 +84,12 @@ provider/delivery fakes. See [tenancy](../architecture/tenancy.md).
 
 ## Reviewing and driving the product
 
+The PR title identifies both its change type and owning issue using
+`type(#issue): description`; its body starts with the matching `Refs #issue` or
+`Closes #issue`. This includes automated dependency PRs. The complete convention
+and type list live in
+[Pull request titles and issue ownership](../../CONTRIBUTING.md#pull-request-titles-and-issue-ownership).
+
 Review the diff and description at the named head. After a rebase, read the delta
 or prove the reviewed content is unchanged. State depth and omissions; an approval
 must not imply a read that did not occur. Read both intentions behind conflicts.
