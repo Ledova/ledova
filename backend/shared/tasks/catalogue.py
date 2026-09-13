@@ -140,7 +140,21 @@ CONVERSIONS = {
     "users.tasks.notifications.send_transaction_notification": TaskConversion(status="converted", converted_pr=523),
 }
 
-OPERATOR_READS: dict[str, str] = {}
+OPERATOR_BOUNDARIES = {
+    "tokens.services.deployment_journal.create_deployment_record": "Creates one operator-owned broadcast record "
+    "for the token already resolved under its enqueue principal; no other token is selected or changed.",
+    "tokens.services.deployment_journal.load_deployment_record": "Reads only the deployment journal named by "
+    "the already-resolved token's foreign key, including historical records without related_uuid metadata.",
+    "tokens.services.deployment_journal.record_signed_deployment": "Commits one deployment hash with its token "
+    "association on the same operator transaction before broadcast. The record must belong to this token; "
+    "a scoped caller's current company ownership is rechecked under a lock. Other token writes remain scoped.",
+    "tokens.services.deployment_journal.confirm_deployment_record": "Records a receipt only on the resolved "
+    "token's deployment journal; it does not finalize the token or widen access to another deployment.",
+    "tokens.services.deployment_journal.fail_deployment_record": "Retains failure or unknown-broadcast evidence "
+    "only on the resolved token's journal, without changing a token's scoped deployment state.",
+    "tokens.services.deployment_journal.revert_deployment_record": "Marks the resolved token's deployment "
+    "journal reverted; clearing the token's association remains a write under the caller's principal.",
+}
 
 READS_MUST_SURVIVE_THE_POLICIES = {
     "wallets.tasks.sync.sync_wallet": "Retained market read: POLICIES gives tokens_sharetoken an "

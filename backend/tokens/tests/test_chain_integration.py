@@ -147,7 +147,7 @@ class ChainTestMixin:
 
     def _deployed(self):
         self.token.mark_deploying()
-        result = deploy_share_token_task(token_uuid=str(self.token.uuid))
+        result = deploy_share_token_task(token_uuid=str(self.token.uuid), principal_id=None)
         self.assertTrue(result["success"], result)
         self.token.refresh_from_db()
         return result
@@ -290,7 +290,7 @@ class ShareTokenChainTest(ChainTestMixin, APITestCase):
 
     def test_deploy_whitelist_issue_increase_pause_and_redeploy(self):
         self.token.mark_deploying()
-        result = deploy_share_token_task(token_uuid=str(self.token.uuid))
+        result = deploy_share_token_task(token_uuid=str(self.token.uuid), principal_id=None)
         self.token.refresh_from_db()
         contract_address = result["contract_address"]
 
@@ -453,7 +453,7 @@ class ShareTokenChainTest(ChainTestMixin, APITestCase):
 
         self.token.mark_deploying()
         blocks_before = self.w3.eth.block_number
-        rerun = deploy_share_token_task(token_uuid=str(self.token.uuid))
+        rerun = deploy_share_token_task(token_uuid=str(self.token.uuid), principal_id=None)
         self.token.refresh_from_db()
         self.assertEqual(rerun["success"], True)
         self.assertEqual(rerun["adopted"], True)
@@ -479,7 +479,7 @@ class ShareTokenChainTest(ChainTestMixin, APITestCase):
         self.assertIsNone(asset.current_price)
 
         self.token.mark_deploying()
-        rerun = deploy_share_token_task(token_uuid=str(self.token.uuid))
+        rerun = deploy_share_token_task(token_uuid=str(self.token.uuid), principal_id=None)
         self.assertEqual((rerun["adopted"], rerun["contract_address"]), (True, contract_address))
         self.assertEqual(AssetChainDeployment.objects.filter(contract_address=contract_address).count(), 1)
         self.assertEqual(Asset.objects.filter(chain_deployments__contract_address=contract_address).count(), 1)
@@ -502,7 +502,7 @@ class ShareTokenChainTest(ChainTestMixin, APITestCase):
         self.token.mark_deploying()
         with self._crash_after_send():
             with self.assertRaisesMessage(TokenDeploymentFailedException, "Token deployment is unconfirmed."):
-                deploy_share_token_task(token_uuid=str(self.token.uuid))
+                deploy_share_token_task(token_uuid=str(self.token.uuid), principal_id=None)
 
         self.token.refresh_from_db()
         record = self._deploy_records().get()
@@ -518,7 +518,7 @@ class ShareTokenChainTest(ChainTestMixin, APITestCase):
                 self.assertLogs("tokens.services.share_token_service", level="ERROR") as logged,
                 self.assertRaises(TokenDeploymentFailedException) as refused,
             ):
-                deploy_share_token_task(token_uuid=str(self.token.uuid))
+                deploy_share_token_task(token_uuid=str(self.token.uuid), principal_id=None)
         self.assertNotIn("rpc down", str(refused.exception.detail))
         self.assertIn("rpc down", " ".join(logged.output))
         self.token.refresh_from_db()
@@ -553,7 +553,7 @@ class ShareTokenChainTest(ChainTestMixin, APITestCase):
         self.token.mark_deploying()
         with self._crash_after_send():
             with self.assertRaises(TokenDeploymentFailedException):
-                deploy_share_token_task(token_uuid=str(self.token.uuid))
+                deploy_share_token_task(token_uuid=str(self.token.uuid), principal_id=None)
 
         self.token.refresh_from_db()
         self.assertEqual(self.token.status, ShareTokenStatus.DEPLOYING)
@@ -564,7 +564,7 @@ class ShareTokenChainTest(ChainTestMixin, APITestCase):
         restore_mining()
         self.assertIsNotNone(self.service.get_token_by_identifier(self.identifier))
         with patch.object(ShareTokenService, "get_token_by_identifier", return_value=None):
-            resumed = deploy_share_token_task(token_uuid=str(self.token.uuid))
+            resumed = deploy_share_token_task(token_uuid=str(self.token.uuid), principal_id=None)
 
         self.token.refresh_from_db()
         record = self._deploy_records().get()

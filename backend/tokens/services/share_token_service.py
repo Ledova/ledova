@@ -5,7 +5,6 @@ from datetime import timezone as dt_timezone
 from typing import Optional
 
 from django.conf import settings
-from django.db import connections
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from web3 import Web3
@@ -26,7 +25,6 @@ from integrations.base_chain.exceptions import (
 from operators.settlement import settlement_deployments
 from shared.constants import BLOCKCHAIN_BASE
 from shared.db import atomic
-from shared.db.aliases import current_alias
 from tokens.exceptions import (
     CompanyNotReadyException,
     ContractLoadException,
@@ -53,6 +51,14 @@ from tokens.models import (
     ShareTokenStatus,
 )
 from tokens.querysets.share_issuance import ISSUANCE_KEY_PREFIX
+from tokens.services.deployment_journal import (
+    confirm_deployment_record,
+    create_deployment_record,
+    fail_deployment_record,
+    load_deployment_record,
+    record_signed_deployment,
+    revert_deployment_record,
+)
 from tokens.services.dilution import dilution_for
 from tokens.services.holder_identity import identity_at_allotment
 from tokens.services.mint_journal import (
@@ -164,12 +170,12 @@ class ShareTokenService:
         return primary_wallet
 
     @staticmethod
-    def start_deployment(token: ShareToken) -> None:
+    def start_deployment(token: ShareToken, *, principal_id: int | None) -> None:
         from tokens.tasks import deploy_share_token_task
 
         ShareTokenService.require_deployable(token)
         token.mark_deploying()
-        deploy_share_token_task.defer(token_uuid=str(token.uuid))
+        deploy_share_token_task.defer(token_uuid=str(token.uuid), principal_id=principal_id)
 
     @staticmethod
     def require_retryable(token: ShareToken) -> None:
@@ -179,11 +185,11 @@ class ShareTokenService:
             )
 
     @staticmethod
-    def retry_deployment(token: ShareToken) -> None:
+    def retry_deployment(token: ShareToken, *, principal_id: int | None) -> None:
         from tokens.tasks import deploy_share_token_task
 
         ShareTokenService.require_retryable(token)
-        deploy_share_token_task.defer(token_uuid=str(token.uuid))
+        deploy_share_token_task.defer(token_uuid=str(token.uuid), principal_id=principal_id)
 
     def _validate_address(self, address: str) -> str:
         if not self.chain_client.is_valid_address(address):
@@ -264,7 +270,7 @@ class ShareTokenService:
         return contract_address
 
     def _confirm_deployment_transaction(self, token: ShareToken) -> None:
-        tx_record = token.deployment_transaction
+        tx_record = load_deployment_record(token)
         if tx_record is None or tx_record.status == TransactionStatus.CONFIRMED:
             return
         try:
@@ -273,7 +279,7 @@ class ShareTokenService:
             logger.warning(f"Could not read the receipt of {token.deployment_tx_hash} for {token.symbol}: {exc}")
             return
         if receipt is not None and receipt["status"] == 1:
-            self._confirm_record(tx_record, receipt)
+            confirm_deployment_record(token, tx_record, receipt)
 
     @staticmethod
     def _confirm_record(tx_record: BlockchainTransaction, receipt) -> None:
@@ -308,13 +314,13 @@ class ShareTokenService:
 
     def _resume_share_token(self, token: ShareToken, identifier: str) -> Optional[str]:
         tx_hash = token.deployment_tx_hash
-        tx_record = token.deployment_transaction
+        tx_record = load_deployment_record(token)
         try:
             receipt = self.chain_client.get_transaction_receipt(tx_hash)
             if receipt is not None and receipt["status"] != 1:
                 logger.warning(f"createShareToken({identifier}) {tx_hash} reverted; a fresh create is safe")
                 if tx_record:
-                    tx_record.mark_reverted(f"Transaction reverted: {tx_hash}")
+                    revert_deployment_record(token, tx_record)
                 token.discard_deployment_transaction()
                 return None
             if receipt is None:
@@ -323,23 +329,13 @@ class ShareTokenService:
         except Exception as exc:
             logger.error(f"createShareToken({identifier}) {tx_hash} still unconfirmed, token stays deploying: {exc}")
             if tx_record:
-                tx_record.mark_failed(str(exc))
+                fail_deployment_record(token, tx_record, str(exc))
             raise TokenDeploymentFailedException("Token deployment is unconfirmed.") from exc
 
         if tx_record:
-            self._confirm_record(tx_record, receipt)
+            confirm_deployment_record(token, tx_record, receipt)
         logger.info(f"ShareToken {token.symbol} created at {contract_address} by resumed {tx_hash}")
         return contract_address
-
-    @staticmethod
-    def _record_signed_deployment(token: ShareToken, tx_record: BlockchainTransaction, tx_hash: str) -> None:
-        connection = connections[current_alias()]
-        if not connection.get_autocommit() and not connection.in_atomic_block:
-            raise RuntimeError("Deployment signing requires autocommit before broadcast.")
-        with atomic(durable=True):
-            tx_record.mark_submitted(tx_hash)
-            if not token.bind_deployment_transaction(tx_hash, tx_record):
-                raise InvalidTokenStateException("Another deployment transaction already owns this token.")
 
     def _create_share_token(self, token: ShareToken, identifier: str) -> str:
         issuer_wallet = primary_wallet_for(token.company)
@@ -351,22 +347,8 @@ class ShareTokenService:
         tx_record = None
         try:
             signer_address = self.chain_client.get_address_from_private_key(self.signer_key)
-            tx_record = BlockchainTransaction.objects.create(
-                tx_type=TransactionType.SHARE_TOKEN_DEPLOY,
-                status=TransactionStatus.PENDING,
-                from_address=signer_address,
-                to_address=self.factory_address,
-                function_name="createShareToken",
-                function_args={
-                    "name": token.name,
-                    "symbol": token.symbol,
-                    "identifier": identifier,
-                    "authorizedShares": str(authorized_shares),
-                    "tokenOwner": signer_address,
-                    "issuerWallet": issuer_wallet.address,
-                },
-                related_model="tokens.ShareToken",
-                related_uuid=token.uuid,
+            tx_record = create_deployment_record(
+                token, identifier, signer_address, self.factory_address, issuer_wallet.address
             )
             create_fn = self.factory_contract.functions.createShareToken(
                 token.name, token.symbol, identifier, authorized_shares, signer_address
@@ -375,18 +357,16 @@ class ShareTokenService:
                 create_fn,
                 self.signer_key,
                 wait_for_receipt=False,
-                on_signed=lambda signed_hash, raw: self._record_signed_deployment(token, tx_record, signed_hash),
+                on_signed=lambda signed_hash, raw: record_signed_deployment(token, tx_record, signed_hash),
             )
             if tx_hash != tx_record.tx_hash:
                 raise TokenDeploymentFailedException("The provider returned a different deployment transaction hash.")
         except Exception as exc:
             if tx_record:
-                tx_record.refresh_from_db()
+                fail_deployment_record(token, tx_record, str(exc), before_broadcast=True)
                 if tx_record.tx_hash:
-                    tx_record.mark_outcome_unknown("The deployment broadcast could not be confirmed.")
                     logger.warning(f"createShareToken({identifier}) {tx_record.tx_hash} broadcast is unconfirmed")
                     raise TokenDeploymentFailedException("Token deployment is unconfirmed.") from exc
-                tx_record.mark_failed(str(exc))
             logger.error(f"createShareToken({identifier}) not sent: {exc}")
             self._abandon_unless_sent(token)
             raise TokenDeploymentFailedException("Token deployment failed.") from exc
@@ -398,10 +378,10 @@ class ShareTokenService:
             contract_address = self._created_address(tx_hash, receipt)
         except Exception as exc:
             logger.error(f"createShareToken({identifier}) unconfirmed, token stays deploying: {exc}")
-            tx_record.mark_failed(str(exc))
+            fail_deployment_record(token, tx_record, str(exc))
             raise TokenDeploymentFailedException("Token deployment is unconfirmed.") from exc
 
-        self._confirm_record(tx_record, receipt)
+        confirm_deployment_record(token, tx_record, receipt)
         logger.info(f"ShareToken {token.symbol} created at {contract_address}")
         return contract_address
 

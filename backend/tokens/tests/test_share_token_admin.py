@@ -38,7 +38,7 @@ class ShareTokenAdminDeployTest(TestCase):
         self.assertContains(self.client.get(self.change_url), "Deployment started for")
         self.tenant.token.refresh_from_db()
         self.assertEqual(self.tenant.token.status, ShareTokenStatus.DEPLOYING)
-        deploy_task.defer.assert_called_once_with(token_uuid=str(self.tenant.token.uuid))
+        deploy_task.defer.assert_called_once_with(token_uuid=str(self.tenant.token.uuid), principal_id=None)
 
     @patch("tokens.tasks.deploy_share_token_task")
     def test_readiness_guards_redirect_with_the_reason(self, deploy_task):
@@ -75,7 +75,7 @@ class ShareTokenAdminDeployTest(TestCase):
         retried = self.client.post(retry_url)
         self.assertRedirects(retried, self.change_url, fetch_redirect_response=False)
         self.assertContains(self.client.get(self.change_url), "Deployment retried for")
-        deploy_task.defer.assert_called_once_with(token_uuid=str(token.uuid))
+        deploy_task.defer.assert_called_once_with(token_uuid=str(token.uuid), principal_id=None)
         token.refresh_from_db()
         self.assertEqual(token.status, ShareTokenStatus.DEPLOYING)
 

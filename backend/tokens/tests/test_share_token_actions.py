@@ -60,7 +60,7 @@ class ShareTokenActionTest(APITestCase):
         self.assertEqual(response.json()["token"]["status"], ShareTokenStatus.DEPLOYING)
         draft.refresh_from_db()
         self.assertEqual(draft.status, ShareTokenStatus.DEPLOYING)
-        deploy_task.defer.assert_called_once_with(token_uuid=str(draft.uuid))
+        deploy_task.defer.assert_called_once_with(token_uuid=str(draft.uuid), principal_id=self.tenant.user.pk)
 
         paused = self.client.post(f"/api/v1/tokens/{deployed.uuid}/pause/")
         self.assertEqual(paused.status_code, 200)

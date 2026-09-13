@@ -310,16 +310,19 @@ class DeployTokenTest(TestCase):
 
     def test_task_guards_and_delegates(self):
         self.assertEqual(
-            deploy_share_token_task(token_uuid="00000000-0000-0000-0000-000000000000"),
+            deploy_share_token_task(token_uuid="00000000-0000-0000-0000-000000000000", principal_id=None),
             {"success": False, "error": "Token not found"},
         )
         self.assertEqual(
-            deploy_share_token_task(token_uuid=str(self.tenant.deployed_token.uuid)),
+            deploy_share_token_task(token_uuid=str(self.tenant.deployed_token.uuid), principal_id=None),
             {"success": False, "error": "Token is not in deploying state"},
         )
         outcome = {"contract_address": CREATED, "identifier": "x:DRF", "adopted": False}
         with patch.object(ShareTokenService, "deploy_token", return_value=outcome) as deploy:
-            self.assertEqual(deploy_share_token_task(token_uuid=str(self.token.uuid)), {"success": True, **outcome})
+            self.assertEqual(
+                deploy_share_token_task(token_uuid=str(self.token.uuid), principal_id=None),
+                {"success": True, **outcome},
+            )
         self.assertEqual(deploy.call_args.args[0], self.token)
 
 
