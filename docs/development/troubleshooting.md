@@ -33,3 +33,22 @@ pending issuance, transfer or retained file, use [operator recovery](../operatio
 When an instrument caused the apparent failure, record that correction. Keep
 historical failure counts and old implementation shapes in their dated source
 records rather than turning them into current setup instructions.
+
+**A signing-test timeout can be cold renderer setup rather than signing.**
+The first settlement-screen test timed out at five seconds twice in CI, with
+488 of 489 mobile tests passing ([#542](https://github.com/RonildoBraga/ledova/issues/542)).
+Stage timings and a V8 profile located most of its cost in the initial screen
+render: Jest was lazily transforming React Native's ScrollView, animation code
+and native renderer. Mnemonic derivation took tens of milliseconds. Removing
+the decorative gradient did not fix the controlled failure, so that change was
+discarded.
+
+With a fresh transform cache, three Jest workers and one CPU of affinity, the
+unchanged test failed while the other 488 passed. A measured run with its budget
+raised completed all assertions in 7.28 seconds: 6.67 seconds in the first
+render, then about 0.6 seconds for the rest of the flow. This one integration
+test now has a ten-second limit; the five-second default, actual renderer,
+cryptographic signer, duplicate-submit assertions and all other tests remain.
+That allows the measured cold fixture cost and adds five seconds to detecting a
+hang in this case. These are test-harness timings, not application performance
+measurements or a reason to extend timeouts without locating the cost.
