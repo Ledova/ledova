@@ -11,16 +11,12 @@ class UserPreferencesEndpointTest(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(email="prefs@example.test", password="pw-12345678")
         self.profile = UserProfile.objects.create(user=self.user, full_name="Prefs Owner")
-        self.account = UserAccount.objects.create(
-            account_number="PREFS-A", director=self.profile, user_profile=self.profile
-        )
+        self.account = UserAccount.objects.create(account_number="PREFS-A", user_profile=self.profile)
         self.portfolio = Portfolio.objects.create(user_account=self.account, name="A portfolio")
 
         stranger = User.objects.create_user(email="stranger@example.test", password="pw-12345678")
         stranger_profile = UserProfile.objects.create(user=stranger)
-        self.foreign_account = UserAccount.objects.create(
-            account_number="PREFS-F", director=stranger_profile, user_profile=stranger_profile
-        )
+        self.foreign_account = UserAccount.objects.create(account_number="PREFS-F", user_profile=stranger_profile)
         self.foreign_portfolio = Portfolio.objects.create(user_account=self.foreign_account, name="Foreign")
         self.client.force_authenticate(self.user)
 

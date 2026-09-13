@@ -144,9 +144,7 @@ def make_tenant(label, *, staff=False, superuser=False, with_swap=True):
         )
     profile = UserProfile.objects.create(user=user, full_name=f"{label} owner", citizenship_country=refs.country)
     financial_profile = FinancialProfile.objects.create(user_profile=profile, occupation=f"{label} occupation")
-    account = UserAccount.objects.create(
-        account_number=f"ACCT-{label.upper()}"[:20], director=profile, user_profile=profile
-    )
+    account = UserAccount.objects.create(account_number=f"ACCT-{label.upper()}"[:20], user_profile=profile)
 
     wallet_key = _wallet_key(number)
     wallet = Wallet.objects.create(

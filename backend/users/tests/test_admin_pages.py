@@ -34,7 +34,7 @@ class UsersAdminPagesTest(TestCase):
         self.client.force_login(self.admin)
         user = User.objects.create_user(email="member@example.test", password="pw-12345678")
         profile = UserProfile.objects.create(user=user, full_name="Member", phone_country_code="+61", phone_number="4")
-        account = UserAccount.objects.create(account_number="ADMIN-ACC", director=profile, user_profile=profile)
+        account = UserAccount.objects.create(account_number="ADMIN-ACC", user_profile=profile)
         portfolio = Portfolio.objects.create(user_account=account, name="Admin portfolio")
         asset = Asset.objects.create(symbol="ADM", name="Admin asset", asset_type="tokenized_security", is_active=True)
         self.instances = [

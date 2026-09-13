@@ -6,7 +6,6 @@ export interface UserAccount {
   accountType: string;
   activationDate: string | null;
   role: AccountRole;
-  director: string | null;
 }
 
 export interface AccountSummary {

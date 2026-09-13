@@ -19,9 +19,6 @@ class AccountRole(models.TextChoices):
 
 class UserAccount(BaseModel):
     user_profile = models.OneToOneField(UserProfile, on_delete=models.CASCADE, related_name="user_account")
-    director = models.ForeignKey(
-        UserProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name="directed_user_accounts"
-    )
     account_number = models.CharField(max_length=20, default=USER_ACCOUNT_TYPE_INDIVIDUAL)
     account_type = models.CharField(
         max_length=20, choices=USER_ACCOUNT_TYPE_CHOICES, default=USER_ACCOUNT_TYPE_INDIVIDUAL

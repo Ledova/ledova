@@ -10,7 +10,6 @@ class UserAccountSerializer(serializers.ModelSerializer):
         model = UserAccount
         fields = (
             "uuid",
-            "director",
             "account_number",
             "account_type",
             "activation_date",
@@ -18,7 +17,6 @@ class UserAccountSerializer(serializers.ModelSerializer):
         )
         read_only_fields = (
             "uuid",
-            "director",
             "account_number",
             "activation_date",
         )

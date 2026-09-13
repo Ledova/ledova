@@ -69,7 +69,6 @@ class AuthRequestsUseTheAppRoleTest(RunsOnTheScopedConnection, APITransactionTes
             user = User.objects.get(email="new-scoped@example.test")
             profile = UserProfile.objects.get(user=user)
             account = profile.user_account
-            self.assertEqual(account.director_id, profile.pk)
             self.assertTrue(account.portfolios.exists())
             self.assertFalse(profile.is_signup_completed)
         send_email.assert_called_once()
