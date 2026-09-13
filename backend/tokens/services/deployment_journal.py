@@ -5,6 +5,7 @@ from blockchain.models import BlockchainTransaction, TransactionStatus, Transact
 from companies.models import Company
 from shared.db import APP_ALIAS, atomic, current_alias, principal_of, use_operator
 from tokens.exceptions import InvalidTokenStateException
+from tokens.models import ShareToken
 
 
 def create_deployment_record(token, identifier, signer_address, factory_address, issuer_address):
@@ -57,13 +58,15 @@ def record_signed_deployment(token, record, tx_hash):
         ):
             raise RuntimeError("Deployment signing requires autocommit before broadcast.")
         with atomic(durable=True):
-            if (
-                principal
-                and not Company.objects.select_for_update()
-                .filter(pk=token.company_id, owner_id=int(principal))
-                .exists()
-            ):
-                raise InvalidTokenStateException("The issuer no longer owns this token.")
+            if principal:
+                owner_unchanged = (
+                    Company.objects.select_for_update().filter(pk=token.company_id, owner_id=int(principal)).exists()
+                )
+                company_unchanged = (
+                    ShareToken.objects.select_for_update().filter(pk=token.pk, company_id=token.company_id).exists()
+                )
+                if not owner_unchanged or not company_unchanged:
+                    raise InvalidTokenStateException("The issuer no longer owns this token.")
             record.mark_submitted(tx_hash)
             if not token.bind_deployment_transaction(tx_hash, record):
                 raise InvalidTokenStateException("Another deployment transaction already owns this token.")

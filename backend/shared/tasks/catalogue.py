@@ -115,15 +115,7 @@ CONVERSIONS = {
         "steps, including the recipient holding and final subscription update; one acting_for block "
         "cannot cover an investor subscribing to another issuer.",
     ),
-    "tokens.tasks.deployment.deploy_share_token_task": TaskConversion(
-        status="pending",
-        waiting_reason="ShareTokenService.start_deployment and retry_deployment enqueue only token_uuid "
-        "from issuer API and staff admin paths. The worker never selects a principal. Conversion must "
-        "carry the issuer principal or an explicit operator choice from those producers and prove "
-        "deployment, retry and recovery writes under tokens_sharetoken's company-owner write policy. "
-        "The owner column and public operator-wallet read policies already exist; they are not pending "
-        "migration blockers.",
-    ),
+    "tokens.tasks.deployment.deploy_share_token_task": TaskConversion(status="converted", converted_pr=545),
     "tokens.tasks.review_request.execute_review_request_task": TaskConversion(
         status="pending",
         waiting_reason="ReviewWorkflowAdmin.execute_view passes the staff actor as executed_by for audit "

@@ -145,7 +145,7 @@ class ScopedTokenDeploymentTest(RunsOnTheScopedConnection, TransactionTestCase):
             [
                 (operation, table)
                 for alias, operation, table in statements
-                if alias == OPERATOR_ALIAS and table == ShareToken._meta.db_table
+                if alias == OPERATOR_ALIAS and table == ShareToken._meta.db_table and operation == "UPDATE"
             ],
             [("UPDATE", ShareToken._meta.db_table)],
         )
@@ -302,6 +302,22 @@ class ScopedTokenDeploymentTest(RunsOnTheScopedConnection, TransactionTestCase):
             return SIGNED_BYTES
 
         self.chain.sign_transaction.side_effect = transfer_owner
+        with self.assertRaises((TokenDeploymentFailedException, ShareToken.DoesNotExist, DatabaseError)):
+            self.run_task(self.owner.token, self.owner.user.pk)
+        self.chain.send_raw_transaction.assert_not_called()
+        self.assertIn(principal_of(APP_ALIAS), (None, ""))
+        with use_operator():
+            record = BlockchainTransaction.objects.get()
+        self.assertFalse(record.tx_hash)
+        self.assertIsNone(self.state_of(self.owner.token)[2])
+
+    def test_a_token_moved_to_another_company_while_signing_is_not_bound_or_broadcast(self):
+        def transfer_token(*args, **kwargs):
+            with use_operator():
+                ShareToken.objects.filter(pk=self.owner.token.pk).update(company=self.other.company, symbol="MOVED")
+            return SIGNED_BYTES
+
+        self.chain.sign_transaction.side_effect = transfer_token
         with self.assertRaises((TokenDeploymentFailedException, ShareToken.DoesNotExist, DatabaseError)):
             self.run_task(self.owner.token, self.owner.user.pk)
         self.chain.send_raw_transaction.assert_not_called()
