@@ -10,7 +10,7 @@ from rest_framework.test import APITransactionTestCase
 
 from shared.db import use_operator
 from shared.tests.schema import restore_every_migration
-from wallets.models import BitcoinSubmission, BitcoinSubmissionInput, Transaction
+from wallets.models import BitcoinSubmission, BitcoinSubmissionInput
 from wallets.tests.test_bitcoin_submission import FIXTURE, BitcoinSubmissionFixture
 
 BEFORE = ("wallets", "0016_wallet_submission")
@@ -49,9 +49,10 @@ class BitcoinSubmissionMigrationTest(BitcoinSubmissionFixture, APITransactionTes
         self.assertEqual(len(before), existing_count + 6)
         MigrationExecutor(connection).migrate([AFTER])
         with use_operator():
-            self.assertEqual(list(Transaction.objects.order_by("pk").values()), before)
+            self.assertEqual(list(transactions.order_by("pk").values()), before)
             self.assertEqual(BitcoinSubmission.objects.count(), 0)
             self.assertEqual(BitcoinSubmissionInput.objects.count(), 0)
+        restore_every_migration()
         self.assertEqual(self.submit_direct()["status"], "pending")
         self.assertEqual(self.submission().tx_hash, FIXTURE["txid"])
 
@@ -61,6 +62,7 @@ class BitcoinSubmissionMigrationTest(BitcoinSubmissionFixture, APITransactionTes
         before = self.transactions()
         with self.assertRaisesRegex(RuntimeError, "cannot discard recorded intent"):
             MigrationExecutor(connection).migrate([BEFORE])
+        restore_every_migration()
         self.assertEqual(self.transactions(), before)
         self.assertEqual(bytes(self.submission().raw_transaction), bytes.fromhex(FIXTURE["raw_transaction"]))
         with use_operator():

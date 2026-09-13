@@ -364,6 +364,14 @@ for another; if you do, assert the line reads what you think it reads first.
 A red proof that reports the clean count and a mutation that never landed look
 identical, and they mean opposite things.
 
+**A migration test needs the model from that migration.** Adding the nullable
+transaction screening marker exposed nine errors in older wallet migration tests:
+they rolled the schema back and then queried the current `Transaction` model,
+which selected a column the old schema did not have. Use the executor's historical
+models for old rows and restore every migration before calling current services.
+A refused rollback can already have unapplied later migrations; restore after
+that refusal too, before comparing current-model snapshots.
+
 **`makemigrations --check` under the test settings cannot fail.**
 `ledova_backend/settings/test.py` ends with a `MIGRATION_MODULES` mapping that
 claims every app and returns `None` for each, so every app is declared
