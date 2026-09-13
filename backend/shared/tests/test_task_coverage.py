@@ -12,7 +12,7 @@ from ledova_backend.procrastinate_app import app
 from shared.tasks.catalogue import (
     CLASSIFIED,
     CONVERSIONS,
-    OPERATOR_READS,
+    OPERATOR_BOUNDARIES,
     PRINCIPAL_BEARING,
     READS_MUST_SURVIVE_THE_POLICIES,
     SYSTEM_WIDE,
@@ -177,20 +177,20 @@ class AConversionMustProveItsReadsSurviveTheSelectPoliciesTest(SimpleTestCase):
                 self.assertTrue(reason.strip(), f"{name} needs its policy dependency explained")
 
 
-class EveryOperatorReadIsNamedAndReachableTest(SimpleTestCase):
+class EveryOperatorBoundaryIsNamedAndReachableTest(SimpleTestCase):
 
-    def test_every_catalogued_operator_read_resolves_to_something_callable(self):
+    def test_every_catalogued_operator_boundary_resolves_to_something_callable(self):
         import importlib
 
-        for path in OPERATOR_READS:
-            with self.subTest(read=path):
+        for path in OPERATOR_BOUNDARIES:
+            with self.subTest(boundary=path):
                 module_path, _, attribute = path.rpartition(".")
                 self.assertTrue(callable(getattr(importlib.import_module(module_path), attribute)))
 
-    def test_every_operator_read_states_why_the_policies_cannot_answer_it(self):
-        for path, reason in OPERATOR_READS.items():
-            with self.subTest(read=path):
-                self.assertTrue(reason.strip(), f"{path} needs its operator read explained")
+    def test_every_operator_boundary_states_why_it_needs_the_operator(self):
+        for path, reason in OPERATOR_BOUNDARIES.items():
+            with self.subTest(boundary=path):
+                self.assertTrue(reason.strip(), f"{path} needs its operator boundary explained")
 
 
 class TransactionRecoveryScheduleTest(SimpleTestCase):

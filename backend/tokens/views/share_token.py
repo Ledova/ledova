@@ -91,7 +91,7 @@ class ShareTokenViewSet(AuthenticatedModelViewSet):
     @action(detail=True, methods=["post"])
     def deploy(self, request, uuid=None):
         token = self.get_object()
-        ShareTokenService.start_deployment(token)
+        ShareTokenService.start_deployment(token, principal_id=request.user.pk)
         return Response({"message": "Token deployment initiated.", "token": ShareTokenDetailSerializer(token).data})
 
     @extend_schema(

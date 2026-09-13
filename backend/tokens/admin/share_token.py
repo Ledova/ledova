@@ -206,7 +206,7 @@ class ShareTokenAdmin(admin.ModelAdmin):
 
         try:
             if request.method == "POST":
-                ShareTokenService.start_deployment(token)
+                ShareTokenService.start_deployment(token, principal_id=None)
             else:
                 primary_wallet = ShareTokenService.require_deployable(token)
         except (InvalidTokenStateException, CompanyNotReadyException) as exc:
@@ -235,7 +235,7 @@ class ShareTokenAdmin(admin.ModelAdmin):
         change_url = reverse("admin:tokens_sharetoken_change", args=[token.pk])
         try:
             if request.method == "POST":
-                ShareTokenService.retry_deployment(token)
+                ShareTokenService.retry_deployment(token, principal_id=None)
             else:
                 ShareTokenService.require_retryable(token)
         except InvalidTokenStateException as exc:

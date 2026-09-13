@@ -1314,6 +1314,17 @@ screening service and its provider behavior, including manual handling of record
 provider failures. The worker can hold the transaction lock while that service
 calls the provider; it does not hold the wallet lock used by the producer.
 
+Token deployment captures the issuer at the API enqueue; admin deployment and
+retry explicitly choose the operator. The worker scopes token lookup and lifecycle
+writes to that principal. Its broadcast journal is operator-only, so the bounded
+functions in `tokens/services/deployment_journal.py` handle that one token's journal.
+The signed hash and token association commit together on the operator connection
+before broadcast, with the scoped caller's company ownership rechecked under a lock.
+An outer issuer transaction cannot escape this commit boundary. Receipt recovery
+also accepts historical records linked by the token's foreign key without generic
+`related_uuid` metadata. `OPERATOR_BOUNDARIES` in the task catalogue records these
+steps; it is not permission to run the rest of deployment as the operator.
+
 **Why R1 and R2 are separate releases.** With policies on and querysets still in,
 a green matrix says the policy is *sufficient*. With the querysets removed, a
 green matrix says they were not doing anything the policy misses. Both directions

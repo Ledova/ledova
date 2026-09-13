@@ -107,7 +107,7 @@ class DeploymentSigningBoundaryTest(TransactionTestCase):
         self.assertEqual(record.status, TransactionStatus.SUBMITTED)
         self.chain.wait_for_receipt.side_effect = TimeoutError("synthetic receipt unavailable")
         with self.assertRaises(TokenDeploymentFailedException):
-            deploy_share_token_task(token_uuid=str(self.token.uuid))
+            deploy_share_token_task(token_uuid=str(self.token.uuid), principal_id=None)
 
         self.assertEqual(accepted, [SIGNED_BYTES])
         self.chain.wait_for_receipt.assert_called_once_with(SIGNED_HASH)
@@ -238,7 +238,7 @@ class DeploymentSigningBoundaryTest(TransactionTestCase):
         self.assertEqual(record.tx_hash, SIGNED_HASH)
         self.chain.wait_for_receipt.side_effect = TimeoutError("synthetic receipt unavailable")
         with self.assertRaises(TokenDeploymentFailedException):
-            deploy_share_token_task(token_uuid=str(self.token.uuid))
+            deploy_share_token_task(token_uuid=str(self.token.uuid), principal_id=None)
         self.chain.send_raw_transaction.assert_not_called()
         self.assertEqual(BlockchainTransaction.objects.count(), 1)
 

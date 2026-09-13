@@ -5,6 +5,7 @@ from django.utils import timezone
 from procrastinate import RetryStrategy
 
 from ledova_backend.procrastinate_app import app
+from shared.db import acting_for
 from tokens.models import ShareToken, ShareTokenStatus
 from tokens.services import ShareTokenService
 
@@ -14,18 +15,19 @@ PENDING_DEPLOYMENT_AGE = timedelta(minutes=10)
 
 
 @app.task(retry=RetryStrategy(max_attempts=4, wait=30))
-def deploy_share_token_task(token_uuid: str):
-    token = ShareToken.objects.select_related("company").filter(uuid=token_uuid).first()
-    if token is None:
-        logger.error(f"Token not found: {token_uuid}")
-        return {"success": False, "error": "Token not found"}
-    if token.status != ShareTokenStatus.DEPLOYING:
-        logger.warning(f"Token {token_uuid} not deployable: {token.status}")
-        return {"success": False, "error": "Token is not in deploying state"}
+def deploy_share_token_task(token_uuid: str, *, principal_id: int | None):
+    with acting_for(principal_id):
+        token = ShareToken.objects.select_related("company").filter(uuid=token_uuid).first()
+        if token is None:
+            logger.error(f"Token not found: {token_uuid}")
+            return {"success": False, "error": "Token not found"}
+        if token.status != ShareTokenStatus.DEPLOYING:
+            logger.warning(f"Token {token_uuid} not deployable: {token.status}")
+            return {"success": False, "error": "Token is not in deploying state"}
 
-    result = ShareTokenService().deploy_token(token)
-    logger.info(f"Deployed {token.symbol} at {result['contract_address']}")
-    return {"success": True, **result}
+        result = ShareTokenService().deploy_token(token)
+        logger.info(f"Deployed {token.symbol} at {result['contract_address']}")
+        return {"success": True, **result}
 
 
 @app.periodic(cron="*/5 * * * *")

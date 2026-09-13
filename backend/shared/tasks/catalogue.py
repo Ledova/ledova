@@ -115,15 +115,7 @@ CONVERSIONS = {
         "steps, including the recipient holding and final subscription update; one acting_for block "
         "cannot cover an investor subscribing to another issuer.",
     ),
-    "tokens.tasks.deployment.deploy_share_token_task": TaskConversion(
-        status="pending",
-        waiting_reason="ShareTokenService.start_deployment and retry_deployment enqueue only token_uuid "
-        "from issuer API and staff admin paths. The worker never selects a principal. Conversion must "
-        "carry the issuer principal or an explicit operator choice from those producers and prove "
-        "deployment, retry and recovery writes under tokens_sharetoken's company-owner write policy. "
-        "The owner column and public operator-wallet read policies already exist; they are not pending "
-        "migration blockers.",
-    ),
+    "tokens.tasks.deployment.deploy_share_token_task": TaskConversion(status="converted", converted_pr=545),
     "tokens.tasks.review_request.execute_review_request_task": TaskConversion(
         status="pending",
         waiting_reason="ReviewWorkflowAdmin.execute_view passes the staff actor as executed_by for audit "
@@ -140,7 +132,21 @@ CONVERSIONS = {
     "users.tasks.notifications.send_transaction_notification": TaskConversion(status="converted", converted_pr=523),
 }
 
-OPERATOR_READS: dict[str, str] = {}
+OPERATOR_BOUNDARIES = {
+    "tokens.services.deployment_journal.create_deployment_record": "Creates one operator-owned broadcast record "
+    "for the token already resolved under its enqueue principal; no other token is selected or changed.",
+    "tokens.services.deployment_journal.load_deployment_record": "Reads only the deployment journal named by "
+    "the already-resolved token's foreign key, including historical records without related_uuid metadata.",
+    "tokens.services.deployment_journal.record_signed_deployment": "Commits one deployment hash with its token "
+    "association on the same operator transaction before broadcast. The record must belong to this token; "
+    "a scoped caller's current company ownership is rechecked under a lock. Other token writes remain scoped.",
+    "tokens.services.deployment_journal.confirm_deployment_record": "Records a receipt only on the resolved "
+    "token's deployment journal; it does not finalize the token or widen access to another deployment.",
+    "tokens.services.deployment_journal.fail_deployment_record": "Retains failure or unknown-broadcast evidence "
+    "only on the resolved token's journal, without changing a token's scoped deployment state.",
+    "tokens.services.deployment_journal.revert_deployment_record": "Marks the resolved token's deployment "
+    "journal reverted; clearing the token's association remains a write under the caller's principal.",
+}
 
 READS_MUST_SURVIVE_THE_POLICIES = {
     "wallets.tasks.sync.sync_wallet": "Retained market read: POLICIES gives tokens_sharetoken an "
