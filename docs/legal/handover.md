@@ -76,9 +76,10 @@ What the code does today, as far as this work depends on it:
   `single_issuer` (a company running its own instance), share one tenancy
   boundary; row-level security follows relationships rather than a tenant id.
 - Company onboarding today is a **listing application** with nine required
-  documents, operator review, activation, deployment of a share token signed by
-  the company's selected operator wallet or a verified owner wallet, and only
-  then an offering. Several of those
+  documents, operator review, activation, deployment of a share token, for which
+  the company needs its selected operator wallet or a verified owner wallet on
+  Base as the issuer address while the operator's admitted signer signs the
+  transaction, and only then an offering. Several of those
   documents (business plan, risk disclosure) are offering artefacts, not registry
   ones.
 
