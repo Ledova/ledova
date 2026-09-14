@@ -94,17 +94,57 @@ synthetic tokens and do not contact the provider.
 
 KYCAID completion redirects must retain the configured marketing URL's scheme and
 port and match its hostname or existing `www` alias. The shared navigation policy
-also rejects credentials and fragments before a redirect can retire the form.
-Mounted controls retain ordinary completion and reject changed origins; this
-callback check does not constrain the provider's full navigation or media origins.
+also rejects credentials and fragments before a redirect can retire the form. The
+same completion check admits the redirect as a navigation, so what may load and
+what completes cannot drift apart.
+
+Both verification WebViews keep `originWhitelist` open, so a refused URL is never
+handed to the operating system. Their navigation callback is synchronous, returns
+false on any exception and first requires the current form lifecycle. A top-frame
+navigation (every Android call, and iOS calls marked `isTopFrame`) must also pass
+the shared web navigation policy and be `about:blank` or an exact scheme, host and
+port match from the view's list:
+
+- KYCAID: the origin of the form URL the backend returned, plus the completion
+  origin above.
+- Sumsub: the marketing origin, which is the inline page's base URL.
+
+An iOS subframe navigation passes only the lifecycle and shared web navigation
+checks. Origins are compared only after the shared policy has refused URLs with
+user information, because React Native's URL parser reads a host after an `@` in
+the path.
+
+Both views refuse new windows: `onOpenWindow` does nothing and multiple windows
+are disabled, so an Android popup becomes a top-level navigation that the same
+callback decides. Automatic JavaScript window opening stays off. On iOS, camera
+and microphone requests reach WebKit's own prompt instead of a silent grant, and
+`NSMicrophoneUsageDescription` stays. Android blocks `RECORD_AUDIO` app-wide,
+although Expo Camera's plugin and library manifest declare it; nothing in the app
+records audio.
+
+These gaps are accepted because closing them needs native code:
+
+- Once the app holds `CAMERA`, Android grants it to any page or frame without an
+  origin check.
+- Android never offers iframe navigations to the callback; iOS offers them but
+  applies no origin list.
+- Android allows a navigation when JavaScript has not answered its synchronous
+  callback within 250 ms.
+- Android never offers POST navigations to the callback.
+- Only WebKit's prompt governs a provider's microphone request on iOS.
+- The Sumsub SDK builder script loads from an unversioned URL, so its iframe host,
+  token parsing and frame permissions can change without a repository change.
 
 Mounted JavaScript controls use the locked WebView wrapper, actual app-lock
 provider and owner hooks with synthetic credentials. They establish mount,
 callback and error-display behavior, not physical camera shutdown or native
-permission-dialog cancellation. Provider origin/media grants, Android owning-window
-focus and global modal/lock stacking remain separate #13 checks. Provider browsing
-and media policies remain unchanged; playback settings do not establish camera
-capture control, and a form-completion signal is not server verification approval.
+permission-dialog cancellation. Navigation controls send Android- and iOS-shaped
+events through the installed iOS adapter, top frames under both Node's and React
+Native's URL parsers, and window and media props are checked on both platform
+adapters. Native frame, POST, popup, timeout and prompt behavior are not
+established by them. Android owning-window focus and global modal/lock stacking
+remain separate #13 checks, and a form-completion signal is not server
+verification approval.
 
 The buy-crypto provider uses the same admission and session lifetime. A widget
 URL carries the session epoch captured before its request; a late response after
