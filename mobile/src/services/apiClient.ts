@@ -63,7 +63,7 @@ export async function rotateRefreshToken(refresh: string, expectedEpoch?: number
     if (!('access' in data) || !('refresh' in data)) throw new Error('The bearer refresh response has no tokens.');
     await storeTokens({ accessToken: data.access, refreshToken: data.refresh }, generation);
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
+    if (axios.isAxiosError(error) && error.response && [400, 401].includes(error.response.status)) {
       await clearTokens(generation);
     }
     throw error;

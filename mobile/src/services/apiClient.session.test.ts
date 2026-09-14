@@ -117,11 +117,15 @@ it.each(['success', 'refusal'])(
 );
 
 it.each([
-  ['retires', 'a 401 refusal', 'ERR_BAD_REQUEST', 401],
-  ['keeps', 'a timeout', AxiosError.ECONNABORTED, undefined],
-  ['keeps', 'a network error', AxiosError.ERR_NETWORK, undefined],
-  ['keeps', 'a 500 response', 'ERR_BAD_RESPONSE', 500],
-] as const)('%s the current session and its biometric copy after %s', async (outcome, _, code, status) => {
+  ['retires', 'a 400 refusal', 'ERR_BAD_REQUEST', 400, {}],
+  ['retires', 'a 401 refusal', 'ERR_BAD_REQUEST', 401, {}],
+  ['keeps', 'a 429 response', 'ERR_BAD_REQUEST', 429, {}],
+  ['keeps', 'a 500 response', 'ERR_BAD_RESPONSE', 500, {}],
+  ['keeps', 'a 503 response without detail', 'ERR_BAD_RESPONSE', 503, {}],
+  ['keeps', 'a 503 response with detail', 'ERR_BAD_RESPONSE', 503, { detail: 'Synthetic service detail' }],
+  ['keeps', 'a timeout', AxiosError.ECONNABORTED, undefined, {}],
+  ['keeps', 'a network error', AxiosError.ERR_NETWORK, undefined, {}],
+] as const)('%s the current session and its biometric copy after %s', async (outcome, _, code, status, data) => {
   await storeTokens(pair);
   await expect(enableBiometricLogin()).resolves.toBe(true);
   const epoch = getSessionEpoch();
@@ -131,7 +135,7 @@ it.each([
       code,
       config,
       undefined,
-      status && { data: {}, status, statusText: '', headers: new AxiosHeaders(), config },
+      status && { data, status, statusText: '', headers: new AxiosHeaders(), config },
     );
   };
   await expect(rotateRefreshToken(pair.refreshToken)).rejects.toThrow();
