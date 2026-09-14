@@ -50,11 +50,13 @@ are in
 [CONTRIBUTING.md](../../CONTRIBUTING.md#pull-request-titles-and-issue-ownership).
 
 A `Refs` PR must close no issue. The gate reads the PR's `closingIssuesReferences`
-through GitHub's GraphQL API. That is the list of issues a merge would close: one
-named by a closing phrase anywhere in the body, even a negated one such as
-"does not close #N", and one linked from the PR's Development sidebar. A `Refs`
-PR with any entry is refused, and the refusal names each issue; remove the phrase
-or the link. A `Closes` PR is not checked against the list.
+through GitHub's GraphQL API. The list covers an issue named by a closing phrase
+anywhere in the PR body, even a negated one such as "does not close #N", and one
+linked from the PR's Development sidebar. A `Refs` PR with any entry is refused,
+and the refusal names each issue; remove the phrase or the link. A `Closes` PR is
+not checked against the list. The list leaves out closing phrases in commit
+messages, including the squash-merge message, and those still close an issue when
+they reach the default branch, so the gate does not catch them.
 
 The separate `PR metadata` workflow runs on creation, edits, new commits,
 reopening and readiness changes, including bot PRs. It uses `pull_request_target`
