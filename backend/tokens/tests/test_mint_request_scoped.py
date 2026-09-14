@@ -8,6 +8,7 @@ from django.urls import reverse
 from rest_framework.exceptions import PermissionDenied
 
 from blockchain.models import OutgoingOperation, SignedAttempt
+from blockchain.services import outgoing
 from shared.db import (
     APP_ALIAS,
     OPERATOR_ALIAS,
@@ -24,6 +25,8 @@ from tokens.tasks.mint_request import recover_mint_requests
 from tokens.tests.mint_request_fixtures import (
     CHAIN_ID,
     KEY,
+    SENDER,
+    TARGET,
     MintNode,
     admitted_signer,
     mint_request,
@@ -54,6 +57,8 @@ class ScopedMintRequestRecoveryTest(RunsOnTheScopedConnection, TransactionTestCa
             self.addCleanup(patcher.stop)
 
     def test_app_authority_cannot_admit_or_recover_even_with_a_staff_principal(self):
+        with use_operator():
+            control = outgoing.open_operation("scoped-control", chain_id=CHAIN_ID, sender=SENDER, to=TARGET)
         with acting_for(self.actor.pk):
             for call in (
                 lambda: mint_service.execute(self.request, self.actor),
@@ -61,10 +66,11 @@ class ScopedMintRequestRecoveryTest(RunsOnTheScopedConnection, TransactionTestCa
             ):
                 with self.assertRaises(PermissionDenied):
                     call()
-            for model in (MintRequest, OutgoingOperation):
-                with self.assertRaises(DatabaseError), atomic():
-                    model.objects.exists()
+            with self.assertRaises(DatabaseError), atomic():
+                MintRequest.objects.filter(pk=self.request.pk).exists()
+            self.assertFalse(OutgoingOperation.objects.filter(pk=control.operation_id).exists())
         with use_operator():
+            self.assertTrue(OutgoingOperation.objects.filter(pk=control.operation_id).exists())
             self.request.refresh_from_db()
             self.assertIsNone(self.request.execution_intent)
         self.node.client.send_raw_transaction.assert_not_called()
