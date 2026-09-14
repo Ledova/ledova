@@ -108,6 +108,9 @@ or automatically restart terminal attempts. A recorded pre-signing failure or
 revert permits an explicit **Retry** tied to the claim shown on that form;
 replaying an old form cannot authorize a later attempt. Every signed attempt
 survives, and recovery updates the transaction projection from its operation.
+An explicit retry retains the previous revert and its receipt fields before
+opening another attempt. If a worker stops before that projection, the sweep
+repairs it without provider access or another signed attempt.
 The generic transaction monitor excludes those projections. Here **Executed**
 means a successful receipt was observed, with finality still governed by #7's
 remaining work.

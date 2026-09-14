@@ -135,6 +135,99 @@ class MintRequestRecoveryTest(TransactionTestCase):
         self.assertEqual(SignedAttempt.objects.count(), 2)
         self.assertEqual(len(self.node.broadcasts), 2)
 
+    def interrupted_revert(self):
+        project = mint_service._project
+        self.node.receipt_status = 0
+
+        def interrupt(request_id, claim):
+            if OutgoingOperation.objects.get(pk=claim.operation_id).status == "reverted":
+                raise SystemExit("Stopped before projecting the revert")
+            return project(request_id, claim)
+
+        with patch.object(mint_service, "_project", interrupt), self.assertRaises(SystemExit):
+            self.execute()
+        self.request.refresh_from_db()
+        self.assertEqual(self.request.status, "executing")
+        self.assertEqual(self.request.transaction.status, "submitted")
+        return self.request.transaction, self.request.operation
+
+    def assert_retained_revert(self, record, operation):
+        record.refresh_from_db()
+        self.assertEqual(record.status, "reverted")
+        self.assertEqual(record.block_number, operation.block_number)
+        self.assertEqual(record.block_hash, operation.block_hash)
+        self.assertEqual(record.gas_used, operation.gas_used)
+
+    def test_retry_retains_the_previous_revert_before_preparing_another_attempt(self):
+        previous, operation = self.interrupted_revert()
+        prepare = outgoing.prepare_operation
+        observed = []
+
+        def prepare_after_retention(*args, **kwargs):
+            self.assertTrue(connections[current_alias()].get_autocommit())
+            self.assert_retained_revert(previous, operation)
+            observed.append(previous.pk)
+            return prepare(*args, **kwargs)
+
+        self.node.receipt_status = 1
+        with patch.object(outgoing, "prepare_operation", prepare_after_retention):
+            self.execute(retry_of=operation.claim_id)
+        self.assertEqual(observed, [previous.pk])
+        self.assert_retained_revert(previous, operation)
+        self.assertNotEqual(self.request.transaction_id, previous.pk)
+        self.assertEqual(self.request.status, "executed")
+        self.assertEqual(SignedAttempt.objects.count(), 2)
+        self.assertEqual(SigningAccount.objects.get().next_nonce, 9)
+
+    def test_lost_revert_projection_acknowledgement_preserves_the_original_retry_claim(self):
+        previous, operation = self.interrupted_revert()
+        project = mint_service._project
+
+        def lose_ack(*args, **kwargs):
+            project(*args, **kwargs)
+            raise ConnectionError("Lost committed revert projection acknowledgement")
+
+        with patch.object(mint_service, "_project", lose_ack), self.assertRaises(MintRequestUnresolved):
+            self.execute(retry_of=operation.claim_id)
+        self.assert_retained_revert(previous, operation)
+        self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.assertEqual(OutgoingOperation.objects.get().claim_id, operation.claim_id)
+        self.node.receipt_status = 1
+        self.execute(retry_of=operation.claim_id)
+        self.assertEqual(self.request.status, "executed")
+        self.assertEqual(SignedAttempt.objects.count(), 2)
+
+    def test_stale_projection_loser_does_not_reopen_a_newer_reverted_attempt(self):
+        previous, operation = self.interrupted_revert()
+        project = mint_service._project
+        advanced = []
+
+        def competing_retry(request_id, claim):
+            if not advanced:
+                advanced.append(claim.claim_id)
+                with patch.object(mint_service, "_project", project), self.assertRaises(MintRequestConflict):
+                    self.execute(retry_of=operation.claim_id)
+            return project(request_id, claim)
+
+        with patch.object(mint_service, "_project", competing_retry), self.assertRaises(MintRequestConflict):
+            self.execute(retry_of=operation.claim_id)
+        self.assertEqual(advanced, [operation.claim_id])
+        self.assert_retained_revert(previous, operation)
+        self.assertEqual(SignedAttempt.objects.count(), 2)
+        self.assertEqual(SigningAccount.objects.get().next_nonce, 9)
+        self.request.refresh_from_db()
+        self.assertEqual(self.request.transaction.status, "reverted")
+        self.assertNotEqual(self.request.operation.claim_id, operation.claim_id)
+
+    def test_sweep_repairs_an_interrupted_revert_without_provider_access_or_retry(self):
+        previous, operation = self.interrupted_revert()
+        with patch.object(mint_service, "get_base_chain_client", side_effect=AssertionError("No provider needed")):
+            self.assertEqual(recover_mint_requests.func(), {"failed": 1})
+            self.assertEqual(recover_mint_requests.func(), {})
+        self.assert_retained_revert(previous, operation)
+        self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.assertEqual(SigningAccount.objects.get().next_nonce, 8)
+
     def test_delayed_initial_admission_cannot_restart_a_reverted_operation(self):
         captured = mint_service._admit(self.request.pk, self.actor, "tokens.change_mintrequest", "")
         self.node.receipt_status = 0
