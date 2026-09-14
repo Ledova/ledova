@@ -51,15 +51,18 @@ not engaged by a register of fictional members.
 Each position therefore names its trigger. Most triggers are the first real
 company's first real member, the first fee charged for keeping a real register,
 or the first real offer of a security. The licence question (position 5) is the
-exception: it waits on somebody wanting to compete, not on real use.
+exception: it waits on somebody wanting to compete, not on real use. A fork
+alone is not a Competing Use, since the test is about the use made of the
+software and the relationship between its Licensor and operator.
 
 The positions now serve two operating models, described in the
 [handover](handover.md): a **registry service** that keeps a private company's
 register of members on the company's instructions and does nothing else, which
-is lawful today without anyone's permission, and the **fuller model** of
-issuance, investor onboarding, payments, tokenised shares and transfers, which
-needs a licence, a registration or relief at each step. Positions 4, 7, 8 and 9
-mark where the first model ends and the second begins.
+positions 4a and 6 to 11 read as lawful today without anyone's permission, and
+the **fuller model** of issuance, investor onboarding, payments, tokenised shares
+and transfers, which position 4b reads as needing a licence, a registration or
+relief at each step. Positions 4, 7, 8 and 9 mark where the first model ends and
+the second begins.
 
 ## Sources
 
@@ -113,6 +116,8 @@ Read the provision before relying on a summary of it.
 - [Professional designated services](https://www.austrac.gov.au/new-austrac/designated-services-newly-regulated-entities/professional-designated-services)
   and [virtual asset services](https://www.austrac.gov.au/amlctf-reform/reforms-guidance/before-you-start/new-industries-and-services-be-regulated-reform/virtual-asset-services-reform),
   plus [exemptions under section 248](https://www.austrac.gov.au/industry-and-business/obligations-and-guidance/exemptions-and-modifications/exemption-policy).
+- AUSTRAC's published guidance on customer identification and record keeping,
+  the second obligation behind position 3.
 - [Independent review of the Enhanced Regulatory Sandbox](https://treasury.gov.au/review/enhanced-regulatory-sandbox):
   the final report of May 2026 and the Government response of 7 September 2026.
 - [Statement on developing an innovative Australian digital asset industry](https://treasury.gov.au/publication/p2025-628504),

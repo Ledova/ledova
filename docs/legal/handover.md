@@ -18,7 +18,8 @@ what to read next. The [positions](positions.md) and the
   copyright; Blueberry Money sponsors the work and intends to be its first hosted
   operator, with no ownership or control transferred ([position 5](positions.md#5-the-licences-competing-use-test-and-who-we-is)).
 - The owner cannot afford counsel. On 2026-09-11 the file of "questions to send
-  a lawyer" was renamed `docs/legal.md` and reframed into positions taken from
+  a lawyer" was renamed `docs/LEGAL.md`, lowercased to `docs/legal.md` on
+  2026-09-14, and reframed into positions taken from
   primary sources, each with its trigger, what would show it wrong and which way
   to be wrong. The owner signs off each position; drafts are marked until then.
 - On **2026-09-14** the owner asked for the path of least legal and regulatory
@@ -36,8 +37,10 @@ what to read next. The [positions](positions.md) and the
 
 ## 2. What Ledova is, and where the code stands
 
-The owner's definition, recorded in the [README](../../README.md) and
-[product page](../product.md): a platform for creating and operating digital
+The owner's definition, stated on 2026-09-06 and summarised in the
+[README](../../README.md) and [product page](../product.md); the README carried
+the numbered list from 2026-09-07 until 2026-09-14, so this paragraph is now the
+only place in the repository that enumerates it: a platform for creating and operating digital
 private equity markets, where companies represent shares as tokens and use
 Ledova for issuance, investor onboarding, ownership tracking and transfers, in
 two shapes — a company running its own instance, or a registry provider hosting
@@ -73,8 +76,9 @@ What the code does today, as far as this work depends on it:
   `single_issuer` (a company running its own instance), share one tenancy
   boundary; row-level security follows relationships rather than a tenant id.
 - Company onboarding today is a **listing application** with nine required
-  documents, operator review, deployment of a share token by a verified operator
-  wallet, and activation before an offering can be created. Several of those
+  documents, operator review, activation, deployment of a share token signed by
+  the company's selected operator wallet or a verified owner wallet, and only
+  then an offering. Several of those
   documents (business plan, risk disclosure) are offering artefacts, not registry
   ones.
 
@@ -95,18 +99,19 @@ pull in different directions:
    make the platform impractical.
 
 The reconciliation reached: the two are rungs of one ladder rather than a fork.
-The registry service is lawful today and is where a first client arrives; the
-licences, registrations and relief are how each further feature is switched on;
+On the positions as drafted, the registry service is lawful today and is where a
+first client arrives; the licences, registrations and relief are how each further
+feature is switched on;
 and the genuinely novel question — a ledger being the register of members — is
 the one thing worth asking a regulator to evaluate.
 
 ## 4. The reasoning
 
-### The registry-service model, and why it works without permission
+### The registry-service model, and why the positions read it as needing no permission
 
-- The company keeps the register under s168; the platform keeps it as the
-  company's agent on written instructions, with a director's approval beside
-  each entry. Preparing "a document of registration or transfer in order to
+- On the readings in positions 4a and 6 to 11: the company keeps the register
+  under s168; the platform keeps it as the company's agent on written
+  instructions, with a director's approval beside each entry. Preparing "a document of registration or transfer in order to
   complete administrative tasks on instructions from the person" is an exempt
   service under regulation 7.1.29(3)(g), listed in RG 36.41(f). The company
   issuing its own shares is not dealing (s766C(4)). A register lets nobody post
@@ -149,15 +154,16 @@ the one thing worth asking a regulator to evaluate.
   minor-and-technical departures from existing relief do not.
 - Project Acacia shows what a pilot instrument looks like: an exemption from the
   licence requirement and from market and clearing licensing, wholesale clients
-  only, six months, with a sunset. The RBA and DFCRC intend a standing
+  only, for a fixed period that ended on 28 February 2026. The RBA and DFCRC intend a standing
   digital financial market infrastructure sandbox in the second half of 2027,
   and the Government supports it.
 - ASIC's own commissioned review (REP 835) names the legal status of
   distributed ledgers as registries as the priority to clarify, and warns
   against "digital twin" models. The one novel thing Ledova would bring is the
   ledger as register of record. The market part is not novel.
-- The low-volume market instrument lets a platform run a small transfer market
-  per issuer with no licence, and a crowd-funding intermediary already does so.
+- ASIC's low-volume market instrument, whose operative text has not yet been
+  read, exempts small markets from Part 7.2 on registration, and a crowd-funding
+  intermediary appears on ASIC's register once per named company.
 - Hence the ladder in the [pathway](regulatory-pathway.md#the-ladder): registry
   now; wholesale AFSL and AUSTRAC enrolment for issuance; low-volume
   registration per issuer for transfers; one targeted relief application or the
@@ -176,7 +182,7 @@ the one thing worth asking a regulator to evaluate.
 | Individual relief for the whole model | A bespoke exemption from licensing, markets and disclosure | Would be a novel application to formulate new policy; ASIC has no reason to grant what FCX obtained by licence; rejected in favour of one narrow relief on the ledger question |
 | No-action letter | Comfort on identified doubt | Not a foundation: needs doubt, binds no one, withdrawable; kept for single points |
 | Wait for the thematic or DFMI sandbox | Regulator-led testing with peers | Timing is 2027 and not in the project's control; kept as the alternative venue for rung 3 |
-| Tier 2 market licence plus CS facility licence | The full model | The end state; fees alone reach six figures; not a first step |
+| Tier 2 market licence plus CS facility licence | The full model | The end state; application fees alone run from five figures to six at the highest complexity; not a first step |
 | Operate offshore or on the strength of "tokens are not securities" | — | Rejected: INFO 225 treats a token for a share as the share; the owner does not want to operate outside the law |
 
 ## 6. Assumptions

@@ -93,7 +93,8 @@ whatever the deployment keeps its logs for — while every download is a full
 sheet of members' residential addresses. If the operator carries any
 record-keeping obligation over the register, this is where it is thinnest.
 
-**Status.** Reviewed 2026-09-15; the agreement's contents added.
+**Status.** Reviewed 2026-09-15; the note pointing s168 to s1306 and the
+agreement's contents added.
 
 ## 3. The evidence-retention period
 
@@ -192,9 +193,10 @@ sophisticated-investor exceptions — s708 for offers, s761G for financial-produ
 advice — mean no retail disclosure document is required for offers made only to
 investors who qualify. Whether that is the right exception, and whether it
 covers everything the fuller model does, is a different question from whether
-the classification is recorded correctly. It does not: s708 relieves the
-*company* from disclosure; it does not relieve a *platform* that arranges the
-issue from needing an AFSL.
+the classification is recorded correctly. The reading here is that it does not:
+s708 relieves the *company* from disclosure and says nothing about a *platform*
+that arranges the issue, so the platform's question is the licence, not the
+exemption.
 
 **What the code does.** `InvestorClassification` carries four categories and
 deliberately not a fifth:
@@ -233,8 +235,11 @@ be remade. [RG 154](https://www.asic.gov.au/regulatory-resources/find-a-document
 is the guide. Recheck the instrument's status after that date; if the remade
 instrument changes who may certify, this category's evidence rules change with it.
 
-**Status.** Core stance carried over; reframed 2026-09-15, awaiting sign-off on
-the reframing.
+**Status.** Reframed 2026-09-15, awaiting sign-off. The stance that being wrong
+is an offence is carried over; what changed is the release condition, from
+"until someone qualified has answered this" to holding the permission each step
+needs, and the sentence that this is not a question to answer by reading now
+lives in the [handover](handover.md#12-conventions-the-owner-has-set-for-this-work).
 
 ## 5. The licence's Competing Use test, and who "we" is
 
@@ -476,7 +481,8 @@ or $150,000 where custody is incidental and under ten per cent of revenue.
 
 **What the code does.** Share tokens are issued to whitelisted addresses and the
 operator holds a signer for deployment; investors verify their own wallets.
-Wallet functionality is feature 12 of the [product definition](../product.md).
+Wallet functionality is feature 12 in the owner's twelve-feature definition,
+enumerated in the [handover](handover.md#2-what-ledova-is-and-where-the-code-stands).
 
 **The position.** Ledova never possesses a token for or on behalf of a member,
 in any model. Members either hold their own keys or there are no tokens in

@@ -146,9 +146,10 @@ months end to end.
 
 ## The ladder
 
-Each rung is lawful without anyone's permission, or names exactly the permission
-it needs. Relief is sought once, for the one thing that is novel. Feature
-numbers refer to the twelve features in the [product definition](../product.md).
+Each rung is one the positions read as lawful without anyone's permission, or
+names exactly the permission it needs. Relief is sought once, for the one thing
+that is novel. Feature numbers refer to the owner's twelve-feature definition as
+enumerated in the [handover](handover.md#2-what-ledova-is-and-where-the-code-stands).
 
 | Rung | What it unlocks | What it needs | Still not allowed |
 | --- | --- | --- | --- |
@@ -180,8 +181,8 @@ tested.
   per-issuer registration, Acacia for pilot relief. The only new question is the
   ledger as register, and REP 835 says ASIC wants that question answered.
 - **Keep the digital twin out of it.** If the ledger merely mirrors a database
-  register, there is nothing to ask for and nothing to test; the mirror is
-  allowed today. The application makes sense only if the ledger entry is to be
+  register, there is nothing to ask for and nothing to test; position 6 already
+  provides for a mirror. The application makes sense only if the ledger entry is to be
   the register of record for the pilot.
 - **Do not lean on a no-action letter.** RG 108 requires doubt about lawfulness,
   binds no court and can be withdrawn. It is useful for one identified point,
