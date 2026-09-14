@@ -7,6 +7,7 @@ it('distinguishes an actual assertion from fixed native error categories', () =>
   expect(failureCategory(new NativeProbeAssertion())).toBe('assertion');
   expect(failureCategory({ code: 'ERR_KEY_CHAIN' })).toBe('native-keychain');
   expect(failureCategory({ code: 'ERR_FUNCTION_CALL' })).toBe('native-function');
+  expect(failureCategory({ code: 'ERR_VIEW_NOT_FOUND' })).toBe('native-view-not-found');
 });
 
 it('never copies secret-bearing messages, arbitrary codes or object values into diagnostics', () => {
