@@ -98,6 +98,7 @@ class RegisterTestBase(APITestCase):
             opens_at=timezone.now() - timedelta(days=1),
         )
         request = ShareIssuanceRequest.objects.create(
+            dispatch_id=None,
             token=self.token,
             recipient_address=address,
             amount=amount,
@@ -146,6 +147,7 @@ class RegisterTestBase(APITestCase):
     def _issue_against(self, subscription, mark_allotted=True):
         allotted = subscription.allotment_quantity
         request = ShareIssuanceRequest.objects.create(
+            dispatch_id=None,
             token=self.token,
             recipient_address=subscription.wallet.address,
             amount=allotted,
