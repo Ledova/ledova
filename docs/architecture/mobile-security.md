@@ -34,8 +34,8 @@ is registered through RN's new-architecture protocol provider. Normal platform
 TLS validation, request cancellation, progress, multipart uploads and SSE remain
 in the inherited networking implementation. Provider WebViews reject insecure
 initial URLs, insecure navigation and mixed content. The identity-verification
-WebViews also limit top-frame navigation to their provider and website origins
-and refuse popups. On iOS they ask before media capture; on Android a page gets
+WebViews also limit top-frame navigation to each provider's allowed origins and
+refuse popups. On iOS they ask before media capture; on Android a page gets
 the camera without an origin check once the app holds `CAMERA`. See
 [identity-provider WebView lifetime](mobile-lifecycles.md#identity-provider-webview-lifetime).
 The buy-crypto WebView keeps its own navigation behavior.
