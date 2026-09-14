@@ -30,7 +30,7 @@ from tokens.models import (
     ShareIssuance,
     ShareIssuanceRequest,
 )
-from tokens.services import ShareTokenService
+from tokens.services import share_token_service
 from users.services.eligibility import require_subscription_eligibility
 
 logger = logging.getLogger(__name__)
@@ -326,7 +326,7 @@ def _already_claimed(request: ShareIssuanceRequest, verb: str) -> SubscriptionRe
 def _refuse_if_the_mint_is_out(request: ShareIssuanceRequest, verb: str) -> None:
     if request.status in CLAIMED_STATUSES:
         raise _already_claimed(request, verb)
-    issuance = ShareTokenService.broadcast_mint(request)
+    issuance = share_token_service.broadcast_mint(request)
     if issuance is not None:
         raise SubscriptionRefusedException(
             MINT_BROADCAST.format(uuid=request.uuid, tx_hash=issuance.tx_hash, verb=verb)
@@ -349,7 +349,7 @@ def _refuse_the_issuance(subscription: Subscription, verb: str) -> None:
         return
     _refuse_if_the_mint_is_out(request, verb)
     if ShareIssuance.objects.filter(
-        idempotency_key=ShareTokenService.issuance_key(request), mint_journal__isnull=True
+        idempotency_key=share_token_service.issuance_key(request), mint_journal__isnull=True
     ).exists():
         raise SubscriptionRefusedException(UNIDENTIFIED_LEGACY_MINT.format(uuid=request.uuid, verb=verb))
     if request.status == RequestStatus.REJECTED:
@@ -445,7 +445,7 @@ def cap_headroom(offering: Offering) -> int:
 
 
 def share_supply_snapshot(offering: Offering, service=None) -> tuple[int, int]:
-    service = service or ShareTokenService()
+    service = service or share_token_service
     return service.share_supply(offering.token.contract_address)
 
 
@@ -526,7 +526,7 @@ def allot(subscription: Subscription, operator_user, notes: str = "", headroom=N
             )
         )
 
-    request = ShareTokenService().create_issuance_request(
+    request = share_token_service.create_issuance_request(
         offering.token,
         recipient=locked.wallet.address,
         amount=amount,
@@ -546,7 +546,7 @@ def allot(subscription: Subscription, operator_user, notes: str = "", headroom=N
 
 
 def allot_batch(subscriptions, operator_user, notes: str = "", service=None) -> dict:
-    service = service or ShareTokenService()
+    service = service or share_token_service
     grouped = {}
     for subscription in subscriptions:
         grouped.setdefault(subscription.offering_id, []).append(subscription)

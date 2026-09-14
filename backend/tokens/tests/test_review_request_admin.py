@@ -15,7 +15,7 @@ from tokens.models import (
     ShareIssuance,
     ShareIssuanceRequest,
 )
-from tokens.services import ShareTokenService
+from tokens.services import share_token_service
 from tokens.services.capital_increase import submit_capital_increase
 
 User = get_user_model()
@@ -95,7 +95,7 @@ class ReviewRequestAdminTest(TestCase):
             recipient_address=self.issuance.recipient_address,
             amount=str(self.issuance.amount),
             status="failed",
-            idempotency_key=ShareTokenService.issuance_key(self.issuance),
+            idempotency_key=share_token_service.issuance_key(self.issuance),
         )
         change = self.client.get(url(self.issuance, "change"))
         self.assertContains(change, "Record legacy transaction hash")

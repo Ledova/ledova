@@ -226,7 +226,7 @@ def prepare_operation(claim, client):
     )
 
 
-def sign_operation(claim, prepared, private_key):
+def sign_operation(claim, prepared, private_key, *, on_signed=None):
     _boundary()
     if prepared.claim != claim:
         raise OutgoingTransactionError(STALE_ATTEMPT)
@@ -282,6 +282,8 @@ def sign_operation(claim, prepared, private_key):
             operation.current_attempt = attempt
             operation.status = OutgoingStatus.SIGNED
             operation.save(update_fields=["current_attempt", "status", "updated_at"])
+            if on_signed is not None:
+                on_signed(attempt)
     except OutgoingTransactionError:
         raise
     except Exception:

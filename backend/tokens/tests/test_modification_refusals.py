@@ -49,8 +49,8 @@ class ModificationChecks:
         self.before_balance_return = None
         self.balance_observations = []
         provider = patch(
-            "tokens.services.order_modification_service.ShareTokenService",
-            return_value=SimpleNamespace(get_token_balance=self.read_balance),
+            "tokens.services.order_modification_service.share_token_service",
+            new=SimpleNamespace(get_token_balance=self.read_balance),
         )
         self.addCleanup(provider.stop)
         provider.start()

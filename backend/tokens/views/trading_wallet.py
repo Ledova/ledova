@@ -8,7 +8,7 @@ from integrations.base_chain.exceptions import BaseChainConnectionError
 from shared.views import AuthenticatedGenericViewSet
 from tokens.exceptions import WalletBalancesUnavailableException
 from tokens.serializers.trading_wallet import TradingWalletBalancesSerializer
-from tokens.services import ShareTokenService
+from tokens.services import share_token_service
 from tokens.trading_wallet_access import resolve_verified_evm_wallets
 
 
@@ -32,7 +32,7 @@ class TradingWalletViewSet(AuthenticatedGenericViewSet):
         authorized_wallets = resolve_verified_evm_wallets(request.user, [wallet_address])
 
         try:
-            token_service = ShareTokenService()
+            token_service = share_token_service
             result = token_service.get_wallet_token_balances(authorized_wallets.addresses[0])
         except BaseChainConnectionError as exc:
             raise WalletBalancesUnavailableException(

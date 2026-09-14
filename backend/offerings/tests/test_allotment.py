@@ -44,12 +44,12 @@ from tokens.models import (
     ShareIssuance,
     ShareIssuanceRequest,
 )
-from tokens.services import ShareTokenService
+from tokens.services import share_token_service
 from tokens.services.mint_journal import mark_mint_reverted
 
 CHAIN_CLIENT = "tokens.services.share_token_service.get_base_chain_client"
 DEFER = "offerings.tasks.subscription.allot_subscription_task.defer"
-SUPPLY = "tokens.services.share_token_service.ShareTokenService.share_supply"
+SUPPLY = "tokens.services.share_token_service.share_supply"
 SIGNER = "0x" + "e" * 40
 ROOMY = (1000000, 0)
 
@@ -75,7 +75,7 @@ class AllotmentTestCase(TestCase):
         offering.refresh_from_db()
 
     def _supply(self, authorized=1000, issued=0):
-        service = patch("offerings.services.subscription.ShareTokenService").start().return_value
+        service = patch("offerings.services.subscription.share_token_service").start()
         service.share_supply.return_value = (authorized, issued)
         service.create_issuance_request.side_effect = _create_request
         return service
@@ -253,7 +253,7 @@ class MoneyOutNeverLeavesSharesOutTest(AllotmentTestCase):
             amount=str(request.amount),
             status=status,
             tx_hash=tx_hash,
-            idempotency_key=ShareTokenService.issuance_key(request),
+            idempotency_key=share_token_service.issuance_key(request),
         )
 
     def _lost_the_receipt(self):
@@ -288,7 +288,7 @@ class MoneyOutNeverLeavesSharesOutTest(AllotmentTestCase):
 
     def _stop_before_signing(self, error):
         subscription, request = self._allotted()
-        service = ShareTokenService()
+        service = share_token_service
         with (
             patch.object(service, "read_paused", return_value=False),
             patch.object(service, "is_recipient_whitelisted", return_value=True),
@@ -300,7 +300,7 @@ class MoneyOutNeverLeavesSharesOutTest(AllotmentTestCase):
 
     def test_a_journaled_failure_before_signing_can_still_be_refunded(self):
         subscription, request, _ = self._stop_before_signing(RuntimeError("Stopped before signing"))
-        issuance = ShareIssuance.objects.get(idempotency_key=ShareTokenService.issuance_key(request))
+        issuance = ShareIssuance.objects.get(idempotency_key=share_token_service.issuance_key(request))
         self.assertEqual(set(issuance.mint_journal[-1]), {"id"})
         self.assertIsNone(issuance.tx_hash)
         record_refund(subscription, amount=Decimal("25.00"))
@@ -310,7 +310,7 @@ class MoneyOutNeverLeavesSharesOutTest(AllotmentTestCase):
     def test_an_abandoned_unsigned_attempt_can_still_be_refunded(self):
         subscription, request, service = self._stop_before_signing(SystemExit())
         self.assertEqual(service.resolve_executing_issuance(request), "released")
-        issuance = ShareIssuance.objects.get(idempotency_key=ShareTokenService.issuance_key(request))
+        issuance = ShareIssuance.objects.get(idempotency_key=share_token_service.issuance_key(request))
         self.assertTrue(issuance.mint_journal[-1]["abandoned"])
         self.assertIsNone(issuance.tx_hash)
         record_refund(subscription, amount=Decimal("25.00"))

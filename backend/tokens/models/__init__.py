@@ -40,6 +40,7 @@ __all__ = [
     "ShareIssuance",
     "ShareIssuanceRequest",
     "ShareToken",
+    "TokenDeployment",
     "SigningChallenge",
     "SigningChallengePurpose",
     "ShareTokenStatus",
@@ -52,3 +53,4 @@ __all__ = [
     "TransferOrderType",
     "YieldToken",
 ]
+from .token_deployment import TokenDeployment

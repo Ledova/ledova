@@ -88,7 +88,7 @@ def run():
         stack.enter_context(patch("rest_framework.throttling.SimpleRateThrottle.allow_request", return_value=True))
         stack.enter_context(
             patch(
-                "tokens.services.order_modification_service.ShareTokenService",
+                "tokens.services.order_modification_service.share_token_service.get_token_balance",
                 side_effect=AssertionError("No provider call belongs to this buy action"),
             )
         )

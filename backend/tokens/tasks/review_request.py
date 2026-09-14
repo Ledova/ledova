@@ -14,7 +14,7 @@ from tokens.exceptions import (
     IssuanceRefusedException,
 )
 from tokens.models import CapitalIncreaseRequest, RequestStatus, ShareIssuanceRequest
-from tokens.services import ShareTokenService
+from tokens.services import share_token_service
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ def execute_review_request_task(model_label: str, request_uuid: str, executed_by
         user = get_user_model().objects.filter(pk=executed_by).first() if executed_by else None
 
         try:
-            result = ShareTokenService().execute_request(request, executed_by=user)
+            result = share_token_service.execute_request(request, executed_by=user)
         except (InvalidRecipientAddressException, InvalidTokenStateException, IssuanceRefusedException) as exc:
             logger.warning(f"Request {request_uuid} not executed: {exc.detail}")
             return {"success": False, "error": str(exc.detail)}
@@ -43,7 +43,7 @@ def execute_review_request_task(model_label: str, request_uuid: str, executed_by
 @app.periodic(cron="*/5 * * * *")
 @app.task
 def check_executing_issuance_requests(timestamp: int = 0):
-    service = ShareTokenService()
+    service = share_token_service
     cutoff = timezone.now() - STALE_EXECUTION_AGE
     resolvers = (
         (ShareIssuanceRequest.objects.unresolved_on_chain(cutoff), service.resolve_executing_issuance),

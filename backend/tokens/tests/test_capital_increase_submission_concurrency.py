@@ -12,9 +12,9 @@ from shared.tests.scoped import aliases_this_deployment_has
 from shared.tests.tenants import make_tenant
 from tokens.exceptions import InvalidTokenStateException, IssuanceRefusedException
 from tokens.models import CapitalIncreaseRequest, RequestStatus
+from tokens.services import share_token_service
 from tokens.services.capital_increase import submit_capital_increase
 from tokens.services.dilution import dilution_for
-from tokens.services.share_token_service import ShareTokenService
 
 
 @skipUnless(connection.vendor == "postgresql", "separate connections and row locks require PostgreSQL")
@@ -120,10 +120,22 @@ class CapitalIncreaseSubmissionConcurrencyTest(TransactionTestCase):
     def test_submit_winning_refuses_failed_resume_before_any_chain_work(self):
         self.second.status = RequestStatus.FAILED
         self.second.save(update_fields=["status"])
-        service = ShareTokenService.__new__(ShareTokenService)
-        service.share_supply = Mock(return_value=(int(self.tenant.deployed_token.total_supply), 0))
-        service.increase_authorized_shares = Mock(
-            return_value={"tx_hash": "0xconfirmed", "new_authorized_total": self.second.new_authorized_total}
+        service = share_token_service
+        self.enterContext(
+            patch.object(
+                share_token_service,
+                "share_supply",
+                new=Mock(return_value=(int(self.tenant.deployed_token.total_supply), 0)),
+            )
+        )
+        self.enterContext(
+            patch.object(
+                share_token_service,
+                "increase_authorized_shares",
+                new=Mock(
+                    return_value={"tx_hash": "0xconfirmed", "new_authorized_total": self.second.new_authorized_total}
+                ),
+            )
         )
         entered, release = threading.Event(), threading.Event()
         with patch("tokens.services.capital_increase.dilution_for", side_effect=self._pause_dilution(entered, release)):
@@ -147,7 +159,7 @@ class CapitalIncreaseSubmissionConcurrencyTest(TransactionTestCase):
     def test_failed_resume_winning_finishes_before_the_draft_submits(self):
         self.first.status = RequestStatus.FAILED
         self.first.save(update_fields=["status"])
-        service = ShareTokenService.__new__(ShareTokenService)
+        service = share_token_service
         entered, release = threading.Event(), threading.Event()
 
         def supply(address):

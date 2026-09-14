@@ -1,5 +1,5 @@
 from datetime import date, timedelta
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from django.test import TestCase
 from django.utils import timezone
@@ -94,14 +94,13 @@ class WhatTheLogSaysAboutCeasingTest(TestCase):
 
 class TheReaderReturnsTheLogInTheOrderItHappenedTest(TestCase):
 
-    @staticmethod
-    def a_service(logs):
-        from tokens.services.share_token_service import ShareTokenService
+    def a_service(self, logs):
+        from tokens.services import share_token_service
 
-        service = ShareTokenService.__new__(ShareTokenService)
+        service = share_token_service
         contract = Mock()
         contract.events.Transfer.return_value.get_logs.return_value = logs
-        service.load_share_token = Mock(return_value=contract)
+        self.enterContext(patch.object(share_token_service, "load_share_token", new=Mock(return_value=contract)))
         return service
 
     @staticmethod

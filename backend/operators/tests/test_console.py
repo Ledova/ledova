@@ -310,7 +310,7 @@ class WorklistTest(TestCase):
                     status=IssuanceStatus.COMPLETED,
                 )
 
-        with patch("tokens.services.share_token_service.ShareTokenService.get_token_balance") as balance:
+        with patch("tokens.services.share_token_service.get_token_balance") as balance:
             allot(0, 2)
             with CaptureQueriesContext(connection) as few:
                 _counts()

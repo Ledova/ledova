@@ -17,8 +17,8 @@
         <strong>Retry Deployment</strong>
         <p class="mt-1 mb-0">
             <strong>{{ token.name }} ({{ token.symbol }})</strong> is still deploying. Re-queuing the deployment task
-            adopts the token the factory already holds for it, resumes on the recorded create transaction, or sends
-            the create only when nothing was ever sent; it never creates a second token for this identifier.
+            resumes the original signed transaction. If the recorded attempt failed before signing or reverted,
+            this confirmation authorizes a new attempt with the same deployment terms. Unattributed contracts stay pending.
         </p>
     </div>
 
@@ -44,6 +44,7 @@
 
     <form method="post">
         {% csrf_token %}
+        <input type="hidden" name="confirmation" value="{{ confirmation }}">
         <div class="action-row mt-0">
             <button type="submit" class="btn btn-primary">Retry Deployment</button>
             <a href="{% url 'admin:tokens_sharetoken_change' token.pk %}" class="btn btn-secondary">Cancel</a>

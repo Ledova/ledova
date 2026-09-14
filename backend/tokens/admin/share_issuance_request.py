@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from tokens.models import RequestStatus, ShareIssuance, ShareIssuanceRequest
-from tokens.services import ShareTokenService
+from tokens.services import share_token_service
 
 from ._helpers import short_hex
 from .review_workflow import ReviewWorkflowAdmin
@@ -14,7 +14,7 @@ class ShareIssuanceRequestAdmin(ReviewWorkflowAdmin):
 
     def recorded_execution_error(self, obj) -> str:
         return (
-            ShareIssuance.objects.filter(idempotency_key=ShareTokenService.issuance_key(obj))
+            ShareIssuance.objects.filter(idempotency_key=share_token_service.issuance_key(obj))
             .exclude(error_message="")
             .order_by("-created_at")
             .values_list("error_message", flat=True)
