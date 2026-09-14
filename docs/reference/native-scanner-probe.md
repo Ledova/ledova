@@ -41,11 +41,13 @@ inside the Android native CI probe and retains `scanner-window-tests.log`.
 A wait that reaches its 15-second deadline appends the focused window, focused
 app and top resumed activity at that moment, read through the instrumentation's
 shell. When a focus wait fails, a system window such as `Application Not
-Responding` holding focus marks an unhealthy emulator, and the test's own
-activity holding focus points at scanner admission. When a camera wait fails, a
-focused activity only rules out lost window focus: CameraX binding or camera
-availability can still be the cause. The failure stands either way: nothing is
-dismissed or retried.
+Responding` holding focus marks an unhealthy emulator, and a test window holding
+focus points at scanner admission. The activity and its dialogs are all listed
+under the activity's name, so the state cannot say which of them has focus: for
+the modal wait, the activity keeping focus instead of the scanner dialog remains
+possible. When a camera wait fails, a focused test window only rules out lost
+window focus: CameraX binding or camera availability can still be the cause. The
+failure stands either way: nothing is dismissed or retried.
 The Release probe also drives nested React Native modal windows through the
 actual Expo bridge with camera permission granted by the emulator runner. That
 separate instrumentation APK first waits for bound preview/analysis use cases
