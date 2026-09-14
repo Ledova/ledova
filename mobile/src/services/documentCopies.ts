@@ -41,7 +41,7 @@ function sweepPickerCopies(): void {
     const directory = pickerDirectory();
     if (!directory.exists) return;
     for (const entry of directory.list()) {
-      if (entry instanceof File && isPickerCopy(entry.uri)) removeCopy(entry);
+      if (entry instanceof File && PICKER_NAME.test(entry.name)) removeCopy(entry);
     }
   } catch {
     console.warn('Document cache cleanup did not complete.');
