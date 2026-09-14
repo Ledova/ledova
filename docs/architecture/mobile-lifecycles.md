@@ -111,17 +111,20 @@ an exact scheme, host and port match from the view's list:
 Android requests carry `isTopFrame` absent or true, so every one is a top frame.
 iOS sends `isTopFrame` false when the request URL differs from its main document
 URL; such a navigation passes only the lifecycle and shared web navigation checks.
-Configured hostnames are lower-cased before comparison: the app's `URL` global,
-Expo's WHATWG polyfill, keeps a hostname's case, and both platforms report
-lower-case hosts.
+Configured hostnames are lower-cased before comparison, because the app's `URL`
+global, Expo's WHATWG polyfill, keeps a hostname's case. Both platforms are
+expected to report lower-case hosts, since their engines canonicalise a URL before
+offering it. That is inferred, not observed; a reported upper-case host would be
+refused.
 
 Both views refuse new windows: `onOpenWindow` does nothing and multiple windows
-are disabled, so an Android popup becomes a top-level navigation that the same
-callback decides. Automatic JavaScript window opening stays off. On iOS, camera
-and microphone requests reach WebKit's own prompt instead of a silent grant, and
-`NSMicrophoneUsageDescription` stays. Android blocks `RECORD_AUDIO` app-wide,
-although Expo Camera's plugin and library manifest declare it; nothing in the app
-records audio.
+are disabled. An Android popup is then expected to become a top-level navigation
+that the same callback decides. That rests on Android's `setSupportMultipleWindows`
+documentation, not on Chromium source or a device run. Automatic JavaScript window
+opening stays off. On iOS, camera and microphone requests reach WebKit's own
+prompt instead of a silent grant, and `NSMicrophoneUsageDescription` stays.
+Android blocks `RECORD_AUDIO` app-wide, although Expo Camera's plugin and library
+manifest declare it; nothing in the app records audio.
 
 These gaps are accepted by the #13 owner decisions:
 
@@ -138,14 +141,21 @@ These gaps are accepted by the #13 owner decisions:
 - The Sumsub SDK builder script loads from an unversioned URL, so its iframe host,
   token parsing and frame permissions can change without a repository change.
 
+The iOS top-frame test has not been observed. react-native-webview treats a
+request as a top frame only when its URL equals its main document URL. Neither a
+main-frame redirect nor a main document URL that is nil or normalised differently
+has been seen; a top-frame request that fails the test would be checked as a
+subframe, without the origin list.
+
 Mounted JavaScript controls use the locked WebView wrapper, actual app-lock
 provider and owner hooks with synthetic credentials. They establish mount,
 callback and error-display behavior, not physical camera shutdown or native
 permission-dialog cancellation. Navigation controls send requests with
 `isTopFrame` absent, true and false through the installed iOS adapter, parsing
-with the same Expo `URL` global as the app, and window and media props are
-checked on both platform adapters. Native frame, POST, popup, timeout and prompt
-behavior are not established by them. Android owning-window focus and global
+with the same Expo `URL` global as the app. On both platform adapters, window and
+media props are checked, and an invoked `onOpenWindow` calls no `Linking.openURL`,
+changes no source and completes nothing. Native frame, POST, popup, timeout and
+prompt behavior are not established by them. Android owning-window focus and global
 modal/lock stacking remain separate #13 checks, and a form-completion signal is
 not server verification approval.
 
