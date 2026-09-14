@@ -324,6 +324,7 @@ class OutgoingInventorySourceTest(TransactionTestCase):
         self.tenant = make_tenant("inventory")
         ShareToken.objects.filter(pk=self.tenant.deployed_token.pk).update(contract_address=CONTRACT)
         self.request = ShareIssuanceRequest.objects.create(
+            dispatch_id=None,
             token=self.tenant.deployed_token,
             recipient_address=RECIPIENT,
             amount=10,
@@ -471,6 +472,7 @@ class OutgoingInventorySourceTest(TransactionTestCase):
 
     def test_a_failed_share_request_without_an_issuance_is_an_unresolved_source(self):
         unlinked = ShareIssuanceRequest.objects.create(
+            dispatch_id=None,
             token=self.tenant.deployed_token,
             recipient_address=RECIPIENT,
             amount=1,

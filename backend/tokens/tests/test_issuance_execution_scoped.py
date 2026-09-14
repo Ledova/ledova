@@ -124,11 +124,12 @@ class ScopedIssuanceExecutionTest(RunsOnTheScopedConnection, TransactionTestCase
             open_offering,
             paid_subscription,
         )
-        from shared.tests.tenants import make_tenant
+        from shared.tests.tenants import make_tenant, open_to_investors
 
         with use_operator():
             subscriber = make_tenant("scoped-issuance-subscriber")
             configure_operator()
+            open_to_investors(self.tenant)
             subscriber.offering = open_offering(self.tenant)
             eligible_subscriber(subscriber)
             subscription = paid_subscription(subscriber, quantity=10)

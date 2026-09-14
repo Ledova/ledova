@@ -140,6 +140,7 @@ class OutgoingInventoryProcessTest(TransactionTestCase):
         tenant = make_tenant("inventory-snapshot")
         ShareToken.objects.filter(pk=tenant.deployed_token.pk).update(contract_address=CONTRACT)
         request = ShareIssuanceRequest.objects.create(
+            dispatch_id=None,
             token=tenant.deployed_token,
             recipient_address=RECIPIENT,
             amount=10,
@@ -164,7 +165,6 @@ class OutgoingInventoryProcessTest(TransactionTestCase):
                 with atomic():
                     ShareToken.objects.filter(pk=tenant.deployed_token.pk).update(contract_address=RECIPIENT)
                     ShareIssuance.objects.filter(pk=issuance.pk).update(amount="11")
-                    ShareIssuanceRequest.objects.filter(pk=request.pk).update(amount=11)
                 (directory / "writer-finished").touch()
                 code, out, err = finish(process)
                 self.assertEqual(code, 0, out + err)
@@ -179,6 +179,9 @@ class OutgoingInventoryProcessTest(TransactionTestCase):
                 self.assertEqual(latest.expected_terms["to"], RECIPIENT)
                 self.assertEqual(latest.expected_terms["amount"], "11")
                 self.assertFalse(latest.terms_match)
+                self.assertFalse(latest.source_link_valid)
+                request.refresh_from_db()
+                self.assertEqual(request.amount, 10)
                 self.assertTrue(OutgoingCutoverHold.objects.filter(reason="source_identity_conflict").exists())
             finally:
                 if process.poll() is None:
