@@ -18,7 +18,7 @@ tests now use PostgreSQL in both ordinary and specialized settings.
 | Gate unit tests | `make test-gates` |
 | Lint | `make lint`; `cd backend && make lint`, which needs the [backend lint tools](#backend-verification) |
 | JavaScript and contracts | `make test` |
-| Backend suites | The four commands under [backend verification](#backend-verification), always together |
+| Backend suites | The three suites under [backend verification](#backend-verification), always together |
 | Migration drift | `cd backend && python manage.py makemigrations --check --dry-run` |
 | Real EVM chain | `make chain-test`; CI also uses `CHAIN_TEST_SETTINGS=ledova_backend.settings.test_postgres` |
 | Real Bitcoin chain | `python scripts/test-bitcoin-chain.py` against isolated PostgreSQL |
@@ -62,7 +62,7 @@ python manage.py check_rls_catalogue
 | Suite | What only it sees |
 | --- | --- |
 | Ordinary (`settings.test`; `cd backend && make test` runs it without `--noinput`) | The app role on one shared connection, through `SET ROLE` |
-| Scoped | Real, separate app and operator aliases: a different code path from the shared-connection suites |
+| Scoped | Real, separate app and operator aliases: a different code path from the ordinary suite's shared connection |
 | Roles and catalogue | Grants and installed policies, which no test can observe |
 
 An empty or suppressed run is not a pass: find the `Ran N tests` tally before
