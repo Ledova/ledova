@@ -32,7 +32,12 @@ from offerings.tests.factories import (
     paid_subscription,
 )
 from shared.tests.tenants import make_tenant
-from tokens.models import RequestStatus, ShareIssuanceExecution, ShareIssuanceRequest
+from tokens.models import (
+    IssuanceExecutionStatus,
+    RequestStatus,
+    ShareIssuanceExecution,
+    ShareIssuanceRequest,
+)
 from tokens.services import issuance_execution
 from tokens.tests.issuance_fixtures import CHAIN_ID, KEY, IssuanceNode
 from users.models import InvestorClassification
@@ -245,7 +250,37 @@ class SubscriptionAdminTest(SubscriptionAdminTestCase):
 
         response = self._retry(subscription, follow=True)
         self.assertEqual(self.defer.call_count, 1)
-        self.assertIn("Allotment retried; the task is running in the background.", self._messages(response))
+        self.assertIn("Allotment recovery checked; the recorded status is shown below.", self._messages(response))
+
+    def test_a_retry_form_retained_before_refund_reports_the_cancelled_outcome_without_another_job(self):
+        subscription = paid_subscription(self.tenant)
+        with patch(SUPPLY, return_value=(1000, 0)):
+            self._allot([subscription])
+        self.defer.assert_called_once()
+        url = self._url(subscription, "retry")
+        form = self.client.get(url).context["form"]
+        confirmation = form["confirmation"].value()
+        self.client.post(
+            self._url(subscription, "refund"),
+            {"refund_amount": "25.00", "refund_reference": "SYNTHETIC-REFUND"},
+        )
+        self.defer.reset_mock()
+
+        response = self.client.post(url, {"confirmation": confirmation}, follow=True)
+
+        self.assertIn("Allotment recovery checked; the recorded status is shown below.", self._messages(response))
+        self.assertNotIn("running in the background", response.content.decode())
+        subscription.refresh_from_db()
+        self.assertEqual(subscription.status, SubscriptionStatus.REFUNDED)
+        self.assertEqual(subscription.money_held, Decimal("0.00"))
+        self.assertEqual(
+            ShareIssuanceExecution.objects.get(subscription_id=subscription.pk).status,
+            IssuanceExecutionStatus.CANCELLED,
+        )
+        self.defer.assert_not_called()
+        log = LogEntry.objects.order_by("action_time").last().change_message
+        self.assertIn("Checked recovery of issuance request", log)
+        self.assertIn("subscription status is Refunded", log)
 
     def test_the_bulk_action_allots_a_batch_inside_the_headroom(self):
         rows = [paid_subscription(self.tenant, quantity=40, wallet=extra_wallet(self.tenant, n)) for n in "12"]

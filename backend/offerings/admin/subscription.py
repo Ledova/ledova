@@ -196,7 +196,7 @@ ACTIONS = {
         intro="Recovers the original issuance. A new attempt requires confirmation of its recorded failed outcome.",
         legend="Retry",
         button=("Retry Allotment", "btn-info"),
-        done="Allotment retried; the task is running in the background.",
+        done="Allotment recovery checked; the recorded status is shown below.",
     ),
 }
 
@@ -229,7 +229,10 @@ def _log_reject(subscription, data):
 
 
 def _log_retry(subscription, data):
-    return f"Re-deferred the mint of issuance request {subscription.issuance_request_id}."
+    return (
+        f"Checked recovery of issuance request {subscription.issuance_request_id}; "
+        f"subscription status is {subscription.get_status_display()}."
+    )
 
 
 LOGS = {
