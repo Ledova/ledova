@@ -42,21 +42,21 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
    shares actually issued. Shares use whole units: model validation and the
    `share_token_whole_units` database constraint require `ShareToken.decimals`
    to be zero, matching the contract. Settlement assets keep their own decimals.
-2. `POST /api/v1/tokens/{uuid}/deploy/` calls
-   `ShareTokenService.start_deployment`, which refuses unless the token is
-   `DRAFT`, the company is `ACTIVE` and the company has a primary wallet, then
-   moves the token to `DEPLOYING` and defers `deploy_share_token_task`.
-3. The task calls `getTokenByIdentifier("<acn>:<symbol>")` first; if the factory
-   already holds an address, that address is adopted and nothing is sent. The
-   ACN is required and unique, so the identifier survives a later ABN, and a
-   company can hold several share classes under distinct symbols.
-4. Otherwise `createShareToken` is signed, its hash is committed together with
-   the token's binding to that transaction, and only then is it broadcast and
-   the receipt awaited (see [deployment persistence](#deployment-persistence)).
-   Only a failure *before* that commit returns the token to `DRAFT`; otherwise
-   it stays `DEPLOYING` until `check_pending_token_deployments` (every 5
-   minutes) resolves it or an admin uses "Retry Deployment". Deployment mints
-   nothing: `totalSupply` starts at zero.
+2. `POST /api/v1/tokens/{uuid}/deploy/` calls `deployment.start_deployment`.
+   A draft requires an active company and primary wallet. Its submission UUID,
+   `DEPLOYING` status and principal-bearing job commit together. Repeated
+   requests retain the UUID and recover the existing deployment.
+3. The worker freezes the admitted token, company, issuer and factory call in
+   a private `TokenDeployment`. The identifier is `<acn>:<symbol>`; a company
+   may have several share classes. An existing factory address without an
+   attributable local deployment remains pending for operator attribution.
+4. The shared outgoing journal commits the signed bytes, nonce, hash and token
+   association before broadcast. Recovery uses the original transaction and
+   matching factory event. Unknown outcomes remain `DEPLOYING`; a signed admin
+   confirmation may retry a definite unsigned failure or revert with the same
+   intent. The five-minute sweep recovers admitted work. Deployment mints
+   nothing: the contract's `totalSupply()` starts at zero. See
+   [deployment persistence](#deployment-persistence).
 5. An investor wallet is verified, then whitelisted. `WhitelistEntry` either
    points at a `Wallet` or carries a bare `address` plus a `label` for an
    operator-held treasury address; a database constraint requires one of the two
@@ -120,37 +120,37 @@ execution of an approved request.
 
 ## Deployment persistence
 
-`_create_share_token` in `backend/tokens/services/share_token_service.py` first
-writes a pending `BlockchainTransaction` journal row for the token, then signs
-`createShareToken`. The chain client's `on_signed` callback runs before
-`send_raw_transaction`: `record_signed_deployment` in
-`backend/tokens/services/deployment_journal.py` commits the signed
-transaction's hash on that journal row and the token's binding to it
-(`deployment_tx_hash` and `deployment_transaction`) together, in one durable
-transaction on the operator connection, before anything is broadcast. That
-commit refuses an enclosing transaction or disabled autocommit, a journal row
-that belongs to another token, a binding the token already carries, and, for a
-scoped issuer caller, a company or token whose ownership changed since enqueue
-(rechecked under a row lock). The journal row is marked submitted at this
-boundary; that label and the hash identify the prepared transaction and do not
-prove that the provider accepted it. A provider that answers with a different
-hash is treated as an unconfirmed broadcast.
+`backend/tokens/services/deployment.py` admits one immutable `TokenDeployment`
+for each queued submission. Its UUID snapshots preserve token/company/issuer
+identity without adding a private foreign-key dependency to customer deletion.
+Historical rows retain null submission identities and their original hashes and
+records; they are not automatically attributed or imported into the outgoing journal.
 
-A lost send acknowledgement leaves the token `DEPLOYING` with its original hash
-and the journal row still submitted, with the unconfirmed-broadcast message
-recorded on it. Retry and reconciliation resolve
-through the recorded transaction; an unavailable receipt does not authorize
-another create. A failure before the hash is committed returns the
-still-unbound token to `DRAFT`. Once the commit has happened, even a lost
-commit acknowledgement that raises before the callback returns leaves the
-token bound and `DEPLOYING`, nothing is broadcast, and a retry resumes from
-the journal rather than creating again
-(`test_lost_commit_acknowledgement_blocks_send_and_retains_recovery` in
-`backend/tokens/tests/test_deployment_signing_boundary.py`). Existing
-confirmed-revert and factory-adoption paths remain. Do not
-clear a hash to retry. This boundary does not persist signed bytes, freeze all
-deployment terms or historical identities, activate the
-[outgoing signer foundation](outgoing-signing.md), or establish all-writer
-cutover or finality.
+The shared outgoing journal's local signing callback commits `SignedAttempt`
+bytes, the reserved nonce, the `BlockchainTransaction` and the public token's
+hash/transaction association in one durable operator transaction. It refuses
+surrounding transactions, competing bindings, changed admitted terms and revoked
+issuer ownership. Other public lifecycle and asset writes stay on the issuer
+connection. Operator recovery can reconcile an already-signed transaction after
+issuer access changes; unsigned issuer intent still requires its authority.
+
+Unknown sends and lost commit acknowledgements recover the original signed
+bytes, hash and nonce. Definite preparation failures and reverts retain their
+intent; an explicit retry names the failed claim, so stale jobs and forms cannot
+reopen a later terminal attempt. A retry records the previous transaction's
+revert before reopening its operation. New transaction projections are excluded from
+the legacy hash monitor. Only the original operation's receipt, with a factory
+creation event matching identifier, symbol and cap, can establish the contract.
+An identifier lookup or current share cap cannot substitute for attribution.
+
+Projection checks the current token/submission/company and chain/factory before
+writing public state. A failed asset bridge stays recoverable after the token's
+contract is recorded. The bounded sweep rotates unresolved work by update time
+and repairs interrupted revert projections without opening another attempt.
+Once their transaction projection is complete, terminal failures await explicit
+retry. Existing post-deployment swap approval remains a separate legacy writer
+scheduled for M2.5 of #6; complete
+same-key cutover, historical attribution and finality remain outstanding. Signer
+admission remains closed by default. See [outgoing signing](outgoing-signing.md).
 
 Next: [offerings](offerings.md), [subscriptions](subscriptions.md), and [chain setup](../operations/chains.md).

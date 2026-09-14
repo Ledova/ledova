@@ -5,8 +5,8 @@ from django.utils import timezone
 
 from shared.tests.tenants import make_tenant
 from tokens.models import FormerHolder
+from tokens.services import share_token_service
 from tokens.services.former_holders import fold_former_holders
-from tokens.services.share_token_service import ShareTokenService
 from tokens.tasks.former_holders import fold_every_share_class
 from tokens.tests.test_the_fold_that_writes_former_members import (
     ALICE,
@@ -20,14 +20,16 @@ from tokens.tests.test_the_fold_that_writes_former_members import (
 class FormerMemberFinalityTest(FoldTestFixtures, TestCase):
     def setUp(self):
         super().setUp()
-        self.service = ShareTokenService.__new__(ShareTokenService)
-        self.service.chain_client = Mock()
-        self.provider = self.service.chain_client.w3.eth
+        self.service = share_token_service
+        self.chain = self.enterContext(
+            patch.object(share_token_service, "get_base_chain_client", return_value=Mock())
+        ).return_value
+        self.provider = self.chain.w3.eth
         self.provider.block_number = 22
         self.finalized = 19
         self.entries = [transfer(ZERO, ALICE, 10, 10), transfer(ALICE, BOB, 10, 20)]
-        self.service.deployment_block = Mock(return_value=1)
-        self.service.load_share_token = Mock()
+        self.enterContext(patch.object(share_token_service, "deployment_block", new=Mock(return_value=1)))
+        self.enterContext(patch.object(share_token_service, "load_share_token", new=Mock()))
         self.contract = self.service.load_share_token.return_value
         self.contract.events.Transfer.return_value.get_logs.side_effect = self.logs
         self.provider.get_block.side_effect = self.block

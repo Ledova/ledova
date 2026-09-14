@@ -34,7 +34,7 @@ from tokens.models import (
     ShareTokenStatus,
 )
 from tokens.serializers import CapitalIncreaseDetailSerializer
-from tokens.services import ShareTokenService
+from tokens.services import share_token_service
 from tokens.services.capital_increase import submit_capital_increase
 from tokens.services.dilution import dilution_for
 from tokens.services.share_token_service import (
@@ -58,8 +58,8 @@ RECIPIENT = "0x" + "a" * 40
 SIGNER = "0x" + "e" * 40
 RECEIPT = {"blockNumber": 9, "blockHash": bytes.fromhex("ab" * 32), "gasUsed": 1_000_000}
 CHAIN_CLIENT = "tokens.services.share_token_service.get_base_chain_client"
-WHITELISTED = "tokens.services.share_token_service.ShareTokenService.is_recipient_whitelisted"
-SUPPLY = "tokens.services.share_token_service.ShareTokenService.share_supply"
+WHITELISTED = "tokens.services.share_token_service.is_recipient_whitelisted"
+SUPPLY = "tokens.services.share_token_service.share_supply"
 
 
 def issuance_request(token, amount=10, **fields):
@@ -172,7 +172,7 @@ class ExecuteRequestServiceTest(TestCase):
         self.addCleanup(patch.stopall)
         self.tenant = make_tenant("owner")
         self.token = self.tenant.deployed_token
-        self.service = ShareTokenService()
+        self.service = share_token_service
 
     def _approved(self, request):
         type(request).objects.filter(pk=request.pk).update(status=RequestStatus.APPROVED)
@@ -216,8 +216,8 @@ class ExecuteRequestServiceTest(TestCase):
     def test_capital_increase_sets_the_validated_cap_and_mints_nothing(self):
         request = self._approved(self.tenant.capital_increase)
         chain_result = {"tx_hash": "0xset", "block_number": 5, "gas_used": 21000, "new_authorized_total": 1100}
-        with patch.object(ShareTokenService, "increase_authorized_shares", return_value=chain_result) as increase:
-            with patch.object(ShareTokenService, "_mint_to") as mint:
+        with patch.object(share_token_service, "increase_authorized_shares", return_value=chain_result) as increase:
+            with patch.object(share_token_service, "_mint_to") as mint:
                 result = self.service.execute_request(request)
 
         self.assertEqual(result, chain_result)
@@ -357,7 +357,7 @@ class ExecuteRequestServiceTest(TestCase):
     def test_issuance_on_a_paused_token_is_refused_but_a_capital_increase_proceeds(self):
         self._token_status(ShareTokenStatus.PAUSED)
         request = self._approved(issuance_request(self.token, amount=10))
-        with patch.object(ShareTokenService, "_mint_to") as mint:
+        with patch.object(share_token_service, "_mint_to") as mint:
             with self.assertRaisesMessage(IssuanceRefusedException, TOKEN_PAUSED):
                 self.service.execute_request(request)
         mint.assert_not_called()
@@ -368,7 +368,7 @@ class ExecuteRequestServiceTest(TestCase):
 
         increase = self._approved(self.tenant.capital_increase)
         chain_result = {"tx_hash": "0xset", "block_number": 5, "gas_used": 21000, "new_authorized_total": 1100}
-        with patch.object(ShareTokenService, "increase_authorized_shares", return_value=chain_result):
+        with patch.object(share_token_service, "increase_authorized_shares", return_value=chain_result):
             self.assertEqual(self.service.execute_request(increase), chain_result)
         increase.refresh_from_db()
         self.token.refresh_from_db()
@@ -378,7 +378,7 @@ class ExecuteRequestServiceTest(TestCase):
         self._token_status(ShareTokenStatus.DEPLOYED)
         self._chain_paused(True)
         request = self._approved(request)
-        with patch.object(ShareTokenService, "_mint_to") as mint:
+        with patch.object(share_token_service, "_mint_to") as mint:
             with self.assertRaisesMessage(IssuanceRefusedException, TOKEN_PAUSED):
                 self.service.execute_request(request)
         mint.assert_not_called()
@@ -392,12 +392,12 @@ class ExecuteRequestServiceTest(TestCase):
             recipient_address=RECIPIENT,
             amount="10",
             status=IssuanceStatus.PROCESSING,
-            idempotency_key=ShareTokenService.issuance_key(request),
+            idempotency_key=share_token_service.issuance_key(request),
         )
         ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.EXECUTING)
         self.assertTrue(request.can_be_executed)
 
-        with patch.object(ShareTokenService, "_mint_to") as mint:
+        with patch.object(share_token_service, "_mint_to") as mint:
             with self.assertRaisesMessage(InvalidTokenStateException, "Cannot execute request with status 'Executing'"):
                 self.service.execute_request(request)
 
@@ -545,7 +545,7 @@ class ExecuteRequestServiceTest(TestCase):
         request = self._approved(issuance_request(self.token, amount=10, reviewed_by=self.tenant.user))
         staff = make_tenant("staff", staff=True).user
         chain_result = {"tx_hash": "0xmint", "block_number": 7, "gas_used": 21000}
-        with patch.object(ShareTokenService, "_mint_to", side_effect=recorded_mint_result(chain_result)) as mint:
+        with patch.object(share_token_service, "_mint_to", side_effect=recorded_mint_result(chain_result)) as mint:
             self.assertEqual(self.service.execute_request(request, executed_by=staff), chain_result)
 
         mint.assert_called_once()
@@ -567,7 +567,7 @@ class ExecuteRequestServiceTest(TestCase):
     def test_issuance_without_an_executing_user_credits_the_reviewer(self):
         request = self._approved(issuance_request(self.token, amount=10, reviewed_by=self.tenant.user))
         with patch.object(
-            ShareTokenService,
+            share_token_service,
             "_mint_to",
             side_effect=recorded_mint_result({"tx_hash": "0x1", "block_number": 1, "gas_used": 1}),
         ):
@@ -578,7 +578,7 @@ class ExecuteRequestServiceTest(TestCase):
     def test_unwhitelisted_recipient_is_refused_before_any_transaction(self):
         request = self._approved(issuance_request(self.token, amount=10))
         with patch(WHITELISTED, return_value=False):
-            with patch.object(ShareTokenService, "_mint_to") as mint:
+            with patch.object(share_token_service, "_mint_to") as mint:
                 with self.assertRaisesMessage(IssuanceRefusedException, NOT_WHITELISTED):
                     self.service.execute_request(request)
 
@@ -593,14 +593,14 @@ class ExecuteRequestServiceTest(TestCase):
     def test_amount_over_the_remaining_cap_is_refused_before_any_transaction(self):
         request = self._approved(issuance_request(self.token, amount=101))
         with patch(SUPPLY, return_value=(1000, 900)):
-            with patch.object(ShareTokenService, "_mint_to") as mint:
+            with patch.object(share_token_service, "_mint_to") as mint:
                 with self.assertRaisesMessage(IssuanceRefusedException, EXCEEDS_AUTHORIZED):
                     self.service.execute_request(request)
             mint.assert_not_called()
 
             exact = self._approved(issuance_request(self.token, amount=100))
             with patch.object(
-                ShareTokenService,
+                share_token_service,
                 "_mint_to",
                 side_effect=recorded_mint_result({"tx_hash": "0x1", "block_number": 1, "gas_used": 1}),
             ):
@@ -613,7 +613,7 @@ class ExecuteRequestServiceTest(TestCase):
 
     def test_chain_failure_marks_request_and_issuance_failed_then_reraises(self):
         request = self._approved(issuance_request(self.token))
-        with patch.object(ShareTokenService, "_mint_to", side_effect=RuntimeError("rpc down")):
+        with patch.object(share_token_service, "_mint_to", side_effect=RuntimeError("rpc down")):
             with self.assertRaisesMessage(RuntimeError, "rpc down"):
                 self.service.execute_request(request)
 
@@ -645,7 +645,7 @@ class ExecuteRequestServiceTest(TestCase):
             amount=str(request.amount),
             status=status,
             tx_hash=tx_hash,
-            idempotency_key=ShareTokenService.issuance_key(request),
+            idempotency_key=share_token_service.issuance_key(request),
         )
 
     def test_mint_hash_is_recorded_before_the_wait_and_a_retry_completes_from_it_without_minting_again(self):
@@ -739,10 +739,9 @@ class ExecuteRequestServiceTest(TestCase):
         self.assertIn("Failed: Token is not deployed on blockchain", undeployed.execution_notes)
 
         no_wallet = self._approved(self.tenant.capital_increase)
-        with patch("tokens.services.share_token_service.primary_wallet_for", return_value=None):
-            with patch.object(ShareTokenService, "increase_authorized_shares", side_effect=RuntimeError("revert")):
-                with self.assertRaisesMessage(RuntimeError, "revert"):
-                    self.service.execute_request(no_wallet)
+        with patch.object(share_token_service, "increase_authorized_shares", side_effect=RuntimeError("revert")):
+            with self.assertRaisesMessage(RuntimeError, "revert"):
+                self.service.execute_request(no_wallet)
         no_wallet.refresh_from_db()
         self.assertEqual(no_wallet.status, RequestStatus.FAILED)
         self.assertIn(f"Failed: {CAPITAL_INCREASE_EXECUTION_FAILED}", no_wallet.execution_notes)
@@ -770,7 +769,7 @@ class ExecutingIssuanceSweepTest(TestCase):
             amount="10",
             status=IssuanceStatus.PROCESSING,
             tx_hash=tx_hash,
-            idempotency_key=ShareTokenService.issuance_key(request),
+            idempotency_key=share_token_service.issuance_key(request),
         )
         request.refresh_from_db()
         return request, issuance
@@ -801,7 +800,7 @@ class ExecutingIssuanceSweepTest(TestCase):
             amount="10",
             status=IssuanceStatus.PROCESSING,
             tx_hash="",
-            idempotency_key=ShareTokenService.issuance_key(request),
+            idempotency_key=share_token_service.issuance_key(request),
         )
 
         self.assertEqual(check_executing_issuance_requests(), {"checked": 1, "resolved": 0})
@@ -822,7 +821,7 @@ class ExecutingIssuanceSweepTest(TestCase):
             amount="10",
             status=IssuanceStatus.PROCESSING,
             tx_hash="",
-            idempotency_key=ShareTokenService.issuance_key(ambiguous),
+            idempotency_key=share_token_service.issuance_key(ambiguous),
         )
         with self.assertLogs("tokens.services.share_token_service", level="WARNING") as ambiguous_logs:
             check_executing_issuance_requests()
@@ -956,7 +955,7 @@ class ExecutingIssuanceSweepTest(TestCase):
         CapitalIncreaseRequest.objects.filter(pk=request.pk).update(status=RequestStatus.EXECUTED)
         ShareToken.objects.filter(pk=self.token.pk).update(total_supply="1500")
 
-        service = ShareTokenService()
+        service = share_token_service
         with self.assertLogs("tokens.services.share_token_service", "INFO") as logs:
             self.assertIsNone(service.resolve_executing_capital_increase(request))
 
@@ -1017,7 +1016,7 @@ class ExecuteReviewRequestTaskTest(TestCase):
     def test_executes_the_model_named_by_the_label_with_the_executing_user(self):
         request = issuance_request(self.tenant.deployed_token, submitted_at=timezone.now())
         ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.APPROVED)
-        with patch.object(ShareTokenService, "execute_request", return_value={"tx_hash": "0x1"}) as execute:
+        with patch.object(share_token_service, "execute_request", return_value={"tx_hash": "0x1"}) as execute:
             result = execute_review_request_task(
                 model_label="tokens.ShareIssuanceRequest",
                 request_uuid=str(request.uuid),
@@ -1033,7 +1032,9 @@ class ExecuteReviewRequestTaskTest(TestCase):
     def test_refusal_answers_with_the_reason_and_does_not_retry(self):
         request = issuance_request(self.tenant.deployed_token, submitted_at=timezone.now())
         ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.APPROVED)
-        with patch.object(ShareTokenService, "execute_request", side_effect=IssuanceRefusedException(NOT_WHITELISTED)):
+        with patch.object(
+            share_token_service, "execute_request", side_effect=IssuanceRefusedException(NOT_WHITELISTED)
+        ):
             result = execute_review_request_task(
                 model_label="tokens.ShareIssuanceRequest", request_uuid=str(request.uuid)
             )
@@ -1082,7 +1083,7 @@ class AnUnnamedMintReachesAnOperatorTest(TestCase):
         self.addCleanup(patch.stopall)
         self.tenant = make_tenant("owner")
         self.token = self.tenant.deployed_token
-        self.service = ShareTokenService()
+        self.service = share_token_service
 
     def _claimed(self, minutes=11, tx_hash=""):
         request = issuance_request(self.token, amount=10)
@@ -1095,7 +1096,7 @@ class AnUnnamedMintReachesAnOperatorTest(TestCase):
             amount="10",
             status=IssuanceStatus.PROCESSING,
             tx_hash=tx_hash,
-            idempotency_key=ShareTokenService.issuance_key(request),
+            idempotency_key=share_token_service.issuance_key(request),
         )
         request.refresh_from_db()
         return request, issuance
@@ -1103,17 +1104,17 @@ class AnUnnamedMintReachesAnOperatorTest(TestCase):
     def test_a_stale_claim_with_no_hash_is_offered_to_the_operator(self):
         request, issuance = self._claimed()
 
-        self.assertEqual(ShareTokenService.unnamed_mint(request), issuance)
+        self.assertEqual(share_token_service.unnamed_mint(request), issuance)
 
     def test_a_claim_still_inside_the_grace_period_is_left_to_the_worker(self):
         request, _ = self._claimed(minutes=1)
 
-        self.assertIsNone(ShareTokenService.unnamed_mint(request))
+        self.assertIsNone(share_token_service.unnamed_mint(request))
 
     def test_a_claim_that_named_its_mint_is_not_offered(self):
         request, _ = self._claimed(tx_hash="0xmint")
 
-        self.assertIsNone(ShareTokenService.unnamed_mint(request))
+        self.assertIsNone(share_token_service.unnamed_mint(request))
 
     def test_naming_the_mint_hands_the_request_back_to_the_sweep(self):
         request, issuance = self._claimed()
@@ -1124,7 +1125,7 @@ class AnUnnamedMintReachesAnOperatorTest(TestCase):
         request.refresh_from_db()
         self.assertEqual(issuance.tx_hash, "0x" + "ab" * 32)
         self.assertEqual(request.status, RequestStatus.EXECUTING)
-        self.assertIsNone(ShareTokenService.unnamed_mint(request))
+        self.assertIsNone(share_token_service.unnamed_mint(request))
 
     def test_naming_cannot_replace_an_identified_mint(self):
         request, _ = self._claimed(tx_hash="0xmint")

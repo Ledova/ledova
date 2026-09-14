@@ -5,8 +5,8 @@ from django.test import TestCase
 
 from assets.models import Asset, AssetChainDeployment
 from shared.tests.tenants import make_tenant
+from tokens.services import share_token_service
 from tokens.services.register import token_register
-from tokens.services.share_token_service import ShareTokenService
 from wallets.models import Holding
 from wallets.services.sync import _sync_holdings_from_blockchain, sync_wallet
 
@@ -30,10 +30,10 @@ class TheCacheAndTheRegisterReadOneChainTest(TestCase):
     def _chain(self, balance=ON_CHAIN):
         self.addCleanup(patch.stopall)
         patch("tokens.services.share_token_service.get_base_chain_client").start()
-        patch.object(ShareTokenService, "deployment_block", return_value=1).start()
-        patch.object(ShareTokenService, "transfer_participants", return_value={self.wallet.address}).start()
-        patch.object(ShareTokenService, "share_supply", return_value=(0, balance)).start()
-        return patch.object(ShareTokenService, "get_token_balance", return_value=balance).start()
+        patch.object(share_token_service, "deployment_block", return_value=1).start()
+        patch.object(share_token_service, "transfer_participants", return_value={self.wallet.address}).start()
+        patch.object(share_token_service, "share_supply", return_value=(0, balance)).start()
+        return patch.object(share_token_service, "get_token_balance", return_value=balance).start()
 
     def test_a_transfer_the_platform_did_not_make_is_closed_by_the_next_sync(self):
         self._chain()
@@ -102,7 +102,7 @@ class TheWalletDoesNotClaimAFreshnessItDoesNotHaveTest(TestCase):
         patch("wallets.services.chain.get_blockchain_client").start().return_value.get_token_balance.return_value = None
 
     def test_a_holding_the_chain_would_not_answer_leaves_the_stamp_where_it_was(self):
-        patch.object(ShareTokenService, "get_token_balance", side_effect=RuntimeError("rpc down")).start()
+        patch.object(share_token_service, "get_token_balance", side_effect=RuntimeError("rpc down")).start()
 
         with self.assertLogs("wallets.services.sync", level="WARNING") as logs:
             sync_wallet(self.wallet)
@@ -112,7 +112,7 @@ class TheWalletDoesNotClaimAFreshnessItDoesNotHaveTest(TestCase):
         self.assertIn("last_synced_at stays where it was", "\n".join(logs.output))
 
     def test_a_sync_that_read_every_holding_does_stamp_it(self):
-        patch.object(ShareTokenService, "get_token_balance", return_value=ON_CHAIN).start()
+        patch.object(share_token_service, "get_token_balance", return_value=ON_CHAIN).start()
         Holding.objects.filter(wallet=self.wallet).exclude(asset=self.asset).delete()
 
         sync_wallet(self.wallet)

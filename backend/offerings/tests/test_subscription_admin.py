@@ -38,7 +38,7 @@ from whitelist.models import WhitelistEntry
 User = get_user_model()
 CHAIN_CLIENT = "tokens.services.share_token_service.get_base_chain_client"
 DEFER = "offerings.tasks.subscription.allot_subscription_task.defer"
-SUPPLY = "tokens.services.share_token_service.ShareTokenService.share_supply"
+SUPPLY = "tokens.services.share_token_service.share_supply"
 SIGNER = "0x" + "e" * 40
 TEST_STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},

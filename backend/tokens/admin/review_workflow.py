@@ -10,7 +10,7 @@ from blockchain.models import BlockchainTransaction
 from shared.utils.admin_actions import admin_action_path
 from shared.utils.admin_display import action_buttons
 from tokens.models import RequestStatus, ShareIssuanceRequest
-from tokens.services import ShareTokenService
+from tokens.services import share_token_service
 from tokens.tasks import execute_review_request_task
 
 from ._helpers import status_badge
@@ -228,14 +228,14 @@ class ReviewWorkflowAdmin(admin.ModelAdmin):
             obj, ShareIssuanceRequest
         ):
             return False
-        return ShareTokenService.unnamed_mint(obj) is not None
+        return share_token_service.unnamed_mint(obj) is not None
 
     def name_mint_view(self, request, obj):
         if not self._has_an_unnamed_mint(obj):
             return self._refuse(request, obj, "record a transaction hash for")
         form = NameMintForm(request.POST or None)
         if request.method == "POST" and form.is_valid():
-            ShareTokenService().name_the_mint(obj, form.cleaned_data["tx_hash"])
+            share_token_service.name_the_mint(obj, form.cleaned_data["tx_hash"])
             messages.info(
                 request,
                 f"Recorded {form.cleaned_data['tx_hash']} for {obj.token.symbol}. "

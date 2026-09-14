@@ -1,5 +1,6 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { pickDocumentCopy } from './documentCopies';
+import { invalidateSessionScope } from './sessionScope';
 import {
   cache,
   files,
@@ -9,6 +10,7 @@ import {
   pickedFile,
   resetFiles,
   sticky,
+  unlistable,
   unreadable,
 } from '../testSupport/documentFiles';
 
@@ -158,4 +160,72 @@ it('handles a provider rejection without exposing its message and releases the p
   const copy = (await pickDocumentCopy(() => true))!;
   expect(files.has(copy.file.uri)).toBe(true);
   copy.retire();
+});
+
+const pickerPath = (name: string) => `${cache}DocumentPicker/${name}`;
+
+it('retires lost, partial and historical picker copies once a pick settles, and nothing else', async () => {
+  const owned = [
+    pickerPath('00000000-0000-0000-0000-0000000000a1.pdf'),
+    pickerPath('00000000-0000-0000-0000-0000000000a2'),
+    pickerPath('00000000-0000-0000-0000-0000000000a3.jpeg'),
+  ];
+  const kept = [
+    pickerPath('not-a-generated-file.pdf'),
+    pickerPath('nested/00000000-0000-0000-0000-0000000000a4.pdf'),
+    `${cache}00000000-0000-0000-0000-0000000000a5.pdf`,
+    'content://provider/original.pdf',
+  ];
+  for (const uri of [...owned, ...kept]) files.set(uri, { size: 5, content: 'leftover' });
+  pick.mockResolvedValue({ canceled: true, assets: null });
+  await expect(pickDocumentCopy(() => true)).resolves.toBeNull();
+  expect(owned.filter((uri) => files.has(uri))).toEqual([]);
+  for (const uri of kept) expect(files.get(uri)?.content).toBe('leftover');
+  expect(operations.some(({ kind, uri }) => kind === 'delete' && kept.includes(uri))).toBe(false);
+});
+
+it('keeps picking and session retirement available when the picker directory cannot be listed', async () => {
+  const lost = pickerPath('00000000-0000-0000-0000-0000000000b1.pdf');
+  files.set(lost, { size: 5, content: 'leftover' });
+  unlistable.add(pickerPath(''));
+  pick.mockResolvedValue(pickedFile());
+  const copy = (await pickDocumentCopy(() => true))!;
+  expect(files.has(copy.file.uri)).toBe(true);
+  expect(() => invalidateSessionScope()).not.toThrow();
+  expect(files.has(lost)).toBe(true);
+  copy.retire();
+});
+
+it('sweeps on session retirement but waits for an open picker so its in-flight copy is still adopted', async () => {
+  const lost = pickerPath('00000000-0000-0000-0000-0000000000c1.pdf');
+  files.set(lost, { size: 5, content: 'leftover' });
+  invalidateSessionScope();
+  expect(files.has(lost)).toBe(false);
+
+  let resolvePick!: (result: ReturnType<typeof pickedFile>) => void;
+  pick.mockReturnValue(new Promise((resolve) => (resolvePick = resolve)));
+  const pending = pickDocumentCopy(() => true);
+  const inFlight = pickedFile(7);
+  const later = pickerPath('00000000-0000-0000-0000-0000000000c2.pdf');
+  files.set(later, { size: 5, content: 'leftover' });
+  invalidateSessionScope();
+  expect(files.has(inFlight.assets[0].uri)).toBe(true);
+  expect(files.has(later)).toBe(true);
+  resolvePick(inFlight);
+  const copy = (await pending)!;
+  expect(files.get(copy.file.uri)?.content).toBe('document-7');
+  expect(files.has(inFlight.assets[0].uri)).toBe(false);
+  expect(files.has(later)).toBe(false);
+  copy.retire();
+});
+
+it('recognises picker copies by name when the listing spells the cache path differently', async () => {
+  const lost = pickerPath('00000000-0000-0000-0000-0000000000e1.pdf');
+  const kept = pickerPath('not-a-generated-file.pdf');
+  for (const uri of [lost, kept]) files.set(uri, { size: 5, content: 'leftover' });
+  nativeBehavior.listedRoot = 'file:///var/cache/';
+  pick.mockResolvedValue({ canceled: true, assets: null });
+  await expect(pickDocumentCopy(() => true)).resolves.toBeNull();
+  expect(files.has(lost)).toBe(false);
+  expect(files.get(kept)?.content).toBe('leftover');
 });

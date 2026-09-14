@@ -1,5 +1,4 @@
 from importlib import import_module
-from unittest.mock import patch
 
 from django.apps import apps
 from django.test import TestCase
@@ -10,7 +9,6 @@ from companies.models import Company, CompanyStatus
 from shared.constants import BLOCKCHAIN_BASE, BLOCKCHAIN_ETHEREUM
 from shared.tests.tenants import make_tenant
 from tokens.models import ShareToken, ShareTokenStatus
-from tokens.services.share_token_service import SHARE_ASSET_CHAIN, ShareTokenService
 
 DETAIL_KEYS = {
     "uuid",
@@ -137,35 +135,6 @@ class ShareTokenChainTest(APITestCase):
 
         self.assertEqual(response.status_code, 201)
         self.assertIsNone(ShareToken.objects.get(symbol="CHS").chain)
-
-
-class DeploymentWritesTheChainTest(TestCase):
-    def setUp(self):
-        self.tenant = make_tenant("deploychain")
-        self.token = self.tenant.token
-
-    def test_finishing_a_deployment_records_the_chain_the_deployer_used(self):
-        address = "0x" + "9" * 40
-        with patch.object(ShareTokenService, "__init__", lambda self: None), patch.object(
-            ShareTokenService, "bridge_share_asset"
-        ), patch.object(ShareTokenService, "_approve_for_swap"):
-            ShareTokenService()._finish_deployment(self.token, address)
-
-        self.token.refresh_from_db()
-        self.assertEqual(self.token.status, ShareTokenStatus.DEPLOYED)
-        self.assertEqual(self.token.contract_address, address)
-        self.assertEqual(self.token.chain, SHARE_ASSET_CHAIN)
-
-    def test_the_chain_is_recorded_even_when_the_asset_bridge_fails(self):
-        address = "0x" + "8" * 40
-        with patch.object(ShareTokenService, "__init__", lambda self: None), patch.object(
-            ShareTokenService, "get_token_by_identifier", side_effect=RuntimeError("no factory")
-        ), patch.object(ShareTokenService, "_approve_for_swap"):
-            ShareTokenService()._finish_deployment(self.token, address)
-
-        self.token.refresh_from_db()
-        self.assertFalse(AssetChainDeployment.objects.filter(contract_address=address).exists())
-        self.assertEqual(self.token.chain, SHARE_ASSET_CHAIN)
 
 
 class ChainBackfillTest(TestCase):

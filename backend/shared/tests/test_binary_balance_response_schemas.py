@@ -10,7 +10,7 @@ from web3 import Web3
 from feature_flags.models import FeatureFlag
 from operators.models import Operator
 from shared.tests.tenants import make_tenant
-from tokens.services.share_token_service import ShareTokenService
+from tokens.services import share_token_service
 from whitelist.models import WhitelistEntry
 
 BALANCES_PATH = "/api/v1/trading/wallets/balances/"
@@ -37,13 +37,19 @@ class BinaryAndBalanceResponseSchemaTest(APITestCase):
         return self.document["paths"][path]["get"]["responses"]["200"].get("content", {})
 
     def wallet_balances(self, amount):
-        service = ShareTokenService.__new__(ShareTokenService)
-        service.chain_client = SimpleNamespace(
-            is_valid_address=Web3.is_address, to_checksum_address=Web3.to_checksum_address
-        )
+        service = share_token_service
+        self.enterContext(
+            patch.object(
+                share_token_service,
+                "get_base_chain_client",
+                return_value=SimpleNamespace(
+                    is_valid_address=Web3.is_address, to_checksum_address=Web3.to_checksum_address
+                ),
+            )
+        ).return_value
         Operator.get().supported_settlement_assets.set([self.tenant.refs.stablecoin])
         with (
-            patch("tokens.views.trading_wallet.ShareTokenService", return_value=service),
+            patch("tokens.views.trading_wallet.share_token_service", new=service),
             patch.object(service, "_get_balance", return_value=amount),
         ):
             return self.client.get(BALANCES_PATH, {"wallet_address": self.tenant.wallet.address})
@@ -95,7 +101,7 @@ class BinaryAndBalanceResponseSchemaTest(APITestCase):
         self.assertIs(query[0]["required"], True)
         self.assertEqual(query[0]["schema"]["type"], "string")
 
-    @patch("tokens.views.trading_wallet.ShareTokenService")
+    @patch("tokens.views.trading_wallet.share_token_service")
     def test_balances_missing_foreign_and_anonymous_wallets_never_call_the_chain(self, service):
         self.assertEqual(self.client.get(BALANCES_PATH).status_code, 400)
         other = make_tenant("foreign-balance-schema")
@@ -104,7 +110,7 @@ class BinaryAndBalanceResponseSchemaTest(APITestCase):
         self.assertEqual(
             self.client.get(BALANCES_PATH, {"wallet_address": self.tenant.wallet.address}).status_code, 401
         )
-        service.assert_not_called()
+        self.assertEqual(service.mock_calls, [])
 
     def assert_file_schema(self, path, url, expected_bytes):
         response = self.client.get(url)

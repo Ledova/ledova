@@ -78,9 +78,9 @@ class TokenTransferService:
         if not whitelist.is_whitelisted(to_address):
             raise NotWhitelistedException(to_address)
 
-        from tokens.services import ShareTokenService
+        from tokens.services import share_token_service
 
-        token_service = ShareTokenService()
+        token_service = share_token_service
         balance = token_service.get_token_balance(contract_address, from_address)
         if balance < amount:
             raise InsufficientBalanceException(balance, amount)
@@ -340,9 +340,9 @@ class TokenTransferService:
             raise CreateOrderNotWhitelistedException(canonical_wallet_address)
 
         if order_type == TransferOrderType.SELL:
-            from tokens.services import ShareTokenService
+            from tokens.services import share_token_service
 
-            token_service = ShareTokenService()
+            token_service = share_token_service
             balance = token_service.get_token_balance(token.contract_address, canonical_wallet_address)
             if balance < quantity:
                 raise CreateOrderInsufficientBalanceException(balance, quantity)

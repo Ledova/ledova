@@ -23,7 +23,7 @@ from tokens.admin.share_token import ShareIssuanceAdmin
 from tokens.exceptions import InvalidTokenStateException
 from tokens.models import RequestStatus, ShareIssuance, ShareIssuanceRequest
 from tokens.serializers.share_issuance import ShareIssuanceListSerializer
-from tokens.services import ShareTokenService
+from tokens.services import share_token_service
 
 KEY = "0x" + "11" * 32
 RECIPIENT = "0x" + "aa" * 20
@@ -65,11 +65,11 @@ class MintSigningJournalTest(TestCase):
         patcher = patch("tokens.services.share_token_service.get_base_chain_client", return_value=self.chain)
         patcher.start()
         self.addCleanup(patcher.stop)
-        self.service = ShareTokenService()
-        self.service.read_paused = Mock(return_value=False)
-        self.service.is_recipient_whitelisted = Mock(return_value=True)
-        self.service.share_supply = Mock(return_value=(1000, 0))
-        holding = patch.object(ShareTokenService, "_seed_recipient_holding")
+        self.service = share_token_service
+        self.enterContext(patch.object(share_token_service, "read_paused", new=Mock(return_value=False)))
+        self.enterContext(patch.object(share_token_service, "is_recipient_whitelisted", new=Mock(return_value=True)))
+        self.enterContext(patch.object(share_token_service, "share_supply", new=Mock(return_value=(1000, 0))))
+        holding = patch.object(share_token_service, "_seed_recipient_holding")
         holding.start()
         self.addCleanup(holding.stop)
 

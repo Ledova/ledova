@@ -5,8 +5,8 @@ from unittest.mock import Mock, patch
 from web3 import Web3
 
 from tokens.models import IssuanceStatus, ShareIssuance
+from tokens.services import share_token_service
 from tokens.services.register import REGISTER_HEADERS
-from tokens.services.share_token_service import ShareTokenService
 from tokens.tests.test_register import RegisterTestBase, _account
 from wallets.models import Wallet
 from whitelist.models import WhitelistEntry, WhitelistStatus
@@ -33,11 +33,11 @@ class TransferAcquiredHolderTest(RegisterTestBase):
         )
 
     def _chain(self, balances, participants=(ALLOTTEE, TRANSFEREE), supply=12000):
-        service = patch("tokens.services.register.ShareTokenService").start()
+        service = patch("tokens.services.register.share_token_service").start()
         self.addCleanup(patch.stopall)
-        service.return_value.get_token_balance.side_effect = lambda contract, address: balances[address]
-        service.return_value.transfer_participants.return_value = set(participants)
-        service.return_value.share_supply.return_value = (12000, supply)
+        service.get_token_balance.side_effect = lambda contract, address: balances[address]
+        service.transfer_participants.return_value = set(participants)
+        service.share_supply.return_value = (12000, supply)
         return service
 
     def _holders(self):
@@ -120,13 +120,13 @@ class TransferAcquiredHolderTest(RegisterTestBase):
 class TheTransferReadIsBoundedTest(RegisterTestBase):
 
     def test_the_log_read_is_chunked_and_never_asks_for_an_open_range(self):
-        service = ShareTokenService.__new__(ShareTokenService)
+        service = share_token_service
         contract = Mock()
         contract.events.Transfer.return_value.get_logs.return_value = []
 
         with (
-            patch.object(ShareTokenService, "load_share_token", return_value=contract),
-            patch.object(ShareTokenService, "head_block", return_value=4500),
+            patch.object(share_token_service, "load_share_token", return_value=contract),
+            patch.object(share_token_service, "head_block", return_value=4500),
         ):
             service.transfer_participants("0x" + "c" * 40, from_block=1, window=2000)
 
@@ -142,13 +142,13 @@ class TheTransferReadIsBoundedTest(RegisterTestBase):
         )
 
     def test_a_chunk_that_fails_is_a_failed_read_rather_than_a_short_answer(self):
-        service = ShareTokenService.__new__(ShareTokenService)
+        service = share_token_service
         contract = Mock()
         contract.events.Transfer.return_value.get_logs.side_effect = RuntimeError("range too wide")
 
         with (
-            patch.object(ShareTokenService, "load_share_token", return_value=contract),
-            patch.object(ShareTokenService, "head_block", return_value=10),
+            patch.object(share_token_service, "load_share_token", return_value=contract),
+            patch.object(share_token_service, "head_block", return_value=10),
             self.assertRaises(RuntimeError),
         ):
             service.transfer_participants("0x" + "c" * 40, from_block=1)

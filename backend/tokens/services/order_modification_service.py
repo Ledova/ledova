@@ -14,7 +14,7 @@ from tokens.models import (
     TransferOrderStatus,
     TransferOrderType,
 )
-from tokens.services.share_token_service import ShareTokenService
+from tokens.services import share_token_service
 
 logger = logging.getLogger(__name__)
 
@@ -149,7 +149,7 @@ def available_modification_balance(order: TransferOrder, quantity: int) -> Optio
 
 def _get_available_balance(order: TransferOrder) -> int:
     try:
-        token_service = ShareTokenService()
+        token_service = share_token_service
         total_balance = token_service.get_token_balance(order.token.contract_address, order.wallet_address)
     except Exception:
         logger.error("Could not fetch balance for order %s", order.pk)

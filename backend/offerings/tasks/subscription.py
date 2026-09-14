@@ -16,7 +16,7 @@ from tokens.exceptions import (
     InvalidTokenStateException,
     IssuanceRefusedException,
 )
-from tokens.services import ShareTokenService
+from tokens.services import share_token_service
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ def allot_subscription_task(subscription_uuid: str, executed_by: int | None = No
 
         user = get_user_model().objects.filter(pk=executed_by).first() if executed_by else None
         try:
-            result = ShareTokenService().execute_request(request, executed_by=user)
+            result = share_token_service.execute_request(request, executed_by=user)
         except (InvalidRecipientAddressException, InvalidTokenStateException, IssuanceRefusedException) as exc:
             logger.warning(f"Subscription {subscription_uuid} not allotted: {exc.detail}")
             return {"success": False, "error": str(exc.detail)}

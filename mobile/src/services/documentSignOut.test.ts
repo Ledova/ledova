@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { pickDocumentCopy } from './documentCopies';
 import { subscribeSession } from './sessionScope';
 import { clearTokens, getAccessToken, storeTokens } from './tokenStorage';
-import { files, nativeBehavior, pickedFile, resetFiles } from '../testSupport/documentFiles';
+import { cache, files, nativeBehavior, pickedFile, resetFiles, unlistable } from '../testSupport/documentFiles';
 
 jest.mock('expo-document-picker', () => ({ getDocumentAsync: jest.fn() }));
 jest.mock('expo-file-system', () => jest.requireActual('../testSupport/documentFiles').nativeFileSystem);
@@ -51,3 +51,24 @@ it.each([false, true])(
     expect(files.has(copy.file.uri)).toBe(false);
   },
 );
+
+it('signing out retires picker copies that were never adopted and nothing else', async () => {
+  await storeTokens({ accessToken: 'synthetic-access', refreshToken: 'synthetic-refresh' });
+  const lost = `${cache}DocumentPicker/00000000-0000-0000-0000-0000000000d1.pdf`;
+  const unrelated = `${cache}elsewhere.pdf`;
+  files.set(lost, { size: 5, content: 'leftover' });
+  files.set(unrelated, { size: 5, content: 'untouched' });
+  await clearTokens();
+  expect(files.has(lost)).toBe(false);
+  expect(files.get(unrelated)?.content).toBe('untouched');
+});
+
+it('signs out even when the picker directory cannot be listed', async () => {
+  await storeTokens({ accessToken: 'synthetic-access', refreshToken: 'synthetic-refresh' });
+  const lost = `${cache}DocumentPicker/00000000-0000-0000-0000-0000000000d2.pdf`;
+  files.set(lost, { size: 5, content: 'leftover' });
+  unlistable.add(`${cache}DocumentPicker/`);
+  await expect(clearTokens()).resolves.toBeUndefined();
+  await expect(getAccessToken()).resolves.toBeNull();
+  expect(files.has(lost)).toBe(true);
+});
