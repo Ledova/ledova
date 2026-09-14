@@ -142,6 +142,19 @@ it('finishes sign-out after an already-started biometric enable without restorin
   expect(items.has('biometric.refreshToken')).toBe(false);
 });
 
+it('withholds the stored pair in this process when the sign-out retirement write fails', async () => {
+  await storeTokens(pair);
+  const write = jest.mocked(SecureStore.setItemAsync).getMockImplementation()!;
+  jest.mocked(SecureStore.setItemAsync).mockImplementation(async (key, value, options) => {
+    if (key === 'session.retired.v1') throw new Error('retirement write unavailable');
+    return write(key, value, options);
+  });
+  await expect(clearTokens()).rejects.toThrow('retirement write unavailable');
+  expect(items.get('session.tokens.v2')?.value).toContain(pair.refreshToken);
+  await expect(getAccessToken()).resolves.toBeNull();
+  await expect(getRefreshToken()).resolves.toBeNull();
+});
+
 it('refuses a sticky session after sign-out, including a fresh storage-module load', async () => {
   await storeTokens(pair);
   const sessionKey = [...items].find(([, item]) => item.value.includes(pair.accessToken))![0];
