@@ -406,6 +406,18 @@ it.each([
   ['KYCAID', 'https://verification.example.test.unrelated.test/form-a', 'refused', kycaid],
   ['KYCAID', 'https://step.verification.example.test/form-a', 'refused', kycaid],
   ['KYCAID', 'https://verification.example.test:8443/form-a', 'refused', kycaid],
+  [
+    'KYCAID',
+    'https://verification.example.test:8443/form-a/step-2',
+    'allowed',
+    { ...kycaid, formUrl: 'https://verification.example.test:8443/form-a' },
+  ],
+  [
+    'KYCAID',
+    'https://verification.example.test/form-a',
+    'refused',
+    { ...kycaid, formUrl: 'https://verification.example.test:8443/form-a' },
+  ],
   ['KYCAID', 'https://www.marketing.example.test:8443/verification-result', 'refused', kycaid],
   ['KYCAID', 'https://verification.example.test/form-a#untrusted', 'refused', kycaid],
   ['KYCAID', 'http://localhost/form-a', 'refused', { ...kycaid, formUrl: 'https://localhost/form-a' }],
@@ -466,6 +478,16 @@ it.each([
       }),
     );
     expect(view.javaScriptCanOpenWindowsAutomatically).toBeUndefined();
+    const openExternally = jest.spyOn(Linking, 'openURL');
+    await act(() =>
+      view.onOpenWindow?.({
+        nativeEvent: { targetUrl: 'https://marketing.example.test/verification-result' },
+      } as Parameters<NonNullable<NativeProps['onOpenWindow']>>[0]),
+    );
+    expect(openExternally).not.toHaveBeenCalled();
+    expect(complete).not.toHaveBeenCalled();
+    expect(mockMounts).toHaveBeenCalledTimes(1);
+    expect(nativeView().newSource).toEqual(view.newSource);
   },
 );
 
