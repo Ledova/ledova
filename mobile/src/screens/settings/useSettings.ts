@@ -75,22 +75,31 @@ export function useSettings() {
     setIsDeleting(true);
     try {
       await deleteAccount(apiClient);
-
-      await clearTokens();
-      queryClient.clear();
-
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'SignIn' }],
-      });
-
-      return true;
     } catch {
       Alert.alert('Delete Failed', 'Unable to delete your account. Please try again later.');
-      return false;
-    } finally {
       setIsDeleting(false);
+      return false;
     }
+
+    const retired = await clearTokens().then(
+      () => true,
+      () => false,
+    );
+    queryClient.clear();
+
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'SignIn' }],
+    });
+
+    setIsDeleting(false);
+    if (!retired) {
+      Alert.alert(
+        'Account Deleted',
+        'Your account was deleted, but this device could not confirm that your saved sign-in was removed.',
+      );
+    }
+    return true;
   }, [navigation, queryClient]);
 
   const rateApp = useCallback(async () => {
