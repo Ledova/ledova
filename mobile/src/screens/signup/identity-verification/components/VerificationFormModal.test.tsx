@@ -5,6 +5,7 @@ import { AppState, Linking, type AppStateStatus } from 'react-native';
 import type { NativeProps } from 'react-native-webview/lib/RNCWebViewNativeComponent';
 import type { WebViewMessageEvent } from 'react-native-webview';
 import { CameraAccessContext, createCameraAccess } from '../../../../contexts/cameraAccess';
+import * as networkPolicy from '../../../../config/networkPolicy';
 import { getSessionEpoch, invalidateSessionScope } from '../../../../services/sessionScope';
 
 const mockViews = new Map<number, NativeProps>();
@@ -19,7 +20,6 @@ const listeners = new Set<(state: AppStateStatus) => void>();
 const settleOutstanding: (() => void)[] = [];
 let fakeClock = false;
 let mockPlatform: 'ios' | 'android' = 'ios';
-const parsers = [URL, jest.requireActual<{ URL: typeof URL }>('react-native/Libraries/Blob/URL').URL];
 
 jest.mock('../../../../config/publicLinks', () => ({ MARKETING_URL: 'https://marketing.example.test' }));
 jest.mock('expo-secure-store', () => ({ getItemAsync: () => mockReadPreference() }));
@@ -158,7 +158,6 @@ async function appState(state: AppStateStatus, reverse = false) {
 
 beforeEach(() => {
   mockPlatform = 'ios';
-  globalThis.URL = parsers[0];
   access = createCameraAccess();
   access.setAllowed(true);
   AppState.currentState = 'active';
@@ -391,10 +390,16 @@ it.each([
   ['Sumsub', 'https://www.marketing.example.test/', 'refused', sumsub],
   ['Sumsub', formUrl, 'refused', sumsub],
   ['Sumsub', 'https://marketing.example.test.unrelated.test/', 'refused', sumsub],
-  ['Sumsub', 'https://unrelated.example.test/@marketing.example.test/', 'refused', sumsub],
+  ['Sumsub', 'https://synthetic:credential@marketing.example.test/', 'refused', sumsub],
   ['Sumsub', 'data:text/html,provider', 'refused', sumsub],
   ['KYCAID', 'about:blank', 'allowed', kycaid],
   ['KYCAID', 'https://verification.example.test/form-a/step-2', 'allowed', kycaid],
+  [
+    'KYCAID',
+    'https://verification.example.test/form-b',
+    'allowed',
+    { ...kycaid, formUrl: 'https://Verification.Example.test/form-a' },
+  ],
   ['KYCAID', 'https://marketing.example.test/verification-result', 'allowed', kycaid],
   ['KYCAID', 'https://www.marketing.example.test/verification-result', 'allowed', kycaid],
   ['KYCAID', 'https://unrelated.example.test/?next=https://verification.example.test/form-a', 'refused', kycaid],
@@ -402,18 +407,18 @@ it.each([
   ['KYCAID', 'https://step.verification.example.test/form-a', 'refused', kycaid],
   ['KYCAID', 'https://verification.example.test:8443/form-a', 'refused', kycaid],
   ['KYCAID', 'https://www.marketing.example.test:8443/verification-result', 'refused', kycaid],
+  ['KYCAID', 'https://verification.example.test/form-a#untrusted', 'refused', kycaid],
+  ['KYCAID', 'http://localhost/form-a', 'refused', { ...kycaid, formUrl: 'https://localhost/form-a' }],
+  ['KYCAID', 'data:text/html,provider', 'refused', kycaid],
   ['KYCAID', 'https://[', 'refused', kycaid],
 ] as const)(
-  '%s top-frame navigation to %s is %s for Android and iOS events under both URL parsers',
+  '%s top-frame navigation to %s is %s with isTopFrame absent or true',
   async (_provider, url, decision, props) => {
     const openExternally = jest.spyOn(Linking, 'canOpenURL');
     await render(form(props));
     const view = nativeView();
-    for (const parser of parsers) {
-      globalThis.URL = parser;
-      expect(await decide(view, url)).toBe(decision === 'allowed');
-      expect(await decide(view, url, true)).toBe(decision === 'allowed');
-    }
+    expect(await decide(view, url)).toBe(decision === 'allowed');
+    expect(await decide(view, url, true)).toBe(decision === 'allowed');
     expect(openExternally).not.toHaveBeenCalled();
   },
 );
@@ -434,6 +439,13 @@ it.each([
     expect(await decide(view, 'https://unrelated.example.test/frame', false)).toBe(false);
   },
 );
+
+it('refuses a top-frame navigation that throws after the shared web policy admits it', async () => {
+  await render(form());
+  const view = nativeView();
+  jest.spyOn(networkPolicy, 'allowWebNavigation').mockReturnValue(true);
+  expect(await decide(view, 'https://[')).toBe(false);
+});
 
 it.each([
   ['Sumsub', 'ios', sumsub],

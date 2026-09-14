@@ -22,7 +22,7 @@ interface VerificationFormModalProps {
 const MARKETING = new URL(MARKETING_URL);
 
 const sameOrigin = (url: URL, origin: URL, hostname = origin.hostname) =>
-  url.protocol === origin.protocol && url.port === origin.port && url.hostname === hostname;
+  url.protocol === origin.protocol && url.port === origin.port && url.hostname === hostname.toLowerCase();
 
 const isCompletionOrigin = (url: URL) =>
   sameOrigin(url, MARKETING) || sameOrigin(url, MARKETING, `www.${MARKETING.hostname}`);
