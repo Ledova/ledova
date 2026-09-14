@@ -49,6 +49,7 @@ jest.mock('expo-secure-store', () => ({
 jest.mock('../services/tokenStorage', () => ({
   getAccessToken: () => mockGetAccessToken(),
   getBiometricLoginState: async () => ({ enabled: false, ready: false }),
+  enableBiometricLogin: async () => true,
   readBiometricRefreshToken: async () => 'synthetic-gated-refresh',
 }));
 
@@ -344,21 +345,29 @@ it('stays paused when authentication succeeds in the background and preserves th
   expect(mockGetPermission).toHaveBeenCalledTimes(2);
 });
 
-it.each([
-  ['unlock', () => currentLock.unlock()],
-  ['biometric sign-in', async () => (await currentLock.readBiometricRefreshToken()).token !== null],
-  ['enabling the lock', () => currentLock.setEnabled(true)],
-] as const)('locks again after a later absence once 2 seconds pass from %s', async (authentication, authenticate) => {
+it.each(
+  (
+    [
+      ['unlock', () => currentLock.unlock()],
+      ['biometric sign-in', async () => (await currentLock.readBiometricRefreshToken()).token !== null],
+      ['enabling biometric sign-in', () => currentLock.enableBiometricLogin()],
+      ['enabling the lock', () => currentLock.setEnabled(true)],
+    ] as const
+  ).flatMap(([authentication, authenticate]) => [
+    [authentication, 1999, 'unlocked-control', authenticate] as const,
+    [authentication, 2000, 'locked-control', authenticate] as const,
+  ]),
+)('after %s during an absence, a return %i ms later shows %s', async (authentication, elapsed, shown, authenticate) => {
   if (authentication === 'enabling the lock') mockReadPreference.mockResolvedValue('false');
   const view = await render(app());
-  if (authentication === 'unlock') await leaveAndReturn();
+  await changeAppState('background');
+  await elapse(1002);
   await act(async () => {
     expect(await authenticate()).toBe(true);
   });
-  expect(view.getByText('unlocked-control')).toBeTruthy();
-  await elapse(2000);
-  await leaveAndReturn();
-  expect(view.getByText('locked-control')).toBeTruthy();
+  await elapse(elapsed);
+  await changeAppState('active');
+  expect(view.getByText(shown)).toBeTruthy();
 });
 
 it('keeps a new opening passive when it starts behind the lock overlay', async () => {
