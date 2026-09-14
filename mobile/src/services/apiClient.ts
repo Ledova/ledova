@@ -50,6 +50,10 @@ apiClient.interceptors.request.use(async (config) => {
   return config;
 });
 
+export function isRefreshRefusal(error: unknown): boolean {
+  return axios.isAxiosError(error) && error.response !== undefined && [400, 401].includes(error.response.status);
+}
+
 export async function rotateRefreshToken(refresh: string, expectedEpoch?: number): Promise<void> {
   if (expectedEpoch !== undefined) assertSessionEpoch(expectedEpoch);
   const generation = await captureRefreshSession(refresh);
@@ -63,7 +67,7 @@ export async function rotateRefreshToken(refresh: string, expectedEpoch?: number
     if (!('access' in data) || !('refresh' in data)) throw new Error('The bearer refresh response has no tokens.');
     await storeTokens({ accessToken: data.access, refreshToken: data.refresh }, generation);
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response && [400, 401].includes(error.response.status)) {
+    if (isRefreshRefusal(error)) {
       await clearTokens(generation);
     }
     throw error;

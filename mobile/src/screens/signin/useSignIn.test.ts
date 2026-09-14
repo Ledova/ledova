@@ -5,7 +5,11 @@ import { rotateRefreshToken } from '../../services/apiClient';
 import { useSignIn } from './useSignIn';
 
 jest.mock('../../hooks/useAuth', () => ({ useAuth: () => ({ refetch: jest.fn() }) }));
-jest.mock('../../services/apiClient', () => ({ apiClient: {}, rotateRefreshToken: jest.fn() }));
+jest.mock('../../services/apiClient', () => ({
+  apiClient: {},
+  isRefreshRefusal: jest.requireActual('../../services/apiClient').isRefreshRefusal,
+  rotateRefreshToken: jest.fn(),
+}));
 jest.mock('../../services/notificationsService', () => ({ notificationsService: { registerToken: jest.fn() } }));
 jest.mock('../../services/tokenStorage', () => ({ storeTokens: jest.fn() }));
 

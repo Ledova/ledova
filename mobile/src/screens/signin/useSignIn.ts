@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { readSignInError, signin, FormErrors, SigninRequest } from '@ledova/shared';
-import { apiClient, rotateRefreshToken, UserFriendlyError } from '../../services/apiClient';
+import { apiClient, isRefreshRefusal, rotateRefreshToken, UserFriendlyError } from '../../services/apiClient';
 import { storeTokens } from '../../services/tokenStorage';
 import { notificationsService } from '../../services/notificationsService';
 import { useAuth } from '../../hooks/useAuth';
@@ -113,7 +112,7 @@ export const useSignIn = () => {
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'isUserFriendly' in err) {
         setGeneralError((err as UserFriendlyError).message);
-      } else if (axios.isAxiosError(err) && err.response && [400, 401].includes(err.response.status)) {
+      } else if (isRefreshRefusal(err)) {
         setGeneralError('Your saved sign in has expired. Please sign in with your password.');
       } else {
         setGeneralError('Biometric sign in is temporarily unavailable. Please try again.');
