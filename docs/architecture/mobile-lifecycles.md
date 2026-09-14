@@ -158,12 +158,16 @@ rotation preserves it. Credential reads, refresh entry and replay check that
 epoch so an old upload cannot acquire a newer login's credentials. Conditional
 retirement from an obsolete refresh does not invalidate a newer session.
 
-Before another picker opens, cleanup checks only the 16 exact managed paths,
-preserving active selections and consumers. This retires managed copies left by
-a previous process on next use without listing the cache directory. Metadata or
-deletion failure leaves a slot unavailable for reuse; it is not reported as
-verified erasure. Expo copies from before adoption, unreturned partial copies and
-older versions remain a separate cleanup gap. Viewer/sharing copies also need a
+Before another picker opens, cleanup checks the 16 exact managed paths,
+preserving active selections and consumers, and retires managed copies left by a
+previous process. After each pick settles, once its returned copy has been
+adopted or retired, cleanup also lists the picker's own `DocumentPicker` cache
+directory and removes only its UUID-named files: copies lost before adoption,
+partial copies that never returned and files from older app versions. Session
+retirement runs the same sweep immediately, or at the end of a pick that is still
+open. A listing or deletion failure only logs a warning and never blocks sign-out. Other cache paths and provider originals are never
+listed or removed. Metadata or deletion failure leaves a slot unavailable for
+reuse; it is not reported as verified erasure. Viewer/sharing copies still need a
 separate external-reader lifetime and are outside this upload cache.
 
 Component tests control native picker and file boundaries while retaining the
@@ -171,6 +175,6 @@ actual upload hooks and React Query mutation lifecycle. The native probe supplie
 a synthetic picker result and exercises actual file move, retention, multipart
 upload and retirement on the emulator/simulator; it does not drive the system
 picker UI. Local/cloud-provider, low-storage and physical-device checks remain
-under #13, alongside the pre-adoption and sharing gaps.
+under #13, alongside the sharing gap.
 
 Next: [native scanner controls](../reference/native-scanner-probe.md) and [device checks](../development/native-probes.md).

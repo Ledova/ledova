@@ -1,5 +1,6 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
+import { subscribeSession } from './sessionScope';
 
 const SLOT_COUNT = 16;
 const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
@@ -25,6 +26,31 @@ function removeCopy(file: File): boolean {
     return false;
   }
 }
+
+function pickerDirectory(): Directory {
+  return new Directory(Paths.cache, 'DocumentPicker');
+}
+
+function isPickerCopy(uri: string): boolean {
+  const prefix = pickerDirectory().uri.replace(/\/?$/, '/');
+  return uri.startsWith(prefix) && PICKER_NAME.test(uri.slice(prefix.length));
+}
+
+function sweepPickerCopies(): void {
+  try {
+    const directory = pickerDirectory();
+    if (!directory.exists) return;
+    for (const entry of directory.list()) {
+      if (entry instanceof File && isPickerCopy(entry.uri)) removeCopy(entry);
+    }
+  } catch {
+    console.warn('Document cache cleanup did not complete.');
+  }
+}
+
+subscribeSession(() => {
+  if (!picking) sweepPickerCopies();
+});
 
 function managedFile(slot: number): File {
   return new File(Paths.cache, 'ledova-upload-copies-v1', `slot-${slot}`);
@@ -102,9 +128,8 @@ export async function pickDocumentCopy(
       multiple: false,
     });
     if (result.canceled || !result.assets?.[0]) return null;
-    const prefix = new Directory(Paths.cache, 'DocumentPicker').uri.replace(/\/?$/, '/');
     for (const uri of new Set(result.assets.map((asset) => asset.uri))) {
-      if (uri.startsWith(prefix) && PICKER_NAME.test(uri.slice(prefix.length))) originals.push(new File(uri));
+      if (isPickerCopy(uri)) originals.push(new File(uri));
     }
     if (result.assets.length !== 1) throw new DocumentSelectionError('Please choose one document at a time.');
     const asset = result.assets[0];
@@ -142,5 +167,6 @@ export async function pickDocumentCopy(
     for (const original of originals) removeCopy(original);
     if (destination) removeCopy(destination);
     picking = false;
+    sweepPickerCopies();
   }
 }

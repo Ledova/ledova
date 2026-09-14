@@ -6,6 +6,7 @@ interface Entry {
 export const files = new Map<string, Entry>();
 export const unreadable = new Set<string>();
 export const sticky = new Set<string>();
+export const unlistable = new Set<string>();
 export const operations: { kind: string; uri: string }[] = [];
 export const nativeBehavior = { copyOnMove: false, failManagedConstruction: false };
 export const cache = 'file:///private/cache/';
@@ -59,8 +60,26 @@ class Directory {
 
   create() {}
 
+  get exists() {
+    return [...files.keys()].some((uri) => uri.startsWith(this.uri));
+  }
+
   list() {
-    throw new Error('Directory enumeration is not part of the cleanup contract');
+    operations.push({ kind: 'list', uri: this.uri });
+    if (unlistable.has(this.uri)) throw new Error('Synthetic listing refused');
+    const directories = new Set<string>();
+    const entries: (File | Directory)[] = [];
+    for (const uri of files.keys()) {
+      if (!uri.startsWith(this.uri)) continue;
+      const name = uri.slice(this.uri.length);
+      const slash = name.indexOf('/');
+      if (slash < 0) entries.push(new File(uri));
+      else if (!directories.has(name.slice(0, slash))) {
+        directories.add(name.slice(0, slash));
+        entries.push(new Directory(this.uri, name.slice(0, slash)));
+      }
+    }
+    return entries;
   }
 }
 
@@ -79,6 +98,7 @@ export function resetFiles() {
   files.clear();
   unreadable.clear();
   sticky.clear();
+  unlistable.clear();
   operations.length = 0;
   nativeBehavior.copyOnMove = false;
   nativeBehavior.failManagedConstruction = false;
