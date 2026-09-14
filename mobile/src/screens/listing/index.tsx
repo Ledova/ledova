@@ -12,7 +12,6 @@ import {
   ClockIcon,
   XCircleIcon,
 } from 'phosphor-react-native';
-import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useQuery } from '@tanstack/react-query';
 import { getOperator, getErrorMessage, CACHE_TIMING } from '@ledova/shared';
@@ -23,6 +22,8 @@ import { Panel } from '../../components/panel';
 import { CustomModal } from '../../components/modal';
 import { PrimaryButton, SecondaryButton } from '../../components/buttons';
 import { apiClient } from '../../services/apiClient';
+import { shareDocumentCopy } from '../../services/documentCopies';
+import { getSessionEpoch } from '../../services/sessionScope';
 import { useCompanyDocuments } from './useCompanyDocuments';
 import { useDocumentUpload } from '../../hooks/useDocumentUpload';
 
@@ -485,25 +486,31 @@ function DocumentRow({
     if (!uploaded?.fileUrl || isOpening) {
       return;
     }
+    const sessionEpoch = getSessionEpoch();
+    const { uuid } = uploaded;
 
     setIsOpening(true);
     try {
-      const response = await apiClient.get<ArrayBuffer>(uploaded.fileUrl, { responseType: 'arraybuffer' });
-      const mimeType = String(response.headers['content-type'] || 'application/octet-stream').split(';')[0];
-      const cached = new File(Paths.cache, `${uploaded.uuid}${EXTENSION_BY_MIME_TYPE[mimeType] || ''}`);
-      if (cached.exists) {
-        cached.delete();
-      }
-      cached.create({ intermediates: true, overwrite: true });
-      cached.write(new Uint8Array(response.data));
-
       if (!(await Sharing.isAvailableAsync())) {
         Alert.alert('Cannot open document', 'Sharing is not available on this device.');
         return;
       }
-      await Sharing.shareAsync(cached.uri, { mimeType, UTI: UTI_BY_MIME_TYPE[mimeType] });
+      await shareDocumentCopy(
+        sessionEpoch,
+        async () => {
+          const response = await apiClient.get<ArrayBuffer>(uploaded.fileUrl!, {
+            responseType: 'arraybuffer',
+            ledovaSessionEpoch: sessionEpoch,
+          });
+          const type = String(response.headers['content-type'] || 'application/octet-stream').split(';')[0];
+          return { name: `${uuid}${EXTENSION_BY_MIME_TYPE[type] || ''}`, type, bytes: new Uint8Array(response.data) };
+        },
+        (uri, type) => Sharing.shareAsync(uri, { mimeType: type, UTI: UTI_BY_MIME_TYPE[type] }),
+      );
     } catch (error) {
-      Alert.alert('Cannot open document', getErrorMessage(error) || 'The document could not be opened.');
+      if (sessionEpoch === getSessionEpoch()) {
+        Alert.alert('Cannot open document', getErrorMessage(error) || 'The document could not be opened.');
+      }
     } finally {
       setIsOpening(false);
     }
@@ -535,7 +542,7 @@ function DocumentRow({
               (isOpening ? (
                 <ActivityIndicator size="small" color={theme.colors.interactive.default} />
               ) : (
-                <TouchableOpacity onPress={handleView} hitSlop={8}>
+                <TouchableOpacity accessibilityLabel={`View ${label}`} onPress={handleView} hitSlop={8}>
                   <EyeIcon size={18} color={theme.colors.interactive.default} weight="regular" />
                 </TouchableOpacity>
               ))}
