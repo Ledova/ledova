@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from django.db import models
 from django.utils import timezone
 
@@ -12,6 +14,8 @@ from .review_request import ReviewableRequest
 class CapitalIncreaseRequest(DerivesCompanyFromToken, ReviewableRequest):
 
     objects = CapitalIncreaseRequestQuerySet.as_manager()
+
+    dispatch_id = models.UUIDField(default=uuid4, null=True, editable=False)
 
     token = models.ForeignKey(
         "tokens.ShareToken",

@@ -430,6 +430,8 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
+    "tokens_capitalincreaseexecution": "Immutable operator-authorized capital increase intent, exact retry "
+    "authorization and original transaction attribution. Issuer request paths never read the private execution record.",
     "tokens_tokendeployment": "Immutable deployment intent and issuer authority snapshots, written through a bounded "
     "operator journal. Public token lifecycle writes retain their issuer connection.",
     "whitelist_whitelistchange": "Immutable operator-authorized whitelist commands and their outgoing-operation "

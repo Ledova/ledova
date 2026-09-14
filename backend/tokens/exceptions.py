@@ -61,6 +61,18 @@ class InvalidTokenStateException(APIException):
     default_code = "invalid_token_state"
 
 
+class CapitalIncreaseConflict(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = "This capital increase requires recovery of its original execution."
+    default_code = "capital_increase_conflict"
+
+
+class CapitalIncreaseUnresolved(APIException):
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    default_detail = "The capital increase remains unresolved. Recover the original request."
+    default_code = "capital_increase_unresolved"
+
+
 class TokenPauseFailedException(APIException):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     default_detail = "Token pause or unpause failed on chain."

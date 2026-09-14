@@ -73,24 +73,18 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
    `check_executing_issuance_requests` (every 5 minutes) finishes a request a
    killed worker left executing.
 8. A capital increase calls `setAuthorizedShares(new_authorized_total)` and
-   mints nothing. It is refused unless the new total is above the cap the chain
-   holds now, except when the chain already holds exactly the requested total
-   and the stored cap is behind it: then the chain cap is adopted, the request
-   completes without sending, and no `BlockchainTransaction` is recorded
-   (`_execute_capital_increase` in
-   `backend/tokens/services/share_token_service.py`, pinned by
-   `test_a_chain_cap_equal_to_the_request_with_the_db_cap_behind_is_adopted_instead_of_refused`).
-   A `select_for_update` row lock on the `ShareToken` spans the cap read, the
-   call and the write, so two increases approved against one cap cannot lower
-   it. The chain suite runs on PostgreSQL to exercise that lock. The same sweep resolves stale capital-increase rows
-   through `resolve_executing_capital_increase`. A requested total at or below
-   the stored cap becomes `superseded` before resuming or sending; adoption
-   needs the stored cap below the requested total, so the two cannot both fire.
-   Supersession is terminal: the saved reason names both totals and, when known,
-   the completed request that set the current cap. Human review notes survive.
-   After reading a receipt the sweep rechecks the cap and request status under
-   the same lock, so a delayed result cannot overwrite a later cap or reopen a
-   terminal request.
+   mints nothing. Staff execution commits the approved request, immutable private
+   intent and background job before any chain call. Network work runs outside
+   database transactions; an unresolved request retains the existing per-token
+   in-flight slot. The shared signing journal preserves the original bytes, hash
+   and nonce. Completion requires the original transaction's successful receipt
+   and its `AuthorizedSharesUpdated` event matching both approved cap values.
+   A matching current cap alone never establishes execution.
+   The five-minute `recover_capital_increases` task repairs admitted work.
+   Known unsigned or reverted failures need a fresh confirmation of that exact
+   failed attempt. A provably unsigned request overtaken by the recorded cap can
+   become `superseded`; historical uncertainty requires attribution.
+   See [capital recovery boundaries](outgoing-signing.md#capital-increases).
 9. Pause and unpause read `paused()` first and reconcile the database when the
    chain is already in the target state.
 10. Deployment writes a verified `assets.Asset` (`tokenized_security`,
@@ -107,9 +101,9 @@ after earlier refusals (`ReviewRequest.mark_executed` in
 `backend/tokens/models/review_request.py`), so the history does not stop at the
 last failure. Reviewer notes are omitted from the issuer serializers and from
 the client type in `packages/shared/src/types/domain/company-token.ts`; issuers
-receive execution notes and rejection or supersession reasons. Provider
-diagnostics remain in the operator records and logs; a failed execution asks an
-operator to check the chain before deciding whether to retry.
+receive execution notes and rejection or supersession reasons. Issuance provider diagnostics remain in operator records and logs. Capital
+recovery retains transaction identity and safe error categories; provider URLs
+and exception text do not enter capital responses or diagnostics.
 
 Issuers read their requests through `GET /api/v1/tokens/issuance-requests/`,
 filtered by token, company or status; the endpoint is read-only. List and detail

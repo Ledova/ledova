@@ -1,160 +1,174 @@
-from unittest.mock import Mock, patch
+from unittest.mock import patch
+from uuid import uuid4
 
-from django.test import TestCase
-from django.utils import timezone
+from django.db import DatabaseError
+from django.test import TransactionTestCase, override_settings
 
-from blockchain.models import BlockchainTransaction, TransactionStatus, TransactionType
-from shared.tests.tenants import make_tenant
-from tokens.exceptions import InvalidTokenStateException, IssuanceRefusedException
-from tokens.models import CapitalIncreaseRequest, RequestStatus, ShareToken
-from tokens.services import share_token_service
+from blockchain.models import BlockchainTransaction, OutgoingOperation, SignedAttempt
+from shared.db import atomic
+from tokens.exceptions import CapitalIncreaseConflict
+from tokens.models import CapitalIncreaseExecution, CapitalIncreaseRequest, ShareToken
+from tokens.services import capital_execution
 from tokens.services.capital_increase import submit_capital_increase
+from tokens.tasks import recover_capital_increases
+from tokens.tests.capital_fixtures import CHAIN_ID, KEY, admit, install_capital
 
-RECEIPT = {"status": 1, "blockNumber": 9, "blockHash": bytes.fromhex("ab" * 32), "gasUsed": 21000}
 
-
-class SupersededCapitalIncreaseTest(TestCase):
+@override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
+class SupersededCapitalIncreaseTest(TransactionTestCase):
     def setUp(self):
-        self.tenant = make_tenant("superseded")
-        self.token = self.tenant.deployed_token
-        self.request = self.tenant.capital_increase
-        self.request.status = RequestStatus.FAILED
-        self.request.review_notes = "The reviewer approved the original board resolution."
-        self.request.save(update_fields=["status", "review_notes", "updated_at"])
-        self.record = BlockchainTransaction.objects.create(
-            tx_type=TransactionType.OTHER,
-            status=TransactionStatus.SUBMITTED,
-            tx_hash="0x" + "11" * 32,
-            function_name="setAuthorizedShares",
-            related_model=CapitalIncreaseRequest._meta.label,
-            related_uuid=self.request.uuid,
-        )
-        self.service = share_token_service
-        self.chain = self.enterContext(
-            patch.object(share_token_service, "get_base_chain_client", return_value=Mock())
-        ).return_value
-        self.chain.get_transaction_receipt.return_value = RECEIPT
-        self.enterContext(patch.object(share_token_service, "share_supply", new=Mock(return_value=(1000, 0))))
-        self.enterContext(patch.object(share_token_service, "increase_authorized_shares", new=Mock()))
+        install_capital(self)
 
-    def raise_cap(self, current, recorded=True):
-        ShareToken.objects.filter(pk=self.token.pk).update(total_supply=str(current))
-        if not recorded:
-            return None
+    def execute(self):
+        command = admit(self.request, self.actor)
+        return capital_execution.recover(command.pk)
+
+    def draft(self, target=1200, **fields):
         return CapitalIncreaseRequest.objects.create(
             token=self.token,
-            additional_shares=current - 1000,
-            new_authorized_total=current,
-            purpose="Later increase",
+            additional_shares=target - 1000,
+            new_authorized_total=target,
+            purpose="Later capital request",
             board_resolution_reference="LATER-BOARD",
-            status=RequestStatus.EXECUTED,
-            executed_at=timezone.now(),
+            **fields,
         )
 
-    def assert_superseded(self, current, later):
-        notes = self.request.review_notes
-        with self.assertRaises(IssuanceRefusedException) as refusal:
-            self.service.execute_request(self.request)
-
-        reason = str(refusal.exception.detail)
-        self.assertIn(str(self.request.new_authorized_total), reason)
-        self.assertIn(str(current), reason)
-        self.assertIn("Submit a new capital-increase request", reason)
-        if later:
-            self.assertIn(str(later.uuid), reason)
-        else:
-            self.assertIn("No completed request identifies the current cap", reason)
+    def test_known_unsigned_overtaken_request_is_retired_without_adopting_a_transaction(self):
+        for cap in (1100, 1500):
+            with self.subTest(cap=cap):
+                ShareToken.objects.filter(pk=self.token.pk).update(total_supply=str(cap))
+                result = self.execute()
+                self.assertEqual(result["status"], "superseded")
+                self.assertIsNone(result["tx_hash"])
+        command = CapitalIncreaseExecution.objects.get()
+        self.assertIsNotNone(command.projected_at)
+        self.assertIsNone(command.operation_id)
+        self.assertFalse(OutgoingOperation.objects.exists())
+        self.node.client.assert_expected_chain.assert_not_called()
         self.request.refresh_from_db()
-        self.token.refresh_from_db()
-        self.assertEqual((self.request.status, self.token.total_supply), ("superseded", str(current)))
-        self.assertEqual(self.request.rejection_reason, reason)
-        self.assertEqual(self.request.review_notes, notes)
         self.assertIsNone(self.request.executed_at)
-        self.assertFalse(self.request.can_be_executed or self.request.can_be_approved or self.request.can_be_edited)
-        self.chain.get_transaction_receipt.assert_not_called()
-        self.chain.send_transaction.assert_not_called()
-        self.service.share_supply.assert_not_called()
-        self.service.increase_authorized_shares.assert_not_called()
-
-    def test_a_resumed_request_below_a_later_cap_is_permanently_refused(self):
-        later = self.raise_cap(1500)
-
-        self.assert_superseded(1500, later)
-
-        with self.assertRaises(InvalidTokenStateException):
-            self.service.execute_request(self.request)
-        replacement = CapitalIncreaseRequest.objects.create(
-            token=self.token,
-            additional_shares=100,
-            new_authorized_total=1600,
-            purpose="New request after supersession",
-            board_resolution_reference="NEW-BOARD",
-        )
+        self.assertFalse(self.request.can_be_executed or self.request.can_be_edited)
+        replacement = self.draft(1600)
         submit_capital_increase(replacement, self.tenant.user)
-        self.assertEqual(replacement.status, RequestStatus.SUBMITTED)
+        self.assertEqual(replacement.status, "submitted")
 
-    def test_a_request_equal_to_the_current_cap_is_also_superseded(self):
-        later = self.raise_cap(1100)
+    def test_attributable_revert_can_be_superseded_after_a_later_cap(self):
+        self.node.receipt_status = 0
+        self.assertEqual(self.execute()["status"], "failed")
+        original = BlockchainTransaction.objects.get()
+        ShareToken.objects.filter(pk=self.token.pk).update(total_supply="1500")
+        self.assertEqual(self.execute()["status"], "superseded")
+        original.refresh_from_db()
+        self.assertEqual(original.status, "reverted")
+        self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.assertEqual(len(self.node.broadcasts), 1)
 
-        self.assert_superseded(1100, later)
+    def test_accepted_signed_uncertainty_cannot_be_superseded_or_have_its_cap_rewritten(self):
+        self.node.confirmed = False
+        self.assertEqual(self.execute()["status"], "executing")
+        for model, changes in (
+            (CapitalIncreaseRequest, {"status": "superseded"}),
+            (ShareToken, {"total_supply": "1500"}),
+        ):
+            pk = self.request.pk if model is CapitalIncreaseRequest else self.token.pk
+            with self.assertRaises(DatabaseError), atomic():
+                model.objects.filter(pk=pk).update(**changes)
+        self.assertEqual(CapitalIncreaseRequest.objects.get(pk=self.request.pk).status, "executing")
+        self.assertEqual(BlockchainTransaction.objects.get().status, "submitted")
 
-    def test_an_unattributed_cap_does_not_invent_an_overtaking_request(self):
-        self.raise_cap(1500, recorded=False)
+    def test_historical_hashless_failure_blocks_new_execution_without_being_adopted(self):
+        old = self.draft(dispatch_id=None, status="failed")
+        before = CapitalIncreaseRequest.objects.filter(pk=old.pk).values().get()
+        with self.assertRaisesMessage(CapitalIncreaseConflict, "attribution"):
+            self.execute()
+        self.assertEqual(CapitalIncreaseRequest.objects.filter(pk=old.pk).values().get(), before)
+        self.assertFalse(CapitalIncreaseExecution.objects.exists())
+        self.node.client.assert_expected_chain.assert_not_called()
 
-        self.assert_superseded(1500, None)
+    def test_historical_terminal_labels_and_hashes_cannot_supply_new_authority(self):
+        old = self.draft(dispatch_id=None, status="failed")
+        record = BlockchainTransaction.objects.create(
+            tx_hash="0x" + "ab" * 32,
+            tx_type="other",
+            status="submitted",
+            function_name="setAuthorizedShares",
+            related_model=old._meta.label,
+            related_uuid=old.pk,
+            to_address=self.token.contract_address,
+        )
+        for status in ("failed", "executed", "superseded", "rejected"):
+            CapitalIncreaseRequest.objects.filter(pk=old.pk).update(status=status)
+            with self.subTest(status=status), self.assertRaises(CapitalIncreaseConflict):
+                self.execute()
+        record.refresh_from_db()
+        self.assertEqual(record.status, "submitted")
+        self.assertFalse(SignedAttempt.objects.exists())
 
-    def test_an_approved_request_without_a_transaction_is_refused_before_sending(self):
-        self.record.delete()
-        self.request.status = RequestStatus.APPROVED
-        self.request.save(update_fields=["status", "updated_at"])
-        later = self.raise_cap(1500)
+    def test_historical_request_itself_is_not_admitted_or_swept(self):
+        old = self.draft(dispatch_id=None, status="failed")
+        with self.assertRaises(CapitalIncreaseConflict):
+            admit(old, self.actor)
+        with patch("tokens.services.capital_execution.recover") as recover:
+            self.assertEqual(recover_capital_increases(), {"checked": 0, "resolved": 0})
+        recover.assert_not_called()
+        with self.assertRaises(DatabaseError), atomic():
+            CapitalIncreaseRequest.objects.filter(pk=old.pk).update(dispatch_id=self.request.dispatch_id)
 
-        self.assert_superseded(1500, later)
+    def test_current_request_with_unexplained_transaction_cannot_be_retired_as_unsigned(self):
+        ShareToken.objects.filter(pk=self.token.pk).update(total_supply="1500")
+        BlockchainTransaction.objects.create(
+            tx_hash="0x" + "ab" * 32,
+            tx_type="other",
+            status="submitted",
+            function_name="setAuthorizedShares",
+            related_model=self.request._meta.label,
+            related_uuid=self.request.pk,
+        )
+        with self.assertRaises(CapitalIncreaseConflict):
+            self.execute()
+        self.assertEqual(CapitalIncreaseRequest.objects.get(pk=self.request.pk).status, "approved")
+        self.assertFalse(CapitalIncreaseExecution.objects.exists())
 
-    def test_the_sweep_retires_an_overtaken_executing_request_before_reading_the_chain(self):
-        self.request.status = RequestStatus.EXECUTING
-        self.request.save(update_fields=["status", "updated_at"])
-        later = self.raise_cap(1500)
+    def test_retry_cannot_rewrite_approved_prior_cap_even_if_target_still_exceeds_it(self):
+        self.node.client.estimate_gas.side_effect = RuntimeError("Synthetic preparation refusal")
+        self.assertEqual(self.execute()["status"], "failed")
+        ShareToken.objects.filter(pk=self.token.pk).update(total_supply="1050")
+        with self.assertRaisesMessage(CapitalIncreaseConflict, "prior cap changed"):
+            self.execute()
+        self.assertEqual(CapitalIncreaseExecution.objects.get().intent["prior_authorized_total"], "1000")
+        self.assertFalse(SignedAttempt.objects.exists())
 
-        self.assertEqual(self.service.resolve_executing_capital_increase(self.request), "superseded")
-
-        self.request.refresh_from_db()
-        self.assertEqual(self.request.status, "superseded")
-        self.assertIn(str(later.uuid), self.request.rejection_reason)
-        self.chain.get_transaction_receipt.assert_not_called()
-
-    def test_the_sweep_rechecks_the_cap_after_reading_a_receipt(self):
-        self.request.status = RequestStatus.EXECUTING
-        self.request.save(update_fields=["status", "updated_at"])
-
-        def receipt_after_the_cap_changed(tx_hash):
-            self.raise_cap(1500)
-            return RECEIPT
-
-        self.chain.get_transaction_receipt.side_effect = receipt_after_the_cap_changed
-
-        self.assertEqual(self.service.resolve_executing_capital_increase(self.request), "superseded")
-
-        self.request.refresh_from_db()
-        self.token.refresh_from_db()
-        self.record.refresh_from_db()
-        self.assertEqual((self.request.status, self.token.total_supply), ("superseded", "1500"))
-        self.assertEqual(self.record.status, TransactionStatus.CONFIRMED)
-
-    def test_a_late_revert_does_not_make_a_terminal_request_retryable_again(self):
-        self.request.status = RequestStatus.EXECUTING
-        self.request.save(update_fields=["status", "updated_at"])
-
-        def receipt_after_supersession(tx_hash):
-            CapitalIncreaseRequest.objects.filter(pk=self.request.pk).update(
-                status="superseded", rejection_reason="A newer cap already replaced this request."
+    def test_orphaned_hash_and_hashless_contract_history_refuse_admission(self):
+        for tx_hash in (None, "", "0x" + "ce" * 32):
+            record = BlockchainTransaction.objects.create(
+                tx_hash=tx_hash,
+                tx_type="other",
+                status="failed",
+                function_name="setAuthorizedShares",
+                related_model="tokens.CapitalIncreaseRequest",
+                related_uuid=uuid4(),
+                to_address=self.token.contract_address.upper().replace("0X", "0x"),
             )
-            return {**RECEIPT, "status": 0}
+            with self.subTest(tx_hash=tx_hash), self.assertRaises(CapitalIncreaseConflict):
+                self.execute()
+            record.delete()
+        self.assertFalse(CapitalIncreaseExecution.objects.exists())
+        self.node.client.assert_expected_chain.assert_not_called()
 
-        self.chain.get_transaction_receipt.side_effect = receipt_after_supersession
-
-        self.assertIsNone(self.service.resolve_executing_capital_increase(self.request))
-
-        self.request.refresh_from_db()
-        self.assertEqual(self.request.status, "superseded")
-        self.assertFalse(self.request.can_be_executed)
+    def test_unexplained_extra_history_on_a_converted_request_refuses_its_retry(self):
+        self.node.receipt_status = 0
+        self.assertEqual(self.execute()["status"], "failed")
+        original = SignedAttempt.objects.get()
+        BlockchainTransaction.objects.create(
+            tx_hash="0x" + "ac" * 32,
+            tx_type="other",
+            status="submitted",
+            function_name="setAuthorizedShares",
+            related_model=self.request._meta.label,
+            related_uuid=self.request.pk,
+            to_address=self.token.contract_address,
+        )
+        with self.assertRaises(CapitalIncreaseConflict):
+            self.execute()
+        self.assertEqual(SignedAttempt.objects.get().pk, original.pk)
+        self.assertEqual(len(self.node.broadcasts), 1)
