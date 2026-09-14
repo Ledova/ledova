@@ -978,6 +978,49 @@ class MintRequestChainTest(APITransactionTestCase):
         self.assertEqual(self.contract.functions.balanceOf(self.recipient).call(), before_balance + self.request.amount)
         self.assertEqual(self.w3.eth.get_transaction_count(self.signer, "pending"), before_nonce + 1)
 
+    def test_real_mined_revert_survives_interrupted_projection_and_explicit_retry(self):
+        from dataclasses import replace
+
+        from blockchain.models import OutgoingOperation, SignedAttempt
+        from blockchain.services import outgoing
+        from tokens.services import mint_service
+
+        before_balance = self.contract.functions.balanceOf(self.recipient).call()
+        before_nonce = self.w3.eth.get_transaction_count(self.signer, "pending")
+        prepare = outgoing.prepare_operation
+        project = mint_service._project
+
+        def insufficient_gas(claim, client):
+            prepared = prepare(claim, client)
+            self.assertGreater(prepared.gas, 30000)
+            return replace(prepared, gas=30000)
+
+        def interrupted_projection(request_id, claim):
+            if OutgoingOperation.objects.get(pk=claim.operation_id).status == "reverted":
+                raise SystemExit("Stopped after real mined revert")
+            return project(request_id, claim)
+
+        with patch.object(outgoing, "prepare_operation", insufficient_gas):
+            with patch.object(mint_service, "_project", interrupted_projection), self.assertRaises(SystemExit):
+                mint_service.execute(self.request, self.actor)
+        self.request.refresh_from_db()
+        previous, operation = self.request.transaction, self.request.operation
+        observed = self.w3.eth.get_transaction_receipt(previous.tx_hash)
+        self.assertEqual(observed["status"], 0)
+        self.assertEqual(observed["gasUsed"], 30000)
+        self.assertEqual(operation.status, "reverted")
+        self.assertEqual(self.contract.functions.balanceOf(self.recipient).call(), before_balance)
+        mint_service.execute(self.request, self.actor, retry_of=operation.claim_id)
+        self.assertEqual(self.request.status, "executed")
+        self.assertEqual(SignedAttempt.objects.count(), 2)
+        self.assertEqual(self.contract.functions.balanceOf(self.recipient).call(), before_balance + self.request.amount)
+        self.assertEqual(self.w3.eth.get_transaction_count(self.signer, "pending"), before_nonce + 2)
+        previous.refresh_from_db()
+        self.assertEqual(previous.status, "reverted")
+        self.assertEqual(previous.block_number, observed["blockNumber"])
+        self.assertEqual(previous.block_hash, Web3.to_hex(observed["blockHash"]))
+        self.assertEqual(previous.gas_used, observed["gasUsed"])
+
 
 @chain_available
 @override_settings(**CHAIN_SETTINGS)
