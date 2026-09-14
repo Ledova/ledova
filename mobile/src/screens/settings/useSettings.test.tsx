@@ -36,13 +36,14 @@ function wrapper({ children }: { children: React.ReactNode }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
 
-async function deleteThroughSettings() {
+async function startDeletion() {
   const { result } = await renderHook(() => useSettings(), { wrapper });
-  let deleted: boolean | undefined;
+  let deletion!: Promise<boolean>;
   await act(async () => {
-    deleted = await result.current.deleteUserAccount();
+    deletion = result.current.deleteUserAccount();
+    await new Promise((resolve) => setTimeout(resolve));
   });
-  return { deleted, deleting: result.current.isDeleting };
+  return { settings: result, deletion };
 }
 
 it.each([
@@ -59,13 +60,27 @@ it.each([
   ],
 ])('completes a deletion the server accepted when local retirement is %s', async (_, failure, alerts) => {
   jest.mocked(deleteAccount).mockResolvedValue({} as Awaited<ReturnType<typeof deleteAccount>>);
-  jest.mocked(clearTokens).mockImplementation(async () => {
-    events.push(`retire with cache ${cache()}`);
-    if (failure) throw failure;
+  let settle!: () => void;
+  jest.mocked(clearTokens).mockImplementation(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        settle = () => {
+          events.push(`retirement settled with cache ${cache()}`);
+          if (failure) reject(failure);
+          else resolve();
+        };
+      }),
+  );
+
+  const { settings, deletion } = await startDeletion();
+  expect(settings.current.isDeleting).toBe(true);
+  const deleted = await act(() => {
+    settle();
+    return deletion;
   });
 
-  await expect(deleteThroughSettings()).resolves.toEqual({ deleted: true, deleting: false });
-  expect(events).toEqual(['retire with cache kept', 'navigate with cache cleared']);
+  expect({ deleted, deleting: settings.current.isDeleting }).toEqual({ deleted: true, deleting: false });
+  expect(events).toEqual(['retirement settled with cache kept', 'navigate with cache cleared']);
   expect(mockReset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'SignIn' }] });
   expect(jest.mocked(Alert.alert).mock.calls).toEqual(alerts);
 });
@@ -73,7 +88,11 @@ it.each([
 it('reports a deletion the server refused and keeps the session', async () => {
   jest.mocked(deleteAccount).mockRejectedValue(new Error('synthetic refusal'));
 
-  await expect(deleteThroughSettings()).resolves.toEqual({ deleted: false, deleting: false });
+  const { settings, deletion } = await startDeletion();
+  expect({ deleted: await deletion, deleting: settings.current.isDeleting }).toEqual({
+    deleted: false,
+    deleting: false,
+  });
   expect(clearTokens).not.toHaveBeenCalled();
   expect(events).toEqual([]);
   expect(cache()).toBe('kept');

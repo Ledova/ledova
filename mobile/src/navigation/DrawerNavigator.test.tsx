@@ -78,7 +78,9 @@ it.each([
   ],
 ])('finishes signing out when local retirement is %s', async (_, failure, alerts) => {
   jest.mocked(clearTokens).mockImplementation(async () => {
-    events.push(`retire with cache ${cache()}`);
+    events.push('retirement started');
+    await new Promise((resolve) => setTimeout(resolve));
+    events.push(`retirement settled with cache ${cache()}`);
     if (failure) throw failure;
   });
   const view = await render(
@@ -94,7 +96,8 @@ it.each([
   expect(events).toEqual([
     'unregister push',
     'server sign-out',
-    'retire with cache kept',
+    'retirement started',
+    'retirement settled with cache kept',
     'navigate with cache cleared',
   ]);
   expect(mockReset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'SignIn' }] });
