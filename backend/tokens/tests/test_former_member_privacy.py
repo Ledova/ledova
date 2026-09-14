@@ -53,10 +53,10 @@ class ScopedFormerMemberPrivacyTest(RunsOnTheScopedConnection, APITransactionTes
 
     def test_the_owner_can_read_and_export_a_register_with_only_former_members(self):
         self.signed_in_as(self.owner.user)
-        with patch("tokens.services.register.ShareTokenService") as provider:
-            provider.return_value.transfer_participants.return_value = set()
-            provider.return_value.share_supply.return_value = (0, 0)
-            provider.return_value.deployment_block.return_value = 1
+        with patch("tokens.services.register.share_token_service") as provider:
+            provider.transfer_participants.return_value = set()
+            provider.share_supply.return_value = (0, 0)
+            provider.deployment_block.return_value = 1
             response = self.client.get(f"/api/v1/tokens/{self.owner.deployed_token.pk}/holders/")
             self.assertEqual(response.status_code, 200, response.content)
             self.assertEqual(response.json()["holders"], [])

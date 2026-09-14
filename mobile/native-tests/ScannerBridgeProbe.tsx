@@ -15,6 +15,7 @@ const InactiveProbe =
           active: boolean;
           generation: number;
           scanId: number;
+          onWindowChanged: () => void;
           ref: Ref<NativeHandle>;
         }
       >('LedovaScanner')
@@ -92,10 +93,11 @@ function WindowProbe({ onComplete, onActiveUnmount }: Props & { onActiveUnmount?
       {InactiveProbe && (
         <InactiveProbe
           ref={native}
+          testID="scanner-probe-inactive"
           active={false}
           generation={-1}
           scanId={0}
-          onLayout={checkNativeMethod}
+          onWindowChanged={checkNativeMethod}
           style={{ width: 1, height: 1 }}
         />
       )}

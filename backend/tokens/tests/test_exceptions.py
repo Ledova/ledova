@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from django.test import SimpleTestCase, override_settings
 
@@ -13,7 +13,7 @@ from tokens.exceptions import (
     TokenDeploymentFailedException,
     TransferBroadcastException,
 )
-from tokens.services.share_token_service import ShareTokenService
+from tokens.services import share_token_service
 from tokens.services.token_transfer_service import TokenTransferService
 
 
@@ -48,10 +48,11 @@ class ServiceErrorMessageTests(SimpleTestCase):
 
     @override_settings(SHARE_TOKEN_FACTORY_ADDRESS="0x" + "1" * 40)
     def test_factory_contract_load_failure_keeps_prefix(self):
-        service = ShareTokenService.__new__(ShareTokenService)
-        service._factory_contract = None
-        service.chain_client = Mock()
-        service.chain_client.load_contract.side_effect = BaseChainContractError("ABI missing")
+        service = share_token_service
+        chain = self.enterContext(
+            patch.object(share_token_service, "get_base_chain_client", return_value=Mock())
+        ).return_value
+        chain.load_contract.side_effect = BaseChainContractError("ABI missing")
         with self.assertRaises(ContractLoadException) as ctx:
-            service.factory_contract
+            service.factory_contract()
         self.assertEqual(str(ctx.exception.detail), "The token factory contract could not be loaded.")

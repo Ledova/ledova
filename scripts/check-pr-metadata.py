@@ -6,34 +6,42 @@ import sys
 
 CHANGE_TYPES = ("feat", "fix", "refactor", "perf", "docs", "test", "build", "ci", "deps", "chore", "revert")
 TITLE = re.compile(rf"({'|'.join(CHANGE_TYPES)})\(#([1-9][0-9]*)\): (\S(?:[^\r\n]*\S)?)")
-REFERENCE = re.compile(r"(?:Refs|Closes) #([1-9][0-9]*)")
+REFERENCE = re.compile(r"(Refs|Closes) #([1-9][0-9]*)")
 
 
-def owning_issue(title, body):
+def owning_issue(title, body, closing=()):
     match = TITLE.fullmatch(title)
     if not match:
         raise ValueError("Use a title like fix(#123): describe the change. Types: " + ", ".join(CHANGE_TYPES))
     first_line = next((line for line in (body or "").splitlines() if line.strip()), "")
     reference = REFERENCE.fullmatch(first_line)
-    if not reference or reference[1] != match[2]:
+    if not reference or reference[2] != match[2]:
         raise ValueError(f"Start the body with Refs #{match[2]} or Closes #{match[2]} on its own line.")
+    if reference[1] == "Refs" and closing:
+        raise ValueError(
+            f"A Refs PR closes no issue, but GitHub would close {', '.join(closing)} on merge. "
+            "Remove the closing phrase or the linked issue."
+        )
     return int(match[2])
 
 
-def github_json(endpoint):
+def github_json(subject, *arguments):
     try:
-        result = subprocess.run(["gh", "api", endpoint], capture_output=True, text=True, check=True, timeout=30)
+        result = subprocess.run(["gh", *arguments], capture_output=True, text=True, check=True, timeout=30)
         return json.loads(result.stdout)
     except (OSError, subprocess.SubprocessError, json.JSONDecodeError) as error:
-        raise ValueError(f"Cannot verify {endpoint} through GitHub; check access and availability.") from error
+        raise ValueError(f"Cannot verify {subject} through GitHub; check access and availability.") from error
 
 
 def check(repository, number):
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository) or number < 1:
         raise ValueError("Supply owner/repository and a positive pull request number.")
-    request = github_json(f"repos/{repository}/pulls/{number}")
-    issue_number = owning_issue(request["title"], request.get("body"))
-    issue = github_json(f"repos/{repository}/issues/{issue_number}")
+    request = github_json(
+        f"PR #{number}", "pr", "view", str(number), "--repo", repository, "--json", "title,body,closingIssuesReferences"
+    )
+    closing = [issue["url"] for issue in request["closingIssuesReferences"]]
+    issue_number = owning_issue(request["title"], request["body"], closing)
+    issue = github_json(f"issue #{issue_number}", "api", f"repos/{repository}/issues/{issue_number}")
     if issue.get("number") != issue_number or "pull_request" in issue:
         raise ValueError(f"#{issue_number} must be an issue in {repository}, not a pull request.")
     return issue_number

@@ -8,6 +8,7 @@ from django.urls import reverse
 from companies.models import Company, CompanyStatus
 from shared.tests.tenants import make_tenant
 from tokens.models import ShareTokenStatus
+from tokens.services import deployment
 
 User = get_user_model()
 
@@ -38,7 +39,11 @@ class ShareTokenAdminDeployTest(TestCase):
         self.assertContains(self.client.get(self.change_url), "Deployment started for")
         self.tenant.token.refresh_from_db()
         self.assertEqual(self.tenant.token.status, ShareTokenStatus.DEPLOYING)
-        deploy_task.defer.assert_called_once_with(token_uuid=str(self.tenant.token.uuid), principal_id=None)
+        deploy_task.defer.assert_called_once_with(
+            token_uuid=str(self.tenant.token.uuid),
+            deployment_id=str(self.tenant.token.deployment_id),
+            principal_id=None,
+        )
 
     @patch("tokens.tasks.deploy_share_token_task")
     def test_readiness_guards_redirect_with_the_reason(self, deploy_task):
@@ -64,18 +69,21 @@ class ShareTokenAdminDeployTest(TestCase):
             self.assertContains(self.client.get(self.change_url), "Cannot retry deployment: Cannot retry deployment")
         deploy_task.defer.assert_not_called()
 
-        token.mark_deploying(tx_hash="0xcreate")
+        Company.objects.filter(pk=token.company_id).update(status=CompanyStatus.ACTIVE)
+        deployment.start_deployment(token, principal_id=None)
+        deploy_task.defer.reset_mock()
         self.assertContains(self.client.get(self.change_url), retry_url)
         confirm = self.client.get(retry_url)
         self.assertContains(confirm, "Retry Deployment")
-        self.assertContains(confirm, "0xcreate")
         self.assertContains(confirm, 'method="post"')
         deploy_task.defer.assert_not_called()
 
-        retried = self.client.post(retry_url)
+        retried = self.client.post(retry_url, {"confirmation": confirm.context["confirmation"]})
         self.assertRedirects(retried, self.change_url, fetch_redirect_response=False)
-        self.assertContains(self.client.get(self.change_url), "Deployment retried for")
-        deploy_task.defer.assert_called_once_with(token_uuid=str(token.uuid), principal_id=None)
+        self.assertContains(self.client.get(self.change_url), "Deployment recovery queued for")
+        deploy_task.defer.assert_called_once_with(
+            token_uuid=str(token.uuid), deployment_id=str(token.deployment_id), principal_id=None, retry_of=None
+        )
         token.refresh_from_db()
         self.assertEqual(token.status, ShareTokenStatus.DEPLOYING)
 
@@ -132,7 +140,10 @@ class ShareTokenAdminPauseTest(TestCase):
         self.assertContains(change_page, self.pause_url)
         self.assertContains(change_page, self.unpause_url)
 
-        with patch("tokens.admin.share_token.ShareTokenService", side_effect=KeyError("SHARE_TOKEN_FACTORY_ADDRESS")):
+        with patch(
+            "tokens.admin.share_token.share_token_service.read_paused",
+            side_effect=KeyError("SHARE_TOKEN_FACTORY_ADDRESS"),
+        ):
             with self.assertLogs("tokens.admin._helpers", "WARNING") as logs:
                 change_page = self.client.get(self.change_url)
         self.assertEqual(change_page.status_code, 200)

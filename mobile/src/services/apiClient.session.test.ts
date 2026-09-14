@@ -2,7 +2,7 @@ import { AxiosError, AxiosHeaders } from 'axios';
 import type { AxiosAdapter, AxiosResponse } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { apiClient, rotateRefreshToken } from './apiClient';
-import { clearTokens, getAccessToken, getRefreshToken, storeTokens } from './tokenStorage';
+import { clearTokens, enableBiometricLogin, getAccessToken, getRefreshToken, storeTokens } from './tokenStorage';
 import { getSessionEpoch } from './sessionScope';
 import { AUTH_ENDPOINTS } from '@ledova/shared';
 
@@ -115,6 +115,33 @@ it.each(['success', 'refusal'])(
     expect(getSessionEpoch()).toBe(newEpoch);
   },
 );
+
+it.each([
+  ['retires', 'a 401 refusal', 'ERR_BAD_REQUEST', 401],
+  ['keeps', 'a timeout', AxiosError.ECONNABORTED, undefined],
+  ['keeps', 'a network error', AxiosError.ERR_NETWORK, undefined],
+  ['keeps', 'a 500 response', 'ERR_BAD_RESPONSE', 500],
+] as const)('%s the current session and its biometric copy after %s', async (outcome, _, code, status) => {
+  await storeTokens(pair);
+  await expect(enableBiometricLogin()).resolves.toBe(true);
+  const epoch = getSessionEpoch();
+  apiClient.defaults.adapter = async (config) => {
+    throw new AxiosError(
+      'Synthetic refresh failure',
+      code,
+      config,
+      undefined,
+      status && { data: {}, status, statusText: '', headers: new AxiosHeaders(), config },
+    );
+  };
+  await expect(rotateRefreshToken(pair.refreshToken)).rejects.toThrow();
+  const retired = outcome === 'retires';
+  await expect(Promise.all([getAccessToken(), getRefreshToken()])).resolves.toEqual(
+    retired ? [null, null] : [pair.accessToken, pair.refreshToken],
+  );
+  expect(getSessionEpoch() === epoch).toBe(!retired);
+  expect(items.has('biometric.refreshToken')).toBe(!retired);
+});
 
 it('retains intentional biometric sign-in from an otherwise absent ordinary session', async () => {
   const epoch = getSessionEpoch();

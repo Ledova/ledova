@@ -136,6 +136,7 @@ class SwapSettlementMigrationTest(TransactionTestCase):
             ),
             before_orders,
         )
+        restore_every_migration()
         swap.refresh_from_db()
         self.assertAlmostEqual((swap.expires_at - swap.created_at).total_seconds(), 86400, delta=2)
         self.assertTrue(service.verify_signature(swap, seller_signature, SELLER.address))
@@ -164,6 +165,7 @@ class SwapSettlementMigrationTest(TransactionTestCase):
         if IS_POSTGRES:
             with self.assertRaises(IntegrityError), atomic():
                 SwapOrder.objects.create(**old_values, settlement_protocol_version=0)
+        restore_every_migration()
         fresh = make_swap("settlement-new-writer")
         self.assertEqual(fresh.settlement_protocol_version, 1)
         self.assertEqual(fresh.settlement_context["digest"], fresh.settlement_digest)

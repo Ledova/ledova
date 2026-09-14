@@ -8,13 +8,10 @@ from django.conf import settings
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from web3 import Web3
-from web3.logs import DISCARD
 
 from assets.models import Asset, AssetType
 from assets.services.identity import free_symbol, verified_contract_asset
-from blockchain.models import BlockchainTransaction, TransactionStatus, TransactionType
-from companies.models import CompanyStatus
-from companies.services.company import primary_wallet_for
+from blockchain.models import BlockchainTransaction
 from integrations.base_chain import get_base_chain_client
 from integrations.base_chain.client import BROADCAST_ROUND_TRIPS, HTTP_TIMEOUT_SECONDS
 from integrations.base_chain.exceptions import (
@@ -26,7 +23,6 @@ from operators.settlement import settlement_deployments
 from shared.constants import BLOCKCHAIN_BASE
 from shared.db import atomic
 from tokens.exceptions import (
-    CompanyNotReadyException,
     ContractLoadException,
     DeployedShareClassException,
     InvalidHolderAddressException,
@@ -36,13 +32,11 @@ from tokens.exceptions import (
     IssuanceRefusedException,
     OperatorKeyNotConfiguredException,
     TokenBalanceRetrievalException,
-    TokenDeploymentFailedException,
     TokenFactoryNotConfiguredException,
     TokenPauseFailedException,
     WalletBalancesUnavailableException,
 )
 from tokens.models import (
-    CapitalIncreaseRequest,
     IssuanceStatus,
     RequestStatus,
     ShareIssuance,
@@ -51,14 +45,6 @@ from tokens.models import (
     ShareTokenStatus,
 )
 from tokens.querysets.share_issuance import ISSUANCE_KEY_PREFIX
-from tokens.services.deployment_journal import (
-    confirm_deployment_record,
-    create_deployment_record,
-    fail_deployment_record,
-    load_deployment_record,
-    record_signed_deployment,
-    revert_deployment_record,
-)
 from tokens.services.dilution import dilution_for
 from tokens.services.holder_identity import identity_at_allotment
 from tokens.services.mint_journal import (
@@ -88,1012 +74,595 @@ STOPPED_BEFORE_SIGNING = "The worker stopped before recording a signed mint. Its
 TOKEN_PAUSED = "Token is paused. Unpause it before executing."
 SHARE_ASSET_CHAIN = BLOCKCHAIN_BASE
 NOT_ATTESTED = "{symbol} at {address} is not the address the factory holds for {identifier}; left unverified"
-ANOTHER_INCREASE_IN_FLIGHT = (
-    "{symbol} has another capital increase in flight ({status}), so this one cannot be executed yet. "
-    "One share class raises its cap once at a time; resolve that one first."
-)
 ISSUANCE_EXECUTION_FAILED = (
     "The share issuance could not be confirmed. An operator must check the request's transaction history "
     "and on-chain state before deciding whether to retry."
 )
-CAPITAL_INCREASE_EXECUTION_FAILED = (
-    "The capital increase could not be confirmed. An operator must check the request's transaction history "
-    "and on-chain state before deciding whether to retry."
-)
-CAP_NOT_RAISED = (
-    "Authorized shares are already at or above the requested total. "
-    "Resubmit the capital increase against the current cap."
-)
 
 
-class ShareTokenService:
+def factory_address() -> str:
+    address = getattr(settings, "SHARE_TOKEN_FACTORY_ADDRESS", "")
+    if not address:
+        raise TokenFactoryNotConfiguredException(
+            "SHARE_TOKEN_FACTORY_ADDRESS not configured. "
+            "Please deploy the ShareTokenFactory contract and set the address."
+        )
+    return address
 
-    @classmethod
-    def or_refuse(cls) -> "ShareTokenService":
-        try:
-            return cls()
-        except BaseChainConnectionError as exc:
-            logger.error(f"Chain unreachable while building the token service: {exc}")
-            raise TokenPauseFailedException("The chain is unreachable.") from exc
 
-    def __init__(self):
-        self.chain_client = get_base_chain_client()
-        self._factory_contract = None
+def signer_key() -> str:
+    key = getattr(settings, "BLOCKCHAIN_OPERATOR_KEY", "")
+    if not key:
+        raise OperatorKeyNotConfiguredException()
+    return key
 
-    @property
-    def factory_address(self) -> str:
-        address = getattr(settings, "SHARE_TOKEN_FACTORY_ADDRESS", "")
-        if not address:
-            raise TokenFactoryNotConfiguredException(
-                "SHARE_TOKEN_FACTORY_ADDRESS not configured. "
-                "Please deploy the ShareTokenFactory contract and set the address."
-            )
-        return address
 
-    @property
-    def signer_key(self) -> str:
-        key = getattr(settings, "BLOCKCHAIN_OPERATOR_KEY", "")
-        if not key:
-            raise OperatorKeyNotConfiguredException()
-        return key
+def factory_contract():
+    try:
+        return get_base_chain_client().load_contract("ShareTokenFactory", factory_address())
+    except BaseChainContractError as exc:
+        logger.error("ShareTokenFactory could not be loaded: %s", exc)
+        raise ContractLoadException("The token factory contract could not be loaded.") from exc
 
-    @property
-    def factory_contract(self):
-        if self._factory_contract is None:
-            try:
-                self._factory_contract = self.chain_client.load_contract(
-                    "ShareTokenFactory",
-                    self.factory_address,
-                )
-            except BaseChainContractError as e:
-                logger.error(f"ShareTokenFactory could not be loaded: {e}")
-                raise ContractLoadException("The token factory contract could not be loaded.") from e
-        return self._factory_contract
 
-    @staticmethod
-    def token_identifier(token: ShareToken) -> str:
-        return f"{token.company.acn}:{token.symbol}"
+def token_identifier(token: ShareToken) -> str:
+    return f"{token.company.acn}:{token.symbol}"
 
-    @staticmethod
-    def require_deployable(token: ShareToken):
-        if token.status != ShareTokenStatus.DRAFT:
-            raise InvalidTokenStateException(
-                f"Cannot deploy token with status '{token.get_status_display()}'. Token must be in draft status."
-            )
-        if token.company.status != CompanyStatus.ACTIVE:
-            raise CompanyNotReadyException("Company must be active before deploying tokens.")
-        primary_wallet = primary_wallet_for(token.company)
-        if primary_wallet is None:
-            raise CompanyNotReadyException(
-                "Company must have an operator wallet or verified owner wallet on Base before deploying tokens."
-            )
-        return primary_wallet
 
-    @staticmethod
-    def start_deployment(token: ShareToken, *, principal_id: int | None) -> None:
-        from tokens.tasks import deploy_share_token_task
+def _validate_address(address: str) -> str:
+    if not get_base_chain_client().is_valid_address(address):
+        raise InvalidRecipientAddressException()
+    return get_base_chain_client().to_checksum_address(address)
 
-        ShareTokenService.require_deployable(token)
-        token.mark_deploying()
-        deploy_share_token_task.defer(token_uuid=str(token.uuid), principal_id=principal_id)
 
-    @staticmethod
-    def require_retryable(token: ShareToken) -> None:
-        if token.status != ShareTokenStatus.DEPLOYING:
-            raise InvalidTokenStateException(
-                f"Cannot retry deployment of a token with status '{token.get_status_display()}'."
-            )
+def _tx_result(tx_hash: str, receipt: dict | None) -> dict:
+    return {
+        "tx_hash": tx_hash,
+        "block_number": receipt["blockNumber"] if receipt else None,
+        "gas_used": receipt["gasUsed"] if receipt else None,
+    }
 
-    @staticmethod
-    def retry_deployment(token: ShareToken, *, principal_id: int | None) -> None:
-        from tokens.tasks import deploy_share_token_task
 
-        ShareTokenService.require_retryable(token)
-        deploy_share_token_task.defer(token_uuid=str(token.uuid), principal_id=principal_id)
+def _mint_to(
+    contract_address: str,
+    recipient: str,
+    amount: int,
+    on_signed: Callable[[str, bytes], None],
+) -> dict:
+    token_contract = load_share_token(contract_address)
+    recipient_checksum = get_base_chain_client().to_checksum_address(recipient)
 
-    def _validate_address(self, address: str) -> str:
-        if not self.chain_client.is_valid_address(address):
-            raise InvalidRecipientAddressException()
-        return self.chain_client.to_checksum_address(address)
+    mint_fn = token_contract.functions.mint(recipient_checksum, amount)
+    tx_hash, _ = get_base_chain_client().send_transaction(
+        mint_fn, signer_key(), wait_for_receipt=False, on_signed=on_signed
+    )
+    receipt = get_base_chain_client().wait_for_receipt(tx_hash)
 
-    @staticmethod
-    def _tx_result(tx_hash: str, receipt: dict | None) -> dict:
-        return {
-            "tx_hash": tx_hash,
-            "block_number": receipt["blockNumber"] if receipt else None,
-            "gas_used": receipt["gasUsed"] if receipt else None,
+    return _tx_result(tx_hash, receipt)
+
+
+def _get_balance(contract_name: str, contract_address: str, holder: str) -> int:
+    if not get_base_chain_client().is_valid_address(holder):
+        raise InvalidHolderAddressException()
+
+    contract = get_base_chain_client().load_contract(
+        contract_name, get_base_chain_client().to_checksum_address(contract_address)
+    )
+    holder_checksum = get_base_chain_client().to_checksum_address(holder)
+
+    return contract.functions.balanceOf(holder_checksum).call()
+
+
+def load_share_token(contract_address: str):
+    if not get_base_chain_client().is_valid_address(contract_address):
+        raise InvalidTokenAddressException()
+
+    checksum = get_base_chain_client().to_checksum_address(contract_address)
+    return get_base_chain_client().load_contract("ShareToken", checksum)
+
+
+def _confirm_record(tx_record: BlockchainTransaction, receipt) -> None:
+    tx_record.mark_confirmed(
+        block_number=receipt["blockNumber"],
+        block_hash=Web3.to_hex(receipt["blockHash"]),
+        gas_used=receipt["gasUsed"],
+    )
+
+
+def bridge_share_asset(token: ShareToken, contract_address: str) -> bool:
+    identifier = token_identifier(token)
+    try:
+        attested = get_token_by_identifier(identifier)
+    except Exception as exc:
+        logger.warning(f"getTokenByIdentifier({identifier}) failed; {token.symbol} has no verified asset: {exc}")
+        return False
+    if not attested or attested.lower() != contract_address.lower():
+        logger.warning(NOT_ATTESTED.format(symbol=token.symbol, address=contract_address, identifier=identifier))
+        return False
+    try:
+        asset = verified_contract_asset(
+            chain=SHARE_ASSET_CHAIN,
+            contract_address=contract_address,
+            symbol=_share_asset_symbol(token, contract_address),
+            name=f"{token.company.name} {token.name}",
+            decimals=token.decimals,
+            asset_type=AssetType.TOKENIZED_SECURITY.value,
+        )
+    except Exception as exc:
+        logger.error(f"Could not bridge {token.symbol} at {contract_address} into an asset: {exc}")
+        return False
+    logger.info(f"{token.symbol} at {contract_address} is asset {asset.symbol} on {SHARE_ASSET_CHAIN}")
+    return True
+
+
+def _share_asset_symbol(token: ShareToken, contract_address: str) -> str:
+    bare = token.symbol
+    if free_symbol(bare, contract_address) == bare:
+        return bare
+    return f"{bare}.{token.company.acn}" if token.company.acn else bare
+
+
+def _approve_for_swap(token: ShareToken) -> None:
+    from tokens.services import AtomicSwapService
+
+    try:
+        approval_tx = AtomicSwapService().approve_share_token(token.contract_address)
+        if approval_tx:
+            logger.info(f"Approved {token.symbol} for AtomicSwap: {approval_tx}")
+    except Exception as exc:
+        logger.warning(f"Could not approve {token.symbol} for AtomicSwap: {exc}")
+
+
+def get_token_by_identifier(identifier: str) -> Optional[str]:
+    address = factory_contract().functions.getTokenByIdentifier(identifier).call()
+    return None if address == ZERO_ADDRESS else address
+
+
+def create_issuance_request(
+    token, recipient: str, amount: int, user, reason: str = "", issuance_type: str = "additional"
+) -> ShareIssuanceRequest:
+    if token.status != "deployed":
+        raise InvalidTokenStateException("Only deployed tokens can issue shares.")
+
+    if not token.contract_address:
+        raise InvalidTokenStateException("Token has no contract address.")
+
+    if not recipient or not Web3.is_address(recipient):
+        raise InvalidRecipientAddressException()
+
+    if amount <= 0:
+        raise ValidationError({"amount": "Amount must be a positive integer."})
+
+    issuance_request = ShareIssuanceRequest.objects.create(
+        token=token,
+        recipient_address=recipient,
+        amount=amount,
+        issuance_type=issuance_type,
+        reason=reason,
+        submitted_by=user,
+        submitted_at=timezone.now(),
+    )
+
+    issuance_request.dilution_percentage = dilution_for(issuance_request)
+    issuance_request.save(update_fields=["dilution_percentage", "updated_at"])
+
+    logger.info(
+        f"User {user.pk} created issuance request {issuance_request.uuid}: " f"{amount} {token.symbol} to {recipient}"
+    )
+
+    return issuance_request
+
+
+def deployment_block(tx_hash: str) -> int:
+    return get_base_chain_client().w3.eth.get_transaction_receipt(tx_hash)["blockNumber"]
+
+
+def head_block() -> int:
+    return get_base_chain_client().w3.eth.block_number
+
+
+def finalized_block() -> int:
+    number = get_base_chain_client().w3.eth.get_block("finalized")["number"]
+    if not isinstance(number, int) or isinstance(number, bool) or number < 0:
+        raise ValueError("The provider did not return a finalized block number.")
+    return number
+
+
+def _transfer_logs(contract_address: str, from_block: int, to_block: int, window: int):
+    if window <= 0:
+        raise ValueError("Transfer-log window must be positive.")
+    token_contract = load_share_token(contract_address)
+    for start in range(from_block, to_block + 1, window):
+        end = min(start + window - 1, to_block)
+        yield from token_contract.events.Transfer().get_logs(from_block=start, to_block=end)
+
+
+def transfer_entries(contract_address: str, from_block: int, to_block: int, window: int = LOG_WINDOW):
+    entries = [
+        {
+            "from": entry["args"]["from"],
+            "to": entry["args"]["to"],
+            "value": int(entry["args"]["value"]),
+            "block_number": int(entry["blockNumber"]),
+            "log_index": int(entry["logIndex"]),
         }
+        for entry in _transfer_logs(contract_address, from_block, to_block, window)
+    ]
+    return sorted(entries, key=lambda item: (item["block_number"], item["log_index"]))
 
-    def _mint_to(
-        self,
-        contract_address: str,
-        recipient: str,
-        amount: int,
-        on_signed: Callable[[str, bytes], None],
-    ) -> dict:
-        token_contract = self.load_share_token(contract_address)
-        recipient_checksum = self.chain_client.to_checksum_address(recipient)
 
-        mint_fn = token_contract.functions.mint(recipient_checksum, amount)
-        tx_hash, _ = self.chain_client.send_transaction(
-            mint_fn, self.signer_key, wait_for_receipt=False, on_signed=on_signed
+def block_date(block_number: int):
+    stamp = get_base_chain_client().w3.eth.get_block(block_number)["timestamp"]
+    return datetime.fromtimestamp(int(stamp), tz=dt_timezone.utc).date()
+
+
+def transfer_participants(contract_address: str, from_block: int, window: int = LOG_WINDOW) -> set:
+    return {
+        address
+        for entry in _transfer_logs(contract_address, from_block, head_block(), window)
+        for address in (entry["args"]["from"], entry["args"]["to"])
+    }
+
+
+def share_supply(contract_address: str) -> tuple[int, int]:
+    token_contract = load_share_token(contract_address)
+    return token_contract.functions.authorizedShares().call(), token_contract.functions.totalSupply().call()
+
+
+def is_recipient_whitelisted(address: str) -> bool:
+    from whitelist.services import whitelist
+
+    return whitelist.is_whitelisted(address)
+
+
+def execute_request(request, executed_by=None) -> dict:
+    if not isinstance(request, ShareIssuanceRequest):
+        raise InvalidTokenStateException("This request requires its own admitted execution.")
+    token = request.token
+    if not request.can_be_executed:
+        raise InvalidTokenStateException(f"Cannot execute request with status '{request.get_status_display()}'")
+    if not token.contract_address or token.status not in (ShareTokenStatus.DEPLOYED, ShareTokenStatus.PAUSED):
+        request.mark_failed("Token is not deployed on blockchain")
+        raise InvalidTokenStateException("Token is not deployed on blockchain")
+
+    return _execute_issuance(request, executed_by)
+
+
+def issuance_key(request: ShareIssuanceRequest) -> str:
+    return f"{ISSUANCE_KEY_PREFIX}{request.uuid}"
+
+
+def broadcast_mint(request: ShareIssuanceRequest) -> Optional[ShareIssuance]:
+    return ShareIssuance.objects.broadcast().filter(idempotency_key=issuance_key(request)).first()
+
+
+def _start_execution(request) -> None:
+    try:
+        request.mark_executing()
+    except ValueError as exc:
+        logger.error(f"Request {request.uuid} could not be claimed for execution: {exc}")
+        raise InvalidTokenStateException(
+            f"Cannot execute request with status '{request.get_status_display()}'"
+        ) from exc
+
+
+def _refuse_if_paused(request: ShareIssuanceRequest) -> None:
+    token = request.token
+    if token.status == ShareTokenStatus.PAUSED or read_paused(token):
+        request.mark_refused(TOKEN_PAUSED)
+        raise IssuanceRefusedException(TOKEN_PAUSED)
+
+
+def _execute_issuance(request: ShareIssuanceRequest, executed_by) -> dict:
+    token = request.token
+    recipient = _validate_address(request.recipient_address)
+    issuance = ShareIssuance.objects.filter(idempotency_key=issuance_key(request)).first()
+    if issuance is not None and issuance.tx_hash:
+        result = _resume_issuance(request, issuance)
+        if result is not None:
+            return result
+
+    _refuse_if_paused(request)
+    if not is_recipient_whitelisted(recipient):
+        request.mark_refused(NOT_WHITELISTED)
+        raise IssuanceRefusedException(NOT_WHITELISTED)
+    authorized, issued = share_supply(token.contract_address)
+    if request.amount > authorized - issued:
+        request.mark_refused(EXCEEDS_AUTHORIZED)
+        raise IssuanceRefusedException(EXCEEDS_AUTHORIZED)
+
+    stamped = identity_at_allotment(recipient, chain=SHARE_ASSET_CHAIN)
+    issuance, attempt_id = start_mint_attempt(
+        request,
+        issuance,
+        token=token,
+        recipient_address=recipient,
+        recipient_name=stamped.name or request.recipient_name,
+        recipient_residential_address=stamped.residential_address,
+        identity_stamped_at=timezone.now() if stamped.name else None,
+        amount=str(request.amount),
+        issuance_type=request.issuance_type,
+        reason=f"Issuance request: {request.reason}",
+        initiated_by=executed_by or request.reviewed_by,
+        idempotency_key=issuance_key(request),
+    )
+    request.refresh_from_db(fields=["status", "updated_at"])
+    logger.info(f"Minting {request.amount} {token.symbol} to {recipient}")
+
+    try:
+        result = _mint_to(
+            token.contract_address,
+            recipient,
+            request.amount,
+            on_signed=lambda tx_hash, raw: record_signed_mint(request, issuance, attempt_id, tx_hash, raw),
         )
-        receipt = self.chain_client.wait_for_receipt(tx_hash)
+    except Exception as exc:
+        logger.error(f"Issuance failed for request {request.uuid} ({type(exc).__name__})")
+        detail = mint_failure_detail(exc)
+        fail_mint_attempt(request, issuance, attempt_id, detail, ISSUANCE_EXECUTION_FAILED)
+        if detail != str(exc):
+            raise BaseChainTransactionError(detail) from None
+        raise
 
-        return self._tx_result(tx_hash, receipt)
+    _complete_issuance(request, issuance, result)
+    return result
 
-    def _get_balance(self, contract_name: str, contract_address: str, holder: str) -> int:
-        if not self.chain_client.is_valid_address(holder):
-            raise InvalidHolderAddressException()
 
-        contract = self.chain_client.load_contract(
-            contract_name, self.chain_client.to_checksum_address(contract_address)
-        )
-        holder_checksum = self.chain_client.to_checksum_address(holder)
-
-        return contract.functions.balanceOf(holder_checksum).call()
-
-    def load_share_token(self, contract_address: str):
-        if not self.chain_client.is_valid_address(contract_address):
-            raise InvalidTokenAddressException()
-
-        checksum = self.chain_client.to_checksum_address(contract_address)
-        return self.chain_client.load_contract("ShareToken", checksum)
-
-    def deploy_token(self, token: ShareToken) -> dict:
-        identifier = self.token_identifier(token)
-        try:
-            contract_address = self.get_token_by_identifier(identifier)
-        except Exception as exc:
-            logger.error(f"getTokenByIdentifier({identifier}) failed: {exc}")
-            self._abandon_unless_sent(token)
-            raise TokenDeploymentFailedException("Token deployment failed.") from exc
-        if contract_address:
-            logger.info(f"Adopting {token.symbol} already created at {contract_address} for {identifier}")
-            self._warn_on_cap_mismatch(token, contract_address)
-            adopted = True
-        else:
-            adopted = False
-            contract_address = self._resume_share_token(token, identifier) if token.deployment_tx_hash else None
-            if contract_address is None:
-                contract_address = self._create_share_token(token, identifier)
-
-        self._finish_deployment(token, contract_address)
-        return {"contract_address": contract_address, "identifier": identifier, "adopted": adopted}
-
-    def resolve_pending_deployment(self, token: ShareToken) -> Optional[str]:
-        contract_address = self.get_token_by_identifier(self.token_identifier(token))
-        if contract_address:
-            self._warn_on_cap_mismatch(token, contract_address)
-            self._confirm_deployment_transaction(token)
-            self._finish_deployment(token, contract_address)
-        return contract_address
-
-    def _confirm_deployment_transaction(self, token: ShareToken) -> None:
-        tx_record = load_deployment_record(token)
-        if tx_record is None or tx_record.status == TransactionStatus.CONFIRMED:
-            return
-        try:
-            receipt = self.chain_client.get_transaction_receipt(token.deployment_tx_hash)
-        except Exception as exc:
-            logger.warning(f"Could not read the receipt of {token.deployment_tx_hash} for {token.symbol}: {exc}")
-            return
-        if receipt is not None and receipt["status"] == 1:
-            confirm_deployment_record(token, tx_record, receipt)
-
-    @staticmethod
-    def _confirm_record(tx_record: BlockchainTransaction, receipt) -> None:
-        tx_record.mark_confirmed(
-            block_number=receipt["blockNumber"],
-            block_hash=Web3.to_hex(receipt["blockHash"]),
-            gas_used=receipt["gasUsed"],
-        )
-
-    @staticmethod
-    def _abandon_unless_sent(token: ShareToken) -> None:
-        if not token.mark_draft_unless_sent():
-            logger.warning(f"{token.symbol} stays deploying: create transaction {token.deployment_tx_hash} was sent")
-
-    def _warn_on_cap_mismatch(self, token: ShareToken, contract_address: str) -> None:
-        try:
-            authorized, _ = self.share_supply(contract_address)
-        except Exception as exc:
-            logger.warning(f"Could not read authorizedShares of {token.symbol} at {contract_address}: {exc}")
-            return
-        if authorized != int(token.total_supply):
-            logger.warning(
-                f"{token.symbol} at {contract_address} authorises {authorized} shares on chain "
-                f"but {token.total_supply} in the database"
-            )
-
-    def _created_address(self, tx_hash: str, receipt) -> str:
-        events = self.factory_contract.events.ShareTokenCreated().process_receipt(receipt, errors=DISCARD)
-        if not events:
-            raise TokenDeploymentFailedException(f"No ShareTokenCreated event in receipt {tx_hash}")
-        return events[0]["args"]["tokenAddress"]
-
-    def _resume_share_token(self, token: ShareToken, identifier: str) -> Optional[str]:
-        tx_hash = token.deployment_tx_hash
-        tx_record = load_deployment_record(token)
-        try:
-            receipt = self.chain_client.get_transaction_receipt(tx_hash)
-            if receipt is not None and receipt["status"] != 1:
-                logger.warning(f"createShareToken({identifier}) {tx_hash} reverted; a fresh create is safe")
-                if tx_record:
-                    revert_deployment_record(token, tx_record)
-                token.discard_deployment_transaction()
-                return None
-            if receipt is None:
-                receipt = self.chain_client.wait_for_receipt(tx_hash)
-            contract_address = self._created_address(tx_hash, receipt)
-        except Exception as exc:
-            logger.error(f"createShareToken({identifier}) {tx_hash} still unconfirmed, token stays deploying: {exc}")
-            if tx_record:
-                fail_deployment_record(token, tx_record, str(exc))
-            raise TokenDeploymentFailedException("Token deployment is unconfirmed.") from exc
-
-        if tx_record:
-            confirm_deployment_record(token, tx_record, receipt)
-        logger.info(f"ShareToken {token.symbol} created at {contract_address} by resumed {tx_hash}")
-        return contract_address
-
-    def _create_share_token(self, token: ShareToken, identifier: str) -> str:
-        issuer_wallet = primary_wallet_for(token.company)
-        if issuer_wallet is None:
-            self._abandon_unless_sent(token)
-            raise CompanyNotReadyException("Company has no operator wallet or verified owner wallet on Base")
-
-        authorized_shares = int(token.total_supply)
-        tx_record = None
-        try:
-            signer_address = self.chain_client.get_address_from_private_key(self.signer_key)
-            tx_record = create_deployment_record(
-                token, identifier, signer_address, self.factory_address, issuer_wallet.address
-            )
-            create_fn = self.factory_contract.functions.createShareToken(
-                token.name, token.symbol, identifier, authorized_shares, signer_address
-            )
-            tx_hash, _ = self.chain_client.send_transaction(
-                create_fn,
-                self.signer_key,
-                wait_for_receipt=False,
-                on_signed=lambda signed_hash, raw: record_signed_deployment(token, tx_record, signed_hash),
-            )
-            if tx_hash != tx_record.tx_hash:
-                raise TokenDeploymentFailedException("The provider returned a different deployment transaction hash.")
-        except Exception as exc:
-            if tx_record:
-                fail_deployment_record(token, tx_record, str(exc), before_broadcast=True)
-                if tx_record.tx_hash:
-                    logger.warning(f"createShareToken({identifier}) {tx_record.tx_hash} broadcast is unconfirmed")
-                    raise TokenDeploymentFailedException("Token deployment is unconfirmed.") from exc
-            logger.error(f"createShareToken({identifier}) not sent: {exc}")
-            self._abandon_unless_sent(token)
-            raise TokenDeploymentFailedException("Token deployment failed.") from exc
-
-        logger.info(f"createShareToken({identifier}) sent: {tx_hash}")
-
-        try:
-            receipt = self.chain_client.wait_for_receipt(tx_hash)
-            contract_address = self._created_address(tx_hash, receipt)
-        except Exception as exc:
-            logger.error(f"createShareToken({identifier}) unconfirmed, token stays deploying: {exc}")
-            fail_deployment_record(token, tx_record, str(exc))
-            raise TokenDeploymentFailedException("Token deployment is unconfirmed.") from exc
-
-        confirm_deployment_record(token, tx_record, receipt)
-        logger.info(f"ShareToken {token.symbol} created at {contract_address}")
-        return contract_address
-
-    def _finish_deployment(self, token: ShareToken, contract_address: str) -> None:
-        token.mark_deployed(contract_address, SHARE_ASSET_CHAIN)
-        self.bridge_share_asset(token, contract_address)
-        self._approve_for_swap(token)
-
-    def bridge_share_asset(self, token: ShareToken, contract_address: str) -> None:
-        identifier = self.token_identifier(token)
-        try:
-            attested = self.get_token_by_identifier(identifier)
-        except Exception as exc:
-            logger.warning(f"getTokenByIdentifier({identifier}) failed; {token.symbol} has no verified asset: {exc}")
-            return
-        if not attested or attested.lower() != contract_address.lower():
-            logger.warning(NOT_ATTESTED.format(symbol=token.symbol, address=contract_address, identifier=identifier))
-            return
-        try:
-            asset = verified_contract_asset(
-                chain=SHARE_ASSET_CHAIN,
-                contract_address=contract_address,
-                symbol=self._share_asset_symbol(token, contract_address),
-                name=f"{token.company.name} {token.name}",
-                decimals=token.decimals,
-                asset_type=AssetType.TOKENIZED_SECURITY.value,
-            )
-        except Exception as exc:
-            logger.error(f"Could not bridge {token.symbol} at {contract_address} into an asset: {exc}")
-            return
-        logger.info(f"{token.symbol} at {contract_address} is asset {asset.symbol} on {SHARE_ASSET_CHAIN}")
-
-    @staticmethod
-    def _share_asset_symbol(token: ShareToken, contract_address: str) -> str:
-        bare = token.symbol
-        if free_symbol(bare, contract_address) == bare:
-            return bare
-        return f"{bare}.{token.company.acn}" if token.company.acn else bare
-
-    @staticmethod
-    def _approve_for_swap(token: ShareToken) -> None:
-        from tokens.services import AtomicSwapService
-
-        try:
-            approval_tx = AtomicSwapService().approve_share_token(token.contract_address)
-            if approval_tx:
-                logger.info(f"Approved {token.symbol} for AtomicSwap: {approval_tx}")
-        except Exception as exc:
-            logger.warning(f"Could not approve {token.symbol} for AtomicSwap: {exc}")
-
-    def get_token_by_identifier(self, identifier: str) -> Optional[str]:
-        address = self.factory_contract.functions.getTokenByIdentifier(identifier).call()
-        return None if address == ZERO_ADDRESS else address
-
-    @staticmethod
-    def create_issuance_request(
-        token, recipient: str, amount: int, user, reason: str = "", issuance_type: str = "additional"
-    ) -> ShareIssuanceRequest:
-        if token.status != "deployed":
-            raise InvalidTokenStateException("Only deployed tokens can issue shares.")
-
-        if not token.contract_address:
-            raise InvalidTokenStateException("Token has no contract address.")
-
-        if not recipient or not Web3.is_address(recipient):
-            raise InvalidRecipientAddressException()
-
-        if amount <= 0:
-            raise ValidationError({"amount": "Amount must be a positive integer."})
-
-        issuance_request = ShareIssuanceRequest.objects.create(
-            token=token,
-            recipient_address=recipient,
-            amount=amount,
-            issuance_type=issuance_type,
-            reason=reason,
-            submitted_by=user,
-            submitted_at=timezone.now(),
-        )
-
-        issuance_request.dilution_percentage = dilution_for(issuance_request)
-        issuance_request.save(update_fields=["dilution_percentage", "updated_at"])
-
-        logger.info(
-            f"User {user.pk} created issuance request {issuance_request.uuid}: "
-            f"{amount} {token.symbol} to {recipient}"
-        )
-
-        return issuance_request
-
-    def deployment_block(self, tx_hash: str) -> int:
-        return self.chain_client.w3.eth.get_transaction_receipt(tx_hash)["blockNumber"]
-
-    def head_block(self) -> int:
-        return self.chain_client.w3.eth.block_number
-
-    def finalized_block(self) -> int:
-        number = self.chain_client.w3.eth.get_block("finalized")["number"]
-        if not isinstance(number, int) or isinstance(number, bool) or number < 0:
-            raise ValueError("The provider did not return a finalized block number.")
-        return number
-
-    def _transfer_logs(self, contract_address: str, from_block: int, to_block: int, window: int):
-        if window <= 0:
-            raise ValueError("Transfer-log window must be positive.")
-        token_contract = self.load_share_token(contract_address)
-        for start in range(from_block, to_block + 1, window):
-            end = min(start + window - 1, to_block)
-            yield from token_contract.events.Transfer().get_logs(from_block=start, to_block=end)
-
-    def transfer_entries(self, contract_address: str, from_block: int, to_block: int, window: int = LOG_WINDOW):
-        entries = [
-            {
-                "from": entry["args"]["from"],
-                "to": entry["args"]["to"],
-                "value": int(entry["args"]["value"]),
-                "block_number": int(entry["blockNumber"]),
-                "log_index": int(entry["logIndex"]),
-            }
-            for entry in self._transfer_logs(contract_address, from_block, to_block, window)
-        ]
-        return sorted(entries, key=lambda item: (item["block_number"], item["log_index"]))
-
-    def block_date(self, block_number: int):
-        stamp = self.chain_client.w3.eth.get_block(block_number)["timestamp"]
-        return datetime.fromtimestamp(int(stamp), tz=dt_timezone.utc).date()
-
-    def transfer_participants(self, contract_address: str, from_block: int, window: int = LOG_WINDOW) -> set:
-        return {
-            address
-            for entry in self._transfer_logs(contract_address, from_block, self.head_block(), window)
-            for address in (entry["args"]["from"], entry["args"]["to"])
-        }
-
-    def share_supply(self, contract_address: str) -> tuple[int, int]:
-        token_contract = self.load_share_token(contract_address)
-        return token_contract.functions.authorizedShares().call(), token_contract.functions.totalSupply().call()
-
-    def is_recipient_whitelisted(self, address: str) -> bool:
-        from whitelist.services import WhitelistService
-
-        return WhitelistService().is_whitelisted(address)
-
-    def execute_request(self, request, executed_by=None) -> dict:
-        token = request.token
-        if not request.can_be_executed:
-            raise InvalidTokenStateException(f"Cannot execute request with status '{request.get_status_display()}'")
-        if not token.contract_address or token.status not in (ShareTokenStatus.DEPLOYED, ShareTokenStatus.PAUSED):
-            request.mark_failed("Token is not deployed on blockchain")
-            raise InvalidTokenStateException("Token is not deployed on blockchain")
-
-        if isinstance(request, CapitalIncreaseRequest):
-            return self._execute_capital_increase(request)
-        return self._execute_issuance(request, executed_by)
-
-    @staticmethod
-    def issuance_key(request: ShareIssuanceRequest) -> str:
-        return f"{ISSUANCE_KEY_PREFIX}{request.uuid}"
-
-    @classmethod
-    def broadcast_mint(cls, request: ShareIssuanceRequest) -> Optional[ShareIssuance]:
-        return ShareIssuance.objects.broadcast().filter(idempotency_key=cls.issuance_key(request)).first()
-
-    @staticmethod
-    def _start_execution(request) -> None:
-        try:
-            request.mark_executing()
-        except ValueError as exc:
-            logger.error(f"Request {request.uuid} could not be claimed for execution: {exc}")
-            raise InvalidTokenStateException(
-                f"Cannot execute request with status '{request.get_status_display()}'"
-            ) from exc
-
-    def _refuse_if_paused(self, request: ShareIssuanceRequest) -> None:
-        token = request.token
-        if token.status == ShareTokenStatus.PAUSED or self.read_paused(token):
-            request.mark_refused(TOKEN_PAUSED)
-            raise IssuanceRefusedException(TOKEN_PAUSED)
-
-    def _execute_issuance(self, request: ShareIssuanceRequest, executed_by) -> dict:
-        token = request.token
-        recipient = self._validate_address(request.recipient_address)
-        issuance = ShareIssuance.objects.filter(idempotency_key=self.issuance_key(request)).first()
-        if issuance is not None and issuance.tx_hash:
-            result = self._resume_issuance(request, issuance)
-            if result is not None:
-                return result
-
-        self._refuse_if_paused(request)
-        if not self.is_recipient_whitelisted(recipient):
-            request.mark_refused(NOT_WHITELISTED)
-            raise IssuanceRefusedException(NOT_WHITELISTED)
-        authorized, issued = self.share_supply(token.contract_address)
-        if request.amount > authorized - issued:
-            request.mark_refused(EXCEEDS_AUTHORIZED)
-            raise IssuanceRefusedException(EXCEEDS_AUTHORIZED)
-
-        stamped = identity_at_allotment(recipient, chain=SHARE_ASSET_CHAIN)
-        issuance, attempt_id = start_mint_attempt(
-            request,
-            issuance,
-            token=token,
-            recipient_address=recipient,
-            recipient_name=stamped.name or request.recipient_name,
-            recipient_residential_address=stamped.residential_address,
-            identity_stamped_at=timezone.now() if stamped.name else None,
-            amount=str(request.amount),
-            issuance_type=request.issuance_type,
-            reason=f"Issuance request: {request.reason}",
-            initiated_by=executed_by or request.reviewed_by,
-            idempotency_key=self.issuance_key(request),
-        )
-        request.refresh_from_db(fields=["status", "updated_at"])
-        logger.info(f"Minting {request.amount} {token.symbol} to {recipient}")
-
-        try:
-            result = self._mint_to(
-                token.contract_address,
-                recipient,
-                request.amount,
-                on_signed=lambda tx_hash, raw: record_signed_mint(request, issuance, attempt_id, tx_hash, raw),
-            )
-        except Exception as exc:
-            logger.error(f"Issuance failed for request {request.uuid} ({type(exc).__name__})")
-            detail = mint_failure_detail(exc)
-            fail_mint_attempt(request, issuance, attempt_id, detail, ISSUANCE_EXECUTION_FAILED)
-            if detail != str(exc):
-                raise BaseChainTransactionError(detail) from None
-            raise
-
-        self._complete_issuance(request, issuance, result)
-        return result
-
-    def _resume_issuance(self, request: ShareIssuanceRequest, issuance: ShareIssuance) -> Optional[dict]:
-        tx_hash = issuance.tx_hash
-        if issuance.status == IssuanceStatus.COMPLETED:
-            logger.info(f"mint {tx_hash} for request {request.uuid} already completed; nothing to send or wait on")
-            request.refresh_from_db(fields=["status", "executed_issuance", "executed_at"])
-            if request.status != RequestStatus.EXECUTED:
-                request.mark_executed(issuance)
-            return {"tx_hash": tx_hash, "block_number": issuance.block_number, "gas_used": issuance.gas_used}
-        try:
-            receipt = self.chain_client.get_transaction_receipt(tx_hash)
-            if receipt is not None and receipt["status"] != 1:
-                logger.warning(f"mint {tx_hash} for request {request.uuid} reverted; a fresh mint is safe")
-                mark_mint_reverted(request, issuance, tx_hash)
-                return None
-            if receipt is None:
-                self._rebroadcast_mint(issuance)
-                receipt = self.chain_client.wait_for_receipt(tx_hash)
-        except Exception as exc:
-            logger.error(f"mint {tx_hash} for request {request.uuid} still unconfirmed ({type(exc).__name__})")
-            detail = mint_failure_detail(exc)
-            fail_recorded_mint(request, issuance, tx_hash, detail, ISSUANCE_EXECUTION_FAILED)
-            if detail != str(exc):
-                raise BaseChainTransactionError(detail) from None
-            raise
-
-        logger.info(f"mint {tx_hash} for request {request.uuid} already mined; completing without sending")
-        result = self._tx_result(tx_hash, receipt)
-        self._complete_issuance(request, issuance, result)
-        return result
-
-    def _rebroadcast_mint(self, issuance: ShareIssuance) -> None:
-        raw_transaction = recorded_mint_payload(issuance)
-        if raw_transaction is None:
-            return
-        try:
-            answered_hash = self.chain_client.send_raw_transaction(raw_transaction)
-        except Exception as exc:
-            logger.warning(f"Mint replay remains unresolved for issuance {issuance.pk} ({type(exc).__name__})")
-            return
-        if answered_hash != issuance.tx_hash:
-            raise InvalidTokenStateException("The node returned a different hash for the recorded mint.")
-
-    @staticmethod
-    def _complete_issuance(request: ShareIssuanceRequest, issuance: ShareIssuance, result: dict) -> None:
-        with atomic():
-            current_request = ShareIssuanceRequest.objects.select_for_update().get(pk=request.pk)
-            current = ShareIssuance.objects.select_for_update().get(pk=issuance.pk)
-            if current.tx_hash != result["tx_hash"]:
-                raise InvalidTokenStateException("The issuance now identifies a different mint transaction.")
-            if current.status != IssuanceStatus.COMPLETED:
-                current.mark_completed(
-                    tx_hash=result["tx_hash"], block_number=result["block_number"], gas_used=result["gas_used"]
-                )
-            if current_request.status != RequestStatus.EXECUTED:
-                current_request.mark_executed(current)
-        issuance.refresh_from_db()
-        request.refresh_from_db()
-        ShareTokenService._seed_recipient_holding(request.token, issuance.recipient_address)
-        logger.info(f"Issuance executed for {request.token.symbol}: {result['tx_hash']}")
-
-    @staticmethod
-    def _seed_recipient_holding(token: ShareToken, recipient_address: str) -> None:
-        from wallets.services.holdings import sync_holding
-        from whitelist.models import WhitelistEntry
-
-        try:
-            matches = list(
-                WhitelistEntry.objects.filter_by_address(recipient_address)
-                .select_related("wallet")
-                .order_by("uuid")[:2]
-            )
-            entry = matches[0] if len(matches) == 1 else None
-            if entry is None or entry.wallet is None:
-                logger.info(f"{recipient_address} is not an investor wallet; no {token.symbol} holding written")
-                return
-            asset = Asset.get_by_chain_and_contract(SHARE_ASSET_CHAIN, token.contract_address)
-            if asset is None:
-                logger.warning(f"{token.symbol} has no asset on {SHARE_ASSET_CHAIN}; no holding written")
-                return
-            sync_holding(entry.wallet, asset)
-        except Exception as exc:
-            logger.error(f"Could not record the {token.symbol} holding of {recipient_address}: {exc}")
-
-    @classmethod
-    def unnamed_mint(cls, request: ShareIssuanceRequest) -> Optional[ShareIssuance]:
-        recorded = ShareIssuance.objects.filter(idempotency_key=cls.issuance_key(request)).first()
-        if recorded is None or recorded.tx_hash or recorded.mint_journal is not None:
+def _resume_issuance(request: ShareIssuanceRequest, issuance: ShareIssuance) -> Optional[dict]:
+    tx_hash = issuance.tx_hash
+    if issuance.status == IssuanceStatus.COMPLETED:
+        logger.info(f"mint {tx_hash} for request {request.uuid} already completed; nothing to send or wait on")
+        request.refresh_from_db(fields=["status", "executed_issuance", "executed_at"])
+        if request.status != RequestStatus.EXECUTED:
+            request.mark_executed(issuance)
+        return {"tx_hash": tx_hash, "block_number": issuance.block_number, "gas_used": issuance.gas_used}
+    try:
+        receipt = get_base_chain_client().get_transaction_receipt(tx_hash)
+        if receipt is not None and receipt["status"] != 1:
+            logger.warning(f"mint {tx_hash} for request {request.uuid} reverted; a fresh mint is safe")
+            mark_mint_reverted(request, issuance, tx_hash)
             return None
-        if request.updated_at > timezone.now() - UNNAMED_MINT_GRACE:
-            return None
-        return recorded
-
-    @atomic()
-    def name_the_mint(self, request: ShareIssuanceRequest, tx_hash: str) -> ShareIssuance:
-        issuance = self.unnamed_mint(request)
-        if issuance is None:
-            raise InvalidTokenStateException("This request has no unnamed mint to attach a transaction to.")
-        issuance.mark_processing(tx_hash=tx_hash)
-        logger.info(f"Request {request.uuid} had its mint named {tx_hash} by an operator")
-        return issuance
-
-    def resolve_executing_issuance(self, request: ShareIssuanceRequest) -> Optional[str]:
-        recorded = ShareIssuance.objects.filter(idempotency_key=self.issuance_key(request)).first()
-        if recorded is None:
-            logger.warning(f"Request {request.uuid} was claimed and no mint was recorded; releasing the claim")
-            return "released" if release_unsigned_mint(request, CLAIMED_BEFORE_RECORDED) else None
-        if not recorded.tx_hash:
-            if release_unsigned_mint(request, STOPPED_BEFORE_SIGNING):
-                return "released"
-            logger.warning(
-                f"Request {request.uuid} recorded a mint it never named, so the send may have gone out; "
-                f"left for the operator"
-            )
-            return None
-        issuance = recorded
-        tx_hash = issuance.tx_hash
-        receipt = self.chain_client.get_transaction_receipt(tx_hash)
         if receipt is None:
-            self._rebroadcast_mint(issuance)
-            if issuance.mint_journal is None:
-                return None
-            receipt = self.chain_client.get_transaction_receipt(tx_hash)
-            if receipt is None:
-                return None
-        if receipt["status"] != 1:
-            logger.warning(f"mint {tx_hash} for request {request.uuid} reverted; the request can be retried")
-            mark_mint_reverted(request, issuance, tx_hash, fail_request=True)
-            return "reverted"
-        logger.info(f"mint {tx_hash} for request {request.uuid} mined while the worker was gone; completing")
-        self._complete_issuance(request, issuance, self._tx_result(tx_hash, receipt))
-        return "executed"
+            _rebroadcast_mint(issuance)
+            receipt = get_base_chain_client().wait_for_receipt(tx_hash)
+    except Exception as exc:
+        logger.error(f"mint {tx_hash} for request {request.uuid} still unconfirmed ({type(exc).__name__})")
+        detail = mint_failure_detail(exc)
+        fail_recorded_mint(request, issuance, tx_hash, detail, ISSUANCE_EXECUTION_FAILED)
+        if detail != str(exc):
+            raise BaseChainTransactionError(detail) from None
+        raise
 
-    def _execute_capital_increase(self, request: CapitalIncreaseRequest) -> dict:
-        token = request.token
-        refused = False
-        superseded = ""
-        crowded_by = ""
-        failure = None
-        result = None
-        with atomic():
-            token = ShareToken.objects.select_for_update().get(pk=token.pk)
-            request.refresh_from_db(fields=["status", "new_authorized_total"])
-            request.token = token
-            if not request.can_be_executed:
-                raise InvalidTokenStateException(f"Cannot execute request with status '{request.get_status_display()}'")
-            superseded = self._supersede_capital_increase_if_overtaken(request)
-            crowding = (
-                None
-                if superseded
-                else CapitalIncreaseRequest.objects.in_flight().filter(token=token).exclude(pk=request.pk).first()
+    logger.info(f"mint {tx_hash} for request {request.uuid} already mined; completing without sending")
+    result = _tx_result(tx_hash, receipt)
+    _complete_issuance(request, issuance, result)
+    return result
+
+
+def _rebroadcast_mint(issuance: ShareIssuance) -> None:
+    raw_transaction = recorded_mint_payload(issuance)
+    if raw_transaction is None:
+        return
+    try:
+        answered_hash = get_base_chain_client().send_raw_transaction(raw_transaction)
+    except Exception as exc:
+        logger.warning(f"Mint replay remains unresolved for issuance {issuance.pk} ({type(exc).__name__})")
+        return
+    if answered_hash != issuance.tx_hash:
+        raise InvalidTokenStateException("The node returned a different hash for the recorded mint.")
+
+
+def _complete_issuance(request: ShareIssuanceRequest, issuance: ShareIssuance, result: dict) -> None:
+    with atomic():
+        current_request = ShareIssuanceRequest.objects.select_for_update().get(pk=request.pk)
+        current = ShareIssuance.objects.select_for_update().get(pk=issuance.pk)
+        if current.tx_hash != result["tx_hash"]:
+            raise InvalidTokenStateException("The issuance now identifies a different mint transaction.")
+        if current.status != IssuanceStatus.COMPLETED:
+            current.mark_completed(
+                tx_hash=result["tx_hash"], block_number=result["block_number"], gas_used=result["gas_used"]
             )
-            if crowding is not None:
-                crowded_by = ANOTHER_INCREASE_IN_FLIGHT.format(
-                    symbol=token.symbol, status=crowding.get_status_display().lower()
-                )
-                request.mark_refused(crowded_by)
-            tx_record = None if crowded_by or superseded else self._recorded_increase(request)
-            if tx_record is not None:
-                try:
-                    result = self._resume_capital_increase(request, tx_record)
-                except InvalidTokenStateException:
-                    raise
-                except Exception as exc:
-                    failure = exc
-            if failure is None and result is None and not crowded_by and not superseded:
-                authorized, _ = self.share_supply(token.contract_address)
-                token.refresh_from_db(fields=["total_supply"])
-                if authorized == request.new_authorized_total and int(token.total_supply) < authorized:
+        if current_request.status != RequestStatus.EXECUTED:
+            current_request.mark_executed(current)
+    issuance.refresh_from_db()
+    request.refresh_from_db()
+    _seed_recipient_holding(request.token, issuance.recipient_address)
+    logger.info(f"Issuance executed for {request.token.symbol}: {result['tx_hash']}")
 
-                    logger.warning(
-                        f"{token.symbol} authorized shares are already {authorized} on chain with the DB cap at "
-                        f"{token.total_supply}; adopting the chain cap for request {request.uuid} without sending"
-                    )
-                    result = {
-                        "tx_hash": None,
-                        "block_number": None,
-                        "gas_used": None,
-                        "new_authorized_total": request.new_authorized_total,
-                        "adopted": True,
-                    }
-                refused = result is None and request.new_authorized_total <= authorized
-                if refused:
-                    request.mark_refused(CAP_NOT_RAISED)
-                elif result is None:
-                    self._start_execution(request)
-                    logger.info(
-                        f"Raising {token.symbol} authorized shares from {authorized} to {request.new_authorized_total}"
-                    )
-                    try:
-                        result = self.increase_authorized_shares(request)
-                    except Exception as exc:
-                        failure = exc
-            if failure is not None:
-                logger.error(f"Capital increase {request.uuid} failed: {failure}")
-                request.mark_failed(CAPITAL_INCREASE_EXECUTION_FAILED)
-            elif result is not None:
-                self._complete_capital_increase(request, result)
 
-        if superseded:
-            raise IssuanceRefusedException(superseded)
-        if crowded_by:
-            raise IssuanceRefusedException(crowded_by)
-        if refused:
-            raise IssuanceRefusedException(CAP_NOT_RAISED)
-        if failure is not None:
-            raise failure
-        return result
+def _seed_recipient_holding(token: ShareToken, recipient_address: str) -> None:
+    from wallets.services.holdings import sync_holding
+    from whitelist.models import WhitelistEntry
 
-    @staticmethod
-    def _supersede_capital_increase_if_overtaken(request: CapitalIncreaseRequest) -> str:
-        current = int(request.token.total_supply)
-        if request.new_authorized_total > current:
-            return ""
-        overtaking = (
-            CapitalIncreaseRequest.objects.filter(
-                token=request.token, status=RequestStatus.EXECUTED, new_authorized_total=current
-            )
-            .exclude(pk=request.pk)
-            .order_by("-executed_at", "-created_at", "-uuid")
-            .first()
+    try:
+        matches = list(
+            WhitelistEntry.objects.filter_by_address(recipient_address).select_related("wallet").order_by("uuid")[:2]
         )
-        source = (
-            f"The current cap was recorded by capital-increase request {overtaking.uuid}."
-            if overtaking is not None
-            else "No completed request identifies the current cap."
+        entry = matches[0] if len(matches) == 1 else None
+        if entry is None or entry.wallet is None:
+            logger.info(f"{recipient_address} is not an investor wallet; no {token.symbol} holding written")
+            return
+        asset = Asset.get_by_chain_and_contract(SHARE_ASSET_CHAIN, token.contract_address)
+        if asset is None:
+            logger.warning(f"{token.symbol} has no asset on {SHARE_ASSET_CHAIN}; no holding written")
+            return
+        sync_holding(entry.wallet, asset)
+    except Exception as exc:
+        logger.error(f"Could not record the {token.symbol} holding of {recipient_address}: {exc}")
+
+
+def unnamed_mint(request: ShareIssuanceRequest) -> Optional[ShareIssuance]:
+    recorded = ShareIssuance.objects.filter(idempotency_key=issuance_key(request)).first()
+    if recorded is None or recorded.tx_hash or recorded.mint_journal is not None:
+        return None
+    if request.updated_at > timezone.now() - UNNAMED_MINT_GRACE:
+        return None
+    return recorded
+
+
+@atomic()
+def name_the_mint(request: ShareIssuanceRequest, tx_hash: str) -> ShareIssuance:
+    issuance = unnamed_mint(request)
+    if issuance is None:
+        raise InvalidTokenStateException("This request has no unnamed mint to attach a transaction to.")
+    issuance.mark_processing(tx_hash=tx_hash)
+    logger.info(f"Request {request.uuid} had its mint named {tx_hash} by an operator")
+    return issuance
+
+
+def resolve_executing_issuance(request: ShareIssuanceRequest) -> Optional[str]:
+    recorded = ShareIssuance.objects.filter(idempotency_key=issuance_key(request)).first()
+    if recorded is None:
+        logger.warning(f"Request {request.uuid} was claimed and no mint was recorded; releasing the claim")
+        return "released" if release_unsigned_mint(request, CLAIMED_BEFORE_RECORDED) else None
+    if not recorded.tx_hash:
+        if release_unsigned_mint(request, STOPPED_BEFORE_SIGNING):
+            return "released"
+        logger.warning(
+            f"Request {request.uuid} recorded a mint it never named, so the send may have gone out; "
+            f"left for the operator"
         )
-        reason = (
-            f"Requested total {request.new_authorized_total} does not exceed the current authorized total {current}. "
-            f"{source} Submit a new capital-increase request for a higher total."
-        )
-        request.mark_superseded(reason)
-        logger.warning(f"Capital increase {request.uuid} superseded: {reason}")
-        return reason
-
-    @staticmethod
-    def _recorded_increase(request: CapitalIncreaseRequest) -> Optional[BlockchainTransaction]:
-        return (
-            BlockchainTransaction.objects.filter(
-                related_model=CapitalIncreaseRequest._meta.label,
-                related_uuid=request.uuid,
-                function_name="setAuthorizedShares",
-                status__in=(TransactionStatus.SUBMITTED, TransactionStatus.FAILED, TransactionStatus.CONFIRMED),
-            )
-            .exclude(tx_hash__isnull=True)
-            .exclude(tx_hash="")
-            .order_by("-created_at")
-            .first()
-        )
-
-    def _resume_capital_increase(
-        self, request: CapitalIncreaseRequest, tx_record: BlockchainTransaction
-    ) -> Optional[dict]:
-        tx_hash = tx_record.tx_hash
-        try:
-            receipt = self.chain_client.get_transaction_receipt(tx_hash)
-            if receipt is not None and receipt["status"] != 1:
-                logger.warning(
-                    f"setAuthorizedShares {tx_hash} for request {request.uuid} reverted; a fresh call is safe"
-                )
-                tx_record.mark_reverted(f"Transaction reverted: {tx_hash}")
-                return None
-            if receipt is None:
-                self._start_execution(request)
-                receipt = self.chain_client.wait_for_receipt(tx_hash)
-        except InvalidTokenStateException:
-            raise
-        except Exception as exc:
-            logger.error(f"setAuthorizedShares {tx_hash} for request {request.uuid} still unconfirmed: {exc}")
-            tx_record.mark_failed(str(exc))
-            raise TokenDeploymentFailedException("The capital increase is unconfirmed.") from exc
-
-        self._confirm_record(tx_record, receipt)
-        logger.info(
-            f"setAuthorizedShares {tx_hash} for request {request.uuid} already mined; completing without sending"
-        )
-        return {**self._tx_result(tx_hash, receipt), "new_authorized_total": request.new_authorized_total}
-
-    @staticmethod
-    def _complete_capital_increase(request: CapitalIncreaseRequest, result: dict) -> None:
-        token = request.token
-        token.refresh_from_db(fields=["total_supply"])
-        token.total_supply = str(request.new_authorized_total)
-        token.save(update_fields=["total_supply", "updated_at"])
-        request.mark_executed()
-        logger.info(f"Capital increase executed for {token.symbol}: {result['tx_hash'] or 'adopted from chain'}")
-
-    def resolve_executing_capital_increase(self, request: CapitalIncreaseRequest) -> Optional[str]:
-        with atomic():
-            token = ShareToken.objects.select_for_update().get(pk=request.token_id)
-            request.refresh_from_db(fields=["status", "new_authorized_total"])
-            request.token = token
-            if request.status != RequestStatus.EXECUTING:
-                logger.info(f"Request {request.uuid} was completed by another worker or is no longer executing")
-                return None
-            if self._supersede_capital_increase_if_overtaken(request):
-                return "superseded"
-        tx_record = self._recorded_increase(request)
-        if tx_record is None:
-            logger.warning(
-                f"Request {request.uuid} is executing with no setAuthorizedShares recorded; left for the operator"
-            )
+        return None
+    issuance = recorded
+    tx_hash = issuance.tx_hash
+    receipt = get_base_chain_client().get_transaction_receipt(tx_hash)
+    if receipt is None:
+        _rebroadcast_mint(issuance)
+        if issuance.mint_journal is None:
             return None
-        tx_hash = tx_record.tx_hash
-        receipt = self.chain_client.get_transaction_receipt(tx_hash)
+        receipt = get_base_chain_client().get_transaction_receipt(tx_hash)
         if receipt is None:
             return None
-        result = {**self._tx_result(tx_hash, receipt), "new_authorized_total": request.new_authorized_total}
-        with atomic():
-            token = ShareToken.objects.select_for_update().get(pk=request.token_id)
-            request.refresh_from_db(fields=["status", "new_authorized_total"])
-            request.token = token
-            if request.status != RequestStatus.EXECUTING:
-                logger.info(f"Request {request.uuid} was completed by another worker or is no longer executing")
-                return None
-            if receipt["status"] != 1:
-                tx_record.mark_reverted(f"Transaction reverted: {tx_hash}")
-                if self._supersede_capital_increase_if_overtaken(request):
-                    return "superseded"
-                request.mark_failed(f"Transaction reverted: {tx_hash}")
-                return "reverted"
-            self._confirm_record(tx_record, receipt)
-            if self._supersede_capital_increase_if_overtaken(request):
-                return "superseded"
-            logger.info(
-                f"setAuthorizedShares {tx_hash} for request {request.uuid} mined while the worker was gone; completing"
-            )
-            self._complete_capital_increase(request, result)
-        return "executed"
+    if receipt["status"] != 1:
+        logger.warning(f"mint {tx_hash} for request {request.uuid} reverted; the request can be retried")
+        mark_mint_reverted(request, issuance, tx_hash, fail_request=True)
+        return "reverted"
+    logger.info(f"mint {tx_hash} for request {request.uuid} mined while the worker was gone; completing")
+    _complete_issuance(request, issuance, _tx_result(tx_hash, receipt))
+    return "executed"
 
-    def increase_authorized_shares(self, request: CapitalIncreaseRequest) -> dict:
-        token = request.token
-        new_authorized_total = request.new_authorized_total
-        tx_record = None
-        try:
-            signer_address = self.chain_client.get_address_from_private_key(self.signer_key)
-            tx_record = BlockchainTransaction.objects.create(
-                tx_type=TransactionType.OTHER,
-                status=TransactionStatus.PENDING,
-                from_address=signer_address,
-                to_address=token.contract_address,
-                function_name="setAuthorizedShares",
-                function_args={"newAuthorizedShares": str(new_authorized_total)},
-                related_model=CapitalIncreaseRequest._meta.label,
-                related_uuid=request.uuid,
-            )
-            token_contract = self.load_share_token(token.contract_address)
-            set_auth_fn = token_contract.functions.setAuthorizedShares(new_authorized_total)
-            tx_hash, _ = self.chain_client.send_transaction(set_auth_fn, self.signer_key, wait_for_receipt=False)
-        except Exception as exc:
-            logger.error(f"setAuthorizedShares({new_authorized_total}) not sent: {exc}")
-            if tx_record:
-                tx_record.mark_failed(str(exc))
-            raise TokenDeploymentFailedException("The capital increase failed.") from exc
 
-        tx_record.mark_submitted(tx_hash)
-        logger.info(f"setAuthorizedShares({new_authorized_total}) sent for {token.symbol}: {tx_hash}")
-        try:
-            receipt = self.chain_client.wait_for_receipt(tx_hash)
-        except Exception as exc:
-            logger.error(f"setAuthorizedShares({new_authorized_total}) {tx_hash} unconfirmed: {exc}")
-            tx_record.mark_failed(str(exc))
-            raise TokenDeploymentFailedException("The capital increase is unconfirmed.") from exc
-
-        self._confirm_record(tx_record, receipt)
-        return {**self._tx_result(tx_hash, receipt), "new_authorized_total": new_authorized_total}
-
-    @staticmethod
-    def require_pausable(token: ShareToken, paused: bool) -> None:
-        if paused and token.status != ShareTokenStatus.DEPLOYED:
-            raise InvalidTokenStateException("Only deployed tokens can be paused.")
-        if not paused and token.status not in (ShareTokenStatus.PAUSED, ShareTokenStatus.DEPLOYED):
-            raise InvalidTokenStateException("Only paused tokens can be unpaused.")
-
-    def pause(self, token: ShareToken) -> None:
-        self.require_pausable(token, True)
-        self._set_paused(token, True)
-
-    def unpause(self, token: ShareToken) -> None:
-        self.require_pausable(token, False)
-        if token.status == ShareTokenStatus.PAUSED or self.read_paused(token):
-            self._set_paused(token, False)
-            return
+def require_pausable(token: ShareToken, paused: bool) -> None:
+    if paused and token.status != ShareTokenStatus.DEPLOYED:
+        raise InvalidTokenStateException("Only deployed tokens can be paused.")
+    if not paused and token.status not in (ShareTokenStatus.PAUSED, ShareTokenStatus.DEPLOYED):
         raise InvalidTokenStateException("Only paused tokens can be unpaused.")
 
-    def read_paused(self, token: ShareToken) -> bool:
+
+def pause(token: ShareToken) -> None:
+    require_pausable(token, True)
+    _set_paused(token, True)
+
+
+def unpause(token: ShareToken) -> None:
+    require_pausable(token, False)
+    if token.status == ShareTokenStatus.PAUSED or read_paused(token):
+        _set_paused(token, False)
+        return
+    raise InvalidTokenStateException("Only paused tokens can be unpaused.")
+
+
+def read_paused(token: ShareToken) -> bool:
+    try:
+        return load_share_token(token.contract_address).functions.paused().call()
+    except BaseChainConnectionError as exc:
+        raise TokenPauseFailedException("The chain is unreachable.") from exc
+    except Exception as exc:
+        logger.error(f"paused() could not be read for {token.symbol}: {exc}")
+        raise TokenPauseFailedException("The token's paused state could not be read.") from exc
+
+
+def _set_paused(token: ShareToken, paused: bool) -> None:
+    function_name = "pause" if paused else "unpause"
+    if read_paused(token) == paused:
+        logger.warning(f"{token.symbol} is already {function_name}d on chain; reconciling the database status")
+    else:
         try:
-            return self.load_share_token(token.contract_address).functions.paused().call()
+            contract_function = getattr(load_share_token(token.contract_address).functions, function_name)()
+            tx_hash, _ = get_base_chain_client().send_transaction(
+                contract_function, signer_key(), wait_for_receipt=True
+            )
+            logger.info(f"{function_name}() confirmed for {token.symbol}: {tx_hash}")
         except Exception as exc:
-            logger.error(f"paused() could not be read for {token.symbol}: {exc}")
-            raise TokenPauseFailedException("The token's paused state could not be read.") from exc
+            logger.error(f"{function_name}() failed for {token.symbol}: {exc}")
+            if not _paused_state_is(token, paused):
+                raise TokenPauseFailedException(f"Token {function_name} failed.") from exc
+            logger.warning(f"{function_name}() for {token.symbol} failed after the call mined; reconciling")
+    if paused:
+        token.mark_paused()
+    else:
+        token.mark_unpaused()
 
-    def _set_paused(self, token: ShareToken, paused: bool) -> None:
-        function_name = "pause" if paused else "unpause"
-        if self.read_paused(token) == paused:
-            logger.warning(f"{token.symbol} is already {function_name}d on chain; reconciling the database status")
-        else:
-            try:
-                contract_function = getattr(self.load_share_token(token.contract_address).functions, function_name)()
-                tx_hash, _ = self.chain_client.send_transaction(
-                    contract_function, self.signer_key, wait_for_receipt=True
+
+def _paused_state_is(token: ShareToken, paused: bool) -> bool:
+    try:
+        return read_paused(token) == paused
+    except TokenPauseFailedException:
+        return False
+
+
+def get_token_balance(contract_address: str, holder: str) -> int:
+    try:
+        return _get_balance("ShareToken", contract_address, holder)
+    except InvalidHolderAddressException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting balance: {e}")
+        raise TokenBalanceRetrievalException() from e
+
+
+def get_wallet_token_balances(wallet_address: str) -> dict:
+    wallet_checksum = _validate_address(wallet_address)
+
+    balances = []
+
+    tokens = ShareToken.objects.deployed_with_contract()
+    for token in tokens:
+        try:
+            balance = get_token_balance(token.contract_address, wallet_checksum)
+            if balance > 0:
+                balances.append(
+                    {
+                        "token": str(token.uuid),
+                        "symbol": token.symbol,
+                        "name": token.name,
+                        "balance": str(balance),
+                        "contractAddress": token.contract_address,
+                        "decimals": 0,
+                        "type": "share_token",
+                    }
                 )
-                logger.info(f"{function_name}() confirmed for {token.symbol}: {tx_hash}")
-            except Exception as exc:
-                logger.error(f"{function_name}() failed for {token.symbol}: {exc}")
-                if not self._paused_state_is(token, paused):
-                    raise TokenPauseFailedException(f"Token {function_name} failed.") from exc
-                logger.warning(f"{function_name}() for {token.symbol} failed after the call mined; reconciling")
-        if paused:
-            token.mark_paused()
-        else:
-            token.mark_unpaused()
-
-    def _paused_state_is(self, token: ShareToken, paused: bool) -> bool:
-        try:
-            return self.read_paused(token) == paused
-        except TokenPauseFailedException:
-            return False
-
-    def get_token_balance(self, contract_address: str, holder: str) -> int:
-        try:
-            return self._get_balance("ShareToken", contract_address, holder)
-        except InvalidHolderAddressException:
-            raise
         except Exception as e:
-            logger.error(f"Error getting balance: {e}")
-            raise TokenBalanceRetrievalException() from e
+            logger.error(f"Failed to get balance for {token.symbol}: {e}")
+            raise WalletBalancesUnavailableException(
+                f"{WalletBalancesUnavailableException.default_detail} The balance of {token.symbol} could "
+                f"not be read."
+            ) from e
 
-    def get_wallet_token_balances(self, wallet_address: str) -> dict:
-        wallet_checksum = self._validate_address(wallet_address)
+    for deployment in settlement_deployments():
+        asset = deployment.asset
+        try:
+            balance = _get_balance("AUDY", deployment.contract_address, wallet_checksum)
+            if balance > 0:
+                balances.append(
+                    {
+                        "token": str(asset.uuid),
+                        "symbol": asset.symbol,
+                        "name": asset.name,
+                        "balance": str(balance),
+                        "contractAddress": deployment.contract_address,
+                        "decimals": deployment.decimals,
+                        "type": "stablecoin",
+                    }
+                )
+        except Exception as e:
+            logger.error(f"Failed to get settlement asset balance for {asset.symbol}: {e}")
+            raise WalletBalancesUnavailableException(
+                f"{WalletBalancesUnavailableException.default_detail} The balance of {asset.symbol} could "
+                f"not be read."
+            ) from e
 
-        balances = []
-
-        tokens = ShareToken.objects.deployed_with_contract()
-        for token in tokens:
-            try:
-                balance = self.get_token_balance(token.contract_address, wallet_checksum)
-                if balance > 0:
-                    balances.append(
-                        {
-                            "token": str(token.uuid),
-                            "symbol": token.symbol,
-                            "name": token.name,
-                            "balance": str(balance),
-                            "contractAddress": token.contract_address,
-                            "decimals": 0,
-                            "type": "share_token",
-                        }
-                    )
-            except Exception as e:
-                logger.error(f"Failed to get balance for {token.symbol}: {e}")
-                raise WalletBalancesUnavailableException(
-                    f"{WalletBalancesUnavailableException.default_detail} The balance of {token.symbol} could "
-                    f"not be read."
-                ) from e
-
-        for deployment in settlement_deployments():
-            asset = deployment.asset
-            try:
-                balance = self._get_balance("AUDY", deployment.contract_address, wallet_checksum)
-                if balance > 0:
-                    balances.append(
-                        {
-                            "token": str(asset.uuid),
-                            "symbol": asset.symbol,
-                            "name": asset.name,
-                            "balance": str(balance),
-                            "contractAddress": deployment.contract_address,
-                            "decimals": deployment.decimals,
-                            "type": "stablecoin",
-                        }
-                    )
-            except Exception as e:
-                logger.error(f"Failed to get settlement asset balance for {asset.symbol}: {e}")
-                raise WalletBalancesUnavailableException(
-                    f"{WalletBalancesUnavailableException.default_detail} The balance of {asset.symbol} could "
-                    f"not be read."
-                ) from e
-
-        return {"walletAddress": wallet_checksum, "balances": balances}
+    return {"walletAddress": wallet_checksum, "balances": balances}
 
 
 def delete_share_token(token) -> None:

@@ -103,9 +103,7 @@ class EverySignablePayloadSurvivesJsonParseTest(TestCase):
             self.tenant.order, self.tenant.counter_order, share_amount=1, price_per_share=Decimal("2.50")
         )
 
-        with patch("tokens.services.atomic_swap_service.get_base_chain_client") as client, patch(
-            "tokens.services.atomic_swap_service.WhitelistService"
-        ):
+        with patch("tokens.services.atomic_swap_service.get_base_chain_client") as client:
             client.return_value.chain_id = 84532
             typed_data = AtomicSwapService().get_typed_data(swap)
 

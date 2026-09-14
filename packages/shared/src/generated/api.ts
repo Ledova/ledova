@@ -2222,6 +2222,7 @@ export interface ApiComponents {
       uuid: string;
     };
     AccountTypeEnum: 'individual';
+    ActionEnum: 'add' | 'remove';
     ApplicationResubmitRequest: {
       response: string;
     };
@@ -4624,11 +4625,35 @@ export interface ApiComponents {
       signature: string;
     };
     WalletVerificationStatusEnum: 'PENDING' | 'VERIFIED';
-    WhitelistAddResponse: {
-      entry: ApiComponents['schemas']['WhitelistEntry'];
-      success: boolean;
-      txHash: string;
+    WhitelistAddRequest: {
+      submissionId: string;
+      walletAddress: string;
     };
+    WhitelistBatchAddRequest: {
+      entries: ApiComponents['schemas']['WhitelistAddRequest'][];
+    };
+    WhitelistBatchError: {
+      error: string;
+      walletAddress: string;
+    };
+    WhitelistBatchResponse: {
+      errors: ApiComponents['schemas']['WhitelistBatchError'][];
+      failed: number;
+      pending: number;
+      results: ApiComponents['schemas']['WhitelistChange'][];
+      successful: number;
+    };
+    WhitelistChange: {
+      action: ApiComponents['schemas']['ActionEnum'];
+      entry: ApiComponents['schemas']['WhitelistEntry'] | null;
+      message: string;
+      status?: ApiComponents['schemas']['WhitelistChangeStatusEnum'];
+      submissionId: string;
+      success: boolean;
+      txHash?: string | null;
+      walletAddress: string;
+    };
+    WhitelistChangeStatusEnum: 'pending' | 'executing' | 'confirmed' | 'unchanged' | 'failed';
     WhitelistEntry: {
       addTxHash: string | null;
       createdAt: string;
@@ -4644,10 +4669,9 @@ export interface ApiComponents {
       walletAddress: string;
     };
     WhitelistEntryStatusEnum: 'pending' | 'active' | 'removed' | 'failed';
-    WhitelistRemoveResponse: {
-      message: string;
-      success: boolean;
-      txHash: string;
+    WhitelistRemoveRequest: {
+      submissionId: string;
+      walletAddress: string;
     };
     WhitelistStatus: {
       address: string;
@@ -9211,14 +9235,36 @@ export interface ApiOperations {
       path?: never;
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['WhitelistAddRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['WhitelistAddRequest'];
+        'multipart/form-data': ApiComponents['schemas']['WhitelistAddRequest'];
+      };
+    };
     responses: {
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': ApiComponents['schemas']['WhitelistAddResponse'];
+          'application/json': ApiComponents['schemas']['WhitelistChange'];
+        };
+      };
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['WhitelistChange'];
+        };
+      };
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['WhitelistChange'];
         };
       };
     };
@@ -9230,14 +9276,20 @@ export interface ApiOperations {
       path?: never;
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['WhitelistBatchAddRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['WhitelistBatchAddRequest'];
+        'multipart/form-data': ApiComponents['schemas']['WhitelistBatchAddRequest'];
+      };
+    };
     responses: {
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': ApiComponents['schemas']['WhitelistEntry'];
+          'application/json': ApiComponents['schemas']['WhitelistBatchResponse'];
         };
       };
     };
@@ -9289,14 +9341,28 @@ export interface ApiOperations {
       path?: never;
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['WhitelistRemoveRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['WhitelistRemoveRequest'];
+        'multipart/form-data': ApiComponents['schemas']['WhitelistRemoveRequest'];
+      };
+    };
     responses: {
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': ApiComponents['schemas']['WhitelistRemoveResponse'];
+          'application/json': ApiComponents['schemas']['WhitelistChange'];
+        };
+      };
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['WhitelistChange'];
         };
       };
     };

@@ -38,7 +38,7 @@ from tokens.models import ShareIssuanceRequest
 
 CHAIN_CLIENT = "tokens.services.share_token_service.get_base_chain_client"
 DEFER = "offerings.tasks.subscription.allot_subscription_task.defer"
-SUPPLY = "tokens.services.share_token_service.ShareTokenService.share_supply"
+SUPPLY = "tokens.services.share_token_service.share_supply"
 SIGNER = "0x" + "e" * 40
 RENDEZVOUS_TIMEOUT = 2.0
 JOIN_TIMEOUT = 30.0

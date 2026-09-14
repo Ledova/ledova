@@ -275,9 +275,7 @@ class TheNonceGeneratorDoesNotRelyOnTheConstraintTest(TestCase):
 
     @staticmethod
     def service():
-        with patch("tokens.services.atomic_swap_service.get_base_chain_client"), patch(
-            "tokens.services.atomic_swap_service.WhitelistService"
-        ):
+        with patch("tokens.services.atomic_swap_service.get_base_chain_client"):
             return AtomicSwapService()
 
     def test_nonces_drawn_together_are_not_neighbours_around_a_shared_clock(self):

@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 
 from shared.views.principal import SetsThePrincipalOnTheConnection
 from whitelist.serializers import WhitelistStatusSerializer
-from whitelist.services import WhitelistService
+from whitelist.services import whitelist
 
 
 class WhitelistStatusView(SetsThePrincipalOnTheConnection, APIView):
@@ -14,6 +14,6 @@ class WhitelistStatusView(SetsThePrincipalOnTheConnection, APIView):
 
     @extend_schema(responses=WhitelistStatusSerializer)
     def get(self, request, address):
-        data = WhitelistService().investor_status(address)
+        data = whitelist.investor_status(address)
 
         return Response(WhitelistStatusSerializer(data).data)

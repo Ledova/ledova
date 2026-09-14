@@ -84,11 +84,17 @@ class SubmissionFixtures:
         for target, replacement in (
             ("tokens.services.token_transfer_service.get_base_chain_client", self.chain),
             ("tokens.services.atomic_swap_service.get_base_chain_client", self.chain),
-            ("tokens.services.token_transfer_service.WhitelistService", self.whitelist),
-            ("tokens.services.atomic_swap_service.WhitelistService", self.whitelist),
-            ("tokens.services.ShareTokenService", self.balance),
+            ("tokens.services.token_transfer_service.whitelist", self.whitelist),
+            ("tokens.services.share_token_service", self.balance),
         ):
-            self.patch(target, return_value=replacement)
+            self.patch(
+                target,
+                **(
+                    {"new": replacement}
+                    if target.endswith((".whitelist", ".share_token_service"))
+                    else {"return_value": replacement}
+                ),
+            )
         self.patch("tokens.events._publish", side_effect=self.published)
         self.patch("rest_framework.throttling.SimpleRateThrottle.allow_request", return_value=True)
 

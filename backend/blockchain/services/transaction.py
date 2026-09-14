@@ -70,7 +70,7 @@ class TransactionMonitorService:
     def check_pending_transactions(chain_client) -> dict[str, Any]:
         from blockchain.models import BlockchainTransaction, TransactionStatus
 
-        pending = BlockchainTransaction.objects.pending().with_tx_hash()
+        pending = BlockchainTransaction.objects.pending().with_tx_hash().without_outgoing_operations()
 
         checked = 0
         confirmed = 0

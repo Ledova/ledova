@@ -29,6 +29,22 @@ use **Record legacy transaction hash** in admin with the identified mint from
 operator transaction history. There is no Release claim action. A legacy row with
 a hash can reconcile receipts but cannot replay without stored signed bytes.
 
+## Capital increases
+
+The five-minute `recover_capital_increases` operator task processes admitted
+capital work in bounded batches. The admin execution page commits its durable
+request and job before chain access. If a response is lost, reload that request:
+its original signed transaction is recovered, never replaced merely because a
+receipt is missing. Admin shows its hash and safe error category while unresolved.
+
+A known unsigned failure or original reverted transaction exposes a fresh retry
+confirmation bound to that exact failed attempt. Old forms cannot authorize
+another attempt. Attribution holds retain their original private observations;
+do not clear public status or notes to bypass them. Matching the current cap,
+a historical failure label, a deleted request or a missing hash does not establish
+that the approved transaction executed or that no send occurred. Historical work
+still needs the [cutover process](../reference/outgoing-history.md).
+
 ## Subscriptions
 
 `reconcile_subscriptions` moves a paid subscription to allotted only when its linked
@@ -37,6 +53,23 @@ and the subscription update. `expire_unpaid_subscriptions` touches only overdue,
 awaiting-payment rows with no recorded payment. Part-paid subscriptions need operator
 review. See [subscription guards](../architecture/subscriptions.md) before refunding
 or retrying an allotment.
+
+## Whitelist changes
+
+Keep the original submission UUID when an API response is lost or the outcome is
+unresolved. Repeating the same add/remove request or signed admin confirmation
+recovers that command. The five-minute `recover_whitelist_changes` operator task
+also processes at most 100 unresolved commands, oldest update first. It may
+broadcast only the original signed bytes through the admitted signer; receipt
+reconciliation remains available after admission closes.
+
+An opposite change is refused until the earlier operation resolves. Current
+membership, a missing receipt or elapsed time does not release that operation.
+A completed failure requires a deliberate new submission to try again. A stale
+confirmation cannot authorize that retry. Inspect legacy unknown transactions
+through the attribution/cutover process; the adapter never adopts or resends them
+automatically. The [whitelist contract](../architecture/outgoing-signing.md#whitelist-changes)
+describes API outcomes, durable boundaries and historical limits.
 
 ## Wallet transfers and stale rows
 

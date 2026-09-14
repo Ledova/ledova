@@ -10,18 +10,20 @@ from shared.utils.admin_display import action_buttons
 from tokens.models import MintRequest, MintRequestStatus
 from tokens.services import mint_service
 
-from ._helpers import status_badge
+from ._helpers import mint_result_message, status_badge
 
 REJECT = ("Reject", "reject", "#dc3545")
 STATUS_ACTIONS = {
     MintRequestStatus.PENDING: [("Execute Mint", "execute", "#28a745"), REJECT],
-    MintRequestStatus.FAILED: [("Retry", "execute", "#fd7e14"), REJECT],
+    MintRequestStatus.EXECUTING: [("Recover", "execute", "#17a2b8")],
+    MintRequestStatus.FAILED: [("Retry", "execute", "#fd7e14")],
     MintRequestStatus.EXECUTED: [("Executed", None, "#28a745")],
     MintRequestStatus.REJECTED: [("Rejected", None, "#6c757d")],
 }
 
 
 class ExecuteMintForm(forms.Form):
+    retry_of = forms.UUIDField(required=False, widget=forms.HiddenInput)
     confirm = forms.BooleanField(required=True, label="I confirm the deposit has been verified")
     notes = forms.CharField(
         widget=forms.Textarea(attrs={"rows": 3}), required=False, label="Additional Notes (Optional)"
@@ -55,6 +57,8 @@ class MintRequestAdmin(admin.ModelAdmin):
         "deposit_reference",
         "deposit_date",
         "status",
+        "dispatch_id",
+        "operation",
         "requested_by",
         "executed_by",
         "executed_at",
@@ -71,6 +75,7 @@ class MintRequestAdmin(admin.ModelAdmin):
         {
             MintRequestStatus.PENDING: "#17a2b8",
             MintRequestStatus.APPROVED: "#007bff",
+            MintRequestStatus.EXECUTING: "#17a2b8",
             MintRequestStatus.EXECUTED: "#28a745",
             MintRequestStatus.FAILED: "#dc3545",
             MintRequestStatus.REJECTED: "#6c757d",
@@ -83,7 +88,7 @@ class MintRequestAdmin(admin.ModelAdmin):
         ("Deposit Information", {"fields": ["deposit_reference", "deposit_date"]}),
         ("Notes", {"fields": ["notes"]}),
         ("Processing", {"fields": ["requested_by", "executed_by", "executed_at"]}),
-        ("Blockchain", {"fields": ["transaction", "tx_link"], "classes": ["collapse"]}),
+        ("Blockchain", {"fields": ["dispatch_id", "operation", "transaction", "tx_link"], "classes": ["collapse"]}),
         ("Errors", {"fields": ["error_message", "rejection_reason"], "classes": ["collapse"]}),
         ("Timestamps", {"fields": ["created_at", "updated_at"], "classes": ["collapse"]}),
     ]
@@ -119,6 +124,8 @@ class MintRequestAdmin(admin.ModelAdmin):
     def status_actions(self, obj):
         if obj.pk is None:
             return "-"
+        if obj.dispatch_id is None and obj.status not in (MintRequestStatus.EXECUTED, MintRequestStatus.REJECTED):
+            return "Historical mint: operator attribution required"
         return action_buttons(
             [
                 (label, action and reverse(f"admin:tokens_mintrequest_{action}", args=[obj.uuid]), *colors)
@@ -145,15 +152,18 @@ class MintRequestAdmin(admin.ModelAdmin):
         if not mint_request.can_be_executed:
             return self._refuse(request, mint_request, "execute")
 
-        form = ExecuteMintForm(request.POST or None)
+        retry_of = (
+            mint_request.operation.claim_id
+            if mint_request.operation_id and mint_request.status == MintRequestStatus.FAILED
+            else None
+        )
+        form = ExecuteMintForm(request.POST or None, initial={"retry_of": retry_of})
         if request.method == "POST" and form.is_valid():
             try:
-                tx_hash, _ = mint_service.execute(mint_request, request.user, notes=form.cleaned_data["notes"])
-                messages.success(
-                    request,
-                    f"Successfully minted {mint_request.amount_display} {mint_request.token.symbol} "
-                    f"to {mint_request.recipient_name} (tx: {tx_hash[:16]}...)",
+                tx_hash, _ = mint_service.execute(
+                    mint_request, request.user, notes=form.cleaned_data["notes"], retry_of=form.cleaned_data["retry_of"]
                 )
+                mint_result_message(request, mint_request, tx_hash)
             except Exception as exc:
                 messages.error(request, f"Mint execution failed: {exc}")
             return HttpResponseRedirect(reverse("admin:tokens_mintrequest_change", args=[mint_request.pk]))
@@ -165,7 +175,10 @@ class MintRequestAdmin(admin.ModelAdmin):
 
         form = RejectMintForm(request.POST or None)
         if request.method == "POST" and form.is_valid():
-            mint_request.mark_rejected(user=request.user, reason=form.cleaned_data["reason"])
-            messages.warning(request, f"Mint request rejected for {mint_request.recipient_name}")
+            try:
+                mint_service.reject(mint_request, request.user, form.cleaned_data["reason"])
+                messages.warning(request, f"Mint request rejected for {mint_request.recipient_name}")
+            except Exception as exc:
+                messages.error(request, f"Mint rejection failed: {exc}")
             return HttpResponseRedirect(reverse("admin:tokens_mintrequest_change", args=[mint_request.pk]))
         return self._render(request, mint_request, "Reject", form)

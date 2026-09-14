@@ -37,9 +37,9 @@ it('acknowledges removal of an active scanner before remounting without acceptin
   const onComplete = jest.fn();
   const view = await render(<ScannerBridgeProbe onComplete={onComplete} />);
   const scanner = () => view.getAllByTestId('native-scanner').find((item) => item.props.onWindowChanged)!;
-  const inactive = () => view.getAllByTestId('native-scanner').find((item) => !item.props.onWindowChanged)!;
+  const inactive = () => view.getByTestId('scanner-probe-inactive');
   expect(view.queryByLabelText('scanner-probe-unmount-active')).toBeNull();
-  await act(() => inactive().props.onLayout());
+  await act(() => inactive().props.onWindowChanged({ nativeEvent: { allowed: true, generation: 1 } }));
   await act(() => scanner().props.onWindowChanged({ nativeEvent: { allowed: true, generation: 1 } }));
   const first = scanner();
   expect(first.props.active).toBe(true);
@@ -57,7 +57,7 @@ it('acknowledges removal of an active scanner before remounting without acceptin
     expect(onComplete).not.toHaveBeenCalled();
     await fireEvent.press(view.getByLabelText('scanner-probe-remount'));
     expect(view.queryByLabelText('scanner-probe-active-unmounted')).toBeNull();
-    await act(() => inactive().props.onLayout());
+    await act(() => inactive().props.onWindowChanged({ nativeEvent: { allowed: true, generation: 1 } }));
     await act(() => scanner().props.onWindowChanged({ nativeEvent: { allowed: true, generation: 1 } }));
     const fresh = scanner();
     expect(fresh.props.active).toBe(true);
@@ -80,12 +80,12 @@ it('the live native admission calls the real finish callback once and stays comp
   const onComplete = jest.fn();
   const view = await render(<ScannerBridgeProbe onComplete={onComplete} />);
   const scanner = () => view.getAllByTestId('native-scanner').find((item) => item.props.onWindowChanged)!;
-  const inactive = () => view.getAllByTestId('native-scanner').find((item) => !item.props.onWindowChanged)!;
-  await act(() => inactive().props.onLayout());
+  const inactive = () => view.getByTestId('scanner-probe-inactive');
+  await act(() => inactive().props.onWindowChanged({ nativeEvent: { allowed: true, generation: 1 } }));
   await act(() => scanner().props.onWindowChanged({ nativeEvent: { allowed: true, generation: 1 } }));
   await fireEvent.press(view.getByLabelText('scanner-probe-unmount-active'));
   await fireEvent.press(view.getByLabelText('scanner-probe-remount'));
-  await act(() => inactive().props.onLayout());
+  await act(() => inactive().props.onWindowChanged({ nativeEvent: { allowed: true, generation: 1 } }));
   await act(() => scanner().props.onWindowChanged({ nativeEvent: { allowed: true, generation: 1 } }));
   const first = scanner();
   await act(() =>
@@ -110,12 +110,12 @@ it('the same unchanged bridge refuses the queued tuple and admits a fresh tuple 
   const onComplete = jest.fn();
   const view = await render(<ScannerBridgeProbe onComplete={onComplete} />);
   const scanner = () => view.getAllByTestId('native-scanner').find((item) => item.props.onWindowChanged)!;
-  const inactive = () => view.getAllByTestId('native-scanner').find((item) => !item.props.onWindowChanged)!;
-  await act(() => inactive().props.onLayout());
+  const inactive = () => view.getByTestId('scanner-probe-inactive');
+  await act(() => inactive().props.onWindowChanged({ nativeEvent: { allowed: true, generation: 1 } }));
   await act(() => scanner().props.onWindowChanged({ nativeEvent: { allowed: true, generation: 1 } }));
   await fireEvent.press(view.getByLabelText('scanner-probe-unmount-active'));
   await fireEvent.press(view.getByLabelText('scanner-probe-remount'));
-  await act(() => inactive().props.onLayout());
+  await act(() => inactive().props.onWindowChanged({ nativeEvent: { allowed: true, generation: 1 } }));
   await act(() => scanner().props.onWindowChanged({ nativeEvent: { allowed: true, generation: 1 } }));
   const old = scanner();
   await fireEvent.press(view.getByLabelText('scanner-probe-cover'));
@@ -150,9 +150,9 @@ it('the same unchanged bridge refuses the queued tuple and admits a fresh tuple 
 it('a failed native readiness check retains its failure without a successful unmount checkpoint', async () => {
   const onComplete = jest.fn();
   const view = await render(<ScannerBridgeProbe onComplete={onComplete} />);
-  const inactive = view.getAllByTestId('native-scanner').find((item) => !item.props.onWindowChanged)!;
+  const inactive = view.getByTestId('scanner-probe-inactive');
   mockCurrentScan.mockResolvedValueOnce(true);
-  await act(() => inactive.props.onLayout());
+  await act(() => inactive.props.onWindowChanged({ nativeEvent: { allowed: true, generation: 1 } }));
   expect(onComplete.mock.calls).toEqual([[false, 'inactive-admitted']]);
   expect(view.queryByLabelText('scanner-probe-active-unmounted')).toBeNull();
   expect(view.queryByLabelText('scanner-probe-completed-unmounted')).toBeNull();
@@ -180,13 +180,13 @@ it('allows the expanded continuation past one minute but still refuses a stalled
   const view = await render(<ScannerBridgeProbe onComplete={onComplete} />);
   try {
     const scanner = () => view.getAllByTestId('native-scanner').find((item) => item.props.onWindowChanged)!;
-    const inactive = () => view.getAllByTestId('native-scanner').find((item) => !item.props.onWindowChanged)!;
-    await act(() => inactive().props.onLayout());
+    const inactive = () => view.getByTestId('scanner-probe-inactive');
+    await act(() => inactive().props.onWindowChanged({ nativeEvent: { allowed: true, generation: 1 } }));
     await act(() => scanner().props.onWindowChanged({ nativeEvent: { allowed: true, generation: 1 } }));
     await act(() => jest.advanceTimersByTime(30_000));
     await fireEvent.press(view.getByLabelText('scanner-probe-unmount-active'));
     await fireEvent.press(view.getByLabelText('scanner-probe-remount'));
-    await act(() => inactive().props.onLayout());
+    await act(() => inactive().props.onWindowChanged({ nativeEvent: { allowed: true, generation: 1 } }));
     await act(() => scanner().props.onWindowChanged({ nativeEvent: { allowed: true, generation: 1 } }));
     await act(() => jest.advanceTimersByTime(90_000));
     expect(onComplete).not.toHaveBeenCalled();
@@ -199,4 +199,27 @@ it('allows the expanded continuation past one minute but still refuses a stalled
     await view.unmount();
     jest.useRealTimers();
   }
+});
+
+it('queries the inactive native view only after its native window event, never on layout', async () => {
+  const onComplete = jest.fn();
+  const view = await render(<ScannerBridgeProbe onComplete={onComplete} />);
+  const inactive = () => view.getByTestId('scanner-probe-inactive');
+  expect(inactive().props.onLayout).toBeUndefined();
+  expect(mockCurrentScan).not.toHaveBeenCalled();
+  await act(() => inactive().props.onWindowChanged({ nativeEvent: { allowed: true, generation: 1 } }));
+  expect(mockCurrentScan.mock.calls).toEqual([[-1, 0]]);
+  await act(() => inactive().props.onWindowChanged({ nativeEvent: { allowed: false, generation: 2 } }));
+  expect(mockCurrentScan.mock.calls).toEqual([[-1, 0]]);
+  expect(onComplete).not.toHaveBeenCalled();
+});
+
+it('reports an unmounted native view as its own bounded failure stage', async () => {
+  const onComplete = jest.fn();
+  const view = await render(<ScannerBridgeProbe onComplete={onComplete} />);
+  mockCurrentScan.mockRejectedValueOnce({ code: 'ERR_VIEW_NOT_FOUND', message: 'synthetic-secret' });
+  await act(() =>
+    view.getByTestId('scanner-probe-inactive').props.onWindowChanged({ nativeEvent: { allowed: true, generation: 1 } }),
+  );
+  expect(onComplete.mock.calls).toEqual([[false, 'method-native-view-not-found']]);
 });

@@ -2,15 +2,14 @@ from importlib import import_module
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from django.apps import apps
 from django.db import DatabaseError, IntegrityError, connection, transaction
 from django.test import TestCase, TransactionTestCase
 
+from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_tenant
-from tokens.exceptions import InvalidTokenStateException, IssuanceRefusedException
+from tokens.exceptions import InvalidTokenStateException
 from tokens.models import CapitalIncreaseRequest, RequestStatus, ShareToken
 from tokens.services.capital_increase import submit_capital_increase
-from tokens.services.share_token_service import ShareTokenService
 
 CONSTRAINT_NAME = "one_capital_increase_in_flight_per_token"
 GUARD = import_module("tokens.migrations.0026_one_capital_increase_in_flight").refuse_a_token_that_already_has_two
@@ -65,8 +64,8 @@ class ASecondRaiseIsRefusedWithAReasonTest(TestCase):
 
         self.assertEqual(CapitalIncreaseRequest.objects.filter(token=self.token).count(), 2)
 
-    def test_the_raise_is_allowed_once_the_first_one_finishes(self):
-        CapitalIncreaseRequest.objects.filter(pk=self.first.pk).update(status=RequestStatus.EXECUTED)
+    def test_the_raise_is_allowed_once_the_first_one_is_rejected(self):
+        self.first.reject(self.tenant.user, reason="Submit the replacement")
         second = self.a_draft()
 
         submit_capital_increase(second, self.tenant.user)
@@ -106,6 +105,7 @@ class TheDatabaseRefusesASecondInFlightRowTest(TransactionTestCase):
             purpose="Second raise",
             board_resolution_reference="BOARD-2",
             status=status,
+            dispatch_id=None,
         )
 
     def test_a_second_in_flight_row_cannot_be_written_at_all(self):
@@ -126,51 +126,6 @@ class TheDatabaseRefusesASecondInFlightRowTest(TransactionTestCase):
                 self.assertEqual(CapitalIncreaseRequest.objects.get(pk=row.pk).status, status)
 
 
-class ResumingAFailedRaiseWaitsForTheOneInFlightTest(TestCase):
-
-    def setUp(self):
-        self.tenant = make_tenant("resume")
-        self.token = self.tenant.deployed_token
-        CapitalIncreaseRequest.objects.all().delete()
-        self.stalled = self.a_request(RequestStatus.FAILED, 100)
-        self.waiting = self.a_request(RequestStatus.APPROVED, 50)
-        self.service = ShareTokenService.__new__(ShareTokenService)
-
-    def a_request(self, status, additional):
-        return CapitalIncreaseRequest.objects.create(
-            token=self.token,
-            additional_shares=additional,
-            new_authorized_total=int(self.token.total_supply) + additional,
-            purpose="Raise",
-            board_resolution_reference=f"BOARD-{additional}",
-            status=status,
-        )
-
-    def test_a_failed_raise_is_refused_with_a_reason_rather_than_an_integrity_error(self):
-        with self.assertRaises(IssuanceRefusedException) as refusal:
-            self.service._execute_capital_increase(self.stalled)
-
-        self.stalled.refresh_from_db()
-        self.assertIn("has another capital increase in flight", str(refusal.exception))
-        self.assertIn(self.token.symbol, str(refusal.exception))
-        self.assertEqual(self.stalled.status, RequestStatus.FAILED)
-
-    def test_the_reason_survives_the_refusal_rather_than_rolling_back_with_it(self):
-        with self.assertRaises(IssuanceRefusedException):
-            self.service._execute_capital_increase(self.stalled)
-
-        self.stalled.refresh_from_db()
-        self.assertIn("has another capital increase in flight", self.stalled.execution_notes)
-        self.assertEqual(self.stalled.review_notes, "")
-
-    def test_the_one_in_flight_is_not_the_one_refused(self):
-        with self.assertRaises(IssuanceRefusedException):
-            self.service._execute_capital_increase(self.stalled)
-
-        self.waiting.refresh_from_db()
-        self.assertEqual((self.waiting.status, self.waiting.review_notes), (RequestStatus.APPROVED, ""))
-
-
 class TheMigrationGuardRefusesRatherThanChoosingTest(TransactionTestCase):
 
     reset_sequences = False
@@ -179,20 +134,24 @@ class TheMigrationGuardRefusesRatherThanChoosingTest(TransactionTestCase):
         super().setUp()
         self.tenant = make_tenant("crowded")
         self.token = self.tenant.deployed_token
-        CapitalIncreaseRequest.objects.all().delete()
-        self.constraint = next(c for c in CapitalIncreaseRequest._meta.constraints if c.name == CONSTRAINT_NAME)
+        self.addCleanup(restore_every_migration)
+        self.history = migrate_to([("tokens", "0044_token_deployment_guards")])
+        self.model = self.history.get_model("tokens", "CapitalIncreaseRequest")
+        self.model.objects.all().delete()
+        self.constraint = next(c for c in self.model._meta.constraints if c.name == CONSTRAINT_NAME)
         with connection.schema_editor(atomic=False) as editor:
-            editor.remove_constraint(CapitalIncreaseRequest, self.constraint)
+            editor.remove_constraint(self.model, self.constraint)
         self.addCleanup(self.put_the_constraint_back)
 
     def put_the_constraint_back(self):
-        CapitalIncreaseRequest.objects.all().delete()
+        self.model.objects.all().delete()
         with connection.schema_editor(atomic=False) as editor:
-            editor.add_constraint(CapitalIncreaseRequest, self.constraint)
+            editor.add_constraint(self.model, self.constraint)
 
     def a_request(self, status, additional=25):
-        return CapitalIncreaseRequest.objects.create(
-            token=self.token,
+        return self.model.objects.create(
+            token_id=self.token.pk,
+            company_id=self.token.company_id,
             additional_shares=additional,
             new_authorized_total=int(self.token.total_supply) + additional,
             purpose="Raise",
@@ -200,9 +159,8 @@ class TheMigrationGuardRefusesRatherThanChoosingTest(TransactionTestCase):
             status=status,
         )
 
-    @staticmethod
-    def run_the_guard():
-        return GUARD(apps, SimpleNamespace(connection=SimpleNamespace(alias="default")))
+    def run_the_guard(self):
+        return GUARD(self.history, SimpleNamespace(connection=SimpleNamespace(alias="default")))
 
     def test_one_in_flight_request_per_share_class_lets_the_migration_run(self):
         self.a_request(RequestStatus.SUBMITTED)
@@ -235,7 +193,7 @@ class TheMigrationGuardRefusesRatherThanChoosingTest(TransactionTestCase):
         first.refresh_from_db()
         second.refresh_from_db()
         self.assertEqual((first.status, second.status), (RequestStatus.SUBMITTED, RequestStatus.EXECUTING))
-        self.assertEqual(CapitalIncreaseRequest.objects.filter(token=self.token).count(), 2)
+        self.assertEqual(self.model.objects.filter(token_id=self.token.pk).count(), 2)
 
     def test_a_terminal_pair_is_not_what_the_guard_is_looking_for(self):
         self.a_request(RequestStatus.REJECTED)
@@ -252,8 +210,9 @@ class TheMigrationGuardRefusesRatherThanChoosingTest(TransactionTestCase):
         other.contract_address = "0x" + "7" * 40
         other.save()
         self.a_request(RequestStatus.SUBMITTED)
-        CapitalIncreaseRequest.objects.create(
-            token=other,
+        self.model.objects.create(
+            token_id=other.pk,
+            company_id=other.company_id,
             additional_shares=40,
             new_authorized_total=int(other.total_supply) + 40,
             purpose="Raise",

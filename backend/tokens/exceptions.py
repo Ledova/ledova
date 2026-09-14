@@ -61,6 +61,18 @@ class InvalidTokenStateException(APIException):
     default_code = "invalid_token_state"
 
 
+class CapitalIncreaseConflict(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = "This capital increase requires recovery of its original execution."
+    default_code = "capital_increase_conflict"
+
+
+class CapitalIncreaseUnresolved(APIException):
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    default_detail = "The capital increase remains unresolved. Recover the original request."
+    default_code = "capital_increase_unresolved"
+
+
 class TokenPauseFailedException(APIException):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     default_detail = "Token pause or unpause failed on chain."
@@ -229,22 +241,10 @@ class StablecoinContractNotConfiguredException(APIException):
     default_code = "stablecoin_contract_not_configured"
 
 
-class StablecoinMintFailedException(APIException):
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-    default_detail = "Stablecoin minting failed."
-    default_code = "stablecoin_mint_failed"
-
-
 class YieldTokenContractNotConfiguredException(APIException):
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     default_detail = "Yield token contract is not configured."
     default_code = "yield_token_contract_not_configured"
-
-
-class YieldTokenMintFailedException(APIException):
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-    default_detail = "Yield token minting failed."
-    default_code = "yield_token_mint_failed"
 
 
 class YieldTokenNAVUpdateFailedException(APIException):
@@ -337,3 +337,15 @@ class WalletBalancesUnavailableException(APIException):
         "The wallet's balances cannot be read because the chain could not be reached. An empty list is not "
         "returned instead, because it would say the wallet holds nothing."
     )
+
+
+class MintRequestConflict(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = "This mint request cannot be changed or retried in its recorded state."
+    default_code = "mint_request_conflict"
+
+
+class MintRequestUnresolved(APIException):
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    default_detail = "The mint outcome is unresolved. Recover this request instead of creating another mint."
+    default_code = "mint_request_unresolved"

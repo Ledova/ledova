@@ -9,7 +9,7 @@ from integrations.base_chain.exceptions import BaseChainConnectionError
 from operators.models import Operator
 from shared.tests.tenants import make_tenant
 from tokens.exceptions import WalletBalancesUnavailableException
-from tokens.services.share_token_service import ShareTokenService
+from tokens.services import share_token_service
 
 BALANCES = "/api/v1/trading/wallets/balances/"
 
@@ -24,18 +24,20 @@ class BalancesRefuseRatherThanGuessTest(APITestCase):
     def _get(self):
         return self.client.get(BALANCES, {"wallet_address": self.tenant.wallet.address})
 
-    @patch("tokens.views.trading_wallet.ShareTokenService")
+    @patch("tokens.views.trading_wallet.share_token_service")
     def test_a_cold_client_that_cannot_connect_refuses_rather_than_erroring(self, service_class):
-        service_class.side_effect = BaseChainConnectionError("Failed to connect to configured EVM endpoint")
+        service_class.get_wallet_token_balances.side_effect = BaseChainConnectionError(
+            "Failed to connect to configured EVM endpoint"
+        )
 
         response = self._get()
 
         self.assertEqual(response.status_code, 503)
         self.assertIn("could not be reached", response.json()["detail"])
 
-    @patch("tokens.views.trading_wallet.ShareTokenService")
+    @patch("tokens.views.trading_wallet.share_token_service")
     def test_a_warm_client_that_cannot_read_refuses_rather_than_answering_nothing(self, service_class):
-        service_class.return_value.get_wallet_token_balances.side_effect = WalletBalancesUnavailableException(
+        service_class.get_wallet_token_balances.side_effect = WalletBalancesUnavailableException(
             "The balance of QAT could not be read: boom"
         )
 
@@ -44,9 +46,9 @@ class BalancesRefuseRatherThanGuessTest(APITestCase):
         self.assertEqual(response.status_code, 503)
         self.assertIn("QAT", response.json()["detail"])
 
-    @patch("tokens.views.trading_wallet.ShareTokenService")
+    @patch("tokens.views.trading_wallet.share_token_service")
     def test_a_readable_chain_still_answers_two_hundred(self, service_class):
-        service_class.return_value.get_wallet_token_balances.return_value = {"balances": []}
+        service_class.get_wallet_token_balances.return_value = {"balances": []}
 
         self.assertEqual(self._get().status_code, 200)
 
@@ -55,7 +57,7 @@ class TheServiceRefusesAPartialAnswerTest(TestCase):
 
     def setUp(self):
         self.tenant = make_tenant("partial")
-        self.service = ShareTokenService.__new__(ShareTokenService)
+        self.service = share_token_service
 
     def _stablecoin(self):
         operator = Operator.get()
@@ -74,8 +76,8 @@ class TheServiceRefusesAPartialAnswerTest(TestCase):
 
     def test_one_unreadable_share_class_refuses_the_whole_answer(self):
         with (
-            patch.object(ShareTokenService, "_validate_address", side_effect=lambda address: address),
-            patch.object(ShareTokenService, "get_token_balance", side_effect=RuntimeError("node said no")),
+            patch.object(share_token_service, "_validate_address", side_effect=lambda address: address),
+            patch.object(share_token_service, "get_token_balance", side_effect=RuntimeError("node said no")),
             self.assertRaises(WalletBalancesUnavailableException) as raised,
         ):
             self.service.get_wallet_token_balances(self.tenant.wallet.address)
@@ -85,8 +87,8 @@ class TheServiceRefusesAPartialAnswerTest(TestCase):
 
     def test_the_operator_still_gets_what_the_caller_no_longer_does(self):
         with (
-            patch.object(ShareTokenService, "_validate_address", side_effect=lambda address: address),
-            patch.object(ShareTokenService, "get_token_balance", side_effect=RuntimeError("node said no")),
+            patch.object(share_token_service, "_validate_address", side_effect=lambda address: address),
+            patch.object(share_token_service, "get_token_balance", side_effect=RuntimeError("node said no")),
             self.assertLogs("tokens.services.share_token_service", level="ERROR") as logged,
             self.assertRaises(WalletBalancesUnavailableException),
         ):
@@ -97,9 +99,9 @@ class TheServiceRefusesAPartialAnswerTest(TestCase):
     def test_an_unreadable_settlement_asset_refuses_too(self):
         self._stablecoin()
         with (
-            patch.object(ShareTokenService, "_validate_address", side_effect=lambda address: address),
-            patch.object(ShareTokenService, "get_token_balance", return_value=0),
-            patch.object(ShareTokenService, "_get_balance", side_effect=RuntimeError("node said no")),
+            patch.object(share_token_service, "_validate_address", side_effect=lambda address: address),
+            patch.object(share_token_service, "get_token_balance", return_value=0),
+            patch.object(share_token_service, "_get_balance", side_effect=RuntimeError("node said no")),
             self.assertRaises(WalletBalancesUnavailableException) as raised,
         ):
             self.service.get_wallet_token_balances(self.tenant.wallet.address)

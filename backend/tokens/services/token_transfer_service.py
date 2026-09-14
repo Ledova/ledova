@@ -34,7 +34,7 @@ from users.models import UserAccount
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 from wallets.models.wallet import Blockchain
-from whitelist.services import WhitelistService
+from whitelist.services import whitelist
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,6 @@ class TokenTransferService:
 
     def __init__(self):
         self.chain_client = get_base_chain_client()
-        self.whitelist_service = WhitelistService()
 
     def validate_transfer(
         self,
@@ -73,15 +72,15 @@ class TokenTransferService:
         if not self.chain_client.is_valid_address(to_address):
             raise InvalidRecipientAddressException()
 
-        if not self.whitelist_service.is_whitelisted(from_address):
+        if not whitelist.is_whitelisted(from_address):
             raise NotWhitelistedException(from_address)
 
-        if not self.whitelist_service.is_whitelisted(to_address):
+        if not whitelist.is_whitelisted(to_address):
             raise NotWhitelistedException(to_address)
 
-        from tokens.services import ShareTokenService
+        from tokens.services import share_token_service
 
-        token_service = ShareTokenService()
+        token_service = share_token_service
         balance = token_service.get_token_balance(contract_address, from_address)
         if balance < amount:
             raise InsufficientBalanceException(balance, amount)
@@ -337,13 +336,13 @@ class TokenTransferService:
         if canonical_wallet_address != self.chain_client.to_checksum_address(wallet_address):
             raise InvalidRecipientAddressException()
 
-        if not self.whitelist_service.is_whitelisted(canonical_wallet_address):
+        if not whitelist.is_whitelisted(canonical_wallet_address):
             raise CreateOrderNotWhitelistedException(canonical_wallet_address)
 
         if order_type == TransferOrderType.SELL:
-            from tokens.services import ShareTokenService
+            from tokens.services import share_token_service
 
-            token_service = ShareTokenService()
+            token_service = share_token_service
             balance = token_service.get_token_balance(token.contract_address, canonical_wallet_address)
             if balance < quantity:
                 raise CreateOrderInsufficientBalanceException(balance, quantity)

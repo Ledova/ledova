@@ -2,10 +2,8 @@ from typing import Optional
 
 from django.conf import settings
 
-from blockchain.models import TransactionType
 from tokens.exceptions import (
     StablecoinContractNotConfiguredException,
-    StablecoinMintFailedException,
 )
 from tokens.services.base_token_service import BaseTokenService
 
@@ -14,8 +12,6 @@ class StablecoinService(BaseTokenService):
 
     contract_name = "AUDY"
     not_configured_exception = StablecoinContractNotConfiguredException
-    mint_failed_exception = StablecoinMintFailedException
-    mint_tx_type = TransactionType.STABLECOIN_MINT
 
     def __init__(
         self,

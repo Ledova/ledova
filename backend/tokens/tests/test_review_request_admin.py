@@ -4,10 +4,13 @@ from unittest.mock import patch
 from django.contrib.admin.sites import site
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
-from django.test import RequestFactory, TestCase, override_settings
+from django.db import DatabaseError
+from django.test import RequestFactory, TransactionTestCase, override_settings
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 
+from blockchain.tests.outgoing_fixtures import admitted_signer
+from shared.db import atomic
 from shared.tests.tenants import make_tenant
 from tokens.models import (
     CapitalIncreaseRequest,
@@ -15,8 +18,9 @@ from tokens.models import (
     ShareIssuance,
     ShareIssuanceRequest,
 )
-from tokens.services import ShareTokenService
+from tokens.services import capital_execution, share_token_service
 from tokens.services.capital_increase import submit_capital_increase
+from tokens.tests.capital_fixtures import CHAIN_ID, KEY, CapitalNode
 
 User = get_user_model()
 
@@ -31,8 +35,8 @@ def url(obj, action):
     return reverse(f"admin:tokens_{obj._meta.model_name}_{action}", args=args)
 
 
-@override_settings(STORAGES=TEST_STORAGES)
-class ReviewRequestAdminTest(TestCase):
+@override_settings(STORAGES=TEST_STORAGES, BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
+class ReviewRequestAdminTest(TransactionTestCase):
     def setUp(self):
         self.admin = User.objects.create_superuser(email="admin@example.test", password="pw-12345678")
         self.client.force_login(self.admin)
@@ -49,6 +53,24 @@ class ReviewRequestAdminTest(TestCase):
             submitted_at=timezone.now(),
         )
         self.requests = (self.capital_increase, self.issuance)
+        self.node = CapitalNode()
+        admitted_signer()
+        patcher = patch("tokens.services.capital_execution.get_base_chain_client", return_value=self.node.client)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def execution_data(self, obj):
+        page = self.client.get(url(obj, "execute"))
+        self.assertEqual(page.status_code, 200)
+        if isinstance(obj, CapitalIncreaseRequest):
+            return {"confirmation": page.context["form"]["confirmation"].value()}
+        return {}
+
+    def assert_deferred(self, task, obj, actor):
+        expected = dict(model_label=obj._meta.label, request_uuid=str(obj.pk), executed_by=actor.pk)
+        if isinstance(obj, CapitalIncreaseRequest):
+            expected["execution_id"] = str(obj.dispatch_id)
+        task.assert_called_once_with(**expected)
 
     def test_execution_requires_active_staff_with_change_permission(self):
         staff = User.objects.create_user(
@@ -57,7 +79,7 @@ class ReviewRequestAdminTest(TestCase):
         for obj in self.requests:
             obj.approve(self.admin)
             with self.subTest(model=obj._meta.model_name), patch(
-                "tokens.admin.review_workflow.execute_review_request_task"
+                "tokens.tasks.execute_review_request_task.defer"
             ) as task:
                 for user, status in ((None, 302), (self.tenant.user, 302), (staff, 403)):
                     self.client.logout()
@@ -67,13 +89,11 @@ class ReviewRequestAdminTest(TestCase):
                     self.assertEqual(response.status_code, status)
                     if status == 302:
                         self.assertIn(reverse("admin:login"), response.url)
-                    task.defer.assert_not_called()
+                    task.assert_not_called()
                 staff.user_permissions.add(Permission.objects.get(codename=f"change_{obj._meta.model_name}"))
-                response = self.client.post(url(obj, "execute"))
+                response = self.client.post(url(obj, "execute"), self.execution_data(obj))
                 self.assertRedirects(response, url(obj, "change"), fetch_redirect_response=False)
-                task.defer.assert_called_once_with(
-                    model_label=obj._meta.label, request_uuid=str(obj.uuid), executed_by=staff.pk
-                )
+                self.assert_deferred(task, obj, staff)
 
     def test_changelist_and_change_pages_render_with_the_review_buttons(self):
         for obj in self.requests:
@@ -95,7 +115,7 @@ class ReviewRequestAdminTest(TestCase):
             recipient_address=self.issuance.recipient_address,
             amount=str(self.issuance.amount),
             status="failed",
-            idempotency_key=ShareTokenService.issuance_key(self.issuance),
+            idempotency_key=share_token_service.issuance_key(self.issuance),
         )
         change = self.client.get(url(self.issuance, "change"))
         self.assertContains(change, "Record legacy transaction hash")
@@ -136,13 +156,16 @@ class ReviewRequestAdminTest(TestCase):
                 self.assertContains(change, url(obj, "execute"))
 
                 self.assertContains(self.client.get(url(obj, "execute")), step)
-                with patch("tokens.admin.review_workflow.execute_review_request_task") as task:
-                    executed = self.client.post(url(obj, "execute"))
+                with patch("tokens.tasks.execute_review_request_task.defer") as task:
+                    executed = self.client.post(url(obj, "execute"), self.execution_data(obj))
                 self.assertRedirects(executed, url(obj, "change"), fetch_redirect_response=False)
-                task.defer.assert_called_once_with(
-                    model_label=obj._meta.label, request_uuid=str(obj.uuid), executed_by=self.admin.pk
+                self.assert_deferred(task, obj, self.admin)
+                expected = (
+                    "Capital increase status: Executing"
+                    if isinstance(obj, CapitalIncreaseRequest)
+                    else "execution started for"
                 )
-                self.assertContains(self.client.get(url(obj, "change")), "execution started for")
+                self.assertContains(self.client.get(url(obj, "change")), expected)
 
     def test_reject_needs_a_reason_and_closes_the_request(self):
         for obj in self.requests:
@@ -185,7 +208,16 @@ class ReviewRequestAdminTest(TestCase):
                     self.client.get(url(obj, "change")), "Cannot execute: request status is &#x27;Submitted&#x27;"
                 )
 
-                obj.mark_failed("rpc down")
+                if isinstance(obj, CapitalIncreaseRequest):
+                    obj.approve(self.admin)
+                    self.node.client.estimate_gas.side_effect = RuntimeError("Synthetic preparation refusal")
+                    with patch("tokens.tasks.execute_review_request_task.defer"):
+                        command = capital_execution.admit(
+                            obj, self.admin, confirmed=capital_execution.confirmation(obj, self.admin)
+                        )
+                    capital_execution.recover(command.pk)
+                else:
+                    obj.mark_failed("rpc down")
                 change = self.client.get(url(obj, "change"))
                 self.assertContains(change, "Retry Execute")
                 self.assertContains(change, url(obj, "execute"))
@@ -201,8 +233,15 @@ class ReviewRequestAdminTest(TestCase):
         self.assertTrue(issuance_admin.has_delete_permission(request, self.issuance))
         self.assertFalse(capital_admin.has_add_permission(request))
 
-        CapitalIncreaseRequest.objects.filter(pk=self.capital_increase.pk).update(status=RequestStatus.DRAFT)
-        self.capital_increase.refresh_from_db()
+        with self.assertRaises(DatabaseError), atomic():
+            CapitalIncreaseRequest.objects.filter(pk=self.capital_increase.pk).update(status=RequestStatus.DRAFT)
+        draft = CapitalIncreaseRequest.objects.create(
+            token=self.tenant.deployed_token,
+            additional_shares=5,
+            new_authorized_total=1005,
+            purpose="Draft deletion control",
+            board_resolution_reference="DRAFT-BOARD",
+        )
         self.issuance.approve(self.admin)
-        self.assertTrue(capital_admin.has_delete_permission(request, self.capital_increase))
+        self.assertTrue(capital_admin.has_delete_permission(request, draft))
         self.assertFalse(issuance_admin.has_delete_permission(request, self.issuance))

@@ -13,7 +13,6 @@ from integrations.base_chain.exceptions import (
 from shared.db import atomic
 from tokens.exceptions import (
     YieldTokenContractNotConfiguredException,
-    YieldTokenMintFailedException,
     YieldTokenNAVUpdateFailedException,
 )
 from tokens.models import NAVUpdate, YieldToken
@@ -26,8 +25,6 @@ class YieldTokenService(BaseTokenService):
 
     contract_name = "AUSG"
     not_configured_exception = YieldTokenContractNotConfiguredException
-    mint_failed_exception = YieldTokenMintFailedException
-    mint_tx_type = TransactionType.YIELD_TOKEN_MINT
 
     def get_nav_per_token(self) -> int:
         return self.contract.functions.navPerToken().call()

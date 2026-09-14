@@ -38,6 +38,16 @@ fully clipped previews, backgrounding, delayed provider completion, replacement
 sessions, focus loss/regain before JavaScript admission changes, and real
 decoding of a synthetic QR bitmap. It runs
 inside the Android native CI probe and retains `scanner-window-tests.log`.
+A wait that reaches its 15-second deadline appends the focused window, focused
+app and top resumed activity at that moment, read through the instrumentation's
+shell. When a focus wait fails, a system window such as `Application Not
+Responding` holding focus marks an unhealthy emulator, and a test window holding
+focus points at scanner admission. The activity and its dialogs are all listed
+under the activity's name, so the state cannot say which of them has focus: for
+the modal wait, the activity keeping focus instead of the scanner dialog remains
+possible. When a camera wait fails, a focused test window only rules out lost
+window focus: CameraX binding or camera availability can still be the cause. The
+failure stands either way: nothing is dismissed or retried.
 The Release probe also drives nested React Native modal windows through the
 actual Expo bridge with camera permission granted by the emulator runner. That
 separate instrumentation APK first waits for bound preview/analysis use cases
@@ -66,6 +76,18 @@ JavaScript scanner state. These are observations, not inferred failure causes.
 Window observations deduplicate native view identities: React Native's modal host
 also exposes the dialog's children from the activity tree. Distinct checkpoint
 views remain distinct and still refuse an ambiguous JavaScript state.
+Before its first checkpoint, each scanner mount asks an inactive 1×1 native
+scanner whether generation -1, scan 0 is current and requires `false`. It waits
+for that view's first native window event rather than its layout: under the New
+Architecture a layout event can reach JavaScript before the view is mounted, and
+Expo then rejects the call with `ERR_VIEW_NOT_FOUND`, reported as stage
+`method-native-view-not-found`. Any failure of that check ends the scanner probe;
+when it happens before the native test observes the camera, the Release test
+then fails at `active-unmount-open`, or `remount-open` for the second mount, with
+no camera observation. If the window event never arrives, the check never runs
+and the mount's next checkpoint button never appears: the Release test fails at
+`active-unmount-request`, or `queued-cover-request` for the second mount, after
+its 15-second wait and before the probe's own deadline can report.
 This exercises the loaded bridge with a synthetic event; it does not
 reproduce natural JavaScript queue timing or scan a physical camera image.
 

@@ -11,11 +11,11 @@ from web3 import Web3
 from shared.db import atomic
 from tokens.models import FormerHolder, ShareIssuance, ShareToken
 from tokens.models.choices import IDENTITY_RECORDED, IDENTITY_STAMPED, IDENTITY_UNKNOWN
+from tokens.services import share_token_service
 from tokens.services.register import (
     IDENTITY_BY_HOLDER_TYPE,
     ZERO_ADDRESS,
     _deployment_block,
-    chain_service,
 )
 from whitelist.models import HolderType
 from whitelist.services.identity import UNIDENTIFIED, identities_for
@@ -89,7 +89,7 @@ def former_members_of(token: ShareToken):
 
 def fold_former_holders(token: ShareToken, reader=None) -> dict:
     retention_cutoff()
-    reader = reader or chain_service()
+    reader = reader or share_token_service
     head = reader.finalized_block()
     entries = reader.transfer_entries(token.contract_address, _deployment_block(token, reader), head)
     cessations = cessations_in(entries)

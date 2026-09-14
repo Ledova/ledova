@@ -30,12 +30,12 @@ from tokens.models import (
     ShareIssuance,
     ShareIssuanceRequest,
 )
-from tokens.services import ShareTokenService
+from tokens.services import share_token_service
 from tokens.tests.mint_results import recorded_mint_result
 
 CHAIN_CLIENT = "tokens.services.share_token_service.get_base_chain_client"
-WHITELISTED = "tokens.services.share_token_service.ShareTokenService.is_recipient_whitelisted"
-SUPPLY = "tokens.services.share_token_service.ShareTokenService.share_supply"
+WHITELISTED = "tokens.services.share_token_service.is_recipient_whitelisted"
+SUPPLY = "tokens.services.share_token_service.share_supply"
 DEFER = "offerings.tasks.subscription.allot_subscription_task.defer"
 SIGNER = "0x" + "e" * 40
 MINT = {"tx_hash": "0xmint", "block_number": 7, "gas_used": 21000}
@@ -71,7 +71,7 @@ class SubscriptionTaskTestCase(TestCase):
 class SubscriptionTaskTest(SubscriptionTaskTestCase):
     def test_the_task_mints_once_and_mirrors_the_subscription_to_allotted(self):
         subscription = self._allotted()
-        with patch.object(ShareTokenService, "_mint_to", side_effect=recorded_mint_result(MINT)) as mint:
+        with patch.object(share_token_service, "_mint_to", side_effect=recorded_mint_result(MINT)) as mint:
             result = allot_subscription_task(str(subscription.uuid), executed_by=self.operator_user.pk)
 
         self.assertTrue(result["success"], result)
@@ -83,7 +83,7 @@ class SubscriptionTaskTest(SubscriptionTaskTestCase):
 
     def test_running_the_task_twice_mints_once(self):
         subscription = self._allotted()
-        with patch.object(ShareTokenService, "_mint_to", side_effect=recorded_mint_result(MINT)) as mint:
+        with patch.object(share_token_service, "_mint_to", side_effect=recorded_mint_result(MINT)) as mint:
             first = allot_subscription_task(str(subscription.uuid), executed_by=self.operator_user.pk)
             second = allot_subscription_task(str(subscription.uuid), executed_by=self.operator_user.pk)
 
@@ -107,7 +107,7 @@ class SubscriptionTaskTest(SubscriptionTaskTestCase):
 
     def test_a_failing_mint_leaves_the_request_re_executable_and_the_row_paid(self):
         subscription = self._allotted()
-        with patch.object(ShareTokenService, "_mint_to", side_effect=RuntimeError("rpc down")):
+        with patch.object(share_token_service, "_mint_to", side_effect=RuntimeError("rpc down")):
             with self.assertRaisesMessage(RuntimeError, "rpc down"):
                 allot_subscription_task(str(subscription.uuid), executed_by=self.operator_user.pk)
 
@@ -117,7 +117,7 @@ class SubscriptionTaskTest(SubscriptionTaskTestCase):
         self.assertTrue(subscription.issuance_request.can_be_executed)
         self.assertEqual(ShareIssuance.objects.get().status, IssuanceStatus.FAILED)
 
-        with patch.object(ShareTokenService, "_mint_to", side_effect=recorded_mint_result(MINT)):
+        with patch.object(share_token_service, "_mint_to", side_effect=recorded_mint_result(MINT)):
             retried = allot_subscription_task(str(subscription.uuid), executed_by=self.operator_user.pk)
 
         self.assertTrue(retried["success"], retried)
@@ -127,7 +127,7 @@ class SubscriptionTaskTest(SubscriptionTaskTestCase):
 
     def test_reconcile_flips_a_paid_row_whose_request_reached_executed_and_touches_nothing_else(self):
         mirrored = self._allotted(wallet=extra_wallet(self.tenant, "1"))
-        with patch.object(ShareTokenService, "_mint_to", side_effect=recorded_mint_result(MINT)):
+        with patch.object(share_token_service, "_mint_to", side_effect=recorded_mint_result(MINT)):
             with patch("offerings.tasks.subscription._mirror_allotted", return_value=False):
                 allot_subscription_task(str(mirrored.uuid), executed_by=self.operator_user.pk)
 

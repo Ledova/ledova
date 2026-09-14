@@ -1,8 +1,10 @@
 from .deployment import check_pending_token_deployments, deploy_share_token_task
 from .former_holders import fold_every_share_class, purge_former_members_past_the_clock
+from .mint_request import recover_mint_requests
 from .review_request import (
     check_executing_issuance_requests,
     execute_review_request_task,
+    recover_capital_increases,
 )
 from .signing_challenge import purge_signing_challenges
 from .swap_expiry import expire_unclaimed_matches
@@ -18,4 +20,6 @@ __all__ = [
     "purge_former_members_past_the_clock",
     "purge_signing_challenges",
     "resolve_executing_swaps",
+    "recover_mint_requests",
+    "recover_capital_increases",
 ]

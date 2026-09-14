@@ -272,6 +272,7 @@ class ExecutionNotesMigrationRoundTripTest(TransactionTestCase):
                     "new_authorized_total": 1010,
                     "purpose": "Growth",
                     "board_resolution_reference": "Board 1",
+                    "dispatch_id": None,
                 },
             ),
         ):

@@ -14,9 +14,13 @@
 {% block content %}
 <div class="admin-custom-form admin-custom-form--wide">
     <div class="alert alert-success">
-        <strong>{% if mint_request.error_message %}Retry{% else %}Execute{% endif %} Mint Request</strong>
+        <strong>{% if mint_request.status == "executing" %}Recover{% elif mint_request.error_message %}Retry{% else %}Execute{% endif %} Mint Request</strong>
         <p class="mt-1 mb-0">
+            {% if mint_request.status == "executing" %}
+            Recover the recorded mint below. Its outcome is unresolved; keep using this request until it is resolved.
+            {% else %}
             You are about to mint <strong>{{ mint_request.amount_display }} {{ mint_request.token.symbol }}</strong> to <strong>{{ mint_request.recipient_name }}</strong>.
+            {% endif %}
         </p>
     </div>
 
@@ -65,6 +69,8 @@
 
     <form method="post" class="admin-form">
         {% csrf_token %}
+        {{ form.retry_of }}
+        {{ form.retry_of.errors }}
 
         <fieldset>
             <legend>Confirmation</legend>
@@ -100,7 +106,7 @@
         </div>
 
         <div class="action-row mt-0">
-            <button type="submit" class="btn btn-success">Execute Mint</button>
+            <button type="submit" class="btn btn-success">{% if mint_request.status == "executing" %}Recover Mint{% else %}Execute Mint{% endif %}</button>
             <a href="{% url 'admin:tokens_mintrequest_change' mint_request.pk %}" class="btn btn-secondary">Cancel</a>
         </div>
     </form>

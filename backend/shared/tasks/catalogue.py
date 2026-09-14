@@ -1,4 +1,10 @@
 SYSTEM_WIDE = {
+    "whitelist.tasks.recovery.recover_whitelist_changes": "Recovers admitted whitelist changes through their "
+    "original outgoing operations. Uses operator authority, never admits or reopens a command, and never "
+    "substitutes current membership for a signed transaction outcome.",
+    "tokens.tasks.mint_request.recover_mint_requests": "Recovers durably admitted mint requests across the deployment, "
+    "using operator authority and the original signed operation. It never admits a new request "
+    "or restarts a reverted attempt.",
     "tokens.tasks.review_request.execute_review_request_task": "Executes approved issuance and capital increases "
     "only enqueued by the staff admin with change permission. The explicit operator context writes the "
     "issuer ledger and recipient holdings; executed_by is the staff audit actor, not a tenant principal. "
@@ -28,6 +34,7 @@ SYSTEM_WIDE = {
     "database, so it has to see both in full.",
     "tokens.tasks.deployment.check_pending_token_deployments": "Polls every deployment this operator started.",
     "tokens.tasks.review_request.check_executing_issuance_requests": "Polls every issuance the relayer claimed.",
+    "tokens.tasks.review_request.recover_capital_increases": "Recovers only previously admitted operator capital work.",
     "tokens.tasks.former_holders.fold_every_share_class": "Reads the Transfer log of every deployed "
     "share class and writes the cessations it finds. It is the deployment's statutory register rather "
     "than any owner's data, and R24 makes the table operator-written for that reason.",
@@ -108,20 +115,16 @@ CONVERTED_IN = {
 }
 
 OPERATOR_BOUNDARIES = {
-    "tokens.services.deployment_journal.create_deployment_record": "Creates one operator-owned broadcast record "
-    "for the token already resolved under its enqueue principal; no other token is selected or changed.",
-    "tokens.services.deployment_journal.load_deployment_record": "Reads only the deployment journal named by "
-    "the already-resolved token's foreign key, including historical records without related_uuid metadata.",
-    "tokens.services.deployment_journal.record_signed_deployment": "Commits one deployment hash with its token "
-    "association on the same operator transaction before broadcast. The record must belong to this token; "
-    "a scoped caller's current company ownership is rechecked under a lock. Other token writes remain scoped.",
-    "tokens.services.deployment_journal.confirm_deployment_record": "Records a receipt only on the resolved "
-    "token's deployment journal; it does not finalize the token or widen access to another deployment.",
-    "tokens.services.deployment_journal.fail_deployment_record": "Retains failure or unknown-broadcast evidence "
-    "only on the resolved token's journal, without changing a token's scoped deployment state.",
-    "tokens.services.deployment_journal.revert_deployment_record": "Marks the resolved token's deployment "
-    "journal reverted; clearing the token's association remains a write under the caller's principal.",
+    "tokens.services.deployment.retry_confirmation": "Reads the original deployment claim for a signed retry form.",
+    "tokens.services.deployment._admit": "Freezes one issuer-visible token's deployment intent after locked ownership "
+    "and token-identity checks; public lifecycle writes retain the issuer connection.",
+    "tokens.services.deployment._process": "Uses the private shared signer journal for one admitted deployment. Its "
+    "local signing callback rechecks ownership and commits bytes, hash and token association together before RPC.",
+    "tokens.services.deployment_journal.record_outcome": "Records the original operation's receipt and transaction "
+    "outcome; public token and asset projection stays on the caller's connection.",
+    "tokens.services.deployment_journal.mark_projected": "Records completion of the attributed token projection.",
 }
+
 
 READS_MUST_SURVIVE_THE_POLICIES = {
     "wallets.tasks.sync.sync_wallet": "Retained market read: POLICIES gives tokens_sharetoken an "

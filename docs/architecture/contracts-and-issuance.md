@@ -42,21 +42,21 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
    shares actually issued. Shares use whole units: model validation and the
    `share_token_whole_units` database constraint require `ShareToken.decimals`
    to be zero, matching the contract. Settlement assets keep their own decimals.
-2. `POST /api/v1/tokens/{uuid}/deploy/` calls
-   `ShareTokenService.start_deployment`, which refuses unless the token is
-   `DRAFT`, the company is `ACTIVE` and the company has a primary wallet, then
-   moves the token to `DEPLOYING` and defers `deploy_share_token_task`.
-3. The task calls `getTokenByIdentifier("<acn>:<symbol>")` first; if the factory
-   already holds an address, that address is adopted and nothing is sent. The
-   ACN is required and unique, so the identifier survives a later ABN, and a
-   company can hold several share classes under distinct symbols.
-4. Otherwise `createShareToken` is signed, its hash is committed together with
-   the token's binding to that transaction, and only then is it broadcast and
-   the receipt awaited (see [deployment persistence](#deployment-persistence)).
-   Only a failure *before* that commit returns the token to `DRAFT`; otherwise
-   it stays `DEPLOYING` until `check_pending_token_deployments` (every 5
-   minutes) resolves it or an admin uses "Retry Deployment". Deployment mints
-   nothing: `totalSupply` starts at zero.
+2. `POST /api/v1/tokens/{uuid}/deploy/` calls `deployment.start_deployment`.
+   A draft requires an active company and primary wallet. Its submission UUID,
+   `DEPLOYING` status and principal-bearing job commit together. Repeated
+   requests retain the UUID and recover the existing deployment.
+3. The worker freezes the admitted token, company, issuer and factory call in
+   a private `TokenDeployment`. The identifier is `<acn>:<symbol>`; a company
+   may have several share classes. An existing factory address without an
+   attributable local deployment remains pending for operator attribution.
+4. The shared outgoing journal commits the signed bytes, nonce, hash and token
+   association before broadcast. Recovery uses the original transaction and
+   matching factory event. Unknown outcomes remain `DEPLOYING`; a signed admin
+   confirmation may retry a definite unsigned failure or revert with the same
+   intent. The five-minute sweep recovers admitted work. Deployment mints
+   nothing: the contract's `totalSupply()` starts at zero. See
+   [deployment persistence](#deployment-persistence).
 5. An investor wallet is verified, then whitelisted. `WhitelistEntry` either
    points at a `Wallet` or carries a bare `address` plus a `label` for an
    operator-held treasury address; a database constraint requires one of the two
@@ -73,24 +73,18 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
    `check_executing_issuance_requests` (every 5 minutes) finishes a request a
    killed worker left executing.
 8. A capital increase calls `setAuthorizedShares(new_authorized_total)` and
-   mints nothing. It is refused unless the new total is above the cap the chain
-   holds now, except when the chain already holds exactly the requested total
-   and the stored cap is behind it: then the chain cap is adopted, the request
-   completes without sending, and no `BlockchainTransaction` is recorded
-   (`_execute_capital_increase` in
-   `backend/tokens/services/share_token_service.py`, pinned by
-   `test_a_chain_cap_equal_to_the_request_with_the_db_cap_behind_is_adopted_instead_of_refused`).
-   A `select_for_update` row lock on the `ShareToken` spans the cap read, the
-   call and the write, so two increases approved against one cap cannot lower
-   it. The chain suite runs on PostgreSQL to exercise that lock. The same sweep resolves stale capital-increase rows
-   through `resolve_executing_capital_increase`. A requested total at or below
-   the stored cap becomes `superseded` before resuming or sending; adoption
-   needs the stored cap below the requested total, so the two cannot both fire.
-   Supersession is terminal: the saved reason names both totals and, when known,
-   the completed request that set the current cap. Human review notes survive.
-   After reading a receipt the sweep rechecks the cap and request status under
-   the same lock, so a delayed result cannot overwrite a later cap or reopen a
-   terminal request.
+   mints nothing. Staff execution commits the approved request, immutable private
+   intent and background job before any chain call. Network work runs outside
+   database transactions; an unresolved request retains the existing per-token
+   in-flight slot. The shared signing journal preserves the original bytes, hash
+   and nonce. Completion requires the original transaction's successful receipt
+   and its `AuthorizedSharesUpdated` event matching both approved cap values.
+   A matching current cap alone never establishes execution.
+   The five-minute `recover_capital_increases` task repairs admitted work.
+   Known unsigned or reverted failures need a fresh confirmation of that exact
+   failed attempt. A provably unsigned request overtaken by the recorded cap can
+   become `superseded`; historical uncertainty requires attribution.
+   See [capital recovery boundaries](outgoing-signing.md#capital-increases).
 9. Pause and unpause read `paused()` first and reconcile the database when the
    chain is already in the target state.
 10. Deployment writes a verified `assets.Asset` (`tokenized_security`,
@@ -107,9 +101,9 @@ after earlier refusals (`ReviewRequest.mark_executed` in
 `backend/tokens/models/review_request.py`), so the history does not stop at the
 last failure. Reviewer notes are omitted from the issuer serializers and from
 the client type in `packages/shared/src/types/domain/company-token.ts`; issuers
-receive execution notes and rejection or supersession reasons. Provider
-diagnostics remain in the operator records and logs; a failed execution asks an
-operator to check the chain before deciding whether to retry.
+receive execution notes and rejection or supersession reasons. Issuance provider diagnostics remain in operator records and logs. Capital
+recovery retains transaction identity and safe error categories; provider URLs
+and exception text do not enter capital responses or diagnostics.
 
 Issuers read their requests through `GET /api/v1/tokens/issuance-requests/`,
 filtered by token, company or status; the endpoint is read-only. List and detail
@@ -120,37 +114,37 @@ execution of an approved request.
 
 ## Deployment persistence
 
-`_create_share_token` in `backend/tokens/services/share_token_service.py` first
-writes a pending `BlockchainTransaction` journal row for the token, then signs
-`createShareToken`. The chain client's `on_signed` callback runs before
-`send_raw_transaction`: `record_signed_deployment` in
-`backend/tokens/services/deployment_journal.py` commits the signed
-transaction's hash on that journal row and the token's binding to it
-(`deployment_tx_hash` and `deployment_transaction`) together, in one durable
-transaction on the operator connection, before anything is broadcast. That
-commit refuses an enclosing transaction or disabled autocommit, a journal row
-that belongs to another token, a binding the token already carries, and, for a
-scoped issuer caller, a company or token whose ownership changed since enqueue
-(rechecked under a row lock). The journal row is marked submitted at this
-boundary; that label and the hash identify the prepared transaction and do not
-prove that the provider accepted it. A provider that answers with a different
-hash is treated as an unconfirmed broadcast.
+`backend/tokens/services/deployment.py` admits one immutable `TokenDeployment`
+for each queued submission. Its UUID snapshots preserve token/company/issuer
+identity without adding a private foreign-key dependency to customer deletion.
+Historical rows retain null submission identities and their original hashes and
+records; they are not automatically attributed or imported into the outgoing journal.
 
-A lost send acknowledgement leaves the token `DEPLOYING` with its original hash
-and the journal row still submitted, with the unconfirmed-broadcast message
-recorded on it. Retry and reconciliation resolve
-through the recorded transaction; an unavailable receipt does not authorize
-another create. A failure before the hash is committed returns the
-still-unbound token to `DRAFT`. Once the commit has happened, even a lost
-commit acknowledgement that raises before the callback returns leaves the
-token bound and `DEPLOYING`, nothing is broadcast, and a retry resumes from
-the journal rather than creating again
-(`test_lost_commit_acknowledgement_blocks_send_and_retains_recovery` in
-`backend/tokens/tests/test_deployment_signing_boundary.py`). Existing
-confirmed-revert and factory-adoption paths remain. Do not
-clear a hash to retry. This boundary does not persist signed bytes, freeze all
-deployment terms or historical identities, activate the
-[outgoing signer foundation](outgoing-signing.md), or establish all-writer
-cutover or finality.
+The shared outgoing journal's local signing callback commits `SignedAttempt`
+bytes, the reserved nonce, the `BlockchainTransaction` and the public token's
+hash/transaction association in one durable operator transaction. It refuses
+surrounding transactions, competing bindings, changed admitted terms and revoked
+issuer ownership. Other public lifecycle and asset writes stay on the issuer
+connection. Operator recovery can reconcile an already-signed transaction after
+issuer access changes; unsigned issuer intent still requires its authority.
+
+Unknown sends and lost commit acknowledgements recover the original signed
+bytes, hash and nonce. Definite preparation failures and reverts retain their
+intent; an explicit retry names the failed claim, so stale jobs and forms cannot
+reopen a later terminal attempt. A retry records the previous transaction's
+revert before reopening its operation. New transaction projections are excluded from
+the legacy hash monitor. Only the original operation's receipt, with a factory
+creation event matching identifier, symbol and cap, can establish the contract.
+An identifier lookup or current share cap cannot substitute for attribution.
+
+Projection checks the current token/submission/company and chain/factory before
+writing public state. A failed asset bridge stays recoverable after the token's
+contract is recorded. The bounded sweep rotates unresolved work by update time
+and repairs interrupted revert projections without opening another attempt.
+Once their transaction projection is complete, terminal failures await explicit
+retry. Existing post-deployment swap approval remains a separate legacy writer
+scheduled for M2.5 of #6; complete
+same-key cutover, historical attribution and finality remain outstanding. Signer
+admission remains closed by default. See [outgoing signing](outgoing-signing.md).
 
 Next: [offerings](offerings.md), [subscriptions](subscriptions.md), and [chain setup](../operations/chains.md).

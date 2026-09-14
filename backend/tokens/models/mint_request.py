@@ -1,21 +1,31 @@
+from decimal import Decimal
+from uuid import uuid4
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.utils import timezone
 
 from operators.models import STABLECOIN_ONLY
 from shared.models import BaseModel
+from tokens.querysets.mint_request import MintRequestQuerySet
 
 
 class MintRequestStatus(models.TextChoices):
     PENDING = "pending", "Pending"
     APPROVED = "approved", "Approved"
+    EXECUTING = "executing", "Outcome unresolved"
     EXECUTED = "executed", "Executed"
     FAILED = "failed", "Failed"
     REJECTED = "rejected", "Rejected"
 
 
 class MintRequest(BaseModel):
+
+    dispatch_id = models.UUIDField(default=uuid4, null=True, editable=False)
+    execution_intent = models.JSONField(null=True, editable=False)
+    operation = models.OneToOneField(
+        "blockchain.OutgoingOperation", on_delete=models.PROTECT, null=True, related_name="mint_request", editable=False
+    )
 
     settlement_asset = models.ForeignKey(
         "assets.Asset",
@@ -113,6 +123,8 @@ class MintRequest(BaseModel):
         help_text="Error message if mint failed",
     )
 
+    objects = MintRequestQuerySet.as_manager()
+
     class Meta:
         verbose_name = "Mint Request"
         verbose_name_plural = "Mint Requests"
@@ -142,32 +154,18 @@ class MintRequest(BaseModel):
     @property
     def amount_display(self) -> str:
         token = self.token
-        decimals = token.decimals if token else 2
-        return f"{self.amount / (10 ** decimals):,.{decimals}f}"
+        decimals = self.execution_intent["decimals"] if self.execution_intent else token.decimals if token else 2
+        return f"{Decimal(self.amount).scaleb(-decimals):,.{decimals}f}"
 
     @property
     def can_be_executed(self) -> bool:
-        return self.status in (MintRequestStatus.PENDING, MintRequestStatus.APPROVED, MintRequestStatus.FAILED)
+        return self.dispatch_id is not None and self.status in (
+            MintRequestStatus.PENDING,
+            MintRequestStatus.APPROVED,
+            MintRequestStatus.FAILED,
+            MintRequestStatus.EXECUTING,
+        )
 
     @property
     def can_be_rejected(self) -> bool:
-        return self.status in (MintRequestStatus.PENDING, MintRequestStatus.APPROVED)
-
-    def mark_executed(self, user, transaction):
-        self.status = MintRequestStatus.EXECUTED
-        self.executed_by = user
-        self.executed_at = timezone.now()
-        self.transaction = transaction
-        self.save(update_fields=["status", "executed_by", "executed_at", "transaction", "updated_at"])
-
-    def mark_failed(self, error_message: str):
-        self.status = MintRequestStatus.FAILED
-        self.error_message = error_message
-        self.save(update_fields=["status", "error_message", "updated_at"])
-
-    def mark_rejected(self, user, reason: str):
-        self.status = MintRequestStatus.REJECTED
-        self.executed_by = user
-        self.executed_at = timezone.now()
-        self.rejection_reason = reason
-        self.save(update_fields=["status", "executed_by", "executed_at", "rejection_reason", "updated_at"])
+        return self.execution_intent is None and self.status in (MintRequestStatus.PENDING, MintRequestStatus.APPROVED)
