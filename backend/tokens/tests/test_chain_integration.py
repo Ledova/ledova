@@ -921,7 +921,6 @@ class MintRequestChainTest(APITransactionTestCase):
         BaseChainClient._instance = None
         BaseChainClient._web3 = None
         self.chain = get_base_chain_client()
-        self.chain = get_base_chain_client()
         self.w3 = self.chain.w3
         snapshot = self.w3.provider.make_request("evm_snapshot", [])["result"]
         self.addCleanup(self.w3.provider.make_request, "evm_revert", [snapshot])

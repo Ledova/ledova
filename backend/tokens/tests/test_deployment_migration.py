@@ -47,12 +47,14 @@ class DeploymentMigrationTest(TransactionTestCase):
         provider.assert_not_called()
 
     def test_reverse_refuses_to_remove_queued_submission_identity(self):
+        self.addCleanup(restore_every_migration)
         token = deployment_token("queued-reverse").token
         with self.assertRaisesMessage(DatabaseError, "Cannot remove deployment submission or recovery history"):
             migrate_to([("tokens", "0042_mint_request_operations")])
         self.assertEqual(ShareToken.objects.get(pk=token.pk).deployment_id, token.deployment_id)
 
     def test_reverse_refuses_to_remove_admitted_intent(self):
+        self.addCleanup(restore_every_migration)
         token = deployment_token("admitted-reverse").token
         command = deployment._admit(token, None)
         with self.assertRaisesMessage(DatabaseError, "Cannot remove deployment submission or recovery history"):

@@ -48,9 +48,11 @@ class MintRequestMigrationTest(TransactionTestCase):
         self.assertIsNotNone(new.dispatch_id)
 
     def test_reverse_refuses_to_discard_an_admitted_request(self):
+        self.addCleanup(restore_every_migration)
         actor = get_user_model().objects.create_superuser(email="reverse@example.test", password="synthetic")
         request = mint_request(actor)
         mint_service._admit(request.pk, actor, "tokens.change_mintrequest", "")
         with self.assertRaisesMessage(DatabaseError, "Cannot remove admitted mint recovery history"):
             migrate_to([("tokens", "0041_drop_the_token_owner_no_policy_reads")])
+        restore_every_migration()
         self.assertIsNotNone(MintRequest.objects.get(pk=request.pk).execution_intent)
