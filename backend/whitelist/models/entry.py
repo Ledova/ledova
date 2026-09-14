@@ -62,36 +62,6 @@ class WhitelistEntry(BaseModel):
     def wallet_address(self) -> str:
         return self.wallet.address if self.wallet_id else self.address
 
-    def mark_active(self, tx_hash: str) -> None:
-        self.status = WhitelistStatus.ACTIVE
-        self.is_whitelisted = True
-        self.add_tx_hash = tx_hash
-        self.last_synced_at = timezone.now()
-        self.save(
-            update_fields=[
-                "status",
-                "is_whitelisted",
-                "add_tx_hash",
-                "last_synced_at",
-                "updated_at",
-            ]
-        )
-
-    def mark_removed(self, tx_hash: str) -> None:
-        self.status = WhitelistStatus.REMOVED
-        self.is_whitelisted = False
-        self.remove_tx_hash = tx_hash
-        self.last_synced_at = timezone.now()
-        self.save(
-            update_fields=[
-                "status",
-                "is_whitelisted",
-                "remove_tx_hash",
-                "last_synced_at",
-                "updated_at",
-            ]
-        )
-
     def record_the_chain_still_lists_it(self) -> bool:
         moment = timezone.now()
         changed = (
@@ -109,21 +79,3 @@ class WhitelistEntry(BaseModel):
             self.failure_reconciled_at = moment
             self.updated_at = moment
         return bool(changed)
-
-    def mark_failed(self, error: str = "") -> None:
-        self._record_failure(error, [])
-
-    def mark_add_failed(self, error: str, tx_hash: str) -> None:
-        self.add_tx_hash = tx_hash
-        self._record_failure(error, ["add_tx_hash"])
-
-    def mark_remove_failed(self, error: str, tx_hash: str) -> None:
-        self.remove_tx_hash = tx_hash
-        self._record_failure(error, ["remove_tx_hash"])
-
-    def _record_failure(self, error: str, extra_fields: list[str]) -> None:
-        self.status = WhitelistStatus.FAILED
-        self.failure_reconciled_at = None
-        if error:
-            self.notes = f"Error: {error}\n{self.notes}"
-        self.save(update_fields=["status", "notes", "failure_reconciled_at", "updated_at", *extra_fields])

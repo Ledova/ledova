@@ -6,7 +6,7 @@ from unittest.mock import patch
 from django.db import connection
 from django.test import override_settings
 from django.utils import timezone
-from rest_framework.test import APITestCase, APITransactionTestCase
+from rest_framework.test import APITransactionTestCase
 
 from assets.models import Asset
 from integrations.base_chain.exceptions import BaseChainTransactionError
@@ -50,7 +50,6 @@ from tokens.tests.test_chain_integration import (
     chain_available,
 )
 from wallets.models import Holding, Wallet
-from whitelist.services import WhitelistService
 
 DEFER = "offerings.tasks.subscription.allot_subscription_task.defer"
 PRICE = Decimal("2.50")
@@ -99,10 +98,10 @@ class AllotmentChainMixin(ChainTestMixin):
 
 @chain_available
 @override_settings(**CHAIN_SETTINGS)
-class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITestCase):
+class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase):
     def test_a_paid_subscription_mints_once_and_the_shares_reach_the_investors_portfolio(self):
         self._deployed()
-        WhitelistService().add_to_whitelist(self.investor)
+        self._whitelist(self.investor)
         offering = self._offering()
         subscription = self._paid(offering, quantity=40)
 
@@ -130,7 +129,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITestCase):
 
     def test_running_the_allotment_twice_in_sequence_mints_exactly_once(self):
         self._deployed()
-        WhitelistService().add_to_whitelist(self.investor)
+        self._whitelist(self.investor)
         subscription = self._paid(self._offering(), quantity=25)
         allot(subscription, self.staff)
 
@@ -149,7 +148,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITestCase):
 
     def test_a_second_allot_click_refuses_before_it_reaches_the_chain(self):
         self._deployed()
-        WhitelistService().add_to_whitelist(self.investor)
+        self._whitelist(self.investor)
         subscription = self._paid(self._offering(), quantity=10)
         allot(subscription, self.staff)
         self._run_task(subscription)
@@ -165,7 +164,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITestCase):
 
     def test_a_refund_between_the_click_and_the_worker_leaves_no_shares_on_chain(self):
         self._deployed()
-        WhitelistService().add_to_whitelist(self.investor)
+        self._whitelist(self.investor)
         subscription = self._paid(self._offering(), quantity=30)
         request = allot(subscription, self.staff)
 
@@ -186,7 +185,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITestCase):
 
     def test_a_refund_is_refused_once_the_shares_are_on_chain(self):
         self._deployed()
-        WhitelistService().add_to_whitelist(self.investor)
+        self._whitelist(self.investor)
         subscription = self._paid(self._offering(), quantity=20)
         allot(subscription, self.staff)
 
@@ -204,7 +203,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITestCase):
 
     def test_a_refund_is_refused_while_a_lost_receipt_leaves_the_mint_unresolved(self):
         self._deployed()
-        WhitelistService().add_to_whitelist(self.investor)
+        self._whitelist(self.investor)
         subscription = self._paid(self._offering(), quantity=20)
         request = allot(subscription, self.staff)
 
@@ -233,7 +232,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITestCase):
 
     def test_the_sweep_finishes_a_broadcast_mint_that_lost_its_receipt(self):
         self._deployed()
-        WhitelistService().add_to_whitelist(self.investor)
+        self._whitelist(self.investor)
         subscription = self._paid(self._offering(), quantity=20)
         request = allot(subscription, self.staff)
 
@@ -260,7 +259,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITestCase):
 
     def test_a_killed_worker_leaves_the_row_paid_until_reconcile_mirrors_the_executed_request(self):
         self._deployed()
-        WhitelistService().add_to_whitelist(self.investor)
+        self._whitelist(self.investor)
         subscription = self._paid(self._offering(), quantity=15)
         allot(subscription, self.staff)
 
@@ -283,7 +282,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITestCase):
 
     def test_a_batch_over_the_chain_headroom_is_refused_whole_and_mints_nothing(self):
         self._deployed()
-        WhitelistService().add_to_whitelist(self.investor)
+        self._whitelist(self.investor)
         offering = self._offering()
         Offering.objects.filter(pk=offering.pk).update(cap_shares=CAP * 2)
         offering.refresh_from_db()
@@ -309,7 +308,7 @@ class SubscriptionAllotmentChainConcurrencyTest(AllotmentChainMixin, APITransact
 
     def test_two_workers_racing_the_same_allotment_mint_exactly_once(self):
         self._deployed()
-        WhitelistService().add_to_whitelist(self.investor)
+        self._whitelist(self.investor)
         subscription = self._paid(self._offering(), quantity=30)
         allot(subscription, self.staff)
 
@@ -344,7 +343,7 @@ class SubscriptionAllotmentChainConcurrencyTest(AllotmentChainMixin, APITransact
 
     def test_two_operators_clicking_allot_at_once_create_one_issuance_request(self):
         self._deployed()
-        WhitelistService().add_to_whitelist(self.investor)
+        self._whitelist(self.investor)
         subscription = self._paid(self._offering(), quantity=20)
 
         barrier = threading.Barrier(2)

@@ -430,6 +430,8 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
+    "whitelist_whitelistchange": "Immutable operator-authorized whitelist commands and their outgoing-operation "
+    "associations. Public membership reads never read this private recovery journal.",
     "documents_documentread": "Append-only administrative document read records, written on the operator "
     "connection and visible only to permitted platform reviewers. They contain UUIDs and reader IDs, not "
     "file names, extraction values or file contents, and outlive document content purges.",

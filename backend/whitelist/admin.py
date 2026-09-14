@@ -1,7 +1,6 @@
 from django import forms
 from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
-from django.shortcuts import render
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
@@ -11,7 +10,13 @@ from shared.constants import BLOCKCHAIN_BASE
 from shared.utils.admin_actions import admin_action_path
 from users.services.eligibility import account_eligibility
 from wallets.models import Wallet
-from whitelist.models import WhitelistEntry, WhitelistStatus
+from whitelist.admin_actions import confirm_changes
+from whitelist.models import (
+    WhitelistAction,
+    WhitelistAuthority,
+    WhitelistChange,
+    WhitelistEntry,
+)
 from whitelist.services.identity import entry_identity
 
 
@@ -211,130 +216,64 @@ class WhitelistEntryAdmin(admin.ModelAdmin):
     def status_actions(self, obj):
         if obj.pk is None:
             return "-"
-
-        buttons = []
+        if WhitelistChange.objects.filter(entry_id=obj.pk).unresolved().exists():
+            return "A whitelist change is unresolved. Automatic recovery will continue."
         base_style = (
             "display: inline-block; padding: 6px 12px; margin: 2px; "
             "text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: bold;"
         )
 
-        if obj.status == WhitelistStatus.PENDING and not obj.is_whitelisted:
-            add_url = reverse("admin:whitelist_whitelistentry_add_to_blockchain", args=[obj.uuid])
-            buttons.append(
-                f'<a href="{add_url}" style="{base_style} background-color: #28a745; color: white;">'
-                "Add to Blockchain</a>"
-            )
-        elif obj.status == WhitelistStatus.ACTIVE and obj.is_whitelisted:
-            remove_url = reverse("admin:whitelist_whitelistentry_remove_from_blockchain", args=[obj.uuid])
-            buttons.append(
-                f'<a href="{remove_url}" style="{base_style} background-color: #dc3545; color: white;">'
-                "Remove from Blockchain</a>"
-            )
-        elif obj.status == WhitelistStatus.FAILED:
-            add_url = reverse("admin:whitelist_whitelistentry_add_to_blockchain", args=[obj.uuid])
-            buttons.append(
-                f'<a href="{add_url}" style="{base_style} background-color: #ffc107; color: black;">'
-                "Retry Add to Blockchain</a>"
-            )
-
-        if not buttons:
-            return "-"
-
-        return mark_safe(" ".join(buttons))
+        action = "remove_from" if obj.is_whitelisted else "add_to"
+        url = reverse(f"admin:whitelist_whitelistentry_{action}_blockchain", args=[obj.uuid])
+        return format_html(
+            '<a href="{}" style="{} background-color: {}; color: white;">{}</a>',
+            url,
+            base_style,
+            "#dc3545" if obj.is_whitelisted else "#28a745",
+            "Remove from Blockchain" if obj.is_whitelisted else "Add to Blockchain",
+        )
 
     status_actions.short_description = "Quick Actions"
 
     def add_to_blockchain_view(self, request, entry):
-
-        if entry.is_whitelisted:
-            messages.warning(request, f"Address {entry.wallet_address} is already whitelisted on blockchain.")
-            return HttpResponseRedirect(reverse("admin:whitelist_whitelistentry_change", args=[entry.pk]))
-
-        if request.method == "POST":
-            from whitelist.services import WhitelistService
-
-            service = WhitelistService()
-            result = service.ensure_whitelisted([entry])
-
-            if result["added"] or result["synced"]:
-                messages.success(request, f"Successfully whitelisted {entry.wallet_address}.")
-            for error in result["errors"]:
-                messages.error(request, error)
-
-            return HttpResponseRedirect(reverse("admin:whitelist_whitelistentry_change", args=[entry.pk]))
-
-        context = {
-            **self.admin_site.each_context(request),
-            "title": f"Add to Blockchain: {entry.wallet_address[:10]}...{entry.wallet_address[-6:]}",
-            "entry": entry,
-            "opts": self.model._meta,
-        }
-        return render(request, "admin/whitelist/whitelistentry/add_to_blockchain_confirm.html", context)
+        response = confirm_changes(
+            self,
+            request,
+            self.get_queryset(request).filter(pk=entry.pk),
+            [entry],
+            WhitelistAction.ADD,
+            WhitelistAuthority.WHITELIST_ADMIN,
+        )
+        return response or HttpResponseRedirect(reverse("admin:whitelist_whitelistentry_change", args=[entry.pk]))
 
     def remove_from_blockchain_view(self, request, entry):
+        response = confirm_changes(
+            self,
+            request,
+            self.get_queryset(request).filter(pk=entry.pk),
+            [entry],
+            WhitelistAction.REMOVE,
+            WhitelistAuthority.WHITELIST_ADMIN,
+        )
+        return response or HttpResponseRedirect(reverse("admin:whitelist_whitelistentry_change", args=[entry.pk]))
 
-        if not entry.is_whitelisted:
-            messages.warning(request, f"Address {entry.wallet_address} is not on the blockchain whitelist.")
-            return HttpResponseRedirect(reverse("admin:whitelist_whitelistentry_change", args=[entry.pk]))
-
-        if request.method == "POST":
-            from whitelist.services import WhitelistService
-
-            service = WhitelistService()
-            result = service.ensure_removed([entry])
-
-            if result["removed"]:
-                messages.success(request, f"Successfully removed {entry.wallet_address} from blockchain whitelist.")
-            for error in result["errors"]:
-                messages.error(request, error)
-
-            return HttpResponseRedirect(reverse("admin:whitelist_whitelistentry_change", args=[entry.pk]))
-
-        context = {
-            **self.admin_site.each_context(request),
-            "title": f"Remove from Blockchain: {entry.wallet_address[:10]}...{entry.wallet_address[-6:]}",
-            "entry": entry,
-            "opts": self.model._meta,
-        }
-        return render(request, "admin/whitelist/whitelistentry/remove_from_blockchain_confirm.html", context)
-
-    @admin.action(description="Add selected entries to blockchain whitelist")
+    @admin.action(description="Add selected entries to blockchain whitelist", permissions=["change"])
     def add_to_blockchain(self, request, queryset):
-        from whitelist.services import WhitelistService
+        return confirm_changes(
+            self, request, queryset, list(queryset), WhitelistAction.ADD, WhitelistAuthority.WHITELIST_ADMIN
+        )
 
-        service = WhitelistService()
-        result = service.ensure_whitelisted(list(queryset))
-
-        if result["added"]:
-            self.message_user(request, f"Added {result['added']} address(es) to blockchain.", messages.SUCCESS)
-        if result["synced"]:
-            self.message_user(
-                request, f"Synced {result['synced']} address(es) already on blockchain.", messages.SUCCESS
-            )
-        if result["skipped"]:
-            self.message_user(request, f"Skipped {result['skipped']} already active address(es).", messages.WARNING)
-        for error in result["errors"]:
-            self.message_user(request, error, messages.ERROR)
-
-    @admin.action(description="Remove selected entries from blockchain whitelist")
+    @admin.action(description="Remove selected entries from blockchain whitelist", permissions=["change"])
     def remove_from_blockchain(self, request, queryset):
-        from whitelist.services import WhitelistService
-
-        service = WhitelistService()
-        result = service.ensure_removed(list(queryset))
-
-        if result["removed"]:
-            self.message_user(request, f"Removed {result['removed']} address(es) from blockchain.", messages.SUCCESS)
-        if result["skipped"]:
-            self.message_user(request, f"Skipped {result['skipped']} address(es) not on blockchain.", messages.WARNING)
-        for error in result["errors"]:
-            self.message_user(request, error, messages.ERROR)
+        return confirm_changes(
+            self, request, queryset, list(queryset), WhitelistAction.REMOVE, WhitelistAuthority.WHITELIST_ADMIN
+        )
 
     @admin.action(description="Sync selected entries with blockchain")
     def sync_with_blockchain(self, request, queryset):
-        from whitelist.services import WhitelistService
+        from whitelist.services import whitelist
 
-        service = WhitelistService()
+        service = whitelist
         result = service.sync_entries(list(queryset))
 
         if result["synced"]:

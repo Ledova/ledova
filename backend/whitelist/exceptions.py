@@ -2,31 +2,22 @@ from rest_framework import status
 from rest_framework.exceptions import APIException
 
 
-class AddressAlreadyWhitelistedException(APIException):
-
+class WhitelistChangeConflict(APIException):
     status_code = status.HTTP_409_CONFLICT
-    default_detail = "This address is already whitelisted."
-    default_code = "address_already_whitelisted"
+    default_detail = "This whitelist change conflicts with recorded work."
+    default_code = "whitelist_change_conflict"
 
 
-class AddressNotWhitelistedException(APIException):
-
-    status_code = status.HTTP_400_BAD_REQUEST
-    default_detail = "This address is not whitelisted."
-    default_code = "address_not_whitelisted"
+class WhitelistChangeUnresolved(APIException):
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    default_detail = "The whitelist outcome is unresolved. Recover the original submission."
+    default_code = "whitelist_change_unresolved"
 
 
 class WalletNotRegisteredException(APIException):
     status_code = status.HTTP_404_NOT_FOUND
     default_detail = "No unique registered wallet matches this address."
     default_code = "wallet_not_registered"
-
-
-class WhitelistOperationFailedException(APIException):
-
-    status_code = status.HTTP_502_BAD_GATEWAY
-    default_detail = "Whitelist operation failed."
-    default_code = "whitelist_operation_failed"
 
 
 class WhitelistContractNotConfiguredException(APIException):

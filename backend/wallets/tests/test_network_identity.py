@@ -26,8 +26,8 @@ from wallets.tests.test_broadcast_transfer_guard import (
 )
 from whitelist.exceptions import WalletNotRegisteredException
 from whitelist.models import WhitelistEntry
-from whitelist.services import unique_wallet_uuid_for
 from whitelist.services.identity import identities_for
+from whitelist.services.whitelist import unique_wallet_uuid_for
 
 ADDRESS = Web3.to_checksum_address("0x" + "ab" * 20)
 

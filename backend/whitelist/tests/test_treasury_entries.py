@@ -1,8 +1,9 @@
-from unittest.mock import Mock
+from unittest.mock import patch
+from uuid import uuid4
 
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
-from django.test import TestCase, override_settings
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
@@ -11,12 +12,19 @@ from shared.tests.tenants import an_account
 from wallets.models import Wallet
 from whitelist.exceptions import WalletNotRegisteredException
 from whitelist.models import WhitelistEntry, WhitelistStatus
-from whitelist.services import WhitelistService
+from whitelist.services import changes, whitelist
+from whitelist.tests.change_fixtures import (
+    CHAIN_ID,
+    KEY,
+    REGISTRY,
+    WhitelistNode,
+    admitted_signer,
+    change_actor,
+)
 
 User = get_user_model()
 TREASURY = "0x" + "ab" * 20
 TREASURY_CHECKSUM = "0xABaBaBaBABabABabAbAbABAbABabababaBaBABaB"
-RECEIPT = {"status": 1, "blockNumber": 7, "blockHash": bytes.fromhex("ab" * 32), "gasUsed": 21000}
 TEST_STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
@@ -56,48 +64,36 @@ class TreasuryEntryModelTest(TestCase):
         self.assertEqual(WhitelistEntry.objects.count(), 3)
 
 
-class TreasuryEntryServiceTest(TestCase):
-    def _service(self, on_chain=False):
-        service = WhitelistService.__new__(WhitelistService)
-        service.chain_client = Mock()
-        service.chain_client.to_checksum_address.side_effect = lambda address: address
-        service.chain_client.account_from_key.return_value.address = "0x" + "f" * 40
-        service.chain_client.build_transaction.return_value = {}
-        service.chain_client.sign_transaction.return_value = b"signed"
-        service.chain_client.send_raw_transaction.return_value = "0xhash"
-        service.chain_client.receipt_even_if_reverted.return_value = RECEIPT
-        service.signer_key = "0xoperator"
-        service.contract_address = "0x" + "d" * 40
-        service._contract = Mock()
-        service.is_whitelisted = Mock(return_value=on_chain)
-        service.get_investor_info = Mock(return_value={"whitelisted": on_chain, "kyc_timestamp": 0})
-        return service
+@override_settings(BLOCKCHAIN_CHAIN_ID=CHAIN_ID, BLOCKCHAIN_OPERATOR_KEY=KEY, WHITELIST_CONTRACT_ADDRESS=REGISTRY)
+class TreasuryEntryServiceTest(TransactionTestCase):
+    def setUp(self):
+        self.actor = change_actor()
+        self.node = WhitelistNode()
+        admitted_signer()
+        for module in (changes, whitelist):
+            patcher = patch.object(module, "get_base_chain_client", return_value=self.node.client)
+            patcher.start()
+            self.addCleanup(patcher.stop)
 
     def test_add_resolves_the_treasury_entry_without_a_wallet(self):
         entry = treasury_entry()
-
-        tx_hash, resolved = self._service().add_to_whitelist(TREASURY_CHECKSUM)
-
-        self.assertEqual((tx_hash, resolved), ("0xhash", entry))
+        result = changes.submit(uuid4(), "add", TREASURY_CHECKSUM, self.actor)
+        self.assertEqual(result.entry, entry)
+        self.assertEqual(result.status, "confirmed")
         entry.refresh_from_db()
         self.assertEqual((entry.status, entry.is_whitelisted, entry.wallet), (WhitelistStatus.ACTIVE, True, None))
-        self.assertEqual(BlockchainTransaction.objects.get().related_uuid, entry.uuid)
+        self.assertEqual(BlockchainTransaction.objects.get().related_uuid, result.pk)
 
-    def test_ensure_whitelisted_and_sync_work_on_a_treasury_entry(self):
+    def test_sync_preserves_the_treasury_entry(self):
         entry = treasury_entry()
-        service = self._service()
-
-        self.assertEqual(service.ensure_whitelisted([entry]), {"added": 1, "synced": 0, "skipped": 0, "errors": []})
-        entry.refresh_from_db()
-        self.assertTrue(entry.is_whitelisted)
-
-        synced = self._service(on_chain=True).sync_entry(TREASURY_CHECKSUM)
+        self.node.contract.functions.getInvestorInfo.return_value.call.side_effect = lambda: (True, 0)
+        synced = whitelist.sync_entry(TREASURY_CHECKSUM)
         self.assertEqual((synced, synced.status, synced.wallet), (entry, WhitelistStatus.ACTIVE, None))
         self.assertEqual(WhitelistEntry.objects.count(), 1)
 
     def test_an_unknown_address_without_a_treasury_entry_is_still_refused(self):
         with self.assertRaises(WalletNotRegisteredException):
-            self._service().add_to_whitelist("0x" + "9" * 40)
+            changes.submit(uuid4(), "add", "0x" + "9" * 40, self.actor)
         self.assertFalse(WhitelistEntry.objects.exists())
 
 

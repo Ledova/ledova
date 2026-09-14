@@ -14,18 +14,21 @@ from shared.views.scope import PolicyQuerysets
 from whitelist.exceptions import (
     BatchEntriesRequiredException,
     BatchSizeLimitExceededException,
+    WhitelistChangeUnresolved,
 )
 from whitelist.filters import WhitelistEntryFilter
-from whitelist.models import WhitelistEntry
+from whitelist.models import WhitelistAction, WhitelistChangeStatus, WhitelistEntry
 from whitelist.serializers import (
-    WhitelistAddResponseSerializer,
     WhitelistAddSerializer,
+    WhitelistBatchAddSerializer,
+    WhitelistBatchResponseSerializer,
+    WhitelistChangeSerializer,
     WhitelistEntrySerializer,
-    WhitelistRemoveResponseSerializer,
     WhitelistRemoveSerializer,
     WhitelistSyncResponseSerializer,
 )
-from whitelist.services import WhitelistService, unique_wallet_uuid_for
+from whitelist.services import changes, whitelist
+from whitelist.services.whitelist import unique_wallet_uuid_for
 
 
 class WhitelistEntryViewSet(
@@ -56,66 +59,53 @@ class WhitelistEntryViewSet(
         serializer = self.get_serializer(entries[0])
         return Response(serializer.data)
 
-    @extend_schema(responses=WhitelistAddResponseSerializer)
+    @extend_schema(
+        request=WhitelistAddSerializer,
+        responses={200: WhitelistChangeSerializer, 201: WhitelistChangeSerializer, 202: WhitelistChangeSerializer},
+    )
     @action(detail=False, methods=["post"])
     def add(self, request):
         serializer = WhitelistAddSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        wallet_address = serializer.validated_data["wallet_address"]
-
-        service = WhitelistService()
-
-        tx_hash, entry = service.add_to_whitelist(
-            address=wallet_address,
-            wait_for_receipt=True,
+        change = changes.submit(
+            serializer.validated_data["submission_id"],
+            WhitelistAction.ADD,
+            serializer.validated_data["wallet_address"],
+            request.user,
         )
-
-        response_data = {
-            "success": True,
-            "tx_hash": tx_hash,
-            "entry": WhitelistEntrySerializer(entry).data,
-        }
-
-        return Response(
-            WhitelistAddResponseSerializer(response_data).data,
-            status=status.HTTP_201_CREATED,
+        response_status = (
+            status.HTTP_202_ACCEPTED
+            if change.status in (WhitelistChangeStatus.PENDING, WhitelistChangeStatus.EXECUTING)
+            else status.HTTP_201_CREATED if change.status == WhitelistChangeStatus.CONFIRMED else status.HTTP_200_OK
         )
+        return Response(WhitelistChangeSerializer(change).data, status=response_status)
 
-    @extend_schema(responses=WhitelistRemoveResponseSerializer)
+    @extend_schema(
+        request=WhitelistRemoveSerializer, responses={200: WhitelistChangeSerializer, 202: WhitelistChangeSerializer}
+    )
     @action(detail=False, methods=["post"])
     def remove(self, request):
         serializer = WhitelistRemoveSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        wallet_address = serializer.validated_data["wallet_address"]
-
-        service = WhitelistService()
-
-        tx_hash, entry = service.remove_from_whitelist(
-            address=wallet_address,
-            wait_for_receipt=True,
+        change = changes.submit(
+            serializer.validated_data["submission_id"],
+            WhitelistAction.REMOVE,
+            serializer.validated_data["wallet_address"],
+            request.user,
         )
-
-        response_data = {
-            "success": True,
-            "tx_hash": tx_hash,
-            "message": f"Address {wallet_address} removed from whitelist",
-        }
-
-        return Response(
-            WhitelistRemoveResponseSerializer(response_data).data,
-            status=status.HTTP_200_OK,
+        response_status = (
+            status.HTTP_202_ACCEPTED
+            if change.status in (WhitelistChangeStatus.PENDING, WhitelistChangeStatus.EXECUTING)
+            else status.HTTP_200_OK
         )
+        return Response(WhitelistChangeSerializer(change).data, status=response_status)
 
     @extend_schema(responses=WhitelistSyncResponseSerializer)
     @action(detail=False, methods=["post"], url_path="sync/(?P<address>[^/.]+)")
     def sync(self, request, address=None):
         wallet_uuid = unique_wallet_uuid_for(address)
 
-        service = WhitelistService()
-
-        entry = service.sync_entry(address, wallet_uuid=wallet_uuid)
+        entry = whitelist.sync_entry(address, wallet_uuid=wallet_uuid)
 
         response_data = {
             "success": True,
@@ -160,62 +150,44 @@ class WhitelistEntryViewSet(
 
         return response
 
+    @extend_schema(request=WhitelistBatchAddSerializer, responses=WhitelistBatchResponseSerializer)
     @action(detail=False, methods=["post"], url_path="batch-add")
     def batch_add(self, request):
         from rest_framework.exceptions import APIException
 
         entries = request.data.get("entries", [])
-
-        if not entries:
+        if not isinstance(entries, list) or not entries:
             raise BatchEntriesRequiredException()
-
         if len(entries) > 100:
             raise BatchSizeLimitExceededException(max_size=100)
-
-        results = {
-            "successful": 0,
-            "failed": 0,
-            "errors": [],
-        }
-
-        service = WhitelistService()
-
-        for entry_data in entries:
-            wallet_address = entry_data.get("walletAddress", entry_data.get("wallet_address", ""))
-
-            if not wallet_address:
-                results["failed"] += 1
-                results["errors"].append(
-                    {
-                        "walletAddress": wallet_address,
-                        "error": "Wallet address is required",
-                    }
+        result = {"successful": 0, "failed": 0, "pending": 0, "results": [], "errors": []}
+        for data in entries:
+            address = data.get("wallet_address", data.get("walletAddress", "")) if isinstance(data, dict) else ""
+            serializer = WhitelistAddSerializer(data=data)
+            if not serializer.is_valid():
+                result["failed"] += 1
+                result["errors"].append(
+                    {"wallet_address": address, "error": "A valid address and submission UUID are required."}
                 )
                 continue
-
             try:
-                service.add_to_whitelist(
-                    address=wallet_address,
-                    wait_for_receipt=True,
+                change = changes.submit(
+                    serializer.validated_data["submission_id"],
+                    WhitelistAction.ADD,
+                    serializer.validated_data["wallet_address"],
+                    request.user,
                 )
-
-                results["successful"] += 1
-
-            except ValueError as e:
-                results["failed"] += 1
-                results["errors"].append(
-                    {
-                        "walletAddress": wallet_address,
-                        "error": str(e),
-                    }
-                )
-            except APIException as e:
-                results["failed"] += 1
-                results["errors"].append(
-                    {
-                        "walletAddress": wallet_address,
-                        "error": str(e.detail),
-                    }
-                )
-
-        return Response(results, status=status.HTTP_200_OK)
+                result["results"].append(change)
+                if change.status in (WhitelistChangeStatus.CONFIRMED, WhitelistChangeStatus.UNCHANGED):
+                    result["successful"] += 1
+                elif change.status == WhitelistChangeStatus.FAILED:
+                    result["failed"] += 1
+                else:
+                    result["pending"] += 1
+            except WhitelistChangeUnresolved as exc:
+                result["pending"] += 1
+                result["errors"].append({"wallet_address": address, "error": str(exc.detail)})
+            except APIException as exc:
+                result["failed"] += 1
+                result["errors"].append({"wallet_address": address, "error": str(exc.detail)})
+        return Response(WhitelistBatchResponseSerializer(result).data)

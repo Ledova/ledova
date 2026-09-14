@@ -1,20 +1,30 @@
-from unittest.mock import Mock, call, patch
+from unittest.mock import patch
+from uuid import uuid4
 
 from django.contrib.auth import get_user_model
-from rest_framework.test import APITestCase
+from django.test import override_settings
+from rest_framework.test import APITransactionTestCase
 
-from blockchain.models import BlockchainTransaction
+from blockchain.models import BlockchainTransaction, SignedAttempt
 from shared.tests.tenants import an_account
 from users.models import UserAccount, UserProfile
 from wallets.models import Wallet
 from whitelist.exceptions import WalletNotRegisteredException
-from whitelist.models import WhitelistEntry
-from whitelist.services import WhitelistService
+from whitelist.models import WhitelistChange, WhitelistEntry
+from whitelist.services import whitelist
+from whitelist.tests.change_fixtures import (
+    CHAIN_ID,
+    KEY,
+    REGISTRY,
+    WhitelistNode,
+    admitted_signer,
+)
 
 User = get_user_model()
 
 
-class WhitelistEntryScopingTest(APITestCase):
+@override_settings(BLOCKCHAIN_CHAIN_ID=CHAIN_ID, BLOCKCHAIN_OPERATOR_KEY=KEY, WHITELIST_CONTRACT_ADDRESS=REGISTRY)
+class WhitelistEntryScopingTest(APITransactionTestCase):
     def setUp(self):
         self.member = User.objects.create_user(email="member-whitelist@ex.com", password="pw-12345678")
         profile = UserProfile.objects.create(user=self.member)
@@ -39,6 +49,7 @@ class WhitelistEntryScopingTest(APITestCase):
             email="staff-whitelist@ex.com",
             password="pw-12345678",
             is_staff=True,
+            is_active=True,
         )
         self.superuser_only = User.objects.create_user(
             email="superuser-only-whitelist@ex.com",
@@ -75,7 +86,7 @@ class WhitelistEntryScopingTest(APITestCase):
             ("delete", self.detail_url, None),
         ]
 
-    @patch("whitelist.views.entry.WhitelistService")
+    @patch("whitelist.views.entry.whitelist")
     def test_nonoperators_cannot_use_operator_routes(self, whitelist_service):
         for actor in (self.member, self.superuser_only):
             self.client.force_authenticate(actor)
@@ -84,16 +95,16 @@ class WhitelistEntryScopingTest(APITestCase):
                     response = getattr(self.client, method)(url, data, format="json")
                     self.assertEqual(response.status_code, 403)
 
-        whitelist_service.assert_not_called()
+        self.assertEqual(whitelist_service.mock_calls, [])
 
-    @patch("whitelist.views.entry.WhitelistService")
+    @patch("whitelist.views.entry.whitelist")
     def test_anonymous_cannot_use_operator_routes(self, whitelist_service):
         for method, url, data in self._operator_route_requests():
             with self.subTest(method=method, url=url):
                 response = getattr(self.client, method)(url, data, format="json")
                 self.assertEqual(response.status_code, 401)
 
-        whitelist_service.assert_not_called()
+        self.assertEqual(whitelist_service.mock_calls, [])
 
     def test_staff_can_list_retrieve_and_export_global_operator_rows(self):
         self.client.force_authenticate(self.staff)
@@ -115,53 +126,73 @@ class WhitelistEntryScopingTest(APITestCase):
         self.assertIn(self.wallet.address, exported)
         self.assertIn(self.foreign_wallet.address, exported)
 
-    @patch("whitelist.views.entry.WhitelistService")
-    def test_staff_can_use_all_operator_custom_actions(self, whitelist_service):
-        service = whitelist_service.return_value
-        service.add_to_whitelist.return_value = ("0xadd", self.entry)
-        service.remove_from_whitelist.return_value = ("0xremove", self.entry)
-        service.sync_entry.return_value = self.entry
+    def test_staff_can_use_all_operator_custom_actions(self):
+        node = WhitelistNode()
+        admitted_signer()
         self.client.force_authenticate(self.staff)
-
-        add_response = self.client.post(
-            self.add_url,
-            {"walletAddress": self.wallet.address},
-            format="json",
-        )
-        remove_response = self.client.post(
-            self.remove_url,
-            {"walletAddress": self.wallet.address},
-            format="json",
-        )
-        batch_response = self.client.post(
-            self.batch_add_url,
-            {"entries": [{"walletAddress": self.wallet.address}]},
-            format="json",
-        )
-        sync_response = self.client.post(self.sync_url)
-
-        self.assertEqual(add_response.status_code, 201)
-        self.assertEqual(remove_response.status_code, 200)
-        self.assertEqual(batch_response.status_code, 200)
+        with patch("whitelist.services.changes.get_base_chain_client", return_value=node.client), patch.object(
+            whitelist, "get_base_chain_client", return_value=node.client
+        ):
+            add_response = self.client.post(
+                self.add_url, {"walletAddress": self.wallet.address, "submissionId": str(uuid4())}, format="json"
+            )
+            remove_response = self.client.post(
+                self.remove_url, {"walletAddress": self.wallet.address, "submissionId": str(uuid4())}, format="json"
+            )
+            batch_response = self.client.post(
+                self.batch_add_url,
+                {"entries": [{"walletAddress": self.wallet.address, "submissionId": str(uuid4())}]},
+                format="json",
+            )
+            sync_response = self.client.post(self.sync_url)
+        self.assertEqual(add_response.status_code, 201, add_response.data)
+        self.assertEqual(remove_response.status_code, 200, remove_response.data)
+        self.assertEqual(batch_response.status_code, 200, batch_response.data)
         self.assertEqual(batch_response.json()["successful"], 1)
         self.assertEqual(sync_response.status_code, 200)
-        self.assertEqual(whitelist_service.call_count, 4)
-        service.add_to_whitelist.assert_has_calls(
-            [
-                call(address=self.wallet.address, wait_for_receipt=True),
-                call(address=self.wallet.address, wait_for_receipt=True),
-            ]
-        )
-        service.remove_from_whitelist.assert_called_once_with(
-            address=self.wallet.address,
-            wait_for_receipt=True,
-        )
-        service.sync_entry.assert_called_once_with(
-            self.wallet.address,
-            wallet_uuid=self.wallet.uuid,
-        )
+        self.assertEqual(len(node.broadcasts), 3)
 
-    @patch("whitelist.views.entry.WhitelistService")
+    def test_operator_submission_identity_is_required_before_admission(self):
+        self.client.force_authenticate(self.staff)
+        for url in (self.add_url, self.remove_url):
+            response = self.client.post(url, {"walletAddress": self.wallet.address}, format="json")
+            self.assertEqual(response.status_code, 400)
+        self.assertFalse(WhitelistChange.objects.exists())
+
+    def test_operator_pending_retry_preserves_identity_and_refuses_opposite_command(self):
+        node = WhitelistNode(confirmed=False)
+        admitted_signer()
+        self.client.force_authenticate(self.staff)
+        data = {"walletAddress": self.wallet.address, "submissionId": str(uuid4())}
+        with patch("whitelist.services.changes.get_base_chain_client", return_value=node.client):
+            first = self.client.post(self.add_url, data, format="json")
+            replay = self.client.post(self.add_url, data, format="json")
+            opposite = self.client.post(self.remove_url, data | {"submissionId": str(uuid4())}, format="json")
+        self.assertEqual((first.status_code, replay.status_code, opposite.status_code), (202, 202, 409))
+        self.assertEqual(first.json()["submissionId"], replay.json()["submissionId"])
+        self.assertEqual(first.json()["txHash"], replay.json()["txHash"])
+        self.assertFalse(replay.json()["success"])
+        self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.assertEqual(node.broadcasts[0], node.broadcasts[1])
+
+    def test_batch_unknown_membership_stays_pending_and_repeated_batch_recovers(self):
+        node = WhitelistNode()
+        admitted_signer()
+        self.client.force_authenticate(self.staff)
+        data = {"entries": [{"walletAddress": self.wallet.address, "submissionId": str(uuid4())}]}
+        node.contract.functions.isWhitelisted.return_value.call.side_effect = ConnectionError("Synthetic unavailable")
+        with patch("whitelist.services.changes.get_base_chain_client", return_value=node.client):
+            pending = self.client.post(self.batch_add_url, data, format="json")
+            node.contract.functions.isWhitelisted.return_value.call.side_effect = lambda: False
+            recovered = self.client.post(self.batch_add_url, data, format="json")
+            replay = self.client.post(self.batch_add_url, data, format="json")
+        self.assertEqual(pending.status_code, 200)
+        self.assertEqual((pending.json()["pending"], pending.json()["failed"]), (1, 0))
+        self.assertEqual(recovered.json()["successful"], 1)
+        self.assertEqual(replay.json()["results"][0]["txHash"], recovered.json()["results"][0]["txHash"])
+        self.assertEqual(len(node.broadcasts), 1)
+
+    @patch("whitelist.views.entry.whitelist")
     def test_staff_standard_write_routes_are_absent_and_preserve_rows(self, whitelist_service):
         self.entry.notes = "preserve me"
         self.entry.save(update_fields=["notes", "updated_at"])
@@ -194,7 +225,7 @@ class WhitelistEntryScopingTest(APITestCase):
             },
             original,
         )
-        whitelist_service.assert_not_called()
+        self.assertEqual(whitelist_service.mock_calls, [])
 
     def test_staff_by_address_succeeds(self):
         self.client.force_authenticate(self.staff)
@@ -218,30 +249,29 @@ class WhitelistEntryScopingTest(APITestCase):
 
         self.assertEqual(response.status_code, 404)
 
-    @patch("whitelist.views.entry.WhitelistService")
+    @patch("whitelist.views.entry.whitelist")
     def test_nonstaff_cannot_sync(self, whitelist_service):
         self.client.force_authenticate(self.member)
 
         response = self.client.post(self.sync_url)
 
         self.assertEqual(response.status_code, 403)
-        whitelist_service.assert_not_called()
+        self.assertEqual(whitelist_service.mock_calls, [])
 
-    @patch("whitelist.views.entry.WhitelistService")
+    @patch("whitelist.views.entry.whitelist")
     def test_staff_can_sync(self, whitelist_service):
-        whitelist_service.return_value.sync_entry.return_value = self.entry
+        whitelist_service.sync_entry.return_value = self.entry
         self.client.force_authenticate(self.staff)
 
         response = self.client.post(self.sync_url)
 
         self.assertEqual(response.status_code, 200)
-        whitelist_service.assert_called_once_with()
-        whitelist_service.return_value.sync_entry.assert_called_once_with(
+        whitelist_service.sync_entry.assert_called_once_with(
             self.wallet.address,
             wallet_uuid=self.wallet.uuid,
         )
 
-    @patch("whitelist.views.entry.WhitelistService")
+    @patch("whitelist.views.entry.whitelist")
     def test_staff_sync_fails_closed_when_wallet_address_is_ambiguous(self, whitelist_service):
         other_account = an_account("entry-scoping")
         Wallet.objects.create(
@@ -254,7 +284,7 @@ class WhitelistEntryScopingTest(APITestCase):
         response = self.client.post(self.sync_url)
 
         self.assertEqual(response.status_code, 404)
-        whitelist_service.assert_not_called()
+        self.assertEqual(whitelist_service.mock_calls, [])
 
     def test_sync_service_uses_explicit_wallet_uuid_when_duplicate_is_added(self):
         other_account = an_account("entry-scoping")
@@ -263,38 +293,25 @@ class WhitelistEntryScopingTest(APITestCase):
             address=self.wallet.address,
             chain="base",
         )
-        service = WhitelistService.__new__(WhitelistService)
-        service.chain_client = Mock()
-        service.chain_client.to_checksum_address.return_value = self.wallet.address
-        service.get_investor_info = Mock(return_value={"whitelisted": True, "kyc_timestamp": 0})
-
-        entry = service.sync_entry(self.wallet.address, wallet_uuid=self.wallet.uuid)
+        with patch.object(whitelist, "get_investor_info", return_value={"whitelisted": True, "kyc_timestamp": 0}):
+            entry = whitelist.sync_entry(self.wallet.address, wallet_uuid=self.wallet.uuid)
 
         self.assertEqual(entry.wallet_id, self.wallet.uuid)
 
-    @patch("whitelist.views.entry.WhitelistService")
+    @patch("whitelist.views.entry.whitelist")
     def test_staff_sync_unknown_address_is_not_found_before_service(self, whitelist_service):
         self.client.force_authenticate(self.staff)
 
         response = self.client.post("/api/v1/whitelist/sync/0xcccccccccccccccccccccccccccccccccccccccc/")
 
         self.assertEqual(response.status_code, 404)
-        whitelist_service.assert_not_called()
-
-    def _service_with_mocked_chain(self):
-        service = WhitelistService.__new__(WhitelistService)
-        service.chain_client = Mock()
-        service.chain_client.to_checksum_address.side_effect = lambda address: address
-        service.signer_key = "0xoperator"
-        service.contract_address = "0x" + "d" * 40
-        service.is_whitelisted = Mock(return_value=False)
-        return service
+        self.assertEqual(whitelist_service.mock_calls, [])
 
     def test_add_rejects_unregistered_address_without_creating_rows(self):
         unknown = "0x" + "c" * 40
 
         with self.assertRaises(WalletNotRegisteredException):
-            self._service_with_mocked_chain().add_to_whitelist(unknown)
+            whitelist.resolve_entry(unknown)
 
         self.assertFalse(Wallet.objects.filter_by_address(unknown, chain="base").exists())
         self.assertFalse(WhitelistEntry.objects.filter(wallet__address__iexact=unknown).exists())
@@ -304,6 +321,6 @@ class WhitelistEntryScopingTest(APITestCase):
         Wallet.objects.create(user_account=an_account("entry-scoping"), address=self.wallet.address, chain="base")
 
         with self.assertRaises(WalletNotRegisteredException):
-            self._service_with_mocked_chain().add_to_whitelist(self.wallet.address)
+            whitelist.resolve_entry(self.wallet.address)
 
         self.assertFalse(BlockchainTransaction.objects.exists())

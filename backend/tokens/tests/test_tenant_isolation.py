@@ -308,14 +308,14 @@ class TransferOrderOwnershipBindingTest(APITestCase):
         self.assertEqual(TransferOrder.objects.best_ask(self.token), valid_candidate)
 
     @patch("tokens.events.publish_trading_event")
-    @patch("tokens.services.token_transfer_service.WhitelistService")
+    @patch("tokens.services.token_transfer_service.whitelist")
     @patch("tokens.services.token_transfer_service.get_base_chain_client")
     def test_service_persists_wallet_and_account_snapshot(self, get_client, whitelist_service, _publish_trading_event):
         chain_client = Mock()
         chain_client.is_valid_address.return_value = True
         chain_client.to_checksum_address.side_effect = Web3.to_checksum_address
         get_client.return_value = chain_client
-        whitelist_service.return_value.is_whitelisted.return_value = True
+        whitelist_service.is_whitelisted.return_value = True
 
         service = TokenTransferService()
         service.find_matching_order = Mock(return_value=None)
@@ -335,14 +335,14 @@ class TransferOrderOwnershipBindingTest(APITestCase):
         self.assertEqual(order.owner_account, self.account)
         self.assertEqual(order.wallet_address, Web3.to_checksum_address(self.wallet.address))
 
-    @patch("tokens.services.token_transfer_service.WhitelistService")
+    @patch("tokens.services.token_transfer_service.whitelist")
     @patch("tokens.services.token_transfer_service.get_base_chain_client")
     def test_service_rejects_wallet_changed_after_validation(self, get_client, whitelist_service):
         chain_client = Mock()
         chain_client.is_valid_address.return_value = True
         chain_client.to_checksum_address.side_effect = Web3.to_checksum_address
         get_client.return_value = chain_client
-        whitelist_service.return_value.is_whitelisted.return_value = True
+        whitelist_service.is_whitelisted.return_value = True
 
         Wallet.objects.filter(pk=self.wallet.pk).update(verification_status="PENDING")
 

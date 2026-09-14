@@ -29,8 +29,6 @@ from shared.utils.admin_display import action_buttons
 from tokens.admin._helpers import short_hex, status_badge
 from users.exceptions import InvestorNotEligibleException
 
-EMPTY_WHITELIST_RESULT = {"added": 0, "synced": 0, "skipped": 0, "errors": []}
-
 REFUSALS = (
     SubscriptionRefusedException,
     InvalidSubscriptionTransitionException,
@@ -476,27 +474,23 @@ class SubscriptionAdmin(admin.ModelAdmin):
                 f"{result['room']} available; {row.refund_amount or 0} is owed back.",
             )
 
-    @admin.action(description="Whitelist the wallets of the selected subscriptions")
+    @admin.action(description="Whitelist the wallets of the selected subscriptions", permissions=["change"])
     def whitelist_wallets(self, request, queryset):
-        from whitelist.models import WhitelistEntry
-        from whitelist.services import WhitelistService
+        from whitelist.admin_actions import confirm_changes
+        from whitelist.models import WhitelistAction, WhitelistAuthority, WhitelistEntry
 
         wallet_ids = {subscription.wallet_id for subscription in queryset}
         entries = list(WhitelistEntry.objects.filter(wallet_id__in=wallet_ids))
         missing = wallet_ids - {entry.wallet_id for entry in entries}
-        result = WhitelistService().ensure_whitelisted(entries) if entries else EMPTY_WHITELIST_RESULT
-        if result["added"] or result["synced"]:
-            self.message_user(
-                request, f"Whitelisted {result['added']} and synced {result['synced']} address(es).", messages.SUCCESS
-            )
-        if result["skipped"]:
-            self.message_user(request, f"Skipped {result['skipped']} already whitelisted.", messages.WARNING)
         if missing:
             self.message_user(
                 request, f"{len(missing)} wallet(s) have no whitelist entry; add them first.", messages.ERROR
             )
-        for error in result["errors"]:
-            self.message_user(request, error, messages.ERROR)
+        if entries:
+            return confirm_changes(
+                self, request, queryset, entries, WhitelistAction.ADD, WhitelistAuthority.SUBSCRIPTION_ADMIN
+            )
+        return None
 
 
 def _run_accept(subscription, request, data):

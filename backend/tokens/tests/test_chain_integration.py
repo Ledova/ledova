@@ -9,16 +9,23 @@ from datetime import timezone as dt_timezone
 from decimal import Decimal
 from unittest import skipUnless
 from unittest.mock import patch
+from uuid import uuid4
 
+from django.conf import settings
 from django.db import connection
 from django.test import override_settings
 from django.utils import timezone
 from eth_account import Account
-from rest_framework.test import APITestCase, APITransactionTestCase
+from rest_framework.test import APITransactionTestCase
 from web3 import Web3
 
 from assets.models import Asset, AssetChainDeployment, AssetType
-from blockchain.models import BlockchainTransaction, TransactionStatus, TransactionType
+from blockchain.models import (
+    BlockchainTransaction,
+    SigningAccount,
+    TransactionStatus,
+    TransactionType,
+)
 from companies.models import Company, CompanyStatus
 from integrations.base_chain.client import BaseChainClient, get_base_chain_client
 from integrations.base_chain.exceptions import BaseChainTransactionError
@@ -59,7 +66,7 @@ from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.exceptions import BlockchainAPIError
 from wallets.models import Holding, Wallet
 from wallets.services.transfers import prepare_erc20_transaction
-from whitelist.services import WhitelistService
+from whitelist.services import changes, whitelist
 
 CHAIN_ENV = (
     "CHAIN_TEST_RPC_URL",
@@ -152,8 +159,17 @@ class ChainTestMixin:
         self.token.refresh_from_db()
         return result
 
+    def _whitelist(self, address):
+        sender = Account.from_key(settings.BLOCKCHAIN_OPERATOR_KEY).address.lower()
+        SigningAccount.objects.get_or_create(
+            chain_id=31337, address=sender, defaults={"admission_state": "admitted", "admission_generation": 1}
+        )
+        change = changes.submit(uuid4(), "add", address, self.staff)
+        self.assertEqual(change.status, "confirmed")
+        return change
+
     def _whitelisted_request(self, amount):
-        WhitelistService().add_to_whitelist(self.investor)
+        self._whitelist(self.investor)
         return self._issuance_request(amount)
 
     def _issuance_request(self, amount):
@@ -186,7 +202,7 @@ class ChainTestMixin:
 
 @chain_available
 @override_settings(**CHAIN_SETTINGS)
-class ShareTokenChainTest(ChainTestMixin, APITestCase):
+class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
     def test_real_unwhitelisted_and_paused_transfer_estimates_explain_the_refusal_without_sending(self):
         self._deployed()
         self.assertTrue(self._execute(self._whitelisted_request(10))["success"])
@@ -222,7 +238,7 @@ class ShareTokenChainTest(ChainTestMixin, APITestCase):
             chain="base",
             verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
         )
-        WhitelistService().add_to_whitelist(recipient)
+        self._whitelist(recipient)
         self.service.pause(self.token)
         with self.assertRaises(BlockchainAPIError) as refusal:
             prepare()
@@ -241,7 +257,7 @@ class ShareTokenChainTest(ChainTestMixin, APITestCase):
         Wallet.objects.filter(pk=recipient_tenant.wallet.pk).update(
             address=recipient, verification_status=WALLET_VERIFICATION_STATUS_VERIFIED
         )
-        WhitelistService().add_to_whitelist(recipient)
+        self._whitelist(recipient)
         self.w3.eth.wait_for_transaction_receipt(
             self.w3.eth.send_transaction(
                 {"from": self.w3.eth.accounts[0], "to": investor.address, "value": self.w3.to_wei(1, "ether")}
@@ -319,8 +335,8 @@ class ShareTokenChainTest(ChainTestMixin, APITestCase):
         self.assertIn(f"Refused: {NOT_WHITELISTED}", not_whitelisted.execution_notes)
         self.assertNotIn("Refused", not_whitelisted.review_notes)
 
-        whitelist = WhitelistService()
-        tx_hash, entry = whitelist.add_to_whitelist(self.investor)
+        change = self._whitelist(self.investor)
+        tx_hash, entry = change.transaction.tx_hash, change.entry
         self.assertTrue(tx_hash)
         self.assertTrue(whitelist.is_whitelisted(self.investor))
         self.assertTrue(entry.is_whitelisted)
@@ -932,3 +948,74 @@ class MintRequestChainTest(APITransactionTestCase):
         self.assertEqual(self.request.transaction.tx_hash, original.tx_hash)
         self.assertEqual(self.contract.functions.balanceOf(self.recipient).call(), before_balance + self.request.amount)
         self.assertEqual(self.w3.eth.get_transaction_count(self.signer, "pending"), before_nonce + 1)
+
+
+@chain_available
+@override_settings(**CHAIN_SETTINGS)
+class WhitelistChangeChainTest(ChainTestMixin, APITransactionTestCase):
+    def test_old_submission_replay_preserves_later_chain_membership(self):
+        original = self._whitelist(self.investor)
+        removed = changes.submit(uuid4(), "remove", self.investor, self.staff)
+        self.assertEqual(removed.status, "confirmed")
+        nonce = self._signer_nonce()
+        repeated = changes.submit(original.pk, "add", self.investor, self.staff)
+        self.assertEqual(repeated.transaction_id, original.transaction_id)
+        self.assertFalse(whitelist.is_whitelisted(self.investor))
+        self.assertEqual(self._signer_nonce(), nonce)
+        self._whitelist(self.investor)
+        self.assertTrue(whitelist.is_whitelisted(self.investor))
+        self.assertEqual(self._signer_nonce(), nonce + 1)
+
+    def test_process_death_after_real_node_acceptance_recovers_exact_original_transaction(self):
+        import json
+        import signal
+        import subprocess
+        import sys
+
+        from django.db import connections
+
+        from blockchain.models import SignedAttempt
+        from blockchain.tests.test_outgoing_processes import finish
+        from shared.db import current_alias
+        from whitelist.models import WhitelistChange
+
+        sender = Account.from_key(settings.BLOCKCHAIN_OPERATOR_KEY).address.lower()
+        SigningAccount.objects.create(
+            chain_id=31337, address=sender, admission_state="admitted", admission_generation=1
+        )
+        database = connections[current_alias()].settings_dict
+        fields = ("ENGINE", "NAME", "USER", "PASSWORD", "HOST", "PORT", "OPTIONS")
+        env = os.environ.copy()
+        env["WHITELIST_TEST_DATABASE"] = json.dumps({key: database[key] for key in fields})
+        env["WHITELIST_TEST_CHAIN"] = json.dumps(CHAIN_SETTINGS)
+        submission_id = uuid4()
+        nonce = self._signer_nonce()
+        process = subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "whitelist.tests.change_chain_worker",
+                str(submission_id),
+                str(self.staff.pk),
+                self.investor,
+            ],
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        code, out, err = finish(process)
+        self.assertEqual(code, -signal.SIGKILL, out + err)
+        original = SignedAttempt.objects.get()
+        self.assertEqual(original.nonce, nonce)
+        self.assertEqual(WhitelistChange.objects.get().status, "executing")
+        self.assertTrue(whitelist.is_whitelisted(self.investor))
+        recovered = changes.recover(submission_id)
+        self.assertEqual(recovered.status, "confirmed")
+        self.assertEqual(recovered.transaction.tx_hash, original.tx_hash)
+        self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.assertEqual(self._signer_nonce(), nonce + 1)
+        observed = self.w3.eth.get_transaction(original.tx_hash)
+        self.assertEqual(bytes(observed["input"]), bytes.fromhex(recovered.intent["data"][2:]))
+        self.assertEqual(observed["nonce"], original.nonce)
+        self.assertEqual(Account.recover_transaction(bytes(original.raw_transaction)).lower(), sender)

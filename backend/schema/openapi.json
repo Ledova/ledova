@@ -125,6 +125,14 @@
         ],
         "type": "string"
       },
+      "ActionEnum": {
+        "description": "* `add` - Add\n* `remove` - Remove",
+        "enum": [
+          "add",
+          "remove"
+        ],
+        "type": "string"
+      },
       "ApplicationResubmitRequest": {
         "properties": {
           "response": {
@@ -12094,24 +12102,149 @@
         ],
         "type": "string"
       },
-      "WhitelistAddResponse": {
+      "WhitelistAddRequest": {
         "properties": {
-          "entry": {
-            "$ref": "#/components/schemas/WhitelistEntry"
+          "submissionId": {
+            "description": "Retain this UUID when recovering or retrying the same submission.",
+            "format": "uuid",
+            "type": "string"
           },
-          "success": {
-            "type": "boolean"
-          },
-          "txHash": {
+          "walletAddress": {
+            "description": "Ethereum wallet address (0x...)",
+            "maxLength": 42,
+            "minLength": 1,
             "type": "string"
           }
         },
         "required": [
-          "entry",
-          "success",
-          "txHash"
+          "submissionId",
+          "walletAddress"
         ],
         "type": "object"
+      },
+      "WhitelistBatchAddRequest": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/WhitelistAddRequest"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "entries"
+        ],
+        "type": "object"
+      },
+      "WhitelistBatchError": {
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "walletAddress": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "walletAddress"
+        ],
+        "type": "object"
+      },
+      "WhitelistBatchResponse": {
+        "properties": {
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/WhitelistBatchError"
+            },
+            "type": "array"
+          },
+          "failed": {
+            "type": "integer"
+          },
+          "pending": {
+            "type": "integer"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/WhitelistChange"
+            },
+            "type": "array"
+          },
+          "successful": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "errors",
+          "failed",
+          "pending",
+          "results",
+          "successful"
+        ],
+        "type": "object"
+      },
+      "WhitelistChange": {
+        "properties": {
+          "action": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ActionEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "entry": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WhitelistEntry"
+              }
+            ],
+            "nullable": true
+          },
+          "message": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/WhitelistChangeStatusEnum"
+          },
+          "submissionId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "success": {
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "txHash": {
+            "nullable": true,
+            "type": "string"
+          },
+          "walletAddress": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "entry",
+          "message",
+          "submissionId",
+          "success",
+          "walletAddress"
+        ],
+        "type": "object"
+      },
+      "WhitelistChangeStatusEnum": {
+        "description": "* `pending` - Checking the admitted change\n* `executing` - Outcome unresolved\n* `confirmed` - Confirmed\n* `unchanged` - No change required\n* `failed` - Failed",
+        "enum": [
+          "pending",
+          "executing",
+          "confirmed",
+          "unchanged",
+          "failed"
+        ],
+        "type": "string"
       },
       "WhitelistEntry": {
         "properties": {
@@ -12204,22 +12337,23 @@
         ],
         "type": "string"
       },
-      "WhitelistRemoveResponse": {
+      "WhitelistRemoveRequest": {
         "properties": {
-          "message": {
+          "submissionId": {
+            "description": "Retain this UUID when recovering or retrying the same submission.",
+            "format": "uuid",
             "type": "string"
           },
-          "success": {
-            "type": "boolean"
-          },
-          "txHash": {
+          "walletAddress": {
+            "description": "Ethereum wallet address (0x...)",
+            "maxLength": 42,
+            "minLength": 1,
             "type": "string"
           }
         },
         "required": [
-          "message",
-          "success",
-          "txHash"
+          "submissionId",
+          "walletAddress"
         ],
         "type": "object"
       },
@@ -21463,12 +21597,52 @@
     "/api/v1/whitelist/add/": {
       "post": {
         "operationId": "api_v1_whitelist_add_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WhitelistAddRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/WhitelistAddRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/WhitelistAddRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WhitelistAddResponse"
+                  "$ref": "#/components/schemas/WhitelistChange"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhitelistChange"
+                }
+              }
+            },
+            "description": ""
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhitelistChange"
                 }
               }
             },
@@ -21493,12 +21667,32 @@
     "/api/v1/whitelist/batch-add/": {
       "post": {
         "operationId": "api_v1_whitelist_batch_add_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WhitelistBatchAddRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/WhitelistBatchAddRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/WhitelistBatchAddRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WhitelistEntry"
+                  "$ref": "#/components/schemas/WhitelistBatchResponse"
                 }
               }
             },
@@ -21590,12 +21784,42 @@
     "/api/v1/whitelist/remove/": {
       "post": {
         "operationId": "api_v1_whitelist_remove_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WhitelistRemoveRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/WhitelistRemoveRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/WhitelistRemoveRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WhitelistRemoveResponse"
+                  "$ref": "#/components/schemas/WhitelistChange"
+                }
+              }
+            },
+            "description": ""
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhitelistChange"
                 }
               }
             },

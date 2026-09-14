@@ -17,9 +17,7 @@ class SwapTypedDataIsSignableTest(TestCase):
         self.swap = self.tenant.swap
 
     def typed_data(self):
-        with patch("tokens.services.atomic_swap_service.get_base_chain_client") as client, patch(
-            "tokens.services.atomic_swap_service.WhitelistService"
-        ):
+        with patch("tokens.services.atomic_swap_service.get_base_chain_client") as client:
             client.return_value.chain_id = 84532
             return AtomicSwapService().get_typed_data(self.swap)
 

@@ -27,6 +27,17 @@ class WhitelistEntryQuerySet(QuerySet):
     def with_holder_identity(self):
         return self.select_related("wallet__user_account").prefetch_related("wallet__user_account__user_profile__user")
 
+    def matching_identity(self, entry_id, address):
+        return self.filter(pk=entry_id).filter(
+            Q(wallet__isnull=True, address__iexact=address)
+            | Q(wallet__chain=BLOCKCHAIN_BASE, wallet__address__iexact=address)
+        )
+
+    def without_commands(self):
+        from whitelist.models.change import WhitelistChange
+
+        return self.exclude(pk__in=WhitelistChange.objects.exclude(entry_id=None).values("entry_id"))
+
     def active(self):
         from whitelist.models import WhitelistStatus
 
