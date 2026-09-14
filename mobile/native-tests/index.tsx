@@ -224,6 +224,29 @@ async function run(scannerCheck: Check | null): Promise<Check[]> {
       if (file.exists) file.delete();
     }
   });
+  await check('picker copies that were never adopted are swept after a pick', async () => {
+    const leftover = new File(Paths.cache, 'DocumentPicker', '22222222-2222-2222-2222-222222222222.txt');
+    const unowned = new File(Paths.cache, 'DocumentPicker', 'not-a-picker-copy.txt');
+    try {
+      for (const fixture of [leftover, unowned]) {
+        fixture.create({ intermediates: true, overwrite: true });
+        fixture.write('synthetic-fixture');
+      }
+      requireTrue(leftover.info().exists && unowned.info().exists);
+      requireTrue(
+        (await pickDocumentCopy(
+          () => true,
+          async () => ({ canceled: true, assets: null }),
+        )) === null,
+      );
+      requireTrue(!leftover.info().exists);
+      requireTrue(unowned.info().exists);
+    } finally {
+      for (const fixture of [leftover, unowned]) {
+        if (fixture.info().exists) fixture.delete();
+      }
+    }
+  });
   await check('incremental SSE and close', async () => {
     await new Promise<void>((resolve, reject) => {
       let messages = 0;
