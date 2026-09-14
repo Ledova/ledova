@@ -49,6 +49,7 @@ jest.mock('expo-secure-store', () => ({
 jest.mock('../services/tokenStorage', () => ({
   getAccessToken: () => mockGetAccessToken(),
   getBiometricLoginState: async () => ({ enabled: false, ready: false }),
+  readBiometricRefreshToken: async () => 'synthetic-gated-refresh',
 }));
 
 import { AppLockProvider, useAppLock } from './AppLockContext';
@@ -112,9 +113,11 @@ async function changeAppState(state: AppStateStatus, reverse = false) {
   });
 }
 
+const elapse = (duration: number) => act(() => jest.advanceTimersByTime(duration));
+
 async function leaveAndReturn(reverse = false, duration = 3001) {
   await changeAppState('background', reverse);
-  jest.setSystemTime(Date.now() + duration);
+  await elapse(duration);
   await changeAppState('active', reverse);
 }
 
@@ -203,7 +206,7 @@ it.each(['background', 'next-evaluation'] as const)('ignores a retired lock deci
     await act(() => first.resolve('synthetic-old-session'));
     expect(view.getByText('unlocked-control')).toBeTruthy();
   }
-  jest.setSystemTime(Date.now() + 3001);
+  await elapse(3001);
   await changeAppState('active');
   expect(mockGetAccessToken).toHaveBeenCalledTimes(2);
   if (phase === 'next-evaluation') {
@@ -322,22 +325,40 @@ it('stays paused when authentication succeeds in the background and preserves th
     unlocking = currentLock.unlock();
   });
   await changeAppState('inactive');
-  jest.setSystemTime(Date.now() + 3001);
+  await elapse(3001);
   await changeAppState('active');
   expect(mockGetAccessToken).toHaveBeenCalledTimes(1);
   expect(view.queryByTestId('camera-preview')).toBeNull();
   await changeAppState('background');
+  await elapse(1002);
   await act(async () => {
     authentication.resolve({ success: true });
     expect(await unlocking).toBe(true);
   });
   expect(view.queryByTestId('camera-preview')).toBeNull();
   expect(mockGetPermission).toHaveBeenCalledTimes(1);
-  jest.setSystemTime(Date.now() + 3001);
+  await elapse(1999);
   await changeAppState('active');
   expect(mockGetAccessToken).toHaveBeenCalledTimes(1);
   expect(view.getByTestId('camera-preview')).toBeTruthy();
   expect(mockGetPermission).toHaveBeenCalledTimes(2);
+});
+
+it.each([
+  ['unlock', () => currentLock.unlock()],
+  ['biometric sign-in', async () => (await currentLock.readBiometricRefreshToken()).token !== null],
+  ['enabling the lock', () => currentLock.setEnabled(true)],
+] as const)('locks again after a later absence once 2 seconds pass from %s', async (authentication, authenticate) => {
+  if (authentication === 'enabling the lock') mockReadPreference.mockResolvedValue('false');
+  const view = await render(app());
+  if (authentication === 'unlock') await leaveAndReturn();
+  await act(async () => {
+    expect(await authenticate()).toBe(true);
+  });
+  expect(view.getByText('unlocked-control')).toBeTruthy();
+  await elapse(2000);
+  await leaveAndReturn();
+  expect(view.getByText('locked-control')).toBeTruthy();
 });
 
 it('keeps a new opening passive when it starts behind the lock overlay', async () => {
@@ -416,7 +437,7 @@ it('ignores retained lifecycle listeners after provider teardown while a current
   const retained = [...listeners];
   await view.unmount();
   await act(() => retained.forEach((listener) => listener('background')));
-  jest.setSystemTime(Date.now() + 3001);
+  await elapse(3001);
   await act(() => retained.forEach((listener) => listener('active')));
   expect(mockGetAccessToken).not.toHaveBeenCalled();
   const current = await render(app());
