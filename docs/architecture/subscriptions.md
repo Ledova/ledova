@@ -83,8 +83,7 @@ How payment, refund, scale-back and share allotment fit together.
 7. The headroom test lives in `allot()`, the exported single-subscription entry
    point, so the offering cap — a disclosure limit, not an internal convenience
    — is guarded however the shares are raised. Bulk allotment groups by
-   offering, takes `select_for_update` on the offering row as
-   `_execute_capital_increase` does on the share class, drops the rows `allot()`
+   offering, takes `select_for_update` on the offering row, drops the rows `allot()`
    would refuse anyway — already linked to a request, not `paid`, scaled to
    nothing — before it sums, so one stale row does not poison the batch, makes
    one `share_supply()` read and hands that headroom to each `allot()` call, and

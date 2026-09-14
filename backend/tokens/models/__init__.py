@@ -1,3 +1,4 @@
+from .capital_execution import CapitalIncreaseExecution
 from .capital_increase import CapitalIncreaseRequest
 from .choices import (
     IssuanceStatus,
@@ -24,6 +25,7 @@ from .transfer_order import TransferOrder
 from .yield_token import YieldToken
 
 __all__ = [
+    "CapitalIncreaseExecution",
     "CapitalIncreaseRequest",
     "IssuanceStatus",
     "IssuanceType",

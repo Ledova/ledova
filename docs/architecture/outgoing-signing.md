@@ -3,7 +3,7 @@
 [Architecture](README.md) · [Documentation](../README.md)
 
 Settlement-asset and yield-token `MintRequest` execution, whitelist add/remove
-commands and share-token deployment use the operator signing foundation. Signer
+commands, share-token deployment and capital increases use the operator signing foundation. Signer
 admission remains closed. The [deployment flow](contracts-and-issuance.md) binds
 its original receipt to immutable deployment terms; an identifier lookup alone
 leaves the deployment pending for attribution.
@@ -12,7 +12,7 @@ The foundation now requires explicit signer admission. Existing and new
 `SigningAccount` rows start `closed`, and a missing row is also closed. A nonce
 counter, successful legacy status or inventory capture never grants admission.
 There is no activation command or admin edit surface; admitted synthetic test
-fixtures establish a test precondition only. Capital increases, share issuance,
+fixtures establish a test precondition only. Share issuance,
 swap approval, pause/unpause, NAV updates and settlement relaying still require
 conversion. Share issuance has its own older mint journal; it is separate from
 the `MintRequest` adapter described below.
@@ -183,3 +183,48 @@ Unknown legacy whitelist transactions block new target admission for operator
 attribution. Legacy failed-add reconciliation only observes entries without new
 commands. Neither this adapter nor membership sync establishes legacy attribution,
 receipt finality or complete same-key writer cutover.
+
+
+## Capital increases
+
+`tokens.services.capital_execution` admits staff-admin execution with current
+`change_capitalincreaserequest` permission. Its signed confirmation binds the
+request, dispatch identity, actor and exact failed claim when retrying. Admission
+commits the private `CapitalIncreaseExecution`, public `executing` state and job
+together before RPC. Recovery is operator-owned after admission; it does not
+need renewed customer or staff permission. The issuer's ordinary draft, edit,
+submit and delete paths never read the private journal.
+
+The immutable intent retains the original token, company, actor, chain, signer,
+contract, approved target and prior recorded cap. PostgreSQL guards freeze public
+identity and non-draft terms, and prevent token cap/identity edits while the
+request is executing. Pause/unpause remains available. The existing per-token
+in-flight constraint is the hold; network reads, signing preparation and broadcast
+do not hold that token lock. Operation locks precede token, request and command
+locks whenever an operation exists.
+
+All signed attempts use the common nonce journal. Recovery retains the exact
+original terminal receipt before verifying the cap event. Only a matching
+`AuthorizedSharesUpdated(oldAmount, newAmount)` event from that contract permits
+atomic completion and cap projection; replay cannot lower a later cap. Missing
+receipts or events stay unresolved. Contradictory cap observations retain immutable
+private attribution evidence and keep the public hold. A delayed preparer assists
+a peer's already signed transaction instead of treating its cap change as unknown.
+The generic transaction monitor excludes these projections.
+
+Unsigned failure and confirmed revert permit a deliberate retry of the exact
+failed claim. Retry admission reacquires the public slot and records that claim
+before enqueueing. Replaying a stale form cannot reopen a newer failed attempt,
+and the previous reverted transaction survives. A new, provably unsigned request
+whose target no longer raises the recorded cap can retire as `superseded` without
+an operation. A known failed request overtaken by a later cap can also retire;
+an unresolved signed request cannot.
+
+Migrations `tokens/0045` and `0046` preserve historical requests and transactions
+with null dispatch identities, restrict private access and refuse reversal after
+admission. New and retry admission check legacy request states and unexplained
+same-contract capital transactions, including orphaned and hashless records.
+Only exact hashes from the admitted operations' signed attempts are exempt.
+This conservative fence cannot establish absent historical authority or drain an
+external same-key writer; complete cutover and receipt finality remain separate
+programme acceptance. See [operator recovery](../operations/recovery.md#capital-increases).
