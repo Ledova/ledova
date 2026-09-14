@@ -219,6 +219,17 @@ it('sweeps on session retirement but waits for an open picker so its in-flight c
   copy.retire();
 });
 
+it('recognises picker copies by name when the listing spells the cache path differently', async () => {
+  const lost = pickerPath('00000000-0000-0000-0000-0000000000e1.pdf');
+  const kept = pickerPath('not-a-generated-file.pdf');
+  for (const uri of [lost, kept]) files.set(uri, { size: 5, content: 'leftover' });
+  nativeBehavior.listedRoot = 'file:///var/cache/';
+  pick.mockResolvedValue({ canceled: true, assets: null });
+  await expect(pickDocumentCopy(() => true)).resolves.toBeNull();
+  expect(files.has(lost)).toBe(false);
+  expect(files.get(kept)?.content).toBe('leftover');
+});
+
 const viewPath = (name: string) => `${cache}ledova-document-views-v1/${name}`;
 
 const viewed =

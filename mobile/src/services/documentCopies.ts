@@ -47,11 +47,11 @@ function isPickerCopy(uri: string): boolean {
   return uri.startsWith(prefix) && PICKER_NAME.test(uri.slice(prefix.length));
 }
 
-function sweep(directory: Directory, owned: (uri: string) => boolean): void {
+function sweep(directory: Directory, owned: (name: string) => boolean): void {
   try {
     if (!directory.exists) return;
     for (const entry of directory.list()) {
-      if (entry instanceof File && owned(entry.uri)) removeCopy(entry);
+      if (entry instanceof File && owned(entry.name)) removeCopy(entry);
     }
   } catch {
     console.warn('Document cache cleanup did not complete.');
@@ -59,7 +59,7 @@ function sweep(directory: Directory, owned: (uri: string) => boolean): void {
 }
 
 function sweepPickerCopies(): void {
-  sweep(pickerDirectory(), isPickerCopy);
+  sweep(pickerDirectory(), (name) => PICKER_NAME.test(name));
 }
 
 function sweepViewCopies(): void {
