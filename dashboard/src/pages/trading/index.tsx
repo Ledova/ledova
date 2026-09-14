@@ -222,7 +222,7 @@ export function TradingPage() {
     submissions.close();
     actions.close();
     closeSwapSigning();
-    if (swap.settlementProtocolVersion === 0) {
+    if ('settlementProtocolVersion' in swap && swap.settlementProtocolVersion === 0) {
       setSelectedSwap(swap);
       setIsSwapSigningOpen(true);
       return;

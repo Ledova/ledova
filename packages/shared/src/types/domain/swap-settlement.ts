@@ -1,138 +1,43 @@
-import type { SwapUserRole } from '../../constants';
-import type { ApprovalTransaction, EIP712Types, SwapOrder } from './trading';
+import type { ApiSchema } from '../contracts';
+import type { ApprovalTransaction } from './trading';
 
-export interface SwapSettlementLookup {
-  orderUuid: string;
-  swapUuid: string;
-  ownerAccountUuid: string;
-  walletUuid: string;
-  settlementDigest?: string;
-}
+export type SwapSettlementIdentity = Pick<
+  SwapSettlementResponse,
+  'orderUuid' | 'swapUuid' | 'ownerAccountUuid' | 'walletUuid' | 'settlementDigest'
+>;
 
-export interface SwapSettlementIdentity extends SwapSettlementLookup {
-  settlementDigest: string;
-}
+export type SwapSettlementLookup = Omit<SwapSettlementIdentity, 'settlementDigest'> &
+  Partial<Pick<SwapSettlementIdentity, 'settlementDigest'>>;
 
 export interface SwapSettlementSelection extends SwapSettlementLookup {
   walletAddress?: string;
 }
 
-export interface SwapSettlementParty {
-  orderUuid: string;
-  ownerAccountUuid: string;
-  walletUuid: string;
-  paymentAssetUuid: string | null;
-  address: string;
-}
+export type SwapSettlementParty = ApiSchema<'SettlementParty'>;
 
-export interface SwapSettlementTypedData {
-  types: EIP712Types;
-  primaryType: 'SwapOrder';
-  domain: {
-    name: 'LedovaAtomicSwap';
-    version: '1';
-    chainId: string;
-    verifyingContract: string;
-  };
-  message: {
-    seller: string;
-    buyer: string;
-    shareToken: string;
-    paymentToken: string;
-    shareAmount: string;
-    paymentAmount: string;
-    nonce: string;
-    deadline: string;
-  };
-}
+export type SwapSettlementTypedData = ApiSchema<'SettlementTypedData'>;
 
-export interface SwapSettlementContext {
-  protocolVersion: 1;
-  swapUuid: string;
-  seller: SwapSettlementParty;
-  buyer: SwapSettlementParty;
-  shareToken: { uuid: string; address: string; chain: string; name: string; symbol: string; decimals: number };
-  paymentAsset: {
-    uuid: string;
-    name: string;
-    symbol: string;
-    pricingDecimals: number;
-    deploymentUuid: string;
-    deploymentChain: string;
-    deploymentAddress: string;
-    deploymentDecimals: number;
-  };
-  pricePerShare: string;
-  typedData: SwapSettlementTypedData;
-  digest: string;
-  orderHash: string;
-}
+export type SwapSettlementContext = ApiSchema<'SettlementContext'>;
 
-export interface SettlementSwapOrder extends Omit<SwapOrder, 'completedAt'> {
-  settlementProtocolVersion: 1;
-  settlementContext: SwapSettlementContext;
-  settlementDigest: string;
-  completedAt: string | null;
-}
+export type SettlementSwapOrder = ApiSchema<'SettlementSwapOrder'>;
 
-export interface SwapSettlementResponse extends SwapSettlementIdentity {
-  swapOrder: SettlementSwapOrder;
-  typedData: SwapSettlementTypedData;
-  userRole: SwapUserRole;
-  hasSigned: boolean;
-  canSign: boolean;
-  admissionRefusal: string | null;
-}
+export type SwapSettlementResponse = ApiSchema<'SettlementSwapOrderForSigning'>;
 
-export interface SwapSettlementApprovalIdentity extends SwapSettlementIdentity {
-  userRole: SwapUserRole;
-}
+export type SwapSettlementApprovalIdentity = SwapSettlementIdentity & Pick<SwapSettlementResponse, 'userRole'>;
 
-export interface SwapSettlementApprovalStatus extends SwapSettlementApprovalIdentity {
-  tokenAddress: string;
-  tokenSymbol: string;
-  requiredAmount: string;
-  currentAllowance: string;
-  needsApproval: boolean;
-  spender: string;
-}
+export type SwapSettlementApprovalStatus = ApiSchema<'SettlementApprovalStatus'>;
 
-export interface SwapSettlementApprovalSufficient extends SwapSettlementApprovalIdentity {
-  needsApproval: false;
-  message: string;
-  requiredAmount: string;
-  currentAllowance: string;
-}
+export type SwapSettlementApprovalSufficient = ApiSchema<'SettlementSufficientApproval'>;
 
-export interface SwapSettlementApprovalRequired extends SwapSettlementApprovalIdentity {
-  needsApproval: true;
-  transaction: ApprovalTransaction;
-  description: string;
-  tokenAddress: string;
-  tokenSymbol: string;
-  spender: string;
-  amount: string;
-  unlimited: true;
-}
+export type SwapSettlementApprovalRequired = ApiSchema<'SettlementApprovalTransaction'>;
 
 export type SwapSettlementApprovalData = SwapSettlementApprovalSufficient | SwapSettlementApprovalRequired;
 
-export interface SwapSettlementApprovalConfirmed extends SwapSettlementApprovalIdentity {
-  txHash: string;
-  blockNumber: number | null;
-  gasUsed: number | null;
-}
+export type SwapSettlementApprovalConfirmed = ApiSchema<'SettlementApprovalReceipt'>;
 
-export interface SwapSettlementApprovalUnconfirmed extends SwapSettlementApprovalIdentity {
-  txHash: string;
-  code: 'swap_approval_unconfirmed';
-  detail: string;
-}
+export type SwapSettlementApprovalUnconfirmed = ApiSchema<'SettlementApprovalUncertain'>;
 
-export interface SwapSettlementSignature {
-  signature: string;
-  signerAddress: string;
-}
+export type SwapSettlementSignature = Pick<ApiSchema<'SettlementSignatureRequest'>, 'signature' | 'signerAddress'>;
 
 export interface SwapSettlementSignedApproval {
   txHash: string;

@@ -260,7 +260,12 @@ class SwapSettlementRouteTest(APITransactionTestCase):
         body = response.json()
         components = document["components"]["schemas"]
         typed_data = Draft7Validator(
-            components["SwapOrderForSigning"]["properties"]["typedData"],
+            {
+                "oneOf": [
+                    components[name]["properties"]["typedData"]
+                    for name in ("LegacySwapOrderForSigning", "SettlementSwapOrderForSigning")
+                ]
+            },
             resolver=RefResolver.from_schema(document),
         )
         context = Draft7Validator(

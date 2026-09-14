@@ -1,5 +1,3 @@
-import type { JsonValue } from '../types/common';
-
 const SOURCE_OF_FUNDS_LABELS: Record<string, string> = {
   employment_income: 'Employment income',
   savings: 'Savings',
@@ -17,11 +15,11 @@ const INTENDED_USE_LABELS: Record<string, string> = {
   other: 'Other',
 };
 
-export function sourceOfFundsChoices(funds: JsonValue): string[] {
+export function sourceOfFundsChoices(funds: unknown): string[] {
   return Array.isArray(funds) ? funds.filter((fund): fund is string => typeof fund === 'string') : [];
 }
 
-export function formatSourceOfFunds(funds: JsonValue): string {
+export function formatSourceOfFunds(funds: unknown): string {
   return sourceOfFundsChoices(funds)
     .map((fund) => SOURCE_OF_FUNDS_LABELS[fund] || fund)
     .join(', ');

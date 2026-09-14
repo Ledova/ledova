@@ -3,6 +3,7 @@ from rest_framework import serializers
 from companies.models import Company
 from tokens.models import ShareToken
 from tokens.services.market_data_service import market_summaries
+from whitelist.models import HolderType
 
 SHARES_ARE_WHOLE = (
     "A share is a whole unit. The ShareToken contract returns 0 from decimals() and takes no decimals "
@@ -158,7 +159,7 @@ class ShareRegisterHolderSerializer(serializers.Serializer):
     balance = serializers.CharField()
     percentage = serializers.FloatField()
     source = serializers.CharField()
-    holder_type = serializers.CharField()
+    holder_type = serializers.ChoiceField(choices=HolderType.choices)
     entered_on = serializers.DateTimeField(allow_null=True)
     share_class = serializers.CharField()
     identity_source = serializers.CharField()

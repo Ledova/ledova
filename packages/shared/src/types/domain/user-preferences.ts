@@ -1,40 +1,15 @@
-export type AccountRole = 'investor' | 'company' | 'both';
+import type { ApiSchema, ApiRequest, ApiResponse } from '../contracts';
+export type AccountRole = ApiSchema<'RoleEnum'>;
 
-export interface UserAccount {
-  uuid: string;
-  accountNumber: string;
-  accountType: string;
-  activationDate: string | null;
-  role: AccountRole;
-}
+export type UserAccount = ApiResponse<'api_user_accounts_list'>;
 
-export interface AccountSummary {
-  uuid: string;
-  accountNumber: string;
-  accountType: string;
-  activationDate: string | null;
-  role: AccountRole;
-}
+export type AccountSummary = ApiSchema<'AccountSummary'>;
 
-export interface SelectedPortfolio {
-  uuid: string;
-  name: string;
-  userAccount: string;
-  isActive: boolean;
-}
+export type SelectedPortfolio = NonNullable<UserPreferences['selectedPortfolio']>;
 
-export type Theme = 'dark' | 'light';
-export type DisplayCurrency = 'AUD' | 'USD';
+export type Theme = ApiSchema<'ThemeEnum'>;
+export type DisplayCurrency = ApiSchema<'DisplayCurrencyEnum'>;
 
-export interface UserPreferences {
-  uuid: string;
-  userProfile: string;
-  userAccount: AccountSummary | null;
-  selectedPortfolio: SelectedPortfolio | null;
-  theme: Theme;
-  displayCurrency: DisplayCurrency;
-}
+export type UserPreferences = ApiResponse<'api_user_preferences_list'>;
 
-export type UpdateUserPreferences = Partial<Pick<UserPreferences, 'theme' | 'displayCurrency'>> & {
-  selectedPortfolio?: string | null;
-};
+export type UpdateUserPreferences = ApiRequest<'api_user_preferences_create'>;

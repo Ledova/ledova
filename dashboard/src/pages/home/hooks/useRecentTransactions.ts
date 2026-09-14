@@ -3,12 +3,10 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { getTransactions, getTransactionsNextPage, CACHE_TIMING } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 
-const PAGE_SIZE = 5;
-
 export function useRecentTransactions() {
   const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInfiniteQuery({
     queryKey: ['home-transactions'],
-    queryFn: ({ pageParam = 1 }) => getTransactions(apiClient, { page_size: PAGE_SIZE, page: pageParam }),
+    queryFn: ({ pageParam = 1 }) => getTransactions(apiClient, { page: pageParam }),
     getNextPageParam: getTransactionsNextPage,
     initialPageParam: 1,
     staleTime: CACHE_TIMING.VERY_SHORT_STALE_TIME,

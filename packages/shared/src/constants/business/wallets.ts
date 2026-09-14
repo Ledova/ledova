@@ -1,3 +1,5 @@
+import type { CreateWallet } from '../../types/domain/wallet';
+
 export const WALLET_VERIFICATION_STATUS = {
   PENDING: 'PENDING',
   VERIFIED: 'VERIFIED',
@@ -44,16 +46,14 @@ export function getWalletVerificationEvmChainId(chain: string): number | null {
   return null;
 }
 
-export interface ChainConfig {
-  code: BlockchainType;
+export type ChainConfig = {
   name: string;
   shortName: string;
-  isActive: boolean;
   explorerTxUrl: string;
   explorerAddressUrl: string;
   addressPlaceholder: string;
   confirmationTime: string;
-}
+} & ({ isActive: true; code: CreateWallet['chain'] } | { isActive: false; code: BlockchainType });
 
 export const SUPPORTED_CHAINS: ChainConfig[] = [
   {

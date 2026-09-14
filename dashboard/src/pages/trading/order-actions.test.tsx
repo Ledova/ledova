@@ -214,7 +214,7 @@ async function ordinary(config: InternalAxiosRequestConfig): Promise<AxiosRespon
       found.intent.modifications ?? undefined,
       id,
     ).result,
-    order: { ...found.order, status: 'cancelled' as const, pricePerShare: '15.00' },
+    order: { ...found.order, status: 'cancelled' as const, statusDisplay: 'Cancelled', pricePerShare: '15.00' },
   };
   stored.set(id, copy(applied));
   return response(config, applied);
@@ -372,7 +372,7 @@ it('recovers a lost response with its original change and separate current order
   await waitFor(() => expect(screen.getByText('Original action recovered')).toBeTruthy());
   expect(requests.slice(count).map((request) => request.url)).toEqual([endpoints.ACTION(actionId)]);
   expect(screen.getByText('price per share: 12.50 → 14.00')).toBeTruthy();
-  expect(screen.getByText('Current order status: cancelled')).toBeTruthy();
+  expect(screen.getByText('Current order status: Cancelled')).toBeTruthy();
   expect(executes()).toHaveLength(1);
   expect(await orderActionStore.list(owner)).toHaveLength(0);
 });
@@ -562,6 +562,7 @@ it.each(['executing', 'failed'])(
       const reply = await ordinary(config);
       if (config.method === 'post') throw new Error('Synthetic lost committed response');
       reply.data.order.status = status;
+      reply.data.order.statusDisplay = status === 'executing' ? 'Executing' : 'Failed';
       return reply;
     };
     sign();
@@ -570,7 +571,7 @@ it.each(['executing', 'failed'])(
     fireEvent.click(screen.getByText('Check change status'));
     await waitFor(() => expect(screen.getByText('Original action recovered')).toBeTruthy());
     expect(screen.getByText('price per share: 12.50 → 14.00')).toBeTruthy();
-    expect(screen.getByText(`Current order status: ${status}`)).toBeTruthy();
+    expect(screen.getByText(`Current order status: ${status === 'executing' ? 'Executing' : 'Failed'}`)).toBeTruthy();
     expect(requests.slice(count).map((request) => request.url)).toEqual([endpoints.ACTION(actionId)]);
     expect(executes()).toHaveLength(1);
     expect(await orderActionStore.list(owner)).toHaveLength(0);

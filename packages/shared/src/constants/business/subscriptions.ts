@@ -1,7 +1,8 @@
-export type SubscriptionStatus =
-  'draft' | 'submitted' | 'accepted' | 'awaiting_payment' | 'paid' | 'allotted' | 'rejected' | 'withdrawn' | 'refunded';
+import type { ApiComponents } from '../../generated/api';
 
-export type SettlementRail = 'bank_transfer' | 'stablecoin';
+export type SubscriptionStatus = ApiComponents['schemas']['SubscriptionStatusEnum'];
+
+export type SettlementRail = ApiComponents['schemas']['SettlementRailEnum'];
 
 export const SUBSCRIPTION_ENDPOINTS = {
   BASE: '/api/v1/subscriptions/',

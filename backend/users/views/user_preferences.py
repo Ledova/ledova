@@ -1,3 +1,5 @@
+from drf_spectacular.helpers import forced_singular_serializer
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -14,6 +16,7 @@ class UserPreferencesViewSet(AuthenticatedModelViewSet):
 
     scoped_model = UserPreferences
 
+    @extend_schema(responses={200: forced_singular_serializer(UserPreferencesSerializer)})
     def list(self, request):
         preferences = self.get_queryset().first()
         if preferences is None:
@@ -22,6 +25,7 @@ class UserPreferencesViewSet(AuthenticatedModelViewSet):
             )
         return Response(self.get_serializer(preferences).data)
 
+    @extend_schema(responses={200: UserPreferencesSerializer})
     def create(self, request):
         serializer = self.get_serializer(data=request.data, partial=self.get_queryset().exists())
         serializer.is_valid(raise_exception=True)

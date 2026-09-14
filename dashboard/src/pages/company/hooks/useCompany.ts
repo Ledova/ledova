@@ -3,7 +3,7 @@ import { getCompanies, getCompany, getCompanyStats } from '@ledova/shared';
 import type { Company, CompanyListItem, CompanyStats } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 
-export type CompanyView = CompanyListItem & Partial<Company>;
+export type CompanyView = (Company | CompanyListItem) & Partial<Company>;
 
 export function useCompany() {
   const { data: companiesData, isLoading: isLoadingList } = useQuery({

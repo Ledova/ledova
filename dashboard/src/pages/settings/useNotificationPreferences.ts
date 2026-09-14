@@ -28,14 +28,14 @@ export function useNotificationPreferences() {
 
   const toggleTransactionAlerts = useCallback(
     async (value: boolean) => {
-      await updateMutation.mutateAsync({ transaction_alerts: value });
+      await updateMutation.mutateAsync({ transactionAlerts: value });
     },
     [updateMutation],
   );
 
   const togglePriceAlerts = useCallback(
     async (value: boolean) => {
-      await updateMutation.mutateAsync({ price_alerts: value });
+      await updateMutation.mutateAsync({ priceAlerts: value });
     },
     [updateMutation],
   );

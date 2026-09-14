@@ -3,8 +3,8 @@ import type { TransferableAsset, TransactionData, Wallet } from '@ledova/shared'
 export const generateMockTransferableAssets = (wallet: Wallet): TransferableAsset[] => {
   const assets: TransferableAsset[] = [];
 
-  const isEthereum = wallet.chain === 'Ethereum';
-  const isBitcoin = wallet.chain === 'Bitcoin';
+  const isEthereum = wallet.chain === 'ethereum';
+  const isBitcoin = wallet.chain === 'bitcoin';
 
   if (isEthereum) {
     assets.push({
@@ -141,7 +141,7 @@ export const generateMockTransactionData = (
 ): TransactionData => {
   const fromAddress = wallet.address;
 
-  if (wallet.chain === 'Bitcoin') {
+  if (wallet.chain === 'bitcoin') {
     return generateMockBitcoinTransactionData(fromAddress, toAddress, amount);
   } else {
     return generateMockEthereumTransactionData(fromAddress, toAddress, amount, isNative);
@@ -149,7 +149,7 @@ export const generateMockTransactionData = (
 };
 
 export const generateMockTxHash = (chain: string): string => {
-  if (chain === 'Bitcoin') {
+  if (chain === 'bitcoin') {
     return 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6';
   } else {
     return '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';

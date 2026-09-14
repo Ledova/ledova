@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { SwapOrder, SwapTypedData, Wallet } from '@ledova/shared';
+import type { SwapDataResponse, ApprovalTransaction, Wallet } from '@ledova/shared';
 import { encodeEthereumTypedData, encodeEthereumTransaction } from '@utils/keystone/urEncoder';
 import { signEthereumTypedData, signEthereumTransaction, deriveAddress } from '@utils/softwareWallet/localSigner';
 import {
@@ -25,13 +25,6 @@ export type SwapSigningStep =
   | 'success'
   | 'error';
 
-interface SwapSigningData {
-  swapOrder: SwapOrder;
-  typedData: SwapTypedData;
-  userRole: string;
-  hasSigned: boolean;
-}
-
 interface UseAtomicSwapSigningProps {
   orderUuid: string | undefined;
   walletAddress: string;
@@ -40,7 +33,7 @@ interface UseAtomicSwapSigningProps {
 
 interface UseAtomicSwapSigningReturn {
   signingStep: SwapSigningStep;
-  swapData: SwapSigningData | null;
+  swapData: SwapDataResponse | null;
   swapQrCborHex: string | null;
   swapQrType: string | null;
   signingError: string | null;
@@ -49,15 +42,7 @@ interface UseAtomicSwapSigningReturn {
   approvalTokenSymbol: string | null;
   approvalQrCborHex: string | null;
   approvalQrType: string | null;
-  unsignedApprovalTx: {
-    to: string;
-    value: string;
-    gas: string;
-    gasPrice: string;
-    nonce: string;
-    data: string;
-    chainId: string;
-  } | null;
+  unsignedApprovalTx: ApprovalTransaction | null;
   isLoadingSwapData: boolean;
   isLoadingApprovalData: boolean;
   isReady: boolean;
@@ -77,16 +62,6 @@ interface UseAtomicSwapSigningReturn {
   reset: () => void;
 }
 
-interface UnsignedTransaction {
-  to: string;
-  value: string;
-  gas: string;
-  gasPrice: string;
-  nonce: string;
-  data: string;
-  chainId: string;
-}
-
 export function useAtomicSwapSigning({
   orderUuid,
   walletAddress,
@@ -101,7 +76,7 @@ export function useAtomicSwapSigning({
   const [signingSuccess, setSigningSuccess] = useState(false);
   const [approvalQrCborHex, setApprovalQrCborHex] = useState<string | null>(null);
   const [approvalQrType, setApprovalQrType] = useState<string | null>(null);
-  const [unsignedApprovalTx, setUnsignedApprovalTx] = useState<UnsignedTransaction | null>(null);
+  const [unsignedApprovalTx, setUnsignedApprovalTx] = useState<ApprovalTransaction | null>(null);
   const [seedPhrase, setSeedPhrase] = useState('');
 
   const isSoftwareWallet =
@@ -116,7 +91,8 @@ export function useAtomicSwapSigning({
   const broadcastTransaction = useBroadcastTransaction();
 
   const needsApproval = approvalStatus?.needsApproval ?? null;
-  const approvalTokenSymbol = approvalStatus?.tokenSymbol ?? approvalData?.tokenSymbol ?? null;
+  const approvalTokenSymbol =
+    approvalStatus?.tokenSymbol ?? (approvalData?.needsApproval ? approvalData.tokenSymbol : null);
 
   const startSigning = useCallback(() => {
     setSigningError(null);

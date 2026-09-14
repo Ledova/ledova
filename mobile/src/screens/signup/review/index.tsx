@@ -281,9 +281,9 @@ export function ReviewScreen() {
                   </View>
                   <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>Phone:</Text>
-                    <Text style={styles.infoValue}>{formatPhoneNumber(userProfile.phoneNumber)}</Text>
+                    <Text style={styles.infoValue}>{formatPhoneNumber(userProfile.phoneNumber ?? '')}</Text>
                   </View>
-                  {getAddressDisplayLines(parseAddress(userProfile.residentialAddress)).map((line, index) => (
+                  {getAddressDisplayLines(parseAddress(userProfile.residentialAddress ?? '')).map((line, index) => (
                     <View key={index} style={styles.infoRow}>
                       <Text style={styles.infoLabel}>{line.label}</Text>
                       <Text style={styles.infoValue}>{line.value}</Text>

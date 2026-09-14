@@ -71,13 +71,13 @@ export function BuyCryptoModal({
     queryKey: [
       'wallets',
       userAccountUuid,
-      { chain: selectedAsset?.chain, verification_status: 'VERIFIED', order_by: 'signing_preference' },
+      { chain: selectedAsset?.chain, verification_status: 'VERIFIED', ordering: 'signing_preference' },
     ],
     queryFn: () =>
       getWallets(apiClient, {
         chain: selectedAsset!.chain,
         verification_status: 'VERIFIED',
-        order_by: 'signing_preference',
+        ordering: 'signing_preference',
       }),
     enabled: !!userAccountUuid && !!selectedAsset,
   });
@@ -89,7 +89,7 @@ export function BuyCryptoModal({
     mutationFn: (wallet: Wallet) =>
       getOnRampWidgetUrl(apiClient, {
         walletUuid: wallet.uuid,
-        cryptoCurrency: selectedAsset!.symbol,
+        cryptoCurrencyCode: selectedAsset!.symbol,
       }),
     onSuccess: (response) => {
       resetAndClose();

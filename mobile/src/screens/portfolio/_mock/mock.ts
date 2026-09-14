@@ -19,6 +19,7 @@ export const generateMockHoldingsData = () => {
     return walletsForAsset.map((wallet) => ({
       uuid: `holding-${asset.uuid}-${wallet.uuid}`,
       chain: wallet.chain,
+      assetUuid: asset.uuid,
       assetSymbol: asset.symbol,
       assetName: asset.name,
       quantity: (asset.value / (assetIndex + 1) / 100).toString(),
@@ -31,6 +32,11 @@ export const generateMockHoldingsData = () => {
         symbol: asset.symbol,
         name: asset.name,
         assetType: asset.assetType,
+        assetTypeDisplay: asset.assetType,
+        chainDeployments: [],
+        navPerToken: null,
+        lastNavUpdate: null,
+        isYieldToken: false,
         decimals: 18,
         contractAddress: `0x${asset.uuid}`,
         chain: wallet.chain,
@@ -93,6 +99,7 @@ export const generateMockPortfolioChartData = (timeRange: TimeRange): PortfolioS
       quantity: String(asset.totalQuantity),
       marketValue: String(asset.totalValue),
       wallets: [],
+      perChain: [],
     };
   });
 

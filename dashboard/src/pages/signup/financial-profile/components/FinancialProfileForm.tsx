@@ -13,7 +13,10 @@ export interface FinancialProfileFormProps {
   errors: FormErrors;
   generalError: string;
   isSubmitting: boolean;
-  setFieldValue: (field: keyof FinancialProfileFormState, value: string | string[] | number) => void;
+  setFieldValue: <Field extends keyof FinancialProfileFormState>(
+    field: Field,
+    value: FinancialProfileFormState[Field],
+  ) => void;
   onSubmit: (e: React.FormEvent) => void;
   onBack?: () => void;
 }

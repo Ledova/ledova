@@ -281,13 +281,13 @@ export function BuyCryptoModal({
   const walletsQuery = useQuery({
     queryKey: [
       'wallets',
-      { chain: selectedAsset?.chain, verification_status: 'VERIFIED', order_by: 'signing_preference' },
+      { chain: selectedAsset?.chain, verification_status: 'VERIFIED', ordering: 'signing_preference' },
     ],
     queryFn: () =>
       getWallets(apiClient, {
         chain: selectedAsset!.chain,
         verification_status: 'VERIFIED',
-        order_by: 'signing_preference',
+        ordering: 'signing_preference',
       }),
     enabled: visible && !!selectedAsset,
   });
@@ -301,7 +301,7 @@ export function BuyCryptoModal({
       const sessionEpoch = getSessionEpoch();
       const response = await getOnRampWidgetUrl(apiClient, {
         walletUuid: wallet.uuid,
-        cryptoCurrency: selectedAsset!.symbol,
+        cryptoCurrencyCode: selectedAsset!.symbol,
       });
       assertSessionEpoch(sessionEpoch);
       return { response, sessionEpoch, scope: requestScope };

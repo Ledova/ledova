@@ -1,7 +1,7 @@
 import { getHoldingTokenDeployment } from '../../src/utils/asset-deployment';
 import type { AssetChainDeployment, WalletHolding } from '../../src/types';
 
-const wallet = { uuid: 'base-wallet', chain: 'base' };
+const wallet = { uuid: 'base-wallet', chain: 'base' } as const;
 const ethereum: AssetChainDeployment = {
   uuid: 'eth-deployment',
   chain: 'ethereum',
@@ -22,6 +22,7 @@ function holding(): WalletHolding {
     walletUuid: wallet.uuid,
     walletAddress: `0x${'a'.repeat(40)}`,
     chain: 'base',
+    assetUuid: 'asset',
     assetSymbol: 'MULTI',
     assetName: 'Multi-network token',
     quantity: '3',
@@ -35,8 +36,12 @@ function holding(): WalletHolding {
       symbol: 'MULTI',
       name: 'Multi-network token',
       assetType: 'erc20_token',
+      assetTypeDisplay: 'ERC20 Token',
+      navPerToken: null,
+      lastNavUpdate: null,
+      isYieldToken: false,
       chain: 'ethereum',
-      contractAddress: ethereum.contractAddress,
+      contractAddress: ethereum.contractAddress ?? null,
       decimals: 18,
       chainDeployments: [ethereum, base],
       currentPrice: null,
@@ -61,7 +66,7 @@ describe('the selected wallet determines its transferable deployment', () => {
     const row = holding();
     row.asset.chainDeployments = [ethereum];
     expect(getHoldingTokenDeployment(row, wallet)).toBeNull();
-    delete row.asset.chainDeployments;
+    Reflect.deleteProperty(row.asset, 'chainDeployments');
     expect(getHoldingTokenDeployment(row, wallet)).toBeNull();
   });
   it('refuses disabled, contract-less, ambiguous and invalid-decimal deployments', () => {

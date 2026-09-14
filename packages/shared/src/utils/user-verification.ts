@@ -37,6 +37,6 @@ export function getUserVerificationStatus(profile?: UserProfile | string | null)
 
   if (!status || status === 'init') return statusOf('not_started');
   if (PENDING_STATUSES.has(status)) return statusOf('pending');
-  if (status === 'completed') return statusOf(reviewResult ? REVIEW_RESULT_TYPES[reviewResult] : 'unknown');
+  if (status === 'completed') return statusOf((reviewResult && REVIEW_RESULT_TYPES[reviewResult]) || 'unknown');
   return statusOf('unknown');
 }

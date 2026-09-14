@@ -118,6 +118,13 @@ class CapitalIncreaseCreateSerializer(serializers.ModelSerializer):
         return attrs
 
 
+class CapitalIncreaseCreateRequestSerializer(CapitalIncreaseCreateSerializer):
+    token = serializers.UUIDField()
+
+    class Meta(CapitalIncreaseCreateSerializer.Meta):
+        fields = ["token", *CapitalIncreaseCreateSerializer.Meta.fields]
+
+
 class CapitalIncreaseUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:

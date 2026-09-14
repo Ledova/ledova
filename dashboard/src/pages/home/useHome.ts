@@ -37,7 +37,7 @@ export function useHome() {
 
   const marketAssetsQuery = useQuery({
     queryKey: ['home-market-assets'],
-    queryFn: () => getAssets(apiClient, { is_active: 'true', order_by: 'favourites_first' }),
+    queryFn: () => getAssets(apiClient, { is_active: true }),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
   });

@@ -1,83 +1,11 @@
-import type { SettlementRail, SubscriptionStatus } from '../../constants';
+import type { ApiSchema, ApiRequest, ApiResponse } from '../contracts';
 
-export interface PaymentInstruction {
-  rail: SettlementRail;
-  railDisplay: string;
-  reference: string;
-  amountDue: string;
-  currency: string;
-  paymentDueAt: string | null;
-  issuedAt: string | null;
-  payee: string;
-  bankAccountName?: string;
-  bankBsb?: string;
-  bankAccountNumber?: string;
-  receivingWalletAddress?: string;
-  chain?: string;
-  assetSymbol?: string;
-  contractAddress?: string;
-  decimals?: number;
-  settlementAmount?: string;
-}
+export type PaymentInstruction = NonNullable<ApiSchema<'SubscriptionDetail'>['paymentInstruction']>;
 
-export interface Subscription {
-  uuid: string;
-  offeringUuid: string;
-  tokenSymbol: string;
-  tokenName: string;
-  companyName: string;
-  status: SubscriptionStatus;
-  statusDisplay: string;
-  quantity: number;
-  allottedQuantity: number | null;
-  pricePerShare: string;
-  amountDue: string;
-  amountReceived: string | null;
-  settlementRail: SettlementRail;
-  settlementRailDisplay: string;
-  reference: string;
-  paymentDueAt: string | null;
-  walletAddress: string;
-  createdAt: string;
-}
+export type Subscription = ApiResponse<'api_v1_subscriptions_list'>['results'][number];
 
-export interface SubscriptionDetail extends Subscription {
-  settlementAssetSymbol: string | null;
-  settlementAmount: number | null;
-  amountOutstanding: string;
-  paymentInstruction: PaymentInstruction | null;
-  paymentInstructionIssuedAt: string | null;
-  paymentReceivedOn: string | null;
-  paymentReferenceSeen: string;
-  paymentTxHash: string;
-  paymentNotes: string;
-  refundAmount: string | null;
-  refundedAt: string | null;
-  refundReference: string;
-  updatedAt: string;
-}
+export type SubscriptionDetail = ApiResponse<'api_v1_subscriptions_retrieve'>;
 
-export interface IssuerSubscription {
-  uuid: string;
-  status: SubscriptionStatus;
-  statusDisplay: string;
-  investorName: string;
-  quantity: number;
-  allottedQuantity: number | null;
-  pricePerShare: string;
-  amountDue: string;
-  amountReceived: string | null;
-  settlementRailDisplay: string;
-  reference: string;
-  paymentDueAt: string | null;
-  paymentConfirmedAt: string | null;
-  allotmentState: string;
-  walletAddress: string;
-  createdAt: string;
-}
+export type IssuerSubscription = ApiResponse<'api_v1_offerings_subscriptions_list'>['results'][number];
 
-export interface SubscriptionInput {
-  offering: string;
-  wallet: string;
-  quantity: number;
-}
+export type SubscriptionInput = ApiRequest<'api_v1_subscriptions_create'>;

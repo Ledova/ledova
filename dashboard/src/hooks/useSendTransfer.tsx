@@ -90,12 +90,8 @@ export function SendTransferProvider({ children }: { children: ReactNode }) {
           token={
             transferFlow.selectedAsset?.tokenAddress
               ? {
-                  token: transferFlow.selectedAsset.tokenAddress,
                   symbol: transferFlow.selectedAsset.symbol,
                   name: transferFlow.selectedAsset.name,
-                  balance: transferFlow.selectedAsset.balance,
-                  contractAddress: transferFlow.selectedAsset.tokenAddress,
-                  decimals: transferFlow.selectedAsset.decimals,
                 }
               : undefined
           }

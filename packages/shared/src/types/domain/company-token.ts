@@ -1,224 +1,41 @@
-import type { HolderType } from '../../constants';
-import type { BaseQueryParams } from '../api';
+import type { ApiSchema, ApiRequest, ApiResponse, ApiQuery } from '../contracts';
 
-export type TokenStatus = 'draft' | 'deploying' | 'deployed' | 'paused';
-export type TokenType = 'ordinary' | 'preference' | 'redeemable';
-export type IssuanceStatus = 'pending' | 'processing' | 'completed' | 'failed';
-export type IssuanceType = 'initial' | 'additional' | 'bonus' | 'rights';
-export type CapitalIncreaseStatus =
-  'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'executing' | 'executed' | 'failed' | 'superseded';
+export type TokenStatus = ApiSchema<'ShareTokenStatusEnum'>;
+export type TokenType = ApiSchema<'TokenTypeEnum'>;
+export type IssuanceStatus = ApiSchema<'ShareIssuanceListStatusEnum'>;
+export type IssuanceType = ApiSchema<'IssuanceTypeEnum'>;
+export type CapitalIncreaseStatus = ApiSchema<'CapitalRequestStatusEnum'>;
 export type TokenTabType = 'overview' | 'shares' | 'shareholders' | 'issuances' | 'capital-increases';
 
-export interface CompanyShareToken {
-  uuid: string;
-  company: string;
-  name: string;
-  symbol: string;
-  tokenType: TokenType;
-  status: TokenStatus;
-  contractAddress: string | null;
-  chain: string | null;
-  totalSupply: string;
-  decimals: number;
-  isTransferable: boolean;
-  isDivisible: boolean;
-  deploymentTxHash: string | null;
-  deployedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
+export type CompanyShareToken = ApiResponse<'api_v1_tokens_retrieve'>;
 
-export interface TokenCreate {
-  company?: string;
-  name: string;
-  symbol: string;
-  tokenType: TokenType;
-  totalSupply: string;
-  isTransferable?: boolean;
-  isDivisible?: boolean;
-}
+export type TokenCreate = ApiRequest<'api_v1_tokens_create'>;
 
-export interface CompanyShareTokenListItem {
-  uuid: string;
-  company: string;
-  name: string;
-  symbol: string;
-  tokenType: TokenType;
-  status: TokenStatus;
-  contractAddress: string | null;
-  chain: string | null;
-  totalSupply: string;
-  decimals: number;
-  isTransferable: boolean;
-  isDivisible: boolean;
-  deployedAt: string | null;
-  createdAt: string;
-}
+export type CompanyShareTokenListItem = ApiResponse<'api_v1_tokens_list'>['results'][number];
 
-export interface CompanyTokenActionResponse {
-  message: string;
-  token: CompanyShareToken;
-}
+export type CompanyTokenActionResponse =
+  | ApiResponse<'api_v1_tokens_deploy_create'>
+  | ApiResponse<'api_v1_tokens_pause_create'>
+  | ApiResponse<'api_v1_tokens_unpause_create'>;
 
-export interface TokenHolder {
-  address: string;
-  name: string | null;
-  balance: string;
-  percentage: number;
-  source: 'blockchain' | 'issuances';
-  holderType: HolderType;
-  enteredOn: string | null;
-  shareClass: string;
-  identitySource: string;
-}
+export type TokenHolder = ApiSchema<'ShareRegisterHolder'>;
 
-export interface TokenHoldersResponse {
-  formerMembers: FormerMember[];
-  formerMembersAsAt: string | null;
-  formerMembersBlock: number | null;
-  formerMembersStale: boolean;
-  token: {
-    uuid: string;
-    name: string;
-    symbol: string;
-    status: TokenStatus;
-    totalSupply: string;
-  };
-  holders: TokenHolder[];
-  totalHolders: number;
-}
+export type TokenHoldersResponse = ApiResponse<'api_v1_tokens_holders_retrieve'>;
 
-export interface FormerMember {
-  uuid: string;
-  walletAddress: string;
-  name: string;
-  residentialAddress: string;
-  sharesAtCessation: string;
-  ceasedOn: string;
-  ceasedAtBlock: number;
-  identitySource: string;
-  identitySourceDisplay: string;
-  identityRecordedAt: string;
-}
+export type FormerMember = ApiSchema<'FormerMember'>;
 
-export interface TokenIssuance {
-  uuid: string;
-  token: string;
-  tokenSymbol: string;
-  recipientAddress: string;
-  recipientName: string;
-  subscriptionReference: string | null;
-  amount: string;
-  issuanceType: IssuanceType;
-  issuanceTypeDisplay: string;
-  reason: string;
-  status: IssuanceStatus;
-  statusDisplay: string;
-  txHash: string | null;
-  blockNumber: number | null;
-  initiatedBy: number | null;
-  initiatedByEmail: string | null;
-  processedAt: string | null;
-  completedAt: string | null;
-  createdAt: string;
-}
+export type TokenIssuance = ApiResponse<'api_v1_tokens_issuances_list'>['results'][number];
 
-export interface CapitalIncreaseRequest {
-  uuid: string;
-  token: string;
-  tokenSymbol: string;
-  tokenName: string;
-  additionalShares: number;
-  newAuthorizedTotal: number;
-  purpose: string;
-  boardResolutionReference: string;
-  shareholderApprovalReference?: string;
-  status: CapitalIncreaseStatus;
-  statusDisplay: string;
-  dilutionPercentage: string | null;
-  submittedBy: number | null;
-  submittedByEmail: string | null;
-  submittedAt: string | null;
-  reviewedBy?: number | null;
-  reviewedByEmail?: string | null;
-  reviewedAt?: string | null;
-  executionNotes?: string;
-  rejectionReason?: string;
-  executedIssuance?: string | null;
-  executedAt?: string | null;
-  canBeEdited?: boolean;
-  canBeSubmitted?: boolean;
-  createdAt: string;
-  updatedAt?: string;
-}
+export type CapitalIncreaseRequest = ApiResponse<'api_v1_tokens_capital_increases_retrieve'>;
 
-export interface CapitalIncreaseCreate {
-  token: string;
-  additionalShares: number;
-  newAuthorizedTotal: number;
-  purpose: string;
-  boardResolutionReference: string;
-  shareholderApprovalReference?: string;
-}
+export type CapitalIncreaseCreate = ApiRequest<'api_v1_tokens_capital_increases_create'>;
 
-export interface CapitalIncreaseListItem {
-  uuid: string;
-  token: string;
-  tokenSymbol: string;
-  tokenName: string;
-  additionalShares: number;
-  newAuthorizedTotal: number;
-  purpose: string;
-  status: CapitalIncreaseStatus;
-  statusDisplay: string;
-  dilutionPercentage: string | null;
-  submittedBy: number | null;
-  submittedByEmail: string | null;
-  submittedAt: string | null;
-  createdAt: string;
-}
+export type CapitalIncreaseListItem = ApiResponse<'api_v1_tokens_capital_increases_list'>['results'][number];
 
-export interface CapitalIncreaseSubmission {
-  message: string;
-  request: CapitalIncreaseRequest;
-}
+export type CapitalIncreaseSubmission = ApiResponse<'api_v1_tokens_capital_increases_submit_create'>;
 
-export interface ShareIssuanceRequest {
-  uuid: string;
-  token: string;
-  tokenSymbol: string;
-  tokenName: string;
-  recipientAddress: string;
-  recipientName?: string;
-  amount: number;
-  issuanceType: string;
-  issuanceTypeDisplay: string;
-  reason: string;
-  status: CapitalIncreaseStatus;
-  statusDisplay: string;
-  dilutionPercentage: number | null;
-  submittedBy: string | null;
-  submittedByEmail: string | null;
-  submittedAt: string | null;
-  reviewedBy?: string | null;
-  reviewedByEmail?: string | null;
-  reviewedAt?: string | null;
-  executionNotes?: string;
-  rejectionReason?: string;
-  executedIssuance?: string | null;
-  executedAt?: string | null;
-  createdAt: string;
-  updatedAt?: string;
-}
+export type ShareIssuanceRequest = ApiResponse<'api_v1_tokens_issuance_requests_retrieve'>;
 
-export interface ShareIssuanceRequestQueryParams extends BaseQueryParams {
-  token?: string;
-  company?: string;
-  status?: CapitalIncreaseStatus;
-}
+export type ShareIssuanceRequestQueryParams = ApiQuery<'api_v1_tokens_issuance_requests_list'>;
 
-export interface ShareIssuanceSubmission {
-  message: string;
-  token: CompanyShareToken;
-  issuanceRequest: ShareIssuanceRequest;
-}
+export type ShareIssuanceSubmission = ApiResponse<'api_v1_tokens_issue_create'>;

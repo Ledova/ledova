@@ -30,11 +30,11 @@ interface WalletSelectionModalProps {
 export function WalletSelectionModal({ isOpen, onClose, onSelectWallet }: WalletSelectionModalProps) {
   const { formatDisplayCurrency } = useCurrency();
   const walletsQuery = useQuery({
-    queryKey: ['wallets', { verification_status: 'VERIFIED', order_by: 'signing_preference' }],
+    queryKey: ['wallets', { verification_status: 'VERIFIED', ordering: 'signing_preference' }],
     queryFn: () =>
       getWallets(apiClient, {
         verification_status: 'VERIFIED',
-        order_by: 'signing_preference',
+        ordering: 'signing_preference',
       }),
     enabled: isOpen,
   });

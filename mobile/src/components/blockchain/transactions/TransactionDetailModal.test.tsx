@@ -13,12 +13,18 @@ const transaction: Transaction = {
   wallet: 'synthetic-wallet',
   asset: 'synthetic-asset',
   assetSymbol: 'ETH',
+  assetName: 'Ethereum',
+  marketValue: null,
+  blockNumber: null,
+  status: 'pending',
+  transactionFee: null,
+  transactionFeeEstimated: null,
   amount: '2',
   blockTimestamp: '2026-09-01T10:00:00Z',
 };
 
 it.each([
-  ['success', '✓ Success'],
+  ['success', 'Unknown'],
   ['confirmed', '✓ Confirmed'],
   ['pending', 'Pending'],
   ['failed', '✗ Failed'],
@@ -29,7 +35,7 @@ it.each([
   [undefined, 'Unknown'],
 ] as const)('shows %s as %s in the transaction details', async (status, label) => {
   const view = await render(
-    <TransactionDetailModal visible transaction={{ ...transaction, status }} onClose={() => {}} />,
+    <TransactionDetailModal visible transaction={Object.assign({ ...transaction }, { status })} onClose={() => {}} />,
   );
   expect(view.getByText(label)).toBeTruthy();
   if (status !== 'failed') expect(view.queryByText('✗ Failed')).toBeNull();

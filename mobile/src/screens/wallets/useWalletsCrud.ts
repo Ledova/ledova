@@ -28,8 +28,8 @@ export function useWalletsCrud() {
   const pendingSyncs = useRef(new Map<string, ReturnType<typeof syncWallet>>());
 
   const walletsQuery = useQuery({
-    queryKey: ['wallets', userAccount?.uuid, { order_by: 'address_index' }],
-    queryFn: () => getWallets(apiClient, { order_by: 'address_index' }),
+    queryKey: ['wallets', userAccount?.uuid],
+    queryFn: () => getWallets(apiClient),
     enabled: !USE_MOCK_DATA && !!userAccount?.uuid,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,

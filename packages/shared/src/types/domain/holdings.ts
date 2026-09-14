@@ -1,30 +1,13 @@
-import type { BaseEntity } from '../common';
-import type { BaseQueryParams } from '../api';
-import type { Asset, ValueSource } from './asset';
+import type { Wallet } from './wallet';
+import type { ApiResponse } from '../contracts';
 
-export interface WalletHolding extends BaseEntity {
-  walletUuid: string;
-  walletAddress: string;
-  chain: string;
-  asset: Asset;
-  assetSymbol: string;
-  assetName: string;
-  quantity: string;
-  marketValue: string | null;
-  valueSource: ValueSource;
-  lastSyncedAt: string;
-}
+import type { ValueSource } from './asset';
 
-export interface HoldingsQueryParams extends BaseQueryParams {
-  wallet?: string;
-  asset_type?: string;
-  network?: string;
-  max_value?: number;
-}
+export type WalletHolding = ApiResponse<'api_wallets_holdings_list'>[number];
 
 export interface WalletInfo {
   uuid: string;
-  name: string | undefined;
+  name: Wallet['name'];
   address: string;
   chain: string;
 }

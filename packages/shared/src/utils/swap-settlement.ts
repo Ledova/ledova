@@ -24,6 +24,7 @@ import { apiErrorSentence } from './errors';
 import type { OrderSubmissionOwner } from './order-submission-storage';
 import type { SavedSwapSettlement, SwapSettlementStore } from './swap-settlement-storage';
 import {
+  hasSwapSettlementContext,
   swapSettlementAdmitted,
   swapSettlementIdentity,
   swapSettlementRole,
@@ -319,7 +320,7 @@ export class SwapSettlement {
     );
     if (!this.current(generation)) return;
     const order = copied(result.data);
-    if (result.status !== 200)
+    if (result.status !== 200 || !hasSwapSettlementContext(order))
       throw new SwapSettlementError('The signature response did not establish a recorded result.');
     await validateSettlementSwapOrder(order, response, this.dependencies.crypto, this.known);
     if (!this.current(generation)) return;

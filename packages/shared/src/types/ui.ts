@@ -21,7 +21,7 @@ export interface FinancialProfileFormState {
   occupation: string;
   sourceOfFunds: string[];
   sourceOfFundsOtherText: string;
-  intendedUse: string;
+  intendedUse: NonNullable<FinancialProfile['intendedUse']>;
   intendedUseOtherText: string;
 }
 
@@ -44,12 +44,12 @@ export interface ChartDataPoint {
   changePercent: number;
 }
 
-export interface RadioGroupFieldProps {
+export interface RadioGroupFieldProps<Value extends string = string> {
   label: string;
-  value: string;
-  options: Array<{ value: string; label: string }>;
+  value: Value;
+  options: Array<{ value: Value; label: string }>;
   error?: string[];
-  onChange: (value: string) => void;
+  onChange: (value: Value) => void;
 }
 
 export interface CheckboxGroupFieldProps {

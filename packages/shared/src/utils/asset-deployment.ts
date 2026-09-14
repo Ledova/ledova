@@ -3,7 +3,7 @@ import type { AssetChainDeployment, Wallet, WalletHolding } from '../types';
 export function getHoldingTokenDeployment(
   holding: WalletHolding,
   wallet: Pick<Wallet, 'uuid' | 'chain'>,
-): AssetChainDeployment | null {
+): (AssetChainDeployment & { decimals: number; contractAddress: string }) | null {
   if (
     holding.walletUuid !== wallet.uuid ||
     holding.chain !== wallet.chain ||
@@ -18,10 +18,11 @@ export function getHoldingTokenDeployment(
   if (
     !deployment ||
     !deployment.contractAddress ||
+    typeof deployment.decimals !== 'number' ||
     !Number.isInteger(deployment.decimals) ||
     deployment.decimals < 0 ||
     deployment.decimals > 255
   )
     return null;
-  return deployment;
+  return { ...deployment, decimals: deployment.decimals, contractAddress: deployment.contractAddress };
 }

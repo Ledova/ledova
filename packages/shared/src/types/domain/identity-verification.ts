@@ -1,31 +1,12 @@
-export type KYCProvider = 'sumsub' | 'kycaid';
+import type { ApiSchema, ApiResponse } from '../contracts';
+export type KYCProvider = ApiSchema<'KycProviderEnum'>;
 
-export type VerificationStatus = 'init' | 'pending' | 'queued' | 'completed' | 'onHold' | 'prechecked' | null;
+export type VerificationStatus = ApiSchema<'UserProfile'>['verificationStatus'];
 
-export type ReviewAnswer = 'GREEN' | 'RED' | 'YELLOW' | null;
+export type ReviewAnswer = ApiSchema<'UserProfile'>['reviewResult'];
 
-export interface IdentityVerificationToken {
-  provider: KYCProvider;
-  accessToken: string | null;
-  applicantId: string | null;
-  formUrl: string | null;
-}
+export type IdentityVerificationToken = ApiResponse<'api_users_identity_verification_token_create'>;
 
-export interface ExtractedApplicantData {
-  fullName: string | null;
-  dateOfBirth: string | null;
-  address: string | null;
-}
+export type ExtractedApplicantData = ApiSchema<'ExtractedApplicantData'>;
 
-export interface IdentityVerificationStatus {
-  provider: KYCProvider;
-  applicantId: string | null;
-  status: VerificationStatus;
-  reviewResult: string | null;
-  reviewAnswer: ReviewAnswer;
-  isVerified: boolean;
-  verifiedAt: string | null;
-  rejectionLabels: string[];
-  needsRetry: boolean;
-  extractedData: ExtractedApplicantData | null;
-}
+export type IdentityVerificationStatus = ApiResponse<'api_users_identity_verification_status_retrieve'>;

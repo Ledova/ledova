@@ -144,8 +144,8 @@ export function SendFormScreen({ onDone }: SendFormScreenProps) {
       const encoded = encodeEthereumTransaction(
         wallet.address,
         transactionData.transaction as unknown as Parameters<typeof encodeEthereumTransaction>[1],
-        wallet.derivationPath,
-        wallet.masterFingerprint,
+        wallet.derivationPath ?? undefined,
+        wallet.masterFingerprint ?? undefined,
       );
       return encoded?.urString || null;
     } catch {

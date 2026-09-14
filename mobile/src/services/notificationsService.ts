@@ -58,8 +58,8 @@ export const notificationsService = {
       }
 
       await registerDeviceToken(apiClient, {
-        push_token: token,
-        device_type: Platform.OS as DeviceType,
+        pushToken: token,
+        deviceType: Platform.OS as DeviceType,
       });
 
       await SecureStore.setItemAsync(PUSH_TOKEN_KEY, token);
@@ -75,7 +75,7 @@ export const notificationsService = {
       return;
     }
     try {
-      await unregisterDeviceToken(apiClient, { push_token: token });
+      await unregisterDeviceToken(apiClient, { pushToken: token });
     } catch {
     } finally {
       await SecureStore.deleteItemAsync(PUSH_TOKEN_KEY).catch(() => undefined);

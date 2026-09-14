@@ -45,7 +45,7 @@ interface TransferSigningFlowProps {
   wallet: Wallet;
   toAddress?: string;
   amount?: string;
-  token?: WalletTokenBalance;
+  token?: Pick<WalletTokenBalance, 'name' | 'symbol'>;
   preparedTransaction?: ShareTokenTransferPrepareResponse | PreparedWalletTransfer | null;
   isPreparing?: boolean;
   prepareError?: string | null;
@@ -85,14 +85,13 @@ function formatTransactionForQr(
 
   if ('transaction' in preparedTx && preparedTx.transaction) {
     const tx = preparedTx.transaction;
-    const gasPrice = tx.gasPrice ?? tx.maxFeePerGas ?? 0;
     return {
       to: tx.to,
       from: wallet.address,
       data: tx.data || '0x',
       value: '0x' + tx.value.toString(16),
       gas: '0x' + tx.gas.toString(16),
-      gasPrice: '0x' + gasPrice.toString(16),
+      gasPrice: '0x' + tx.gasPrice.toString(16),
       nonce: '0x' + tx.nonce.toString(16),
       chainId: '0x' + tx.chainId.toString(16),
     };

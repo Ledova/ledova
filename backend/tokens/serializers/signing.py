@@ -1,4 +1,4 @@
-from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema_field
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 
@@ -48,8 +48,23 @@ class SwapMessageSerializer(serializers.Serializer):
     deadline = serializers.CharField()
 
 
+class SigningTypeSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    type = serializers.CharField()
+
+
+class SwapSigningTypesSerializer(serializers.Serializer):
+    EIP712Domain = SigningTypeSerializer(many=True)
+    SwapOrder = SigningTypeSerializer(many=True)
+
+
+@extend_schema_field(SwapSigningTypesSerializer)
+class SwapSigningTypesField(serializers.JSONField):
+    pass
+
+
 class LegacySwapTypedDataSerializer(serializers.Serializer):
-    types = SigningTypesField()
+    types = SwapSigningTypesField()
     primary_type = serializers.ChoiceField(choices=["SwapOrder"])
     domain = SigningDomainSerializer()
     message = SwapMessageSerializer()
@@ -63,17 +78,6 @@ class SettlementDomainSerializer(SigningDomainSerializer):
 
 class SettlementTypedDataSerializer(LegacySwapTypedDataSerializer):
     domain = SettlementDomainSerializer()
-
-
-@extend_schema_field(
-    PolymorphicProxySerializer(
-        component_name="SwapTypedData",
-        serializers=[LegacySwapTypedDataSerializer, SettlementTypedDataSerializer],
-        resource_type_field_name=None,
-    )
-)
-class SwapTypedDataField(serializers.JSONField):
-    pass
 
 
 class SettlementPartySerializer(serializers.Serializer):
