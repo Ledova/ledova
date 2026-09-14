@@ -9,7 +9,7 @@ from shared.tests.tenants import an_account
 from wallets.models import Wallet
 from whitelist.exceptions import WalletNotRegisteredException
 from whitelist.models import WhitelistEntry
-from whitelist.services import unique_wallet_uuid_for
+from whitelist.services.whitelist import unique_wallet_uuid_for
 
 User = get_user_model()
 

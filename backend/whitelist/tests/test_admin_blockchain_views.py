@@ -37,8 +37,8 @@ class WhitelistAdminBlockchainConfirmViewsTest(TestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "admin/whitelist/whitelistentry/add_to_blockchain_confirm.html")
-        self.assertContains(response, "<td>Pending</td>", html=False)
+        self.assertTemplateUsed(response, "admin/whitelist/confirm_changes.html")
+        self.assertContains(response, "Pending", html=False)
         self.assertContains(response, self.pending_entry.wallet.address)
 
     def test_remove_confirm_page_shows_current_status_label(self):
@@ -47,6 +47,6 @@ class WhitelistAdminBlockchainConfirmViewsTest(TestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "admin/whitelist/whitelistentry/remove_from_blockchain_confirm.html")
-        self.assertContains(response, '<span class="badge badge-success">Active</span>')
+        self.assertTemplateUsed(response, "admin/whitelist/confirm_changes.html")
+        self.assertContains(response, "Active")
         self.assertContains(response, self.active_entry.wallet.address)

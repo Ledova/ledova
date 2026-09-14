@@ -86,11 +86,14 @@ def run():
         for target, replacement in (
             ("tokens.services.token_transfer_service.get_base_chain_client", chain),
             ("tokens.services.atomic_swap_service.get_base_chain_client", chain),
-            ("tokens.services.token_transfer_service.WhitelistService", whitelist),
-            ("tokens.services.atomic_swap_service.WhitelistService", whitelist),
+            ("tokens.services.token_transfer_service.whitelist", whitelist),
             ("tokens.services.ShareTokenService", balance),
         ):
-            stack.enter_context(patch(target, return_value=replacement))
+            stack.enter_context(
+                patch(
+                    target, **({"new": replacement} if target.endswith(".whitelist") else {"return_value": replacement})
+                )
+            )
         stack.enter_context(patch("tokens.events._publish", side_effect=published))
         stack.enter_context(patch("rest_framework.throttling.SimpleRateThrottle.allow_request", return_value=True))
         if phase == "spent":

@@ -1,5 +1,6 @@
 from datetime import timedelta
-from unittest.mock import Mock
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 from django.test import TestCase
 from django.utils import timezone
@@ -8,7 +9,7 @@ from blockchain.models import BlockchainTransaction, TransactionStatus, Transact
 from shared.tests.tenants import an_account
 from wallets.models import Wallet
 from whitelist.models import WhitelistEntry, WhitelistStatus
-from whitelist.services import WhitelistService
+from whitelist.services import whitelist
 
 HASH = "0x" + "7a" * 32
 REMOVE_HASH = "0x" + "22" * 32
@@ -46,8 +47,13 @@ class AFailedAddTheChainContradictsIsReconciledTest(TestCase):
 
     @staticmethod
     def service(on_chain):
-        service = WhitelistService.__new__(WhitelistService)
-        service.is_whitelisted = Mock(return_value=on_chain)
+        service = SimpleNamespace(is_whitelisted=Mock(return_value=on_chain))
+
+        def reconcile():
+            with patch.object(whitelist, "is_whitelisted", side_effect=service.is_whitelisted):
+                return whitelist.reconcile_failed_adds()
+
+        service.reconcile_failed_adds = reconcile
         return service
 
     def test_an_add_the_chain_says_landed_becomes_active_on_its_own_hash(self):
@@ -139,7 +145,9 @@ class AFailedAddTheChainContradictsIsReconciledTest(TestCase):
         service = self.service(on_chain=True)
         service.reconcile_failed_adds()
         entry.refresh_from_db()
-        entry.mark_remove_failed("retry reverted", "0x" + "33" * 32)
+        WhitelistEntry.objects.filter(pk=entry.pk).update(
+            remove_tx_hash="0x" + "33" * 32, failure_reconciled_at=None, updated_at=timezone.now()
+        )
         self.an_attempt(entry, TransactionType.WHITELIST_REMOVE)
 
         with self.assertLogs("whitelist.services.whitelist", level="WARNING") as logs:
@@ -171,7 +179,9 @@ class AFailedAddTheChainContradictsIsReconciledTest(TestCase):
         service = self.service(on_chain=True)
 
         def answer_after_a_retry(address):
-            entry.mark_remove_failed("new failure", REMOVE_HASH)
+            WhitelistEntry.objects.filter(pk=entry.pk).update(
+                remove_tx_hash=REMOVE_HASH, failure_reconciled_at=None, updated_at=timezone.now()
+            )
             self.an_attempt(entry, TransactionType.WHITELIST_REMOVE)
             return True
 
@@ -226,4 +236,5 @@ class AFailedAddTheChainContradictsIsReconciledTest(TestCase):
         entry.refresh_from_db()
         self.assertEqual(entry.status, WhitelistStatus.FAILED)
         self.assertEqual((result["checked"], result["activated"]), (1, 0))
-        self.assertIn("node down", result["errors"][0])
+        self.assertNotIn("node down", result["errors"][0])
+        self.assertIn(str(entry.pk), result["errors"][0])

@@ -521,9 +521,9 @@ class ShareTokenService:
         return token_contract.functions.authorizedShares().call(), token_contract.functions.totalSupply().call()
 
     def is_recipient_whitelisted(self, address: str) -> bool:
-        from whitelist.services import WhitelistService
+        from whitelist.services import whitelist
 
-        return WhitelistService().is_whitelisted(address)
+        return whitelist.is_whitelisted(address)
 
     def execute_request(self, request, executed_by=None) -> dict:
         token = request.token

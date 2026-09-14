@@ -2,8 +2,8 @@
 
 [Architecture](README.md) · [Documentation](../README.md)
 
-Settlement-asset and yield-token `MintRequest` execution uses the operator signing
-foundation. Signer admission remains closed.
+Settlement-asset and yield-token `MintRequest` execution and whitelist add/remove
+commands use the operator signing foundation. Signer admission remains closed.
 
 The foundation now requires explicit signer admission. Existing and new
 `SigningAccount` rows start `closed`, and a missing row is also closed. A nonce
@@ -115,3 +115,56 @@ attribution, with no automatic retry, generation backfill or legacy sender
 fallback. The migration refuses reversal once any request has been admitted.
 Deploying this adapter does not authorize signer activation: the drain,
 attribution and all-writer cutover requirements above still apply.
+
+## Whitelist changes
+
+The staff-only operator API, whitelist-admin actions and subscription-admin
+whitelisting use `whitelist.services.changes`. Each accepted `WhitelistChange`
+freezes its submission UUID, actor, entry-point authority, action, requested wallet
+identity, chain, registry, address and transaction intent. The private command
+table reuses the outgoing foundation's signed bytes and nonce reservations.
+Application connections cannot read or write it. Admission requires active staff
+and the originating admin model permission; recovery of accepted work is operator
+owned even after the initiating actor loses permission.
+
+Operator scripts calling `POST /api/v1/whitelist/add/` or `remove/` must supply
+`submission_id` with `wallet_address`. Each `batch-add/` member carries its own
+UUID. The API's camel-case transport also accepts `submissionId` and
+`walletAddress`. Retain the UUID across transport retries. The response identifies
+the original command, its status and original transaction hash when signed;
+the nested entry describes current membership and may reflect a later command.
+`pending` and `executing` are unresolved, `confirmed` records a successful receipt,
+`unchanged` records that no transaction was needed, and `failed` records a known
+pre-signing failure or revert. Single unresolved submissions return 202 when
+processing returns normally, while provider/infrastructure failures return a safe
+503 and require recovery with the same UUID. Batch responses distinguish
+successful, failed and pending members, including unresolved infrastructure errors.
+
+Reusing a UUID with changed terms or authority is refused. A completed UUID always
+returns its original outcome; it never repeats an add after a later removal.
+A deliberate new command, including a retry after a known failure, needs a new
+UUID. Signed admin confirmation forms retain per-entry UUIDs across repeated POSTs
+and bind the actor, action and selected entries. A fresh form represents new work.
+An unresolved command blocks every competing UUID for the same chain, registry
+and address, including an opposite change and a removal with no local entry.
+There is no contradictory-intent queue.
+
+Admission commits before checking membership. That initial check either records
+no change required or commits the decision to send; later membership observations
+cannot complete a signed command. Network calls run outside transactions and
+target locks. Terminal outcome, local membership projection and target release
+commit together, and replaying a terminal command cannot overwrite newer membership.
+The generic transaction monitor excludes these projections. Sync remains an
+observation of membership; the recovery job uses the original outgoing receipt
+and signed bytes. The admin page suppresses fresh quick actions while work is
+unresolved. See [whitelist recovery](../operations/recovery.md#whitelist-changes).
+
+Migrations `whitelist/0005` and `0006` create the command table, revoke app-role
+access and guard immutable terms, original associations and terminal outcomes.
+They preserve all historical entries and transaction records without adopting
+them. The guard migration refuses reversal after command admission. Entries
+referenced by commands are protected from deletion, including a wallet cascade.
+Unknown legacy whitelist transactions block new target admission for operator
+attribution. Legacy failed-add reconciliation only observes entries without new
+commands. Neither this adapter nor membership sync establishes legacy attribution,
+receipt finality or complete same-key writer cutover.

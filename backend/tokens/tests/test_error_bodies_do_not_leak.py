@@ -22,7 +22,6 @@ class TheNodeKeyNeverReachesAResponseBodyTest(SimpleTestCase):
     def _prepare_against_an_unreachable_node(self):
         service = TokenTransferService.__new__(TokenTransferService)
         service.chain_client = Mock()
-        service.whitelist_service = Mock()
         service.validate_transfer = Mock()
         service.contract_address = Mock(return_value="0x" + "c" * 40)
         service.chain_client.get_nonce.side_effect = RequestsConnectionError(PROVIDER_TEXT)

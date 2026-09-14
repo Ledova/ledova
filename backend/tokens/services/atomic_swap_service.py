@@ -46,7 +46,6 @@ from tokens.services.trading_locks import (
     lock_orders,
     swap_terms,
 )
-from whitelist.services import WhitelistService
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +65,6 @@ class AtomicSwapService:
 
     def __init__(self):
         self._chain_client = None
-        self._whitelist_service = None
 
     @property
     def chain_client(self):
@@ -77,16 +75,6 @@ class AtomicSwapService:
     @chain_client.setter
     def chain_client(self, value):
         self._chain_client = value
-
-    @property
-    def whitelist_service(self):
-        if self._whitelist_service is None:
-            self._whitelist_service = WhitelistService()
-        return self._whitelist_service
-
-    @whitelist_service.setter
-    def whitelist_service(self, value):
-        self._whitelist_service = value
 
     @property
     def contract_address(self) -> str:

@@ -265,26 +265,24 @@ class SubscriptionAdminTest(SubscriptionAdminTestCase):
         self.assertEqual([row.allotted_quantity for row in rows], [30, 30])
         self.assertIn("2 subscription(s) scaled", self._messages(response)[0])
 
-    def test_the_bulk_whitelist_action_calls_the_existing_service(self):
+    def test_the_bulk_whitelist_action_requires_confirmation_with_stable_identity(self):
         subscription = paid_subscription(self.tenant)
         entry = WhitelistEntry.objects.create(wallet=self.tenant.wallet)
-
-        with patch("whitelist.services.WhitelistService") as service:
-            service.return_value.ensure_whitelisted.return_value = {
-                "added": 1,
-                "synced": 0,
-                "skipped": 0,
-                "errors": [],
-            }
-            response = self.client.post(
-                reverse("admin:offerings_subscription_changelist"),
-                {"action": "whitelist_wallets", "_selected_action": [str(subscription.pk)]},
-                follow=True,
-            )
-
-        service.return_value.ensure_whitelisted.assert_called_once()
-        self.assertEqual(list(service.return_value.ensure_whitelisted.call_args.args[0]), [entry])
-        self.assertIn("Whitelisted 1 and synced 0 address(es).", self._messages(response))
+        url = reverse("admin:offerings_subscription_changelist")
+        data = {"action": "whitelist_wallets", "_selected_action": [str(subscription.pk)]}
+        with patch("whitelist.admin_actions.submit") as submit:
+            response = self.client.post(url, data)
+            self.assertEqual(response.status_code, 200)
+            submit.assert_not_called()
+            token = response.context["whitelist_confirmation"]
+            submit.return_value.status = "confirmed"
+            confirmed = data | {"confirm_whitelist": "1", "whitelist_confirmation": token}
+            self.client.post(url, confirmed)
+            self.client.post(url, confirmed)
+        self.assertEqual(submit.call_count, 2)
+        self.assertEqual(submit.call_args_list[0], submit.call_args_list[1])
+        self.assertEqual(submit.call_args.args[2], entry.wallet_address)
+        self.assertEqual(submit.call_args.kwargs["authority"], "subscription_admin")
 
     def test_the_bulk_whitelist_action_names_the_wallets_with_no_entry(self):
         subscription = paid_subscription(self.tenant)

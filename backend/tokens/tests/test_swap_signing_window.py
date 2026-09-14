@@ -64,9 +64,8 @@ class NewlyMatchedSwapSigningWindowTest(TransactionTestCase):
             patch(
                 "tokens.services.token_transfer_service.get_base_chain_client", return_value=self.service.chain_client
             ),
-            patch("tokens.services.token_transfer_service.WhitelistService"),
+            patch("tokens.services.token_transfer_service.whitelist"),
             patch("tokens.services.atomic_swap_service.get_base_chain_client", return_value=self.service.chain_client),
-            patch("tokens.services.atomic_swap_service.WhitelistService"),
         ):
             matched = TokenTransferService().match_orders(
                 self.template.buy_order, self.template.sell_order, match_quantity=10
