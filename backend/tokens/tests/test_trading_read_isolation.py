@@ -316,9 +316,8 @@ class TradingReadIsolationTest(APITransactionTestCase):
             "status": "whitelisted",
         }
 
-    @patch("whitelist.views.status.WhitelistService")
-    def test_whitelist_status_allows_bounded_recipient_eligibility_check(self, service_class):
-        service = service_class.return_value
+    @patch("whitelist.views.status.whitelist")
+    def test_whitelist_status_allows_bounded_recipient_eligibility_check(self, service):
         self._whitelist_status_of(service, Web3.to_checksum_address(self.alice_wallet.address))
         self.client.force_authenticate(self.bob)
         response = self.client.get(f"/api/v1/trading/whitelist/{self.alice_wallet.address}/status/")
@@ -327,9 +326,8 @@ class TradingReadIsolationTest(APITransactionTestCase):
         self.assertTrue(response.json()["isWhitelisted"])
         service.investor_status.assert_called_once_with(self.alice_wallet.address)
 
-    @patch("whitelist.views.status.WhitelistService")
-    def test_whitelist_status_uses_canonical_owned_address(self, service_class):
-        service = service_class.return_value
+    @patch("whitelist.views.status.whitelist")
+    def test_whitelist_status_uses_canonical_owned_address(self, service):
         self._whitelist_status_of(service, Web3.to_checksum_address(self.bob_wallet.address))
         self.client.force_authenticate(self.bob)
 

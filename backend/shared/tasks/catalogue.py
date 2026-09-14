@@ -1,4 +1,7 @@
 SYSTEM_WIDE = {
+    "whitelist.tasks.recovery.recover_whitelist_changes": "Recovers admitted whitelist changes through their "
+    "original outgoing operations. Uses operator authority, never admits or reopens a command, and never "
+    "substitutes current membership for a signed transaction outcome.",
     "tokens.tasks.mint_request.recover_mint_requests": "Recovers durably admitted mint requests across the deployment, "
     "using operator authority and the original signed operation. It never admits a new request "
     "or restarts a reverted attempt.",

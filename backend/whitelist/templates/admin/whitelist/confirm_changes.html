@@ -1,0 +1,16 @@
+{% extends "admin/base_custom.html" %}
+{% block content %}
+<div class="admin-custom-form">
+    <h2>{{ title }}</h2>
+    <p>Confirm {{ change_action }} for the following addresses. An unresolved change must finish before another change can be submitted for that address.</p>
+    <ul>{% for entry in entries %}<li class="monospace">{{ entry.address }} — {{ entry.status }}{% if entry.label %} — {{ entry.label }}{% endif %}</li>{% endfor %}</ul>
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="whitelist_confirmation" value="{{ whitelist_confirmation }}">
+        <input type="hidden" name="confirm_whitelist" value="1">
+        <input type="hidden" name="action" value="{{ admin_action }}">
+        {% for pk in selected %}<input type="hidden" name="{{ checkbox_name }}" value="{{ pk }}">{% endfor %}
+        <button type="submit" class="btn btn-primary">Confirm {{ change_action }}</button>
+    </form>
+</div>
+{% endblock %}

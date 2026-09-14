@@ -9,21 +9,18 @@ from whitelist.constants import (
     WHITELIST_STATUS_UNKNOWN,
     WHITELIST_STATUS_WHITELISTED,
 )
-from whitelist.services import WhitelistService
+from whitelist.services import whitelist
 
 ADDRESS = "0x" + "a" * 40
 
 
 class WhitelistInvestorStatusServiceTest(TestCase):
     def _service(self, **attrs):
-        service = WhitelistService.__new__(WhitelistService)
-        service.chain_client = Mock()
-        service.chain_client.to_checksum_address.side_effect = lambda address: address
-        service.contract_address = "0x" + "d" * 40
-        service._contract = Mock()
         for name, value in attrs.items():
-            setattr(service, name, value)
-        return service
+            patcher = patch.object(whitelist, name, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        return whitelist
 
     def test_a_whitelisted_address_reports_the_whitelisted_state(self):
         service = self._service(
@@ -34,7 +31,7 @@ class WhitelistInvestorStatusServiceTest(TestCase):
         self.assertEqual(
             service.investor_status(ADDRESS),
             {
-                "address": ADDRESS,
+                "address": "0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa",
                 "is_whitelisted": True,
                 "can_receive": True,
                 "status": WHITELIST_STATUS_WHITELISTED,
@@ -64,7 +61,6 @@ class WhitelistInvestorStatusServiceTest(TestCase):
 
     def test_the_unknown_answer_reports_the_address_as_given_because_checksumming_is_what_failed(self):
         service = self._service(get_investor_info=Mock(side_effect=RuntimeError("rpc down")))
-        service.chain_client.to_checksum_address.side_effect = ValueError("not an address")
 
         self.assertEqual(service.investor_status("nonsense")["address"], "nonsense")
 
@@ -86,7 +82,7 @@ class WhitelistStatusViewTest(APITestCase):
     def _view_over(self, payload):
         service = Mock()
         service.investor_status.return_value = payload
-        return patch("whitelist.views.status.WhitelistService", return_value=service), service
+        return patch("whitelist.views.status.whitelist", service), service
 
     def test_the_view_renders_what_the_service_answers(self):
         patcher, service = self._view_over(

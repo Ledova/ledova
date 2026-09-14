@@ -38,6 +38,23 @@ awaiting-payment rows with no recorded payment. Part-paid subscriptions need ope
 review. See [subscription guards](../architecture/subscriptions.md) before refunding
 or retrying an allotment.
 
+## Whitelist changes
+
+Keep the original submission UUID when an API response is lost or the outcome is
+unresolved. Repeating the same add/remove request or signed admin confirmation
+recovers that command. The five-minute `recover_whitelist_changes` operator task
+also processes at most 100 unresolved commands, oldest update first. It may
+broadcast only the original signed bytes through the admitted signer; receipt
+reconciliation remains available after admission closes.
+
+An opposite change is refused until the earlier operation resolves. Current
+membership, a missing receipt or elapsed time does not release that operation.
+A completed failure requires a deliberate new submission to try again. A stale
+confirmation cannot authorize that retry. Inspect legacy unknown transactions
+through the attribution/cutover process; the adapter never adopts or resends them
+automatically. The [whitelist contract](../architecture/outgoing-signing.md#whitelist-changes)
+describes API outcomes, durable boundaries and historical limits.
+
 ## Wallet transfers and stale rows
 
 Use the recorded journal and the matching [EVM](../reference/evm-transfers.md) or

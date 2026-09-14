@@ -31,9 +31,7 @@ class SwapExecutionRecordsItsOutcomeTest(TransactionTestCase):
         self.swap.refresh_from_db()
 
     def service(self, client):
-        with patch("tokens.services.atomic_swap_service.get_base_chain_client", return_value=client), patch(
-            "tokens.services.atomic_swap_service.WhitelistService"
-        ):
+        with patch("tokens.services.atomic_swap_service.get_base_chain_client", return_value=client):
             service = AtomicSwapService()
         service.chain_client = client
         return service

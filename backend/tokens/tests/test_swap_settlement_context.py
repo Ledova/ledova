@@ -64,13 +64,10 @@ class SwapSettlementContextTest(TestCase):
 
     def test_actual_match_creation_captures_context_without_constructing_a_provider(self):
         tenant = make_tenant("context-create")
-        with patch("tokens.services.atomic_swap_service.get_base_chain_client") as provider, patch(
-            "tokens.services.atomic_swap_service.WhitelistService"
-        ) as whitelist:
+        with patch("tokens.services.atomic_swap_service.get_base_chain_client") as provider:
             service = AtomicSwapService()
             swap = service.create_swap_order(tenant.order, tenant.counter_order, share_amount=3)
         provider.assert_not_called()
-        whitelist.assert_not_called()
         context = recorded_settlement_context(swap)
         self.assertEqual(context["seller"]["owner_account_uuid"], str(tenant.account.pk))
         self.assertEqual(context["buyer"]["wallet_uuid"], str(tenant.wallet.pk))
@@ -533,7 +530,7 @@ class SwapSettlementRouteTest(APITransactionTestCase):
         provider = service.chain_client
         with patch("tokens.views.trading_order.AtomicSwapService", return_value=service), patch(
             "tokens.services.token_transfer_service.get_base_chain_client", return_value=provider
-        ) as factory, patch("tokens.services.token_transfer_service.WhitelistService"):
+        ) as factory, patch("tokens.services.token_transfer_service.whitelist"):
             for changes in ({"chainId": 1}, {"to": "0x" + "68" * 20}, {"value": 1}, {"data": data[:-1] + "0"}):
                 raw = SELLER.sign_transaction({**tx, **changes}).raw_transaction.hex()
                 with self.subTest(changes=changes):
@@ -586,7 +583,7 @@ class SwapSettlementRouteTest(APITransactionTestCase):
                     target.side_effect = TimeoutError("synthetic provider diagnostic must not reach response")
                 with patch("tokens.views.trading_order.AtomicSwapService", return_value=service), patch(
                     "tokens.services.token_transfer_service.get_base_chain_client", return_value=provider
-                ), patch("tokens.services.token_transfer_service.WhitelistService"):
+                ), patch("tokens.services.token_transfer_service.whitelist"):
                     response = self.client.post(
                         self.url + "/approval-broadcast/", {**self.identity, "signed_transaction": raw}, format="json"
                     )
@@ -623,7 +620,7 @@ class SwapSettlementRouteTest(APITransactionTestCase):
         provider.wait_for_receipt.side_effect = after_send
         with patch("tokens.views.trading_order.AtomicSwapService", return_value=service), patch(
             "tokens.services.token_transfer_service.get_base_chain_client", return_value=provider
-        ), patch("tokens.services.token_transfer_service.WhitelistService"):
+        ), patch("tokens.services.token_transfer_service.whitelist"):
             response = self.client.post(
                 self.url + "/approval-broadcast/", {**self.identity, "signed_transaction": raw}, format="json"
             )

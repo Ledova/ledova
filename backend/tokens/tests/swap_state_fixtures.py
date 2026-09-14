@@ -38,7 +38,6 @@ def swap_service():
     service.chain_client.assert_expected_chain = Mock(return_value=settings.BLOCKCHAIN_CHAIN_ID)
     service.chain_client.w3.eth.chain_id = settings.BLOCKCHAIN_CHAIN_ID
     service.chain_client.to_checksum_address.side_effect = Web3.to_checksum_address
-    service.whitelist_service = Mock()
     return service
 
 
