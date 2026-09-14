@@ -36,6 +36,7 @@ from whitelist.models import (
     WhitelistEntry,
     WhitelistStatus,
 )
+from whitelist.services.whitelist import project_membership, with_current_entry
 
 logger = logging.getLogger(__name__)
 FUNCTIONS = {WhitelistAction.ADD: "addToWhitelist", WhitelistAction.REMOVE: "removeFromWhitelist"}
@@ -169,7 +170,7 @@ def _admit(submission_id, action, address, user, authority, wallet_uuid):
                 "initiated_by": actor,
                 "authority": authority,
                 "requested_wallet_id": wallet_uuid,
-                "entry": entry,
+                "entry_id": entry.pk if entry else None,
             },
         )
         _same_submission(change, action, address, actor, authority, wallet_uuid)
@@ -198,11 +199,17 @@ def _record_membership_decision(change, member):
             current.status = WhitelistChangeStatus.UNCHANGED
             current.completed_at = timezone.now()
             if current.entry_id:
-                WhitelistEntry.objects.filter(pk=current.entry_id).update(
-                    status=WhitelistStatus.ACTIVE if member else WhitelistStatus.REMOVED,
-                    is_whitelisted=member,
-                    last_synced_at=current.completed_at,
-                    updated_at=current.completed_at,
+                project_membership(
+                    current.entry_id,
+                    current.address,
+                    current.chain_id,
+                    current.registry_address,
+                    {
+                        "status": WhitelistStatus.ACTIVE if member else WhitelistStatus.REMOVED,
+                        "is_whitelisted": member,
+                        "last_synced_at": current.completed_at,
+                        "updated_at": current.completed_at,
+                    },
                 )
         else:
             current.status = WhitelistChangeStatus.EXECUTING
@@ -293,7 +300,9 @@ def _project(change, claim):
                         "last_synced_at": current.completed_at,
                         "add_tx_hash" if member else "remove_tx_hash": attempt.tx_hash,
                     }
-                WhitelistEntry.objects.filter(pk=current.entry_id).update(**values)
+                project_membership(
+                    current.entry_id, current.address, current.chain_id, current.registry_address, values
+                )
         current.save(update_fields=["status", "transaction", "failure_code", "completed_at", "updated_at"])
         return current
 
@@ -337,7 +346,7 @@ def submit(submission_id, action, address, user, *, authority=WhitelistAuthority
     _boundary()
     change = _admit(submission_id, action, address, user, authority, wallet_uuid)
     try:
-        return _process(change)
+        return with_current_entry(_process(change))
     except (PermissionDenied, WhitelistChangeConflict):
         raise
     except Exception:
@@ -348,7 +357,7 @@ def submit(submission_id, action, address, user, *, authority=WhitelistAuthority
 def recover(submission_id):
     _boundary()
     change = WhitelistChange.objects.get(pk=submission_id)
-    return _process(change)
+    return with_current_entry(_process(change))
 
 
 def recover_changes():

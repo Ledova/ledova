@@ -16,6 +16,7 @@ from blockchain.models import (
 from blockchain.services import outgoing
 from blockchain.tests.outgoing_fixtures import receipt
 from shared.db import atomic, current_alias
+from wallets.models import Wallet
 from whitelist.exceptions import (
     WalletNotRegisteredException,
     WhitelistChangeConflict,
@@ -214,6 +215,96 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
         with override_settings(WHITELIST_CONTRACT_ADDRESS="0x" + "e" * 40, BLOCKCHAIN_OPERATOR_KEY=""):
             self.assertEqual(changes.recover(change.pk).status, "confirmed")
         self.assertEqual(len(self.node.broadcasts), 1)
+
+    def test_old_registry_receipt_does_not_overwrite_current_registry_membership(self):
+        self.node.confirmed = False
+        original = self.submit()
+        attempt = SignedAttempt.objects.get()
+        with override_settings(WHITELIST_CONTRACT_ADDRESS="0x" + "e" * 40):
+            current = self.submit(WhitelistAction.REMOVE, uuid4())
+            self.assertEqual(current.status, "unchanged")
+            self.entry.refresh_from_db()
+            version = self.entry.updated_at
+            self.node.receipts[attempt.tx_hash] = receipt(attempt)
+            recovered = changes.recover(original.pk)
+            self.assertEqual(recovered.status, "confirmed")
+            self.assertEqual(recovered.transaction.tx_hash, attempt.tx_hash)
+            self.assertIsNone(recovered.entry)
+        self.entry.refresh_from_db()
+        self.assertFalse(self.entry.is_whitelisted)
+        self.assertEqual(self.entry.updated_at, version)
+        self.assertEqual(len(self.node.broadcasts), 1)
+
+    def test_unchanged_membership_observation_cannot_project_into_a_changed_wallet(self):
+        def observe():
+            Wallet.objects.filter(pk=self.entry.wallet_id).update(address="0x" + "b" * 40)
+            return True
+
+        self.node.contract.functions.isWhitelisted.return_value.call.side_effect = observe
+        self.assertEqual(self.submit().status, "unchanged")
+        self.entry.refresh_from_db()
+        self.assertFalse(self.entry.is_whitelisted)
+        self.assertFalse(SignedAttempt.objects.exists())
+
+    def test_unchanged_membership_observation_cannot_project_into_a_changed_registry(self):
+        changed = override_settings(WHITELIST_CONTRACT_ADDRESS="0x" + "e" * 40)
+
+        def observe():
+            changed.enable()
+            self.addCleanup(changed.disable)
+            return True
+
+        self.node.contract.functions.isWhitelisted.return_value.call.side_effect = observe
+        self.assertEqual(self.submit().status, "unchanged")
+        self.entry.refresh_from_db()
+        self.assertFalse(self.entry.is_whitelisted)
+        self.assertFalse(SignedAttempt.objects.exists())
+
+    def test_sync_does_not_label_an_old_registry_observation_as_current(self):
+        changed = override_settings(WHITELIST_CONTRACT_ADDRESS="0x" + "e" * 40)
+
+        def observe():
+            changed.enable()
+            self.addCleanup(changed.disable)
+            return True, 0
+
+        self.node.contract.functions.getInvestorInfo.return_value.call.side_effect = observe
+        version = self.entry.updated_at
+        synced = whitelist.sync_entry(ADDRESS)
+        self.assertFalse(synced.is_whitelisted)
+        self.assertEqual(synced.updated_at, version)
+        self.node.client.load_contract.assert_called_once_with("WhitelistRegistry", REGISTRY)
+
+    def test_sync_does_not_project_into_a_wallet_edited_during_the_provider_read(self):
+        def observe():
+            Wallet.objects.filter(pk=self.entry.wallet_id).update(chain="ethereum")
+            return True, 0
+
+        self.node.contract.functions.getInvestorInfo.return_value.call.side_effect = observe
+        synced = whitelist.sync_entry(ADDRESS)
+        self.assertFalse(synced.is_whitelisted)
+
+    def test_membership_projection_locks_the_wallet_against_concurrent_identity_changes(self):
+        from whitelist.querysets.entry import WhitelistEntryQuerySet
+
+        separate = connections[current_alias()].copy(alias="whitelist-lock-control")
+        self.addCleanup(separate.close)
+        original = WhitelistEntryQuerySet.matching_identity
+        observed = []
+
+        def check_lock(queryset, entry_id, address):
+            if connections[current_alias()].in_atomic_block:
+                with self.assertRaises(DatabaseError), separate.cursor() as cursor:
+                    cursor.execute("SELECT uuid FROM wallets WHERE uuid = %s FOR UPDATE NOWAIT", [self.entry.wallet_id])
+                observed.append(True)
+            return original(queryset, entry_id, address)
+
+        with patch.object(WhitelistEntryQuerySet, "matching_identity", check_lock):
+            self.assertEqual(self.submit().status, "confirmed")
+        self.assertEqual(observed, [True])
+        with separate.cursor() as cursor:
+            cursor.execute("SELECT uuid FROM wallets WHERE uuid = %s FOR UPDATE NOWAIT", [self.entry.wallet_id])
+            self.assertEqual(cursor.fetchone()[0], self.entry.wallet_id)
 
     def test_registry_change_during_preparation_refuses_to_sign_old_configuration(self):
         prepare = outgoing.prepare_operation

@@ -9,6 +9,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.test import APITransactionTestCase
 
 from blockchain.models import SignedAttempt
+from blockchain.tests.outgoing_fixtures import receipt
 from shared.db import (
     APP_ALIAS,
     OPERATOR_ALIAS,
@@ -19,7 +20,8 @@ from shared.db import (
     use_operator,
 )
 from shared.tests.scoped import RunsOnTheScopedConnection
-from whitelist.models import WhitelistChange
+from wallets.models import Wallet
+from whitelist.models import WhitelistChange, WhitelistEntry
 from whitelist.services import changes
 from whitelist.tasks.recovery import recover_whitelist_changes
 from whitelist.tests.change_fixtures import (
@@ -118,3 +120,62 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
         with use_operator():
             self.assertEqual(WhitelistChange.objects.get().authority, "whitelist_admin")
             self.assertEqual(WhitelistChange.objects.get().status, "confirmed")
+
+    def test_customer_can_delete_a_wallet_with_an_unadmitted_whitelist_entry(self):
+        with use_operator():
+            wallet = self.entry.wallet
+            customer = wallet.user_account.user_profile.user
+        self.signed_in_as(customer)
+        response = self.client.delete(f"/api/wallets/{wallet.pk}/")
+        self.assertEqual(response.status_code, 204, response.data)
+        with use_operator():
+            self.assertFalse(Wallet.objects.filter(pk=wallet.pk).exists())
+            self.assertFalse(WhitelistEntry.objects.filter(pk=self.entry.pk).exists())
+
+    def test_customer_deletion_preserves_private_command_without_recreating_or_reassigning_entry(self):
+        self.node.confirmed = False
+        with use_operator():
+            wallet = self.entry.wallet
+            customer = wallet.user_account.user_profile.user
+            original = changes.submit(uuid4(), "add", ADDRESS, self.actor)
+            attempt = SignedAttempt.objects.get()
+        self.signed_in_as(customer)
+        response = self.client.delete(f"/api/wallets/{wallet.pk}/")
+        self.assertEqual(response.status_code, 204, response.data)
+        with self.assertRaises(DatabaseError), atomic():
+            WhitelistChange.objects.filter(pk=original.pk).exists()
+        with use_operator():
+            self.assertFalse(WhitelistEntry.objects.filter(pk=self.entry.pk).exists())
+            replacement_wallet = Wallet.objects.create(user_account=wallet.user_account, address=ADDRESS, chain="base")
+            replacement = WhitelistEntry.objects.create(wallet=replacement_wallet)
+            self.node.receipts[attempt.tx_hash] = receipt(attempt)
+            recovered = changes.recover(original.pk)
+            self.assertEqual(recovered.status, "confirmed")
+            self.assertEqual(recovered.entry_id, self.entry.pk)
+            self.assertIsNone(recovered.entry)
+            self.assertEqual(recovered.transaction.tx_hash, attempt.tx_hash)
+            self.assertEqual(SignedAttempt.objects.count(), 1)
+            self.assertFalse(WhitelistEntry.objects.filter(pk=self.entry.pk).exists())
+            replacement.refresh_from_db()
+            self.assertFalse(replacement.is_whitelisted)
+        self.assertEqual(len(self.node.broadcasts), 1)
+
+    def test_customer_wallet_address_edit_cannot_receive_the_original_address_receipt(self):
+        self.node.confirmed = False
+        with use_operator():
+            wallet = self.entry.wallet
+            customer = wallet.user_account.user_profile.user
+            original = changes.submit(uuid4(), "add", ADDRESS, self.actor)
+            attempt = SignedAttempt.objects.get()
+        self.signed_in_as(customer)
+        response = self.client.patch(f"/api/wallets/{wallet.pk}/", {"address": "0x" + "b" * 40}, format="json")
+        self.assertEqual(response.status_code, 200, response.data)
+        with use_operator():
+            self.node.receipts[attempt.tx_hash] = receipt(attempt)
+            recovered = changes.recover(original.pk)
+            self.assertEqual(recovered.status, "confirmed")
+            self.assertIsNone(recovered.entry)
+            self.entry.refresh_from_db()
+            self.assertFalse(self.entry.is_whitelisted)
+            self.assertIsNone(self.entry.add_tx_hash)
+        self.assertEqual(len(self.node.broadcasts), 1)

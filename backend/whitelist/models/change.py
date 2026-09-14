@@ -33,9 +33,7 @@ class WhitelistChange(BaseModel):
     initiated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
     authority = models.CharField(max_length=20, choices=WhitelistAuthority.choices, editable=False)
     requested_wallet_id = models.UUIDField(null=True, editable=False)
-    entry = models.ForeignKey(
-        "whitelist.WhitelistEntry", on_delete=models.PROTECT, null=True, related_name="changes", editable=False
-    )
+    entry_id = models.UUIDField(null=True, editable=False)
     operation = models.OneToOneField(
         "blockchain.OutgoingOperation", on_delete=models.PROTECT, null=True, related_name="whitelist_change"
     )

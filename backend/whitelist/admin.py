@@ -14,6 +14,7 @@ from whitelist.admin_actions import confirm_changes
 from whitelist.models import (
     WhitelistAction,
     WhitelistAuthority,
+    WhitelistChange,
     WhitelistEntry,
 )
 from whitelist.services.identity import entry_identity
@@ -215,7 +216,7 @@ class WhitelistEntryAdmin(admin.ModelAdmin):
     def status_actions(self, obj):
         if obj.pk is None:
             return "-"
-        if obj.changes.unresolved().exists():
+        if WhitelistChange.objects.filter(entry_id=obj.pk).unresolved().exists():
             return "A whitelist change is unresolved. Automatic recovery will continue."
         base_style = (
             "display: inline-block; padding: 6px 12px; margin: 2px; "

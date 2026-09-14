@@ -132,7 +132,9 @@ Operator scripts calling `POST /api/v1/whitelist/add/` or `remove/` must supply
 UUID. The API's camel-case transport also accepts `submissionId` and
 `walletAddress`. Retain the UUID across transport retries. The response identifies
 the original command, its status and original transaction hash when signed;
-the nested entry describes current membership and may reflect a later command.
+the nullable nested entry describes current membership and may reflect a later
+command. It is absent when the recorded entry was deleted or no longer belongs
+to the command's address or currently configured registry.
 `pending` and `executing` are unresolved, `confirmed` records a successful receipt,
 `unchanged` records that no transaction was needed, and `failed` records a known
 pre-signing failure or revert. Single unresolved submissions return 202 when
@@ -152,7 +154,10 @@ There is no contradictory-intent queue.
 Admission commits before checking membership. That initial check either records
 no change required or commits the decision to send; later membership observations
 cannot complete a signed command. Network calls run outside transactions and
-target locks. Terminal outcome, local membership projection and target release
+target locks. Projection checks the current chain/registry and entry address,
+and locks the wallet against a concurrent identity edit. An old registry's
+receipt or observation cannot rewrite the current registry's membership.
+Terminal outcome, local membership projection and target release
 commit together, and replaying a terminal command cannot overwrite newer membership.
 The generic transaction monitor excludes these projections. Sync remains an
 observation of membership; the recovery job uses the original outgoing receipt
@@ -162,8 +167,11 @@ unresolved. See [whitelist recovery](../operations/recovery.md#whitelist-changes
 Migrations `whitelist/0005` and `0006` create the command table, revoke app-role
 access and guard immutable terms, original associations and terminal outcomes.
 They preserve all historical entries and transaction records without adopting
-them. The guard migration refuses reversal after command admission. Entries
-referenced by commands are protected from deletion, including a wallet cascade.
+them. The guard migration refuses reversal after command admission. The optional
+entry reference is an immutable UUID snapshot, so customer wallet deletion can
+still cascade its mutable entry without reading the private command table.
+Accepted work and signed history survive deletion; recovery cannot recreate
+that entry or redirect its result to a replacement.
 Unknown legacy whitelist transactions block new target admission for operator
 attribution. Legacy failed-add reconciliation only observes entries without new
 commands. Neither this adapter nor membership sync establishes legacy attribution,

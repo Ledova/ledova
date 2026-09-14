@@ -66,16 +66,7 @@ class Migration(migrations.Migration):
                 ),
                 ("failure_code", models.CharField(blank=True, editable=False, max_length=64)),
                 ("completed_at", models.DateTimeField(editable=False, null=True)),
-                (
-                    "entry",
-                    models.ForeignKey(
-                        editable=False,
-                        null=True,
-                        on_delete=django.db.models.deletion.PROTECT,
-                        related_name="changes",
-                        to="whitelist.whitelistentry",
-                    ),
-                ),
+                ("entry_id", models.UUIDField(editable=False, null=True)),
                 (
                     "initiated_by",
                     models.ForeignKey(

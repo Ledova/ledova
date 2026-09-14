@@ -25,8 +25,8 @@ logger = logging.getLogger(__name__)
 WHITELIST_ENTRY_LABEL = "whitelist.WhitelistEntry"
 
 
-def contract():
-    address = getattr(settings, "WHITELIST_CONTRACT_ADDRESS", None)
+def contract(address=None):
+    address = address or getattr(settings, "WHITELIST_CONTRACT_ADDRESS", None)
     if not address:
         raise WhitelistContractNotConfiguredException()
     return get_base_chain_client().load_contract("WhitelistRegistry", address)
@@ -36,8 +36,8 @@ def is_whitelisted(address):
     return contract().functions.isWhitelisted(Web3.to_checksum_address(address)).call()
 
 
-def get_investor_info(address):
-    result = contract().functions.getInvestorInfo(Web3.to_checksum_address(address)).call()
+def get_investor_info(address, registry_address=None):
+    result = contract(registry_address).functions.getInvestorInfo(Web3.to_checksum_address(address)).call()
     return {"whitelisted": result[0], "kyc_timestamp": result[1]}
 
 
@@ -87,18 +87,49 @@ def investor_status(address):
         return {"address": address, "is_whitelisted": False, "can_receive": False, "status": WHITELIST_STATUS_UNKNOWN}
 
 
+def current_registry(chain_id, registry_address):
+    return (
+        settings.BLOCKCHAIN_CHAIN_ID == chain_id
+        and str(settings.WHITELIST_CONTRACT_ADDRESS).lower() == registry_address.lower()
+    )
+
+
+def project_membership(entry_id, address, chain_id, registry_address, values, *, version=None):
+    if not current_registry(chain_id, registry_address):
+        return False
+    identity = WhitelistEntry.objects.filter(pk=entry_id).values("wallet_id").first()
+    if identity is None:
+        return False
+    if identity["wallet_id"]:
+        Wallet.objects.select_for_update().filter(pk=identity["wallet_id"]).first()
+    entry = WhitelistEntry.objects.matching_identity(entry_id, address).select_for_update(of=("self",)).first()
+    if entry is None or entry.wallet_id != identity["wallet_id"]:
+        return False
+    if (version is not None and entry.updated_at != version) or not current_registry(chain_id, registry_address):
+        return False
+    WhitelistEntry.objects.filter(pk=entry.pk).update(**values)
+    return True
+
+
+def with_current_entry(change):
+    change.entry = (
+        WhitelistEntry.objects.matching_identity(change.entry_id, change.address).first()
+        if current_registry(change.chain_id, change.registry_address)
+        else None
+    )
+    return change
+
+
 def sync_entry(address, wallet_uuid=None):
     from whitelist.services.changes import target_transaction
 
     address = Web3.to_checksum_address(address)
     entry = resolve_entry(address, wallet_uuid=wallet_uuid)
     version = entry.updated_at
-    info = get_investor_info(address)
+    chain_id = settings.BLOCKCHAIN_CHAIN_ID
     registry = settings.WHITELIST_CONTRACT_ADDRESS
-    with target_transaction(settings.BLOCKCHAIN_CHAIN_ID, registry, address):
-        entry = WhitelistEntry.objects.select_for_update().get(pk=entry.pk)
-        if entry.updated_at != version:
-            return entry
+    info = get_investor_info(address, registry_address=registry)
+    with target_transaction(chain_id, registry, address):
         moment = timezone.now()
         values = {
             "is_whitelisted": info["whitelisted"],
@@ -108,15 +139,13 @@ def sync_entry(address, wallet_uuid=None):
             "last_synced_at": moment,
             "updated_at": moment,
         }
-        if (
-            not WhitelistChange.objects.for_target(settings.BLOCKCHAIN_CHAIN_ID, registry, address)
-            .unresolved()
-            .exists()
-        ):
+        if not WhitelistChange.objects.for_target(chain_id, registry, address).unresolved().exists():
             values["status"] = WhitelistStatus.ACTIVE if info["whitelisted"] else WhitelistStatus.REMOVED
-        WhitelistEntry.objects.filter(pk=entry.pk).update(**values)
-        entry.refresh_from_db()
-        return entry
+        project_membership(entry.pk, address, chain_id, registry, values, version=version)
+        current = WhitelistEntry.objects.filter(pk=entry.pk).first()
+        if current is None:
+            raise WalletNotRegisteredException()
+        return current
 
 
 def sync_entries(entries):
@@ -148,7 +177,7 @@ def _the_write_that_failed_was_an_add(entry):
 
 def reconcile_failed_adds():
     result = {"checked": 0, "activated": 0, "left_failed": 0, "removals_the_chain_kept": 0, "errors": []}
-    for entry in WhitelistEntry.objects.failed_with_a_sent_add().filter(changes__isnull=True):
+    for entry in WhitelistEntry.objects.failed_with_a_sent_add().without_commands():
         result["checked"] += 1
         try:
             member = is_whitelisted(entry.wallet_address)
@@ -165,10 +194,15 @@ def reconcile_failed_adds():
                 result["removals_the_chain_kept"] += 1
                 logger.warning("A failed whitelist removal is still listed: entry=%s", entry.pk)
             continue
-        changed = WhitelistEntry.objects.filter(
-            pk=entry.pk, status=WhitelistStatus.FAILED, updated_at=entry.updated_at, changes__isnull=True
-        ).update(
-            status=WhitelistStatus.ACTIVE, is_whitelisted=True, last_synced_at=timezone.now(), updated_at=timezone.now()
+        changed = (
+            WhitelistEntry.objects.without_commands()
+            .filter(pk=entry.pk, status=WhitelistStatus.FAILED, updated_at=entry.updated_at)
+            .update(
+                status=WhitelistStatus.ACTIVE,
+                is_whitelisted=True,
+                last_synced_at=timezone.now(),
+                updated_at=timezone.now(),
+            )
         )
         result["activated"] += changed
     return result

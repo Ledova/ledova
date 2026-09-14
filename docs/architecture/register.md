@@ -96,10 +96,10 @@ a company with no classes is deletable. Admin removal of test data still respect
 protected relations.
 
 Company documents and registry-check history are application evidence rather
-than register membership rows. Wallet deletion cascades its whitelist entry
-unless a durable [whitelist command](outgoing-signing.md#whitelist-changes)
-protects that entry. Allotment identity stamps preserve the member identity where one was
-resolved when shares were issued. Treasury relabeling or current profile guesses
+than register membership rows. Wallet deletion still cascades its whitelist
+entry; durable [whitelist commands](outgoing-signing.md#whitelist-changes)
+retain their original identity independently. Allotment identity stamps preserve
+the member identity where one was resolved when shares were issued. Treasury relabeling or current profile guesses
 must not replace that historical source.
 
 Next: [legal assumptions](../legal.md), [scheduled folds](../operations/jobs.md)
