@@ -59,7 +59,10 @@ failed. A deliberate successful sign-in activates a new pair. Optional biometric
 sign-in stays optional: its ready marker is retired and verified without
 prompting. Expo's iOS native deletion ignores Keychain deletion status, so
 physical erasure of the separately gated copy is not verified by prompt-free
-logout; the app refuses reads through its retired marker.
+logout; the app refuses reads through its retired marker. The biometric read also
+applies the session retirement marker and the in-process refusal before it
+prompts, so a logout whose retirement fails part-way cannot hand back the gated
+copy in that process, or after a restart once the retirement marker was written.
 
 Wallet seeds use a fresh gated key and service with
 `WHEN_PASSCODE_SET_THIS_DEVICE_ONLY` and `requireAuthentication`. Reads do not
