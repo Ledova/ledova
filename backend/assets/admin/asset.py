@@ -15,6 +15,7 @@ from operators.models import Operator
 from operators.settlement import deployment_for, live_deployments
 from shared.utils.admin_actions import admin_action_path
 from shared.utils.admin_display import action_buttons, format_units
+from tokens.constants import MINT_CHAIN
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,8 @@ logger = logging.getLogger(__name__)
 def mintable_deployment(asset):
     if not asset.is_active or asset.asset_type != AssetType.STABLECOIN.value:
         return None
-    return deployment_for(asset)
+    deployment = deployment_for(asset)
+    return deployment if deployment and deployment.chain == MINT_CHAIN else None
 
 
 class AssetChainDeploymentInline(admin.TabularInline):
@@ -71,12 +73,14 @@ class AssetAdmin(admin.ModelAdmin):
         return [mint] + super().get_urls()
 
     def get_queryset(self, request):
-        settleable = live_deployments(Operator.get().receiving_wallet_chain).filter(asset=OuterRef("pk"))
-        return super().get_queryset(request).annotate(settles_on_receiving_chain=Exists(settleable))
+        mint_deployments = live_deployments(Operator.get().receiving_wallet_chain).filter(
+            asset=OuterRef("pk"), chain=MINT_CHAIN
+        )
+        return super().get_queryset(request).annotate(has_mint_deployment=Exists(mint_deployments))
 
     @admin.display(description="Actions")
     def mint_action(self, obj):
-        mintable = obj.settles_on_receiving_chain and obj.is_active
+        mintable = obj.has_mint_deployment and obj.is_active
         if not mintable or obj.asset_type != AssetType.STABLECOIN.value:
             return "-"
         return action_buttons([("+ Mint", reverse("admin:assets_asset_mint", args=[obj.uuid]), "#28a745")])
@@ -89,7 +93,12 @@ class AssetAdmin(admin.ModelAdmin):
 
         deployment = mintable_deployment(asset)
         if deployment is None:
-            messages.error(request, f"Cannot mint: {asset.symbol} has no active settlement deployment")
+            reason = (
+                f"minting is available only on {MINT_CHAIN.title()}"
+                if Operator.get().receiving_wallet_chain != MINT_CHAIN
+                else f"{asset.symbol} has no active settlement deployment"
+            )
+            messages.error(request, f"Cannot mint: {reason}")
             return HttpResponseRedirect(change_url)
 
         try:

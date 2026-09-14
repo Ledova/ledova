@@ -76,7 +76,10 @@ For existing databases, read [outgoing history and cutover constraints](../refer
 ## Mint requests
 
 The asset mint page, yield-token mint page and request execution page all use
-`tokens.services.mint_service`. A mint form retains a submission UUID across a
+`tokens.services.mint_service`. Minting an active stablecoin on Base can precede
+enabling that asset for settlement. Unsupported receiving chains have no mint
+action, and direct mint-page requests are refused before creating a request.
+A mint form retains a submission UUID across a
 repeated POST. Reusing it with different terms or another actor is refused; a
 fresh form represents a deliberate new mint. The service checks current active
 staff and the entry point's model permission before admitting work. It refuses

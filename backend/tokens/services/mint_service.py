@@ -10,6 +10,7 @@ from eth_account import Account
 from rest_framework.exceptions import PermissionDenied
 from web3 import Web3
 
+from assets.models import AssetType
 from blockchain.models import (
     BlockchainTransaction,
     OutgoingOperation,
@@ -19,8 +20,9 @@ from blockchain.models import (
 )
 from blockchain.services import outgoing
 from integrations.base_chain import get_base_chain_client
-from operators.settlement import require_deployment, settlement_assets
+from operators.settlement import require_deployment
 from shared.db import APP_ALIAS, atomic, current_alias
+from tokens.constants import MINT_CHAIN
 from tokens.exceptions import MintRequestConflict, MintRequestUnresolved
 from tokens.models import MintRequest, MintRequestStatus
 from tokens.services.stablecoin_service import StablecoinService
@@ -74,10 +76,11 @@ def _intent(request):
     ):
         raise MintRequestConflict("The mint amount or recipient is invalid.")
     if request.settlement_asset_id:
-        if not settlement_assets().filter(pk=request.settlement_asset_id).exists():
+        asset = request.settlement_asset
+        if not asset.is_active or asset.asset_type != AssetType.STABLECOIN.value:
             raise MintRequestConflict("The settlement asset is no longer eligible for minting.")
         deployment = require_deployment(request.settlement_asset)
-        if deployment.chain != "base":
+        if deployment.chain != MINT_CHAIN:
             raise MintRequestConflict("This mint requires a Base-chain deployment.")
         target = deployment.contract_address
         identity = {

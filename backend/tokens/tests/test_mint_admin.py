@@ -245,6 +245,31 @@ class MintAdminTest(TransactionTestCase):
         self.assertNotContains(self.client.get(reverse("admin:assets_asset_changelist")), "+ Mint")
         self.assertFalse(MintRequest.objects.exists())
 
+    def test_an_ethereum_receiving_deployment_cannot_offer_or_create_a_base_mint(self):
+        operator = Operator.get()
+        operator.receiving_wallet_chain = "ethereum"
+        operator.save(update_fields=["receiving_wallet_chain"])
+        AssetChainDeployment.objects.filter(asset=self.asset).update(chain="ethereum")
+        with self.subTest(surface="list"):
+            self.assertNotContains(self.client.get(reverse("admin:assets_asset_changelist")), "+ Mint")
+        change_url = reverse("admin:assets_asset_change", args=[self.asset.pk])
+        mint_url = reverse("admin:assets_asset_mint", args=[self.asset.pk])
+        for method in ("get", "post"):
+            with self.subTest(method=method):
+                response = getattr(self.client, method)(mint_url, mint_data("1") if method == "post" else {})
+                self.assertRedirects(response, change_url, fetch_redirect_response=False)
+        self.assertFalse(MintRequest.objects.exists())
+        self.node.client.send_raw_transaction.assert_not_called()
+
+    def test_an_active_base_token_can_be_minted_before_settlement_acceptance(self):
+        Operator.get().supported_settlement_assets.remove(self.asset)
+        self.assertContains(self.client.get(reverse("admin:assets_asset_changelist")), "+ Mint")
+        response = self.client.post(reverse("admin:assets_asset_mint", args=[self.asset.pk]), mint_data("1"))
+        mint_request = MintRequest.objects.get()
+        self.assertRedirects(response, self._change_url(mint_request), fetch_redirect_response=False)
+        self.assertEqual(mint_request.status, MintRequestStatus.EXECUTED)
+        self.assertEqual(SignedAttempt.objects.count(), 1)
+
     def test_an_inactive_yield_token_cannot_open_the_mint_page(self):
         YieldToken.objects.filter(pk=self.yield_token.pk).update(is_active=False)
         response = self.client.get(reverse("admin:tokens_yieldtoken_mint", args=[self.yield_token.uuid]))
