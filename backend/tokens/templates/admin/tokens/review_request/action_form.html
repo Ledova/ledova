@@ -105,6 +105,7 @@
 
     <form method="post" class="admin-form">
         {% csrf_token %}
+        {% for field in form.hidden_fields %}{{ field }}{% endfor %}
         {% if action == "approve" %}
         <fieldset>
             <legend>Review Notes (Optional)</legend>

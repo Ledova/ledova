@@ -11,7 +11,7 @@ from web3 import Web3
 
 from assets.models import Asset, AssetType
 from assets.services.identity import free_symbol, verified_contract_asset
-from blockchain.models import BlockchainTransaction, TransactionStatus, TransactionType
+from blockchain.models import BlockchainTransaction
 from integrations.base_chain import get_base_chain_client
 from integrations.base_chain.client import BROADCAST_ROUND_TRIPS, HTTP_TIMEOUT_SECONDS
 from integrations.base_chain.exceptions import (
@@ -32,13 +32,11 @@ from tokens.exceptions import (
     IssuanceRefusedException,
     OperatorKeyNotConfiguredException,
     TokenBalanceRetrievalException,
-    TokenDeploymentFailedException,
     TokenFactoryNotConfiguredException,
     TokenPauseFailedException,
     WalletBalancesUnavailableException,
 )
 from tokens.models import (
-    CapitalIncreaseRequest,
     IssuanceStatus,
     RequestStatus,
     ShareIssuance,
@@ -76,21 +74,9 @@ STOPPED_BEFORE_SIGNING = "The worker stopped before recording a signed mint. Its
 TOKEN_PAUSED = "Token is paused. Unpause it before executing."
 SHARE_ASSET_CHAIN = BLOCKCHAIN_BASE
 NOT_ATTESTED = "{symbol} at {address} is not the address the factory holds for {identifier}; left unverified"
-ANOTHER_INCREASE_IN_FLIGHT = (
-    "{symbol} has another capital increase in flight ({status}), so this one cannot be executed yet. "
-    "One share class raises its cap once at a time; resolve that one first."
-)
 ISSUANCE_EXECUTION_FAILED = (
     "The share issuance could not be confirmed. An operator must check the request's transaction history "
     "and on-chain state before deciding whether to retry."
-)
-CAPITAL_INCREASE_EXECUTION_FAILED = (
-    "The capital increase could not be confirmed. An operator must check the request's transaction history "
-    "and on-chain state before deciding whether to retry."
-)
-CAP_NOT_RAISED = (
-    "Authorized shares are already at or above the requested total. "
-    "Resubmit the capital increase against the current cap."
 )
 
 
@@ -330,6 +316,8 @@ def is_recipient_whitelisted(address: str) -> bool:
 
 
 def execute_request(request, executed_by=None) -> dict:
+    if not isinstance(request, ShareIssuanceRequest):
+        raise InvalidTokenStateException("This request requires its own admitted execution.")
     token = request.token
     if not request.can_be_executed:
         raise InvalidTokenStateException(f"Cannot execute request with status '{request.get_status_display()}'")
@@ -337,8 +325,6 @@ def execute_request(request, executed_by=None) -> dict:
         request.mark_failed("Token is not deployed on blockchain")
         raise InvalidTokenStateException("Token is not deployed on blockchain")
 
-    if isinstance(request, CapitalIncreaseRequest):
-        return _execute_capital_increase(request)
     return _execute_issuance(request, executed_by)
 
 
@@ -554,238 +540,6 @@ def resolve_executing_issuance(request: ShareIssuanceRequest) -> Optional[str]:
     logger.info(f"mint {tx_hash} for request {request.uuid} mined while the worker was gone; completing")
     _complete_issuance(request, issuance, _tx_result(tx_hash, receipt))
     return "executed"
-
-
-def _execute_capital_increase(request: CapitalIncreaseRequest) -> dict:
-    token = request.token
-    refused = False
-    superseded = ""
-    crowded_by = ""
-    failure = None
-    result = None
-    with atomic():
-        token = ShareToken.objects.select_for_update().get(pk=token.pk)
-        request.refresh_from_db(fields=["status", "new_authorized_total"])
-        request.token = token
-        if not request.can_be_executed:
-            raise InvalidTokenStateException(f"Cannot execute request with status '{request.get_status_display()}'")
-        superseded = _supersede_capital_increase_if_overtaken(request)
-        crowding = (
-            None
-            if superseded
-            else CapitalIncreaseRequest.objects.in_flight().filter(token=token).exclude(pk=request.pk).first()
-        )
-        if crowding is not None:
-            crowded_by = ANOTHER_INCREASE_IN_FLIGHT.format(
-                symbol=token.symbol, status=crowding.get_status_display().lower()
-            )
-            request.mark_refused(crowded_by)
-        tx_record = None if crowded_by or superseded else _recorded_increase(request)
-        if tx_record is not None:
-            try:
-                result = _resume_capital_increase(request, tx_record)
-            except InvalidTokenStateException:
-                raise
-            except Exception as exc:
-                failure = exc
-        if failure is None and result is None and not crowded_by and not superseded:
-            authorized, _ = share_supply(token.contract_address)
-            token.refresh_from_db(fields=["total_supply"])
-            if authorized == request.new_authorized_total and int(token.total_supply) < authorized:
-
-                logger.warning(
-                    f"{token.symbol} authorized shares are already {authorized} on chain with the DB cap at "
-                    f"{token.total_supply}; adopting the chain cap for request {request.uuid} without sending"
-                )
-                result = {
-                    "tx_hash": None,
-                    "block_number": None,
-                    "gas_used": None,
-                    "new_authorized_total": request.new_authorized_total,
-                    "adopted": True,
-                }
-            refused = result is None and request.new_authorized_total <= authorized
-            if refused:
-                request.mark_refused(CAP_NOT_RAISED)
-            elif result is None:
-                _start_execution(request)
-                logger.info(
-                    f"Raising {token.symbol} authorized shares from {authorized} to {request.new_authorized_total}"
-                )
-                try:
-                    result = increase_authorized_shares(request)
-                except Exception as exc:
-                    failure = exc
-        if failure is not None:
-            logger.error(f"Capital increase {request.uuid} failed: {failure}")
-            request.mark_failed(CAPITAL_INCREASE_EXECUTION_FAILED)
-        elif result is not None:
-            _complete_capital_increase(request, result)
-
-    if superseded:
-        raise IssuanceRefusedException(superseded)
-    if crowded_by:
-        raise IssuanceRefusedException(crowded_by)
-    if refused:
-        raise IssuanceRefusedException(CAP_NOT_RAISED)
-    if failure is not None:
-        raise failure
-    return result
-
-
-def _supersede_capital_increase_if_overtaken(request: CapitalIncreaseRequest) -> str:
-    current = int(request.token.total_supply)
-    if request.new_authorized_total > current:
-        return ""
-    overtaking = (
-        CapitalIncreaseRequest.objects.filter(
-            token=request.token, status=RequestStatus.EXECUTED, new_authorized_total=current
-        )
-        .exclude(pk=request.pk)
-        .order_by("-executed_at", "-created_at", "-uuid")
-        .first()
-    )
-    source = (
-        f"The current cap was recorded by capital-increase request {overtaking.uuid}."
-        if overtaking is not None
-        else "No completed request identifies the current cap."
-    )
-    reason = (
-        f"Requested total {request.new_authorized_total} does not exceed the current authorized total {current}. "
-        f"{source} Submit a new capital-increase request for a higher total."
-    )
-    request.mark_superseded(reason)
-    logger.warning(f"Capital increase {request.uuid} superseded: {reason}")
-    return reason
-
-
-def _recorded_increase(request: CapitalIncreaseRequest) -> Optional[BlockchainTransaction]:
-    return (
-        BlockchainTransaction.objects.filter(
-            related_model=CapitalIncreaseRequest._meta.label,
-            related_uuid=request.uuid,
-            function_name="setAuthorizedShares",
-            status__in=(TransactionStatus.SUBMITTED, TransactionStatus.FAILED, TransactionStatus.CONFIRMED),
-        )
-        .exclude(tx_hash__isnull=True)
-        .exclude(tx_hash="")
-        .order_by("-created_at")
-        .first()
-    )
-
-
-def _resume_capital_increase(request: CapitalIncreaseRequest, tx_record: BlockchainTransaction) -> Optional[dict]:
-    tx_hash = tx_record.tx_hash
-    try:
-        receipt = get_base_chain_client().get_transaction_receipt(tx_hash)
-        if receipt is not None and receipt["status"] != 1:
-            logger.warning(f"setAuthorizedShares {tx_hash} for request {request.uuid} reverted; a fresh call is safe")
-            tx_record.mark_reverted(f"Transaction reverted: {tx_hash}")
-            return None
-        if receipt is None:
-            _start_execution(request)
-            receipt = get_base_chain_client().wait_for_receipt(tx_hash)
-    except InvalidTokenStateException:
-        raise
-    except Exception as exc:
-        logger.error(f"setAuthorizedShares {tx_hash} for request {request.uuid} still unconfirmed: {exc}")
-        tx_record.mark_failed(str(exc))
-        raise TokenDeploymentFailedException("The capital increase is unconfirmed.") from exc
-
-    _confirm_record(tx_record, receipt)
-    logger.info(f"setAuthorizedShares {tx_hash} for request {request.uuid} already mined; completing without sending")
-    return {**_tx_result(tx_hash, receipt), "new_authorized_total": request.new_authorized_total}
-
-
-def _complete_capital_increase(request: CapitalIncreaseRequest, result: dict) -> None:
-    token = request.token
-    token.refresh_from_db(fields=["total_supply"])
-    token.total_supply = str(request.new_authorized_total)
-    token.save(update_fields=["total_supply", "updated_at"])
-    request.mark_executed()
-    logger.info(f"Capital increase executed for {token.symbol}: {result['tx_hash'] or 'adopted from chain'}")
-
-
-def resolve_executing_capital_increase(request: CapitalIncreaseRequest) -> Optional[str]:
-    with atomic():
-        token = ShareToken.objects.select_for_update().get(pk=request.token_id)
-        request.refresh_from_db(fields=["status", "new_authorized_total"])
-        request.token = token
-        if request.status != RequestStatus.EXECUTING:
-            logger.info(f"Request {request.uuid} was completed by another worker or is no longer executing")
-            return None
-        if _supersede_capital_increase_if_overtaken(request):
-            return "superseded"
-    tx_record = _recorded_increase(request)
-    if tx_record is None:
-        logger.warning(
-            f"Request {request.uuid} is executing with no setAuthorizedShares recorded; left for the operator"
-        )
-        return None
-    tx_hash = tx_record.tx_hash
-    receipt = get_base_chain_client().get_transaction_receipt(tx_hash)
-    if receipt is None:
-        return None
-    result = {**_tx_result(tx_hash, receipt), "new_authorized_total": request.new_authorized_total}
-    with atomic():
-        token = ShareToken.objects.select_for_update().get(pk=request.token_id)
-        request.refresh_from_db(fields=["status", "new_authorized_total"])
-        request.token = token
-        if request.status != RequestStatus.EXECUTING:
-            logger.info(f"Request {request.uuid} was completed by another worker or is no longer executing")
-            return None
-        if receipt["status"] != 1:
-            tx_record.mark_reverted(f"Transaction reverted: {tx_hash}")
-            if _supersede_capital_increase_if_overtaken(request):
-                return "superseded"
-            request.mark_failed(f"Transaction reverted: {tx_hash}")
-            return "reverted"
-        _confirm_record(tx_record, receipt)
-        if _supersede_capital_increase_if_overtaken(request):
-            return "superseded"
-        logger.info(
-            f"setAuthorizedShares {tx_hash} for request {request.uuid} mined while the worker was gone; completing"
-        )
-        _complete_capital_increase(request, result)
-    return "executed"
-
-
-def increase_authorized_shares(request: CapitalIncreaseRequest) -> dict:
-    token = request.token
-    new_authorized_total = request.new_authorized_total
-    tx_record = None
-    try:
-        signer_address = get_base_chain_client().get_address_from_private_key(signer_key())
-        tx_record = BlockchainTransaction.objects.create(
-            tx_type=TransactionType.OTHER,
-            status=TransactionStatus.PENDING,
-            from_address=signer_address,
-            to_address=token.contract_address,
-            function_name="setAuthorizedShares",
-            function_args={"newAuthorizedShares": str(new_authorized_total)},
-            related_model=CapitalIncreaseRequest._meta.label,
-            related_uuid=request.uuid,
-        )
-        token_contract = load_share_token(token.contract_address)
-        set_auth_fn = token_contract.functions.setAuthorizedShares(new_authorized_total)
-        tx_hash, _ = get_base_chain_client().send_transaction(set_auth_fn, signer_key(), wait_for_receipt=False)
-    except Exception as exc:
-        logger.error(f"setAuthorizedShares({new_authorized_total}) not sent: {exc}")
-        if tx_record:
-            tx_record.mark_failed(str(exc))
-        raise TokenDeploymentFailedException("The capital increase failed.") from exc
-
-    tx_record.mark_submitted(tx_hash)
-    logger.info(f"setAuthorizedShares({new_authorized_total}) sent for {token.symbol}: {tx_hash}")
-    try:
-        receipt = get_base_chain_client().wait_for_receipt(tx_hash)
-    except Exception as exc:
-        logger.error(f"setAuthorizedShares({new_authorized_total}) {tx_hash} unconfirmed: {exc}")
-        tx_record.mark_failed(str(exc))
-        raise TokenDeploymentFailedException("The capital increase is unconfirmed.") from exc
-
-    _confirm_record(tx_record, receipt)
-    return {**_tx_result(tx_hash, receipt), "new_authorized_total": new_authorized_total}
 
 
 def require_pausable(token: ShareToken, paused: bool) -> None:

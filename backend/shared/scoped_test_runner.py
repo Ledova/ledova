@@ -10,6 +10,7 @@ from shared.db import APP_ALIAS, MIGRATE_ALIAS, OPERATOR_ALIAS
 SCOPED_TEST_LABELS = (
     "whitelist.tests.test_change_scoped.ScopedWhitelistChangeTest",
     "tokens.tests.test_mint_request_scoped.ScopedMintRequestRecoveryTest",
+    "tokens.tests.test_capital_execution_scoped.ScopedCapitalExecutionTest",
     "shared.tests.test_scoped_harness.TheScopedHarnessIsActuallyScopedTest",
     "shared.tests.test_scoped_harness.ADecoratedServiceRollsBackOnTheConnectionItRanOnTest",
     "users.tests.test_account_type_under_the_app_role.ChoosingAnAccountTypeUnderTheAppRoleTest",

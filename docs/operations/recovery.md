@@ -29,6 +29,22 @@ use **Record legacy transaction hash** in admin with the identified mint from
 operator transaction history. There is no Release claim action. A legacy row with
 a hash can reconcile receipts but cannot replay without stored signed bytes.
 
+## Capital increases
+
+The five-minute `recover_capital_increases` operator task processes admitted
+capital work in bounded batches. The admin execution page commits its durable
+request and job before chain access. If a response is lost, reload that request:
+its original signed transaction is recovered, never replaced merely because a
+receipt is missing. Admin shows its hash and safe error category while unresolved.
+
+A known unsigned failure or original reverted transaction exposes a fresh retry
+confirmation bound to that exact failed attempt. Old forms cannot authorize
+another attempt. Attribution holds retain their original private observations;
+do not clear public status or notes to bypass them. Matching the current cap,
+a historical failure label, a deleted request or a missing hash does not establish
+that the approved transaction executed or that no send occurred. Historical work
+still needs the [cutover process](../reference/outgoing-history.md).
+
 ## Subscriptions
 
 `reconcile_subscriptions` moves a paid subscription to allotted only when its linked
