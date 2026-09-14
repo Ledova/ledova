@@ -184,6 +184,8 @@ audit:
 	$(PYTHON) -m pip_audit -r backend/requirements.txt --ignore-vuln PYSEC-2026-1845
 
 test:
+	$(NPM) run check:react-singleton -w dashboard
+	node --test mobile/scripts/shared-peer-resolution.test.mjs
 	$(NPM) test
 	$(NPM) --prefix mobile test
 	$(NPM) --prefix contracts test

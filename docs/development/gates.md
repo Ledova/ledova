@@ -36,9 +36,12 @@ oversight, and documenting it here would fail the gate.
 
 Two rules are gated without a script of their own: one migration per model
 change, through CI's `makemigrations --check --dry-run`, and the generated
-design tokens, through `git diff --exit-code` after `make build`. Two more
+design tokens, through `git diff --exit-code` after `make build`. Four more
 checks run from the Makefile rather than from `scripts/`:
-`make check-mobile-test-awaits` and `npm --prefix mobile run check:resolution`.
+`make check-mobile-test-awaits`, `npm --prefix mobile run check:resolution`,
+and, in `make test`, `dashboard/scripts/check-react-singleton.mjs` and
+`mobile/scripts/shared-peer-resolution.test.mjs`, the negative control for the
+peer step of `check:resolution`.
 
 ## The PR metadata gate
 
@@ -73,7 +76,7 @@ JSX and template expressions. CSS, Solidity and native templates have their own 
 
 The trees are, in full: `backend`, `dashboard/src`, `mobile/src`,
 `mobile/scripts`, `mobile/native-tests`, `mobile/plugins`, `mobile`, `packages/shared`, `packages/scripts`,
-`marketing/src`, `dashboard`, `marketing`, `contracts`, `contracts/contracts`,
+`marketing/src`, `dashboard`, `dashboard/scripts`, `marketing`, `contracts`, `contracts/contracts`,
 `contracts/scripts`, `contracts/test`.
 
 That sentence is checked against `TREES`. Each tree's extension and recursion scope

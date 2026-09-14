@@ -11,10 +11,14 @@ does not read.
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import re
+import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 SCRIPT = ROOT / "scripts" / "check-comments.py"
@@ -125,6 +129,23 @@ class GeneratedOutputIsInvisibleRatherThanExempted(unittest.TestCase):
         gate.tracked_files.cache_clear()
 
         self.assertIn(visible, gate.tracked_files())
+
+
+class TheFailureMessageCitesASectionThatExists(unittest.TestCase):
+
+    def test_the_heading_a_violation_names_is_a_heading_in_gates_md(self):
+        probe = ROOT / "contracts" / "__gate_probe__.ts"
+        probe.write_text("// probe\n")
+        self.addCleanup(probe.unlink, missing_ok=True)
+        self.addCleanup(gate.tracked_files.cache_clear)
+        gate.tracked_files.cache_clear()
+        stderr = io.StringIO()
+
+        with mock.patch.object(sys, "argv", ["check-comments.py"]), contextlib.redirect_stderr(stderr):
+            self.assertEqual(gate.main(), 1)
+
+        cited = re.search(r'gates\.md, "([^"]+)"', stderr.getvalue()).group(1)
+        self.assertIn(cited, {line[3:] for line in DOCUMENT.read_text().splitlines() if line.startswith("## ")})
 
 
 if __name__ == "__main__":
