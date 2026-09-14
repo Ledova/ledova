@@ -1,58 +1,13 @@
-import type { BaseEntity } from '../common';
-import type { BaseQueryParams } from '../api';
+import type { ApiSchema, ApiRequest, ApiResponse, ApiQuery } from '../contracts';
 
-export type WalletSigningPreference = 'hardware' | 'software';
+export type WalletSigningPreference = ApiSchema<'WalletSigningPreferenceEnum'>;
 
-export interface Wallet extends BaseEntity {
-  userAccount: string;
-  name?: string;
-  address: string;
-  chain: string;
-  signingPreference?: WalletSigningPreference | null;
-  verificationStatus: 'PENDING' | 'VERIFIED';
-  verificationChallenge?: string;
-  verificationSignature?: string;
-  verifiedAt?: string;
-  nativeBalance: string;
-  nativeMarketValue: string;
-  marketValue: string;
-  lastSyncedAt?: string;
-  derivationPath?: string;
-  masterFingerprint?: string;
-  addressIndex?: number;
-  parentPublicKey?: string;
-  parentChainCode?: string;
-  parentDerivationPath?: string;
-}
+export type Wallet = ApiResponse<'api_wallets_retrieve'>;
 
-export interface WalletQueryParams extends BaseQueryParams {
-  chain?: string;
-  verification_status?: 'PENDING' | 'VERIFIED';
-}
+export type WalletQueryParams = ApiQuery<'api_wallets_list'>;
 
-export type CreateWallet = {
-  name?: string;
-  address: string;
-  chain: string;
-  signingPreference?: WalletSigningPreference;
-  derivationPath?: string;
-  masterFingerprint?: string;
-  addressIndex?: number;
-  parentPublicKey?: string;
-  parentChainCode?: string;
-  parentDerivationPath?: string;
-};
+export type CreateWallet = ApiRequest<'api_wallets_create'>;
 
-export interface WalletSyncResult {
-  status: 'success' | 'skipped' | 'error';
-  transactions?: number;
-  snapshots?: number;
-  holdings?: number;
-  error?: string;
-}
+export type WalletSyncResult = ApiSchema<'WalletSyncResult'>;
 
-export interface SyncWalletResponse {
-  success: boolean;
-  wallet: Wallet;
-  syncResult: WalletSyncResult;
-}
+export type SyncWalletResponse = ApiResponse<'api_wallets_sync_create'>;

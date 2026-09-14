@@ -30,7 +30,7 @@ interface OrdersCardProps {
 }
 
 function displayedSwapShares(swap: SwapOrder): string {
-  if (swap.settlementProtocolVersion === 0) return String(swap.shareAmount);
+  if ('settlementProtocolVersion' in swap && swap.settlementProtocolVersion === 0) return String(swap.shareAmount);
   try {
     if (hasSwapSettlementContext(swap))
       return formatUnits(

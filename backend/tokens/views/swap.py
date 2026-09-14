@@ -1,3 +1,4 @@
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
@@ -18,6 +19,7 @@ class SwapOrderViewSet(AuthenticatedListViewSet):
     def narrow(self, queryset):
         return queryset.awaiting_signature().with_related()
 
+    @extend_schema(parameters=[OpenApiParameter("wallet_address", str, required=True)])
     def list(self, request, *args, **kwargs):
         wallet_address = request.query_params.get("wallet_address")
         if not wallet_address:

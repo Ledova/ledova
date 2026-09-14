@@ -75,6 +75,10 @@ function walletFor(role: 'seller' | 'buyer'): Wallet {
     address: party.address,
     chain: 'base',
     verificationStatus: 'VERIFIED',
+    verificationChallenge: null,
+    verificationSignature: null,
+    verifiedAt: null,
+    lastSyncedAt: null,
     signingPreference: 'software',
     derivationPath: fixture.paths[role === 'seller' ? 0 : 1]!,
     masterFingerprint: '12345678',
@@ -179,7 +183,9 @@ it('keeps the unsigned buyer side available when both wallets are owned and the 
 });
 
 it.each([null, {}])('refuses malformed version1 context %j without opening a legacy signer', async (context) => {
-  state.swaps = [{ ...captured.swapOrder, settlementContext: context as SwapOrder['settlementContext'] }];
+  state.swaps = [
+    { ...captured.swapOrder, settlementContext: context as SwapSettlementResponse['swapOrder']['settlementContext'] },
+  ];
   render(<TradingPage />, { wrapper });
   fireEvent.click(screen.getByTitle('Sign swap'));
   await waitFor(() => expect(screen.getByRole('alert')).toBeTruthy());

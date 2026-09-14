@@ -1,5 +1,5 @@
 import type { OrderActionContext, OrderActionPurpose, OrderActionSnapshot, OrderActionValues } from '../../src/types';
-import { accountUuid, tokenUuid, wallet, walletUuid } from './order-submissions';
+import { accountUuid, submittedOrder, tokenUuid, wallet, walletUuid } from './order-submissions';
 
 export const orderUuid = '60000000-0000-4000-8000-000000000001';
 export const otherOrderUuid = '60000000-0000-4000-8000-000000000002';
@@ -80,7 +80,7 @@ export function actionSnapshot(
     status,
     intent: { domain: context.domain, modifications: purpose === 'modify' ? replacements : null },
     review: { token: context.token, currentValues: context.currentValues },
-    order: {
+    order: submittedOrder({
       uuid: context.orderUuid,
       token: context.tokenUuid,
       tokenName: 'Current Synthetic',
@@ -93,7 +93,7 @@ export function actionSnapshot(
       pricePerShare: status === 'applied' ? '15.00' : context.currentValues.pricePerShare,
       totalValue: '150.00',
       createdAt: '2026-01-01T00:00:00Z',
-    },
+    }),
     result:
       status !== 'applied'
         ? null

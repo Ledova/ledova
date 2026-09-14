@@ -1,3 +1,5 @@
+from drf_spectacular.helpers import forced_singular_serializer
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
@@ -19,6 +21,7 @@ class NotificationPreferencesViewSet(AuthenticatedModelViewSet):
 
     scoped_model = NotificationPreferences
 
+    @extend_schema(responses={200: forced_singular_serializer(NotificationPreferencesSerializer)})
     def list(self, request):
         user_profile = get_object_or_404(UserProfile, user=request.user)
         preferences = ensure_notification_preferences(user_profile)
@@ -26,6 +29,7 @@ class NotificationPreferencesViewSet(AuthenticatedModelViewSet):
         serializer = self.get_serializer(preferences)
         return Response(serializer.data)
 
+    @extend_schema(responses={200: NotificationPreferencesSerializer})
     def create(self, request):
         serializer = self.get_serializer(data=request.data, partial=self.get_queryset().exists())
         serializer.is_valid(raise_exception=True)

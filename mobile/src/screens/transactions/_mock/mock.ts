@@ -17,13 +17,13 @@ const ASSETS = [
   { symbol: 'TST2', name: 'Synthetic Test Token 2' },
 ];
 
-const CHAINS = ['Bitcoin', 'Ethereum', 'Polygon', 'Solana'];
+const CHAINS = ['bitcoin', 'ethereum', 'polygon', 'solana'] as const;
 
 const WALLET_ADDRESSES = {
-  Bitcoin: ['tb1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', 'tb1q34567890abcdefghijklmnopqrstuvwxyz12345'],
-  Ethereum: ['0x0000000000000000000000000000000000000101', '0x0000000000000000000000000000000000000102'],
-  Polygon: ['0x0000000000000000000000000000000000000201', '0x0000000000000000000000000000000000000202'],
-  Solana: ['mock-solana-wallet-01', 'mock-solana-wallet-02'],
+  bitcoin: ['tb1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', 'tb1q34567890abcdefghijklmnopqrstuvwxyz12345'],
+  ethereum: ['0x0000000000000000000000000000000000000101', '0x0000000000000000000000000000000000000102'],
+  polygon: ['0x0000000000000000000000000000000000000201', '0x0000000000000000000000000000000000000202'],
+  solana: ['mock-solana-wallet-01', 'mock-solana-wallet-02'],
 };
 
 const EXTERNAL_ADDRESSES = [
@@ -63,10 +63,10 @@ const generateAmount = (assetSymbol: string): string => {
 
 const generateTransactionFee = (chain: string): string => {
   const baseFees: Record<string, { min: number; max: number }> = {
-    Bitcoin: { min: 0.00001, max: 0.0005 },
-    Ethereum: { min: 0.001, max: 0.05 },
-    Polygon: { min: 0.0001, max: 0.01 },
-    Solana: { min: 0.000005, max: 0.00001 },
+    bitcoin: { min: 0.00001, max: 0.0005 },
+    ethereum: { min: 0.001, max: 0.05 },
+    polygon: { min: 0.0001, max: 0.01 },
+    solana: { min: 0.000005, max: 0.00001 },
   };
 
   const range = baseFees[chain] || { min: 0.0001, max: 0.01 };
@@ -88,7 +88,7 @@ export const generateMockTransactionsData = (pageSize = 20, page = 1): MockTrans
     const asset = ASSETS[Math.floor(Math.random() * ASSETS.length)];
     const chain = CHAINS[Math.floor(Math.random() * CHAINS.length)];
     const direction = TRANSACTION_TYPES[Math.floor(Math.random() * 2)];
-    const walletAddresses = WALLET_ADDRESSES[chain as keyof typeof WALLET_ADDRESSES] || WALLET_ADDRESSES.Ethereum;
+    const walletAddresses = WALLET_ADDRESSES[chain as keyof typeof WALLET_ADDRESSES] || WALLET_ADDRESSES.ethereum;
     const walletAddress = walletAddresses[Math.floor(Math.random() * walletAddresses.length)];
     const externalAddress = EXTERNAL_ADDRESSES[Math.floor(Math.random() * EXTERNAL_ADDRESSES.length)];
 
@@ -105,6 +105,7 @@ export const generateMockTransactionsData = (pageSize = 20, page = 1): MockTrans
       assetSymbol: asset.symbol,
       assetName: asset.name,
       amount: generateAmount(asset.symbol),
+      marketValue: null,
       blockTimestamp: generateBlockTimestamp(daysAgo),
       blockNumber: 18000000 + i * 100,
       status: Math.random() > 0.05 ? 'confirmed' : 'pending',

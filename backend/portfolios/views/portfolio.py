@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -71,7 +71,16 @@ class PortfolioViewSet(AuthenticatedModelViewSet):
             status=status.HTTP_200_OK,
         )
 
-    @extend_schema(responses=PortfolioValuePointSerializer(many=True))
+    @extend_schema(
+        responses=PortfolioValuePointSerializer(many=True),
+        filters=False,
+        parameters=[
+            OpenApiParameter("start_date", OpenApiTypes.DATE),
+            OpenApiParameter("end_date", OpenApiTypes.DATE),
+            OpenApiParameter("order_by", str),
+            OpenApiParameter("max_points", int),
+        ],
+    )
     @action(detail=True, methods=["get"], url_path="snapshots", pagination_class=None)
     def snapshots(self, request, *args, **kwargs):
         portfolio = self.get_object()

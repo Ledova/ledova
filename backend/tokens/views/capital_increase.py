@@ -15,6 +15,7 @@ from tokens.serializers import (
     CapitalIncreaseListSerializer,
     CapitalIncreaseUpdateSerializer,
 )
+from tokens.serializers.capital_increase import CapitalIncreaseCreateRequestSerializer
 from tokens.services.capital_increase import submit_capital_increase
 
 
@@ -42,7 +43,7 @@ class CapitalIncreaseViewSet(AuthenticatedModelViewSet):
             return super().filter_queryset(queryset)
         return queryset
 
-    @extend_schema(responses=CapitalIncreaseDetailSerializer)
+    @extend_schema(request=CapitalIncreaseCreateRequestSerializer, responses={201: CapitalIncreaseDetailSerializer})
     def create(self, request, *args, **kwargs):
         token_uuid = request.data.get("token")
         if not token_uuid:

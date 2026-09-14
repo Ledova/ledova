@@ -7,6 +7,7 @@ import {
   formatTime,
   formatCryptoBalance,
   getChainShortCode,
+  getTransactionStatus,
   getBlockExplorerTxUrl,
 } from '@ledova/shared';
 import type { Transaction } from '@ledova/shared';
@@ -17,15 +18,6 @@ interface TransactionDetailModalProps {
   transaction: Transaction | null;
   onClose: () => void;
 }
-
-const transactionStatuses = new Map<string, { label: string; tone: 'success' | 'error' | 'warning' | 'info' }>([
-  ['success', { label: '✓ Success', tone: 'success' }],
-  ['confirmed', { label: '✓ Confirmed', tone: 'success' }],
-  ['pending', { label: 'Pending', tone: 'warning' }],
-  ['failed', { label: '✗ Failed', tone: 'error' }],
-  ['replaced', { label: 'Replaced', tone: 'info' }],
-  ['reorged', { label: 'Confirmation reversed', tone: 'warning' }],
-]);
 
 export function TransactionDetailModal({ visible, transaction, onClose }: TransactionDetailModalProps) {
   const theme = useAppTheme();
@@ -71,7 +63,7 @@ export function TransactionDetailModal({ visible, transaction, onClose }: Transa
     },
   }));
   if (!transaction) return null;
-  const status = transactionStatuses.get(transaction.status ?? '') ?? { label: 'Unknown', tone: 'info' as const };
+  const status = getTransactionStatus(transaction.status);
 
   const isIncomingTransaction = (): boolean => {
     const walletAddr = transaction.walletAddress?.toLowerCase() || '';

@@ -1,3 +1,5 @@
+from drf_spectacular.helpers import forced_singular_serializer
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -24,6 +26,7 @@ class UserAccountViewSet(AuthenticatedModelViewSet):
             return queryset.select_for_update()
         return queryset
 
+    @extend_schema(responses={200: forced_singular_serializer(UserAccountSerializer)})
     def list(self, request):
         account = self.get_queryset().first()
         if account is None:

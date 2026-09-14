@@ -7,5 +7,5 @@ export const getOnRampWidgetUrl = (apiClient: AxiosInstance, request: GetOnRampW
     wallet_uuid: request.walletUuid,
     fiat_amount: request.fiatAmount,
     fiat_currency: request.fiatCurrency,
-    crypto_currency_code: request.cryptoCurrency,
+    crypto_currency_code: request.cryptoCurrencyCode,
   });

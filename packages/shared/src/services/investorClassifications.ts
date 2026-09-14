@@ -22,7 +22,7 @@ export const submitInvestorClassification = (
   formData.append('evidence_file', data.file);
   formData.append('category', data.category);
   formData.append('declaration_accepted', 'true');
-  formData.append('declared_basis', data.declaredBasis);
+  if (data.declaredBasis !== undefined) formData.append('declared_basis', data.declaredBasis);
   if (data.company) formData.append('company', data.company);
   if (data.certificateIssuedAt) formData.append('certificate_issued_at', data.certificateIssuedAt);
   if (data.certifierName) formData.append('certifier_name', data.certifierName);

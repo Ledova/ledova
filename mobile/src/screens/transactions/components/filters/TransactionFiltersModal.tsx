@@ -6,7 +6,6 @@ import { useAppTheme, useThemedStyles } from '../../../../contexts';
 import { BLOCKCHAIN, formatWalletAddressShort } from '@ledova/shared';
 import { CustomModal } from '../../../../components/modal';
 import { DatePickerField } from '../../../../components/date-picker';
-import { NumberField } from '../../../../components/number-field';
 import type { TransactionQueryParams } from '../../useTransactions';
 import type { Wallet } from '@ledova/shared';
 
@@ -167,7 +166,9 @@ export function TransactionFiltersModal({
   useEffect(() => {
     if (isOpen && !prevIsOpenRef.current) {
       setLocalFilters(filters);
-      setSelectedDirection(filters.direction || 'all');
+      setSelectedDirection(
+        filters.direction === 'incoming' || filters.direction === 'outgoing' ? filters.direction : 'all',
+      );
       setSelectedChain((filters.chain as ChainOption) || 'all');
       setSelectedWallet(filters.wallet);
       setStartDate(filters.start_date ? new Date(filters.start_date) : undefined);
@@ -177,13 +178,7 @@ export function TransactionFiltersModal({
   }, [isOpen, filters]);
 
   const hasActiveFilters =
-    selectedDirection !== 'all' ||
-    selectedChain !== 'all' ||
-    !!selectedWallet ||
-    !!localFilters.min_amount ||
-    !!localFilters.max_amount ||
-    !!startDate ||
-    !!endDate;
+    selectedDirection !== 'all' || selectedChain !== 'all' || !!selectedWallet || !!startDate || !!endDate;
 
   const formatDate = (date: Date) => {
     const year = date.getFullYear();
@@ -215,7 +210,9 @@ export function TransactionFiltersModal({
 
   const handleClose = () => {
     setLocalFilters(filters);
-    setSelectedDirection(filters.direction || 'all');
+    setSelectedDirection(
+      filters.direction === 'incoming' || filters.direction === 'outgoing' ? filters.direction : 'all',
+    );
     setSelectedChain((filters.chain as ChainOption) || 'all');
     setSelectedWallet(filters.wallet);
     setStartDate(filters.start_date ? new Date(filters.start_date) : undefined);
@@ -368,31 +365,6 @@ export function TransactionFiltersModal({
           />
         </View>
       )}
-
-      <View style={styles.filterSection}>
-        <Text style={styles.sectionTitle}>Amount Range</Text>
-        <View style={styles.rowFields}>
-          <View style={styles.fieldHalf}>
-            <NumberField
-              label="Min"
-              value={localFilters.min_amount}
-              onChange={(value) => setLocalFilters((prev) => ({ ...prev, min_amount: value }))}
-              placeholder="0.00"
-              minimumValue={0}
-              maximumValue={localFilters.max_amount}
-            />
-          </View>
-          <View style={styles.fieldHalf}>
-            <NumberField
-              label="Max"
-              value={localFilters.max_amount}
-              onChange={(value) => setLocalFilters((prev) => ({ ...prev, max_amount: value }))}
-              placeholder="0.00"
-              minimumValue={localFilters.min_amount || 0}
-            />
-          </View>
-        </View>
-      </View>
 
       <View style={styles.filterSection}>
         <Text style={styles.sectionTitle}>Date Range</Text>

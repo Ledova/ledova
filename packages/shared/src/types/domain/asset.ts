@@ -1,79 +1,17 @@
-import type { BaseQueryParams, TimeSeriesQueryParams } from '../api';
+import type { ApiSchema, ApiResponse, ApiQuery } from '../contracts';
 
-export type ValueSource = 'market' | 'nav' | 'par' | 'unpriced';
+export type ValueSource = ApiSchema<'ValueSourceEnum'>;
 
-export interface AssetChainDeployment {
-  uuid: string;
-  chain: string;
-  contractAddress: string | null;
-  decimals: number;
-  isActive: boolean;
-}
+export type AssetChainDeployment = ApiSchema<'AssetChainDeployment'>;
 
-export interface Asset {
-  uuid: string;
-  symbol: string;
-  name: string;
-  assetType: string;
-  assetTypeDisplay?: string;
-  settlementPermission?: string;
-  regulatoryClassification?: string;
-  chain: string | null;
-  contractAddress: string | null;
-  decimals: number;
-  chainDeployments?: AssetChainDeployment[];
-  navPerToken?: string | null;
-  lastNavUpdate?: string | null;
-  isYieldToken?: boolean;
-  underlyingTicker?: string | null;
-  issuerName?: string | null;
-  isin?: string | null;
-  currentPrice: string | null;
-  priceCurrency: string;
-  valueSource: ValueSource;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+export type Asset = ApiResponse<'api_assets_retrieve'>;
 
-export interface AssetQueryParams extends BaseQueryParams {
-  uuid?: string;
-  symbol?: string;
-  name?: string;
-  asset_type?: string;
-  settlement_permission?: string;
-  chain?: string;
-  contract_address?: string;
-  underlying_ticker?: string;
-  is_active?: 'true' | 'false';
-  min_price?: number;
-  max_price?: number;
-  search?: string;
-  order_by?: string;
-}
+export type AssetQueryParams = ApiQuery<'api_assets_list'>;
 
-export interface AssetSnapshot {
-  uuid: string;
-  asset: string;
-  assetSymbol: string;
-  price: string;
-  sourceTimestamp: string;
-}
+export type AssetSnapshot = ApiResponse<'api_assets_snapshots_list'>[number];
 
-export interface AssetSnapshotQueryParams extends TimeSeriesQueryParams {
-  asset?: string;
-  min_price?: number;
-  max_price?: number;
-}
+export type AssetSnapshotQueryParams = ApiQuery<'api_assets_snapshots_list'>;
 
-export interface AssetFilters {
-  search?: string;
-  asset_type?: string;
-  chain?: string;
-}
+export type AssetFilters = Pick<AssetQueryParams, 'search' | 'asset_type' | 'chain'>;
 
-export interface ExchangeRate {
-  baseCurrency: string;
-  targetCurrency: string;
-  rate: string;
-}
+export type ExchangeRate = ApiResponse<'api_assets_exchange_rates_retrieve'>;

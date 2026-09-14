@@ -2,7 +2,6 @@ import type {
   AccountExportData,
   AssetFilters,
   AuthVerificationResponse,
-  HoldingsQueryParams,
   Portfolio,
   PortfolioSnapshotQueryParams,
   PortfolioSnapshotReason,
@@ -59,12 +58,11 @@ describe('shared-types exports', () => {
   });
 
   it('drops the query params and response fields the backend no longer reads or emits', () => {
-    const minValue: Has<HoldingsQueryParams, 'min_value'> = false;
     const reason: Has<AuthVerificationResponse, 'reason'> = false;
     const portfolioTotal: Has<Portfolio, 'totalValue' | 'template'> = false;
     const snapshotReasonParam: Has<PortfolioSnapshotQueryParams, 'snapshot_reason'> = false;
     const onlyDaily: PortfolioSnapshotReason = 'DAILY';
-    expect([minValue, reason, portfolioTotal, snapshotReasonParam]).toEqual([false, false, false, false]);
+    expect([reason, portfolioTotal, snapshotReasonParam]).toEqual([false, false, false]);
     expect(onlyDaily).toBe('DAILY');
   });
 });

@@ -22,8 +22,8 @@ export function useAssetPrices() {
 
   const buildQueryParams = (filters: AssetFilters): AssetQueryParams => {
     const params: AssetQueryParams = {
-      is_active: 'true',
-      order_by: 'symbol',
+      is_active: true,
+      ordering: 'symbol',
     };
 
     if (filters.search) {

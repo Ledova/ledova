@@ -1,33 +1,9 @@
-import type { AssetChainDeployment } from './asset';
+import type { ApiSchema, ApiResponse } from '../contracts';
 
-export type OperatorDeploymentMode = 'single_issuer' | 'registry';
+export type OperatorDeploymentMode = ApiSchema<'DeploymentModeEnum'>;
 
-export interface OperatorSettlementAsset {
-  uuid: string;
-  symbol: string;
-  name: string;
-  chainDeployments: AssetChainDeployment[];
-}
+export type OperatorSettlementAsset = ApiSchema<'SettlementAsset'>;
 
-export interface OperatorPaymentInstructions {
-  bankAccountName?: string;
-  bankBsb?: string;
-  bankAccountNumber?: string;
-  paymentReferencePrefix?: string;
-  receivingWalletAddress?: string;
-  receivingWalletChain?: string;
-}
+export type OperatorPaymentInstructions = ApiSchema<'OperatorPaymentInstructions'>;
 
-export interface Operator {
-  name: string;
-  legalName: string;
-  abn: string;
-  contactEmail: string;
-  website: string;
-  deploymentMode: OperatorDeploymentMode;
-  supportedSettlementAssets: OperatorSettlementAsset[];
-  issuedStablecoin: OperatorSettlementAsset | null;
-  investorKycRequired: boolean;
-  issuerKycRequired: boolean;
-  paymentInstructions: OperatorPaymentInstructions | null;
-}
+export type Operator = ApiResponse<'api_operator_retrieve'>;

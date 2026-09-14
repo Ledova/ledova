@@ -70,7 +70,10 @@ export const useFinancialProfile = () => {
     }
   };
 
-  const setFieldValue = (field: keyof FinancialProfileFormState, value: string | string[] | number) => {
+  const setFieldValue = <Field extends keyof FinancialProfileFormState>(
+    field: Field,
+    value: FinancialProfileFormState[Field],
+  ) => {
     setForm((prev) => ({
       ...prev,
       [field]: value,

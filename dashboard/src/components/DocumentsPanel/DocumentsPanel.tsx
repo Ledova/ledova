@@ -20,7 +20,7 @@ import {
   useDocumentsEnabled,
   useUploadDocument,
 } from '@hooks/useDocuments';
-import type { Document, DocumentType, ExtractionStatus, PayslipExtraction } from '../../types/document';
+import type { Document, DocumentType, ExtractionStatus } from '../../types/document';
 
 const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
 const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
@@ -81,18 +81,27 @@ function StatusPill({ status }: { status: ExtractionStatus | undefined }) {
   );
 }
 
-function PayslipResult({ data, durationMs }: { data: PayslipExtraction; durationMs: number | null }) {
+function PayslipResult({ data, durationMs }: { data: object; durationMs: number | null }) {
+  const text = (name: string): string | null => {
+    const value: unknown = Reflect.get(data, name);
+    return typeof value === 'string' ? value : null;
+  };
+  const warnings: unknown = Reflect.get(data, 'extractionWarnings');
+  const confidence: unknown = Reflect.get(data, 'confidence');
+  const readableWarnings = Array.isArray(warnings)
+    ? warnings.filter((value): value is string => typeof value === 'string')
+    : [];
   const fields: { label: string; value: string }[] = [
-    { label: 'Employee', value: data.employeeName ?? '—' },
-    { label: 'Employer', value: data.employerName ?? '—' },
-    { label: 'ABN', value: data.abn ?? '—' },
-    { label: 'Pay period', value: `${formatDate(data.periodStart)} → ${formatDate(data.periodEnd)}` },
-    { label: 'Gross pay', value: formatMoney(data.grossPay) },
-    { label: 'Net pay', value: formatMoney(data.netPay) },
-    { label: 'Tax withheld', value: formatMoney(data.taxWithheld) },
-    { label: 'Superannuation', value: formatMoney(data.superannuation) },
-    { label: 'YTD gross', value: formatMoney(data.ytdGross) },
-    { label: 'YTD tax', value: formatMoney(data.ytdTax) },
+    { label: 'Employee', value: text('employeeName') ?? '—' },
+    { label: 'Employer', value: text('employerName') ?? '—' },
+    { label: 'ABN', value: text('abn') ?? '—' },
+    { label: 'Pay period', value: `${formatDate(text('periodStart'))} → ${formatDate(text('periodEnd'))}` },
+    { label: 'Gross pay', value: formatMoney(text('grossPay')) },
+    { label: 'Net pay', value: formatMoney(text('netPay')) },
+    { label: 'Tax withheld', value: formatMoney(text('taxWithheld')) },
+    { label: 'Superannuation', value: formatMoney(text('superannuation')) },
+    { label: 'YTD gross', value: formatMoney(text('ytdGross')) },
+    { label: 'YTD tax', value: formatMoney(text('ytdTax')) },
   ];
 
   return (
@@ -107,14 +116,14 @@ function PayslipResult({ data, durationMs }: { data: PayslipExtraction; duration
       </div>
 
       <div className="flex items-center justify-between pt-2 mt-2 border-t border-border-subtle text-xs text-text-muted">
-        <span>Confidence: {(data.confidence * 100).toFixed(0)}%</span>
+        <span>Confidence: {typeof confidence === 'number' ? `${(confidence * 100).toFixed(0)}%` : 'Unknown'}</span>
         {durationMs != null && <span>Extracted in {(durationMs / 1000).toFixed(1)}s</span>}
       </div>
 
-      {data.extractionWarnings && data.extractionWarnings.length > 0 && (
+      {readableWarnings.length > 0 && (
         <div className="mt-2 flex items-start gap-2 text-xs text-amber-400">
           <WarningIcon size={ICON_SM} weight="bold" className="mt-0.5 flex-shrink-0" />
-          <span>{data.extractionWarnings.join(' · ')}</span>
+          <span>{readableWarnings.join(' · ')}</span>
         </div>
       )}
     </div>
@@ -222,9 +231,12 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
         </p>
       )}
 
-      {extraction?.status === 'succeeded' && extraction.parsedJson && (
-        <PayslipResult data={extraction.parsedJson as PayslipExtraction} durationMs={extraction.durationMs} />
-      )}
+      {extraction?.status === 'succeeded' &&
+        extraction.parsedJson !== null &&
+        typeof extraction.parsedJson === 'object' &&
+        !Array.isArray(extraction.parsedJson) && (
+          <PayslipResult data={extraction.parsedJson} durationMs={extraction.durationMs} />
+        )}
 
       {extraction?.status === 'failed' && extraction.error && (
         <div className="mt-3 text-xs text-red-400 bg-red-500/10 rounded p-2">{extraction.error}</div>

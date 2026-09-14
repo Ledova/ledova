@@ -110,7 +110,7 @@ class WalletViewSet(AuthenticatedModelViewSet):
             status=status.HTTP_200_OK,
         )
 
-    @extend_schema(responses=HoldingSerializer(many=True))
+    @extend_schema(responses=HoldingSerializer(many=True), filters=False)
     @action(detail=True, methods=["get"], url_path="holdings", url_name="holdings", pagination_class=None)
     def holdings(self, request, uuid=None):
         wallet = self.get_object()

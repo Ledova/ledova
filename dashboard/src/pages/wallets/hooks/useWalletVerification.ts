@@ -68,12 +68,17 @@ export function useWalletVerification(): UseWalletVerificationReturn {
         qrData = encodeEthereumMessage(
           wallet.address,
           challenge,
-          wallet.derivationPath,
-          wallet.masterFingerprint,
+          wallet.derivationPath ?? undefined,
+          wallet.masterFingerprint ?? undefined,
           evmChainId,
         );
       } else if (wallet.chain === BLOCKCHAIN.BITCOIN) {
-        qrData = encodeBitcoinMessage(wallet.address, challenge, wallet.derivationPath, wallet.masterFingerprint);
+        qrData = encodeBitcoinMessage(
+          wallet.address,
+          challenge,
+          wallet.derivationPath ?? undefined,
+          wallet.masterFingerprint ?? undefined,
+        );
       }
 
       if (qrData) {

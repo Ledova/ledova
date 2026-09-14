@@ -40,7 +40,6 @@ import {
   type OrderActionContext,
   type OrderActionSnapshot,
   type Wallet,
-  type TransferOrder,
 } from '@ledova/shared';
 import apiFixtures from '../../../../packages/shared/tests/fixtures/order-action-api.json';
 import { memoryStorage, response, userUuid } from '../../../../packages/shared/tests/fixtures/order-submissions';
@@ -61,7 +60,7 @@ it.each(fixtures.flatMap((fixture) => ['software', 'hardware'].map((mode) => ({ 
   async (fixture) => {
     const { purpose, context, snapshot, signature, mode } = fixture;
     const challenge = snapshot.challenge!;
-    const nullableModification: Pick<TransferOrder, 'lastModifiedAt'> = { lastModifiedAt: null };
+    const nullableModification: Pick<OrderActionSnapshot['order'], 'lastModifiedAt'> = { lastModifiedAt: null };
     expect(snapshot.order.lastModifiedAt).toBe(nullableModification.lastModifiedAt);
     jest.spyOn(Date, 'now').mockReturnValue(Date.parse(challenge.expiresAt) - 60000);
     expect(TypedDataEncoder.hash(challenge.domain, challenge.types, challenge.message)).toBe(challenge.digest);

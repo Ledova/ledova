@@ -449,6 +449,7 @@ export function validateSwapSettlementApprovalResult(
 
 export function hasSwapSettlementContext(swap: SwapOrder): swap is SettlementSwapOrder {
   return (
+    'settlementProtocolVersion' in swap &&
     swap.settlementProtocolVersion === 1 &&
     !!swap.settlementContext &&
     typeof swap.settlementDigest === 'string' &&

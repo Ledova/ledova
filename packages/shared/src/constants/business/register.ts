@@ -1,4 +1,6 @@
-export type HolderType = 'member' | 'treasury' | 'ambiguous' | 'unidentified';
+import type { ApiComponents } from '../../generated/api';
+
+export type HolderType = ApiComponents['schemas']['HolderTypeEnum'];
 
 export const HOLDER_TYPE_LABELS: Record<HolderType, string> = {
   member: 'Member',

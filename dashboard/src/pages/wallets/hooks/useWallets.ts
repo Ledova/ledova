@@ -20,8 +20,8 @@ export function useWallets() {
   const [derivingWallet, setDerivingWallet] = useState<Wallet | null>(null);
 
   const walletsQuery = useQuery({
-    queryKey: ['wallets', { order_by: 'address_index' }],
-    queryFn: () => getWallets(apiClient, { order_by: 'address_index' }),
+    queryKey: ['wallets'],
+    queryFn: () => getWallets(apiClient),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
   });
@@ -60,7 +60,7 @@ export function useWallets() {
         const parentKey = importedParentKey(addr, importData);
 
         const chain = getChainByShortName(addr.networkType);
-        if (!chain) continue;
+        if (!chain?.isActive) continue;
 
         const walletData: CreateWallet = {
           address: addr.address,

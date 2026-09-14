@@ -1,4 +1,9 @@
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    OpenApiTypes,
+    extend_schema,
+    extend_schema_view,
+)
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -16,6 +21,7 @@ from shared.utils.querysets import sample_evenly
 from shared.views.base import AuthenticatedReadOnlyViewSet
 
 
+@extend_schema_view(list=extend_schema(parameters=[OpenApiParameter("chain", str)]))
 class AssetViewSet(AuthenticatedReadOnlyViewSet):
     serializer_class = AssetSerializer
     filterset_class = AssetFilter
@@ -33,7 +39,16 @@ class AssetViewSet(AuthenticatedReadOnlyViewSet):
             queryset = queryset.filter_by_supported_chains()
         return queryset
 
-    @extend_schema(responses=AssetSnapshotSerializer(many=True))
+    @extend_schema(
+        responses=AssetSnapshotSerializer(many=True),
+        filters=False,
+        parameters=[
+            OpenApiParameter("start_date", OpenApiTypes.DATE),
+            OpenApiParameter("end_date", OpenApiTypes.DATE),
+            OpenApiParameter("order_by", str, enum=["source_timestamp", "-source_timestamp"]),
+            OpenApiParameter("max_points", int),
+        ],
+    )
     @action(detail=True, methods=["get"], url_path="snapshots", pagination_class=None)
     def snapshots(self, request, **kwargs):
         asset = self.get_object()
@@ -52,7 +67,7 @@ class AssetViewSet(AuthenticatedReadOnlyViewSet):
         serializer = AssetSnapshotSerializer(queryset, many=True)
         return Response(serializer.data)
 
-    @extend_schema(responses={200: ExchangeRateResponseSerializer})
+    @extend_schema(responses={200: ExchangeRateResponseSerializer}, parameters=[OpenApiParameter("currency", str)])
     @action(detail=False, methods=["get"], url_path="exchange-rates")
     def exchange_rates(self, request):
         target = request.query_params.get("currency", "AUD")

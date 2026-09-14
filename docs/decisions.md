@@ -108,11 +108,13 @@ shared hooks created earlier must accommodate both clients. The primary issuer
 workflow remains dashboard-led. See [B7b](https://github.com/RonildoBraga/ledova/issues/115#issuecomment-5574947880)
 and [B2](https://github.com/RonildoBraga/ledova/issues/115#issuecomment-5574848881).
 
-Shared API types will be generated after all client-facing endpoints are reliably
-declared and the drift gate has run clean across a release. The handwritten types
-retire in the same change that generates their replacements; the check becomes
-the generation check. This prerequisite remains even though schema snapshot and
-operation-coverage checks have shipped. See [B7e](https://github.com/RonildoBraga/ledova/issues/115#issuecomment-5575002254)
+Shared API types are generated from the committed OpenAPI snapshot. The owner
+accepted PR #562 as the clean-release checkpoint on 2026-09-14; its reviewed head
+and merge had identical trees, and all CI checks passed. The handwritten API
+counterparts and partial drift parser retire with their generated replacements;
+client state and cryptographic utilities retain their own types. See
+[B7e](https://github.com/RonildoBraga/ledova/issues/115#issuecomment-5575002254),
+[the checkpoint approval](https://github.com/RonildoBraga/ledova/issues/115#issuecomment-5656632666)
 and [API gates](development/gates.md#the-api-type-drift-gate).
 
 The source no-comments/no-docstrings rule remains an explicit repository choice;

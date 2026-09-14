@@ -9,7 +9,7 @@ export const walletUuid = '30000000-0000-4000-8000-000000000001';
 export const tokenUuid = '40000000-0000-4000-8000-000000000001';
 export const submissionId = '50000000-0000-4000-8000-000000000001';
 export const secondId = '50000000-0000-4000-8000-000000000002';
-export const wallet = {
+export const wallet: Wallet = {
   uuid: walletUuid,
   userAccount: accountUuid,
   address: '0x1111111111111111111111111111111111111111',
@@ -17,7 +17,17 @@ export const wallet = {
   masterFingerprint: '12345678',
   signingPreference: 'software',
   chain: 'ethereum',
-} as unknown as Wallet;
+  verificationStatus: 'VERIFIED',
+  verificationChallenge: null,
+  verificationSignature: null,
+  verifiedAt: null,
+  lastSyncedAt: null,
+  nativeBalance: '1',
+  nativeMarketValue: '0',
+  marketValue: '0',
+  createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-01T00:00:00Z',
+};
 export const owner = { userUuid, ownerAccountUuid: accountUuid };
 export const draft: CreateOrderRequest = {
   token: tokenUuid,
@@ -28,6 +38,42 @@ export const draft: CreateOrderRequest = {
   minQuantity: 2,
   pricePerShare: '12.50',
 };
+
+export function submittedOrder(
+  overrides: Partial<NonNullable<OrderSubmissionSnapshot['order']>> = {},
+): NonNullable<OrderSubmissionSnapshot['order']> {
+  return {
+    uuid: '60000000-0000-4000-8000-000000000001',
+    token: tokenUuid,
+    tokenSymbol: 'SYN',
+    tokenName: 'Synthetic',
+    tokenContractAddress: '0x2222222222222222222222222222222222222222',
+    orderType: 'buy',
+    orderTypeDisplay: overrides.orderType === 'sell' ? 'Sell' : 'Buy',
+    walletAddress: wallet.address,
+    quantity: 7,
+    minQuantity: 0,
+    filledQuantity: 0,
+    remainingQuantity: 7,
+    pricePerShare: '14.00',
+    status: 'cancelled',
+    statusDisplay: overrides.status
+      ? overrides.status.charAt(0).toUpperCase() + overrides.status.slice(1)
+      : 'Cancelled',
+    totalValue: '98.00',
+    remainingValue: '98.00',
+    matchedOrderUuid: null,
+    txHash: '',
+    completedAt: null,
+    errorMessage: '',
+    modificationCount: 0,
+    lastModifiedAt: null,
+    canBeModified: false,
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+    ...overrides,
+  };
+}
 export function snapshot(
   id = submissionId,
   status: OrderSubmissionSnapshot['status'] = 'pending',
@@ -59,26 +105,11 @@ export function snapshot(
               verifyingContract: '0x2222222222222222222222222222222222222222',
             },
             types: {},
-            message: { submissionId: id, ownerAccountUuid: accountUuid, walletUuid, quantity: 10 },
+            message: { submissionId: id, ownerAccountUuid: accountUuid, walletUuid, quantity: '10' },
             expiresAt: new Date(Date.now() + 60_000).toISOString(),
           }
         : null,
-    order:
-      status === 'created'
-        ? {
-            uuid: '60000000-0000-4000-8000-000000000001',
-            token: tokenUuid,
-            tokenSymbol: 'SYN',
-            tokenName: 'Synthetic',
-            orderType: 'buy',
-            walletAddress: wallet.address,
-            quantity: 7,
-            pricePerShare: '14.00',
-            status: 'cancelled',
-            totalValue: '98.00',
-            createdAt: '2026-01-01T00:00:00Z',
-          }
-        : null,
+    order: status === 'created' ? submittedOrder() : null,
     refusal:
       status === 'refused' ? { code: 'insufficient_balance', detail: 'The wallet balance is insufficient.' } : null,
     match: null,

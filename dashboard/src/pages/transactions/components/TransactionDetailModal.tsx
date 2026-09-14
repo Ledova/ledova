@@ -1,5 +1,12 @@
 import { ArrowUpIcon, ArrowDownIcon } from '@phosphor-icons/react';
-import { formatCryptoBalance, formatShortDate, formatTime, getChainShortCode, DESIGN_TOKENS } from '@ledova/shared';
+import {
+  formatCryptoBalance,
+  formatShortDate,
+  formatTime,
+  getChainShortCode,
+  getTransactionStatus,
+  DESIGN_TOKENS,
+} from '@ledova/shared';
 
 const ICON_XXL = DESIGN_TOKENS.icon.sizes.xxl;
 import type { Transaction } from '@ledova/shared';
@@ -40,6 +47,13 @@ export function TransactionDetailModal({ isOpen, transaction, onClose, onViewExp
   const toAddress = transaction.toAddress?.toLowerCase() || '';
   const incoming = toAddress === walletAddr;
   const amount = parseFloat(transaction.amount || '0');
+  const status = getTransactionStatus(transaction.status);
+  const statusClasses = {
+    success: 'text-success-light',
+    error: 'text-error-light',
+    warning: 'text-warning-light',
+    info: 'text-text-muted',
+  };
 
   const displayAmount = `${incoming ? '+' : '-'}${formatCryptoBalance(amount, transaction.assetSymbol || '')}`;
 
@@ -78,11 +92,7 @@ export function TransactionDetailModal({ isOpen, transaction, onClose, onViewExp
           value={`${formatShortDate(transaction.blockTimestamp)} ${formatTime(transaction.blockTimestamp)}`}
         />
         {transaction.status && (
-          <DetailRow
-            label="Status"
-            value={transaction.status === 'success' ? '✓ Success' : '✗ Failed'}
-            valueClassName={transaction.status === 'success' ? 'text-success-light' : 'text-error-light'}
-          />
+          <DetailRow label="Status" value={status.label} valueClassName={statusClasses[status.tone]} />
         )}
         {transaction.transactionFee && (
           <DetailRow

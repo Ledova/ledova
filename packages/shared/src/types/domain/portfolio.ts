@@ -1,48 +1,16 @@
-import type { BaseEntity } from '../common';
-import type { TimeSeriesQueryParams } from '../api';
+import type { ApiSchema, ApiResponse, ApiQuery } from '../contracts';
 
-export interface Portfolio extends BaseEntity {
-  userAccount: string;
-  name: string;
-  isActive: boolean;
-  walletUuids: string[];
-  walletCount: number;
-}
+export type Portfolio = ApiResponse<'api_portfolios_retrieve'>;
 
-export type PortfolioSnapshotReason = 'DAILY';
+export type PortfolioSnapshotReason = PortfolioSnapshot['snapshotReason'];
 
-export interface PortfolioSnapshotChain {
-  chain: string;
-  quantity: string;
-  wallets: string[];
-  marketValue?: string;
-}
+export type PortfolioSnapshotChain = ApiSchema<'PortfolioChainValue'>;
 
-export interface PortfolioSnapshotHolding {
-  assetUuid: string;
-  quantity: string;
-  price?: string;
-  marketValue?: string;
-  wallets: string[];
-  perChain?: PortfolioSnapshotChain[];
-}
+export type PortfolioSnapshotHolding = ApiSchema<'PortfolioHoldingValue'>;
 
-export interface PortfolioSnapshot extends BaseEntity {
-  portfolio: string;
-  portfolioName?: string;
-  accountId?: string;
-  holdingsData: Record<string, PortfolioSnapshotHolding>;
-  totalMarketValue?: string | null;
-  hasValueData?: boolean;
-  snapshotDate: string;
-  snapshotReason: PortfolioSnapshotReason;
-}
+export type PortfolioSnapshot = ApiResponse<'api_portfolios_snapshots_list'>[number];
 
-export interface PortfolioSnapshotQueryParams extends TimeSeriesQueryParams {
-  portfolio?: string;
-  user_account?: string;
-  user_profile?: string;
-}
+export type PortfolioSnapshotQueryParams = ApiQuery<'api_portfolios_snapshots_list'>;
 
 export interface PortfolioSnapshotDataPoint {
   dayIndex: number;

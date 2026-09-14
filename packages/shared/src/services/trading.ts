@@ -13,7 +13,6 @@ import type {
   OrderBook,
   GetOrdersParams,
   WhitelistStatus,
-  SwapOrder,
   SwapDataResponse,
   SubmitSignatureRequest,
   GetSwapDataParams,
@@ -23,6 +22,7 @@ import type {
   PaginatedResponse,
   ApprovalStatusResponse,
   ApprovalDataResponse,
+  ApiResponse,
 } from '../types';
 
 declare module 'axios' {
@@ -152,7 +152,7 @@ export const getWhitelistStatus = (apiClient: AxiosInstance, walletAddress: stri
   apiClient.get<WhitelistStatus>(TRADING_ENDPOINTS.WHITELIST.STATUS(walletAddress));
 
 export const getSwapOrders = (apiClient: AxiosInstance, walletAddress: string) =>
-  apiClient.get<PaginatedResponse<SwapOrder>>(TRADING_ENDPOINTS.SWAPS.LIST, {
+  apiClient.get<ApiResponse<'api_v1_trading_swaps_list'>>(TRADING_ENDPOINTS.SWAPS.LIST, {
     params: { wallet_address: walletAddress },
   });
 
@@ -162,7 +162,7 @@ export const getOrderSwapData = (apiClient: AxiosInstance, orderUuid: string, pa
   });
 
 export const submitOrderSwapSignature = (apiClient: AxiosInstance, orderUuid: string, data: SubmitSignatureRequest) =>
-  apiClient.post<SwapOrder>(TRADING_ENDPOINTS.ORDERS.SWAP_SIGN(orderUuid), {
+  apiClient.post<ApiResponse<'api_v1_trading_orders_swap_sign_create'>>(TRADING_ENDPOINTS.ORDERS.SWAP_SIGN(orderUuid), {
     signature: data.signature,
     signer_address: data.signerAddress,
   });

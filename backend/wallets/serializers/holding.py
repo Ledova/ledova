@@ -12,7 +12,7 @@ class HoldingSerializer(serializers.ModelSerializer):
     asset_uuid = serializers.CharField(source="asset.uuid", read_only=True)
     asset_symbol = serializers.CharField(source="asset.symbol", read_only=True)
     asset_name = serializers.CharField(source="asset.name", read_only=True)
-    market_value = serializers.DecimalField(max_digits=40, decimal_places=2, read_only=True)
+    market_value = serializers.DecimalField(max_digits=40, decimal_places=2, read_only=True, allow_null=True)
     value_source = serializers.ChoiceField(choices=VALUE_SOURCE_CHOICES, read_only=True)
     asset = AssetSerializer(read_only=True, required=False)
 

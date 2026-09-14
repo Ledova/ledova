@@ -1,59 +1,18 @@
-import type { BaseEntity } from '../common';
+import type { ApiSchema, ApiRequest, ApiResponse } from '../contracts';
 
-export type InvestorCategory =
-  'product_value' | 'accountant_certificate' | 'professional_investor' | 'associated_person';
+export type InvestorCategory = ApiSchema<'CategoryEnum'>;
 
-export type InvestorClassificationStatus = 'submitted' | 'verified' | 'rejected' | 'revoked' | 'withdrawn';
+export type InvestorClassificationStatus = ApiSchema<'InvestorClassificationStatusEnum'>;
 
-export type CertifierBody = 'ca_anz' | 'cpa_australia' | 'ipa';
+export type CertifierBody = ApiSchema<'CertifierBodyEnum'>;
 
-export type InvestorEligibilityReason =
-  | 'no_investor_account'
-  | 'account_not_in_good_standing'
-  | 'identity_not_verified'
-  | 'no_live_classification'
-  | 'amount_below_product_value_threshold';
+export type InvestorEligibilityReason = InvestorEligibility['reasons'][number];
 
-export interface InvestorClassification extends Pick<BaseEntity, 'uuid' | 'createdAt'> {
-  userAccount: string;
-  company: string | null;
-  category: InvestorCategory;
-  categoryDisplay: string;
-  status: InvestorClassificationStatus;
-  statusDisplay: string;
-  declarationAccepted: boolean;
-  declarationText: string;
-  declaredBasis: string;
-  evidenceUrl: string | null;
-  evidenceFileSize: number | null;
-  evidenceMimeType: string;
-  certificateIssuedAt: string | null;
-  certifierName: string;
-  certifierBody: CertifierBody | '';
-  certifierMembershipNumber: string;
-  submittedAt: string | null;
-  reviewedAt: string | null;
-  reviewNotes: string;
-  rejectionReason: string;
-  expiresAt: string | null;
-  isLive: boolean;
-  isExpired: boolean;
-}
+export type InvestorClassification = ApiResponse<'api_investor_classifications_retrieve'>;
 
-export interface InvestorEligibility {
-  isEligible: boolean;
-  reasons: InvestorEligibilityReason[];
-  account: string | null;
-  classification: InvestorClassification | null;
-}
+export type InvestorEligibility = ApiResponse<'api_investor_classifications_eligibility_retrieve'>;
 
-export interface InvestorClassificationSubmission {
-  category: InvestorCategory;
-  declaredBasis: string;
-  file: File;
-  company?: string;
-  certificateIssuedAt?: string;
-  certifierName?: string;
-  certifierBody?: CertifierBody;
-  certifierMembershipNumber?: string;
-}
+export type InvestorClassificationSubmission = Omit<
+  ApiRequest<'api_investor_classifications_create'>,
+  'evidenceFile' | 'declarationAccepted'
+> & { file: File };

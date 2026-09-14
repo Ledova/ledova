@@ -1,314 +1,68 @@
-import type { OrderType, OrderStatus, SwapStatus, SwapUserRole } from '../../constants';
-import type { SwapSettlementContext } from './swap-settlement';
+import type { ApiSchema, ApiRequest, ApiResponse, ApiQuery } from '../contracts';
 
-export interface ShareToken {
-  uuid: string;
-  name: string;
-  symbol: string;
-  companyName: string;
-  contractAddress: string;
-  totalSupply: number;
-  decimals: number;
-  lastPrice?: string;
-  bestBid?: string;
-  bestAsk?: string;
-  priceChange24h?: number;
-}
+export type ShareToken = ApiResponse<'api_v1_trading_tokens_retrieve'>;
 
-export interface TransferOrder {
-  uuid: string;
-  token: string;
-  tokenSymbol: string;
-  tokenName: string;
-  orderType: OrderType;
-  orderTypeDisplay?: string;
-  status: OrderStatus;
-  statusDisplay?: string;
-  walletAddress: string;
-  quantity: number;
-  pricePerShare: string;
-  totalValue: string;
-  createdAt: string;
-  updatedAt?: string;
-  matchedOrder?: string;
-  matchedAt?: string;
+export type TransferOrder = ApiSchema<'TransferOrderList'>;
 
-  minQuantity?: number;
-  filledQuantity?: number;
-  remainingQuantity?: number;
+export type CreateOrderRequest = Omit<OrderSubmissionRequest, 'submissionId' | 'ownerAccountUuid'>;
 
-  modificationCount?: number;
-  lastModifiedAt?: string | null;
-  originalQuantity?: number;
-  originalPrice?: string;
-}
+export type OrderSubmissionRequest = ApiRequest<'api_v1_trading_orders_create_message_create'>;
 
-export interface CreateOrderRequest {
-  token: string;
-  orderType: OrderType;
-  walletUuid: string;
-  walletAddress: string;
-  quantity: number;
-  minQuantity?: number;
-  pricePerShare: string;
-}
+export type OrderSubmissionSnapshot = ApiResponse<'api_v1_trading_orders_submissions_retrieve'>;
 
-export interface OrderSubmissionRequest extends Omit<CreateOrderRequest, 'quantity' | 'minQuantity'> {
-  submissionId: string;
-  ownerAccountUuid: string;
-  quantity: number | string;
-  minQuantity?: number | string;
-}
+export type OrderBookEntry = ApiSchema<'OrderBookEntry'>;
 
-export interface OrderSubmissionSnapshot {
-  submissionId: string;
-  ownerAccountUuid: string;
-  walletUuid: string;
-  status: 'pending' | 'created' | 'refused';
-  intent: {
-    token: string;
-    orderType: OrderType;
-    walletAddress: string;
-    quantity: string;
-    minQuantity: string;
-    pricePerShare: string;
-  };
-  order: TransferOrder | null;
-  match: { matched: true; counterOrder: string; swapOrder: string } | null;
-  refusal: { code: string; detail: string } | null;
-  challenge: CreateOrderMessageResponse | null;
-}
+export type OrderBook = ApiResponse<'api_v1_trading_tokens_order_book_retrieve'>;
 
-export interface OrderBookEntry {
-  price: string;
-  quantity: number;
-  orders: number;
-}
+export type GetOrdersParams = ApiQuery<'api_v1_trading_orders_list'>;
 
-export interface OrderBook {
-  token: string;
-  buyOrders: OrderBookEntry[];
-  sellOrders: OrderBookEntry[];
-}
+export type WhitelistStatusState = ApiSchema<'WhitelistStatusStatusEnum'>;
 
-/* eslint-disable @typescript-eslint/naming-convention -- API query params use snake_case */
-export interface GetOrdersParams {
-  token?: string;
-  status?: string;
-  order_type?: string;
-  wallet_address?: string;
-}
-/* eslint-enable @typescript-eslint/naming-convention */
+export type WhitelistStatus = ApiResponse<'api_v1_trading_whitelist_status_retrieve'>;
 
-export type WhitelistStatusState = 'whitelisted' | 'not_whitelisted' | 'unknown';
+export type WalletTokenBalance = ApiSchema<'TradingWalletTokenBalance'>;
 
-export interface WhitelistStatus {
-  address: string;
-  isWhitelisted: boolean;
-  canReceive: boolean;
-  status: WhitelistStatusState;
-}
+export type WalletTokenBalancesResponse = ApiResponse<'api_v1_trading_wallets_balances_retrieve'>;
 
-export interface WalletTokenBalance {
-  token: string;
-  symbol: string;
-  name: string;
-  balance: string;
-  contractAddress: string;
-  decimals?: number;
-  type?: 'share_token' | 'stablecoin';
-}
+export type MarketData = ApiResponse<'api_v1_trading_tokens_market_data_retrieve'>;
 
-export interface WalletTokenBalancesResponse {
-  walletAddress: string;
-  balances: WalletTokenBalance[];
-}
+export type SwapOrder = ApiSchema<'SwapOrderList'> | ApiSchema<'SwapOrderDetail'>;
 
-export interface MarketData {
-  token: string;
-  symbol: string;
-  lastTrade: {
-    price: string;
-    shares: number;
-    paymentAmount: string;
-    paymentToken: string;
-    completedAt: string | null;
-  } | null;
-  lastTradePrice: string | null;
-  bestBid: string | null;
-  bestAsk: string | null;
-  midpointPrice: string | null;
-}
+export type EIP712Domain = ApiSchema<'SigningDomain'>;
 
-export interface SwapOrder {
-  settlementProtocolVersion?: 0 | 1;
-  settlementContext?: SwapSettlementContext | null;
-  settlementDigest?: string;
-  uuid: string;
-  status: SwapStatus;
-  statusDisplay?: string;
-  shareTokenSymbol: string;
-  shareTokenName: string;
-  shareTokenAddress?: string;
-  paymentTokenSymbol: string;
-  paymentTokenAddress?: string;
-  sellerAddress: string;
-  buyerAddress: string;
-  shareAmount: number;
-  paymentAmount: number;
-  nonce?: number;
-  orderHash?: string;
-  sellerHasSigned: boolean;
-  buyerHasSigned: boolean;
-  isExpired?: boolean;
-  isReady?: boolean;
-  sellOrderUuid?: string;
-  buyOrderUuid?: string;
-  txHash?: string;
-  expiresAt: string;
-  completedAt?: string | null;
-  errorMessage?: string;
-  createdAt: string;
-  updatedAt?: string;
-}
+export type EIP712TypeField = ApiSchema<'SigningTypes'>[string][number];
 
-export interface EIP712Domain {
-  name: string;
-  version: string;
-  chainId: number;
-  verifyingContract: string;
-}
+export type EIP712Types = ApiSchema<'SigningTypes'>;
 
-export interface EIP712TypeField {
-  name: string;
-  type: string;
-}
+export type SwapOrderMessage = ApiSchema<'SwapMessage'>;
 
-/* eslint-disable @typescript-eslint/naming-convention -- EIP-712 standard requires PascalCase type names */
-export interface EIP712Types {
-  EIP712Domain: EIP712TypeField[];
-  SwapOrder: EIP712TypeField[];
-}
-/* eslint-enable @typescript-eslint/naming-convention */
+export type SwapTypedData = ApiSchema<'LegacySwapTypedData'>;
 
-export interface SwapOrderMessage {
-  seller: string;
-  buyer: string;
-  shareToken: string;
-  paymentToken: string;
-  shareAmount: number | string;
-  paymentAmount: number | string;
-  nonce: number | string;
-  deadline: number | string;
-}
+export type SwapDataResponse = ApiSchema<'LegacySwapOrderForSigning'>;
 
-export interface SwapTypedData {
-  types: EIP712Types;
-  primaryType: string;
-  domain: EIP712Domain;
-  message: SwapOrderMessage;
-}
-
-export interface SwapDataResponse {
-  swapOrder: SwapOrder;
-  typedData: SwapTypedData;
-  userRole: SwapUserRole | string;
-  hasSigned: boolean;
-}
-
-export interface SubmitSignatureRequest {
-  signature: string;
-  signerAddress: string;
-}
+export type SubmitSignatureRequest = ApiSchema<'SubmitSignatureRequest'>;
 
 export interface GetSwapDataParams {
   walletAddress: string;
 }
 
-export type SigningChallengePurpose = 'order_cancel' | 'order_create' | 'order_modify';
+export type SigningChallengePurpose =
+  ApiSchema<'OrderCreateChallenge'>['purpose'] | ApiSchema<'OrderActionChallenge'>['purpose'];
 
-export interface SigningChallengeTypedData {
-  domain: {
-    name: string;
-    version: string;
-    chainId: number;
-    verifyingContract: string;
-  };
-  types: Record<string, { name: string; type: string }[]>;
-  message: Record<string, string | number>;
-}
+export type SigningChallengeTypedData = Pick<ApiSchema<'OrderCreateChallenge'>, 'domain' | 'types' | 'message'>;
 
-export interface CreateOrderMessageResponse extends SigningChallengeTypedData {
-  purpose: 'order_create';
-  tokenUuid: string;
-  walletAddress: string;
-  digest: string;
-  expiresAt: string;
-}
+export type CreateOrderMessageResponse = ApiSchema<'OrderCreateChallenge'>;
 
-export interface SignedCreateOrderRequest extends OrderSubmissionRequest {
-  digest: string;
-  signature: string;
-}
+export type SignedCreateOrderRequest = ApiRequest<'api_v1_trading_orders_create_create'>;
 
-export interface ShareTokenTransferTokenInfo {
-  uuid: string;
-  symbol: string;
-  contractAddress: string;
-}
+export type ShareTokenTransferTokenInfo = ApiSchema<'TransferTokenInfo'>;
 
-export interface ShareTokenTransferTransactionData {
-  to: string;
-  data: string;
-  value: number;
-  nonce: number;
-  chainId: number;
-  gasPrice: number;
-  gas: number;
-}
+export type ShareTokenTransferTransactionData = ApiSchema<'PreparedTokenTransaction'>;
 
-export interface ShareTokenTransferPrepareResponse {
-  token: ShareTokenTransferTokenInfo;
-  fromAddress: string;
-  toAddress: string;
-  amount: number;
-  transactionData: ShareTokenTransferTransactionData;
-}
+export type ShareTokenTransferPrepareResponse = ApiResponse<'api_v1_trading_transfers_prepare_create'>;
 
-export interface ApprovalStatusResponse {
-  swapUuid: string;
-  userRole: string;
-  tokenAddress: string;
-  tokenSymbol: string;
-  requiredAmount: number;
-  currentAllowance: number;
-  needsApproval: boolean;
-  spender: string;
-}
+export type ApprovalStatusResponse = ApiSchema<'ApprovalStatusResponse'>;
 
-export interface ApprovalTransaction {
-  to: string;
-  from: string;
-  data: string;
-  value: string;
-  gas: string;
-  gasPrice: string;
-  nonce: string;
-  chainId: string;
-}
+export type ApprovalTransaction = ApiSchema<'ApprovalTransaction'>;
 
-export interface ApprovalDataResponse {
-  needsApproval: boolean;
-  swapUuid?: string;
-  userRole?: string;
-  transaction?: ApprovalTransaction;
-  description?: string;
-  tokenAddress?: string;
-  tokenSymbol?: string;
-  spender?: string;
-  amount?: string;
-  unlimited?: boolean;
-  message?: string;
-  currentAllowance?: number;
-  requiredAmount?: number;
-}
+export type ApprovalDataResponse = ApiSchema<'ApprovalTransactionResponse'> | ApiSchema<'SufficientApprovalResponse'>;

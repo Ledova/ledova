@@ -146,9 +146,15 @@ export function TransactionsScreen() {
     const sorted = [...transactions];
     switch (selectedSort) {
       case 'newest':
-        return sorted.sort((a, b) => new Date(b.blockTimestamp).getTime() - new Date(a.blockTimestamp).getTime());
+        return sorted.sort(
+          (a, b) =>
+            new Date(b.blockTimestamp ?? b.createdAt).getTime() - new Date(a.blockTimestamp ?? a.createdAt).getTime(),
+        );
       case 'oldest':
-        return sorted.sort((a, b) => new Date(a.blockTimestamp).getTime() - new Date(b.blockTimestamp).getTime());
+        return sorted.sort(
+          (a, b) =>
+            new Date(a.blockTimestamp ?? a.createdAt).getTime() - new Date(b.blockTimestamp ?? b.createdAt).getTime(),
+        );
       case 'highestValue':
         return sorted.sort((a, b) => parseFloat(b.amount || '0') - parseFloat(a.amount || '0'));
       case 'lowestValue':
@@ -159,7 +165,9 @@ export function TransactionsScreen() {
           const bIncoming = isIncomingTransaction(b);
           if (!aIncoming && bIncoming) return -1;
           if (aIncoming && !bIncoming) return 1;
-          return new Date(b.blockTimestamp).getTime() - new Date(a.blockTimestamp).getTime();
+          return (
+            new Date(b.blockTimestamp ?? b.createdAt).getTime() - new Date(a.blockTimestamp ?? a.createdAt).getTime()
+          );
         });
       case 'received':
         return sorted.sort((a, b) => {
@@ -167,7 +175,9 @@ export function TransactionsScreen() {
           const bIncoming = isIncomingTransaction(b);
           if (aIncoming && !bIncoming) return -1;
           if (!aIncoming && bIncoming) return 1;
-          return new Date(b.blockTimestamp).getTime() - new Date(a.blockTimestamp).getTime();
+          return (
+            new Date(b.blockTimestamp ?? b.createdAt).getTime() - new Date(a.blockTimestamp ?? a.createdAt).getTime()
+          );
         });
       default:
         return sorted;

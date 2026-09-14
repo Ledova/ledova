@@ -6,9 +6,8 @@ from drf_spectacular.utils import (
     OpenApiResponse,
     PolymorphicProxySerializer,
     extend_schema,
-    inline_serializer,
 )
-from rest_framework import serializers, status
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
@@ -43,7 +42,6 @@ from tokens.serializers.order_submission import (
     SignedOrderSubmissionSerializer,
     submission_snapshot,
 )
-from tokens.serializers.signing import SwapTypedDataField
 from tokens.serializers.swap_order import (
     SettlementApprovalBroadcastSerializer,
     SettlementIdentitySerializer,
@@ -58,6 +56,7 @@ from tokens.serializers.trading_responses import (
     SettlementApprovalReceiptSerializer,
     SettlementApprovalStatusSerializer,
     SettlementApprovalUncertainSerializer,
+    SwapOrderForSigningSerializer,
     SwapSignatureRequestSerializer,
 )
 from tokens.services import (
@@ -87,6 +86,30 @@ from tokens.services.trading_order_create import (
     recover_order_submission,
 )
 from tokens.trading_wallet_access import resolve_verified_evm_wallets
+
+SWAP_LOOKUP_PARAMETERS = [
+    OpenApiParameter(
+        "wallet_address",
+        OpenApiTypes.STR,
+        OpenApiParameter.QUERY,
+        description="Verified wallet address for a legacy swap. Use the exact settlement identity for current swaps.",
+    ),
+    *[
+        OpenApiParameter(
+            name,
+            OpenApiTypes.UUID,
+            OpenApiParameter.QUERY,
+            description="Required together with the other settlement identity UUIDs for current swaps.",
+        )
+        for name in ("swap_uuid", "owner_account_uuid", "wallet_uuid")
+    ],
+    OpenApiParameter(
+        "settlement_digest",
+        OpenApiTypes.STR,
+        OpenApiParameter.QUERY,
+        description="Recorded settlement digest. Required for approval status and approval data; optional for lookup.",
+    ),
+]
 
 
 class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
@@ -250,24 +273,7 @@ class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
         result = recover_order_submission(request.user, serializer.validated_data["owner_account_uuid"], key)
         return Response(submission_snapshot(result.submission))
 
-    @extend_schema(
-        responses=inline_serializer(
-            name="SwapOrderForSigning",
-            fields={
-                "swap_order": SwapOrderDetailSerializer(),
-                "typed_data": SwapTypedDataField(),
-                "user_role": serializers.CharField(),
-                "has_signed": serializers.BooleanField(),
-                "can_sign": serializers.BooleanField(required=False),
-                "admission_refusal": serializers.CharField(allow_null=True, required=False),
-                "order_uuid": serializers.UUIDField(required=False),
-                "owner_account_uuid": serializers.UUIDField(required=False),
-                "wallet_uuid": serializers.UUIDField(required=False),
-                "swap_uuid": serializers.UUIDField(required=False),
-                "settlement_digest": serializers.CharField(required=False),
-            },
-        )
-    )
+    @extend_schema(parameters=SWAP_LOOKUP_PARAMETERS, responses=SwapOrderForSigningSerializer)
     @action(detail=True, methods=["get"], url_path="swap")
     def swap(self, request, uuid=None):
         atomic_swap_service, swap_order, user_role, has_signed = self._get_authorized_swap_context(request)
@@ -338,11 +344,12 @@ class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
         return Response(SwapOrderDetailSerializer(updated_order).data)
 
     @extend_schema(
+        parameters=SWAP_LOOKUP_PARAMETERS,
         responses=PolymorphicProxySerializer(
             component_name="SwapApprovalStatus",
             serializers=[ApprovalStatusResponseSerializer, SettlementApprovalStatusSerializer],
             resource_type_field_name=None,
-        )
+        ),
     )
     @action(detail=True, methods=["get"], url_path="swap/approval-status")
     def swap_approval_status(self, request, uuid=None):
@@ -367,7 +374,7 @@ class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
             result["current_allowance"] = str(result["current_allowance"])
         return Response(result)
 
-    @extend_schema(responses=ApprovalDataResponseSerializer)
+    @extend_schema(parameters=SWAP_LOOKUP_PARAMETERS, responses=ApprovalDataResponseSerializer)
     @action(detail=True, methods=["get"], url_path="swap/approval-data")
     def swap_approval_data(self, request, uuid=None):
         atomic_swap_service, swap_order, user_role, _has_signed = self._get_authorized_swap_context(request)

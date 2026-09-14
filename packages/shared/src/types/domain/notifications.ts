@@ -1,60 +1,21 @@
-import type { BaseEntity } from '../common';
+import type { ApiSchema, ApiRequest, ApiResponse } from '../contracts';
 
-export type DeviceType = 'ios' | 'android';
+export type DeviceType = ApiSchema<'DeviceTypeEnum'>;
 
-export interface DeviceToken {
-  uuid: string;
-  createdAt: string;
-  pushToken: string;
-  deviceType: DeviceType;
-  isActive: boolean;
-  lastUsedAt: string;
-}
+export type DeviceToken = ApiResponse<'api_device_tokens_retrieve'>;
 
-/* eslint-disable @typescript-eslint/naming-convention */
-export interface RegisterDeviceTokenRequest {
-  push_token: string;
-  device_type: DeviceType;
-}
-/* eslint-enable @typescript-eslint/naming-convention */
+export type RegisterDeviceTokenRequest = ApiRequest<'api_device_tokens_register_create'>;
 
-/* eslint-disable @typescript-eslint/naming-convention */
-export interface UnregisterDeviceTokenRequest {
-  push_token: string;
-}
-/* eslint-enable @typescript-eslint/naming-convention */
+export type UnregisterDeviceTokenRequest = ApiRequest<'api_device_tokens_unregister_create'>;
 
-export interface NotificationPreferences extends BaseEntity {
-  userProfile: string;
-  transactionAlerts: boolean;
-  priceAlerts: boolean;
-  marketing: boolean;
-}
+export type NotificationPreferences = ApiResponse<'api_notification_preferences_list'>;
 
-/* eslint-disable @typescript-eslint/naming-convention */
-export interface UpdateNotificationPreferencesRequest {
-  transaction_alerts?: boolean;
-  price_alerts?: boolean;
-  marketing?: boolean;
-}
-/* eslint-enable @typescript-eslint/naming-convention */
+export type UpdateNotificationPreferencesRequest = ApiRequest<'api_notification_preferences_create'>;
 
-export type NotificationType = 'transaction' | 'price' | 'marketing' | 'general' | 'system';
+export type NotificationType = ApiSchema<'NotificationTypeEnum'>;
 
-export interface Notification extends BaseEntity {
-  title: string;
-  body: string;
-  notificationType: NotificationType;
-  data: Record<string, unknown>;
-  isRead: boolean;
-  readAt: string | null;
-  isArchived: boolean;
-}
+export type Notification = ApiResponse<'api_notifications_retrieve'>;
 
-export interface UnreadCountResponse {
-  unreadCount: number;
-}
+export type UnreadCountResponse = ApiResponse<'api_notifications_unread_count_retrieve'>;
 
-export interface MarkAllReadResponse {
-  marked: number;
-}
+export type MarkAllReadResponse = ApiResponse<'api_notifications_mark_all_read_create'>;

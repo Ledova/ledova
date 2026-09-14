@@ -24,7 +24,10 @@ class DeviceTokenViewSet(AuthenticatedModelViewSet):
     def narrow(self, queryset):
         return queryset.filter(is_active=True)
 
-    @extend_schema(responses=DeviceTokenSerializer)
+    @extend_schema(
+        request=RegisterDeviceTokenSerializer,
+        responses={200: DeviceTokenSerializer, 201: DeviceTokenSerializer},
+    )
     @action(detail=False, methods=["post"], url_path="register")
     def register_token(self, request):
         serializer = RegisterDeviceTokenSerializer(data=request.data)
@@ -42,10 +45,11 @@ class DeviceTokenViewSet(AuthenticatedModelViewSet):
         )
 
     @extend_schema(
+        request=UnregisterDeviceTokenSerializer,
         responses={
             204: None,
             404: inline_serializer(name="DeviceTokenNotFound", fields={"detail": serializers.CharField()}),
-        }
+        },
     )
     @action(detail=False, methods=["post"], url_path="unregister")
     def unregister_token(self, request):

@@ -35,7 +35,7 @@ export function useWallets() {
         const parentKey = importedParentKey(derivedAddress, importData);
 
         const chain = getChainByShortName(derivedAddress.networkType);
-        if (!chain) return;
+        if (!chain?.isActive) return;
 
         crud.createWallet({
           address: derivedAddress.address,
@@ -61,7 +61,7 @@ export function useWallets() {
         const parentKey = importedParentKey(derivedAddress, importData);
 
         const chain = getChainByShortName(derivedAddress.networkType);
-        if (!chain) return;
+        if (!chain?.isActive) return;
 
         crud.createWallet({
           address: derivedAddress.address,

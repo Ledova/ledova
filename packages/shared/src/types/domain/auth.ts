@@ -1,43 +1,18 @@
-export interface SigninRequest {
-  email: string;
-  password: string;
-}
+import type { ApiRequest, ApiResponse } from '../contracts';
+export type SigninRequest = ApiRequest<'api_signin_create'>;
 
-export interface SignupRequest {
-  email: string;
-  password: string;
-  passwordConfirm: string;
-}
+export type SignupRequest = ApiRequest<'api_signup_create'>;
 
-export interface EmailVerificationRequest {
-  token: string;
-  email?: string;
-}
+export type EmailVerificationRequest = ApiRequest<'api_email_verification_create'>;
 
-export interface ResendVerificationRequest {
-  email: string;
-}
+export type ResendVerificationRequest = ApiRequest<'api_resend_verification_create'>;
 
-export interface TokenRefreshRequest {
-  refresh: string;
-}
+export type TokenRefreshRequest = ApiRequest<'api_token_refresh_create'>;
 
-export interface TokenRefreshResult {
-  access: string;
-  refresh: string;
-}
+export type TokenRefreshResult = ApiResponse<'api_token_refresh_create'>;
 
-export interface AuthVerificationResponse {
-  valid: boolean;
-  expiresAt?: string;
-}
+export type AuthVerificationResponse = ApiResponse<'api_auth_verify_retrieve'>;
 
-export interface ChangePasswordRequest {
-  currentPassword: string;
-  newPassword: string;
-  newPasswordConfirm: string;
-}
+export type ChangePasswordRequest = ApiRequest<'api_change_password_create'>;
 
-export interface ChangePasswordResponse {
-  message: string;
-}
+export type ChangePasswordResponse = ApiResponse<'api_change_password_create'>;

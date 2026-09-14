@@ -1,8 +1,9 @@
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from offerings.exceptions import SubscriptionRefusedException
 from offerings.models import Offering, Subscription
-from offerings.models.subscription import SubscriptionStatus
+from offerings.models.subscription import SettlementRail, SubscriptionStatus
 from offerings.services.payments import build_instruction
 from offerings.services.subscription import create_draft
 from operators.exceptions import SettlementAssetNotDeployedException
@@ -49,6 +50,26 @@ class SubscriptionListSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class PaymentInstructionSerializer(serializers.Serializer):
+    rail = serializers.ChoiceField(choices=SettlementRail.choices)
+    rail_display = serializers.CharField()
+    reference = serializers.CharField()
+    amount_due = serializers.CharField()
+    currency = serializers.CharField()
+    payment_due_at = serializers.DateTimeField(allow_null=True)
+    issued_at = serializers.DateTimeField(allow_null=True)
+    payee = serializers.CharField()
+    bank_account_name = serializers.CharField(required=False)
+    bank_bsb = serializers.CharField(required=False)
+    bank_account_number = serializers.CharField(required=False)
+    receiving_wallet_address = serializers.CharField(required=False)
+    chain = serializers.CharField(required=False)
+    asset_symbol = serializers.CharField(required=False)
+    contract_address = serializers.CharField(required=False)
+    decimals = serializers.IntegerField(required=False)
+    settlement_amount = serializers.CharField(required=False)
+
+
 class SubscriptionDetailSerializer(SubscriptionListSerializer):
 
     payment_instruction = serializers.SerializerMethodField()
@@ -73,6 +94,7 @@ class SubscriptionDetailSerializer(SubscriptionListSerializer):
         ]
         read_only_fields = fields
 
+    @extend_schema_field(PaymentInstructionSerializer(allow_null=True))
     def get_payment_instruction(self, subscription) -> dict | None:
         if subscription.status != SubscriptionStatus.AWAITING_PAYMENT:
             return None

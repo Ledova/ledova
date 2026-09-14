@@ -4,6 +4,9 @@ import type { PortfolioSnapshot } from '../../src/types';
 const snapshot = (overrides: Partial<PortfolioSnapshot> = {}): PortfolioSnapshot => ({
   uuid: 'portfolio:2026-09-09',
   portfolio: 'portfolio',
+  portfolioName: 'Portfolio',
+  accountId: 'account',
+  hasValueData: true,
   createdAt: '2026-09-09T00:00:00Z',
   updatedAt: '2026-09-09T00:00:00Z',
   snapshotDate: '2026-09-09',
@@ -66,7 +69,9 @@ it('retains an unpriced holding without inventing a price or legacy network hist
   const input = snapshot({
     totalMarketValue: null,
     hasValueData: false,
-    holdingsData: { ORD: { assetUuid: 'shares', quantity: '250', wallets: ['wallet'] } },
+    holdingsData: {
+      ORD: { assetUuid: 'shares', quantity: '250', wallets: ['wallet'] },
+    } as unknown as PortfolioSnapshot['holdingsData'],
   });
   const point = portfolioSnapshotPoints([input])[0]!;
 
