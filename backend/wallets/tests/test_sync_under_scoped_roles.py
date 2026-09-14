@@ -65,7 +65,7 @@ class ScopedWalletSyncTest(RunsOnTheScopedConnection, TransactionTestCase):
         self.addCleanup(client.stop)
         self.history = client.start().return_value.get_transaction_history
         self.history.side_effect = self.transaction_history
-        balance = patch("tokens.services.share_token_service.ShareTokenService")
+        balance = patch("tokens.services.share_token_service.share_token_service")
         self.addCleanup(balance.stop)
         self.balance = balance.start().return_value.get_token_balance
         self.balance.return_value = 9

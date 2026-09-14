@@ -64,7 +64,7 @@ def fetch_chain_balance(wallet, asset) -> Optional[Decimal]:
 
 def _share_balance(wallet, asset, deployment) -> Optional[Decimal]:
     from tokens.models import ShareToken
-    from tokens.services.share_token_service import ShareTokenService
+    from tokens.services import share_token_service
 
     token = ShareToken.objects.deployed_at(deployment.chain, deployment.contract_address).first()
     if token is None:
@@ -73,7 +73,7 @@ def _share_balance(wallet, asset, deployment) -> Optional[Decimal]:
         )
         return None
     try:
-        return Decimal(ShareTokenService().get_token_balance(token.contract_address, wallet.address))
+        return Decimal(share_token_service.get_token_balance(token.contract_address, wallet.address))
     except Exception as e:
         logger.warning(f"Balance query failed for {asset.symbol} on {wallet.chain}: {e}")
         return None

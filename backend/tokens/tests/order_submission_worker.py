@@ -87,11 +87,16 @@ def run():
             ("tokens.services.token_transfer_service.get_base_chain_client", chain),
             ("tokens.services.atomic_swap_service.get_base_chain_client", chain),
             ("tokens.services.token_transfer_service.whitelist", whitelist),
-            ("tokens.services.ShareTokenService", balance),
+            ("tokens.services.share_token_service", balance),
         ):
             stack.enter_context(
                 patch(
-                    target, **({"new": replacement} if target.endswith(".whitelist") else {"return_value": replacement})
+                    target,
+                    **(
+                        {"new": replacement}
+                        if target.endswith((".whitelist", ".share_token_service"))
+                        else {"return_value": replacement}
+                    ),
                 )
             )
         stack.enter_context(patch("tokens.events._publish", side_effect=published))

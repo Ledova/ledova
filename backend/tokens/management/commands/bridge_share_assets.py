@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 
 from tokens.models import ShareToken
-from tokens.services import ShareTokenService
+from tokens.services import share_token_service
 
 
 class Command(BaseCommand):
@@ -16,7 +16,7 @@ class Command(BaseCommand):
         if options["symbol"]:
             tokens = tokens.filter(symbol=options["symbol"])
 
-        service = ShareTokenService() if not options["dry_run"] else None
+        service = share_token_service if not options["dry_run"] else None
         for token in tokens:
             label = f"{token.company.name} {token.symbol} at {token.contract_address}"
             if options["dry_run"]:

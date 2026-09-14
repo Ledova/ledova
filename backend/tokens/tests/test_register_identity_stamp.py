@@ -8,7 +8,7 @@ from web3 import Web3
 
 from shared.tests.tenants import make_tenant
 from tokens.models import RequestStatus, ShareIssuance, ShareIssuanceRequest
-from tokens.services import ShareTokenService
+from tokens.services import share_token_service
 from tokens.services.holder_identity import identity_at_allotment
 from tokens.services.register import (
     IDENTITY_BY_HOLDER_TYPE,
@@ -25,8 +25,8 @@ from whitelist.models import HolderType, WhitelistEntry
 
 HOLDER = "0x" + "ab" * 20
 CHAIN_CLIENT = "tokens.services.share_token_service.get_base_chain_client"
-WHITELISTED = "tokens.services.share_token_service.ShareTokenService.is_recipient_whitelisted"
-SUPPLY = "tokens.services.share_token_service.ShareTokenService.share_supply"
+WHITELISTED = "tokens.services.share_token_service.is_recipient_whitelisted"
+SUPPLY = "tokens.services.share_token_service.share_supply"
 IDENTITY_COLUMN = REGISTER_HEADERS.index("Identity source")
 
 
@@ -61,8 +61,13 @@ class IdentitySurvivesAWalletDeletionTest(TestCase):
         self.chain.transfer_participants.return_value = set()
         self.chain.get_token_balance.return_value = 100
         self.chain.share_supply.return_value = (1000, 100)
-        service = patch("tokens.services.register.ShareTokenService").start()
-        service.return_value = self.chain
+        service = patch("tokens.services.register.share_token_service").start()
+        service.configure_mock(
+            **{
+                name: getattr(self.chain, name)
+                for name in ("deployment_block", "transfer_participants", "share_supply", "get_token_balance")
+            }
+        )
         self.addCleanup(patch.stopall)
 
     def _allot(self, name="", address="", stamped=True):
@@ -178,7 +183,7 @@ class TheIssuancePathStampsWhatItAllotsTest(TestCase):
         profile.save(update_fields=["full_name", "residential_address"])
         Wallet.objects.create(user_account=self.tenant.account, address=HOLDER, chain="base")
 
-        self.service = ShareTokenService()
+        self.service = share_token_service
 
     def _execute(self, recipient=HOLDER, label=""):
         request = ShareIssuanceRequest.objects.create(

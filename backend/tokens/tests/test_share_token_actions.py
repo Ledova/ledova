@@ -60,7 +60,9 @@ class ShareTokenActionTest(APITestCase):
         self.assertEqual(response.json()["token"]["status"], ShareTokenStatus.DEPLOYING)
         draft.refresh_from_db()
         self.assertEqual(draft.status, ShareTokenStatus.DEPLOYING)
-        deploy_task.defer.assert_called_once_with(token_uuid=str(draft.uuid), principal_id=self.tenant.user.pk)
+        deploy_task.defer.assert_called_once_with(
+            token_uuid=str(draft.uuid), deployment_id=str(draft.deployment_id), principal_id=self.tenant.user.pk
+        )
 
         paused = self.client.post(f"/api/v1/tokens/{deployed.uuid}/pause/")
         self.assertEqual(paused.status_code, 200)
@@ -79,7 +81,7 @@ class ShareTokenActionTest(APITestCase):
     def test_pause_failure_on_chain_keeps_the_status_and_answers_with_detail(self, chain_client):
         deployed = self.tenant.deployed_token
         failure = TokenPauseFailedException("Token pause failed: execution reverted")
-        with patch("tokens.services.share_token_service.ShareTokenService._set_paused", side_effect=failure):
+        with patch("tokens.services.share_token_service._set_paused", side_effect=failure):
             response = self.client.post(f"/api/v1/tokens/{deployed.uuid}/pause/")
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.json()["detail"], "Token pause failed: execution reverted")
@@ -140,7 +142,7 @@ class ShareTokenActionTest(APITestCase):
         self.assertEqual(response.json(), {"nonFieldErrors": ["The fields company, symbol must make a unique set."]})
 
     @patch("tokens.views.share_token.token_register")
-    @patch("tokens.views.share_token.ShareTokenService")
+    @patch("tokens.views.share_token.share_token_service")
     def test_issue_and_holders_shapes(self, service_class, register):
         token = self.tenant.deployed_token
         issuance_request = ShareIssuanceRequest.objects.create(
@@ -186,7 +188,7 @@ class ShareTokenActionTest(APITestCase):
         self.assertEqual(holders.json()["totalHolders"], 1)
         register.assert_called_once_with(token)
 
-    @patch("tokens.views.share_token.ShareTokenService")
+    @patch("tokens.views.share_token.share_token_service")
     def test_issue_rejects_a_bad_amount_with_a_field_error(self, service_class):
         token = self.tenant.deployed_token
 
@@ -209,13 +211,13 @@ class ShareTokenActionTest(APITestCase):
         self.assertIn("issuanceType", bad_type.json())
         service_class.create_issuance_request.assert_not_called()
 
-    @patch("tokens.services.register.ShareTokenService")
-    @patch("tokens.views.share_token.ShareTokenService")
+    @patch("tokens.services.register.share_token_service")
+    @patch("tokens.views.share_token.share_token_service")
     def test_detail_actions_keep_filter_params_off_the_token_lookup(self, service_class, register_chain):
-        register_chain.return_value.deployment_block.return_value = 1
-        register_chain.return_value.transfer_participants.return_value = set()
-        register_chain.return_value.get_token_balance.return_value = 0
-        register_chain.return_value.share_supply.return_value = (0, 0)
+        register_chain.deployment_block.return_value = 1
+        register_chain.transfer_participants.return_value = set()
+        register_chain.get_token_balance.return_value = 0
+        register_chain.share_supply.return_value = (0, 0)
         token = self.tenant.deployed_token
         completed = ShareIssuance.objects.create(
             token=token, recipient_address=RECIPIENT, amount="5", status=IssuanceStatus.COMPLETED

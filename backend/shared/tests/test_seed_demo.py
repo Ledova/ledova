@@ -21,7 +21,7 @@ from shared.seeds.demo import (
 )
 from tokens.models import ShareToken
 from tokens.models.choices import ShareTokenStatus
-from tokens.services.share_token_service import ShareTokenService
+from tokens.services import deployment
 from users.services.eligibility import investor_eligibility
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
@@ -78,7 +78,7 @@ class SeedDemoCommandTest(APITestCase):
 
         self.assertEqual(token.status, ShareTokenStatus.DRAFT)
         self.assertIsNone(token.contract_address)
-        self.assertEqual(ShareTokenService.require_deployable(token), token.company.operator_wallet)
+        self.assertEqual(deployment.require_deployable(token), token.company.operator_wallet)
 
     def test_rerunning_the_seed_keeps_the_base_wallet_when_ethereum_has_the_same_address(self):
         company = Company.objects.get(acn=DEMO_ACN)

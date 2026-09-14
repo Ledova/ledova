@@ -519,11 +519,11 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         self._service("companies.services.company.send_push_notification")
         self._service("offerings.services.offering.send_push_notification")
         self._service("tokens.tasks.deploy_share_token_task")
-        share_tokens = self._service("tokens.views.share_token.ShareTokenService")
+        share_tokens = self._service("tokens.views.share_token.share_token_service")
         share_tokens.create_issuance_request.side_effect = _create_issuance_request
-        balances_need_a_readable_chain = self._service("tokens.views.trading_wallet.ShareTokenService").return_value
+        balances_need_a_readable_chain = self._service("tokens.views.trading_wallet.share_token_service")
         balances_need_a_readable_chain.get_wallet_token_balances.return_value = {"balances": []}
-        register_chain = self._service("tokens.services.register.ShareTokenService").return_value
+        register_chain = self._service("tokens.services.register.share_token_service")
         register_chain.deployment_block.return_value = 1
         register_chain.transfer_participants.return_value = set()
         register_chain.get_token_balance.return_value = 0

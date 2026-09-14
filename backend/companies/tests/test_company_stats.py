@@ -88,7 +88,7 @@ class CompanyStatsTest(APITestCase):
             for index in range(start, stop):
                 self._issuance(self.deployed, Web3.to_checksum_address(f"0x{index + 1:040x}"))
 
-        with patch("tokens.services.share_token_service.ShareTokenService.get_token_balance") as balance:
+        with patch("tokens.services.share_token_service.get_token_balance") as balance:
             allot(0, 2)
             with CaptureQueriesContext(connection) as few:
                 self.client.get(url)
