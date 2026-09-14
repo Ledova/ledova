@@ -52,6 +52,16 @@ class File {
     if (!sticky.has(uri)) files.delete(uri);
   }
 
+  create() {
+    operations.push({ kind: 'create', uri: this.uri });
+    files.set(this.uri, { size: 0, content: '' });
+  }
+
+  write(bytes: Uint8Array) {
+    operations.push({ kind: 'write', uri: this.uri });
+    files.set(this.uri, { size: bytes.length, content: String.fromCharCode(...bytes) });
+  }
+
   move(destination: File) {
     operations.push({ kind: 'move', uri: this.uri });
     const entry = files.get(this.uri);
