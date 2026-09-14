@@ -58,8 +58,8 @@ phrase anywhere in the PR body, even a negated one such as "does not close #N",
 and one linked from the PR's Development sidebar. It leaves out commit messages,
 which still close an issue when they reach the default branch, and this
 repository's squash merges copy them into the squash commit. That is how #170 was
-closed by #172's squash commit while #172's list was empty. So the gate also searches each
-commit's headline and body for one of GitHub's
+closed by #172's squash commit while #172's list was empty. So the gate also
+searches each commit's headline and body for one of GitHub's
 [closing keywords](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue#linking-a-pull-request-to-an-issue-using-a-keyword),
 in any case and optionally followed by a colon, then whitespace and `#N`,
 `OWNER/REPO#N` or a `https://github.com/OWNER/REPO/issues/N` URL.
@@ -68,19 +68,20 @@ A `Refs` PR with a list entry or such a commit phrase is refused. The refusal
 names each issue, or each commit by short SHA with its reference; remove the
 phrase or the link, or reword the commit. A `Closes` PR is checked against
 neither. GitHub documents the keywords, the colon and the `#N` and `OWNER/REPO#N`
-forms, not URLs or a missing space; the gate matches the URL form and not
-`Closes#N`. `gh` reads only a PR's first 100 commits, so a phrase in a later
-commit is not seen. The PR title, which becomes the squash headline for a PR with
-several commits, and a message edited at merge time are not checked.
+forms, not URLs, `GH-N` or a missing space. The gate matches only the URL
+spelling above, and passes `GH-N` and `Closes#N`. `gh` reads only a PR's first
+100 commits, so a phrase in a later commit is not seen. The PR title is not
+checked, although it becomes a merge commit's body and the squash headline for a
+PR with several commits; nor is a message edited at merge time.
 
 The separate `PR metadata` workflow runs on creation, edits, new commits,
 reopening and readiness changes, including bot PRs. It uses `pull_request_target`
 with read-only permissions and checks out only the repository's default branch.
 It never checks out or executes the PR's code. Titles, bodies and commit messages
-are fetched as data through the API, rather than interpolated into a shell command. Concurrent
-runs for the same PR cancel older runs; each check fetches the current metadata.
-Linking an issue from the sidebar starts no workflow, so a link added after the
-last check is seen only at the next of those events.
+are fetched as data through the API, rather than interpolated into a shell
+command. Concurrent runs for the same PR cancel older runs; each check fetches
+the current metadata. Linking an issue from the sidebar starts no workflow, so a
+link added after the last check is seen only at the next of those events.
 
 This check needs GitHub access and is not part of `make check`; its regression
 tests run in `make test-gates`. To check a PR locally, run

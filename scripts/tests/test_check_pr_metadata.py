@@ -59,20 +59,29 @@ class OwningIssue(unittest.TestCase):
                     self.assertIn(f"2222222 ({reference})", str(refusal.exception))
                 self.assertNotIn("1111111", str(refusal.exception))
 
+    def test_each_closing_keyword_github_documents_is_refused_in_a_commit_message(self):
+        for keyword in ("close", "closes", "closed", "fix", "fixes", "fixed", "resolve", "resolves", "resolved"):
+            with self.subTest(keyword=keyword), self.assertRaisesRegex(ValueError, r"5555555 \(#8\)"):
+                gate.owning_issue(
+                    "fix(#123): refuse expired signatures", "Refs #123", (), [commit("5555555", f"{keyword} #8")]
+                )
+
     def test_a_closing_phrase_split_where_github_truncates_a_long_headline_is_still_refused(self):
         commits = [
-            commit(
-                "3333333cccc", "fix(#123): refuse signatures the server cannot check any more, which clo…", "…ses #8"
-            )
+            commit("3333333cccc", "fix(#123): refuse signatures the server cannot check any more, so clo…", "…ses #8")
         ]
         with self.assertRaisesRegex(ValueError, r"3333333 \(#8\)"):
             gate.owning_issue("fix(#123): refuse expired signatures", "Refs #123", (), commits)
 
-    def test_commit_messages_that_name_an_issue_without_a_closing_keyword_are_allowed(self):
+    def test_commit_messages_the_closing_grammar_does_not_match_are_allowed(self):
         for headline, body in (
             ("fix(#123): refuse expired signatures", "Refs #123"),
             ("fix(#123): leave #123 open", "Closing #123 needs production data."),
             ("fix(#123): resolve the merge conflict", "Fixing the test named in owner/ledova#123 comes later."),
+            ("fix(#123): prefix #1 to the list", ""),
+            ("fix(#123): refuse expired signatures", "The unfixed #2 stays open."),
+            ("fix(#123): refuse expired signatures", "Closes#1 has no space."),
+            ("fix(#123): refuse expired signatures", "fixes GH-1"),
         ):
             with self.subTest(headline=headline, body=body):
                 issue = gate.owning_issue(
