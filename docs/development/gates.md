@@ -50,7 +50,7 @@ are in
 [CONTRIBUTING.md](../../CONTRIBUTING.md#pull-request-titles-and-issue-ownership).
 
 A `Refs` PR must close no issue. The gate reads the PR's `closingIssuesReferences`
-through GitHub's GraphQL API. The list covers an issue named by a closing phrase
+with `gh pr view`. The list covers an issue named by a closing phrase
 anywhere in the PR body, even a negated one such as "does not close #N", and one
 linked from the PR's Development sidebar. A `Refs` PR with any entry is refused,
 and the refusal names each issue; remove the phrase or the link. A `Closes` PR is
@@ -70,8 +70,8 @@ last check is seen only at the next of those events.
 This check needs GitHub access and is not part of `make check`; its regression
 tests run in `make test-gates`. To check a PR locally, run
 `python scripts/check-pr-metadata.py --repository OWNER/REPO --pr NUMBER` with
-an authenticated `gh` CLI. The gate verifies traceability, not whether the issue
-is a sensible match or whether its full scope has been completed. Review owns
+an authenticated `gh` CLI, version 2.72.0 or later. The gate verifies
+traceability, not whether the issue is a sensible match or whether its full scope has been completed. Review owns
 those judgments. The workflow starts enforcing once it is on the default branch.
 
 ## The comment gate

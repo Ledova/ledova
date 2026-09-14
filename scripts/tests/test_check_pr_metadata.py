@@ -72,22 +72,24 @@ class OwningIssue(unittest.TestCase):
 
 
 class LiveIssueVerification(unittest.TestCase):
-    READ = ("graphql", "-f", f"query={gate.PULL_REQUEST}", "-f", "owner=owner", "-f", "name=ledova", "-F", "number=548")
+    READ = ("PR #548", "pr", "view", "548", "--repo", "owner/ledova", "--json", "title,body,closingIssuesReferences")
 
     def request(self, title="deps(#518): update dependencies", body="Refs #518", closing=()):
-        nodes = [{"number": number, "repository": {"nameWithOwner": "owner/ledova"}} for number in closing]
-        pull_request = {"title": title, "body": body, "closingIssuesReferences": {"nodes": nodes}}
-        return {"data": {"repository": {"pullRequest": pull_request}}}
+        return {"title": title, "body": body, "closingIssuesReferences": [{"url": url} for url in closing]}
 
     def test_reads_current_metadata_then_the_issue_in_the_same_repository(self):
         with patch.object(gate, "github_json", side_effect=[self.request(), {"number": 518}]) as api:
             self.assertEqual(gate.check("owner/ledova", 548), 518)
-        self.assertEqual([call.args for call in api.call_args_list], [self.READ, ("repos/owner/ledova/issues/518",)])
+        self.assertEqual(
+            [call.args for call in api.call_args_list],
+            [self.READ, ("issue #518", "api", "repos/owner/ledova/issues/518")],
+        )
 
     def test_a_refs_pr_is_refused_when_github_reports_it_closes_an_issue(self):
-        request = self.request(body="Refs #518\n\nThis PR does not close #518.", closing=(518,))
+        closing = ("https://github.com/owner/ledova/issues/518",)
+        request = self.request(body="Refs #518\n\nThis PR does not close #518.", closing=closing)
         with patch.object(gate, "github_json", side_effect=[request, {"number": 518}]):
-            with self.assertRaisesRegex(ValueError, "would close owner/ledova#518 on merge"):
+            with self.assertRaisesRegex(ValueError, "would close https://github.com/owner/ledova/issues/518 on merge"):
                 gate.check("owner/ledova", 548)
 
     def test_a_pull_request_number_cannot_stand_in_for_an_issue(self):
@@ -117,15 +119,15 @@ class LiveIssueVerification(unittest.TestCase):
 
     def test_api_failure_cannot_be_reported_as_a_valid_reference(self):
         with patch.object(gate.subprocess, "run", side_effect=subprocess.CalledProcessError(1, ["gh"])):
-            with self.assertRaisesRegex(ValueError, "Cannot verify"):
-                gate.github_json("repos/owner/ledova/issues/518")
+            with self.assertRaisesRegex(ValueError, "Cannot verify PR #548 through GitHub"):
+                gate.check("owner/ledova", 548)
 
     def test_metadata_remains_data_in_the_api_process(self):
         metadata = self.request(title="deps(#518): keep `touch /tmp/unwanted` as text")
         result = subprocess.CompletedProcess([], 0, stdout=json.dumps(metadata))
         with patch.object(gate.subprocess, "run", return_value=result) as process:
             self.assertEqual(gate.github_json(*self.READ), metadata)
-        self.assertEqual(process.call_args.args[0], ["gh", "api", *self.READ])
+        self.assertEqual(process.call_args.args[0], ["gh", *self.READ[1:]])
         self.assertNotIn("shell", process.call_args.kwargs)
 
     def test_cli_returns_failure_for_an_unverified_issue(self):
