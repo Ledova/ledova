@@ -258,6 +258,11 @@ test('the report server retains only allowlisted failure category and stage valu
       failure: { category: 'native-function', stage: 'initial-sign-out' },
     },
     { name: 'sign-out removes the native session', passed: false },
+    {
+      name: 'Android scanner window bridge',
+      passed: false,
+      failure: { category: 'native-view-not-found', stage: 'method-native-view-not-found' },
+    },
   ];
   assert.equal(await server.post({ checks: controls }), 200);
   assert.deepEqual(server.result().checks, controls);
