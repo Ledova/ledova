@@ -7,9 +7,14 @@ Rules for new and changed code. [Gates](gates.md) names the mechanical checks;
 
 ## The rules
 
-- Prefer fewer layers and less code. Remove what a change makes redundant in the
-  same change, including caller parameters, guards and tests that existed only
-  for a removed capability. Explain meaningful product tradeoffs before deciding them.
+- Prefer fewer layers, less code and less capability. Where functionality or
+  complexity is not necessary, the simpler option wins by default; where the
+  trade-off is meaningful, say what it costs and ask rather than deciding alone.
+  That applies to engineering trade-offs, not only product ones: explaining a
+  cost is not authorization to accept it. A proposal says what could be removed
+  as well as what could be added. Remove what a change makes redundant
+  in the same change, including caller parameters, guards and tests that
+  existed only for a removed capability.
 - Follow the [backend layer table](../architecture/backend.md#backend-layers).
   Services orchestrate; views adapt HTTP; querysets own reusable queries.
   New/touched service modules use plain functions. Existing seed-era service
@@ -34,7 +39,11 @@ Rules for new and changed code. [Gates](gates.md) names the mechanical checks;
   their algorithms and deliberate limits.
 - Never edit an applied migration. A testnet migration known to be unapplied
   may be removed. Model changes require migrations. A schema change that changes
-  the live RLS catalogue needs its policy-install migration too.
+  the live RLS catalogue needs its policy-install migration too. Where anyone
+  else is working, claim the migration number in a comment on the plan issue
+  before pushing it: two migrations have claimed the same number here. Where
+  two migrations fork off one parent, the second to land re-points one
+  dependency line in its rebase.
 - Dependencies need an importer. Endpoints need a client, documented external
   consumer or operator use. Search shared services before declaring a route unused.
 - Clients and shared types are API consumers: their keys, statuses and URLs are

@@ -71,6 +71,35 @@ Email is read-only to customers; staff changes revoke their sessions.
 The published compliance seed intentionally uses public figures. Operational
 thresholds and evasion-sensitive rules belong outside this repository.
 
+## Contracts compiler and toolchain
+
+The compiler settings and the OpenZeppelin pin recorded in
+[contracts and issuance](architecture/contracts-and-issuance.md#contracts) are
+a contract, not a default: any change to them moves the bytecode of every
+contract, so a dependency update that needs one is a toolchain change.
+
+OpenZeppelin stays at 5.4.0 because later releases use the Cancun `mcopy`
+opcode in `utils/Bytes.sol` and do not compile under `paris`. Compiling under
+`cancun` instead would re-target every contract, including the ones that never
+import the affected code, and nothing in the tree needs a feature from 5.5 or
+later. What reopens the decision is a needed feature or an advisory against
+5.4.0 itself, not a version number going up.
+
+The contracts package declares no runtime dependencies, so `npm audit
+--omit=dev`, which is what `make audit` runs for it, reports zero trivially and
+proves nothing. The full audit reports advisories across the Hardhat toolchain
+that `npm audit fix` cannot change: many have no published fix, some would only
+be satisfied by downgrading, and the rest want major moves off the pinned
+Hardhat 2 and Toolbox 6 line. That is the same migration TypeScript 7 needs, so Hardhat,
+Toolbox and TypeScript are one migration decision rather than three, and the
+pinned line stays until it is taken. The exposure this leaves is build
+integrity, not deployed code: the deliverable is compiled bytecode, and none of
+the toolchain is linked into a contract. The counts measured at the time are in
+the [architecture document before the reorganization](https://github.com/RonildoBraga/ledova/blob/dc9e29597e10a7e1cf0f383dd4ac3040acb17529/docs/ARCHITECTURE.md#contracts)
+and the dependency reconciliation in [#518](https://github.com/RonildoBraga/ledova/issues/518);
+rerun `npm audit` in `contracts/` for the current picture rather than reading
+those numbers as current.
+
 ## Clients and API types
 
 Both clients compile `@ledova/shared` from source, without a package build step.
