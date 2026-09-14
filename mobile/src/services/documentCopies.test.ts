@@ -67,6 +67,7 @@ it.each([
   `${cache}elsewhere.pdf`,
   `${cache}DocumentPicker/../original.pdf`,
   `${cache}DocumentPicker/not-a-generated-file.pdf`,
+  `${cache}00000000-0000-0000-0000-0000000000f1.pdf`,
 ])('refuses an unowned result without touching it: %s', async (uri) => {
   files.set(uri, { size: 5, content: 'untouched' });
   pick.mockResolvedValue({ canceled: false, assets: [{ uri, name: 'private.pdf', size: 5, lastModified: 0 }] });
