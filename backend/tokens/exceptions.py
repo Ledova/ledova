@@ -229,22 +229,10 @@ class StablecoinContractNotConfiguredException(APIException):
     default_code = "stablecoin_contract_not_configured"
 
 
-class StablecoinMintFailedException(APIException):
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-    default_detail = "Stablecoin minting failed."
-    default_code = "stablecoin_mint_failed"
-
-
 class YieldTokenContractNotConfiguredException(APIException):
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     default_detail = "Yield token contract is not configured."
     default_code = "yield_token_contract_not_configured"
-
-
-class YieldTokenMintFailedException(APIException):
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-    default_detail = "Yield token minting failed."
-    default_code = "yield_token_mint_failed"
 
 
 class YieldTokenNAVUpdateFailedException(APIException):
@@ -337,3 +325,15 @@ class WalletBalancesUnavailableException(APIException):
         "The wallet's balances cannot be read because the chain could not be reached. An empty list is not "
         "returned instead, because it would say the wallet holds nothing."
     )
+
+
+class MintRequestConflict(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = "This mint request cannot be changed or retried in its recorded state."
+    default_code = "mint_request_conflict"
+
+
+class MintRequestUnresolved(APIException):
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    default_detail = "The mint outcome is unresolved. Recover this request instead of creating another mint."
+    default_code = "mint_request_unresolved"

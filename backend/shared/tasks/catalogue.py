@@ -1,4 +1,7 @@
 SYSTEM_WIDE = {
+    "tokens.tasks.mint_request.recover_mint_requests": "Recovers durably admitted mint requests across the deployment, "
+    "using operator authority and the original signed operation. It never admits a new request "
+    "or restarts a reverted attempt.",
     "tokens.tasks.review_request.execute_review_request_task": "Executes approved issuance and capital increases "
     "only enqueued by the staff admin with change permission. The explicit operator context writes the "
     "issuer ledger and recipient holdings; executed_by is the staff audit actor, not a tenant principal. "

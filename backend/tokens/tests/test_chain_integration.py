@@ -861,3 +861,74 @@ class ShareTokenChainConcurrencyTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual(stalled.status, RequestStatus.FAILED)
         self.assertEqual(self._signer_nonce(), nonce_before)
         self.assertEqual(self._contract().functions.authorizedShares().call(), CAP)
+
+
+@chain_available
+@override_settings(**CHAIN_SETTINGS)
+class MintRequestChainTest(APITransactionTestCase):
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+
+        from blockchain.tests.outgoing_fixtures import admitted_signer
+        from tokens.tests.mint_request_fixtures import mint_request
+
+        get_base_chain_client.cache_clear()
+        BaseChainClient._instance = None
+        BaseChainClient._web3 = None
+        self.chain = get_base_chain_client()
+        self.w3 = self.chain.w3
+        snapshot = self.w3.provider.make_request("evm_snapshot", [])["result"]
+        self.addCleanup(self.w3.provider.make_request, "evm_revert", [snapshot])
+        self.actor = get_user_model().objects.create_superuser(email="chain-mint@example.test", password="synthetic")
+        self.request = mint_request(self.actor)
+        AssetChainDeployment.objects.filter(asset=self.request.settlement_asset).update(
+            contract_address=CHAIN_SETTINGS["STABLECOIN_CONTRACT_ADDRESS"]
+        )
+        self.signer = Account.from_key(CHAIN_SETTINGS["BLOCKCHAIN_OPERATOR_KEY"]).address
+        admitted_signer(sender=self.signer)
+        self.contract = self.chain.load_contract("AUDY", CHAIN_SETTINGS["STABLECOIN_CONTRACT_ADDRESS"])
+        self.recipient = Web3.to_checksum_address(self.request.recipient_address)
+
+    def test_node_acceptance_with_lost_response_mints_once_and_records_the_original_hash(self):
+        from blockchain.models import SignedAttempt, SigningAccount
+        from tokens.services import mint_service
+
+        before_balance = self.contract.functions.balanceOf(self.recipient).call()
+        before_nonce = self.w3.eth.get_transaction_count(self.signer, "pending")
+        send = BaseChainClient.send_raw_transaction
+        observed = []
+
+        def lose_ack(client, raw):
+            observed.append(send(client, raw))
+            raise ConnectionError("Synthetic lost node response after acceptance")
+
+        with patch.object(BaseChainClient, "send_raw_transaction", lose_ack):
+            mint_service.execute(self.request, self.actor)
+        self.assertEqual(self.request.status, "executed")
+        self.assertEqual(mint_service.recover(self.request.pk), "executed")
+        attempt = SignedAttempt.objects.get()
+        self.assertEqual(observed, [attempt.tx_hash])
+        self.assertEqual(self.request.transaction.tx_hash, attempt.tx_hash)
+        self.assertEqual(self.contract.functions.balanceOf(self.recipient).call(), before_balance + self.request.amount)
+        self.assertEqual(self.w3.eth.get_transaction_count(self.signer, "pending"), before_nonce + 1)
+        self.assertEqual(SigningAccount.objects.get().next_nonce, before_nonce + 1)
+
+    def test_pending_original_payload_recovers_after_mining_without_another_nonce(self):
+        from blockchain.models import SignedAttempt
+        from tokens.services import mint_service
+
+        before_balance = self.contract.functions.balanceOf(self.recipient).call()
+        before_nonce = self.w3.eth.get_transaction_count(self.signer, "pending")
+        self.w3.provider.make_request("evm_setAutomine", [False])
+        self.addCleanup(self.w3.provider.make_request, "evm_setAutomine", [True])
+        mint_service.execute(self.request, self.actor)
+        self.assertEqual(self.request.status, "executing")
+        original = SignedAttempt.objects.get()
+        self.assertEqual(mint_service.recover(self.request.pk), "executing")
+        self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.w3.provider.make_request("evm_mine", [])
+        self.assertEqual(mint_service.recover(self.request.pk), "executed")
+        self.request.refresh_from_db()
+        self.assertEqual(self.request.transaction.tx_hash, original.tx_hash)
+        self.assertEqual(self.contract.functions.balanceOf(self.recipient).call(), before_balance + self.request.amount)
+        self.assertEqual(self.w3.eth.get_transaction_count(self.signer, "pending"), before_nonce + 1)

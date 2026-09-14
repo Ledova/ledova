@@ -2,8 +2,10 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as ReadTimeout
 from decimal import Decimal
+from uuid import uuid4
 
 from django import forms
+from django.contrib import messages
 from django.utils.html import format_html
 
 logger = logging.getLogger(__name__)
@@ -71,6 +73,8 @@ def hex_column(field, description, tail=6):
 
 class MintForm(forms.Form):
 
+    submission_id = forms.UUIDField(initial=uuid4, widget=forms.HiddenInput)
+
     recipient_address = forms.CharField(
         max_length=42,
         label="Recipient Address",
@@ -119,3 +123,18 @@ class MintForm(forms.Form):
 
     def clean_amount(self):
         return int(self.cleaned_data["amount"].scaleb(self.decimals))
+
+
+def mint_result_message(request, mint_request, tx_hash):
+    from tokens.models import MintRequestStatus
+
+    if mint_request.status == MintRequestStatus.EXECUTED:
+        messages.success(
+            request,
+            f"Successfully minted {mint_request.amount_display} {mint_request.token.symbol} "
+            f"to {mint_request.recipient_name} (tx: {tx_hash[:16]}...)",
+        )
+    else:
+        messages.warning(
+            request, "The mint outcome is unresolved. Recover this request instead of creating another mint."
+        )
