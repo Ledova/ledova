@@ -70,18 +70,48 @@ class CapitalExecutionRecoveryTest(TransactionTestCase):
         self.assertEqual(self.execute()["status"], "executed")
         self.assertEqual(len(self.node.broadcasts), 1)
 
-    def test_preparation_and_broadcast_have_no_database_transaction(self):
-        check = self.node.client.assert_expected_chain.side_effect
+    def test_cap_reads_broadcast_and_receipts_leave_rows_unlocked_on_an_independent_connection(self):
+        current = connections[current_alias()]
+        probe = current.copy(alias="capital-rpc-probe")
+        self.addCleanup(probe.close)
+        with current.cursor() as cursor:
+            cursor.execute("SELECT pg_backend_pid()")
+            original_pid = cursor.fetchone()[0]
+        seen = []
 
-        def outside_transaction():
-            self.assertTrue(connections[current_alias()].get_autocommit())
-            self.assertFalse(connections[current_alias()].in_atomic_block)
-            self.assertEqual(CapitalIncreaseRequest.objects.get(pk=self.request.pk).status, "executing")
-            return CHAIN_ID
+        def checked(name, callback):
+            def call(*args, **kwargs):
+                self.assertTrue(current.get_autocommit())
+                self.assertFalse(current.in_atomic_block)
+                probe.set_autocommit(False)
+                try:
+                    with probe.cursor() as cursor:
+                        cursor.execute("SELECT pg_backend_pid()")
+                        self.assertNotEqual(cursor.fetchone()[0], original_pid)
+                        for model in (
+                            CapitalIncreaseRequest,
+                            CapitalIncreaseExecution,
+                            ShareToken,
+                            OutgoingOperation,
+                            SigningAccount,
+                        ):
+                            cursor.execute(f"SELECT * FROM {model._meta.db_table} FOR UPDATE NOWAIT")
+                            self.assertTrue(cursor.fetchall(), model._meta.label)
+                finally:
+                    probe.rollback()
+                    probe.set_autocommit(True)
+                seen.append(name)
+                return callback(*args, **kwargs)
 
-        self.node.client.assert_expected_chain.side_effect = outside_transaction
+            return call
+
+        self.node.contract.functions.authorizedShares.return_value.call.side_effect = checked(
+            "cap", lambda: self.node.cap
+        )
+        self.node.client.send_raw_transaction.side_effect = checked("send", self.node.send)
+        self.node.client.get_transaction_receipt.side_effect = checked("receipt", self.node.receipts.get)
         self.assertEqual(self.execute()["status"], "executed")
-        self.node.client.assert_expected_chain.side_effect = check
+        self.assertEqual(set(seen), {"cap", "send", "receipt"})
 
     def test_matching_unattributed_cap_remains_held_even_after_restoration(self):
         self.node.cap = 1100

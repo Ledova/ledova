@@ -22,6 +22,13 @@ class Migration(migrations.Migration):
             name="dispatch_id",
             field=models.UUIDField(default=uuid.uuid4, editable=False, null=True),
         ),
+        migrations.AlterField(
+            model_name="capitalincreaserequest",
+            name="additional_shares",
+            field=models.PositiveIntegerField(
+                help_text="Number of additional shares to authorize; execution does not mint shares"
+            ),
+        ),
         migrations.CreateModel(
             name="CapitalIncreaseExecution",
             fields=[

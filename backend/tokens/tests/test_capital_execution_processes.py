@@ -77,6 +77,9 @@ class CapitalExecutionProcessTest(TransactionTestCase):
             self.assertEqual(self.request.status, "executing")
             self.assertEqual(CapitalIncreaseExecution.objects.count(), 1)
             self.assertEqual(SignedAttempt.objects.count(), int(signed))
+            if phase == "opened":
+                self.assertIsNone(CapitalIncreaseExecution.objects.get().operation_id)
+                self.assertEqual(OutgoingOperation.objects.get().status, "preparing")
             original = SignedAttempt.objects.values("tx_hash", "raw_transaction", "nonce").first()
             if not signed:
                 self.assertEqual(SigningAccount.objects.get().next_nonce, 0)
@@ -95,6 +98,10 @@ class CapitalExecutionProcessTest(TransactionTestCase):
 
     def test_kill_after_admission_preserves_request_and_recovers(self):
         self.recover_killed("admitted", False)
+
+    def test_kill_after_opening_before_binding_recovers_the_same_operation(self):
+        self.recover_killed("opened", False)
+        self.assertEqual(OutgoingOperation.objects.count(), 1)
 
     def test_kill_before_signed_commit_rolls_back_nonce_and_recovers(self):
         self.recover_killed("before_commit", False)
@@ -170,3 +177,64 @@ class CapitalExecutionProcessTest(TransactionTestCase):
             self.assertFalse(SignedAttempt.objects.exists())
             self.assertEqual(SigningAccount.objects.get().next_nonce, 0)
             self.assertFalse((directory / "node.json").exists())
+
+    def reverted(self, directory):
+        code, out, err = finish(self.worker(directory, "before_revert_projection"))
+        self.assertEqual(code, -signal.SIGKILL, out + err)
+        self.assertEqual(self.successful(self.worker(directory, "recover"))["status"], "failed")
+        return OutgoingOperation.objects.get().claim_id, capital_execution.confirmation(self.request, self.actor)
+
+    def test_kill_after_explicit_retry_admission_recovers_the_authorized_claim(self):
+        with tempfile.TemporaryDirectory(prefix="capital-admitted-retry-") as temporary:
+            directory = Path(temporary)
+            previous_claim, retry = self.reverted(directory)
+            code, out, err = finish(self.worker(directory, "admitted", retry))
+            self.assertEqual(code, -signal.SIGKILL, out + err)
+            command = CapitalIncreaseExecution.objects.get()
+            self.assertEqual(command.retry_of, previous_claim)
+            self.assertIsNone(command.projected_at)
+            self.assertEqual(command.operation.claim_id, previous_claim)
+            self.request.refresh_from_db()
+            self.assertEqual(self.request.status, "executing")
+            self.assertEqual(SignedAttempt.objects.count(), 1)
+            self.assertEqual(self.successful(self.worker(directory, "recover"))["status"], "executed")
+            self.assertNotEqual(OutgoingOperation.objects.get().claim_id, previous_claim)
+            self.assertEqual(SignedAttempt.objects.count(), 2)
+            self.assertEqual(SigningAccount.objects.get().next_nonce, 9)
+            self.assertEqual(BlockchainTransaction.objects.filter(status="reverted").count(), 1)
+
+    def test_independent_explicit_retry_workers_share_one_new_claim_and_nonce(self):
+        with tempfile.TemporaryDirectory(prefix="capital-retry-race-") as temporary:
+            directory = Path(temporary)
+            previous_claim, retry = self.reverted(directory)
+            processes = [self.worker(directory, "race", retry) for _ in range(2)]
+            for process in processes:
+                self.await_file(directory / f"ready-{process.pid}")
+            (directory / "go").touch()
+            for process in processes:
+                self.assertIn(self.successful(process)["status"], ("executing", "executed"))
+            self.assertEqual(self.successful(self.worker(directory, "recover"))["status"], "executed")
+            ledger = json.loads((directory / "node.json").read_text())
+            self.assertEqual(len(ledger["hashes"]), 2)
+            self.assertEqual(len(set(ledger["broadcasts"])), 2)
+        self.assertNotEqual(OutgoingOperation.objects.get().claim_id, previous_claim)
+        self.assertEqual(OutgoingOperation.objects.count(), 1)
+        self.assertEqual(SignedAttempt.objects.count(), 2)
+        self.assertEqual(SigningAccount.objects.get().next_nonce, 9)
+        self.assertEqual(BlockchainTransaction.objects.filter(status="reverted").count(), 1)
+        self.assertEqual(BlockchainTransaction.objects.filter(status="confirmed").count(), 1)
+
+    def test_worker_loaded_before_binding_cannot_reopen_a_peer_revert_without_retry_authority(self):
+        admit(self.request, self.actor, confirmed=self.form)
+        with tempfile.TemporaryDirectory(prefix="capital-delayed-binding-") as temporary:
+            directory = Path(temporary)
+            delayed = self.worker(directory, "delayed_open")
+            self.await_file(directory / "open-ready")
+            previous_claim, _ = self.reverted(directory)
+            (directory / "open").touch()
+            self.assertEqual(self.successful(delayed)["status"], "failed")
+        self.assertEqual(OutgoingOperation.objects.get().claim_id, previous_claim)
+        self.assertEqual(OutgoingOperation.objects.get().status, "reverted")
+        self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.assertEqual(SigningAccount.objects.get().next_nonce, 8)
+        self.assertEqual(BlockchainTransaction.objects.get().status, "reverted")

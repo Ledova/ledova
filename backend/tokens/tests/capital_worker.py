@@ -120,6 +120,16 @@ def run(directory, phase, request_id, actor_id, confirmation):
             ):
                 os.kill(os.getpid(), signal.SIGKILL)
 
+    def opened(*args, **kwargs):
+        if phase == "delayed_open":
+            (directory / "open-ready").touch()
+            await_file(directory / "open")
+        result = original_open(*args, **kwargs)
+        if phase == "opened":
+            os.kill(os.getpid(), signal.SIGKILL)
+        return result
+
+    original_open = outgoing.open_operation
     original_check = capital_execution._check_preparation
     original_sign = outgoing.sign_operation
     original_save = OutgoingOperation.save
@@ -131,6 +141,7 @@ def run(directory, phase, request_id, actor_id, confirmation):
         stack.enter_context(patch("tokens.services.capital_execution.get_base_chain_client", return_value=node.client))
         stack.enter_context(patch("tokens.tasks.execute_review_request_task.defer"))
         stack.enter_context(patch.object(outgoing, "sign_operation", signed))
+        stack.enter_context(patch.object(outgoing, "open_operation", opened))
         if phase == "attributed":
             stack.enter_context(patch.object(capital_execution, "_check_preparation", checked))
         if phase == "before_commit":

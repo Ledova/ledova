@@ -31,7 +31,7 @@ class CapitalIncreaseRequest(DerivesCompanyFromToken, ReviewableRequest):
     )
 
     additional_shares = models.PositiveIntegerField(
-        help_text="Number of additional shares to authorize and mint",
+        help_text="Number of additional shares to authorize; execution does not mint shares",
     )
     new_authorized_total = models.PositiveIntegerField(
         help_text="New total authorized shares after increase",
