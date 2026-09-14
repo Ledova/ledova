@@ -87,6 +87,47 @@ class MintRequestProcessTest(TransactionTestCase):
     def test_kill_after_node_acceptance_recovers_without_another_send(self):
         self.recover_killed("accepted", True)
 
+    def killed_revert(self):
+        with tempfile.TemporaryDirectory(prefix="mint-revert-") as temporary:
+            code, out, err = finish(self.worker(Path(temporary), "before_revert_projection"))
+            self.assertEqual(code, -signal.SIGKILL, out + err)
+            self.request.refresh_from_db()
+            self.assertEqual(self.request.status, "executing")
+            self.assertEqual(self.request.transaction.status, "submitted")
+            self.assertEqual(self.request.operation.status, "reverted")
+            ledger = json.loads((Path(temporary) / "node.json").read_text())
+            self.assertEqual(ledger["reverted"], [self.request.transaction.tx_hash])
+        return self.request.transaction, self.request.operation
+
+    def assert_reverted_attempt_retained(self, previous, operation):
+        previous.refresh_from_db()
+        self.assertEqual(previous.status, "reverted")
+        self.assertEqual(previous.block_number, operation.block_number)
+        self.assertEqual(previous.block_hash, operation.block_hash)
+        self.assertEqual(previous.gas_used, operation.gas_used)
+        self.request.refresh_from_db()
+        self.assertEqual(self.request.status, "executed")
+        self.assertNotEqual(self.request.transaction_id, previous.pk)
+        self.assertEqual(SignedAttempt.objects.count(), 2)
+        self.assertEqual(SigningAccount.objects.get().next_nonce, 9)
+
+    def test_fresh_process_retry_retains_a_revert_after_kill_before_projection(self):
+        previous, operation = self.killed_revert()
+        with tempfile.TemporaryDirectory(prefix="mint-retry-") as temporary:
+            directory = Path(temporary)
+            code, out, err = finish(self.worker(directory, "execute", operation.claim_id))
+            self.assertEqual(code, 0, out + err)
+            self.assertEqual(json.loads(out)["status"], "executed")
+            self.assert_reverted_attempt_retained(previous, operation)
+            ledger = json.loads((directory / "node.json").read_text())
+            self.assertEqual(ledger["hashes"], [self.request.transaction.tx_hash])
+            self.assertEqual(len(ledger["broadcasts"]), 1)
+
+    def test_competing_process_retries_retain_a_revert_after_kill_before_projection(self):
+        previous, operation = self.killed_revert()
+        self.race(operation.claim_id)
+        self.assert_reverted_attempt_retained(previous, operation)
+
     def race(self, retry_of=None):
         with tempfile.TemporaryDirectory(prefix="mint-race-") as temporary:
             directory = Path(temporary)

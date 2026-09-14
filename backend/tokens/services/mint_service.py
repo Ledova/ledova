@@ -148,6 +148,15 @@ def _claim(request, *, retry_of):
         operation = OutgoingOperation.objects.get(pk=request.operation_id)
         if retry_of is None or operation.status not in (OutgoingStatus.FAILED, OutgoingStatus.REVERTED):
             return outgoing.OperationClaim(operation.pk, operation.claim_id)
+        if operation.status == OutgoingStatus.REVERTED:
+            previous = outgoing.OperationClaim(operation.pk, operation.claim_id)
+            try:
+                _project(request.pk, previous)
+            except MintRequestConflict:
+                operation.refresh_from_db()
+                if operation.claim_id == previous.claim_id:
+                    raise
+                return outgoing.OperationClaim(operation.pk, operation.claim_id)
     intent = {field: request.execution_intent[field] for field in INTENT_FIELDS}
     intent["value"] = int(intent["value"])
     claim = outgoing.open_operation(_key(request), **intent, restart_of=retry_of or UUID(int=0))

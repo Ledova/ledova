@@ -113,6 +113,37 @@ class ScopedMintRequestRecoveryTest(RunsOnTheScopedConnection, TransactionTestCa
             self.assertEqual(completed.transaction.tx_hash, SignedAttempt.objects.get().tx_hash)
         self.assertEqual(current_alias(), APP_ALIAS)
 
+    def test_operator_retry_retains_interrupted_revert_and_restores_app_principal(self):
+        project = mint_service._project
+
+        def interrupt(request_id, claim):
+            self.assertEqual(current_alias(), OPERATOR_ALIAS)
+            if OutgoingOperation.objects.get(pk=claim.operation_id).status == "reverted":
+                raise SystemExit("Stopped before projecting the revert")
+            return project(request_id, claim)
+
+        with acting_for(self.reader.pk):
+            with use_operator():
+                self.node.receipt_status = 0
+                with patch.object(mint_service, "_project", interrupt), self.assertRaises(SystemExit):
+                    mint_service.execute(self.request, self.actor)
+                self.request.refresh_from_db()
+                previous, operation = self.request.transaction, self.request.operation
+                self.assertEqual(previous.status, "submitted")
+                self.node.receipt_status = 1
+                mint_service.execute(self.request, self.actor, retry_of=operation.claim_id)
+                previous.refresh_from_db()
+                self.assertEqual(previous.status, "reverted")
+                self.assertEqual(previous.block_number, operation.block_number)
+                self.assertEqual(previous.block_hash, operation.block_hash)
+                self.assertEqual(previous.gas_used, operation.gas_used)
+                self.assertEqual(self.request.status, "executed")
+                self.assertEqual(SignedAttempt.objects.count(), 2)
+            self.assertEqual(current_alias(), APP_ALIAS)
+            self.assertEqual(principal_of(APP_ALIAS), str(self.reader.pk))
+            with self.assertRaises(PermissionDenied):
+                mint_service.execute(self.request, self.actor, retry_of=operation.claim_id)
+
     def test_staff_without_the_model_permission_cannot_use_operator_admin_entry(self):
         with use_operator():
             self.client.force_login(self.reader)

@@ -47,6 +47,8 @@ def run(directory, phase, request_id, retry_of=None):
             ledger["broadcasts"].append(Web3.to_hex(raw))
             if tx_hash not in ledger["hashes"]:
                 ledger["hashes"].append(tx_hash)
+            if phase == "before_revert_projection":
+                ledger.setdefault("reverted", []).append(tx_hash)
             stream.seek(0)
             stream.truncate()
             stream.write(json.dumps(ledger))
@@ -63,8 +65,9 @@ def run(directory, phase, request_id, retry_of=None):
         with path.open() as stream:
             fcntl.flock(stream, fcntl.LOCK_SH)
             data = stream.read()
-        if data and tx_hash in json.loads(data)["hashes"]:
-            return receipt(SignedAttempt.objects.get(tx_hash=tx_hash))
+        ledger = json.loads(data) if data else {}
+        if tx_hash in ledger.get("hashes", []):
+            return receipt(SignedAttempt.objects.get(tx_hash=tx_hash), int(tx_hash not in ledger.get("reverted", [])))
         return None
 
     def admitted(*args, **kwargs):
@@ -88,9 +91,15 @@ def run(directory, phase, request_id, retry_of=None):
             os.kill(os.getpid(), signal.SIGKILL)
         return result
 
+    def projected(request_id, claim):
+        if OutgoingOperation.objects.get(pk=claim.operation_id).status == "reverted":
+            os.kill(os.getpid(), signal.SIGKILL)
+        return original_project(request_id, claim)
+
     original_admit = mint_service._admit
     original_sign = outgoing.sign_operation
     original_save = OutgoingOperation.save
+    original_project = mint_service._project
     node.client.send_raw_transaction.side_effect = send
     node.client.get_transaction_receipt.side_effect = observed
     with ExitStack() as stack:
@@ -99,6 +108,8 @@ def run(directory, phase, request_id, retry_of=None):
         stack.enter_context(patch.object(outgoing, "sign_operation", signed))
         if phase == "before_commit":
             stack.enter_context(patch.object(OutgoingOperation, "save", before_commit))
+        if phase == "before_revert_projection":
+            stack.enter_context(patch.object(mint_service, "_project", projected))
         if phase == "recover":
             result = mint_service.recover(request.pk)
         else:
