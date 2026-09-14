@@ -55,6 +55,7 @@ class CompanyStatsTest(APITestCase):
             new_authorized_total=1100,
             purpose="Growth",
             board_resolution_reference=f"BOARD-{status}",
+            dispatch_id=None,
             status=status,
         )
 

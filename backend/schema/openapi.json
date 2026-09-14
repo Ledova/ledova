@@ -1073,7 +1073,7 @@
       "CapitalIncreaseCreateRequestRequest": {
         "properties": {
           "additionalShares": {
-            "description": "Number of additional shares to authorize and mint",
+            "description": "Number of additional shares to authorize; execution does not mint shares",
             "maximum": 2147483647,
             "minimum": 0,
             "type": "integer"
@@ -1117,7 +1117,7 @@
       "CapitalIncreaseDetail": {
         "properties": {
           "additionalShares": {
-            "description": "Number of additional shares to authorize and mint",
+            "description": "Number of additional shares to authorize; execution does not mint shares",
             "readOnly": true,
             "type": "integer"
           },
@@ -1295,7 +1295,7 @@
       "CapitalIncreaseList": {
         "properties": {
           "additionalShares": {
-            "description": "Number of additional shares to authorize and mint",
+            "description": "Number of additional shares to authorize; execution does not mint shares",
             "readOnly": true,
             "type": "integer"
           },
@@ -1410,7 +1410,7 @@
       "CapitalIncreaseUpdate": {
         "properties": {
           "additionalShares": {
-            "description": "Number of additional shares to authorize and mint",
+            "description": "Number of additional shares to authorize; execution does not mint shares",
             "maximum": 2147483647,
             "minimum": 0,
             "type": "integer"
@@ -1447,7 +1447,7 @@
       "CapitalIncreaseUpdateRequest": {
         "properties": {
           "additionalShares": {
-            "description": "Number of additional shares to authorize and mint",
+            "description": "Number of additional shares to authorize; execution does not mint shares",
             "maximum": 2147483647,
             "minimum": 0,
             "type": "integer"
@@ -6691,7 +6691,7 @@
       "PatchedCapitalIncreaseUpdateRequest": {
         "properties": {
           "additionalShares": {
-            "description": "Number of additional shares to authorize and mint",
+            "description": "Number of additional shares to authorize; execution does not mint shares",
             "maximum": 2147483647,
             "minimum": 0,
             "type": "integer"

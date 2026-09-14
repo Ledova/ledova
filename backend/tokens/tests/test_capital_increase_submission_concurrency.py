@@ -1,22 +1,26 @@
 import threading
 import time
 from unittest import skipUnless
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.db import connection, connections
-from django.test import TransactionTestCase
+from django.test import TransactionTestCase, override_settings
 
+from blockchain.tests.outgoing_fixtures import admitted_signer
 from shared.api.exceptions import custom_exception_handler
 from shared.db import current_alias, set_principal, use_operator
 from shared.tests.scoped import aliases_this_deployment_has
 from shared.tests.tenants import make_tenant
-from tokens.exceptions import InvalidTokenStateException, IssuanceRefusedException
+from tokens.exceptions import CapitalIncreaseConflict, InvalidTokenStateException
 from tokens.models import CapitalIncreaseRequest, RequestStatus
-from tokens.services import share_token_service
+from tokens.services import capital_execution
 from tokens.services.capital_increase import submit_capital_increase
 from tokens.services.dilution import dilution_for
+from tokens.tests.capital_fixtures import CHAIN_ID, KEY, CapitalNode, admit
 
 
+@override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
 @skipUnless(connection.vendor == "postgresql", "separate connections and row locks require PostgreSQL")
 class CapitalIncreaseSubmissionConcurrencyTest(TransactionTestCase):
     databases = aliases_this_deployment_has()
@@ -117,72 +121,59 @@ class CapitalIncreaseSubmissionConcurrencyTest(TransactionTestCase):
             self._submit(self.second.pk)
         self.assertEqual(loser.detail, sequential.exception.detail)
 
-    def test_submit_winning_refuses_failed_resume_before_any_chain_work(self):
-        self.second.status = RequestStatus.FAILED
-        self.second.save(update_fields=["status"])
-        service = share_token_service
-        self.enterContext(
-            patch.object(
-                share_token_service,
-                "share_supply",
-                new=Mock(return_value=(int(self.tenant.deployed_token.total_supply), 0)),
-            )
-        )
-        self.enterContext(
-            patch.object(
-                share_token_service,
-                "increase_authorized_shares",
-                new=Mock(
-                    return_value={"tx_hash": "0xconfirmed", "new_authorized_total": self.second.new_authorized_total}
-                ),
-            )
-        )
+    def failed_command(self, request):
+        with use_operator():
+            actor = get_user_model().objects.create_superuser(email="capital-race@example.test", password="synthetic")
+            admitted_signer()
+            submit_capital_increase(request, self.tenant.user)
+            request.approve(actor)
+            node = CapitalNode()
+            node.client.estimate_gas.side_effect = RuntimeError("Synthetic unsigned failure")
+            with patch("tokens.services.capital_execution.get_base_chain_client", return_value=node.client):
+                command = admit(request, actor)
+                self.assertEqual(capital_execution.recover(command.pk)["status"], "failed")
+            return actor, capital_execution.confirmation(request, actor)
+
+    def retry(self, request, actor, form):
+        with use_operator():
+            return admit(request, actor, confirmed=form)
+
+    def test_submit_winning_refuses_failed_retry_before_any_chain_work(self):
+        actor, form = self.failed_command(self.second)
         entered, release = threading.Event(), threading.Event()
         with patch("tokens.services.capital_increase.dilution_for", side_effect=self._pause_dilution(entered, release)):
-            results = self._race(
-                lambda: self._submit(self.first.pk),
-                lambda: service._execute_capital_increase(CapitalIncreaseRequest.objects.get(pk=self.second.pk)),
-                entered,
-                release,
-            )
+            with patch("tokens.services.capital_execution.get_base_chain_client") as provider:
+                results = self._race(
+                    lambda: self._submit(self.first.pk),
+                    lambda: self.retry(self.second, actor, form),
+                    entered,
+                    release,
+                )
         self.assertIsInstance(results["first"], CapitalIncreaseRequest)
-        self.assertIsInstance(results["second"], IssuanceRefusedException)
-        self.assertEqual(custom_exception_handler(results["second"], {}).status_code, 400)
+        self.assertIsInstance(results["second"], CapitalIncreaseConflict)
+        self.assertIn("another capital increase in flight", str(results["second"]))
         self.second.refresh_from_db()
         self.assertEqual(self.second.status, RequestStatus.FAILED)
-        self.assertIn("has another capital increase in flight", self.second.execution_notes)
-        self.assertEqual(self.second.review_notes, "")
-        service.share_supply.assert_not_called()
-        service.increase_authorized_shares.assert_not_called()
-        self.assertEqual(CapitalIncreaseRequest.objects.filter(token=self.first.token).in_flight().count(), 1)
+        provider.assert_not_called()
 
-    def test_failed_resume_winning_finishes_before_the_draft_submits(self):
-        self.first.status = RequestStatus.FAILED
-        self.first.save(update_fields=["status"])
-        service = share_token_service
+    def test_retry_admission_winning_refuses_draft_without_waiting_for_chain_execution(self):
+        actor, form = self.failed_command(self.first)
         entered, release = threading.Event(), threading.Event()
 
-        def supply(address):
+        def committed_job(**kwargs):
             entered.set()
             if not release.wait(10):
-                raise AssertionError("the competing submit never reached its lock")
-            return int(self.tenant.deployed_token.total_supply), 0
+                raise AssertionError("The competing submit never reached the admission lock")
 
-        result = {"tx_hash": "0xconfirmed", "new_authorized_total": self.first.new_authorized_total}
-        with (
-            patch.object(service, "share_supply", side_effect=supply),
-            patch.object(service, "increase_authorized_shares", return_value=result) as broadcast,
-        ):
-            results = self._race(
-                lambda: service._execute_capital_increase(CapitalIncreaseRequest.objects.get(pk=self.first.pk)),
-                lambda: self._submit(self.second.pk),
-                entered,
-                release,
-            )
-        self.assertEqual(results["first"], result)
-        self.assertIsInstance(results["second"], CapitalIncreaseRequest)
+        def retry():
+            with use_operator(), patch("tokens.tasks.execute_review_request_task.defer", side_effect=committed_job):
+                return capital_execution.admit(self.first, actor, confirmed=form)
+
+        with patch("tokens.services.capital_execution.get_base_chain_client") as provider:
+            results = self._race(retry, lambda: self._submit(self.second.pk), entered, release)
+        self.assertIsInstance(results["second"], InvalidTokenStateException)
         self.first.refresh_from_db()
-        self.second.refresh_from_db()
-        self.assertEqual((self.first.status, self.second.status), (RequestStatus.EXECUTED, RequestStatus.SUBMITTED))
-        self.assertEqual(CapitalIncreaseRequest.objects.filter(token=self.first.token).in_flight().count(), 1)
-        broadcast.assert_called_once()
+        self.assertEqual(self.first.status, RequestStatus.EXECUTING)
+        self.assertEqual(CapitalIncreaseRequest.objects.filter(pk=self.second.pk).values().get(), self.before)
+        self.assertEqual(results["first"].request_id, self.first.pk)
+        provider.assert_not_called()

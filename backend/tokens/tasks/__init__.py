@@ -4,6 +4,7 @@ from .mint_request import recover_mint_requests
 from .review_request import (
     check_executing_issuance_requests,
     execute_review_request_task,
+    recover_capital_increases,
 )
 from .signing_challenge import purge_signing_challenges
 from .swap_expiry import expire_unclaimed_matches
@@ -20,4 +21,5 @@ __all__ = [
     "purge_signing_challenges",
     "resolve_executing_swaps",
     "recover_mint_requests",
+    "recover_capital_increases",
 ]
