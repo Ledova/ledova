@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from django.test import TestCase
 from django.utils import timezone
@@ -7,7 +7,7 @@ from blockchain.models import BlockchainTransaction, TransactionStatus, Transact
 from shared.tests.tenants import make_tenant
 from tokens.exceptions import InvalidTokenStateException, IssuanceRefusedException
 from tokens.models import CapitalIncreaseRequest, RequestStatus, ShareToken
-from tokens.services import ShareTokenService
+from tokens.services import share_token_service
 from tokens.services.capital_increase import submit_capital_increase
 
 RECEIPT = {"status": 1, "blockNumber": 9, "blockHash": bytes.fromhex("ab" * 32), "gasUsed": 21000}
@@ -29,11 +29,13 @@ class SupersededCapitalIncreaseTest(TestCase):
             related_model=CapitalIncreaseRequest._meta.label,
             related_uuid=self.request.uuid,
         )
-        self.service = ShareTokenService.__new__(ShareTokenService)
-        self.service.chain_client = Mock()
-        self.service.chain_client.get_transaction_receipt.return_value = RECEIPT
-        self.service.share_supply = Mock(return_value=(1000, 0))
-        self.service.increase_authorized_shares = Mock()
+        self.service = share_token_service
+        self.chain = self.enterContext(
+            patch.object(share_token_service, "get_base_chain_client", return_value=Mock())
+        ).return_value
+        self.chain.get_transaction_receipt.return_value = RECEIPT
+        self.enterContext(patch.object(share_token_service, "share_supply", new=Mock(return_value=(1000, 0))))
+        self.enterContext(patch.object(share_token_service, "increase_authorized_shares", new=Mock()))
 
     def raise_cap(self, current, recorded=True):
         ShareToken.objects.filter(pk=self.token.pk).update(total_supply=str(current))
@@ -69,8 +71,8 @@ class SupersededCapitalIncreaseTest(TestCase):
         self.assertEqual(self.request.review_notes, notes)
         self.assertIsNone(self.request.executed_at)
         self.assertFalse(self.request.can_be_executed or self.request.can_be_approved or self.request.can_be_edited)
-        self.service.chain_client.get_transaction_receipt.assert_not_called()
-        self.service.chain_client.send_transaction.assert_not_called()
+        self.chain.get_transaction_receipt.assert_not_called()
+        self.chain.send_transaction.assert_not_called()
         self.service.share_supply.assert_not_called()
         self.service.increase_authorized_shares.assert_not_called()
 
@@ -119,7 +121,7 @@ class SupersededCapitalIncreaseTest(TestCase):
         self.request.refresh_from_db()
         self.assertEqual(self.request.status, "superseded")
         self.assertIn(str(later.uuid), self.request.rejection_reason)
-        self.service.chain_client.get_transaction_receipt.assert_not_called()
+        self.chain.get_transaction_receipt.assert_not_called()
 
     def test_the_sweep_rechecks_the_cap_after_reading_a_receipt(self):
         self.request.status = RequestStatus.EXECUTING
@@ -129,7 +131,7 @@ class SupersededCapitalIncreaseTest(TestCase):
             self.raise_cap(1500)
             return RECEIPT
 
-        self.service.chain_client.get_transaction_receipt.side_effect = receipt_after_the_cap_changed
+        self.chain.get_transaction_receipt.side_effect = receipt_after_the_cap_changed
 
         self.assertEqual(self.service.resolve_executing_capital_increase(self.request), "superseded")
 
@@ -149,7 +151,7 @@ class SupersededCapitalIncreaseTest(TestCase):
             )
             return {**RECEIPT, "status": 0}
 
-        self.service.chain_client.get_transaction_receipt.side_effect = receipt_after_supersession
+        self.chain.get_transaction_receipt.side_effect = receipt_after_supersession
 
         self.assertIsNone(self.service.resolve_executing_capital_increase(self.request))
 

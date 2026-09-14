@@ -430,6 +430,8 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
+    "tokens_tokendeployment": "Immutable deployment intent and issuer authority snapshots, written through a bounded "
+    "operator journal. Public token lifecycle writes retain their issuer connection.",
     "whitelist_whitelistchange": "Immutable operator-authorized whitelist commands and their outgoing-operation "
     "associations. Public membership reads never read this private recovery journal.",
     "documents_documentread": "Append-only administrative document read records, written on the operator "

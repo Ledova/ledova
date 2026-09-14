@@ -168,7 +168,7 @@ class RegisterTestBase(APITestCase):
         return self._reader(lambda contract, address: mapping[address])
 
     def _reader(self, side_effect, participants=(), supply=None):
-        service = patch("tokens.services.register.ShareTokenService").start()
+        service = patch("tokens.services.register.share_token_service").start()
         self.addCleanup(patch.stopall)
         read = []
 
@@ -177,10 +177,10 @@ class RegisterTestBase(APITestCase):
             read.append(int(answer))
             return answer
 
-        service.return_value.get_token_balance.side_effect = record
-        service.return_value.deployment_block.return_value = 1
-        service.return_value.transfer_participants.return_value = set(participants)
-        service.return_value.share_supply.side_effect = lambda contract: (
+        service.get_token_balance.side_effect = record
+        service.deployment_block.return_value = 1
+        service.transfer_participants.return_value = set(participants)
+        service.share_supply.side_effect = lambda contract: (
             0,
             sum(read) if supply is None else supply,
         )

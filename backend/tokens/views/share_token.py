@@ -22,7 +22,7 @@ from tokens.serializers import (
     ShareTokenDetailSerializer,
     ShareTokenListSerializer,
 )
-from tokens.services import ShareTokenService
+from tokens.services import deployment, share_token_service
 from tokens.services.former_holders import fold_is_stale, former_members_of
 from tokens.services.register import (
     REGISTER_HEADERS,
@@ -86,7 +86,7 @@ class ShareTokenViewSet(AuthenticatedModelViewSet):
     @action(detail=True, methods=["post"])
     def deploy(self, request, uuid=None):
         token = self.get_object()
-        ShareTokenService.start_deployment(token, principal_id=request.user.pk)
+        deployment.start_deployment(token, principal_id=request.user.pk)
         return Response({"message": "Token deployment initiated.", "token": ShareTokenDetailSerializer(token).data})
 
     @extend_schema(
@@ -98,7 +98,7 @@ class ShareTokenViewSet(AuthenticatedModelViewSet):
     @action(detail=True, methods=["post"])
     def pause(self, request, uuid=None):
         token = self.get_object()
-        ShareTokenService.or_refuse().pause(token)
+        share_token_service.pause(token)
         return Response({"message": "Token paused successfully.", "token": ShareTokenDetailSerializer(token).data})
 
     @extend_schema(
@@ -110,7 +110,7 @@ class ShareTokenViewSet(AuthenticatedModelViewSet):
     @action(detail=True, methods=["post"])
     def unpause(self, request, uuid=None):
         token = self.get_object()
-        ShareTokenService.or_refuse().unpause(token)
+        share_token_service.unpause(token)
         return Response({"message": "Token unpaused successfully.", "token": ShareTokenDetailSerializer(token).data})
 
     @extend_schema(
@@ -131,7 +131,7 @@ class ShareTokenViewSet(AuthenticatedModelViewSet):
         token = self.get_object()
         serializer = ShareIssuanceCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        issuance_request = ShareTokenService.create_issuance_request(
+        issuance_request = share_token_service.create_issuance_request(
             token=token, user=request.user, **serializer.validated_data
         )
         return Response(

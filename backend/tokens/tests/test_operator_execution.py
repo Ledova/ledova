@@ -27,7 +27,7 @@ from shared.db import (
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from tokens.models import RequestStatus, ShareIssuance, ShareIssuanceRequest
-from tokens.services import ShareTokenService
+from tokens.services import share_token_service
 from tokens.tasks import execute_review_request_task
 from tokens.tests.mint_results import recorded_mint_result
 from wallets.models import Holding, HoldingSnapshot
@@ -44,14 +44,14 @@ class OperatorExecutionFromScopedContextTest(RunsOnTheScopedConnection, Transact
         chain.is_valid_address.return_value = True
         chain.to_checksum_address.side_effect = lambda address: address
         chain.get_address_from_private_key.return_value = "0x" + "e" * 40
-        stack.enter_context(patch.object(ShareTokenService, "read_paused", return_value=False))
-        stack.enter_context(patch.object(ShareTokenService, "is_recipient_whitelisted", return_value=True))
-        stack.enter_context(patch.object(ShareTokenService, "share_supply", return_value=(1000, 0)))
+        stack.enter_context(patch.object(share_token_service, "read_paused", return_value=False))
+        stack.enter_context(patch.object(share_token_service, "is_recipient_whitelisted", return_value=True))
+        stack.enter_context(patch.object(share_token_service, "share_supply", return_value=(1000, 0)))
         stack.enter_context(patch("wallets.services.holdings.fetch_chain_balance", return_value=Decimal("10")))
         self.defer = stack.enter_context(patch("offerings.tasks.subscription.allot_subscription_task.defer"))
         self.mint = stack.enter_context(
             patch.object(
-                ShareTokenService,
+                share_token_service,
                 "_mint_to",
                 side_effect=recorded_mint_result({"tx_hash": "0x" + "ab" * 32, "block_number": 7, "gas_used": 21000}),
             )
@@ -108,7 +108,7 @@ class OperatorExecutionFromScopedContextTest(RunsOnTheScopedConnection, Transact
         with use_operator():
             self.request.refresh_from_db()
             self.assertEqual(self.request.status, RequestStatus.EXECUTED)
-            issuance = ShareIssuance.objects.get(idempotency_key=ShareTokenService.issuance_key(self.request))
+            issuance = ShareIssuance.objects.get(idempotency_key=share_token_service.issuance_key(self.request))
             self.assertEqual(issuance.initiated_by_id, self.staff.pk)
             holding = Holding.objects.get(wallet=self.investor.wallet, asset=self.issuer.refs.spare_asset)
             self.assertEqual(holding.quantity, Decimal("10"))
@@ -145,7 +145,7 @@ class OperatorExecutionFromScopedContextTest(RunsOnTheScopedConnection, Transact
             ),
             (allot_subscription_task, {"subscription_uuid": str(self.subscription.pk)}),
         )
-        with patch.object(ShareTokenService, "execute_request", side_effect=RuntimeError("execution stopped")):
+        with patch.object(share_token_service, "execute_request", side_effect=RuntimeError("execution stopped")):
             for task, payload in payloads:
                 with self.subTest(task=task.name), self.assertRaisesMessage(RuntimeError, "execution stopped"):
                     self.run_job(task, payload)

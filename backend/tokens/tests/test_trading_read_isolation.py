@@ -163,7 +163,7 @@ class TradingReadIsolationTest(APITransactionTestCase):
     def bob_case_variant(self):
         return self.bob_wallet.address.upper().replace("0X", "0x")
 
-    @patch("tokens.views.trading_wallet.ShareTokenService")
+    @patch("tokens.views.trading_wallet.share_token_service")
     def test_balances_rejects_foreign_address_before_service_construction(self, service_class):
         self.client.force_authenticate(self.bob)
         response = self.client.get(
@@ -173,11 +173,11 @@ class TradingReadIsolationTest(APITransactionTestCase):
 
         self.assertEqual(response.status_code, 404)
         self.assertNotIn(self.alice_wallet.address.lower(), str(response.data).lower())
-        service_class.assert_not_called()
+        self.assertEqual(service_class.mock_calls, [])
 
-    @patch("tokens.views.trading_wallet.ShareTokenService")
+    @patch("tokens.views.trading_wallet.share_token_service")
     def test_balances_accepts_owned_case_variant_and_uses_canonical_address(self, service_class):
-        service_class.return_value.get_wallet_token_balances.return_value = {"balances": []}
+        service_class.get_wallet_token_balances.return_value = {"balances": []}
         self.client.force_authenticate(self.bob)
 
         response = self.client.get(
@@ -186,7 +186,7 @@ class TradingReadIsolationTest(APITransactionTestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        service_class.return_value.get_wallet_token_balances.assert_called_once_with(
+        service_class.get_wallet_token_balances.assert_called_once_with(
             Web3.to_checksum_address(self.bob_wallet.address)
         )
 

@@ -191,7 +191,7 @@ class SwapParentMigrationTest(TransactionTestCase):
         self.swap = make_swap("parent-migration")
         self.parent = self.swap.sell_order
         self.parent_before = TransferOrder.objects.filter(pk=self.parent.pk).values().get()
-        self.old_apps = migrate_to(BEFORE)
+        self.old_apps = None
         self.addCleanup(self.restore)
 
     def restore(self):
@@ -204,6 +204,7 @@ class SwapParentMigrationTest(TransactionTestCase):
 
     def test_preflight_refuses_wallet_and_captured_owner_drift_without_rewriting_rows(self):
         other = make_tenant("parent-drift-target", with_swap=False)
+        self.old_apps = migrate_to(BEFORE)
         orders = self.old_apps.get_model("tokens", "TransferOrder").objects
         swaps = self.old_apps.get_model("tokens", "SwapOrder").objects
         for changes, reason in (
@@ -228,6 +229,7 @@ class SwapParentMigrationTest(TransactionTestCase):
         migrate_to(AFTER)
 
     def test_valid_v1_history_survives_retired_verification_and_reassignment(self):
+        self.old_apps = migrate_to(BEFORE)
         Wallet.objects.filter(pk=self.swap.seller_wallet_id).update(verification_status="UNVERIFIED")
         successor = a_profile("parent-drift-successor")
         UserAccount.objects.filter(pk=self.parent.owner_account_id).update(user_profile=successor)

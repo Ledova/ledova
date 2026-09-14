@@ -1,19 +1,17 @@
 import json
 from contextlib import ExitStack
-from datetime import timedelta
-from functools import partial
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from django.conf import settings
 from django.db import DatabaseError, connections
 from django.test import TransactionTestCase, override_settings
-from django.utils import timezone
-from web3 import Web3
+from eth_account.signers.local import LocalAccount
+from rest_framework.test import APIClient
 
-from assets.models import Asset, AssetChainDeployment
-from blockchain.models import BlockchainTransaction, TransactionStatus
-from companies.models import Company, CompanyStatus
-from integrations.base_chain.client import BaseChainClient
+from assets.models import AssetChainDeployment
+from blockchain.models import BlockchainTransaction, OutgoingOperation, SignedAttempt
+from blockchain.tests.outgoing_fixtures import receipt
+from companies.models import Company
 from shared.db import (
     APP_ALIAS,
     OPERATOR_ALIAS,
@@ -24,305 +22,288 @@ from shared.db import (
     use_operator,
 )
 from shared.tests.scoped import RunsOnTheScopedConnection
-from shared.tests.tenants import make_tenant
 from tokens.exceptions import InvalidTokenStateException, TokenDeploymentFailedException
-from tokens.models import ShareToken, ShareTokenStatus
-from tokens.services import ShareTokenService
-from tokens.services.deployment_journal import (
-    create_deployment_record,
-    record_signed_deployment,
-)
-from tokens.tasks import check_pending_token_deployments, deploy_share_token_task
-from tokens.tests.test_deployment import CREATED, RECEIPT, SIGNER, factory
-from tokens.tests.test_deployment_signing_boundary import SIGNED_BYTES, SIGNED_HASH
-from wallets.models import Wallet
-
-TABLES = tuple(
-    model._meta.db_table for model in (ShareToken, Company, Wallet, BlockchainTransaction, Asset, AssetChainDeployment)
+from tokens.models import ShareToken, TokenDeployment
+from tokens.services import deployment
+from tokens.tasks import deploy_share_token_task
+from tokens.tests.deployment_fixtures import (
+    CHAIN_ID,
+    CREATED,
+    FACTORY,
+    KEY,
+    deployment_token,
+    install_deployment,
 )
 
 
-@override_settings(SHARE_TOKEN_FACTORY_ADDRESS="0x" + "f" * 40, BLOCKCHAIN_OPERATOR_KEY="synthetic-key")
+@override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, SHARE_TOKEN_FACTORY_ADDRESS=FACTORY)
 class ScopedTokenDeploymentTest(RunsOnTheScopedConnection, TransactionTestCase):
     def setUp(self):
         super().setUp()
         with use_operator():
-            self.owner = make_tenant("deploy-owner")
-            self.other = make_tenant("deploy-other")
-            Company.objects.filter(pk__in=[self.owner.company.pk, self.other.company.pk]).update(
-                status=CompanyStatus.ACTIVE
-            )
-            self.owner.token.mark_deploying()
-            self.other.token.mark_deploying()
-        self.chain = Mock(spec=BaseChainClient)
-        self.chain.account_from_key.return_value.address = SIGNER
-        self.chain.get_address_from_private_key.return_value = SIGNER
-        self.chain.sign_transaction.return_value = SIGNED_BYTES
-        self.chain.send_raw_transaction.side_effect = self.broadcast
-        self.chain.send_transaction.side_effect = partial(BaseChainClient.send_transaction, self.chain)
-        self.chain.wait_for_receipt.return_value = {**RECEIPT, "status": 1}
-        self.chain.get_transaction_receipt.return_value = None
-        self.chain.to_checksum_address.side_effect = Web3.to_checksum_address
-        self.chain.is_valid_address.side_effect = Web3.is_address
-        self.factory = factory()
-        self.factory.functions.authorizedShares.return_value.call.return_value = 1000
-        self.factory.functions.getTokenByIdentifier.return_value.call.side_effect = [
-            "0x" + "0" * 40,
-            CREATED,
-        ]
-        self.chain.load_contract.return_value = self.factory
-        client = patch("tokens.services.share_token_service.get_base_chain_client", return_value=self.chain)
-        self.addCleanup(client.stop)
-        self.client_factory = client.start()
-        approval = patch("tokens.services.share_token_service.ShareTokenService._approve_for_swap")
-        self.addCleanup(approval.stop)
-        approval.start()
-        self.broadcasts = []
+            install_deployment(self)
+            self.other = deployment_token("other-deployment")
         self.initial_jobs = set(self.queued())
-        self.addCleanup(lambda: self.delete_jobs(set(self.queued()) - self.initial_jobs))
+        self.addCleanup(self.delete_new_jobs)
 
-    def broadcast(self, raw):
-        alias = current_alias()
-        with connections[alias].cursor() as cursor:
-            cursor.execute("SELECT current_user, current_setting('app.user_id', true)")
-            role, principal = cursor.fetchone()
+    def run_task(self, token=None, principal=None):
+        token = token or self.token
         with use_operator():
-            record = BlockchainTransaction.objects.get(tx_hash=SIGNED_HASH)
-        token = ShareToken.objects.get(deployment_transaction=record)
-        self.broadcasts.append(
-            (alias, role, principal, connections[alias].get_autocommit(), token.deployment_tx_hash, record.status)
-        )
-        return SIGNED_HASH
-
-    def run_task(self, token, principal_id):
-        with use_operator():
-            result = deploy_share_token_task.func(token_uuid=str(token.pk), principal_id=principal_id)
+            result = deploy_share_token_task.func(
+                token_uuid=str(token.pk),
+                deployment_id=str(token.deployment_id),
+                principal_id=self.tenant.user.pk if principal is None else principal,
+            )
             self.assertEqual(current_alias(), OPERATOR_ALIAS)
         self.assertIn(principal_of(APP_ALIAS), (None, ""))
         return result
 
-    def record_sql(self, statements):
-        def execute(execute, sql, params, many, context):
-            for table in TABLES:
+    def queued(self):
+        with use_operator(), connections[OPERATOR_ALIAS].cursor() as cursor:
+            cursor.execute("SELECT id, task_name, args FROM procrastinate_jobs ORDER BY id")
+            return {
+                row[0]: (row[1], row[2] if isinstance(row[2], dict) else json.loads(row[2]))
+                for row in cursor.fetchall()
+            }
+
+    def delete_new_jobs(self):
+        with use_operator(), connections[OPERATOR_ALIAS].cursor() as cursor:
+            for identifier in set(self.queued()) - self.initial_jobs:
+                cursor.execute("DELETE FROM procrastinate_jobs WHERE id=%s", [identifier])
+
+    def test_private_signing_boundary_preserves_issuer_lifecycle_and_asset_writes(self):
+        tables = [
+            model._meta.db_table
+            for model in (ShareToken, TokenDeployment, BlockchainTransaction, SignedAttempt, AssetChainDeployment)
+        ]
+        statements = []
+        broadcasts = []
+        send = self.node.send
+
+        def record_sql(execute, sql, params, many, context):
+            for table in tables:
                 if f'"{table}"' in sql:
                     statements.append((context["connection"].alias, sql.split()[0], table))
             return execute(sql, params, many, context)
 
-        return execute
+        def observe(raw):
+            connection = connections[current_alias()]
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT current_user")
+                role = cursor.fetchone()[0]
+            command = TokenDeployment.objects.get(pk=self.token.deployment_id)
+            token = ShareToken.objects.get(pk=self.token.pk)
+            broadcasts.append(
+                (
+                    current_alias(),
+                    role,
+                    connection.get_autocommit(),
+                    token.deployment_tx_hash == command.operation.current_attempt.tx_hash,
+                )
+            )
+            return send(raw)
 
-    def state_of(self, token):
-        with use_operator():
-            token.refresh_from_db()
-            return token.status, token.contract_address, token.deployment_tx_hash, token.deployment_transaction_id
-
-    def test_deployment_commits_its_journal_and_token_under_the_issuer_before_broadcast(self):
-        other_before = self.state_of(self.other.token)
-        statements = []
+        self.node.client.send_raw_transaction.side_effect = observe
         with ExitStack() as stack:
             for alias in (APP_ALIAS, OPERATOR_ALIAS):
-                stack.enter_context(connections[alias].execute_wrapper(self.record_sql(statements)))
-            result = self.run_task(self.owner.token, self.owner.user.pk)
-
-        self.assertEqual(result["contract_address"], CREATED)
+                stack.enter_context(connections[alias].execute_wrapper(record_sql))
+            result = self.run_task()
+        self.assertTrue(result["success"])
+        self.assertEqual(broadcasts, [(OPERATOR_ALIAS, settings.RLS_ROLES[OPERATOR_ALIAS], True, True)])
+        private_tables = {
+            TokenDeployment._meta.db_table,
+            BlockchainTransaction._meta.db_table,
+            SignedAttempt._meta.db_table,
+        }
+        self.assertEqual({alias for alias, _, table in statements if table in private_tables}, {OPERATOR_ALIAS})
         self.assertEqual(
-            self.broadcasts,
-            [
-                (
-                    APP_ALIAS,
-                    settings.RLS_ROLES[APP_ALIAS],
-                    str(self.owner.user.pk),
-                    True,
-                    SIGNED_HASH,
-                    TransactionStatus.SUBMITTED,
-                )
-            ],
-        )
-        self.assertEqual(
-            {alias for alias, _, table in statements if table == BlockchainTransaction._meta.db_table},
-            {OPERATOR_ALIAS},
-        )
-        self.assertEqual(
-            [
-                (operation, table)
-                for alias, operation, table in statements
-                if alias == OPERATOR_ALIAS and table == ShareToken._meta.db_table and operation == "UPDATE"
-            ],
-            [("UPDATE", ShareToken._meta.db_table)],
+            [row for row in statements if row == (OPERATOR_ALIAS, "UPDATE", ShareToken._meta.db_table)],
+            [(OPERATOR_ALIAS, "UPDATE", ShareToken._meta.db_table)],
         )
         self.assertIn((APP_ALIAS, "UPDATE", ShareToken._meta.db_table), statements)
         self.assertIn((APP_ALIAS, "INSERT", AssetChainDeployment._meta.db_table), statements)
-        self.assertLessEqual(
-            {
-                ("UPDATE", ShareToken._meta.db_table),
-                ("INSERT", BlockchainTransaction._meta.db_table),
-                ("UPDATE", BlockchainTransaction._meta.db_table),
-                ("INSERT", AssetChainDeployment._meta.db_table),
-            },
-            {(operation, table) for _, operation, table in statements},
-        )
         with use_operator():
-            self.owner.token.refresh_from_db()
-            self.assertEqual(self.owner.token.status, ShareTokenStatus.DEPLOYED)
-            self.assertEqual(self.owner.token.deployment_transaction.status, TransactionStatus.CONFIRMED)
-            self.assertTrue(AssetChainDeployment.objects.filter(contract_address__iexact=CREATED).exists())
-        self.assertEqual(self.state_of(self.other.token), other_before)
+            self.other.token.refresh_from_db()
+            self.assertIsNone(self.other.token.deployment_tx_hash)
 
-    def test_a_foreign_token_is_refused_before_chain_access_and_its_owner_can_deploy_it(self):
-        before = self.state_of(self.other.token)
-        self.assertEqual(
-            self.run_task(self.other.token, self.owner.user.pk), {"success": False, "error": "Token not found"}
-        )
-        self.client_factory.assert_not_called()
-        self.assertEqual(self.state_of(self.other.token), before)
+    def test_issuer_retry_retains_a_revert_left_unprojected_by_a_stopped_worker(self):
+        self.node.receipt_status = 0
+        with patch.object(deployment.deployment_journal, "record_outcome", side_effect=SystemExit):
+            with self.assertRaises(SystemExit):
+                self.run_task()
+        with use_operator():
+            operation = OutgoingOperation.objects.get()
+            original = BlockchainTransaction.objects.get()
+            self.assertEqual((operation.status, original.status), ("reverted", "submitted"))
+            self.node.receipt_status = 1
+
+            result = deploy_share_token_task.func(
+                token_uuid=str(self.token.pk),
+                deployment_id=str(self.token.deployment_id),
+                principal_id=self.tenant.user.pk,
+                retry_of=str(operation.claim_id),
+            )
+
+            self.assertTrue(result["success"])
+            self.assertEqual(current_alias(), OPERATOR_ALIAS)
+            original.refresh_from_db()
+            self.assertEqual(original.status, "reverted")
+            self.assertEqual(SignedAttempt.objects.count(), 2)
+            self.other.token.refresh_from_db()
+            self.assertIsNone(self.other.token.deployment_tx_hash)
+        self.assertIn(principal_of(APP_ALIAS), (None, ""))
+
+    def test_foreign_token_is_refused_before_chain_access_and_owner_can_deploy(self):
+        result = self.run_task(self.other.token)
+        self.assertEqual(result, {"success": False, "error": "Token not found"})
+        self.node.client.assert_expected_chain.assert_not_called()
         self.assertTrue(self.run_task(self.other.token, self.other.user.pk)["success"])
-        self.assertEqual(self.state_of(self.other.token)[0], ShareTokenStatus.DEPLOYED)
 
-    def queued(self):
-        with use_operator(), connections[OPERATOR_ALIAS].cursor() as cursor:
-            cursor.execute("SELECT id, task_name, args FROM procrastinate_jobs ORDER BY id")
-            rows = cursor.fetchall()
-        return {row[0]: (row[1], row[2] if isinstance(row[2], dict) else json.loads(row[2])) for row in rows}
-
-    def delete_jobs(self, identifiers):
-        with use_operator(), connections[OPERATOR_ALIAS].cursor() as cursor:
-            for identifier in identifiers:
-                cursor.execute("DELETE FROM procrastinate_jobs WHERE id = %s", [identifier])
-
-    def test_start_captures_the_principal_and_reassignment_refuses_the_queued_job(self):
+    def test_start_commits_submission_and_principal_with_the_job_and_rechecks_ownership(self):
         with use_operator():
-            ShareToken.objects.filter(pk=self.owner.token.pk).update(status=ShareTokenStatus.DRAFT)
-        with acting_for(self.owner.user.pk):
-            token = ShareToken.objects.get(pk=self.owner.token.pk)
-            ShareTokenService.start_deployment(token, principal_id=self.owner.user.pk)
+            token = self.tenant.company.tokens.create(name="Queued", symbol="QUE", total_supply="100")
+        with acting_for(self.tenant.user.pk):
+            deployment.start_deployment(token, principal_id=self.tenant.user.pk)
         jobs = [row for key, row in self.queued().items() if key not in self.initial_jobs]
         self.assertEqual(
-            jobs, [(deploy_share_token_task.name, {"token_uuid": str(token.pk), "principal_id": self.owner.user.pk})]
+            jobs,
+            [
+                (
+                    deploy_share_token_task.name,
+                    {
+                        "token_uuid": str(token.pk),
+                        "deployment_id": str(token.deployment_id),
+                        "principal_id": self.tenant.user.pk,
+                    },
+                )
+            ],
         )
         with use_operator():
             Company.objects.filter(pk=token.company_id).update(owner=self.other.user)
-            before = self.state_of(token)
             result = deploy_share_token_task.func(**jobs[0][1])
         self.assertEqual(result, {"success": False, "error": "Token not found"})
-        self.client_factory.assert_not_called()
-        self.assertEqual(self.state_of(token), before)
+        self.node.client.assert_expected_chain.assert_not_called()
         self.assertTrue(self.run_task(token, self.other.user.pk)["success"])
 
-    def test_retry_keeps_the_principal_and_resolves_the_recorded_hash_without_another_send(self):
-        self.chain.send_raw_transaction.side_effect = ConnectionError("synthetic acknowledgement lost")
-        with self.assertRaises(TokenDeploymentFailedException):
-            self.run_task(self.owner.token, self.owner.user.pk)
-        self.assertIn(principal_of(APP_ALIAS), (None, ""))
-        with acting_for(self.owner.user.pk):
-            token = ShareToken.objects.get(pk=self.owner.token.pk)
-            ShareTokenService.retry_deployment(token, principal_id=self.owner.user.pk)
+    def test_retry_preserves_original_signed_claim_and_captured_principal(self):
+        self.node.confirmed = False
+        self.run_task()
+        with use_operator():
+            attempt = SignedAttempt.objects.get()
+            confirmation = deployment.retry_confirmation(self.token)
+        with acting_for(self.tenant.user.pk):
+            deployment.retry_deployment(self.token, principal_id=self.tenant.user.pk, confirmation=confirmation)
         jobs = [row for key, row in self.queued().items() if key not in self.initial_jobs]
-        self.assertEqual(
-            jobs, [(deploy_share_token_task.name, {"token_uuid": str(token.pk), "principal_id": self.owner.user.pk})]
-        )
-        self.factory.functions.getTokenByIdentifier.return_value.call.side_effect = ["0x" + "0" * 40, CREATED]
+        self.assertEqual(jobs[0][1]["principal_id"], self.tenant.user.pk)
+        self.assertEqual(jobs[0][1]["retry_of"], str(attempt.claim_id))
+        self.node.receipts[attempt.tx_hash] = receipt(attempt)
+        self.node.existing_address = CREATED
         with use_operator():
-            result = deploy_share_token_task.func(**jobs[0][1])
-        self.assertTrue(result["success"])
-        self.chain.send_raw_transaction.assert_called_once_with(SIGNED_BYTES)
-        self.chain.wait_for_receipt.assert_called_once_with(SIGNED_HASH)
-        with use_operator():
-            self.assertEqual(BlockchainTransaction.objects.get().status, TransactionStatus.CONFIRMED)
-        self.assertEqual(self.state_of(token)[:3], (ShareTokenStatus.DEPLOYED, CREATED, SIGNED_HASH))
+            self.assertTrue(deploy_share_token_task.func(**jobs[0][1])["success"])
+            self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.assertEqual(len(self.node.broadcasts), 1)
 
-    def test_operator_recovery_finishes_a_sent_deployment_after_issuer_access_is_lost(self):
-        self.chain.wait_for_receipt.side_effect = TimeoutError("synthetic receipt delayed")
-        with self.assertRaises(TokenDeploymentFailedException):
-            self.run_task(self.owner.token, self.owner.user.pk)
+    def test_operator_recovery_finishes_signed_work_after_issuer_access_is_lost(self):
+        self.node.confirmed = False
+        self.run_task()
         with use_operator():
-            Company.objects.filter(pk=self.owner.company.pk).update(owner=self.other.user)
-            ShareToken.objects.filter(pk=self.owner.token.pk).update(updated_at=timezone.now() - timedelta(minutes=11))
-        self.assertEqual(
-            self.run_task(self.owner.token, self.owner.user.pk), {"success": False, "error": "Token not found"}
-        )
-        self.factory.functions.getTokenByIdentifier.return_value.call.side_effect = None
-        self.factory.functions.getTokenByIdentifier.return_value.call.return_value = CREATED
-        self.chain.get_transaction_receipt.return_value = {**RECEIPT, "status": 1}
+            Company.objects.filter(pk=self.token.company_id).update(owner=self.other.user)
+            attempt = SignedAttempt.objects.get()
+        self.assertEqual(self.run_task(), {"success": False, "error": "Token not found"})
+        self.node.receipts[attempt.tx_hash] = receipt(attempt)
+        self.node.existing_address = CREATED
         with use_operator():
-            self.assertEqual(check_pending_token_deployments.func(), {"checked": 1, "resolved": 1})
-            self.assertEqual(BlockchainTransaction.objects.get().status, TransactionStatus.CONFIRMED)
-        self.chain.send_raw_transaction.assert_called_once_with(SIGNED_BYTES)
-        self.assertEqual(self.state_of(self.owner.token)[0], ShareTokenStatus.DEPLOYED)
+            self.assertEqual(deployment.recover(self.token.deployment_id), CREATED)
+        self.assertEqual(len(self.node.broadcasts), 1)
 
-    def test_an_explicit_operator_job_restores_the_callers_alias(self):
-        result = deploy_share_token_task.func(token_uuid=str(self.other.token.pk), principal_id=None)
+    def test_operator_recovery_does_not_sign_unsigned_issuer_intent_after_revocation(self):
+        with acting_for(self.tenant.user.pk):
+            command = deployment._admit(self.token, self.tenant.user.pk)
+        with use_operator():
+            Company.objects.filter(pk=self.token.company_id).update(owner=self.other.user)
+            self.assertIsNone(deployment.recover(command.pk))
+            self.assertFalse(SignedAttempt.objects.exists())
+        self.assertEqual(self.node.broadcasts, [])
+
+    def test_private_history_is_unreadable_and_customer_delete_does_not_traverse_it(self):
+        self.node.confirmed = False
+        self.run_task()
+        with acting_for(self.tenant.user.pk):
+            with self.assertRaises(DatabaseError), atomic():
+                TokenDeployment.objects.exists()
+            self.assertFalse(OutgoingOperation.objects.exists())
+        client = APIClient()
+        client.force_authenticate(self.tenant.user)
+        response = client.delete(f"/api/v1/tokens/{self.token.pk}/")
+        self.assertEqual(response.status_code, 204)
+        with use_operator():
+            self.assertTrue(TokenDeployment.objects.filter(pk=self.token.deployment_id).exists())
+            attempt = SignedAttempt.objects.get()
+            self.node.receipts[attempt.tx_hash] = receipt(attempt)
+            self.assertIsNone(deployment.recover(self.token.deployment_id))
+            self.assertFalse(ShareToken.objects.filter(pk=self.token.pk).exists())
+
+    def test_explicit_operator_job_restores_ambient_connection(self):
+        result = deploy_share_token_task.func(
+            token_uuid=str(self.token.pk), deployment_id=str(self.token.deployment_id), principal_id=None
+        )
         self.assertTrue(result["success"])
-        self.assertEqual(self.broadcasts[0][:2], (OPERATOR_ALIAS, settings.RLS_ROLES[OPERATOR_ALIAS]))
-        self.assertIn(self.broadcasts[0][2], (None, ""))
         self.assertEqual(current_alias(), APP_ALIAS)
 
-    def test_a_job_without_a_principal_fails_before_chain_access(self):
+    def test_missing_principal_or_submission_fails_before_chain_access(self):
         with use_operator(), self.assertRaises(TypeError):
-            deploy_share_token_task.func(token_uuid=str(self.other.token.pk))
-        self.client_factory.assert_not_called()
-        self.assertEqual(self.state_of(self.other.token)[0], ShareTokenStatus.DEPLOYING)
+            deploy_share_token_task.func(token_uuid=str(self.token.pk), deployment_id=str(self.token.deployment_id))
+        with use_operator(), self.assertRaises(TypeError):
+            deploy_share_token_task.func(token_uuid=str(self.token.pk), principal_id=self.tenant.user.pk)
+        self.node.client.assert_expected_chain.assert_not_called()
 
-    def test_an_unexpected_failure_clears_the_principal_and_restores_the_worker_alias(self):
-        self.client_factory.side_effect = RuntimeError("synthetic unavailable client")
-        with use_operator():
-            with self.assertRaisesRegex(RuntimeError, "synthetic unavailable client"):
-                deploy_share_token_task.func(token_uuid=str(self.owner.token.pk), principal_id=self.owner.user.pk)
-            self.assertEqual(current_alias(), OPERATOR_ALIAS)
-        self.assertIn(principal_of(APP_ALIAS), (None, ""))
-        self.assertEqual(self.state_of(self.owner.token)[0], ShareTokenStatus.DEPLOYING)
-
-    def test_the_operator_binding_refuses_another_tokens_journal(self):
-        record = create_deployment_record(
-            self.other.token, f"{self.other.company.acn}:DRF", SIGNER, "0x" + "f" * 40, self.other.wallet.address
-        )
-        before = self.state_of(self.owner.token)
-        with acting_for(self.owner.user.pk), self.assertRaisesMessage(InvalidTokenStateException, "another token"):
-            record_signed_deployment(self.owner.token, record, SIGNED_HASH)
-        self.assertEqual(self.state_of(self.owner.token), before)
-        with use_operator():
-            record.refresh_from_db()
-        self.assertFalse(record.tx_hash)
-        with acting_for(self.other.user.pk):
-            record_signed_deployment(self.other.token, record, SIGNED_HASH)
-        self.assertEqual(self.state_of(self.other.token)[2:], (SIGNED_HASH, record.pk))
-
-    def test_the_operator_binding_cannot_escape_an_uncommitted_issuer_transaction(self):
-        with acting_for(self.owner.user.pk), atomic():
+    def test_unexpected_failure_clears_principal_and_restores_worker_alias(self):
+        with patch("tokens.services.deployment.get_base_chain_client", side_effect=RuntimeError("Synthetic failure")):
             with self.assertRaises(TokenDeploymentFailedException):
-                deploy_share_token_task.func(token_uuid=str(self.owner.token.pk), principal_id=self.owner.user.pk)
-        self.chain.send_raw_transaction.assert_not_called()
-        with use_operator():
-            record = BlockchainTransaction.objects.get()
-        self.assertFalse(record.tx_hash)
-        self.assertIsNone(self.state_of(self.owner.token)[2])
-
-    def test_ownership_lost_while_signing_refuses_the_operator_binding_before_broadcast(self):
-        def transfer_owner(*args, **kwargs):
-            with use_operator():
-                Company.objects.filter(pk=self.owner.company.pk).update(owner=self.other.user)
-            return SIGNED_BYTES
-
-        self.chain.sign_transaction.side_effect = transfer_owner
-        with self.assertRaises((TokenDeploymentFailedException, ShareToken.DoesNotExist, DatabaseError)):
-            self.run_task(self.owner.token, self.owner.user.pk)
-        self.chain.send_raw_transaction.assert_not_called()
+                self.run_task()
         self.assertIn(principal_of(APP_ALIAS), (None, ""))
-        with use_operator():
-            record = BlockchainTransaction.objects.get()
-        self.assertFalse(record.tx_hash)
-        self.assertIsNone(self.state_of(self.owner.token)[2])
+        self.assertEqual(current_alias(), APP_ALIAS)
 
-    def test_a_token_moved_to_another_company_while_signing_is_not_bound_or_broadcast(self):
-        def transfer_token(*args, **kwargs):
-            with use_operator():
-                ShareToken.objects.filter(pk=self.owner.token.pk).update(company=self.other.company, symbol="MOVED")
-            return SIGNED_BYTES
-
-        self.chain.sign_transaction.side_effect = transfer_token
-        with self.assertRaises((TokenDeploymentFailedException, ShareToken.DoesNotExist, DatabaseError)):
-            self.run_task(self.owner.token, self.owner.user.pk)
-        self.chain.send_raw_transaction.assert_not_called()
-        self.assertIn(principal_of(APP_ALIAS), (None, ""))
+    def test_surrounding_issuer_transaction_cannot_escape_through_operator_signing(self):
+        with acting_for(self.tenant.user.pk), atomic(), self.assertRaises(InvalidTokenStateException):
+            deployment.deploy_token(self.token)
         with use_operator():
-            record = BlockchainTransaction.objects.get()
-        self.assertFalse(record.tx_hash)
-        self.assertIsNone(self.state_of(self.owner.token)[2])
+            self.assertFalse(TokenDeployment.objects.exists())
+        self.assertEqual(self.node.broadcasts, [])
+
+    def change_during_signing(self, sql, parameters):
+        sign = LocalAccount.sign_transaction
+
+        def changed(account, transaction, *args, **kwargs):
+            raw = sign(account, transaction, *args, **kwargs)
+            observer = connections[OPERATOR_ALIAS].copy(alias="deployment_revocation")
+            try:
+                with observer.cursor() as cursor:
+                    cursor.execute(sql, parameters)
+            finally:
+                observer.close()
+            return raw
+
+        with patch.object(LocalAccount, "sign_transaction", changed):
+            with self.assertRaises(TokenDeploymentFailedException):
+                self.run_task()
+        with use_operator():
+            self.assertFalse(SignedAttempt.objects.exists())
+            self.assertFalse(BlockchainTransaction.objects.exists())
+            self.token.refresh_from_db()
+            self.assertIsNone(self.token.deployment_tx_hash)
+        self.assertEqual(self.node.broadcasts, [])
+
+    def test_committed_ownership_revocation_while_signing_prevents_binding_and_broadcast(self):
+        self.change_during_signing(
+            "UPDATE companies_company SET owner_id=%s WHERE uuid=%s", [self.other.user.pk, self.token.company_id]
+        )
+        with use_operator():
+            self.assertEqual(Company.objects.get(pk=self.token.company_id).owner_id, self.other.user.pk)
+
+    def test_committed_company_move_while_signing_prevents_binding_and_broadcast(self):
+        self.change_during_signing(
+            "UPDATE tokens_sharetoken SET company_id=%s, symbol='MOVED' WHERE uuid=%s",
+            [self.other.company.pk, self.token.pk],
+        )
+        self.assertEqual(self.token.company_id, self.other.company.pk)

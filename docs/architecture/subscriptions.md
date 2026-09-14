@@ -70,11 +70,11 @@ How payment, refund, scale-back and share allotment fit together.
    mint that was broadcast and then lost its receipt fails the request with the
    shares already out. `ShareIssuance.mark_reverted` clears `tx_hash` and
    `mark_failed` keeps it, so a linked issuance with a `tx_hash` means a mint is
-   out and every money move is refused by `ShareTokenService.broadcast_mint`
+   out and every money move is refused by `share_token_service.broadcast_mint`
    until the executing sweep resolves it — completing it if it was mined, or
    clearing the hash if it reverted, which reopens the refund.
 6. Allotment reuses the issuance machinery unchanged:
-   `ShareTokenService.create_issuance_request`, `request.approve(...)`, the
+   `share_token_service.create_issuance_request`, `request.approve(...)`, the
    `OneToOne` link, then a task on the untouched `execute_request`. Three
    mechanisms guard against duplicate allotment: the `OneToOne`, claimed under
    `select_for_update` so two simultaneous clicks end in one request and one

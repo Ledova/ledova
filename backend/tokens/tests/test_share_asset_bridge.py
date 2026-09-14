@@ -15,16 +15,16 @@ from tokens.models import (
     ShareIssuance,
     ShareIssuanceRequest,
 )
-from tokens.services import ShareTokenService
+from tokens.services import share_token_service
 from tokens.services.share_token_service import SHARE_ASSET_CHAIN
 from tokens.tests.mint_results import MINT_HASH, signed_mint_transaction
 from wallets.models import Holding
 from whitelist.models import WhitelistEntry, WhitelistStatus
 
 CHAIN_CLIENT = "tokens.services.share_token_service.get_base_chain_client"
-SWAP = "tokens.services.share_token_service.ShareTokenService._approve_for_swap"
-WHITELISTED = "tokens.services.share_token_service.ShareTokenService.is_recipient_whitelisted"
-SUPPLY = "tokens.services.share_token_service.ShareTokenService.share_supply"
+SWAP = "tokens.services.share_token_service._approve_for_swap"
+WHITELISTED = "tokens.services.share_token_service.is_recipient_whitelisted"
+SUPPLY = "tokens.services.share_token_service.share_supply"
 CREATED = "0x" + "c0ffee" + "0" * 34
 ELSEWHERE = "0x" + "dead" + "0" * 36
 SIGNER = "0x" + "e" * 40
@@ -48,18 +48,16 @@ class ShareAssetBridgeTest(TestCase):
         self.token = self.tenant.token
         self.token.mark_deploying()
 
-    def _service(self, existing=CREATED):
-        service = ShareTokenService()
-        service._factory_contract = factory(existing)
-        return service
+    def _bridge(self, token=None, address=CREATED):
+        self.chain.load_contract.return_value = factory(address)
+        share_token_service.bridge_share_asset(token or self.token, address)
 
     def _shares(self):
         return Asset.objects.filter(asset_type=AssetType.TOKENIZED_SECURITY.value).exclude(symbol__startswith="TENANT")
 
-    def test_deploying_writes_a_verified_asset_at_the_address_the_factory_reported(self):
-        result = self._service().deploy_token(self.token)
+    def test_bridging_writes_a_verified_asset_at_the_address_the_factory_reported(self):
+        self._bridge()
 
-        self.assertEqual((result["contract_address"], result["adopted"]), (CREATED, True))
         asset = self._shares().get()
         self.assertEqual((asset.symbol, asset.decimals, asset.is_verified), ("DRF", 0, True))
         self.assertEqual(asset.name, f"{self.tenant.company.name} {self.token.name}")
@@ -67,19 +65,19 @@ class ShareAssetBridgeTest(TestCase):
         deployment = asset.chain_deployments.get()
         self.assertEqual((deployment.chain, deployment.contract_address), (SHARE_ASSET_CHAIN, CREATED))
 
-    def test_running_the_deploy_path_twice_leaves_exactly_one_asset_and_one_deployment(self):
-        self._service().deploy_token(self.token)
+    def test_repeated_bridge_leaves_one_asset_and_deployment(self):
+        self._bridge()
         self.token.refresh_from_db()
-        self._service().deploy_token(self.token)
+        self._bridge()
 
         self.assertEqual(self._shares().count(), 1)
         self.assertEqual(AssetChainDeployment.objects.filter(contract_address=CREATED).count(), 1)
 
-    def test_the_five_minute_sweep_resolving_the_same_deployment_writes_no_second_asset(self):
-        self._service().deploy_token(self.token)
+    def test_bridging_an_already_registered_contract_writes_no_second_asset(self):
+        self._bridge()
         self.token.refresh_from_db()
 
-        self.assertEqual(self._service().resolve_pending_deployment(self.token), CREATED)
+        self._bridge()
 
         self.assertEqual(self._shares().count(), 1)
         self.assertEqual(AssetChainDeployment.objects.filter(contract_address=CREATED).count(), 1)
@@ -90,7 +88,8 @@ class ShareAssetBridgeTest(TestCase):
         )
 
         with self.assertLogs("tokens.services.share_token_service", level="WARNING") as logs:
-            self._service(existing=CREATED)._finish_deployment(self.token, ELSEWHERE)
+            self.chain.load_contract.return_value = factory(CREATED)
+            share_token_service.bridge_share_asset(self.token, ELSEWHERE)
 
         self.assertIn("is not the address the factory holds", "\n".join(logs.output))
         quarantined.refresh_from_db()
@@ -98,15 +97,15 @@ class ShareAssetBridgeTest(TestCase):
         self.assertEqual((quarantined.asset_type, quarantined.decimals), ("erc20_token", 18))
         self.assertEqual(self._shares().count(), 0)
         self.token.refresh_from_db()
-        self.assertEqual(self.token.contract_address, ELSEWHERE)
+        self.assertIsNone(self.token.contract_address)
 
     def test_two_companies_sharing_a_symbol_get_two_distinct_assets(self):
-        self._service().deploy_token(self.token)
+        self._bridge()
         other = make_tenant("rival")
         rival_token = other.token
         rival_token.mark_deploying()
 
-        self._service(existing=ELSEWHERE).deploy_token(rival_token)
+        self._bridge(rival_token, ELSEWHERE)
 
         symbols = sorted(self._shares().values_list("symbol", flat=True))
         self.assertEqual(symbols, ["DRF", f"DRF.{other.company.acn}"])
@@ -142,7 +141,7 @@ class IssuanceSeedsTheHoldingTest(TestCase):
         AssetChainDeployment.objects.create(
             asset=self.asset, chain=SHARE_ASSET_CHAIN, contract_address=self.token.contract_address, decimals=0
         )
-        self.service = ShareTokenService()
+        self.service = share_token_service
 
     def _request(self, recipient):
         request = ShareIssuanceRequest.objects.create(
@@ -153,7 +152,7 @@ class IssuanceSeedsTheHoldingTest(TestCase):
         return request
 
     def _balance(self, value):
-        return patch.object(ShareTokenService, "get_token_balance", return_value=value)
+        return patch.object(share_token_service, "get_token_balance", return_value=value)
 
     def test_an_allotment_to_a_whitelisted_investor_wallet_writes_the_holding(self):
         WhitelistEntry.objects.create(wallet=self.wallet, status=WhitelistStatus.ACTIVE, is_whitelisted=True)
