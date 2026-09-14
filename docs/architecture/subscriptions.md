@@ -61,39 +61,38 @@ How payment, refund, scale-back and share allotment fit together.
    Before allotment the whole amount is returnable and the refund unwinds the
    allotment; after allotment only the residual no allotted share paid for can
    come back — a cent more is refused as a claimed mint, because money never
-   leaves while the shares it bought stay out. Recording a refund rejects a
-   still-executable issuance request in the same transaction — a compare-and-set
-   against `EXECUTABLE_STATUSES`, so the worker's `mark_executing` and the
-   refund cannot both win — and any refund, rejection, withdrawal or restated
-   payment is refused once the request is `executing` or `executed`. Status
-   alone is not the test, because `EXECUTABLE_STATUSES` includes `failed` and a
-   mint that was broadcast and then lost its receipt fails the request with the
-   shares already out. `ShareIssuance.mark_reverted` clears `tx_hash` and
-   `mark_failed` keeps it, so a linked issuance with a `tx_hash` means a mint is
-   out and every money move is refused by `share_token_service.broadcast_mint`
-   until the executing sweep resolves it — completing it if it was mined, or
-   clearing the hash if it reverted, which reopens the refund.
-6. Allotment reuses the issuance machinery unchanged:
-   `share_token_service.create_issuance_request`, `request.approve(...)`, the
-   `OneToOne` link, then a task on the untouched `execute_request`. Three
-   mechanisms guard against duplicate allotment: the `OneToOne`, claimed under
-   `select_for_update` so two simultaneous clicks end in one request and one
-   refusal; the unique `ShareIssuance.idempotency_key` derived from the request
-   uuid; and the compare-and-set in `ReviewableRequest.mark_executing`.
+   leaves while the shares it bought stay out. A queued allotment refund retains
+   a cancelled private admission and rejects its approved request atomically.
+   A delayed task cannot revive it. Once the worker commits its executing claim,
+   a refund remains refused until the original operation resolves. Known unsigned
+   failures and confirmed reverts permit cancellation; unknown delivery does not.
+   Historical failed rows with unresolved hashes or unidentified mint evidence
+   retain their holds. An allotted subscription may still return only its excess.
+6. Allotment admits one private `ShareIssuanceExecution` alongside its approved
+   request, `OneToOne` subscription link and exact task identity. Initial queued
+   work remains refundable until the worker claims it. The shared outgoing journal
+   commits the original signed transaction and public associations before send.
+   The database protects approved terms, first linkage, money and share quantities
+   against stale edits. Execution and retry require current active staff and
+   subscription change permission; recovery of accepted work is operator-owned.
+   Retry confirmations bind the subscription, actor and exact failed claim.
+   See [issuance boundaries](outgoing-signing.md#share-issuances).
 7. The headroom test lives in `allot()`, the exported single-subscription entry
    point, so the offering cap — a disclosure limit, not an internal convenience
    — is guarded however the shares are raised. Bulk allotment groups by
-   offering, takes `select_for_update` on the offering row, drops the rows `allot()`
+   offering, drops the rows `allot()`
    would refuse anyway — already linked to a request, not `paid`, scaled to
    nothing — before it sums, so one stale row does not poison the batch, makes
-   one `share_supply()` read and hands that headroom to each `allot()` call, and
+   one `share_supply()` read before locks, then admits the group under the
+   offering and token locks with the same snapshot. It
    refuses the **whole** remaining batch when the total exceeds `min(offering
    headroom, authorized - issued - unminted)`, because part-filling first-come
    would destroy the pro-rata fairness `scale_back` exists to give.
    `totalSupply()` counts what is on chain, not what has been promised, so the
    chain half of that `min()` also subtracts every request for the token that
-   can still mint — `approved`, `executing`, and `failed` while its issuance
-   still carries a `tx_hash`. Without that subtraction two sequential batches
+   can still mint: `approved` and `executing`, plus historical failed issuances
+   retaining unresolved hashes. A new command with a confirmed revert retains
+   its hash as evidence without holding unminted headroom. Without that subtraction two sequential batches
    each fit alone and jointly do not, stranding the second as a `paid` row whose
    task refuses forever. `scale_back` writes the money it strands: cutting
    `allotted_quantity` leaves `amount_due` and `amount_received` alone by
@@ -101,13 +100,12 @@ How payment, refund, scale-back and share allotment fit together.
    becomes `refund_amount`, and the clamp floors at zero so a negative headroom
    scales a row to nothing rather than to a quantity the database check
    constraint rejects.
-8. `reconcile_subscriptions` runs every five minutes and is the mirror of
-   `check_executing_issuance_requests`: the latter finishes the request a killed
-   worker left, and without the mirror the subscription sits `paid` forever with
-   the shares already on chain. That sweep takes `executing` requests and also
-   `failed` ones whose issuance still carries a `tx_hash`, because nothing else
-   looks at a `failed` request whose mint is out. The daily
-   `expire_unpaid_subscriptions` only touches rows with no payment recorded.
+8. New recovery commits the request, issuance and subscription's allotted status
+   together after original receipt verification. `reconcile_subscriptions` still
+   repairs historical paid subscriptions whose linked request already executed.
+   The issuance sweep handles queued and executing private commands, plus
+   unresolved historical requests. The daily `expire_unpaid_subscriptions` only
+   touches rows with no payment recorded.
 9. Allotment stays an admin action. The API carries create, list, detail, submit
    and withdraw for the investor and no operator write route. The issuer reads
    its own offering's subscriptions at `GET

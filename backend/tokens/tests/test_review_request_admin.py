@@ -8,8 +8,10 @@ from django.db import DatabaseError
 from django.test import RequestFactory, TransactionTestCase, override_settings
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
+from eth_abi import encode
+from web3 import Web3
 
-from blockchain.tests.outgoing_fixtures import admitted_signer
+from blockchain.tests.outgoing_fixtures import admitted_signer, chain_client
 from shared.db import atomic
 from shared.tests.tenants import make_tenant
 from tokens.models import (
@@ -18,9 +20,10 @@ from tokens.models import (
     ShareIssuance,
     ShareIssuanceRequest,
 )
-from tokens.services import capital_execution, share_token_service
+from tokens.services import capital_execution, issuance_execution, share_token_service
 from tokens.services.capital_increase import submit_capital_increase
 from tokens.tests.capital_fixtures import CHAIN_ID, KEY, CapitalNode
+from tokens.tests.issuance_fixtures import IssuanceNode
 
 User = get_user_model()
 
@@ -54,6 +57,11 @@ class ReviewRequestAdminTest(TransactionTestCase):
         )
         self.requests = (self.capital_increase, self.issuance)
         self.node = CapitalNode()
+        self.issuance_node = IssuanceNode()
+        self.enterContext(
+            patch("tokens.services.issuance_execution.get_base_chain_client", return_value=self.issuance_node.client)
+        )
+        self.enterContext(patch("tokens.services.share_token_service.is_recipient_whitelisted", return_value=True))
         admitted_signer()
         patcher = patch("tokens.services.capital_execution.get_base_chain_client", return_value=self.node.client)
         patcher.start()
@@ -62,14 +70,11 @@ class ReviewRequestAdminTest(TransactionTestCase):
     def execution_data(self, obj):
         page = self.client.get(url(obj, "execute"))
         self.assertEqual(page.status_code, 200)
-        if isinstance(obj, CapitalIncreaseRequest):
-            return {"confirmation": page.context["form"]["confirmation"].value()}
-        return {}
+        return {"confirmation": page.context["form"]["confirmation"].value()}
 
     def assert_deferred(self, task, obj, actor):
         expected = dict(model_label=obj._meta.label, request_uuid=str(obj.pk), executed_by=actor.pk)
-        if isinstance(obj, CapitalIncreaseRequest):
-            expected["execution_id"] = str(obj.dispatch_id)
+        expected["execution_id"] = str(obj.dispatch_id)
         task.assert_called_once_with(**expected)
 
     def test_execution_requires_active_staff_with_change_permission(self):
@@ -107,8 +112,13 @@ class ReviewRequestAdminTest(TransactionTestCase):
                 self.assertNotContains(change, url(obj, "execute"))
 
     def test_legacy_recovery_renders_the_hash_form_without_a_release_action(self):
-        self.issuance.status = RequestStatus.FAILED
-        self.issuance.save(update_fields=["status"])
+        self.issuance = ShareIssuanceRequest.objects.create(
+            token=self.tenant.deployed_token,
+            recipient_address=self.issuance.recipient_address,
+            amount=10,
+            status=RequestStatus.FAILED,
+            dispatch_id=None,
+        )
         ShareIssuanceRequest.objects.filter(pk=self.issuance.pk).update(updated_at=timezone.now() - timedelta(hours=1))
         recorded = ShareIssuance.objects.create(
             token=self.issuance.token,
@@ -116,6 +126,7 @@ class ReviewRequestAdminTest(TransactionTestCase):
             amount=str(self.issuance.amount),
             status="failed",
             idempotency_key=share_token_service.issuance_key(self.issuance),
+            processed_at=timezone.now() - timedelta(hours=1),
         )
         change = self.client.get(url(self.issuance, "change"))
         self.assertContains(change, "Record legacy transaction hash")
@@ -129,7 +140,15 @@ class ReviewRequestAdminTest(TransactionTestCase):
         self.assertContains(invalid, "64 hexadecimal characters")
         recorded.refresh_from_db()
         self.assertIsNone(recorded.tx_hash)
-        with patch("tokens.services.share_token_service.get_base_chain_client"):
+        historical_client = chain_client()
+        historical_client.get_transaction.return_value = {
+            "hash": "0x" + "ab" * 32,
+            "to": self.issuance.token.contract_address,
+            "value": 0,
+            "input": Web3.keccak(text="mint(address,uint256)")[:4]
+            + encode(["address", "uint256"], [self.issuance.recipient_address, 10]),
+        }
+        with patch("tokens.services.legacy_issuance.get_base_chain_client", return_value=historical_client):
             response = self.client.post(url(self.issuance, "name_mint"), {"tx_hash": "0x" + "ab" * 32})
         self.assertRedirects(response, url(self.issuance, "change"), fetch_redirect_response=False)
         recorded.refresh_from_db()
@@ -163,7 +182,7 @@ class ReviewRequestAdminTest(TransactionTestCase):
                 expected = (
                     "Capital increase status: Executing"
                     if isinstance(obj, CapitalIncreaseRequest)
-                    else "execution started for"
+                    else "Issuance status: Approved"
                 )
                 self.assertContains(self.client.get(url(obj, "change")), expected)
 
@@ -217,7 +236,13 @@ class ReviewRequestAdminTest(TransactionTestCase):
                         )
                     capital_execution.recover(command.pk)
                 else:
-                    obj.mark_failed("rpc down")
+                    obj.approve(self.admin)
+                    self.issuance_node.client.estimate_gas.side_effect = RuntimeError("Synthetic preparation refusal")
+                    with patch("tokens.tasks.execute_review_request_task.defer"):
+                        command = issuance_execution.admit(
+                            obj, self.admin, confirmed=issuance_execution.confirmation(obj, self.admin)
+                        )
+                    issuance_execution.recover(command.pk)
                 change = self.client.get(url(obj, "change"))
                 self.assertContains(change, "Retry Execute")
                 self.assertContains(change, url(obj, "execute"))

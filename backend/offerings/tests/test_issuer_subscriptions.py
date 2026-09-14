@@ -54,6 +54,7 @@ class IssuerSubscriptionReadTest(APITestCase):
     def test_an_allotment_names_the_subscription_that_paid_for_it(self):
         token = self.tenant.deployed_token
         request = ShareIssuanceRequest.objects.create(
+            dispatch_id=None,
             token=token,
             recipient_address=self.tenant.wallet.address,
             amount=10,

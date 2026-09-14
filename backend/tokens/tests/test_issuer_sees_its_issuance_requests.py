@@ -120,7 +120,13 @@ class AnIssuerCanSeeTheRequestItMadeTest(APITestCase):
 
     @skipUnless(connection.vendor == "postgresql", "PostgreSQL request policies")
     def test_subscriber_database_access_does_not_expose_another_issuers_history(self):
-        foreign = self.a_request(self.stranger)
+        foreign = ShareIssuanceRequest.objects.create(
+            dispatch_id=None,
+            token=self.stranger.deployed_token,
+            recipient_address=self.tenant.wallet.address,
+            amount=10,
+            reason="Historical subscriber allotment",
+        )
         open_to_investors(self.stranger)
         Subscription.objects.create(
             offering=self.stranger.offering,

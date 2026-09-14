@@ -430,6 +430,8 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
+    "tokens_shareissuanceexecution": "Immutable operator-authorized share issuance intent, queued cancellation, "
+    "exact retry authority and protected outgoing associations. Customer paths retain public request state.",
     "tokens_capitalincreaseexecution": "Immutable operator-authorized capital increase intent, exact retry "
     "authorization and original transaction attribution. Issuer request paths never read the private execution record.",
     "tokens_tokendeployment": "Immutable deployment intent and issuer authority snapshots, written through a bounded "

@@ -26,6 +26,7 @@ class ReviewRequestPolicyTest(TestCase):
                 recipient_address=tenant.wallet.address,
                 amount=1,
                 reason="Synthetic issuance",
+                dispatch_id=None,
             )
             cls.requests.append((tenant.capital_increase, issuance))
 
