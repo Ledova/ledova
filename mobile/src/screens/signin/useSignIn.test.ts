@@ -26,8 +26,10 @@ function failure(status: number, data = {}) {
 it.each([
   ['a 400 refusal', failure(400), expired],
   ['a 401 refusal', failure(401), expired],
+  ['a 403 response', failure(403), unavailable],
   ['a 429 response', failure(429), unavailable],
   ['a 503 response with detail', failure(503, { detail: 'Synthetic service detail' }), unavailable],
+  ['a failed session retirement', new Error('Session retirement did not complete.'), unavailable],
   ['a user-friendly failure', createUserFriendlyError('Synthetic friendly message'), 'Synthetic friendly message'],
 ])('shows the biometric sign in message for %s', async (_, error, message) => {
   jest.mocked(rotateRefreshToken).mockRejectedValue(error);
