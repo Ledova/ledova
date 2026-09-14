@@ -165,10 +165,11 @@ adopted or retired, cleanup also lists the picker's own `DocumentPicker` cache
 directory and removes only its UUID-named files: copies lost before adoption,
 partial copies that never returned and files from older app versions. Session
 retirement runs the same sweep immediately, or at the end of a pick that is still
-open. A listing or deletion failure only logs a warning and never blocks sign-out. Other cache paths and provider originals are never
-listed or removed. Metadata or deletion failure leaves a slot unavailable for
-reuse; it is not reported as verified erasure. Viewer/sharing copies still need a
-separate external-reader lifetime and are outside this upload cache.
+open. A listing or deletion failure only logs a warning and never blocks
+sign-out. Other cache paths and provider originals are never listed or removed.
+Metadata or deletion failure leaves a slot unavailable for reuse; it is not
+reported as verified erasure. Viewer/sharing copies still need a separate
+external-reader lifetime and are outside this upload cache.
 
 Component tests control native picker and file boundaries while retaining the
 actual upload hooks and React Query mutation lifecycle. The native probe supplies
