@@ -74,8 +74,9 @@ explains what the last two suites establish.
 
 `black`, `isort` and `flake8` are development requirements and are not in the
 backend image, so running the source gates inside that image proves nothing
-about CI's Lint step, which runs before the tests and stops the job when it
-fails. Install them with `make install-backend` from the repository root
+about CI's Lint step. Lint runs first in the Django checks job and stops that
+job when it fails; the two large suites run in their own jobs whether or not
+it passes. Install the tools with `make install-backend` from the repository root
 (`make check` does the same); CI installs the same file with
 `pip install -r requirements-dev.txt -c schema/requirements.txt` from
 `backend/`. Then run `cd backend && make lint`: `black --check` and
