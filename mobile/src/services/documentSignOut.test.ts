@@ -52,14 +52,17 @@ it.each([false, true])(
   },
 );
 
-it('signing out retires picker copies that were never adopted and nothing else', async () => {
+it('signing out retires unadopted picker copies and viewed copies, and nothing else', async () => {
   await storeTokens({ accessToken: 'synthetic-access', refreshToken: 'synthetic-refresh' });
   const lost = `${cache}DocumentPicker/00000000-0000-0000-0000-0000000000d1.pdf`;
+  const viewed = `${cache}ledova-document-views-v1/00000000-0000-0000-0000-0000000000d3.pdf`;
   const unrelated = `${cache}elsewhere.pdf`;
   files.set(lost, { size: 5, content: 'leftover' });
+  files.set(viewed, { size: 5, content: 'leftover' });
   files.set(unrelated, { size: 5, content: 'untouched' });
   await clearTokens();
   expect(files.has(lost)).toBe(false);
+  expect(files.has(viewed)).toBe(false);
   expect(files.get(unrelated)?.content).toBe('untouched');
 });
 
