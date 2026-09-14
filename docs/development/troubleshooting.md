@@ -11,6 +11,7 @@ application code. These are current remedies distilled from prior failures.
 | Signup has no email | On the local debug stack, read the backend log for the verification code. Check the configured provider outside debug. |
 | Cookie writes return CSRF 403 | Put the dashboard origin in `DJANGO_CSRF_TRUSTED_ORIGINS`; clearing localStorage does not clear cookies. |
 | Backend tests cannot start | Start PostgreSQL and supply the isolated test database/role settings. SQLite is no longer the default test environment. |
+| Backend `make lint` reports *No module named black* (or isort, flake8) | The lint tools are development requirements, not part of the backend image. Run `make install-backend` on the host, then `cd backend && make lint`; see [backend verification](testing.md#backend-verification). |
 | Type-check cannot find Expo configuration | Install mobile dependencies inside `mobile/`, or run `make check`. A root package copy is not proof Metro can resolve it. |
 | Many unrelated PostgreSQL failures | Check alias/principal selection, role credentials and another runner sharing the same test database before blaming a policy. Use a separate database per worktree. |
 | Missing rows only with `select_related` | Check parent policy visibility: an INNER JOIN can remove a child that an unjoined count sees. |

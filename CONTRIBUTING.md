@@ -121,6 +121,8 @@ grows.
    identity, verdict and head SHA is sufficient; a separate GitHub account or
    formal GitHub approval is not required by project policy. If the branch
    moves, either show the content is unchanged or have the delta read.
+   Blocking is ordinary, and a block stands until its author clears it on that
+   pull request; a later passing review from someone else does not lift it.
 4. **Required CI green, on a branch up to date with `main`.** Green on the branch
    and green on `main` separately do not establish that the two are green
    together.
