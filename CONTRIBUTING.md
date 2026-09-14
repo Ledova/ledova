@@ -96,8 +96,9 @@ An automated PR arrives as a proposal. During triage, reuse an issue whose scope
 fits or create a focused one, then correct its title and body before review and
 merge. Bots have no exemption and do not create tracking issues automatically.
 Recheck metadata after a bot refreshes its PR. The
-[PR metadata gate](docs/development/gates.md#the-pr-metadata-gate) verifies the format and the
-referenced issue; reviewers establish that the issue actually owns the work.
+[PR metadata gate](docs/development/gates.md#the-pr-metadata-gate) verifies the format, the
+referenced issue and that a `Refs` PR closes no issue; reviewers establish that the issue
+actually owns the work.
 
 ## Review and merge
 

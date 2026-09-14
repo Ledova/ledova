@@ -49,12 +49,21 @@ rather than a PR or an unavailable number. The types and ownership convention
 are in
 [CONTRIBUTING.md](../../CONTRIBUTING.md#pull-request-titles-and-issue-ownership).
 
+A `Refs` PR must close no issue. The gate reads the PR's `closingIssuesReferences`
+through GitHub's GraphQL API. That is the list of issues a merge would close: one
+named by a closing phrase anywhere in the body, even a negated one such as
+"does not close #N", and one linked from the PR's Development sidebar. A `Refs`
+PR with any entry is refused, and the refusal names each issue; remove the phrase
+or the link. A `Closes` PR is not checked against the list.
+
 The separate `PR metadata` workflow runs on creation, edits, new commits,
 reopening and readiness changes, including bot PRs. It uses `pull_request_target`
 with read-only permissions and checks out only the repository's default branch.
 It never checks out or executes the PR's code. Titles and bodies are fetched as
 data through the API, rather than interpolated into a shell command. Concurrent
 runs for the same PR cancel older runs; each check fetches the current metadata.
+Linking an issue from the sidebar starts no workflow, so a link added after the
+last check is seen only at the next of those events.
 
 This check needs GitHub access and is not part of `make check`; its regression
 tests run in `make test-gates`. To check a PR locally, run
