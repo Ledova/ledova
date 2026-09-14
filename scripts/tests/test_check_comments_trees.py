@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hold the comment gate's tree list and development/gates.md's to each other.
+"""Hold the comment gate and development/gates.md to each other.
 
 #185 added mobile/scripts to TREES and the prose kept describing the old set.
 The section had already asked its readers to "change it and this section
@@ -7,18 +7,18 @@ together", which is an instruction rather than a mechanism, so nothing failed.
 This asserts set equality in both directions: a tree added to the gate and not
 to the sentence fails, and so does a tree named in the sentence that the gate
 does not read.
+
+#559 moved the rules into gates.md, under "The comment gate", and the gate's
+module text and failure message kept citing "The rules". Every gates.md heading
+the gate's source cites must be a heading there.
 """
 
 from __future__ import annotations
 
-import contextlib
 import importlib.util
-import io
 import re
-import sys
 import unittest
 from pathlib import Path
-from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 SCRIPT = ROOT / "scripts" / "check-comments.py"
@@ -131,21 +131,15 @@ class GeneratedOutputIsInvisibleRatherThanExempted(unittest.TestCase):
         self.assertIn(visible, gate.tracked_files())
 
 
-class TheFailureMessageCitesASectionThatExists(unittest.TestCase):
+class TheGateCitesHeadingsThatExist(unittest.TestCase):
 
-    def test_the_heading_a_violation_names_is_a_heading_in_gates_md(self):
-        probe = ROOT / "contracts" / "__gate_probe__.ts"
-        probe.write_text("// probe\n")
-        self.addCleanup(probe.unlink, missing_ok=True)
-        self.addCleanup(gate.tracked_files.cache_clear)
-        gate.tracked_files.cache_clear()
-        stderr = io.StringIO()
+    def test_every_gates_md_heading_the_gate_cites_is_a_heading_in_gates_md(self):
+        cited = re.findall(r'docs/development/gates\.md(?:,|\s+under)\s+"([^"]+)"', SCRIPT.read_text())
+        headings = {line[3:] for line in DOCUMENT.read_text().splitlines() if line.startswith("## ")}
 
-        with mock.patch.object(sys, "argv", ["check-comments.py"]), contextlib.redirect_stderr(stderr):
-            self.assertEqual(gate.main(), 1)
-
-        cited = re.search(r'gates\.md, "([^"]+)"', stderr.getvalue()).group(1)
-        self.assertIn(cited, {line[3:] for line in DOCUMENT.read_text().splitlines() if line.startswith("## ")})
+        self.assertGreaterEqual(len(cited), 2)
+        for heading in cited:
+            self.assertIn(heading, headings)
 
 
 if __name__ == "__main__":
