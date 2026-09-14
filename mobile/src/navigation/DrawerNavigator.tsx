@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Alert } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -213,7 +213,10 @@ export function DrawerNavigator() {
     } catch (error) {
       console.error(`Sign-out API call failed: ${describeFailure(error)}`);
     } finally {
-      await clearTokens();
+      const retired = await clearTokens().then(
+        () => true,
+        () => false,
+      );
 
       queryClient.clear();
       queryClient.removeQueries();
@@ -222,6 +225,12 @@ export function DrawerNavigator() {
       navigation.reset({ index: 0, routes: [{ name: 'SignIn' }] });
       setIsSigningOut(false);
       setShowSignOutModal(false);
+      if (!retired) {
+        Alert.alert(
+          'Sign-Out Warning',
+          'You are signed out, but this device could not confirm that your saved sign-in was removed. If Ledova opens signed in, sign out again.',
+        );
+      }
     }
   };
 
