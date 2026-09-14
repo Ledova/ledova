@@ -46,10 +46,11 @@ Real Redis/ClamAV controls are separate from unit fakes; see
 
 ## Backend verification
 
-CI's Django job runs four suites, and a backend change runs all four locally
-before it is called green. A change to a policy, a role grant or the test
-settings can pass three and fail the fourth, because each sees something the
-others cannot. From `backend/`, exactly as CI runs them:
+CI runs four backend suites, the ordinary and behind-the-policies suites as
+parallel jobs, and a backend change runs all four locally before it is called
+green. A change to a policy, a role grant or the test settings can pass three
+and fail the fourth, because each sees something the others cannot. From
+`backend/`, exactly as CI runs them:
 
 ```bash
 python manage.py test --settings=ledova_backend.settings.test --parallel 4 --noinput
