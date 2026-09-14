@@ -15,7 +15,6 @@ const plist = require('@expo/plist').default;
 
 const fileChooserQueries = [
   { action: [{ $: { 'android:name': 'android.media.action.IMAGE_CAPTURE' } }] },
-  { action: [{ $: { 'android:name': 'android.media.action.ACTION_VIDEO_CAPTURE' } }] },
   {
     action: [{ $: { 'android:name': 'android.intent.action.GET_CONTENT' } }],
     category: [{ $: { 'android:name': 'android.intent.category.OPENABLE' } }],

@@ -125,11 +125,11 @@ opening stays off. On iOS, camera and microphone requests reach WebKit's own
 prompt instead of a silent grant, and `NSMicrophoneUsageDescription` stays.
 Android blocks `RECORD_AUDIO` app-wide, although Expo Camera's plugin and library
 manifest declare it; nothing in the app records audio. The app's config plugin
-declares the `IMAGE_CAPTURE`, `ACTION_VIDEO_CAPTURE` and `GET_CONTENT` intent
-queries, and no permission with them. A provider file input that requests capture
-starts `IMAGE_CAPTURE` only when `resolveActivity` finds a camera app, which
-Android package visibility is expected to hide without that query. That rests on
-react-native-webview source, not a device run.
+declares the `IMAGE_CAPTURE` and `GET_CONTENT` intent queries, and no permission
+with them. A provider file input that requests capture starts `IMAGE_CAPTURE`
+only when `resolveActivity` finds a camera app, which Android package visibility
+is expected to hide without that query. That rests on react-native-webview
+source, not a device run.
 
 These gaps are accepted by the #13 owner decisions:
 
