@@ -97,7 +97,7 @@ fits or create a focused one, then correct its title and body before review and
 merge. Bots have no exemption and do not create tracking issues automatically.
 Recheck metadata after a bot refreshes its PR. The
 [PR metadata gate](docs/development/gates.md#the-pr-metadata-gate) verifies the format, the
-referenced issue and that a `Refs` PR's body and sidebar close no issue; reviewers establish
+referenced issue and that a `Refs` PR's body, sidebar and commit messages close no issue; reviewers establish
 that the issue actually owns the work.
 
 ## Review and merge

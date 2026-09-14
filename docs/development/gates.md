@@ -53,19 +53,31 @@ are in
 [CONTRIBUTING.md](../../CONTRIBUTING.md#pull-request-titles-and-issue-ownership).
 
 A `Refs` PR must close no issue. The gate reads the PR's `closingIssuesReferences`
-with `gh pr view`. The list covers an issue named by a closing phrase
-anywhere in the PR body, even a negated one such as "does not close #N", and one
-linked from the PR's Development sidebar. A `Refs` PR with any entry is refused,
-and the refusal names each issue; remove the phrase or the link. A `Closes` PR is
-not checked against the list. The list leaves out closing phrases in commit
-messages, including the squash-merge message, and those still close an issue when
-they reach the default branch, so the gate does not catch them.
+and commits in one `gh pr view` call. The list covers an issue named by a closing
+phrase anywhere in the PR body, even a negated one such as "does not close #N",
+and one linked from the PR's Development sidebar. It leaves out commit messages,
+which still close an issue when they reach the default branch, and this
+repository's squash merges copy them into the squash commit. That is how #170 was
+closed by #172's squash commit while #172's list was empty. So the gate also searches each
+commit's headline and body for one of GitHub's
+[closing keywords](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue#linking-a-pull-request-to-an-issue-using-a-keyword),
+in any case and optionally followed by a colon, then whitespace and `#N`,
+`OWNER/REPO#N` or a `https://github.com/OWNER/REPO/issues/N` URL.
+
+A `Refs` PR with a list entry or such a commit phrase is refused. The refusal
+names each issue, or each commit by short SHA with its reference; remove the
+phrase or the link, or reword the commit. A `Closes` PR is checked against
+neither. GitHub documents the keywords, the colon and the `#N` and `OWNER/REPO#N`
+forms, not URLs or a missing space; the gate matches the URL form and not
+`Closes#N`. `gh` reads only a PR's first 100 commits, so a phrase in a later
+commit is not seen. The PR title, which becomes the squash headline for a PR with
+several commits, and a message edited at merge time are not checked.
 
 The separate `PR metadata` workflow runs on creation, edits, new commits,
 reopening and readiness changes, including bot PRs. It uses `pull_request_target`
 with read-only permissions and checks out only the repository's default branch.
-It never checks out or executes the PR's code. Titles and bodies are fetched as
-data through the API, rather than interpolated into a shell command. Concurrent
+It never checks out or executes the PR's code. Titles, bodies and commit messages
+are fetched as data through the API, rather than interpolated into a shell command. Concurrent
 runs for the same PR cancel older runs; each check fetches the current metadata.
 Linking an issue from the sidebar starts no workflow, so a link added after the
 last check is seen only at the next of those events.
