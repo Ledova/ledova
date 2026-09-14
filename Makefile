@@ -24,9 +24,6 @@ CHAIN_TEST_PORT ?= 8545
 CHAIN_TEST_RPC_URL ?= http://127.0.0.1:$(CHAIN_TEST_PORT)
 # Hardhat account #0: a public development key that only ever holds local test ether.
 CHAIN_TEST_OPERATOR_KEY ?= 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-# Django settings for the chain test; ledova_backend.settings.test_postgres (with the POSTGRES_* variables set)
-# also runs the concurrency case, which needs a database that honours row locks.
-CHAIN_TEST_SETTINGS ?= ledova_backend.settings.test
 
 # `make smoke` installs the Chromium that Playwright drives. On a developer machine the system
 # libraries are already there; a bare CI image is not, so CI passes PLAYWRIGHT_BROWSER_DEPS=--with-deps
@@ -239,6 +236,6 @@ chain-test:
 	BLOCKCHAIN_OPERATOR_KEY=$(CHAIN_TEST_OPERATOR_KEY) SECRET_KEY=chain-test STORAGE_BACKEND=local \
 	$(PYTHON) manage.py test tokens.tests.test_chain_integration offerings.tests.test_chain_allotment \
 	    wallets.tests.test_submission_chain \
-	--settings=$(CHAIN_TEST_SETTINGS) --noinput
+	--settings=ledova_backend.settings.test --noinput
 
 .DEFAULT_GOAL := help
