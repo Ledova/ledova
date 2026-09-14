@@ -345,6 +345,22 @@ class MintRequestConflict(APIException):
     default_code = "mint_request_conflict"
 
 
+class IssuanceExecutionConflict(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = "This issuance cannot be changed or retried in its recorded state."
+    default_code = "issuance_execution_conflict"
+
+
+class IssuanceExecutionUnresolved(APIException):
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    default_detail = "The original share issuance requires recovery before its outcome is known."
+    default_code = "issuance_execution_unresolved"
+
+
+class IssuanceExecutionAdvanced(IssuanceExecutionConflict):
+    default_detail = "Another worker advanced this issuance. Recover the committed attempt."
+
+
 class MintRequestUnresolved(APIException):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     default_detail = "The mint outcome is unresolved. Recover this request instead of creating another mint."

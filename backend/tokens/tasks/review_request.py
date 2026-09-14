@@ -2,26 +2,24 @@ import logging
 from datetime import timedelta
 
 from django.apps import apps
-from django.contrib.auth import get_user_model
 from django.utils import timezone
 from procrastinate import RetryStrategy
 
 from ledova_backend.procrastinate_app import app
 from shared.db import use_operator
-from tokens.constants import CAPITAL_RECOVERY_BATCH
+from tokens.constants import CAPITAL_RECOVERY_BATCH, ISSUANCE_RECOVERY_BATCH
 from tokens.exceptions import (
     CapitalIncreaseConflict,
-    InvalidRecipientAddressException,
-    InvalidTokenStateException,
-    IssuanceRefusedException,
+    IssuanceExecutionConflict,
 )
 from tokens.models import (
     CapitalIncreaseExecution,
     CapitalIncreaseRequest,
     RequestStatus,
+    ShareIssuanceExecution,
     ShareIssuanceRequest,
 )
-from tokens.services import capital_execution, share_token_service
+from tokens.services import capital_execution, issuance_execution, legacy_issuance
 
 logger = logging.getLogger(__name__)
 
@@ -46,43 +44,51 @@ def execute_review_request_task(
                 logger.warning("Capital execution %s needs recovery", execution.pk)
                 return {"success": False, "error": str(exc.detail)}
             return {"success": result["status"] == RequestStatus.EXECUTED, **result}
-        request = model.objects.select_related("token", "token__company").filter(uuid=request_uuid).first()
-        if request is None:
-            logger.error(f"Request not found: {model_label} {request_uuid}")
-            return {"success": False, "error": "Request not found"}
-        user = get_user_model().objects.filter(pk=executed_by).first() if executed_by else None
-
+        if model is not ShareIssuanceRequest:
+            return {"success": False, "error": "Unsupported review request"}
+        execution = ShareIssuanceExecution.objects.filter(
+            pk=execution_id, request_id=request_uuid, executed_by_id=executed_by, subscription_id__isnull=True
+        ).first()
+        if execution is None:
+            return {"success": False, "error": "Issuance has no matching admitted identity"}
         try:
-            result = share_token_service.execute_request(request, executed_by=user)
-        except (InvalidRecipientAddressException, InvalidTokenStateException, IssuanceRefusedException) as exc:
-            logger.warning(f"Request {request_uuid} not executed: {exc.detail}")
+            result = issuance_execution.recover(execution.pk)
+        except IssuanceExecutionConflict as exc:
+            logger.warning("Issuance execution %s needs recovery", execution.pk)
             return {"success": False, "error": str(exc.detail)}
-
-        return {"success": True, **result}
+        return {"success": result["status"] == RequestStatus.EXECUTED, **result}
 
 
 @app.periodic(cron="*/5 * * * *")
 @app.task
 def check_executing_issuance_requests(timestamp: int = 0):
-    service = share_token_service
-    cutoff = timezone.now() - STALE_EXECUTION_AGE
-    checked = 0
-    resolved = 0
-
-    stale = ShareIssuanceRequest.objects.unresolved_on_chain(cutoff).select_related("token", "token__company")
-    for request in stale:
-        checked += 1
-        try:
-            outcome = service.resolve_executing_issuance(request)
-        except Exception as e:
-            logger.error(f"Check failed for executing request {request.uuid}: {e}")
-            continue
-        if outcome:
-            resolved += 1
-            logger.info(f"Request {request.uuid} {outcome} by the executing sweep")
-
-    logger.info(f"Executing requests: checked={checked}, resolved={resolved}")
-    return {"checked": checked, "resolved": resolved}
+    with use_operator():
+        cutoff = timezone.now() - STALE_EXECUTION_AGE
+        pending = list(
+            ShareIssuanceExecution.objects.recoverable(cutoff)
+            .order_by("updated_at", "pk")
+            .values_list("pk", flat=True)[:ISSUANCE_RECOVERY_BATCH]
+        )
+        resolved = 0
+        for execution_id in pending:
+            ShareIssuanceExecution.objects.filter(pk=execution_id).update(updated_at=timezone.now())
+            try:
+                result = issuance_execution.recover(execution_id)
+                resolved += result["status"] in (RequestStatus.EXECUTED, RequestStatus.FAILED, RequestStatus.REJECTED)
+            except Exception:
+                logger.warning("Issuance execution %s remains unresolved", execution_id)
+        legacy = list(
+            ShareIssuanceRequest.objects.unresolved_on_chain(cutoff)
+            .filter(dispatch_id__isnull=True)
+            .order_by("updated_at", "pk")[:ISSUANCE_RECOVERY_BATCH]
+        )
+        for request in legacy:
+            ShareIssuanceRequest.objects.filter(pk=request.pk).update(updated_at=timezone.now())
+            try:
+                resolved += bool(legacy_issuance.resolve_executing_issuance(request))
+            except Exception:
+                logger.warning("Historical issuance %s remains unresolved", request.pk)
+        return {"checked": len(pending) + len(legacy), "resolved": resolved}
 
 
 @app.periodic(cron="*/5 * * * *")

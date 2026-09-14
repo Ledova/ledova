@@ -9,9 +9,13 @@ from django.urls import reverse
 from blockchain.models import BlockchainTransaction
 from shared.utils.admin_actions import admin_action_path
 from shared.utils.admin_display import action_buttons
+from tokens.exceptions import (
+    InvalidTokenStateException,
+    IssuanceExecutionConflict,
+    IssuanceExecutionUnresolved,
+)
 from tokens.models import RequestStatus, ShareIssuanceRequest
-from tokens.services import share_token_service
-from tokens.tasks import execute_review_request_task
+from tokens.services import legacy_issuance
 
 from ._helpers import status_badge
 
@@ -228,14 +232,18 @@ class ReviewWorkflowAdmin(admin.ModelAdmin):
             obj, ShareIssuanceRequest
         ):
             return False
-        return share_token_service.unnamed_mint(obj) is not None
+        return legacy_issuance.unnamed_mint(obj) is not None
 
     def name_mint_view(self, request, obj):
         if not self._has_an_unnamed_mint(obj):
             return self._refuse(request, obj, "record a transaction hash for")
         form = NameMintForm(request.POST or None)
         if request.method == "POST" and form.is_valid():
-            share_token_service.name_the_mint(obj, form.cleaned_data["tx_hash"])
+            try:
+                legacy_issuance.name_the_mint(obj, form.cleaned_data["tx_hash"])
+            except (InvalidTokenStateException, IssuanceExecutionConflict, IssuanceExecutionUnresolved) as exc:
+                messages.error(request, str(exc.detail))
+                return HttpResponseRedirect(self._change_url(obj))
             messages.info(
                 request,
                 f"Recorded {form.cleaned_data['tx_hash']} for {obj.token.symbol}. "
@@ -243,17 +251,3 @@ class ReviewWorkflowAdmin(admin.ModelAdmin):
             )
             return HttpResponseRedirect(self._change_url(obj))
         return self._render(request, obj, "name mint", form)
-
-    def execute_view(self, request, obj):
-        if not obj.can_be_executed:
-            return self._refuse(request, obj, "execute")
-        if request.method == "POST":
-            execute_review_request_task.defer(
-                model_label=self.opts.label, request_uuid=str(obj.uuid), executed_by=request.user.pk
-            )
-            messages.info(
-                request,
-                f"{self.label} execution started for {obj.token.symbol}. The task is running in the background.",
-            )
-            return HttpResponseRedirect(self._change_url(obj))
-        return self._render(request, obj, "execute")

@@ -9,7 +9,6 @@ from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
 
 from assets.models import Asset
-from integrations.base_chain.exceptions import BaseChainTransactionError
 from offerings.exceptions import SubscriptionRefusedException
 from offerings.models import (
     Offering,
@@ -39,6 +38,7 @@ from tokens.models import (
     IssuanceStatus,
     RequestStatus,
     ShareIssuance,
+    ShareIssuanceExecution,
     ShareIssuanceRequest,
 )
 from tokens.services.share_token_service import SHARE_ASSET_CHAIN
@@ -93,7 +93,8 @@ class AllotmentChainMixin(ChainTestMixin):
         return subscription
 
     def _run_task(self, subscription):
-        return allot_subscription_task(str(subscription.uuid), executed_by=self.staff.pk)
+        command = ShareIssuanceExecution.objects.get(subscription_id=subscription.pk)
+        return allot_subscription_task(str(subscription.uuid), executed_by=self.staff.pk, execution_id=str(command.pk))
 
 
 @chain_available
@@ -138,7 +139,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
         second = self._run_task(subscription)
 
         self.assertTrue(first["success"], first)
-        self.assertFalse(second["success"], second)
+        self.assertEqual(second, first)
         self.assertEqual(self._signer_nonce(), nonce_after_first)
         self.assertEqual(ShareIssuance.objects.count(), 1)
         self.assertEqual(self._contract().functions.balanceOf(self.investor).call(), 25)
@@ -189,10 +190,9 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
         subscription = self._paid(self._offering(), quantity=20)
         allot(subscription, self.staff)
 
-        with patch("offerings.tasks.subscription._mirror_allotted", return_value=False):
-            self.assertTrue(self._run_task(subscription)["success"])
+        self.assertTrue(self._run_task(subscription)["success"])
         subscription.refresh_from_db()
-        self.assertEqual(subscription.status, SubscriptionStatus.PAID)
+        self.assertEqual(subscription.status, SubscriptionStatus.ALLOTTED)
 
         with self.assertRaises(SubscriptionRefusedException) as raised:
             record_refund(subscription, amount=Decimal("50.00"))
@@ -207,26 +207,25 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
         subscription = self._paid(self._offering(), quantity=20)
         request = allot(subscription, self.staff)
 
-        with self._lost_receipt():
-            with self.assertRaises(BaseChainTransactionError):
-                self._run_task(subscription)
+        with self._missing_issuance_receipts():
+            self.assertEqual(self._run_task(subscription)["status"], "executing")
 
         request.refresh_from_db()
         issuance = ShareIssuance.objects.get()
-        self.assertEqual((request.status, issuance.status), (RequestStatus.FAILED, IssuanceStatus.FAILED))
+        self.assertEqual((request.status, issuance.status), (RequestStatus.EXECUTING, IssuanceStatus.PROCESSING))
         self.assertTrue(issuance.tx_hash)
         self.assertEqual(self._contract().functions.balanceOf(self.investor).call(), 20)
 
         with self.assertRaises(SubscriptionRefusedException) as raised:
             record_refund(subscription, amount=Decimal("50.00"), reference="RTGS-LOST")
-        self.assertIn(issuance.tx_hash, str(raised.exception.detail))
+        self.assertIn("already claimed on chain", str(raised.exception.detail))
 
         subscription.refresh_from_db()
         request.refresh_from_db()
         self.assertEqual(subscription.status, SubscriptionStatus.PAID)
         self.assertIsNone(subscription.refunded_at)
         self.assertIsNone(subscription.refund_amount)
-        self.assertEqual(request.status, RequestStatus.FAILED)
+        self.assertEqual(request.status, RequestStatus.EXECUTING)
         self.assertEqual(self._contract().functions.balanceOf(self.investor).call(), 20)
         self.assertEqual(self._contract().functions.totalSupply().call(), 20)
 
@@ -236,11 +235,12 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
         subscription = self._paid(self._offering(), quantity=20)
         request = allot(subscription, self.staff)
 
-        with self._lost_receipt():
-            with self.assertRaises(BaseChainTransactionError):
-                self._run_task(subscription)
+        with self._missing_issuance_receipts():
+            self.assertEqual(self._run_task(subscription)["status"], "executing")
 
-        ShareIssuanceRequest.objects.filter(pk=request.pk).update(updated_at=timezone.now() - timedelta(minutes=11))
+        ShareIssuanceExecution.objects.filter(request_id=request.pk).update(
+            updated_at=timezone.now() - timedelta(minutes=11)
+        )
         nonce_before = self._signer_nonce()
         self.assertEqual(check_executing_issuance_requests(), {"checked": 1, "resolved": 1})
         self.assertEqual(self._signer_nonce(), nonce_before)
@@ -248,7 +248,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
         request.refresh_from_db()
         self.assertEqual(request.status, RequestStatus.EXECUTED)
         self.assertEqual(ShareIssuance.objects.get().status, IssuanceStatus.COMPLETED)
-        self.assertEqual(reconcile_subscriptions(), {"flipped": 1})
+        self.assertEqual(reconcile_subscriptions(), {"flipped": 0})
         subscription.refresh_from_db()
         self.assertEqual(subscription.status, SubscriptionStatus.ALLOTTED)
 
@@ -257,27 +257,29 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
         self.assertIn("already claimed on chain", str(raised.exception.detail))
         self.assertEqual(self._contract().functions.balanceOf(self.investor).call(), 20)
 
-    def test_a_killed_worker_leaves_the_row_paid_until_reconcile_mirrors_the_executed_request(self):
+    def test_interrupted_subscription_projection_recovers_all_public_outcomes_together(self):
         self._deployed()
         self._whitelist(self.investor)
         subscription = self._paid(self._offering(), quantity=15)
         allot(subscription, self.staff)
 
-        with patch("offerings.tasks.subscription._mirror_allotted", side_effect=KeyboardInterrupt):
+        with patch.object(Subscription, "mark_allotted", side_effect=KeyboardInterrupt):
             with self.assertRaises(KeyboardInterrupt):
                 self._run_task(subscription)
 
         subscription.refresh_from_db()
         self.assertEqual(subscription.status, SubscriptionStatus.PAID)
-        self.assertEqual(subscription.issuance_request.status, RequestStatus.EXECUTED)
+        self.assertEqual(subscription.issuance_request.status, RequestStatus.EXECUTING)
+        self.assertEqual(ShareIssuance.objects.get().status, IssuanceStatus.PROCESSING)
         self.assertEqual(self._contract().functions.balanceOf(self.investor).call(), 15)
-
         nonce_before = self._signer_nonce()
-        self.assertEqual(reconcile_subscriptions(), {"flipped": 1})
+        self.assertEqual(reconcile_subscriptions(), {"flipped": 0})
+        self.assertTrue(self._run_task(subscription)["success"])
         self.assertEqual(self._signer_nonce(), nonce_before)
         subscription.refresh_from_db()
         self.assertEqual(subscription.status, SubscriptionStatus.ALLOTTED)
-        self.assertEqual(ShareIssuance.objects.count(), 1)
+        self.assertEqual(subscription.issuance_request.status, RequestStatus.EXECUTED)
+        self.assertEqual(ShareIssuance.objects.get().status, IssuanceStatus.COMPLETED)
         self.assertEqual(reconcile_subscriptions(), {"flipped": 0})
 
     def test_a_batch_over_the_chain_headroom_is_refused_whole_and_mints_nothing(self):
@@ -333,7 +335,11 @@ class SubscriptionAllotmentChainConcurrencyTest(AllotmentChainMixin, APITransact
         self.assertFalse(any(thread.is_alive() for thread in threads), results)
 
         successes = [value for value in results.values() if isinstance(value, dict) and value.get("success")]
-        self.assertEqual(len(successes), 1, results)
+        self.assertTrue(successes, results)
+        self.assertEqual(
+            len([value for value in results.values() if isinstance(value, dict) and "error" not in value]), 2, results
+        )
+        self.assertTrue(self._run_task(subscription)["success"])
         self.assertEqual(ShareIssuance.objects.count(), 1)
         self.assertEqual(self._signer_nonce(), nonce_before + 1)
         self.assertEqual(self._contract().functions.balanceOf(self.investor).call(), 30)

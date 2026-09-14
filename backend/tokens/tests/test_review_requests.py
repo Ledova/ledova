@@ -1,59 +1,31 @@
 import importlib
 from datetime import timedelta
 from unittest.mock import Mock, patch
-from uuid import uuid4
 
-from django.apps import apps
 from django.conf import settings
-from django.test import TestCase, override_settings
-from django.utils import timezone
-from web3 import Web3
+from django.db import DatabaseError
+from django.test import TestCase, TransactionTestCase
 
 from integrations.base_chain.client import (
     BROADCAST_ROUND_TRIPS,
     HTTP_TIMEOUT_SECONDS,
     BaseChainClient,
 )
+from shared.db import atomic
+from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_tenant
-from tokens.exceptions import (
-    InvalidRecipientAddressException,
-    InvalidTokenStateException,
-    IssuanceRefusedException,
-)
 from tokens.models import (
-    CapitalIncreaseRequest,
-    IssuanceStatus,
     RequestStatus,
     ShareIssuance,
     ShareIssuanceRequest,
-    ShareToken,
-    ShareTokenStatus,
 )
 from tokens.serializers import CapitalIncreaseDetailSerializer
-from tokens.services import share_token_service
 from tokens.services.capital_increase import submit_capital_increase
 from tokens.services.dilution import dilution_for
-from tokens.services.share_token_service import (
-    EXCEEDS_AUTHORIZED,
-    ISSUANCE_EXECUTION_FAILED,
-    NOT_WHITELISTED,
-    TOKEN_PAUSED,
-    UNNAMED_MINT_GRACE,
-)
-from tokens.tasks import check_executing_issuance_requests, execute_review_request_task
+from tokens.services.legacy_issuance import UNNAMED_MINT_GRACE
 from tokens.tasks.review_request import STALE_EXECUTION_AGE
-from tokens.tests.mint_results import (
-    MINT_HASH,
-    recorded_mint_result,
-    signed_mint_transaction,
-)
 
 RECIPIENT = "0x" + "a" * 40
-SIGNER = "0x" + "e" * 40
-RECEIPT = {"blockNumber": 9, "blockHash": bytes.fromhex("ab" * 32), "gasUsed": 1_000_000}
-CHAIN_CLIENT = "tokens.services.share_token_service.get_base_chain_client"
-WHITELISTED = "tokens.services.share_token_service.is_recipient_whitelisted"
-SUPPLY = "tokens.services.share_token_service.share_supply"
 
 
 def issuance_request(token, amount=10, **fields):
@@ -95,19 +67,13 @@ class ReviewableRequestModelTest(TestCase):
         self.assertIsNotNone(request.reviewed_at)
         self.assertTrue(request.can_be_executed)
 
-    def test_mark_executing_claims_the_row_once(self):
+    def test_new_request_requires_admission_before_claiming_execution(self):
         request = issuance_request(self.token)
-        ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.APPROVED)
+        request.approve(self.tenant.user)
+        with self.assertRaises(DatabaseError), atomic():
+            request.mark_executing()
         request.refresh_from_db()
-        stale = ShareIssuanceRequest.objects.get(pk=request.pk)
-
-        request.mark_executing()
-        self.assertEqual(request.status, RequestStatus.EXECUTING)
-        self.assertTrue(stale.can_be_executed)
-        with self.assertRaisesMessage(ValueError, "Cannot execute request with status 'Executing'"):
-            stale.mark_executing()
-        self.assertEqual(stale.status, RequestStatus.EXECUTING)
-        self.assertEqual(ShareIssuanceRequest.objects.get(pk=request.pk).status, RequestStatus.EXECUTING)
+        self.assertEqual(request.status, RequestStatus.APPROVED)
 
     def test_issuance_request_starts_submitted_and_can_be_rejected(self):
         request = issuance_request(self.token)
@@ -125,539 +91,30 @@ class ReviewableRequestModelTest(TestCase):
         self.assertIsNone(data["dilution_percentage"])
 
 
-class StatusDataMigrationTest(TestCase):
+class StatusDataMigrationTest(TransactionTestCase):
     def test_pending_approval_maps_to_submitted_and_back(self):
         migration = importlib.import_module("tokens.migrations.0012_reviewable_request")
         tenant = make_tenant("owner")
-        request = issuance_request(tenant.deployed_token)
-        ShareIssuanceRequest.objects.filter(pk=request.pk).update(status="pending_approval")
         submit_capital_increase(tenant.capital_increase, tenant.user)
-
-        migration.forwards(apps, None)
+        self.addCleanup(restore_every_migration)
+        historical = migrate_to([("tokens", "0046_capital_execution_guards")])
+        request = historical.get_model("tokens", "ShareIssuanceRequest").objects.create(
+            token_id=tenant.deployed_token.pk,
+            company_id=tenant.company.pk,
+            recipient_address=RECIPIENT,
+            amount=10,
+            reason="Historical pending status",
+            status="pending_approval",
+        )
+        migration.forwards(historical, None)
         request.refresh_from_db()
         self.assertEqual(request.status, "submitted")
 
-        migration.backwards(apps, None)
+        migration.backwards(historical, None)
         request.refresh_from_db()
         tenant.capital_increase.refresh_from_db()
         self.assertEqual(request.status, "pending_approval")
         self.assertEqual(tenant.capital_increase.status, "submitted")
-
-
-@override_settings(BLOCKCHAIN_OPERATOR_KEY="0xkey")
-class ExecuteRequestServiceTest(TestCase):
-    def setUp(self):
-        self.chain = patch(CHAIN_CLIENT).start().return_value
-        self.chain.is_valid_address.return_value = True
-        self.chain.to_checksum_address.side_effect = Web3.to_checksum_address
-        self.chain.get_address_from_private_key.return_value = SIGNER
-        self._chain_paused(False)
-        patch(WHITELISTED, return_value=True).start()
-        patch(SUPPLY, return_value=(1000, 0)).start()
-        self.addCleanup(patch.stopall)
-        self.tenant = make_tenant("owner")
-        self.token = self.tenant.deployed_token
-        self.service = share_token_service
-
-    def _approved(self, request):
-        type(request).objects.filter(pk=request.pk).update(status=RequestStatus.APPROVED)
-        request.refresh_from_db()
-        return request
-
-    def _chain_paused(self, value):
-        self.chain.load_contract.return_value.functions.paused.return_value.call.return_value = value
-
-    def _token_status(self, status):
-        ShareToken.objects.filter(pk=self.token.pk).update(status=status)
-        self.token.refresh_from_db()
-
-    def test_a_stale_copy_of_an_executed_request_completes_without_touching_the_chain(self):
-        request = self._approved(issuance_request(self.token, amount=10))
-        stale = ShareIssuanceRequest.objects.get(pk=request.pk)
-
-        self.chain.send_transaction.side_effect = signed_mint_transaction
-        self.chain.wait_for_receipt.return_value = RECEIPT
-        first = self.service.execute_request(request)
-        request.refresh_from_db()
-        self.chain.send_transaction.reset_mock()
-        self.chain.get_transaction_receipt.side_effect = AssertionError("nothing to read")
-        self.chain.wait_for_receipt.side_effect = AssertionError("nothing to wait for")
-
-        self.assertTrue(stale.can_be_executed)
-        self.assertEqual(self.service.execute_request(stale), first)
-
-        self.chain.send_transaction.assert_not_called()
-        stale.refresh_from_db()
-        self.assertEqual((stale.status, stale.executed_at), (RequestStatus.EXECUTED, request.executed_at))
-        self.assertEqual(ShareIssuance.objects.filter(token=self.token).count(), 1)
-
-    def test_issuance_on_a_paused_token_is_refused(self):
-        self._token_status(ShareTokenStatus.PAUSED)
-        request = self._approved(issuance_request(self.token, amount=10))
-        with patch.object(share_token_service, "_mint_to") as mint:
-            with self.assertRaisesMessage(IssuanceRefusedException, TOKEN_PAUSED):
-                self.service.execute_request(request)
-        mint.assert_not_called()
-        request.refresh_from_db()
-        self.assertEqual(request.status, RequestStatus.APPROVED)
-        self.assertIn(f"Refused: {TOKEN_PAUSED}", request.execution_notes)
-        self.assertFalse(ShareIssuance.objects.exists())
-
-        self._token_status(ShareTokenStatus.DEPLOYED)
-        self._chain_paused(True)
-        request = self._approved(request)
-        with patch.object(share_token_service, "_mint_to") as mint:
-            with self.assertRaisesMessage(IssuanceRefusedException, TOKEN_PAUSED):
-                self.service.execute_request(request)
-        mint.assert_not_called()
-        request.refresh_from_db()
-        self.assertEqual(request.status, RequestStatus.APPROVED)
-
-    def test_a_second_executor_loses_the_claim_and_does_not_mint(self):
-        request = self._approved(issuance_request(self.token, amount=10))
-        ShareIssuance.objects.create(
-            token=self.token,
-            recipient_address=RECIPIENT,
-            amount="10",
-            status=IssuanceStatus.PROCESSING,
-            idempotency_key=share_token_service.issuance_key(request),
-        )
-        ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.EXECUTING)
-        self.assertTrue(request.can_be_executed)
-
-        with patch.object(share_token_service, "_mint_to") as mint:
-            with self.assertRaisesMessage(InvalidTokenStateException, "Cannot execute request with status 'Executing'"):
-                self.service.execute_request(request)
-
-        mint.assert_not_called()
-        self.chain.send_transaction.assert_not_called()
-        self.assertEqual(ShareIssuance.objects.filter(token=self.token).count(), 1)
-        request.refresh_from_db()
-        self.assertEqual(request.status, RequestStatus.EXECUTING)
-
-    def test_issuance_request_mints_to_its_recipient_and_leaves_the_cap(self):
-        request = self._approved(issuance_request(self.token, amount=10, reviewed_by=self.tenant.user))
-        staff = make_tenant("staff", staff=True).user
-        chain_result = {"tx_hash": "0xmint", "block_number": 7, "gas_used": 21000}
-        with patch.object(share_token_service, "_mint_to", side_effect=recorded_mint_result(chain_result)) as mint:
-            self.assertEqual(self.service.execute_request(request, executed_by=staff), chain_result)
-
-        mint.assert_called_once()
-        self.assertEqual(mint.call_args.args, (self.token.contract_address, Web3.to_checksum_address(RECIPIENT), 10))
-        request.refresh_from_db()
-        self.token.refresh_from_db()
-        self.assertEqual(request.status, RequestStatus.EXECUTED)
-        self.assertEqual(self.token.total_supply, "1000")
-        self.assertEqual(ShareIssuance.objects.completed_supply(self.token), 10)
-        issuance = request.executed_issuance
-        self.assertEqual(issuance.recipient_address, Web3.to_checksum_address(RECIPIENT))
-        self.assertEqual(
-            (issuance.recipient_name, issuance.issuance_type, issuance.amount), ("Alice", "additional", "10")
-        )
-        self.assertEqual((issuance.reason, issuance.initiated_by), ("Issuance request: Bonus", staff))
-        self.assertEqual((issuance.tx_hash, issuance.block_number), ("0xmint", 7))
-        self.assertEqual(issuance.shareissuancerequest, request)
-
-    def test_issuance_without_an_executing_user_credits_the_reviewer(self):
-        request = self._approved(issuance_request(self.token, amount=10, reviewed_by=self.tenant.user))
-        with patch.object(
-            share_token_service,
-            "_mint_to",
-            side_effect=recorded_mint_result({"tx_hash": "0x1", "block_number": 1, "gas_used": 1}),
-        ):
-            self.service.execute_request(request)
-        request.refresh_from_db()
-        self.assertEqual(request.executed_issuance.initiated_by, self.tenant.user)
-
-    def test_unwhitelisted_recipient_is_refused_before_any_transaction(self):
-        request = self._approved(issuance_request(self.token, amount=10))
-        with patch(WHITELISTED, return_value=False):
-            with patch.object(share_token_service, "_mint_to") as mint:
-                with self.assertRaisesMessage(IssuanceRefusedException, NOT_WHITELISTED):
-                    self.service.execute_request(request)
-
-        mint.assert_not_called()
-        request.refresh_from_db()
-        self.assertEqual(request.status, RequestStatus.APPROVED)
-        self.assertTrue(request.can_be_executed)
-        self.assertIn(f"Refused: {NOT_WHITELISTED}", request.execution_notes)
-        self.assertEqual(request.review_notes, "")
-        self.assertFalse(ShareIssuance.objects.exists())
-
-    def test_amount_over_the_remaining_cap_is_refused_before_any_transaction(self):
-        request = self._approved(issuance_request(self.token, amount=101))
-        with patch(SUPPLY, return_value=(1000, 900)):
-            with patch.object(share_token_service, "_mint_to") as mint:
-                with self.assertRaisesMessage(IssuanceRefusedException, EXCEEDS_AUTHORIZED):
-                    self.service.execute_request(request)
-            mint.assert_not_called()
-
-            exact = self._approved(issuance_request(self.token, amount=100))
-            with patch.object(
-                share_token_service,
-                "_mint_to",
-                side_effect=recorded_mint_result({"tx_hash": "0x1", "block_number": 1, "gas_used": 1}),
-            ):
-                self.service.execute_request(exact)
-
-        request.refresh_from_db()
-        exact.refresh_from_db()
-        self.assertEqual((request.status, exact.status), (RequestStatus.APPROVED, RequestStatus.EXECUTED))
-        self.assertIn(f"Refused: {EXCEEDS_AUTHORIZED}", request.execution_notes)
-
-    def test_chain_failure_marks_request_and_issuance_failed_then_reraises(self):
-        request = self._approved(issuance_request(self.token))
-        with patch.object(share_token_service, "_mint_to", side_effect=RuntimeError("rpc down")):
-            with self.assertRaisesMessage(RuntimeError, "rpc down"):
-                self.service.execute_request(request)
-
-        request.refresh_from_db()
-        self.token.refresh_from_db()
-        self.assertEqual(request.status, RequestStatus.FAILED)
-        self.assertIn(f"Failed: {ISSUANCE_EXECUTION_FAILED}", request.execution_notes)
-        self.assertNotIn("rpc down", request.execution_notes)
-        self.assertEqual(request.review_notes, "")
-        self.assertTrue(request.can_be_executed)
-        self.assertEqual(self.token.total_supply, "1000")
-        issuance = ShareIssuance.objects.get(token=self.token)
-        self.assertEqual((issuance.status, issuance.error_message), (IssuanceStatus.FAILED, "rpc down"))
-        self.assertEqual(issuance.idempotency_key, f"issuance-request:{request.uuid}")
-        self.assertIsNone(request.executed_issuance)
-
-    def _mint_contract(self):
-        contract = self.chain.load_contract.return_value
-
-        self.chain.send_transaction.side_effect = signed_mint_transaction
-        self.chain.wait_for_receipt.return_value = RECEIPT
-        self.chain.get_transaction_receipt.return_value = None
-        return contract
-
-    def _recorded_issuance(self, request, tx_hash="0xold", status=IssuanceStatus.FAILED):
-        return ShareIssuance.objects.create(
-            token=self.token,
-            recipient_address=RECIPIENT,
-            amount=str(request.amount),
-            status=status,
-            tx_hash=tx_hash,
-            idempotency_key=share_token_service.issuance_key(request),
-        )
-
-    def test_mint_hash_is_recorded_before_the_wait_and_a_retry_completes_from_it_without_minting_again(self):
-        request = self._approved(issuance_request(self.token, amount=10))
-        contract = self._mint_contract()
-        self.chain.wait_for_receipt.side_effect = RuntimeError("rpc timed out after the mint mined")
-        with self.assertRaisesMessage(RuntimeError, "rpc timed out after the mint mined"):
-            self.service.execute_request(request)
-
-        self.chain.send_transaction.assert_called_once_with(
-            contract.functions.mint.return_value,
-            "0xkey",
-            wait_for_receipt=False,
-            on_signed=self.chain.send_transaction.call_args.kwargs["on_signed"],
-        )
-        request.refresh_from_db()
-        issuance = ShareIssuance.objects.get(token=self.token)
-        self.assertEqual(request.status, RequestStatus.FAILED)
-        self.assertEqual((issuance.status, issuance.tx_hash), (IssuanceStatus.FAILED, MINT_HASH))
-        self.assertEqual(issuance.error_message, "rpc timed out after the mint mined")
-
-        self.chain.send_transaction.reset_mock()
-        self.chain.wait_for_receipt.reset_mock()
-        self.chain.get_transaction_receipt.return_value = {"status": 1, **RECEIPT}
-        with patch(SUPPLY, return_value=(1000, 1000)):
-            result = self.service.execute_request(request)
-
-        self.assertEqual(result, {"tx_hash": MINT_HASH, "block_number": 9, "gas_used": 1_000_000})
-        self.chain.get_transaction_receipt.assert_called_once_with(MINT_HASH)
-        self.chain.send_transaction.assert_not_called()
-        self.chain.wait_for_receipt.assert_not_called()
-        request.refresh_from_db()
-        issuance.refresh_from_db()
-        self.assertEqual(ShareIssuance.objects.filter(token=self.token).count(), 1)
-        self.assertEqual((issuance.status, issuance.tx_hash, issuance.block_number), ("completed", MINT_HASH, 9))
-        self.assertEqual((request.status, request.executed_issuance), (RequestStatus.EXECUTED, issuance))
-        self.assertEqual(ShareIssuance.objects.completed_supply(self.token), 10)
-
-    def test_retry_on_a_reverted_recorded_mint_forgets_it_and_mints_afresh_on_the_same_issuance(self):
-        request = self._approved(issuance_request(self.token, amount=10))
-        request.mark_failed("rpc down")
-        issuance = self._recorded_issuance(request)
-        self._mint_contract()
-        self.chain.get_transaction_receipt.return_value = {"status": 0, **RECEIPT}
-
-        result = self.service.execute_request(request)
-
-        self.assertEqual(result["tx_hash"], MINT_HASH)
-        self.chain.send_transaction.assert_called_once()
-        request.refresh_from_db()
-        issuance.refresh_from_db()
-        self.assertEqual(ShareIssuance.objects.filter(token=self.token).count(), 1)
-        self.assertEqual((issuance.status, issuance.tx_hash), (IssuanceStatus.COMPLETED, MINT_HASH))
-        self.assertEqual((request.status, request.executed_issuance), (RequestStatus.EXECUTED, issuance))
-
-    def test_retry_on_an_unconfirmed_recorded_mint_waits_on_it_instead_of_sending(self):
-        request = self._approved(issuance_request(self.token, amount=10))
-        request.mark_failed("rpc down")
-        issuance = self._recorded_issuance(request)
-        self._mint_contract()
-
-        self.chain.wait_for_receipt.side_effect = RuntimeError("still pending")
-        with self.assertRaisesMessage(RuntimeError, "still pending"):
-            self.service.execute_request(request)
-        request.refresh_from_db()
-        issuance.refresh_from_db()
-        self.assertEqual((request.status, issuance.status, issuance.tx_hash), ("failed", "failed", "0xold"))
-        self.assertEqual(issuance.error_message, "still pending")
-
-        self.chain.wait_for_receipt.side_effect = None
-        result = self.service.execute_request(request)
-        self.assertEqual(result["tx_hash"], "0xold")
-        self.chain.wait_for_receipt.assert_called_with("0xold")
-        self.chain.send_transaction.assert_not_called()
-        request.refresh_from_db()
-        issuance.refresh_from_db()
-        self.assertEqual((issuance.status, request.status), (IssuanceStatus.COMPLETED, RequestStatus.EXECUTED))
-        self.assertEqual(request.executed_issuance, issuance)
-
-    def test_state_and_readiness_guards(self):
-        submitted = issuance_request(self.token)
-        with self.assertRaises(InvalidTokenStateException):
-            self.service.execute_request(submitted)
-        submitted.refresh_from_db()
-        self.assertEqual(submitted.status, RequestStatus.SUBMITTED)
-
-        undeployed = self._approved(issuance_request(self.tenant.token))
-        with self.assertRaises(InvalidTokenStateException):
-            self.service.execute_request(undeployed)
-        undeployed.refresh_from_db()
-        self.assertIn("Failed: Token is not deployed on blockchain", undeployed.execution_notes)
-
-
-class ExecutingIssuanceSweepTest(TestCase):
-
-    def setUp(self):
-        self.chain = patch(CHAIN_CLIENT).start().return_value
-        self.addCleanup(patch.stopall)
-        self.tenant = make_tenant("owner")
-        self.token = self.tenant.deployed_token
-
-    def _stuck(self, tx_hash="0xmint", minutes=11):
-        request = issuance_request(self.token, amount=10)
-        ShareIssuanceRequest.objects.filter(pk=request.pk).update(
-            status=RequestStatus.EXECUTING, updated_at=timezone.now() - timedelta(minutes=minutes)
-        )
-        issuance = ShareIssuance.objects.create(
-            token=self.token,
-            recipient_address=RECIPIENT,
-            amount="10",
-            status=IssuanceStatus.PROCESSING,
-            tx_hash=tx_hash,
-            idempotency_key=share_token_service.issuance_key(request),
-        )
-        request.refresh_from_db()
-        return request, issuance
-
-    def _claimed(self, minutes=11):
-        request = issuance_request(self.token, amount=10)
-        ShareIssuanceRequest.objects.filter(pk=request.pk).update(
-            status=RequestStatus.EXECUTING, updated_at=timezone.now() - timedelta(minutes=minutes)
-        )
-        request.refresh_from_db()
-        return request
-
-    def test_a_claim_taken_before_any_mint_was_recorded_is_released_for_retry(self):
-        request = self._claimed()
-
-        self.assertEqual(check_executing_issuance_requests(), {"checked": 1, "resolved": 1})
-
-        request.refresh_from_db()
-        self.assertEqual(request.status, RequestStatus.FAILED)
-        self.assertTrue(request.can_be_executed)
-        self.chain.get_transaction_receipt.assert_not_called()
-
-    def test_a_mint_recorded_without_a_hash_is_not_released(self):
-        request = self._claimed()
-        ShareIssuance.objects.create(
-            token=self.token,
-            recipient_address=RECIPIENT,
-            amount="10",
-            status=IssuanceStatus.PROCESSING,
-            tx_hash="",
-            idempotency_key=share_token_service.issuance_key(request),
-        )
-
-        self.assertEqual(check_executing_issuance_requests(), {"checked": 1, "resolved": 0})
-
-        request.refresh_from_db()
-        self.assertEqual(request.status, RequestStatus.EXECUTING)
-        self.assertFalse(request.can_be_executed)
-
-    def test_the_two_unbroadcast_states_do_not_share_a_log_line(self):
-        released = self._claimed()
-        with self.assertLogs("tokens.services.share_token_service", level="WARNING") as released_logs:
-            check_executing_issuance_requests()
-
-        ambiguous = self._claimed()
-        ShareIssuance.objects.create(
-            token=self.token,
-            recipient_address=RECIPIENT,
-            amount="10",
-            status=IssuanceStatus.PROCESSING,
-            tx_hash="",
-            idempotency_key=share_token_service.issuance_key(ambiguous),
-        )
-        with self.assertLogs("tokens.services.share_token_service", level="WARNING") as ambiguous_logs:
-            check_executing_issuance_requests()
-
-        self.assertIn(str(released.uuid), " ".join(released_logs.output))
-        self.assertIn("no mint was recorded", " ".join(released_logs.output))
-        self.assertIn("recorded a mint it never named", " ".join(ambiguous_logs.output))
-
-    def test_a_mined_mint_completes_the_request_without_sending(self):
-        request, issuance = self._stuck()
-        self.chain.get_transaction_receipt.return_value = {"status": 1, **RECEIPT}
-
-        self.assertEqual(check_executing_issuance_requests(), {"checked": 1, "resolved": 1})
-
-        self.chain.get_transaction_receipt.assert_called_once_with("0xmint")
-        self.chain.send_transaction.assert_not_called()
-        self.chain.wait_for_receipt.assert_not_called()
-        request.refresh_from_db()
-        issuance.refresh_from_db()
-        self.assertEqual((request.status, request.executed_issuance), (RequestStatus.EXECUTED, issuance))
-        self.assertEqual((issuance.status, issuance.block_number), (IssuanceStatus.COMPLETED, 9))
-        self.assertEqual(ShareIssuance.objects.completed_supply(self.token), 10)
-        self.assertEqual(check_executing_issuance_requests(), {"checked": 0, "resolved": 0})
-
-    def test_a_reverted_mint_fails_the_request_so_a_retry_mints_afresh(self):
-        request, issuance = self._stuck()
-        self.chain.get_transaction_receipt.return_value = {"status": 0, **RECEIPT}
-
-        self.assertEqual(check_executing_issuance_requests(), {"checked": 1, "resolved": 1})
-
-        request.refresh_from_db()
-        issuance.refresh_from_db()
-        self.assertEqual(request.status, "failed")
-        self.assertIn("Failed: Transaction reverted: 0xmint", request.execution_notes)
-        self.assertTrue(request.can_be_executed)
-        self.assertEqual((issuance.status, issuance.tx_hash), (IssuanceStatus.FAILED, None))
-        self.assertIsNone(request.executed_issuance)
-
-    def _lost_receipt(self, tx_hash="0xmint", minutes=11):
-        request, issuance = self._stuck(tx_hash=tx_hash, minutes=minutes)
-        issuance.mark_failed("receipt lost after the transaction was sent")
-        ShareIssuanceRequest.objects.filter(pk=request.pk).update(
-            status=RequestStatus.FAILED, updated_at=timezone.now() - timedelta(minutes=minutes)
-        )
-        request.refresh_from_db()
-        return request, issuance
-
-    def test_a_failed_request_whose_mint_was_broadcast_is_swept_like_an_executing_one(self):
-        request, issuance = self._lost_receipt()
-        self.chain.get_transaction_receipt.return_value = {"status": 1, **RECEIPT}
-
-        self.assertEqual(check_executing_issuance_requests(), {"checked": 1, "resolved": 1})
-
-        self.chain.send_transaction.assert_not_called()
-        request.refresh_from_db()
-        issuance.refresh_from_db()
-        self.assertEqual((request.status, request.executed_issuance), (RequestStatus.EXECUTED, issuance))
-        self.assertEqual(issuance.status, IssuanceStatus.COMPLETED)
-        self.assertEqual(check_executing_issuance_requests(), {"checked": 0, "resolved": 0})
-
-    def test_a_failed_request_whose_mint_reverted_is_left_alone_because_nothing_is_out(self):
-        request, issuance = self._lost_receipt()
-        issuance.mark_reverted("Transaction reverted: 0xmint")
-
-        self.assertEqual(check_executing_issuance_requests(), {"checked": 0, "resolved": 0})
-
-        self.chain.get_transaction_receipt.assert_not_called()
-        request.refresh_from_db()
-        self.assertEqual(request.status, RequestStatus.FAILED)
-
-    def test_a_fresh_failed_request_is_left_for_the_retry_before_the_sweep_takes_it(self):
-        request, _ = self._lost_receipt(minutes=1)
-        self.assertEqual(check_executing_issuance_requests(), {"checked": 0, "resolved": 0})
-        request.refresh_from_db()
-        self.assertEqual(request.status, RequestStatus.FAILED)
-
-    def test_pending_fresh_hashless_and_unreadable_rows_are_left_executing(self):
-        self.chain.get_transaction_receipt.return_value = None
-        pending, _ = self._stuck()
-        self.assertEqual(check_executing_issuance_requests(), {"checked": 1, "resolved": 0})
-
-        fresh, _ = self._stuck(minutes=1)
-        self.assertEqual(check_executing_issuance_requests(), {"checked": 1, "resolved": 0})
-
-        hashless, _ = self._stuck(tx_hash=None)
-        with self.assertLogs("tokens.services.share_token_service", "WARNING") as logs:
-            self.assertEqual(check_executing_issuance_requests(), {"checked": 2, "resolved": 0})
-        self.assertIn("recorded a mint it never named", " ".join(logs.output))
-
-        self.chain.get_transaction_receipt.side_effect = ConnectionError("rpc down")
-        self.assertEqual(check_executing_issuance_requests(), {"checked": 2, "resolved": 0})
-        self.chain.send_transaction.assert_not_called()
-        for request in (pending, fresh, hashless):
-            request.refresh_from_db()
-            self.assertEqual(request.status, RequestStatus.EXECUTING)
-
-
-class ExecuteReviewRequestTaskTest(TestCase):
-    def setUp(self):
-        patcher = patch(CHAIN_CLIENT)
-        patcher.start()
-        self.addCleanup(patcher.stop)
-        self.tenant = make_tenant("owner")
-
-    def test_missing_request_answers_without_raising(self):
-        result = execute_review_request_task(model_label="tokens.ShareIssuanceRequest", request_uuid=str(uuid4()))
-        self.assertEqual(result, {"success": False, "error": "Request not found"})
-
-    def test_state_guard_answers_with_the_reason(self):
-        submit_capital_increase(self.tenant.capital_increase, self.tenant.user)
-        result = execute_review_request_task(
-            model_label="tokens.CapitalIncreaseRequest", request_uuid=str(self.tenant.capital_increase.uuid)
-        )
-        self.assertEqual(result, {"success": False, "error": "Capital execution has no matching admitted identity"})
-
-    def test_executes_the_model_named_by_the_label_with_the_executing_user(self):
-        request = issuance_request(self.tenant.deployed_token, submitted_at=timezone.now())
-        ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.APPROVED)
-        with patch.object(share_token_service, "execute_request", return_value={"tx_hash": "0x1"}) as execute:
-            result = execute_review_request_task(
-                model_label="tokens.ShareIssuanceRequest",
-                request_uuid=str(request.uuid),
-                executed_by=self.tenant.user.pk,
-            )
-
-        self.assertEqual(result, {"success": True, "tx_hash": "0x1"})
-        self.assertEqual(execute.call_args.args[0], request)
-        self.assertIsInstance(execute.call_args.args[0], ShareIssuanceRequest)
-        self.assertEqual(execute.call_args.kwargs, {"executed_by": self.tenant.user})
-        self.assertEqual(CapitalIncreaseRequest.objects.count(), 1)
-
-    def test_refusal_answers_with_the_reason_and_does_not_retry(self):
-        request = issuance_request(self.tenant.deployed_token, submitted_at=timezone.now())
-        ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.APPROVED)
-        with patch.object(
-            share_token_service, "execute_request", side_effect=IssuanceRefusedException(NOT_WHITELISTED)
-        ):
-            result = execute_review_request_task(
-                model_label="tokens.ShareIssuanceRequest", request_uuid=str(request.uuid)
-            )
-        self.assertEqual(result, {"success": False, "error": NOT_WHITELISTED})
-
-    def test_malformed_recipient_answers_with_the_reason_and_does_not_retry(self):
-        request = issuance_request(self.tenant.deployed_token, submitted_at=timezone.now())
-        ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.APPROVED)
-        with patch(CHAIN_CLIENT) as client:
-            client.return_value.is_valid_address.return_value = False
-            result = execute_review_request_task(
-                model_label="tokens.ShareIssuanceRequest", request_uuid=str(request.uuid)
-            )
-        self.assertEqual(result, {"success": False, "error": str(InvalidRecipientAddressException().detail)})
-        request.refresh_from_db()
-        self.assertEqual(request.status, RequestStatus.APPROVED)
 
 
 class TheGraceIsJustifiedByTheWindowItCoversTest(TestCase):
@@ -682,63 +139,3 @@ class TheGraceIsJustifiedByTheWindowItCoversTest(TestCase):
 
     def test_the_operator_control_opens_before_the_sweep_can_act(self):
         self.assertLess(UNNAMED_MINT_GRACE, STALE_EXECUTION_AGE)
-
-
-class AnUnnamedMintReachesAnOperatorTest(TestCase):
-    def setUp(self):
-        self.chain = patch(CHAIN_CLIENT).start().return_value
-        self.addCleanup(patch.stopall)
-        self.tenant = make_tenant("owner")
-        self.token = self.tenant.deployed_token
-        self.service = share_token_service
-
-    def _claimed(self, minutes=11, tx_hash=""):
-        request = issuance_request(self.token, amount=10)
-        ShareIssuanceRequest.objects.filter(pk=request.pk).update(
-            status=RequestStatus.EXECUTING, updated_at=timezone.now() - timedelta(minutes=minutes)
-        )
-        issuance = ShareIssuance.objects.create(
-            token=self.token,
-            recipient_address=RECIPIENT,
-            amount="10",
-            status=IssuanceStatus.PROCESSING,
-            tx_hash=tx_hash,
-            idempotency_key=share_token_service.issuance_key(request),
-        )
-        request.refresh_from_db()
-        return request, issuance
-
-    def test_a_stale_claim_with_no_hash_is_offered_to_the_operator(self):
-        request, issuance = self._claimed()
-
-        self.assertEqual(share_token_service.unnamed_mint(request), issuance)
-
-    def test_a_claim_still_inside_the_grace_period_is_left_to_the_worker(self):
-        request, _ = self._claimed(minutes=1)
-
-        self.assertIsNone(share_token_service.unnamed_mint(request))
-
-    def test_a_claim_that_named_its_mint_is_not_offered(self):
-        request, _ = self._claimed(tx_hash="0xmint")
-
-        self.assertIsNone(share_token_service.unnamed_mint(request))
-
-    def test_naming_the_mint_hands_the_request_back_to_the_sweep(self):
-        request, issuance = self._claimed()
-
-        self.service.name_the_mint(request, "0x" + "ab" * 32)
-
-        issuance.refresh_from_db()
-        request.refresh_from_db()
-        self.assertEqual(issuance.tx_hash, "0x" + "ab" * 32)
-        self.assertEqual(request.status, RequestStatus.EXECUTING)
-        self.assertIsNone(share_token_service.unnamed_mint(request))
-
-    def test_naming_cannot_replace_an_identified_mint(self):
-        request, _ = self._claimed(tx_hash="0xmint")
-
-        with self.assertRaises(InvalidTokenStateException):
-            self.service.name_the_mint(request, "0x" + "cd" * 32)
-
-        request.refresh_from_db()
-        self.assertEqual(request.status, RequestStatus.EXECUTING)
