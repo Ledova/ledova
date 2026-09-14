@@ -137,7 +137,8 @@ issuer access changes; unsigned issuer intent still requires its authority.
 Unknown sends and lost commit acknowledgements recover the original signed
 bytes, hash and nonce. Definite preparation failures and reverts retain their
 intent; an explicit retry names the failed claim, so stale jobs and forms cannot
-reopen a later terminal attempt. New transaction projections are excluded from
+reopen a later terminal attempt. A retry records the previous transaction's
+revert before reopening its operation. New transaction projections are excluded from
 the legacy hash monitor. Only the original operation's receipt, with a factory
 creation event matching identifier, symbol and cap, can establish the contract.
 An identifier lookup or current share cap cannot substitute for attribution.
@@ -145,8 +146,10 @@ An identifier lookup or current share cap cannot substitute for attribution.
 Projection checks the current token/submission/company and chain/factory before
 writing public state. A failed asset bridge stays recoverable after the token's
 contract is recorded. The bounded sweep rotates unresolved work by update time
-and excludes terminal failures awaiting explicit retry. Existing post-deployment
-swap approval remains a separate legacy writer scheduled for M2.5 of #6; complete
+and repairs interrupted revert projections without opening another attempt.
+Once their transaction projection is complete, terminal failures await explicit
+retry. Existing post-deployment swap approval remains a separate legacy writer
+scheduled for M2.5 of #6; complete
 same-key cutover, historical attribution and finality remain outstanding. Signer
 admission remains closed by default. See [outgoing signing](outgoing-signing.md).
 

@@ -11,7 +11,12 @@ from unittest.mock import patch
 from django.db import connections
 from django.test import TransactionTestCase, override_settings
 
-from blockchain.models import OutgoingOperation, SignedAttempt, SigningAccount
+from blockchain.models import (
+    BlockchainTransaction,
+    OutgoingOperation,
+    SignedAttempt,
+    SigningAccount,
+)
 from blockchain.tests.test_outgoing_processes import finish
 from shared.db import current_alias
 from tokens.services import deployment
@@ -89,6 +94,29 @@ class DeploymentProcessTest(TransactionTestCase):
     def test_kill_after_node_acceptance_recovers_without_another_send(self):
         self.recover_killed("accepted", True)
 
+    def test_kill_after_the_revert_receipt_recovers_before_an_explicit_retry(self):
+        with tempfile.TemporaryDirectory(prefix="deployment-revert-") as temporary:
+            directory = Path(temporary)
+            code, out, err = finish(self.worker(directory, "reverted"))
+            self.assertEqual(code, -signal.SIGKILL, out + err)
+            operation = OutgoingOperation.objects.get()
+            original = SignedAttempt.objects.get()
+            record = BlockchainTransaction.objects.get()
+            self.assertEqual((operation.status, record.status), ("reverted", "submitted"))
+
+            code, out, err = finish(self.worker(directory, "retry", operation.claim_id))
+
+            self.assertEqual(code, 0, out + err)
+            self.assertEqual(json.loads(out)["status"], CREATED)
+            record.refresh_from_db()
+            self.assertEqual(record.status, "reverted")
+            self.assertEqual(record.tx_hash, original.tx_hash)
+            self.assertEqual(SignedAttempt.objects.count(), 2)
+            self.assertEqual(SigningAccount.objects.get().next_nonce, 9)
+            ledger = json.loads((directory / "node.json").read_text())
+            self.assertEqual((len(ledger["hashes"]), len(ledger["broadcasts"])), (2, 2))
+            self.assertEqual(ledger["reverted"], [original.tx_hash])
+
     def race(self, retry_of=None):
         with tempfile.TemporaryDirectory(prefix="deployment-race-") as temporary:
             directory = Path(temporary)
@@ -127,3 +155,20 @@ class DeploymentProcessTest(TransactionTestCase):
         self.race(OutgoingOperation.objects.get().claim_id)
         self.assertEqual(SignedAttempt.objects.count(), 2)
         self.assertEqual(SigningAccount.objects.get().next_nonce, 9)
+
+    def test_independent_retry_forms_retain_an_unprojected_revert_before_reopening(self):
+        node = DeploymentNode()
+        node.receipt_status = 0
+        with (
+            patch("tokens.services.deployment.get_base_chain_client", return_value=node.client),
+            patch.object(deployment.deployment_journal, "record_outcome", side_effect=SystemExit),
+            self.assertRaises(SystemExit),
+        ):
+            deployment.deploy_token(self.token)
+        self.assertEqual(BlockchainTransaction.objects.get().status, "submitted")
+
+        self.race(OutgoingOperation.objects.get().claim_id)
+
+        self.assertEqual(SignedAttempt.objects.count(), 2)
+        self.assertEqual(SigningAccount.objects.get().next_nonce, 9)
+        self.assertEqual(BlockchainTransaction.objects.filter(status="reverted").count(), 1)

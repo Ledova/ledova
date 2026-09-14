@@ -173,6 +173,48 @@ class DeploymentRecoveryTest(TransactionTestCase):
         self.assertEqual(SignedAttempt.objects.count(), 3)
         self.assertEqual(SignedAttempt.objects.get(pk=first.pk).tx_hash, first.tx_hash)
 
+    def test_explicit_retry_recovers_the_revert_projection_after_a_worker_stop(self):
+        self.node.receipt_status = 0
+        with patch.object(deployment.deployment_journal, "record_outcome", side_effect=SystemExit):
+            with self.assertRaises(SystemExit):
+                self.execute()
+        operation = OutgoingOperation.objects.get()
+        original = SignedAttempt.objects.get()
+        record = BlockchainTransaction.objects.get()
+        self.assertEqual((operation.status, record.status), ("reverted", "submitted"))
+        self.node.receipt_status = 1
+
+        self.assertEqual(self.execute(retry_of=str(operation.claim_id))["contract_address"], CREATED)
+
+        record.refresh_from_db()
+        self.assertEqual(record.status, "reverted")
+        self.assertEqual(record.tx_hash, original.tx_hash)
+        self.assertEqual(SignedAttempt.objects.count(), 2)
+        self.assertEqual(self.token.status, "deployed")
+
+    def test_sweep_repairs_a_revert_without_authorizing_another_attempt(self):
+        self.node.receipt_status = 0
+        with patch.object(deployment.deployment_journal, "record_outcome", side_effect=SystemExit):
+            with self.assertRaises(SystemExit):
+                self.execute()
+        original = SignedAttempt.objects.get()
+        claim = OutgoingOperation.objects.get().claim_id
+        nonce = SigningAccount.objects.get().next_nonce
+        self.assertEqual(BlockchainTransaction.objects.get().status, "submitted")
+        TokenDeployment.objects.update(updated_at=timezone.now() - timedelta(hours=1))
+
+        with patch("tokens.services.deployment.get_base_chain_client") as provider:
+            self.assertEqual(check_pending_token_deployments(), {"checked": 1, "resolved": 0})
+        provider.assert_not_called()
+
+        self.assertEqual(BlockchainTransaction.objects.get().status, "reverted")
+        self.assertEqual(OutgoingOperation.objects.get().claim_id, claim)
+        self.assertEqual(SigningAccount.objects.get().next_nonce, nonce)
+        self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.assertEqual(self.node.broadcasts, [bytes(original.raw_transaction)])
+        TokenDeployment.objects.update(updated_at=timezone.now() - timedelta(hours=1))
+        self.assertEqual(check_pending_token_deployments(), {"checked": 0, "resolved": 0})
+
     def test_admission_closed_never_uses_legacy_sender(self):
         signer = SigningAccount.objects.get()
         outgoing.close_signer_admission(chain_id=CHAIN_ID, sender=signer.address)

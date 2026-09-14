@@ -126,6 +126,33 @@ class ScopedTokenDeploymentTest(RunsOnTheScopedConnection, TransactionTestCase):
             self.other.token.refresh_from_db()
             self.assertIsNone(self.other.token.deployment_tx_hash)
 
+    def test_issuer_retry_retains_a_revert_left_unprojected_by_a_stopped_worker(self):
+        self.node.receipt_status = 0
+        with patch.object(deployment.deployment_journal, "record_outcome", side_effect=SystemExit):
+            with self.assertRaises(SystemExit):
+                self.run_task()
+        with use_operator():
+            operation = OutgoingOperation.objects.get()
+            original = BlockchainTransaction.objects.get()
+            self.assertEqual((operation.status, original.status), ("reverted", "submitted"))
+            self.node.receipt_status = 1
+
+            result = deploy_share_token_task.func(
+                token_uuid=str(self.token.pk),
+                deployment_id=str(self.token.deployment_id),
+                principal_id=self.tenant.user.pk,
+                retry_of=str(operation.claim_id),
+            )
+
+            self.assertTrue(result["success"])
+            self.assertEqual(current_alias(), OPERATOR_ALIAS)
+            original.refresh_from_db()
+            self.assertEqual(original.status, "reverted")
+            self.assertEqual(SignedAttempt.objects.count(), 2)
+            self.other.token.refresh_from_db()
+            self.assertIsNone(self.other.token.deployment_tx_hash)
+        self.assertIn(principal_of(APP_ALIAS), (None, ""))
+
     def test_foreign_token_is_refused_before_chain_access_and_owner_can_deploy(self):
         result = self.run_task(self.other.token)
         self.assertEqual(result, {"success": False, "error": "Token not found"})

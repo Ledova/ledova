@@ -43,11 +43,13 @@ def run(directory, phase, request_id, retry_of=None):
             fcntl.flock(stream, fcntl.LOCK_EX)
             stream.seek(0)
             data = stream.read()
-            ledger = json.loads(data) if data else {"hashes": [], "broadcasts": []}
+            ledger = json.loads(data) if data else {"hashes": [], "broadcasts": [], "reverted": []}
             tx_hash = Web3.to_hex(Web3.keccak(raw))
             ledger["broadcasts"].append(Web3.to_hex(raw))
             if tx_hash not in ledger["hashes"]:
                 ledger["hashes"].append(tx_hash)
+            if phase == "reverted" and tx_hash not in ledger["reverted"]:
+                ledger["reverted"].append(tx_hash)
             stream.seek(0)
             stream.truncate()
             stream.write(json.dumps(ledger))
@@ -57,16 +59,24 @@ def run(directory, phase, request_id, retry_of=None):
             os.kill(os.getpid(), signal.SIGKILL)
         return tx_hash
 
-    def observed(tx_hash):
+    def node_ledger():
         path = directory / "node.json"
         if not path.exists():
-            return None
+            return {"hashes": [], "reverted": []}
         with path.open() as stream:
             fcntl.flock(stream, fcntl.LOCK_SH)
             data = stream.read()
-        if data and tx_hash in json.loads(data)["hashes"]:
-            return receipt(SignedAttempt.objects.get(tx_hash=tx_hash))
+        return json.loads(data) if data else {"hashes": [], "reverted": []}
+
+    def observed(tx_hash):
+        ledger = node_ledger()
+        if tx_hash in ledger["hashes"]:
+            return receipt(SignedAttempt.objects.get(tx_hash=tx_hash), int(tx_hash not in ledger["reverted"]))
         return None
+
+    def existing_address():
+        ledger = node_ledger()
+        return CREATED if set(ledger["hashes"]) - set(ledger["reverted"]) else "0x" + "0" * 40
 
     def admitted(*args, **kwargs):
         result = original_admit(*args, **kwargs)
@@ -93,17 +103,21 @@ def run(directory, phase, request_id, retry_of=None):
     original_sign = outgoing.sign_operation
     original_save = OutgoingOperation.save
     original_project = deployment._project
+    original_outcome = deployment.deployment_journal.record_outcome
 
     def projected(command):
         if phase == "before_projection":
             os.kill(os.getpid(), signal.SIGKILL)
         return original_project(command)
 
+    def recorded_outcome(*args, **kwargs):
+        if phase == "reverted":
+            os.kill(os.getpid(), signal.SIGKILL)
+        return original_outcome(*args, **kwargs)
+
     node.client.send_raw_transaction.side_effect = send
     node.client.get_transaction_receipt.side_effect = observed
-    node.contract.functions.getTokenByIdentifier.return_value.call.side_effect = lambda: (
-        CREATED if (directory / "node.json").exists() else "0x" + "0" * 40
-    )
+    node.contract.functions.getTokenByIdentifier.return_value.call.side_effect = existing_address
     with ExitStack() as stack:
         stack.enter_context(patch("tokens.services.deployment.get_base_chain_client", return_value=node.client))
         stack.enter_context(
@@ -113,6 +127,7 @@ def run(directory, phase, request_id, retry_of=None):
         stack.enter_context(patch.object(deployment, "_admit", admitted))
         stack.enter_context(patch.object(outgoing, "sign_operation", signed))
         stack.enter_context(patch.object(deployment, "_project", projected))
+        stack.enter_context(patch.object(deployment.deployment_journal, "record_outcome", recorded_outcome))
         if phase == "before_commit":
             stack.enter_context(patch.object(OutgoingOperation, "save", before_commit))
         if phase == "recover":

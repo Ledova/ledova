@@ -162,6 +162,15 @@ def _claim(deployment, retry_of):
         operation = OutgoingOperation.objects.get(pk=deployment.operation_id)
         if retry_of is None or operation.status not in (OutgoingStatus.FAILED, OutgoingStatus.REVERTED):
             return outgoing.OperationClaim(operation.pk, operation.claim_id)
+        if operation.status == OutgoingStatus.REVERTED:
+            previous = outgoing.OperationClaim(operation.pk, operation.claim_id)
+            try:
+                deployment_journal.record_outcome(deployment.pk, previous)
+            except InvalidTokenStateException:
+                operation.refresh_from_db()
+                if operation.claim_id == previous.claim_id:
+                    raise
+                return outgoing.OperationClaim(operation.pk, operation.claim_id)
     intent = {field: deployment.intent[field] for field in INTENT_FIELDS}
     intent["value"] = int(intent["value"])
     claim = outgoing.open_operation(

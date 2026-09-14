@@ -1,6 +1,6 @@
 from django.db import models
 
-from blockchain.models import OutgoingStatus
+from blockchain.models import OutgoingStatus, TransactionStatus
 
 
 class TokenDeploymentQuerySet(models.QuerySet):
@@ -9,5 +9,9 @@ class TokenDeploymentQuerySet(models.QuerySet):
             models.Q(operation__isnull=True)
             | models.Q(
                 operation__status__in=(OutgoingStatus.PREPARING, OutgoingStatus.SIGNED, OutgoingStatus.CONFIRMED)
+            )
+            | (
+                models.Q(operation__status=OutgoingStatus.REVERTED, transaction__isnull=False)
+                & ~models.Q(transaction__status=TransactionStatus.REVERTED)
             )
         )
