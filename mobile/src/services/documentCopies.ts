@@ -34,17 +34,8 @@ function removeCopy(file: File): boolean {
   }
 }
 
-function pickerDirectory(): Directory {
-  return new Directory(Paths.cache, 'DocumentPicker');
-}
-
 function viewDirectory(): Directory {
   return new Directory(Paths.cache, 'ledova-document-views-v1');
-}
-
-function isPickerCopy(uri: string): boolean {
-  const prefix = pickerDirectory().uri.replace(/\/?$/, '/');
-  return uri.startsWith(prefix) && PICKER_NAME.test(uri.slice(prefix.length));
 }
 
 function sweep(directory: Directory, owned: (name: string) => boolean): void {
@@ -59,7 +50,7 @@ function sweep(directory: Directory, owned: (name: string) => boolean): void {
 }
 
 function sweepPickerCopies(): void {
-  sweep(pickerDirectory(), (name) => PICKER_NAME.test(name));
+  sweep(new Directory(Paths.cache, 'DocumentPicker'), (name) => PICKER_NAME.test(name));
 }
 
 function sweepViewCopies(): void {
@@ -170,8 +161,9 @@ export async function pickDocumentCopy(
       multiple: false,
     });
     if (result.canceled || !result.assets?.[0]) return null;
+    const prefix = new Directory(Paths.cache, 'DocumentPicker').uri.replace(/\/?$/, '/');
     for (const uri of new Set(result.assets.map((asset) => asset.uri))) {
-      if (isPickerCopy(uri)) originals.push(new File(uri));
+      if (uri.startsWith(prefix) && PICKER_NAME.test(uri.slice(prefix.length))) originals.push(new File(uri));
     }
     if (result.assets.length !== 1) throw new DocumentSelectionError('Please choose one document at a time.');
     const asset = result.assets[0];
