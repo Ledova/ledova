@@ -47,6 +47,12 @@ class OwningIssue(unittest.TestCase):
                 ["https://github.com/owner/ledova/issues/7"],
             ),
             ("fix(#123): refuse expired signatures", "Fixed #5, fixes other/upstream#6", ["#5", "other/upstream#6"]),
+            ("fix(#123): refuse expired signatures", "Fixes octo-org/octo-repo#100", ["octo-org/octo-repo#100"]),
+            (
+                "fix(#123): refuse expired signatures",
+                "Closes https://github.com/octo-org/octo.repo/issues/7",
+                ["https://github.com/octo-org/octo.repo/issues/7"],
+            ),
         ):
             with self.subTest(headline=headline, body=body):
                 commits = [

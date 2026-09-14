@@ -69,10 +69,11 @@ names each issue, or each commit by short SHA with its reference; remove the
 phrase or the link, or reword the commit. A `Closes` PR is checked against
 neither. GitHub documents the keywords, the colon and the `#N` and `OWNER/REPO#N`
 forms, not URLs, `GH-N` or a missing space. The gate matches only the URL
-spelling above, and passes `GH-N` and `Closes#N`. `gh` reads only a PR's first
-100 commits, so a phrase in a later commit is not seen. The PR title is not
-checked, although it becomes a merge commit's body and the squash headline for a
-PR with several commits; nor is a message edited at merge time.
+spelling above, and passes `GH-N`, `Closes#N` and other undocumented spellings.
+`gh` reads only a PR's first 100 commits, so a phrase in a later commit is not
+seen. The PR title is not checked, although it becomes a merge commit's body and
+the squash headline for a PR with several commits; nor is a message edited at
+merge time.
 
 The separate `PR metadata` workflow runs on creation, edits, new commits,
 reopening and readiness changes, including bot PRs. It uses `pull_request_target`
