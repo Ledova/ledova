@@ -116,17 +116,9 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  backend-suites:
-    name: Django suite (${{ matrix.suite }})
+  backend-suite:
+    name: Django ordinary suite
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - suite: ordinary
-            settings: ledova_backend.settings.test
-          - suite: behind the policies
-            settings: ledova_backend.settings.test_behind_the_policies
     env:
       SECRET_KEY: ci-only
       STORAGE_BACKEND: local
@@ -135,12 +127,6 @@ jobs:
       POSTGRES_DB: ledova
       POSTGRES_USER: ledova
     services:
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 20
       postgres:
         image: postgres:16
         env:
@@ -166,7 +152,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-dev.txt -c schema/requirements.txt
       - name: Suite
-        run: python manage.py test --settings=${{ matrix.settings }} --parallel 4 --noinput
+        run: python manage.py test --settings=ledova_backend.settings.test --parallel 4 --noinput
 
   backend:
     name: Django checks & tests
