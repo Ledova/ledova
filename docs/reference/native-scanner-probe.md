@@ -76,14 +76,18 @@ JavaScript scanner state. These are observations, not inferred failure causes.
 Window observations deduplicate native view identities: React Native's modal host
 also exposes the dialog's children from the activity tree. Distinct checkpoint
 views remain distinct and still refuse an ambiguous JavaScript state.
-Before its first checkpoint, the JavaScript probe asks an inactive 1×1 native
+Before its first checkpoint, each scanner mount asks an inactive 1×1 native
 scanner whether generation -1, scan 0 is current and requires `false`. It waits
 for that view's first native window event rather than its layout: under the New
 Architecture a layout event can reach JavaScript before the view is mounted, and
 Expo then rejects the call with `ERR_VIEW_NOT_FOUND`, reported as stage
 `method-native-view-not-found`. Any failure of that check ends the scanner probe;
 when it happens before the native test observes the camera, the Release test
-then fails at `active-unmount-open` with no camera observation.
+then fails at `active-unmount-open`, or `remount-open` for the second mount, with
+no camera observation. If the window event never arrives, the check never runs
+and the mount's next checkpoint button never appears: the Release test fails at
+`active-unmount-request`, or `queued-cover-request` for the second mount, after
+its 15-second wait and before the probe's own deadline can report.
 This exercises the loaded bridge with a synthetic event; it does not
 reproduce natural JavaScript queue timing or scan a physical camera image.
 
