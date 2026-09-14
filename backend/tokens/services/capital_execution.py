@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core import signing
 from django.db import connections
-from django.db.models import Q, Subquery
+from django.db.models import OuterRef, Q, Subquery
 from django.utils import timezone
 from eth_abi import encode
 from eth_account import Account
@@ -514,10 +514,18 @@ def _project(execution, claim, *, verified=False):
 
 
 def _result(execution):
-    request = CapitalIncreaseRequest.objects.get(pk=execution.request_id)
+    execution = (
+        CapitalIncreaseExecution.objects.select_related("transaction")
+        .annotate(
+            request_status=Subquery(
+                CapitalIncreaseRequest.objects.filter(pk=OuterRef("request_id")).values("status")[:1]
+            )
+        )
+        .get(pk=execution.pk)
+    )
     record = execution.transaction
     return {
-        "status": request.status,
+        "status": execution.request_status,
         "tx_hash": record.tx_hash if record else None,
         "block_number": record.block_number if record else None,
         "gas_used": record.gas_used if record else None,

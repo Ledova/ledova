@@ -1,6 +1,5 @@
 import logging
 
-from django.contrib.auth import get_user_model
 from django.utils import timezone
 from procrastinate import RetryStrategy
 
@@ -11,46 +10,29 @@ from offerings.services.subscription import (
     expire_overdue,
 )
 from shared.db import use_operator
-from tokens.exceptions import (
-    InvalidRecipientAddressException,
-    InvalidTokenStateException,
-    IssuanceRefusedException,
-)
-from tokens.services import share_token_service
+from tokens.exceptions import IssuanceExecutionConflict
+from tokens.models import RequestStatus, ShareIssuanceExecution
+from tokens.services import issuance_execution
 
 logger = logging.getLogger(__name__)
 
-SUBSCRIPTION_NOT_FOUND = "Subscription not found"
-NO_ISSUANCE_REQUEST = "Subscription has no issuance request to execute"
 SWEEP_BATCH = 200
 
 
 @app.task(retry=RetryStrategy(max_attempts=4, wait=30))
-def allot_subscription_task(subscription_uuid: str, executed_by: int | None = None):
+def allot_subscription_task(subscription_uuid: str, executed_by: int | None = None, execution_id: str | None = None):
     with use_operator():
-        subscription = (
-            Subscription.objects.filter(uuid=subscription_uuid)
-            .select_related("issuance_request", "issuance_request__token", "issuance_request__token__company")
-            .first()
-        )
-        if subscription is None:
-            logger.error(f"Subscription not found: {subscription_uuid}")
-            return {"success": False, "error": SUBSCRIPTION_NOT_FOUND}
-        request = subscription.issuance_request
-        if request is None:
-            logger.error(f"Subscription {subscription_uuid} has no issuance request")
-            return {"success": False, "error": NO_ISSUANCE_REQUEST}
-
-        user = get_user_model().objects.filter(pk=executed_by).first() if executed_by else None
+        execution = ShareIssuanceExecution.objects.filter(
+            pk=execution_id, subscription_id=subscription_uuid, executed_by_id=executed_by
+        ).first()
+        if execution is None:
+            return {"success": False, "error": "Allotment has no matching admitted issuance identity"}
         try:
-            result = share_token_service.execute_request(request, executed_by=user)
-        except (InvalidRecipientAddressException, InvalidTokenStateException, IssuanceRefusedException) as exc:
-            logger.warning(f"Subscription {subscription_uuid} not allotted: {exc.detail}")
+            result = issuance_execution.recover(execution.pk)
+        except IssuanceExecutionConflict as exc:
+            logger.warning("Subscription %s requires issuance recovery", subscription_uuid)
             return {"success": False, "error": str(exc.detail)}
-
-        subscription.refresh_from_db(fields=["status"])
-        _mirror_allotted(subscription)
-        return {"success": True, **result}
+        return {"success": result["status"] == RequestStatus.EXECUTED, **result}
 
 
 def _mirror_allotted(subscription: Subscription) -> bool:

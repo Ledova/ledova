@@ -369,7 +369,7 @@ class OutgoingInventorySourceTest(TransactionTestCase):
                 )
             for path in (
                 "eth_account.Account.sign_transaction",
-                "tokens.services.mint_journal.release_unsigned_mint",
+                "tokens.services.legacy_issuance.release_unsigned_mint",
                 "blockchain.services.outgoing.sign_operation",
                 "blockchain.services.outgoing.record_receipt",
             ):

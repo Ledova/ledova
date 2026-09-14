@@ -27,7 +27,6 @@ from shared.db import atomic
 from tokens.models import (
     IssuanceType,
     RequestStatus,
-    ShareIssuance,
     ShareIssuanceRequest,
 )
 from tokens.services import share_token_service
@@ -85,7 +84,6 @@ BATCH_ABOVE_HEADROOM = (
     "({cap_room} left under the offering cap, {chain_room} left of the authorized supply). "
     "The whole batch is refused; scale back first rather than allotting a first-come subset."
 )
-NOT_RETRYABLE = "Issuance request {uuid} is {status}; there is nothing to retry."
 NO_REQUEST_TO_RETRY = "This subscription has no issuance request yet; allot it first."
 ISSUANCE_ALREADY_CLAIMED = (
     "Issuance request {uuid} is {status}, so the shares are already claimed on chain. "
@@ -344,13 +342,24 @@ def _refuse_if_issuance_claimed(subscription: Subscription, verb: str) -> None:
 
 
 def _refuse_the_issuance(subscription: Subscription, verb: str) -> None:
+    from tokens.exceptions import IssuanceExecutionConflict
+    from tokens.services.issuance_execution import cancel_queued
+    from tokens.services.legacy_issuance import refund_has_no_unresolved_mint
+
     request = _linked_request(subscription)
     if request is None:
         return
+    if request.status in CLAIMED_STATUSES:
+        raise _already_claimed(request, verb)
+    try:
+        if cancel_queued(request, subscription):
+            return
+    except IssuanceExecutionConflict as exc:
+        raise SubscriptionRefusedException(
+            "The issuance cannot be cancelled. Resolve its recorded execution before refunding."
+        ) from exc
     _refuse_if_the_mint_is_out(request, verb)
-    if ShareIssuance.objects.filter(
-        idempotency_key=share_token_service.issuance_key(request), mint_journal__isnull=True
-    ).exists():
+    if not refund_has_no_unresolved_mint(request):
         raise SubscriptionRefusedException(UNIDENTIFIED_LEGACY_MINT.format(uuid=request.uuid, verb=verb))
     if request.status == RequestStatus.REJECTED:
         return
@@ -505,11 +514,18 @@ def _not_allottable(subscription: Subscription):
     return None
 
 
-@atomic()
 def allot(subscription: Subscription, operator_user, notes: str = "", headroom=None):
-    from offerings.tasks import allot_subscription_task
+    from tokens.services.issuance_execution import authorize_allotment
 
+    authorize_allotment(operator_user)
     supply = None if headroom is not None else chain_snapshot(subscription.offering)
+    with atomic():
+        return _admit_allotment(subscription, operator_user, notes, headroom, supply)
+
+
+def _admit_allotment(subscription, operator_user, notes, headroom, supply):
+    from tokens.services.issuance_execution import admit_allotment
+
     offering = Offering.objects.select_for_update().select_related("token").get(pk=subscription.offering_id)
     locked = _locked(subscription)
     refusal = _not_allottable(locked)
@@ -538,14 +554,15 @@ def allot(subscription: Subscription, operator_user, notes: str = "", headroom=N
     locked.issuance_request = request
     locked.save(update_fields=["issuance_request", "updated_at"])
     subscription.issuance_request = request
-    allot_subscription_task.defer(
-        subscription_uuid=str(locked.uuid), executed_by=operator_user.pk if operator_user else None
-    )
+    admit_allotment(request, locked, operator_user)
     logger.info(f"Subscription {locked.uuid} allotted {amount} shares through request {request.uuid}")
     return request
 
 
 def allot_batch(subscriptions, operator_user, notes: str = "", service=None) -> dict:
+    from tokens.services.issuance_execution import authorize_allotment
+
+    authorize_allotment(operator_user)
     service = service or share_token_service
     grouped = {}
     for subscription in subscriptions:
@@ -576,9 +593,11 @@ def _allot_group(offering_id, group, operator_user, notes, service) -> tuple[int
 
 
 def _allot_ready(offering_id, ready, operator_user, notes, service) -> int:
+    observed = Offering.objects.select_related("token").get(pk=offering_id)
+    supply = chain_snapshot(observed, service)
     with atomic():
         offering = Offering.objects.select_for_update().select_related("token").get(pk=offering_id)
-        cap_room, chain_room = offering_headroom(offering, service)
+        cap_room, chain_room = offering_headroom(offering, supply=supply)
         room = min(cap_room, chain_room)
         total = sum(subscription.allotment_quantity for subscription in ready)
         if total > room:
@@ -588,23 +607,17 @@ def _allot_ready(offering_id, ready, operator_user, notes, service) -> int:
                 )
             )
         for subscription in ready:
-            allot(subscription, operator_user, notes, headroom=(cap_room, chain_room))
+            _admit_allotment(subscription, operator_user, notes, (cap_room, chain_room), None)
     return len(ready)
 
 
-def retry_allotment(subscription: Subscription, operator_user) -> Subscription:
-    from offerings.tasks import allot_subscription_task
+def retry_allotment(subscription: Subscription, operator_user, *, confirmed) -> Subscription:
+    from tokens.services.issuance_execution import admit
 
     request = subscription.issuance_request
     if request is None:
         raise SubscriptionRefusedException(NO_REQUEST_TO_RETRY)
-    if not request.can_be_executed:
-        raise SubscriptionRefusedException(
-            NOT_RETRYABLE.format(uuid=request.uuid, status=request.get_status_display().lower())
-        )
-    allot_subscription_task.defer(
-        subscription_uuid=str(subscription.uuid), executed_by=operator_user.pk if operator_user else None
-    )
+    admit(request, operator_user, confirmed=confirmed, subscription=subscription)
     return subscription
 
 

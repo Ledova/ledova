@@ -27,9 +27,12 @@ from operators.exceptions import SettlementAssetNotDeployedException
 from shared.utils.admin_actions import admin_action_re_path
 from shared.utils.admin_display import action_buttons
 from tokens.admin._helpers import short_hex, status_badge
+from tokens.exceptions import IssuanceExecutionConflict
+from tokens.services import issuance_execution
 from users.exceptions import InvestorNotEligibleException
 
 REFUSALS = (
+    IssuanceExecutionConflict,
     SubscriptionRefusedException,
     InvalidSubscriptionTransitionException,
     InvestorNotEligibleException,
@@ -121,6 +124,10 @@ class RejectSubscriptionForm(forms.Form):
     reason = forms.CharField(widget=forms.Textarea(attrs={"rows": 3}), required=True, label="Reason")
 
 
+class RetryAllotmentForm(forms.Form):
+    confirmation = forms.CharField(widget=forms.HiddenInput)
+
+
 ACTIONS = {
     "accept": dict(
         form=AcceptAndIssueForm,
@@ -182,10 +189,11 @@ ACTIONS = {
         level=messages.WARNING,
     ),
     "retry": dict(
+        form=RetryAllotmentForm,
         title="Retry Allotment",
         alert="info",
         heading="Retry",
-        intro="Re-runs the mint for the issuance request already linked to this subscription. It never mints twice.",
+        intro="Recovers the original issuance. A new attempt requires confirmation of its recorded failed outcome.",
         legend="Retry",
         button=("Retry Allotment", "btn-info"),
         done="Allotment retried; the task is running in the background.",
@@ -384,7 +392,11 @@ class SubscriptionAdmin(admin.ModelAdmin):
     def action_view(self, request, subscription, action):
         spec = ACTIONS[action]
         change_url = reverse("admin:offerings_subscription_change", args=[subscription.pk])
-        form = self._build_form(request, spec, subscription)
+        try:
+            form = self._build_form(request, spec, subscription)
+        except REFUSALS as exc:
+            messages.error(request, str(exc.detail))
+            return HttpResponseRedirect(change_url)
 
         if form is not None and (request.method != "POST" or not form.is_valid()):
             return self._render(request, subscription, spec, form)
@@ -411,6 +423,16 @@ class SubscriptionAdmin(admin.ModelAdmin):
             return None
         if form_class is AcceptAndIssueForm:
             return form_class(request.POST or None, offering=subscription.offering)
+        if form_class is RetryAllotmentForm and request.method != "POST":
+            if subscription.issuance_request_id is None:
+                raise IssuanceExecutionConflict("This subscription has no issuance to recover.")
+            return form_class(
+                initial={
+                    "confirmation": issuance_execution.confirmation(
+                        subscription.issuance_request, request.user, subscription=subscription
+                    )
+                }
+            )
         return form_class(request.POST or None)
 
     def _render(self, request, subscription, spec, form):
@@ -534,7 +556,7 @@ def _run_reject(subscription, request, data):
 
 
 def _run_retry(subscription, request, data):
-    retry_allotment(subscription, request.user)
+    retry_allotment(subscription, request.user, confirmed=data["confirmation"])
 
 
 RUNNERS = {
