@@ -32,9 +32,12 @@ iOS subclass of RN's existing HTTP handler refuse redirects, including 307/308
 requests that could otherwise forward sign-in or refresh bodies. The iOS handler
 is registered through RN's new-architecture protocol provider. Normal platform
 TLS validation, request cancellation, progress, multipart uploads and SSE remain
-in the inherited networking implementation. Provider WebViews keep their own
-navigation behavior and capabilities; they reject insecure initial URLs,
-insecure navigation and mixed content.
+in the inherited networking implementation. Provider WebViews reject insecure
+initial URLs, insecure navigation and mixed content. The identity-verification
+WebViews also limit top-frame navigation to their provider and website origins,
+refuse popups and ask before media capture; see
+[identity-provider WebView lifetime](mobile-lifecycles.md#identity-provider-webview-lifetime).
+The buy-crypto WebView keeps its own navigation behavior.
 
 ## Secret storage
 
