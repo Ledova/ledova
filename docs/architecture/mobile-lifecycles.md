@@ -101,18 +101,19 @@ what completes cannot drift apart.
 Both verification WebViews keep `originWhitelist` open, so a refused URL is never
 handed to the operating system. Their navigation callback is synchronous, returns
 false on any exception and first requires the current form lifecycle. A top-frame
-navigation (every Android call, and iOS calls marked `isTopFrame`) must also pass
-the shared web navigation policy and be `about:blank` or an exact scheme, host and
-port match from the view's list:
+navigation must also pass the shared web navigation policy and be `about:blank` or
+an exact scheme, host and port match from the view's list:
 
 - KYCAID: the origin of the form URL the backend returned, plus the completion
   origin above.
 - Sumsub: the marketing origin, which is the inline page's base URL.
 
-An iOS subframe navigation passes only the lifecycle and shared web navigation
-checks. Origins are compared only after the shared policy has refused URLs with
-user information, because React Native's URL parser reads a host after an `@` in
-the path.
+Android requests carry `isTopFrame` absent or true, so every one is a top frame.
+iOS sends `isTopFrame` false when the request URL differs from its main document
+URL; such a navigation passes only the lifecycle and shared web navigation checks.
+Configured hostnames are lower-cased before comparison: the app's `URL` global,
+Expo's WHATWG polyfill, keeps a hostname's case, and both platforms report
+lower-case hosts.
 
 Both views refuse new windows: `onOpenWindow` does nothing and multiple windows
 are disabled, so an Android popup becomes a top-level navigation that the same
@@ -122,12 +123,14 @@ and microphone requests reach WebKit's own prompt instead of a silent grant, and
 although Expo Camera's plugin and library manifest declare it; nothing in the app
 records audio.
 
-These gaps are accepted because closing them needs native code:
+These gaps are accepted by the #13 owner decisions:
 
-- Once the app holds `CAMERA`, Android grants it to any page or frame without an
-  origin check.
-- Android never offers iframe navigations to the callback; iOS offers them but
-  applies no origin list.
+- Android has no origin check for camera requests: any page or frame receives the
+  camera once the app holds `CAMERA`, and can raise the system `CAMERA` prompt
+  when it does not. A request for audio and video cannot receive audio.
+- Android offers no HTTP(S) or `about:` iframe navigation to the callback; iframes
+  with other schemes arrive as top frames and the shared policy refuses them. iOS
+  offers iframe navigations but applies no origin list.
 - Android allows a navigation when JavaScript has not answered its synchronous
   callback within 250 ms.
 - Android never offers POST navigations to the callback.
@@ -138,13 +141,13 @@ These gaps are accepted because closing them needs native code:
 Mounted JavaScript controls use the locked WebView wrapper, actual app-lock
 provider and owner hooks with synthetic credentials. They establish mount,
 callback and error-display behavior, not physical camera shutdown or native
-permission-dialog cancellation. Navigation controls send Android- and iOS-shaped
-events through the installed iOS adapter, top frames under both Node's and React
-Native's URL parsers, and window and media props are checked on both platform
-adapters. Native frame, POST, popup, timeout and prompt behavior are not
-established by them. Android owning-window focus and global modal/lock stacking
-remain separate #13 checks, and a form-completion signal is not server
-verification approval.
+permission-dialog cancellation. Navigation controls send requests with
+`isTopFrame` absent, true and false through the installed iOS adapter, parsing
+with the same Expo `URL` global as the app, and window and media props are
+checked on both platform adapters. Native frame, POST, popup, timeout and prompt
+behavior are not established by them. Android owning-window focus and global
+modal/lock stacking remain separate #13 checks, and a form-completion signal is
+not server verification approval.
 
 The buy-crypto provider uses the same admission and session lifetime. A widget
 URL carries the session epoch captured before its request; a late response after
