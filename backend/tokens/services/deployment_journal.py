@@ -1,98 +1,109 @@
 from django.db import connections
-from web3 import Web3
+from django.utils import timezone
 
-from blockchain.models import BlockchainTransaction, TransactionStatus, TransactionType
+from blockchain.models import (
+    BlockchainTransaction,
+    OutgoingOperation,
+    OutgoingStatus,
+    TransactionStatus,
+    TransactionType,
+)
 from companies.models import Company
 from shared.db import APP_ALIAS, atomic, current_alias, principal_of, use_operator
 from tokens.exceptions import InvalidTokenStateException
-from tokens.models import ShareToken
+from tokens.models import ShareToken, ShareTokenStatus, TokenDeployment
 
 
-def create_deployment_record(token, identifier, signer_address, factory_address, issuer_address):
-    with use_operator():
-        return BlockchainTransaction.objects.create(
-            tx_type=TransactionType.SHARE_TOKEN_DEPLOY,
-            status=TransactionStatus.PENDING,
-            from_address=signer_address,
-            to_address=factory_address,
-            function_name="createShareToken",
-            function_args={
-                "name": token.name,
-                "symbol": token.symbol,
-                "identifier": identifier,
-                "authorizedShares": str(int(token.total_supply)),
-                "tokenOwner": signer_address,
-                "issuerWallet": issuer_address,
-            },
-            related_model="tokens.ShareToken",
-            related_uuid=token.uuid,
-        )
+def caller_principal():
+    connection = connections[current_alias()]
+    if not connection.get_autocommit() or connection.in_atomic_block:
+        raise InvalidTokenStateException("Deployment execution requires autocommit before broadcast.")
+    return int(principal_of()) if current_alias() == APP_ALIAS else None
 
 
-def load_deployment_record(token):
-    if token.deployment_transaction_id is None:
-        return None
-    with use_operator():
-        return BlockchainTransaction.objects.get(pk=token.deployment_transaction_id)
+def lock_token(token_id, company_id, principal):
+    company = Company.objects.select_for_update().filter(pk=company_id).first()
+    token = ShareToken.objects.select_for_update().filter(pk=token_id, company_id=company_id).first()
+    if company is None or token is None or (principal is not None and company.owner_id != principal):
+        raise InvalidTokenStateException("The issuer no longer owns this token.")
+    token.company = company
+    return token
 
 
-def _require_deployment_record(token, record):
-    if record.pk == token.deployment_transaction_id and record.tx_type == TransactionType.SHARE_TOKEN_DEPLOY:
-        return
-    if (record.related_model, record.related_uuid, record.tx_type) != (
-        "tokens.ShareToken",
-        token.uuid,
-        TransactionType.SHARE_TOKEN_DEPLOY,
+def record_signed_deployment(deployment, principal, attempt, validate_intent):
+    token = lock_token(deployment.token_id, deployment.company_id, principal)
+    current = TokenDeployment.objects.select_for_update().get(pk=deployment.pk)
+    if (
+        current.attribution_required
+        or token.deployment_id != current.pk
+        or current.operation_id != attempt.operation_id
+        or token.status != ShareTokenStatus.DEPLOYING
+        or validate_intent(token) != current.intent
     ):
-        raise InvalidTokenStateException("The deployment journal belongs to another token.")
-
-
-def record_signed_deployment(token, record, tx_hash):
-    _require_deployment_record(token, record)
-    caller = connections[current_alias()]
-    principal = principal_of() if current_alias() == APP_ALIAS else None
-    with use_operator():
-        connection = connections[current_alias()]
-        if (connection is not caller and not caller.get_autocommit()) or (
-            not connection.get_autocommit() and not connection.in_atomic_block
+        raise InvalidTokenStateException("The admitted deployment identity or authority changed before signing.")
+    previous_hash = None
+    if token.deployment_tx_hash:
+        previous = current.transaction
+        if (
+            previous is None
+            or previous.status != TransactionStatus.REVERTED
+            or token.deployment_transaction_id != previous.pk
+            or token.deployment_tx_hash != previous.tx_hash
         ):
-            raise RuntimeError("Deployment signing requires autocommit before broadcast.")
-        with atomic(durable=True):
-            if principal:
-                owner_unchanged = (
-                    Company.objects.select_for_update().filter(pk=token.company_id, owner_id=int(principal)).exists()
+            raise InvalidTokenStateException("Another deployment transaction already owns this token.")
+        previous_hash = previous.tx_hash
+    intent = current.intent
+    record = BlockchainTransaction.objects.create(
+        tx_hash=attempt.tx_hash,
+        tx_type=TransactionType.SHARE_TOKEN_DEPLOY,
+        status=TransactionStatus.SUBMITTED,
+        from_address=intent["sender"],
+        to_address=intent["to"],
+        function_name="createShareToken",
+        function_args={
+            "name": intent["name"],
+            "symbol": intent["symbol"],
+            "identifier": intent["identifier"],
+            "authorizedShares": intent["authorized_shares"],
+            "tokenOwner": intent["sender"],
+            "issuerWallet": intent["issuer_wallet"],
+        },
+        related_model="tokens.ShareToken",
+        related_uuid=current.token_id,
+        submitted_at=attempt.created_at,
+    )
+    current.transaction = record
+    current.save(update_fields=["transaction", "updated_at"])
+    if not token.bind_deployment_transaction(attempt.tx_hash, record, previous_hash=previous_hash):
+        raise InvalidTokenStateException("Another deployment transaction already owns this token.")
+
+
+def record_outcome(deployment_id, claim, *, contract_address=""):
+    with use_operator(), atomic(durable=True):
+        operation = OutgoingOperation.objects.select_for_update().get(pk=claim.operation_id)
+        deployment = TokenDeployment.objects.select_for_update().get(pk=deployment_id)
+        if operation.claim_id != claim.claim_id or deployment.operation_id != operation.pk:
+            raise InvalidTokenStateException("A newer deployment attempt owns this outcome.")
+        if operation.current_attempt_id is None:
+            return deployment
+        record = deployment.transaction
+        if record is None or record.tx_hash != operation.current_attempt.tx_hash:
+            raise InvalidTokenStateException("The deployment is missing its original transaction association.")
+        if operation.status == OutgoingStatus.CONFIRMED:
+            if record.status != TransactionStatus.CONFIRMED:
+                record.mark_confirmed(
+                    block_number=operation.block_number, block_hash=operation.block_hash, gas_used=operation.gas_used
                 )
-                company_unchanged = (
-                    ShareToken.objects.select_for_update().filter(pk=token.pk, company_id=token.company_id).exists()
-                )
-                if not owner_unchanged or not company_unchanged:
-                    raise InvalidTokenStateException("The issuer no longer owns this token.")
-            record.mark_submitted(tx_hash)
-            if not token.bind_deployment_transaction(tx_hash, record):
-                raise InvalidTokenStateException("Another deployment transaction already owns this token.")
+            if contract_address:
+                if deployment.contract_address and deployment.contract_address != contract_address:
+                    raise InvalidTokenStateException("The deployment receipt now identifies a different contract.")
+                deployment.contract_address = contract_address
+                deployment.save(update_fields=["contract_address", "updated_at"])
+        elif operation.status == OutgoingStatus.REVERTED and record.status != TransactionStatus.REVERTED:
+            record.mark_reverted("The recorded deployment reverted on chain.")
+        return deployment
 
 
-def confirm_deployment_record(token, record, receipt):
-    _require_deployment_record(token, record)
+def mark_projected(deployment_id):
     with use_operator():
-        record.mark_confirmed(
-            block_number=receipt["blockNumber"],
-            block_hash=Web3.to_hex(receipt["blockHash"]),
-            gas_used=receipt["gasUsed"],
-        )
-
-
-def fail_deployment_record(token, record, message, *, before_broadcast=False):
-    _require_deployment_record(token, record)
-    with use_operator():
-        record.refresh_from_db()
-        if before_broadcast and record.tx_hash:
-            record.mark_outcome_unknown("The deployment broadcast could not be confirmed.")
-        else:
-            record.mark_failed(message)
-
-
-def revert_deployment_record(token, record):
-    _require_deployment_record(token, record)
-    with use_operator():
-        record.mark_reverted(f"Transaction reverted: {record.tx_hash}")
+        TokenDeployment.objects.filter(pk=deployment_id, projected_at__isnull=True).update(projected_at=timezone.now())

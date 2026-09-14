@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from assets.models import Asset, AssetChainDeployment
 from shared.tests.tenants import make_tenant
-from tokens.services.share_token_service import ShareTokenService
+from tokens.services import share_token_service
 from wallets.models import Holding, HoldingSnapshot, Wallet
 from wallets.services.holdings import sync_holding
 
@@ -24,7 +24,7 @@ class SyncHoldingTest(TestCase):
         )
 
     def _chain(self, balance=250, **kwargs):
-        return patch.object(ShareTokenService, "get_token_balance", return_value=balance, **kwargs)
+        return patch.object(share_token_service, "get_token_balance", return_value=balance, **kwargs)
 
     def test_a_first_allotment_creates_the_holding_and_todays_snapshot(self):
         with self._chain():

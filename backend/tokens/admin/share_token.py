@@ -14,7 +14,7 @@ from tokens.exceptions import (
     TokenPauseFailedException,
 )
 from tokens.models import IssuanceStatus, ShareIssuance, ShareToken, ShareTokenStatus
-from tokens.services import ShareTokenService
+from tokens.services import deployment, share_token_service
 
 from ._helpers import bounded_chain_read, hex_column, status_badge
 
@@ -75,6 +75,8 @@ class ShareTokenAdmin(admin.ModelAdmin):
         "contract_address",
         "chain",
         "deployment_tx_hash",
+        "deployment_id",
+        "deployment_transaction",
         "deployed_at",
         "created_at",
         "updated_at",
@@ -168,7 +170,7 @@ class ShareTokenAdmin(admin.ModelAdmin):
 
         if obj.status == ShareTokenStatus.DRAFT:
             try:
-                ShareTokenService.require_deployable(obj)
+                deployment.require_deployable(obj)
             except CompanyNotReadyException as exc:
                 return action_buttons([(f"⚠ {exc.detail}", None, "#e9ecef", "#6c757d")])
             deploy_url = reverse("admin:tokens_sharetoken_deploy", args=[obj.uuid])
@@ -199,16 +201,16 @@ class ShareTokenAdmin(admin.ModelAdmin):
 
     @staticmethod
     def _paused_on_chain(obj):
-        return bounded_chain_read(lambda: ShareTokenService().read_paused(obj), f"paused() of {obj.symbol}")
+        return bounded_chain_read(lambda: share_token_service.read_paused(obj), f"paused() of {obj.symbol}")
 
     def deploy_view(self, request, token):
         change_url = reverse("admin:tokens_sharetoken_change", args=[token.pk])
 
         try:
             if request.method == "POST":
-                ShareTokenService.start_deployment(token, principal_id=None)
+                deployment.start_deployment(token, principal_id=None)
             else:
-                primary_wallet = ShareTokenService.require_deployable(token)
+                primary_wallet = deployment.require_deployable(token)
         except (InvalidTokenStateException, CompanyNotReadyException) as exc:
             messages.error(request, f"Cannot deploy: {exc.detail}")
             return HttpResponseRedirect(change_url)
@@ -235,22 +237,24 @@ class ShareTokenAdmin(admin.ModelAdmin):
         change_url = reverse("admin:tokens_sharetoken_change", args=[token.pk])
         try:
             if request.method == "POST":
-                ShareTokenService.retry_deployment(token, principal_id=None)
+                deployment.retry_deployment(token, principal_id=None, confirmation=request.POST.get("confirmation"))
             else:
-                ShareTokenService.require_retryable(token)
+                confirmation = deployment.retry_confirmation(token)
         except InvalidTokenStateException as exc:
             messages.error(request, f"Cannot retry deployment: {exc.detail}")
             return HttpResponseRedirect(change_url)
 
         if request.method == "POST":
             messages.info(
-                request, f"Deployment retried for '{token.name}'; the task adopts or resumes what is on chain."
+                request,
+                f"Deployment recovery queued for '{token.name}'; the recorded intent and transaction are retained.",
             )
             return HttpResponseRedirect(change_url)
 
         context = {
             **self.admin_site.each_context(request),
             "title": f"Retry Deployment: {token.name}",
+            "confirmation": confirmation,
             "subtitle": None,
             "token": token,
             "opts": self.model._meta,
@@ -267,9 +271,9 @@ class ShareTokenAdmin(admin.ModelAdmin):
         change_url = reverse("admin:tokens_sharetoken_change", args=[token.pk])
         try:
             if request.method == "POST":
-                getattr(ShareTokenService(), verb)(token)
+                getattr(share_token_service, verb)(token)
             else:
-                ShareTokenService.require_pausable(token, verb == "pause")
+                share_token_service.require_pausable(token, verb == "pause")
         except (InvalidTokenStateException, TokenPauseFailedException, BaseChainConnectionError) as exc:
             messages.error(request, f"Cannot {verb}: {getattr(exc, 'detail', exc)}")
             return HttpResponseRedirect(change_url)

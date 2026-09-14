@@ -44,7 +44,7 @@ class ActionFixtures:
         self.provider_states = []
         self.balance = Mock()
         self.balance.get_token_balance.side_effect = self.provider_balance
-        self.patch("tokens.services.order_modification_service.ShareTokenService", return_value=self.balance)
+        self.patch("tokens.services.order_modification_service.share_token_service", new=self.balance)
         self.patch("tokens.events._publish", side_effect=lambda event, payload: self.events.append((event, payload)))
         self.patch("rest_framework.throttling.SimpleRateThrottle.allow_request", return_value=True)
 

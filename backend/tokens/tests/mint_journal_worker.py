@@ -27,7 +27,7 @@ def run_worker(directory, phase):
     from integrations.base_chain.client import BaseChainClient
     from shared.tests.tenants import make_tenant
     from tokens.models import RequestStatus, ShareIssuanceRequest
-    from tokens.services import ShareTokenService
+    from tokens.services import share_token_service
 
     ledger_path = directory / "node.json"
     if phase != "recover":
@@ -94,7 +94,7 @@ def run_worker(directory, phase):
     client.get_transaction_receipt = read_receipt
     client.wait_for_receipt = Mock(return_value=receipt)
     with patch("tokens.services.share_token_service.get_base_chain_client", return_value=client):
-        service = ShareTokenService()
+        service = share_token_service
         service.read_paused = Mock(return_value=False)
         service.is_recipient_whitelisted = Mock(return_value=True)
         service.share_supply = Mock(return_value=(1000, 0))

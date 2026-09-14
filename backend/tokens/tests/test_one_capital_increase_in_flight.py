@@ -9,8 +9,8 @@ from django.test import TestCase, TransactionTestCase
 from shared.tests.tenants import make_tenant
 from tokens.exceptions import InvalidTokenStateException, IssuanceRefusedException
 from tokens.models import CapitalIncreaseRequest, RequestStatus, ShareToken
+from tokens.services import share_token_service
 from tokens.services.capital_increase import submit_capital_increase
-from tokens.services.share_token_service import ShareTokenService
 
 CONSTRAINT_NAME = "one_capital_increase_in_flight_per_token"
 GUARD = import_module("tokens.migrations.0026_one_capital_increase_in_flight").refuse_a_token_that_already_has_two
@@ -134,7 +134,7 @@ class ResumingAFailedRaiseWaitsForTheOneInFlightTest(TestCase):
         CapitalIncreaseRequest.objects.all().delete()
         self.stalled = self.a_request(RequestStatus.FAILED, 100)
         self.waiting = self.a_request(RequestStatus.APPROVED, 50)
-        self.service = ShareTokenService.__new__(ShareTokenService)
+        self.service = share_token_service
 
     def a_request(self, status, additional):
         return CapitalIncreaseRequest.objects.create(

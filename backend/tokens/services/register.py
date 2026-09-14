@@ -1,7 +1,6 @@
 import logging
 from decimal import Decimal
 
-from integrations.base_chain.exceptions import BaseChainConnectionError
 from shared.utils import csv_cell
 from tokens.exceptions import RegisterUnavailableException
 from tokens.models import ShareIssuance
@@ -14,7 +13,7 @@ from tokens.models.choices import (
     IDENTITY_TREASURY_LABEL,
     IDENTITY_UNRESOLVABLE,
 )
-from tokens.services.share_token_service import ShareTokenService
+from tokens.services import share_token_service
 from whitelist.models import HolderType
 from whitelist.services.identity import UNIDENTIFIED, identities_for
 
@@ -92,16 +91,6 @@ API_FIELDS = (
     "share_class",
     "identity_source",
 )
-
-
-def chain_service():
-    try:
-        return ShareTokenService()
-    except BaseChainConnectionError as exc:
-        logger.error(f"Register could not reach the chain: {exc}")
-        raise RegisterUnavailableException(
-            f"{RegisterUnavailableException.default_detail} The chain was unreachable when this request ran."
-        ) from exc
 
 
 def _deployment_block(token, reader) -> int:
@@ -276,7 +265,7 @@ def _register(token, reader) -> tuple[list[dict], int]:
 
 
 def token_register(token, service=None) -> tuple[list[dict], int]:
-    return _register(token, service if service is not None else chain_service())
+    return _register(token, service if service is not None else share_token_service)
 
 
 def api_holders(rows) -> list[dict]:

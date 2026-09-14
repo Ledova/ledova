@@ -1,4 +1,4 @@
-from unittest.mock import PropertyMock, patch
+from unittest.mock import patch
 
 from django.contrib import admin
 from django.test import TestCase
@@ -18,7 +18,7 @@ from tokens.models import (
 )
 from tokens.serializers import CapitalIncreaseDetailSerializer
 from tokens.serializers.share_issuance_request import ShareIssuanceRequestSerializer
-from tokens.services import ShareTokenService
+from tokens.services import share_token_service
 from tokens.services.share_token_service import (
     CAPITAL_INCREASE_EXECUTION_FAILED,
     ISSUANCE_EXECUTION_FAILED,
@@ -51,7 +51,7 @@ class WhatTheIssuerReadsAfterAFailedExecutionTest(TestCase):
         self.addCleanup(patch.stopall)
         self.tenant = make_tenant("failednote")
         self.token = self.tenant.deployed_token
-        self.service = ShareTokenService()
+        self.service = share_token_service
 
     def _approved(self, request):
         request.status = RequestStatus.APPROVED
@@ -61,7 +61,7 @@ class WhatTheIssuerReadsAfterAFailedExecutionTest(TestCase):
 
     def a_failed_issuance(self):
         request = self._approved(issuance_request(self.token))
-        with patch.object(ShareTokenService, "_mint_to", side_effect=RequestsConnectionError(PROVIDER_TEXT)):
+        with patch.object(share_token_service, "_mint_to", side_effect=RequestsConnectionError(PROVIDER_TEXT)):
             with self.assertRaises(RequestsConnectionError):
                 self.service.execute_request(request)
         request.refresh_from_db()
@@ -69,12 +69,11 @@ class WhatTheIssuerReadsAfterAFailedExecutionTest(TestCase):
 
     def a_failed_capital_increase(self):
         request = self._approved(self.tenant.capital_increase)
-        with patch("tokens.services.share_token_service.primary_wallet_for", return_value=None):
-            with patch.object(
-                ShareTokenService, "increase_authorized_shares", side_effect=RequestsConnectionError(PROVIDER_TEXT)
-            ):
-                with self.assertRaises(RequestsConnectionError):
-                    self.service.execute_request(request)
+        with patch.object(
+            share_token_service, "increase_authorized_shares", side_effect=RequestsConnectionError(PROVIDER_TEXT)
+        ):
+            with self.assertRaises(RequestsConnectionError):
+                self.service.execute_request(request)
         request.refresh_from_db()
         return request
 
@@ -115,10 +114,9 @@ class WhatTheIssuerReadsAfterAFailedExecutionTest(TestCase):
     def a_capital_increase_that_reached_the_node(self):
         request = self._approved(self.tenant.capital_increase)
         self.chain.send_transaction.side_effect = RequestsConnectionError(PROVIDER_TEXT)
-        with patch.object(ShareTokenService, "signer_key", new_callable=PropertyMock, return_value=SIGNER_KEY):
-            with patch("tokens.services.share_token_service.primary_wallet_for", return_value=None):
-                with self.assertRaises(TokenDeploymentFailedException):
-                    self.service.execute_request(request)
+        with patch.object(share_token_service, "signer_key", return_value=SIGNER_KEY):
+            with self.assertRaises(TokenDeploymentFailedException):
+                self.service.execute_request(request)
         request.refresh_from_db()
         return request
 

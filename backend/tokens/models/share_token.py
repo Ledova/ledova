@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 
 
 class ShareToken(BaseModel):
+    deployment_id = models.UUIDField(null=True, editable=False)
+
     company = models.ForeignKey(
         "companies.Company",
         on_delete=models.PROTECT,
@@ -109,12 +111,19 @@ class ShareToken(BaseModel):
             update_fields.append("deployment_transaction")
         self.save(update_fields=update_fields)
 
-    def bind_deployment_transaction(self, tx_hash: str, transaction: BlockchainTransaction) -> bool:
+    def bind_deployment_transaction(
+        self, tx_hash: str, transaction: BlockchainTransaction, *, previous_hash: str | None = None
+    ) -> bool:
         now = timezone.now()
+        prior = (
+            models.Q(deployment_tx_hash=previous_hash)
+            if previous_hash
+            else models.Q(deployment_tx_hash__isnull=True) | models.Q(deployment_tx_hash="")
+        )
         bound = (
             type(self)
             .objects.filter(pk=self.pk)
-            .filter(models.Q(deployment_tx_hash__isnull=True) | models.Q(deployment_tx_hash=""))
+            .filter(prior)
             .update(
                 status=ShareTokenStatus.DEPLOYING,
                 deployment_tx_hash=tx_hash,
@@ -130,30 +139,6 @@ class ShareToken(BaseModel):
         else:
             self.refresh_from_db(fields=["status", "deployment_tx_hash", "deployment_transaction", "updated_at"])
         return bool(bound)
-
-    def mark_draft(self) -> None:
-        self.status = ShareTokenStatus.DRAFT
-        self.save(update_fields=["status", "updated_at"])
-
-    def mark_draft_unless_sent(self) -> bool:
-        now = timezone.now()
-        drafted = (
-            type(self)
-            .objects.filter(pk=self.pk)
-            .filter(models.Q(deployment_tx_hash__isnull=True) | models.Q(deployment_tx_hash=""))
-            .update(status=ShareTokenStatus.DRAFT, updated_at=now)
-        )
-        if drafted:
-            self.status = ShareTokenStatus.DRAFT
-            self.updated_at = now
-        else:
-            self.refresh_from_db(fields=["status", "deployment_tx_hash", "deployment_transaction", "updated_at"])
-        return bool(drafted)
-
-    def discard_deployment_transaction(self) -> None:
-        self.deployment_tx_hash = None
-        self.deployment_transaction = None
-        self.save(update_fields=["deployment_tx_hash", "deployment_transaction", "updated_at"])
 
     def mark_deployed(self, contract_address: str, chain: str) -> None:
         self.status = ShareTokenStatus.DEPLOYED
