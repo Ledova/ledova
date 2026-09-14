@@ -371,3 +371,18 @@ it('keeps a view bound to its session: retirement sweeps during a download and n
   expect(staleShare).not.toHaveBeenCalled();
   expect(files.has(viewPath('stale.pdf'))).toBe(false);
 });
+
+it('releases the view guard when a download fails, so the next view in that session proceeds', async () => {
+  await expect(
+    shareDocumentCopy(
+      getSessionEpoch(),
+      async () => {
+        throw new Error('Synthetic network failure');
+      },
+      jest.fn(),
+    ),
+  ).rejects.toThrow('network');
+  const share = jest.fn(async () => {});
+  await shareDocumentCopy(getSessionEpoch(), viewed('after-failure.pdf'), share);
+  expect(share).toHaveBeenCalledWith(viewPath('after-failure.pdf'), 'application/pdf');
+});
