@@ -116,6 +116,44 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  backend-suite:
+    name: Django ordinary suite
+    runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: ci-only
+      STORAGE_BACKEND: local
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: '5432'
+      POSTGRES_DB: ledova
+      POSTGRES_USER: ledova
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ledova
+          POSTGRES_USER: ledova
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ledova -d ledova" --health-interval 5s --health-timeout 5s --health-retries 20
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13.15'
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements-dev.txt
+            backend/schema/requirements.txt
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt -c schema/requirements.txt
+      - name: Suite
+        run: python manage.py test --settings=ledova_backend.settings.test --parallel 4 --noinput
+
   backend:
     name: Django checks & tests
     runs-on: ubuntu-latest
@@ -225,12 +263,6 @@ jobs:
             /tmp/ledova-schema-comparison.json
           retention-days: 7
           if-no-files-found: ignore
-      - name: Full suite
-        run: python manage.py test --settings=ledova_backend.settings.test --parallel 4 --noinput
-      - name: The whole suite behind the policies (the app role on one connection)
-        run: >-
-          python manage.py test
-          --settings=ledova_backend.settings.test_behind_the_policies --parallel 4 --noinput
       - name: Request path on the scoped connection (the half the ordinary settings cannot see)
         run: >-
           python manage.py test --settings=ledova_backend.settings.test_scoped

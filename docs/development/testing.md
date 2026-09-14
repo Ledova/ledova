@@ -18,7 +18,7 @@ tests now use PostgreSQL in both ordinary and specialized settings.
 | Gate unit tests | `make test-gates` |
 | Lint | `make lint`; `cd backend && make lint`, which needs the [backend lint tools](#backend-verification) |
 | JavaScript and contracts | `make test` |
-| Backend suites | The four commands under [backend verification](#backend-verification), always together |
+| Backend suites | The three suites under [backend verification](#backend-verification), always together |
 | Migration drift | `cd backend && python manage.py makemigrations --check --dry-run` |
 | Real EVM chain | `make chain-test`; CI also uses `CHAIN_TEST_SETTINGS=ledova_backend.settings.test_postgres` |
 | Real Bitcoin chain | `python scripts/test-bitcoin-chain.py` against isolated PostgreSQL |
@@ -46,14 +46,13 @@ Real Redis/ClamAV controls are separate from unit fakes; see
 
 ## Backend verification
 
-CI's Django job runs four suites, and a backend change runs all four locally
-before it is called green. A change to a policy, a role grant or the test
-settings can pass three and fail the fourth, because each sees something the
-others cannot. From `backend/`, exactly as CI runs them:
+CI runs three backend suites, the ordinary suite as its own job, and a backend
+change runs all three locally before it is called green. A change to a policy,
+a role grant or the test settings can pass two and fail the third, because each
+sees something the others cannot. From `backend/`, exactly as CI runs them:
 
 ```bash
 python manage.py test --settings=ledova_backend.settings.test --parallel 4 --noinput
-python manage.py test --settings=ledova_backend.settings.test_behind_the_policies --parallel 4 --noinput
 python manage.py test --settings=ledova_backend.settings.test_scoped --require-scoped-coverage --noinput
 python manage.py migrate --noinput
 python manage.py check_rls_roles
@@ -62,19 +61,19 @@ python manage.py check_rls_catalogue
 
 | Suite | What only it sees |
 | --- | --- |
-| Ordinary (`settings.test`; `cd backend && make test` runs it without `--noinput`) | The default path |
-| Behind the policies | The app role on one shared connection, through `SET ROLE` |
-| Scoped | Real, separate app and operator aliases: a different code path from the shared-connection suites |
+| Ordinary (`settings.test`; `cd backend && make test` runs it without `--noinput`) | The app role on one shared connection, through `SET ROLE` |
+| Scoped | Real, separate app and operator aliases: a different code path from the ordinary suite's shared connection |
 | Roles and catalogue | Grants and installed policies, which no test can observe |
 
 An empty or suppressed run is not a pass: find the `Ran N tests` tally before
 reading the exit status. [Scoped connection evidence](#scoped-connection-evidence)
-explains what the last two suites establish.
+explains how the ordinary and scoped suites differ.
 
 `black`, `isort` and `flake8` are development requirements and are not in the
 backend image, so running the source gates inside that image proves nothing
-about CI's Lint step, which runs before the tests and stops the job when it
-fails. Install them with `make install-backend` from the repository root
+about CI's Lint step. Lint runs first in the Django checks job and stops that
+job when it fails; the ordinary suite runs in its own job whether or not it
+passes. Install the tools with `make install-backend` from the repository root
 (`make check` does the same); CI installs the same file with
 `pip install -r requirements-dev.txt -c schema/requirements.txt` from
 `backend/`. Then run `cd backend && make lint`: `black --check` and
@@ -104,7 +103,7 @@ fails. Install them with `make install-backend` from the repository root
 
 ## Scoped connection evidence
 
-The broad suites use SET ROLE on a shared test connection to exercise policies
+The ordinary suite uses SET ROLE on a shared test connection to exercise policies
 without cross-alias fixture deadlocks. The scoped suite exercises actual app and
 operator aliases. Fixtures use `as_an_operator_would()` where needed, and writes
 another connection must observe need a commit. Per-case rollback uses
