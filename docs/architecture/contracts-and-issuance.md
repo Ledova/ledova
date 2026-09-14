@@ -140,8 +140,14 @@ A lost send acknowledgement leaves the token `DEPLOYING` with its original hash
 and the journal row still submitted, with the unconfirmed-broadcast message
 recorded on it. Retry and reconciliation resolve
 through the recorded transaction; an unavailable receipt does not authorize
-another create. A failure before the callback returns an unbound token to
-`DRAFT`. Existing confirmed-revert and factory-adoption paths remain. Do not
+another create. A failure before the hash is committed returns the
+still-unbound token to `DRAFT`. Once the commit has happened, even a lost
+commit acknowledgement that raises before the callback returns leaves the
+token bound and `DEPLOYING`, nothing is broadcast, and a retry resumes from
+the journal rather than creating again
+(`test_lost_commit_acknowledgement_blocks_send_and_retains_recovery` in
+`backend/tokens/tests/test_deployment_signing_boundary.py`). Existing
+confirmed-revert and factory-adoption paths remain. Do not
 clear a hash to retry. This boundary does not persist signed bytes, freeze all
 deployment terms or historical identities, activate the
 [outgoing signer foundation](outgoing-signing.md), or establish all-writer
