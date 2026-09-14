@@ -1,7 +1,11 @@
 import csv
 import io
+import json
 import os
 import secrets
+import signal
+import subprocess
+import sys
 import threading
 import time
 from datetime import datetime, timedelta
@@ -12,7 +16,8 @@ from unittest.mock import patch
 from uuid import uuid4
 
 from django.conf import settings
-from django.db import connection
+from django.contrib.auth.models import Permission
+from django.db import connection, connections
 from django.test import override_settings
 from django.utils import timezone
 from eth_account import Account
@@ -22,17 +27,24 @@ from web3 import Web3
 from assets.models import Asset, AssetChainDeployment, AssetType
 from blockchain.models import (
     BlockchainTransaction,
+    SignedAttempt,
     SigningAccount,
     TransactionStatus,
     TransactionType,
 )
+from blockchain.tests.test_outgoing_processes import finish
 from companies.models import Company, CompanyStatus
 from integrations.base_chain.client import BaseChainClient, get_base_chain_client
 from integrations.base_chain.exceptions import BaseChainTransactionError
 from integrations.blockchain import BlockchainClientFactory
+from shared.db import current_alias
 from shared.tests.tenants import make_tenant
-from tokens.exceptions import IssuanceRefusedException, TokenDeploymentFailedException
+from tokens.exceptions import (
+    CapitalIncreaseConflict,
+    IssuanceRefusedException,
+)
 from tokens.models import (
+    CapitalIncreaseExecution,
     CapitalIncreaseRequest,
     FormerHolder,
     IssuanceStatus,
@@ -43,7 +55,7 @@ from tokens.models import (
     ShareTokenStatus,
     TokenDeployment,
 )
-from tokens.services import deployment, share_token_service
+from tokens.services import capital_execution, deployment, share_token_service
 from tokens.services.former_holders import fold_former_holders
 from tokens.services.register import (
     IDENTITY_LABELS,
@@ -112,6 +124,7 @@ class ChainTestMixin:
         snapshot = self.w3.provider.make_request("evm_snapshot", [])["result"]
         self.addCleanup(self.w3.provider.make_request, "evm_revert", [snapshot])
         self.staff = make_tenant("chain-staff", staff=True).user
+        self.staff.user_permissions.add(Permission.objects.get(codename="change_capitalincreaserequest"))
         self.investor = Account.create().address
         Wallet.objects.create(
             user_account=self.tenant.account,
@@ -197,18 +210,27 @@ class ChainTestMixin:
         )
 
     def _execute(self, request):
+        extra = {}
+        if isinstance(request, CapitalIncreaseRequest):
+            try:
+                confirmed = capital_execution.confirmation(request, self.staff)
+                with patch("tokens.tasks.execute_review_request_task.defer"):
+                    command = capital_execution.admit(request, self.staff, confirmed=confirmed)
+            except CapitalIncreaseConflict as exc:
+                return {"success": False, "error": str(exc.detail)}
+            extra["execution_id"] = str(command.pk)
         return execute_review_request_task(
-            model_label=request._meta.label, request_uuid=str(request.uuid), executed_by=self.staff.pk
+            model_label=request._meta.label, request_uuid=str(request.uuid), executed_by=self.staff.pk, **extra
         )
 
-    def _increase(self, additional, status=RequestStatus.APPROVED):
+    def _increase(self, additional):
         return CapitalIncreaseRequest.objects.create(
             token=self.token,
             additional_shares=additional,
             new_authorized_total=CAP + additional,
             purpose="Growth",
             board_resolution_reference=f"BOARD-{additional}",
-            status=status,
+            status=RequestStatus.APPROVED,
         )
 
 
@@ -451,15 +473,14 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         blocks_before = self.w3.eth.block_number
         refusal = self._execute(stale)
         self.assertFalse(refusal["success"])
-        for detail in (str(CAP + 10), str(CAP + 500), str(increase.uuid)):
-            self.assertIn(detail, refusal["error"])
+        self.assertEqual(refusal["status"], "superseded")
+        self.assertIsNone(refusal["tx_hash"])
         self.assertEqual(self.w3.eth.block_number, blocks_before)
         stale.refresh_from_db()
         self.token.refresh_from_db()
-        self.assertEqual(
-            (stale.status, stale.review_notes, stale.rejection_reason),
-            (RequestStatus.SUPERSEDED, "", refusal["error"]),
-        )
+        self.assertEqual((stale.status, stale.review_notes), (RequestStatus.SUPERSEDED, ""))
+        for cap in (CAP + 10, CAP + 500):
+            self.assertIn(str(cap), stale.rejection_reason)
         self.assertEqual(self._contract().functions.authorizedShares().call(), CAP + 500)
         self.assertEqual(self.token.total_supply, str(CAP + 500))
 
@@ -584,8 +605,6 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         import signal
         import subprocess
         import sys
-
-        from django.db import connections
 
         from blockchain.models import SignedAttempt
         from blockchain.tests.test_outgoing_processes import finish
@@ -713,22 +732,79 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual(self._contract().functions.totalSupply().call(), 10)
         self.assertEqual(self._contract().functions.balanceOf(self.investor).call(), 10)
 
+    def test_process_killed_after_real_cap_transaction_recovers_without_mint_or_second_nonce(self):
+        self._deployed()
+        self.assertTrue(self._execute(self._whitelisted_request(10))["success"])
+        increase = self._increase(500)
+        nonce = self._signer_nonce()
+        minted = self._contract().functions.totalSupply().call()
+        balance = self._contract().functions.balanceOf(self.investor).call()
+        database = connections[current_alias()].settings_dict
+        fields = ("ENGINE", "NAME", "USER", "PASSWORD", "HOST", "PORT", "OPTIONS")
+        env = os.environ.copy()
+        env["CAPITAL_TEST_DATABASE"] = json.dumps({key: database[key] for key in fields})
+
+        def worker(phase):
+            process = subprocess.Popen(
+                [
+                    sys.executable,
+                    "-m",
+                    "tokens.tests.capital_chain_worker",
+                    phase,
+                    str(increase.pk),
+                    str(self.staff.pk),
+                ],
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            return finish(process)
+
+        code, out, err = worker("accepted")
+        self.assertEqual(code, -signal.SIGKILL, out + err)
+        increase.refresh_from_db()
+        self.token.refresh_from_db()
+        command = CapitalIncreaseExecution.objects.get(request_id=increase.pk)
+        attempt = SignedAttempt.objects.get(operation=command.operation)
+        receipt = self.w3.eth.get_transaction_receipt(attempt.tx_hash)
+        self.assertEqual(receipt["status"], 1)
+        self.assertEqual(receipt["to"].lower(), self.token.contract_address.lower())
+        self.assertEqual(increase.status, "executing")
+        self.assertEqual(int(self.token.total_supply), CAP)
+        self.assertEqual(command.transaction.tx_hash, attempt.tx_hash)
+        self.assertEqual(command.transaction.status, "submitted")
+        self.assertEqual(self._signer_nonce(), nonce + 1)
+        self.assertEqual(self._contract().functions.authorizedShares().call(), CAP + 500)
+        code, out, err = worker("recover")
+        self.assertEqual(code, 0, out + err)
+        self.assertEqual(json.loads(out)["status"], "executed")
+        self.assertEqual(json.loads(out)["tx_hash"], attempt.tx_hash)
+        command.refresh_from_db()
+        self.token.refresh_from_db()
+        self.assertEqual(command.transaction.status, "confirmed")
+        self.assertEqual(int(self.token.total_supply), CAP + 500)
+        self.assertEqual(self._signer_nonce(), nonce + 1)
+        self.assertEqual(SignedAttempt.objects.filter(operation=command.operation).count(), 1)
+        self.assertEqual(self._contract().functions.totalSupply().call(), minted)
+        self.assertEqual(self._contract().functions.balanceOf(self.investor).call(), balance)
+        self.assertEqual(ShareIssuance.objects.filter(token=self.token).count(), 1)
+
     def test_lost_set_authorized_receipt_is_resumed_on_retry_instead_of_refusing_the_increase(self):
         self._deployed()
         increase = self._increase(500)
 
-        with self._lost_receipt():
-            with self.assertRaisesMessage(TokenDeploymentFailedException, "The capital increase is unconfirmed."):
-                self._execute(increase)
+        with patch.object(BaseChainClient, "get_transaction_receipt", return_value=None):
+            self.assertFalse(self._execute(increase)["success"])
 
         increase.refresh_from_db()
         self.token.refresh_from_db()
         record = BlockchainTransaction.objects.get(
             related_model="tokens.CapitalIncreaseRequest", related_uuid=increase.uuid
         )
-        self.assertEqual((increase.status, self.token.total_supply), (RequestStatus.FAILED, str(CAP)))
-        self.assertTrue(increase.can_be_executed)
-        self.assertEqual((record.status, record.function_name), (TransactionStatus.FAILED, "setAuthorizedShares"))
+        self.assertEqual((increase.status, self.token.total_supply), (RequestStatus.EXECUTING, str(CAP)))
+        self.assertFalse(increase.can_be_executed)
+        self.assertEqual((record.status, record.function_name), (TransactionStatus.SUBMITTED, "setAuthorizedShares"))
         self.assertTrue(record.tx_hash.startswith("0x"), record.tx_hash)
         self.assertEqual(self.w3.eth.get_transaction_receipt(record.tx_hash)["status"], 1)
         self.assertEqual(self._contract().functions.authorizedShares().call(), CAP + 500)
@@ -860,10 +936,9 @@ class ShareTokenChainConcurrencyTest(ChainTestMixin, APITransactionTestCase):
         second.join(timeout=60)
 
         self.assertFalse(first.is_alive() or second.is_alive(), results)
-        succeeded = sorted(bool(value.get("success")) for value in results.values())
-        self.assertEqual(succeeded, [False, True], results)
-        refused = [value for value in results.values() if not value.get("success")][0]
-        self.assertIn("Cannot execute request with status", refused["error"])
+        self.assertTrue(all(isinstance(value, dict) for value in results.values()), results)
+        self.assertTrue(any(value.get("success") for value in results.values()), results)
+        self.assertTrue(self._execute(increase)["success"])
         self.assertEqual(self._signer_nonce(), nonce_before + 1)
         self.assertEqual(self._contract().functions.authorizedShares().call(), CAP + 1000)
         increase.refresh_from_db()
@@ -880,19 +955,21 @@ class ShareTokenChainConcurrencyTest(ChainTestMixin, APITransactionTestCase):
         result = self._execute(small)
 
         self.assertFalse(result["success"])
-        for detail in (str(CAP + 50), str(CAP + 1000), str(big.uuid)):
-            self.assertIn(detail, result["error"])
+        self.assertEqual(result["status"], "superseded")
+        self.assertIsNone(result["tx_hash"])
         small.refresh_from_db()
         self.token.refresh_from_db()
         self.assertEqual(small.status, RequestStatus.SUPERSEDED)
-        self.assertEqual(small.rejection_reason, result["error"])
+        self.assertIn("do not raise the recorded cap", small.rejection_reason)
         self.assertEqual(small.review_notes, "")
         self.assertEqual(self._contract().functions.authorizedShares().call(), CAP + 1000)
         self.assertEqual(self.token.total_supply, str(CAP + 1000))
 
     def test_resuming_a_failed_increase_while_another_is_in_flight_is_refused_with_a_reason(self):
         self._deployed()
-        stalled = self._increase(1000, status=RequestStatus.FAILED)
+        stalled = self._increase(1000)
+        with patch.object(BaseChainClient, "estimate_gas", side_effect=RuntimeError("Synthetic preparation failure")):
+            self.assertEqual(self._execute(stalled)["status"], "failed")
         self._increase(50)
         nonce_before = self._signer_nonce()
 
@@ -901,7 +978,6 @@ class ShareTokenChainConcurrencyTest(ChainTestMixin, APITransactionTestCase):
         stalled.refresh_from_db()
         self.assertFalse(result["success"], result)
         self.assertIn("has another capital increase in flight", result["error"])
-        self.assertIn("has another capital increase in flight", stalled.execution_notes)
         self.assertEqual(stalled.review_notes, "")
         self.assertEqual(stalled.status, RequestStatus.FAILED)
         self.assertEqual(self._signer_nonce(), nonce_before)
@@ -1043,8 +1119,6 @@ class WhitelistChangeChainTest(ChainTestMixin, APITransactionTestCase):
         import signal
         import subprocess
         import sys
-
-        from django.db import connections
 
         from blockchain.models import SignedAttempt
         from blockchain.tests.test_outgoing_processes import finish

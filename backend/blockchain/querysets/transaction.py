@@ -12,6 +12,7 @@ class BlockchainTransactionQuerySet(QuerySet):
             self.exclude(mint_requests__operation__isnull=False)
             .exclude(related_model="whitelist.WhitelistChange")
             .exclude(token_deployments__isnull=False)
+            .exclude(capital_increases__isnull=False)
         )
 
     def with_tx_hash(self):

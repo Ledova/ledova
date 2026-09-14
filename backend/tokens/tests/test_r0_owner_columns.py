@@ -197,7 +197,9 @@ class TheTriggerRefusesWhatTheServiceDidNotSupplyTest(TransactionTestCase):
             with transaction.atomic():
                 CapitalIncreaseRequest.objects.filter(pk=request.pk).update(company=other)
 
-        self.assertIn("does not match", str(refusal.exception))
+        self.assertIn("Capital request identity cannot be changed", str(refusal.exception))
+        request.refresh_from_db()
+        self.assertEqual(request.company_id, self.tenant.company.pk)
 
 
 @skipUnless(connection.vendor == "postgresql", POSTGRES_ONLY)
