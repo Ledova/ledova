@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Platform, Text, View } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { getRandomValues } from 'expo-crypto';
-import { File, Paths } from 'expo-file-system';
+import { Directory, File, Paths } from 'expo-file-system';
 import EventSource from 'react-native-sse';
 import { apiClient, rotateRefreshToken } from '../src/services/apiClient';
 import { clearTokens, getAccessToken, getRefreshToken, storeTokens } from '../src/services/tokenStorage';
@@ -14,7 +14,7 @@ import { verifyMessage } from 'ethers';
 import { deriveAccountsFromMnemonic } from '../src/utils/softwareWallet/seedDerivation';
 import { signEthereumMessage } from '../src/utils/softwareWallet/localSigner';
 import { failureCategory, NativeProbeAssertion } from './diagnostics';
-import { DocumentCopy, pickDocumentCopy } from '../src/services/documentCopies';
+import { DocumentCopy, pickDocumentCopy, shareDocumentCopy } from '../src/services/documentCopies';
 import { getSessionEpoch } from '../src/services/sessionScope';
 import { ScannerBridgeProbe } from './ScannerBridgeProbe';
 
@@ -247,6 +247,35 @@ async function run(scannerCheck: Check | null): Promise<Check[]> {
       }
     }
   });
+  await check('viewed document copies keep only the latest', async () => {
+    const views = new Directory(Paths.cache, 'ledova-document-views-v1');
+    const earlier = new File(views, 'earlier-view.pdf');
+    const latest = new File(views, 'latest-view.pdf');
+    const unowned = new File(Paths.cache, 'ledova-probe-unowned-view.pdf');
+    try {
+      for (const fixture of [earlier, unowned]) {
+        fixture.create({ intermediates: true, overwrite: true });
+        fixture.write('synthetic-fixture');
+      }
+      requireTrue(earlier.info().exists && unowned.info().exists);
+      let shared = '';
+      await shareDocumentCopy(
+        async () => ({ name: 'latest-view.pdf', type: 'application/pdf', bytes: new Uint8Array([37, 80, 68, 70]) }),
+        async (uri) => {
+          shared = uri;
+          requireTrue(new File(uri).info().exists);
+        },
+      );
+      requireTrue(shared === latest.uri);
+      requireTrue(!earlier.info().exists);
+      requireTrue(unowned.info().exists);
+    } finally {
+      for (const fixture of [earlier, latest, unowned]) {
+        if (fixture.info().exists) fixture.delete();
+      }
+    }
+  });
+
   await check('incremental SSE and close', async () => {
     await new Promise<void>((resolve, reject) => {
       let messages = 0;

@@ -168,14 +168,27 @@ retirement runs the same sweep immediately, or at the end of a pick that is stil
 open. A listing or deletion failure only logs a warning and never blocks
 sign-out. Other cache paths and provider originals are never listed or removed.
 Metadata or deletion failure leaves a slot unavailable for reuse; it is not
-reported as verified erasure. Viewer/sharing copies still need a separate
-external-reader lifetime and are outside this upload cache.
+reported as verified erasure.
 
-Component tests control native picker and file boundaries while retaining the
-actual upload hooks and React Query mutation lifecycle. The native probe supplies
-a synthetic picker result and exercises actual file move, retention, multipart
-upload and retirement on the emulator/simulator; it does not drive the system
-picker UI. Local/cloud-provider, low-storage and physical-device checks remain
-under #13, alongside the sharing gap.
+Viewing a listing document downloads it into the app-owned
+`ledova-document-views-v1` cache directory and hands that copy to the share
+sheet. One view at a time may download and write, and a session change during the
+download stops the write. Each new view first removes every file in that
+directory, and session retirement does the same. The last viewed document
+therefore stays until the next view or sign-out, and a receiving app still
+reading it then loses access. Neither platform says when a receiver has finished
+reading: Android's chooser result does not wait for the receiver, and the pinned
+iOS sharing module never settles a share whose follow-up dialog the user
+cancels. The guard therefore ends before the share opens, so one unsettled share
+cannot block later views. Copies that earlier builds wrote to the cache root are
+not found.
+
+Component tests control native picker, file and sharing boundaries while
+retaining the actual upload hooks and React Query mutation lifecycle. The native
+probe supplies a synthetic picker result and exercises actual file move,
+retention, multipart upload and retirement on the emulator/simulator. It also
+replaces the share sheet to check that only the latest viewed copy remains. It
+drives neither system UI. Local/cloud-provider, low-storage and physical-device
+checks remain under #13.
 
 Next: [native scanner controls](../reference/native-scanner-probe.md) and [device checks](../development/native-probes.md).

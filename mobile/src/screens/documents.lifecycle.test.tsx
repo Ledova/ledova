@@ -1,16 +1,19 @@
 import React from 'react';
 import { Alert } from 'react-native';
-import { act, fireEvent, render } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
+import * as Sharing from 'expo-sharing';
 import { InvestorEligibilityScreen } from './investor-eligibility';
 import { ListingScreen } from './listing';
 import { useInvestorEligibility } from './investor-eligibility/useInvestorEligibility';
 import { useCompanyDocuments } from './listing/useCompanyDocuments';
-import { files, pickedFile, resetFiles } from '../testSupport/documentFiles';
+import { apiClient } from '../services/apiClient';
+import { cache, files, pickedFile, resetFiles } from '../testSupport/documentFiles';
 
 jest.mock('expo-document-picker', () => ({ getDocumentAsync: jest.fn() }));
 jest.mock('expo-file-system', () => jest.requireActual('../testSupport/documentFiles').nativeFileSystem);
+jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(), shareAsync: jest.fn() }));
 jest.mock('../services/tokenStorage', () => ({ getAccessToken: jest.fn(async () => 'synthetic-access') }));
 jest.mock('../services/apiClient', () => ({ apiClient: { get: jest.fn(async () => ({ data: {} })) } }));
 jest.mock('./investor-eligibility/useInvestorEligibility', () => ({ useInvestorEligibility: jest.fn() }));
@@ -148,4 +151,43 @@ it.each(['success', 'refusal'])('retires a listing upload after %s and preserves
   expect(files.has(input.file.uri)).toBe(false);
   expect(files.has(returned.assets[0].uri)).toBe(false);
   expect(Alert.alert).not.toHaveBeenCalled();
+});
+
+it('shares a viewed listing document from one private copy, and downloads nothing when sharing is unavailable', async () => {
+  const earlier = `${cache}ledova-document-views-v1/earlier.pdf`;
+  const copy = `${cache}ledova-document-views-v1/document-a.pdf`;
+  files.set(earlier, { size: 5, content: 'leftover' });
+  jest.mocked(useCompanyDocuments).mockReturnValue({
+    ...useCompanyDocuments(),
+    documents: [
+      { uuid: 'document-a', documentType: 'cert_inc', name: 'a.pdf', fileUrl: '/documents/document-a/file/' },
+    ],
+    uploadedTypes: new Set(['cert_inc']),
+  } as unknown as ReturnType<typeof useCompanyDocuments>);
+  const bytes = Uint8Array.from('%PDF', (character) => character.charCodeAt(0));
+  jest
+    .mocked(apiClient.get)
+    .mockImplementation(async (url: string) =>
+      url === '/documents/document-a/file/'
+        ? { data: bytes.buffer, headers: { 'content-type': 'application/pdf; charset=binary' } }
+        : { data: {} },
+    );
+  jest.mocked(Sharing.isAvailableAsync).mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+  jest.mocked(Sharing.shareAsync).mockResolvedValueOnce(undefined);
+  const view = await render(<ListingScreen />, { wrapper });
+
+  await fireEvent.press(view.getByLabelText('View Certificate of Incorporation'));
+  await waitFor(() =>
+    expect(Alert.alert).toHaveBeenCalledWith('Cannot open document', 'Sharing is not available on this device.'),
+  );
+  expect(apiClient.get).not.toHaveBeenCalledWith('/documents/document-a/file/', expect.anything());
+  expect(files.has(copy)).toBe(false);
+
+  await fireEvent.press(view.getByLabelText('View Certificate of Incorporation'));
+  await waitFor(() =>
+    expect(Sharing.shareAsync).toHaveBeenCalledWith(copy, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' }),
+  );
+  expect(apiClient.get).toHaveBeenCalledWith('/documents/document-a/file/', { responseType: 'arraybuffer' });
+  expect(files.get(copy)?.content).toBe('%PDF');
+  expect(files.has(earlier)).toBe(false);
 });

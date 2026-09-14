@@ -1,12 +1,13 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
-import { subscribeSession } from './sessionScope';
+import { assertSessionEpoch, getSessionEpoch, subscribeSession } from './sessionScope';
 
 const SLOT_COUNT = 16;
 const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
 const PICKER_NAME = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.[a-z0-9_-]{0,32})?$/i;
 const copies = new Map<number, DocumentCopy>();
 let picking = false;
+let viewing = false;
 
 class DocumentSelectionError extends Error {}
 
@@ -14,6 +15,12 @@ export interface UploadFile {
   uri: string;
   name: string;
   type: string;
+}
+
+interface DocumentView {
+  name: string;
+  type: string;
+  bytes: Uint8Array;
 }
 
 function removeCopy(file: File): boolean {
@@ -31,26 +38,61 @@ function pickerDirectory(): Directory {
   return new Directory(Paths.cache, 'DocumentPicker');
 }
 
+function viewDirectory(): Directory {
+  return new Directory(Paths.cache, 'ledova-document-views-v1');
+}
+
 function isPickerCopy(uri: string): boolean {
   const prefix = pickerDirectory().uri.replace(/\/?$/, '/');
   return uri.startsWith(prefix) && PICKER_NAME.test(uri.slice(prefix.length));
 }
 
-function sweepPickerCopies(): void {
+function sweep(directory: Directory, owned: (uri: string) => boolean): void {
   try {
-    const directory = pickerDirectory();
     if (!directory.exists) return;
     for (const entry of directory.list()) {
-      if (entry instanceof File && isPickerCopy(entry.uri)) removeCopy(entry);
+      if (entry instanceof File && owned(entry.uri)) removeCopy(entry);
     }
   } catch {
     console.warn('Document cache cleanup did not complete.');
   }
 }
 
+function sweepPickerCopies(): void {
+  sweep(pickerDirectory(), isPickerCopy);
+}
+
+function sweepViewCopies(): void {
+  sweep(viewDirectory(), () => true);
+}
+
 subscribeSession(() => {
   if (!picking) sweepPickerCopies();
+  sweepViewCopies();
 });
+
+async function writeViewCopy(download: () => Promise<DocumentView>): Promise<{ uri: string; type: string }> {
+  const epoch = getSessionEpoch();
+  const { name, type, bytes } = await download();
+  assertSessionEpoch(epoch);
+  sweepViewCopies();
+  const copy = new File(viewDirectory(), name);
+  copy.create({ intermediates: true, overwrite: true });
+  copy.write(bytes);
+  return { uri: copy.uri, type };
+}
+
+export async function shareDocumentCopy(
+  download: () => Promise<DocumentView>,
+  share: (uri: string, type: string) => Promise<void>,
+): Promise<void> {
+  if (viewing) return;
+  viewing = true;
+  const copy = await writeViewCopy(download).finally(() => {
+    viewing = false;
+  });
+  await share(copy.uri, copy.type);
+}
 
 function managedFile(slot: number): File {
   return new File(Paths.cache, 'ledova-upload-copies-v1', `slot-${slot}`);
