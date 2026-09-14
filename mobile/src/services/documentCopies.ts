@@ -1,13 +1,13 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
-import { assertSessionEpoch, getSessionEpoch, subscribeSession } from './sessionScope';
+import { assertSessionEpoch, subscribeSession } from './sessionScope';
 
 const SLOT_COUNT = 16;
 const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
 const PICKER_NAME = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.[a-z0-9_-]{0,32})?$/i;
 const copies = new Map<number, DocumentCopy>();
 let picking = false;
-let viewing = false;
+let viewing: number | undefined;
 
 class DocumentSelectionError extends Error {}
 
@@ -62,10 +62,12 @@ subscribeSession(() => {
   sweepViewCopies();
 });
 
-async function writeViewCopy(download: () => Promise<DocumentView>): Promise<{ uri: string; type: string }> {
-  const epoch = getSessionEpoch();
+async function writeViewCopy(
+  sessionEpoch: number,
+  download: () => Promise<DocumentView>,
+): Promise<{ uri: string; type: string }> {
   const { name, type, bytes } = await download();
-  assertSessionEpoch(epoch);
+  assertSessionEpoch(sessionEpoch);
   sweepViewCopies();
   const copy = new File(viewDirectory(), name);
   copy.create({ intermediates: true, overwrite: true });
@@ -74,13 +76,15 @@ async function writeViewCopy(download: () => Promise<DocumentView>): Promise<{ u
 }
 
 export async function shareDocumentCopy(
+  sessionEpoch: number,
   download: () => Promise<DocumentView>,
   share: (uri: string, type: string) => Promise<void>,
 ): Promise<void> {
-  if (viewing) return;
-  viewing = true;
-  const copy = await writeViewCopy(download).finally(() => {
-    viewing = false;
+  assertSessionEpoch(sessionEpoch);
+  if (viewing === sessionEpoch) return;
+  viewing = sessionEpoch;
+  const copy = await writeViewCopy(sessionEpoch, download).finally(() => {
+    if (viewing === sessionEpoch) viewing = undefined;
   });
   await share(copy.uri, copy.type);
 }

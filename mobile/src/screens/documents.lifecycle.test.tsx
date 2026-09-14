@@ -9,6 +9,7 @@ import { ListingScreen } from './listing';
 import { useInvestorEligibility } from './investor-eligibility/useInvestorEligibility';
 import { useCompanyDocuments } from './listing/useCompanyDocuments';
 import { apiClient } from '../services/apiClient';
+import { getSessionEpoch, invalidateSessionScope } from '../services/sessionScope';
 import { cache, files, pickedFile, resetFiles } from '../testSupport/documentFiles';
 
 jest.mock('expo-document-picker', () => ({ getDocumentAsync: jest.fn() }));
@@ -187,7 +188,36 @@ it('shares a viewed listing document from one private copy, and downloads nothin
   await waitFor(() =>
     expect(Sharing.shareAsync).toHaveBeenCalledWith(copy, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' }),
   );
-  expect(apiClient.get).toHaveBeenCalledWith('/documents/document-a/file/', { responseType: 'arraybuffer' });
+  expect(apiClient.get).toHaveBeenCalledWith('/documents/document-a/file/', {
+    responseType: 'arraybuffer',
+    ledovaSessionEpoch: getSessionEpoch(),
+  });
   expect(files.get(copy)?.content).toBe('%PDF');
   expect(files.has(earlier)).toBe(false);
+});
+
+it('downloads nothing and stays silent when the session changes before a view starts', async () => {
+  jest.mocked(useCompanyDocuments).mockReturnValue({
+    ...useCompanyDocuments(),
+    documents: [
+      { uuid: 'document-a', documentType: 'cert_inc', name: 'a.pdf', fileUrl: '/documents/document-a/file/' },
+    ],
+    uploadedTypes: new Set(['cert_inc']),
+  } as unknown as ReturnType<typeof useCompanyDocuments>);
+  jest.mocked(Sharing.isAvailableAsync).mockImplementationOnce(async () => {
+    invalidateSessionScope();
+    return true;
+  });
+  const view = await render(<ListingScreen />, { wrapper });
+  let pressed!: Promise<void>;
+  await act(async () => {
+    pressed = fireEvent.press(view.getByLabelText('View Certificate of Incorporation'));
+  });
+  await act(async () => {
+    await pressed;
+  });
+  expect(Sharing.isAvailableAsync).toHaveBeenCalledTimes(1);
+  expect(apiClient.get).not.toHaveBeenCalledWith('/documents/document-a/file/', expect.anything());
+  expect(Sharing.shareAsync).not.toHaveBeenCalled();
+  expect(Alert.alert).not.toHaveBeenCalled();
 });

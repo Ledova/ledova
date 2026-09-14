@@ -260,6 +260,8 @@ async function run(scannerCheck: Check | null): Promise<Check[]> {
       requireTrue(earlier.info().exists && unowned.info().exists);
       let shared = '';
       await shareDocumentCopy(
+        getSessionEpoch(),
+
         async () => ({ name: 'latest-view.pdf', type: 'application/pdf', bytes: new Uint8Array([37, 80, 68, 70]) }),
         async (uri) => {
           shared = uri;

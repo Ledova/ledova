@@ -1,6 +1,6 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { pickDocumentCopy, shareDocumentCopy } from './documentCopies';
-import { invalidateSessionScope } from './sessionScope';
+import { getSessionEpoch, invalidateSessionScope } from './sessionScope';
 import {
   cache,
   files,
@@ -192,7 +192,7 @@ it('keeps picking and session retirement available when the picker directory can
   pick.mockResolvedValue(pickedFile());
   const copy = (await pickDocumentCopy(() => true))!;
   expect(files.has(copy.file.uri)).toBe(true);
-  expect(() => invalidateSessionScope()).not.toThrow();
+  invalidateSessionScope();
   expect(files.has(lost)).toBe(true);
   copy.retire();
 });
@@ -259,7 +259,7 @@ it('shares only the latest viewed copy, while it exists, and removes earlier one
   const share = jest.fn(async (uri: string) => {
     expect(files.get(uri)?.content).toBe('latest');
   });
-  await shareDocumentCopy(viewed('latest.pdf', 'latest'), share);
+  await shareDocumentCopy(getSessionEpoch(), viewed('latest.pdf', 'latest'), share);
   expect(share).toHaveBeenCalledWith(viewPath('latest.pdf'), 'application/pdf');
   expect(files.has(earlier)).toBe(false);
   for (const uri of kept) expect(files.get(uri)?.content).toBe('leftover');
@@ -267,7 +267,7 @@ it('shares only the latest viewed copy, while it exists, and removes earlier one
 
 it('retires viewed copies on session retirement, even while their share is open', async () => {
   const held = heldShare();
-  const pending = shareDocumentCopy(viewed('open.pdf'), held.share);
+  const pending = shareDocumentCopy(getSessionEpoch(), viewed('open.pdf'), held.share);
   await held.opening;
   expect(files.has(viewPath('open.pdf'))).toBe(true);
   invalidateSessionScope();
@@ -279,31 +279,39 @@ it('retires viewed copies on session retirement, even while their share is open'
 it('writes nothing for a download that outlives its session, and allows the next view', async () => {
   const share = jest.fn(async () => {});
   await expect(
-    shareDocumentCopy(async () => {
-      invalidateSessionScope();
-      return viewed('stale.pdf')();
-    }, share),
+    shareDocumentCopy(
+      getSessionEpoch(),
+      async () => {
+        invalidateSessionScope();
+        return viewed('stale.pdf')();
+      },
+      share,
+    ),
   ).rejects.toThrow('session');
   expect(files.has(viewPath('stale.pdf'))).toBe(false);
   expect(share).not.toHaveBeenCalled();
-  await shareDocumentCopy(viewed('fresh.pdf'), share);
+  await shareDocumentCopy(getSessionEpoch(), viewed('fresh.pdf'), share);
   expect(share).toHaveBeenCalledWith(viewPath('fresh.pdf'), 'application/pdf');
 });
 
 it('refuses a second view while one downloads, but an open share does not block the next view', async () => {
   let finishDownload!: () => void;
   const held = heldShare();
-  const first = shareDocumentCopy(async () => {
-    await new Promise<void>((resolve) => (finishDownload = resolve));
-    return viewed('first.pdf')();
-  }, held.share);
+  const first = shareDocumentCopy(
+    getSessionEpoch(),
+    async () => {
+      await new Promise<void>((resolve) => (finishDownload = resolve));
+      return viewed('first.pdf')();
+    },
+    held.share,
+  );
   const refused = jest.fn(viewed('refused.pdf'));
-  await shareDocumentCopy(refused, held.share);
+  await shareDocumentCopy(getSessionEpoch(), refused, held.share);
   expect(refused).not.toHaveBeenCalled();
   finishDownload();
   await held.opening;
   const next = jest.fn(async () => {});
-  await shareDocumentCopy(viewed('next.pdf'), next);
+  await shareDocumentCopy(getSessionEpoch(), viewed('next.pdf'), next);
   expect(next).toHaveBeenCalledWith(viewPath('next.pdf'), 'application/pdf');
   expect(files.has(viewPath('first.pdf'))).toBe(false);
   held.finish();
@@ -316,9 +324,50 @@ it('still shares when earlier viewed copies cannot be listed', async () => {
   files.set(earlier, { size: 5, content: 'leftover' });
   unlistable.add(viewPath(''));
   const share = jest.fn(async () => {});
-  await shareDocumentCopy(viewed('latest.pdf'), share);
+  await shareDocumentCopy(getSessionEpoch(), viewed('latest.pdf'), share);
   expect(share).toHaveBeenCalledWith(viewPath('latest.pdf'), 'application/pdf');
   expect(files.has(earlier)).toBe(true);
-  expect(() => invalidateSessionScope()).not.toThrow();
+  invalidateSessionScope();
   expect(warn).toHaveBeenCalledWith('Document cache cleanup did not complete.');
+});
+
+it('keeps a view bound to its session: retirement sweeps during a download and never holds the next session', async () => {
+  const earlier = viewPath('earlier.pdf');
+  files.set(earlier, { size: 5, content: 'leftover' });
+  const staleEpoch = getSessionEpoch();
+  let finishStale!: () => void;
+  const staleShare = jest.fn(async () => {});
+  const stale = shareDocumentCopy(
+    staleEpoch,
+    async () => {
+      await new Promise<void>((resolve) => (finishStale = resolve));
+      return viewed('stale.pdf')();
+    },
+    staleShare,
+  );
+  invalidateSessionScope();
+  expect(files.has(earlier)).toBe(false);
+  const lateDownload = jest.fn(viewed('late.pdf'));
+  await expect(shareDocumentCopy(staleEpoch, lateDownload, staleShare)).rejects.toThrow('session');
+  expect(lateDownload).not.toHaveBeenCalled();
+  let finishNext!: () => void;
+  const nextShare = jest.fn(async () => {});
+  const next = shareDocumentCopy(
+    getSessionEpoch(),
+    async () => {
+      await new Promise<void>((resolve) => (finishNext = resolve));
+      return viewed('next.pdf')();
+    },
+    nextShare,
+  );
+  finishStale();
+  await expect(stale).rejects.toThrow('session');
+  const refused = jest.fn(viewed('refused.pdf'));
+  await shareDocumentCopy(getSessionEpoch(), refused, nextShare);
+  expect(refused).not.toHaveBeenCalled();
+  finishNext();
+  await next;
+  expect(nextShare).toHaveBeenCalledWith(viewPath('next.pdf'), 'application/pdf');
+  expect(staleShare).not.toHaveBeenCalled();
+  expect(files.has(viewPath('stale.pdf'))).toBe(false);
 });
