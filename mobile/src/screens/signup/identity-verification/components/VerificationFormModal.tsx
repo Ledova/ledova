@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Modal, ActivityIndicator, Text, TouchableOpacity, Pressable } from 'react-native';
 import WebView from 'react-native-webview';
 import type { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
+import type { ShouldStartLoadRequest } from 'react-native-webview/lib/WebViewTypes';
 import { XIcon } from 'phosphor-react-native';
 import { overlayColors } from '../../../../contexts';
 import { useAppTheme, useThemedStyles } from '../../../../contexts';
@@ -18,7 +19,13 @@ interface VerificationFormModalProps {
   onClose: () => void;
 }
 
-const REDIRECT_URL = new URL(MARKETING_URL);
+const MARKETING = new URL(MARKETING_URL);
+
+const sameOrigin = (url: URL, origin: URL, hostname = origin.hostname) =>
+  url.protocol === origin.protocol && url.port === origin.port && url.hostname === hostname;
+
+const isCompletionOrigin = (url: URL) =>
+  sameOrigin(url, MARKETING) || sameOrigin(url, MARKETING, `www.${MARKETING.hostname}`);
 
 function buildSumsubHtml(token: string, themeColors: { bg: string; muted: string; error: string }): string {
   return `<!DOCTYPE html>
@@ -210,17 +217,24 @@ export function VerificationFormModal({
     } catch {}
   };
 
+  const allowNavigation =
+    (allowedOrigin: (url: URL) => boolean) =>
+    ({ url, isTopFrame }: ShouldStartLoadRequest) => {
+      try {
+        return (
+          lifecycle.isCurrent() &&
+          allowWebNavigation(url) &&
+          (isTopFrame === false || url === 'about:blank' || allowedOrigin(new URL(url)))
+        );
+      } catch {
+        return false;
+      }
+    };
+
   const handleNavigationStateChange = (navState: WebViewNavigation) => {
     if (!formUrl || !lifecycle.isCurrent() || !allowWebNavigation(navState.url)) return;
     try {
-      const url = new URL(navState.url);
-      if (
-        url.protocol === REDIRECT_URL.protocol &&
-        url.port === REDIRECT_URL.port &&
-        (url.hostname === REDIRECT_URL.hostname || url.hostname === `www.${REDIRECT_URL.hostname}`)
-      ) {
-        lifecycle.complete();
-      }
+      if (isCompletionOrigin(new URL(navState.url))) lifecycle.complete();
     } catch {}
   };
 
@@ -265,10 +279,12 @@ export function VerificationFormModal({
                   javaScriptEnabled
                   domStorageEnabled
                   mediaPlaybackRequiresUserAction={false}
-                  mediaCapturePermissionGrantType="grant"
+                  mediaCapturePermissionGrantType="prompt"
                   allowsInlineMediaPlayback
                   originWhitelist={['*']}
-                  onShouldStartLoadWithRequest={({ url }) => lifecycle.isCurrent() && allowWebNavigation(url)}
+                  onShouldStartLoadWithRequest={allowNavigation((url) => sameOrigin(url, MARKETING))}
+                  onOpenWindow={() => {}}
+                  setSupportMultipleWindows={false}
                   mixedContentMode="never"
                 />
               ) : lifecycle.admitted && formUrl && allowWebNavigation(formUrl) ? (
@@ -276,7 +292,11 @@ export function VerificationFormModal({
                   key={lifecycle.key}
                   source={{ uri: formUrl }}
                   originWhitelist={['*']}
-                  onShouldStartLoadWithRequest={({ url }) => lifecycle.isCurrent() && allowWebNavigation(url)}
+                  onShouldStartLoadWithRequest={allowNavigation(
+                    (url) => sameOrigin(url, new URL(formUrl)) || isCompletionOrigin(url),
+                  )}
+                  onOpenWindow={() => {}}
+                  setSupportMultipleWindows={false}
                   mixedContentMode="never"
                   style={styles.webview}
                   injectedJavaScript={KYCAID_INJECTED_JS}
@@ -285,7 +305,7 @@ export function VerificationFormModal({
                   renderError={renderLoadError}
                   onNavigationStateChange={handleNavigationStateChange}
                   mediaPlaybackRequiresUserAction={false}
-                  mediaCapturePermissionGrantType="grant"
+                  mediaCapturePermissionGrantType="prompt"
                   allowsInlineMediaPlayback
                   startInLoadingState
                   renderLoading={() => (

@@ -1,7 +1,7 @@
 import React from 'react';
 import { JSDOM } from 'jsdom';
 import { act, cleanup, fireEvent, render } from '@testing-library/react-native';
-import { AppState, type AppStateStatus } from 'react-native';
+import { AppState, Linking, type AppStateStatus } from 'react-native';
 import type { NativeProps } from 'react-native-webview/lib/RNCWebViewNativeComponent';
 import type { WebViewMessageEvent } from 'react-native-webview';
 import { CameraAccessContext, createCameraAccess } from '../../../../contexts/cameraAccess';
@@ -18,6 +18,8 @@ let mockViewId = 0;
 const listeners = new Set<(state: AppStateStatus) => void>();
 const settleOutstanding: (() => void)[] = [];
 let fakeClock = false;
+let mockPlatform: 'ios' | 'android' = 'ios';
+const parsers = [URL, jest.requireActual<{ URL: typeof URL }>('react-native/Libraries/Blob/URL').URL];
 
 jest.mock('../../../../config/publicLinks', () => ({ MARKETING_URL: 'https://marketing.example.test' }));
 jest.mock('expo-secure-store', () => ({ getItemAsync: () => mockReadPreference() }));
@@ -34,7 +36,14 @@ jest.mock('../../../../services/tokenStorage', () => ({
 }));
 
 jest.unmock('react-native/Libraries/Modal/Modal');
-jest.mock('react-native-webview', () => jest.requireActual('react-native-webview/src/WebView.ios'));
+jest.mock('react-native-webview', () => {
+  const { createElement } = jest.requireActual<typeof import('react')>('react');
+  const adapters = {
+    ios: jest.requireActual('react-native-webview/src/WebView.ios').default,
+    android: jest.requireActual('react-native-webview/src/WebView.android').default,
+  };
+  return { __esModule: true, default: (props: object) => createElement(adapters[mockPlatform], props) };
+});
 jest.mock('react-native-webview/src/NativeRNCWebViewModule', () => ({
   __esModule: true,
   default: {
@@ -129,6 +138,15 @@ function navigate(view: NativeProps, url: string) {
   return view.onLoadingStart?.({ nativeEvent: { url } } as Parameters<NonNullable<NativeProps['onLoadingStart']>>[0]);
 }
 
+async function decide(view: NativeProps, url: string, isTopFrame?: boolean) {
+  mockLoadDecision.mockClear();
+  await view.onShouldStartLoadWithRequest?.({ nativeEvent: { url, isTopFrame, lockIdentifier: 7 } } as Parameters<
+    NonNullable<NativeProps['onShouldStartLoadWithRequest']>
+  >[0]);
+  expect(mockLoadDecision.mock.calls).toEqual([[expect.any(Boolean), 7]]);
+  return mockLoadDecision.mock.calls[0][0];
+}
+
 async function appState(state: AppStateStatus, reverse = false) {
   await act(() => {
     AppState.currentState = state;
@@ -139,6 +157,8 @@ async function appState(state: AppStateStatus, reverse = false) {
 }
 
 beforeEach(() => {
+  mockPlatform = 'ios';
+  globalThis.URL = parsers[0];
   access = createCameraAccess();
   access.setAllowed(true);
   AppState.currentState = 'active';
@@ -348,18 +368,94 @@ it('keeps raw native loading errors out of logs and rendered error text', async 
   expect(view.getByText('Could not load verification. Close this form and try again.')).toBeTruthy();
 });
 
-it('does not allow a retained load decision after pause and keeps current HTTPS navigation working', async () => {
-  await render(form());
-  const old = nativeView();
-  const event = { nativeEvent: { url: formUrl, lockIdentifier: 7 } } as Parameters<
-    NonNullable<NativeProps['onShouldStartLoadWithRequest']>
-  >[0];
-  await act(() => old.onShouldStartLoadWithRequest?.(event));
-  expect(mockLoadDecision).toHaveBeenLastCalledWith(true, 7);
-  await appState('background');
-  await act(() => old.onShouldStartLoadWithRequest?.(event));
-  expect(mockLoadDecision).toHaveBeenLastCalledWith(false, 7);
-});
+const sumsub = {};
+const kycaid = { accessToken: null, formUrl };
+
+it.each([
+  ['Sumsub', 'https://marketing.example.test/', sumsub],
+  ['KYCAID', formUrl, kycaid],
+] as const)(
+  'does not allow a retained %s load decision after pause and keeps current HTTPS navigation to %s working',
+  async (_provider, url, props) => {
+    await render(form(props));
+    const old = nativeView();
+    expect(await decide(old, url)).toBe(true);
+    await appState('background');
+    expect(await decide(old, url)).toBe(false);
+  },
+);
+
+it.each([
+  ['Sumsub', 'about:blank', 'allowed', sumsub],
+  ['Sumsub', 'https://marketing.example.test/websdk?step=1', 'allowed', sumsub],
+  ['Sumsub', 'https://www.marketing.example.test/', 'refused', sumsub],
+  ['Sumsub', formUrl, 'refused', sumsub],
+  ['Sumsub', 'https://marketing.example.test.unrelated.test/', 'refused', sumsub],
+  ['Sumsub', 'https://unrelated.example.test/@marketing.example.test/', 'refused', sumsub],
+  ['Sumsub', 'data:text/html,provider', 'refused', sumsub],
+  ['KYCAID', 'about:blank', 'allowed', kycaid],
+  ['KYCAID', 'https://verification.example.test/form-a/step-2', 'allowed', kycaid],
+  ['KYCAID', 'https://marketing.example.test/verification-result', 'allowed', kycaid],
+  ['KYCAID', 'https://www.marketing.example.test/verification-result', 'allowed', kycaid],
+  ['KYCAID', 'https://unrelated.example.test/?next=https://verification.example.test/form-a', 'refused', kycaid],
+  ['KYCAID', 'https://verification.example.test.unrelated.test/form-a', 'refused', kycaid],
+  ['KYCAID', 'https://step.verification.example.test/form-a', 'refused', kycaid],
+  ['KYCAID', 'https://verification.example.test:8443/form-a', 'refused', kycaid],
+  ['KYCAID', 'https://www.marketing.example.test:8443/verification-result', 'refused', kycaid],
+  ['KYCAID', 'https://[', 'refused', kycaid],
+] as const)(
+  '%s top-frame navigation to %s is %s for Android and iOS events under both URL parsers',
+  async (_provider, url, decision, props) => {
+    const openExternally = jest.spyOn(Linking, 'canOpenURL');
+    await render(form(props));
+    const view = nativeView();
+    for (const parser of parsers) {
+      globalThis.URL = parser;
+      expect(await decide(view, url)).toBe(decision === 'allowed');
+      expect(await decide(view, url, true)).toBe(decision === 'allowed');
+    }
+    expect(openExternally).not.toHaveBeenCalled();
+  },
+);
+
+it.each([
+  ['Sumsub', sumsub],
+  ['KYCAID', kycaid],
+] as const)(
+  'checks %s iOS subframes with only the current lifecycle and shared web policy',
+  async (_provider, props) => {
+    await render(form(props));
+    const view = nativeView();
+    expect(await decide(view, 'https://unrelated.example.test/frame', false)).toBe(true);
+    expect(await decide(view, 'about:blank', false)).toBe(true);
+    expect(await decide(view, 'http://unrelated.example.test/frame', false)).toBe(false);
+    expect(await decide(view, 'https://[', false)).toBe(false);
+    await appState('background');
+    expect(await decide(view, 'https://unrelated.example.test/frame', false)).toBe(false);
+  },
+);
+
+it.each([
+  ['Sumsub', 'ios', sumsub],
+  ['Sumsub', 'android', sumsub],
+  ['KYCAID', 'ios', kycaid],
+  ['KYCAID', 'android', kycaid],
+] as const)(
+  'refuses %s new windows through the %s adapter and prompts for media capture',
+  async (_provider, platform, props) => {
+    mockPlatform = platform;
+    await render(form(props));
+    const view = nativeView();
+    expect(view).toEqual(
+      expect.objectContaining({
+        hasOnOpenWindowEvent: true,
+        setSupportMultipleWindows: false,
+        mediaCapturePermissionGrantType: 'prompt',
+      }),
+    );
+    expect(view.javaScriptCanOpenWindowsAutomatically).toBeUndefined();
+  },
+);
 
 it('retires completion synchronously when close is pressed before the parent hides it', async () => {
   const view = await render(form());
