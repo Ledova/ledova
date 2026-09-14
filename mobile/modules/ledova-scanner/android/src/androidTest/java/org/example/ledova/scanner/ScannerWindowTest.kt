@@ -5,6 +5,7 @@ import android.app.Activity
 import android.app.Dialog
 import android.content.Intent
 import android.os.Bundle
+import android.os.ParcelFileDescriptor
 import android.view.View
 import android.widget.FrameLayout
 import androidx.camera.core.CameraState
@@ -85,8 +86,19 @@ class ScannerWindowTest {
       if (done) return
       Thread.sleep(30)
     } while (System.nanoTime() < deadline)
-    fail(message)
+    fail("$message; ${windowState()}")
   }
+
+  private fun windowState(): String {
+    val focus = shell("dumpsys window").filter { "mCurrentFocus=" in it || "mFocusedApp=" in it }
+    val resumed = shell("dumpsys activity activities").filter { "topResumedActivity=" in it }.take(1)
+    return (focus + resumed).map { it.trim() }.distinct().joinToString("; ")
+  }
+
+  private fun shell(command: String): List<String> =
+    ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(command))
+      .bufferedReader()
+      .use { it.readLines() }
 
   private fun observe(view: ScannerCameraView) {
     scanner = view

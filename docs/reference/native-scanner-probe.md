@@ -38,6 +38,11 @@ fully clipped previews, backgrounding, delayed provider completion, replacement
 sessions, focus loss/regain before JavaScript admission changes, and real
 decoding of a synthetic QR bitmap. It runs
 inside the Android native CI probe and retains `scanner-window-tests.log`.
+A wait that reaches its 15-second deadline appends the focused window, focused
+app and top resumed activity at that moment, read through the instrumentation's
+shell. A system window such as `Application Not Responding` holding focus marks
+an unhealthy emulator; the test's own activity holding focus points at scanner
+admission. The failure stands either way: nothing is dismissed or retried.
 The Release probe also drives nested React Native modal windows through the
 actual Expo bridge with camera permission granted by the emulator runner. That
 separate instrumentation APK first waits for bound preview/analysis use cases
