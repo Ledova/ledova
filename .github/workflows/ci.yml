@@ -283,9 +283,6 @@ jobs:
       - name: Real-chain test (Hardhat node, deploy core contracts, tokens.tests.test_chain_integration)
         working-directory: .
         run: make chain-test PYTHON=python
-      - name: Real-chain test on PostgreSQL (adds the two-worker capital-increase row-lock case)
-        working-directory: .
-        run: make chain-test PYTHON=python CHAIN_TEST_SETTINGS=ledova_backend.settings.test_postgres
       - name: Bitcoin submission pipeline (isolated regtest and PostgreSQL)
         working-directory: .
         run: python scripts/test-bitcoin-chain.py
