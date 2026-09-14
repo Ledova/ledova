@@ -2,7 +2,7 @@
 """Fail on any comment or docstring in the source trees that carry none.
 
 The rule, its scope and the list of permitted functional directives are stated
-in docs/development/gates.md under "The rules". This script is the mechanical
+in docs/development/gates.md under "The comment gate". This script is the mechanical
 half of that rule; keep the two in step.
 """
 
@@ -39,6 +39,7 @@ TREES = (
     ("packages/scripts", TS, True),
     ("marketing/src", TS + CSS, True),
     ("dashboard", TS, False),
+    ("dashboard/scripts", TS, True),
     ("marketing", TS, False),
     ("contracts", TS, False),
     ("contracts/contracts", SOL, True),
@@ -52,7 +53,6 @@ TREES = (
 # 838 files and the gate still reports a green line with a smaller number in it.
 NOT_SCANNED = {
     "scripts": "The gate scripts state their own rules in module docstrings, which is what they are for.",
-    "dashboard/scripts": "check-react-singleton.mjs is a gate too, and states its rule in a docstring.",
     "dashboard/tests/smoke": "Playwright smoke specs, which describe steps rather than implement behaviour.",
 }
 
@@ -479,7 +479,7 @@ def main() -> int:
         print(
             "\nNames and tests carry the meaning: rename the thing, or add a test."
             "\nThe rule, its scope and the permitted functional directives are in"
-            '\ndocs/development/gates.md, "The rules".',
+            '\ndocs/development/gates.md, "The comment gate".',
             file=sys.stderr,
         )
         return 1
