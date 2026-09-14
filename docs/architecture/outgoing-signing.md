@@ -2,14 +2,16 @@
 
 [Architecture](README.md) · [Documentation](../README.md)
 
-The operator signing foundation exists but has no production send callers. Signer admission remains closed.
+Settlement-asset and yield-token `MintRequest` execution uses the operator signing
+foundation. Signer admission remains closed.
 
 The foundation now requires explicit signer admission. Existing and new
 `SigningAccount` rows start `closed`, and a missing row is also closed. A nonce
 counter, successful legacy status or inventory capture never grants admission.
 There is no activation command or admin edit surface; admitted synthetic test
-fixtures establish a test precondition only. Production adapters remain outside
-this foundation and keep their existing behavior, including mint recovery.
+fixtures establish a test precondition only. Other production writers remain outside
+this foundation and keep their existing behavior. Share issuance has its own older
+mint journal; it is separate from the `MintRequest` adapter described below.
 
 `close_signer_admission(chain_id=..., sender=...)` is an operator-only service
 that closes an account and advances its admission generation. It preserves
@@ -70,3 +72,43 @@ Signed payloads are broadcast capabilities and belong in protected backups;
 errors retain a category rather than provider or database exception text.
 
 For existing databases, read [outgoing history and cutover constraints](../reference/outgoing-history.md).
+
+## Mint requests
+
+The asset mint page, yield-token mint page and request execution page all use
+`tokens.services.mint_service`. A mint form retains a submission UUID across a
+repeated POST. Reusing it with different terms or another actor is refused; a
+fresh form represents a deliberate new mint. The service checks current active
+staff and the entry point's model permission before admitting work. It refuses
+application authority and enclosing transactions. Admission commits the token,
+deployment, chain, signer, recipient, raw amount, calldata and executing actor
+before opening an outgoing operation. Later recovery is operator-owned accepted
+work, even if the original actor subsequently loses permission.
+
+Every new request has a dispatch UUID. Its outgoing key includes both request
+and dispatch UUIDs. PostgreSQL freezes admitted terms and operation association,
+requires a confirmed matching operation and original transaction projection for
+completion, and refuses deletion of admitted requests. Execution checks current
+deployment eligibility, signer configuration and on-chain minter permission
+before signing. Signed recovery uses the recorded intent after configuration
+changes; it never silently switches the recorded signer or deployment.
+
+A missing receipt or lost send acknowledgement leaves the request **Outcome
+unresolved**. Use **Recover** on the same request. The five-minute
+`recover_mint_requests` task selects at most 100 admitted unresolved requests,
+oldest update first, using operator authority. It does not admit pending requests
+or automatically restart terminal attempts. A recorded pre-signing failure or
+revert permits an explicit **Retry** tied to the claim shown on that form;
+replaying an old form cannot authorize a later attempt. Every signed attempt
+survives, and recovery updates the transaction projection from its operation.
+The generic transaction monitor excludes those projections. Here **Executed**
+means a successful receipt was observed, with finality still governed by #7's
+remaining work.
+
+Migration `tokens/0042` leaves every old request's dispatch UUID null, preserving
+all statuses and transaction references. An old binary inserting after migration
+also leaves it null. These requests are historical work requiring operator
+attribution, with no automatic retry, generation backfill or legacy sender
+fallback. The migration refuses reversal once any request has been admitted.
+Deploying this adapter does not authorize signer activation: the drain,
+attribution and all-writer cutover requirements above still apply.

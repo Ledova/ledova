@@ -7,6 +7,9 @@ class BlockchainTransactionQuerySet(QuerySet):
 
         return self.filter(status__in=[TransactionStatus.PENDING, TransactionStatus.SUBMITTED])
 
+    def without_mint_operations(self):
+        return self.exclude(mint_requests__operation__isnull=False)
+
     def with_tx_hash(self):
         return self.filter(tx_hash__isnull=False)
 

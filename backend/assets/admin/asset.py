@@ -82,8 +82,7 @@ class AssetAdmin(admin.ModelAdmin):
         return action_buttons([("+ Mint", reverse("admin:assets_asset_mint", args=[obj.uuid]), "#28a745")])
 
     def mint_view(self, request, asset):
-        from tokens.admin._helpers import MintForm
-        from tokens.models import MintRequest
+        from tokens.admin._helpers import MintForm, mint_result_message
         from tokens.services import mint_service
 
         change_url = reverse("admin:assets_asset_change", args=[asset.pk])
@@ -103,26 +102,21 @@ class AssetAdmin(admin.ModelAdmin):
 
         form = MintForm(request.POST or None, decimals=deployment.decimals, symbol=asset.symbol)
         if request.method == "POST" and form.is_valid():
-            mint_request = MintRequest.objects.create(
-                settlement_asset=asset,
-                recipient_address=form.cleaned_data["recipient_address"],
-                recipient_name=form.cleaned_data["recipient_name"],
-                amount=form.cleaned_data["amount"],
-                deposit_reference=form.cleaned_data["deposit_reference"],
-                deposit_date=form.cleaned_data["deposit_date"],
-                notes=form.cleaned_data["notes"],
-                requested_by=request.user,
-            )
+            mint_request = None
             try:
-                tx_hash, _ = mint_service.execute(mint_request, request.user)
-                messages.success(
-                    request,
-                    f"Successfully minted {mint_request.amount_display} {asset.symbol} "
-                    f"to {mint_request.recipient_name} (tx: {tx_hash[:16]}...)",
+                values = dict(form.cleaned_data)
+                submission_id = values.pop("submission_id")
+                mint_request = mint_service.create_request(
+                    submission_id, request.user, settlement_asset=asset, **values
                 )
+                tx_hash, _ = mint_service.execute(mint_request, request.user, permission="assets.change_asset")
+                mint_result_message(request, mint_request, tx_hash)
             except Exception as exc:
                 messages.error(request, f"Minting failed: {exc}")
-            return HttpResponseRedirect(reverse("admin:tokens_mintrequest_change", args=[mint_request.pk]))
+            destination = (
+                reverse("admin:tokens_mintrequest_change", args=[mint_request.pk]) if mint_request else change_url
+            )
+            return HttpResponseRedirect(destination)
 
         context = {
             **self.admin_site.each_context(request),

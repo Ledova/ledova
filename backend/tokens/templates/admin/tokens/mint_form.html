@@ -69,6 +69,8 @@
 
     <form method="post" class="admin-form">
         {% csrf_token %}
+        {{ form.submission_id }}
+        {{ form.submission_id.errors }}
 
         <fieldset>
             <legend>Recipient Details</legend>

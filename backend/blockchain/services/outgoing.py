@@ -100,7 +100,7 @@ def transaction_intent(*, chain_id, sender, to, value=0, data="0x"):
     }
 
 
-def open_operation(operation_key, *, chain_id, sender, to, value=0, data="0x"):
+def open_operation(operation_key, *, chain_id, sender, to, value=0, data="0x", restart_of=None):
     _boundary()
     if not isinstance(operation_key, str) or not operation_key.strip() or len(operation_key) > 200:
         raise OutgoingTransactionError("An outgoing operation requires a stable key of at most 200 characters.")
@@ -112,7 +112,9 @@ def open_operation(operation_key, *, chain_id, sender, to, value=0, data="0x"):
         operation = OutgoingOperation.objects.select_for_update().get(pk=operation.pk)
         if operation.intent != intent:
             raise OutgoingTransactionError("This outgoing operation key already identifies a different intent.")
-        if operation.status in (OutgoingStatus.FAILED, OutgoingStatus.REVERTED):
+        if operation.status in (OutgoingStatus.FAILED, OutgoingStatus.REVERTED) and (
+            restart_of is None or operation.claim_id == restart_of
+        ):
             operation.claim_id = uuid4()
             operation.current_attempt = None
             operation.status = OutgoingStatus.PREPARING
