@@ -388,6 +388,7 @@ it.each([
   ['Sumsub', 'about:blank', 'allowed', sumsub],
   ['Sumsub', 'https://marketing.example.test/websdk?step=1', 'allowed', sumsub],
   ['Sumsub', 'https://www.marketing.example.test/', 'refused', sumsub],
+  ['Sumsub', 'https://marketing.example.test:8443/', 'refused', sumsub],
   ['Sumsub', formUrl, 'refused', sumsub],
   ['Sumsub', 'https://marketing.example.test.unrelated.test/', 'refused', sumsub],
   ['Sumsub', 'https://synthetic:credential@marketing.example.test/', 'refused', sumsub],
