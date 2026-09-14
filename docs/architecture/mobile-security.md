@@ -52,11 +52,14 @@ verifies its absence without an authentication prompt. If native deletion silent
 leaves the pair behind, reads remain refused after an app restart and logout
 reports failure. An unavailable retirement-marker write refuses reads in the
 running process; durable retirement cannot be guaranteed while the storage
-provider itself cannot write. A deliberate successful sign-in activates a new
-pair. Optional biometric sign-in stays optional: its ready marker is retired and
-verified without prompting. Expo's iOS native deletion ignores Keychain deletion
-status, so physical erasure of the separately gated copy is not verified by
-prompt-free logout; the app refuses reads through its retired marker.
+provider itself cannot write. When logout reports failure, the app still clears
+cached account data and returns to sign-in with a fixed-text warning instead of
+the storage error; an account deletion the server accepted is not reported as
+failed. A deliberate successful sign-in activates a new pair. Optional biometric
+sign-in stays optional: its ready marker is retired and verified without
+prompting. Expo's iOS native deletion ignores Keychain deletion status, so
+physical erasure of the separately gated copy is not verified by prompt-free
+logout; the app refuses reads through its retired marker.
 
 Wallet seeds use a fresh gated key and service with
 `WHEN_PASSCODE_SET_THIS_DEVICE_ONLY` and `requireAuthentication`. Reads do not
