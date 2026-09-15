@@ -229,34 +229,10 @@ class AtomicSwapNotConfiguredException(APIException):
     default_code = "atomic_swap_not_configured"
 
 
-class StablecoinContractNotConfiguredException(APIException):
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-    default_detail = "Stablecoin contract is not configured."
-    default_code = "stablecoin_contract_not_configured"
-
-
-class YieldTokenContractNotConfiguredException(APIException):
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-    default_detail = "Yield token contract is not configured."
-    default_code = "yield_token_contract_not_configured"
-
-
-class YieldTokenNAVUpdateFailedException(APIException):
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-    default_detail = "Yield token NAV update failed."
-    default_code = "yield_token_nav_update_failed"
-
-
-class NotAuthorizedMinterException(APIException):
-    status_code = status.HTTP_403_FORBIDDEN
-    default_detail = "Address is not authorized as a minter."
-    default_code = "not_authorized_minter"
-
-    def __init__(self, address=None):
-        if address:
-            super().__init__(detail=f"Address {address} is not authorized as a minter")
-        else:
-            super().__init__()
+class NAVUpdateConflict(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = "This NAV submission cannot proceed with the supplied identity or state."
+    default_code = "nav_update_conflict"
 
 
 class SignatureRequiredException(APIException):

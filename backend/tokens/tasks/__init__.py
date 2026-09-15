@@ -6,6 +6,7 @@ from .deployment import (
 )
 from .former_holders import fold_every_share_class, purge_former_members_past_the_clock
 from .mint_request import recover_mint_requests
+from .nav import check_pending_nav_updates, recover_nav_update
 from .pause import check_pending_pause_changes, recover_pause_change
 from .review_request import (
     check_executing_issuance_requests,
@@ -17,6 +18,8 @@ from .swap_expiry import expire_unclaimed_matches
 from .swap_reconciler import resolve_executing_swaps
 
 __all__ = [
+    "check_pending_nav_updates",
+    "recover_nav_update",
     "check_pending_pause_changes",
     "recover_pause_change",
     "check_executing_issuance_requests",

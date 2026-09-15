@@ -6,8 +6,8 @@ from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from assets.models import Asset, AssetChainDeployment
+from assets.services import sync as asset_sync
 from assets.services.identity import native_asset_for_chain, quarantine_unknown_token
-from assets.services.sync import AssetSyncService
 from users.models import FavouriteAsset, UserAccount, UserProfile
 from wallets.exceptions import InvalidTransactionException
 from wallets.models import Holding, Transaction, Wallet
@@ -110,7 +110,7 @@ class UnknownTokenQuarantineTest(APITestCase):
         Asset.objects.all().delete()
 
         fake = quarantine_unknown_token("ethereum", FAKE_USDC, "USDC", 6)
-        AssetSyncService.ensure_supported_assets()
+        asset_sync.ensure_supported_assets()
 
         fake.refresh_from_db()
         self.assertEqual((fake.symbol, fake.is_verified), ("USDC-bad000", False))

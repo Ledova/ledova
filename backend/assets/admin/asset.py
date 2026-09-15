@@ -10,7 +10,7 @@ from django.template.response import TemplateResponse
 from django.urls import reverse
 
 from assets.models import Asset, AssetChainDeployment, AssetType
-from assets.services import AssetSyncService
+from assets.services import sync as asset_sync
 from operators.models import Operator
 from operators.settlement import deployment_for, live_deployments
 from shared.utils.admin_actions import admin_action_path
@@ -102,9 +102,9 @@ class AssetAdmin(admin.ModelAdmin):
             return HttpResponseRedirect(change_url)
 
         try:
-            service = mint_service.asset_service(asset)
-            current_supply = format_units(service.get_total_supply(), deployment.decimals)
-            is_minter = service.is_minter(service.signer_address)
+            info = mint_service.mint_info("AUDY", deployment.contract_address)
+            current_supply = format_units(info["supply"], deployment.decimals)
+            is_minter = info["is_minter"]
         except Exception as exc:
             logger.error(f"Failed to get {asset.symbol} contract info: {exc}")
             current_supply, is_minter = "Error", False
@@ -163,7 +163,7 @@ class AssetAdmin(admin.ModelAdmin):
 
                 for asset in queryset:
                     try:
-                        AssetSyncService.update_price(
+                        asset_sync.update_price(
                             asset=asset,
                             price=Decimal(str(price)),
                             source="manual",

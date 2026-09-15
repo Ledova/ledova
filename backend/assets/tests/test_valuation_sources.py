@@ -1,6 +1,7 @@
 from decimal import Decimal
 from unittest import skipUnless
 from unittest.mock import Mock, patch
+from uuid import uuid4
 
 from django.conf import settings
 from django.db import connection
@@ -8,11 +9,11 @@ from django.test import TestCase, TransactionTestCase
 from rest_framework.test import APIClient
 
 from assets.models import Asset, ExchangeRate
-from assets.services.sync import AssetSyncService
+from assets.services import sync as asset_sync
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_tenant
 from tokens.models import YieldToken
-from tokens.services.yield_token_service import YieldTokenService
+from tokens.services import nav
 from wallets.models import Holding, Wallet
 
 
@@ -20,7 +21,7 @@ class ValuationSourcesTest(TestCase):
     def setUp(self):
         self.tenant = make_tenant("valuation")
         self.wallet = Wallet.objects.create(user_account=self.tenant.account, address="0x" + "7" * 40, chain="base")
-        AssetSyncService.ensure_supported_assets()
+        asset_sync.ensure_supported_assets()
         self.client = APIClient()
         self.client.force_authenticate(self.tenant.user)
 
@@ -38,7 +39,7 @@ class ValuationSourcesTest(TestCase):
         provider = Mock()
         provider.fetch_prices_by_symbols.return_value = {"ETH": {"price": "10"}}
         with patch("assets.services.sync.CoinGeckoClient", return_value=provider):
-            return AssetSyncService.sync_assets(today_only=True)
+            return asset_sync.sync_assets(today_only=True)
 
     def test_market_nav_and_aud_par_are_real_usd_values_in_the_holding_api_and_wallet_total(self):
         self.rate()
@@ -67,16 +68,6 @@ class ValuationSourcesTest(TestCase):
         self.assertEqual(par.value_source, "unpriced")
         self.assertEqual(Wallet.objects.with_market_value().get(pk=self.wallet.pk).annotated_market_value, 0)
 
-    def test_a_nav_update_records_its_source_at_the_same_time_as_the_price(self):
-        nav_token = YieldToken.objects.create(name="NAV asset", symbol="AUSG", contract_address="0x" + "d" * 40)
-        service = YieldTokenService.__new__(YieldTokenService)
-        service.update_nav(Decimal("1.25"), Decimal("500"), self.tenant.user, nav_token, update_on_chain=False)
-        holding = self.a_holding("AUSG", "4")
-        self.assertEqual((holding.market_value, holding.value_source), (Decimal("5"), "nav"))
-        snapshot = holding.asset.snapshots.get()
-        self.assertEqual((snapshot.data_source, snapshot.price), ("nav_update", Decimal("1.25")))
-        self.assertEqual(snapshot.market_data["total_reserve_value"], "500")
-
     def test_a_legacy_quote_without_provenance_is_retained_but_excluded_from_valuations(self):
         asset = Asset.objects.get(symbol="ETH")
         Asset.objects.filter(pk=asset.pk).update(current_price=99, price_source=None)
@@ -94,18 +85,35 @@ class ValuationSourcesTest(TestCase):
     def test_a_manual_aud_quote_is_converted_before_it_can_enter_a_usd_total(self):
         self.rate()
         asset = Asset.objects.get(symbol="ETH")
-        AssetSyncService.update_price(asset, Decimal("3"), currency="AUD")
+        asset_sync.update_price(asset, Decimal("3"), currency="AUD")
         holding = self.a_holding("ETH", "2")
         self.assertEqual((holding.market_value, holding.value_source), (Decimal("3"), "market"))
         self.assertEqual(holding.asset.price_currency, "USD")
 
     def test_an_unconvertible_quote_leaves_the_prior_valuation_unchanged(self):
         asset = Asset.objects.get(symbol="ETH")
-        AssetSyncService.update_price(asset, Decimal("7"))
+        asset_sync.update_price(asset, Decimal("7"))
         with self.assertRaisesRegex(ValueError, "No positive USD/EUR exchange rate"):
-            AssetSyncService.update_price(asset, Decimal("3"), currency="EUR")
+            asset_sync.update_price(asset, Decimal("3"), currency="EUR")
         asset.refresh_from_db()
         self.assertEqual((asset.valuation_price, asset.value_source), (Decimal("7"), "market"))
+
+
+class NAVValuationSourcesTest(TransactionTestCase):
+    def test_a_nav_update_records_its_source_at_the_same_time_as_the_price(self):
+        tenant = make_tenant("nav-valuation")
+        tenant.user.is_staff = True
+        tenant.user.is_superuser = True
+        tenant.user.save()
+        wallet = Wallet.objects.create(user_account=tenant.account, address="0x" + "7" * 40, chain="base")
+        asset_sync.ensure_supported_assets()
+        nav_token = YieldToken.objects.create(name="NAV asset", symbol="AUSG", contract_address="0x" + "d" * 40)
+        nav.submit(nav_token, tenant.user, uuid4(), Decimal("1.25"), Decimal("500"))
+        holding = Holding.objects.create(wallet=wallet, asset=Asset.objects.get(symbol="AUSG"), quantity=Decimal("4"))
+        self.assertEqual((holding.market_value, holding.value_source), (Decimal("5"), "nav"))
+        snapshot = holding.asset.snapshots.get()
+        self.assertEqual((snapshot.data_source, snapshot.price), ("nav_update", Decimal("1.25")))
+        self.assertEqual(snapshot.market_data["total_reserve_value"], "500")
 
 
 modules = getattr(settings, "MIGRATION_MODULES", {})
@@ -123,5 +131,5 @@ class PriceProvenanceMigrationTest(TransactionTestCase):
         self.assertEqual(restored.current_price, 7)
         self.assertIsNone(restored.price_source)
         self.assertEqual(restored.value_source, "unpriced")
-        AssetSyncService.update_price(restored, Decimal("8"))
+        asset_sync.update_price(restored, Decimal("8"))
         self.assertEqual(restored.value_source, "market")

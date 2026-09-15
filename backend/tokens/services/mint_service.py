@@ -25,7 +25,6 @@ from shared.db import APP_ALIAS, atomic, current_alias
 from tokens.constants import MINT_CHAIN
 from tokens.exceptions import MintRequestConflict, MintRequestUnresolved
 from tokens.models import MintRequest, MintRequestStatus
-from tokens.services.stablecoin_service import StablecoinService
 
 logger = logging.getLogger(__name__)
 INTENT_FIELDS = ("chain_id", "sender", "to", "value", "data")
@@ -47,8 +46,11 @@ def _authorize(user, permission):
     return actor
 
 
-def asset_service(asset) -> StablecoinService:
-    return StablecoinService(contract_address=require_deployment(asset).contract_address)
+def mint_info(contract_name, contract_address):
+    client = get_base_chain_client()
+    contract = client.load_contract(contract_name, Web3.to_checksum_address(contract_address))
+    sender = Account.from_key(settings.BLOCKCHAIN_OPERATOR_KEY).address
+    return {"supply": contract.functions.totalSupply().call(), "is_minter": contract.functions.minters(sender).call()}
 
 
 def create_request(submission_id, user, *, settlement_asset=None, yield_token=None, **terms):

@@ -7,8 +7,9 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from assets.models import Asset, AssetChainDeployment, AssetSnapshot, ExchangeRate
+from assets.services import sync as asset_sync
 from assets.services.identity import quarantine_unknown_token
-from assets.services.sync import SUPPORTED_ASSETS, AssetSyncService
+from assets.services.sync import SUPPORTED_ASSETS
 from assets.tasks import sync_all_assets
 from tokens.models import YieldToken
 
@@ -26,8 +27,8 @@ class UpdatePriceTests(TestCase):
         ExchangeRate.objects.update_or_create(
             base_currency="USD", target_currency="AUD", defaults={"rate": Decimal("1.5")}
         )
-        first = AssetSyncService.update_price(self.asset, Decimal("1.50"), source="manual", currency="USD")
-        second = AssetSyncService.update_price(self.asset, Decimal("2.25"), source="coingecko", currency="AUD")
+        first = asset_sync.update_price(self.asset, Decimal("1.50"), source="manual", currency="USD")
+        second = asset_sync.update_price(self.asset, Decimal("2.25"), source="coingecko", currency="AUD")
 
         self.assertEqual(AssetSnapshot.objects.filter(asset=self.asset).count(), 1)
         self.assertEqual(first.pk, second.pk)
@@ -49,7 +50,7 @@ class UpdatePriceTests(TestCase):
             market_data={"custodian_report_ref": "ref-1"},
         )
 
-        snapshot = AssetSyncService.update_price(self.asset, Decimal("1.10"))
+        snapshot = asset_sync.update_price(self.asset, Decimal("1.10"))
 
         snapshot.refresh_from_db()
         self.assertEqual(snapshot.price, Decimal("1.10"))
@@ -57,21 +58,21 @@ class UpdatePriceTests(TestCase):
         self.assertEqual(snapshot.market_data, {"custodian_report_ref": "ref-1"})
 
     def test_create_snapshot_false_only_updates_the_asset(self):
-        self.assertIsNone(AssetSyncService.update_price(self.asset, Decimal("3"), create_snapshot=False))
+        self.assertIsNone(asset_sync.update_price(self.asset, Decimal("3"), create_snapshot=False))
         self.assertFalse(AssetSnapshot.objects.filter(asset=self.asset).exists())
         self.asset.refresh_from_db()
         self.assertEqual(self.asset.current_price, Decimal("3"))
 
     def test_non_positive_price_is_rejected(self):
         with self.assertRaises(ValueError):
-            AssetSyncService.update_price(self.asset, Decimal("0"))
+            asset_sync.update_price(self.asset, Decimal("0"))
         self.assertFalse(AssetSnapshot.objects.filter(asset=self.asset).exists())
 
 
 class EnsureSupportedAssetsTests(TestCase):
     def test_upserts_every_supported_asset_with_its_deployment(self):
-        AssetSyncService.ensure_supported_assets()
-        AssetSyncService.ensure_supported_assets()
+        asset_sync.ensure_supported_assets()
+        asset_sync.ensure_supported_assets()
 
         self.assertEqual(Asset.objects.filter(symbol__in=SUPPORTED_ASSETS).count(), len(SUPPORTED_ASSETS))
         eth = Asset.objects.get(symbol="ETH")
@@ -90,7 +91,7 @@ class EnsureSupportedAssetsTests(TestCase):
             asset=usdc, chain="ethereum", contract_address="0x" + "c" * 40, is_active=False
         )
 
-        AssetSyncService.ensure_supported_assets()
+        asset_sync.ensure_supported_assets()
 
         usdc.refresh_from_db()
         self.assertEqual(
@@ -108,7 +109,7 @@ AUDY_ADDRESS = "0x" + "a1" * 20
 class AudyDeploymentTests(TestCase):
     @override_settings(STABLECOIN_CONTRACT_ADDRESS=AUDY_ADDRESS)
     def test_audy_is_seeded_on_base_with_the_configured_contract_address(self):
-        AssetSyncService.ensure_supported_assets()
+        asset_sync.ensure_supported_assets()
 
         audy = Asset.objects.get(symbol="AUDY")
         self.assertEqual(
@@ -118,7 +119,7 @@ class AudyDeploymentTests(TestCase):
 
     @override_settings(STABLECOIN_CONTRACT_ADDRESS="")
     def test_an_empty_setting_seeds_the_base_row_and_never_clears_an_address(self):
-        AssetSyncService.ensure_supported_assets()
+        asset_sync.ensure_supported_assets()
 
         audy = Asset.objects.get(symbol="AUDY")
         deployment = audy.chain_deployments.get()
@@ -126,7 +127,7 @@ class AudyDeploymentTests(TestCase):
 
         deployment.contract_address = AUDY_ADDRESS
         deployment.save(update_fields=["contract_address"])
-        AssetSyncService.ensure_supported_assets()
+        asset_sync.ensure_supported_assets()
 
         deployment.refresh_from_db()
         self.assertEqual(deployment.contract_address, AUDY_ADDRESS)
@@ -137,7 +138,7 @@ class SyncCurrentPricesTests(TestCase):
         ExchangeRate.objects.update_or_create(
             base_currency="USD", target_currency="AUD", defaults={"rate": Decimal("2")}
         )
-        AssetSyncService.ensure_supported_assets()
+        asset_sync.ensure_supported_assets()
         Asset.objects.create(symbol="AAPL.t", name="Apple", asset_type="tokenized_security")
         YieldToken.objects.create(
             name="AUSG", symbol="AUSG", contract_address="0x" + "d" * 40, nav_per_token=Decimal("1.02")
@@ -154,7 +155,7 @@ class SyncCurrentPricesTests(TestCase):
 
     def test_one_coingecko_call_then_one_midnight_row_per_priced_asset(self):
         with patch("assets.services.sync.CoinGeckoClient", return_value=self.client_mock) as client_class:
-            result = AssetSyncService.sync_assets(today_only=True)
+            result = asset_sync.sync_assets(today_only=True)
 
         client_class.assert_called_once_with()
         self.client_mock.fetch_prices_by_symbols.assert_called_once_with(
@@ -178,7 +179,7 @@ class SyncCurrentPricesTests(TestCase):
         self.client_mock.fetch_prices_by_symbols.return_value["DOGE"] = {"price": "0.5"}
 
         with patch("assets.services.sync.CoinGeckoClient", return_value=self.client_mock):
-            AssetSyncService.sync_assets(today_only=True)
+            asset_sync.sync_assets(today_only=True)
 
         self.assertNotIn("DOGE", self.client_mock.fetch_prices_by_symbols.call_args.args[0])
         self.assertNotIn("DOGE", self.price_rows())
@@ -190,19 +191,45 @@ class SyncCurrentPricesTests(TestCase):
         self.client_mock.fetch_prices_by_symbols.side_effect = RuntimeError("down")
 
         with patch("assets.services.sync.CoinGeckoClient", return_value=self.client_mock):
-            result = AssetSyncService.sync_assets(today_only=True)
+            result = asset_sync.sync_assets(today_only=True)
 
         self.assertEqual(result["prices_updated"], 1)
         self.assertEqual(self.price_rows(), {"AUSG": (Decimal("1.02"), "nav_update")})
 
     def test_unexpected_failure_is_reported_not_raised(self):
-        with patch("assets.services.sync.AssetSyncService._current_prices", side_effect=RuntimeError("boom")):
-            self.assertEqual(AssetSyncService.sync_assets(), {"status": "error", "error": "RuntimeError: boom"})
+        with patch("assets.services.sync._current_prices", side_effect=RuntimeError("boom")):
+            self.assertEqual(asset_sync.sync_assets(), {"status": "error", "error": "RuntimeError: boom"})
+
+    def test_a_nav_changed_during_market_reads_replaces_the_captured_old_quote(self):
+        def change_nav(symbols):
+            YieldToken.objects.filter(symbol="AUSG").update(nav_per_token=Decimal("2.25"))
+            return self.client_mock.fetch_prices_by_symbols.return_value
+
+        self.client_mock.fetch_prices_by_symbols.side_effect = change_nav
+        with patch("assets.services.sync.CoinGeckoClient", return_value=self.client_mock):
+            result = asset_sync.sync_assets(today_only=True)
+
+        self.assertEqual(result["prices_updated"], 4)
+        self.assertEqual(Asset.objects.get(symbol="AUSG").current_price, Decimal("2.25"))
+        self.assertEqual(self.price_rows()["AUSG"], (Decimal("2.25"), "nav_update"))
+
+    def test_a_nav_deactivated_during_market_reads_is_not_published(self):
+        def deactivate_nav(symbols):
+            YieldToken.objects.filter(symbol="AUSG").update(is_active=False)
+            return self.client_mock.fetch_prices_by_symbols.return_value
+
+        self.client_mock.fetch_prices_by_symbols.side_effect = deactivate_nav
+        with patch("assets.services.sync.CoinGeckoClient", return_value=self.client_mock):
+            result = asset_sync.sync_assets(today_only=True)
+
+        self.assertEqual(result["prices_updated"], 3)
+        self.assertIsNone(Asset.objects.get(symbol="AUSG").current_price)
+        self.assertNotIn("AUSG", self.price_rows())
 
 
 class BackfillTests(TestCase):
     def setUp(self):
-        AssetSyncService.ensure_supported_assets()
+        asset_sync.ensure_supported_assets()
         self.btc = Asset.objects.get(symbol="BTC")
         self.now = timezone.now()
         self.day_before = midnight(self.now) - timedelta(days=2)
@@ -227,7 +254,7 @@ class BackfillTests(TestCase):
         with patch("assets.services.sync.CoinGeckoClient", return_value=self.client_mock), patch(
             "assets.services.sync.time.sleep"
         ):
-            result = AssetSyncService.sync_assets(backfill_days=3)
+            result = asset_sync.sync_assets(backfill_days=3)
 
         self.assertEqual(result["historical_snapshots"], 7)
         self.assertEqual(self.client_mock.fetch_historical_prices_bulk.call_count, 4)
@@ -248,7 +275,7 @@ class BackfillTests(TestCase):
         with patch("assets.services.sync.CoinGeckoClient", return_value=self.client_mock), patch(
             "assets.services.sync.time.sleep"
         ):
-            AssetSyncService._backfill_historical_prices(days=3)
+            asset_sync._backfill_historical_prices(days=3)
 
         self.assertEqual(
             [call.args[0] for call in self.client_mock.fetch_historical_prices_bulk.call_args_list],
@@ -258,20 +285,20 @@ class BackfillTests(TestCase):
 
 class SyncTaskTests(TestCase):
     def test_task_creates_missing_supported_assets_once_then_syncs_prices_only(self):
-        with patch("assets.tasks.sync.AssetSyncService") as service:
+        with patch("assets.tasks.sync.asset_sync") as service:
             service.sync_assets.return_value = {"status": "success"}
             self.assertEqual(sync_all_assets(timestamp=0), {"status": "success"})
             self.assertEqual(service.ensure_supported_assets.call_count, 1)
             service.sync_assets.assert_called_once_with(today_only=True)
 
-            AssetSyncService.ensure_supported_assets()
+            asset_sync.ensure_supported_assets()
             sync_all_assets(timestamp=0)
             self.assertEqual(service.ensure_supported_assets.call_count, 1)
 
 
 class AssetSyncCommandTests(TestCase):
     def test_seed_only_upserts_the_supported_assets_without_touching_the_network(self):
-        with patch.object(AssetSyncService, "sync_assets") as sync_assets:
+        with patch.object(asset_sync, "sync_assets") as sync_assets:
             call_command("asset_sync", "--seed-only")
             call_command("asset_sync", "--seed-only")
 

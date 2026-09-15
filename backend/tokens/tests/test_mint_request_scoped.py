@@ -48,13 +48,9 @@ class ScopedMintRequestRecoveryTest(RunsOnTheScopedConnection, TransactionTestCa
             self.request = mint_request(self.actor)
             admitted_signer()
         self.node = MintNode()
-        for target in (
-            "tokens.services.mint_service.get_base_chain_client",
-            "tokens.services.base_token_service.get_base_chain_client",
-        ):
-            patcher = patch(target, return_value=self.node.client)
-            patcher.start()
-            self.addCleanup(patcher.stop)
+        patcher = patch("tokens.services.mint_service.get_base_chain_client", return_value=self.node.client)
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def test_app_authority_cannot_admit_or_recover_even_with_a_staff_principal(self):
         with use_operator():

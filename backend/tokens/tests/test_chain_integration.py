@@ -11,6 +11,7 @@ import time
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 from decimal import Decimal
+from pathlib import Path
 from unittest import skipUnless
 from unittest.mock import patch
 from uuid import uuid4
@@ -55,11 +56,14 @@ from tokens.models import (
     ShareToken,
     ShareTokenStatus,
     TokenDeployment,
+    YieldToken,
 )
 from tokens.services import (
     capital_execution,
     deployment,
     issuance_execution,
+    nav,
+    nav_recovery,
     pause_changes,
     pause_recovery,
     share_token_service,
@@ -1516,3 +1520,209 @@ class PauseChangeChainTest(ChainTestMixin, APITransactionTestCase):
         attempts = (approval.approval_operation.current_attempt, self.change.operation.current_attempt)
         self.assertEqual({attempt.nonce for attempt in attempts}, {before, before + 1})
         self.assertEqual(self._signer_nonce(), before + 2)
+
+
+@chain_available
+@override_settings(**CHAIN_SETTINGS)
+class NAVUpdateChainTest(APITransactionTestCase):
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+
+        from blockchain.tests.outgoing_fixtures import admitted_signer
+
+        get_base_chain_client.cache_clear()
+        BaseChainClient._instance = None
+        BaseChainClient._web3 = None
+        self.chain = get_base_chain_client()
+        self.w3 = self.chain.w3
+        snapshot = self.w3.provider.make_request("evm_snapshot", [])["result"]
+        self.addCleanup(self.w3.provider.make_request, "evm_revert", [snapshot])
+        self.actor = get_user_model().objects.create_superuser(email="chain-nav@example.test", password="synthetic")
+        self.signer = Account.from_key(CHAIN_SETTINGS["BLOCKCHAIN_OPERATOR_KEY"]).address
+        artifact = json.loads(
+            (Path(settings.BASE_DIR).parent / "contracts/artifacts/contracts/AUSG.sol/AUSG.json").read_text()
+        )
+        constructor = self.w3.eth.contract(abi=artifact["abi"], bytecode=artifact["bytecode"]).constructor(
+            CHAIN_SETTINGS["WHITELIST_CONTRACT_ADDRESS"], self.signer
+        )
+        _, deployment_receipt = self.chain.send_transaction(constructor, CHAIN_SETTINGS["BLOCKCHAIN_OPERATOR_KEY"])
+        address = deployment_receipt["contractAddress"]
+        self.contract = self.chain.load_contract("AUSG", address)
+        self.chain.send_transaction(
+            self.contract.functions.addNavUpdater(self.signer), CHAIN_SETTINGS["BLOCKCHAIN_OPERATOR_KEY"]
+        )
+        admitted_signer(sender=self.signer)
+        self.token = YieldToken.objects.create(
+            name="Synthetic chain NAV",
+            symbol="AUSG",
+            contract_address=address,
+            decimals=6,
+            nav_per_token="1.02",
+            total_reserve_value="100",
+        )
+        self.asset, _ = Asset.objects.update_or_create(
+            symbol="AUSG", defaults={"name": "Synthetic NAV", "asset_type": "erc20_token"}
+        )
+        self.update = self.submit()
+
+    def submit(self, value="1.25", *, chain=True):
+        self.token.refresh_from_db()
+        return nav.submit(self.token, self.actor, uuid4(), value, "500", update_on_chain=chain)
+
+    def nonce(self):
+        return self.w3.eth.get_transaction_count(self.signer, "pending")
+
+    def test_worker_killed_after_real_nav_acceptance_recovers_original_hash_event_and_projection(self):
+        database = connections[current_alias()].settings_dict
+        fields = ("ENGINE", "NAME", "USER", "PASSWORD", "HOST", "PORT", "OPTIONS")
+        env = os.environ.copy()
+        env["NAV_TEST_DATABASE"] = json.dumps({key: database[key] for key in fields})
+        env["NAV_TEST_CHAIN"] = json.dumps(CHAIN_SETTINGS)
+        nonce = self.nonce()
+        process = subprocess.Popen(
+            [sys.executable, "-m", "tokens.tests.nav_chain_worker", str(self.update.pk)],
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        code, out, err = finish(process)
+        self.assertEqual(code, -signal.SIGKILL, out + err)
+        self.update.refresh_from_db()
+        attempt = self.update.operation.current_attempt
+        self.assertEqual((self.update.status, attempt.nonce), ("executing", nonce))
+        self.assertEqual(self.contract.functions.navPerToken().call(), 1250000)
+        with patch.object(
+            BaseChainClient, "send_raw_transaction", side_effect=AssertionError("Original receipt needs no resend")
+        ):
+            result = nav_recovery.recover(self.update.pk)
+        self.assertEqual(
+            (result.status, result.event["oldNav"], result.event["newNav"]), ("confirmed", "1000000", "1250000")
+        )
+        self.assertEqual(result.old_nav_per_token, Decimal("1.02"))
+        self.assertEqual(self.nonce(), nonce + 1)
+        self.token.refresh_from_db()
+        self.asset.refresh_from_db()
+        self.assertEqual((self.token.nav_per_token, self.asset.current_price), (Decimal("1.25"), Decimal("1.25")))
+        observed = self.w3.eth.get_transaction(attempt.tx_hash)
+        self.assertEqual(
+            (observed["nonce"], bytes(observed["input"])),
+            (attempt.nonce, bytes.fromhex(self.update.intent["data"][2:])),
+        )
+        self.assertEqual(self.asset.snapshots.count(), 1)
+
+    def test_real_pending_transaction_blocks_local_and_chain_until_original_receipt_is_mined(self):
+        nonce = self.nonce()
+        self.w3.provider.make_request("evm_setAutomine", [False])
+        self.addCleanup(self.w3.provider.make_request, "evm_setAutomine", [True])
+        self.assertIsNone(nav_recovery.recover(self.update.pk).completed_at)
+        original = SignedAttempt.objects.get()
+        for chain in (True, False):
+            self.assertEqual(self.submit("2", chain=chain).status, "failed")
+        self.assertIsNone(nav_recovery.recover(self.update.pk).completed_at)
+        self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.w3.provider.make_request("evm_mine", [])
+        self.assertIsNotNone(nav_recovery.recover(self.update.pk).completed_at)
+        self.update.refresh_from_db()
+        self.assertEqual(self.update.operation.current_attempt_id, original.pk)
+        self.assertEqual(self.nonce(), nonce + 1)
+        self.submit("2", chain=False)
+        nav_recovery.recover(self.update.pk)
+        self.token.refresh_from_db()
+        self.assertEqual(self.token.nav_per_token, Decimal("2"))
+        self.assertEqual(self.contract.functions.navPerToken().call(), 1250000)
+
+    def test_equal_value_update_still_has_a_distinct_original_event_and_new_timestamp(self):
+        nav_recovery.recover(self.update.pk)
+        timestamp = self.contract.functions.lastNavUpdate().call()
+        next_update = self.submit()
+        nonce = self.nonce()
+        result = nav_recovery.recover(next_update.pk)
+        self.assertEqual((result.event["oldNav"], result.event["newNav"]), ("1250000", "1250000"))
+        self.assertGreater(self.contract.functions.lastNavUpdate().call(), timestamp)
+        self.assertEqual(self.nonce(), nonce + 1)
+        self.assertEqual(SignedAttempt.objects.count(), 2)
+
+    def test_real_revert_retains_original_receipt_and_new_attempt_requires_new_uuid(self):
+        target = self.token.contract_address
+        original_code = Web3.to_hex(self.w3.eth.get_code(target))
+        send = self.chain.send_raw_transaction
+
+        def revert_signed_call(raw):
+            self.w3.provider.make_request("hardhat_setCode", [target, "0x60006000fd"])
+            return send(raw)
+
+        with patch.object(self.chain, "send_raw_transaction", side_effect=revert_signed_call):
+            self.assertEqual(nav_recovery.recover(self.update.pk).status, "failed")
+        self.update.refresh_from_db()
+        original = self.update.operation.current_attempt
+        self.assertEqual(self.w3.eth.get_transaction_receipt(original.tx_hash)["status"], 0)
+        self.w3.provider.make_request("hardhat_setCode", [target, original_code])
+        second = self.submit("2")
+        self.assertEqual(nav_recovery.recover(second.pk).status, "confirmed")
+        self.assertEqual(nav_recovery.recover(self.update.pk).status, "failed")
+        self.assertEqual(self.contract.functions.navPerToken().call(), 2000000)
+        second.refresh_from_db()
+        self.assertEqual(second.operation.current_attempt.nonce, original.nonce + 1)
+
+    def test_real_contract_units_refuse_misconfigured_nav_before_any_new_nonce(self):
+        nav_recovery.recover(self.update.pk)
+        YieldToken.objects.filter(pk=self.token.pk).update(decimals=2)
+        second = self.submit()
+        nonce = self.nonce()
+        self.assertEqual(nav_recovery.recover(second.pk).status, "failed")
+        self.assertEqual(self.nonce(), nonce)
+        self.assertEqual(self.contract.functions.navPerToken().call(), 1250000)
+        self.assertEqual(SignedAttempt.objects.count(), 1)
+
+    def test_real_confirmed_outcome_projects_after_crash_without_provider_or_rebroadcast(self):
+        with patch.object(nav, "project", side_effect=SystemExit), self.assertRaises(SystemExit):
+            nav_recovery.recover(self.update.pk)
+        self.update.refresh_from_db()
+        self.assertEqual((self.update.status, self.update.completed_at), ("confirmed", None))
+        self.assertEqual(self.submit(chain=False).status, "failed")
+        with patch.object(nav_recovery, "get_base_chain_client", side_effect=AssertionError("Recorded original event")):
+            self.assertIsNotNone(nav_recovery.recover(self.update.pk).completed_at)
+        self.assertEqual(self.asset.snapshots.count(), 1)
+
+    def test_nav_and_mint_use_distinct_common_signer_nonces(self):
+        from blockchain.services import outgoing
+        from tokens.services import mint_service
+        from tokens.tests.mint_request_fixtures import mint_request
+
+        request = mint_request(self.actor)
+        AssetChainDeployment.objects.filter(asset=request.settlement_asset).update(
+            contract_address=CHAIN_SETTINGS["STABLECOIN_CONTRACT_ADDRESS"]
+        )
+        barrier = threading.Barrier(2)
+        original = outgoing.prepare_operation
+        results = {}
+
+        def prepared(*args, **kwargs):
+            result = original(*args, **kwargs)
+            barrier.wait(timeout=20)
+            return result
+
+        def run(label, action):
+            try:
+                results[label] = action()
+            except Exception as exc:
+                results[label] = exc
+            finally:
+                connections.close_all()
+
+        nonce = self.nonce()
+        workers = [
+            threading.Thread(target=run, args=("nav", lambda: nav_recovery.recover(self.update.pk))),
+            threading.Thread(target=run, args=("mint", lambda: mint_service.execute(request, self.actor))),
+        ]
+        with patch.object(outgoing, "prepare_operation", side_effect=prepared):
+            for worker in workers:
+                worker.start()
+            for worker in workers:
+                worker.join(timeout=40)
+        self.assertFalse(any(worker.is_alive() for worker in workers), results)
+        self.assertFalse(any(isinstance(result, Exception) for result in results.values()), results)
+        self.assertEqual(results["nav"].status, "confirmed")
+        self.assertEqual(set(SignedAttempt.objects.values_list("nonce", flat=True)), {nonce, nonce + 1})
+        self.assertEqual(self.nonce(), nonce + 2)
