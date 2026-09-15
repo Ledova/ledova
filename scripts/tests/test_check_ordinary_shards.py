@@ -70,9 +70,6 @@ FACTORY = a_module("shared.tests.case_factory")
 
 
 class EveryModuleRunsInExactlyOneShard(unittest.TestCase):
-    def test_a_partition_has_no_finding(self):
-        self.assertEqual(gate.findings(EVERYTHING, {"tokens": TOKENS, "others": WALLETS + SHARED}), [])
-
     def test_a_module_in_no_shard_is_named(self):
         self.assertEqual(
             gate.findings(EVERYTHING, {"tokens": TOKENS, "others": WALLETS}),
@@ -89,14 +86,6 @@ class EveryModuleRunsInExactlyOneShard(unittest.TestCase):
         self.assertEqual(
             gate.findings(EVERYTHING + FACTORY, {"tokens": TOKENS + FACTORY * 2, "others": WALLETS + SHARED}),
             ["shared.tests.case_factory has tests duplicated in shards: tokens, tokens"],
-        )
-
-    def test_a_class_label_that_leaves_half_a_module_out_is_named(self):
-        split = a_module("offerings.tests.test_allotment", "Allots", "Refunds")
-
-        self.assertEqual(
-            gate.findings(EVERYTHING + split, {"tokens": TOKENS, "others": WALLETS + SHARED + split[:2]}),
-            ["offerings.tests.test_allotment has tests in no shard"],
         )
 
     def test_a_module_the_unlabelled_suite_does_not_run_is_named(self):
@@ -120,14 +109,18 @@ class EveryModuleRunsInExactlyOneShard(unittest.TestCase):
         )
 
 
-class EveryShardLabelIsDotlessAndListedOnce(unittest.TestCase):
-    def test_a_label_with_a_dot_is_named(self):
-        for label in ("tokens.tests", "tokens.tests.test_fold", "tokens.tests.test_fold.Behaviour", "./wallets"):
-            with self.subTest(label=label):
-                self.assertEqual(
-                    gate.label_findings({"tokens": ["tokens"], "others": ["shared", label]}),
-                    [f"shard label {label} has a dot"],
-                )
+class EveryShardLabelIsATopLevelPackageListedOnce(unittest.TestCase):
+    def test_a_label_that_is_not_a_top_level_package_is_named(self):
+        modules = {"tokens/tests/test_fold.py": PLAIN, "extra/test_extra.py": PLAIN, "extra_checks.py": PLAIN}
+
+        with a_backend(modules) as backend:
+            (backend / "extra" / "__init__.py").unlink()
+            for label in ("tokens.tests", "tokens/tests", "./tokens", "extra", "extra_checks"):
+                with self.subTest(label=label):
+                    self.assertEqual(
+                        gate.label_findings({"tokens": ["tokens"], "others": [label]}, backend),
+                        [f"shard label {label} is not a top-level package"],
+                    )
 
     def test_a_label_listed_twice_in_one_shard_or_across_shards_is_named(self):
         for shards in (
@@ -225,32 +218,18 @@ class TheExitStatusFollowsEveryFinding(unittest.TestCase):
         discover.assert_called_once_with(shards)
         return status, streams["stdout"].getvalue(), streams["stderr"].getvalue()
 
-    def test_a_partition_the_matrix_runs_exits_0(self):
-        status, output, errors = self.run_gate({"tokens": TOKENS, "others": WALLETS + SHARED}, ["others", "tokens"])
-
-        self.assertEqual((status, errors), (0, ""))
-        self.assertEqual(
-            output, "Each of 6 ordinary tests in 3 modules runs in exactly one shard: tokens 2, others 4.\n"
-        )
-
-    def test_the_printed_total_is_the_sum_of_uneven_shard_counts(self):
+    def test_a_partition_the_matrix_runs_exits_0_printing_a_total_that_is_the_sum_of_uneven_shard_counts(self):
         allotment = a_module("offerings.tests.test_allotment", "Allots", "Refunds")
         shards = {"tokens": ["tokens"], "offerings": ["offerings"], "others": ["wallets", "shared"]}
         found = {"tokens": TOKENS, "offerings": allotment, "others": WALLETS + SHARED}
 
-        status, output, errors = self.run_gate(found, list(shards), EVERYTHING + allotment, shards)
+        status, output, errors = self.run_gate(found, ["others", "offerings", "tokens"], EVERYTHING + allotment, shards)
 
         self.assertEqual((status, errors), (0, ""))
         self.assertEqual(
             output,
-            "Each of 10 ordinary tests in 4 modules runs in exactly one shard: tokens 2, offerings 4, others 4.\n",
+            "Each of 10 ordinary test ids in 4 modules is in exactly one shard: tokens 2, offerings 4, others 4.\n",
         )
-
-    def test_a_module_in_no_shard_exits_1_naming_it(self):
-        status, _, errors = self.run_gate({"tokens": TOKENS, "others": WALLETS}, ["tokens", "others"])
-
-        self.assertEqual(status, 1)
-        self.assertIn("  shared.tests.test_uploads has tests in no shard\n", errors)
 
     def test_a_copy_of_a_test_id_in_no_shard_exits_1_without_a_total(self):
         found = {"tokens": TOKENS + FACTORY, "others": WALLETS + SHARED}
@@ -260,7 +239,7 @@ class TheExitStatusFollowsEveryFinding(unittest.TestCase):
         self.assertEqual((status, output), (1, ""))
         self.assertIn("  shared.tests.case_factory has tests in no shard\n", errors)
 
-    def test_a_label_with_a_dot_exits_1_without_a_total_even_when_the_shards_partition_the_suite(self):
+    def test_a_label_that_is_not_a_package_exits_1_without_a_total_even_when_the_shards_partition_the_suite(self):
         shards = {"tokens": ["tokens"], "others": ["wallets", "shared.tests.test_uploads"]}
 
         status, output, errors = self.run_gate(
@@ -268,7 +247,7 @@ class TheExitStatusFollowsEveryFinding(unittest.TestCase):
         )
 
         self.assertEqual((status, output), (1, ""))
-        self.assertIn("  shard label shared.tests.test_uploads has a dot\n", errors)
+        self.assertIn("  shard label shared.tests.test_uploads is not a top-level package\n", errors)
 
     def test_a_matrix_missing_a_shard_exits_1_even_when_the_shards_partition_the_suite(self):
         status, _, errors = self.run_gate({"tokens": TOKENS, "others": WALLETS + SHARED}, ["tokens"])
@@ -291,7 +270,7 @@ class TheCommittedFilesAgree(unittest.TestCase):
 
         self.assertEqual(gate.matrix_findings(workflow, self.shards), [])
 
-    def test_the_committed_shards_list_each_label_once_with_no_dot(self):
+    def test_the_committed_shards_list_each_top_level_package_once(self):
         self.assertEqual(gate.label_findings(self.shards), [])
 
     def test_labels_prints_what_each_shard_passes_to_manage_py_test(self):

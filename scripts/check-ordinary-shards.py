@@ -36,11 +36,13 @@ def record(case):
     }
 
 
-def label_findings(shards):
+def label_findings(shards, backend=BACKEND):
     listed = Counter(label for labels in shards.values() for label in labels)
-    return [f"shard label {label} has a dot" for label in listed if "." in label] + [
-        f"shard label {label} is listed more than once" for label, times in listed.items() if times > 1
-    ]
+    return [
+        f"shard label {label} is not a top-level package"
+        for label in listed
+        if not (label.isidentifier() and (backend / label / "__init__.py").is_file())
+    ] + [f"shard label {label} is listed more than once" for label, times in listed.items() if times > 1]
 
 
 def findings(everything, shards):
@@ -144,8 +146,8 @@ def main():
         for problem in problems:
             print(f"  {problem}", file=sys.stderr)
         print(
-            f"\nPut each app label, with no dot, in exactly one shard in {SHARDS.relative_to(ROOT)}, give each test"
-            f" its own id, and keep the {JOB} matrix to exactly those shard names, with no include or exclude.\n\n"
+            f"\nPut each app label, a top-level package, in exactly one shard in {SHARDS.relative_to(ROOT)}, give each"
+            f" test its own id, and keep the {JOB} matrix to exactly those shard names, with no include or exclude.\n\n"
             'The rule is in docs/development/gates.md, "The ordinary shard gate".',
             file=sys.stderr,
         )
@@ -153,7 +155,7 @@ def main():
 
     modules = {case["module"] for case in everything}
     counts = ", ".join(f"{name} {len(tests)}" for name, tests in found.items())
-    print(f"Each of {len(everything)} ordinary tests in {len(modules)} modules runs in exactly one shard: {counts}.")
+    print(f"Each of {len(everything)} ordinary test ids in {len(modules)} modules is in exactly one shard: {counts}.")
     return 0
 
 

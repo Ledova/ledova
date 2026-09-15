@@ -47,7 +47,7 @@ help:
 	@echo "  make check-schema-responses   Fail on a view whose response the schema does not know"
 	@echo "  make check-test-shadowing     Fail on a test helper that shadows a TestCase method"
 	@echo "  make check-docs               Fail when a document disagrees with the tree it describes"
-	@echo "  make check-ordinary-shards    Fail when CI's ordinary suite shards do not run every test exactly once"
+	@echo "  make check-ordinary-shards    Fail when CI's ordinary suite shards do not run every test id exactly once"
 	@echo "  make check-connection-binding  Fail on a transaction or cursor bound to the default connection"
 	@echo "  make check-api-types          Regenerate and compare the shared API types and trading events"
 	@echo "  make install-schema-environment Install development dependencies with the schema toolchain constraints"
