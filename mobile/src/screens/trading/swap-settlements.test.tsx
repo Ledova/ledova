@@ -496,11 +496,7 @@ it.each([
   const view = await render(<TradingScreen />, { wrapper });
   expect(view.queryByText('Held for operator review')).toBeNull();
   await fireEvent.press(view.getByText('Sign'));
-  expect(
-    view.getByText(
-      'This settlement cannot be opened with the current account and wallet. Refresh its captured details.',
-    ),
-  ).toBeTruthy();
+  expect(view.getByText('This settlement cannot be opened with the current account and wallet.')).toBeTruthy();
   expect(requests).toHaveLength(0);
 });
 

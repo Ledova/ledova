@@ -218,7 +218,7 @@ export function TradingPage() {
     actions.close();
     closeSwapSigning();
     if (!hasSwapSettlementContext(swap) || !settlements.owner) {
-      setSwapSelectionError('The saved trade details are incomplete. Refresh the trade before signing.');
+      setSwapSelectionError('The saved trade details are incomplete.');
       return;
     }
     try {

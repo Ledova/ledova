@@ -193,7 +193,11 @@ it.each([
     name: 'with a null context and no digest',
     swap: { ...captured.swapOrder, settlementContext: null, settlementDigest: '' },
   },
-  { name: 'with an empty context', swap: { ...captured.swapOrder, settlementContext: {} } },
+  {
+    name: 'with an empty context',
+    swap: { ...captured.swapOrder, settlementContext: {} },
+    alert: 'The trade details did not match the selected account and wallet.',
+  },
   {
     name: 'with a string version',
     swap: { ...captured.swapOrder, settlementProtocolVersion: '0', settlementContext: null },
@@ -202,14 +206,17 @@ it.each([
     name: 'with a null version',
     swap: { ...captured.swapOrder, settlementProtocolVersion: null, settlementContext: null },
   },
-])('refuses a listed trade $name without the operator-review state', async ({ swap }) => {
-  state.swaps = [swap as unknown as SwapOrder];
-  render(<TradingPage />, { wrapper });
-  expect(screen.queryByText('Held for operator review')).toBeNull();
-  fireEvent.click(screen.getByTitle('Sign swap'));
-  await waitFor(() => expect(screen.getByRole('alert')).toBeTruthy());
-  expect(swapRequests()).toEqual([]);
-});
+])(
+  'refuses a listed trade $name without the operator-review state',
+  async ({ swap, alert = 'The saved trade details are incomplete.' }) => {
+    state.swaps = [swap as unknown as SwapOrder];
+    render(<TradingPage />, { wrapper });
+    expect(screen.queryByText('Held for operator review')).toBeNull();
+    fireEvent.click(screen.getByTitle('Sign swap'));
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toBe(alert));
+    expect(swapRequests()).toEqual([]);
+  },
+);
 
 it.each([
   { status: 'created', role: 'buyer', signed: {} },

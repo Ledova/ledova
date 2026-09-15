@@ -198,9 +198,7 @@ export function TradingScreen() {
       const { selection, wallet } = selectMobileSettlement(swap, settlements.owner, wallets);
       settlements.open(selection, walletBoundary(wallet));
     } catch {
-      setSettlementError(
-        'This settlement cannot be opened with the current account and wallet. Refresh its captured details.',
-      );
+      setSettlementError('This settlement cannot be opened with the current account and wallet.');
     }
   };
 
