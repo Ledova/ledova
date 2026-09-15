@@ -12,7 +12,9 @@ legal advice or a legal opinion.
 
 | Page | What it holds | Read it when |
 | --- | --- | --- |
-| [Positions](positions.md) | The positions taken, one per question, with sources, triggers and status | Before changing anything that touches the register, evidence, licensing or the licence |
+| [Company-hosted instance](company-hosted-instance.md) | Operating model A: a company runs its own instance for its own shares; what it can do without permission, its duties, the perimeter, the path for a first company | Before offering the software to a company to run itself |
+| [Registry service](registry-service.md) | Operating model B: one operator keeps the registers of many companies on instruction; the clerk boundary, the perimeter, the path to market | Before operating a hosted service for anyone |
+| [Positions](positions.md) | The positions taken, one per question, with sources, triggers, the model each binds, and status | Before changing anything that touches the register, evidence, licensing or the licence |
 | [Regulatory pathway](regulatory-pathway.md) | What exists in Australia for operating the fuller model under restriction, what ASIC can and cannot change, precedents, fees and a staged path | Before talking to ASIC, applying for anything, or turning on issuance, payments or transfers |
 | [Handover](handover.md) | The context another person or agent needs to continue this work without the conversation history | Before picking the work up, and after finishing a session of it |
 | [LICENSE](../../LICENSE) | The Functional Source License the code is published under | Position 5 |
@@ -55,14 +57,21 @@ exception: it waits on somebody wanting to compete, not on real use. A fork
 alone is not a Competing Use, since the test is about the use made of the
 software and the relationship between its Licensor and operator.
 
-The positions now serve two operating models, described in the
-[handover](handover.md): a **registry service** that keeps a private company's
-register of members on the company's instructions and does nothing else, which
-positions 4a and 6 to 11 read as lawful today without anyone's permission, and
-the **fuller model** of issuance, investor onboarding, payments, tokenised shares
-and transfers, which position 4b reads as needing a licence, a registration or
-relief at each step. Positions 4, 7, 8 and 9 mark where the first model ends and
-the second begins.
+The positions serve two operating models, each with its own page, because the
+law attaches duties and licence questions to whoever operates the register:
+
+- **A, the [company-hosted instance](company-hosted-instance.md):** a private
+  company runs its own instance for its own shares, and its own officers make
+  every entry. No new legal person appears; the project is a software supplier.
+- **B, the [registry service](registry-service.md):** one operator keeps the
+  registers of many companies on their written instructions. The operator is a
+  second legal person, with an agreement per company and a boundary to hold.
+
+The pivot between them is who makes the entries, not who hosts the servers. Each
+model's page says what it can do with no permission and where its perimeter is;
+the [regulatory pathway](regulatory-pathway.md) covers the features beyond that
+perimeter, which position 4b reads as needing a licence, a registration or
+relief in either model.
 
 ## Sources
 

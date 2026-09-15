@@ -9,6 +9,10 @@ change; what only Parliament can change; the precedents; the costs; and a staged
 path. It is the owner's reading of regulator pages and primary sources, written
 down by the assistant, and it is not advice. The [positions](positions.md) page
 records what the project has decided; this page records what it could apply for.
+The [company-hosted instance](company-hosted-instance.md) and
+[registry service](registry-service.md) pages say who the applicant would be in
+each operating model; most of this page concerns the service, because a company
+acting for itself rarely needs anything below rung 2.
 
 ## The frame
 
@@ -153,7 +157,8 @@ enumerated in the [handover](handover.md#2-what-ledova-is-and-where-the-code-sta
 
 | Rung | What it unlocks | What it needs | Still not allowed |
 | --- | --- | --- | --- |
-| 0. Registry service | Features 1, 6 and the record-keeping half of 7 and 9, for real companies, now | The registry services agreement; the stored register, import and workflows in the [handover](handover.md#10-engineering-consequences-already-identified); Forms 909 and 991 by the company; an Innovation Hub application | Offers, money, tokens held, transfers posted between holders |
+| 0A. [Company-hosted instance](company-hosted-instance.md) | Features 1, 6 and the record-keeping half of 7 and 9, for one company, now, with the company's own officers making every entry | The stored register, import and workflows in the [handover](handover.md#10-engineering-consequences-already-identified); the computer-storage notice if hosted away from the registered office | Tokens held for holders; transfers posted between holders without registration |
+| 0B. [Registry service](registry-service.md) | The same, for many companies, on written instruction | The operating entity and the registry services agreement; Forms 909 and 991 by each company; the boundary built into the product; an Innovation Hub application | Offers, money, tokens held, transfers posted between holders |
 | 1. Wholesale AFSL and AUSTRAC enrolment | Features 3, 4 and 10 for s708 investors; feature 5 with money paid straight to the company's account | AFSL authorisations for dealing and arranging in securities to wholesale clients; a responsible manager with relevant experience; RG 166 base-level financial requirements; an AML/CTF program (item 54 at least); no custody, no client money | Retail investors; holding tokens or money; a market |
 | 2. Low-volume market registration per issuer | Feature 7 as a facility where holders post offers, up to 100 transactions and $1.5m (proposed $2.5m) per issuer per year | An application to be named on ASIC's register for each issuer's market; the instrument's Part 2 conditions; ceasing or licensing when a threshold is crossed | Anything above the thresholds; retail beyond what the instrument allows |
 | 3. One targeted relief application, or the 2027 thematic sandbox | Feature 2 as the register of record: a ledger entry that is the transfer and the register, with the certificate replaced | A s1075A declaration on Part 7.11 mechanics and a s1306(1)(c) approval of the ledger as the register's form, framed like the Acacia instrument: wholesale only, capped, time-limited, reporting, sunset; a draft instrument, which RG 51 invites; or entry to the DFMI sandbox when it opens | Whatever the instrument does not name |
@@ -231,5 +236,8 @@ figures; FCX's licence conditions. Each is in the
    without it, issuance stays off the platform.
 3. Whether the chain becomes the register of record for a pilot, or stays a
    mirror. That decides whether there is anything to ask ASIC for at rung 3.
+4. Which operating model leads. The company-hosted instance is where a first
+   company can start with nothing to apply for; the registry service is where the
+   business is built and where every rung above 0 attaches.
 
 Next: the [handover](handover.md).

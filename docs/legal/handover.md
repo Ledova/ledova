@@ -34,6 +34,11 @@ what to read next. The [positions](positions.md) and the
 - The same day the owner asked for this folder, with `docs/legal.md` absorbed
   into it and no other documentation changed, because the broader direction of
   the project is still being decided. Tracked as issue #580.
+- Later on **2026-09-15** the owner split the analysis into two operating
+  models, a company-hosted instance and a registry service, on the view that
+  they carry different legal implications and should be analysed separately.
+  The folder was restructured accordingly (issue #594): each model has its own
+  page, and the positions say which model they bind.
 
 ## 2. What Ledova is, and where the code stands
 
@@ -99,14 +104,39 @@ pull in different directions:
    infrastructure, and the owner's concern is that forcing Ledova into it could
    make the platform impractical.
 
-The reconciliation reached: the two are rungs of one ladder rather than a fork.
-On the positions as drafted, the registry service is lawful today and is where a
-first client arrives; the licences, registrations and relief are how each further
-feature is switched on;
-and the genuinely novel question — a ledger being the register of members — is
-the one thing worth asking a regulator to evaluate.
+The reconciliation reached: the two are rungs of one ladder rather than a fork,
+and the ladder is climbed by whichever legal person operates the register. On the
+positions as drafted, a company running its own instance and an operator keeping
+registers on instruction are both lawful today; the licences, registrations and
+relief are how each further feature is switched on; and the genuinely novel
+question — a ledger being the register of members — is the one thing worth
+asking a regulator to evaluate.
 
 ## 4. The reasoning
+
+### Two operating models, one pivot
+
+The law attaches register duties and licence questions to whoever operates the
+register, so the analysis is split by operator:
+
+- **A, the [company-hosted instance](company-hosted-instance.md).** A private
+  company runs its own instance for its own shares and its own officers make
+  every entry. No new legal person appears; the project supplies software, or
+  at most hosts. It is the simplest legal position available, and where a first
+  company can start with nothing to apply for.
+- **B, the [registry service](registry-service.md).** One operator keeps the
+  registers of many companies on their written instructions. The operator is a
+  second legal person with an agreement per company and a boundary to hold. It
+  is where the business is built.
+
+The pivot is who makes the entries, not who hosts the servers: a host that never
+touches the register is an IT supplier, a provider that makes entries on
+instruction is a clerk, and a provider that decides, introduces or touches money
+is a financial service. The software's two deployment modes, single issuer and
+registry ([product page](../product.md#roles-and-deployment-modes)), correspond
+to the two models. Most of the licensing ladder in the
+[pathway](regulatory-pathway.md#the-ladder) concerns model B, because a company
+acting for itself rarely needs anything beyond a low-volume market registration.
 
 ### The registry-service model, and why the positions read it as needing no permission
 
@@ -174,7 +204,7 @@ the one thing worth asking a regulator to evaluate.
 
 | Alternative | What it would allow | Why it is not first, or its status |
 | --- | --- | --- |
-| Company self-hosts in `single_issuer` mode | The company keeps its own register on its own instance; no operator, no agreement, no fee | Does not give the owner an operating business; still needs the stored register; kept as a deployment shape |
+| Company-hosted instance, the software's `single_issuer` mode | The company keeps its own register on its own instance; no operator, no agreement, no licence fee | Now operating model A with [its own page](company-hosted-instance.md): the simplest legal position, where a first company can start; it earns the project nothing unless hosting or support is sold |
 | Registry service on instruction | A first client now; features 1 and 6 for real | Chosen as rung 0 |
 | Enhanced Regulatory Sandbox | 24 months without a licence | Unlisted shares ineligible; only a crowd-funding service would qualify; regime being repealed; poor track record |
 | Crowd-sourced funding intermediary, possibly tested under the sandbox | Retail investment in proprietary companies through the platform, and CSF shareholders outside the cap of fifty | Needs an AFSL with a crowd-funding authorisation and gatekeeper duties; retail is not the current target; kept as the legislated retail path |
@@ -260,6 +290,10 @@ Each names why it matters and who decides.
     to buy. Owner and assistant.
 14. **Whether to produce scheme reporting** (issue date, price, market value)
     from the register for clients' ATO obligations later. Product decision.
+15. **Which operating model leads, and whether a managed single-company
+    instance is the first paid product.** Hosting a company's own instance while
+    its officers make the entries keeps model A's legal profile with something
+    to sell; making entries for it moves to model B. Owner.
 
 ## 9. Next investigations
 
@@ -296,7 +330,8 @@ In the order they unblock work. Each says what to read and what it settles.
 
 ## 10. Engineering consequences already identified
 
-For the registry model, in build order, each mapped to existing documentation:
+For either operating model, in build order, each mapped to existing
+documentation:
 
 - A **stored, authoritative, append-only register** with hash-chained events
   for issues, transfers, cessations and corrections; the roadmap's Phase 2 item,
@@ -309,9 +344,11 @@ For the registry model, in build order, each mapped to existing documentation:
   payslips.
 - **Certificate PDF, ASIC notice figures export, and inspection copies** with a
   durable, queryable export record.
-- A **registry deployment configuration** with offerings, payments,
-  classification, wallets, trading, payslips and the chain off, and an
-  onboarding checklist without the business plan and risk disclosure.
+- **Two deployment configurations** matching the models, single issuer for A
+  and registry for B, each with offerings, payments, classification, wallets,
+  trading, payslips and the chain off by default, and an onboarding checklist
+  without the business plan and risk disclosure. Model A additionally needs the
+  instance to be installable by a company without the operator console.
 - A **registry services agreement** template and an onboarding checklist that
   includes Forms 909 and 991.
 

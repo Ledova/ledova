@@ -9,23 +9,29 @@ and the trigger that must happen before it matters. Read the provision before
 relying on a summary of it; the [sources](README.md#sources) are listed once.
 
 Positions 1 to 5 were carried over from the previous `docs/legal.md` and
-reviewed on 2026-09-15; position 4 was rewritten because the registry-first
-model changes its shape. Positions 6 to 11 were drafted on 2026-09-15 by the
+reviewed on 2026-09-15; position 4 was rewritten because a registry that only
+records changes its shape. Positions 6 to 11 were drafted on 2026-09-15 by the
 assistant from primary sources and are **not yet confirmed by the owner**.
 
-| # | Question | Triggered by | Status |
-| --- | --- | --- | --- |
-| 1 | s169(3) retention of former members | The first real company's first real member | Reviewed |
-| 2 | s168, who is obliged to keep the register | The same moment, plus the terms between operator and company | Reviewed |
-| 3 | Evidence retention period | The first real identity document held | Reviewed |
-| 4 | Operating without an AFSL, in two halves | The first fee for a real register; the first real offer of a security | Rewritten, awaiting sign-off |
-| 5 | Who "we" is in the licence's Competing Use test | Someone offering a competing service, or Blueberry Money beginning to operate | Reviewed |
-| 6 | Where and in what form the register is kept | The first real register | Drafted |
-| 7 | Whether a register is a financial market | Any feature where holders post offers to one another | Drafted |
-| 8 | AML/CTF obligations of the operator | Acting for a company in a transaction; holding an AFSL; touching virtual assets | Drafted |
-| 9 | Digital assets and custody | Any wallet whose keys Ledova holds for a member | Drafted |
-| 10 | Privacy | The first real member's personal information | Drafted |
-| 11 | The company's own fundraising and scheme obligations | The first issue recorded for a real company | Drafted |
+The positions serve two operating models, the
+[company-hosted instance](company-hosted-instance.md) (A) and the
+[registry service](registry-service.md) (B). The "Binds" column says which
+model a position is engaged by; where the reading differs between them, the
+position says so.
+
+| # | Question | Triggered by | Binds | Status |
+| --- | --- | --- | --- | --- |
+| 1 | s169(3) retention of former members | The first real company's first real member | A and B | Reviewed |
+| 2 | s168, who is obliged to keep the register | The same moment, plus the terms between operator and company | B; in A the company keeps it itself | Reviewed |
+| 3 | Evidence retention period | The first real identity document held | A and B, once investor onboarding is on | Reviewed |
+| 4 | Operating without an AFSL, in two halves | The first fee for a real register; the first real offer of a security | 4a binds B; 4b binds both | Rewritten, awaiting sign-off |
+| 5 | Who "we" is in the licence's Competing Use test | Someone offering a competing service, or Blueberry Money beginning to operate | B and third-party operators; not a company's own use | Reviewed |
+| 6 | Where and in what form the register is kept | The first real register | A and B, with different forms to lodge | Drafted |
+| 7 | Whether a register is a financial market | Any feature where holders post offers to one another | A and B, with a different registrant | Drafted |
+| 8 | AML/CTF obligations of the operator | Acting for a company in a transaction; holding an AFSL; touching virtual assets | B; a company acting for itself is not engaged | Drafted |
+| 9 | Digital assets and custody | Any wallet whose keys Ledova holds for a member | A and B | Drafted |
+| 10 | Privacy | The first real member's personal information | A and B | Drafted |
+| 11 | The company's own fundraising and scheme obligations | The first issue recorded for a real company | A and B | Drafted |
 
 Position 4 is the one where being wrong is an offence rather than a defect, and
 its second half keeps the original stance: do not reach the trigger without a
@@ -57,7 +63,7 @@ supposed to exist for seven years was never kept.
 reads `Transfer` events, so it sees every movement the chain records. What it
 cannot see is a member who ceased before the class was deployed on this
 platform. A company migrating an existing register onto Ledova brings history
-the fold cannot reconstruct, and nothing imports it. In the registry-first model
+the fold cannot reconstruct, and nothing imports it. In either operating model
 this import is the first thing to build, because a real company arrives with a
 register and former members already.
 
@@ -75,7 +81,9 @@ says the register may be kept on computer, pointing to s1306.
 **The position.** The company carries the obligation and the platform keeps the
 register as its agent. That is the plain reading, and it is also the only
 reading under which `single_issuer` and `registry` are two configurations of one
-product rather than two different legal arrangements.
+product rather than two different legal arrangements. In a
+[company-hosted instance](company-hosted-instance.md) there is no agent: the
+company keeps the register itself, and the agreement below is not needed.
 
 **What this leaves undone, and it is not a legal question.** An agency
 relationship has to exist in the terms between the operator and each company.
@@ -123,9 +131,9 @@ is the answer to watch for rather than the number.
 destroying it too early is a compliance failure that cannot be undone. Where the
 two conflict, the code keeps the evidence, which is the recoverable direction.
 
-**Status.** Reviewed 2026-09-15; unchanged. Note that in the registry-first
-model no identity document is collected at all, so this position is engaged only
-by the fuller model.
+**Status.** Reviewed 2026-09-15; unchanged. Note that neither operating model
+collects an identity document until investor onboarding is switched on, so this
+position is engaged only then.
 
 ## 4. Operating without a licence: the two halves
 
@@ -181,6 +189,11 @@ enforcement against a share registry provider, of which none was found.
 **Which way to be wrong.** Being wrong here is an offence, so the position leans
 hard: every boundary above is documented, priced into the agreement, and
 enforced by configuration, not by intention.
+
+**Binds.** The [registry service](registry-service.md). A
+[company-hosted instance](company-hosted-instance.md) has no operator to ask the
+question of; a provider that only hosts such an instance and never makes an
+entry is an IT supplier, not an arranger.
 
 **Trigger.** The first fee charged for keeping a real company's register.
 
@@ -336,7 +349,10 @@ the section asks for, and it can be kept without a chain. The register is hosted
 in an Australian region; the operator's Australian office is the place where the
 work of maintaining it is done under s172(1)(c); the company lodges Form 909
 and, because the record is stored on a computer elsewhere, Form 991. Both are
-onboarding steps, not product features.
+onboarding steps, not product features. In a
+[company-hosted instance](company-hosted-instance.md) the company lodges only
+the computer-storage notice, and only if the record sits away from its
+registered office.
 
 **The obligations the register has to make easy**, because they are the
 company's and the product either serves them or causes them to be missed:
@@ -400,7 +416,11 @@ holders through the platform, whether or not the platform matches or settles
 them. At that moment the choice is registration as a low-volume market — ASIC's
 register of 8 September 2026 shows one registration per issuer as an accepted
 shape, including a crowd-funding intermediary that names the companies whose
-shares trade through it — or a market licence.
+shares trade through it — or a market licence. In a
+[company-hosted instance](company-hosted-instance.md) the company itself is the
+operator of such a board and the registrant; in a
+[registry service](registry-service.md) the operator registers one market per
+company.
 
 **What would show this wrong.** ASIC treating a members-only notice board inside
 a registry as a market; or the remade instrument narrowing who may register.
@@ -445,7 +465,9 @@ reporting entity the moment it holds an AFSL and arranges issues (item 54 at
 least), and a registrable virtual-asset service provider the moment it
 exchanges, transfers or safekeeps stablecoins or tokens for a customer. Payment
 in stablecoin straight to the company's own wallet, with Ledova only observing
-the chain, is designed to stay outside that.
+the chain, is designed to stay outside that. A company running its own instance
+is not a reporting entity for issuing its own shares or keeping its own
+register, so this position binds the [registry service](registry-service.md).
 
 **What would show this wrong.** AUSTRAC guidance treating the registration of
 a share transfer on instruction as "assisting in the execution" of it under
