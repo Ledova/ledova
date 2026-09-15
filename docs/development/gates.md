@@ -52,28 +52,36 @@ rather than a PR or an unavailable number. The types and ownership convention
 are in
 [CONTRIBUTING.md](../../CONTRIBUTING.md#pull-request-titles-and-issue-ownership).
 
-A `Refs` PR must close no issue. The gate reads the PR's `closingIssuesReferences`
-and commits in one `gh pr view` call. The list covers an issue named by a closing
-phrase anywhere in the PR body, even a negated one such as "does not close #N",
-and one linked from the PR's Development sidebar. It leaves out commit messages,
-which still close an issue when they reach the default branch, and this
-repository's squash merges copy them into the squash commit. That is how #170 was
-closed by #172's squash commit while #172's list was empty. So the gate also
-searches each commit's headline and body for one of GitHub's
+A `Refs` PR must close no issue. The gate reads the PR's title,
+`closingIssuesReferences` and commits in one `gh pr view` call. The list covers an
+issue named by a closing phrase anywhere in the PR body, even a negated one such
+as "does not close #N", and one linked from the PR's Development sidebar. It
+leaves out commit messages, which still close an issue when they reach the default
+branch, and this repository's squash merges copy them into the squash commit. That
+is how #170 was closed by #172's squash commit while #172's list was empty. The
+title reaches the default branch too, as a merge commit's body and as the squash
+headline for a PR with several commits. So the gate also searches the title and
+each commit's headline and body for one of GitHub's
 [closing keywords](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue#linking-a-pull-request-to-an-issue-using-a-keyword),
 in any case and optionally followed by a colon, then whitespace and `#N`,
 `OWNER/REPO#N` or a `https://github.com/OWNER/REPO/issues/N` URL.
 
-A `Refs` PR with a list entry or such a commit phrase is refused. The refusal
-names each issue, or each commit by short SHA with its reference; remove the
-phrase or the link, or reword the commit. A `Closes` PR is checked against
-neither. GitHub documents the keywords, the colon and the `#N` and `OWNER/REPO#N`
-forms, not URLs, `GH-N` or a missing space. The gate matches only the URL
-spelling above, and passes `GH-N`, `Closes#N` and other undocumented spellings.
-`gh` reads only a PR's first 100 commits, so a phrase in a later commit is not
-seen. The PR title is not checked, although it becomes a merge commit's body and
-the squash headline for a PR with several commits; nor is a message edited at
-merge time.
+A `Refs` PR with a list entry or such a phrase in its title or a commit is
+refused. The refusal names each issue, each reference in the title, or each commit
+by short SHA with its reference; remove the phrase or the link, or reword the
+title or the commit. A `Closes` PR is checked against none of these. A type
+prefix such as `fix(#123):` is not a closing phrase, because no whitespace follows
+the keyword. GitHub documents the keywords, the colon and the `#N` and
+`OWNER/REPO#N` forms, not URLs, `GH-N` or a missing space. The gate matches only
+the URL spelling above, and passes `GH-N`, `Closes#N` and other undocumented
+spellings. A message edited at merge time is not checked.
+
+`gh pr view` returns at most a PR's first 100 commits, so the gate also reads the
+PR's commit count from `repos/OWNER/REPO/pulls/N` in the REST API. Any PR, `Refs`
+or `Closes`, is refused when that count is missing, is not an integer or differs
+from the number of commits read, and the refusal gives both numbers. A PR with
+more than 100 commits therefore cannot pass. A commit pushed between the two reads
+is refused the same way, and that push starts a new run that reads both again.
 
 The separate `PR metadata` workflow runs on creation, edits, new commits,
 reopening and readiness changes, including bot PRs. It uses `pull_request_target`
