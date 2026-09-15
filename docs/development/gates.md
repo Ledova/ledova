@@ -76,12 +76,13 @@ the keyword. GitHub documents the keywords, the colon and the `#N` and
 the URL spelling above, and passes `GH-N`, `Closes#N` and other undocumented
 spellings. A message edited at merge time is not checked.
 
-`gh pr view` returns at most a PR's first 100 commits, so the gate also reads the
-PR's commit count from `repos/OWNER/REPO/pulls/N` in the REST API. Any PR, `Refs`
-or `Closes`, is refused when that count is missing, is not an integer or differs
-from the number of commits read, and the refusal gives both numbers. A PR with
-more than 100 commits therefore cannot pass. A commit pushed between the two reads
-is refused the same way, and that push starts a new run that reads both again.
+In gh 2.100.0, `gh pr view` returns at most a PR's first 100 commits, so the gate
+also reads the PR's commit count from `repos/OWNER/REPO/pulls/N` in the REST API.
+Any PR, `Refs` or `Closes`, is refused when that count is missing, is not an
+integer or differs from the number of commits read, and the refusal shows the
+count it found and the number it read. A PR with more than 100 commits therefore
+cannot pass. A push between the two reads that changes the count is refused the
+same way, and every push starts a new run that reads both again.
 
 The separate `PR metadata` workflow runs on creation, edits, new commits,
 reopening and readiness changes, including bot PRs. It uses `pull_request_target`

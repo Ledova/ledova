@@ -107,6 +107,7 @@ class OwningIssue(unittest.TestCase):
                     self.assertIn(issue, str(refusal.exception))
 
     def test_a_refs_pr_whose_title_would_close_an_issue_is_refused_by_reference(self):
+        commits = [commit("1111111aaaa", "test(#123): pin expiry", "Refs #123")]
         for title, named in (
             ("fix(#123): refuse expired signatures, fixes #8", ["#8"]),
             ("fix(#123): CLOSES: owner/ledova#99 before release", ["owner/ledova#99"]),
@@ -118,19 +119,20 @@ class OwningIssue(unittest.TestCase):
         ):
             with self.subTest(title=title):
                 with self.assertRaises(ValueError) as refusal:
-                    gate.owning_issue(title, "Refs #123")
+                    gate.owning_issue(title, "Refs #123", (), commits)
                 self.assertIn(
                     f"title would close {', '.join(named)} on merge. Reword the title.", str(refusal.exception)
                 )
 
     def test_a_closing_title_is_allowed_on_a_closes_pr_and_a_mentioning_title_on_a_refs_pr(self):
+        commits = [commit("1111111aaaa", "test(#123): pin expiry", "Refs #123")]
         for title, body in (
             ("fix(#123): refuse expired signatures, fixes #8", "Closes #123"),
             ("fix(#123): leave #8 open", "Refs #123"),
             ("fix(#123): resolve the conflict with owner/ledova#8", "Refs #123"),
         ):
             with self.subTest(title=title, body=body):
-                self.assertEqual(gate.owning_issue(title, body), 123)
+                self.assertEqual(gate.owning_issue(title, body, (), commits), 123)
 
     def test_the_fix_type_prefix_alone_is_not_a_closing_phrase(self):
         self.assertIsNone(gate.CLOSING.search("fix(#123): refuse expired signatures"))
@@ -199,12 +201,13 @@ class LiveIssueVerification(unittest.TestCase):
         with patch.object(gate, "github_json", side_effect=responses):
             self.assertEqual(gate.check("owner/ledova", 548), 518)
 
-    def test_any_pr_with_more_commits_than_were_read_is_refused_with_both_counts(self):
+    def test_any_pr_whose_commit_count_differs_from_the_commits_read_is_refused_with_both_counts(self):
         for body in ("Refs #518", "Closes #518"):
-            responses = [self.request(body=body, commits=self.COMMITS), {"number": 518}, {"commits": 101}]
-            with self.subTest(body=body), patch.object(gate, "github_json", side_effect=responses):
-                with self.assertRaisesRegex(ValueError, "PR #548 has 101 commits, but the gate read 100,"):
-                    gate.check("owner/ledova", 548)
+            for total in (99, 101):
+                responses = [self.request(body=body, commits=self.COMMITS), {"number": 518}, {"commits": total}]
+                with self.subTest(body=body, total=total), patch.object(gate, "github_json", side_effect=responses):
+                    with self.assertRaisesRegex(ValueError, f"PR #548 has {total} commits, but the gate read 100,"):
+                        gate.check("owner/ledova", 548)
 
     def test_a_missing_or_non_integer_commit_count_is_refused(self):
         for count, shown in (
