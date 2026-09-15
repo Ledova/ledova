@@ -25,6 +25,7 @@ def expire_unclaimed_swap(snapshot, cutoff):
     swap = SwapOrder.objects.select_for_update(of=("self",)).filter(pk=snapshot.pk).first()
     if (
         swap is None
+        or swap.settlement_protocol_version != 1
         or not swap.expiry_release_eligible
         or swap_terms(swap) != swap_terms(snapshot)
         or swap.expires_at >= cutoff
@@ -64,6 +65,7 @@ def expire_unclaimed_swap(snapshot, cutoff):
 def expire_unclaimed_swaps(now=None, batch=500):
     cutoff = now if now is not None else timezone.now()
     candidates = SwapOrder.objects.filter(
+        settlement_protocol_version=1,
         expiry_release_eligible=True,
         expires_at__lt=cutoff,
         status__in=UNCLAIMED_STATES,

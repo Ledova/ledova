@@ -1,6 +1,18 @@
 from rest_framework import status
 from rest_framework.exceptions import APIException
 
+from shared.utils.token_amounts import format_units
+
+
+class InvalidSettlementAmountException(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = (
+        "The matched amount cannot be represented exactly in the deployed token's units "
+        "within the supported settlement range."
+    )
+    default_code = "invalid_settlement_amount"
+    expose_code = True
+
 
 class OrderActionConflictException(APIException):
     status_code = status.HTTP_409_CONFLICT
@@ -135,13 +147,8 @@ class InsufficientBalanceException(APIException):
     def __init__(self, balance=None, required=None, token_symbol=None, decimals=0):
         if balance is not None and required is not None:
             token_str = f" {token_symbol}" if token_symbol else " tokens"
-            if decimals > 0:
-                divisor = 10**decimals
-                balance_formatted = f"{balance / divisor:,.{decimals}f}"
-                required_formatted = f"{required / divisor:,.{decimals}f}"
-            else:
-                balance_formatted = f"{balance:,}"
-                required_formatted = f"{required:,}"
+            balance_formatted = format_units(balance, decimals)
+            required_formatted = format_units(required, decimals)
             super().__init__(
                 detail=f"Insufficient balance: you have {balance_formatted}{token_str} but need {required_formatted}"
             )
@@ -341,3 +348,32 @@ class MintRequestUnresolved(APIException):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     default_detail = "The mint outcome is unresolved. Recover this request instead of creating another mint."
     default_code = "mint_request_unresolved"
+
+
+class SettlementContextChanged(APIException):
+    status_code = 409
+    default_detail = "The original swap context is no longer admitted. Review the recorded swap before continuing."
+    default_code = "swap_settlement_context_changed"
+    expose_code = True
+
+
+class LegacySwapHeld(APIException):
+    status_code = 409
+    default_detail = (
+        "This legacy swap is held for operator attribution. New approvals, signatures and execution are unavailable."
+    )
+    default_code = "legacy_swap_held"
+    expose_code = True
+
+
+class SettlementContextRequired(APIException):
+    status_code = 400
+    default_detail = "Refresh this swap and submit its exact settlement context."
+    default_code = "swap_context_refresh_required"
+    expose_code = True
+
+
+class SettlementApprovalUncertain(Exception):
+    def __init__(self, tx_hash):
+        super().__init__("Approval outcome remains unconfirmed.")
+        self.tx_hash = tx_hash

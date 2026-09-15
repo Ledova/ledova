@@ -1,10 +1,13 @@
 from rest_framework.exceptions import NotFound
 
-from tokens.exceptions import SwapExpiredException, SwapNotReadyException
+from tokens.exceptions import (
+    LegacySwapHeld,
+    SettlementContextChanged,
+    SwapExpiredException,
+    SwapNotReadyException,
+)
 from tokens.models import SwapOrder, SwapOrderStatus, TransferOrder
 from tokens.services.settlement_context import (
-    SettlementContextChanged,
-    SettlementContextRequired,
     assert_current_settlement,
     recorded_settlement_context,
 )
@@ -59,7 +62,7 @@ def resolve_exact_swap_context(user, order_id, identity, snapshot=None):
     if swap is None or (snapshot is not None and snapshot.pk != swap.pk):
         raise NotFound("Swap not found.")
     if not swap.settlement_protocol_version:
-        raise SettlementContextRequired()
+        raise LegacySwapHeld()
     context = recorded_settlement_context(swap)
     role = next(
         (

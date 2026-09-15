@@ -42,8 +42,8 @@ class SwapOrderQuerySet(QuerySet):
     def with_related(self):
         return self.select_related("share_token", "payment_asset")
 
-    def last_completed_for_token(self, token):
-        return self.filter(share_token=token, status="completed").order_by("-completed_at").first()
+    def completed_for_token(self, token):
+        return self.filter(share_token=token, status="completed").order_by("-completed_at", "-pk")
 
     def pending_for_wallet_ids(self, wallet_ids):
         return self.for_wallet_ids(wallet_ids).awaiting_signature().with_related()
@@ -52,4 +52,4 @@ class SwapOrderQuerySet(QuerySet):
         return self.filter(Q(sell_order=order) | Q(buy_order=order)).first()
 
     def unresolved_on_chain(self, cutoff):
-        return self.filter(status=SwapOrderStatus.EXECUTING, updated_at__lt=cutoff)
+        return self.filter(settlement_protocol_version=1, status=SwapOrderStatus.EXECUTING, updated_at__lt=cutoff)

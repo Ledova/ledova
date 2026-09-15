@@ -15,6 +15,7 @@ from tokens.exceptions import (
     CreateOrderNotWhitelistedException,
     InsufficientBalanceException,
     InvalidRecipientAddressException,
+    InvalidSettlementAmountException,
     InvalidTokenAddressException,
     NotWhitelistedException,
     OrderMatchException,
@@ -230,7 +231,7 @@ def match_orders(buy_order: TransferOrder, sell_order: TransferOrder, match_quan
     }
 
 
-def find_matching_order(order: TransferOrder) -> Optional[tuple[TransferOrder, int]]:
+def find_matching_orders(order: TransferOrder) -> list[tuple[TransferOrder, int]]:
     if order.order_type == TransferOrderType.BUY:
         qs = (
             TransferOrder.objects.ownership_bound()
@@ -261,6 +262,7 @@ def find_matching_order(order: TransferOrder) -> Optional[tuple[TransferOrder, i
     )
 
     order_remaining = order.quantity - (order.filled_quantity or 0)
+    matches = []
 
     for candidate in candidates:
         candidate_remaining = candidate.quantity - (candidate.filled_quantity or 0)
@@ -279,9 +281,9 @@ def find_matching_order(order: TransferOrder) -> Optional[tuple[TransferOrder, i
         if candidate_min > 0 and match_qty < candidate_min:
             continue
 
-        return (candidate, match_qty)
+        matches.append((candidate, match_qty))
 
-    return None
+    return matches
 
 
 @atomic()
@@ -350,22 +352,26 @@ def create_order_and_match(
         filled_quantity=0,
     )
 
-    match_info = find_matching_order(order)
-
-    if match_info:
-        matching_order, match_quantity = match_info
-        if order_type == TransferOrderType.BUY:
-            match_result = match_orders(order, matching_order, match_quantity)
-            order = match_result["buy_order"]
-        else:
-            match_result = match_orders(matching_order, order, match_quantity)
-            order = match_result["sell_order"]
+    amount_refusal = None
+    for matching_order, match_quantity in find_matching_orders(order):
+        try:
+            if order_type == TransferOrderType.BUY:
+                match_result = match_orders(order, matching_order, match_quantity)
+            else:
+                match_result = match_orders(matching_order, order, match_quantity)
+        except InvalidSettlementAmountException as exc:
+            amount_refusal = exc
+            continue
+        order = match_result["buy_order" if order_type == TransferOrderType.BUY else "sell_order"]
 
         from tokens.events import publish_trading_event
 
         publish_trading_event("order_created", str(token.uuid))
         publish_trading_event("order_matched", str(token.uuid))
         return order, match_result
+
+    if amount_refusal is not None:
+        raise amount_refusal
 
     from tokens.events import publish_trading_event
 

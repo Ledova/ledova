@@ -3,12 +3,12 @@ from copy import deepcopy
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from eth_account.messages import _hash_eip191_message, encode_typed_data
-from rest_framework.exceptions import APIException
 from web3 import Web3
 
 from assets.models import Asset
 from operators.exceptions import SettlementAssetNotDeployedException
 from operators.settlement import require_deployment
+from tokens.exceptions import LegacySwapHeld, SettlementContextChanged
 from tokens.models import ShareToken
 
 SETTLEMENT_PROTOCOL_VERSION = 1
@@ -30,26 +30,6 @@ SETTLEMENT_TYPES = {
         {"name": "deadline", "type": "uint256"},
     ],
 }
-
-
-class SettlementContextChanged(APIException):
-    status_code = 409
-    default_detail = "The original swap context is no longer admitted. Review the recorded swap before continuing."
-    default_code = "swap_settlement_context_changed"
-    expose_code = True
-
-
-class SettlementContextRequired(APIException):
-    status_code = 400
-    default_detail = "Refresh this swap and submit its exact settlement context."
-    default_code = "swap_context_refresh_required"
-    expose_code = True
-
-
-class SettlementApprovalUncertain(Exception):
-    def __init__(self, tx_hash):
-        super().__init__("Approval outcome remains unconfirmed.")
-        self.tx_hash = tx_hash
 
 
 def settlement_address(value):
@@ -80,10 +60,12 @@ def _party(order, address):
     }
 
 
-def capture_settlement_context(swap, price_per_share=None):
+def capture_settlement_context(swap, deployment, price_per_share=None):
     token = swap.share_token
     payment = swap.payment_asset
-    if (swap.buy_order.payment_asset_id or swap.sell_order.payment_asset_id) != payment.pk:
+    if (
+        swap.buy_order.payment_asset_id or swap.sell_order.payment_asset_id
+    ) != payment.pk or deployment.asset_id != payment.pk:
         raise SettlementContextChanged()
     for order, address, kind in (
         (swap.sell_order, swap.seller_address, "sell"),
@@ -97,7 +79,6 @@ def capture_settlement_context(swap, price_per_share=None):
             or order.wallet.address.casefold() != address.casefold()
         ):
             raise SettlementContextChanged()
-    deployment = require_deployment(payment)
     typed_data = {
         "types": deepcopy(SETTLEMENT_TYPES),
         "primaryType": "SwapOrder",
@@ -152,6 +133,8 @@ def capture_settlement_context(swap, price_per_share=None):
 
 
 def recorded_settlement_context(swap):
+    if swap.settlement_protocol_version == 0:
+        raise LegacySwapHeld()
     context = swap.settlement_context
     try:
         typed = context["typed_data"]

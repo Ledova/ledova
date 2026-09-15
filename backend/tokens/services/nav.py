@@ -20,7 +20,7 @@ from blockchain.models import OutgoingOperation
 from blockchain.services import outgoing
 from integrations.base_chain import get_base_chain_client
 from shared.db import APP_ALIAS, atomic, current_alias
-from shared.utils.admin_display import format_units
+from shared.utils.token_amounts import format_units
 from tokens.exceptions import NAVUpdateConflict
 from tokens.models import NAVUpdate, NAVUpdateMode, NAVUpdateStatus, YieldToken
 

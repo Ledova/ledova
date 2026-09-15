@@ -13,6 +13,7 @@ from eth_account.messages import encode_typed_data
 from rest_framework.test import APIClient, APITransactionTestCase
 
 from feature_flags.models import FeatureFlag
+from operators.settlement import require_deployment
 from shared.db import atomic, current_alias, reset_principal, use_operator
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
@@ -239,24 +240,23 @@ class SwapParentMigrationTest(TransactionTestCase):
         migrate_to(AFTER)
         self.assertEqual((list(swaps.order_by("pk").values()), list(orders.order_by("pk").values())), before)
 
-    def test_legacy_child_first_deletion_and_both_visible_updates_keep_original_behavior(self):
-        self.old_apps = migrate_to([("tokens", "0038_order_action_submissions")])
+    def test_legacy_history_cannot_be_updated_or_deleted_through_its_parent(self):
+        migrate_to([("tokens", "0038_order_action_submissions")])
         restore_every_migration()
-        with use_operator():
-            self.swap.refresh_from_db()
-        self.assertEqual(self.swap.settlement_protocol_version, 0)
-        self.assertIsNone(self.swap.settlement_context)
-        SwapOrder.objects.filter(pk=self.swap.pk).update(
-            seller_signature="legacy", status=SwapOrderStatus.SELLER_SIGNED
-        )
-        with use_operator():
-            self.swap.refresh_from_db()
-        self.assertEqual(self.swap.seller_signature, "legacy")
-        parent_id = self.parent.pk
-        self.parent.delete()
-        self.assertFalse(SwapOrder.objects.filter(pk=self.swap.pk).exists())
-        self.assertFalse(TransferOrder.objects.filter(pk=parent_id).exists())
         self.old_apps = None
+        with use_operator():
+            self.swap.refresh_from_db()
+            before = SwapOrder.objects.filter(pk=self.swap.pk).values().get()
+            self.assertEqual(self.swap.settlement_protocol_version, 0)
+            self.assertIsNone(self.swap.settlement_context)
+            with self.assertRaises(IntegrityError), atomic():
+                SwapOrder.objects.filter(pk=self.swap.pk).update(
+                    seller_signature="legacy", status=SwapOrderStatus.SELLER_SIGNED
+                )
+            with self.assertRaises(IntegrityError), atomic():
+                self.parent.delete()
+            self.assertEqual(SwapOrder.objects.filter(pk=self.swap.pk).values().get(), before)
+            self.assertEqual(TransferOrder.objects.filter(pk=self.parent.pk).values().get(), self.parent_before)
 
 
 @override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT, BLOCKCHAIN_OPERATOR_KEY="0x" + "33" * 32)
@@ -490,7 +490,7 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
             values["uuid"] = uuid4()
             values["nonce"] += 1
             new_swap = SwapOrder(**values)
-            capture_settlement_context(new_swap)
+            capture_settlement_context(new_swap, require_deployment(new_swap.payment_asset))
         with self.assertRaises(DatabaseError), atomic():
             SwapOrder.objects.bulk_create([new_swap])
         self.assertFalse(SwapOrder.objects.filter(pk=values["uuid"]).exists())

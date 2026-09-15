@@ -147,8 +147,8 @@ def run(mode, row_id, detail):
         result = expire_unclaimed_swap(row, datetime.fromisoformat(detail))
     elif mode == "match":
         with atomic():
-            match = token_transfer_service.find_matching_order(row)
-            result = str(match[0].pk) if match else None
+            matches = token_transfer_service.find_matching_orders(row)
+            result = str(matches[0][0].pk) if matches else None
     else:
         raise AssertionError(mode)
     report("done", result=result)

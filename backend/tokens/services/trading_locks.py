@@ -48,6 +48,7 @@ def lock_current_claim(expected_swap, expected_transaction, *, with_orders=False
     swap = SwapOrder.objects.select_for_update(of=("self",)).filter(pk=expected_swap.pk).first()
     if (
         swap is None
+        or swap.settlement_protocol_version != 1
         or expected_swap.status != SwapOrderStatus.EXECUTING
         or swap.status != SwapOrderStatus.EXECUTING
         or swap.transaction_id != expected_transaction.pk
@@ -73,18 +74,17 @@ def lock_current_claim(expected_swap, expected_transaction, *, with_orders=False
         or hash_identity(swap.tx_hash) != hash_identity(transaction.tx_hash)
     ):
         return None
-    if swap.settlement_protocol_version:
-        from tokens.services.settlement_context import (
-            recorded_settlement_context,
-            settlement_execution_arguments,
-        )
+    from tokens.services.settlement_context import (
+        recorded_settlement_context,
+        settlement_execution_arguments,
+    )
 
-        context = recorded_settlement_context(swap)
-        if (
-            transaction.function_args != settlement_execution_arguments(swap)
-            or expected_transaction.function_args != transaction.function_args
-            or transaction.to_address != context["typed_data"]["domain"]["verifyingContract"]
-            or expected_transaction.to_address != transaction.to_address
-        ):
-            return None
+    context = recorded_settlement_context(swap)
+    if (
+        transaction.function_args != settlement_execution_arguments(swap)
+        or expected_transaction.function_args != transaction.function_args
+        or transaction.to_address != context["typed_data"]["domain"]["verifyingContract"]
+        or expected_transaction.to_address != transaction.to_address
+    ):
+        return None
     return swap, transaction
