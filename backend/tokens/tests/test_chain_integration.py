@@ -61,6 +61,7 @@ from tokens.services import (
     deployment,
     issuance_execution,
     share_token_service,
+    swap_approval,
 )
 from tokens.services.former_holders import fold_former_holders
 from tokens.services.register import (
@@ -81,6 +82,7 @@ from tokens.tasks import (
     deploy_share_token_task,
     execute_review_request_task,
 )
+from tokens.tests.deployment_fixtures import delete_approval_jobs
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.exceptions import BlockchainAPIError
 from wallets.models import Holding, Wallet
@@ -184,6 +186,7 @@ class ChainTestMixin:
         )
         with patch("tokens.tasks.deploy_share_token_task.defer"):
             deployment.start_deployment(self.token, principal_id=None)
+        self.addCleanup(delete_approval_jobs, self.token.deployment_id)
 
     def _deployed(self):
         self._start_deployment()
@@ -645,8 +648,7 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self.token.refresh_from_db()
         self.assertEqual(self.token.status, ShareTokenStatus.DEPLOYING)
         self.assertEqual(self.token.deployment_tx_hash, original.tx_hash)
-        with patch("tokens.services.share_token_service._approve_for_swap"):
-            address = deployment.recover(self.token.deployment_id)
+        address = deployment.recover(self.token.deployment_id)
         self.assertEqual(address, self.service.get_token_by_identifier(self.identifier))
         self.assertEqual(SignedAttempt.objects.count(), 1)
         self.assertEqual(self._signer_nonce(), nonce + 1)
@@ -1252,3 +1254,136 @@ class WhitelistChangeChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual(bytes(observed["input"]), bytes.fromhex(recovered.intent["data"][2:]))
         self.assertEqual(observed["nonce"], original.nonce)
         self.assertEqual(Account.recover_transaction(bytes(original.raw_transaction)).lower(), sender)
+
+
+@chain_available
+@override_settings(**CHAIN_SETTINGS)
+class SwapApprovalChainTest(ChainTestMixin, APITransactionTestCase):
+    def setUp(self):
+        super().setUp()
+        self.staff.user_permissions.add(Permission.objects.get(codename="change_sharetoken"))
+        self._deployed()
+
+    def approval(self):
+        return TokenDeployment.objects.get(pk=self.token.deployment_id)
+
+    def test_worker_killed_after_real_approval_acceptance_recovers_original_receipt(self):
+        database = connections[current_alias()].settings_dict
+        fields = ("ENGINE", "NAME", "USER", "PASSWORD", "HOST", "PORT", "OPTIONS")
+        env = os.environ.copy()
+        env["APPROVAL_TEST_DATABASE"] = json.dumps({key: database[key] for key in fields})
+        env["APPROVAL_TEST_CHAIN"] = json.dumps(CHAIN_SETTINGS)
+        nonce = self._signer_nonce()
+        process = subprocess.Popen(
+            [sys.executable, "-m", "tokens.tests.swap_approval_chain_worker", str(self.token.deployment_id)],
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        code, out, err = finish(process)
+        self.assertEqual(code, -signal.SIGKILL, out + err)
+        command = self.approval()
+        attempt = command.approval_operation.current_attempt
+        self.assertEqual(
+            (command.approval_outcome, command.approval_transaction.tx_hash, attempt.nonce),
+            ("executing", attempt.tx_hash, nonce),
+        )
+        with patch.object(
+            BaseChainClient, "send_raw_transaction", side_effect=AssertionError("No resend after original receipt")
+        ):
+            self.assertEqual(swap_approval.recover(command.pk), "confirmed")
+        self.assertEqual(self._signer_nonce(), nonce + 1)
+        observed = self.w3.eth.get_transaction(attempt.tx_hash)
+        self.assertEqual(
+            (observed["nonce"], bytes(observed["input"])),
+            (attempt.nonce, bytes.fromhex(command.approval_intent["data"][2:])),
+        )
+        contract = self.chain.load_contract("AtomicSwap", settings.ATOMIC_SWAP_ADDRESS)
+        self.assertTrue(contract.functions.approvedShareTokens(self.token.contract_address).call())
+
+    def test_real_revert_retains_receipt_before_explicit_retry(self):
+        target = settings.ATOMIC_SWAP_ADDRESS
+        original_code = Web3.to_hex(self.w3.eth.get_code(target))
+        send = self.chain.send_raw_transaction
+
+        def reject_signed_call(raw):
+            self.w3.provider.make_request("hardhat_setCode", [target, "0x60006000fd"])
+            return send(raw)
+
+        with patch.object(self.chain, "send_raw_transaction", side_effect=reject_signed_call):
+            self.assertEqual(swap_approval.recover(self.token.deployment_id), "failed")
+        command = self.approval()
+        previous = command.approval_transaction
+        mined = self.w3.eth.get_transaction_receipt(previous.tx_hash)
+        self.assertEqual(
+            (previous.status, previous.block_hash, previous.block_number),
+            ("reverted", Web3.to_hex(mined["blockHash"]), mined["blockNumber"]),
+        )
+        self.w3.provider.make_request("hardhat_setCode", [target, original_code])
+        swap_approval.retry(self.token, self.staff, swap_approval.retry_confirmation(self.token, self.staff))
+        self.assertEqual(swap_approval.recover(command.pk), "confirmed")
+        current = self.approval()
+        self.assertNotEqual(current.approval_transaction_id, previous.pk)
+        self.assertEqual(current.approval_operation.current_attempt.nonce, previous.nonce + 1)
+        previous.refresh_from_db()
+        self.assertEqual(previous.status, "reverted")
+
+    def test_approval_and_capital_increase_share_distinct_common_signer_nonces(self):
+        from blockchain.services import outgoing
+
+        request = self._increase(100)
+        with patch("tokens.tasks.execute_review_request_task.defer"):
+            command = capital_execution.admit(
+                request, self.staff, confirmed=capital_execution.confirmation(request, self.staff)
+            )
+        barrier = threading.Barrier(2)
+        prepare = outgoing.prepare_operation
+
+        def prepared_together(*args, **kwargs):
+            result = prepare(*args, **kwargs)
+            barrier.wait(timeout=20)
+            return result
+
+        results = {}
+
+        def run(label, action):
+            try:
+                results[label] = action()
+            except Exception as exc:
+                results[label] = exc
+            finally:
+                connections.close_all()
+
+        before = self._signer_nonce()
+        workers = [
+            threading.Thread(target=run, args=("approval", lambda: swap_approval.recover(self.token.deployment_id))),
+            threading.Thread(target=run, args=("capital", lambda: capital_execution.recover(command.pk))),
+        ]
+        with patch.object(outgoing, "prepare_operation", side_effect=prepared_together):
+            for worker in workers:
+                worker.start()
+            for worker in workers:
+                worker.join(timeout=40)
+        self.assertFalse(any(worker.is_alive() for worker in workers), results)
+        self.assertFalse(any(isinstance(value, Exception) for value in results.values()), results)
+        self.assertEqual(swap_approval.recover(self.token.deployment_id), "confirmed")
+        self.assertEqual(capital_execution.recover(command.pk)["status"], "executed")
+        command.refresh_from_db()
+        attempts = (self.approval().approval_operation.current_attempt, command.operation.current_attempt)
+        self.assertEqual({attempt.nonce for attempt in attempts}, {before, before + 1})
+        self.assertEqual(self._signer_nonce(), before + 2)
+
+    def test_existing_real_approval_is_observed_without_a_local_approval_attempt(self):
+        contract = self.chain.load_contract("AtomicSwap", settings.ATOMIC_SWAP_ADDRESS)
+        sender = Account.from_key(settings.BLOCKCHAIN_OPERATOR_KEY).address
+        tx_hash = contract.functions.setShareTokenApproval(self.token.contract_address, True).transact({"from": sender})
+        self.w3.eth.wait_for_transaction_receipt(tx_hash)
+        nonce = self._signer_nonce()
+        self.assertEqual(swap_approval.recover(self.token.deployment_id), "observed_approved")
+        command = self.approval()
+        block = self.w3.eth.get_block(command.approval_observation["block_number"])
+        self.assertEqual(Web3.to_hex(block["hash"]), command.approval_observation["block_hash"])
+        self.assertIsNone(command.approval_operation_id)
+        self.assertIsNone(command.approval_transaction_id)
+        self.assertEqual(self._signer_nonce(), nonce)

@@ -139,17 +139,6 @@ def _share_asset_symbol(token: ShareToken, contract_address: str) -> str:
     return f"{bare}.{token.company.acn}" if token.company.acn else bare
 
 
-def _approve_for_swap(token: ShareToken) -> None:
-    from tokens.services import AtomicSwapService
-
-    try:
-        approval_tx = AtomicSwapService().approve_share_token(token.contract_address)
-        if approval_tx:
-            logger.info(f"Approved {token.symbol} for AtomicSwap: {approval_tx}")
-    except Exception as exc:
-        logger.warning(f"Could not approve {token.symbol} for AtomicSwap: {exc}")
-
-
 def get_token_by_identifier(identifier: str) -> Optional[str]:
     address = factory_contract().functions.getTokenByIdentifier(identifier).call()
     return None if address == ZERO_ADDRESS else address

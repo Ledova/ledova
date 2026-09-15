@@ -40,6 +40,7 @@ class DeploymentMigrationTest(TransactionTestCase):
         old_binary.pk = None
         old_binary.symbol = "BINARY"
         old_binary.save()
+        restore_every_migration()
         self.assertIsNone(ShareToken.objects.get(pk=old_binary.pk).deployment_id)
         self.assertFalse(TokenDeployment.objects.exists())
         with patch("tokens.services.deployment.get_base_chain_client") as provider:
@@ -51,6 +52,7 @@ class DeploymentMigrationTest(TransactionTestCase):
         token = deployment_token("queued-reverse").token
         with self.assertRaisesMessage(DatabaseError, "Cannot remove deployment submission or recovery history"):
             migrate_to([("tokens", "0042_mint_request_operations")])
+        restore_every_migration()
         self.assertEqual(ShareToken.objects.get(pk=token.pk).deployment_id, token.deployment_id)
 
     def test_reverse_refuses_to_remove_admitted_intent(self):
@@ -59,4 +61,5 @@ class DeploymentMigrationTest(TransactionTestCase):
         command = deployment._admit(token, None)
         with self.assertRaisesMessage(DatabaseError, "Cannot remove deployment submission or recovery history"):
             migrate_to([("tokens", "0042_mint_request_operations")])
+        restore_every_migration()
         self.assertEqual(TokenDeployment.objects.get(pk=command.pk).intent, command.intent)
