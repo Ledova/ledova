@@ -32,6 +32,7 @@ import {
 } from '@ledova/shared';
 import { useCompany } from './hooks/useCompany';
 import { useTokensList, useTokenDetail } from './hooks/useTokens';
+import { TokenPauseControls } from './components/TokenPauseControls';
 import type {
   CompanyUpdate,
   CompanyStatus,
@@ -492,10 +493,6 @@ export function TokenDetailModal({
     setShowCapitalIncreaseForm,
     deploy,
     isDeploying,
-    pause,
-    isPausing,
-    unpause,
-    isUnpausing,
     downloadRegister,
     isDownloadingRegister,
     registerError,
@@ -1210,24 +1207,7 @@ export function TokenDetailModal({
               Request Issuance
             </button>
           )}
-          {isDeployed && (
-            <button
-              onClick={() => runAction(() => pause(), 'Token paused. Transfers and issuance are suspended.')}
-              disabled={isPausing}
-              className="flex items-center justify-center gap-1.5 rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-text-primary hover:bg-surface-tertiary disabled:opacity-50 transition-colors"
-            >
-              {isPausing ? 'Pausing...' : 'Pause'}
-            </button>
-          )}
-          {isPaused && (
-            <button
-              onClick={() => runAction(() => unpause(), 'Token unpaused.')}
-              disabled={isUnpausing}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-brand-mid px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand disabled:opacity-50 transition-colors"
-            >
-              {isUnpausing ? 'Unpausing...' : 'Unpause'}
-            </button>
-          )}
+          {(isDeployed || isPaused) && <TokenPauseControls token={token} />}
           <button
             onClick={() => setIsInfoOpen(true)}
             className="flex items-center justify-center gap-1.5 rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-text-primary hover:bg-surface-tertiary transition-colors"

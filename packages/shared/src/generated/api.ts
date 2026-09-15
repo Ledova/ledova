@@ -1359,6 +1359,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/{uuid}/pause-submissions/{submission_id}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_pause_submissions_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/{uuid}/pause/': {
     parameters: {
       query?: never;
@@ -3635,6 +3651,21 @@ export interface ApiComponents {
       walletType?:
         (ApiComponents['schemas']['WalletSigningPreferenceEnum'] | ApiComponents['schemas']['NullEnum']) | null;
     };
+    PauseSubmission: {
+      completedAt: string | null;
+      paused: boolean;
+      status: ApiComponents['schemas']['PauseSubmissionStatusEnum'];
+      uuid: string;
+    };
+    PauseSubmissionRequestRequest: {
+      submissionId: string;
+    };
+    PauseSubmissionResponse: {
+      message: string;
+      submission: ApiComponents['schemas']['PauseSubmission'];
+      token: ApiComponents['schemas']['ShareTokenDetail'];
+    };
+    PauseSubmissionStatusEnum: 'pending' | 'executing' | 'observed' | 'confirmed' | 'failed';
     PaymentInstruction: {
       amountDue: string;
       assetSymbol?: string;
@@ -4338,20 +4369,12 @@ export interface ApiComponents {
       message: string;
       token: ApiComponents['schemas']['ShareTokenDetail'];
     };
-    TokenPaused: {
-      message: string;
-      token: ApiComponents['schemas']['ShareTokenDetail'];
-    };
     TokenTransferReceipt: {
       blockNumber: number | null;
       gasUsed: number | null;
       txHash: string;
     };
     TokenTypeEnum: 'ordinary' | 'preference' | 'redeemable';
-    TokenUnpaused: {
-      message: string;
-      token: ApiComponents['schemas']['ShareTokenDetail'];
-    };
     ToStatusEnum: 'cancelled';
     TradingBroadcastTransferRequest: {
       signedTransaction: string;
@@ -7670,11 +7693,12 @@ export interface ApiOperations {
       };
     };
   };
-  api_v1_tokens_pause_create: {
+  api_v1_tokens_pause_submissions_retrieve: {
     parameters: {
       query?: never;
       header?: never;
       path: {
+        submission_id: string;
         uuid: string;
       };
       cookie?: never;
@@ -7686,7 +7710,50 @@ export interface ApiOperations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': ApiComponents['schemas']['TokenPaused'];
+          'application/json': ApiComponents['schemas']['PauseSubmissionResponse'];
+        };
+      };
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PauseSubmissionResponse'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_pause_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['PauseSubmissionRequestRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['PauseSubmissionRequestRequest'];
+        'multipart/form-data': ApiComponents['schemas']['PauseSubmissionRequestRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PauseSubmissionResponse'];
+        };
+      };
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PauseSubmissionResponse'];
         };
       };
     };
@@ -7721,14 +7788,28 @@ export interface ApiOperations {
       };
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['PauseSubmissionRequestRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['PauseSubmissionRequestRequest'];
+        'multipart/form-data': ApiComponents['schemas']['PauseSubmissionRequestRequest'];
+      };
+    };
     responses: {
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': ApiComponents['schemas']['TokenUnpaused'];
+          'application/json': ApiComponents['schemas']['PauseSubmissionResponse'];
+        };
+      };
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PauseSubmissionResponse'];
         };
       };
     };

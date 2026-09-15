@@ -3,10 +3,12 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { COMPANY_TOKEN_ENDPOINTS } from '@ledova/shared';
+import axios from 'axios';
+import { ApiClientProvider, COMPANY_TOKEN_ENDPOINTS } from '@ledova/shared';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
+const providedApi = Object.assign(axios.create(), api);
 
 import { TokenDetailModal } from './index';
 
@@ -48,7 +50,9 @@ let queryClient: QueryClient;
 function showHistory() {
   render(
     <QueryClientProvider client={queryClient}>
-      <TokenDetailModal uuid="token-1" companyStatus="active" onClose={vi.fn()} />
+      <ApiClientProvider client={providedApi}>
+        <TokenDetailModal uuid="token-1" companyStatus="active" onClose={vi.fn()} />
+      </ApiClientProvider>
     </QueryClientProvider>,
   );
 }

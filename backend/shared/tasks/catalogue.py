@@ -1,4 +1,8 @@
 SYSTEM_WIDE = {
+    "tokens.tasks.pause.recover_pause_change": "Recovers one durably authorized issuer or staff pause command "
+    "through its original outgoing operation. Public issuer projection re-enters the admitted principal's scope.",
+    "tokens.tasks.pause.check_pending_pause_changes": "Recovers admitted pause commands across issuers; it cannot "
+    "admit new intent, reopen terminal submissions or substitute current state for a signed outcome.",
     "tokens.tasks.deployment.recover_swap_approval": "Recovers one deployment's durably admitted swap approval "
     "on the operator connection, retaining its original target and signed transaction.",
     "tokens.tasks.deployment.check_pending_swap_approvals": "Recovers admitted swap approvals across issuers "

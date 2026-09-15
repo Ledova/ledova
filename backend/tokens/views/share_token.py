@@ -22,7 +22,11 @@ from tokens.serializers import (
     ShareTokenDetailSerializer,
     ShareTokenListSerializer,
 )
-from tokens.services import deployment, share_token_service
+from tokens.serializers.pause_change import (
+    PauseSubmissionRequestSerializer,
+    PauseSubmissionResponseSerializer,
+)
+from tokens.services import deployment, pause_changes, share_token_service
 from tokens.services.former_holders import fold_is_stale, former_members_of
 from tokens.services.register import (
     REGISTER_HEADERS,
@@ -90,28 +94,48 @@ class ShareTokenViewSet(AuthenticatedModelViewSet):
         return Response({"message": "Token deployment initiated.", "token": ShareTokenDetailSerializer(token).data})
 
     @extend_schema(
-        responses=inline_serializer(
-            name="TokenPaused",
-            fields={"message": serializers.CharField(), "token": ShareTokenDetailSerializer()},
-        )
+        request=PauseSubmissionRequestSerializer,
+        responses={200: PauseSubmissionResponseSerializer, 202: PauseSubmissionResponseSerializer},
     )
     @action(detail=True, methods=["post"])
     def pause(self, request, uuid=None):
-        token = self.get_object()
-        share_token_service.pause(token)
-        return Response({"message": "Token paused successfully.", "token": ShareTokenDetailSerializer(token).data})
+        return self._submit_pause(request, True)
 
     @extend_schema(
-        responses=inline_serializer(
-            name="TokenUnpaused",
-            fields={"message": serializers.CharField(), "token": ShareTokenDetailSerializer()},
-        )
+        request=PauseSubmissionRequestSerializer,
+        responses={200: PauseSubmissionResponseSerializer, 202: PauseSubmissionResponseSerializer},
     )
     @action(detail=True, methods=["post"])
     def unpause(self, request, uuid=None):
+        return self._submit_pause(request, False)
+
+    def _submit_pause(self, request, paused):
         token = self.get_object()
-        share_token_service.unpause(token)
-        return Response({"message": "Token unpaused successfully.", "token": ShareTokenDetailSerializer(token).data})
+        serializer = PauseSubmissionRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        change = pause_changes.submit(token, request.user, serializer.validated_data["submission_id"], paused)
+        return self._pause_response(token, change)
+
+    def _pause_response(self, token, change):
+        token.refresh_from_db()
+        return Response(
+            {
+                "message": pause_changes.message(change),
+                "token": ShareTokenDetailSerializer(token).data,
+                "submission": pause_changes.outcome(change),
+            },
+            status=status.HTTP_200_OK if change.completed_at else status.HTTP_202_ACCEPTED,
+        )
+
+    @extend_schema(
+        parameters=[OpenApiParameter("submission_id", OpenApiTypes.UUID, OpenApiParameter.PATH)],
+        responses={200: PauseSubmissionResponseSerializer, 202: PauseSubmissionResponseSerializer},
+    )
+    @action(detail=True, methods=["get"], url_path="pause-submissions/(?P<submission_id>[^/.]+)")
+    def pause_submission(self, request, uuid=None, submission_id=None):
+        token = self.get_object()
+        change = pause_changes.retrieve(token, request.user, submission_id)
+        return self._pause_response(token, change)
 
     @extend_schema(
         request=ShareIssuanceCreateSerializer,

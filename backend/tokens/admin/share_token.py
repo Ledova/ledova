@@ -4,24 +4,30 @@ from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
+from rest_framework.exceptions import PermissionDenied
 
-from integrations.base_chain.exceptions import BaseChainConnectionError
 from shared.utils.admin_actions import admin_action_path
 from shared.utils.admin_display import action_buttons
 from tokens.exceptions import (
     CompanyNotReadyException,
     InvalidTokenStateException,
-    TokenPauseFailedException,
+    PauseChangeConflict,
 )
 from tokens.models import (
     IssuanceStatus,
+    PauseChange,
     ShareIssuance,
     ShareToken,
     ShareTokenStatus,
     SwapApprovalOutcome,
     TokenDeployment,
 )
-from tokens.services import deployment, share_token_service, swap_approval
+from tokens.services import (
+    deployment,
+    pause_changes,
+    share_token_service,
+    swap_approval,
+)
 
 from ._helpers import bounded_chain_read, hex_column, status_badge
 
@@ -89,6 +95,7 @@ class ShareTokenAdmin(admin.ModelAdmin):
         "updated_at",
         "status_actions",
         "swap_approval_status",
+        "pause_submission_status",
     ]
     ordering = ["-created_at"]
 
@@ -122,7 +129,7 @@ class ShareTokenAdmin(admin.ModelAdmin):
         (
             "Status & Actions",
             {
-                "fields": ["status", "status_actions", "swap_approval_status"],
+                "fields": ["status", "status_actions", "swap_approval_status", "pause_submission_status"],
             },
         ),
         (
@@ -327,20 +334,19 @@ class ShareTokenAdmin(admin.ModelAdmin):
         change_url = reverse("admin:tokens_sharetoken_change", args=[token.pk])
         try:
             if request.method == "POST":
-                getattr(share_token_service, verb)(token)
+                change = pause_changes.submit_confirmation(
+                    token, request.user, verb == "pause", request.POST.get("confirmation")
+                )
+                notice = f"Submission {change.pk}: {pause_changes.message(change)}"
+                self.log_change(request, token, notice)
             else:
-                share_token_service.require_pausable(token, verb == "pause")
-        except (InvalidTokenStateException, TokenPauseFailedException, BaseChainConnectionError) as exc:
+                confirmation = pause_changes.confirmation(token, request.user, verb == "pause")
+        except (InvalidTokenStateException, PauseChangeConflict, PermissionDenied) as exc:
             messages.error(request, f"Cannot {verb}: {getattr(exc, 'detail', exc)}")
             return HttpResponseRedirect(change_url)
 
         if request.method == "POST":
-            if verb == "pause":
-                messages.warning(request, f"Token '{token.name}' has been paused on chain. Transfers are now disabled.")
-            else:
-                messages.success(
-                    request, f"Token '{token.name}' has been unpaused on chain. Transfers are now enabled."
-                )
+            messages.info(request, notice)
             return HttpResponseRedirect(change_url)
 
         context = {
@@ -349,9 +355,15 @@ class ShareTokenAdmin(admin.ModelAdmin):
             "subtitle": None,
             "token": token,
             "verb": verb,
+            "confirmation": confirmation,
             "opts": self.model._meta,
         }
         return render(request, "admin/tokens/sharetoken/pause_confirm.html", context)
+
+    @admin.display(description="Latest pause request")
+    def pause_submission_status(self, obj):
+        change = PauseChange.objects.filter(token_id=obj.pk, company_id=obj.company_id).order_by("-created_at").first()
+        return f"{change.pk}: {pause_changes.message(change)}" if change else "No pause submission recorded"
 
 
 @admin.register(ShareIssuance)
