@@ -243,8 +243,8 @@ it.each([
   },
 );
 
-it('holds explicit version0 history for operator review and restores the version1 route on list refresh', async () => {
-  const signer = vi.spyOn(localSigner, 'signEthereumTypedData').mockResolvedValue(fixture.signatures[1]!);
+it('holds explicit version0 history for operator review and refuses the version1 list row after refresh', async () => {
+  const signer = vi.spyOn(localSigner, 'signEthereumTypedData');
   const legacy = listShape({ ...captured.swapOrder, settlementProtocolVersion: 0 });
   state.swaps = [legacy];
   const view = render(<TradingPage />, { wrapper });
@@ -255,28 +255,15 @@ it('holds explicit version0 history for operator review and restores the version
   fireEvent.click(screen.getByText('Held for operator review'));
   await act(async () => {});
   expect(screen.queryByRole('alert')).toBeNull();
-  expect(swapRequests()).toEqual([]);
-  expect(requests.filter((request) => request.method === 'post')).toEqual([]);
-  expect(signer).not.toHaveBeenCalled();
-  state.swaps = [structuredClone(captured.swapOrder)];
+  state.swaps = [listedSwap];
   view.rerender(<TradingPage />);
   expect(screen.queryByText('Held for operator review')).toBeNull();
   expect(screen.getByText('Expired')).toBeTruthy();
   fireEvent.click(screen.getByTitle('Sign swap'));
-  await waitFor(() => expect(screen.getByText('You are the buyer.')).toBeTruthy());
-  expect(swapRequests()[0]!.params).toMatchObject({
-    swap_uuid: captured.swapUuid,
-    wallet_uuid: captured.swapOrder.settlementContext.buyer.walletUuid,
-    settlement_digest: captured.settlementDigest,
-  });
-  fireEvent.click(screen.getByText('Check token approval'));
-  await waitFor(() => expect(screen.getByText('Continue to sign')).toBeTruthy());
-  fireEvent.click(screen.getByText('Continue to sign'));
-  fireEvent.change(screen.getByLabelText('Synthetic seed'), { target: { value: fixture.mnemonic } });
-  fireEvent.click(screen.getByText('Sign trade'));
-  await waitFor(() => expect(screen.getByText('Your signature is recorded. Trade status: buyer_signed.')).toBeTruthy());
-  expect(signer).toHaveBeenCalledOnce();
-  expect(requests.filter((request) => request.method === 'post')).toHaveLength(1);
+  await waitFor(() => expect(screen.getByRole('alert').textContent).toBe('The saved trade details are incomplete.'));
+  expect(swapRequests()).toEqual([]);
+  expect(requests.filter((request) => request.method === 'post')).toEqual([]);
+  expect(signer).not.toHaveBeenCalled();
 });
 
 it('lists multiple scoped reminders and recovers the exact selected identity without any submission', async () => {

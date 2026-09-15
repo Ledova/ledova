@@ -423,7 +423,7 @@ it('keeps multiple original approval hashes during recovery and sufficient allow
   expect(view.queryByText('Review token approval')).toBeNull();
 });
 
-it('holds explicit V0 history for operator review in the mounted list and keeps V1 signable after refresh', async () => {
+it('holds explicit V0 history for operator review in the mounted list and refuses the V1 list row after refresh', async () => {
   const signer = jest.spyOn(localSigner, 'signEthereumTypedData');
   mockActualOrders = true;
   mockSwaps = [listShape({ ...current.swapOrder, settlementProtocolVersion: 0, shareAmount: 10 })];
@@ -435,25 +435,15 @@ it('holds explicit V0 history for operator review in the mounted list and keeps 
   await fireEvent.press(view.getByText('Held for operator review'));
   await act(async () => {});
   expect(view.queryByRole('alert')).toBeNull();
-  expect(requests).toHaveLength(0);
-  expect(getSeedPhrase).not.toHaveBeenCalled();
-  expect(signer).not.toHaveBeenCalled();
-  mockSwaps = [copy(current.swapOrder)];
+  mockSwaps = [listShape(current.swapOrder)];
   await view.rerender(<TradingScreen />);
   expect(view.queryByText('Held for operator review')).toBeNull();
   expect(view.getByText('Expired')).toBeTruthy();
   await fireEvent.press(view.getByText('Sign'));
-  await waitFor(() => expect(view.getByText('Check token approval')).toBeTruthy());
-  expect(requests[0].params).toMatchObject({
-    swap_uuid: current.swapUuid,
-    wallet_uuid: current.walletUuid,
-    settlement_digest: current.settlementDigest,
-  });
-  await fireEvent.press(view.getByText('Check token approval'));
-  await fireEvent.press(await view.findByText('Sign settlement'));
-  await waitFor(() => expect(posts()).toHaveLength(1));
-  expect(getSeedPhrase).toHaveBeenCalledTimes(1);
-  expect(signer).toHaveBeenCalledTimes(1);
+  expect(view.getByText('This settlement cannot be opened with the current account and wallet.')).toBeTruthy();
+  expect(requests).toHaveLength(0);
+  expect(getSeedPhrase).not.toHaveBeenCalled();
+  expect(signer).not.toHaveBeenCalled();
 });
 
 it.each([
