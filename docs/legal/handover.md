@@ -73,7 +73,7 @@ What the code does today, as far as this work depends on it:
   Payslips are reviewed evidence beside a claim, read by the operator and never
   by the issuing company.
 - **Secondary trading** code exists behind a flag that is off by default,
-  pending the deferred-hardening issues.
+  pending the open hardening issues.
 - **Chain guards refuse any mainnet chain id**; all recorded use is testnet or
   local, with synthetic data. That is the mechanism behind "do not reach the
   trigger".
