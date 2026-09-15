@@ -203,8 +203,9 @@ CI splits the ordinary suite across parallel jobs, one per shard named in
 `scripts/check-ordinary-shards.py` runs in every shard before the suite. Through the same
 settings and test runner, it discovers the suite once with no labels and once
 with each shard's labels, each in a fresh interpreter as each CI job is, so no
-discovery sees a module an earlier one imported. It then refuses four things: a
-module with a test in no shard or in more than one, a test a shard would run
+discovery sees a module an earlier one imported. It counts each test id in every
+discovery, and refuses four things: a module with a test that runs fewer or more
+times across the shards than in the unlabelled suite, a test a shard would run
 that the unlabelled suite does not, a module that fails to load, and a
 `backend-suite-shard` matrix that is anything but the file's shard names, such
 as one with an `include` or `exclude`.
@@ -218,7 +219,7 @@ The gate needs the backend requirements and a `SECRET_KEY` for the test settings
 but no database. `make check` installs the requirements and runs it, through
 `make check-ordinary-shards`, from `backend/` with a generated key, as it runs
 `manage.py check`. `--labels SHARD` prints the labels that shard passes to
-`manage.py test`. The gate compares test identities, not durations, so balance
+`manage.py test`. The gate counts test identities, not durations, so balance
 remains a measurement.
 
 ## The API type drift gate

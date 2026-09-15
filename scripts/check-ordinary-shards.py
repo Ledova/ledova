@@ -6,7 +6,7 @@ import os
 import subprocess
 import sys
 import unittest
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 import yaml
@@ -41,7 +41,7 @@ def findings(everything, shards):
     problems = {
         f"{run} failed to load {case['module']}" for run, found in runs.items() for case in found if case["failed"]
     }
-    expected = {case["id"] for case in everything if not case["failed"]}
+    expected = Counter(case["id"] for case in everything if not case["failed"])
     placed = defaultdict(list)
     module = {}
     for name, found in shards.items():
@@ -50,15 +50,15 @@ def findings(everything, shards):
                 placed[case["id"]].append(name)
                 module[case["id"]] = case["module"]
     for case in everything:
-        if not case["failed"] and case["id"] not in placed:
+        if not case["failed"] and len(placed.get(case["id"], [])) < expected[case["id"]]:
             problems.add(f"{case['module']} has tests in no shard")
     for identity, names in placed.items():
         if identity not in expected:
             problems.add(
                 f"{module[identity]} runs in shard {', '.join(sorted(set(names)))} and not in the unlabelled suite"
             )
-        elif len(names) > 1:
-            problems.add(f"{module[identity]} has tests in more than one shard: {', '.join(sorted(names))}")
+        elif len(names) > expected[identity]:
+            problems.add(f"{module[identity]} has tests duplicated in shards: {', '.join(sorted(names))}")
     return sorted(problems)
 
 

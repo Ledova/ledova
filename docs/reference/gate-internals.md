@@ -48,7 +48,9 @@ overrides remain allowed. It does not verify every test's assertions.
 [Ordinary shard checker](../../scripts/check-ordinary-shards.py) compares the test
 ids Django's runner builds, not module files. So a class label that leaves half a
 module out is a finding, and so is a module label outside the default `test*.py`
-pattern. A module that fails to import is a finding rather than a module: it is
+pattern. It counts each id rather than collecting a set, because two classes a
+factory builds share one id and Django runs both, so a set would take a copy in
+no shard for covered. A module that fails to import is a finding rather than a module: it is
 discovered as one `_FailedTest` on both sides and would otherwise look covered.
 Each discovery re-runs the checker with `--discover` in a fresh interpreter,
 because a module can define different tests depending on what was imported
@@ -57,8 +59,9 @@ before it, and each CI shard starts from nothing.
 finding with synthetic cases, run the checker's `main()` over them to hold its exit
 status to its findings, and hold the committed matrix to the committed shard
 file. Against a stand-in for Django's runner, they plant a test that exists only
-once another shard's module is imported, and a module skipped as it is imported,
-which must be named by its own name. Discovery of the real backend runs in CI's
+once another shard's module is imported, a factory's class built again in a
+module in no shard, and a module skipped as it is imported, which must be named
+by its own name. Discovery of the real backend runs in CI's
 shard jobs and in `make check`.
 
 ## Schema and client operations
