@@ -75,8 +75,8 @@ class EveryModuleRunsInExactlyOneShard(unittest.TestCase):
 class TheMatrixRunsExactlyTheDefinedShards(unittest.TestCase):
     SHARDS = {"tokens": ["tokens"], "others": ["wallets", "shared"]}
 
-    def workflow(self, *shards):
-        return {"jobs": {gate.JOB: {"strategy": {"matrix": {"shard": list(shards)}}}}}
+    def workflow(self, *shards, **more):
+        return {"jobs": {gate.JOB: {"strategy": {"matrix": {"shard": list(shards)} | more}}}}
 
     def test_the_same_shards_in_any_order_have_no_finding(self):
         self.assertEqual(gate.matrix_findings(self.workflow("others", "tokens"), self.SHARDS), [])
@@ -86,6 +86,8 @@ class TheMatrixRunsExactlyTheDefinedShards(unittest.TestCase):
             self.workflow("tokens"),
             self.workflow("tokens", "others", "wallets"),
             self.workflow("tokens", "others", "others"),
+            self.workflow("tokens", "others", exclude=[{"shard": "others"}]),
+            self.workflow("tokens", "others", include=[{"shard": "wallets"}]),
             {"jobs": {}},
         ):
             with self.subTest(workflow=workflow):

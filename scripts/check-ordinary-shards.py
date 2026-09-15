@@ -57,14 +57,15 @@ def findings(everything, shards):
 
 def matrix_findings(workflow, shards):
     try:
-        listed = workflow["jobs"][JOB]["strategy"]["matrix"]["shard"]
+        matrix = workflow["jobs"][JOB]["strategy"]["matrix"]
     except (KeyError, TypeError):
-        listed = None
-    if isinstance(listed, list) and sorted(listed) == sorted(shards):
+        matrix = None
+    listed = matrix.get("shard") if isinstance(matrix, dict) else None
+    if matrix == {"shard": listed} and isinstance(listed, list) and sorted(listed) == sorted(shards):
         return []
     return [
-        f"the {JOB} matrix in {WORKFLOW.relative_to(ROOT)} runs shards {listed},"
-        f" and {SHARDS.relative_to(ROOT)} defines {sorted(shards)}"
+        f"the {JOB} matrix in {WORKFLOW.relative_to(ROOT)} is {matrix},"
+        f" and {SHARDS.relative_to(ROOT)} defines only the shards {sorted(shards)}"
     ]
 
 
@@ -105,8 +106,8 @@ def main():
             print(f"  {problem}", file=sys.stderr)
         print(
             f"\nPut each app label in exactly one shard in {SHARDS.relative_to(ROOT)}, and keep the {JOB}"
-            f" matrix to the same shard names.\n\nThe rule is in docs/development/gates.md,"
-            ' "The ordinary shard gate".',
+            f" matrix to exactly those shard names, with no include or exclude.\n\nThe rule is in"
+            ' docs/development/gates.md, "The ordinary shard gate".',
             file=sys.stderr,
         )
         return 1
