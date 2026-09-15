@@ -89,6 +89,8 @@
                 <thead>
                     <tr>
                         <th>Date</th>
+                        <th>Submission</th>
+                        <th>Mode / Outcome</th>
                         <th>NAV Change</th>
                         <th>Synthetic Reference Value</th>
                         <th>Report Ref</th>
@@ -99,6 +101,8 @@
                     {% for update in recent_updates %}
                     <tr>
                         <td>{{ update.created_at|date:"d M Y H:i" }}</td>
+                        <td><a href="{% url 'admin:tokens_navupdate_change' update.pk %}">{{ update.pk }}</a></td>
+                        <td>{{ update.get_mode_display }} / {{ update.get_status_display }}</td>
                         <td>${{ update.old_nav_per_token }} &rarr; ${{ update.new_nav_per_token }}</td>
                         <td>${{ update.total_reserve_value }}</td>
                         <td>{{ update.custodian_report_ref|default:"-" }}</td>
@@ -113,6 +117,9 @@
 
     <form method="post" class="admin-form">
         {% csrf_token %}
+        {{ form.submission }}
+        {{ form.submission.errors }}
+        {{ form.non_field_errors }}
 
         <fieldset>
             <legend>New NAV Values</legend>
@@ -180,7 +187,9 @@
             <ul class="mb-0">
                 <li>The new NAV values belong to a synthetic local/testnet scenario</li>
                 <li>The reference value is test data and does not describe a real reserve</li>
-                <li>This updates the experimental token value shown in the demo</li>
+                <li>Chain updates remain pending until their original transaction is verified</li>
+                <li>An unresolved chain update refuses further NAV changes, including local-only changes</li>
+                <li>Retry this form only with its original values; a new attempt needs a new form</li>
             </ul>
         </div>
 

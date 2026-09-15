@@ -13,7 +13,7 @@ from .choices import (
 from .former_holder import FormerHolder
 from .issuance_execution import IssuanceExecutionStatus, ShareIssuanceExecution
 from .mint_request import MintRequest, MintRequestStatus
-from .nav_update import NAVUpdate
+from .nav_update import NAVUpdate, NAVUpdateMode, NAVUpdateStatus
 from .order_action import OrderActionPurpose, OrderActionStatus, OrderActionSubmission
 from .order_modification_log import OrderModificationLog
 from .order_submission import OrderSubmission, OrderSubmissionStatus
@@ -38,6 +38,8 @@ __all__ = [
     "MintRequest",
     "MintRequestStatus",
     "NAVUpdate",
+    "NAVUpdateMode",
+    "NAVUpdateStatus",
     "OrderActionPurpose",
     "OrderActionStatus",
     "OrderActionSubmission",

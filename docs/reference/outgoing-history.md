@@ -22,13 +22,16 @@ autocommit disablement, including the originating connection before the command'
 operator handoff. There is no activation or hold-resolution option.
 
 The fixed inventory includes all share issuance journal slots, unlinked share
-requests and operator transaction types in every status, plus mint, NAV, deployment, capital increase,
+requests and operator transaction types in every status, plus mint, historical NAV, deployment, capital increase,
 swap and whitelist source rows. Failed, reverted, completed, draft, hash-only and
 hashless observations are retained. Stored transaction addresses and nonces are
 claims until raw bytes establish them. Missing source links and unrecognized
 payloads remain unresolved; conflicting payloads never replace one another.
 Historical stablecoin burn records remain included after removal of the unused
-Python burn helper.
+Python burn helper. New durable NAV submissions use the common outgoing journal
+and are excluded from this legacy-row inventory. A historical NAV row with no
+transaction link remains unknown; that absence does not establish a local-only
+update or permission to execute it.
 
 For saved #303 mint bytes, local validation records signature/envelope validity,
 the observed hash, chain, sender and nonce, exact target/value/mint calldata, and

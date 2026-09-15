@@ -102,9 +102,9 @@ class AssetAdmin(admin.ModelAdmin):
             return HttpResponseRedirect(change_url)
 
         try:
-            service = mint_service.asset_service(asset)
-            current_supply = format_units(service.get_total_supply(), deployment.decimals)
-            is_minter = service.is_minter(service.signer_address)
+            info = mint_service.mint_info("AUDY", deployment.contract_address)
+            current_supply = format_units(info["supply"], deployment.decimals)
+            is_minter = info["is_minter"]
         except Exception as exc:
             logger.error(f"Failed to get {asset.symbol} contract info: {exc}")
             current_supply, is_minter = "Error", False

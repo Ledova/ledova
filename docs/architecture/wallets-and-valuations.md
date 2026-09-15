@@ -137,6 +137,46 @@ them from current valuations. Direct price, currency and source fields are
 read-only in the admin. Historical snapshots remain unchanged; no FX history
 or source is guessed for old records.
 
+## NAV updates
+
+The staff YieldToken **Update NAV** form requires `tokens.change_yieldtoken`.
+Its signed form identifier belongs to that staff member and token. Retrying the
+same identifier returns its original outcome; changed values, mode or actor are
+refused. Staff with the action permission can read the resulting NAV audit page.
+Metadata edits save only the edited fields, so an older form cannot overwrite a
+NAV that completed while the form was open.
+
+Local-only updates need no chain configuration. They commit the NAV audit row,
+token valuation, original same-symbol asset and daily snapshot together. Chain
+updates first commit a private NAVUpdate and its exact recovery job, before any
+provider call. The worker checks current staff permission, the original target,
+signer and contract units before signing through the outgoing journal. Once
+signed, operator recovery retains the original transaction even if staff access
+is later removed.
+
+An original successful receipt must contain exactly one NAVUpdated event from
+the admitted contract, with its admitted new NAV and reserve value. A matching
+current chain value is insufficient: even an equal-value update changes the
+contract timestamp. The event's previous NAV can differ from the previous local
+valuation after local-only updates. Confirmed evidence is saved before the
+atomic local projection, allowing that projection to recover without a provider.
+
+An unresolved newly admitted chain update reserves the token and contract until
+projection completes. It refuses every competing submission, including local-only
+changes. The competing identifier retains a completed unsigned refusal; a later
+attempt needs a new form. Completion and failure never reopen. The exact job and
+the periodic `check_pending_nav_updates` sweep recover unresolved chain work;
+the NAV audit page shows its original status, transaction hash and completion.
+Scheduled NAV price sync locks and rereads the token before locking the asset,
+so a captured old quote cannot overwrite a newer completed NAV.
+
+Migrations `tokens/0053` and `0054` preserve historical audit rows and transaction
+links without guessing their execution mode or granting recovery authority.
+Historical rows stay outside this adapter's admission and recovery flow. The
+[legacy attribution and signer cutover](../reference/outgoing-history.md) remains
+a separate prerequisite to activation. Reversing these migrations refuses to
+remove newly admitted NAV history.
+
 ## Portfolio history
 
 Portfolio history keeps one holding entry per asset and adds `perChain` to

@@ -16,7 +16,7 @@ one.
 | Schedule | Task |
 | --- | --- |
 | every minute | `expire_unclaimed_matches` |
-| every 5 min | `check_pending_token_deployments`, `check_pending_swap_approvals`, `check_pending_pause_changes`, `check_executing_issuance_requests`, `resolve_executing_swaps`, `reconcile_subscriptions`, `check_pending_transactions`, `check_all_pending_transactions`, `recover_wallet_submissions`, `observe_wallet_chains`, `recover_mint_requests`, `recover_whitelist_changes`, `recover_capital_increases` |
+| every 5 min | `check_pending_token_deployments`, `check_pending_swap_approvals`, `check_pending_pause_changes`, `check_pending_nav_updates`, `check_executing_issuance_requests`, `resolve_executing_swaps`, `reconcile_subscriptions`, `check_pending_transactions`, `check_all_pending_transactions`, `recover_wallet_submissions`, `observe_wallet_chains`, `recover_mint_requests`, `recover_whitelist_changes`, `recover_capital_increases` |
 | every 10 min | `sync_all_assets`, `sync_exchange_rates` |
 | every 30 min | `sync_all_entries`, `reconcile_failed_adds` |
 | hourly, on the hour | `sync_all_wallets`, `run_batch_monitoring` |
