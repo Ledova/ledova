@@ -14,6 +14,7 @@ from jsonschema import Draft4Validator, RefResolver
 from rest_framework.test import APITransactionTestCase
 
 from assets.models import AssetChainDeployment
+from operators.settlement import require_deployment
 from shared.db import acting_for, atomic, current_alias, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
@@ -21,6 +22,7 @@ from shared.utils.typed_data import signable_message, typed_data_digest
 from tokens.exceptions import (
     CreateOrderNotWhitelistedException,
     InsufficientBalanceException,
+    InvalidSettlementAmountException,
     OrderMatchException,
     TokenBalanceRetrievalException,
 )
@@ -33,6 +35,7 @@ from tokens.models import (
     TransferOrder,
 )
 from tokens.services import token_transfer_service
+from tokens.services.settlement_context import recorded_settlement_context
 from tokens.tests.order_submission_fixtures import (
     OTHER_KEY,
     OWNER,
@@ -260,6 +263,166 @@ class SubmissionRecoveryChecks(SubmissionFixtures):
             self.assertEqual(TransferOrder.objects.filter(pk=counter.pk).values().get(), before_counter)
         self.assertEqual(self.events, [])
         self.chain.send_raw_transaction.assert_not_called()
+
+    def test_buy_skips_inexact_partial_fills_and_keeps_price_time_priority(self):
+        first = self.counter_order(quantity=100, price="1.23")
+        second = self.counter_order(quantity=100, price="1.50", wallet=first.wallet)
+        winner = self.counter_order(quantity=3, price="2.00", wallet=first.wallet)
+        later = self.counter_order(quantity=3, price="2.00", wallet=first.wallet)
+        dearer = self.counter_order(quantity=3, price="2.50", wallet=first.wallet)
+        unchanged = [first.pk, second.pk, later.pk, dearer.pk]
+        with use_operator():
+            AssetChainDeployment.objects.filter(asset=self.tenant.refs.stablecoin, chain="base").update(decimals=0)
+            before = list(TransferOrder.objects.filter(pk__in=unchanged).order_by("pk").values())
+            before_swaps = SwapOrder.objects.count()
+        match = token_transfer_service.match_orders
+        attempts = []
+
+        def observe(buy, sell, quantity):
+            original = [
+                {field.attname: getattr(order, field.attname) for field in order._meta.concrete_fields}
+                for order in (buy, sell)
+            ]
+            attempts.append(sell.pk)
+            try:
+                return match(buy, sell, quantity)
+            except InvalidSettlementAmountException:
+                self.assertEqual(
+                    [
+                        {field.attname: getattr(order, field.attname) for field in order._meta.concrete_fields}
+                        for order in (buy, sell)
+                    ],
+                    original,
+                )
+                self.assertEqual(TransferOrder.objects.filter(pk=sell.pk).values().get(), original[1])
+                self.assertEqual(self.events, [])
+                raise
+
+        with patch.object(token_transfer_service, "match_orders", side_effect=observe):
+            created = self.create(self.signed_body(self.body(quantity=3, price_per_share="3.00")))
+        self.assertEqual(created.status_code, 201, created.content)
+        self.assertEqual(created.json()["match"]["counterOrder"], str(winner.pk))
+        self.assertEqual(attempts, [first.pk, second.pk, winner.pk])
+        with use_operator():
+            self.assertEqual(list(TransferOrder.objects.filter(pk__in=unchanged).order_by("pk").values()), before)
+            self.assertEqual(SwapOrder.objects.count(), before_swaps + 1)
+            swap = SwapOrder.objects.get(pk=created.json()["match"]["swapOrder"])
+            self.assertEqual((swap.share_amount, swap.payment_amount), (3, 6))
+        self.assertEqual([event[0] for event in self.events], ["order_created", "order_matched"])
+        self.chain.send_raw_transaction.assert_not_called()
+
+    def test_sell_skips_an_inexact_partial_fill_and_matches_the_representable_full_lot(self):
+        first = self.counter_order(quantity=3, price="2.50", order_type="buy")
+        winner = self.counter_order(quantity=100, price="2.25", order_type="buy", wallet=first.wallet)
+        with use_operator():
+            AssetChainDeployment.objects.filter(asset=self.tenant.refs.stablecoin, chain="base").update(decimals=0)
+            before = TransferOrder.objects.filter(pk=first.pk).values().get()
+        created = self.create(self.signed_body(self.body(order_type="sell", quantity=100, price_per_share="1.23")))
+        self.assertEqual(created.status_code, 201, created.content)
+        self.assertEqual(created.json()["match"]["counterOrder"], str(winner.pk))
+        with use_operator():
+            self.assertEqual(TransferOrder.objects.filter(pk=first.pk).values().get(), before)
+            swap = SwapOrder.objects.get(pk=created.json()["match"]["swapOrder"])
+            self.assertEqual((swap.share_amount, swap.payment_amount), (100, 123))
+        self.assertEqual([event[0] for event in self.events], ["order_created", "order_matched"])
+
+    def test_sell_skips_an_overflowing_fill_without_reducing_its_quantity(self):
+        first = self.counter_order(quantity=100, price="2.00", order_type="buy")
+        winner = self.counter_order(quantity=3, price="1.00", order_type="buy", wallet=first.wallet)
+        with use_operator():
+            AssetChainDeployment.objects.filter(asset=self.tenant.refs.stablecoin, chain="base").update(decimals=18)
+            before = TransferOrder.objects.filter(pk=first.pk).values().get()
+        created = self.create(self.signed_body(self.body(order_type="sell", quantity=100, price_per_share="1.00")))
+        self.assertEqual(created.status_code, 201, created.content)
+        self.assertEqual(created.json()["match"]["counterOrder"], str(winner.pk))
+        self.assertEqual(created.json()["intent"]["quantity"], "100")
+        with use_operator():
+            self.assertEqual(TransferOrder.objects.filter(pk=first.pk).values().get(), before)
+            swap = SwapOrder.objects.get(pk=created.json()["match"]["swapOrder"])
+            self.assertEqual((swap.share_amount, swap.payment_amount), (3, 3 * 10**18))
+
+    def test_new_valid_candidate_does_not_reopen_an_original_refused_submission(self):
+        first = self.counter_order(quantity=100, price="1.23")
+        with use_operator():
+            AssetChainDeployment.objects.filter(asset=self.tenant.refs.stablecoin, chain="base").update(decimals=0)
+            before = TransferOrder.objects.filter(pk=first.pk).values().get()
+        body = self.body(quantity=3, price_per_share="2.00")
+        signed = self.signed_body(body)
+        refused = self.create(signed)
+        self.assertEqual(refused.status_code, 400, refused.content)
+        self.assertEqual(refused.json()["refusal"]["code"], "invalid_settlement_amount")
+        winner = self.counter_order(quantity=3, price="2.00", wallet=first.wallet)
+        self.assertEqual(self.create(signed).json(), refused.json())
+        self.assertEqual(self.recover().json(), refused.json())
+        self.assertEqual(self.events, [])
+        created = self.create(self.signed_body({**body, "submission_id": str(uuid4())}))
+        self.assertEqual(created.status_code, 201, created.content)
+        self.assertEqual(created.json()["match"]["counterOrder"], str(winner.pk))
+        with use_operator():
+            self.assertEqual(TransferOrder.objects.filter(pk=first.pk).values().get(), before)
+
+    def test_non_amount_failure_after_a_skipped_candidate_remains_retryable(self):
+        first = self.counter_order(quantity=100, price="1.23")
+        winner = self.counter_order(quantity=3, price="2.00", wallet=first.wallet)
+        with use_operator():
+            AssetChainDeployment.objects.filter(asset=self.tenant.refs.stablecoin, chain="base").update(decimals=0)
+            before = list(TransferOrder.objects.filter(pk__in=[first.pk, winner.pk]).order_by("pk").values())
+        from tokens.services import atomic_swap_service
+
+        create_swap = atomic_swap_service.create_swap_order
+        signed = self.signed_body(self.body(quantity=3, price_per_share="2.00"))
+        for error in (
+            OrderMatchException(),
+            ImproperlyConfigured("synthetic configuration"),
+            DatabaseError("synthetic"),
+        ):
+
+            def fail_winner(*args, **kwargs):
+                if kwargs["sell_order"].pk == winner.pk:
+                    raise error
+                return create_swap(*args, **kwargs)
+
+            with self.subTest(error=type(error).__name__), patch.object(
+                atomic_swap_service, "create_swap_order", side_effect=fail_winner
+            ):
+                response = self.create(signed)
+            self.assertEqual(response.status_code, 400 if isinstance(error, OrderMatchException) else 500)
+            self.assert_pending_and_unspent(signed)
+            with use_operator():
+                self.assertEqual(
+                    list(TransferOrder.objects.filter(pk__in=[first.pk, winner.pk]).order_by("pk").values()), before
+                )
+        self.assertEqual(self.create(signed).status_code, 201)
+
+    def test_winning_attempt_calculates_and_captures_its_own_deployment_snapshot(self):
+        first = self.counter_order(quantity=100, price="1.23")
+        winner = self.counter_order(quantity=3, price="2.00", wallet=first.wallet)
+        with use_operator():
+            deployments = AssetChainDeployment.objects.filter(asset=self.tenant.refs.stablecoin, chain="base")
+            deployments.update(decimals=0)
+        calls = []
+
+        def resolve(asset):
+            with use_operator():
+                if calls:
+                    deployments.update(decimals=2)
+                deployment = require_deployment(asset)
+                calls.append(deployment.decimals)
+                if len(calls) == 2:
+                    deployments.update(decimals=8)
+            return deployment
+
+        with patch("tokens.services.atomic_swap_service.require_deployment", side_effect=resolve):
+            created = self.create(self.signed_body(self.body(quantity=3, price_per_share="2.00")))
+        self.assertEqual(created.status_code, 201, created.content)
+        self.assertEqual(created.json()["match"]["counterOrder"], str(winner.pk))
+        self.assertEqual(calls, [0, 2])
+        with use_operator():
+            swap = SwapOrder.objects.get(pk=created.json()["match"]["swapOrder"])
+            context = recorded_settlement_context(swap)
+            self.assertEqual(swap.payment_amount, 600)
+            self.assertEqual(context["payment_asset"]["deployment_decimals"], 2)
+            self.assertEqual(context["typed_data"]["message"]["paymentAmount"], "600")
 
     def test_foreign_account_lookup_hides_pending_and_created_outcomes(self):
         signed = self.signed_body()
@@ -513,7 +676,7 @@ class OrderSubmissionProtocolTest(SubmissionBoundaryChecks, SubmissionFixtures, 
         self.balance.get_token_balance.side_effect = None
         for error in (OrderMatchException(), InsufficientBalanceException()):
             with self.subTest(unclassified=type(error).__name__), patch.object(
-                token_transfer_service, "find_matching_order", side_effect=error
+                token_transfer_service, "find_matching_orders", side_effect=error
             ):
                 response = self.create(signed)
                 self.assertEqual(response.status_code, 400, response.content)
@@ -523,7 +686,7 @@ class OrderSubmissionProtocolTest(SubmissionBoundaryChecks, SubmissionFixtures, 
     def test_refusal_rolls_back_the_creation_savepoint_before_committing_the_spend(self):
         signed = self.signed_body()
         with patch.object(
-            token_transfer_service, "find_matching_order", side_effect=CreateOrderNotWhitelistedException()
+            token_transfer_service, "find_matching_orders", side_effect=CreateOrderNotWhitelistedException()
         ):
             response = self.create(signed)
         self.assertEqual(response.status_code, 400, response.content)

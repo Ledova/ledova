@@ -36,13 +36,16 @@ describe the owned order without granting visibility to the token itself.
 
 Challenge spend, order creation, matching and the recorded outcome share one
 independent database transaction. An enclosing transaction or disabled autocommit
-is refused. An explicit negative whitelist result, insufficient seller balance
-or an unrepresentable or out-of-range matched settlement amount records a
-terminal business refusal: creation and matching roll back to their savepoint
+is refused. A negative whitelist result, insufficient seller balance or failure
+of every compatible fill's amount check records a terminal business refusal:
+creation and matching roll back to their savepoint
 while spend and refusal commit together. The amount refusal uses
 `invalid_settlement_amount`; the same submission UUID remains refused even if
 the counter-order or deployment later changes. A corrected intent uses a new
-UUID. See [payment units](swap-settlement.md) for the exact calculation rules.
+UUID. Matching tries later candidates when a proposed fill fails the amount
+check, retaining price/time priority among usable fills. It neither rounds nor
+resizes a fill, and leaves skipped resting orders unchanged. See
+[payment units](swap-settlement.md) for the exact calculation rules.
 Provider, configuration,
 database and unclassified matching failures remain retryable; a lost commit
 acknowledgement requires recovery. `tokens/0037` protects the account/key, original

@@ -22,9 +22,13 @@ deployment snapshot. The total must be exactly representable, positive and fit
 the stored signed 64-bit integer range; shares must also be positive whole
 integers in that range. No amount is rounded or truncated. A fractional price is
 allowed when its total is representable: 100 shares at 1.23 require 123 units of
-a zero-decimal token, while three shares at that price are refused. The
-[submission protocol](order-submissions.md#creating-an-order) records a permanent
-refusal for an unrepresentable or out-of-range match.
+a zero-decimal token, while three shares at that price cannot settle. Matching
+tries candidates in price/time order and skips proposed fills that are
+unrepresentable or out of range. Each skipped attempt rolls back without changing
+the resting order, its reservations or the proposed quantity. The first usable
+fill wins within the signed price limit. If every otherwise-compatible candidate
+fails this amount check, the [submission protocol](order-submissions.md#creating-an-order)
+records a permanent refusal. With no compatible candidate, the order stays open.
 
 V1 market history decodes the original raw payment with its captured deployment
 scale, including older V1 records whose quoted price disagreed with the signed
