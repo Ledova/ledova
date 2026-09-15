@@ -209,7 +209,7 @@ that the unlabelled suite does not, a module that fails to load, and a
 `backend-suite-shard` matrix that is anything but the file's shard names, such
 as one with an `include` or `exclude`.
 
-A new module inside an assigned app label is covered with no change. A new app
+A new module inside an assigned label is covered with no change. A new app
 fails until its label is put in exactly one shard. Balance shards by moving app
 labels. Fall back to module labels only where one app dominates, because every
 new module in that app then fails until it is assigned too.

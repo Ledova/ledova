@@ -1,11 +1,13 @@
 import contextlib
 import importlib.util
+import io
 import json
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import yaml
 
@@ -160,6 +162,44 @@ class TheMatrixRunsExactlyTheDefinedShards(unittest.TestCase):
         ):
             with self.subTest(workflow=workflow):
                 self.assertEqual(len(gate.matrix_findings(workflow, self.SHARDS)), 1)
+
+
+class TheExitStatusFollowsEveryFinding(unittest.TestCase):
+    SHARDS = {"tokens": ["tokens"], "others": ["wallets", "shared"]}
+
+    def run_gate(self, found, matrix):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "shards.json").write_text(json.dumps(self.SHARDS), encoding="utf-8")
+            workflow = {"jobs": {gate.JOB: {"strategy": {"matrix": {"shard": matrix}}}}}
+            (root / "ci.yml").write_text(yaml.safe_dump(workflow), encoding="utf-8")
+            discover = mock.Mock(return_value=(EVERYTHING, found))
+            files = {"ROOT": root, "SHARDS": root / "shards.json", "WORKFLOW": root / "ci.yml"}
+            streams = {"argv": [str(SCRIPT)], "stdout": io.StringIO(), "stderr": io.StringIO()}
+            with mock.patch.multiple(gate, discover=discover, **files), mock.patch.multiple(sys, **streams):
+                status = gate.main()
+        discover.assert_called_once_with(self.SHARDS)
+        return status, streams["stdout"].getvalue(), streams["stderr"].getvalue()
+
+    def test_a_partition_the_matrix_runs_exits_0(self):
+        status, output, errors = self.run_gate({"tokens": TOKENS, "others": WALLETS + SHARED}, ["others", "tokens"])
+
+        self.assertEqual((status, errors), (0, ""))
+        self.assertEqual(
+            output, "Each of 6 ordinary tests in 3 modules runs in exactly one shard: tokens 2, others 4.\n"
+        )
+
+    def test_a_module_in_no_shard_exits_1_naming_it(self):
+        status, _, errors = self.run_gate({"tokens": TOKENS, "others": WALLETS}, ["tokens", "others"])
+
+        self.assertEqual(status, 1)
+        self.assertIn("  shared.tests.test_uploads has tests in no shard\n", errors)
+
+    def test_a_matrix_missing_a_shard_exits_1_even_when_the_shards_partition_the_suite(self):
+        status, _, errors = self.run_gate({"tokens": TOKENS, "others": WALLETS + SHARED}, ["tokens"])
+
+        self.assertEqual(status, 1)
+        self.assertIn(f"  the {gate.JOB} matrix in ci.yml is {{'shard': ['tokens']}},", errors)
 
 
 class TheCommittedFilesAgree(unittest.TestCase):

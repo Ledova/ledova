@@ -74,7 +74,7 @@ CI splits the ordinary suite into parallel "Django ordinary shard (NAME)" jobs,
 one for each shard in
 [`.github/ordinary-suite-shards.json`](../../.github/ordinary-suite-shards.json).
 Each job has its own PostgreSQL 16, and runs the ordinary command above with
-that shard's app labels appended. Before the suite, each runs the
+that shard's test labels appended. Before the suite, each runs the
 [ordinary shard gate](gates.md#the-ordinary-shard-gate), which holds the shards'
 test ids to a partition of the unlabelled suite's, so on the same commit their
 `Ran N tests` counts add up to the unsharded run's. The "Django ordinary suite" check
