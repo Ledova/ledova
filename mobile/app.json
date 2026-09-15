@@ -29,7 +29,8 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "org.example.ledova",
-      "allowBackup": true
+      "allowBackup": true,
+      "blockedPermissions": ["android.permission.RECORD_AUDIO"]
     },
     "plugins": [
       [
