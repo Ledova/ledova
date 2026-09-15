@@ -24,6 +24,7 @@ fails, and an entry naming no script fails.
 | `check-docs.py` | [The documentation gate](#the-documentation-gate) | yes | source gates |
 | `check-pr-metadata.py` | [The PR metadata gate](#the-pr-metadata-gate) | no | PR metadata |
 | `check-api-schema.py` | [The API type drift gate](#the-api-type-drift-gate) | no | Django |
+| `check-ordinary-shards.py` | [The ordinary shard gate](#the-ordinary-shard-gate) | no | Django ordinary shards |
 | `check-api-types.mjs` | [The API type drift gate](#the-api-type-drift-gate) | yes | JavaScript |
 | `check-client-operations.mjs` | [The API type drift gate](#the-api-type-drift-gate) | no | JavaScript |
 | `check-self-imports.mjs` | [Clients and the shared package](../architecture/clients.md) | yes | JavaScript |
@@ -194,6 +195,27 @@ The checker compares paths, anchors and names. It does not verify external URLs,
 cron values, arbitrary Markdown syntax or behavioral claims. New nested guides
 must remain discoverable from a parent; [documentation review](testing.md#documents-against-code)
 checks navigation and statements against source.
+
+## The ordinary shard gate
+
+CI splits the ordinary suite across parallel jobs, one per shard named in
+[`.github/ordinary-suite-shards.json`](../../.github/ordinary-suite-shards.json).
+`scripts/check-ordinary-shards.py` runs first in every shard. Through the same
+settings and test runner, it discovers the suite once with no labels and once
+with each shard's labels. It then refuses four things: a module with a test in
+no shard or in more than one, a test a shard would run that the unlabelled suite
+does not, a module that fails to load, and a `backend-suite-shard` matrix that
+names different shards from the file.
+
+A new module inside an assigned app label is covered with no change. A new app
+fails until its label is put in exactly one shard. Balance shards by moving app
+labels. Fall back to module labels only where one app dominates, because every
+new module in that app then fails until it is assigned too.
+
+The gate needs the backend requirements and test settings, so it is not in
+`make check`. From `backend/`, run `python ../scripts/check-ordinary-shards.py`;
+`--labels SHARD` prints the labels that shard passes to `manage.py test`. The
+gate compares test identities, not durations, so balance remains a measurement.
 
 ## The API type drift gate
 

@@ -45,6 +45,14 @@ that shadow reserved TestCase methods. Its regression controls establish which
 assertions become inert when `fail` is replaced; intentional lifecycle/runner
 overrides remain allowed. It does not verify every test's assertions.
 
+[Ordinary shard checker](../../scripts/check-ordinary-shards.py) compares the test
+ids Django's runner builds, not module files. So a class label that leaves half a
+module out is a finding, and so is a module label outside the default `test*.py`
+pattern. A module that fails to import is a finding rather than a module: it is
+discovered as one `_FailedTest` on both sides and would otherwise look covered.
+[Regression tests](../../scripts/tests/test_check_ordinary_shards.py) plant each
+finding with synthetic cases. Discovery of the real backend runs in CI's shard jobs.
+
 ## Schema and client operations
 
 [Response-declaration checker](../../scripts/check-schema-responses.py) follows local

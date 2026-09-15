@@ -1,0 +1,21 @@
+{
+  "tokens": ["tokens"],
+  "others": [
+    "assets",
+    "authentication",
+    "blockchain",
+    "companies",
+    "compliance",
+    "documents",
+    "feature_flags",
+    "integrations",
+    "ledova_backend",
+    "offerings",
+    "operators",
+    "portfolios",
+    "shared",
+    "users",
+    "wallets",
+    "whitelist"
+  ]
+}
