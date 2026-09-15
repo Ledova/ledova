@@ -15,10 +15,13 @@ class TheSwapListNamesEachSwapsRecordedProtocolTest(APITransactionTestCase):
         FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
         self.owner = make_tenant("list-protocol-owner")
         self.stranger = make_tenant("list-protocol-stranger")
-        self.addCleanup(restore_every_migration)
-        migrate_to(BEFORE_SETTLEMENT_PROTOCOLS)
-        restore_every_migration()
         self.historical = self.owner.swap
+        self.addCleanup(restore_every_migration)
+        self.historical_swaps = migrate_to(BEFORE_SETTLEMENT_PROTOCOLS).get_model("tokens", "SwapOrder").objects
+        self.client.force_authenticate(self.owner.user)
+
+    def restore_with_a_current_swap(self):
+        restore_every_migration()
         self.current = save_swap_with_context(
             sell_order=self.owner.order,
             buy_order=self.owner.counter_order,
@@ -31,7 +34,6 @@ class TheSwapListNamesEachSwapsRecordedProtocolTest(APITransactionTestCase):
             nonce=2**40,
             order_hash="0x" + "7c" * 32,
         )
-        self.client.force_authenticate(self.owner.user)
 
     def listed_versions(self):
         response = self.client.get("/api/v1/trading/swaps/", {"wallet_address": self.owner.wallet.address})
@@ -39,6 +41,8 @@ class TheSwapListNamesEachSwapsRecordedProtocolTest(APITransactionTestCase):
         return {row["uuid"]: row.get("settlementProtocolVersion", ABSENT) for row in response.json()["results"]}
 
     def test_historical_and_current_swaps_are_listed_with_the_version_each_recorded(self):
+        self.restore_with_a_current_swap()
+
         self.assertEqual(
             dict(SwapOrder.objects.values_list("uuid", "settlement_protocol_version")),
             {self.historical.uuid: 0, self.stranger.swap.uuid: 0, self.current.uuid: 1},
@@ -50,6 +54,11 @@ class TheSwapListNamesEachSwapsRecordedProtocolTest(APITransactionTestCase):
         self.assertEqual({type(version) for version in listed.values()}, {int})
 
     def test_a_historical_swap_that_no_longer_awaits_a_signature_leaves_the_list(self):
-        SwapOrder.objects.filter(pk=self.historical.pk).update(status=SwapOrderStatus.EXPIRED)
+        self.historical_swaps.filter(pk=self.historical.pk).update(status=SwapOrderStatus.EXPIRED)
+        self.restore_with_a_current_swap()
 
+        self.assertEqual(
+            SwapOrder.objects.values_list("settlement_protocol_version", "status").get(pk=self.historical.pk),
+            (0, SwapOrderStatus.EXPIRED),
+        )
         self.assertEqual(self.listed_versions(), {str(self.current.uuid): 1})
