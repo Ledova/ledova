@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from django.db import models
 
 from tokens.querysets import ShareIssuanceRequestQuerySet
@@ -10,6 +12,7 @@ from .review_request import ReviewableRequest
 class ShareIssuanceRequest(DerivesCompanyFromToken, ReviewableRequest):
 
     objects = ShareIssuanceRequestQuerySet.as_manager()
+    dispatch_id = models.UUIDField(default=uuid4, null=True, editable=False)
 
     token = models.ForeignKey(
         "tokens.ShareToken",

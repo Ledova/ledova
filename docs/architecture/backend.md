@@ -21,7 +21,7 @@ package of per-concern modules re-exported by `settings/__init__.py`.
 | `wallets` | `Wallet`, `Holding`, `HoldingSnapshot`, `Transaction`, balance sync and transfer confirmation |
 | `assets` | `Asset`, `AssetChainDeployment`, `AssetSnapshot`, `ExchangeRate`, price sync, asset identity |
 | `portfolios` | `Portfolio` and the value series computed on read |
-| `blockchain` | `BlockchainTransaction` and transaction monitoring; the durable outgoing-signing foundation (`SigningAccount`, `OutgoingOperation`, `SignedAttempt`) and its immutable history inventory (`OutgoingHistoryCapture`, `OutgoingHistoryEvidence`, `OutgoingCutoverHold`), not yet called from any production send path |
+| `blockchain` | `BlockchainTransaction` and transaction monitoring; the durable outgoing-signing foundation (`SigningAccount`, `OutgoingOperation`, `SignedAttempt`) and its immutable history inventory (`OutgoingHistoryCapture`, `OutgoingHistoryEvidence`, `OutgoingCutoverHold`) |
 | `compliance` | Monitoring rules, alerts, procedure templates, risk assessments |
 | `documents` | Uploaded documents and their extraction records |
 | `integrations` | Chain client, KYC providers, Alchemy, CoinGecko, Blockstream, ABR company registry, LLM document extraction, SendGrid, Expo push, Transak |
@@ -29,7 +29,8 @@ package of per-concern modules re-exported by `settings/__init__.py`.
 | `shared` | Base model, country lookup, the health-check middleware, the cross-tenant route matrix |
 
 The [outgoing-signing guide](outgoing-signing.md) owns admission, locking, history
-and activation constraints. No production send path calls the foundation yet.
+and activation constraints. Converted writers use the foundation; signer admission
+remains closed until the separate cutover requirements are met.
 
 ## Backend layers
 

@@ -5,11 +5,12 @@ from django import forms
 from django.contrib.admin.models import LogEntry
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
-from django.test import TestCase, override_settings
+from django.test import TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from web3 import Web3
 
+from blockchain.tests.outgoing_fixtures import admitted_signer
 from offerings.admin.subscription import ACTIONS
 from offerings.models import (
     Offering,
@@ -31,7 +32,14 @@ from offerings.tests.factories import (
     paid_subscription,
 )
 from shared.tests.tenants import make_tenant
-from tokens.models import RequestStatus, ShareIssuanceRequest
+from tokens.models import (
+    IssuanceExecutionStatus,
+    RequestStatus,
+    ShareIssuanceExecution,
+    ShareIssuanceRequest,
+)
+from tokens.services import issuance_execution
+from tokens.tests.issuance_fixtures import CHAIN_ID, KEY, IssuanceNode
 from users.models import InvestorClassification
 from whitelist.models import WhitelistEntry
 
@@ -46,8 +54,8 @@ TEST_STORAGES = {
 }
 
 
-@override_settings(STORAGES=TEST_STORAGES)
-class SubscriptionAdminTestCase(TestCase):
+@override_settings(STORAGES=TEST_STORAGES, BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
+class SubscriptionAdminTestCase(TransactionTestCase):
     def setUp(self):
         chain = patch(CHAIN_CLIENT).start().return_value
         chain.is_valid_address.return_value = True
@@ -63,9 +71,23 @@ class SubscriptionAdminTestCase(TestCase):
         eligible_subscriber(self.tenant)
         self.operator = User.objects.create_superuser(email="ops@example.test", password="pw-12345678")
         self.client.force_login(self.operator)
+        self.node = IssuanceNode()
+        self.enterContext(
+            patch("tokens.services.issuance_execution.get_base_chain_client", return_value=self.node.client)
+        )
+        self.enterContext(patch("tokens.services.share_token_service.is_recipient_whitelisted", return_value=True))
+        admitted_signer()
 
     def _url(self, subscription, action):
         return reverse("admin:offerings_subscription_action", args=[subscription.uuid, action])
+
+    def _retry(self, subscription, follow=False):
+        url = self._url(subscription, "retry")
+        confirmation = self.client.get(url)
+        self.assertEqual(confirmation.status_code, 200)
+        return self.client.post(
+            url, {"confirmation": confirmation.context["form"]["confirmation"].value()}, follow=follow
+        )
 
     def _change_url(self, subscription):
         return reverse("admin:offerings_subscription_change", args=[subscription.pk])
@@ -113,7 +135,10 @@ class SubscriptionAdminTest(SubscriptionAdminTestCase):
                 self.assertIsNone(subscription.issuance_request_id)
             staff.user_permissions.add(Permission.objects.get(codename="change_subscription"))
             self.assertEqual(self.client.post(changelist, payload).status_code, 302)
-            self.defer.assert_called_once_with(subscription_uuid=str(subscription.uuid), executed_by=staff.pk)
+            execution = ShareIssuanceExecution.objects.get(subscription_id=subscription.pk)
+            self.defer.assert_called_once_with(
+                subscription_uuid=str(subscription.uuid), executed_by=staff.pk, execution_id=str(execution.pk)
+            )
         self.defer.reset_mock()
         staff.user_permissions.remove(Permission.objects.get(codename="change_subscription"))
         for user, status in ((None, 302), (self.tenant.user, 302), (staff, 403)):
@@ -126,8 +151,10 @@ class SubscriptionAdminTest(SubscriptionAdminTestCase):
                 self.assertIn(reverse("admin:login"), response.url)
             self.defer.assert_not_called()
         staff.user_permissions.add(Permission.objects.get(codename="change_subscription"))
-        self.assertEqual(self.client.post(self._url(subscription, "retry")).status_code, 302)
-        self.defer.assert_called_once_with(subscription_uuid=str(subscription.uuid), executed_by=staff.pk)
+        self.assertEqual(self._retry(subscription).status_code, 302)
+        self.defer.assert_called_once_with(
+            subscription_uuid=str(subscription.uuid), executed_by=staff.pk, execution_id=str(execution.pk)
+        )
 
     def test_the_add_form_is_closed_and_every_field_is_read_only(self):
         subscription = draft_subscription(self.tenant)
@@ -221,9 +248,39 @@ class SubscriptionAdminTest(SubscriptionAdminTestCase):
         subscription.refresh_from_db()
         self.defer.reset_mock()
 
-        response = self.client.post(self._url(subscription, "retry"), {}, follow=True)
+        response = self._retry(subscription, follow=True)
         self.assertEqual(self.defer.call_count, 1)
-        self.assertIn("Allotment retried; the task is running in the background.", self._messages(response))
+        self.assertIn("Allotment recovery checked; the recorded status is shown below.", self._messages(response))
+
+    def test_a_retry_form_retained_before_refund_reports_the_cancelled_outcome_without_another_job(self):
+        subscription = paid_subscription(self.tenant)
+        with patch(SUPPLY, return_value=(1000, 0)):
+            self._allot([subscription])
+        self.defer.assert_called_once()
+        url = self._url(subscription, "retry")
+        form = self.client.get(url).context["form"]
+        confirmation = form["confirmation"].value()
+        self.client.post(
+            self._url(subscription, "refund"),
+            {"refund_amount": "25.00", "refund_reference": "SYNTHETIC-REFUND"},
+        )
+        self.defer.reset_mock()
+
+        response = self.client.post(url, {"confirmation": confirmation}, follow=True)
+
+        self.assertIn("Allotment recovery checked; the recorded status is shown below.", self._messages(response))
+        self.assertNotIn("running in the background", response.content.decode())
+        subscription.refresh_from_db()
+        self.assertEqual(subscription.status, SubscriptionStatus.REFUNDED)
+        self.assertEqual(subscription.money_held, Decimal("0.00"))
+        self.assertEqual(
+            ShareIssuanceExecution.objects.get(subscription_id=subscription.pk).status,
+            IssuanceExecutionStatus.CANCELLED,
+        )
+        self.defer.assert_not_called()
+        log = LogEntry.objects.order_by("action_time").last().change_message
+        self.assertIn("Checked recovery of issuance request", log)
+        self.assertIn("subscription status is Refunded", log)
 
     def test_the_bulk_action_allots_a_batch_inside_the_headroom(self):
         rows = [paid_subscription(self.tenant, quantity=40, wallet=extra_wallet(self.tenant, n)) for n in "12"]
@@ -468,9 +525,10 @@ class SubscriptionAdminMoneyTest(SubscriptionAdminTestCase):
         with patch(SUPPLY, return_value=(1000, 0)):
             self._allot([subscription])
         subscription.refresh_from_db()
-        ShareIssuanceRequest.objects.filter(pk=subscription.issuance_request_id).update(status=RequestStatus.EXECUTED)
+        execution = ShareIssuanceExecution.objects.get(subscription_id=subscription.pk)
+        self.assertEqual(issuance_execution.recover(execution.pk)["status"], RequestStatus.EXECUTED)
         subscription.refresh_from_db()
-        subscription.mark_allotted()
+        self.assertEqual(subscription.status, SubscriptionStatus.ALLOTTED)
 
         change = self.client.get(self._change_url(subscription))
         self.assertIn(self._url(subscription, "refund"), change.content.decode())

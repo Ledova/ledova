@@ -62,16 +62,20 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
    operator-held treasury address; a database constraint requires one of the two
    and makes bare addresses unique.
 6. `POST /api/v1/tokens/{uuid}/issue/` creates a `ShareIssuanceRequest`.
-   Executing it is refused before any transaction when the recipient is not on
-   the `WhitelistRegistry`, the amount would exceed the cap, or the token is
-   paused.
-7. Execution claims the request with a compare-and-set on its status, so two
-   Execute submits cannot both mint. The request's `ShareIssuance` uses idempotency key `issuance-request:<uuid>`.
-   New mints commit signed bytes and their hash before submission; retries
-   retain that identity. See [mint-journal recovery](../operations/recovery.md#deployment-and-issuance)
-   for replay, confirmed reverts and legacy hashless rows.
-   `check_executing_issuance_requests` (every 5 minutes) finishes a request a
-   killed worker left executing.
+   Staff approval and execution admission are separate. Admission retains the
+   approved terms and matching job in a private command. Before signing,
+   execution checks whitelist membership, the cap and pause state. A known
+   refusal becomes a definite unsigned failure with a safe explanation.
+7. The worker durably claims the request before opening its shared outgoing
+   operation. Its public `ShareIssuance` uses `issuance-request:<uuid>` as the
+   idempotency key. Signed bytes, hash, nonce and the transaction association
+   commit together before broadcast. Original receipt and mint-event verification
+   precede atomic completion of the issuance, request and linked subscription.
+   `check_executing_issuance_requests` recovers interrupted work every five
+   minutes. Unknown sends retain the original identity; a confirmed failure
+   requires a fresh confirmation naming that failed attempt.
+   [Share-issuance boundaries](outgoing-signing.md#share-issuances) describe
+   queued refunds, public guards and historical recovery.
 8. A capital increase calls `setAuthorizedShares(new_authorized_total)` and
    mints nothing. Staff execution commits the approved request, immutable private
    intent and background job before any chain call. Network work runs outside
@@ -101,9 +105,9 @@ after earlier refusals (`ReviewRequest.mark_executed` in
 `backend/tokens/models/review_request.py`), so the history does not stop at the
 last failure. Reviewer notes are omitted from the issuer serializers and from
 the client type in `packages/shared/src/types/domain/company-token.ts`; issuers
-receive execution notes and rejection or supersession reasons. Issuance provider diagnostics remain in operator records and logs. Capital
-recovery retains transaction identity and safe error categories; provider URLs
-and exception text do not enter capital responses or diagnostics.
+receive execution notes and rejection or supersession reasons. Issuance and capital recovery retain transaction identity and safe error
+categories in operator records; provider URLs and exception text do not enter
+public responses or recovery diagnostics.
 
 Issuers read their requests through `GET /api/v1/tokens/issuance-requests/`,
 filtered by token, company or status; the endpoint is read-only. List and detail
@@ -142,8 +146,9 @@ writing public state. A failed asset bridge stays recoverable after the token's
 contract is recorded. The bounded sweep rotates unresolved work by update time
 and repairs interrupted revert projections without opening another attempt.
 Once their transaction projection is complete, terminal failures await explicit
-retry. Existing post-deployment swap approval remains a separate legacy writer
-scheduled for M2.5 of #6; complete
+retry. Successful projection atomically queues a separate immutable swap approval
+phase on the private deployment record. Approval failure leaves the token deployed;
+its own recovery follows the original signed transaction. Complete
 same-key cutover, historical attribution and finality remain outstanding. Signer
 admission remains closed by default. See [outgoing signing](outgoing-signing.md).
 

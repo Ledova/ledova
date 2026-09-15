@@ -2,13 +2,12 @@ import csv
 import io
 from unittest.mock import Mock, patch
 
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
-from web3 import Web3
 
 from shared.tests.tenants import make_tenant
 from tokens.models import RequestStatus, ShareIssuance, ShareIssuanceRequest
-from tokens.services import share_token_service
+from tokens.services import issuance_execution
 from tokens.services.holder_identity import identity_at_allotment
 from tokens.services.register import (
     IDENTITY_BY_HOLDER_TYPE,
@@ -20,6 +19,7 @@ from tokens.services.register import (
     export_rows,
     token_register,
 )
+from tokens.tests.issuance_fixtures import CHAIN_ID, KEY, admit, install_issuance
 from wallets.models import Wallet
 from whitelist.models import HolderType, WhitelistEntry
 
@@ -165,25 +165,15 @@ class IdentitySurvivesAWalletDeletionTest(TestCase):
         self.assertEqual(rows[1][1], "1 Analytical Way")
 
 
-class TheIssuancePathStampsWhatItAllotsTest(TestCase):
+@override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
+class TheIssuancePathStampsWhatItAllotsTest(TransactionTestCase):
     def setUp(self):
-        self.chain = patch(CHAIN_CLIENT).start().return_value
-        self.chain.is_valid_address.return_value = True
-        self.chain.to_checksum_address.side_effect = Web3.to_checksum_address
-        self.chain.load_contract.return_value.functions.paused.return_value.call.return_value = False
-        patch(WHITELISTED, return_value=True).start()
-        patch(SUPPLY, return_value=(1000, 0)).start()
-        self.addCleanup(patch.stopall)
-
-        self.tenant = make_tenant("issuance-stamp")
-        self.token = self.tenant.deployed_token
+        install_issuance(self)
         profile = self.tenant.profile
         profile.full_name = "Grace Hopper"
         profile.residential_address = "3 Compiler Court"
         profile.save(update_fields=["full_name", "residential_address"])
         Wallet.objects.create(user_account=self.tenant.account, address=HOLDER, chain="base")
-
-        self.service = share_token_service
 
     def _execute(self, recipient=HOLDER, label=""):
         request = ShareIssuanceRequest.objects.create(
@@ -195,13 +185,21 @@ class TheIssuancePathStampsWhatItAllotsTest(TestCase):
         )
         ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.APPROVED)
         request.refresh_from_db()
-        try:
-            self.service.execute_request(request)
-        except Exception:
-            pass
+        result = issuance_execution.recover(admit(request, self.actor).pk)
+        self.assertEqual(result["status"], "executed")
         return ShareIssuance.objects.filter(token=self.token).order_by("-created_at").first()
 
     def test_the_row_is_stamped_before_the_chain_is_asked_to_mint(self):
+        original_send = self.node.send
+
+        def observed_send(raw):
+            recorded = ShareIssuance.objects.get()
+            self.assertEqual(recorded.recipient_name, "Grace Hopper")
+            self.assertEqual(recorded.recipient_residential_address, "3 Compiler Court")
+            self.assertIsNotNone(recorded.identity_stamped_at)
+            return original_send(raw)
+
+        self.node.client.send_raw_transaction.side_effect = observed_send
         issuance = self._execute()
 
         self.assertIsNotNone(issuance)

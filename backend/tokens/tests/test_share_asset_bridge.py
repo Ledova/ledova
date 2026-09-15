@@ -3,7 +3,7 @@ from io import StringIO
 from unittest.mock import Mock, patch
 
 from django.core.management import call_command
-from django.test import TestCase, override_settings
+from django.test import TestCase, TransactionTestCase, override_settings
 from web3 import Web3
 
 from assets.models import Asset, AssetChainDeployment, AssetType
@@ -15,14 +15,13 @@ from tokens.models import (
     ShareIssuance,
     ShareIssuanceRequest,
 )
-from tokens.services import share_token_service
+from tokens.services import issuance_execution, share_token_service
 from tokens.services.share_token_service import SHARE_ASSET_CHAIN
-from tokens.tests.mint_results import MINT_HASH, signed_mint_transaction
+from tokens.tests.issuance_fixtures import CHAIN_ID, KEY, admit, install_issuance
 from wallets.models import Holding
 from whitelist.models import WhitelistEntry, WhitelistStatus
 
 CHAIN_CLIENT = "tokens.services.share_token_service.get_base_chain_client"
-SWAP = "tokens.services.share_token_service._approve_for_swap"
 WHITELISTED = "tokens.services.share_token_service.is_recipient_whitelisted"
 SUPPLY = "tokens.services.share_token_service.share_supply"
 CREATED = "0x" + "c0ffee" + "0" * 34
@@ -42,7 +41,6 @@ class ShareAssetBridgeTest(TestCase):
     def setUp(self):
         self.chain = patch(CHAIN_CLIENT).start().return_value
         self.chain.load_contract.return_value.functions.authorizedShares.return_value.call.return_value = 1000
-        patch(SWAP).start()
         self.addCleanup(patch.stopall)
         self.tenant = make_tenant("owner")
         self.token = self.tenant.token
@@ -114,22 +112,10 @@ class ShareAssetBridgeTest(TestCase):
         )
 
 
-@override_settings(BLOCKCHAIN_OPERATOR_KEY="0xkey")
-class IssuanceSeedsTheHoldingTest(TestCase):
+@override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
+class IssuanceSeedsTheHoldingTest(TransactionTestCase):
     def setUp(self):
-        self.chain = patch(CHAIN_CLIENT).start().return_value
-        self.chain.is_valid_address.return_value = True
-        self.chain.to_checksum_address.side_effect = Web3.to_checksum_address
-        self.chain.get_address_from_private_key.return_value = SIGNER
-        self.chain.load_contract.return_value.functions.paused.return_value.call.return_value = False
-        self.chain.send_transaction.side_effect = signed_mint_transaction
-        self.chain.wait_for_receipt.return_value = RECEIPT
-        self.chain.get_transaction_receipt.return_value = None
-        patch(WHITELISTED, return_value=True).start()
-        patch(SUPPLY, return_value=(1000, 0)).start()
-        self.addCleanup(patch.stopall)
-        self.tenant = make_tenant("owner")
-        self.token = self.tenant.deployed_token
+        install_issuance(self)
         self.wallet = self.tenant.wallet
         self.asset = Asset.objects.create(
             symbol="DEP",
@@ -141,7 +127,6 @@ class IssuanceSeedsTheHoldingTest(TestCase):
         AssetChainDeployment.objects.create(
             asset=self.asset, chain=SHARE_ASSET_CHAIN, contract_address=self.token.contract_address, decimals=0
         )
-        self.service = share_token_service
 
     def _request(self, recipient):
         request = ShareIssuanceRequest.objects.create(
@@ -159,7 +144,7 @@ class IssuanceSeedsTheHoldingTest(TestCase):
         request = self._request(self.wallet.address)
 
         with self._balance(25):
-            self.service.execute_request(request)
+            issuance_execution.recover(admit(request, self.actor).pk)
 
         request.refresh_from_db()
         self.assertEqual(request.status, RequestStatus.EXECUTED)
@@ -176,7 +161,7 @@ class IssuanceSeedsTheHoldingTest(TestCase):
         request = self._request(treasury)
 
         with self._balance(25):
-            self.service.execute_request(request)
+            issuance_execution.recover(admit(request, self.actor).pk)
 
         request.refresh_from_db()
         self.assertEqual(request.status, RequestStatus.EXECUTED)
@@ -189,11 +174,11 @@ class IssuanceSeedsTheHoldingTest(TestCase):
 
         with patch("wallets.services.holdings.sync_holding", side_effect=RuntimeError("database gone")) as sync:
             with self.assertLogs("tokens.services.share_token_service", level="ERROR") as logs:
-                result = self.service.execute_request(request)
+                result = issuance_execution.recover(admit(request, self.actor).pk)
 
         sync.assert_called_once()
-        self.assertIn("Could not record the DEP holding", "\n".join(logs.output))
-        self.assertEqual(result["tx_hash"], MINT_HASH)
+        self.assertIn("Could not record the holding", "\n".join(logs.output))
+        self.assertEqual(result["tx_hash"], ShareIssuance.objects.get().tx_hash)
         request.refresh_from_db()
         self.assertEqual(request.status, RequestStatus.EXECUTED)
         self.assertEqual(ShareIssuance.objects.get(token=self.token).status, IssuanceStatus.COMPLETED)
@@ -205,7 +190,7 @@ class IssuanceSeedsTheHoldingTest(TestCase):
         request = self._request(self.wallet.address)
 
         with self.assertLogs("tokens.services.share_token_service", level="WARNING") as logs:
-            self.service.execute_request(request)
+            issuance_execution.recover(admit(request, self.actor).pk)
 
         self.assertIn("has no asset on base", "\n".join(logs.output))
         request.refresh_from_db()

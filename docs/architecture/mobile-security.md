@@ -32,9 +32,13 @@ iOS subclass of RN's existing HTTP handler refuse redirects, including 307/308
 requests that could otherwise forward sign-in or refresh bodies. The iOS handler
 is registered through RN's new-architecture protocol provider. Normal platform
 TLS validation, request cancellation, progress, multipart uploads and SSE remain
-in the inherited networking implementation. Provider WebViews keep their own
-navigation behavior and capabilities; they reject insecure initial URLs,
-insecure navigation and mixed content.
+in the inherited networking implementation. Provider WebViews reject insecure
+initial URLs, insecure navigation and mixed content. The identity-verification
+WebViews also limit top-frame navigation to each provider's allowed origins and
+refuse popups. On iOS they ask before media capture; on Android a page gets
+the camera without an origin check once the app holds `CAMERA`. See
+[identity-provider WebView lifetime](mobile-lifecycles.md#identity-provider-webview-lifetime).
+The buy-crypto WebView keeps its own navigation behavior.
 
 ## Secret storage
 
@@ -59,7 +63,10 @@ failed. A deliberate successful sign-in activates a new pair. Optional biometric
 sign-in stays optional: its ready marker is retired and verified without
 prompting. Expo's iOS native deletion ignores Keychain deletion status, so
 physical erasure of the separately gated copy is not verified by prompt-free
-logout; the app refuses reads through its retired marker.
+logout; the app refuses reads through its retired marker. The biometric read also
+applies the session retirement marker and the in-process refusal before it
+prompts, so a logout whose retirement fails part-way cannot hand back the gated
+copy in that process, or after a restart once the retirement marker was written.
 
 Wallet seeds use a fresh gated key and service with
 `WHEN_PASSCODE_SET_THIS_DEVICE_ONLY` and `requireAuthentication`. Reads do not

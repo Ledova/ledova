@@ -11,6 +11,7 @@ from .choices import (
     TransferOrderType,
 )
 from .former_holder import FormerHolder
+from .issuance_execution import IssuanceExecutionStatus, ShareIssuanceExecution
 from .mint_request import MintRequest, MintRequestStatus
 from .nav_update import NAVUpdate
 from .order_action import OrderActionPurpose, OrderActionStatus, OrderActionSubmission
@@ -28,6 +29,7 @@ __all__ = [
     "CapitalIncreaseExecution",
     "CapitalIncreaseRequest",
     "IssuanceStatus",
+    "IssuanceExecutionStatus",
     "IssuanceType",
     "MintRequest",
     "MintRequestStatus",
@@ -40,9 +42,11 @@ __all__ = [
     "OrderSubmissionStatus",
     "RequestStatus",
     "ShareIssuance",
+    "ShareIssuanceExecution",
     "ShareIssuanceRequest",
     "ShareToken",
     "TokenDeployment",
+    "SwapApprovalOutcome",
     "SigningChallenge",
     "SigningChallengePurpose",
     "ShareTokenStatus",
@@ -55,4 +59,4 @@ __all__ = [
     "TransferOrderType",
     "YieldToken",
 ]
-from .token_deployment import TokenDeployment
+from .token_deployment import SwapApprovalOutcome, TokenDeployment

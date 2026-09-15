@@ -13,8 +13,15 @@ from tokens.exceptions import (
     InvalidTokenStateException,
     TokenPauseFailedException,
 )
-from tokens.models import IssuanceStatus, ShareIssuance, ShareToken, ShareTokenStatus
-from tokens.services import deployment, share_token_service
+from tokens.models import (
+    IssuanceStatus,
+    ShareIssuance,
+    ShareToken,
+    ShareTokenStatus,
+    SwapApprovalOutcome,
+    TokenDeployment,
+)
+from tokens.services import deployment, share_token_service, swap_approval
 
 from ._helpers import bounded_chain_read, hex_column, status_badge
 
@@ -81,6 +88,7 @@ class ShareTokenAdmin(admin.ModelAdmin):
         "created_at",
         "updated_at",
         "status_actions",
+        "swap_approval_status",
     ]
     ordering = ["-created_at"]
 
@@ -114,7 +122,7 @@ class ShareTokenAdmin(admin.ModelAdmin):
         (
             "Status & Actions",
             {
-                "fields": ["status", "status_actions"],
+                "fields": ["status", "status_actions", "swap_approval_status"],
             },
         ),
         (
@@ -150,6 +158,12 @@ class ShareTokenAdmin(admin.ModelAdmin):
             admin_action_path(
                 self, "<uuid:uuid>/retry-deploy/", "tokens_sharetoken_retry_deploy", self.retry_deploy_view
             ),
+            admin_action_path(
+                self,
+                "<uuid:uuid>/retry-swap-approval/",
+                "tokens_sharetoken_retry_swap_approval",
+                self.retry_swap_approval_view,
+            ),
         ]
         return custom_urls + urls
 
@@ -162,6 +176,48 @@ class ShareTokenAdmin(admin.ModelAdmin):
         }
     )
     contract_address_short = hex_column("contract_address", "Contract", tail=8)
+
+    @admin.display(description="Swap approval")
+    def swap_approval_status(self, obj):
+        current = TokenDeployment.objects.filter(pk=obj.deployment_id).first() if obj.deployment_id else None
+        if current is None or not current.approval_outcome:
+            return "No automatic approval recorded"
+        if current.approval_outcome == SwapApprovalOutcome.FAILED:
+            retry_url = reverse("admin:tokens_sharetoken_retry_swap_approval", args=[obj.pk])
+            return action_buttons([("Approval failed", None, "#dc3545"), ("Retry approval", retry_url, "#007bff")])
+        return current.get_approval_outcome_display()
+
+    def retry_swap_approval_view(self, request, token):
+        change_url = reverse("admin:tokens_sharetoken_change", args=[token.pk])
+        try:
+            if request.method == "POST":
+                outcome = swap_approval.retry(token, request.user, request.POST.get("confirmation"))
+                notice = (
+                    f"Existing swap approval retry: {SwapApprovalOutcome(outcome).label}."
+                    if outcome
+                    else "Swap approval retry queued. The token remains deployed."
+                )
+                self.log_change(request, token, notice)
+            else:
+                confirmation = swap_approval.retry_confirmation(token, request.user)
+        except InvalidTokenStateException as exc:
+            messages.error(request, f"Cannot retry swap approval: {exc.detail}")
+            return HttpResponseRedirect(change_url)
+        if request.method == "POST":
+            messages.info(request, notice)
+            return HttpResponseRedirect(change_url)
+        return render(
+            request,
+            "admin/tokens/sharetoken/retry_swap_approval_confirm.html",
+            {
+                **self.admin_site.each_context(request),
+                "title": f"Retry Swap Approval: {token.name}",
+                "subtitle": None,
+                "confirmation": confirmation,
+                "token": token,
+                "opts": self.model._meta,
+            },
+        )
 
     @admin.display(description="Quick Actions")
     def status_actions(self, obj):

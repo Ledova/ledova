@@ -8,26 +8,33 @@ provider response does not prove a transaction was never submitted.
 
 ## Deployment and issuance
 
-Deployment and capital-increase sweeps recover interrupted work; see the
-[issuance flow](../architecture/contracts-and-issuance.md). Issuances created after
-`tokens/0034` retain a private mint journal. Each signed hash and payload is committed
-before submission. The payload includes nonce and chain ID, and mint execution
-refuses an enclosing database transaction that could roll back that identity.
-Backups containing the journal contain signed transactions that can be broadcast.
+Deployment, capital and issuance sweeps recover accepted work; see the
+[issuance flow](../architecture/contracts-and-issuance.md). New share issuances
+use the private `ShareIssuanceExecution` command and common signing journal.
+`check_executing_issuance_requests` processes bounded batches every five minutes.
+It checks the original receipt and may replay the same saved bytes, hash and
+nonce. Provider absence never authorizes another attempt. Backups containing
+signed payloads contain transactions that can be broadcast.
 
-Retrying or running `check_executing_issuance_requests` reads the receipt and may
-resubmit **the same signed bytes**. Duplicate, nonce-too-low and provider-unavailable
-responses remain unresolved; they never authorize a fresh nonce. A confirmed revert
-permits a new signed attempt while retaining the prior attempt. Global signer nonce
-coordination and receipt finality remain separate hardening work.
+Initial queued subscription allotment can be cancelled by a valid refund. That
+cancellation is durable even if the old task arrives later. After the worker's
+executing claim, unknown delivery keeps the refund hold. A known unsigned failure
+or original revert allows refund cancellation or a fresh admin retry confirmation
+for that exact failed claim. Reverted transactions and signed history remain
+recorded. New completion updates the issuance, request and subscription together.
 
-An attempt proven by its journal to have stopped before signing can be closed by
-the stale sweep and retried. A delayed worker cannot submit that closed attempt.
-Legacy null journals cannot prove this; hashless legacy rows remain unresolved,
-including historical failed rows, and block refunds. After the legacy grace period,
-use **Record legacy transaction hash** in admin with the identified mint from
-operator transaction history. There is no Release claim action. A legacy row with
-a hash can reconcile receipts but cannot replay without stored signed bytes.
+Historical null-dispatch requests keep their old journal and transaction fields.
+Recovery validates saved signed bytes before replay; a named hash without bytes
+can only be observed. A recognized unsigned journal can be abandoned by the stale
+sweep, retaining evidence for refund handling. Historical recovery never signs a
+new attempt. Missing or malformed history does not prove no send occurred.
+
+Hashless legacy rows remain held. After the grace period, use **Record legacy
+transaction hash** in admin with a mint identified from operator history. Naming
+validates the exact contract, recipient and amount and refuses a hash already
+attributed to another issuance, including retained reverted history. There is no
+Release claim action. Finality and complete same-key writer cutover remain separate
+programme requirements; see [outgoing signing](../architecture/outgoing-signing.md).
 
 ## Capital increases
 
@@ -48,8 +55,8 @@ still needs the [cutover process](../reference/outgoing-history.md).
 ## Subscriptions
 
 `reconcile_subscriptions` moves a paid subscription to allotted only when its linked
-issuance request has executed. This repairs a worker stop between on-chain issuance
-and the subscription update. `expire_unpaid_subscriptions` touches only overdue,
+issuance request has executed. This repairs historical gaps between issuance
+and the subscription update; new admitted issuance projects both atomically. `expire_unpaid_subscriptions` touches only overdue,
 awaiting-payment rows with no recorded payment. Part-paid subscriptions need operator
 review. See [subscription guards](../architecture/subscriptions.md) before refunding
 or retrying an allotment.

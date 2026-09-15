@@ -1,6 +1,5 @@
 import logging
-from collections.abc import Callable
-from datetime import datetime, timedelta
+from datetime import datetime
 from datetime import timezone as dt_timezone
 from typing import Optional
 
@@ -11,17 +10,13 @@ from web3 import Web3
 
 from assets.models import Asset, AssetType
 from assets.services.identity import free_symbol, verified_contract_asset
-from blockchain.models import BlockchainTransaction
 from integrations.base_chain import get_base_chain_client
-from integrations.base_chain.client import BROADCAST_ROUND_TRIPS, HTTP_TIMEOUT_SECONDS
 from integrations.base_chain.exceptions import (
     BaseChainConnectionError,
     BaseChainContractError,
-    BaseChainTransactionError,
 )
 from operators.settlement import settlement_deployments
 from shared.constants import BLOCKCHAIN_BASE
-from shared.db import atomic
 from tokens.exceptions import (
     ContractLoadException,
     DeployedShareClassException,
@@ -29,7 +24,6 @@ from tokens.exceptions import (
     InvalidRecipientAddressException,
     InvalidTokenAddressException,
     InvalidTokenStateException,
-    IssuanceRefusedException,
     OperatorKeyNotConfiguredException,
     TokenBalanceRetrievalException,
     TokenFactoryNotConfiguredException,
@@ -37,8 +31,6 @@ from tokens.exceptions import (
     WalletBalancesUnavailableException,
 )
 from tokens.models import (
-    IssuanceStatus,
-    RequestStatus,
     ShareIssuance,
     ShareIssuanceRequest,
     ShareToken,
@@ -46,17 +38,6 @@ from tokens.models import (
 )
 from tokens.querysets.share_issuance import ISSUANCE_KEY_PREFIX
 from tokens.services.dilution import dilution_for
-from tokens.services.holder_identity import identity_at_allotment
-from tokens.services.mint_journal import (
-    fail_mint_attempt,
-    fail_recorded_mint,
-    mark_mint_reverted,
-    mint_failure_detail,
-    record_signed_mint,
-    recorded_mint_payload,
-    release_unsigned_mint,
-    start_mint_attempt,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -65,19 +46,9 @@ LOG_WINDOW = 2000
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 NOT_WHITELISTED = "Recipient wallet is not whitelisted. Whitelist it before executing."
 EXCEEDS_AUTHORIZED = "Amount exceeds authorized shares. Submit a capital increase first."
-UNNAMED_MINT_GRACE = 2 * BROADCAST_ROUND_TRIPS * timedelta(seconds=HTTP_TIMEOUT_SECONDS)
-CLAIMED_BEFORE_RECORDED = (
-    "The worker claimed this request and stopped before recording a mint, so nothing was sent. "
-    "Retrying issues afresh."
-)
-STOPPED_BEFORE_SIGNING = "The worker stopped before recording a signed mint. Its attempt was closed; retrying is safe."
 TOKEN_PAUSED = "Token is paused. Unpause it before executing."
 SHARE_ASSET_CHAIN = BLOCKCHAIN_BASE
 NOT_ATTESTED = "{symbol} at {address} is not the address the factory holds for {identifier}; left unverified"
-ISSUANCE_EXECUTION_FAILED = (
-    "The share issuance could not be confirmed. An operator must check the request's transaction history "
-    "and on-chain state before deciding whether to retry."
-)
 
 
 def factory_address() -> str:
@@ -115,32 +86,6 @@ def _validate_address(address: str) -> str:
     return get_base_chain_client().to_checksum_address(address)
 
 
-def _tx_result(tx_hash: str, receipt: dict | None) -> dict:
-    return {
-        "tx_hash": tx_hash,
-        "block_number": receipt["blockNumber"] if receipt else None,
-        "gas_used": receipt["gasUsed"] if receipt else None,
-    }
-
-
-def _mint_to(
-    contract_address: str,
-    recipient: str,
-    amount: int,
-    on_signed: Callable[[str, bytes], None],
-) -> dict:
-    token_contract = load_share_token(contract_address)
-    recipient_checksum = get_base_chain_client().to_checksum_address(recipient)
-
-    mint_fn = token_contract.functions.mint(recipient_checksum, amount)
-    tx_hash, _ = get_base_chain_client().send_transaction(
-        mint_fn, signer_key(), wait_for_receipt=False, on_signed=on_signed
-    )
-    receipt = get_base_chain_client().wait_for_receipt(tx_hash)
-
-    return _tx_result(tx_hash, receipt)
-
-
 def _get_balance(contract_name: str, contract_address: str, holder: str) -> int:
     if not get_base_chain_client().is_valid_address(holder):
         raise InvalidHolderAddressException()
@@ -159,14 +104,6 @@ def load_share_token(contract_address: str):
 
     checksum = get_base_chain_client().to_checksum_address(contract_address)
     return get_base_chain_client().load_contract("ShareToken", checksum)
-
-
-def _confirm_record(tx_record: BlockchainTransaction, receipt) -> None:
-    tx_record.mark_confirmed(
-        block_number=receipt["blockNumber"],
-        block_hash=Web3.to_hex(receipt["blockHash"]),
-        gas_used=receipt["gasUsed"],
-    )
 
 
 def bridge_share_asset(token: ShareToken, contract_address: str) -> bool:
@@ -200,17 +137,6 @@ def _share_asset_symbol(token: ShareToken, contract_address: str) -> str:
     if free_symbol(bare, contract_address) == bare:
         return bare
     return f"{bare}.{token.company.acn}" if token.company.acn else bare
-
-
-def _approve_for_swap(token: ShareToken) -> None:
-    from tokens.services import AtomicSwapService
-
-    try:
-        approval_tx = AtomicSwapService().approve_share_token(token.contract_address)
-        if approval_tx:
-            logger.info(f"Approved {token.symbol} for AtomicSwap: {approval_tx}")
-    except Exception as exc:
-        logger.warning(f"Could not approve {token.symbol} for AtomicSwap: {exc}")
 
 
 def get_token_by_identifier(identifier: str) -> Optional[str]:
@@ -315,19 +241,6 @@ def is_recipient_whitelisted(address: str) -> bool:
     return whitelist.is_whitelisted(address)
 
 
-def execute_request(request, executed_by=None) -> dict:
-    if not isinstance(request, ShareIssuanceRequest):
-        raise InvalidTokenStateException("This request requires its own admitted execution.")
-    token = request.token
-    if not request.can_be_executed:
-        raise InvalidTokenStateException(f"Cannot execute request with status '{request.get_status_display()}'")
-    if not token.contract_address or token.status not in (ShareTokenStatus.DEPLOYED, ShareTokenStatus.PAUSED):
-        request.mark_failed("Token is not deployed on blockchain")
-        raise InvalidTokenStateException("Token is not deployed on blockchain")
-
-    return _execute_issuance(request, executed_by)
-
-
 def issuance_key(request: ShareIssuanceRequest) -> str:
     return f"{ISSUANCE_KEY_PREFIX}{request.uuid}"
 
@@ -336,141 +249,7 @@ def broadcast_mint(request: ShareIssuanceRequest) -> Optional[ShareIssuance]:
     return ShareIssuance.objects.broadcast().filter(idempotency_key=issuance_key(request)).first()
 
 
-def _start_execution(request) -> None:
-    try:
-        request.mark_executing()
-    except ValueError as exc:
-        logger.error(f"Request {request.uuid} could not be claimed for execution: {exc}")
-        raise InvalidTokenStateException(
-            f"Cannot execute request with status '{request.get_status_display()}'"
-        ) from exc
-
-
-def _refuse_if_paused(request: ShareIssuanceRequest) -> None:
-    token = request.token
-    if token.status == ShareTokenStatus.PAUSED or read_paused(token):
-        request.mark_refused(TOKEN_PAUSED)
-        raise IssuanceRefusedException(TOKEN_PAUSED)
-
-
-def _execute_issuance(request: ShareIssuanceRequest, executed_by) -> dict:
-    token = request.token
-    recipient = _validate_address(request.recipient_address)
-    issuance = ShareIssuance.objects.filter(idempotency_key=issuance_key(request)).first()
-    if issuance is not None and issuance.tx_hash:
-        result = _resume_issuance(request, issuance)
-        if result is not None:
-            return result
-
-    _refuse_if_paused(request)
-    if not is_recipient_whitelisted(recipient):
-        request.mark_refused(NOT_WHITELISTED)
-        raise IssuanceRefusedException(NOT_WHITELISTED)
-    authorized, issued = share_supply(token.contract_address)
-    if request.amount > authorized - issued:
-        request.mark_refused(EXCEEDS_AUTHORIZED)
-        raise IssuanceRefusedException(EXCEEDS_AUTHORIZED)
-
-    stamped = identity_at_allotment(recipient, chain=SHARE_ASSET_CHAIN)
-    issuance, attempt_id = start_mint_attempt(
-        request,
-        issuance,
-        token=token,
-        recipient_address=recipient,
-        recipient_name=stamped.name or request.recipient_name,
-        recipient_residential_address=stamped.residential_address,
-        identity_stamped_at=timezone.now() if stamped.name else None,
-        amount=str(request.amount),
-        issuance_type=request.issuance_type,
-        reason=f"Issuance request: {request.reason}",
-        initiated_by=executed_by or request.reviewed_by,
-        idempotency_key=issuance_key(request),
-    )
-    request.refresh_from_db(fields=["status", "updated_at"])
-    logger.info(f"Minting {request.amount} {token.symbol} to {recipient}")
-
-    try:
-        result = _mint_to(
-            token.contract_address,
-            recipient,
-            request.amount,
-            on_signed=lambda tx_hash, raw: record_signed_mint(request, issuance, attempt_id, tx_hash, raw),
-        )
-    except Exception as exc:
-        logger.error(f"Issuance failed for request {request.uuid} ({type(exc).__name__})")
-        detail = mint_failure_detail(exc)
-        fail_mint_attempt(request, issuance, attempt_id, detail, ISSUANCE_EXECUTION_FAILED)
-        if detail != str(exc):
-            raise BaseChainTransactionError(detail) from None
-        raise
-
-    _complete_issuance(request, issuance, result)
-    return result
-
-
-def _resume_issuance(request: ShareIssuanceRequest, issuance: ShareIssuance) -> Optional[dict]:
-    tx_hash = issuance.tx_hash
-    if issuance.status == IssuanceStatus.COMPLETED:
-        logger.info(f"mint {tx_hash} for request {request.uuid} already completed; nothing to send or wait on")
-        request.refresh_from_db(fields=["status", "executed_issuance", "executed_at"])
-        if request.status != RequestStatus.EXECUTED:
-            request.mark_executed(issuance)
-        return {"tx_hash": tx_hash, "block_number": issuance.block_number, "gas_used": issuance.gas_used}
-    try:
-        receipt = get_base_chain_client().get_transaction_receipt(tx_hash)
-        if receipt is not None and receipt["status"] != 1:
-            logger.warning(f"mint {tx_hash} for request {request.uuid} reverted; a fresh mint is safe")
-            mark_mint_reverted(request, issuance, tx_hash)
-            return None
-        if receipt is None:
-            _rebroadcast_mint(issuance)
-            receipt = get_base_chain_client().wait_for_receipt(tx_hash)
-    except Exception as exc:
-        logger.error(f"mint {tx_hash} for request {request.uuid} still unconfirmed ({type(exc).__name__})")
-        detail = mint_failure_detail(exc)
-        fail_recorded_mint(request, issuance, tx_hash, detail, ISSUANCE_EXECUTION_FAILED)
-        if detail != str(exc):
-            raise BaseChainTransactionError(detail) from None
-        raise
-
-    logger.info(f"mint {tx_hash} for request {request.uuid} already mined; completing without sending")
-    result = _tx_result(tx_hash, receipt)
-    _complete_issuance(request, issuance, result)
-    return result
-
-
-def _rebroadcast_mint(issuance: ShareIssuance) -> None:
-    raw_transaction = recorded_mint_payload(issuance)
-    if raw_transaction is None:
-        return
-    try:
-        answered_hash = get_base_chain_client().send_raw_transaction(raw_transaction)
-    except Exception as exc:
-        logger.warning(f"Mint replay remains unresolved for issuance {issuance.pk} ({type(exc).__name__})")
-        return
-    if answered_hash != issuance.tx_hash:
-        raise InvalidTokenStateException("The node returned a different hash for the recorded mint.")
-
-
-def _complete_issuance(request: ShareIssuanceRequest, issuance: ShareIssuance, result: dict) -> None:
-    with atomic():
-        current_request = ShareIssuanceRequest.objects.select_for_update().get(pk=request.pk)
-        current = ShareIssuance.objects.select_for_update().get(pk=issuance.pk)
-        if current.tx_hash != result["tx_hash"]:
-            raise InvalidTokenStateException("The issuance now identifies a different mint transaction.")
-        if current.status != IssuanceStatus.COMPLETED:
-            current.mark_completed(
-                tx_hash=result["tx_hash"], block_number=result["block_number"], gas_used=result["gas_used"]
-            )
-        if current_request.status != RequestStatus.EXECUTED:
-            current_request.mark_executed(current)
-    issuance.refresh_from_db()
-    request.refresh_from_db()
-    _seed_recipient_holding(request.token, issuance.recipient_address)
-    logger.info(f"Issuance executed for {request.token.symbol}: {result['tx_hash']}")
-
-
-def _seed_recipient_holding(token: ShareToken, recipient_address: str) -> None:
+def seed_recipient_holding(contract_address: str, recipient_address: str) -> None:
     from wallets.services.holdings import sync_holding
     from whitelist.models import WhitelistEntry
 
@@ -480,66 +259,17 @@ def _seed_recipient_holding(token: ShareToken, recipient_address: str) -> None:
         )
         entry = matches[0] if len(matches) == 1 else None
         if entry is None or entry.wallet is None:
-            logger.info(f"{recipient_address} is not an investor wallet; no {token.symbol} holding written")
+            logger.info(f"{recipient_address} is not an investor wallet; no {contract_address} holding written")
             return
-        asset = Asset.get_by_chain_and_contract(SHARE_ASSET_CHAIN, token.contract_address)
+        asset = Asset.get_by_chain_and_contract(SHARE_ASSET_CHAIN, contract_address)
         if asset is None:
-            logger.warning(f"{token.symbol} has no asset on {SHARE_ASSET_CHAIN}; no holding written")
+            logger.warning(f"{contract_address} has no asset on {SHARE_ASSET_CHAIN}; no holding written")
             return
         sync_holding(entry.wallet, asset)
-    except Exception as exc:
-        logger.error(f"Could not record the {token.symbol} holding of {recipient_address}: {exc}")
-
-
-def unnamed_mint(request: ShareIssuanceRequest) -> Optional[ShareIssuance]:
-    recorded = ShareIssuance.objects.filter(idempotency_key=issuance_key(request)).first()
-    if recorded is None or recorded.tx_hash or recorded.mint_journal is not None:
-        return None
-    if request.updated_at > timezone.now() - UNNAMED_MINT_GRACE:
-        return None
-    return recorded
-
-
-@atomic()
-def name_the_mint(request: ShareIssuanceRequest, tx_hash: str) -> ShareIssuance:
-    issuance = unnamed_mint(request)
-    if issuance is None:
-        raise InvalidTokenStateException("This request has no unnamed mint to attach a transaction to.")
-    issuance.mark_processing(tx_hash=tx_hash)
-    logger.info(f"Request {request.uuid} had its mint named {tx_hash} by an operator")
-    return issuance
-
-
-def resolve_executing_issuance(request: ShareIssuanceRequest) -> Optional[str]:
-    recorded = ShareIssuance.objects.filter(idempotency_key=issuance_key(request)).first()
-    if recorded is None:
-        logger.warning(f"Request {request.uuid} was claimed and no mint was recorded; releasing the claim")
-        return "released" if release_unsigned_mint(request, CLAIMED_BEFORE_RECORDED) else None
-    if not recorded.tx_hash:
-        if release_unsigned_mint(request, STOPPED_BEFORE_SIGNING):
-            return "released"
-        logger.warning(
-            f"Request {request.uuid} recorded a mint it never named, so the send may have gone out; "
-            f"left for the operator"
+    except Exception:
+        logger.error(
+            "Could not record the holding for contract %s and recipient %s", contract_address, recipient_address
         )
-        return None
-    issuance = recorded
-    tx_hash = issuance.tx_hash
-    receipt = get_base_chain_client().get_transaction_receipt(tx_hash)
-    if receipt is None:
-        _rebroadcast_mint(issuance)
-        if issuance.mint_journal is None:
-            return None
-        receipt = get_base_chain_client().get_transaction_receipt(tx_hash)
-        if receipt is None:
-            return None
-    if receipt["status"] != 1:
-        logger.warning(f"mint {tx_hash} for request {request.uuid} reverted; the request can be retried")
-        mark_mint_reverted(request, issuance, tx_hash, fail_request=True)
-        return "reverted"
-    logger.info(f"mint {tx_hash} for request {request.uuid} mined while the worker was gone; completing")
-    _complete_issuance(request, issuance, _tx_result(tx_hash, receipt))
-    return "executed"
 
 
 def require_pausable(token: ShareToken, paused: bool) -> None:

@@ -1,5 +1,6 @@
 from unittest.mock import Mock, patch
 
+from django.db import connections
 from hexbytes import HexBytes
 from web3 import Web3
 
@@ -13,6 +14,7 @@ from blockchain.tests.outgoing_fixtures import (
     receipt,
 )
 from companies.models import Company, CompanyStatus
+from shared.db import current_alias, use_operator
 from shared.tests.tenants import make_tenant
 from tokens.models import TokenDeployment
 from tokens.services import deployment
@@ -87,6 +89,7 @@ __all__ = ["CHAIN_ID", "KEY", "SENDER", "FACTORY", "CREATED", "DeploymentNode", 
 def install_deployment(test):
     test.tenant = deployment_token()
     test.token = test.tenant.token
+    test.addCleanup(delete_approval_jobs, test.token.deployment_id)
     test.node = DeploymentNode()
     for target in (
         "tokens.services.deployment.get_base_chain_client",
@@ -95,7 +98,12 @@ def install_deployment(test):
         patcher = patch(target, return_value=test.node.client)
         patcher.start()
         test.addCleanup(patcher.stop)
-    patcher = patch("tokens.services.share_token_service._approve_for_swap")
-    test.approval = patcher.start()
-    test.addCleanup(patcher.stop)
     admitted_signer()
+
+
+def delete_approval_jobs(deployment_id):
+    with use_operator(), connections[current_alias()].cursor() as cursor:
+        cursor.execute(
+            "DELETE FROM procrastinate_jobs WHERE task_name=%s AND args->>'deployment_id'=%s",
+            ["tokens.tasks.deployment.recover_swap_approval", str(deployment_id)],
+        )

@@ -4,8 +4,9 @@ from decimal import Decimal
 from unittest import skipUnless
 from unittest.mock import patch
 
+from django.contrib.auth.models import Permission
 from django.db import close_old_connections, connection
-from django.test import TransactionTestCase
+from django.test import TransactionTestCase, override_settings
 from web3 import Web3
 
 from offerings.exceptions import (
@@ -35,6 +36,7 @@ from offerings.tests.factories import (
 )
 from shared.tests.tenants import make_tenant
 from tokens.models import ShareIssuanceRequest
+from tokens.tests.issuance_fixtures import CHAIN_ID, KEY
 
 CHAIN_CLIENT = "tokens.services.share_token_service.get_base_chain_client"
 DEFER = "offerings.tasks.subscription.allot_subscription_task.defer"
@@ -46,6 +48,7 @@ SMALL_CODE_POOL = ("AAAAAAAA", "BBBBBBBB", "CCCCCCCC", "DDDDDDDD", "EEEEEEEE", "
 ONE_TRANSFER = "0x" + "9" * 64
 
 
+@override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
 @skipUnless(connection.vendor == "postgresql", "select_for_update is a no-op on SQLite")
 class SubscriptionConcurrencyTest(TransactionTestCase):
     def setUp(self):
@@ -62,6 +65,7 @@ class SubscriptionConcurrencyTest(TransactionTestCase):
         self.offering = open_offering(self.tenant, target_shares=200, cap_shares=500)
         eligible_subscriber(self.tenant)
         self.operator_user = make_tenant("racer-staff", staff=True).user
+        self.operator_user.user_permissions.add(Permission.objects.get(codename="change_subscription"))
 
     def _run(self, targets):
         outcomes = {}

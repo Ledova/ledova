@@ -24,6 +24,8 @@ def run(directory, phase, request_id, retry_of=None):
     settings.BLOCKCHAIN_OPERATOR_KEY = "0x" + "11" * 32
     settings.BLOCKCHAIN_CHAIN_ID = 31337
     settings.SHARE_TOKEN_FACTORY_ADDRESS = "0x" + "f" * 40
+    if phase == "handoff":
+        settings.ATOMIC_SWAP_ADDRESS = "0x" + "d" * 40
     django.setup()
 
     from web3 import Web3
@@ -104,6 +106,12 @@ def run(directory, phase, request_id, retry_of=None):
     original_save = OutgoingOperation.save
     original_project = deployment._project
     original_outcome = deployment.deployment_journal.record_outcome
+    original_marker = deployment.deployment_journal.mark_projected
+
+    def handed_off(*args):
+        result = original_marker(*args)
+        os.kill(os.getpid(), signal.SIGKILL)
+        return result
 
     def projected(command):
         if phase == "before_projection":
@@ -123,11 +131,12 @@ def run(directory, phase, request_id, retry_of=None):
         stack.enter_context(
             patch("tokens.services.share_token_service.get_base_chain_client", return_value=node.client)
         )
-        stack.enter_context(patch("tokens.services.share_token_service._approve_for_swap"))
         stack.enter_context(patch.object(deployment, "_admit", admitted))
         stack.enter_context(patch.object(outgoing, "sign_operation", signed))
         stack.enter_context(patch.object(deployment, "_project", projected))
         stack.enter_context(patch.object(deployment.deployment_journal, "record_outcome", recorded_outcome))
+        if phase == "handoff":
+            stack.enter_context(patch.object(deployment.deployment_journal, "mark_projected", handed_off))
         if phase == "before_commit":
             stack.enter_context(patch.object(OutgoingOperation, "save", before_commit))
         if phase == "recover":

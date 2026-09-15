@@ -23,6 +23,7 @@ class AnExecutedRequestDoesNotSayItWasRefusedTest(TestCase):
     def setUp(self):
         self.tenant = make_tenant("issuer")
         self.request = ShareIssuanceRequest.objects.create(
+            dispatch_id=None,
             token=self.tenant.deployed_token,
             recipient_address="0x" + "b" * 40,
             amount=10000,
@@ -135,14 +136,15 @@ class TheMigrationPreservesUnattributedNotesTest(TestCase):
     def setUp(self):
         self.tenant = make_tenant("issuer")
 
-    def a_request(self, review_notes):
+    def a_request(self, review_notes, status=RequestStatus.EXECUTED):
         return ShareIssuanceRequest.objects.create(
+            dispatch_id=None,
             token=self.tenant.deployed_token,
             recipient_address="0x" + "c" * 40,
             amount=10,
             reason="Allocation",
             submitted_by=self.tenant.user,
-            status=RequestStatus.EXECUTED,
+            status=status,
             review_notes=review_notes,
         )
 
@@ -185,9 +187,7 @@ class TheMigrationPreservesUnattributedNotesTest(TestCase):
         for prefix in ("Execution refused: ", "Execution failed: "):
             with self.subTest(prefix=prefix):
                 notes = f"{prefix}during the earlier proposal; this allocation is now approved."
-                request = self.a_request("")
-                request.status = RequestStatus.SUBMITTED
-                request.save(update_fields=["status"])
+                request = self.a_request("", status=RequestStatus.SUBMITTED)
                 request.approve(self.tenant.user, notes=notes)
 
                 self.run_the_annotation()
@@ -264,7 +264,10 @@ class ExecutionNotesMigrationRoundTripTest(TransactionTestCase):
         tenant = make_tenant("issuer")
         cases = []
         for model, fields in (
-            (ShareIssuanceRequest, {"recipient_address": "0x" + "c" * 40, "amount": 10, "reason": "Allocation"}),
+            (
+                ShareIssuanceRequest,
+                {"recipient_address": "0x" + "c" * 40, "amount": 10, "reason": "Allocation", "dispatch_id": None},
+            ),
             (
                 CapitalIncreaseRequest,
                 {

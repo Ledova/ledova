@@ -50,6 +50,7 @@ class CompanyDeletionTest(APITestCase):
             completed_at=timezone.now(),
         )
         self.issuance_request = ShareIssuanceRequest.objects.create(
+            dispatch_id=None,
             token=self.token,
             recipient_address=HOLDER,
             amount=100,
