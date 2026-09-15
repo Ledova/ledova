@@ -6,12 +6,14 @@ from unittest.mock import Mock, patch
 from django.conf import settings
 from django.test import SimpleTestCase, override_settings
 from django.utils import timezone
+from eth_account.messages import encode_typed_data
 from rest_framework.exceptions import APIException
 from rest_framework.test import APITransactionTestCase
 
 from assets.models import Asset, AssetChainDeployment
 from operators.settlement import require_deployment
 from shared.tests.schema import migrate_to, restore_every_migration
+from shared.tests.settlement import save_swap_with_context
 from shared.tests.tenants import make_tenant
 from tokens.exceptions import InsufficientBalanceException, SettlementContextChanged
 from tokens.models import SwapOrder, TransferOrder
@@ -21,6 +23,8 @@ from tokens.services import (
     token_transfer_service,
 )
 from tokens.services.settlement_context import recorded_settlement_context
+from tokens.tests.swap_state_fixtures import BUYER, SELLER
+from wallets.models import Wallet
 
 
 @override_settings(ATOMIC_SWAP_ADDRESS="0x" + "9d" * 20)
@@ -178,6 +182,54 @@ class SettlementPaymentUnitsTest(APITransactionTestCase):
         self.assertEqual(Decimal(summary["last_price"]), Decimal("0.01"))
         self.assertEqual(Decimal(detail["lastTradePrice"]), Decimal("0.01"))
         self.assertEqual(detail["lastTrade"]["payment_amount"], "90071992547409.93")
+
+    def test_original_v1_history_reports_signed_amounts_even_when_the_quoted_price_was_wrong(self):
+        self.scales(6, 2)
+        self.asset.refresh_from_db()
+        orders = []
+        for party, kind in ((SELLER, "sell"), (BUYER, "buy")):
+            wallet = Wallet.objects.create(user_account=self.tenant.account, address=party.address, chain="base")
+            orders.append(
+                TransferOrder.objects.create(
+                    token=self.tenant.deployed_token,
+                    payment_asset=self.asset,
+                    wallet=wallet,
+                    owner_account=self.tenant.account,
+                    wallet_address=party.address,
+                    order_type=kind,
+                    quantity=3,
+                    price_per_share=Decimal("1.23"),
+                )
+            )
+        swap = save_swap_with_context(
+            sell_order=orders[0],
+            buy_order=orders[1],
+            share_token=self.tenant.deployed_token,
+            payment_asset=self.asset,
+            seller_address=SELLER.address,
+            buyer_address=BUYER.address,
+            share_amount=3,
+            payment_amount=3690000,
+            nonce=123456789,
+        )
+        self.assertEqual(swap.settlement_context["price_per_share"], "1.23")
+        self.assertEqual(swap.settlement_context["payment_asset"]["pricing_decimals"], 6)
+        self.assertEqual(swap.settlement_context["payment_asset"]["deployment_decimals"], 2)
+        signable = encode_typed_data(full_message=recorded_settlement_context(swap)["typed_data"])
+        swap.seller_signature = SELLER.sign_message(signable).signature.to_0x_hex()
+        swap.buyer_signature = BUYER.sign_message(signable).signature.to_0x_hex()
+        swap.status = "completed"
+        swap.completed_at = timezone.now()
+        swap.save(update_fields=["seller_signature", "buyer_signature", "status", "completed_at"])
+        before = SwapOrder.objects.filter(pk=swap.pk).values().get()
+        summary = market_data_service.market_summaries([self.tenant.deployed_token])[self.tenant.deployed_token.pk]
+        detail = market_data_service.get_market_data(self.tenant.deployed_token)
+        self.assertEqual(Decimal(summary["last_price"]), Decimal("12300"))
+        self.assertEqual(Decimal(detail["lastTradePrice"]), Decimal("12300"))
+        self.assertEqual(Decimal(detail["lastTrade"]["payment_amount"]), Decimal("36900"))
+        self.assertEqual(SwapOrder.objects.filter(pk=swap.pk).values().get(), before)
+        self.assertTrue(atomic_swap_service.verify_signature(swap, swap.seller_signature, SELLER.address))
+        self.assertTrue(atomic_swap_service.verify_signature(swap, swap.buyer_signature, BUYER.address))
 
     def test_equal_completion_times_select_the_same_trade_and_scale_in_both_market_reads(self):
         self.scales(2, 2)

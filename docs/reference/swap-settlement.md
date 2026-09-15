@@ -16,6 +16,25 @@ after expiry or configuration drift; it does not authorize a new signature or
 approval under changed terms. Ordinary numeric order/swap fields are not a
 lossless source for rebuilding those signed values.
 
+New matches calculate payment from the share quantity and execution price using
+the deployed payment token's decimals. Calculation and context capture share one
+deployment snapshot. The total must be exactly representable, positive and fit
+the stored signed 64-bit integer range; shares must also be positive whole
+integers in that range. No amount is rounded or truncated. A fractional price is
+allowed when its total is representable: 100 shares at 1.23 require 123 units of
+a zero-decimal token, while three shares at that price are refused. The
+[submission protocol](order-submissions.md#creating-an-order) records a permanent
+refusal for an unrepresentable or out-of-range match.
+
+V1 market history decodes the original raw payment with its captured deployment
+scale, including older V1 records whose quoted price disagreed with the signed
+amount. It does not replace that amount with the quote or rewrite signatures,
+context or digest. Legacy V0 market reads retain their existing asset-pricing
+scale because no deployment snapshot was recorded. Both market reads select
+the latest completed swap by completion time, then identifier, and preserve
+exact payment digits without floating-point conversion. These read rules do not
+grant permission to execute historical swaps.
+
 The scoped approval-broadcast route verifies the actual signed bytes against
 the captured party, chain, token, spender and existing unlimited approval value.
 A confirmed result requires both the provider's returned hash and the receipt's
