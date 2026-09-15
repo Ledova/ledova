@@ -58,8 +58,8 @@ def run(directory, phase, index):
     elif phase == "snapshot":
         read = sources._rows
 
-        def read_then_pause(model, *fields):
-            rows = read(model, *fields)
+        def read_then_pause(model, *fields, **filters):
+            rows = read(model, *fields, **filters)
             if model is ShareToken:
                 (directory / "snapshot-started").touch()
                 await_file(directory / "writer-finished")
