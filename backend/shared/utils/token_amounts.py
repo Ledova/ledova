@@ -1,6 +1,18 @@
 from decimal import Decimal, localcontext
 
 
+def token_full_units(raw: int, decimals: int) -> Decimal:
+    if type(raw) is not int or type(decimals) is not int or not 0 <= decimals <= 255:
+        raise ValueError("Invalid token units")
+    with localcontext() as context:
+        context.prec = max(78, len(str(abs(raw))))
+        return Decimal(raw) / (10**decimals)
+
+
+def format_units(raw: int, decimals: int) -> str:
+    return f"{token_full_units(raw, decimals):,.{decimals}f}"
+
+
 def token_base_units(amount: Decimal, decimals: int) -> int:
     if not amount.is_finite() or amount <= 0 or not 0 <= decimals <= 255:
         raise ValueError("Invalid token amount")

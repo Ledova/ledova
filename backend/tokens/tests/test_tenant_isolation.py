@@ -298,11 +298,10 @@ class TransferOrderOwnershipBindingTest(APITestCase):
         )
 
         service = token_transfer_service
-        match = service.find_matching_order(incoming)
+        matches = service.find_matching_orders(incoming)
         sell_levels = list(TransferOrder.objects.order_book_levels(self.token, TransferOrderType.SELL))
 
-        self.assertIsNotNone(match)
-        self.assertEqual(match[0], valid_candidate)
+        self.assertEqual(matches, [(valid_candidate, 10)])
         self.assertEqual(len(sell_levels), 1)
         self.assertEqual(sell_levels[0]["price_per_share"], Decimal("1.20"))
         self.assertEqual(TransferOrder.objects.best_ask(self.token), valid_candidate)
@@ -318,7 +317,7 @@ class TransferOrderOwnershipBindingTest(APITestCase):
         whitelist_service.is_whitelisted.return_value = True
 
         service = token_transfer_service
-        self.enterContext(patch.object(service, "find_matching_order", return_value=None))
+        self.enterContext(patch.object(service, "find_matching_orders", return_value=[]))
         order, match = service.create_order_and_match(
             token=self.token,
             order_type=TransferOrderType.BUY,

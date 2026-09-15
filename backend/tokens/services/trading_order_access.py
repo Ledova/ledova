@@ -1,10 +1,13 @@
 from rest_framework.exceptions import NotFound
 
-from tokens.exceptions import SwapExpiredException, SwapNotReadyException
-from tokens.models import SwapOrder, SwapOrderStatus, TransferOrder
-from tokens.services.settlement_context import (
+from tokens.exceptions import (
     SettlementContextChanged,
     SettlementContextRequired,
+    SwapExpiredException,
+    SwapNotReadyException,
+)
+from tokens.models import SwapOrder, SwapOrderStatus, TransferOrder
+from tokens.services.settlement_context import (
     assert_current_settlement,
     recorded_settlement_context,
 )

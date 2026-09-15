@@ -333,6 +333,7 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual(self.balances(), (before[0] - 3, before[1] + 3, before[2], before[3]))
 
     def test_matching_approval_signing_and_execution_preserve_one_settlement(self):
+        Asset.objects.filter(pk=self.tenant.refs.stablecoin.pk).update(decimals=6)
         orders = []
         for party, kind in ((self.seller, TransferOrderType.SELL), (self.buyer, TransferOrderType.BUY)):
             wallet = self.party_wallets[party.address]
@@ -352,6 +353,8 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual((swap.share_amount, swap.payment_amount), (3, 450))
         typed_data = atomic_swap_service.get_typed_data(swap)
         self.assertEqual(typed_data["message"]["paymentAmount"], "450")
+        self.assertEqual(swap.settlement_context["payment_asset"]["pricing_decimals"], 6)
+        self.assertEqual(swap.settlement_context["payment_asset"]["deployment_decimals"], 2)
         for party, role in ((self.seller, "seller"), (self.buyer, "buyer")):
             prepared = atomic_swap_service.get_approval_transaction_data(swap, role, unlimited=False)["transaction"]
             transaction = {

@@ -8,7 +8,8 @@ from django.shortcuts import render
 from django.urls import reverse
 
 from shared.utils.admin_actions import admin_action_path
-from shared.utils.admin_display import action_buttons, format_units
+from shared.utils.admin_display import action_buttons
+from shared.utils.token_amounts import format_units
 from tokens.exceptions import NAVUpdateConflict
 from tokens.models import NAVUpdate, NAVUpdateStatus, YieldToken
 from tokens.services import mint_service, nav

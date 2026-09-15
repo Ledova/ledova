@@ -13,6 +13,7 @@ from eth_account.messages import encode_typed_data
 from rest_framework.test import APIClient, APITransactionTestCase
 
 from feature_flags.models import FeatureFlag
+from operators.settlement import require_deployment
 from shared.db import atomic, current_alias, reset_principal, use_operator
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
@@ -490,7 +491,7 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
             values["uuid"] = uuid4()
             values["nonce"] += 1
             new_swap = SwapOrder(**values)
-            capture_settlement_context(new_swap)
+            capture_settlement_context(new_swap, require_deployment(new_swap.payment_asset))
         with self.assertRaises(DatabaseError), atomic():
             SwapOrder.objects.bulk_create([new_swap])
         self.assertFalse(SwapOrder.objects.filter(pk=values["uuid"]).exists())

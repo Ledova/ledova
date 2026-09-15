@@ -163,9 +163,9 @@ class SubmissionFixtures:
         self.assertEqual(self.events, [])
         self.chain.send_raw_transaction.assert_not_called()
 
-    def counter_order(self):
+    def counter_order(self, *, quantity=10, price="2.50", order_type="sell", wallet=None):
         with use_operator():
-            wallet = Wallet.objects.create(
+            wallet = wallet or Wallet.objects.create(
                 user_account=self.tenant.account,
                 address=COUNTERPARTY.address,
                 chain="base",
@@ -177,9 +177,9 @@ class SubmissionFixtures:
                 wallet=wallet,
                 owner_account=self.tenant.account,
                 wallet_address=wallet.address,
-                order_type="sell",
-                quantity=10,
-                price_per_share=Decimal("2.50"),
+                order_type=order_type,
+                quantity=quantity,
+                price_per_share=Decimal(price),
             )
             self.initial_order_count += 1
             return order

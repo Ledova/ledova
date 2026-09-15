@@ -16,12 +16,11 @@ from feature_flags.models import FeatureFlag
 from shared.db import current_alias, set_principal, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
-from tokens.exceptions import SwapSignatureException
+from tokens.exceptions import SettlementContextChanged, SwapSignatureException
 from tokens.models import ShareToken, SwapOrderStatus, TransferOrder
 from tokens.services import atomic_swap_service
 from tokens.services.atomic_swap_service import MAX_UINT256
 from tokens.services.settlement_context import (
-    SettlementContextChanged,
     recorded_settlement_context,
 )
 from tokens.services.trading_order_access import require_pending_settlement

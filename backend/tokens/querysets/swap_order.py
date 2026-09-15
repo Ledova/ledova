@@ -42,8 +42,8 @@ class SwapOrderQuerySet(QuerySet):
     def with_related(self):
         return self.select_related("share_token", "payment_asset")
 
-    def last_completed_for_token(self, token):
-        return self.filter(share_token=token, status="completed").order_by("-completed_at").first()
+    def completed_for_token(self, token):
+        return self.filter(share_token=token, status="completed").order_by("-completed_at", "-pk")
 
     def pending_for_wallet_ids(self, wallet_ids):
         return self.for_wallet_ids(wallet_ids).awaiting_signature().with_related()
