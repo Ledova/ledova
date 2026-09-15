@@ -53,11 +53,10 @@ unlabelled suite never builds, under an id standing in for a copy in no shard. T
 classes a factory builds, whether bound to module attributes or added by
 `load_tests`, can share one test id, and Django runs both, so the checker refuses
 any id the unlabelled suite finds more than once. It compares ids, not classes or
-what they run. When a module in an assigned app imports an unassigned app's test
-class, or import order decides which module defines a shared id (as when a factory
-caches its class by name and builds it for whichever module calls it first), the
-unassigned app's test counts as covered and the checker passes, although the shards
-and the unsharded suite can run different bodies under that id. A module that fails
+what they run, so it does not report a test in an unassigned app when a module in
+an assigned app imports its class or discovers it through `load_tests`, or when
+import order decides which module defines a shared id, as when a factory caches its
+class by name and builds it for whichever module calls it first. A module that fails
 to import is a finding rather than a module: it is discovered as one `_FailedTest`
 on both sides and would otherwise look covered.
 Each discovery re-runs the checker with `--discover` in a fresh interpreter,
