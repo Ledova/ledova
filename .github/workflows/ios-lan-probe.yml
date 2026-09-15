@@ -1,0 +1,62 @@
+name: iOS LAN probe
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lan:
+    name: iOS Debug LAN handler probe
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      CI: "1"
+      EXPO_NO_DOTENV: "1"
+      EXPO_NO_TELEMETRY: "1"
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22.15.1
+      - name: Install locked JavaScript dependencies without package scripts
+        run: |
+          npm install --global npm@11.5.2
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm --prefix mobile ci --ignore-scripts --no-audit --no-fund
+      - name: Select the runner's own private IPv4 address
+        run: |
+          host=$(node -e 'const os = require("os"); const found = Object.entries(os.networkInterfaces()).flatMap(([name, entries]) => entries.map((entry) => ({ name, ...entry }))).find((entry) => entry.family === "IPv4" && !entry.internal && /^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.)/.test(entry.address)); if (!found) { console.error(JSON.stringify(os.networkInterfaces())); process.exit(1); } console.error(`interface ${found.name}`); console.log(found.address);')
+          echo "EXPO_PUBLIC_DEV_API_HOST=$host" >> "$GITHUB_ENV"
+      - name: Create an owned iOS 18.5 simulator
+        run: |
+          lan_udid=$(xcrun simctl create LedovaLAN com.apple.CoreSimulator.SimDeviceType.iPhone-16 com.apple.CoreSimulator.SimRuntime.iOS-18-5)
+          echo "IOS_SIMULATOR_UDID=$lan_udid" >> "$GITHUB_ENV"
+          xcrun simctl boot "$lan_udid"
+          xcrun simctl bootstatus "$lan_udid" -b
+      - name: Run the iOS Debug LAN handler probe
+        working-directory: mobile
+        run: |
+          sw_vers
+          xcodebuild -version
+          npm run test:native:lan -- "$RUNNER_TEMP/ios-lan-results"
+      - name: Preserve LAN probe evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: ios-lan-evidence
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/ios-lan-results/*.json
+            ${{ runner.temp }}/ios-lan-results/*.log
+            ${{ runner.temp }}/ios-lan-results/*.txt
+            ${{ runner.temp }}/ios-lan-results/*.xcresult
+      - name: Remove the owned simulator
+        if: always()
+        run: |
+          if [ -n "$IOS_SIMULATOR_UDID" ]; then
+            xcrun simctl shutdown "$IOS_SIMULATOR_UDID" || true
+            xcrun simctl delete "$IOS_SIMULATOR_UDID"
+          fi
