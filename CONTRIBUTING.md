@@ -17,7 +17,7 @@ before opening your first pull request.
   real personal data or internal infrastructure identifiers. Only `.env.example`
   templates with blank values belong in the repository.
 - **Trading routes are disabled by default** while the
-  [`deferred-hardening`](https://github.com/Ledova/ledova/issues?q=is%3Aopen+label%3Adeferred-hardening) issues are open. That default is containment,
+  [`hardening`](https://github.com/Ledova/ledova/issues?q=is%3Aopen+label%3Ahardening) issues are open. That default is containment,
   not a bug to "fix" by enabling them.
 - Be respectful and constructive. Assume good faith.
   See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
@@ -26,7 +26,7 @@ before opening your first pull request.
 
 - Issues are tracked on GitHub, not in this repository. Browse the
   [open issues](https://github.com/Ledova/ledova/issues); the ones labeled
-  [`deferred-hardening`](https://github.com/Ledova/ledova/issues?q=is%3Aopen+label%3Adeferred-hardening) are the known high-risk work, each naming
+  [`hardening`](https://github.com/Ledova/ledova/issues?q=is%3Aopen+label%3Ahardening) are the known high-risk work, each naming
   where it lives in the code. They need redesigns, not patches.
 - Every work item, including owner-requested changes, is tracked in a GitHub
   issue. Reuse an existing issue when its scope fits; otherwise create one before
