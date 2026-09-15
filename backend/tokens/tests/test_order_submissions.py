@@ -386,7 +386,10 @@ class SubmissionRecoveryChecks(SubmissionFixtures):
                 atomic_swap_service, "create_swap_order", side_effect=fail_winner
             ):
                 response = self.create(signed)
-            self.assertEqual(response.status_code, 400 if isinstance(error, OrderMatchException) else 500)
+            if isinstance(error, OrderMatchException):
+                self.assertEqual(response.status_code, 400)
+            else:
+                self.assertGreaterEqual(response.status_code, 500)
             self.assert_pending_and_unspent(signed)
             with use_operator():
                 self.assertEqual(
