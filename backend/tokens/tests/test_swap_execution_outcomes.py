@@ -31,10 +31,8 @@ class SwapExecutionRecordsItsOutcomeTest(TransactionTestCase):
         self.swap.refresh_from_db()
 
     def service(self, client):
-        with patch("tokens.services.atomic_swap_service.get_base_chain_client", return_value=client):
-            service = atomic_swap_service
-        self.enterContext(patch.object(service, "get_base_chain_client", return_value=client))
-        return service
+        self.enterContext(patch.object(atomic_swap_service, "get_base_chain_client", return_value=client))
+        return atomic_swap_service
 
     @staticmethod
     def chain_client():

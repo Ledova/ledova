@@ -273,16 +273,8 @@ class TheReceiptMustNameThisOrderTest(TestCase):
 
 
 class TheNonceGeneratorDoesNotRelyOnTheConstraintTest(TestCase):
-
-    @staticmethod
-    def service():
-        with patch("tokens.services.atomic_swap_service.get_base_chain_client"):
-            return atomic_swap_service
-
     def test_nonces_drawn_together_are_not_neighbours_around_a_shared_clock(self):
-        service = self.service()
-
-        drawn = [service._generate_nonce() for _ in range(200)]
+        drawn = [atomic_swap_service._generate_nonce() for _ in range(200)]
 
         self.assertEqual(len(set(drawn)), len(drawn))
         self.assertGreater(max(drawn) - min(drawn), 2**40)
