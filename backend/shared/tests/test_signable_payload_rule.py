@@ -11,7 +11,7 @@ from shared.tests.signable import (
 )
 from shared.tests.tenants import make_tenant
 from tokens.models import SigningChallengePurpose
-from tokens.services import AtomicSwapService
+from tokens.services import atomic_swap_service
 from tokens.services.signing_challenge import (
     CHALLENGE_TYPES,
     challenge_response,
@@ -99,13 +99,13 @@ class EverySignablePayloadSurvivesJsonParseTest(TestCase):
         asset = swap.payment_asset
         asset.decimals = 18
         asset.save(update_fields=["decimals"])
-        swap = AtomicSwapService().create_swap_order(
+        swap = atomic_swap_service.create_swap_order(
             self.tenant.order, self.tenant.counter_order, share_amount=1, price_per_share=Decimal("2.50")
         )
 
         with patch("tokens.services.atomic_swap_service.get_base_chain_client") as client:
             client.return_value.chain_id = 84532
-            typed_data = AtomicSwapService().get_typed_data(swap)
+            typed_data = atomic_swap_service.get_typed_data(swap)
 
         self.assertGreater(swap.payment_amount, JAVASCRIPT_SAFE_INTEGER)
         assert_signable(self, typed_data)

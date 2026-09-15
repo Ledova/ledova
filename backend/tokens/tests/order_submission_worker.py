@@ -38,8 +38,8 @@ def run():
     from rest_framework.test import APIClient
 
     from shared.db import current_alias
+    from tokens.services import token_transfer_service
     from tokens.services import trading_order_create as service
-    from tokens.services.token_transfer_service import TokenTransferService
     from tokens.tests.order_submission_fixtures import BASE, chain_client
 
     incoming = json.loads(sys.stdin.readline())
@@ -53,7 +53,7 @@ def run():
     balance = Mock()
     balance.get_token_balance.return_value = 100
     original_spend = service.spend
-    original_create = TokenTransferService.create_order_and_match
+    original_create = token_transfer_service.create_order_and_match
     original_find = service._find_submission
 
     def killed(*args, **kwargs):
@@ -104,7 +104,7 @@ def run():
         if phase == "spent":
             stack.enter_context(patch.object(service, "spend", side_effect=spend_then_kill))
         elif phase == "matched":
-            stack.enter_context(patch.object(TokenTransferService, "create_order_and_match", create_then_kill))
+            stack.enter_context(patch.object(token_transfer_service, "create_order_and_match", create_then_kill))
         elif phase == "committed":
             stack.enter_context(patch("tokens.views.trading_order.submission_snapshot", side_effect=killed))
         elif phase == "pause":

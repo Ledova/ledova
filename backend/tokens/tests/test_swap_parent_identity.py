@@ -24,7 +24,7 @@ from tokens.models import (
     TransferOrderStatus,
     TransferOrderType,
 )
-from tokens.services.atomic_swap_service import AtomicSwapService
+from tokens.services import atomic_swap_service
 from tokens.services.settlement_context import capture_settlement_context
 from tokens.tests.swap_state_fixtures import (
     BUYER,
@@ -291,7 +291,7 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
                     price_per_share="1.50",
                     status=TransferOrderStatus.PARTIALLY_FILLED,
                 )
-            self.swap = AtomicSwapService().create_swap_order(
+            self.swap = atomic_swap_service.create_swap_order(
                 self.orders["seller"], self.orders["buyer"], share_amount=10
             )
             FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
@@ -348,7 +348,7 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
             for signer in ("seller", "buyer"):
                 with self.subTest(caller=caller, signer=signer):
                     with use_operator():
-                        self.swap = AtomicSwapService().create_swap_order(
+                        self.swap = atomic_swap_service.create_swap_order(
                             self.orders["seller"], self.orders["buyer"], share_amount=10
                         )
                     self.choose_caller(caller)
@@ -370,8 +370,8 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
     def test_second_signature_and_claim_persist_but_invisible_parent_outcome_remains_unresolved(self):
         first = self.post_signature("buyer")
         self.assertEqual(first.status_code, 200, first.content)
-        service = swap_service()
-        with patch("tokens.views.trading_order.AtomicSwapService", return_value=service), patch.object(
+        service = swap_service(self)
+        with patch("tokens.views.trading_order.atomic_swap_service", service), patch.object(
             service, "execute_swap"
         ) as execute:
             second = self.post_signature("seller")
@@ -477,7 +477,7 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
                         model.objects.filter(pk=pk).update(**restore)
         with use_operator():
             TransferOrder.objects.filter(pk=order_id).update(payment_asset=None)
-            self.swap = AtomicSwapService().create_swap_order(
+            self.swap = atomic_swap_service.create_swap_order(
                 self.orders["seller"], self.orders["buyer"], share_amount=10
             )
         self.choose_caller("seller")
@@ -500,7 +500,7 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
         self.assert_private_boundary()
 
     def test_seller_account_reassigned_after_verification_prevents_real_route_persistence(self):
-        verify = AtomicSwapService.verify_signature
+        verify = atomic_swap_service.verify_signature
         with use_operator():
             successor = a_profile("private-successor")
         seller_account = self.parties["seller"].account
@@ -512,7 +512,7 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
                 UserAccount.objects.filter(pk=seller_account.pk).update(user_profile=successor)
             return valid
 
-        with patch.object(AtomicSwapService, "verify_signature", retire):
+        with patch.object(atomic_swap_service, "verify_signature", retire):
             response = self.post_signature("buyer")
         self.assertEqual(response.status_code, 404, response.content)
         with use_operator():

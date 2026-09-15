@@ -67,7 +67,7 @@ class SwapSettlementStorageTest(TestCase):
         from eth_account.messages import encode_typed_data
 
         swap = make_swap("settlement-sign-guard")
-        service = swap_service()
+        service = swap_service(self)
         signature = SELLER.sign_message(encode_typed_data(full_message=service.get_typed_data(swap))).signature.hex()
         verify = service.verify_signature
 
@@ -109,7 +109,7 @@ class SwapSettlementMigrationTest(TransactionTestCase):
 
     def test_legacy_rows_signatures_deadlines_and_hashless_claims_remain_unrebound(self):
         swap = make_swap("settlement-migration", ready=True)
-        service = swap_service()
+        service = swap_service(self)
         seller_signature, buyer_signature = swap.seller_signature, swap.buyer_signature
         old_apps = migrate_to([("tokens", "0038_order_action_submissions")])
         self.addCleanup(restore_every_migration)
@@ -147,7 +147,7 @@ class SwapSettlementMigrationTest(TransactionTestCase):
         with patch("django.utils.timezone.now", return_value=swap.expires_at + timedelta(days=1)):
             self.assertIsNone(service.resolve_executing_swap(swap))
         self.assertEqual(persisted_outcome(swap), untouched)
-        service.chain_client.receipt_even_if_reverted.assert_not_called()
+        service.get_base_chain_client().receipt_even_if_reverted.assert_not_called()
         if IS_POSTGRES:
             with self.assertRaises(IntegrityError), atomic():
                 SwapOrder.objects.filter(pk=swap.pk).update(settlement_protocol_version=1)

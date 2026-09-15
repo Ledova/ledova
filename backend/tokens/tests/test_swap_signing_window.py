@@ -12,7 +12,7 @@ from eth_account.messages import encode_typed_data
 from blockchain.models import BlockchainTransaction
 from tokens.exceptions import SwapExpiredException
 from tokens.models import SwapOrder, SwapOrderStatus, TransferOrder, TransferOrderStatus
-from tokens.services.token_transfer_service import TokenTransferService
+from tokens.services import token_transfer_service
 from tokens.tests.swap_state_fixtures import (
     BUYER,
     CONTRACT,
@@ -32,7 +32,7 @@ class NewlyMatchedSwapSigningWindowTest(TransactionTestCase):
         self.enterContext(self.settings(SWAP_ORDER_EXPIRY_HOURS=self.configured_hours()))
         self.enterContext(patch("tokens.services.atomic_swap_service.publish_trading_event"))
         self.template = make_swap("swap-signing-window")
-        self.service = swap_service()
+        self.service = swap_service(self)
         TransferOrder.objects.filter(pk__in=[self.template.sell_order_id, self.template.buy_order_id]).update(
             status=TransferOrderStatus.OPEN, filled_quantity=0
         )
@@ -62,12 +62,16 @@ class NewlyMatchedSwapSigningWindowTest(TransactionTestCase):
     def test_default_matching_and_model_creation_persist_fifteen_minutes(self):
         with (
             patch(
-                "tokens.services.token_transfer_service.get_base_chain_client", return_value=self.service.chain_client
+                "tokens.services.token_transfer_service.get_base_chain_client",
+                return_value=self.service.get_base_chain_client(),
             ),
             patch("tokens.services.token_transfer_service.whitelist"),
-            patch("tokens.services.atomic_swap_service.get_base_chain_client", return_value=self.service.chain_client),
+            patch(
+                "tokens.services.atomic_swap_service.get_base_chain_client",
+                return_value=self.service.get_base_chain_client(),
+            ),
         ):
-            matched = TokenTransferService().match_orders(
+            matched = token_transfer_service.match_orders(
                 self.template.buy_order, self.template.sell_order, match_quantity=10
             )
         swap = SwapOrder.objects.get(pk=matched["swap_order"].pk)
@@ -143,10 +147,10 @@ class NewlyMatchedSwapSigningWindowTest(TransactionTestCase):
         with self.assertRaises(SwapExpiredException):
             self.service.execute_swap(swap)
         self.assertEqual(persisted_outcome(swap), before)
-        self.service.chain_client.load_contract.assert_not_called()
-        self.service.chain_client.build_transaction.assert_not_called()
-        self.service.chain_client.sign_transaction.assert_not_called()
-        self.service.chain_client.send_raw_transaction.assert_not_called()
+        self.service.get_base_chain_client().load_contract.assert_not_called()
+        self.service.get_base_chain_client().build_transaction.assert_not_called()
+        self.service.get_base_chain_client().sign_transaction.assert_not_called()
+        self.service.get_base_chain_client().send_raw_transaction.assert_not_called()
 
     def test_ready_swap_before_deadline_claims_and_uses_the_recorded_deadline(self):
         swap = self.ready_swap()
@@ -156,7 +160,7 @@ class NewlyMatchedSwapSigningWindowTest(TransactionTestCase):
         self.assertEqual(claimed.transaction_id, transaction.pk)
         self.assertEqual(BlockchainTransaction.objects.filter(related_uuid=swap.pk).count(), 1)
         self.service._execute_swap_call(claimed)
-        call = self.service.chain_client.load_contract.return_value.functions.executeSwap.call_args
+        call = self.service.get_base_chain_client().load_contract.return_value.functions.executeSwap.call_args
         self.assertEqual(call.args[7], int((self.now + timedelta(minutes=15)).timestamp()))
 
     def test_existing_twenty_four_hour_deadline_and_issued_signatures_survive_new_default(self):
@@ -179,7 +183,7 @@ class NewlyMatchedSwapSigningWindowTest(TransactionTestCase):
         self.assertEqual((ready.seller_signature, ready.buyer_signature), (seller_signature, buyer_signature))
         claimed, _transaction = self.service._claim_execution(ready.pk)
         self.service._execute_swap_call(claimed)
-        call = self.service.chain_client.load_contract.return_value.functions.executeSwap.call_args
+        call = self.service.get_base_chain_client().load_contract.return_value.functions.executeSwap.call_args
         self.assertEqual(call.args[7], int(typed_data["message"]["deadline"]))
         self.assertEqual(
             call.args[8:],

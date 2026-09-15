@@ -541,17 +541,16 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         self._service("tokens.views.trading_order.execute_order_submission")
         self._service("tokens.views.trading_order.issue_order_submission")
         self._service("tokens.views.trading_order.submission_snapshot").return_value = {}
-        trading_transfers = self._service("tokens.views.trading_transfer.TokenTransferService")
+        trading_transfers = self._service("tokens.views.trading_transfer.token_transfer_service")
         trading_transfers.contract_address.return_value = "0x" + "6" * 40
-        trading_transfers.return_value.prepare_transfer.return_value = {}
+        trading_transfers.prepare_transfer.return_value = {}
         self._service("tokens.views.trading_order.get_modification_history").return_value = {}
-        swaps = self._service("tokens.views.trading_order.AtomicSwapService").return_value
-        swaps.contract_address = SYNTHETIC_SETTLEMENT_CONTRACT
+        swaps = self._service("tokens.views.trading_order.atomic_swap_service")
         swaps.settlement_contract.return_value = SYNTHETIC_SETTLEMENT_CONTRACT
         swaps.broadcast_settlement_approval.return_value = ("0x" + "ab" * 32, {"blockNumber": 1, "gasUsed": 21000})
         self.enterContext(override_settings(ATOMIC_SWAP_ADDRESS=SYNTHETIC_SETTLEMENT_CONTRACT))
         swaps.find_swap_order_by_transfer_order.side_effect = SwapOrder.objects.for_transfer_order
-        swaps.submit_signature.side_effect = lambda swap_order, **kwargs: swap_order
+        swaps.sign_and_execute_swap.side_effect = lambda swap_order, **kwargs: swap_order
         swaps.get_typed_data.return_value = {}
         swaps.check_swap_allowances.return_value = {"seller": ALLOWANCE, "buyer": ALLOWANCE}
         swaps.get_approval_transaction_data.return_value = {}

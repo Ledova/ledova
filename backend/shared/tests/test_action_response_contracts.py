@@ -22,8 +22,7 @@ from offerings.tests.factories import (
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import an_acn, make_eligible, make_tenant, open_to_investors
 from tokens.models import ShareIssuance, SwapOrder
-from tokens.services.atomic_swap_service import AtomicSwapService
-from tokens.services.token_transfer_service import TokenTransferService
+from tokens.services import atomic_swap_service, token_transfer_service
 from tokens.tests.test_signed_transactions import SIGNER, sign_legacy
 from users.models import FinancialProfile, Notification, UserPreferences, UserProfile
 from wallets.models import Wallet
@@ -98,11 +97,11 @@ class ActionResponseContractTest(APITransactionTestCase):
 
     def allowance_service(self, sufficient):
         configure_operator(self.owner.refs.stablecoin)
-        service = object.__new__(AtomicSwapService)
-        service.check_allowance = Mock(return_value=2000 if sufficient else 0)
-        service.chain_client = Mock(chain_id=84532)
-        service.chain_client.to_checksum_address.side_effect = lambda value: value
-        service.chain_client.build_transaction.return_value = {
+        service = atomic_swap_service
+        self.enterContext(patch.object(service, "check_allowance", Mock(return_value=2000 if sufficient else 0)))
+        self.enterContext(patch.object(service, "get_base_chain_client", return_value=Mock(chain_id=84532)))
+        service.get_base_chain_client().to_checksum_address.side_effect = lambda value: value
+        service.get_base_chain_client().build_transaction.return_value = {
             "data": "0x1234",
             "gas": 65000,
             "gasPrice": 100,
@@ -122,7 +121,7 @@ class ActionResponseContractTest(APITransactionTestCase):
         self.owner.swap.refresh_from_db()
         self.assertEqual(self.owner.swap.settlement_protocol_version, 0)
         service = self.allowance_service(sufficient)
-        with patch("tokens.views.trading_order.AtomicSwapService", return_value=service):
+        with patch("tokens.views.trading_order.atomic_swap_service", service):
             response = self.client.get(
                 f"/api/v1/trading/orders/{self.owner.order.uuid}/swap/{action}/",
                 {"wallet_address": self.owner.wallet.address},
@@ -174,7 +173,7 @@ class ActionResponseContractTest(APITransactionTestCase):
                 "requiredAmount": 10,
             },
         )
-        service.chain_client.build_transaction.assert_not_called()
+        service.get_base_chain_client().build_transaction.assert_not_called()
         schema = self.assert_fields(
             self.approval_variants()[False],
             body,
@@ -193,7 +192,7 @@ class ActionResponseContractTest(APITransactionTestCase):
         self.assertEqual(body["amount"], str(2**256 - 1))
         self.assertEqual(body["transaction"]["gas"], hex(65000))
         self.assertEqual(body["transaction"]["chainId"], hex(84532))
-        service.chain_client.build_transaction.assert_called_once()
+        service.get_base_chain_client().build_transaction.assert_called_once()
         schema = self.assert_fields(
             self.approval_variants()[True],
             body,
@@ -715,8 +714,8 @@ class ActionResponseContractTest(APITransactionTestCase):
         self.assertEqual(set(self.resolved(schema["properties"]["results"]["items"])["properties"]), set(row))
 
     def test_prepared_transfer_declares_the_real_token_and_transaction_fields(self):
-        service = object.__new__(TokenTransferService)
-        service.validate_transfer = Mock()
+        service = token_transfer_service
+        self.enterContext(patch.object(service, "validate_transfer", Mock()))
         chain = Mock(chain_id=84532, gas_price=100)
         chain.to_checksum_address.side_effect = lambda value: value
         chain.get_nonce.return_value = 3
@@ -724,9 +723,8 @@ class ActionResponseContractTest(APITransactionTestCase):
         chain.load_contract.return_value.functions.transfer.return_value._encode_transaction_data.return_value = (
             "0x1234"
         )
-        service.chain_client = chain
-        with patch("tokens.views.trading_transfer.TokenTransferService", side_effect=lambda: service) as constructor:
-            constructor.contract_address = TokenTransferService.contract_address
+        self.enterContext(patch.object(service, "get_base_chain_client", return_value=chain))
+        with patch("tokens.views.trading_transfer.token_transfer_service", service):
             response = self.client.post(
                 "/api/v1/trading/transfers/prepare/",
                 {
@@ -781,8 +779,8 @@ class ActionResponseContractTest(APITransactionTestCase):
         signed_transaction = sign_legacy(to="0x" + "8" * 40)
         for receipt in ({"blockNumber": 7, "gasUsed": 21000}, {}):
             with self.subTest(receipt=receipt):
-                with patch("tokens.views.trading_transfer.TokenTransferService") as constructor:
-                    constructor.return_value.broadcast_transfer.return_value = ("0x" + "f" * 64, receipt)
+                with patch("tokens.views.trading_transfer.token_transfer_service") as constructor:
+                    constructor.broadcast_transfer.return_value = ("0x" + "f" * 64, receipt)
                     response = self.client.post(
                         "/api/v1/trading/transfers/broadcast/", {"signedTransaction": signed_transaction}, format="json"
                     )
