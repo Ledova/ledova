@@ -129,9 +129,9 @@ const copy = <T,>(data: T): T => JSON.parse(JSON.stringify(data));
 const listed = Object.keys(
   jest.requireActual('../../../../backend/schema/openapi.json').components.schemas.SwapOrderList.properties,
 );
-const listedSwap = Object.fromEntries(
-  Object.entries(fixture.get_body.swapOrder).filter(([key]) => listed.includes(key)),
-);
+const listShape = (swap: object, keys = listed) =>
+  Object.fromEntries(Object.entries(swap).filter(([key]) => keys.includes(key))) as unknown as SwapOrder;
+const listedSwap = listShape(fixture.get_body.swapOrder);
 let client: QueryClient;
 let api = axios.create();
 let requests: InternalAxiosRequestConfig[];
@@ -419,15 +419,7 @@ it('keeps multiple original approval hashes during recovery and sufficient allow
 it('holds explicit V0 history for operator review in the mounted list and keeps V1 signable after refresh', async () => {
   const signer = jest.spyOn(localSigner, 'signEthereumTypedData');
   mockActualOrders = true;
-  mockSwaps = [
-    {
-      ...current.swapOrder,
-      settlementProtocolVersion: 0,
-      settlementContext: null,
-      settlementDigest: '',
-      shareAmount: 10,
-    },
-  ];
+  mockSwaps = [listShape({ ...current.swapOrder, settlementProtocolVersion: 0, shareAmount: 10 })];
   const view = await render(<TradingScreen />, { wrapper });
   expect(view.queryByText('Sign')).toBeNull();
   expect(view.getByText('10 shares')).toBeTruthy();
@@ -466,7 +458,7 @@ it.each([
   async ({ status, role, signed }) => {
     mockActualOrders = true;
     mockWallets = [selectedWallet(role)];
-    mockSwaps = [{ ...listedSwap, ...signed, status, settlementProtocolVersion: 0 } as unknown as SwapOrder];
+    mockSwaps = [listShape({ ...fixture.get_body.swapOrder, ...signed, status, settlementProtocolVersion: 0 })];
     const view = await render(<TradingScreen />, { wrapper });
     expect(view.getByText('Held for operator review')).toBeTruthy();
     expect(view.getByText(role === 'seller' ? 'Seller' : 'Buyer')).toBeTruthy();
@@ -476,6 +468,13 @@ it.each([
 
 it.each([
   { name: 'in the swap list response shape', swap: listedSwap },
+  {
+    name: 'in the swap list response shape without its protocol version',
+    swap: listShape(
+      fixture.get_body.swapOrder,
+      listed.filter((key) => key !== 'settlementProtocolVersion'),
+    ),
+  },
   {
     name: 'with a null V1 context and no digest',
     swap: { ...fixture.get_body.swapOrder, settlementContext: null, settlementDigest: '' },

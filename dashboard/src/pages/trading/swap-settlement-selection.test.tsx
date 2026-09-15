@@ -66,7 +66,9 @@ const listed = Object.keys(
     )
   ).default.components.schemas.SwapOrderList.properties,
 );
-const listedSwap = Object.fromEntries(Object.entries(captured.swapOrder).filter(([key]) => listed.includes(key)));
+const listShape = (swap: object, keys = listed) =>
+  Object.fromEntries(Object.entries(swap).filter(([key]) => keys.includes(key))) as unknown as SwapOrder;
+const listedSwap = listShape(captured.swapOrder);
 const owner = { userUuid, ownerAccountUuid: captured.ownerAccountUuid };
 let client: QueryClient;
 let requests: InternalAxiosRequestConfig[];
@@ -188,6 +190,13 @@ it('keeps the unsigned buyer side available when both wallets are owned and the 
 
 it.each([
   { name: 'in the swap list response shape', swap: listedSwap },
+  {
+    name: 'in the swap list response shape without its protocol version',
+    swap: listShape(
+      captured.swapOrder,
+      listed.filter((key) => key !== 'settlementProtocolVersion'),
+    ),
+  },
   { name: 'with a null context', swap: { ...captured.swapOrder, settlementContext: null } },
   {
     name: 'with a null context and no digest',
@@ -226,7 +235,7 @@ it.each([
   'holds a $status version0 swap for the $role once the swap list carries its protocol version',
   ({ status, role, signed }) => {
     state.wallets = [walletFor(role)];
-    state.swaps = [{ ...listedSwap, ...signed, status, settlementProtocolVersion: 0 } as unknown as SwapOrder];
+    state.swaps = [listShape({ ...captured.swapOrder, ...signed, status, settlementProtocolVersion: 0 })];
     render(<TradingPage />, { wrapper });
     const row = screen.getByText('Held for operator review').parentElement!;
     expect(within(row).getByText(role === 'seller' ? 'Seller' : 'Buyer')).toBeTruthy();
@@ -236,7 +245,7 @@ it.each([
 
 it('holds explicit version0 history for operator review and restores the version1 route on list refresh', async () => {
   const signer = vi.spyOn(localSigner, 'signEthereumTypedData').mockResolvedValue(fixture.signatures[1]!);
-  const legacy = { ...captured.swapOrder, settlementProtocolVersion: 0, settlementContext: null, settlementDigest: '' };
+  const legacy = listShape({ ...captured.swapOrder, settlementProtocolVersion: 0 });
   state.swaps = [legacy];
   const view = render(<TradingPage />, { wrapper });
   expect(screen.queryByTitle('Sign swap')).toBeNull();

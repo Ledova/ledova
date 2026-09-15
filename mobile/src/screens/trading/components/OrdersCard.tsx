@@ -470,7 +470,7 @@ export function OrdersCard({
           {pendingSwaps.map((swap) => {
             const isSeller = !swap.sellerHasSigned && normalizedAddresses.includes(swap.sellerAddress.toLowerCase());
             const userRole = isSeller ? 'Seller' : 'Buyer';
-            const legacy = 'settlementProtocolVersion' in swap && swap.settlementProtocolVersion === 0;
+            const legacy = swap.settlementProtocolVersion === 0;
 
             return (
               <View key={swap.uuid} style={styles.swapRow}>

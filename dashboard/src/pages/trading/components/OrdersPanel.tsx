@@ -289,7 +289,7 @@ export function OrdersPanel({
           {pendingSwaps.map((swap) => {
             const isSeller = normalizedAddresses.includes(swap.sellerAddress.toLowerCase()) && !swap.sellerHasSigned;
             const userRole = isSeller ? 'Seller' : 'Buyer';
-            const legacy = 'settlementProtocolVersion' in swap && swap.settlementProtocolVersion === 0;
+            const legacy = swap.settlementProtocolVersion === 0;
             let capturedDisplay: string | null = null;
             if (hasSwapSettlementContext(swap)) {
               try {
