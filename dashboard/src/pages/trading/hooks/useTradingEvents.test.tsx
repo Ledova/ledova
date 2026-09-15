@@ -141,9 +141,9 @@ describe('useTradingEvents', () => {
     queryClient.clear();
   });
 
-  it('refreshes reserved orders and signing views when a swap expires', () => {
+  it('refreshes reserved orders and swaps when a swap expires', () => {
     const queryClient = new QueryClient();
-    const affected = ['orderBook', 'userOrders', 'swaps', 'orderSwapData'];
+    const affected = ['orderBook', 'userOrders', 'swaps'];
     for (const key of [...affected, 'walletBalances']) {
       queryClient.setQueryData(['trading', key, 'synthetic'], { status: 'before-expiry' });
       expect(queryClient.getQueryState(['trading', key, 'synthetic'])?.isInvalidated).toBe(false);

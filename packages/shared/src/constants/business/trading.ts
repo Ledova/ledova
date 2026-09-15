@@ -28,10 +28,7 @@ export const TRADING_EVENT_INVALIDATION_MAP: Record<TradingEventType, string[][]
     ['trading', 'userOrders'],
     ['trading', 'swaps'],
   ],
-  swap_signed: [
-    ['trading', 'swaps'],
-    ['trading', 'orderSwapData'],
-  ],
+  swap_signed: [['trading', 'swaps']],
   swap_completed: [
     ['trading', 'swaps'],
     ['trading', 'userOrders'],
@@ -45,7 +42,6 @@ export const TRADING_EVENT_INVALIDATION_MAP: Record<TradingEventType, string[][]
     ['trading', 'orderBook'],
     ['trading', 'userOrders'],
     ['trading', 'swaps'],
-    ['trading', 'orderSwapData'],
   ],
 };
 
@@ -83,7 +79,6 @@ export const TRADING_ENDPOINTS = {
   },
   TRANSFERS: {
     PREPARE: '/api/v1/trading/transfers/prepare/',
-    BROADCAST: '/api/v1/trading/transfers/broadcast/',
   },
   WHITELIST: {
     STATUS: (address: string) => `/api/v1/trading/whitelist/${address}/status/` as const,

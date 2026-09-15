@@ -32,7 +32,6 @@ import { OrderSigningModal } from './components/OrderSigningModal';
 import { OrderActionModal } from './components/OrderActionModal';
 import { orderActionStore } from '../../services/orderActions';
 import { OrderDetailModal } from './components/OrderDetailModal';
-import { SwapSigningModal } from './components/SwapSigningModal';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 
 export function TradingScreen() {
@@ -102,15 +101,11 @@ export function TradingScreen() {
   const [detailOrder, setDetailOrder] = useState<TransferOrder | null>(null);
   const [showDetailOrder, setShowDetailOrder] = useState(false);
 
-  const [signSwap, setSignSwap] = useState<SwapOrder | null>(null);
-  const [signSwapWallet, setSignSwapWallet] = useState<Wallet | null>(null);
-  const [showSwapSigning, setShowSwapSigning] = useState(false);
   const [settlementError, setSettlementError] = useState<string | null>(null);
   const closeSettlement = () => {
     settlementGeneration.current++;
     settlements.close();
     walletObserver.current = null;
-    setShowSwapSigning(false);
   };
   const walletBoundary = (wallet: Wallet) => {
     const material = settlementWalletMaterial(wallet);
@@ -142,12 +137,6 @@ export function TradingScreen() {
     actions.close();
     settlements.recover(record, walletBoundary(wallet));
   };
-
-  const findWalletForAddress = useCallback(
-    (address: string): Wallet | null =>
-      wallets.find((w: Wallet) => w.address.toLowerCase() === address.toLowerCase()) || null,
-    [wallets],
-  );
 
   const handleBuy = () => {
     closeSettlement();
@@ -204,23 +193,12 @@ export function TradingScreen() {
     submissions.close();
     actions.close();
     setShowCreateOrder(false);
-    if ('settlementProtocolVersion' in swap && swap.settlementProtocolVersion === 0) {
-      const isSeller =
-        !swap.sellerHasSigned &&
-        walletAddresses.some((address) => address.toLowerCase() === swap.sellerAddress.toLowerCase());
-      setSignSwap(swap);
-      setSignSwapWallet(findWalletForAddress(isSeller ? swap.sellerAddress : swap.buyerAddress));
-      setShowSwapSigning(true);
-      return;
-    }
     try {
       if (!settlements.owner) throw new Error('No current account.');
       const { selection, wallet } = selectMobileSettlement(swap, settlements.owner, wallets);
       settlements.open(selection, walletBoundary(wallet));
     } catch {
-      setSettlementError(
-        'This settlement cannot be opened with the current account and wallet. Refresh its captured details.',
-      );
+      setSettlementError('This settlement cannot be opened with the current account and wallet.');
     }
   };
 
@@ -235,11 +213,6 @@ export function TradingScreen() {
     userOrders.refetch();
     tokenBalances.refetch();
   };
-
-  const handleSwapSuccess = useCallback(() => {
-    swapOrders.refetch();
-    userOrders.refetch();
-  }, [swapOrders, userOrders]);
 
   const walletsWithHoldings = useMemo(() => {
     if (!selectedToken) return [];
@@ -456,19 +429,6 @@ export function TradingScreen() {
         onCancel={handleCancelOrder}
       />
 
-      {showSwapSigning &&
-        signSwap &&
-        'settlementProtocolVersion' in signSwap &&
-        signSwap.settlementProtocolVersion === 0 && (
-          <SwapSigningModal
-            key={`${signSwap.uuid}/${signSwapWallet?.uuid}`}
-            visible={true}
-            onClose={closeSettlement}
-            swap={signSwap}
-            wallet={signSwapWallet}
-            onSuccess={handleSwapSuccess}
-          />
-        )}
       {settlements.active && (
         <SwapSettlementModal
           key={`${settlements.active.selection.swapUuid}/${currentSettlementGeneration}`}
