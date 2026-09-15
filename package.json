@@ -8,8 +8,8 @@
   ],
   "scripts": {
     "dev:dashboard": "npm run dev -w dashboard",
-    "lint": "npm run lint --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces",
+    "test": "npm run test --workspaces",
     "format": "npm run format --workspaces --if-present",
     "typecheck": "npm run type-check --workspaces --if-present && npm --prefix marketing run type-check && npm --prefix mobile run type-check"
   },
