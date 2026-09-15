@@ -9,7 +9,7 @@ const NAV_LINKS = [
   { label: 'Contact', path: '/contact' },
 ];
 
-const GITHUB_URL = 'https://github.com/RonildoBraga/ledova';
+const GITHUB_URL = 'https://github.com/Ledova/ledova';
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);

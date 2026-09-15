@@ -18,7 +18,7 @@ which features are available in each client.
 
 Primary subscriptions use operator-confirmed payments and allotment. Secondary
 trading remains disabled by default while the
-[deferred hardening work](https://github.com/RonildoBraga/ledova/issues?q=is%3Aopen+label%3Adeferred-hardening)
+[deferred hardening work](https://github.com/Ledova/ledova/issues?q=is%3Aopen+label%3Adeferred-hardening)
 is unresolved. The [roadmap](docs/roadmap.md) distinguishes these current limits
 from the project's intended scope.
 
