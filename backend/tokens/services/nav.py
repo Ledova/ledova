@@ -1,7 +1,7 @@
 import hashlib
 from contextlib import contextmanager
 from decimal import Decimal, InvalidOperation, localcontext
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -281,8 +281,22 @@ def project(update_id):
         return update
 
 
-def confirmation(token, user):
-    return signing.dumps({"token": str(token.pk), "actor": user.pk, "submission": str(uuid4())}, salt=CONFIRMATION_SALT)
+def existing_submission(token, user, submission_id):
+    require_boundary()
+    previous = NAVUpdate.objects.filter(pk=submission_id).first()
+    if previous and (
+        previous.mode == NAVUpdateMode.HISTORICAL
+        or previous.yield_token_id != token.pk
+        or previous.updated_by_id != user.pk
+    ):
+        raise NAVUpdateConflict("This NAV UUID belongs to different authority or historical work.")
+    return previous
+
+
+def confirmation(token, user, submission_id):
+    return signing.dumps(
+        {"token": str(token.pk), "actor": user.pk, "submission": str(submission_id)}, salt=CONFIRMATION_SALT
+    )
 
 
 def submission_from_confirmation(value, token, user):

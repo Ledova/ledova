@@ -196,6 +196,7 @@
         <div class="action-row mt-0">
             <button type="submit" class="btn btn-primary">Update NAV</button>
             <a href="{% url 'admin:tokens_yieldtoken_change' yield_token.pk %}" class="btn btn-secondary">Cancel</a>
+            <a href="{% url 'admin:tokens_yieldtoken_update_nav' yield_token.pk %}">Start a new NAV update</a>
         </div>
     </form>
 </div>

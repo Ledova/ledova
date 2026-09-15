@@ -10,7 +10,7 @@ from django.test import TransactionTestCase, override_settings
 from django.urls import reverse
 from rest_framework.exceptions import PermissionDenied
 
-from blockchain.models import OutgoingOperation
+from blockchain.models import OutgoingOperation, SignedAttempt
 from blockchain.tests.outgoing_fixtures import CHAIN_ID, KEY
 from shared.db import atomic, current_alias
 from shared.tests.tenants import make_tenant
@@ -158,7 +158,7 @@ class NAVSubmissionTest(TransactionTestCase):
         self.client.force_login(self.tenant.user)
         path = reverse("admin:tokens_yieldtoken_update_nav", args=[self.token.pk])
         with patch.object(nav, "chain_info", return_value=None):
-            response = self.client.get(path)
+            response = self.client.get(path, follow=True)
         self.assertEqual(response.status_code, 200)
         confirmation = response.context["form"].initial["submission"]
         values = {
@@ -182,7 +182,7 @@ class NAVSubmissionTest(TransactionTestCase):
         self.client.force_login(self.tenant.user)
         path = reverse("admin:tokens_yieldtoken_update_nav", args=[self.token.pk])
         other = make_tenant("nav-form-other", staff=True, superuser=True)
-        for value in ("", "tampered", nav.confirmation(self.token, other.user)):
+        for value in ("", "tampered", nav.confirmation(self.token, other.user, uuid4())):
             response = self.client.post(
                 path, {"submission": value, "nav_per_token": "1.25", "total_reserve_value": "500"}
             )
@@ -197,4 +197,80 @@ class NAVSubmissionTest(TransactionTestCase):
             self.client.force_login(actor.user)
             response = self.client.post(path, {"nav_per_token": "1", "total_reserve_value": "0"})
             self.assertIn(response.status_code, (302, 403))
+        self.assertFalse(NAVUpdate.objects.exists())
+
+    def test_form_reload_and_back_keep_original_uuid_before_and_after_completion(self):
+        self.client.force_login(self.tenant.user)
+        path = reverse("admin:tokens_yieldtoken_update_nav", args=[self.token.pk])
+        initial = self.client.get(path)
+        self.assertEqual(initial.status_code, 302)
+        canonical = initial.url
+        with patch.object(nav, "chain_info", return_value=None):
+            first = self.client.get(canonical)
+            reload = self.client.get(canonical)
+        signed = first.context["form"].initial["submission"]
+        submission_id = nav.submission_from_confirmation(signed, self.token, self.tenant.user)
+        self.assertEqual(
+            nav.submission_from_confirmation(
+                reload.context["form"].initial["submission"], self.token, self.tenant.user
+            ),
+            submission_id,
+        )
+        values = {
+            "submission": signed,
+            "nav_per_token": "1.25",
+            "total_reserve_value": "500",
+            "update_on_chain": "on",
+        }
+        expected = reverse("admin:tokens_navupdate_change", args=[submission_id])
+        with patch.object(nav, "chain_info", side_effect=AssertionError("Replay cannot read today's chain values")):
+            self.assertRedirects(self.client.post(canonical, values), expected)
+            self.assertRedirects(self.client.get(canonical), expected)
+            nav_recovery.recover(submission_id)
+            self.assertRedirects(self.client.get(canonical), expected)
+            self.submit(update_on_chain=False, new_nav_per_token="1.75")
+            self.assertRedirects(self.client.get(canonical), expected)
+            self.assertRedirects(self.client.post(canonical, values), expected)
+        self.assertEqual(NAVUpdate.objects.count(), 2)
+        self.assertEqual(len(self.jobs(submission_id)), 1)
+        self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.assertEqual(len(self.node.broadcasts), 1)
+        self.token.refresh_from_db()
+        self.assertEqual(self.token.nav_per_token, Decimal("1.75"))
+        self.assertNotEqual(self.client.get(path).url, canonical)
+
+    def test_form_rejects_malformed_foreign_and_historical_url_identity_without_rpc(self):
+        self.client.force_login(self.tenant.user)
+        path = reverse("admin:tokens_yieldtoken_update_nav", args=[self.token.pk])
+        other = make_tenant("nav-url-other", staff=True, superuser=True)
+        foreign_actor = nav.submit(self.token, other.user, uuid4(), "1", "0")
+        other_token = YieldToken.objects.create(name="Other", symbol="OTHER")
+        foreign_token = nav.submit(other_token, self.tenant.user, uuid4(), "1", "0")
+        historical = NAVUpdate.objects.create(
+            yield_token=self.token,
+            updated_by=self.tenant.user,
+            old_nav_per_token="1",
+            new_nav_per_token="1",
+            total_reserve_value="0",
+        )
+        with patch.object(nav, "chain_info", side_effect=AssertionError("Invalid identity cannot reach RPC")):
+            for value in ("", "broken", str(foreign_actor.pk), str(foreign_token.pk), str(historical.pk)):
+                with self.subTest(value=value):
+                    self.assertEqual(self.client.get(path, {"submission": value}).status_code, 400)
+            self.assertEqual(self.client.get(f"{path}?submission={uuid4()}&submission={uuid4()}").status_code, 400)
+        self.assertEqual(NAVUpdate.objects.count(), 3)
+        self.assertFalse(OutgoingOperation.objects.exists())
+
+    def test_form_rejects_query_and_signed_identity_mismatch_without_admission(self):
+        self.client.force_login(self.tenant.user)
+        path = reverse("admin:tokens_yieldtoken_update_nav", args=[self.token.pk])
+        with patch.object(nav, "chain_info", return_value=None):
+            response = self.client.get(path, follow=True)
+        values = {
+            "submission": response.context["form"].initial["submission"],
+            "nav_per_token": "1.25",
+            "total_reserve_value": "500",
+        }
+        response = self.client.post(f"{path}?submission={uuid4()}", values)
+        self.assertEqual(response.status_code, 400)
         self.assertFalse(NAVUpdate.objects.exists())

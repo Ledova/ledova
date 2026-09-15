@@ -143,6 +143,10 @@ The staff YieldToken **Update NAV** form requires `tokens.change_yieldtoken`.
 Its signed form identifier belongs to that staff member and token. Retrying the
 same identifier returns its original outcome; changed values, mode or actor are
 refused. Staff with the action permission can read the resulting NAV audit page.
+The form URL retains that identifier through Back and reload. Once admitted, it
+opens the original audit page before any chain read. **Start a new NAV update**
+opens a fresh form for deliberate new work; invalid or mismatched identifiers
+are rejected without replacement.
 Metadata edits save only the edited fields, so an older form cannot overwrite a
 NAV that completed while the form was open.
 

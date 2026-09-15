@@ -68,13 +68,9 @@ class MintAdminTest(TransactionTestCase):
         self.yield_token = YieldToken.objects.create(name="Gov Bond", symbol="AUSG", contract_address="0x" + "2" * 40)
         self.node = MintNode()
         admitted_signer()
-        for target in (
-            "tokens.services.mint_service.get_base_chain_client",
-            "tokens.services.base_token_service.get_base_chain_client",
-        ):
-            patcher = patch(target, return_value=self.node.client)
-            patcher.start()
-            self.addCleanup(patcher.stop)
+        patcher = patch("tokens.services.mint_service.get_base_chain_client", return_value=self.node.client)
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def _mint_request(self, **fields):
         return MintRequest.objects.create(

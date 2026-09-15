@@ -1,13 +1,15 @@
 import logging
+from uuid import UUID, uuid4
 
 from django import forms
 from django.contrib import admin, messages
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseBadRequest, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
 
 from shared.utils.admin_actions import admin_action_path
 from shared.utils.admin_display import action_buttons, format_units
+from tokens.exceptions import NAVUpdateConflict
 from tokens.models import NAVUpdate, NAVUpdateStatus, YieldToken
 from tokens.services import mint_service, nav
 
@@ -171,12 +173,24 @@ class YieldTokenAdmin(admin.ModelAdmin):
 
     def update_nav_view(self, request, yield_token):
         nav_info = None
+        query_id = None
+        if "submission" in request.GET:
+            try:
+                if len(request.GET.getlist("submission")) != 1:
+                    raise ValueError
+                query_id = UUID(request.GET["submission"])
+            except ValueError:
+                return HttpResponseBadRequest("The NAV submission identifier is invalid.")
+        elif request.method == "GET":
+            return HttpResponseRedirect(f"{request.path}?submission={uuid4()}")
         if request.method == "POST":
             form = NAVUpdateForm(request.POST)
             if form.is_valid():
                 try:
                     values = form.cleaned_data
                     submission_id = nav.submission_from_confirmation(values["submission"], yield_token, request.user)
+                    if query_id is not None and query_id != submission_id:
+                        return HttpResponseBadRequest("The NAV form and URL identify different submissions.")
                     update = nav.submit(
                         yield_token,
                         request.user,
@@ -203,9 +217,15 @@ class YieldTokenAdmin(admin.ModelAdmin):
                         )
                     return HttpResponseRedirect(reverse("admin:tokens_navupdate_change", args=[update.pk]))
         else:
+            try:
+                previous = nav.existing_submission(yield_token, request.user, query_id)
+            except NAVUpdateConflict:
+                return HttpResponseBadRequest("This NAV identifier cannot be used for this form.")
+            if previous:
+                return HttpResponseRedirect(reverse("admin:tokens_navupdate_change", args=[previous.pk]))
             form = NAVUpdateForm(
                 initial={
-                    "submission": nav.confirmation(yield_token, request.user),
+                    "submission": nav.confirmation(yield_token, request.user, query_id),
                     "nav_per_token": yield_token.nav_per_token,
                     "total_reserve_value": yield_token.total_reserve_value,
                 }
