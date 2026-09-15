@@ -126,6 +126,9 @@ jest.mock('./useTrading', () => ({
 }));
 
 const copy = <T,>(data: T): T => JSON.parse(JSON.stringify(data));
+const listed = Object.keys(
+  jest.requireActual('../../../../backend/schema/openapi.json').components.schemas.SwapOrderList.properties,
+);
 let client: QueryClient;
 let api = axios.create();
 let requests: InternalAxiosRequestConfig[];
@@ -429,6 +432,7 @@ it('holds explicit V0 history for operator review in the mounted list and keeps 
   expect(view.queryByText('Expired')).toBeNull();
   await fireEvent.press(view.getByText('Held for operator review'));
   await act(async () => {});
+  expect(view.queryByRole('alert')).toBeNull();
   expect(requests).toHaveLength(0);
   expect(getSeedPhrase).not.toHaveBeenCalled();
   expect(signer).not.toHaveBeenCalled();
@@ -452,11 +456,14 @@ it('holds explicit V0 history for operator review in the mounted list and keeps 
 
 it.each([
   {
-    name: 'without settlement fields',
-    swap: Object.fromEntries(
-      Object.entries(fixture.get_body.swapOrder).filter(([key]) => !key.startsWith('settlement')),
-    ),
+    name: 'in the swap list response shape',
+    swap: Object.fromEntries(Object.entries(fixture.get_body.swapOrder).filter(([key]) => listed.includes(key))),
   },
+  {
+    name: 'with a null V1 context and no digest',
+    swap: { ...fixture.get_body.swapOrder, settlementContext: null, settlementDigest: '' },
+  },
+  { name: 'with an empty V1 context', swap: { ...fixture.get_body.swapOrder, settlementContext: {} } },
   {
     name: 'with a string version',
     swap: { ...fixture.get_body.swapOrder, settlementProtocolVersion: '0', settlementContext: null },

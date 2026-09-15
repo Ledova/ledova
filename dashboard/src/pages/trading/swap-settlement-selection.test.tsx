@@ -59,6 +59,13 @@ vi.mock('./useTrading', () => ({
 }));
 
 const captured = fixture.get_body as SwapSettlementResponse;
+const listed = Object.keys(
+  (
+    await vi.importActual<{ default: { components: { schemas: { SwapOrderList: { properties: object } } } } }>(
+      '../../../../backend/schema/openapi.json',
+    )
+  ).default.components.schemas.SwapOrderList.properties,
+);
 const owner = { userUuid, ownerAccountUuid: captured.ownerAccountUuid };
 let client: QueryClient;
 let requests: InternalAxiosRequestConfig[];
@@ -180,10 +187,14 @@ it('keeps the unsigned buyer side available when both wallets are owned and the 
 
 it.each([
   {
-    name: 'without settlement fields',
-    swap: Object.fromEntries(Object.entries(captured.swapOrder).filter(([key]) => !key.startsWith('settlement'))),
+    name: 'in the swap list response shape',
+    swap: Object.fromEntries(Object.entries(captured.swapOrder).filter(([key]) => listed.includes(key))),
   },
   { name: 'with a null context', swap: { ...captured.swapOrder, settlementContext: null } },
+  {
+    name: 'with a null context and no digest',
+    swap: { ...captured.swapOrder, settlementContext: null, settlementDigest: '' },
+  },
   { name: 'with an empty context', swap: { ...captured.swapOrder, settlementContext: {} } },
   {
     name: 'with a string version',
@@ -209,9 +220,11 @@ it('holds explicit version0 history for operator review and restores the version
   const view = render(<TradingPage />, { wrapper });
   expect(screen.queryByTitle('Sign swap')).toBeNull();
   expect(screen.getByText(`${legacy.shareAmount}@$${(legacy.paymentAmount / 100).toFixed(2)}`)).toBeTruthy();
+  expect(screen.getByText('Buyer')).toBeTruthy();
   expect(screen.queryByText('Expired')).toBeNull();
   fireEvent.click(screen.getByText('Held for operator review'));
   await act(async () => {});
+  expect(screen.queryByRole('alert')).toBeNull();
   expect(swapRequests()).toEqual([]);
   expect(requests.filter((request) => request.method === 'post')).toEqual([]);
   expect(signer).not.toHaveBeenCalled();
