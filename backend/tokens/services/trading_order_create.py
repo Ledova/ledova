@@ -21,8 +21,8 @@ from tokens.models import (
     TransferOrder,
     TransferOrderType,
 )
+from tokens.services import token_transfer_service
 from tokens.services.signing_challenge import spend
-from tokens.services.token_transfer_service import TokenTransferService
 from tokens.services.trading_order_service import TradingOrderService
 from users.models import UserAccount
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
@@ -204,7 +204,7 @@ def execute_order_submission(actor, data):
         spend(challenge, data["signature"])
         try:
             with atomic():
-                order, match = TokenTransferService().create_order_and_match(
+                order, match = token_transfer_service.create_order_and_match(
                     token=token,
                     order_type=submission.order_type,
                     actor=actor,

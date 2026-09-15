@@ -10,7 +10,7 @@ from rest_framework.test import APIClient, APITransactionTestCase
 from shared.db import current_alias, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import a_profile
-from tokens.services.token_transfer_service import TokenTransferService
+from tokens.services import token_transfer_service
 from tokens.tests.order_submission_fixtures import BASE, SubmissionFixtures
 from users.models import UserAccount
 from wallets.models import Wallet
@@ -23,16 +23,16 @@ class ScopedMatchingWalletLockTest(RunsOnTheScopedConnection, SubmissionFixtures
         release = Event()
         writer_ready = Event()
         pids = {}
-        find_matching = TokenTransferService.find_matching_order
+        find_matching = token_transfer_service.find_matching_order
 
-        def before_matching(service, order):
+        def before_matching(order):
             with connections[current_alias()].cursor() as cursor:
                 cursor.execute("SELECT pg_backend_pid()")
                 pids["submission"] = cursor.fetchone()[0]
             paused.set()
             if not release.wait(10):
                 raise AssertionError("The test did not release the admitted submission")
-            return find_matching(service, order)
+            return find_matching(order)
 
         def create():
             try:
@@ -54,7 +54,9 @@ class ScopedMatchingWalletLockTest(RunsOnTheScopedConnection, SubmissionFixtures
             finally:
                 connections.close_all()
 
-        with patch.object(TokenTransferService, "find_matching_order", before_matching), ThreadPoolExecutor(2) as pool:
+        with patch.object(token_transfer_service, "find_matching_order", before_matching), ThreadPoolExecutor(
+            2
+        ) as pool:
             submitting = pool.submit(create)
             try:
                 self.assertTrue(paused.wait(5), "The submission never reached matching")

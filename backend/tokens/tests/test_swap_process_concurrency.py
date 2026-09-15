@@ -168,7 +168,7 @@ class SwapWorkersUseOneCurrentClaimTest(TransactionTestCase):
         buyer.send("store")
         self.assertEqual(buyer.done()["result"], SwapOrderStatus.READY)
         self.swap.refresh_from_db()
-        signable = encode_typed_data(full_message=swap_service().get_typed_data(self.swap))
+        signable = encode_typed_data(full_message=swap_service(self).get_typed_data(self.swap))
         self.assertEqual(self.swap.seller_signature, SELLER.sign_message(signable).signature.hex())
         self.assertEqual(self.swap.buyer_signature, BUYER.sign_message(signable).signature.hex())
 
@@ -255,7 +255,7 @@ class SwapWorkersUseOneCurrentClaimTest(TransactionTestCase):
                     filled_quantity=30, status="pending_signature"
                 )
                 child = self.start_observation("receipt", outcome)
-                swap_service()._record_receipt(self.swap, self.swap.transaction, TX_HASH, first_receipt)
+                swap_service(self)._record_receipt(self.swap, self.swap.transaction, TX_HASH, first_receipt)
                 if first_receipt == REVERTED:
                     order = TransferOrder.objects.get(pk=self.swap.sell_order_id)
                     issued = cancel_message_for_order(order.owner_account.user_profile.user, order)

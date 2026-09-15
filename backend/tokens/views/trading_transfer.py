@@ -8,7 +8,7 @@ from tokens.serializers.trading_responses import (
     PreparedTokenTransferSerializer,
     TokenTransferReceiptSerializer,
 )
-from tokens.services import TokenTransferService
+from tokens.services import token_transfer_service
 from tokens.services.signed_transactions import signer_of
 from tokens.trading_wallet_access import resolve_verified_evm_wallets
 
@@ -30,10 +30,9 @@ class TradingTransferViewSet(AuthenticatedGenericViewSet):
         authorized_wallets = resolve_verified_evm_wallets(request.user, [data["from_address"]])
         from_address = authorized_wallets.addresses[0]
 
-        transfer_service = TokenTransferService()
         token = data["token"]
 
-        tx_data = transfer_service.prepare_transfer(
+        tx_data = token_transfer_service.prepare_transfer(
             token=data["token"],
             from_address=from_address,
             to_address=data["to_address"],
@@ -45,7 +44,7 @@ class TradingTransferViewSet(AuthenticatedGenericViewSet):
                 "token": {
                     "uuid": str(token.uuid),
                     "symbol": token.symbol,
-                    "contract_address": TokenTransferService.contract_address(token),
+                    "contract_address": token_transfer_service.contract_address(token),
                 },
                 "from_address": from_address,
                 "to_address": data["to_address"],
@@ -64,8 +63,7 @@ class TradingTransferViewSet(AuthenticatedGenericViewSet):
         signed_transaction = data["signed_transaction"]
         resolve_verified_evm_wallets(request.user, [signer_of(signed_transaction)])
 
-        transfer_service = TokenTransferService()
-        tx_hash, receipt = transfer_service.broadcast_transfer(signed_transaction)
+        tx_hash, receipt = token_transfer_service.broadcast_transfer(signed_transaction)
 
         return Response(
             {
