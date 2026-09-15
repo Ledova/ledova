@@ -36,7 +36,7 @@ categories fails CI.
 ## Reporting a vulnerability
 
 Report vulnerabilities privately through
-[GitHub's private vulnerability reporting](https://github.com/RonildoBraga/ledova/security/advisories/new)
+[GitHub's private vulnerability reporting](https://github.com/Ledova/ledova/security/advisories/new)
 for this repository. Do **not** open a public issue for a security problem.
 
 You should receive an acknowledgement within a few days. This is a spare-time
@@ -50,7 +50,7 @@ and public-testnet use only. It is not operated as a hosted service, and it
 makes no production-security or compliance claims.
 
 Known, deliberately deferred security work is tracked publicly in the issues
-labeled [`deferred-hardening`](https://github.com/RonildoBraga/ledova/issues?q=is%3Aopen+label%3Adeferred-hardening).
+labeled [`deferred-hardening`](https://github.com/Ledova/ledova/issues?q=is%3Aopen+label%3Adeferred-hardening).
 Reports that duplicate an item already listed there are still welcome, but will
 likely be folded into the existing issue rather than fixed immediately.
 

@@ -142,21 +142,21 @@ These gaps are accepted by the #13 owner decisions named beside each:
 - Android has no origin check for camera requests: any page or frame receives the
   camera once the app holds `CAMERA`, and can raise the system `CAMERA` prompt
   when it does not. A request for audio and video cannot receive audio. Decision
-  [5663884982](https://github.com/RonildoBraga/ledova/issues/13#issuecomment-5663884982).
+  [5663884982](https://github.com/Ledova/ledova/issues/13#issuecomment-5663884982).
 - Android offers no HTTP(S) or `about:` iframe navigation to the callback; iframes
   with other schemes arrive as top frames and the shared policy refuses them. iOS
   offers iframe navigations but applies no origin list. Decisions
-  [5663884982](https://github.com/RonildoBraga/ledova/issues/13#issuecomment-5663884982)
+  [5663884982](https://github.com/Ledova/ledova/issues/13#issuecomment-5663884982)
   for Android and
-  [5665093034](https://github.com/RonildoBraga/ledova/issues/13#issuecomment-5665093034)
+  [5665093034](https://github.com/Ledova/ledova/issues/13#issuecomment-5665093034)
   for iOS.
 - Android allows a navigation when JavaScript has not answered its synchronous
   callback within 250 ms. Decision
-  [5663884982](https://github.com/RonildoBraga/ledova/issues/13#issuecomment-5663884982).
+  [5663884982](https://github.com/Ledova/ledova/issues/13#issuecomment-5663884982).
 - Android never offers POST navigations to the callback. Decision
-  [5665093034](https://github.com/RonildoBraga/ledova/issues/13#issuecomment-5665093034).
+  [5665093034](https://github.com/Ledova/ledova/issues/13#issuecomment-5665093034).
 - Only WebKit's prompt governs a provider's microphone request on iOS. Decision
-  [5665093034](https://github.com/RonildoBraga/ledova/issues/13#issuecomment-5665093034).
+  [5665093034](https://github.com/Ledova/ledova/issues/13#issuecomment-5665093034).
 
 The Sumsub SDK builder script loads from an unversioned URL, so its iframe host,
 token parsing and frame permissions can change without a repository change. That
