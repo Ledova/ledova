@@ -10,6 +10,7 @@ from tokens.models import (
     CapitalIncreaseRequest,
     MintRequest,
     NAVUpdate,
+    NAVUpdateMode,
     ShareIssuance,
     ShareIssuanceRequest,
     ShareToken,
@@ -63,9 +64,10 @@ def _digest(value):
     return hashlib.sha256(json.dumps(_json(value), sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
-def _rows(model, *fields):
+def _rows(model, *fields, **filters):
     return {
-        str(row["uuid"]): _json(row) for row in model.objects.order_by("uuid").values("uuid", "updated_at", *fields)
+        str(row["uuid"]): _json(row)
+        for row in model.objects.filter(**filters).order_by("uuid").values("uuid", "updated_at", *fields)
     }
 
 
@@ -156,7 +158,13 @@ def read_legacy_outgoing_sources():
         MintRequest, "settlement_asset_id", "yield_token_id", "recipient_address", "amount", "status", "transaction_id"
     )
     navs = _rows(
-        NAVUpdate, "yield_token_id", "old_nav_per_token", "new_nav_per_token", "total_reserve_value", "transaction_id"
+        NAVUpdate,
+        "yield_token_id",
+        "old_nav_per_token",
+        "new_nav_per_token",
+        "total_reserve_value",
+        "transaction_id",
+        mode=NAVUpdateMode.HISTORICAL,
     )
     yields = _rows(YieldToken, "contract_address", "decimals")
     deployments = _rows(AssetChainDeployment, "asset_id", "chain", "contract_address", "decimals")

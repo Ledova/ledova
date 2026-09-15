@@ -3,7 +3,7 @@
 [Architecture](README.md) · [Documentation](../README.md)
 
 Settlement-asset and yield-token `MintRequest` execution, whitelist add/remove
-commands, share-token deployment and its automatic swap approval, capital increases, share issuances and pause/unpause use the
+commands, share-token deployment and its automatic swap approval, capital increases, share issuances, pause/unpause and NAV updates use the
 operator signing foundation. Signer
 admission remains closed. The [deployment flow](contracts-and-issuance.md) binds
 its original receipt to immutable deployment terms; an identifier lookup alone
@@ -13,8 +13,8 @@ The foundation now requires explicit signer admission. Existing and new
 `SigningAccount` rows start `closed`, and a missing row is also closed. A nonce
 counter, successful legacy status or inventory capture never grants admission.
 There is no activation command or admin edit surface; admitted synthetic test
-fixtures establish a test precondition only. NAV updates and settlement relaying
-still require conversion.
+fixtures establish a test precondition only. Settlement relaying still requires
+conversion.
 
 `close_signer_admission(chain_id=..., sender=...)` is an operator-only service
 that closes an account and advances its admission generation. It preserves

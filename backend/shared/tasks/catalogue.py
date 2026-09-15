@@ -1,4 +1,6 @@
 SYSTEM_WIDE = {
+    "tokens.tasks.nav.recover_nav_update": "Recovers one durably admitted staff NAV update using its original journal.",
+    "tokens.tasks.nav.check_pending_nav_updates": "Recovers admitted staff NAV work without inferring new intent.",
     "tokens.tasks.pause.recover_pause_change": "Recovers one durably authorized issuer or staff pause command "
     "through its original outgoing operation. Public issuer projection re-enters the admitted principal's scope.",
     "tokens.tasks.pause.check_pending_pause_changes": "Recovers admitted pause commands across issuers; it cannot "

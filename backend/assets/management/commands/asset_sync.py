@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from assets.services import AssetSyncService
+from assets.services import sync as asset_sync
 
 
 class Command(BaseCommand):
@@ -29,7 +29,7 @@ class Command(BaseCommand):
         days = options["days"]
 
         if options["seed_only"]:
-            AssetSyncService.ensure_supported_assets()
+            asset_sync.ensure_supported_assets()
             self.stdout.write(self.style.SUCCESS("✓ Supported assets seeded"))
             return
 
@@ -38,8 +38,8 @@ class Command(BaseCommand):
         else:
             self.stdout.write(f"\nStarting full asset sync (backfill {days} days)...\n")
 
-        AssetSyncService.ensure_supported_assets()
-        result = AssetSyncService.sync_assets(backfill_days=days, today_only=today_only)
+        asset_sync.ensure_supported_assets()
+        result = asset_sync.sync_assets(backfill_days=days, today_only=today_only)
 
         if result["status"] == "success":
             self.stdout.write(self.style.SUCCESS("\n✓ Asset sync completed successfully"))

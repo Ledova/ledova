@@ -1,15 +1,17 @@
 import logging
+from uuid import UUID, uuid4
 
 from django import forms
 from django.contrib import admin, messages
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseBadRequest, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
 
 from shared.utils.admin_actions import admin_action_path
 from shared.utils.admin_display import action_buttons, format_units
-from tokens.models import NAVUpdate, YieldToken
-from tokens.services import YieldTokenService, mint_service
+from tokens.exceptions import NAVUpdateConflict
+from tokens.models import NAVUpdate, NAVUpdateStatus, YieldToken
+from tokens.services import mint_service, nav
 
 from ._helpers import MintForm, active_badge, hex_column, mint_result_message
 
@@ -17,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class NAVUpdateForm(forms.Form):
+    submission = forms.CharField(widget=forms.HiddenInput)
     nav_per_token = forms.DecimalField(
         max_digits=20,
         decimal_places=6,
@@ -88,6 +91,12 @@ class YieldTokenAdmin(admin.ModelAdmin):
         ("Timestamps", {"fields": ["created_at", "updated_at"], "classes": ["collapse"]}),
     ]
 
+    def save_model(self, request, obj, form, change):
+        if change:
+            obj.save(update_fields=[*form.changed_data, "updated_at"])
+        else:
+            super().save_model(request, obj, form, change)
+
     def get_urls(self):
         custom = [
             admin_action_path(self, "<uuid:uuid>/update-nav/", "tokens_yieldtoken_update_nav", self.update_nav_view),
@@ -109,9 +118,9 @@ class YieldTokenAdmin(admin.ModelAdmin):
             return HttpResponseRedirect(change_url)
 
         try:
-            service = YieldTokenService(contract_address=yield_token.contract_address)
-            current_supply = format_units(service.get_total_supply(), yield_token.decimals)
-            is_minter = service.is_minter(service.signer_address)
+            info = mint_service.mint_info("AUSG", yield_token.contract_address)
+            current_supply = format_units(info["supply"], yield_token.decimals)
+            is_minter = info["is_minter"]
         except Exception as exc:
             logger.error(f"Failed to get {yield_token.symbol} contract info: {exc}")
             current_supply, is_minter = "Error", False
@@ -163,65 +172,79 @@ class YieldTokenAdmin(admin.ModelAdmin):
         return action_buttons([("Update NAV", nav_url, "#007bff"), ("+ Mint", self.mint_url(obj), "#28a745")])
 
     def update_nav_view(self, request, yield_token):
-
-        if not yield_token.is_active:
-            messages.error(request, f"Cannot update NAV: {yield_token.symbol} is not active")
-            return HttpResponseRedirect(reverse("admin:tokens_yieldtoken_change", args=[yield_token.pk]))
-
         nav_info = None
-        is_nav_updater = False
-        try:
-            if yield_token.contract_address:
-                service = YieldTokenService(contract_address=yield_token.contract_address)
-                nav_info = service.get_nav_info()
-                is_nav_updater = service.is_nav_updater(service.signer_address)
-        except Exception as e:
-            logger.warning(f"Failed to fetch on-chain NAV info for {yield_token.symbol}: {e}")
-
-        recent_updates = NAVUpdate.objects.filter(yield_token=yield_token)[:5]
-
+        query_id = None
+        if "submission" in request.GET:
+            try:
+                if len(request.GET.getlist("submission")) != 1:
+                    raise ValueError
+                query_id = UUID(request.GET["submission"])
+            except ValueError:
+                return HttpResponseBadRequest("The NAV submission identifier is invalid.")
+        elif request.method == "GET":
+            return HttpResponseRedirect(f"{request.path}?submission={uuid4()}")
         if request.method == "POST":
             form = NAVUpdateForm(request.POST)
             if form.is_valid():
                 try:
-                    service = YieldTokenService(contract_address=yield_token.contract_address)
-                    nav_update = service.update_nav(
-                        new_nav_per_token=form.cleaned_data["nav_per_token"],
-                        total_reserve_value=form.cleaned_data["total_reserve_value"],
-                        user=request.user,
-                        yield_token=yield_token,
-                        custodian_report_ref=form.cleaned_data.get("custodian_report_ref", ""),
-                        notes=form.cleaned_data.get("notes", ""),
-                        update_on_chain=form.cleaned_data.get("update_on_chain", False),
+                    values = form.cleaned_data
+                    submission_id = nav.submission_from_confirmation(values["submission"], yield_token, request.user)
+                    if query_id is not None and query_id != submission_id:
+                        return HttpResponseBadRequest("The NAV form and URL identify different submissions.")
+                    update = nav.submit(
+                        yield_token,
+                        request.user,
+                        submission_id,
+                        values["nav_per_token"],
+                        values["total_reserve_value"],
+                        update_on_chain=values["update_on_chain"],
+                        custodian_report_ref=values["custodian_report_ref"],
+                        notes=values["notes"],
                     )
-
-                    messages.success(
-                        request,
-                        f"NAV updated for {yield_token.symbol}: "
-                        f"${nav_update.old_nav_per_token} → ${nav_update.new_nav_per_token}",
+                except Exception:
+                    logger.exception("NAV admission failed for yield token %s", yield_token.pk)
+                    form.add_error(
+                        None, "The NAV submission could not be accepted. Retry this form with its original values."
                     )
-                    return HttpResponseRedirect(reverse("admin:tokens_yieldtoken_change", args=[yield_token.pk]))
-
-                except Exception as e:
-                    messages.error(request, f"NAV update failed: {e}")
+                else:
+                    if update.completed_at and update.status in (NAVUpdateStatus.APPLIED, NAVUpdateStatus.CONFIRMED):
+                        messages.success(request, "This NAV submission completed. Its recorded outcome is shown below.")
+                    elif update.status == NAVUpdateStatus.FAILED:
+                        messages.error(request, "This NAV submission was refused or failed. It cannot run again.")
+                    else:
+                        messages.warning(
+                            request, "NAV update pending. Its original submission will be recovered automatically."
+                        )
+                    return HttpResponseRedirect(reverse("admin:tokens_navupdate_change", args=[update.pk]))
         else:
-            initial = {}
-            if yield_token.nav_per_token:
-                initial["nav_per_token"] = yield_token.nav_per_token
-            if yield_token.total_reserve_value:
-                initial["total_reserve_value"] = yield_token.total_reserve_value
-            form = NAVUpdateForm(initial=initial)
-
+            try:
+                previous = nav.existing_submission(yield_token, request.user, query_id)
+            except NAVUpdateConflict:
+                return HttpResponseBadRequest("This NAV identifier cannot be used for this form.")
+            if previous:
+                return HttpResponseRedirect(reverse("admin:tokens_navupdate_change", args=[previous.pk]))
+            form = NAVUpdateForm(
+                initial={
+                    "submission": nav.confirmation(yield_token, request.user, query_id),
+                    "nav_per_token": yield_token.nav_per_token,
+                    "total_reserve_value": yield_token.total_reserve_value,
+                }
+            )
+            if yield_token.contract_address:
+                try:
+                    nav_info = nav.chain_info(yield_token)
+                except Exception:
+                    logger.warning("On-chain NAV read unavailable for yield token %s", yield_token.pk)
         context = {
             **self.admin_site.each_context(request),
             "title": f"Update NAV — {yield_token.symbol}",
             "subtitle": None,
             "yield_token": yield_token,
             "form": form,
-            "opts": self.model._meta,
+            "opts": self.opts,
             "nav_info": nav_info,
-            "is_nav_updater": is_nav_updater,
-            "recent_updates": recent_updates,
+            "is_nav_updater": nav_info and nav_info["is_nav_updater"],
+            "recent_updates": NAVUpdate.objects.filter(yield_token=yield_token).select_related("updated_by")[:5],
         }
         return render(request, "admin/tokens/yieldtoken/update_nav_form.html", context)
 
@@ -230,21 +253,32 @@ class YieldTokenAdmin(admin.ModelAdmin):
 class NAVUpdateAdmin(admin.ModelAdmin):
     list_display = [
         "yield_token",
+        "mode",
+        "status",
+        "completed_at",
         "nav_change_display",
         "total_reserve_value",
         "custodian_report_ref",
         "updated_by",
         "created_at",
     ]
-    list_filter = ["yield_token"]
+    list_filter = ["yield_token", "mode", "status"]
+    list_select_related = ["yield_token", "updated_by", "operation"]
     readonly_fields = [
         "uuid",
         "yield_token",
+        "mode",
+        "status",
+        "completed_at",
         "old_nav_per_token",
         "new_nav_per_token",
         "total_reserve_value",
         "custodian_report_ref",
         "transaction",
+        "operation",
+        "original_transaction_hash",
+        "intent",
+        "event",
         "updated_by",
         "notes",
         "created_at",
@@ -255,6 +289,18 @@ class NAVUpdateAdmin(admin.ModelAdmin):
     @admin.display(description="NAV Change")
     def nav_change_display(self, obj):
         return f"${obj.old_nav_per_token} → ${obj.new_nav_per_token}"
+
+    @admin.display(description="Original transaction hash")
+    def original_transaction_hash(self, obj):
+        if obj.operation_id and obj.operation.current_attempt_id:
+            return obj.operation.current_attempt.tx_hash
+        return obj.transaction.tx_hash if obj.transaction_id else "-"
+
+    def has_view_permission(self, request, obj=None):
+        return super().has_view_permission(request, obj) or request.user.has_perm("tokens.change_yieldtoken")
+
+    def has_change_permission(self, request, obj=None):
+        return False
 
     def has_add_permission(self, request):
         return False
