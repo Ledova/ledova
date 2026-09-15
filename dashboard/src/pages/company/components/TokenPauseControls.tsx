@@ -11,7 +11,13 @@ import {
   type PauseSubmissionResponse,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { listSavedPauses, removeSavedPause, retainSavedPause, savePause, type SavedPause } from '@services/pauseSubmissions';
+import {
+  listSavedPauses,
+  removeSavedPause,
+  retainSavedPause,
+  savePause,
+  type SavedPause,
+} from '@services/pauseSubmissions';
 
 const queryKey = (record: SavedPause) => [
   'pause-submission',
