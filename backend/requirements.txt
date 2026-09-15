@@ -12,14 +12,14 @@ psycopg[binary]>=3.3.5
 redis>=8.1.0
 procrastinate[django]==3.9.0
 whitenoise>=6.12.0
-PyJWT[crypto]>=2.13.0,<3
+PyJWT[crypto]>=2.14.0,<3
 requests>=2.34.2
 web3>=8.0.0
 eth-account>=0.14.0
 bitcoin-message-tool>=0.1.4
 base58>=2.1.1
 bech32>=1.2.0
-openai>=3.11.0
+openai>=3.13.0
 pydantic>=2.13.5
 PyMuPDF>=1.28.2
 Pillow>=12.3.0
