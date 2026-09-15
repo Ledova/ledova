@@ -1545,13 +1545,12 @@ class NAVUpdateChainTest(APITransactionTestCase):
         constructor = self.w3.eth.contract(abi=artifact["abi"], bytecode=artifact["bytecode"]).constructor(
             CHAIN_SETTINGS["WHITELIST_CONTRACT_ADDRESS"], self.signer
         )
-        tx_hash = self.chain.send_transaction(constructor, CHAIN_SETTINGS["BLOCKCHAIN_OPERATOR_KEY"])
-        address = self.w3.eth.wait_for_transaction_receipt(tx_hash)["contractAddress"]
+        _, deployment_receipt = self.chain.send_transaction(constructor, CHAIN_SETTINGS["BLOCKCHAIN_OPERATOR_KEY"])
+        address = deployment_receipt["contractAddress"]
         self.contract = self.chain.load_contract("AUSG", address)
-        tx_hash = self.chain.send_transaction(
+        self.chain.send_transaction(
             self.contract.functions.addNavUpdater(self.signer), CHAIN_SETTINGS["BLOCKCHAIN_OPERATOR_KEY"]
         )
-        self.w3.eth.wait_for_transaction_receipt(tx_hash)
         admitted_signer(sender=self.signer)
         self.token = YieldToken.objects.create(
             name="Synthetic chain NAV",
