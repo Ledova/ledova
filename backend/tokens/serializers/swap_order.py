@@ -54,6 +54,7 @@ class SwapOrderListSerializer(RecordedSwapDisplay, serializers.ModelSerializer):
             "buyer_address",
             "share_amount",
             "payment_amount",
+            "settlement_protocol_version",
             "sell_order_uuid",
             "buy_order_uuid",
             "seller_has_signed",
