@@ -136,11 +136,48 @@ work.
   raw transaction with your own tooling, paste the hex, broadcast it, and
   confirm the success state links to the testnet explorer. The app never builds
   or signs a Bitcoin transaction.
-- **Biometric sign-in.** Enable it, sign out, sign back in with biometrics,
-  then rotate the session and confirm the gated copy of the refresh token stays
-  in step. Android's Keystore prompts on every gated write and drops the copy
-  when the prompt is cancelled or the app is backgrounded, so the next sign-in
-  is typed once; iOS writes silently.
+- **Biometric sign-in.** The app always opens at the sign-in screen. It offers
+  biometric sign-in only while biometrics are enrolled and a gated copy of the
+  refresh token is stored: the Sign In button then shows a face-scan icon
+  instead of a key, and tapping it with both fields empty starts biometric
+  sign-in. Sign-out and account deletion remove the copy
+  ([secret storage](../architecture/mobile-security.md#secret-storage)), so
+  drive a relaunch instead. Start from a fresh install, or turn `<type> Sign In`
+  on and then off in Settings: sign-out keeps the setting, and a typed sign-in
+  then skips the Enable alert. Keep App Lock off, or backgrounding during a
+  prompt can add an unlock screen. On Android, enrol a strong (Class 3)
+  biometric: the screen accepts any enrolled biometric, but only a strong one
+  opens the gated copy. `<type>` is Face ID when the device reports face
+  hardware, Touch ID when it reports only a fingerprint, and Biometrics
+  otherwise. An Android phone with weaker face unlock still says Face ID, and
+  its prompt then needs the fingerprint.
+  1. Sign in with email and password and tap Enable on `Enable <type> Sign In?`,
+     or turn on `<type> Sign In` in Settings. Android's Keystore prompts
+     `Authenticate to keep biometric sign in`; iOS writes silently.
+  2. Without signing out, force-quit and relaunch. Expect the face-scan icon.
+     Tap Sign In with both fields empty and pass the biometric prompt (Android
+     titles it `Sign in with <type>`; on iOS the first use may show the system
+     Face ID permission alert first, which must be allowed). On Android a second
+     prompt, `Authenticate to keep biometric sign in`, then stores the rotated
+     copy; iOS does not prompt again. Expect the main app.
+  3. Force-quit, relaunch and sign in with biometrics again. The backend
+     blacklists each refresh token it rotates, so this passes only if the gated
+     copy stayed in step with the rotation in step 2. A failure shows the key
+     icon, `Biometric sign in is temporarily unavailable` on every retry, or
+     `Your saved sign in has expired`.
+  4. Android: repeat step 2, but cancel the second prompt or background the app
+     while it shows. Sign-in still completes and the copy is dropped: after a
+     relaunch the key icon shows, the next sign-in is typed once (no Enable
+     alert, one Keystore prompt), and the relaunch after that offers biometrics.
+  5. Sign out. Expect the key icon; an empty tap asks for email and password
+     with no biometric prompt. One typed sign-in re-arms biometric sign-in for
+     the next relaunch.
+
+  A saved sign-in older than `REFRESH_TOKEN_LIFETIME` (seven days by default)
+  or revoked elsewhere still shows the face-scan icon, but after the prompt it
+  ends with `Your saved sign in has expired`. iOS writes the copy without a
+  prompt, so these steps cannot show on an iPhone that the copy is
+  biometric-protected; Android's write prompt is the only visible sign.
 
 - **Push delivery.** Configure `extra.eas.projectId` in `mobile/app.json` and
   verify delivery in the device build. Supported emulators and simulators can
