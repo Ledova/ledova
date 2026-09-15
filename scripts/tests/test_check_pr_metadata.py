@@ -203,10 +203,12 @@ class LiveIssueVerification(unittest.TestCase):
 
     def test_any_pr_whose_commit_count_differs_from_the_commits_read_is_refused_with_both_counts(self):
         for body in ("Refs #518", "Closes #518"):
-            for total in (99, 101):
-                responses = [self.request(body=body, commits=self.COMMITS), {"number": 518}, {"commits": total}]
-                with self.subTest(body=body, total=total), patch.object(gate, "github_json", side_effect=responses):
-                    with self.assertRaisesRegex(ValueError, f"PR #548 has {total} commits, but the gate read 100,"):
+            for read, total in ((100, 99), (100, 101), (3, 2), (3, 4)):
+                responses = [self.request(body=body, commits=self.COMMITS[:read]), {"number": 518}, {"commits": total}]
+                with self.subTest(body=body, read=read, total=total):
+                    with patch.object(gate, "github_json", side_effect=responses), self.assertRaisesRegex(
+                        ValueError, f"PR #548 has {total} commits, but the gate read {read}; they must match"
+                    ):
                         gate.check("owner/ledova", 548)
 
     def test_a_missing_or_non_integer_commit_count_is_refused(self):
@@ -218,7 +220,7 @@ class LiveIssueVerification(unittest.TestCase):
         ):
             responses = [self.request(commits=self.COMMITS[:1]), {"number": 518}, count]
             with self.subTest(count=count), patch.object(gate, "github_json", side_effect=responses):
-                with self.assertRaisesRegex(ValueError, f"PR #548 has {shown} commits, but the gate read 1,"):
+                with self.assertRaisesRegex(ValueError, f"PR #548 has {shown} commits, but the gate read 1;"):
                     gate.check("owner/ledova", 548)
 
     def test_api_failure_on_the_commit_count_cannot_be_reported_as_a_valid_reference(self):
