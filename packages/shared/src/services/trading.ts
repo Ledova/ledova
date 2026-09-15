@@ -13,15 +13,10 @@ import type {
   OrderBook,
   GetOrdersParams,
   WhitelistStatus,
-  SwapDataResponse,
-  SubmitSignatureRequest,
-  GetSwapDataParams,
   SignedCreateOrderRequest,
   WalletTokenBalancesResponse,
   MarketData,
   PaginatedResponse,
-  ApprovalStatusResponse,
-  ApprovalDataResponse,
   ApiResponse,
 } from '../types';
 
@@ -153,27 +148,6 @@ export const getWhitelistStatus = (apiClient: AxiosInstance, walletAddress: stri
 
 export const getSwapOrders = (apiClient: AxiosInstance, walletAddress: string) =>
   apiClient.get<ApiResponse<'api_v1_trading_swaps_list'>>(TRADING_ENDPOINTS.SWAPS.LIST, {
-    params: { wallet_address: walletAddress },
-  });
-
-export const getOrderSwapData = (apiClient: AxiosInstance, orderUuid: string, params: GetSwapDataParams) =>
-  apiClient.get<SwapDataResponse>(TRADING_ENDPOINTS.ORDERS.SWAP(orderUuid), {
-    params: { wallet_address: params.walletAddress },
-  });
-
-export const submitOrderSwapSignature = (apiClient: AxiosInstance, orderUuid: string, data: SubmitSignatureRequest) =>
-  apiClient.post<ApiResponse<'api_v1_trading_orders_swap_sign_create'>>(TRADING_ENDPOINTS.ORDERS.SWAP_SIGN(orderUuid), {
-    signature: data.signature,
-    signer_address: data.signerAddress,
-  });
-
-export const getOrderSwapApprovalStatus = (apiClient: AxiosInstance, orderUuid: string, walletAddress: string) =>
-  apiClient.get<ApprovalStatusResponse>(TRADING_ENDPOINTS.ORDERS.SWAP_APPROVAL_STATUS(orderUuid), {
-    params: { wallet_address: walletAddress },
-  });
-
-export const getOrderSwapApprovalData = (apiClient: AxiosInstance, orderUuid: string, walletAddress: string) =>
-  apiClient.get<ApprovalDataResponse>(TRADING_ENDPOINTS.ORDERS.SWAP_APPROVAL_DATA(orderUuid), {
     params: { wallet_address: walletAddress },
   });
 

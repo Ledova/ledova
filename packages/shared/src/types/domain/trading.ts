@@ -36,16 +36,6 @@ export type EIP712Types = ApiSchema<'SigningTypes'>;
 
 export type SwapOrderMessage = ApiSchema<'SwapMessage'>;
 
-export type SwapTypedData = ApiSchema<'LegacySwapTypedData'>;
-
-export type SwapDataResponse = ApiSchema<'LegacySwapOrderForSigning'>;
-
-export type SubmitSignatureRequest = ApiSchema<'SubmitSignatureRequest'>;
-
-export interface GetSwapDataParams {
-  walletAddress: string;
-}
-
 export type SigningChallengePurpose =
   ApiSchema<'OrderCreateChallenge'>['purpose'] | ApiSchema<'OrderActionChallenge'>['purpose'];
 
@@ -61,8 +51,4 @@ export type ShareTokenTransferTransactionData = ApiSchema<'PreparedTokenTransact
 
 export type ShareTokenTransferPrepareResponse = ApiResponse<'api_v1_trading_transfers_prepare_create'>;
 
-export type ApprovalStatusResponse = ApiSchema<'ApprovalStatusResponse'>;
-
 export type ApprovalTransaction = ApiSchema<'ApprovalTransaction'>;
-
-export type ApprovalDataResponse = ApiSchema<'ApprovalTransactionResponse'> | ApiSchema<'SufficientApprovalResponse'>;

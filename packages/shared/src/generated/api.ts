@@ -4349,6 +4349,7 @@ export interface ApiComponents {
       sellerAddress: string;
       sellerHasSigned: boolean;
       sellOrderUuid: string;
+      settlementProtocolVersion: number;
       shareAmount: number;
       shareTokenName: string;
       shareTokenSymbol: string;

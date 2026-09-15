@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import type { PropsWithChildren, ReactNode } from 'react';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 import {
@@ -36,9 +36,6 @@ vi.mock('@keystonehq/animated-qr', () => ({ AnimatedQRCode: () => null }));
 vi.mock('./components/MarketOverview', () => ({ MarketOverview: () => null }));
 vi.mock('./components/PlaceOrderPanel', () => ({ PlaceOrderPanel: () => null }));
 vi.mock('./components/OrderSigningFlow', () => ({ OrderSigningFlow: () => null }));
-vi.mock('./components/SwapSigningFlow', () => ({
-  SwapSigningFlow: ({ orderUuid }: { orderUuid: string }) => <p>Legacy order: {orderUuid}</p>,
-}));
 vi.mock('./hooks/useTradingEvents', () => ({ useTradingEvents: () => {} }));
 vi.mock('./hooks/useAtomicSwaps', () => ({ useSwapOrdersMulti: () => ({ data: state.swaps, isLoading: false }) }));
 vi.mock('./useTrading', () => ({
@@ -62,6 +59,16 @@ vi.mock('./useTrading', () => ({
 }));
 
 const captured = fixture.get_body as SwapSettlementResponse;
+const listed = Object.keys(
+  (
+    await vi.importActual<{ default: { components: { schemas: { SwapOrderList: { properties: object } } } } }>(
+      '../../../../backend/schema/openapi.json',
+    )
+  ).default.components.schemas.SwapOrderList.properties,
+);
+const listShape = (swap: object, keys = listed) =>
+  Object.fromEntries(Object.entries(swap).filter(([key]) => keys.includes(key))) as unknown as SwapOrder;
+const listedSwap = listShape(captured.swapOrder);
 const owner = { userUuid, ownerAccountUuid: captured.ownerAccountUuid };
 let client: QueryClient;
 let requests: InternalAxiosRequestConfig[];
@@ -170,7 +177,6 @@ it('opens the buyer own order and shows exact captured quantities in the real or
     settlement_digest: captured.settlementDigest,
     swap_uuid: captured.swapUuid,
   });
-  expect(screen.queryByText(/Legacy order/)).toBeNull();
 });
 
 it('keeps the unsigned buyer side available when both wallets are owned and the seller has already signed', async () => {
@@ -182,25 +188,82 @@ it('keeps the unsigned buyer side available when both wallets are owned and the 
   expect(swapRequests()[0]!.url).toContain(`/orders/${captured.swapOrder.buyOrderUuid}/swap/`);
 });
 
-it.each([null, {}])('refuses malformed version1 context %j without opening a legacy signer', async (context) => {
-  state.swaps = [
-    { ...captured.swapOrder, settlementContext: context as SwapSettlementResponse['swapOrder']['settlementContext'] },
-  ];
-  render(<TradingPage />, { wrapper });
-  fireEvent.click(screen.getByTitle('Sign swap'));
-  await waitFor(() => expect(screen.getByRole('alert')).toBeTruthy());
-  expect(swapRequests()).toEqual([]);
-  expect(screen.queryByText(/Legacy order/)).toBeNull();
-});
+it.each([
+  { name: 'in the swap list response shape', swap: listedSwap },
+  {
+    name: 'in the swap list response shape without its protocol version',
+    swap: listShape(
+      captured.swapOrder,
+      listed.filter((key) => key !== 'settlementProtocolVersion'),
+    ),
+  },
+  { name: 'with a null context', swap: { ...captured.swapOrder, settlementContext: null } },
+  {
+    name: 'with a null context and no digest',
+    swap: { ...captured.swapOrder, settlementContext: null, settlementDigest: '' },
+  },
+  {
+    name: 'with an empty context',
+    swap: { ...captured.swapOrder, settlementContext: {} },
+    alert: 'The trade details did not match the selected account and wallet.',
+  },
+  {
+    name: 'with a string version',
+    swap: { ...captured.swapOrder, settlementProtocolVersion: '0', settlementContext: null },
+  },
+  {
+    name: 'with a null version',
+    swap: { ...captured.swapOrder, settlementProtocolVersion: null, settlementContext: null },
+  },
+])(
+  'refuses a listed trade $name without the operator-review state',
+  async ({ swap, alert = 'The saved trade details are incomplete.' }) => {
+    state.swaps = [swap as unknown as SwapOrder];
+    render(<TradingPage />, { wrapper });
+    expect(screen.queryByText('Held for operator review')).toBeNull();
+    fireEvent.click(screen.getByTitle('Sign swap'));
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toBe(alert));
+    expect(swapRequests()).toEqual([]);
+  },
+);
 
-it('retains the explicit version0 wrapper with the buyer own order', () => {
-  state.swaps = [
-    { ...captured.swapOrder, settlementProtocolVersion: 0, settlementContext: null, settlementDigest: '' },
-  ];
-  render(<TradingPage />, { wrapper });
+it.each([
+  { status: 'created', role: 'buyer', signed: {} },
+  { status: 'seller_signed', role: 'buyer', signed: { sellerHasSigned: true } },
+  { status: 'buyer_signed', role: 'seller', signed: { buyerHasSigned: true } },
+] as const)(
+  'holds a $status version0 swap for the $role once the swap list carries its protocol version',
+  ({ status, role, signed }) => {
+    state.wallets = [walletFor(role)];
+    state.swaps = [listShape({ ...captured.swapOrder, ...signed, status, settlementProtocolVersion: 0 })];
+    render(<TradingPage />, { wrapper });
+    const row = screen.getByText('Held for operator review').parentElement!;
+    expect(within(row).getByText(role === 'seller' ? 'Seller' : 'Buyer')).toBeTruthy();
+    expect(within(row).queryAllByRole('button')).toEqual([]);
+  },
+);
+
+it('holds explicit version0 history for operator review and refuses the version1 list row after refresh', async () => {
+  const signer = vi.spyOn(localSigner, 'signEthereumTypedData');
+  const legacy = listShape({ ...captured.swapOrder, settlementProtocolVersion: 0 });
+  state.swaps = [legacy];
+  const view = render(<TradingPage />, { wrapper });
+  expect(screen.queryByTitle('Sign swap')).toBeNull();
+  expect(screen.getByText(`${legacy.shareAmount}@$${(legacy.paymentAmount / 100).toFixed(2)}`)).toBeTruthy();
+  expect(screen.getByText('Buyer')).toBeTruthy();
+  expect(screen.queryByText('Expired')).toBeNull();
+  fireEvent.click(screen.getByText('Held for operator review'));
+  await act(async () => {});
+  expect(screen.queryByRole('alert')).toBeNull();
+  state.swaps = [listedSwap];
+  view.rerender(<TradingPage />);
+  expect(screen.queryByText('Held for operator review')).toBeNull();
+  expect(screen.getByText('Expired')).toBeTruthy();
   fireEvent.click(screen.getByTitle('Sign swap'));
-  expect(screen.getByText(`Legacy order: ${captured.swapOrder.buyOrderUuid}`)).toBeTruthy();
+  await waitFor(() => expect(screen.getByRole('alert').textContent).toBe('The saved trade details are incomplete.'));
   expect(swapRequests()).toEqual([]);
+  expect(requests.filter((request) => request.method === 'post')).toEqual([]);
+  expect(signer).not.toHaveBeenCalled();
 });
 
 it('lists multiple scoped reminders and recovers the exact selected identity without any submission', async () => {
