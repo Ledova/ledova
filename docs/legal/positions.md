@@ -22,10 +22,10 @@ position says so.
 | # | Question | Triggered by | Binds | Status |
 | --- | --- | --- | --- | --- |
 | 1 | s169(3) retention of former members | The first real company's first real member | A and B | Reviewed |
-| 2 | s168, who is obliged to keep the register | The same moment, plus the terms between operator and company | B; in A the company keeps it itself | Reviewed |
+| 2 | s168, who is obliged to keep the register | The same moment, plus the terms between operator and company | B; in A the company keeps it itself | Reviewed; model sentence awaiting sign-off |
 | 3 | Evidence retention period | The first real identity document held | A and B, once investor onboarding is on | Reviewed |
 | 4 | Operating without an AFSL, in two halves | The first fee for a real register; the first real offer of a security | 4a binds B; 4b binds both | Rewritten, awaiting sign-off |
-| 5 | Who "we" is in the licence's Competing Use test | Someone offering a competing service, or Blueberry Money beginning to operate | B and third-party operators; not a company's own use | Reviewed |
+| 5 | Who "we" is in the licence's Competing Use test | Someone offering a competing service, or Blueberry Money beginning to operate | B and third-party operators; not a company's own use | Reviewed; model sentence awaiting sign-off |
 | 6 | Where and in what form the register is kept | The first real register | A and B, with different forms to lodge | Drafted |
 | 7 | Whether a register is a financial market | Any feature where holders post offers to one another | A and B, with a different registrant | Drafted |
 | 8 | AML/CTF obligations of the operator | Acting for a company in a transaction; holding an AFSL; touching virtual assets | B; a company acting for itself is not engaged | Drafted |
@@ -101,7 +101,8 @@ sheet of members' residential addresses. If the operator carries any
 record-keeping obligation over the register, this is where it is thinnest.
 
 **Status.** Reviewed 2026-09-15; the note pointing s168 to s1306 and the
-agreement's contents added.
+agreement's contents added. The company-hosted-instance sentence was drafted
+for the model split and awaits the owner's sign-off.
 
 ## 3. The evidence-retention period
 
@@ -308,7 +309,9 @@ the [handover](handover.md). The test binds the registry service and any
 third-party operator; a company running its own instance for its own purposes
 is not making the Software available to others, so it is not engaged.
 
-**Status.** Reviewed 2026-09-15; unchanged except the last sentence.
+**Status.** Reviewed 2026-09-15; the operating-entity sentence was added
+afterwards, and the model-binding sentence was drafted for the model split and
+awaits the owner's sign-off.
 
 ## 6. Where and in what form the register is kept
 

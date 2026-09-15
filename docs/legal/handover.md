@@ -241,7 +241,8 @@ acting for itself rarely needs anything beyond a low-volume market registration.
 ## 7. Positions and their status
 
 All eleven are on the [positions page](positions.md) with their triggers.
-Reviewed and carried over: 1, 2, 3, 5. Rewritten and awaiting sign-off: 4.
+Reviewed and carried over: 1, 2, 3, 5, with one model-binding sentence each in
+2 and 5 drafted on 2026-09-15 and awaiting sign-off. Rewritten and awaiting sign-off: 4.
 Drafted and awaiting sign-off: 6 (register location and form), 7 (a register is
 not a market), 8 (AML/CTF), 9 (digital assets and custody), 10 (privacy),
 11 (the company's own obligations). The owner confirms a position by removing

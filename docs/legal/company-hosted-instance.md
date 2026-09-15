@@ -18,9 +18,9 @@ The company and its directors, and nobody else. Every duty in
 [position 6](positions.md#6-where-and-in-what-form-the-register-is-kept) is
 theirs already, whether the register is a spreadsheet, a minute book or an
 instance of this software. Running the software creates no new legal person:
-there is no separate operator, since the company holds the product's operator
-role itself, no agent, no service agreement, and no one holding the company's
-data on its behalf unless the company chooses a host.
+there is no separate operator (the company holds the product's operator role
+itself), no agent, no service agreement, and no one holding the company's data
+on its behalf unless the company chooses a host.
 
 Ledova the project is a software supplier. On the reading in
 [position 4a](positions.md#4a-a-registry-service-acting-only-on-instruction-is-not-a-financial-service),
