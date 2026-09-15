@@ -27,25 +27,20 @@ def cases(suite):
             yield item
 
 
-def binding(kind):
-    if getattr(sys.modules.get(kind.__module__), kind.__name__, None) is kind:
-        return kind.__module__, kind.__qualname__
-    bindings = (
-        (name, attribute)
-        for name, module in list(sys.modules.items())
-        for attribute, value in getattr(module, "__dict__", {}).items()
-        if value is kind
-    )
-    return min(bindings, default=(kind.__module__, kind.__qualname__))
-
-
 def record(case):
-    module, name = binding(type(case))
+    made_by_the_loader = type(case).__module__ == "unittest.loader"
     return {
-        "id": f"{module}.{name}.{case._testMethodName}",
-        "module": case._testMethodName if module == "unittest.loader" else module,
+        "id": case.id(),
+        "module": case._testMethodName if made_by_the_loader else type(case).__module__,
         "failed": isinstance(case, unittest.loader._FailedTest),
     }
+
+
+def label_findings(shards):
+    listed = Counter(label for labels in shards.values() for label in labels)
+    return [f"shard label {label} has a dot" for label in listed if "." in label] + [
+        f"shard label {label} is listed more than once" for label, times in listed.items() if times > 1
+    ]
 
 
 def findings(everything, shards):
@@ -54,6 +49,9 @@ def findings(everything, shards):
         f"{run} failed to load {case['module']}" for run, found in runs.items() for case in found if case["failed"]
     }
     expected = Counter(case["id"] for case in everything if not case["failed"])
+    problems |= {
+        f"{identity} is defined by more than one test class" for identity, times in expected.items() if times > 1
+    }
     placed = defaultdict(list)
     module = {}
     for name, found in shards.items():
@@ -139,16 +137,16 @@ def main():
 
     everything, found = discover(shards)
     problems = matrix_findings(yaml.safe_load(WORKFLOW.read_text(encoding="utf-8")), shards)
-    problems += findings(everything, found)
+    problems += label_findings(shards) + findings(everything, found)
 
     if problems:
         print(f"The ordinary suite's shards do not partition it ({len(problems)}):\n", file=sys.stderr)
         for problem in problems:
             print(f"  {problem}", file=sys.stderr)
         print(
-            f"\nPut each app label in exactly one shard in {SHARDS.relative_to(ROOT)}, and keep the {JOB}"
-            f" matrix to exactly those shard names, with no include or exclude.\n\nThe rule is in"
-            ' docs/development/gates.md, "The ordinary shard gate".',
+            f"\nPut each app label, with no dot, in exactly one shard in {SHARDS.relative_to(ROOT)}, give each test"
+            f" its own id, and keep the {JOB} matrix to exactly those shard names, with no include or exclude.\n\n"
+            'The rule is in docs/development/gates.md, "The ordinary shard gate".',
             file=sys.stderr,
         )
         return 1

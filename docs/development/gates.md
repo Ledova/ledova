@@ -203,17 +203,19 @@ CI splits the ordinary suite across parallel jobs, one per shard named in
 `scripts/check-ordinary-shards.py` runs in every shard before the suite. Through the same
 settings and test runner, it discovers the suite once with no labels and once
 with each shard's labels, each in a fresh interpreter as each CI job is, so no
-discovery sees a module an earlier one imported. It counts each test in every
-discovery by the module attribute that binds its class, and refuses four things:
-a module with a test that runs fewer or more times across the shards than in the
-unlabelled suite, a test a shard would run that the unlabelled suite does not, a
-module that fails to load, and a `backend-suite-shard` matrix that is anything
-but the file's shard names, such as one with an `include` or `exclude`.
+discovery sees a module an earlier one imported. It counts each test id in every
+discovery, and refuses: a shard label with a dot, or one listed more than once; a
+test id the unlabelled suite finds more than once, as when a factory builds two
+classes with one name; a module with a test that runs fewer or more times across
+the shards than in the unlabelled suite; a test a shard would run that the
+unlabelled suite does not; a module that fails to load; and a
+`backend-suite-shard` matrix that is anything but the file's shard names, such as
+one with an `include` or `exclude`.
 
 A new module inside an assigned label is covered with no change. A new app
 fails until its label is put in exactly one shard. Balance shards by moving app
-labels. Fall back to module labels only where one app dominates, because every
-new module in that app then fails until it is assigned too.
+labels. A label cannot contain a dot, so no shard names a module or class, and
+an app is never split across shards.
 
 The gate needs the backend requirements and a `SECRET_KEY` for the test settings,
 but no database. `make check` installs the requirements and runs it, through

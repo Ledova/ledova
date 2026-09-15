@@ -155,7 +155,7 @@ jobs:
             backend/schema/requirements.txt
       - name: Install dependencies
         run: pip install -r requirements-dev.txt -c schema/requirements.txt
-      - name: Every ordinary test module runs in exactly one shard
+      - name: Each ordinary test id is unique and runs in exactly one shard of dotless labels
         run: python ../scripts/check-ordinary-shards.py
       - name: Suite
         run: |

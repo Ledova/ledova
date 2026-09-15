@@ -19,8 +19,7 @@ _spec.loader.exec_module(gate)
 DJANGO = {
     "django/__init__.py": "def setup():\n    pass\n",
     "django/conf.py": "settings = None\n",
-    "django/test/utils.py": """import os
-import unittest
+    "django/test/utils.py": """import unittest
 
 
 class Runner:
@@ -32,10 +31,7 @@ class Runner:
 
     def build_suite(self, labels):
         loader = unittest.TestLoader()
-        return unittest.TestSuite(
-            loader.discover(label, top_level_dir=".") if os.path.isdir(label) else loader.loadTestsFromName(label)
-            for label in labels or ["."]
-        )
+        return unittest.TestSuite(loader.discover(label, top_level_dir=".") for label in labels or ["."])
 
 
 def get_runner(settings):
@@ -43,11 +39,6 @@ def get_runner(settings):
 """,
 }
 PLAIN = "import unittest\n\n\nclass Behaviour(unittest.TestCase):\n    def test_one(self):\n        pass\n"
-SCENARIO = (
-    "import unittest\n\n\ndef scenario():\n    class Scenario(unittest.TestCase):\n"
-    "        def test_scenario(self):\n            pass\n\n    return Scenario\n"
-)
-BUILT = "from shared.tests.case_factory import scenario\n\nScenario = scenario()\n"
 
 
 def a_module(name, *classes):
@@ -94,11 +85,6 @@ class EveryModuleRunsInExactlyOneShard(unittest.TestCase):
             ["shared.tests.test_uploads has tests duplicated in shards: others, tokens"],
         )
 
-    def test_a_test_id_found_twice_is_no_finding_when_one_shard_runs_both(self):
-        self.assertEqual(
-            gate.findings(EVERYTHING + FACTORY * 2, {"tokens": TOKENS + FACTORY * 2, "others": WALLETS + SHARED}), []
-        )
-
     def test_a_test_id_a_shard_finds_more_often_than_the_unlabelled_suite_is_named(self):
         self.assertEqual(
             gate.findings(EVERYTHING + FACTORY, {"tokens": TOKENS + FACTORY * 2, "others": WALLETS + SHARED}),
@@ -134,6 +120,24 @@ class EveryModuleRunsInExactlyOneShard(unittest.TestCase):
         )
 
 
+class EveryShardLabelIsDotlessAndListedOnce(unittest.TestCase):
+    def test_a_label_with_a_dot_is_named(self):
+        for label in ("tokens.tests", "tokens.tests.test_fold", "tokens.tests.test_fold.Behaviour", "./wallets"):
+            with self.subTest(label=label):
+                self.assertEqual(
+                    gate.label_findings({"tokens": ["tokens"], "others": ["shared", label]}),
+                    [f"shard label {label} has a dot"],
+                )
+
+    def test_a_label_listed_twice_in_one_shard_or_across_shards_is_named(self):
+        for shards in (
+            {"tokens": ["tokens", "tokens"], "others": ["shared"]},
+            {"tokens": ["tokens"], "others": ["tokens"]},
+        ):
+            with self.subTest(shards=shards):
+                self.assertEqual(gate.label_findings(shards), ["shard label tokens is listed more than once"])
+
+
 class EachDiscoveryRunsInItsOwnInterpreter(unittest.TestCase):
     def test_a_test_that_exists_only_once_another_shards_module_is_imported_is_in_no_shard(self):
         generated = (
@@ -162,41 +166,24 @@ class EachDiscoveryRunsInItsOwnInterpreter(unittest.TestCase):
 
         self.assertEqual(gate.findings(everything, found), ["wallets.tests.test_redis has tests in no shard"])
 
-    def factory_findings(self, modules, shards):
-        with a_backend({"shared/tests/case_factory.py": SCENARIO} | modules) as backend:
-            everything, found = gate.discover(shards, backend)
-        return gate.findings(everything, found)
-
-    def test_a_factory_class_built_again_in_a_module_in_no_shard_is_named_by_that_module(self):
-        modules = {"tokens/tests/test_built.py": BUILT, "wallets/tests/test_built.py": BUILT}
-
-        self.assertEqual(
-            self.factory_findings(modules, {"tokens": ["tokens"]}), ["wallets.tests.test_built has tests in no shard"]
+    def test_a_factory_class_built_in_two_modules_is_named_by_its_test_id_though_each_runs_in_a_shard(self):
+        factory = (
+            "import unittest\n\n\ndef scenario():\n    class Scenario(unittest.TestCase):\n"
+            "        def test_scenario(self):\n            pass\n\n    return Scenario\n"
         )
+        built = "from shared.tests.case_factory import scenario\n\nScenario = scenario()\n"
+        modules = {
+            "shared/tests/case_factory.py": factory,
+            "tokens/tests/test_built.py": built,
+            "wallets/tests/test_built.py": built,
+        }
 
-    def test_a_class_label_running_a_factory_class_again_does_not_stand_in_for_a_copy_in_no_shard(self):
-        modules = {"tokens/tests/test_built.py": BUILT, "wallets/tests/test_built.py": BUILT}
-        shards = {"tokens": ["tokens"], "others": ["tokens.tests.test_built.Scenario"]}
+        identity = "shared.tests.case_factory.scenario.<locals>.Scenario.test_scenario"
 
-        self.assertEqual(
-            self.factory_findings(modules, shards),
-            [
-                "tokens.tests.test_built has tests duplicated in shards: others, tokens",
-                "wallets.tests.test_built has tests in no shard",
-            ],
-        )
+        with a_backend(modules) as backend:
+            everything, found = gate.discover({"tokens": ["tokens"], "others": ["wallets"]}, backend)
 
-    def test_a_factory_class_run_twice_does_not_stand_in_for_another_bound_in_the_same_module(self):
-        pair = "from shared.tests.case_factory import scenario\n\nFirst = scenario()\nSecond = scenario()\n"
-        shards = {"tokens": ["wallets.tests.test_pair.First"], "others": ["wallets.tests.test_pair.First"]}
-
-        self.assertEqual(
-            self.factory_findings({"wallets/tests/test_pair.py": pair}, shards),
-            [
-                "wallets.tests.test_pair has tests duplicated in shards: others, tokens",
-                "wallets.tests.test_pair has tests in no shard",
-            ],
-        )
+        self.assertEqual(gate.findings(everything, found), [f"{identity} is defined by more than one test class"])
 
 
 class TheMatrixRunsExactlyTheDefinedShards(unittest.TestCase):
@@ -224,10 +211,10 @@ class TheMatrixRunsExactlyTheDefinedShards(unittest.TestCase):
 class TheExitStatusFollowsEveryFinding(unittest.TestCase):
     SHARDS = {"tokens": ["tokens"], "others": ["wallets", "shared"]}
 
-    def run_gate(self, found, matrix, everything=EVERYTHING):
+    def run_gate(self, found, matrix, everything=EVERYTHING, shards=SHARDS):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / "shards.json").write_text(json.dumps(self.SHARDS), encoding="utf-8")
+            (root / "shards.json").write_text(json.dumps(shards), encoding="utf-8")
             workflow = {"jobs": {gate.JOB: {"strategy": {"matrix": {"shard": matrix}}}}}
             (root / "ci.yml").write_text(yaml.safe_dump(workflow), encoding="utf-8")
             discover = mock.Mock(return_value=(everything, found))
@@ -235,7 +222,7 @@ class TheExitStatusFollowsEveryFinding(unittest.TestCase):
             streams = {"argv": [str(SCRIPT)], "stdout": io.StringIO(), "stderr": io.StringIO()}
             with mock.patch.multiple(gate, discover=discover, **files), mock.patch.multiple(sys, **streams):
                 status = gate.main()
-        discover.assert_called_once_with(self.SHARDS)
+        discover.assert_called_once_with(shards)
         return status, streams["stdout"].getvalue(), streams["stderr"].getvalue()
 
     def test_a_partition_the_matrix_runs_exits_0(self):
@@ -244,6 +231,19 @@ class TheExitStatusFollowsEveryFinding(unittest.TestCase):
         self.assertEqual((status, errors), (0, ""))
         self.assertEqual(
             output, "Each of 6 ordinary tests in 3 modules runs in exactly one shard: tokens 2, others 4.\n"
+        )
+
+    def test_the_printed_total_is_the_sum_of_uneven_shard_counts(self):
+        allotment = a_module("offerings.tests.test_allotment", "Allots", "Refunds")
+        shards = {"tokens": ["tokens"], "offerings": ["offerings"], "others": ["wallets", "shared"]}
+        found = {"tokens": TOKENS, "offerings": allotment, "others": WALLETS + SHARED}
+
+        status, output, errors = self.run_gate(found, list(shards), EVERYTHING + allotment, shards)
+
+        self.assertEqual((status, errors), (0, ""))
+        self.assertEqual(
+            output,
+            "Each of 10 ordinary tests in 4 modules runs in exactly one shard: tokens 2, offerings 4, others 4.\n",
         )
 
     def test_a_module_in_no_shard_exits_1_naming_it(self):
@@ -259,6 +259,16 @@ class TheExitStatusFollowsEveryFinding(unittest.TestCase):
 
         self.assertEqual((status, output), (1, ""))
         self.assertIn("  shared.tests.case_factory has tests in no shard\n", errors)
+
+    def test_a_label_with_a_dot_exits_1_without_a_total_even_when_the_shards_partition_the_suite(self):
+        shards = {"tokens": ["tokens"], "others": ["wallets", "shared.tests.test_uploads"]}
+
+        status, output, errors = self.run_gate(
+            {"tokens": TOKENS, "others": WALLETS + SHARED}, ["tokens", "others"], shards=shards
+        )
+
+        self.assertEqual((status, output), (1, ""))
+        self.assertIn("  shard label shared.tests.test_uploads has a dot\n", errors)
 
     def test_a_matrix_missing_a_shard_exits_1_even_when_the_shards_partition_the_suite(self):
         status, _, errors = self.run_gate({"tokens": TOKENS, "others": WALLETS + SHARED}, ["tokens"])
@@ -280,6 +290,9 @@ class TheCommittedFilesAgree(unittest.TestCase):
         workflow = yaml.safe_load(gate.WORKFLOW.read_text(encoding="utf-8"))
 
         self.assertEqual(gate.matrix_findings(workflow, self.shards), [])
+
+    def test_the_committed_shards_list_each_label_once_with_no_dot(self):
+        self.assertEqual(gate.label_findings(self.shards), [])
 
     def test_labels_prints_what_each_shard_passes_to_manage_py_test(self):
         for shard, labels in self.shards.items():

@@ -75,10 +75,11 @@ one for each shard in
 [`.github/ordinary-suite-shards.json`](../../.github/ordinary-suite-shards.json).
 Each job has its own PostgreSQL 16, and runs the ordinary command above with
 that shard's test labels appended. Before the suite, each runs the
-[ordinary shard gate](gates.md#the-ordinary-shard-gate), which holds the shards'
-test ids to a partition of the unlabelled suite's, so on the same commit their
-`Ran N tests` counts add up to the unsharded run's. The "Django ordinary suite" check
-needs every shard, and fails unless each one succeeded; a failed, cancelled or
+[ordinary shard gate](gates.md#the-ordinary-shard-gate). It refuses a shard label
+with a dot or listed twice and a test id defined by more than one test class, and
+holds the shards' test ids to a partition of the unlabelled suite's, so on the
+same commit their `Ran N tests` counts add up to the unsharded run's. The
+"Django ordinary suite" check needs every shard, and fails unless each one succeeded; a failed, cancelled or
 skipped shard fails it. Locally, run the unsharded command. To repeat one shard,
 append `$(python ../scripts/check-ordinary-shards.py --labels NAME)` to it.
 
