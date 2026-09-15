@@ -23,7 +23,7 @@ class ScopedMatchingWalletLockTest(RunsOnTheScopedConnection, SubmissionFixtures
         release = Event()
         writer_ready = Event()
         pids = {}
-        find_matching = token_transfer_service.find_matching_order
+        find_matching = token_transfer_service.find_matching_orders
 
         def before_matching(order):
             with connections[current_alias()].cursor() as cursor:
@@ -54,7 +54,7 @@ class ScopedMatchingWalletLockTest(RunsOnTheScopedConnection, SubmissionFixtures
             finally:
                 connections.close_all()
 
-        with patch.object(token_transfer_service, "find_matching_order", before_matching), ThreadPoolExecutor(
+        with patch.object(token_transfer_service, "find_matching_orders", before_matching), ThreadPoolExecutor(
             2
         ) as pool:
             submitting = pool.submit(create)

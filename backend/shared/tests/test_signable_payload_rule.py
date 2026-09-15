@@ -4,6 +4,7 @@ from unittest.mock import patch
 from django.test import TestCase, override_settings
 from eth_account import Account
 
+from operators.settlement import require_deployment
 from shared.tests.signable import (
     JAVASCRIPT_SAFE_INTEGER,
     assert_signable,
@@ -95,18 +96,15 @@ class EverySignablePayloadSurvivesJsonParseTest(TestCase):
 
     @override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT)
     def test_the_swap_payload_survives_an_eighteen_decimal_amount(self):
-        swap = self.tenant.swap
-        asset = swap.payment_asset
-        asset.decimals = 18
-        asset.save(update_fields=["decimals"])
+        deployment = require_deployment(self.tenant.swap.payment_asset)
+        deployment.decimals = 18
+        deployment.save(update_fields=["decimals"])
         swap = atomic_swap_service.create_swap_order(
             self.tenant.order, self.tenant.counter_order, share_amount=1, price_per_share=Decimal("2.50")
         )
+        typed_data = atomic_swap_service.get_typed_data(swap)
 
-        with patch("tokens.services.atomic_swap_service.get_base_chain_client") as client:
-            client.return_value.chain_id = 84532
-            typed_data = atomic_swap_service.get_typed_data(swap)
-
+        self.assertEqual(swap.payment_amount, 2_500_000_000_000_000_000)
         self.assertGreater(swap.payment_amount, JAVASCRIPT_SAFE_INTEGER)
         assert_signable(self, typed_data)
 

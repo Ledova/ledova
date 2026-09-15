@@ -16,6 +16,9 @@ from shared.utils import get_client_ip
 from shared.views import AuthenticatedReadOnlyViewSet
 from tokens.exceptions import (
     OrderActionRefreshRequiredException,
+    SettlementApprovalUncertain,
+    SettlementContextChanged,
+    SettlementContextRequired,
     SwapExpiredException,
     SwapNotReadyException,
 )
@@ -69,11 +72,6 @@ from tokens.services.order_actions import (
     recover_order_action,
 )
 from tokens.services.order_modification_service import get_modification_history
-from tokens.services.settlement_context import (
-    SettlementApprovalUncertain,
-    SettlementContextChanged,
-    SettlementContextRequired,
-)
 from tokens.services.trading_order_access import (
     require_pending_settlement,
     resolve_exact_swap_context,

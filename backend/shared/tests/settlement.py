@@ -4,6 +4,7 @@ from django.conf import settings
 from django.test import override_settings
 from django.utils import timezone
 
+from operators.settlement import require_deployment
 from tokens.models import SwapOrder
 from tokens.services.settlement_context import capture_settlement_context
 
@@ -15,6 +16,6 @@ def save_swap_with_context(swap=None, **fields):
     if swap.expires_at is None:
         swap.expires_at = timezone.now() + timedelta(hours=getattr(settings, "SWAP_ORDER_EXPIRY_HOURS", 0.25))
     with override_settings(ATOMIC_SWAP_ADDRESS=settings.ATOMIC_SWAP_ADDRESS or SYNTHETIC_SETTLEMENT_CONTRACT):
-        capture_settlement_context(swap)
+        capture_settlement_context(swap, require_deployment(swap.payment_asset))
     swap.save()
     return swap
