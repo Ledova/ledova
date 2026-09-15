@@ -84,6 +84,7 @@ export {
   deployCompanyToken,
   pauseCompanyToken,
   unpauseCompanyToken,
+  getPauseSubmission,
   getCompanyTokenHolders,
   downloadTokenRegister,
   getCompanyTokenIssuances,

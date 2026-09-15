@@ -5,13 +5,13 @@ import { OrderAction } from '../utils/order-action';
 import type { OrderActionStore, SavedOrderAction } from '../utils/order-action-storage';
 import type { OrderSubmissionSession } from './useOrderSubmissions';
 import { useApiClient } from './useApiClient';
-import { useOrderOwner } from './useOrderOwner';
+import { useSubmissionOwner } from './useSubmissionOwner';
 
 export function useOrderActions(store: OrderActionStore, session?: OrderSubmissionSession) {
   const apiClient = useApiClient();
   const queryClient = useQueryClient();
   const [, render] = useReducer((value: number) => value + 1, 0);
-  const { owner, boundary } = useOrderOwner(session);
+  const { owner, boundary } = useSubmissionOwner(session);
   const state = useMemo(
     () => ({
       retired: false,

@@ -38,9 +38,8 @@ from shared.tests.tenants import (
 )
 from shared.tests.upload_fixtures import StubUploadDependencies, pdf_bytes
 from tokens.models import (
+    PauseChange,
     ShareIssuanceRequest,
-    ShareToken,
-    ShareTokenStatus,
     SwapOrder,
     TransferOrder,
 )
@@ -117,8 +116,8 @@ def _open_the_offering_to_the_actor(tenant):
     )
 
 
-def _pause_token(tenant):
-    ShareToken.objects.filter(pk=tenant.deployed_token.pk).update(status=ShareTokenStatus.PAUSED)
+def _pause_change(token, user, submission_id, paused=True):
+    return PauseChange(pk=submission_id, token_id=token.pk, company_id=token.company_id, paused=paused)
 
 
 def _create_issuance_request(token, recipient, amount, user, reason="", issuance_type="additional"):
@@ -249,8 +248,9 @@ ROUTES = (
     Route("patch", "/api/v1/tokens/{token}/", {"name": "Renamed"}),
     Route("delete", "/api/v1/tokens/{token}/"),
     Route("post", "/api/v1/tokens/{token}/deploy/", {}, prepare=_activate_company),
-    Route("post", "/api/v1/tokens/{deployed_token}/pause/", {}),
-    Route("post", "/api/v1/tokens/{deployed_token}/unpause/", {}, prepare=_pause_token),
+    Route("post", "/api/v1/tokens/{deployed_token}/pause/", {"submissionId": "{deployed_token}"}),
+    Route("post", "/api/v1/tokens/{deployed_token}/unpause/", {"submissionId": "{deployed_token}"}),
+    Route("get", "/api/v1/tokens/{deployed_token}/pause-submissions/{deployed_token}/"),
     Route(
         "post",
         "/api/v1/tokens/{deployed_token}/issue/",
@@ -521,6 +521,16 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         self._service("tokens.tasks.deploy_share_token_task")
         share_tokens = self._service("tokens.views.share_token.share_token_service")
         share_tokens.create_issuance_request.side_effect = _create_issuance_request
+        pause_commands = self._service("tokens.views.share_token.pause_changes")
+        pause_commands.submit.side_effect = _pause_change
+        pause_commands.retrieve.side_effect = _pause_change
+        pause_commands.message.return_value = "Pause request retained."
+        pause_commands.outcome.side_effect = lambda change: {
+            "uuid": str(change.pk),
+            "paused": change.paused,
+            "status": "pending",
+            "completed_at": None,
+        }
         balances_need_a_readable_chain = self._service("tokens.views.trading_wallet.share_token_service")
         balances_need_a_readable_chain.get_wallet_token_balances.return_value = {"balances": []}
         register_chain = self._service("tokens.services.register.share_token_service")

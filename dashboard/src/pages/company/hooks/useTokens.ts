@@ -4,8 +4,6 @@ import {
   getCompanyTokens,
   getCompanyToken,
   deployCompanyToken,
-  pauseCompanyToken,
-  unpauseCompanyToken,
   getCompanyTokenHolders,
   downloadTokenRegister,
   getCompanyTokenIssuances,
@@ -132,16 +130,6 @@ export function useTokenDetail(uuid: string) {
     onSuccess: invalidateToken,
   });
 
-  const pauseMutation = useMutation({
-    mutationFn: () => pauseCompanyToken(apiClient, uuid),
-    onSuccess: invalidateToken,
-  });
-
-  const unpauseMutation = useMutation({
-    mutationFn: () => unpauseCompanyToken(apiClient, uuid),
-    onSuccess: invalidateToken,
-  });
-
   const registerMutation = useMutation({
     mutationFn: async () => {
       const response = await downloadTokenRegister(apiClient, uuid);
@@ -194,10 +182,6 @@ export function useTokenDetail(uuid: string) {
     setShowCapitalIncreaseForm,
     deploy: deployMutation.mutateAsync,
     isDeploying: deployMutation.isPending,
-    pause: pauseMutation.mutateAsync,
-    isPausing: pauseMutation.isPending,
-    unpause: unpauseMutation.mutateAsync,
-    isUnpausing: unpauseMutation.isPending,
     createCapitalIncrease: createCapitalIncreaseMutation.mutateAsync,
     isCreatingCapitalIncrease: createCapitalIncreaseMutation.isPending,
     submitCapitalIncrease: submitCapitalIncreaseMutation.mutateAsync,

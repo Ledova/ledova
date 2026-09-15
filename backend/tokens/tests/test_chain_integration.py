@@ -60,6 +60,8 @@ from tokens.services import (
     capital_execution,
     deployment,
     issuance_execution,
+    pause_changes,
+    pause_recovery,
     share_token_service,
     swap_approval,
 )
@@ -153,7 +155,7 @@ class ChainTestMixin:
         return f"{self.token.company.acn}:{self.token.symbol}"
 
     def _signer_nonce(self):
-        signer = self.chain.get_address_from_private_key(self.service.signer_key())
+        signer = self.chain.get_address_from_private_key(settings.BLOCKCHAIN_OPERATOR_KEY)
         return self.w3.eth.get_transaction_count(signer, "pending")
 
     def _deploy_records(self):
@@ -195,6 +197,14 @@ class ChainTestMixin:
         )
         self.assertTrue(result["success"], result)
         self.token.refresh_from_db()
+        return result
+
+    def _pause(self, paused):
+        self.token.refresh_from_db()
+        change = pause_changes.submit(self.token, self.tenant.user, uuid4(), paused)
+        result = pause_recovery.recover(change.pk)
+        self.assertIsNotNone(result.completed_at)
+        self.assertIn(result.status, ("confirmed", "observed"))
         return result
 
     def _whitelist(self, address):
@@ -291,7 +301,7 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
             verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
         )
         self._whitelist(recipient)
-        self.service.pause(self.token)
+        self._pause(True)
         with self.assertRaises(BlockchainAPIError) as refusal:
             prepare()
         self.assertEqual(str(refusal.exception.detail), "Token transfers are paused")
@@ -501,7 +511,7 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual(self._contract().functions.authorizedShares().call(), CAP + 500)
         self.assertEqual(self.token.total_supply, str(CAP + 500))
 
-        self.service.pause(self.token)
+        self._pause(True)
         self.token.refresh_from_db()
         self.assertEqual(self.token.status, ShareTokenStatus.PAUSED)
         self.assertTrue(self._contract().functions.paused().call())
@@ -514,7 +524,7 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertIn(TOKEN_PAUSED, while_paused.execution_notes)
         self.assertNotIn("Refused", while_paused.review_notes)
         self.assertEqual(ShareIssuance.objects.filter(token=self.token, status="completed").count(), 1)
-        self.service.unpause(self.token)
+        self._pause(False)
         self.token.refresh_from_db()
         self.assertEqual(self.token.status, ShareTokenStatus.DEPLOYED)
         self.assertFalse(self._contract().functions.paused().call())
@@ -916,25 +926,24 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual(self.token.total_supply, str(CAP + 600))
         self.assertEqual(self._contract().functions.authorizedShares().call(), CAP + 600)
 
-    def test_lost_pause_receipt_and_an_outside_pause_are_reconciled_instead_of_stranding_the_token(self):
+    def test_real_pause_observation_and_unpause_preserve_issuance_guards(self):
         self._deployed()
         contract = self._contract()
 
-        with self._lost_receipt():
-            self.service.pause(self.token)
+        self._pause(True)
         self.token.refresh_from_db()
         self.assertEqual(self.token.status, ShareTokenStatus.PAUSED)
         self.assertTrue(contract.functions.paused().call())
 
-        self.service.unpause(self.token)
+        self._pause(False)
         self.token.refresh_from_db()
         self.assertEqual(self.token.status, ShareTokenStatus.DEPLOYED)
         self.assertFalse(contract.functions.paused().call())
 
-        self.chain.send_transaction(contract.functions.pause(), self.service.signer_key())
+        self.chain.send_transaction(contract.functions.pause(), settings.BLOCKCHAIN_OPERATOR_KEY)
         self.assertTrue(contract.functions.paused().call())
         nonce_before = self._signer_nonce()
-        self.service.pause(self.token)
+        self._pause(True)
         self.token.refresh_from_db()
         self.assertEqual((self.token.status, self._signer_nonce()), (ShareTokenStatus.PAUSED, nonce_before))
 
@@ -946,7 +955,7 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         request.refresh_from_db()
         self.assertIn(TOKEN_PAUSED, request.execution_notes)
         self.assertEqual(self.w3.eth.block_number, blocks_before)
-        self.service.unpause(self.token)
+        self._pause(False)
         self.token.refresh_from_db()
         self.assertEqual(self.token.status, ShareTokenStatus.DEPLOYED)
         self.assertFalse(contract.functions.paused().call())
@@ -1387,3 +1396,123 @@ class SwapApprovalChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertIsNone(command.approval_operation_id)
         self.assertIsNone(command.approval_transaction_id)
         self.assertEqual(self._signer_nonce(), nonce)
+
+
+@chain_available
+@override_settings(**CHAIN_SETTINGS)
+class PauseChangeChainTest(ChainTestMixin, APITransactionTestCase):
+    def setUp(self):
+        super().setUp()
+        self._deployed()
+        self.change = pause_changes.submit(self.token, self.tenant.user, uuid4(), True)
+
+    def test_worker_killed_after_real_pause_acceptance_recovers_the_original_receipt(self):
+        database = connections[current_alias()].settings_dict
+        fields = ("ENGINE", "NAME", "USER", "PASSWORD", "HOST", "PORT", "OPTIONS")
+        env = os.environ.copy()
+        env["PAUSE_TEST_DATABASE"] = json.dumps({key: database[key] for key in fields})
+        env["PAUSE_TEST_CHAIN"] = json.dumps(CHAIN_SETTINGS)
+        nonce = self._signer_nonce()
+        process = subprocess.Popen(
+            [sys.executable, "-m", "tokens.tests.pause_chain_worker", str(self.change.pk)],
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        code, out, err = finish(process)
+        self.assertEqual(code, -signal.SIGKILL, out + err)
+        self.change.refresh_from_db()
+        attempt = self.change.operation.current_attempt
+        self.assertEqual((self.change.status, attempt.nonce), ("executing", nonce))
+        with patch.object(
+            BaseChainClient, "send_raw_transaction", side_effect=AssertionError("Original receipt needs no resend")
+        ):
+            self.assertEqual(pause_recovery.recover(self.change.pk).status, "confirmed")
+        self.assertTrue(self._contract().functions.paused().call())
+        self.assertEqual(self._signer_nonce(), nonce + 1)
+        observed = self.w3.eth.get_transaction(attempt.tx_hash)
+        self.assertEqual(
+            (observed["nonce"], bytes(observed["input"])),
+            (attempt.nonce, bytes.fromhex(self.change.intent["data"][2:])),
+        )
+        self._pause(False)
+        pause_recovery.recover(self.change.pk)
+        self.token.refresh_from_db()
+        self.assertEqual(self.token.status, "deployed")
+        self.assertFalse(self._contract().functions.paused().call())
+
+    def test_real_revert_retains_original_receipt_and_requires_a_new_submission(self):
+        target = self.token.contract_address
+        original_code = Web3.to_hex(self.w3.eth.get_code(target))
+        send = self.chain.send_raw_transaction
+
+        def reject_signed_call(raw):
+            self.w3.provider.make_request("hardhat_setCode", [target, "0x60006000fd"])
+            return send(raw)
+
+        with patch.object(self.chain, "send_raw_transaction", side_effect=reject_signed_call):
+            self.assertEqual(pause_recovery.recover(self.change.pk).status, "failed")
+        self.change.refresh_from_db()
+        previous = self.change.operation.current_attempt
+        mined = self.w3.eth.get_transaction_receipt(previous.tx_hash)
+        self.assertEqual(
+            (self.change.operation.status, self.change.operation.block_hash),
+            ("reverted", Web3.to_hex(mined["blockHash"])),
+        )
+        self.w3.provider.make_request("hardhat_setCode", [target, original_code])
+        current = self._pause(True)
+        self.assertNotEqual(current.pk, self.change.pk)
+        self.assertEqual(current.operation.current_attempt.nonce, previous.nonce + 1)
+        self.assertEqual(pause_recovery.recover(self.change.pk).status, "failed")
+
+    def test_real_initial_observation_preserves_block_identity_without_signing(self):
+        self.chain.send_transaction(self._contract().functions.pause(), settings.BLOCKCHAIN_OPERATOR_KEY)
+        before = self._signer_nonce()
+        result = pause_recovery.recover(self.change.pk)
+        self.assertEqual(result.status, "observed")
+        self.assertIsNone(result.operation_id)
+        block = self.w3.eth.get_block(result.observation["block_number"])
+        self.assertEqual(Web3.to_hex(block["hash"]), result.observation["block_hash"])
+        self.assertEqual(self._signer_nonce(), before)
+
+    def test_pause_and_approval_share_distinct_common_signer_nonces(self):
+        from blockchain.services import outgoing
+
+        barrier = threading.Barrier(2)
+        prepare = outgoing.prepare_operation
+
+        def prepared_together(*args, **kwargs):
+            result = prepare(*args, **kwargs)
+            barrier.wait(timeout=20)
+            return result
+
+        results = {}
+
+        def run(label, action):
+            try:
+                results[label] = action()
+            except Exception as exc:
+                results[label] = exc
+            finally:
+                connections.close_all()
+
+        before = self._signer_nonce()
+        workers = [
+            threading.Thread(target=run, args=("approval", lambda: swap_approval.recover(self.token.deployment_id))),
+            threading.Thread(target=run, args=("pause", lambda: pause_recovery.recover(self.change.pk))),
+        ]
+        with patch.object(outgoing, "prepare_operation", side_effect=prepared_together):
+            for worker in workers:
+                worker.start()
+            for worker in workers:
+                worker.join(timeout=40)
+        self.assertFalse(any(worker.is_alive() for worker in workers), results)
+        self.assertFalse(any(isinstance(value, Exception) for value in results.values()), results)
+        self.assertEqual(swap_approval.recover(self.token.deployment_id), "confirmed")
+        self.assertEqual(pause_recovery.recover(self.change.pk).status, "confirmed")
+        self.change.refresh_from_db()
+        approval = TokenDeployment.objects.get(pk=self.token.deployment_id)
+        attempts = (approval.approval_operation.current_attempt, self.change.operation.current_attempt)
+        self.assertEqual({attempt.nonce for attempt in attempts}, {before, before + 1})
+        self.assertEqual(self._signer_nonce(), before + 2)

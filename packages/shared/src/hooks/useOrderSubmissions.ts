@@ -5,7 +5,7 @@ import type { CreateOrderRequest, OrderSubmissionSnapshot, Wallet } from '../typ
 import { OrderSubmission } from '../utils/order-submission';
 import type { OrderSubmissionStore, SavedOrderSubmission } from '../utils/order-submission-storage';
 import { useApiClient } from './useApiClient';
-import { useOrderOwner } from './useOrderOwner';
+import { useSubmissionOwner } from './useSubmissionOwner';
 
 export interface OrderSubmissionSession {
   getEpoch: () => number;
@@ -17,7 +17,7 @@ export function useOrderSubmissions(store: OrderSubmissionStore, session?: Order
   const apiClient = useApiClient();
   const queryClient = useQueryClient();
   const [, render] = useReducer((value: number) => value + 1, 0);
-  const { owner, boundary } = useOrderOwner(session);
+  const { owner, boundary } = useSubmissionOwner(session);
   const state = useMemo(
     () => ({
       owner,

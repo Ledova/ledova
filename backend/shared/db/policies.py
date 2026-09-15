@@ -430,6 +430,8 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
+    "tokens_pausechange": "Immutable issuer or staff pause submissions and their original outgoing outcomes. "
+    "Bounded operator admission retains exact authority and job; issuer token projection uses the scoped connection.",
     "tokens_shareissuanceexecution": "Immutable operator-authorized share issuance intent, queued cancellation, "
     "exact retry authority and protected outgoing associations. Customer paths retain public request state.",
     "tokens_capitalincreaseexecution": "Immutable operator-authorized capital increase intent, exact retry "

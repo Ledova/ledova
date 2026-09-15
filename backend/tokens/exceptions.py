@@ -43,12 +43,6 @@ class TokenFactoryNotConfiguredException(APIException):
     default_code = "token_factory_not_configured"
 
 
-class OperatorKeyNotConfiguredException(APIException):
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-    default_detail = "Operator private key is not configured."
-    default_code = "operator_key_not_configured"
-
-
 class TokenDeploymentFailedException(APIException):
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     default_detail = "Token deployment failed."
@@ -343,6 +337,12 @@ class MintRequestConflict(APIException):
     status_code = status.HTTP_409_CONFLICT
     default_detail = "This mint request cannot be changed or retried in its recorded state."
     default_code = "mint_request_conflict"
+
+
+class PauseChangeConflict(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = "The earlier pause or unpause must resolve before another request can be admitted."
+    default_code = "pause_change_conflict"
 
 
 class IssuanceExecutionConflict(APIException):

@@ -6,7 +6,7 @@ import type { OrderSubmissionSession } from './useOrderSubmissions';
 import { AUTH_QUERY_KEY } from './useAuth';
 import { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPreferences';
 
-export function useOrderOwner(session?: OrderSubmissionSession) {
+export function useSubmissionOwner(session?: OrderSubmissionSession) {
   const queryClient = useQueryClient();
   useUserPreferences();
   const boundary = useMemo(() => {
