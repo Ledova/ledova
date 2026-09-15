@@ -27,6 +27,9 @@ const queryKey = (record: SavedPause) => [
   record.submissionId,
 ];
 
+const reminderButtonClassName =
+  'mt-3 mr-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-text-primary hover:bg-surface-tertiary disabled:opacity-50';
+
 function checked(record: SavedPause, response: PauseSubmissionResponse) {
   if (
     response.submission.uuid !== record.submissionId ||
@@ -134,7 +137,7 @@ function PauseRequests({
     }
   };
   return (
-    <div className="w-full space-y-2">
+    <div className="w-full space-y-2 text-text-primary">
       <button
         type="button"
         disabled={blocked}
@@ -146,7 +149,7 @@ function PauseRequests({
       {error && (
         <div role="alert">
           <p>{error}</p>
-          <button type="button" onClick={load}>
+          <button type="button" className={reminderButtonClassName} onClick={load}>
             Reload saved requests
           </button>
         </div>
@@ -161,23 +164,35 @@ function PauseRequests({
             aria-label={`${record.paused ? 'Pause' : 'Unpause'} request ${record.submissionId}`}
             className="rounded-lg border border-border p-3 text-sm"
           >
-            <p>
+            <p className="break-words text-xs text-text-muted">
               {record.paused ? 'Pause' : 'Unpause'} request {record.submissionId}
             </p>
-            <p role="status">{response?.message ?? 'Outcome unresolved. This request remains saved on this device.'}</p>
+            <p role="status" className="mt-2">
+              {response?.message ?? 'Outcome unresolved. This request remains saved on this device.'}
+            </p>
             {query.error && (
               <p role="alert">{getErrorMessage(query.error, 'The request outcome could not be checked.')}</p>
             )}
             {response?.submission.completedAt ? (
-              <button type="button" onClick={() => dismiss(record)}>
+              <button type="button" className={reminderButtonClassName} onClick={() => dismiss(record)}>
                 Dismiss outcome
               </button>
             ) : (
               <>
-                <button type="button" disabled={query.isFetching} onClick={() => void query.refetch()}>
+                <button
+                  type="button"
+                  className={reminderButtonClassName}
+                  disabled={query.isFetching}
+                  onClick={() => void query.refetch()}
+                >
                   Check outcome
                 </button>
-                <button type="button" disabled={sending} onClick={() => void send(record.paused, record)}>
+                <button
+                  type="button"
+                  className={reminderButtonClassName}
+                  disabled={sending}
+                  onClick={() => void send(record.paused, record)}
+                >
                   Retry same request
                 </button>
               </>
@@ -191,7 +206,8 @@ function PauseRequests({
 
 export function TokenPauseControls({ token }: { token: Pick<CompanyShareToken, 'uuid' | 'status'> }) {
   const { owner, boundary } = useSubmissionOwner();
-  if (!owner) return <p>Verify your issuer session before requesting a pause or unpause.</p>;
+  if (!owner)
+    return <p className="text-text-primary">Verify your issuer session before requesting a pause or unpause.</p>;
   return (
     <PauseRequests
       key={`${owner.userUuid}/${owner.ownerAccountUuid}/${token.uuid}`}
