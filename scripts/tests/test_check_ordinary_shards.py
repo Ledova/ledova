@@ -19,7 +19,8 @@ _spec.loader.exec_module(gate)
 DJANGO = {
     "django/__init__.py": "def setup():\n    pass\n",
     "django/conf.py": "settings = None\n",
-    "django/test/utils.py": """import unittest
+    "django/test/utils.py": """import os
+import unittest
 
 
 class Runner:
@@ -31,7 +32,10 @@ class Runner:
 
     def build_suite(self, labels):
         loader = unittest.TestLoader()
-        return unittest.TestSuite(loader.discover(label, top_level_dir=".") for label in labels or ["."])
+        return unittest.TestSuite(
+            loader.discover(label, top_level_dir=".") if os.path.isdir(label) else loader.loadTestsFromName(label)
+            for label in labels or ["."]
+        )
 
 
 def get_runner(settings):
@@ -39,6 +43,11 @@ def get_runner(settings):
 """,
 }
 PLAIN = "import unittest\n\n\nclass Behaviour(unittest.TestCase):\n    def test_one(self):\n        pass\n"
+SCENARIO = (
+    "import unittest\n\n\ndef scenario():\n    class Scenario(unittest.TestCase):\n"
+    "        def test_scenario(self):\n            pass\n\n    return Scenario\n"
+)
+BUILT = "from shared.tests.case_factory import scenario\n\nScenario = scenario()\n"
 
 
 def a_module(name, *classes):
@@ -153,22 +162,41 @@ class EachDiscoveryRunsInItsOwnInterpreter(unittest.TestCase):
 
         self.assertEqual(gate.findings(everything, found), ["wallets.tests.test_redis has tests in no shard"])
 
-    def test_a_factory_class_built_again_in_a_module_in_no_shard_is_named_by_the_factory(self):
-        factory = (
-            "import unittest\n\n\ndef scenario():\n    class Scenario(unittest.TestCase):\n"
-            "        def test_scenario(self):\n            pass\n\n    return Scenario\n"
+    def factory_findings(self, modules, shards):
+        with a_backend({"shared/tests/case_factory.py": SCENARIO} | modules) as backend:
+            everything, found = gate.discover(shards, backend)
+        return gate.findings(everything, found)
+
+    def test_a_factory_class_built_again_in_a_module_in_no_shard_is_named_by_that_module(self):
+        modules = {"tokens/tests/test_built.py": BUILT, "wallets/tests/test_built.py": BUILT}
+
+        self.assertEqual(
+            self.factory_findings(modules, {"tokens": ["tokens"]}), ["wallets.tests.test_built has tests in no shard"]
         )
-        built = "from shared.tests.case_factory import scenario\n\nScenario = scenario()\n"
-        modules = {
-            "shared/tests/case_factory.py": factory,
-            "tokens/tests/test_built.py": built,
-            "wallets/tests/test_built.py": built,
-        }
 
-        with a_backend(modules) as backend:
-            everything, found = gate.discover({"tokens": ["tokens"]}, backend)
+    def test_a_class_label_running_a_factory_class_again_does_not_stand_in_for_a_copy_in_no_shard(self):
+        modules = {"tokens/tests/test_built.py": BUILT, "wallets/tests/test_built.py": BUILT}
+        shards = {"tokens": ["tokens"], "others": ["tokens.tests.test_built.Scenario"]}
 
-        self.assertEqual(gate.findings(everything, found), ["shared.tests.case_factory has tests in no shard"])
+        self.assertEqual(
+            self.factory_findings(modules, shards),
+            [
+                "tokens.tests.test_built has tests duplicated in shards: others, tokens",
+                "wallets.tests.test_built has tests in no shard",
+            ],
+        )
+
+    def test_a_factory_class_run_twice_does_not_stand_in_for_another_bound_in_the_same_module(self):
+        pair = "from shared.tests.case_factory import scenario\n\nFirst = scenario()\nSecond = scenario()\n"
+        shards = {"tokens": ["wallets.tests.test_pair.First"], "others": ["wallets.tests.test_pair.First"]}
+
+        self.assertEqual(
+            self.factory_findings({"wallets/tests/test_pair.py": pair}, shards),
+            [
+                "wallets.tests.test_pair has tests duplicated in shards: others, tokens",
+                "wallets.tests.test_pair has tests in no shard",
+            ],
+        )
 
 
 class TheMatrixRunsExactlyTheDefinedShards(unittest.TestCase):

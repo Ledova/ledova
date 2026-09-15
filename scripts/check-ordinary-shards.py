@@ -27,11 +27,23 @@ def cases(suite):
             yield item
 
 
+def binding(kind):
+    if getattr(sys.modules.get(kind.__module__), kind.__name__, None) is kind:
+        return kind.__module__, kind.__qualname__
+    bindings = (
+        (name, attribute)
+        for name, module in list(sys.modules.items())
+        for attribute, value in getattr(module, "__dict__", {}).items()
+        if value is kind
+    )
+    return min(bindings, default=(kind.__module__, kind.__qualname__))
+
+
 def record(case):
-    made_by_the_loader = type(case).__module__ == "unittest.loader"
+    module, name = binding(type(case))
     return {
-        "id": case.id(),
-        "module": case._testMethodName if made_by_the_loader else type(case).__module__,
+        "id": f"{module}.{name}.{case._testMethodName}",
+        "module": case._testMethodName if module == "unittest.loader" else module,
         "failed": isinstance(case, unittest.loader._FailedTest),
     }
 
