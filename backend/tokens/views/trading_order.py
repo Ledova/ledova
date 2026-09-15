@@ -60,9 +60,8 @@ from tokens.serializers.trading_responses import (
     SwapSignatureRequestSerializer,
 )
 from tokens.services import (
-    AtomicSwapService,
+    atomic_swap_service,
 )
-from tokens.services.atomic_swap_service import sign_and_execute_swap
 from tokens.services.order_actions import (
     execute_order_action,
     issue_order_action,
@@ -276,7 +275,7 @@ class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
     @extend_schema(parameters=SWAP_LOOKUP_PARAMETERS, responses=SwapOrderForSigningSerializer)
     @action(detail=True, methods=["get"], url_path="swap")
     def swap(self, request, uuid=None):
-        atomic_swap_service, swap_order, user_role, has_signed = self._get_authorized_swap_context(request)
+        swap_order, user_role, has_signed = self._get_authorized_swap_context(request)
 
         if swap_order.is_expired and not swap_order.settlement_protocol_version:
             raise SwapExpiredException()
@@ -307,11 +306,10 @@ class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
     def swap_sign(self, request, uuid=None):
         identity = self._settlement_identity(request, write=True)
         if identity is not None:
-            atomic_swap_service, swap_order, _role, _signed = self._get_authorized_swap_context(request)
+            swap_order, _role, _signed = self._get_authorized_swap_context(request)
             serializer = SettlementSignatureSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            updated = sign_and_execute_swap(
-                atomic_swap_service,
+            updated = atomic_swap_service.sign_and_execute_swap(
                 swap_order=swap_order,
                 signature=serializer.validated_data["signature"],
                 signer_address=serializer.validated_data["signer_address"],
@@ -319,8 +317,6 @@ class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
             )
             return Response(SwapOrderDetailSerializer(updated).data)
         transfer_order = self.get_object()
-
-        atomic_swap_service = AtomicSwapService()
 
         swap_order = atomic_swap_service.find_swap_order_by_transfer_order(transfer_order)
         if not swap_order:
@@ -334,8 +330,7 @@ class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
         signature = serializer.validated_data["signature"]
         signer_address = serializer.validated_data["signer_address"]
 
-        updated_order = sign_and_execute_swap(
-            atomic_swap_service,
+        updated_order = atomic_swap_service.sign_and_execute_swap(
             swap_order=swap_order,
             signature=signature,
             signer_address=signer_address,
@@ -353,7 +348,7 @@ class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
     )
     @action(detail=True, methods=["get"], url_path="swap/approval-status")
     def swap_approval_status(self, request, uuid=None):
-        atomic_swap_service, swap_order, user_role, _has_signed = self._get_authorized_swap_context(request)
+        swap_order, user_role, _has_signed = self._get_authorized_swap_context(request)
         if swap_order.settlement_protocol_version:
             require_pending_settlement(swap_order)
         user_allowance = atomic_swap_service.check_swap_allowances(swap_order)[user_role]
@@ -377,7 +372,7 @@ class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
     @extend_schema(parameters=SWAP_LOOKUP_PARAMETERS, responses=ApprovalDataResponseSerializer)
     @action(detail=True, methods=["get"], url_path="swap/approval-data")
     def swap_approval_data(self, request, uuid=None):
-        atomic_swap_service, swap_order, user_role, _has_signed = self._get_authorized_swap_context(request)
+        swap_order, user_role, _has_signed = self._get_authorized_swap_context(request)
         if swap_order.settlement_protocol_version:
             require_pending_settlement(swap_order)
         user_allowance = atomic_swap_service.check_swap_allowances(swap_order)[user_role]
@@ -424,9 +419,8 @@ class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
         identity = serializer.validated_data
         admission = self._settlement_admission(request, identity)
         swap, role, _signed = resolve_exact_swap_context(request.user, uuid, identity)
-        service = AtomicSwapService()
         try:
-            tx_hash, receipt = service.broadcast_settlement_approval(
+            tx_hash, receipt = atomic_swap_service.broadcast_settlement_approval(
                 swap, role, identity["signed_transaction"], admission
             )
         except SettlementApprovalUncertain as exc:
@@ -476,7 +470,7 @@ class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
         identity = self._settlement_identity(request, write=self.action != "swap")
         if identity is not None:
             swap, role, signed = resolve_exact_swap_context(request.user, self.kwargs["uuid"], identity)
-            return AtomicSwapService(), swap, role, signed
+            return swap, role, signed
         wallet_address = request.query_params.get("wallet_address")
         if not wallet_address:
             raise ValidationError({"wallet_address": "This query parameter is required."})
@@ -488,8 +482,7 @@ class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
         if swap_order.settlement_protocol_version:
             raise SettlementContextRequired()
 
-        atomic_swap_service = AtomicSwapService()
-        return atomic_swap_service, swap_order, user_role, has_signed
+        return swap_order, user_role, has_signed
 
     @extend_schema(request=OrderActionModifyRequestSerializer, responses=ORDER_ACTION_RESPONSES)
     @action(detail=True, methods=["post"], url_path="modify/message")

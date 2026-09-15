@@ -20,7 +20,7 @@ from tokens.models.choices import (
     TransferOrderType,
 )
 from tokens.serializers import TransferOrderCreateSerializer
-from tokens.services import TokenTransferService
+from tokens.services import token_transfer_service
 from users.models import UserAccount, UserProfile
 from wallets.models import Wallet
 
@@ -297,7 +297,7 @@ class TransferOrderOwnershipBindingTest(APITestCase):
             price_per_share=Decimal("1.10"),
         )
 
-        service = TokenTransferService.__new__(TokenTransferService)
+        service = token_transfer_service
         match = service.find_matching_order(incoming)
         sell_levels = list(TransferOrder.objects.order_book_levels(self.token, TransferOrderType.SELL))
 
@@ -317,8 +317,8 @@ class TransferOrderOwnershipBindingTest(APITestCase):
         get_client.return_value = chain_client
         whitelist_service.is_whitelisted.return_value = True
 
-        service = TokenTransferService()
-        service.find_matching_order = Mock(return_value=None)
+        service = token_transfer_service
+        self.enterContext(patch.object(service, "find_matching_order", return_value=None))
         order, match = service.create_order_and_match(
             token=self.token,
             order_type=TransferOrderType.BUY,
@@ -347,7 +347,7 @@ class TransferOrderOwnershipBindingTest(APITestCase):
         Wallet.objects.filter(pk=self.wallet.pk).update(verification_status="PENDING")
 
         with self.assertRaises(InvalidRecipientAddressException):
-            TokenTransferService().create_order_and_match(
+            token_transfer_service.create_order_and_match(
                 token=self.token,
                 order_type=TransferOrderType.BUY,
                 actor=self.user,
@@ -363,7 +363,7 @@ class TransferOrderOwnershipBindingTest(APITestCase):
         Wallet.objects.filter(pk=self.wallet.pk).update(user_account=replacement_account)
 
         with self.assertRaises(InvalidRecipientAddressException):
-            TokenTransferService().create_order_and_match(
+            token_transfer_service.create_order_and_match(
                 token=self.token,
                 order_type=TransferOrderType.BUY,
                 actor=self.user,

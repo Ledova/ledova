@@ -31,7 +31,7 @@ from tokens.models import (
     SwapOrder,
     TransferOrder,
 )
-from tokens.services import TokenTransferService
+from tokens.services import token_transfer_service
 from tokens.tests.order_submission_fixtures import (
     OTHER_KEY,
     OWNER,
@@ -440,7 +440,7 @@ class OrderSubmissionProtocolTest(SubmissionBoundaryChecks, SubmissionFixtures, 
         self.balance.get_token_balance.side_effect = None
         for error in (OrderMatchException(), InsufficientBalanceException()):
             with self.subTest(unclassified=type(error).__name__), patch.object(
-                TokenTransferService, "find_matching_order", side_effect=error
+                token_transfer_service, "find_matching_order", side_effect=error
             ):
                 response = self.create(signed)
                 self.assertEqual(response.status_code, 400, response.content)
@@ -450,7 +450,7 @@ class OrderSubmissionProtocolTest(SubmissionBoundaryChecks, SubmissionFixtures, 
     def test_refusal_rolls_back_the_creation_savepoint_before_committing_the_spend(self):
         signed = self.signed_body()
         with patch.object(
-            TokenTransferService, "find_matching_order", side_effect=CreateOrderNotWhitelistedException()
+            token_transfer_service, "find_matching_order", side_effect=CreateOrderNotWhitelistedException()
         ):
             response = self.create(signed)
         self.assertEqual(response.status_code, 400, response.content)

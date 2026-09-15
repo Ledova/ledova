@@ -1,5 +1,5 @@
 import secrets
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from django.conf import settings
 from eth_account import Account
@@ -16,7 +16,7 @@ from tokens.models import (
     TransferOrderStatus,
     TransferOrderType,
 )
-from tokens.services import AtomicSwapService
+from tokens.services import atomic_swap_service
 from tokens.services.settlement_context import (
     recorded_settlement_context,
     settlement_execution_arguments,
@@ -32,13 +32,13 @@ CONFIRMED = {"status": 1, "blockNumber": 7, "blockHash": "0x" + "ef" * 32, "gasU
 REVERTED = {"status": 0, "blockNumber": 8, "blockHash": "0x" + "fa" * 32, "gasUsed": 21000}
 
 
-def swap_service():
-    service = object.__new__(AtomicSwapService)
-    service.chain_client = Mock(chain_id=settings.BLOCKCHAIN_CHAIN_ID)
-    service.chain_client.assert_expected_chain = Mock(return_value=settings.BLOCKCHAIN_CHAIN_ID)
-    service.chain_client.w3.eth.chain_id = settings.BLOCKCHAIN_CHAIN_ID
-    service.chain_client.to_checksum_address.side_effect = Web3.to_checksum_address
-    return service
+def swap_service(test_case):
+    client = Mock(chain_id=settings.BLOCKCHAIN_CHAIN_ID)
+    client.assert_expected_chain = Mock(return_value=settings.BLOCKCHAIN_CHAIN_ID)
+    client.w3.eth.chain_id = settings.BLOCKCHAIN_CHAIN_ID
+    client.to_checksum_address.side_effect = Web3.to_checksum_address
+    test_case.enterContext(patch.object(atomic_swap_service, "get_base_chain_client", return_value=client))
+    return atomic_swap_service
 
 
 def make_swap(label, *, ready=False):
@@ -73,9 +73,8 @@ def make_swap(label, *, ready=False):
         order_hash="0x" + secrets.token_hex(32),
     )
     save_swap_with_context(swap)
-    service = swap_service()
     if ready:
-        signable = encode_typed_data(full_message=service.get_typed_data(swap))
+        signable = encode_typed_data(full_message=atomic_swap_service.get_typed_data(swap))
         swap.seller_signature = SELLER.sign_message(signable).signature.hex()
         swap.buyer_signature = BUYER.sign_message(signable).signature.hex()
         swap.status = SwapOrderStatus.READY

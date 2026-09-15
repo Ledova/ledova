@@ -19,8 +19,8 @@ from tokens.models import (
     TransferOrderStatus,
     TransferOrderType,
 )
+from tokens.services import token_transfer_service
 from tokens.services.swap_expiry import expire_unclaimed_swap, expire_unclaimed_swaps
-from tokens.services.token_transfer_service import TokenTransferService
 from tokens.tasks.swap_expiry import expire_unclaimed_matches
 from tokens.tests.swap_state_fixtures import (
     BUYER,
@@ -43,7 +43,7 @@ class ExpiryFixtures:
         self.clock = self.enterContext(patch("django.utils.timezone.now", return_value=self.now))
         self.publisher = self.enterContext(patch("tokens.services.swap_expiry.publish_trading_event"))
         self.enterContext(patch("tokens.services.atomic_swap_service.publish_trading_event"))
-        self.service = swap_service()
+        self.service = swap_service(self)
         self.counter = 0
 
     def matched_swap(self, *, already_filled=20, signed=""):
@@ -66,10 +66,8 @@ class ExpiryFixtures:
                     status=TransferOrderStatus.OPEN,
                 )
             )
-        with patch("tokens.services.AtomicSwapService", return_value=self.service):
-            swap = object.__new__(TokenTransferService).match_orders(orders[1], orders[0], match_quantity=10)[
-                "swap_order"
-            ]
+        with patch("tokens.services.atomic_swap_service", self.service):
+            swap = token_transfer_service.match_orders(orders[1], orders[0], match_quantity=10)["swap_order"]
         for party, signer in (("seller", SELLER), ("buyer", BUYER)):
             if party in signed or signed == "both":
                 signature = signer.sign_message(
@@ -112,14 +110,14 @@ class UnclaimedSwapExpiryTest(ExpiryFixtures, TransactionTestCase):
                 self.assertEqual(persisted_outcome(swap), after)
         self.assertEqual(self.publisher.call_count, 4)
         self.publisher.assert_called_with("swap_expired", str(swap.share_token_id))
-        self.service.chain_client.send_raw_transaction.assert_not_called()
+        self.service.get_base_chain_client().send_raw_transaction.assert_not_called()
 
     def test_unfilled_orders_reopen_and_can_match_again(self):
         swap = self.matched_swap(already_filled=0)
         self.assertTrue(expire_unclaimed_swap(swap, self.expired_at(swap)))
         self.assert_available(swap, 0)
-        with patch("tokens.services.AtomicSwapService", return_value=self.service):
-            matched = object.__new__(TokenTransferService).match_orders(swap.buy_order, swap.sell_order, 10)
+        with patch("tokens.services.atomic_swap_service", self.service):
+            matched = token_transfer_service.match_orders(swap.buy_order, swap.sell_order, 10)
         self.assertNotEqual(matched["swap_order"].pk, swap.pk)
         self.assertEqual(matched["matched_quantity"], 10)
 

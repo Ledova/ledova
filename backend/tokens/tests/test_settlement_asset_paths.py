@@ -10,12 +10,12 @@ from shared.tests.tenants import make_tenant
 from tokens.filters import TransferOrderFilter
 from tokens.models import TransferOrder
 from tokens.serializers import PrepareTransferSerializer
-from tokens.services.atomic_swap_service import AtomicSwapService, payment_address
+from tokens.services import atomic_swap_service, token_transfer_service
+from tokens.services.atomic_swap_service import payment_address
 from tokens.services.settlement_context import (
     SettlementContextChanged,
     assert_current_settlement,
 )
-from tokens.services.token_transfer_service import TokenTransferService
 
 BASE_ADDRESS = "0x" + "5" * 40
 ETHEREUM_ADDRESS = "0x" + "e" * 40
@@ -48,7 +48,7 @@ class SwapSettlementAddressTest(TestCase):
         chain_client.return_value = MagicMock(
             chain_id=31337, to_checksum_address=lambda address: address.replace("0X", "0x")
         )
-        service = AtomicSwapService()
+        service = atomic_swap_service
 
         with override_settings(ATOMIC_SWAP_ADDRESS=RECIPIENT):
             swap = service.create_swap_order(
@@ -85,14 +85,14 @@ class TransferSettlementAddressTest(TestCase):
             asset=self.asset, chain="ethereum", contract_address=ETHEREUM_ADDRESS, decimals=2
         )
 
-        self.assertEqual(TokenTransferService.contract_address(self.asset), BASE_ADDRESS)
+        self.assertEqual(token_transfer_service.contract_address(self.asset), BASE_ADDRESS)
         self.assertEqual(
-            TokenTransferService.contract_address(self.tenant.deployed_token),
+            token_transfer_service.contract_address(self.tenant.deployed_token),
             self.tenant.deployed_token.contract_address,
         )
 
         AssetChainDeployment.objects.filter(asset=self.asset, chain="base").update(is_active=False)
-        self.assertEqual(TokenTransferService.contract_address(self.asset), "")
+        self.assertEqual(token_transfer_service.contract_address(self.asset), "")
 
     def test_prepare_transfer_accepts_a_supported_settlement_asset_only(self):
         payload = {

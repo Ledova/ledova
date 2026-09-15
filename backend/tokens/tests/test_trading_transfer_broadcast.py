@@ -37,29 +37,29 @@ class TradingTransferBroadcastContractTest(APITestCase):
         self.client.force_authenticate(self.user)
 
     @override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT)
-    @patch("tokens.views.trading_transfer.TokenTransferService")
-    def test_camel_case_key_reaches_the_service_and_the_receipt_is_camel_cased(self, service_class):
-        service_class.return_value.broadcast_transfer.return_value = (TX_HASH, {"blockNumber": 7, "gasUsed": 21000})
+    @patch("tokens.views.trading_transfer.token_transfer_service")
+    def test_camel_case_key_reaches_the_service_and_the_receipt_is_camel_cased(self, service_module):
+        service_module.broadcast_transfer.return_value = (TX_HASH, {"blockNumber": 7, "gasUsed": 21000})
         signed = sign_legacy()
 
         response = self.client.post(self.url, {"signedTransaction": signed}, format="json")
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"txHash": TX_HASH, "blockNumber": 7, "gasUsed": 21000})
-        service_class.return_value.broadcast_transfer.assert_called_once_with(signed)
+        service_module.broadcast_transfer.assert_called_once_with(signed)
 
-    @patch("tokens.views.trading_transfer.TokenTransferService")
-    def test_snake_case_key_with_a_short_suffix_is_not_converted(self, service_class):
+    @patch("tokens.views.trading_transfer.token_transfer_service")
+    def test_snake_case_key_with_a_short_suffix_is_not_converted(self, service_module):
         response = self.client.post(self.url, {"signed_tx": "0x02"}, format="json")
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {"signedTransaction": ["This field is required."]})
-        service_class.assert_not_called()
+        self.assertEqual(service_module.mock_calls, [])
 
     @override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT)
-    @patch("tokens.views.trading_transfer.TokenTransferService")
-    def test_a_transaction_signed_by_a_key_the_caller_does_not_hold_is_refused(self, service_class):
-        service_class.return_value.broadcast_transfer.return_value = (TX_HASH, {"blockNumber": 7})
+    @patch("tokens.views.trading_transfer.token_transfer_service")
+    def test_a_transaction_signed_by_a_key_the_caller_does_not_hold_is_refused(self, service_module):
+        service_module.broadcast_transfer.return_value = (TX_HASH, {"blockNumber": 7})
         stranger_signed = _hex(
             STRANGER.sign_transaction(
                 {
@@ -77,16 +77,16 @@ class TradingTransferBroadcastContractTest(APITestCase):
         response = self.client.post(self.url, {"signedTransaction": stranger_signed}, format="json")
 
         self.assertEqual(response.status_code, 404, response.content)
-        service_class.assert_not_called()
+        self.assertEqual(service_module.mock_calls, [])
 
     @override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT)
-    @patch("tokens.views.trading_transfer.TokenTransferService")
-    def test_an_unverified_wallet_at_the_signing_address_is_not_enough(self, service_class):
-        service_class.return_value.broadcast_transfer.return_value = (TX_HASH, {"blockNumber": 7})
+    @patch("tokens.views.trading_transfer.token_transfer_service")
+    def test_an_unverified_wallet_at_the_signing_address_is_not_enough(self, service_module):
+        service_module.broadcast_transfer.return_value = (TX_HASH, {"blockNumber": 7})
         self.wallet.verification_status = "PENDING"
         self.wallet.save(update_fields=["verification_status"])
 
         response = self.client.post(self.url, {"signedTransaction": sign_legacy()}, format="json")
 
         self.assertEqual(response.status_code, 404, response.content)
-        service_class.assert_not_called()
+        self.assertEqual(service_module.mock_calls, [])
