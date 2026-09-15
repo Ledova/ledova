@@ -51,7 +51,8 @@ module out is a finding, and so is a module label outside the default `test*.py`
 pattern. A module that fails to import is a finding rather than a module: it is
 discovered as one `_FailedTest` on both sides and would otherwise look covered.
 [Regression tests](../../scripts/tests/test_check_ordinary_shards.py) plant each
-finding with synthetic cases. Discovery of the real backend runs in CI's shard jobs.
+finding with synthetic cases, and hold the committed matrix to the committed shard
+file. Discovery of the real backend runs in CI's shard jobs.
 
 ## Schema and client operations
 

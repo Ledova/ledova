@@ -1,6 +1,11 @@
 import importlib.util
+import json
+import subprocess
+import sys
 import unittest
 from pathlib import Path
+
+import yaml
 
 SCRIPT = Path(__file__).resolve().parent.parent / "check-ordinary-shards.py"
 _spec = importlib.util.spec_from_file_location("check_ordinary_shards", SCRIPT)
@@ -85,6 +90,33 @@ class TheMatrixRunsExactlyTheDefinedShards(unittest.TestCase):
         ):
             with self.subTest(workflow=workflow):
                 self.assertEqual(len(gate.matrix_findings(workflow, self.SHARDS)), 1)
+
+
+class TheCommittedFilesAgree(unittest.TestCase):
+    def setUp(self):
+        self.shards = json.loads(gate.SHARDS.read_text(encoding="utf-8"))
+
+    def labels(self, shard):
+        return subprocess.run(
+            [sys.executable, str(SCRIPT), "--labels", shard], capture_output=True, text=True, check=False
+        )
+
+    def test_the_committed_matrix_runs_the_committed_shards(self):
+        workflow = yaml.safe_load(gate.WORKFLOW.read_text(encoding="utf-8"))
+
+        self.assertEqual(gate.matrix_findings(workflow, self.shards), [])
+
+    def test_labels_prints_what_each_shard_passes_to_manage_py_test(self):
+        for shard, labels in self.shards.items():
+            with self.subTest(shard=shard):
+                result = self.labels(shard)
+
+                self.assertEqual((result.returncode, result.stdout), (0, " ".join(labels) + "\n"))
+
+    def test_labels_refuses_a_shard_the_file_does_not_define(self):
+        result = self.labels("no-such-shard")
+
+        self.assertEqual((result.returncode, result.stdout), (1, ""))
 
 
 if __name__ == "__main__":
