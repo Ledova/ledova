@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import type { PropsWithChildren, ReactNode } from 'react';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 import {
@@ -66,6 +66,7 @@ const listed = Object.keys(
     )
   ).default.components.schemas.SwapOrderList.properties,
 );
+const listedSwap = Object.fromEntries(Object.entries(captured.swapOrder).filter(([key]) => listed.includes(key)));
 const owner = { userUuid, ownerAccountUuid: captured.ownerAccountUuid };
 let client: QueryClient;
 let requests: InternalAxiosRequestConfig[];
@@ -186,10 +187,7 @@ it('keeps the unsigned buyer side available when both wallets are owned and the 
 });
 
 it.each([
-  {
-    name: 'in the swap list response shape',
-    swap: Object.fromEntries(Object.entries(captured.swapOrder).filter(([key]) => listed.includes(key))),
-  },
+  { name: 'in the swap list response shape', swap: listedSwap },
   { name: 'with a null context', swap: { ...captured.swapOrder, settlementContext: null } },
   {
     name: 'with a null context and no digest',
@@ -212,6 +210,22 @@ it.each([
   await waitFor(() => expect(screen.getByRole('alert')).toBeTruthy());
   expect(swapRequests()).toEqual([]);
 });
+
+it.each([
+  { status: 'created', role: 'buyer', signed: {} },
+  { status: 'seller_signed', role: 'buyer', signed: { sellerHasSigned: true } },
+  { status: 'buyer_signed', role: 'seller', signed: { buyerHasSigned: true } },
+] as const)(
+  'holds a $status version0 swap for the $role once the swap list carries its protocol version',
+  ({ status, role, signed }) => {
+    state.wallets = [walletFor(role)];
+    state.swaps = [{ ...listedSwap, ...signed, status, settlementProtocolVersion: 0 } as unknown as SwapOrder];
+    render(<TradingPage />, { wrapper });
+    const row = screen.getByText('Held for operator review').parentElement!;
+    expect(within(row).getByText(role === 'seller' ? 'Seller' : 'Buyer')).toBeTruthy();
+    expect(within(row).queryAllByRole('button')).toEqual([]);
+  },
+);
 
 it('holds explicit version0 history for operator review and restores the version1 route on list refresh', async () => {
   const signer = vi.spyOn(localSigner, 'signEthereumTypedData').mockResolvedValue(fixture.signatures[1]!);

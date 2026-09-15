@@ -129,6 +129,9 @@ const copy = <T,>(data: T): T => JSON.parse(JSON.stringify(data));
 const listed = Object.keys(
   jest.requireActual('../../../../backend/schema/openapi.json').components.schemas.SwapOrderList.properties,
 );
+const listedSwap = Object.fromEntries(
+  Object.entries(fixture.get_body.swapOrder).filter(([key]) => listed.includes(key)),
+);
 let client: QueryClient;
 let api = axios.create();
 let requests: InternalAxiosRequestConfig[];
@@ -455,10 +458,24 @@ it('holds explicit V0 history for operator review in the mounted list and keeps 
 });
 
 it.each([
-  {
-    name: 'in the swap list response shape',
-    swap: Object.fromEntries(Object.entries(fixture.get_body.swapOrder).filter(([key]) => listed.includes(key))),
+  { status: 'created', role: 'seller', signed: {} },
+  { status: 'seller_signed', role: 'buyer', signed: { sellerHasSigned: true } },
+  { status: 'buyer_signed', role: 'seller', signed: { buyerHasSigned: true } },
+] as const)(
+  'holds a $status V0 settlement for the $role once the swap list carries its protocol version',
+  async ({ status, role, signed }) => {
+    mockActualOrders = true;
+    mockWallets = [selectedWallet(role)];
+    mockSwaps = [{ ...listedSwap, ...signed, status, settlementProtocolVersion: 0 } as unknown as SwapOrder];
+    const view = await render(<TradingScreen />, { wrapper });
+    expect(view.getByText('Held for operator review')).toBeTruthy();
+    expect(view.getByText(role === 'seller' ? 'Seller' : 'Buyer')).toBeTruthy();
+    expect(view.queryByText('Sign')).toBeNull();
   },
+);
+
+it.each([
+  { name: 'in the swap list response shape', swap: listedSwap },
   {
     name: 'with a null V1 context and no digest',
     swap: { ...fixture.get_body.swapOrder, settlementContext: null, settlementDigest: '' },
