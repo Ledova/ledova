@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import argparse
+import contextlib
 import json
 import os
+import subprocess
 import sys
 import unittest
 from collections import defaultdict
@@ -25,26 +27,31 @@ def cases(suite):
             yield item
 
 
-def failed(case):
-    return isinstance(case, unittest.loader._FailedTest)
+def record(case):
+    made_by_the_loader = type(case).__module__ == "unittest.loader"
+    return {
+        "id": case.id(),
+        "module": case._testMethodName if made_by_the_loader else type(case).__module__,
+        "failed": isinstance(case, unittest.loader._FailedTest),
+    }
 
 
 def findings(everything, shards):
     runs = {"the unlabelled suite": everything} | {f"shard {name}": found for name, found in shards.items()}
     problems = {
-        f"{run} failed to load {case._testMethodName}" for run, found in runs.items() for case in found if failed(case)
+        f"{run} failed to load {case['module']}" for run, found in runs.items() for case in found if case["failed"]
     }
-    expected = {case.id() for case in everything if not failed(case)}
+    expected = {case["id"] for case in everything if not case["failed"]}
     placed = defaultdict(list)
     module = {}
     for name, found in shards.items():
         for case in found:
-            if not failed(case):
-                placed[case.id()].append(name)
-                module[case.id()] = type(case).__module__
+            if not case["failed"]:
+                placed[case["id"]].append(name)
+                module[case["id"]] = case["module"]
     for case in everything:
-        if not failed(case) and case.id() not in placed:
-            problems.add(f"{type(case).__module__} has tests in no shard")
+        if not case["failed"] and case["id"] not in placed:
+            problems.add(f"{case['module']} has tests in no shard")
     for identity, names in placed.items():
         if identity not in expected:
             problems.add(
@@ -69,24 +76,46 @@ def matrix_findings(workflow, shards):
     ]
 
 
-def discover(shards):
-    os.chdir(BACKEND)
-    sys.path.insert(0, str(BACKEND))
-    os.environ["DJANGO_SETTINGS_MODULE"] = SETTINGS
-    import django
-    from django.conf import settings
-    from django.test.utils import get_runner
+def in_this_interpreter(labels):
+    sys.path.insert(0, os.getcwd())
+    with contextlib.redirect_stdout(sys.stderr):
+        import django
+        from django.conf import settings
+        from django.test.utils import get_runner
 
-    django.setup()
-    runner = get_runner(settings)(verbosity=0, interactive=False)
-    everything = list(cases(runner.build_suite()))
-    return everything, {name: list(cases(runner.build_suite(labels))) for name, labels in shards.items()}
+        django.setup()
+        runner = get_runner(settings)(verbosity=0, interactive=False)
+        runner.setup_test_environment()
+        return [record(case) for case in cases(runner.build_suite(labels))]
+
+
+def in_a_fresh_interpreter(labels, backend):
+    child = subprocess.run(
+        [sys.executable, str(Path(__file__).resolve()), "--discover", *labels],
+        cwd=backend,
+        env=os.environ | {"DJANGO_SETTINGS_MODULE": SETTINGS},
+        stdout=subprocess.PIPE,
+        text=True,
+        check=True,
+    )
+    return json.loads(child.stdout)
+
+
+def discover(shards, backend=BACKEND):
+    everything = in_a_fresh_interpreter([], backend)
+    return everything, {name: in_a_fresh_interpreter(labels, backend) for name, labels in shards.items()}
 
 
 def main():
     parser = argparse.ArgumentParser(description="Hold the ordinary suite's CI shards to the unlabelled suite.")
     parser.add_argument("--labels", metavar="SHARD", help="print one shard's Django test labels and exit")
+    parser.add_argument("--discover", nargs="*", help=argparse.SUPPRESS)
     arguments = parser.parse_args()
+
+    if arguments.discover is not None:
+        print(json.dumps(in_this_interpreter(arguments.discover)))
+        return 0
+
     shards = json.loads(SHARDS.read_text(encoding="utf-8"))
 
     if arguments.labels is not None:
@@ -112,7 +141,7 @@ def main():
         )
         return 1
 
-    modules = {type(case).__module__ for case in everything}
+    modules = {case["module"] for case in everything}
     counts = ", ".join(f"{name} {len(tests)}" for name, tests in found.items())
     print(f"Each of {len(everything)} ordinary tests in {len(modules)} modules runs in exactly one shard: {counts}.")
     return 0

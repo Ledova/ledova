@@ -202,11 +202,12 @@ CI splits the ordinary suite across parallel jobs, one per shard named in
 [`.github/ordinary-suite-shards.json`](../../.github/ordinary-suite-shards.json).
 `scripts/check-ordinary-shards.py` runs first in every shard. Through the same
 settings and test runner, it discovers the suite once with no labels and once
-with each shard's labels. It then refuses four things: a module with a test in
-no shard or in more than one, a test a shard would run that the unlabelled suite
-does not, a module that fails to load, and a `backend-suite-shard` matrix that
-is anything but the file's shard names, such as one with an `include` or
-`exclude`.
+with each shard's labels, each in a fresh interpreter as each CI job is, so no
+discovery sees a module an earlier one imported. It then refuses four things: a
+module with a test in no shard or in more than one, a test a shard would run
+that the unlabelled suite does not, a module that fails to load, and a
+`backend-suite-shard` matrix that is anything but the file's shard names, such
+as one with an `include` or `exclude`.
 
 A new module inside an assigned app label is covered with no change. A new app
 fails until its label is put in exactly one shard. Balance shards by moving app

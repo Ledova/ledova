@@ -1,7 +1,9 @@
+import contextlib
 import importlib.util
 import json
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -12,14 +14,50 @@ _spec = importlib.util.spec_from_file_location("check_ordinary_shards", SCRIPT)
 gate = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gate)
 
+DJANGO = {
+    "django/__init__.py": "def setup():\n    pass\n",
+    "django/conf.py": "settings = None\n",
+    "django/test/utils.py": """import unittest
+
+
+class Runner:
+    def __init__(self, **options):
+        pass
+
+    def setup_test_environment(self):
+        pass
+
+    def build_suite(self, labels):
+        loader = unittest.TestLoader()
+        return unittest.TestSuite(loader.discover(label, top_level_dir=".") for label in labels or ["."])
+
+
+def get_runner(settings):
+    return Runner
+""",
+}
+PLAIN = "import unittest\n\n\nclass Behaviour(unittest.TestCase):\n    def test_one(self):\n        pass\n"
+
 
 def a_module(name, *classes):
-    found = []
-    for class_name in classes or ("Behaviour",):
-        body = {"__module__": name, "test_one": lambda self: None, "test_two": lambda self: None}
-        case = type(class_name, (unittest.TestCase,), body)
-        found += [case("test_one"), case("test_two")]
-    return found
+    return [
+        {"id": f"{name}.{class_name}.{test}", "module": name, "failed": False}
+        for class_name in classes or ("Behaviour",)
+        for test in ("test_one", "test_two")
+    ]
+
+
+@contextlib.contextmanager
+def a_backend(modules):
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        for name, text in (DJANGO | modules).items():
+            path = root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding="utf-8")
+            for package in path.relative_to(root).parents[:-1]:
+                (root / package / "__init__.py").touch()
+        yield root
 
 
 TOKENS = a_module("tokens.tests.test_fold")
@@ -61,7 +99,8 @@ class EveryModuleRunsInExactlyOneShard(unittest.TestCase):
         )
 
     def test_a_module_that_fails_to_load_is_a_finding_even_where_both_sides_agree(self):
-        broken = list(gate.cases(unittest.TestLoader().loadTestsFromName("no_such_test_module")))
+        loaded = unittest.TestLoader().loadTestsFromName("no_such_test_module")
+        broken = [gate.record(case) for case in gate.cases(loaded)]
 
         self.assertEqual(
             gate.findings(EVERYTHING + broken, {"tokens": TOKENS + broken, "others": WALLETS + SHARED}),
@@ -70,6 +109,35 @@ class EveryModuleRunsInExactlyOneShard(unittest.TestCase):
                 "the unlabelled suite failed to load no_such_test_module",
             ],
         )
+
+
+class EachDiscoveryRunsInItsOwnInterpreter(unittest.TestCase):
+    def test_a_test_that_exists_only_once_another_shards_module_is_imported_is_in_no_shard(self):
+        generated = (
+            "import sys\nimport unittest\n\n\nclass Generated(unittest.TestCase):\n    pass\n\n\n"
+            'if "assets.tests.test_registry" in sys.modules:\n    Generated.test_registered = lambda self: None\n'
+        )
+        modules = {
+            "assets/tests/test_registry.py": PLAIN,
+            "tokens/tests/test_generated.py": generated,
+            "wallets/tests/test_sync.py": PLAIN,
+        }
+
+        with a_backend(modules) as backend:
+            everything, found = gate.discover({"tokens": ["tokens"], "others": ["assets", "wallets"]}, backend)
+
+        self.assertEqual(gate.findings(everything, found), ["tokens.tests.test_generated has tests in no shard"])
+
+    def test_a_module_skipped_as_it_is_imported_is_named_by_its_own_name(self):
+        modules = {
+            "assets/tests/test_registry.py": PLAIN,
+            "wallets/tests/test_redis.py": 'import unittest\n\nraise unittest.SkipTest("no Redis")\n',
+        }
+
+        with a_backend(modules) as backend:
+            everything, found = gate.discover({"others": ["assets"]}, backend)
+
+        self.assertEqual(gate.findings(everything, found), ["wallets.tests.test_redis has tests in no shard"])
 
 
 class TheMatrixRunsExactlyTheDefinedShards(unittest.TestCase):

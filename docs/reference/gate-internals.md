@@ -50,9 +50,15 @@ ids Django's runner builds, not module files. So a class label that leaves half 
 module out is a finding, and so is a module label outside the default `test*.py`
 pattern. A module that fails to import is a finding rather than a module: it is
 discovered as one `_FailedTest` on both sides and would otherwise look covered.
+Each discovery re-runs the checker with `--discover` in a fresh interpreter,
+because a module can define different tests depending on what was imported
+before it, and each CI shard starts from nothing.
 [Regression tests](../../scripts/tests/test_check_ordinary_shards.py) plant each
 finding with synthetic cases, and hold the committed matrix to the committed shard
-file. Discovery of the real backend runs in CI's shard jobs.
+file. Against a stand-in for Django's runner, they plant a test that exists only
+once another shard's module is imported, and a module skipped as it is imported,
+which must be named by its own name. Discovery of the real backend runs in CI's
+shard jobs.
 
 ## Schema and client operations
 
