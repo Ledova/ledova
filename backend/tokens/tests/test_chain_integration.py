@@ -282,6 +282,15 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
         self.seller = SELLER
         self.buyer = BUYER
         self.investor = self.seller.address
+        self.party_wallets = {
+            party.address: Wallet.objects.create(
+                user_account=self.tenant.account,
+                address=party.address,
+                chain="base",
+                verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
+            )
+            for party in (self.seller, self.buyer)
+        }
         self._deployed()
         self.assertEqual(swap_approval.recover(self.token.deployment_id), "confirmed")
         request = self._whitelisted_request(20)
@@ -326,12 +335,7 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
     def test_matching_approval_signing_and_execution_preserve_one_settlement(self):
         orders = []
         for party, kind in ((self.seller, TransferOrderType.SELL), (self.buyer, TransferOrderType.BUY)):
-            wallet = Wallet.objects.create(
-                user_account=self.tenant.account,
-                address=party.address,
-                chain="base",
-                verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
-            )
+            wallet = self.party_wallets[party.address]
             orders.append(
                 TransferOrder.objects.create(
                     token=self.token,
