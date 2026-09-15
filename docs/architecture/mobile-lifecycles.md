@@ -94,17 +94,91 @@ synthetic tokens and do not contact the provider.
 
 KYCAID completion redirects must retain the configured marketing URL's scheme and
 port and match its hostname or existing `www` alias. The shared navigation policy
-also rejects credentials and fragments before a redirect can retire the form.
-Mounted controls retain ordinary completion and reject changed origins; this
-callback check does not constrain the provider's full navigation or media origins.
+also rejects credentials and fragments before a redirect can retire the form. The
+same completion check admits the redirect as a navigation, so what may load and
+what completes cannot drift apart.
+
+Both verification WebViews keep `originWhitelist` open, so a refused URL is never
+handed to the operating system. Their navigation callback is synchronous, returns
+false on any exception and first requires the current form lifecycle. A top-frame
+navigation must also pass the shared web navigation policy and be `about:blank` or
+an exact scheme, host and port match from the view's list:
+
+- KYCAID: the origin of the form URL the backend returned, plus the completion
+  origin above.
+- Sumsub: the marketing origin, which is the inline page's base URL.
+
+Android requests carry `isTopFrame` absent or true, so every one is a top frame.
+iOS sends `isTopFrame` false when the request URL differs from its main document
+URL; such a navigation passes only the lifecycle and shared web navigation checks.
+Configured hostnames are lower-cased before comparison, because the app's `URL`
+global, Expo's WHATWG polyfill, keeps a hostname's case. Both platforms are
+expected to report lower-case hosts, since their engines canonicalise a URL before
+offering it. That is inferred, not observed; a reported upper-case host would be
+refused.
+
+Both views refuse new windows: `onOpenWindow` does nothing and multiple windows
+are disabled. An Android popup is then expected to become a top-level navigation
+that the same callback decides. That rests on Android's `setSupportMultipleWindows`
+documentation, not on Chromium source or a device run. Automatic JavaScript window
+opening stays off. On iOS, camera and microphone requests reach WebKit's own
+prompt instead of a silent grant, and `NSMicrophoneUsageDescription` stays.
+Android blocks `RECORD_AUDIO` app-wide, although Expo Camera's plugin and library
+manifest declare it; nothing in the app records audio. The app's config plugin
+declares the `IMAGE_CAPTURE` and `GET_CONTENT` intent queries, and no permission
+with them. A provider file input that requests capture starts `IMAGE_CAPTURE`
+only when `resolveActivity` finds a camera app, which Android package visibility
+is expected to hide without that query. That rests on react-native-webview
+source, not a device run.
+
+Removing `expo-image-picker` dropped `NSPhotoLibraryUsageDescription` on iOS.
+Whether a provider page's `<input type="file">` still offers the photo library
+there is not established. That it does is inferred from WebKit main source:
+`WKFileUploadPanel.mm` uses `PHPickerViewController`, which does not request
+photo-library authorization. It has not been observed on the deployment target.
+
+These gaps are accepted by the #13 owner decisions named beside each:
+
+- Android has no origin check for camera requests: any page or frame receives the
+  camera once the app holds `CAMERA`, and can raise the system `CAMERA` prompt
+  when it does not. A request for audio and video cannot receive audio. Decision
+  [5663884982](https://github.com/RonildoBraga/ledova/issues/13#issuecomment-5663884982).
+- Android offers no HTTP(S) or `about:` iframe navigation to the callback; iframes
+  with other schemes arrive as top frames and the shared policy refuses them. iOS
+  offers iframe navigations but applies no origin list. Decisions
+  [5663884982](https://github.com/RonildoBraga/ledova/issues/13#issuecomment-5663884982)
+  for Android and
+  [5665093034](https://github.com/RonildoBraga/ledova/issues/13#issuecomment-5665093034)
+  for iOS.
+- Android allows a navigation when JavaScript has not answered its synchronous
+  callback within 250 ms. Decision
+  [5663884982](https://github.com/RonildoBraga/ledova/issues/13#issuecomment-5663884982).
+- Android never offers POST navigations to the callback. Decision
+  [5665093034](https://github.com/RonildoBraga/ledova/issues/13#issuecomment-5665093034).
+- Only WebKit's prompt governs a provider's microphone request on iOS. Decision
+  [5665093034](https://github.com/RonildoBraga/ledova/issues/13#issuecomment-5665093034).
+
+The Sumsub SDK builder script loads from an unversioned URL, so its iframe host,
+token parsing and frame permissions can change without a repository change. That
+is known and recorded here, but no owner decision accepts or rejects it.
+
+The iOS top-frame test has not been observed. react-native-webview treats a
+request as a top frame only when its URL equals its main document URL. Neither a
+main-frame redirect nor a main document URL that is nil or normalised differently
+has been seen; a top-frame request that fails the test would be checked as a
+subframe, without the origin list.
 
 Mounted JavaScript controls use the locked WebView wrapper, actual app-lock
 provider and owner hooks with synthetic credentials. They establish mount,
 callback and error-display behavior, not physical camera shutdown or native
-permission-dialog cancellation. Provider origin/media grants, Android owning-window
-focus and global modal/lock stacking remain separate #13 checks. Provider browsing
-and media policies remain unchanged; playback settings do not establish camera
-capture control, and a form-completion signal is not server verification approval.
+permission-dialog cancellation. Navigation controls send requests with
+`isTopFrame` absent, true and false through the installed iOS adapter, parsing
+with the same Expo `URL` global as the app. On both platform adapters, window and
+media props are checked, and an invoked `onOpenWindow` calls no `Linking.openURL`,
+changes no source and completes nothing. Native frame, POST, popup, timeout and
+prompt behavior are not established by them. Android owning-window focus and global
+modal/lock stacking remain separate #13 checks, and a form-completion signal is
+not server verification approval.
 
 The buy-crypto provider uses the same admission and session lifetime. A widget
 URL carries the session epoch captured before its request; a late response after
