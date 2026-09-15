@@ -127,7 +127,7 @@ class WorklistTest(TestCase):
 
     def _request(self, token, status, amount=1):
         return ShareIssuanceRequest.objects.create(
-            token=token, recipient_address=STRANGER, amount=amount, reason="Allotment", status=status
+            token=token, recipient_address=STRANGER, amount=amount, reason="Allotment", status=status, dispatch_id=None
         )
 
     def test_every_row_is_zero_on_a_fresh_deployment(self):

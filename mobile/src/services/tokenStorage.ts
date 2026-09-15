@@ -59,9 +59,13 @@ async function persistPair(pair: TokenPair): Promise<void> {
   retirementUnavailable = false;
 }
 
+async function sessionRetired(): Promise<boolean> {
+  return retirementUnavailable || (await SecureStore.getItemAsync(SESSION_RETIRED_KEY)) === 'true';
+}
+
 async function readPair(): Promise<TokenPair | null> {
   try {
-    if (retirementUnavailable || (await SecureStore.getItemAsync(SESSION_RETIRED_KEY)) === 'true') return null;
+    if (await sessionRetired()) return null;
     const stored = await SecureStore.getItemAsync(SESSION_KEY);
     if (stored) {
       const pair: TokenPair = JSON.parse(stored);
@@ -194,7 +198,7 @@ export function disableBiometricLogin(): Promise<void> {
 export function readBiometricRefreshToken(authenticationPrompt: string): Promise<string | null> {
   const generation = sessionGeneration;
   return serially(async () => {
-    if (!(await readBiometricLoginState()).ready) return null;
+    if ((await sessionRetired()) || !(await readBiometricLoginState()).ready) return null;
     const value = await SecureStore.getItemAsync(BIOMETRIC_REFRESH_TOKEN_KEY, { authenticationPrompt });
     return generation === sessionGeneration ? value : null;
   });

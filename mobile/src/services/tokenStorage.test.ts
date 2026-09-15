@@ -142,8 +142,22 @@ it('finishes sign-out after an already-started biometric enable without restorin
   expect(items.has('biometric.refreshToken')).toBe(false);
 });
 
-it('withholds the stored pair in this process when the sign-out retirement write fails', async () => {
+async function fromFreshStorage<T>(read: (storage: typeof import('./tokenStorage')) => Promise<T>) {
+  let value: T | undefined;
+  await jest.isolateModulesAsync(async () => {
+    jest.doMock('expo-secure-store', () => SecureStore);
+    value = await read(jest.requireActual<typeof import('./tokenStorage')>('./tokenStorage'));
+  });
+  return value;
+}
+
+const freshAccessToken = () => fromFreshStorage((storage) => storage.getAccessToken());
+const freshBiometricRefreshToken = () =>
+  fromFreshStorage((storage) => storage.readBiometricRefreshToken('Authenticate'));
+
+it('withholds the stored pair and biometric copy in this process when the sign-out retirement write fails', async () => {
   await storeTokens(pair);
+  await expect(enableBiometricLogin()).resolves.toBe(true);
   const write = jest.mocked(SecureStore.setItemAsync).getMockImplementation()!;
   jest.mocked(SecureStore.setItemAsync).mockImplementation(async (key, value, options) => {
     if (key === 'session.retired.v1') throw new Error('retirement write unavailable');
@@ -151,22 +165,36 @@ it('withholds the stored pair in this process when the sign-out retirement write
   });
   await expect(clearTokens()).rejects.toThrow('retirement write unavailable');
   expect(items.get('session.tokens.v2')?.value).toContain(pair.refreshToken);
+  await expect(getBiometricLoginState()).resolves.toEqual({ enabled: true, ready: true });
   await expect(getAccessToken()).resolves.toBeNull();
   await expect(getRefreshToken()).resolves.toBeNull();
+  await expect(readBiometricRefreshToken('Authenticate')).resolves.toBeNull();
+  expect(jest.mocked(SecureStore.getItemAsync).mock.calls.map(([key]) => key)).not.toContain('biometric.refreshToken');
+});
+
+it('refuses the biometric copy after its retirement fails, until a new sign-in, including a fresh load', async () => {
+  await storeTokens(pair);
+  await expect(enableBiometricLogin()).resolves.toBe(true);
+  await expect(readBiometricRefreshToken('Authenticate')).resolves.toBe(pair.refreshToken);
+  const write = jest.mocked(SecureStore.setItemAsync).getMockImplementation()!;
+  jest.mocked(SecureStore.setItemAsync).mockImplementation(async (key, value, options) => {
+    if (key === 'biometric.refreshToken.present' && value === 'false') throw new Error('present write unavailable');
+    return write(key, value, options);
+  });
+  await expect(clearTokens()).rejects.toThrow('present write unavailable');
+  expect(items.get('session.retired.v1')?.value).toBe('true');
+  await expect(getBiometricLoginState()).resolves.toEqual({ enabled: true, ready: true });
+  await expect(readBiometricRefreshToken('Authenticate')).resolves.toBeNull();
+  await expect(freshBiometricRefreshToken()).resolves.toBeNull();
+  jest.mocked(SecureStore.setItemAsync).mockImplementation(write);
+  await storeTokens({ accessToken: 'fresh-access', refreshToken: 'fresh-refresh' });
+  await expect(readBiometricRefreshToken('Authenticate')).resolves.toBe('fresh-refresh');
+  await expect(freshBiometricRefreshToken()).resolves.toBe('fresh-refresh');
 });
 
 it('refuses a sticky session after sign-out, including a fresh storage-module load', async () => {
   await storeTokens(pair);
   const sessionKey = [...items].find(([, item]) => item.value.includes(pair.accessToken))![0];
-  async function freshAccessToken() {
-    let value: string | null = null;
-    await jest.isolateModulesAsync(async () => {
-      jest.doMock('expo-secure-store', () => SecureStore);
-      const fresh = jest.requireActual<typeof import('./tokenStorage')>('./tokenStorage');
-      value = await fresh.getAccessToken();
-    });
-    return value;
-  }
   await expect(freshAccessToken()).resolves.toBe(pair.accessToken);
   const remove = jest.mocked(SecureStore.deleteItemAsync).getMockImplementation()!;
   jest.mocked(SecureStore.deleteItemAsync).mockImplementation(async (key, options) => {

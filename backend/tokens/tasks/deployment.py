@@ -5,10 +5,10 @@ from django.utils import timezone
 from procrastinate import RetryStrategy
 
 from ledova_backend.procrastinate_app import app
-from shared.db import acting_for
+from shared.db import acting_for, use_operator
 from tokens.constants import DEPLOYMENT_RECOVERY_BATCH
 from tokens.models import ShareToken, ShareTokenStatus, TokenDeployment
-from tokens.services import deployment
+from tokens.services import deployment, swap_approval
 
 logger = logging.getLogger(__name__)
 
@@ -57,3 +57,28 @@ def check_pending_token_deployments(timestamp: int = 0):
 
     logger.info(f"Pending deployments: checked={checked}, resolved={resolved}")
     return {"checked": checked, "resolved": resolved}
+
+
+@app.task(retry=RetryStrategy(max_attempts=4, wait=30))
+def recover_swap_approval(deployment_id: str):
+    with use_operator():
+        return swap_approval.recover(deployment_id)
+
+
+@app.periodic(cron="*/5 * * * *")
+@app.task
+def check_pending_swap_approvals(timestamp: int = 0):
+    with use_operator():
+        pending = list(
+            TokenDeployment.objects.recoverable_approvals(timezone.now() - PENDING_DEPLOYMENT_AGE)
+            .order_by("updated_at", "pk")
+            .values_list("pk", flat=True)[:DEPLOYMENT_RECOVERY_BATCH]
+        )
+        resolved = 0
+        for deployment_id in pending:
+            try:
+                if swap_approval.recover(deployment_id) in ("confirmed", "observed_approved", "failed"):
+                    resolved += 1
+            except Exception:
+                logger.exception("Swap approval %s remains unresolved", deployment_id)
+        return {"checked": len(pending), "resolved": resolved}

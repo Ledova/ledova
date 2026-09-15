@@ -95,10 +95,8 @@ deploy connects to (through `LOCALHOST_RPC_URL`, which
 two worktrees can run the chain test at the same time on different ports. The
 target refuses to start when that port is already taken, naming the port rather
 than failing later with Hardhat's `HH108`.
-Both ordinary chain-test settings and
-`CHAIN_TEST_SETTINGS=ledova_backend.settings.test_postgres` use PostgreSQL.
-Set `POSTGRES_*` for an isolated database; the two-worker capital-increase case
-requires its real row locks. CI runs both settings.
+The chain test uses PostgreSQL. Set `POSTGRES_*` for an isolated database; the
+two-worker capital-increase case requires its real row locks.
 
 ## Reaching the node from Compose
 

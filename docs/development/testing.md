@@ -20,7 +20,7 @@ tests now use PostgreSQL in both ordinary and specialized settings.
 | JavaScript and contracts | `make test` |
 | Backend suites | The three suites under [backend verification](#backend-verification), always together |
 | Migration drift | `cd backend && python manage.py makemigrations --check --dry-run` |
-| Real EVM chain | `make chain-test`; CI also uses `CHAIN_TEST_SETTINGS=ledova_backend.settings.test_postgres` |
+| Real EVM chain | `make chain-test` |
 | Real Bitcoin chain | `python scripts/test-bitcoin-chain.py` against isolated PostgreSQL |
 | Browser bundle smoke | `make build && make smoke` |
 | Dependency advisories | `make audit` |

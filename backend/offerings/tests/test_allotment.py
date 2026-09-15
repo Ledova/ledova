@@ -1,10 +1,12 @@
 from decimal import Decimal
 from unittest.mock import patch
+from uuid import uuid4
 
-from django.test import TestCase
+from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
 from web3 import Web3
 
+from blockchain.tests.outgoing_fixtures import admitted_signer
 from offerings.exceptions import SubscriptionRefusedException
 from offerings.models import Offering, Subscription, SubscriptionStatus
 from offerings.services import subscription as subscription_service
@@ -16,7 +18,6 @@ from offerings.services.subscription import (
     MINT_BROADCAST,
     NO_REQUEST_TO_RETRY,
     NOT_PAID,
-    NOT_RETRYABLE,
     NOTHING_TO_ALLOT,
     allot,
     allot_batch,
@@ -38,14 +39,16 @@ from offerings.tests.factories import (
     paid_subscription,
 )
 from shared.tests.tenants import make_tenant
+from tokens.exceptions import IssuanceExecutionConflict
 from tokens.models import (
     IssuanceStatus,
     RequestStatus,
     ShareIssuance,
+    ShareIssuanceExecution,
     ShareIssuanceRequest,
 )
-from tokens.services import share_token_service
-from tokens.services.mint_journal import mark_mint_reverted
+from tokens.services import issuance_execution, legacy_issuance, share_token_service
+from tokens.tests.issuance_fixtures import CHAIN_ID, KEY, IssuanceNode
 
 CHAIN_CLIENT = "tokens.services.share_token_service.get_base_chain_client"
 DEFER = "offerings.tasks.subscription.allot_subscription_task.defer"
@@ -54,7 +57,8 @@ SIGNER = "0x" + "e" * 40
 ROOMY = (1000000, 0)
 
 
-class AllotmentTestCase(TestCase):
+@override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
+class AllotmentTestCase(TransactionTestCase):
     def setUp(self):
         chain = patch(CHAIN_CLIENT).start().return_value
         chain.is_valid_address.return_value = True
@@ -69,6 +73,37 @@ class AllotmentTestCase(TestCase):
         self.offering = open_offering(self.tenant, target_shares=200, cap_shares=500)
         eligible_subscriber(self.tenant)
         self.operator_user = make_tenant("allot-staff", staff=True).user
+        self.operator_user.is_superuser = True
+        self.operator_user.save(update_fields=["is_superuser"])
+        self.node = IssuanceNode()
+        self.enterContext(
+            patch("tokens.services.issuance_execution.get_base_chain_client", return_value=self.node.client)
+        )
+        self.enterContext(patch("tokens.services.share_token_service.is_recipient_whitelisted", return_value=True))
+        admitted_signer()
+
+    def _execute(self, request):
+        command = ShareIssuanceExecution.objects.get(request_id=request.pk)
+        return issuance_execution.recover(command.pk)
+
+    def _confirmation(self, subscription):
+        subscription.refresh_from_db()
+        return issuance_execution.confirmation(
+            subscription.issuance_request, self.operator_user, subscription=subscription
+        )
+
+    def _historical(self, **kwargs):
+        subscription = paid_subscription(self.tenant, quantity=10, **kwargs)
+        request = ShareIssuanceRequest.objects.create(
+            token=self.offering.token,
+            recipient_address=subscription.wallet.address,
+            amount=10,
+            dispatch_id=None,
+            status="approved",
+        )
+        subscription.issuance_request = request
+        subscription.save(update_fields=["issuance_request"])
+        return subscription, request
 
     def _cap(self, offering, shares):
         Offering.objects.filter(pk=offering.pk).update(minimum_shares=1, target_shares=shares, cap_shares=shares)
@@ -107,7 +142,11 @@ class AllotOneSubscriptionTest(AllotmentTestCase):
         self.assertEqual(request.review_notes, "Allotted by the operator")
         self.assertEqual(
             self.defer.call_args.kwargs,
-            {"subscription_uuid": str(subscription.uuid), "executed_by": self.operator_user.pk},
+            {
+                "subscription_uuid": str(subscription.uuid),
+                "executed_by": self.operator_user.pk,
+                "execution_id": str(request.dispatch_id),
+            },
         )
 
     def test_allotting_the_same_subscription_twice_refuses_and_creates_one_request(self):
@@ -139,35 +178,33 @@ class AllotOneSubscriptionTest(AllotmentTestCase):
         request = allot(subscription, self.operator_user)
         self.assertEqual(request.amount, 4)
 
-    def test_retry_re_defers_only_while_the_request_is_executable(self):
+    def test_retry_requeues_accepted_work_and_replays_terminal_success(self):
         subscription = paid_subscription(self.tenant, quantity=10)
         request = allot(subscription, self.operator_user)
         self.defer.reset_mock()
-
-        retry_allotment(subscription, self.operator_user)
+        retry_allotment(subscription, self.operator_user, confirmed=self._confirmation(subscription))
         self.assertEqual(self.defer.call_count, 1)
+        self.assertEqual(self._execute(request)["status"], "executed")
+        self.defer.reset_mock()
+        retry_allotment(subscription, self.operator_user, confirmed=self._confirmation(subscription))
+        self.defer.assert_not_called()
+        self.assertEqual(len(self.node.broadcasts), 1)
 
-        ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.EXECUTED)
-        subscription.refresh_from_db()
-        with self.assertRaises(SubscriptionRefusedException) as raised:
-            retry_allotment(subscription, self.operator_user)
-        self.assertEqual(str(raised.exception.detail), NOT_RETRYABLE.format(uuid=request.uuid, status="executed"))
-
-    def test_a_failed_request_is_one_click_from_a_retry(self):
+    def test_a_failed_request_requires_its_confirmed_retry(self):
         subscription = paid_subscription(self.tenant, quantity=10)
         request = allot(subscription, self.operator_user)
-        request.mark_failed("chain timeout")
-        subscription.refresh_from_db()
-
-        self.assertTrue(subscription.issuance_request.can_be_executed)
+        self.node.client.estimate_gas.side_effect = RuntimeError("Synthetic unsigned failure")
+        self.assertEqual(self._execute(request)["status"], "failed")
         self.defer.reset_mock()
-        retry_allotment(subscription, self.operator_user)
+        retry_allotment(subscription, self.operator_user, confirmed=self._confirmation(subscription))
         self.assertEqual(self.defer.call_count, 1)
+        self.node.client.estimate_gas.side_effect = None
+        self.assertEqual(self._execute(request)["status"], "executed")
 
     def test_a_subscription_with_no_request_has_nothing_to_retry(self):
         subscription = paid_subscription(self.tenant, quantity=10)
         with self.assertRaises(SubscriptionRefusedException) as raised:
-            retry_allotment(subscription, self.operator_user)
+            retry_allotment(subscription, self.operator_user, confirmed="")
         self.assertEqual(str(raised.exception.detail), NO_REQUEST_TO_RETRY)
 
 
@@ -193,24 +230,28 @@ class MoneyOutNeverLeavesSharesOutTest(AllotmentTestCase):
         self.assertFalse(request.can_be_executed)
         self.assertIn(str(subscription.reference), request.rejection_reason)
 
-        result = allot_subscription_task.func(subscription_uuid=str(subscription.uuid))
+        result = allot_subscription_task(
+            subscription_uuid=str(subscription.uuid),
+            executed_by=self.operator_user.pk,
+            execution_id=str(request.dispatch_id),
+        )
         self.assertFalse(result["success"])
-        self.assertIn("Rejected", result["error"])
+        self.assertEqual(result["status"], "rejected")
         self.assertFalse(ShareIssuance.objects.exists())
 
     def test_a_refund_is_refused_once_the_worker_has_claimed_the_mint(self):
         subscription, request = self._allotted()
-        ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.EXECUTING)
+        issuance_execution._start(ShareIssuanceExecution.objects.get(request_id=request.pk))
 
         with self.assertRaises(SubscriptionRefusedException) as raised:
             record_refund(subscription, amount=Decimal("25.00"))
-        self.assertEqual(str(raised.exception.detail), self._claimed(request, "A refund"))
+        self.assertIn("claimed", str(raised.exception.detail).lower())
         subscription.refresh_from_db()
         self.assertEqual(subscription.status, SubscriptionStatus.PAID)
         self.assertIsNone(subscription.refunded_at)
 
     def test_a_refund_is_refused_after_the_mint_and_before_the_reconciler_catches_up(self):
-        subscription, request = self._allotted()
+        subscription, request = self._historical()
         ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.EXECUTED)
 
         with self.assertRaises(SubscriptionRefusedException) as raised:
@@ -220,7 +261,7 @@ class MoneyOutNeverLeavesSharesOutTest(AllotmentTestCase):
         self.assertEqual(subscription.status, SubscriptionStatus.PAID)
 
     def test_reject_and_withdraw_are_refused_while_a_mint_stands(self):
-        subscription, request = self._allotted()
+        subscription, request = self._historical()
         ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.EXECUTED)
 
         for call, verb in ((reject, "Rejecting it"), (withdraw, "Withdrawing it")):
@@ -257,7 +298,7 @@ class MoneyOutNeverLeavesSharesOutTest(AllotmentTestCase):
         )
 
     def _lost_the_receipt(self):
-        subscription, request = self._allotted()
+        subscription, request = self._historical()
         issuance = self._broadcast(request)
         issuance.mark_failed("receipt lost after the transaction was sent")
         request.mark_failed("receipt lost after the transaction was sent")
@@ -268,7 +309,7 @@ class MoneyOutNeverLeavesSharesOutTest(AllotmentTestCase):
         return MINT_BROADCAST.format(uuid=request.uuid, tx_hash=tx_hash, verb=verb)
 
     def _unidentified_legacy_mint(self):
-        subscription, request = self._allotted()
+        subscription, request = self._historical()
         issuance = self._broadcast(request, tx_hash=None, status=IssuanceStatus.FAILED)
         request.mark_failed("Legacy worker stopped without recording its transaction identity")
         subscription.refresh_from_db()
@@ -286,33 +327,26 @@ class MoneyOutNeverLeavesSharesOutTest(AllotmentTestCase):
         self.assertIsNone(subscription.refunded_at)
         self.assertEqual(request.status, RequestStatus.FAILED)
 
-    def _stop_before_signing(self, error):
+    def test_an_admitted_failure_before_signing_can_still_be_refunded(self):
         subscription, request = self._allotted()
-        service = share_token_service
-        with (
-            patch.object(service, "read_paused", return_value=False),
-            patch.object(service, "is_recipient_whitelisted", return_value=True),
-            patch.object(service, "_mint_to", side_effect=error),
-        ):
-            with self.assertRaises(type(error)):
-                service.execute_request(request)
-        return subscription, request, service
-
-    def test_a_journaled_failure_before_signing_can_still_be_refunded(self):
-        subscription, request, _ = self._stop_before_signing(RuntimeError("Stopped before signing"))
-        issuance = ShareIssuance.objects.get(idempotency_key=share_token_service.issuance_key(request))
-        self.assertEqual(set(issuance.mint_journal[-1]), {"id"})
+        self.node.client.estimate_gas.side_effect = RuntimeError("Synthetic unsigned failure")
+        self.assertEqual(self._execute(request)["status"], "failed")
+        issuance = ShareIssuance.objects.get()
         self.assertIsNone(issuance.tx_hash)
         record_refund(subscription, amount=Decimal("25.00"))
         subscription.refresh_from_db()
         self.assertEqual(subscription.status, SubscriptionStatus.REFUNDED)
+        self.assertEqual(ShareIssuanceExecution.objects.get().status, "cancelled")
 
-    def test_an_abandoned_unsigned_attempt_can_still_be_refunded(self):
-        subscription, request, service = self._stop_before_signing(SystemExit())
-        self.assertEqual(service.resolve_executing_issuance(request), "released")
-        issuance = ShareIssuance.objects.get(idempotency_key=share_token_service.issuance_key(request))
+    def test_an_abandoned_historical_unsigned_attempt_can_still_be_refunded(self):
+        subscription, request = self._historical()
+        request.mark_executing()
+        issuance = self._broadcast(request, tx_hash=None)
+        issuance.mint_journal = [{"id": str(uuid4())}]
+        issuance.save(update_fields=["mint_journal"])
+        self.assertEqual(legacy_issuance.resolve_executing_issuance(request), "released")
+        issuance.refresh_from_db()
         self.assertTrue(issuance.mint_journal[-1]["abandoned"])
-        self.assertIsNone(issuance.tx_hash)
         record_refund(subscription, amount=Decimal("25.00"))
         subscription.refresh_from_db()
         self.assertEqual(subscription.status, SubscriptionStatus.REFUNDED)
@@ -357,36 +391,35 @@ class MoneyOutNeverLeavesSharesOutTest(AllotmentTestCase):
         subscription.refresh_from_db()
         self.assertEqual(subscription.status, SubscriptionStatus.PAID)
 
-    def test_a_retry_is_still_one_click_away_while_the_mint_is_unresolved(self):
+    def test_a_historical_mint_cannot_enter_new_admission(self):
         subscription, request, _ = self._lost_the_receipt()
         self.defer.reset_mock()
-        retry_allotment(subscription, self.operator_user)
-        self.assertEqual(self.defer.call_count, 1)
+        with self.assertRaises(IssuanceExecutionConflict):
+            retry_allotment(subscription, self.operator_user, confirmed=self._confirmation(subscription))
+        self.defer.assert_not_called()
 
-    def test_a_reverted_mint_clears_its_hash_and_the_refund_is_open_again(self):
-        subscription, request, issuance = self._lost_the_receipt()
-        mark_mint_reverted(request, issuance, "0xmint")
-
+    def test_a_reverted_mint_retains_its_hash_and_the_refund_is_open_again(self):
+        subscription, request = self._allotted()
+        self.node.receipt_status = 0
+        result = self._execute(request)
+        self.assertEqual(result["status"], "failed")
+        issuance = ShareIssuance.objects.get()
+        self.assertIsNotNone(issuance.tx_hash)
         record_refund(subscription, amount=Decimal("25.00"), reference="RTGS-REVERTED")
-
         subscription.refresh_from_db()
         request.refresh_from_db()
-        issuance.refresh_from_db()
-        self.assertIsNone(issuance.tx_hash)
         self.assertEqual(subscription.status, SubscriptionStatus.REFUNDED)
         self.assertEqual(request.status, RequestStatus.REJECTED)
         self.assertFalse(request.can_be_executed)
 
     def test_a_refunded_subscription_can_be_closed_and_never_retried(self):
         subscription, request = self._allotted()
+        confirmed = self._confirmation(subscription)
         record_refund(subscription, amount=Decimal("25.00"))
         subscription.refresh_from_db()
-
-        with self.assertRaises(SubscriptionRefusedException) as raised:
-            retry_allotment(subscription, self.operator_user)
-        request.refresh_from_db()
-        self.assertEqual(str(raised.exception.detail), NOT_RETRYABLE.format(uuid=request.uuid, status="rejected"))
-
+        retry_allotment(subscription, self.operator_user, confirmed=confirmed)
+        self.assertEqual(self._execute(request)["status"], "rejected")
+        self.assertFalse(self.node.broadcasts)
         reject(subscription, reason="Unwound after the refund")
         subscription.refresh_from_db()
         self.assertEqual(subscription.status, SubscriptionStatus.REJECTED)
@@ -465,7 +498,8 @@ class BulkAllotmentTest(AllotmentTestCase):
         self.assertEqual(
             allot_batch([first, second], self.operator_user, service=self._supply(authorized=150))["allotted"], 2
         )
-        ShareIssuanceRequest.objects.update(status=RequestStatus.EXECUTED)
+        for request in ShareIssuanceRequest.objects.all():
+            self.assertEqual(self._execute(request)["status"], "executed")
 
         result = allot_batch([third], self.operator_user, service=self._supply(authorized=150, issued=80))
         self.assertEqual(result, {"allotted": 1, "refusals": []})
@@ -630,7 +664,13 @@ class SingleAllotmentHeadroomTest(AllotmentTestCase):
 
 class HeadroomSnapshotConsistencyTest(AllotmentTestCase):
     def _pending_mint(self, amount):
-        request = _create_request(self.offering.token, "0x" + "a" * 40, amount, self.operator_user)
+        request = ShareIssuanceRequest.objects.create(
+            token=self.offering.token,
+            recipient_address="0x" + "a" * 40,
+            amount=amount,
+            submitted_by=self.operator_user,
+            dispatch_id=None,
+        )
         ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.APPROVED)
         return request
 
@@ -736,9 +776,8 @@ class ScaleBackResidualTest(AllotmentTestCase):
         subscription = self._scaled()
         allot(subscription, self.operator_user)
         subscription.refresh_from_db()
-        ShareIssuanceRequest.objects.filter(pk=subscription.issuance_request_id).update(status=RequestStatus.EXECUTED)
+        self.assertEqual(self._execute(subscription.issuance_request)["status"], "executed")
         subscription.refresh_from_db()
-        subscription.mark_allotted()
 
         self.assertEqual(subscription.amount_refundable, Decimal("12.50"))
         with self.assertRaises(SubscriptionRefusedException) as raised:
@@ -756,9 +795,8 @@ class ScaleBackResidualTest(AllotmentTestCase):
         subscription = paid_subscription(self.tenant, quantity=10)
         allot(subscription, self.operator_user)
         subscription.refresh_from_db()
-        ShareIssuanceRequest.objects.filter(pk=subscription.issuance_request_id).update(status=RequestStatus.EXECUTED)
+        self.assertEqual(self._execute(subscription.issuance_request)["status"], "executed")
         subscription.refresh_from_db()
-        subscription.mark_allotted()
 
         self.assertEqual(subscription.amount_refundable, Decimal("0.00"))
         with self.assertRaises(SubscriptionRefusedException) as raised:

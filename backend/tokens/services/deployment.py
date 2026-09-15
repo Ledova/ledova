@@ -343,7 +343,6 @@ def _project(deployment):
     if not share_token_service.bridge_share_asset(token, deployment.contract_address):
         return ""
     deployment_journal.mark_projected(deployment.pk)
-    share_token_service._approve_for_swap(token)
     return deployment.contract_address
 
 

@@ -45,9 +45,6 @@ class DeploymentRecoveryTest(TransactionTestCase):
             patcher = patch(target, return_value=self.node.client)
             patcher.start()
             self.addCleanup(patcher.stop)
-        patcher = patch("tokens.services.share_token_service._approve_for_swap")
-        self.approval = patcher.start()
-        self.addCleanup(patcher.stop)
         admitted_signer()
 
     def execute(self, **options):
@@ -63,7 +60,7 @@ class DeploymentRecoveryTest(TransactionTestCase):
         self.assertEqual(deployment.recover(self.token.deployment_id), CREATED)
         self.assertEqual(AssetChainDeployment.objects.filter(contract_address=CREATED).count(), 1)
         self.assertEqual(len(self.node.broadcasts), 1)
-        self.approval.assert_called_once()
+        self.assertEqual(TokenDeployment.objects.get().approval_outcome, "not_configured")
         self.node.client.send_transaction.assert_not_called()
 
     def test_unknown_send_recovers_exact_bytes_without_another_nonce(self):
@@ -97,7 +94,7 @@ class DeploymentRecoveryTest(TransactionTestCase):
         self.assertFalse(SignedAttempt.objects.exists())
         self.assertIsNone(deployment.recover(self.token.deployment_id))
         self.assertEqual(self.node.broadcasts, [])
-        self.approval.assert_not_called()
+        self.assertEqual(TokenDeployment.objects.get().approval_outcome, "")
 
     def test_matching_or_changed_cap_does_not_turn_identifier_lookup_into_attribution(self):
         self.node.existing_address = CREATED

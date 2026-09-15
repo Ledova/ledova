@@ -1,4 +1,8 @@
 SYSTEM_WIDE = {
+    "tokens.tasks.deployment.recover_swap_approval": "Recovers one deployment's durably admitted swap approval "
+    "on the operator connection, retaining its original target and signed transaction.",
+    "tokens.tasks.deployment.check_pending_swap_approvals": "Recovers admitted swap approvals across issuers "
+    "without reopening terminal outcomes or adopting historical deployments.",
     "whitelist.tasks.recovery.recover_whitelist_changes": "Recovers admitted whitelist changes through their "
     "original outgoing operations. Uses operator authority, never admits or reopens a command, and never "
     "substitutes current membership for a signed transaction outcome.",
@@ -122,7 +126,8 @@ OPERATOR_BOUNDARIES = {
     "local signing callback rechecks ownership and commits bytes, hash and token association together before RPC.",
     "tokens.services.deployment_journal.record_outcome": "Records the original operation's receipt and transaction "
     "outcome; public token and asset projection stays on the caller's connection.",
-    "tokens.services.deployment_journal.mark_projected": "Records completion of the attributed token projection.",
+    "tokens.services.deployment_journal.mark_projected": "Commits the attributed token projection marker with "
+    "one immutable swap approval disposition and its exact recovery job.",
 }
 
 
