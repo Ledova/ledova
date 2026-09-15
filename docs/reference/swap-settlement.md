@@ -9,8 +9,10 @@ Coordinate backend, shared package, dashboard and mobile before deploying this
 protocol: this backend phase alone does not complete the client recovery flow.
 New-context swap requests require the exact swap, order, account and verified
 wallet identity; signing and approval requests also require the recorded full
-settlement digest. The existing unqualified request form remains for legacy
-rows and returns `swap_context_refresh_required` for new-context rows. Exact
+settlement digest. Unqualified requests return `swap_context_refresh_required`
+for new-context rows. Legacy V0 signing and approval requests, including requests
+with exact identity, return HTTP 409 `legacy_swap_held`. Their missing recorded
+domain cannot be reconstructed from current configuration. Exact
 lookup preserves the original review display and decimal-string typed values
 after expiry or configuration drift; it does not authorize a new signature or
 approval under changed terms. Ordinary numeric order/swap fields are not a
@@ -59,8 +61,9 @@ attributed to that original chain/context leaves the claim unresolved.
 authorized participant while the other order and wallet stay private. It first
 refuses existing swap/parent identity drift without rewriting history, freezes
 the order's owner tuple, and prevents replacing the two referenced order rows.
-Case-only address spelling, economic/status updates, unreferenced order deletion
-and legacy child-first deletion remain available. An unchanged V1 update must
+Case-only address spelling, economic/status updates and unreferenced order
+deletion remain available. Referenced legacy swaps are retained by the hold
+described below. An unchanged V1 update must
 prove one current captured participant to avoid both-parent derivation; INSERT,
 legacy and the original operator/both-visible path retain their checks.
 The captured-participant policy resolves the recorded first-signature refusal.
@@ -85,10 +88,33 @@ Trading and outgoing signer activation remain unchanged.
   recovery, request idempotency, aggregate reservations, a complete cross-row
   state machine; those remain in #5 and #6.
 
+## Legacy history hold
+
+`tokens/0056_hold_legacy_swaps` retains V0 rows without rewriting signatures,
+deadlines, hashes or outcomes. Its PostgreSQL trigger rejects every UPDATE and
+DELETE, including operator writes and parent cascades. Reversing that migration
+refuses while any V0 history remains. Existing signatures are retained evidence;
+this server-side hold does not revoke signatures already disclosed on chain.
+
+V0 cannot create signing data, accept signatures, prepare approvals or claim an
+execution. Delayed execution callbacks and the dedicated recovery and expiry
+sweeps leave its history and reservations unchanged for operator attribution.
+No operator attribution or re-enabling endpoint is introduced. Legacy request
+and response schema alternatives remain during the client cutover; they do not
+grant permission to act on V0.
+
+The generic transaction monitor excludes every atomic-swap transaction, every
+`tokens.SwapOrder` business reference and every transaction linked by a swap,
+even when the other associations are missing or inconsistent. It rechecks that
+exclusion after receipt I/O before writing an outcome. Valid V1 outcomes stay
+with the dedicated reconciler, which checks the original context and success
+event before updating the swap and transaction together. Unattributed history
+stays pending; this does not add finality or reorg handling.
+
 ## Unclaimed expiry
 
 `expire_unclaimed_matches` releases the reserved share quantity of an expired
-swap only when the current matching service marked it eligible at creation,
+V1 swap only when the current matching service marked it eligible at creation,
 both orders still name that match, and no execution claim, transaction record,
 hash or other active match exists. The sweep locks both orders in identifier
 order, then the current swap, and commits each release separately. It preserves

@@ -5,7 +5,10 @@ from django.test import TestCase
 from django.utils import timezone
 
 from blockchain.models import BlockchainTransaction, TransactionStatus
-from blockchain.services import TransactionMonitorService
+from blockchain.services.transaction import (
+    check_pending_transactions as monitor_pending_transactions,
+)
+from blockchain.services.transaction import cleanup_stale_transactions
 from blockchain.tasks import check_pending_transactions, cleanup_failed_transactions
 
 TX_HASH = "0x" + "71" * 32
@@ -38,8 +41,8 @@ class OverdueTransactionMonitorTest(TestCase):
         self.transaction(hours=1)
         before = self.stored_transactions()
 
-        first = TransactionMonitorService.cleanup_stale_transactions()
-        second = TransactionMonitorService.cleanup_stale_transactions()
+        first = cleanup_stale_transactions()
+        second = cleanup_stale_transactions()
 
         self.assertEqual(self.stored_transactions(), before)
         self.assertEqual(first, {"cleaned": 0, "overdue": 4})
@@ -74,8 +77,8 @@ class OverdueTransactionMonitorTest(TestCase):
         client.get_transaction_receipt.side_effect = [None, RuntimeError("Synthetic provider outage")]
 
         for _ in range(2):
-            TransactionMonitorService.cleanup_stale_transactions()
-            TransactionMonitorService.check_pending_transactions(client)
+            cleanup_stale_transactions()
+            monitor_pending_transactions(client)
             self.assertEqual(self.stored_transactions(), before)
 
         self.assertEqual(client.get_transaction_receipt.call_args_list, [call(tx.tx_hash), call(tx.tx_hash)])
@@ -85,14 +88,14 @@ class OverdueTransactionMonitorTest(TestCase):
         client = Mock(spec=["get_transaction_receipt"])
         client.get_transaction_receipt.return_value = {**CONFIRMED_RECEIPT, "status": 0}
 
-        result = TransactionMonitorService.check_pending_transactions(client)
+        result = monitor_pending_transactions(client)
 
         self.assertEqual(result, {"checked": 1, "confirmed": 0, "failed": 1})
         tx.refresh_from_db()
         self.assertEqual(tx.status, TransactionStatus.REVERTED)
         self.assertEqual(tx.error_message, "Transaction reverted on-chain")
         self.assertEqual(
-            TransactionMonitorService.check_pending_transactions(client),
+            monitor_pending_transactions(client),
             {"checked": 0, "confirmed": 0, "failed": 0},
         )
         client.get_transaction_receipt.assert_called_once_with(tx.tx_hash)
@@ -106,7 +109,7 @@ class OverdueTransactionMonitorTest(TestCase):
         client = Mock(spec=["get_transaction_receipt"])
 
         report = cleanup_failed_transactions(timestamp=0)
-        checked = TransactionMonitorService.check_pending_transactions(client)
+        checked = monitor_pending_transactions(client)
 
         self.assertEqual(self.stored_transactions(), before)
         self.assertEqual(report["cleaned"], 0)

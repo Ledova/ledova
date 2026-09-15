@@ -271,9 +271,8 @@ class SwapSettlementRouteTest(APITransactionTestCase):
         )
         self.assertEqual(list(typed_data.iter_errors(body["typedData"])), [])
         self.assertEqual(list(context.iter_errors(body["swapOrder"]["settlementContext"])), [])
-        legacy_swap = deepcopy(self.swap)
-        legacy_swap.settlement_protocol_version = 0
-        legacy_data = swap_service(self).get_typed_data(legacy_swap)
+        legacy_data = deepcopy(body["typedData"])
+        legacy_data["domain"]["chainId"] = int(legacy_data["domain"]["chainId"])
         self.assertIsInstance(legacy_data["domain"]["chainId"], int)
         self.assertIsInstance(body["typedData"]["domain"]["chainId"], str)
         self.assertEqual(list(typed_data.iter_errors(legacy_data)), [])
