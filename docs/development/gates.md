@@ -229,5 +229,5 @@ Unresolved transports need explicit tested accounting, not a silent exemption.
 See [schema and operation internals](../reference/gate-internals.md#schema-and-client-operations).
 
 The owner accepted PR #562 as the clean-release checkpoint before this conversion;
-see [the recorded approval](https://github.com/RonildoBraga/ledova/issues/115#issuecomment-5656632666)
+see [the recorded approval](https://github.com/Ledova/ledova/issues/115#issuecomment-5656632666)
 and [the type-generation decision](../decisions.md#clients-and-api-types).

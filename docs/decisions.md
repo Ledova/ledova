@@ -34,7 +34,7 @@ model: a second payment updates the cumulative total with a note. A future
 The bank-feed/payment provider is deliberately undecided until Phase 3. Incoming
 AUD transfers must carry their reference text unchanged through a webhook or a
 poll. References use the operator prefix plus an eight-character Crockford code
-within an 18-character field. See [B7c](https://github.com/RonildoBraga/ledova/issues/115#issuecomment-5574962513)
+within an 18-character field. See [B7c](https://github.com/Ledova/ledova/issues/115#issuecomment-5574962513)
 and [operator configuration](operations/operator-console.md).
 
 Shares are issued through allotment; generic wallet send endpoints refuse share
@@ -54,8 +54,8 @@ The intended portfolio presentation is one line and allocation slice per asset,
 summed across chains, with an expandable per-chain split. Sending and receiving
 still select a chain. A sum must identify its value sources and explicitly identify
 unpriced holdings. This is a display requirement, not a claim that every client
-has completed it; see [B7d](https://github.com/RonildoBraga/ledova/issues/115#issuecomment-5574975348)
-and [valuation presentation work](https://github.com/RonildoBraga/ledova/issues/346).
+has completed it; see [B7d](https://github.com/Ledova/ledova/issues/115#issuecomment-5574975348)
+and [valuation presentation work](https://github.com/Ledova/ledova/issues/346).
 
 ## Tenancy, sessions and deployment
 
@@ -65,7 +65,7 @@ management, personal accounts and discovery. See [tenancy](architecture/tenancy.
 
 There is one authentication path: simplejwt sessions with browser and mobile
 transports. The unused v2 session design was withdrawn; its historical ADRs remain
-in [the earlier tree](https://github.com/RonildoBraga/ledova/tree/963c686/backend/docs/adr).
+in [the earlier tree](https://github.com/Ledova/ledova/tree/963c686/backend/docs/adr).
 Email is read-only to customers; staff changes revoke their sessions.
 
 The published compliance seed intentionally uses public figures. Operational
@@ -95,8 +95,8 @@ Toolbox and TypeScript are one migration decision rather than three, and the
 pinned line stays until it is taken. The exposure this leaves is build
 integrity, not deployed code: the deliverable is compiled bytecode, and none of
 the toolchain is linked into a contract. The counts measured at the time are in
-the [architecture document before the reorganization](https://github.com/RonildoBraga/ledova/blob/dc9e29597e10a7e1cf0f383dd4ac3040acb17529/docs/ARCHITECTURE.md#contracts)
-and the dependency reconciliation in [#518](https://github.com/RonildoBraga/ledova/issues/518);
+the [architecture document before the reorganization](https://github.com/Ledova/ledova/blob/dc9e29597e10a7e1cf0f383dd4ac3040acb17529/docs/ARCHITECTURE.md#contracts)
+and the dependency reconciliation in [#518](https://github.com/Ledova/ledova/issues/518);
 rerun `npm audit` in `contracts/` for the current picture rather than reading
 those numbers as current.
 
@@ -105,16 +105,16 @@ those numbers as current.
 Both clients compile `@ledova/shared` from source, without a package build step.
 The mobile investor directory and subscription journey are scheduled for Phase 4;
 shared hooks created earlier must accommodate both clients. The primary issuer
-workflow remains dashboard-led. See [B7b](https://github.com/RonildoBraga/ledova/issues/115#issuecomment-5574947880)
-and [B2](https://github.com/RonildoBraga/ledova/issues/115#issuecomment-5574848881).
+workflow remains dashboard-led. See [B7b](https://github.com/Ledova/ledova/issues/115#issuecomment-5574947880)
+and [B2](https://github.com/Ledova/ledova/issues/115#issuecomment-5574848881).
 
 Shared API types are generated from the committed OpenAPI snapshot. The owner
 accepted PR #562 as the clean-release checkpoint on 2026-09-14; its reviewed head
 and merge had identical trees, and all CI checks passed. The handwritten API
 counterparts and partial drift parser retire with their generated replacements;
 client state and cryptographic utilities retain their own types. See
-[B7e](https://github.com/RonildoBraga/ledova/issues/115#issuecomment-5575002254),
-[the checkpoint approval](https://github.com/RonildoBraga/ledova/issues/115#issuecomment-5656632666)
+[B7e](https://github.com/Ledova/ledova/issues/115#issuecomment-5575002254),
+[the checkpoint approval](https://github.com/Ledova/ledova/issues/115#issuecomment-5656632666)
 and [API gates](development/gates.md#the-api-type-drift-gate).
 
 The source no-comments/no-docstrings rule remains an explicit repository choice;

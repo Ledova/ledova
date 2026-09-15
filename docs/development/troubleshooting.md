@@ -37,7 +37,7 @@ records rather than turning them into current setup instructions.
 
 **A signing-test timeout can be cold renderer setup rather than signing.**
 The first settlement-screen test timed out at five seconds twice in CI, with
-488 of 489 mobile tests passing ([#542](https://github.com/RonildoBraga/ledova/issues/542)).
+488 of 489 mobile tests passing ([#542](https://github.com/Ledova/ledova/issues/542)).
 Stage timings and a V8 profile located most of its cost in the initial screen
 render: Jest was lazily transforming React Native's ScrollView, animation code
 and native renderer. Mnemonic derivation took tens of milliseconds. Removing
