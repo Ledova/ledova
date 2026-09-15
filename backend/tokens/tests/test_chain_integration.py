@@ -22,6 +22,7 @@ from django.db import connection, connections
 from django.test import override_settings
 from django.utils import timezone
 from eth_account import Account
+from eth_account.messages import encode_typed_data
 from rest_framework.test import APITransactionTestCase
 from web3 import Web3
 
@@ -43,6 +44,7 @@ from shared.tests.tenants import make_tenant
 from tokens.exceptions import (
     CapitalIncreaseConflict,
     IssuanceExecutionConflict,
+    SwapNotReadyException,
 )
 from tokens.models import (
     CapitalIncreaseExecution,
@@ -56,9 +58,12 @@ from tokens.models import (
     ShareToken,
     ShareTokenStatus,
     TokenDeployment,
+    TransferOrder,
+    TransferOrderType,
     YieldToken,
 )
 from tokens.services import (
+    atomic_swap_service,
     capital_execution,
     deployment,
     issuance_execution,
@@ -68,6 +73,7 @@ from tokens.services import (
     pause_recovery,
     share_token_service,
     swap_approval,
+    token_transfer_service,
 )
 from tokens.services.former_holders import fold_former_holders
 from tokens.services.register import (
@@ -264,6 +270,121 @@ class ChainTestMixin:
             board_resolution_reference=f"BOARD-{additional}",
             status=RequestStatus.APPROVED,
         )
+
+
+@chain_available
+@override_settings(**CHAIN_SETTINGS)
+class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
+    def setUp(self):
+        from tokens.tests.swap_state_fixtures import BUYER, SELLER
+
+        super().setUp()
+        self.seller = SELLER
+        self.buyer = BUYER
+        self.investor = self.seller.address
+        self.party_wallets = {
+            party.address: Wallet.objects.create(
+                user_account=self.tenant.account,
+                address=party.address,
+                chain="base",
+                verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
+            )
+            for party in (self.seller, self.buyer)
+        }
+        self._deployed()
+        self.assertEqual(swap_approval.recover(self.token.deployment_id), "confirmed")
+        request = self._whitelisted_request(20)
+        self.assertTrue(self._execute(request)["success"])
+        self._whitelist(self.buyer.address)
+        self.payment = self.chain.load_contract("AUDY", settings.STABLECOIN_CONTRACT_ADDRESS)
+        _hash, receipt = self.chain.send_transaction(
+            self.payment.functions.mint(self.buyer.address, 50000), private_key=settings.BLOCKCHAIN_OPERATOR_KEY
+        )
+        self.assertEqual(receipt["status"], 1)
+        AssetChainDeployment.objects.filter(asset=self.tenant.refs.stablecoin, chain="base").update(
+            contract_address=settings.STABLECOIN_CONTRACT_ADDRESS, decimals=2
+        )
+        for party in (self.seller, self.buyer):
+            transaction = self.w3.eth.send_transaction(
+                {"from": self.w3.eth.accounts[0], "to": party.address, "value": 10**18}
+            )
+            self.assertEqual(self.w3.eth.wait_for_transaction_receipt(transaction)["status"], 1)
+
+    def balances(self):
+        share = self._contract()
+        return (
+            share.functions.balanceOf(self.seller.address).call(),
+            share.functions.balanceOf(self.buyer.address).call(),
+            self.payment.functions.balanceOf(self.seller.address).call(),
+            self.payment.functions.balanceOf(self.buyer.address).call(),
+        )
+
+    def test_prepared_and_broadcast_transfer_moves_the_exact_signed_shares(self):
+        before = self.balances()
+        nonce = self.w3.eth.get_transaction_count(self.seller.address)
+        transaction = token_transfer_service.prepare_transfer(self.token, self.seller.address, self.buyer.address, 3)
+        raw = self.chain.sign_transaction(transaction, self.seller.key)
+        expected_hash = Web3.to_hex(Web3.keccak(raw))
+        returned_hash, receipt = token_transfer_service.broadcast_transfer(Web3.to_hex(raw))
+        self.assertEqual(returned_hash, expected_hash)
+        self.assertEqual(Web3.to_hex(receipt["transactionHash"]), expected_hash)
+        self.assertEqual(receipt["status"], 1)
+        self.assertEqual(self.w3.eth.get_transaction_count(self.seller.address), nonce + 1)
+        self.assertEqual(self.balances(), (before[0] - 3, before[1] + 3, before[2], before[3]))
+
+    def test_matching_approval_signing_and_execution_preserve_one_settlement(self):
+        orders = []
+        for party, kind in ((self.seller, TransferOrderType.SELL), (self.buyer, TransferOrderType.BUY)):
+            wallet = self.party_wallets[party.address]
+            orders.append(
+                TransferOrder.objects.create(
+                    token=self.token,
+                    payment_asset=self.tenant.refs.stablecoin,
+                    wallet=wallet,
+                    owner_account=self.tenant.account,
+                    wallet_address=party.address,
+                    order_type=kind,
+                    quantity=10,
+                    price_per_share=Decimal("1.50"),
+                )
+            )
+        swap = token_transfer_service.match_orders(orders[1], orders[0], 3)["swap_order"]
+        self.assertEqual((swap.share_amount, swap.payment_amount), (3, 450))
+        typed_data = atomic_swap_service.get_typed_data(swap)
+        self.assertEqual(typed_data["message"]["paymentAmount"], "450")
+        for party, role in ((self.seller, "seller"), (self.buyer, "buyer")):
+            prepared = atomic_swap_service.get_approval_transaction_data(swap, role, unlimited=False)["transaction"]
+            transaction = {
+                key: int(value, 16) if key in ("value", "gas", "gasPrice", "nonce", "chainId") else value
+                for key, value in prepared.items()
+                if key != "from"
+            }
+            raw = self.chain.sign_transaction(transaction, party.key)
+            _hash, receipt = token_transfer_service.broadcast_transfer(Web3.to_hex(raw))
+            self.assertEqual(receipt["status"], 1)
+        allowances = atomic_swap_service.check_swap_allowances(swap)
+        self.assertTrue(allowances["seller"]["has_sufficient_allowance"])
+        self.assertTrue(allowances["buyer"]["has_sufficient_allowance"])
+        before = self.balances()
+        nonce = self._signer_nonce()
+        signable = encode_typed_data(full_message=typed_data)
+        first = atomic_swap_service.sign_and_execute_swap(
+            swap, self.seller.sign_message(signable).signature.hex(), self.seller.address
+        )
+        self.assertEqual(first.status, "seller_signed")
+        completed = atomic_swap_service.sign_and_execute_swap(
+            first, self.buyer.sign_message(signable).signature.hex(), self.buyer.address
+        )
+        self.assertEqual(completed.status, "completed")
+        self.assertEqual(self._signer_nonce(), nonce + 1)
+        self.assertEqual(self.balances(), (before[0] - 3, before[1] + 3, before[2] + 450, before[3] - 450))
+        self.assertEqual(completed.transaction.function_args["paymentAmount"], "450")
+        self.assertEqual(completed.transaction.tx_hash, completed.tx_hash)
+        self.assertEqual(completed.transaction.status, TransactionStatus.CONFIRMED)
+        self.assertTrue(atomic_swap_service.chain_says_this_swap_executed(completed))
+        with self.assertRaises(SwapNotReadyException):
+            atomic_swap_service.execute_swap(completed)
+        self.assertEqual(self._signer_nonce(), nonce + 1)
 
 
 @chain_available
@@ -812,8 +933,9 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self._deployed()
         request = self._whitelisted_request(10)
         nonce = self._signer_nonce()
-        with patch.object(BaseChainClient, "estimate_gas", return_value=30000), patch.object(
-            issuance_execution, "_project", side_effect=KeyboardInterrupt
+        with (
+            patch.object(BaseChainClient, "estimate_gas", return_value=30000),
+            patch.object(issuance_execution, "_project", side_effect=KeyboardInterrupt),
         ):
             with self.assertRaises(KeyboardInterrupt):
                 self._execute(request)
@@ -1694,6 +1816,8 @@ class NAVUpdateChainTest(APITransactionTestCase):
         AssetChainDeployment.objects.filter(asset=request.settlement_asset).update(
             contract_address=CHAIN_SETTINGS["STABLECOIN_CONTRACT_ADDRESS"]
         )
+        self.w3.provider.make_request("evm_setAutomine", [False])
+        self.addCleanup(self.w3.provider.make_request, "evm_setAutomine", [True])
         barrier = threading.Barrier(2)
         original = outgoing.prepare_operation
         results = {}
@@ -1723,6 +1847,31 @@ class NAVUpdateChainTest(APITransactionTestCase):
                 worker.join(timeout=40)
         self.assertFalse(any(worker.is_alive() for worker in workers), results)
         self.assertFalse(any(isinstance(result, Exception) for result in results.values()), results)
-        self.assertEqual(results["nav"].status, "confirmed")
-        self.assertEqual(set(SignedAttempt.objects.values_list("nonce", flat=True)), {nonce, nonce + 1})
+        self.assertEqual(results["nav"].status, "executing")
+        self.update.refresh_from_db()
+        request.refresh_from_db()
+        self.assertEqual((self.update.status, request.status), ("executing", "executing"))
+        operations = (self.update.operation_id, request.operation_id)
+        fields = ("pk", "operation_id", "claim_id", "signer_id", "nonce", "tx_hash", "raw_transaction")
+        attempts = list(SignedAttempt.objects.order_by("pk").values(*fields))
+        self.assertEqual(len(attempts), 2)
+        self.assertEqual({attempt["nonce"] for attempt in attempts}, {nonce, nonce + 1})
+        self.w3.provider.make_request("evm_mine", [])
+        with (
+            patch.object(
+                outgoing, "sign_operation", side_effect=AssertionError("Recover the original signature")
+            ) as sign,
+            patch.object(
+                self.chain, "send_raw_transaction", side_effect=AssertionError("Recover the original receipt")
+            ) as send,
+        ):
+            self.assertEqual(nav_recovery.recover(self.update.pk).status, "confirmed")
+            self.assertEqual(mint_service.recover(request.pk), "executed")
+        sign.assert_not_called()
+        send.assert_not_called()
+        self.update.refresh_from_db()
+        request.refresh_from_db()
+        self.assertEqual((self.update.operation_id, request.operation_id), operations)
+        self.assertEqual(list(SignedAttempt.objects.order_by("pk").values(*fields)), attempts)
+        self.assertEqual(SigningAccount.objects.get(address=self.signer.lower()).next_nonce, nonce + 2)
         self.assertEqual(self.nonce(), nonce + 2)

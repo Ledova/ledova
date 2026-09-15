@@ -164,7 +164,7 @@ class TradingReadIsolationTest(APITransactionTestCase):
         return self.bob_wallet.address.upper().replace("0X", "0x")
 
     @patch("tokens.views.trading_wallet.share_token_service")
-    def test_balances_rejects_foreign_address_before_service_construction(self, service_class):
+    def test_balances_rejects_foreign_address_before_service_calls(self, service_module):
         self.client.force_authenticate(self.bob)
         response = self.client.get(
             "/api/v1/trading/wallets/balances/",
@@ -173,11 +173,11 @@ class TradingReadIsolationTest(APITransactionTestCase):
 
         self.assertEqual(response.status_code, 404)
         self.assertNotIn(self.alice_wallet.address.lower(), str(response.data).lower())
-        self.assertEqual(service_class.mock_calls, [])
+        self.assertEqual(service_module.mock_calls, [])
 
     @patch("tokens.views.trading_wallet.share_token_service")
-    def test_balances_accepts_owned_case_variant_and_uses_canonical_address(self, service_class):
-        service_class.get_wallet_token_balances.return_value = {"balances": []}
+    def test_balances_accepts_owned_case_variant_and_uses_canonical_address(self, service_module):
+        service_module.get_wallet_token_balances.return_value = {"balances": []}
         self.client.force_authenticate(self.bob)
 
         response = self.client.get(
@@ -186,7 +186,7 @@ class TradingReadIsolationTest(APITransactionTestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        service_class.get_wallet_token_balances.assert_called_once_with(
+        service_module.get_wallet_token_balances.assert_called_once_with(
             Web3.to_checksum_address(self.bob_wallet.address)
         )
 
@@ -264,8 +264,8 @@ class TradingReadIsolationTest(APITransactionTestCase):
 
         self.assertNotIn(changed_swap.uuid, visible.values_list("uuid", flat=True))
 
-    @patch("tokens.views.trading_transfer.TokenTransferService")
-    def test_transfer_prepare_rejects_foreign_from_address_before_service_construction(self, service_class):
+    @patch("tokens.views.trading_transfer.token_transfer_service")
+    def test_transfer_prepare_rejects_foreign_from_address_before_service_calls(self, service_module):
         self.client.force_authenticate(self.bob)
         response = self.client.post(
             "/api/v1/trading/transfers/prepare/",
@@ -279,11 +279,11 @@ class TradingReadIsolationTest(APITransactionTestCase):
         )
 
         self.assertEqual(response.status_code, 404)
-        service_class.assert_not_called()
+        self.assertEqual(service_module.mock_calls, [])
 
-    @patch("tokens.views.trading_transfer.TokenTransferService")
-    def test_transfer_prepare_uses_canonical_owned_from_address(self, service_class):
-        service_class.return_value.prepare_transfer.return_value = {"to": self.share_token.contract_address}
+    @patch("tokens.views.trading_transfer.token_transfer_service")
+    def test_transfer_prepare_uses_canonical_owned_from_address(self, service_module):
+        service_module.prepare_transfer.return_value = {"to": self.share_token.contract_address}
         self.client.force_authenticate(self.bob)
 
         response = self.client.post(
@@ -300,7 +300,7 @@ class TradingReadIsolationTest(APITransactionTestCase):
         canonical = Web3.to_checksum_address(self.bob_wallet.address)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["from_address"], canonical)
-        service_class.return_value.prepare_transfer.assert_called_once_with(
+        service_module.prepare_transfer.assert_called_once_with(
             token=self.share_token,
             from_address=canonical,
             to_address=self.alice_wallet.address,
@@ -337,10 +337,9 @@ class TradingReadIsolationTest(APITransactionTestCase):
         self.assertEqual(response.json()["address"], Web3.to_checksum_address(self.bob_wallet.address))
         service.investor_status.assert_called_once_with(self.bob_case_variant)
 
-    @patch("tokens.views.trading_order.AtomicSwapService")
-    def test_order_swap_role_is_derived_from_exact_transfer_order(self, service_class):
-        service = service_class.return_value
-        service.find_swap_order_by_transfer_order.return_value = self.swap
+    @patch("tokens.views.trading_order.atomic_swap_service")
+    def test_order_swap_role_is_derived_from_exact_transfer_order(self, service_module):
+        service = service_module
         service.get_typed_data.return_value = {}
         self.client.force_authenticate(self.bob)
 
@@ -352,8 +351,8 @@ class TradingReadIsolationTest(APITransactionTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["user_role"], "buyer")
 
-    @patch("tokens.views.trading_order.AtomicSwapService")
-    def test_order_swap_and_approval_reads_reject_other_owned_wallet_before_service(self, service_class):
+    @patch("tokens.views.trading_order.atomic_swap_service")
+    def test_order_swap_and_approval_reads_reject_other_owned_wallet_before_service(self, service_module):
         other_wallet = Wallet.objects.create(
             user_account=self.bob_account,
             address="0x" + "9" * 40,
@@ -370,10 +369,10 @@ class TradingReadIsolationTest(APITransactionTestCase):
                 )
                 self.assertEqual(response.status_code, 404)
 
-        service_class.assert_not_called()
+        self.assertEqual(service_module.mock_calls, [])
 
-    @patch("tokens.views.trading_order.AtomicSwapService")
-    def test_order_swap_reads_reject_malformed_order_snapshot_before_service(self, service_class):
+    @patch("tokens.views.trading_order.atomic_swap_service")
+    def test_order_swap_reads_reject_malformed_order_snapshot_before_service(self, service_module):
         self.client.force_authenticate(self.bob)
 
         for path in ("swap/", "swap/approval-status/", "swap/approval-data/"):
@@ -384,10 +383,10 @@ class TradingReadIsolationTest(APITransactionTestCase):
                 )
                 self.assertEqual(response.status_code, 404)
 
-        service_class.assert_not_called()
+        self.assertEqual(service_module.mock_calls, [])
 
-    @patch("tokens.views.trading_order.AtomicSwapService")
-    def test_order_swap_reads_reject_malformed_swap_snapshot_before_service(self, service_class):
+    @patch("tokens.views.trading_order.atomic_swap_service")
+    def test_order_swap_reads_reject_malformed_swap_snapshot_before_service(self, service_module):
         self.swap.buyer_address = self.alice_wallet.address
         self.swap.save(update_fields=["buyer_address"])
         self.client.force_authenticate(self.bob)
@@ -400,10 +399,10 @@ class TradingReadIsolationTest(APITransactionTestCase):
                 )
                 self.assertEqual(response.status_code, 404)
 
-        service_class.assert_not_called()
+        self.assertEqual(service_module.mock_calls, [])
 
-    @patch("tokens.views.trading_order.AtomicSwapService")
-    def test_a_malformed_newest_swap_is_not_replaced_by_an_older_valid_match(self, service_class):
+    @patch("tokens.views.trading_order.atomic_swap_service")
+    def test_a_malformed_newest_swap_is_not_replaced_by_an_older_valid_match(self, service_module):
         latest = self._make_swap(self.alice_order, self.bob_order, "7")
         latest.buyer_address = self.alice_wallet.address
         latest.save(update_fields=["buyer_address"])
@@ -417,11 +416,11 @@ class TradingReadIsolationTest(APITransactionTestCase):
                 )
                 self.assertEqual(response.status_code, 404)
                 self.assertEqual(response.json()["detail"], "Order not found.")
-        service_class.assert_not_called()
+        self.assertEqual(service_module.mock_calls, [])
 
         latest.buyer_address = self.bob_wallet.address
         latest.save(update_fields=["buyer_address"])
-        service_class.return_value.get_typed_data.return_value = {}
+        service_module.get_typed_data.return_value = {}
         response = self.client.get(
             f"/api/v1/trading/orders/{self.bob_order.uuid}/swap/",
             self.swap_query(),
@@ -430,10 +429,9 @@ class TradingReadIsolationTest(APITransactionTestCase):
         self.assertEqual(response.data["swap_order"]["uuid"], str(latest.uuid))
         self.assertEqual(response.data["user_role"], "buyer")
 
-    @patch("tokens.views.trading_order.AtomicSwapService")
-    def test_order_approval_status_uses_exact_order_role(self, service_class):
-        service = service_class.return_value
-        service.find_swap_order_by_transfer_order.return_value = self.swap
+    @patch("tokens.views.trading_order.atomic_swap_service")
+    def test_order_approval_status_uses_exact_order_role(self, service_module):
+        service = service_module
         service.check_swap_allowances.return_value = {
             "seller": {
                 "token": self.share_token.contract_address,

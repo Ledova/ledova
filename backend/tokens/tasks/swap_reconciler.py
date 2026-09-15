@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from ledova_backend.procrastinate_app import app
 from tokens.models import SwapOrder
-from tokens.services import AtomicSwapService
+from tokens.services import atomic_swap_service
 
 logger = logging.getLogger(__name__)
 
@@ -20,14 +20,11 @@ def resolve_executing_swaps(timestamp: int = 0):
 
     checked = 0
     resolved = 0
-    service = None
 
     for swap_order in stale:
         checked += 1
-        if service is None:
-            service = AtomicSwapService()
         try:
-            outcome = service.resolve_executing_swap(swap_order)
+            outcome = atomic_swap_service.resolve_executing_swap(swap_order)
         except Exception as exc:
             logger.error(f"Swap {swap_order.uuid} could not be reconciled: {exc}")
             continue

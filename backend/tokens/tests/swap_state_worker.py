@@ -4,6 +4,7 @@ import os
 import sys
 import traceback
 from datetime import datetime
+from unittest import TestCase
 from unittest.mock import Mock, patch
 
 import django
@@ -36,7 +37,7 @@ def run(mode, row_id, detail):
     from shared.db import atomic
     from tokens.exceptions import SwapNotReadyException
     from tokens.models import SwapOrder, TransferOrder
-    from tokens.services.token_transfer_service import TokenTransferService
+    from tokens.services import token_transfer_service
     from tokens.tests.swap_state_fixtures import (
         BUYER,
         CONFIRMED,
@@ -54,7 +55,8 @@ def run(mode, row_id, detail):
         database_pid = cursor.fetchone()[0]
     row = TransferOrder.objects.get(pk=row_id) if mode == "match" else SwapOrder.objects.get(pk=row_id)
     transaction = row.transaction if mode in ("receipt", "reconcile", "receipt_locked") else None
-    service = swap_service()
+    test_case = TestCase()
+    service = swap_service(test_case)
     report("loaded", pid=os.getpid(), database_pid=database_pid)
     command("run")
 
@@ -84,10 +86,10 @@ def run(mode, row_id, detail):
             report("send", in_atomic=connection.in_atomic_block)
             return TX_HASH
 
-        service.chain_client.build_transaction.side_effect = prepare
-        service.chain_client.sign_transaction.side_effect = sign
-        service.chain_client.send_raw_transaction.side_effect = send
-        service.chain_client.receipt_even_if_reverted.return_value = None
+        service.get_base_chain_client().build_transaction.side_effect = prepare
+        service.get_base_chain_client().sign_transaction.side_effect = sign
+        service.get_base_chain_client().send_raw_transaction.side_effect = send
+        service.get_base_chain_client().receipt_even_if_reverted.return_value = None
         try:
             result = service.execute_swap(row)
         except SwapNotReadyException:
@@ -131,12 +133,12 @@ def run(mode, row_id, detail):
         elif mode == "receipt":
             result = service._record_receipt(row, transaction, row.tx_hash, observation())
         else:
-            service.chain_client.receipt_even_if_reverted.side_effect = observation
+            service.get_base_chain_client().receipt_even_if_reverted.side_effect = observation
             contract = Mock()
             contract.events.SwapExecuted.return_value.process_receipt.return_value = [
                 {"args": {"orderHash": bytes.fromhex(service.executed_order_hash(row).removeprefix("0x"))}}
             ]
-            service.chain_client.load_contract.return_value = contract
+            service.get_base_chain_client().load_contract.return_value = contract
             result = service.resolve_executing_swap(row)
     elif mode == "expire":
         from tokens.services.swap_expiry import expire_unclaimed_swap
@@ -145,7 +147,7 @@ def run(mode, row_id, detail):
         result = expire_unclaimed_swap(row, datetime.fromisoformat(detail))
     elif mode == "match":
         with atomic():
-            match = object.__new__(TokenTransferService).find_matching_order(row)
+            match = token_transfer_service.find_matching_order(row)
             result = str(match[0].pk) if match else None
     else:
         raise AssertionError(mode)

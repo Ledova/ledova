@@ -35,7 +35,7 @@ class SwapSignaturesUseTheFreshStateTest(TestCase):
 
     def setUp(self):
         self.swap = make_swap("signature-fence")
-        self.service = swap_service()
+        self.service = swap_service(self)
         signable = encode_typed_data(full_message=self.service.get_typed_data(self.swap))
         self.seller_signature = SELLER.sign_message(signable).signature.hex()
         self.buyer_signature = BUYER.sign_message(signable).signature.hex()
@@ -70,7 +70,7 @@ class SwapSignaturesUseTheFreshStateTest(TestCase):
             args[0].share_amount += 1
             return valid
 
-        self.service.verify_signature = change
+        self.enterContext(patch.object(self.service, "verify_signature", change))
         with self.assertRaises(SwapSignatureException):
             self.service.submit_signature(self.swap, self.seller_signature, SELLER.address)
         self.swap.refresh_from_db()
@@ -84,7 +84,7 @@ class ReceiptUpdatesBelongToOneCurrentClaimTest(TestCase):
     def setUp(self):
         self.swap = make_swap("outcome-fence", ready=True)
         self.transaction = attach_claim(self.swap)
-        self.service = swap_service()
+        self.service = swap_service(self)
 
     def receipt(self, receipt):
         return self.service._record_receipt(self.swap, self.transaction, TX_HASH, receipt)
@@ -189,7 +189,7 @@ class ReceiptUpdatesBelongToOneCurrentClaimTest(TestCase):
             status=TransactionStatus.FAILED, error_message="Transaction timed out after 24 hours"
         )
         self.swap.refresh_from_db()
-        self.service.chain_client.receipt_even_if_reverted.return_value = None
+        self.service.get_base_chain_client().receipt_even_if_reverted.return_value = None
         before = persisted_outcome(self.swap)
         with patch("django.utils.timezone.now", return_value=self.swap.expires_at + timedelta(days=1)):
             self.assertIsNone(self.service.resolve_executing_swap(self.swap))
@@ -198,13 +198,14 @@ class ReceiptUpdatesBelongToOneCurrentClaimTest(TestCase):
     def test_a_used_nonce_without_a_recorded_hash_does_not_complete_the_claim(self, _publish):
         SwapOrder.objects.filter(pk=self.swap.pk).update(tx_hash="")
         self.swap.refresh_from_db()
-        self.service.is_nonce_used = Mock(return_value=True)
+        client = self.service.get_base_chain_client()
+        client.load_contract.return_value.functions.isNonceUsed.return_value.call.return_value = True
         before = persisted_outcome(self.swap)
         with patch("django.utils.timezone.now", return_value=self.swap.expires_at + timedelta(days=1)):
             self.assertFalse(self.service.chain_says_this_swap_executed(self.swap))
             self.assertIsNone(self.service.resolve_executing_swap(self.swap))
         self.assertEqual(persisted_outcome(self.swap), before)
-        self.service.chain_client.receipt_even_if_reverted.assert_not_called()
+        self.service.get_base_chain_client().receipt_even_if_reverted.assert_not_called()
 
 
 @override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT, BLOCKCHAIN_OPERATOR_KEY="0x" + "11" * 32)
@@ -212,12 +213,12 @@ class ExecutionAdmissionUsesTheCurrentRowTest(TransactionTestCase):
 
     def setUp(self):
         self.swap = make_swap("claim-admission", ready=True)
-        self.service = swap_service()
+        self.service = swap_service(self)
 
     def test_a_stale_ready_instance_does_not_prepare_a_second_execution(self):
         first, record = self.service._claim_execution(self.swap.pk)
-        self.service.validate_swap_balances = Mock()
-        self.service._prepare_attempt = Mock()
+        self.enterContext(patch.object(self.service, "validate_swap_balances", Mock()))
+        self.enterContext(patch.object(self.service, "_prepare_attempt", Mock()))
         with self.assertRaises(SwapNotReadyException):
             self.service.execute_swap(self.swap)
         self.service.validate_swap_balances.assert_not_called()

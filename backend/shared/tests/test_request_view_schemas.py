@@ -267,12 +267,12 @@ class RequestViewSchemaTest(APITestCase):
             "toAddress": "0x" + "7" * 40,
             "amount": 12,
         }
-        with patch("tokens.views.trading_transfer.TokenTransferService") as service:
+        with patch("tokens.views.trading_transfer.token_transfer_service") as service:
             service.contract_address.return_value = self.owner.deployed_token.contract_address
-            service.return_value.prepare_transfer.return_value = {}
+            service.prepare_transfer.return_value = {}
             response = self.client.post(TRANSFERS + "prepare/", payload, format="json")
         self.assertEqual(response.status_code, 200, response.content)
-        service.return_value.prepare_transfer.assert_called_once_with(
+        service.prepare_transfer.assert_called_once_with(
             token=self.owner.deployed_token,
             from_address=self.owner.wallet.address,
             to_address=payload["toAddress"],
@@ -283,22 +283,22 @@ class RequestViewSchemaTest(APITestCase):
         self.assertEqual(set(schema["required"]), set(payload))
         self.assertEqual(schema["properties"]["token"]["format"], "uuid")
         self.assertEqual(schema["properties"]["amount"]["minimum"], 1)
-        with patch("tokens.views.trading_transfer.TokenTransferService") as refused:
+        with patch("tokens.views.trading_transfer.token_transfer_service") as refused:
             response = self.client.post(TRANSFERS + "prepare/", {**payload, "amount": 0}, format="json")
         self.assertEqual(response.status_code, 400)
         self.assertEqual(set(response.json()), {"amount"})
-        refused.assert_not_called()
+        self.assertEqual(refused.mock_calls, [])
 
     def test_trading_broadcast_request_keeps_its_own_fields_and_the_wallet_contract(self):
         Wallet.objects.create(
             user_account=self.owner.account, address=SIGNER.address, chain="base", verification_status="VERIFIED"
         )
         signed = sign_legacy(to="0x" + "8" * 40)
-        with patch("tokens.views.trading_transfer.TokenTransferService") as service:
-            service.return_value.broadcast_transfer.return_value = ("0x" + "f" * 64, {"blockNumber": 7})
+        with patch("tokens.views.trading_transfer.token_transfer_service") as service:
+            service.broadcast_transfer.return_value = ("0x" + "f" * 64, {"blockNumber": 7})
             response = self.client.post(TRANSFERS + "broadcast/", {"signedTransaction": signed}, format="json")
         self.assertEqual(response.status_code, 200, response.content)
-        service.return_value.broadcast_transfer.assert_called_once_with(signed)
+        service.broadcast_transfer.assert_called_once_with(signed)
         schema = self.request_schema(TRANSFERS + "broadcast/")
         self.assertEqual(set(schema["properties"]), {"signedTransaction"})
         self.assertEqual(schema["required"], ["signedTransaction"])

@@ -4,7 +4,7 @@
 
 This page records remaining outcomes. [Product decisions](decisions.md) explain
 constraints that outlive a phase; focused architecture pages describe shipped code.
-The [open hardening issues](https://github.com/RonildoBraga/ledova/issues?q=is%3Aopen+label%3Adeferred-hardening)
+The [open hardening issues](https://github.com/Ledova/ledova/issues?q=is%3Aopen+label%3Adeferred-hardening)
 track security and correctness work. Phase labels are milestones, not dates.
 
 ## Phase 0 — Issuance works on chain
