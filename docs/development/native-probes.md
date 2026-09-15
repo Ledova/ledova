@@ -141,15 +141,20 @@ work.
   refresh token is stored: the Sign In button then shows a face-scan icon
   instead of a key, and tapping it with both fields empty starts biometric
   sign-in. Sign-out and account deletion remove the copy by design, so drive a
-  relaunch instead. `<type>` is Face ID or Touch ID; Android fingerprint
-  devices also say Touch ID.
+  relaunch instead. On Android, use a device with a strong (Class 3)
+  biometric: the screen checks only that some biometric is enrolled, but the
+  gated copy needs a strong one. `<type>` is Face ID or Touch ID, chosen from
+  the device's biometric hardware, so an Android phone with face-unlock hardware
+  says Face ID even when the fingerprint is used.
   1. Sign in with email and password and tap Enable on `Enable <type> Sign In?`,
      or turn on `<type> Sign In` in Settings. Android's Keystore prompts
      `Authenticate to keep biometric sign in`; iOS writes silently.
   2. Without signing out, force-quit and relaunch. Expect the face-scan icon.
      Tap Sign In with both fields empty and pass the biometric prompt (Android
-     titles it `Sign in with <type>`). Expect the main app. Android prompts
-     again to store the rotated copy; iOS does not.
+     titles it `Sign in with <type>`; on iOS the first use may show the system
+     Face ID permission alert first, which must be allowed). On Android a second
+     prompt, `Authenticate to keep biometric sign in`, then stores the rotated
+     copy; iOS does not prompt again. Expect the main app.
   3. Force-quit, relaunch and sign in with biometrics again. The backend
      blacklists each refresh token it rotates, so this passes only if the gated
      copy stayed in step with the rotation in step 2.
