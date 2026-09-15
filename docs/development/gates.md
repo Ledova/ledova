@@ -213,9 +213,12 @@ a `backend-suite-shard` matrix that is anything but the file's shard names, such
 one with an `include` or `exclude`.
 
 A new module inside an assigned label is covered with no change. A new app fails
-until its label is put in exactly one shard, except in the factory shape
-[gate internals](../reference/gate-internals.md#layers-and-connection-binding)
-records. Balance shards by moving app labels, each a whole top-level package.
+until its label is put in exactly one shard, unless a module in an assigned shard
+also builds or imports one of its test ids: the gate counts ids, so it cannot tell
+which module defined one when import order decides.
+[Gate internals](../reference/gate-internals.md#layers-and-connection-binding)
+records those shapes. Balance shards by moving app labels, each a whole top-level
+package.
 
 The gate needs the backend requirements and a `SECRET_KEY` for the test settings,
 but no database. `make check` installs the requirements and runs it, through
