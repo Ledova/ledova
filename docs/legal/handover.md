@@ -116,8 +116,8 @@ asking a regulator to evaluate.
 
 ### Two operating models, one pivot
 
-The law attaches register duties and licence questions to whoever operates the
-register, so the analysis is split by operator:
+The law places register duties on the company and asks its licence questions of
+whoever operates the register, so the analysis is split by operator:
 
 - **A, the [company-hosted instance](company-hosted-instance.md).** A private
   company runs its own instance for its own shares and its own officers make
@@ -129,10 +129,10 @@ register, so the analysis is split by operator:
   second legal person with an agreement per company and a boundary to hold. It
   is where the business is built.
 
-The pivot is who makes the entries, not who hosts the servers: a host that never
-touches the register is an IT supplier, a provider that makes entries on
-instruction is a clerk, and a provider that decides, introduces or touches money
-is a financial service. The software's two deployment modes, single issuer and
+The pivot is who makes the entries, not who hosts the servers. On position 4a's
+reading, a host that never touches the register is an IT supplier, a provider
+that makes entries on instruction is a clerk, and a provider that decides,
+introduces or touches money is a financial service. The software's two deployment modes, single issuer and
 registry ([product page](../product.md#roles-and-deployment-modes)), correspond
 to the two models. Most of the licensing ladder in the
 [pathway](regulatory-pathway.md#the-ladder) concerns model B, because a company
@@ -205,7 +205,7 @@ acting for itself rarely needs anything beyond a low-volume market registration.
 | Alternative | What it would allow | Why it is not first, or its status |
 | --- | --- | --- |
 | Company-hosted instance, the software's `single_issuer` mode | The company keeps its own register on its own instance; no operator, no agreement, no licence fee | Now operating model A with [its own page](company-hosted-instance.md): the simplest legal position, where a first company can start; it earns the project nothing unless hosting or support is sold |
-| Registry service on instruction | A first client now; features 1 and 6 for real | Chosen as rung 0 |
+| Registry service on instruction | A first client now; features 1 and 6 for real | Chosen as rung 0B |
 | Enhanced Regulatory Sandbox | 24 months without a licence | Unlisted shares ineligible; only a crowd-funding service would qualify; regime being repealed; poor track record |
 | Crowd-sourced funding intermediary, possibly tested under the sandbox | Retail investment in proprietary companies through the platform, and CSF shareholders outside the cap of fifty | Needs an AFSL with a crowd-funding authorisation and gatekeeper duties; retail is not the current target; kept as the legislated retail path |
 | Wholesale-only AFSL | Issuance and onboarding for s708 investors with no relief | Chosen as rung 1; blocked on a responsible manager and compliance budget |
@@ -348,7 +348,8 @@ documentation:
   and registry for B, each with offerings, payments, classification, wallets,
   trading, payslips and the chain off by default, and an onboarding checklist
   without the business plan and risk disclosure. Model A additionally needs the
-  instance to be installable by a company without the operator console.
+  instance to be installable by a company on its own, with the company's officers
+  holding the product's operator role rather than a second party.
 - A **registry services agreement** template and an onboarding checklist that
   includes Forms 909 and 991.
 

@@ -18,16 +18,19 @@ The company and its directors, and nobody else. Every duty in
 [position 6](positions.md#6-where-and-in-what-form-the-register-is-kept) is
 theirs already, whether the register is a spreadsheet, a minute book or an
 instance of this software. Running the software creates no new legal person:
-there is no operator, no agent, no service agreement, and no one holding the
-company's data on its behalf unless the company chooses a host.
+there is no separate operator, since the company holds the product's operator
+role itself, no agent, no service agreement, and no one holding the company's
+data on its behalf unless the company chooses a host.
 
-Ledova the project is a software supplier. Supplying software is not a financial
-service, and the licence permits a company to use the software for its own
-purposes ([position 5](positions.md#5-the-licences-competing-use-test-and-who-we-is)).
-If the project also hosts or supports the instance, it becomes an IT supplier
-to the company: a hosting agreement with a data-processing clause, and nothing
-from the financial services perimeter, provided it never makes a register entry
-itself.
+Ledova the project is a software supplier. On the reading in
+[position 4a](positions.md#4a-a-registry-service-acting-only-on-instruction-is-not-a-financial-service),
+supplying software is not a financial service, and the licence permits a company
+to use the software for its own purposes
+([position 5](positions.md#5-the-licences-competing-use-test-and-who-we-is)).
+If the project also hosts or supports the instance, the reading is that it
+becomes an IT supplier to the company: a hosting agreement with a data-processing
+clause, and nothing from the financial services perimeter, provided it never
+makes a register entry itself.
 
 **The pivot is who makes the entries.** A company whose own officers record
 every issue and transfer, on whatever servers, is running this model. The moment
@@ -36,7 +39,7 @@ someone outside the company makes entries on its behalf, the
 
 ## What the company can do with no permission
 
-On the readings in positions 4b, 6, 7, 9 and 11:
+On the readings in positions 4a, 4b, 6, 7, 9 and 11:
 
 - **Keep its register** in the instance as the register of members.
 - **Issue its own shares.** A body corporate's transaction relating only to its
@@ -66,7 +69,7 @@ On the readings in positions 4b, 6, 7, 9 and 11:
 | Regime | When a company running its own instance crosses it | What it then needs |
 | --- | --- | --- |
 | Market licensing | Only if it opens a board where its shareholders post offers to buy or sell from each other, so that offers are regularly made through a facility it operates (s767A). | Registration with ASIC as a low-volume market: at most 100 completed transactions and $1.5m a year, proposed $2.5m. ASIC's register of 8 September 2026 lists over two hundred companies, most of them community bank companies, doing exactly this in their own shares; their boards list buyers and sellers and leave the parties to settle between themselves ([position 7](positions.md#7-a-register-is-not-a-financial-market)). |
-| Financial services licensing | Not by issuing its own shares, recording transfers or running a notice board. It would cross it by holding shares or tokens for other people as a business, or by arranging deals in other companies' securities, neither of which this model involves. | Nothing, in this model. |
+| Financial services licensing | Not by issuing its own shares, recording transfers or running a notice board. It would cross it by holding shares or tokens for other people as a business, or by arranging deals in other companies' securities, neither of which this model involves ([position 4a](positions.md#4a-a-registry-service-acting-only-on-instruction-is-not-a-financial-service) and [position 11](positions.md#11-the-companys-own-fundraising-and-scheme-obligations)). | Nothing, in this model, on the positions as drafted. |
 | Digital assets, from 9 April 2027 | Possibly, if the company holds tokens that represent its own shares "for or on behalf of" its shareholders in wallets it controls. Whether an issuer's internal ledger of its own shares is a digital asset platform has not been verified ([position 9](positions.md#9-digital-assets-and-custody)). | Keep the ledger internal, so that no holder possesses a token through the company, or let holders keep their own keys. |
 | AML/CTF | A company is not a reporting entity for issuing its own shares or keeping its own register, and does not become one by accepting payment into its own account or wallet ([position 8](positions.md#8-amlctf-obligations-of-the-operator)). | Nothing, in this model. Its accountant or lawyer may have duties of their own when they assist a transaction. |
 | Privacy | The company holds its shareholders' names and addresses, as it always has; its obligations follow its own status under the Privacy Act ([position 10](positions.md#10-privacy)). | Build to the Australian Privacy Principles regardless. |
@@ -88,8 +91,8 @@ On the readings in positions 4b, 6, 7, 9 and 11:
 ## Getting a first company there
 
 A private company that wants to issue shares to an employee can run this model
-now. The sequence is short because almost all of it is the company doing what it
-must do anyway.
+now, on the positions as drafted. The sequence is short because almost all of it
+is the company doing what it must do anyway.
 
 1. **Choose where the instance runs.** The company's own cloud account, or a
    managed host. Hosting can be outsourced; the entries cannot, or the model
@@ -114,7 +117,7 @@ must do anyway.
 
 | Cost | In this model |
 | --- | --- |
-| Licence and enrolment fees | None: no AFSL, no market licence, no AUSTRAC enrolment for a company acting for itself |
+| Licence and enrolment fees | None, on the positions as drafted: no AFSL, no market licence, no AUSTRAC enrolment for a company acting for itself |
 | Recurring | Hosting, backups and someone to administer the instance; the accountant who already lodges the company's notices |
 | Optional filings | The computer-storage notice; a low-volume market registration if a transfer board is opened |
 
@@ -153,8 +156,8 @@ keeps registers for others is built.
 2. Whether an instrument of transfer signed inside the software is a "proper
    instrument of transfer" under s1071B; the regulations that set the required
    details have not been read.
-3. The terms of the low-volume exemption after it is remade on 1 October 2026,
-   which matter only if a transfer board is opened.
+3. The terms of the low-volume exemption after it sunsets on 1 October 2026 and
+   is remade, as CS 60 proposes; they matter only if a transfer board is opened.
 4. Whether a managed single-company instance, hosted by the project but operated
    by the company's officers, is offered as the first paid product. Its legal
    profile is this model's; its commercial profile is the service's.

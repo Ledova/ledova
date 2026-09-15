@@ -12,7 +12,8 @@ records what the project has decided; this page records what it could apply for.
 The [company-hosted instance](company-hosted-instance.md) and
 [registry service](registry-service.md) pages say who the applicant would be in
 each operating model; most of this page concerns the service, because a company
-acting for itself rarely needs anything below rung 2.
+acting for itself rarely needs any rung other than 0A and, if it opens a
+transfer board, 2.
 
 ## The frame
 
@@ -166,7 +167,7 @@ enumerated in the [handover](handover.md#2-what-ledova-is-and-where-the-code-sta
 
 Rung 1 is the expensive step in people rather than fees: the responsible manager
 requirement (RG 105) is the thing a one-person project does not have, and
-without an AFSL issuance stays off the platform. Rungs 0 and 2 need no one.
+without an AFSL issuance stays off the platform. Rungs 0A, 0B and 2 need no one.
 Rung 3 is where the project would be contributing to the framework rather than
 fitting inside it, and it is the rung the regulators have said they want to see
 tested.
@@ -230,14 +231,15 @@ figures; FCX's licence conditions. Each is in the
 
 ## Decisions this page does not make
 
-1. Which rung is the goal for 2027: rungs 1 and 2, or only rung 0 while the
-   register is rebuilt.
+1. Which rung is the goal for 2027: rungs 1 and 2, or only rung 0A or 0B while
+   the register is rebuilt.
 2. Whether an AFSL is affordable, given the responsible manager it requires;
    without it, issuance stays off the platform.
 3. Whether the chain becomes the register of record for a pilot, or stays a
    mirror. That decides whether there is anything to ask ASIC for at rung 3.
 4. Which operating model leads. The company-hosted instance is where a first
    company can start with nothing to apply for; the registry service is where the
-   business is built and where every rung above 0 attaches.
+   business is built and where rungs 1, 3 and 4 attach; rung 2 is open to a
+   company acting for itself.
 
 Next: the [handover](handover.md).

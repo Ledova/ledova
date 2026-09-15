@@ -57,7 +57,8 @@ following hold:
   transfer.
 
 Each clause maps to an indicator in the guidance, so each is a line the product
-must not cross by accident. Three lines describe what a provider can be: a
+must not cross by accident. Three lines describe what a provider can be, on the
+reading in [position 4a](positions.md#4a-a-registry-service-acting-only-on-instruction-is-not-a-financial-service): a
 provider that only hosts a company's own instance and never touches the register
 is an IT supplier ([model A](company-hosted-instance.md)); a provider that makes
 entries on instruction is a clerk, exempt, and must stay exactly that; a provider
@@ -120,7 +121,7 @@ intentions.
 
 | Cost | In this model |
 | --- | --- |
-| Licence and enrolment fees at the start | None: the clerk model needs no AFSL, market licence or AUSTRAC enrolment |
+| Licence and enrolment fees at the start | None, on the positions as drafted: the clerk model needs no AFSL, market licence or AUSTRAC enrolment |
 | What it does need | An entity, an agreement per company, Australian hosting, a privacy program, and the boundary enforced by the software |
 | Later, if wanted | Low-volume registration per company; a wholesale AFSL at $2,233 or $5,025 plus a responsible manager; relief at $3,487 per head of power |
 
@@ -160,8 +161,8 @@ licence-free instance, and safe only while the boundary holds.
 1. Which entity operates, and under what name.
 2. Whether a low-volume market registration is per company or per platform.
    ASIC's register shows both single-company entries and a platform registered
-   per named company; the instrument's text has not been read, and it is being
-   remade on 1 October 2026.
+   per named company; the instrument's text has not been read, and it sunsets on
+   1 October 2026 to be remade as CS 60 proposes.
 3. Which AML/CTF services a licensed operator would provide beyond item 54, once
    it hosts offers.
 4. Whether an instrument of transfer signed inside the platform is a "proper

@@ -79,17 +79,16 @@ says the register may be kept on computer, pointing to s1306.
 [register protection](../architecture/register.md).
 
 **The position.** The company carries the obligation and the platform keeps the
-register as its agent. That is the plain reading, and it is also the only
-reading under which `single_issuer` and `registry` are two configurations of one
-product rather than two different legal arrangements. In a
+register as its agent. That is the plain reading. In a
 [company-hosted instance](company-hosted-instance.md) there is no agent: the
-company keeps the register itself, and the agreement below is not needed.
+company keeps the register itself, and the agreement below is not needed; the
+two deployment modes are one product serving those two legal arrangements.
 
 **What this leaves undone, and it is not a legal question.** An agency
 relationship has to exist in the terms between the operator and each company.
 There are no such terms. That is a document to write, not advice to buy, and it
-is the gap to close first because it is free to close. In the registry-first
-model it is also the first onboarding artefact: a registry services agreement
+is the gap to close first because it is free to close. In the registry service
+it is also the first onboarding artefact: a registry services agreement
 naming the company's authorised officers, requiring instructions in writing,
 fixing where the data is kept, promising an export on exit, disclaiming advice,
 and capping liability.
@@ -139,8 +138,8 @@ position is engaged only then.
 
 The original question was what would allow an operator to run this platform
 without an Australian financial services licence (AFSL), and the original answer
-was to not reach the trigger. The registry-first model splits the question. One
-half can be answered from primary sources; the other keeps the original answer
+was to not reach the trigger. The registry-service model splits the question.
+One half can be answered from primary sources; the other keeps the original answer
 and gains a [pathway](regulatory-pathway.md) for reaching the trigger lawfully.
 
 ### 4a. A registry service acting only on instruction is not a financial service
@@ -233,7 +232,9 @@ symmetrical with anything else on this page. So the platform stays on testnet
 with synthetic data for issuance, payments and transfers until the operator
 holds the AFSL authorisations, the market registration or the relief that the
 [regulatory pathway](regulatory-pathway.md) sets out, and the chain guards are
-what make that a mechanism rather than an intention.
+what make that a mechanism rather than an intention. This half binds both
+operating models: in either, the licence question arises the moment the
+platform rather than the company makes or hosts the offer.
 
 **When it is worth paying for, it is one scoped question, not open-ended
 advice.** The categories are enumerated, the provisions are named, the gaps are
@@ -303,7 +304,9 @@ copyright are different arrangements. No assignment, new company licence or
 change to the existing future Apache grant is made here; each needs the owner's
 decision on its actual terms and its effect on existing rights. The operating
 entity for a first client — Blueberry Money or another — is an open question in
-the [handover](handover.md).
+the [handover](handover.md). The test binds the registry service and any
+third-party operator; a company running its own instance for its own purposes
+is not making the Software available to others, so it is not engaged.
 
 **Status.** Reviewed 2026-09-15; unchanged except the last sentence.
 
@@ -507,8 +510,10 @@ Wallet functionality is feature 12 in the owner's twelve-feature definition,
 enumerated in the [handover](handover.md#2-what-ledova-is-and-where-the-code-stands).
 
 **The position.** Ledova never possesses a token for or on behalf of a member,
-in any model. Members either hold their own keys or there are no tokens in
-their hands at all. The moment a key for a member's holding sits with the
+in either operating model: in a company-hosted instance the company must not
+hold tokens for its shareholders through the instance, and in a registry service
+the operator must not. Members either hold their own keys or there are no tokens
+in their hands at all. The moment a key for a member's holding sits with the
 operator, the operator is a custodian of a financial product today and a
 digital asset platform from April 2027, and the financial requirements that
 follow are beyond this project.
@@ -541,7 +546,9 @@ should not be relied on.
 addresses; exports include them; classification evidence and payslips carry
 retention settings ([position 3](#3-the-evidence-retention-period)).
 
-**The position.** Whether or not the exemption applies to the operator on a
+**The position.** In a company-hosted instance the Privacy Act question attaches
+to the company under its own status; in a registry service it attaches to the
+operator as well. Whether or not the exemption applies to the operator on a
 given day, the platform is built to the Australian Privacy Principles: a
 privacy policy, collection limited to what the register and the client's
 instructions need, access and correction on request, breach notification

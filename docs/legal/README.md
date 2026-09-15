@@ -58,7 +58,8 @@ alone is not a Competing Use, since the test is about the use made of the
 software and the relationship between its Licensor and operator.
 
 The positions serve two operating models, each with its own page, because the
-law attaches duties and licence questions to whoever operates the register:
+law places register duties on the company and asks its licence questions of
+whoever operates the register:
 
 - **A, the [company-hosted instance](company-hosted-instance.md):** a private
   company runs its own instance for its own shares, and its own officers make
