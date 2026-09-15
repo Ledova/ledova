@@ -11,7 +11,7 @@ SCHEMA_COMPARISON ?= /tmp/ledova-schema-comparison.json
 CLIENT_OPERATIONS_REPORT ?= /tmp/ledova-client-operations.json
 
 .PHONY: help install install-backend install-node-if-missing init-local check-local-env build generate-tokens check check-comments check-layers \
-	check-logging check-schema-responses check-test-shadowing check-docs check-api-types check-self-imports check-mobile-test-awaits test-gates audit test \
+	check-logging check-schema-responses check-test-shadowing check-docs check-ordinary-shards check-api-types check-self-imports check-mobile-test-awaits test-gates audit test \
 	dev-up dev-down dev-logs contracts-compile contracts-test contracts-deploy-local \
 	contracts-deploy-testnet chain-test smoke lint check-type-check \
 	install-schema-environment generate-api-schema check-api-schema update-api-schema update-api-types check-client-operations
@@ -47,6 +47,7 @@ help:
 	@echo "  make check-schema-responses   Fail on a view whose response the schema does not know"
 	@echo "  make check-test-shadowing     Fail on a test helper that shadows a TestCase method"
 	@echo "  make check-docs               Fail when a document disagrees with the tree it describes"
+	@echo "  make check-ordinary-shards    Fail when CI's ordinary suite shards do not run every test exactly once"
 	@echo "  make check-connection-binding  Fail on a transaction or cursor bound to the default connection"
 	@echo "  make check-api-types          Regenerate and compare the shared API types and trading events"
 	@echo "  make install-schema-environment Install development dependencies with the schema toolchain constraints"
@@ -108,6 +109,7 @@ check: check-comments check-layers check-logging check-connection-binding check-
 	$(NPM) --prefix mobile run check:resolution
 	$(MAKE) check-mobile-test-awaits
 	cd backend && SECRET_KEY="$$( $(PYTHON) -c 'import secrets; print(secrets.token_urlsafe(32))')" STORAGE_BACKEND=local $(PYTHON) manage.py check
+	$(MAKE) check-ordinary-shards
 
 lint:
 	$(NPM) run lint
@@ -137,6 +139,10 @@ check-test-shadowing:
 
 check-docs:
 	$(PYTHON) scripts/check-docs.py
+
+check-ordinary-shards:
+	cd backend && SECRET_KEY="$$( $(PYTHON) -c 'import secrets; print(secrets.token_urlsafe(32))')" STORAGE_BACKEND=local $(PYTHON) ../scripts/check-ordinary-shards.py
+
 check-api-types:
 	node --test scripts/tests/check-api-types.test.mjs
 	node scripts/check-api-types.mjs --schema "$(API_TYPES_SCHEMA)"

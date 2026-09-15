@@ -49,7 +49,8 @@ Real Redis/ClamAV controls are separate from unit fakes; see
 CI runs three backend suites, the ordinary suite in shard jobs of its own, and a
 backend change runs all three locally before it is called green. A change to a policy,
 a role grant or the test settings can pass two and fail the third, because each
-sees something the others cannot. From `backend/`, exactly as CI runs them:
+sees something the others cannot. From `backend/`, the commands CI runs, though CI
+splits the first across shard jobs (below):
 
 ```bash
 python manage.py test --settings=ledova_backend.settings.test --parallel 4 --noinput
@@ -73,10 +74,10 @@ CI splits the ordinary suite into parallel "Django ordinary shard (NAME)" jobs,
 one for each shard in
 [`.github/ordinary-suite-shards.json`](../../.github/ordinary-suite-shards.json).
 Each job has its own PostgreSQL 16, and runs the ordinary command above with
-that shard's app labels appended. Each first runs the
-[ordinary shard gate](gates.md#the-ordinary-shard-gate), which holds the shards
-to a partition of the unlabelled suite. So on the same commit their `Ran N tests`
-and skip counts add up to the unsharded run's. The "Django ordinary suite" check
+that shard's app labels appended. Before the suite, each runs the
+[ordinary shard gate](gates.md#the-ordinary-shard-gate), which holds the shards'
+test ids to a partition of the unlabelled suite's, so on the same commit their
+`Ran N tests` counts add up to the unsharded run's. The "Django ordinary suite" check
 needs every shard, and fails unless each one succeeded; a failed, cancelled or
 skipped shard fails it. Locally, run the unsharded command. To repeat one shard,
 append `$(python ../scripts/check-ordinary-shards.py --labels NAME)` to it.
