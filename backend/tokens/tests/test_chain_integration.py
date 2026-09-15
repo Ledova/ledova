@@ -1368,8 +1368,22 @@ class SwapApprovalChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertFalse(any(worker.is_alive() for worker in workers), results)
         self.assertFalse(any(isinstance(value, Exception) for value in results.values()), results)
         self.assertEqual(swap_approval.recover(self.token.deployment_id), "confirmed")
-        self.assertTrue(capital_execution.recover(command.pk)["success"])
+        self.assertEqual(capital_execution.recover(command.pk)["status"], "executed")
         command.refresh_from_db()
         attempts = (self.approval().approval_operation.current_attempt, command.operation.current_attempt)
         self.assertEqual({attempt.nonce for attempt in attempts}, {before, before + 1})
         self.assertEqual(self._signer_nonce(), before + 2)
+
+    def test_existing_real_approval_is_observed_without_a_local_approval_attempt(self):
+        contract = self.chain.load_contract("AtomicSwap", settings.ATOMIC_SWAP_ADDRESS)
+        sender = Account.from_key(settings.BLOCKCHAIN_OPERATOR_KEY).address
+        tx_hash = contract.functions.setShareTokenApproval(self.token.contract_address, True).transact({"from": sender})
+        self.w3.eth.wait_for_transaction_receipt(tx_hash)
+        nonce = self._signer_nonce()
+        self.assertEqual(swap_approval.recover(self.token.deployment_id), "observed_approved")
+        command = self.approval()
+        block = self.w3.eth.get_block(command.approval_observation["block_number"])
+        self.assertEqual(Web3.to_hex(block["hash"]), command.approval_observation["block_hash"])
+        self.assertIsNone(command.approval_operation_id)
+        self.assertIsNone(command.approval_transaction_id)
+        self.assertEqual(self._signer_nonce(), nonce)
