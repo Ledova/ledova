@@ -12,6 +12,7 @@ from tokens.exceptions import (
     ChallengeMismatchException,
     CreateOrderInsufficientBalanceException,
     CreateOrderNotWhitelistedException,
+    InvalidSettlementAmountException,
     OrderSubmissionConflictException,
 )
 from tokens.models import (
@@ -33,6 +34,7 @@ NOT_FOUND = "Order submission not found."
 BUSINESS_REFUSALS = {
     CreateOrderNotWhitelistedException: "not_whitelisted",
     CreateOrderInsufficientBalanceException: "insufficient_balance",
+    InvalidSettlementAmountException: "invalid_settlement_amount",
 }
 
 

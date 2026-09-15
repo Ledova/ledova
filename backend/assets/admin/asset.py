@@ -14,7 +14,8 @@ from assets.services import sync as asset_sync
 from operators.models import Operator
 from operators.settlement import deployment_for, live_deployments
 from shared.utils.admin_actions import admin_action_path
-from shared.utils.admin_display import action_buttons, format_units
+from shared.utils.admin_display import action_buttons
+from shared.utils.token_amounts import format_units
 from tokens.constants import MINT_CHAIN
 
 logger = logging.getLogger(__name__)

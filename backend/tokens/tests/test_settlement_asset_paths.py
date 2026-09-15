@@ -7,13 +7,13 @@ from django.test import TestCase, override_settings
 from assets.models import AssetChainDeployment
 from operators.models import Operator, ReceivingChain
 from shared.tests.tenants import make_tenant
+from tokens.exceptions import SettlementContextChanged
 from tokens.filters import TransferOrderFilter
 from tokens.models import TransferOrder
 from tokens.serializers import PrepareTransferSerializer
 from tokens.services import atomic_swap_service, token_transfer_service
 from tokens.services.atomic_swap_service import payment_address
 from tokens.services.settlement_context import (
-    SettlementContextChanged,
     assert_current_settlement,
 )
 

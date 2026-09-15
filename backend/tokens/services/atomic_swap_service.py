@@ -3,6 +3,7 @@ import secrets
 from collections.abc import Mapping
 from copy import deepcopy
 from datetime import timedelta
+from decimal import Decimal, localcontext
 from typing import Optional
 
 from django.conf import settings
@@ -16,10 +17,15 @@ from integrations.base_chain import get_base_chain_client
 from operators.settlement import require_deployment
 from shared.db import atomic, use_operator
 from shared.utils.blockchain import decode_exception_to_message
+from shared.utils.token_amounts import token_base_units
+from tokens.constants import MAX_SETTLEMENT_UNITS
 from tokens.events import publish_trading_event
 from tokens.exceptions import (
     AtomicSwapNotConfiguredException,
     InsufficientBalanceException,
+    InvalidSettlementAmountException,
+    SettlementApprovalUncertain,
+    SettlementContextChanged,
     SwapExecutionException,
     SwapExpiredException,
     SwapNotReadyException,
@@ -34,8 +40,6 @@ from tokens.models import (
 )
 from tokens.services.settlement_context import (
     SETTLEMENT_TYPES,
-    SettlementApprovalUncertain,
-    SettlementContextChanged,
     assert_current_settlement,
     capture_settlement_context,
     recorded_settlement_context,
@@ -171,7 +175,7 @@ def validate_swap_balances(swap_order: SwapOrder) -> None:
             balance=buyer_balance,
             required=swap_order.payment_amount,
             token_symbol=context["payment_asset"]["symbol"] if context else swap_order.payment_asset.symbol,
-            decimals=context["payment_asset"]["pricing_decimals"] if context else swap_order.payment_asset.decimals,
+            decimals=context["payment_asset"]["deployment_decimals"] if context else swap_order.payment_asset.decimals,
         )
     assert_provider_settlement(swap_order)
 
@@ -339,7 +343,23 @@ def create_swap_order(
     if price_per_share is None:
         price_per_share = sell_order.price_per_share
 
-    payment_amount = int(share_amount * price_per_share * (10**payment_asset.decimals))
+    if (
+        type(share_amount) is not int
+        or not 0 < share_amount <= MAX_SETTLEMENT_UNITS
+        or not isinstance(price_per_share, Decimal)
+        or not price_per_share.is_finite()
+        or price_per_share <= 0
+    ):
+        raise InvalidSettlementAmountException()
+    deployment = require_deployment(payment_asset)
+    with localcontext() as context:
+        context.prec = max(78, len(price_per_share.as_tuple().digits) + len(str(share_amount)))
+        try:
+            payment_amount = token_base_units(share_amount * price_per_share, deployment.decimals)
+        except ValueError as exc:
+            raise InvalidSettlementAmountException() from exc
+    if payment_amount > MAX_SETTLEMENT_UNITS:
+        raise InvalidSettlementAmountException()
     nonce = _generate_nonce()
 
     if expires_hours is None:
@@ -361,7 +381,7 @@ def create_swap_order(
         expiry_release_eligible=True,
         status=SwapOrderStatus.CREATED,
     )
-    capture_settlement_context(swap_order, price_per_share)
+    capture_settlement_context(swap_order, deployment, price_per_share)
     swap_order.save()
 
     sell_order.status = TransferOrderStatus.PENDING_SIGNATURE

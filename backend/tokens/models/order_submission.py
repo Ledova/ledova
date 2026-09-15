@@ -84,7 +84,7 @@ class OrderSubmission(BaseModel):
                             order__isnull=True,
                             executed_challenge__isnull=False,
                             resolved_at__isnull=False,
-                            refusal_code__in=["not_whitelisted", "insufficient_balance"],
+                            refusal_code__in=["not_whitelisted", "insufficient_balance", "invalid_settlement_amount"],
                             initial_counter_order__isnull=True,
                             initial_swap__isnull=True,
                         )

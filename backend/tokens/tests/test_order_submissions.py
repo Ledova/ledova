@@ -13,6 +13,7 @@ from drf_spectacular.generators import SchemaGenerator
 from jsonschema import Draft4Validator, RefResolver
 from rest_framework.test import APITransactionTestCase
 
+from assets.models import AssetChainDeployment
 from shared.db import acting_for, atomic, current_alias, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
@@ -187,6 +188,78 @@ class SubmissionRecoveryChecks(SubmissionFixtures):
         self.assertEqual(self.events, [])
         fresh = self.create(self.signed_body(self.body(order_type="sell", submission_id=str(uuid4()))))
         self.assertEqual(fresh.status_code, 201, fresh.content)
+
+    def test_a_lost_unrepresentable_match_refusal_is_permanent_and_a_new_submission_can_succeed(self):
+        counter = self.counter_order()
+        with use_operator():
+            AssetChainDeployment.objects.filter(asset=self.tenant.refs.stablecoin, chain="base").update(decimals=0)
+            TransferOrder.objects.filter(pk=counter.pk).update(quantity=3, price_per_share=Decimal("1.23"))
+            before_counter = TransferOrder.objects.filter(pk=counter.pk).values().get()
+            before_swaps = SwapOrder.objects.count()
+        body = self.body(quantity=3, price_per_share="1.23")
+        signed = self.signed_body(body)
+        with patch(
+            "tokens.views.trading_order.submission_snapshot", side_effect=RuntimeError("synthetic lost refusal")
+        ):
+            lost = self.create(signed)
+        self.assertEqual(lost.status_code, 500)
+        replay = self.create(signed)
+        self.assertEqual(replay.status_code, 400, replay.content)
+        result = replay.json()
+        self.assertEqual(result["status"], "refused")
+        self.assertEqual(result["refusal"]["code"], "invalid_settlement_amount")
+        self.assertIn("cannot be represented", result["refusal"]["detail"])
+        self.assertIsNone(result["order"])
+        self.assertIsNone(result["match"])
+        self.assertIsNone(result["challenge"])
+        with use_operator():
+            challenge = SigningChallenge.objects.get(digest=signed["digest"])
+            self.assertTrue(challenge.is_consumed)
+            self.assertEqual(challenge.consumed_signature, signed["signature"])
+            self.assertEqual(TransferOrder.objects.count(), self.initial_order_count)
+            self.assertEqual(SwapOrder.objects.count(), before_swaps)
+            self.assertEqual(TransferOrder.objects.filter(pk=counter.pk).values().get(), before_counter)
+            TransferOrder.objects.filter(pk=counter.pk).update(price_per_share=Decimal("1.00"))
+        self.assertEqual(self.create(signed).json(), result)
+        with use_operator():
+            AssetChainDeployment.objects.filter(asset=self.tenant.refs.stablecoin, chain="base").update(decimals=2)
+        recovered = self.recover()
+        self.assertEqual(recovered.status_code, 200, recovered.content)
+        self.assertEqual(recovered.json(), result)
+        self.assertEqual(self.message(body).json(), result)
+        self.assertEqual(self.create(signed).json(), result)
+        self.assertEqual(self.create({**signed, "quantity": 2}).status_code, 409)
+        self.assertEqual(self.events, [])
+        fresh = self.create(self.signed_body({**body, "submission_id": str(uuid4())}))
+        self.assertEqual(fresh.status_code, 201, fresh.content)
+        with use_operator():
+            self.assertEqual(TransferOrder.objects.count(), self.initial_order_count + 1)
+            self.assertEqual(SwapOrder.objects.count(), before_swaps + 1)
+            swap = SwapOrder.objects.get(pk=fresh.json()["match"]["swapOrder"])
+            self.assertEqual((swap.share_amount, swap.payment_amount), (3, 300))
+            counter.refresh_from_db()
+            self.assertEqual(counter.filled_quantity, 3)
+        self.assertEqual([event[0] for event in self.events], ["order_created", "order_matched"])
+        self.chain.send_raw_transaction.assert_not_called()
+
+    def test_a_payment_beyond_storage_bounds_is_a_durable_refusal(self):
+        counter = self.counter_order()
+        with use_operator():
+            AssetChainDeployment.objects.filter(asset=self.tenant.refs.stablecoin, chain="base").update(decimals=18)
+            before_counter = TransferOrder.objects.filter(pk=counter.pk).values().get()
+            before_swaps = SwapOrder.objects.count()
+        signed = self.signed_body()
+        refused = self.create(signed)
+        self.assertEqual(refused.status_code, 400, refused.content)
+        self.assertEqual(refused.json()["refusal"]["code"], "invalid_settlement_amount")
+        self.assertEqual(self.recover().json(), refused.json())
+        with use_operator():
+            self.assertTrue(SigningChallenge.objects.get(digest=signed["digest"]).is_consumed)
+            self.assertEqual(TransferOrder.objects.count(), self.initial_order_count)
+            self.assertEqual(SwapOrder.objects.count(), before_swaps)
+            self.assertEqual(TransferOrder.objects.filter(pk=counter.pk).values().get(), before_counter)
+        self.assertEqual(self.events, [])
+        self.chain.send_raw_transaction.assert_not_called()
 
     def test_foreign_account_lookup_hides_pending_and_created_outcomes(self):
         signed = self.signed_body()

@@ -6,10 +6,6 @@ BUTTON_STYLE = (
 )
 
 
-def format_units(raw, decimals):
-    return f"{raw / (10**decimals):,.{decimals}f}"
-
-
 def _button(label, url, background, text="white"):
     style = f"{BUTTON_STYLE} background-color: {background}; color: {text};"
     if url:
