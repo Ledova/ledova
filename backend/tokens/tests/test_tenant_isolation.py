@@ -318,7 +318,7 @@ class TransferOrderOwnershipBindingTest(APITestCase):
         whitelist_service.is_whitelisted.return_value = True
 
         service = token_transfer_service
-        service.find_matching_order = Mock(return_value=None)
+        self.enterContext(patch.object(service, "find_matching_order", return_value=None))
         order, match = service.create_order_and_match(
             token=self.token,
             order_type=TransferOrderType.BUY,

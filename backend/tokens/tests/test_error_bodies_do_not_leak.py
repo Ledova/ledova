@@ -23,7 +23,7 @@ class TheNodeKeyNeverReachesAResponseBodyTest(SimpleTestCase):
         service = token_transfer_service
         self.enterContext(patch.object(service, "get_base_chain_client", return_value=Mock()))
         self.enterContext(patch.object(service, "validate_transfer", Mock()))
-        service.contract_address = Mock(return_value="0x" + "c" * 40)
+        self.enterContext(patch.object(service, "contract_address", return_value="0x" + "c" * 40))
         service.get_base_chain_client().get_nonce.side_effect = RequestsConnectionError(PROVIDER_TEXT)
         return service
 

@@ -25,14 +25,14 @@ class ScopedMatchingWalletLockTest(RunsOnTheScopedConnection, SubmissionFixtures
         pids = {}
         find_matching = token_transfer_service.find_matching_order
 
-        def before_matching(service, order):
+        def before_matching(order):
             with connections[current_alias()].cursor() as cursor:
                 cursor.execute("SELECT pg_backend_pid()")
                 pids["submission"] = cursor.fetchone()[0]
             paused.set()
             if not release.wait(10):
                 raise AssertionError("The test did not release the admitted submission")
-            return find_matching(service, order)
+            return find_matching(order)
 
         def create():
             try:
