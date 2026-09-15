@@ -1,7 +1,9 @@
 from unittest.mock import patch
 
+from django.contrib.admin.models import LogEntry
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
+from django.contrib.messages import get_messages
 from django.db import connections
 from django.test import TransactionTestCase, override_settings
 from django.urls import reverse
@@ -151,3 +153,21 @@ class SwapApprovalBoundaryTest(TransactionTestCase):
         TokenDeployment.objects.filter(pk=self.command.pk).update(updated_at=timezone.now() - timedelta(hours=1))
         self.assertEqual(check_pending_swap_approvals.func(), {"checked": 1, "resolved": 1})
         self.assertEqual(check_pending_swap_approvals.func(), {"checked": 0, "resolved": 0})
+
+    def test_admin_terminal_replay_reports_the_retained_outcome_without_queuing(self):
+        actor = self.failed()
+        confirmation = swap_approval.retry_confirmation(self.token, actor)
+        swap_approval.retry(self.token, actor, confirmation)
+        self.approval_node.receipt_status = 1
+        self.assertEqual(swap_approval.recover(self.command.pk), "confirmed")
+        before = self.queued()
+        self.client.force_login(actor)
+        response = self.client.post(
+            reverse("admin:tokens_sharetoken_retry_swap_approval", args=[self.token.pk]),
+            {"confirmation": confirmation},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.queued(), before)
+        notices = [str(message) for message in get_messages(response.wsgi_request)]
+        self.assertEqual(notices, ["Existing swap approval retry: Approval confirmed."])
+        self.assertEqual(LogEntry.objects.get(object_id=str(self.token.pk)).change_message, notices[0])

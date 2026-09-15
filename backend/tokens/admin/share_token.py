@@ -191,15 +191,20 @@ class ShareTokenAdmin(admin.ModelAdmin):
         change_url = reverse("admin:tokens_sharetoken_change", args=[token.pk])
         try:
             if request.method == "POST":
-                swap_approval.retry(token, request.user, request.POST.get("confirmation"))
-                self.log_change(request, token, "Queued an explicit retry of the completed failed swap approval.")
+                outcome = swap_approval.retry(token, request.user, request.POST.get("confirmation"))
+                notice = (
+                    f"Existing swap approval retry: {SwapApprovalOutcome(outcome).label}."
+                    if outcome
+                    else "Swap approval retry queued. The token remains deployed."
+                )
+                self.log_change(request, token, notice)
             else:
                 confirmation = swap_approval.retry_confirmation(token, request.user)
         except InvalidTokenStateException as exc:
             messages.error(request, f"Cannot retry swap approval: {exc.detail}")
             return HttpResponseRedirect(change_url)
         if request.method == "POST":
-            messages.info(request, "Swap approval retry queued. The token remains deployed.")
+            messages.info(request, notice)
             return HttpResponseRedirect(change_url)
         return render(
             request,
