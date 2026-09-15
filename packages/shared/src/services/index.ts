@@ -57,10 +57,6 @@ export {
   getWhitelistStatus,
   parseTradingError,
   getSwapOrders,
-  getOrderSwapData,
-  submitOrderSwapSignature,
-  getOrderSwapApprovalStatus,
-  getOrderSwapApprovalData,
   getOrderModificationMessage,
   modifyOrder,
 } from './trading';

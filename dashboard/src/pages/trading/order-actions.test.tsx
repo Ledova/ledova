@@ -115,7 +115,6 @@ vi.mock('./components/OrdersPanel', async () => {
     ),
   };
 });
-vi.mock('./components/SwapSigningFlow', () => ({ SwapSigningFlow: () => null }));
 vi.mock('./hooks/useTradingEvents', () => ({ useTradingEvents: () => {} }));
 vi.mock('./hooks/useAtomicSwaps', () => ({ useSwapOrdersMulti: () => ({ data: [], isLoading: false }) }));
 vi.mock('./useTrading', async () => {
