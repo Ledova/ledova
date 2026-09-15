@@ -120,3 +120,30 @@ A running worker is required even for the in-app inbox. Check [notification deli
 and the provider-specific configuration before retrying a review or extraction.
 `GET /health/` is answered before database access; 200 does not prove that workers,
 Redis, PostgreSQL or the chain are healthy.
+
+## Pause and unpause
+
+Keep the original pause submission when a response is lost. The dashboard's
+**Check outcome** reads it and **Retry same request** repeats its identifier;
+neither action creates new intent. Reloading retains the reminder on the same
+browser and issuer account. Staff can repeat the same signed confirmation and
+read **Latest pause request** on the token page. A pending response does not mean
+transfers have stopped or resumed.
+
+The exact job runs after durable admission. Every five minutes,
+`check_pending_pause_changes` also recovers up to 100 incomplete commands untouched
+for ten minutes, oldest update first. It retains original signed bytes and nonce,
+or finishes an already recorded outcome without provider access. A completed
+original outcome can differ from the token's current state after a later request.
+
+An unresolved request blocks new requests for that chain and contract. Known
+authorized competing requests receive a permanent unsigned refusal, which can be
+dismissed. Replaying that UUID always returns its refusal, even after the earlier
+operation resolves; a deliberate later action needs a new submission. Other
+unresolved responses must keep their saved identifier. Known
+unsigned authority refusals release this barrier; transient provider failures and
+signed uncertainty do not. If a confirmed or observed outcome cannot reach its
+original issuer-scoped token, restore the correct identity/authority and recover
+that submission. Do not change private status or create an operator projection to
+bypass the barrier. A completed failure permits a deliberate new submission.
+See the [pause recovery contract](../architecture/outgoing-signing.md#pause-and-unpause).

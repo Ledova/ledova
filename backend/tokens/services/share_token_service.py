@@ -24,7 +24,6 @@ from tokens.exceptions import (
     InvalidRecipientAddressException,
     InvalidTokenAddressException,
     InvalidTokenStateException,
-    OperatorKeyNotConfiguredException,
     TokenBalanceRetrievalException,
     TokenFactoryNotConfiguredException,
     TokenPauseFailedException,
@@ -34,7 +33,6 @@ from tokens.models import (
     ShareIssuance,
     ShareIssuanceRequest,
     ShareToken,
-    ShareTokenStatus,
 )
 from tokens.querysets.share_issuance import ISSUANCE_KEY_PREFIX
 from tokens.services.dilution import dilution_for
@@ -59,13 +57,6 @@ def factory_address() -> str:
             "Please deploy the ShareTokenFactory contract and set the address."
         )
     return address
-
-
-def signer_key() -> str:
-    key = getattr(settings, "BLOCKCHAIN_OPERATOR_KEY", "")
-    if not key:
-        raise OperatorKeyNotConfiguredException()
-    return key
 
 
 def factory_contract():
@@ -272,26 +263,6 @@ def seed_recipient_holding(contract_address: str, recipient_address: str) -> Non
         )
 
 
-def require_pausable(token: ShareToken, paused: bool) -> None:
-    if paused and token.status != ShareTokenStatus.DEPLOYED:
-        raise InvalidTokenStateException("Only deployed tokens can be paused.")
-    if not paused and token.status not in (ShareTokenStatus.PAUSED, ShareTokenStatus.DEPLOYED):
-        raise InvalidTokenStateException("Only paused tokens can be unpaused.")
-
-
-def pause(token: ShareToken) -> None:
-    require_pausable(token, True)
-    _set_paused(token, True)
-
-
-def unpause(token: ShareToken) -> None:
-    require_pausable(token, False)
-    if token.status == ShareTokenStatus.PAUSED or read_paused(token):
-        _set_paused(token, False)
-        return
-    raise InvalidTokenStateException("Only paused tokens can be unpaused.")
-
-
 def read_paused(token: ShareToken) -> bool:
     try:
         return load_share_token(token.contract_address).functions.paused().call()
@@ -300,35 +271,6 @@ def read_paused(token: ShareToken) -> bool:
     except Exception as exc:
         logger.error(f"paused() could not be read for {token.symbol}: {exc}")
         raise TokenPauseFailedException("The token's paused state could not be read.") from exc
-
-
-def _set_paused(token: ShareToken, paused: bool) -> None:
-    function_name = "pause" if paused else "unpause"
-    if read_paused(token) == paused:
-        logger.warning(f"{token.symbol} is already {function_name}d on chain; reconciling the database status")
-    else:
-        try:
-            contract_function = getattr(load_share_token(token.contract_address).functions, function_name)()
-            tx_hash, _ = get_base_chain_client().send_transaction(
-                contract_function, signer_key(), wait_for_receipt=True
-            )
-            logger.info(f"{function_name}() confirmed for {token.symbol}: {tx_hash}")
-        except Exception as exc:
-            logger.error(f"{function_name}() failed for {token.symbol}: {exc}")
-            if not _paused_state_is(token, paused):
-                raise TokenPauseFailedException(f"Token {function_name} failed.") from exc
-            logger.warning(f"{function_name}() for {token.symbol} failed after the call mined; reconciling")
-    if paused:
-        token.mark_paused()
-    else:
-        token.mark_unpaused()
-
-
-def _paused_state_is(token: ShareToken, paused: bool) -> bool:
-    try:
-        return read_paused(token) == paused
-    except TokenPauseFailedException:
-        return False
 
 
 def get_token_balance(contract_address: str, holder: str) -> int:

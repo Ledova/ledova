@@ -13,10 +13,9 @@ export type TokenCreate = ApiRequest<'api_v1_tokens_create'>;
 
 export type CompanyShareTokenListItem = ApiResponse<'api_v1_tokens_list'>['results'][number];
 
-export type CompanyTokenActionResponse =
-  | ApiResponse<'api_v1_tokens_deploy_create'>
-  | ApiResponse<'api_v1_tokens_pause_create'>
-  | ApiResponse<'api_v1_tokens_unpause_create'>;
+export type CompanyTokenActionResponse = ApiResponse<'api_v1_tokens_deploy_create'>;
+export type PauseSubmissionRequest = ApiRequest<'api_v1_tokens_pause_create'>;
+export type PauseSubmissionResponse = ApiResponse<'api_v1_tokens_pause_create'>;
 
 export type TokenHolder = ApiSchema<'ShareRegisterHolder'>;
 

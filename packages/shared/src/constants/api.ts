@@ -114,6 +114,8 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   DEPLOY: (uuid: string) => `/api/v1/tokens/${uuid}/deploy/` as const,
   PAUSE: (uuid: string) => `/api/v1/tokens/${uuid}/pause/` as const,
   UNPAUSE: (uuid: string) => `/api/v1/tokens/${uuid}/unpause/` as const,
+  PAUSE_SUBMISSION: (uuid: string, submissionId: string) =>
+    `/api/v1/tokens/${uuid}/pause-submissions/${submissionId}/` as const,
   HOLDERS: (uuid: string) => `/api/v1/tokens/${uuid}/holders/` as const,
   REGISTER_EXPORT: (uuid: string) => `/api/v1/tokens/${uuid}/register/export/` as const,
   ISSUANCES: (uuid: string) => `/api/v1/tokens/${uuid}/issuances/` as const,

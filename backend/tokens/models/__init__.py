@@ -17,6 +17,7 @@ from .nav_update import NAVUpdate
 from .order_action import OrderActionPurpose, OrderActionStatus, OrderActionSubmission
 from .order_modification_log import OrderModificationLog
 from .order_submission import OrderSubmission, OrderSubmissionStatus
+from .pause_change import PauseAuthority, PauseChange, PauseChangeStatus
 from .share_issuance import ShareIssuance
 from .share_issuance_request import ShareIssuanceRequest
 from .share_token import ShareToken
@@ -26,6 +27,9 @@ from .transfer_order import TransferOrder
 from .yield_token import YieldToken
 
 __all__ = [
+    "PauseAuthority",
+    "PauseChange",
+    "PauseChangeStatus",
     "CapitalIncreaseExecution",
     "CapitalIncreaseRequest",
     "IssuanceStatus",

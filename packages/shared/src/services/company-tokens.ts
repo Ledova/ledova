@@ -1,9 +1,11 @@
-import { AxiosInstance } from 'axios';
+import { AxiosInstance, type AxiosRequestConfig } from 'axios';
 import { COMPANY_TOKEN_ENDPOINTS } from '../constants';
 import type {
   CompanyShareToken,
   CompanyShareTokenListItem,
   CompanyTokenActionResponse,
+  PauseSubmissionRequest,
+  PauseSubmissionResponse,
   TokenCreate,
   TokenHoldersResponse,
   TokenIssuance,
@@ -31,11 +33,26 @@ export const createCompanyToken = (apiClient: AxiosInstance, data: TokenCreate) 
 export const deployCompanyToken = (apiClient: AxiosInstance, uuid: string) =>
   apiClient.post<CompanyTokenActionResponse>(COMPANY_TOKEN_ENDPOINTS.DEPLOY(uuid));
 
-export const pauseCompanyToken = (apiClient: AxiosInstance, uuid: string) =>
-  apiClient.post<CompanyTokenActionResponse>(COMPANY_TOKEN_ENDPOINTS.PAUSE(uuid));
+export const pauseCompanyToken = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  data: PauseSubmissionRequest,
+  config?: AxiosRequestConfig,
+) => apiClient.post<PauseSubmissionResponse>(COMPANY_TOKEN_ENDPOINTS.PAUSE(uuid), data, config);
 
-export const unpauseCompanyToken = (apiClient: AxiosInstance, uuid: string) =>
-  apiClient.post<CompanyTokenActionResponse>(COMPANY_TOKEN_ENDPOINTS.UNPAUSE(uuid));
+export const unpauseCompanyToken = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  data: PauseSubmissionRequest,
+  config?: AxiosRequestConfig,
+) => apiClient.post<PauseSubmissionResponse>(COMPANY_TOKEN_ENDPOINTS.UNPAUSE(uuid), data, config);
+
+export const getPauseSubmission = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  submissionId: string,
+  config?: AxiosRequestConfig,
+) => apiClient.get<PauseSubmissionResponse>(COMPANY_TOKEN_ENDPOINTS.PAUSE_SUBMISSION(uuid, submissionId), config);
 
 export const getCompanyTokenHolders = (apiClient: AxiosInstance, uuid: string) =>
   apiClient.get<TokenHoldersResponse>(COMPANY_TOKEN_ENDPOINTS.HOLDERS(uuid));

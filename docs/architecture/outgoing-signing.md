@@ -3,7 +3,7 @@
 [Architecture](README.md) · [Documentation](../README.md)
 
 Settlement-asset and yield-token `MintRequest` execution, whitelist add/remove
-commands, share-token deployment and its automatic swap approval, capital increases and share issuances use the
+commands, share-token deployment and its automatic swap approval, capital increases, share issuances and pause/unpause use the
 operator signing foundation. Signer
 admission remains closed. The [deployment flow](contracts-and-issuance.md) binds
 its original receipt to immutable deployment terms; an identifier lookup alone
@@ -13,8 +13,8 @@ The foundation now requires explicit signer admission. Existing and new
 `SigningAccount` rows start `closed`, and a missing row is also closed. A nonce
 counter, successful legacy status or inventory capture never grants admission.
 There is no activation command or admin edit surface; admitted synthetic test
-fixtures establish a test precondition only. Pause/unpause, NAV
-updates and settlement relaying still require conversion.
+fixtures establish a test precondition only. NAV updates and settlement relaying
+still require conversion.
 
 `close_signer_admission(chain_id=..., sender=...)` is an operator-only service
 that closes an account and advances its admission generation. It preserves
@@ -311,3 +311,54 @@ missing records after execution and hashless legacy mints remain held. Original
 ID-less revert entries remain valid historical evidence. Naming checks exact
 transaction terms and prevents reuse of another issuance's retained historical
 hash. See [issuance recovery](../operations/recovery.md#deployment-and-issuance).
+
+## Pause and unpause
+
+Each intentional pause/unpause submission has its own UUID and private `PauseChange`.
+The issuer API accepts `submissionId`; staff confirmations bind that UUID to the
+actor, token and desired state. Bounded operator admission locks the company and
+token, checks the fresh actor, freezes the chain, contract and calldata, and
+commits the exact recovery job with the command. Public token state stays unchanged
+until an outcome can be projected. Current issuer ownership is required on API
+submission and retrieval; staff privileges never widen the issuer API.
+
+An authorized new submission blocked by an incomplete command is retained as a
+completed unsigned `failed` refusal, with no job or outgoing operation. Its UUID
+can never turn into a delayed action after the blocker clears. This lets clients
+retrieve and dismiss a definite refusal without treating an ambiguous missing
+response or 404 as cancellation. Invalid identity or authority is not admitted.
+
+A verified initial boolean at a recorded block may produce `observed`, with no
+outgoing operation. The decision is serialized against an executing peer. Known
+unsigned authority, lifecycle or configuration refusals can finish as `failed`
+only while no outgoing operation exists; temporary provider failures retain the
+pending command. Once executing, recovery uses the original outgoing key, signed
+bytes, nonce and receipt. A unique original `Paused` or `Unpaused` event from the
+admitted contract and sender is required for confirmation. Current chain state
+cannot stand in for a signed transaction's outcome. A new attempt after a terminal
+failure needs a new submission UUID; the foundation cannot reopen a pause command.
+
+The incomplete command reserves its chain and contract, including a confirmed or
+observed outcome awaiting public projection. Projection holds the target advisory
+lock and private command lock, then updates the token on the admitted issuer's
+scoped connection. It commits that update before completing the private command.
+If either commit response is lost, the retained barrier permits an idempotent
+repeat and prevents a newer opposite command overtaking the old projection. A
+completed replay returns before updating the token. If ownership or original
+identity no longer permits projection, recovery keeps the outcome and barrier;
+there is no operator fallback for an issuer's public write.
+
+Signing locks operation, signer, command, company, token and the freshly read
+actor. Projection holds no outgoing/account lock or operator company/token lock
+while its scoped connection updates the token. Actor flags are protected through
+signing; permission grants are checked fresh after target waits. This does not
+establish a global fence against all later concurrent group/permission changes.
+Network operations run outside database transactions.
+
+Migrations `tokens/0051` and `0052` preserve historical token states without
+admitting pause history, restrict private-role access and refuse reversal with
+commands present. API responses expose the original submission outcome separately
+from current token status. The dashboard verifies identifier retention before every POST, guards
+issuer-session changes, recovers after reload and dismisses only resolved outcomes.
+The old direct sender and unconditional status helpers are removed. Historical
+attribution, all-writer cutover and finality remain separate requirements.

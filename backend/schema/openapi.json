@@ -7115,6 +7115,74 @@
         },
         "type": "object"
       },
+      "PauseSubmission": {
+        "properties": {
+          "completedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "paused": {
+            "type": "boolean"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PauseSubmissionStatusEnum"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "completedAt",
+          "paused",
+          "status",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "PauseSubmissionRequestRequest": {
+        "properties": {
+          "submissionId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "submissionId"
+        ],
+        "type": "object"
+      },
+      "PauseSubmissionResponse": {
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "submission": {
+            "$ref": "#/components/schemas/PauseSubmission"
+          },
+          "token": {
+            "$ref": "#/components/schemas/ShareTokenDetail"
+          }
+        },
+        "required": [
+          "message",
+          "submission",
+          "token"
+        ],
+        "type": "object"
+      },
+      "PauseSubmissionStatusEnum": {
+        "description": "* `pending` - Checking the requested state\n* `executing` - Transaction outcome unresolved\n* `observed` - Already in the requested state\n* `confirmed` - Original transaction confirmed\n* `failed` - Failed",
+        "enum": [
+          "pending",
+          "executing",
+          "observed",
+          "confirmed",
+          "failed"
+        ],
+        "type": "string"
+      },
       "PaymentInstruction": {
         "properties": {
           "amountDue": {
@@ -10588,21 +10656,6 @@
         ],
         "type": "object"
       },
-      "TokenPaused": {
-        "properties": {
-          "message": {
-            "type": "string"
-          },
-          "token": {
-            "$ref": "#/components/schemas/ShareTokenDetail"
-          }
-        },
-        "required": [
-          "message",
-          "token"
-        ],
-        "type": "object"
-      },
       "TokenTransferReceipt": {
         "properties": {
           "blockNumber": {
@@ -10632,21 +10685,6 @@
           "redeemable"
         ],
         "type": "string"
-      },
-      "TokenUnpaused": {
-        "properties": {
-          "message": {
-            "type": "string"
-          },
-          "token": {
-            "$ref": "#/components/schemas/ShareTokenDetail"
-          }
-        },
-        "required": [
-          "message",
-          "token"
-        ],
-        "type": "object"
       },
       "TradingBroadcastTransferRequest": {
         "properties": {
@@ -19205,10 +19243,19 @@
         ]
       }
     },
-    "/api/v1/tokens/{uuid}/pause/": {
-      "post": {
-        "operationId": "api_v1_tokens_pause_create",
+    "/api/v1/tokens/{uuid}/pause-submissions/{submission_id}/": {
+      "get": {
+        "operationId": "api_v1_tokens_pause_submissions_retrieve",
         "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
           {
             "in": "path",
             "name": "uuid",
@@ -19225,7 +19272,87 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TokenPaused"
+                  "$ref": "#/components/schemas/PauseSubmissionResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PauseSubmissionResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/{uuid}/pause/": {
+      "post": {
+        "operationId": "api_v1_tokens_pause_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PauseSubmissionRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PauseSubmissionRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PauseSubmissionRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PauseSubmissionResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PauseSubmissionResponse"
                 }
               }
             },
@@ -19302,12 +19429,42 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PauseSubmissionRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PauseSubmissionRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PauseSubmissionRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TokenUnpaused"
+                  "$ref": "#/components/schemas/PauseSubmissionResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PauseSubmissionResponse"
                 }
               }
             },

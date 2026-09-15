@@ -17,12 +17,14 @@
         <strong>{{ verb|capfirst }} {{ token.name }} ({{ token.symbol }})</strong>
         <p class="mt-1 mb-0">
             {% if verb == 'pause' %}
-            This calls <code>pause()</code> on the share token: transfers and issuance stop until it is unpaused.
+            Request a pause of transfers and issuance. They stop only when the pause is confirmed on chain.
             {% else %}
-            This calls <code>unpause()</code> on the share token (or only reconciles the database when the chain
-            already reports it unpaused): transfers and issuance resume.
+            Request an unpause. Transfers and issuance resume only when the unpause is confirmed on chain.
             {% endif %}
         </p>
+        <p>The request is retained before processing. Refresh the token page to check its outcome.
+            If it is already in the requested state before signing, that observation is retained instead.
+            Another request must wait until this one resolves.</p>
     </div>
 
     <div class="admin-card">
@@ -47,6 +49,7 @@
 
     <form method="post">
         {% csrf_token %}
+        <input type="hidden" name="confirmation" value="{{ confirmation }}">
         <div class="action-row mt-0">
             <button type="submit" class="btn {% if verb == 'pause' %}btn-warning{% else %}btn-success{% endif %}">{{ verb|capfirst }} Token</button>
             <a href="{% url 'admin:tokens_sharetoken_change' token.pk %}" class="btn btn-secondary">Cancel</a>

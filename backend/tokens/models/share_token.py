@@ -146,14 +146,3 @@ class ShareToken(BaseModel):
         self.chain = chain
         self.deployed_at = timezone.now()
         self.save(update_fields=["status", "contract_address", "chain", "deployed_at", "updated_at"])
-
-    def mark_paused(self) -> None:
-        self.status = ShareTokenStatus.PAUSED
-        self.save(update_fields=["status", "updated_at"])
-
-    def mark_unpaused(self) -> None:
-        if self.contract_address:
-            self.status = ShareTokenStatus.DEPLOYED
-        else:
-            self.status = ShareTokenStatus.DRAFT
-        self.save(update_fields=["status", "updated_at"])

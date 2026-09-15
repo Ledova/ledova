@@ -5,7 +5,7 @@ import { SwapSettlement } from '../utils/swap-settlement';
 import { swapSettlementIdentity } from '../utils/swap-settlement-validation';
 import type { SavedSwapSettlement, SwapSettlementStore } from '../utils/swap-settlement-storage';
 import type { OrderSubmissionSession } from './useOrderSubmissions';
-import { useOrderOwner } from './useOrderOwner';
+import { useSubmissionOwner } from './useSubmissionOwner';
 import { useApiClient } from './useApiClient';
 
 export function useSwapSettlements(
@@ -15,7 +15,7 @@ export function useSwapSettlements(
 ) {
   const apiClient = useApiClient();
   const queryClient = useQueryClient();
-  const { owner, boundary } = useOrderOwner(session);
+  const { owner, boundary } = useSubmissionOwner(session);
   const [, render] = useReducer((value: number) => value + 1, 0);
   const state = useMemo(
     () => ({
