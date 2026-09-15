@@ -177,7 +177,7 @@ class TheTriggerRefusesWhatTheServiceDidNotSupplyTest(TransactionTestCase):
         swap = self.tenant.swap
         self.addCleanup(restore_every_migration)
         migrate_to([("tokens", "0038_order_action_submissions")])
-        restore_every_migration()
+        migrate_to([("tokens", "0055_order_submission_settlement_refusal")])
         swap.refresh_from_db()
         self.assertEqual(swap.settlement_protocol_version, 0)
 
@@ -186,6 +186,8 @@ class TheTriggerRefusesWhatTheServiceDidNotSupplyTest(TransactionTestCase):
                 SwapOrder.objects.filter(pk=swap.pk).update(seller_wallet=other)
 
         self.assertIn("does not match", str(refusal.exception))
+        swap.refresh_from_db()
+        self.assertEqual(swap.seller_wallet_id, self.tenant.wallet.pk)
 
     def test_an_owner_column_cannot_change(self):
         request = CapitalIncreaseRequest.objects.create(

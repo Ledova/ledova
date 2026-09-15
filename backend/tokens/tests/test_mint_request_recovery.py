@@ -14,7 +14,7 @@ from blockchain.models import (
     SigningAccount,
 )
 from blockchain.services import outgoing
-from blockchain.services.transaction import TransactionMonitorService
+from blockchain.services.transaction import check_pending_transactions
 from blockchain.tests.outgoing_fixtures import receipt
 from shared.db import atomic, current_alias
 from tokens.exceptions import MintRequestConflict, MintRequestUnresolved
@@ -318,7 +318,7 @@ class MintRequestRecoveryTest(TransactionTestCase):
         self.node.confirmed = False
         tx_hash, _ = self.execute()
         self.node.receipts[tx_hash] = receipt(SignedAttempt.objects.get())
-        result = TransactionMonitorService.check_pending_transactions(self.node.client)
+        result = check_pending_transactions(self.node.client)
         self.assertEqual(result, {"checked": 0, "confirmed": 0, "failed": 0})
         self.request.transaction.refresh_from_db()
         self.assertEqual(self.request.transaction.status, "submitted")

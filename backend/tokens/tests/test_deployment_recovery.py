@@ -14,7 +14,7 @@ from blockchain.models import (
     SigningAccount,
 )
 from blockchain.services import outgoing
-from blockchain.services.transaction import TransactionMonitorService
+from blockchain.services.transaction import check_pending_transactions
 from blockchain.tests.outgoing_fixtures import receipt
 from shared.db import atomic
 from tokens.exceptions import InvalidTokenStateException, TokenDeploymentFailedException
@@ -332,7 +332,7 @@ class DeploymentRecoveryTest(TransactionTestCase):
         )
         self.node.receipts[old.tx_hash] = receipt(attempt) | {"transactionHash": old.tx_hash}
         self.assertEqual(
-            TransactionMonitorService.check_pending_transactions(self.node.client),
+            check_pending_transactions(self.node.client),
             {"checked": 1, "confirmed": 1, "failed": 0},
         )
         old.refresh_from_db()

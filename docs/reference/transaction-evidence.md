@@ -101,12 +101,16 @@ requested. If that field is absent, the monitor retains the existing assumption
 that the configured Base provider answered that requested hash. This is not
 proof of canonical inclusion or finality; the record has no chain ID. These
 guards cover the generic monitor, not every specialized transaction writer.
+Swap transaction types, swap business references and reverse swap associations
+are excluded both from selection and from the fresh receipt-write check. Their
+[dedicated recovery and legacy hold](swap-settlement.md#legacy-history-hold)
+retain outcomes that cannot be attributed to the original settlement context.
 
 `blockchain.tasks.cleanup_failed_transactions` and
 `wallets.tasks.confirmation.cleanup_stale_pending_transactions` retain their
 names and `timestamp` argument for jobs already queued by older workers. They
 only report overdue unresolved row counts; their legacy `cleaned` or `failed`
-counts are zero. The callable `TransactionMonitorService.cleanup_stale_transactions`
+counts are zero. The callable `blockchain.services.transaction.cleanup_stale_transactions`
 also retains its `hours` argument and adds an `overdue` count. None of these
 compatibility handlers changes transaction state, balances or reservations,
 and neither task has a recurring schedule. Workers must load the updated code

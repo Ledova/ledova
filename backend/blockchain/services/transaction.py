@@ -48,6 +48,8 @@ def _record_receipt(expected, receipt):
         current = BlockchainTransaction.objects.select_for_update(of=("self",)).filter(pk=expected.pk).first()
         if current is None or not current.is_pending or _submission_identity(current) != _submission_identity(expected):
             return None
+        if not BlockchainTransaction.objects.without_outgoing_operations().filter(pk=current.pk).exists():
+            return None
         if receipt["status"] == 1:
             current.mark_confirmed(
                 block_number=receipt["blockNumber"],
@@ -65,43 +67,41 @@ def _record_receipt(expected, receipt):
         return TransactionStatus.REVERTED
 
 
-class TransactionMonitorService:
-    @staticmethod
-    def check_pending_transactions(chain_client) -> dict[str, Any]:
-        from blockchain.models import BlockchainTransaction, TransactionStatus
+def check_pending_transactions(chain_client) -> dict[str, Any]:
+    from blockchain.models import BlockchainTransaction, TransactionStatus
 
-        pending = BlockchainTransaction.objects.pending().with_tx_hash().without_outgoing_operations()
+    pending = BlockchainTransaction.objects.pending().with_tx_hash().without_outgoing_operations()
 
-        checked = 0
-        confirmed = 0
-        failed = 0
+    checked = 0
+    confirmed = 0
+    failed = 0
 
-        for tx in pending:
-            try:
-                receipt = chain_client.get_transaction_receipt(tx.tx_hash)
-                if receipt:
-                    status = receipt.get("status")
-                    if isinstance(status, bool) or not isinstance(status, int) or status not in (0, 1):
-                        logger.info("Retained tx %s with unavailable receipt outcome", tx.tx_hash[:10])
-                    elif not _receipt_matches(receipt, tx.tx_hash):
-                        logger.info("Retained tx %s with conflicting receipt identity", tx.tx_hash[:10])
-                    else:
-                        outcome = _record_receipt(tx, receipt)
-                        confirmed += outcome == TransactionStatus.CONFIRMED
-                        failed += outcome == TransactionStatus.REVERTED
-                checked += 1
-            except Exception as e:
-                logger.error(f"Error checking tx {tx.tx_hash}: {e}")
+    for tx in pending:
+        try:
+            receipt = chain_client.get_transaction_receipt(tx.tx_hash)
+            if receipt:
+                status = receipt.get("status")
+                if isinstance(status, bool) or not isinstance(status, int) or status not in (0, 1):
+                    logger.info("Retained tx %s with unavailable receipt outcome", tx.tx_hash[:10])
+                elif not _receipt_matches(receipt, tx.tx_hash):
+                    logger.info("Retained tx %s with conflicting receipt identity", tx.tx_hash[:10])
+                else:
+                    outcome = _record_receipt(tx, receipt)
+                    confirmed += outcome == TransactionStatus.CONFIRMED
+                    failed += outcome == TransactionStatus.REVERTED
+            checked += 1
+        except Exception as e:
+            logger.error(f"Error checking tx {tx.tx_hash}: {e}")
 
-        logger.info(f"Checked {checked} transactions: {confirmed} confirmed, {failed} failed")
-        return {"checked": checked, "confirmed": confirmed, "failed": failed}
+    logger.info(f"Checked {checked} transactions: {confirmed} confirmed, {failed} failed")
+    return {"checked": checked, "confirmed": confirmed, "failed": failed}
 
-    @staticmethod
-    def cleanup_stale_transactions(hours: int = 24) -> dict[str, Any]:
-        from blockchain.models import BlockchainTransaction
 
-        cutoff = timezone.now() - timedelta(hours=hours)
-        overdue = BlockchainTransaction.objects.stale(cutoff).count()
+def cleanup_stale_transactions(hours: int = 24) -> dict[str, Any]:
+    from blockchain.models import BlockchainTransaction
 
-        logger.info("Retained %s overdue transactions for receipt recovery", overdue)
-        return {"cleaned": 0, "overdue": overdue}
+    cutoff = timezone.now() - timedelta(hours=hours)
+    overdue = BlockchainTransaction.objects.stale(cutoff).count()
+
+    logger.info("Retained %s overdue transactions for receipt recovery", overdue)
+    return {"cleaned": 0, "overdue": overdue}

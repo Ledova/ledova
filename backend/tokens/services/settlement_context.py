@@ -8,7 +8,7 @@ from web3 import Web3
 from assets.models import Asset
 from operators.exceptions import SettlementAssetNotDeployedException
 from operators.settlement import require_deployment
-from tokens.exceptions import SettlementContextChanged
+from tokens.exceptions import LegacySwapHeld, SettlementContextChanged
 from tokens.models import ShareToken
 
 SETTLEMENT_PROTOCOL_VERSION = 1
@@ -133,6 +133,8 @@ def capture_settlement_context(swap, deployment, price_per_share=None):
 
 
 def recorded_settlement_context(swap):
+    if swap.settlement_protocol_version == 0:
+        raise LegacySwapHeld()
     context = swap.settlement_context
     try:
         typed = context["typed_data"]

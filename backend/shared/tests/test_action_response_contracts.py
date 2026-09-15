@@ -2,7 +2,6 @@ from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import Mock, patch
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import override_settings
 from django.urls import resolve, reverse
@@ -19,7 +18,6 @@ from offerings.tests.factories import (
     eligible_subscriber,
     open_offering,
 )
-from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import an_acn, make_eligible, make_tenant, open_to_investors
 from tokens.models import ShareIssuance, SwapOrder
 from tokens.services import atomic_swap_service, token_transfer_service
@@ -99,7 +97,13 @@ class ActionResponseContractTest(APITransactionTestCase):
         configure_operator(self.owner.refs.stablecoin)
         service = atomic_swap_service
         self.enterContext(patch.object(service, "check_allowance", Mock(return_value=2000 if sufficient else 0)))
-        self.enterContext(patch.object(service, "get_base_chain_client", return_value=Mock(chain_id=84532)))
+        self.enterContext(
+            patch.object(
+                service,
+                "get_base_chain_client",
+                return_value=Mock(chain_id=84532, assert_expected_chain=Mock(return_value=84532)),
+            )
+        )
         service.get_base_chain_client().to_checksum_address.side_effect = lambda value: value
         service.get_base_chain_client().build_transaction.return_value = {
             "data": "0x1234",
@@ -110,44 +114,52 @@ class ActionResponseContractTest(APITransactionTestCase):
         return service
 
     def approval_request(self, action, sufficient=False):
-        modules = getattr(settings, "MIGRATION_MODULES", {})
-        if "tokens" in modules and modules["tokens"] is None:
-            self.skipTest("Legacy approval response requires actual settlement migrations")
-        self.addCleanup(restore_every_migration)
-        try:
-            migrate_to([("tokens", "0038_order_action_submissions")])
-        finally:
-            restore_every_migration()
-        self.owner.swap.refresh_from_db()
-        self.assertEqual(self.owner.swap.settlement_protocol_version, 0)
+        self.assertEqual(self.owner.swap.settlement_protocol_version, 1)
         service = self.allowance_service(sufficient)
         with patch("tokens.views.trading_order.atomic_swap_service", service):
             response = self.client.get(
                 f"/api/v1/trading/orders/{self.owner.order.uuid}/swap/{action}/",
-                {"wallet_address": self.owner.wallet.address},
+                {
+                    "swap_uuid": str(self.owner.swap.pk),
+                    "owner_account_uuid": str(self.owner.account.pk),
+                    "wallet_uuid": str(self.owner.wallet.pk),
+                    "settlement_digest": self.owner.swap.settlement_digest,
+                },
             )
         self.assertEqual(response.status_code, 200)
         service.check_allowance.assert_called()
-        return response.json(), service
+        body = response.json()
+        for key, value in self.approval_identity().items():
+            self.assertEqual(body[key], value)
+        return body, service
 
-    def test_approval_status_declares_integer_allowances(self):
+    def approval_identity(self):
+        return {
+            "swapUuid": str(self.owner.swap.pk),
+            "orderUuid": str(self.owner.order.pk),
+            "ownerAccountUuid": str(self.owner.account.pk),
+            "walletUuid": str(self.owner.wallet.pk),
+            "settlementDigest": self.owner.swap.settlement_digest,
+            "userRole": "seller",
+        }
+
+    def test_approval_status_declares_decimal_string_allowances(self):
         body, _service = self.approval_request("approval-status")
-        self.assertEqual((body["requiredAmount"], body["currentAllowance"]), (10, 0))
+        self.assertEqual((body["requiredAmount"], body["currentAllowance"]), ("10", "0"))
         self.assertIs(body["needsApproval"], True)
         schema = self.assert_fields(
             next(
                 self.resolved(item)
                 for item in self.response_schema("/api/v1/trading/orders/{uuid}/swap/approval-status/")["oneOf"]
-                if "settlementDigest" not in self.resolved(item)["properties"]
+                if "settlementDigest" in self.resolved(item)["properties"]
             ),
             body,
             {
-                "swapUuid": "string",
-                "userRole": "string",
+                **{name: "string" for name in self.approval_identity()},
                 "tokenAddress": "string",
                 "tokenSymbol": "string",
-                "requiredAmount": "integer",
-                "currentAllowance": "integer",
+                "requiredAmount": "string",
+                "currentAllowance": "string",
                 "needsApproval": "boolean",
                 "spender": "string",
             },
@@ -158,7 +170,7 @@ class ActionResponseContractTest(APITransactionTestCase):
         schema = self.response_schema("/api/v1/trading/orders/{uuid}/swap/approval-data/")
         self.assertEqual(len(schema.get("anyOf", ())), 4)
         variants = [self.resolved(item) for item in schema["anyOf"]]
-        variants = [item for item in variants if "settlementDigest" not in item["properties"]]
+        variants = [item for item in variants if "settlementDigest" in item["properties"]]
         self.assertEqual(len(variants), 2)
         return {"transaction" in item["properties"]: item for item in variants}
 
@@ -169,8 +181,9 @@ class ActionResponseContractTest(APITransactionTestCase):
             {
                 "needsApproval": False,
                 "message": "User already has sufficient allowance",
-                "currentAllowance": 2000,
-                "requiredAmount": 10,
+                "currentAllowance": "2000",
+                "requiredAmount": "10",
+                **self.approval_identity(),
             },
         )
         service.get_base_chain_client().build_transaction.assert_not_called()
@@ -180,8 +193,9 @@ class ActionResponseContractTest(APITransactionTestCase):
             {
                 "needsApproval": "boolean",
                 "message": "string",
-                "currentAllowance": "integer",
-                "requiredAmount": "integer",
+                **{name: "string" for name in self.approval_identity()},
+                "currentAllowance": "string",
+                "requiredAmount": "string",
             },
         )
         self.assertEqual(set(schema["required"]), set(body))
@@ -198,8 +212,7 @@ class ActionResponseContractTest(APITransactionTestCase):
             body,
             {
                 "needsApproval": "boolean",
-                "swapUuid": "string",
-                "userRole": "string",
+                **{name: "string" for name in self.approval_identity()},
                 "transaction": "object",
                 "description": "string",
                 "tokenAddress": "string",

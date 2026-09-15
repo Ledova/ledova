@@ -2,6 +2,15 @@ from django.db.models import QuerySet
 
 
 class BlockchainTransactionQuerySet(QuerySet):
+    def without_swap_transactions(self):
+        from blockchain.models import TransactionType
+
+        return (
+            self.exclude(tx_type=TransactionType.ATOMIC_SWAP)
+            .exclude(related_model="tokens.SwapOrder")
+            .exclude(swap_orders__isnull=False)
+        )
+
     def pending(self):
         from blockchain.models import TransactionStatus
 
@@ -9,7 +18,8 @@ class BlockchainTransactionQuerySet(QuerySet):
 
     def without_outgoing_operations(self):
         return (
-            self.exclude(mint_requests__operation__isnull=False)
+            self.without_swap_transactions()
+            .exclude(mint_requests__operation__isnull=False)
             .exclude(related_model="whitelist.WhitelistChange")
             .exclude(token_deployments__isnull=False)
             .exclude(swap_approvals__isnull=False)

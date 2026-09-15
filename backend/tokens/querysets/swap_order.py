@@ -52,4 +52,4 @@ class SwapOrderQuerySet(QuerySet):
         return self.filter(Q(sell_order=order) | Q(buy_order=order)).first()
 
     def unresolved_on_chain(self, cutoff):
-        return self.filter(status=SwapOrderStatus.EXECUTING, updated_at__lt=cutoff)
+        return self.filter(settlement_protocol_version=1, status=SwapOrderStatus.EXECUTING, updated_at__lt=cutoff)

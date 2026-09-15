@@ -7,11 +7,14 @@ from uuid import uuid4
 from django.conf import settings
 from django.db import IntegrityError
 from django.test import TestCase, TransactionTestCase, override_settings
+from eth_account import Account
+from eth_account.messages import encode_typed_data
 
 from assets.models import AssetChainDeployment
 from operators.models import Operator, ReceivingChain
 from shared.db import atomic
 from shared.tests.schema import migrate_to, restore_every_migration
+from tokens.exceptions import LegacySwapHeld
 from tokens.models import SwapOrder, SwapOrderStatus
 from tokens.services.atomic_swap_service import payment_address
 from tokens.tests.swap_state_fixtures import (
@@ -88,7 +91,7 @@ class SwapSettlementStorageTest(TestCase):
 @skipUnless(MIGRATIONS_ENABLED, "Requires actual settlement migrations")
 @override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT, SWAP_ORDER_EXPIRY_HOURS=24)
 class SwapSettlementMigrationTest(TransactionTestCase):
-    def test_actual_legacy_payment_address_retains_the_existing_receiving_chain_selector(self):
+    def test_actual_legacy_payment_address_refuses_before_and_after_configuration_drift(self):
         swap = make_swap("settlement-legacy-asset")
         self.addCleanup(restore_every_migration)
         try:
@@ -97,7 +100,8 @@ class SwapSettlementMigrationTest(TransactionTestCase):
             restore_every_migration()
         swap.refresh_from_db()
         self.assertEqual(swap.settlement_protocol_version, 0)
-        self.assertEqual(payment_address(swap), "0x" + "5" * 40)
+        with self.assertRaises(LegacySwapHeld):
+            payment_address(swap)
         address = "0x" + "e" * 40
         AssetChainDeployment.objects.create(
             asset=swap.payment_asset, chain="ethereum", contract_address=address, decimals=2
@@ -105,15 +109,18 @@ class SwapSettlementMigrationTest(TransactionTestCase):
         operator = Operator.get()
         operator.receiving_wallet_chain = ReceivingChain.ETHEREUM
         operator.save(update_fields=["receiving_wallet_chain"])
-        self.assertEqual(payment_address(swap), address)
+        with self.assertRaises(LegacySwapHeld):
+            payment_address(swap)
 
     def test_legacy_rows_signatures_deadlines_and_hashless_claims_remain_unrebound(self):
         swap = make_swap("settlement-migration", ready=True)
         service = swap_service(self)
         seller_signature, buyer_signature = swap.seller_signature, swap.buyer_signature
+        original_payload = encode_typed_data(full_message=service.get_typed_data(swap))
         old_apps = migrate_to([("tokens", "0038_order_action_submissions")])
         self.addCleanup(restore_every_migration)
         old_swaps = old_apps.get_model("tokens", "SwapOrder").objects
+        old_swaps.filter(pk=swap.pk).update(status=SwapOrderStatus.EXECUTING, tx_hash="")
         before = old_swaps.filter(pk=swap.pk).values().get()
         before_orders = list(
             old_apps.get_model("tokens", "TransferOrder")
@@ -139,10 +146,10 @@ class SwapSettlementMigrationTest(TransactionTestCase):
         restore_every_migration()
         swap.refresh_from_db()
         self.assertAlmostEqual((swap.expires_at - swap.created_at).total_seconds(), 86400, delta=2)
-        self.assertTrue(service.verify_signature(swap, seller_signature, SELLER.address))
-        self.assertTrue(service.verify_signature(swap, buyer_signature, BUYER.address))
-        SwapOrder.objects.filter(pk=swap.pk).update(status=SwapOrderStatus.EXECUTING, tx_hash="")
-        swap.refresh_from_db()
+        self.assertEqual(Account.recover_message(original_payload, signature=seller_signature), SELLER.address)
+        self.assertEqual(Account.recover_message(original_payload, signature=buyer_signature), BUYER.address)
+        with self.assertRaises(LegacySwapHeld):
+            service.get_typed_data(swap)
         untouched = persisted_outcome(swap)
         with patch("django.utils.timezone.now", return_value=swap.expires_at + timedelta(days=1)):
             self.assertIsNone(service.resolve_executing_swap(swap))

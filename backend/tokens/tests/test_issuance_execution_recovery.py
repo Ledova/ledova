@@ -249,7 +249,7 @@ class IssuanceExecutionRecoveryTest(TransactionTestCase):
     def test_generic_monitor_only_updates_historical_transactions(self):
         from unittest.mock import Mock
 
-        from blockchain.services import TransactionMonitorService
+        from blockchain.services.transaction import check_pending_transactions
 
         self.node.confirmed = False
         self.assertEqual(self.execute()["status"], "executing")
@@ -269,7 +269,7 @@ class IssuanceExecutionRecoveryTest(TransactionTestCase):
             "blockHash": "0x" + "72" * 32,
             "gasUsed": 21000,
         }
-        result = TransactionMonitorService.check_pending_transactions(client)
+        result = check_pending_transactions(client)
         self.assertEqual(result, {"checked": 1, "confirmed": 1, "failed": 0})
         client.get_transaction_receipt.assert_called_once_with(historical.tx_hash)
         self.assertEqual(BlockchainTransaction.objects.values().get(pk=current.pk), before)
