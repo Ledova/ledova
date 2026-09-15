@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import axios, { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -132,6 +132,13 @@ const listed = Object.keys(
 const listShape = (swap: object, keys = listed) =>
   Object.fromEntries(Object.entries(swap).filter(([key]) => keys.includes(key))) as unknown as SwapOrder;
 const listedSwap = listShape(fixture.get_body.swapOrder);
+type Rendered = { props: Record<string, unknown>; children: (Rendered | string)[] };
+const touchResponders = (node: Rendered): Rendered[] =>
+  node.children.flatMap((child) =>
+    typeof child === 'string'
+      ? []
+      : [...(child.props.onStartShouldSetResponder ? [child] : []), ...touchResponders(child)],
+  );
 let client: QueryClient;
 let api = axios.create();
 let requests: InternalAxiosRequestConfig[];
@@ -460,8 +467,9 @@ it.each([
     mockWallets = [selectedWallet(role)];
     mockSwaps = [listShape({ ...fixture.get_body.swapOrder, ...signed, status, settlementProtocolVersion: 0 })];
     const view = await render(<TradingScreen />, { wrapper });
-    expect(view.getByText('Held for operator review')).toBeTruthy();
-    expect(view.getByText(role === 'seller' ? 'Seller' : 'Buyer')).toBeTruthy();
+    const row = view.getByText('Held for operator review').parent!;
+    expect(within(row).getByText(role === 'seller' ? 'Seller' : 'Buyer')).toBeTruthy();
+    expect(touchResponders(row)).toEqual([]);
     expect(view.queryByText('Sign')).toBeNull();
   },
 );
