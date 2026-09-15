@@ -38,7 +38,7 @@ it('refuses a public HTTP stream before reading credentials or creating a connec
   await view.unmount();
 });
 
-it('refreshes reserved orders and signing views when a swap expires', async () => {
+it('refreshes reserved orders and swaps when a swap expires', async () => {
   process.env.EXPO_PUBLIC_API_URL = 'https://api.example.test';
   const view = await renderHook(() => useTradingEvents('synthetic'));
   await waitFor(() => expect(EventSource).toHaveBeenCalledTimes(1));
@@ -48,7 +48,6 @@ it('refreshes reserved orders and signing views when a swap expires', async () =
     [{ queryKey: ['trading', 'orderBook'] }],
     [{ queryKey: ['trading', 'userOrders'] }],
     [{ queryKey: ['trading', 'swaps'] }],
-    [{ queryKey: ['trading', 'orderSwapData'] }],
   ]);
   await view.unmount();
 });

@@ -289,7 +289,7 @@ export function OrdersPanel({
           {pendingSwaps.map((swap) => {
             const isSeller = normalizedAddresses.includes(swap.sellerAddress.toLowerCase()) && !swap.sellerHasSigned;
             const userRole = isSeller ? 'Seller' : 'Buyer';
-            const timeRemaining = formatSwapTimeRemaining(swap.expiresAt);
+            const legacy = 'settlementProtocolVersion' in swap && swap.settlementProtocolVersion === 0;
             let capturedDisplay: string | null = null;
             if (hasSwapSettlementContext(swap)) {
               try {
@@ -312,7 +312,7 @@ export function OrdersPanel({
                   <span className="text-sm font-medium text-text-primary">{swap.shareTokenSymbol}</span>
                   <span className="text-xs text-text-muted">•</span>
                   <span className="text-sm text-text-primary">
-                    {'settlementProtocolVersion' in swap && swap.settlementProtocolVersion === 0
+                    {legacy
                       ? `${swap.shareAmount}@$${(swap.paymentAmount / 100).toFixed(2)}`
                       : (capturedDisplay ?? 'Trade details need refreshing')}
                   </span>
@@ -321,18 +321,24 @@ export function OrdersPanel({
                   >
                     {userRole}
                   </span>
-                  <span className="text-xs text-text-subtle flex items-center gap-0.5">
-                    <ClockIcon size={ICON_XS} />
-                    {timeRemaining}
-                  </span>
+                  {!legacy && (
+                    <span className="text-xs text-text-subtle flex items-center gap-0.5">
+                      <ClockIcon size={ICON_XS} />
+                      {formatSwapTimeRemaining(swap.expiresAt)}
+                    </span>
+                  )}
                 </div>
-                <button
-                  onClick={() => onSignSwap(swap)}
-                  className="p-1.5 rounded-lg bg-brand-mid hover:bg-brand text-white"
-                  title="Sign swap"
-                >
-                  <QrCodeIcon size={ICON_SM} weight="bold" />
-                </button>
+                {legacy ? (
+                  <span className="text-xs font-medium text-text-muted">Held for operator review</span>
+                ) : (
+                  <button
+                    onClick={() => onSignSwap(swap)}
+                    className="p-1.5 rounded-lg bg-brand-mid hover:bg-brand text-white"
+                    title="Sign swap"
+                  >
+                    <QrCodeIcon size={ICON_SM} weight="bold" />
+                  </button>
+                )}
               </div>
             );
           })}

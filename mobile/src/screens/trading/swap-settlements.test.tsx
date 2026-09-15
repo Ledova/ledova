@@ -81,18 +81,23 @@ jest.mock('../../components/modal', () => {
 });
 let mockWallets: Wallet[];
 let mockSwaps: SwapOrder[];
+let mockActualOrders: boolean;
 jest.mock('./components/OrdersCard', () => {
   const { Pressable, Text } = jest.requireActual('react-native');
+  const actual = jest.requireActual<typeof import('./components/OrdersCard')>('./components/OrdersCard');
   return {
-    OrdersCard: ({ swaps, onSignSwap }: { swaps: SwapOrder[]; onSignSwap: (swap: SwapOrder) => void }) => (
-      <>
-        {swaps.map((swap, index) => (
-          <Pressable key={swap.uuid} onPress={() => onSignSwap(swap)}>
-            <Text>Open settlement {index + 1}</Text>
-          </Pressable>
-        ))}
-      </>
-    ),
+    OrdersCard: (props: React.ComponentProps<typeof actual.OrdersCard>) =>
+      mockActualOrders ? (
+        <actual.OrdersCard {...props} />
+      ) : (
+        <>
+          {props.swaps?.map((swap, index) => (
+            <Pressable key={swap.uuid} onPress={() => props.onSignSwap(swap)}>
+              <Text>Open settlement {index + 1}</Text>
+            </Pressable>
+          ))}
+        </>
+      ),
   };
 });
 jest.mock('./components/MarketList', () => ({ MarketList: () => null }));
@@ -101,15 +106,11 @@ jest.mock('./components/OrderSigningModal', () => ({ OrderSigningModal: () => nu
 jest.mock('./components/CreateOrderModal', () => ({ CreateOrderModal: () => null }));
 jest.mock('./components/OrderActionModal', () => ({ OrderActionModal: () => null }));
 jest.mock('./components/BuySellButtons', () => ({ BuySellButtons: () => null }));
-jest.mock('./components/SwapSigningModal', () => {
-  const { Text } = jest.requireActual('react-native');
-  return { SwapSigningModal: () => <Text>Legacy settlement route</Text> };
-});
 jest.mock('./hooks/useTradingEvents', () => ({ useTradingEvents: () => {} }));
 jest.mock('./useAtomicSwaps', () => ({ useSwapOrdersMulti: () => ({ data: mockSwaps, refetch: jest.fn() }) }));
 jest.mock('./useTrading', () => ({
   useShareTokens: () => ({
-    data: [{ uuid: '70000000-0000-4000-8000-000000000005', symbol: 'SYN' }],
+    data: [{ uuid: '70000000-0000-4000-8000-000000000005', symbol: 'DEP' }],
     refetch: jest.fn(),
   }),
   useInvestorEligibilityQuery: () => ({ data: { isEligible: true } }),
@@ -221,6 +222,7 @@ beforeEach(async () => {
   needsApproval = false;
   mockWallets = [selectedWallet()];
   mockSwaps = [copy(current.swapOrder)];
+  mockActualOrders = false;
   await AsyncStorage.clear();
   jest.mocked(AsyncStorage.setItem).mockImplementation(storageSet);
   client = new QueryClient({
@@ -408,18 +410,74 @@ it('keeps multiple original approval hashes during recovery and sufficient allow
   expect(view.queryByText('Review token approval')).toBeNull();
 });
 
-it('keeps explicit legacy routing separate from malformed V1', async () => {
-  mockSwaps = [{ ...current.swapOrder, settlementProtocolVersion: 0, settlementContext: null, settlementDigest: '' }];
+it('holds explicit V0 history for operator review in the mounted list and keeps V1 signable after refresh', async () => {
+  const signer = jest.spyOn(localSigner, 'signEthereumTypedData');
+  mockActualOrders = true;
+  mockSwaps = [
+    {
+      ...current.swapOrder,
+      settlementProtocolVersion: 0,
+      settlementContext: null,
+      settlementDigest: '',
+      shareAmount: 10,
+    },
+  ];
   const view = await render(<TradingScreen />, { wrapper });
-  await fireEvent.press(view.getByText('Open settlement 1'));
-  expect(view.getByText('Legacy settlement route')).toBeTruthy();
+  expect(view.queryByText('Sign')).toBeNull();
+  expect(view.getByText('10 shares')).toBeTruthy();
+  expect(view.getByText('Seller')).toBeTruthy();
+  expect(view.queryByText('Expired')).toBeNull();
+  await fireEvent.press(view.getByText('Held for operator review'));
+  await act(async () => {});
   expect(requests).toHaveLength(0);
-  mockSwaps = [{ ...current.swapOrder, settlementContext: null }];
+  expect(getSeedPhrase).not.toHaveBeenCalled();
+  expect(signer).not.toHaveBeenCalled();
+  mockSwaps = [copy(current.swapOrder)];
   await view.rerender(<TradingScreen />);
-  await fireEvent.press(view.getByText('Open settlement 1'));
-  expect(view.queryByText('Legacy settlement route')).toBeNull();
+  expect(view.queryByText('Held for operator review')).toBeNull();
+  expect(view.getByText('Expired')).toBeTruthy();
+  await fireEvent.press(view.getByText('Sign'));
+  await waitFor(() => expect(view.getByText('Check token approval')).toBeTruthy());
+  expect(requests[0].params).toMatchObject({
+    swap_uuid: current.swapUuid,
+    wallet_uuid: current.walletUuid,
+    settlement_digest: current.settlementDigest,
+  });
+  await fireEvent.press(view.getByText('Check token approval'));
+  await fireEvent.press(await view.findByText('Sign settlement'));
+  await waitFor(() => expect(posts()).toHaveLength(1));
+  expect(getSeedPhrase).toHaveBeenCalledTimes(1);
+  expect(signer).toHaveBeenCalledTimes(1);
+});
+
+it.each([
+  {
+    name: 'without settlement fields',
+    swap: Object.fromEntries(
+      Object.entries(fixture.get_body.swapOrder).filter(([key]) => !key.startsWith('settlement')),
+    ),
+  },
+  {
+    name: 'with a string version',
+    swap: { ...fixture.get_body.swapOrder, settlementProtocolVersion: '0', settlementContext: null },
+  },
+  {
+    name: 'with a null version',
+    swap: { ...fixture.get_body.swapOrder, settlementProtocolVersion: null, settlementContext: null },
+  },
+  { name: 'with a null V1 context', swap: { ...fixture.get_body.swapOrder, settlementContext: null } },
+])('refuses a listed settlement $name without the operator-review state', async ({ swap }) => {
+  mockActualOrders = true;
+  mockSwaps = [swap as unknown as SwapOrder];
+  const view = await render(<TradingScreen />, { wrapper });
+  expect(view.queryByText('Held for operator review')).toBeNull();
+  await fireEvent.press(view.getByText('Sign'));
+  expect(
+    view.getByText(
+      'This settlement cannot be opened with the current account and wallet. Refresh its captured details.',
+    ),
+  ).toBeTruthy();
   expect(requests).toHaveLength(0);
-  expect(view.getByRole('alert')).toBeTruthy();
 });
 
 it('keeps late context A from replacing B and submits only B identity', async () => {
@@ -600,36 +658,6 @@ it.each([true, false])('chooses the remaining buyer side with signed or unbound 
   await waitFor(() => expect(posts()).toHaveLength(1));
   expect(posts()[0].url).toContain(current.swapOrder.buyOrderUuid);
   expect(JSON.parse(posts()[0].data).signature).toBe(fixture.signatures[1]);
-});
-
-it('keeps an ordinary V0 unsigned seller visible in the actual orders list', async () => {
-  const { OrdersCard } = jest.requireActual<typeof import('./components/OrdersCard')>('./components/OrdersCard');
-  const swap = {
-    ...current.swapOrder,
-    settlementProtocolVersion: 0 as const,
-    settlementContext: null,
-    settlementDigest: '',
-    shareAmount: 10,
-  };
-  const view = await render(
-    <OrdersCard
-      tokenSymbol={swap.shareTokenSymbol}
-      orderBook={null}
-      isLoadingOrderBook={false}
-      userOrders={[]}
-      isLoadingUserOrders={false}
-      onCancelOrder={() => {}}
-      onEditOrder={() => {}}
-      onViewOrder={() => {}}
-      swaps={[swap]}
-      isLoadingSwaps={false}
-      walletAddresses={[swap.sellerAddress]}
-      onSignSwap={() => {}}
-    />,
-  );
-  expect(view.getByText('10 shares')).toBeTruthy();
-  expect(view.getByText('Seller')).toBeTruthy();
-  expect(view.getByText('Sign')).toBeTruthy();
 });
 
 it('displays exact V1 shares in the actual list before either party has signed', async () => {

@@ -78,7 +78,6 @@ vi.mock('@keystonehq/animated-qr', () => ({ AnimatedQRCode: () => null }));
 vi.mock('@utils/softwareWallet/localSigner', () => ({ deriveAddress: vi.fn(), signEthereumTypedData: vi.fn() }));
 vi.mock('./components/MarketOverview', () => ({ MarketOverview: () => null }));
 vi.mock('./components/OrdersPanel', () => ({ OrdersPanel: () => null }));
-vi.mock('./components/SwapSigningFlow', () => ({ SwapSigningFlow: () => null }));
 vi.mock('./hooks/useTradingEvents', () => ({ useTradingEvents: () => {} }));
 vi.mock('./hooks/useAtomicSwaps', () => ({ useSwapOrdersMulti: () => ({ data: [], isLoading: false }) }));
 vi.mock('./useTrading', async () => {

@@ -21,7 +21,6 @@ import {
   useOrderBook,
 } from './useTrading';
 import { useSwapOrdersMulti } from './hooks/useAtomicSwaps';
-import { SwapSigningFlow } from './components/SwapSigningFlow';
 import { SwapSettlementFlow } from './components/SwapSettlementFlow';
 import { OrderSigningFlow } from './components/OrderSigningFlow';
 import { OrderActionFlow } from './components/OrderActionFlow';
@@ -112,8 +111,6 @@ export function TradingPage() {
   const [createdOrder, setCreatedOrder] = useState<TransferOrder | null>(null);
   const [recoveredOrder, setRecoveredOrder] = useState(false);
 
-  const [selectedSwap, setSelectedSwap] = useState<SwapOrder | null>(null);
-  const [isSwapSigningOpen, setIsSwapSigningOpen] = useState(false);
   const [swapSelectionError, setSwapSelectionError] = useState<string | null>(null);
 
   useTradingEvents(selectedTokenUuid);
@@ -201,8 +198,6 @@ export function TradingPage() {
     if (settlementWalletGuard.current) settlementWalletGuard.current.retired = true;
     settlementWalletGuard.current = null;
     settlements.close();
-    setSelectedSwap(null);
-    setIsSwapSigningOpen(false);
     setSwapSelectionError(null);
   };
 
@@ -222,11 +217,6 @@ export function TradingPage() {
     submissions.close();
     actions.close();
     closeSwapSigning();
-    if ('settlementProtocolVersion' in swap && swap.settlementProtocolVersion === 0) {
-      setSelectedSwap(swap);
-      setIsSwapSigningOpen(true);
-      return;
-    }
     if (!hasSwapSettlementContext(swap) || !settlements.owner) {
       setSwapSelectionError('The saved trade details are incomplete. Refresh the trade before signing.');
       return;
@@ -255,22 +245,6 @@ export function TradingPage() {
     } catch {
       setSwapSelectionError('The trade details did not match the selected account and wallet.');
     }
-  };
-
-  const getSwapSigningWalletAddress = (swap: SwapOrder | null): string | undefined => {
-    if (!swap) return undefined;
-    return (
-      (!swap.sellerHasSigned && walletAddresses.find((a) => a.toLowerCase() === swap.sellerAddress.toLowerCase())) ||
-      (!swap.buyerHasSigned && walletAddresses.find((a) => a.toLowerCase() === swap.buyerAddress.toLowerCase())) ||
-      walletAddresses.find((a) => a.toLowerCase() === swap.sellerAddress.toLowerCase()) ||
-      walletAddresses.find((a) => a.toLowerCase() === swap.buyerAddress.toLowerCase())
-    );
-  };
-
-  const getSwapSigningWallet = (swap: SwapOrder | null): Wallet | null => {
-    const address = getSwapSigningWalletAddress(swap);
-    if (!address) return null;
-    return wallets.find((w) => w.address.toLowerCase() === address.toLowerCase()) || null;
   };
 
   const handleCloseOrderSigningFlow = () => {
@@ -434,20 +408,6 @@ export function TradingPage() {
         onClose={() => setSuccessModalOpen(false)}
       />
 
-      {isSwapSigningOpen && selectedSwap && (
-        <SwapSigningFlow
-          isOpen
-          onClose={closeSwapSigning}
-          swap={selectedSwap}
-          walletAddress={getSwapSigningWalletAddress(selectedSwap) || ''}
-          wallet={getSwapSigningWallet(selectedSwap)}
-          orderUuid={
-            getSwapSigningWalletAddress(selectedSwap)?.toLowerCase() === selectedSwap.sellerAddress.toLowerCase()
-              ? selectedSwap.sellOrderUuid
-              : selectedSwap.buyOrderUuid
-          }
-        />
-      )}
       {settlements.active && (
         <SwapSettlementFlow settlement={settlements.active} wallets={wallets} onClose={closeSwapSigning} />
       )}

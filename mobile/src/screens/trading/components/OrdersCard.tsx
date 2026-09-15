@@ -30,7 +30,6 @@ interface OrdersCardProps {
 }
 
 function displayedSwapShares(swap: SwapOrder): string {
-  if ('settlementProtocolVersion' in swap && swap.settlementProtocolVersion === 0) return String(swap.shareAmount);
   try {
     if (hasSwapSettlementContext(swap))
       return formatUnits(
@@ -471,7 +470,7 @@ export function OrdersCard({
           {pendingSwaps.map((swap) => {
             const isSeller = !swap.sellerHasSigned && normalizedAddresses.includes(swap.sellerAddress.toLowerCase());
             const userRole = isSeller ? 'Seller' : 'Buyer';
-            const timeRemaining = formatSwapTimeRemaining(swap.expiresAt);
+            const legacy = 'settlementProtocolVersion' in swap && swap.settlementProtocolVersion === 0;
 
             return (
               <View key={swap.uuid} style={styles.swapRow}>
@@ -485,7 +484,9 @@ export function OrdersCard({
                   >
                     <ArrowsLeftRightIcon size={theme.icon.sizes.xs} color={theme.colors.brand.light} weight="bold" />
                   </View>
-                  <Text style={styles.orderDetails}>{displayedSwapShares(swap)} shares</Text>
+                  <Text style={styles.orderDetails}>
+                    {legacy ? String(swap.shareAmount) : displayedSwapShares(swap)} shares
+                  </Text>
                   <Text
                     style={[
                       styles.roleBadge,
@@ -499,14 +500,20 @@ export function OrdersCard({
                   >
                     {userRole}
                   </Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                    <ClockIcon size={theme.icon.sizes.xs} color={theme.colors.text.subtle} />
-                    <Text style={styles.orderMeta}>{timeRemaining}</Text>
-                  </View>
+                  {!legacy && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                      <ClockIcon size={theme.icon.sizes.xs} color={theme.colors.text.subtle} />
+                      <Text style={styles.orderMeta}>{formatSwapTimeRemaining(swap.expiresAt)}</Text>
+                    </View>
+                  )}
                 </View>
-                <TouchableOpacity style={styles.signButton} onPress={() => onSignSwap(swap)}>
-                  <Text style={styles.signButtonText}>Sign</Text>
-                </TouchableOpacity>
+                {legacy ? (
+                  <Text style={styles.orderMeta}>Held for operator review</Text>
+                ) : (
+                  <TouchableOpacity style={styles.signButton} onPress={() => onSignSwap(swap)}>
+                    <Text style={styles.signButtonText}>Sign</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             );
           })}
