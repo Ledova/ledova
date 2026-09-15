@@ -246,14 +246,26 @@ class SwapApprovalRecoveryTest(TransactionTestCase):
                 TokenDeployment.objects.filter(pk=self.command.pk).update(**changes)
 
     def test_generic_transaction_monitor_excludes_the_approval(self):
+        from blockchain.tasks import check_pending_transactions
+
         self.approval_node.confirmed = False
         self.recover()
         self.command.refresh_from_db()
-        self.assertFalse(
-            BlockchainTransaction.objects.without_outgoing_operations()
-            .filter(pk=self.command.approval_transaction_id)
-            .exists()
-        )
+        attempt = self.approval_attempts().get()
+        historical = BlockchainTransaction.objects.create(tx_hash="0x" + "ab" * 32, status="submitted", tx_type="other")
+        self.approval_node.receipts[attempt.tx_hash] = approval_receipt(attempt)
+        self.approval_node.receipts[historical.tx_hash] = approval_receipt(attempt) | {
+            "transactionHash": historical.tx_hash
+        }
+        self.approval_node.client.get_transaction_receipt.reset_mock()
+        with patch("integrations.base_chain.get_base_chain_client", return_value=self.approval_node.client):
+            self.assertEqual(check_pending_transactions.func(timestamp=0), {"checked": 1, "confirmed": 1, "failed": 0})
+        self.approval_node.client.get_transaction_receipt.assert_called_once_with(historical.tx_hash)
+        historical.refresh_from_db()
+        self.assertEqual(historical.status, "confirmed")
+        self.command.approval_transaction.refresh_from_db()
+        self.assertEqual(self.command.approval_transaction.status, "submitted")
+        self.assertEqual(self.recover(), "confirmed")
 
     def test_receipt_envelope_must_retain_the_original_sender_and_target(self):
         self.approval_node.confirmed = False

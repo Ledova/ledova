@@ -4,11 +4,11 @@ from django.contrib.admin.models import LogEntry
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.contrib.messages import get_messages
-from django.db import connections
+from django.db import DatabaseError, connections
 from django.test import TransactionTestCase, override_settings
 from django.urls import reverse
 
-from shared.db import current_alias
+from shared.db import atomic, current_alias
 from tokens.models import TokenDeployment
 from tokens.services import swap_approval
 from tokens.tests.deployment_fixtures import CHAIN_ID, FACTORY, KEY
@@ -60,24 +60,30 @@ class SwapApprovalBoundaryTest(TransactionTestCase):
         self.approval_node.receipt_status = 1
         self.assertEqual(swap_approval.recover(self.command.pk), "confirmed")
 
-    def test_every_rpc_releases_command_operation_and_signer_locks(self):
+    def assert_locks_available(self):
+        observer = connections[current_alias()].copy(alias="approval-lock-observer")
+        try:
+            with observer.cursor() as cursor:
+                for table in ("tokens_tokendeployment", "blockchain_outgoingoperation", "blockchain_signingaccount"):
+                    cursor.execute(f"SELECT uuid FROM {table} FOR UPDATE NOWAIT")
+                    cursor.fetchall()
+        finally:
+            observer.close()
+
+    def test_separate_connection_probe_refuses_a_deliberately_held_deployment_lock(self):
+        with atomic():
+            TokenDeployment.objects.select_for_update().get(pk=self.command.pk)
+            with self.assertRaises(DatabaseError):
+                self.assert_locks_available()
+        self.assert_locks_available()
+
+    def test_chain_observation_preparation_receipt_and_broadcast_release_locks(self):
         calls = []
 
         def probe(label):
             connection = connections[current_alias()]
             self.assertTrue(connection.get_autocommit())
-            observer = connection.copy(alias="approval-lock-observer")
-            try:
-                with observer.cursor() as cursor:
-                    for table in (
-                        "tokens_tokendeployment",
-                        "blockchain_outgoingoperation",
-                        "blockchain_signingaccount",
-                    ):
-                        cursor.execute(f"SELECT uuid FROM {table} FOR UPDATE NOWAIT")
-                        cursor.fetchall()
-            finally:
-                observer.close()
+            self.assert_locks_available()
             calls.append(label)
 
         def get_block(*args):
