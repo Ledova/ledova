@@ -10,7 +10,6 @@
     "npm": "11.5.2"
   },
   "scripts": {
-    "prepare": "husky",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
@@ -19,7 +18,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "type-check": "tsc -b --noEmit",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "test:smoke": "playwright test",
     "check:react-singleton": "node scripts/check-react-singleton.mjs"
   },
@@ -72,9 +71,7 @@
     "eslint-plugin-react-refresh": "^0.5.6",
     "events": "^3.3.0",
     "globals": "^17.12.0",
-    "husky": "^9.1.7",
     "jsdom": "^29.1.1",
-    "lint-staged": "^16.4.0",
     "prettier": "^3.9.6",
     "process": "^0.11.10",
     "stream-browserify": "^3.0.0",
@@ -83,12 +80,6 @@
     "util": "^0.12.5",
     "vite": "^8.2.2",
     "vitest": "^5.0.0"
-  },
-  "lint-staged": {
-    "*.{ts,tsx,js,json,css,md}": [
-      "prettier --write",
-      "eslint --fix"
-    ]
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-arm64-musl": "^4.63.1",
