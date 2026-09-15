@@ -46,10 +46,11 @@ Real Redis/ClamAV controls are separate from unit fakes; see
 
 ## Backend verification
 
-CI runs three backend suites, the ordinary suite as its own job, and a backend
-change runs all three locally before it is called green. A change to a policy,
+CI runs three backend suites, the ordinary suite in shard jobs of its own, and a
+backend change runs all three locally before it is called green. A change to a policy,
 a role grant or the test settings can pass two and fail the third, because each
-sees something the others cannot. From `backend/`, exactly as CI runs them:
+sees something the others cannot. From `backend/`, the commands CI runs, though CI
+splits the first across shard jobs (below):
 
 ```bash
 python manage.py test --settings=ledova_backend.settings.test --parallel 4 --noinput
@@ -69,11 +70,25 @@ An empty or suppressed run is not a pass: find the `Ran N tests` tally before
 reading the exit status. [Scoped connection evidence](#scoped-connection-evidence)
 explains how the ordinary and scoped suites differ.
 
+CI splits the ordinary suite into parallel "Django ordinary shard (NAME)" jobs,
+one for each shard in
+[`.github/ordinary-suite-shards.json`](../../.github/ordinary-suite-shards.json).
+Each job has its own PostgreSQL 16, and runs the ordinary command above with
+that shard's test labels appended. Before the suite, each runs the
+[ordinary shard gate](gates.md#the-ordinary-shard-gate). It refuses a shard label
+that is not a top-level backend package or is listed twice and a test id defined
+by more than one test class, and
+holds the shards' test ids to a partition of the unlabelled suite's, so on the
+same commit their `Ran N tests` counts add up to the unsharded run's. The
+"Django ordinary suite" check needs every shard, and fails unless each one succeeded; a failed, cancelled or
+skipped shard fails it. Locally, run the unsharded command. To repeat one shard,
+append `$(python ../scripts/check-ordinary-shards.py --labels NAME)` to it.
+
 `black`, `isort` and `flake8` are development requirements and are not in the
 backend image, so running the source gates inside that image proves nothing
 about CI's Lint step. Lint runs first in the Django checks job and stops that
-job when it fails; the ordinary suite runs in its own job whether or not it
-passes. Install the tools with `make install-backend` from the repository root
+job when it fails; the ordinary suite's shards run in their own jobs whether or
+not it passes. Install the tools with `make install-backend` from the repository root
 (`make check` does the same); CI installs the same file with
 `pip install -r requirements-dev.txt -c schema/requirements.txt` from
 `backend/`. Then run `cd backend && make lint`: `black --check` and

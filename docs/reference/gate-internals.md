@@ -45,6 +45,33 @@ that shadow reserved TestCase methods. Its regression controls establish which
 assertions become inert when `fail` is replaced; intentional lifecycle/runner
 overrides remain allowed. It does not verify every test's assertions.
 
+[Ordinary shard checker](../../scripts/check-ordinary-shards.py) compares the test
+ids Django's runner builds, not module files, and counts each id in every
+discovery. A shard label must be an identifier naming a package directly under
+`backend/`: a module, directory or class label can build a factory's class the
+unlabelled suite never builds, under an id standing in for a copy in no shard. Two
+classes a factory builds, whether bound to module attributes or added by
+`load_tests`, can share one test id, and Django runs both, so the checker refuses
+any id the unlabelled suite finds more than once. It compares ids, not classes or
+what they run, so it does not report a test in an unassigned app when a module in
+an assigned app imports its class or discovers it through `load_tests`, or when
+import order decides which module defines a shared id, as when a factory caches its
+class by name and builds it for whichever module calls it first. A module that fails
+to import is a finding rather than a module: it is discovered as one `_FailedTest`
+on both sides and would otherwise look covered.
+Each discovery re-runs the checker with `--discover` in a fresh interpreter,
+because a module can define different tests depending on what was imported
+before it, and each CI shard starts from nothing.
+[Regression tests](../../scripts/tests/test_check_ordinary_shards.py) plant each
+finding with synthetic cases, run the checker's `main()` over them to hold its exit
+status to its findings and its printed total to the sum of the shard counts, and
+hold the committed matrix to the committed shard file and its labels to the
+backend's top-level packages. Against a stand-in for Django's runner, they plant a
+test that exists only once another shard's module is imported, a factory's class
+built in two modules that each run in a shard, and a module skipped as it is
+imported, which must be named by its own name. Discovery of the real backend runs
+in CI's shard jobs and in `make check`.
+
 ## Schema and client operations
 
 [Response-declaration checker](../../scripts/check-schema-responses.py) follows local
