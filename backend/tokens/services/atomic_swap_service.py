@@ -1,7 +1,6 @@
 import logging
 import secrets
 from collections.abc import Mapping
-from copy import deepcopy
 from datetime import timedelta
 from decimal import Decimal, localcontext
 from typing import Optional
@@ -39,7 +38,6 @@ from tokens.models import (
     TransferOrderType,
 )
 from tokens.services.settlement_context import (
-    SETTLEMENT_TYPES,
     assert_current_settlement,
     capture_settlement_context,
     recorded_settlement_context,
@@ -59,16 +57,7 @@ MAX_UINT256 = 2**256 - 1
 
 
 def payment_address(swap_order) -> str:
-    if swap_order.settlement_protocol_version:
-        return recorded_settlement_context(swap_order)["typed_data"]["message"]["paymentToken"]
-    return require_deployment(swap_order.payment_asset).contract_address
-
-
-def configured_swap_address() -> str:
-    address = getattr(settings, "ATOMIC_SWAP_ADDRESS", None)
-    if not address:
-        raise AtomicSwapNotConfiguredException()
-    return address
+    return recorded_settlement_context(swap_order)["typed_data"]["message"]["paymentToken"]
 
 
 def configured_relayer_key() -> str:
@@ -78,35 +67,8 @@ def configured_relayer_key() -> str:
     return key
 
 
-def _get_eip712_domain() -> dict:
-    return {
-        "name": "LedovaAtomicSwap",
-        "version": "1",
-        "chainId": get_base_chain_client().chain_id,
-        "verifyingContract": configured_swap_address(),
-    }
-
-
 def get_typed_data(swap_order: SwapOrder) -> dict:
-    if swap_order.settlement_protocol_version:
-        return recorded_settlement_context(swap_order)["typed_data"]
-    deadline = int(swap_order.expires_at.timestamp())
-
-    return {
-        "types": deepcopy(SETTLEMENT_TYPES),
-        "primaryType": "SwapOrder",
-        "domain": _get_eip712_domain(),
-        "message": {
-            "seller": swap_order.seller_address,
-            "buyer": swap_order.buyer_address,
-            "shareToken": swap_order.share_token.contract_address,
-            "paymentToken": payment_address(swap_order),
-            "shareAmount": str(swap_order.share_amount),
-            "paymentAmount": str(swap_order.payment_amount),
-            "nonce": str(swap_order.nonce),
-            "deadline": str(deadline),
-        },
-    }
+    return recorded_settlement_context(swap_order)["typed_data"]
 
 
 def _generate_nonce() -> int:
@@ -114,29 +76,26 @@ def _generate_nonce() -> int:
 
 
 def settlement_contract(swap_order):
-    if swap_order.settlement_protocol_version:
-        return recorded_settlement_context(swap_order)["typed_data"]["domain"]["verifyingContract"]
-    return configured_swap_address()
+    return recorded_settlement_context(swap_order)["typed_data"]["domain"]["verifyingContract"]
 
 
 def assert_provider_settlement(swap_order):
-    if swap_order.settlement_protocol_version:
-        context = assert_current_settlement(swap_order)
-        try:
-            actual_chain = get_base_chain_client().assert_expected_chain()
-        except Exception as exc:
-            raise SettlementContextChanged() from exc
-        if actual_chain != int(context["typed_data"]["domain"]["chainId"]):
-            raise SettlementContextChanged()
-        assert_current_settlement(swap_order)
+    context = assert_current_settlement(swap_order)
+    try:
+        actual_chain = get_base_chain_client().assert_expected_chain()
+    except Exception as exc:
+        raise SettlementContextChanged() from exc
+    if actual_chain != int(context["typed_data"]["domain"]["chainId"]):
+        raise SettlementContextChanged()
+    assert_current_settlement(swap_order)
 
 
-def check_allowance(token_address: str, owner_address: str, spender=None) -> int:
+def check_allowance(token_address: str, owner_address: str, spender) -> int:
     token_contract = get_base_chain_client().load_contract("ShareToken", token_address)
     allowance = get_base_chain_client().call_contract_function(
         token_contract.functions.allowance(
             get_base_chain_client().to_checksum_address(owner_address),
-            get_base_chain_client().to_checksum_address(spender or configured_swap_address()),
+            get_base_chain_client().to_checksum_address(spender),
         )
     )
     return allowance
@@ -154,16 +113,16 @@ def check_balance(token_address: str, owner_address: str) -> int:
 
 def validate_swap_balances(swap_order: SwapOrder) -> None:
     assert_provider_settlement(swap_order)
-    context = recorded_settlement_context(swap_order) if swap_order.settlement_protocol_version else None
+    context = recorded_settlement_context(swap_order)
     seller_balance = check_balance(
-        context["share_token"]["address"] if context else swap_order.share_token.contract_address,
+        context["share_token"]["address"],
         swap_order.seller_address,
     )
     if seller_balance < swap_order.share_amount:
         raise InsufficientBalanceException(
             balance=seller_balance,
             required=swap_order.share_amount,
-            token_symbol=context["share_token"]["symbol"] if context else swap_order.share_token.symbol,
+            token_symbol=context["share_token"]["symbol"],
         )
 
     buyer_balance = check_balance(
@@ -174,16 +133,16 @@ def validate_swap_balances(swap_order: SwapOrder) -> None:
         raise InsufficientBalanceException(
             balance=buyer_balance,
             required=swap_order.payment_amount,
-            token_symbol=context["payment_asset"]["symbol"] if context else swap_order.payment_asset.symbol,
-            decimals=context["payment_asset"]["deployment_decimals"] if context else swap_order.payment_asset.decimals,
+            token_symbol=context["payment_asset"]["symbol"],
+            decimals=context["payment_asset"]["deployment_decimals"],
         )
     assert_provider_settlement(swap_order)
 
 
 def check_swap_allowances(swap_order: SwapOrder) -> dict:
     assert_provider_settlement(swap_order)
-    context = recorded_settlement_context(swap_order) if swap_order.settlement_protocol_version else None
-    share_address = context["share_token"]["address"] if context else swap_order.share_token.contract_address
+    context = recorded_settlement_context(swap_order)
+    share_address = context["share_token"]["address"]
     spender = settlement_contract(swap_order)
     seller_allowance = check_allowance(
         share_address,
@@ -204,7 +163,7 @@ def check_swap_allowances(swap_order: SwapOrder) -> dict:
         "seller": {
             "address": swap_order.seller_address,
             "token": share_address,
-            "token_symbol": context["share_token"]["symbol"] if context else swap_order.share_token.symbol,
+            "token_symbol": context["share_token"]["symbol"],
             "required_amount": swap_order.share_amount,
             "current_allowance": seller_allowance,
             "has_sufficient_allowance": seller_has_allowance,
@@ -212,7 +171,7 @@ def check_swap_allowances(swap_order: SwapOrder) -> dict:
         "buyer": {
             "address": swap_order.buyer_address,
             "token": payment_address(swap_order),
-            "token_symbol": context["payment_asset"]["symbol"] if context else swap_order.payment_asset.symbol,
+            "token_symbol": context["payment_asset"]["symbol"],
             "required_amount": swap_order.payment_amount,
             "current_allowance": buyer_allowance,
             "has_sufficient_allowance": buyer_has_allowance,
@@ -226,17 +185,17 @@ def get_approval_transaction_data(
     unlimited: bool = True,
 ) -> dict:
     assert_provider_settlement(swap_order)
-    context = recorded_settlement_context(swap_order) if swap_order.settlement_protocol_version else None
+    context = recorded_settlement_context(swap_order)
     if user_role == "seller":
-        token_address = context["share_token"]["address"] if context else swap_order.share_token.contract_address
+        token_address = context["share_token"]["address"]
         owner_address = swap_order.seller_address
         amount = MAX_UINT256 if unlimited else swap_order.share_amount
-        token_symbol = context["share_token"]["symbol"] if context else swap_order.share_token.symbol
+        token_symbol = context["share_token"]["symbol"]
     elif user_role == "buyer":
         token_address = payment_address(swap_order)
         owner_address = swap_order.buyer_address
         amount = MAX_UINT256 if unlimited else swap_order.payment_amount
-        token_symbol = context["payment_asset"]["symbol"] if context else swap_order.payment_asset.symbol
+        token_symbol = context["payment_asset"]["symbol"]
     else:
         raise ValueError(f"Invalid user_role: {user_role}")
 
@@ -414,6 +373,7 @@ def submit_signature(
     admission=None,
 ) -> SwapOrder:
     snapshot = SwapOrder.objects.get(pk=swap_order.pk)
+    recorded_settlement_context(snapshot)
     if admission:
         admission(snapshot)
     signer_checksum = Web3.to_checksum_address(signer_address)
@@ -433,6 +393,7 @@ def submit_signature(
 @atomic()
 def _store_signature(snapshot, signature, is_seller, admission=None):
     swap = SwapOrder.objects.select_for_update(of=("self",)).get(pk=snapshot.pk)
+    recorded_settlement_context(swap)
     if swap_terms(swap) != swap_terms(snapshot):
         raise SwapSignatureException("The swap changed while its signature was being checked")
     if admission:
@@ -442,8 +403,7 @@ def _store_signature(snapshot, signature, is_seller, admission=None):
         if stored != signature:
             raise SwapSignatureException("This party has already signed the swap")
         return swap
-    if swap.settlement_protocol_version:
-        assert_current_settlement(swap)
+    assert_current_settlement(swap)
     allowed = (
         (SwapOrderStatus.CREATED, SwapOrderStatus.BUYER_SIGNED)
         if is_seller
@@ -480,8 +440,7 @@ def execute_swap(swap_order: SwapOrder, admission=None) -> str:
     assert_provider_settlement(swap)
     if admission:
         admission(swap)
-    if swap.settlement_protocol_version:
-        _admit_claim(swap, tx_record)
+    _admit_claim(swap, tx_record)
     try:
         tx_hash = get_base_chain_client().send_raw_transaction(signed_tx)
     except Exception as exc:
@@ -505,28 +464,16 @@ def _admit_claim(swap, transaction):
 @atomic(durable=True)
 def _claim_execution(swap_id, admission=None):
     swap = SwapOrder.objects.select_for_update(of=("self",)).get(pk=swap_id)
+    recorded_settlement_context(swap)
     if not swap.is_ready or swap.transaction_id is not None or swap.tx_hash:
         raise SwapNotReadyException()
     if swap.deadline_passed:
         raise SwapExpiredException()
     if admission:
         admission(swap)
-    if swap.settlement_protocol_version:
-        assert_current_settlement(swap)
+    assert_current_settlement(swap)
     relayer_account = Account.from_key(configured_relayer_key())
-    arguments = (
-        settlement_execution_arguments(swap)
-        if swap.settlement_protocol_version
-        else {
-            "seller": swap.seller_address,
-            "buyer": swap.buyer_address,
-            "shareToken": swap.share_token.contract_address,
-            "paymentToken": payment_address(swap),
-            "shareAmount": str(swap.share_amount),
-            "paymentAmount": str(swap.payment_amount),
-            "nonce": str(swap.nonce),
-        }
-    )
+    arguments = settlement_execution_arguments(swap)
     tx_record = _new_transaction_record(swap, relayer_account.address, arguments)
     swap.mark_executing(transaction=tx_record)
     return swap, tx_record
@@ -541,8 +488,9 @@ def _prepare_attempt(swap_order: SwapOrder):
 
 
 def _execute_swap_call(swap_order: SwapOrder):
-    contract = get_base_chain_client().load_contract("AtomicSwap", settlement_contract(swap_order))
+    address = settlement_contract(swap_order)
     message = get_typed_data(swap_order)["message"]
+    contract = get_base_chain_client().load_contract("AtomicSwap", address)
 
     return contract.functions.executeSwap(
         Web3.to_checksum_address(message["seller"]),
@@ -670,16 +618,15 @@ def executed_order_hash(swap_order: SwapOrder) -> str:
 
 
 def chain_says_this_swap_executed(swap_order: SwapOrder, receipt=None) -> bool:
-    if not swap_order.tx_hash:
+    if swap_order.settlement_protocol_version == 0 or not swap_order.tx_hash:
         return False
+    recorded = recorded_settlement_context(swap_order)
     if receipt is None:
         receipt = get_base_chain_client().receipt_even_if_reverted(swap_order.tx_hash)
     if not isinstance(receipt, Mapping) or receipt.get("status") != 1:
         return False
-    if swap_order.settlement_protocol_version:
-        recorded = recorded_settlement_context(swap_order)
-        if get_base_chain_client().w3.eth.chain_id != int(recorded["typed_data"]["domain"]["chainId"]):
-            return False
+    if get_base_chain_client().w3.eth.chain_id != int(recorded["typed_data"]["domain"]["chainId"]):
+        return False
     contract = get_base_chain_client().load_contract("AtomicSwap", settlement_contract(swap_order))
     expected = executed_order_hash(swap_order)
     for event in contract.events.SwapExecuted().process_receipt(receipt):
@@ -689,6 +636,9 @@ def chain_says_this_swap_executed(swap_order: SwapOrder, receipt=None) -> bool:
 
 
 def resolve_executing_swap(swap_order: SwapOrder) -> Optional[str]:
+    if swap_order.settlement_protocol_version == 0:
+        return None
+    recorded_settlement_context(swap_order)
     if swap_order.status != SwapOrderStatus.EXECUTING or not swap_order.transaction_id or not swap_order.tx_hash:
         return None
     transaction = BlockchainTransaction.objects.get(pk=swap_order.transaction_id)
