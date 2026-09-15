@@ -73,7 +73,9 @@ def check(repository, number):
         raise ValueError(f"#{issue_number} must be an issue in {repository}, not a pull request.")
     total = github_json(f"the commit count of PR #{number}", "api", f"repos/{repository}/pulls/{number}").get("commits")
     if type(total) is not int or total != len(request["commits"]):
-        raise ValueError(f"PR #{number} has {total!r} commits, but the gate read {len(request['commits'])}; they must match.")
+        raise ValueError(
+            f"PR #{number} has {total!r} commits, but the gate read {len(request['commits'])}; they must match."
+        )
     return issue_number
 
 
