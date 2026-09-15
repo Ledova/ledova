@@ -933,8 +933,9 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self._deployed()
         request = self._whitelisted_request(10)
         nonce = self._signer_nonce()
-        with patch.object(BaseChainClient, "estimate_gas", return_value=30000), patch.object(
-            issuance_execution, "_project", side_effect=KeyboardInterrupt
+        with (
+            patch.object(BaseChainClient, "estimate_gas", return_value=30000),
+            patch.object(issuance_execution, "_project", side_effect=KeyboardInterrupt),
         ):
             with self.assertRaises(KeyboardInterrupt):
                 self._execute(request)
@@ -1815,6 +1816,8 @@ class NAVUpdateChainTest(APITransactionTestCase):
         AssetChainDeployment.objects.filter(asset=request.settlement_asset).update(
             contract_address=CHAIN_SETTINGS["STABLECOIN_CONTRACT_ADDRESS"]
         )
+        self.w3.provider.make_request("evm_setAutomine", [False])
+        self.addCleanup(self.w3.provider.make_request, "evm_setAutomine", [True])
         barrier = threading.Barrier(2)
         original = outgoing.prepare_operation
         results = {}
@@ -1844,6 +1847,31 @@ class NAVUpdateChainTest(APITransactionTestCase):
                 worker.join(timeout=40)
         self.assertFalse(any(worker.is_alive() for worker in workers), results)
         self.assertFalse(any(isinstance(result, Exception) for result in results.values()), results)
-        self.assertEqual(results["nav"].status, "confirmed")
-        self.assertEqual(set(SignedAttempt.objects.values_list("nonce", flat=True)), {nonce, nonce + 1})
+        self.assertEqual(results["nav"].status, "executing")
+        self.update.refresh_from_db()
+        request.refresh_from_db()
+        self.assertEqual((self.update.status, request.status), ("executing", "executing"))
+        operations = (self.update.operation_id, request.operation_id)
+        fields = ("pk", "operation_id", "claim_id", "signer_id", "nonce", "tx_hash", "raw_transaction")
+        attempts = list(SignedAttempt.objects.order_by("pk").values(*fields))
+        self.assertEqual(len(attempts), 2)
+        self.assertEqual({attempt["nonce"] for attempt in attempts}, {nonce, nonce + 1})
+        self.w3.provider.make_request("evm_mine", [])
+        with (
+            patch.object(
+                outgoing, "sign_operation", side_effect=AssertionError("Recover the original signature")
+            ) as sign,
+            patch.object(
+                self.chain, "send_raw_transaction", side_effect=AssertionError("Recover the original receipt")
+            ) as send,
+        ):
+            self.assertEqual(nav_recovery.recover(self.update.pk).status, "confirmed")
+            self.assertEqual(mint_service.recover(request.pk), "executed")
+        sign.assert_not_called()
+        send.assert_not_called()
+        self.update.refresh_from_db()
+        request.refresh_from_db()
+        self.assertEqual((self.update.operation_id, request.operation_id), operations)
+        self.assertEqual(list(SignedAttempt.objects.order_by("pk").values(*fields)), attempts)
+        self.assertEqual(SigningAccount.objects.get(address=self.signer.lower()).next_nonce, nonce + 2)
         self.assertEqual(self.nonce(), nonce + 2)
