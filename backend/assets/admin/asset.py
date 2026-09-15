@@ -10,7 +10,7 @@ from django.template.response import TemplateResponse
 from django.urls import reverse
 
 from assets.models import Asset, AssetChainDeployment, AssetType
-from assets.services import AssetSyncService
+from assets.services import sync as asset_sync
 from operators.models import Operator
 from operators.settlement import deployment_for, live_deployments
 from shared.utils.admin_actions import admin_action_path
@@ -163,7 +163,7 @@ class AssetAdmin(admin.ModelAdmin):
 
                 for asset in queryset:
                     try:
-                        AssetSyncService.update_price(
+                        asset_sync.update_price(
                             asset=asset,
                             price=Decimal(str(price)),
                             source="manual",

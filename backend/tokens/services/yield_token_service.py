@@ -4,7 +4,7 @@ from decimal import Decimal
 from django.utils import timezone
 
 from assets.models import Asset
-from assets.services.sync import AssetSyncService
+from assets.services import sync as asset_sync
 from blockchain.models import TransactionType
 from integrations.base_chain.exceptions import (
     BaseChainContractError,
@@ -121,7 +121,7 @@ class YieldTokenService(BaseTokenService):
 
         try:
             asset = Asset.objects.get(symbol=yield_token.symbol)
-            snapshot = AssetSyncService.update_price(asset, new_nav_per_token, source="nav_update")
+            snapshot = asset_sync.update_price(asset, new_nav_per_token, source="nav_update")
             snapshot.market_data = {
                 "total_reserve_value": str(total_reserve_value),
                 "custodian_report_ref": custodian_report_ref,

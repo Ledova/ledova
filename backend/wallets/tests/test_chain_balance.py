@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 from django.test import TestCase, override_settings
 
 from assets.models import Asset, AssetChainDeployment
-from assets.services.sync import AssetSyncService
+from assets.services import sync as asset_sync
 from shared.tests.tenants import an_account
 from wallets.models import Holding, Transaction, Wallet
 from wallets.services import transaction_confirmation, transfers
@@ -49,7 +49,7 @@ class ChainBalanceTest(TestCase):
 
     @override_settings(STABLECOIN_CONTRACT_ADDRESS="0x" + "a1" * 20)
     def test_an_audy_holding_on_an_ethereum_wallet_never_reads_the_native_balance(self):
-        AssetSyncService.ensure_supported_assets()
+        asset_sync.ensure_supported_assets()
         audy = Asset.objects.get(symbol="AUDY")
         account = self.wallet.user_account
         ethereum_wallet = Wallet.objects.create(
@@ -67,7 +67,7 @@ class ChainBalanceTest(TestCase):
 
     @override_settings(STABLECOIN_CONTRACT_ADDRESS="")
     def test_a_token_without_a_contract_address_reads_as_unknown_not_as_the_native_balance(self):
-        AssetSyncService.ensure_supported_assets()
+        asset_sync.ensure_supported_assets()
         audy = Asset.objects.get(symbol="AUDY")
         self.assertEqual([(row.chain, row.contract_address) for row in audy.chain_deployments.all()], [("base", None)])
 
