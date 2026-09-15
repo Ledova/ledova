@@ -1,10 +1,22 @@
-from django.contrib import admin
+from django import forms
+from django.contrib import admin, messages
+from django.http import HttpResponseRedirect
 
-from tokens.models import RequestStatus, ShareIssuance, ShareIssuanceRequest
-from tokens.services import share_token_service
+from tokens.exceptions import IssuanceExecutionConflict
+from tokens.models import (
+    RequestStatus,
+    ShareIssuance,
+    ShareIssuanceExecution,
+    ShareIssuanceRequest,
+)
+from tokens.services import issuance_execution, share_token_service
 
 from ._helpers import short_hex
 from .review_workflow import ReviewWorkflowAdmin
+
+
+class IssuanceExecutionForm(forms.Form):
+    confirmation = forms.CharField(widget=forms.HiddenInput)
 
 
 @admin.register(ShareIssuanceRequest)
@@ -13,6 +25,12 @@ class ShareIssuanceRequestAdmin(ReviewWorkflowAdmin):
     deletable_status = RequestStatus.SUBMITTED
 
     def recorded_execution_error(self, obj) -> str:
+        execution = (
+            ShareIssuanceExecution.objects.select_related("operation", "transaction").filter(request_id=obj.pk).first()
+        )
+        if execution and execution.status == "executing" and execution.transaction_id:
+            category = execution.operation.last_error or "Receipt verification pending"
+            return f"Original transaction {execution.transaction.tx_hash} remains unresolved ({category})."
         return (
             ShareIssuance.objects.filter(idempotency_key=share_token_service.issuance_key(obj))
             .exclude(error_message="")
@@ -69,3 +87,21 @@ class ShareIssuanceRequestAdmin(ReviewWorkflowAdmin):
             "isWhitelisted(recipient) and authorizedShares() - totalSupply() >= amount - Checked before sending",
             f"mint({obj.recipient_address}, {obj.amount}) - Mint shares to recipient",
         ]
+
+    def execute_view(self, request, obj):
+        if not obj.can_be_executed and obj.status != RequestStatus.EXECUTING:
+            return self._refuse(request, obj, "execute")
+        try:
+            if request.method == "POST":
+                form = IssuanceExecutionForm(request.POST)
+                if not form.is_valid():
+                    raise IssuanceExecutionConflict("Reload the issuance execution confirmation.")
+                issuance_execution.admit(obj, request.user, confirmed=form.cleaned_data["confirmation"])
+                obj.refresh_from_db()
+                messages.info(request, f"Issuance status: {obj.get_status_display()}.")
+                return HttpResponseRedirect(self._change_url(obj))
+            form = IssuanceExecutionForm(initial={"confirmation": issuance_execution.confirmation(obj, request.user)})
+        except IssuanceExecutionConflict as exc:
+            messages.error(request, str(exc.detail))
+            return HttpResponseRedirect(self._change_url(obj))
+        return self._render(request, obj, "execute", form)

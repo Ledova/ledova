@@ -13,6 +13,15 @@ const {
 } = require('expo/config-plugins');
 const plist = require('@expo/plist').default;
 
+const fileChooserQueries = [
+  { action: [{ $: { 'android:name': 'android.media.action.IMAGE_CAPTURE' } }] },
+  {
+    action: [{ $: { 'android:name': 'android.intent.action.GET_CONTENT' } }],
+    category: [{ $: { 'android:name': 'android.intent.category.OPENABLE' } }],
+    data: [{ $: { 'android:mimeType': '*/*' } }],
+  },
+];
+
 function developmentHosts() {
   const hosts = ['localhost', '127.0.0.1', '::1', '10.0.2.2'];
   const host = process.env.EXPO_PUBLIC_DEV_API_HOST;
@@ -32,6 +41,12 @@ module.exports = function withMobileSecurity(config) {
     const application = config.modResults.manifest.application[0].$;
     application['android:usesCleartextTraffic'] = 'false';
     application['android:networkSecurityConfig'] = '@xml/ledova_network_security_config';
+    const queries = (config.modResults.manifest.queries ??= [{}])[0];
+    queries.intent ??= [];
+    for (const query of fileChooserQueries) {
+      if (!queries.intent.some((intent) => JSON.stringify(intent) === JSON.stringify(query)))
+        queries.intent.push(query);
+    }
     return config;
   });
   config = withMainApplication(config, (config) => {

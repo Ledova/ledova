@@ -1,5 +1,6 @@
 from django.db.models import (
     BigIntegerField,
+    Q,
     QuerySet,
     Subquery,
     Sum,
@@ -48,8 +49,15 @@ class ShareIssuanceQuerySet(QuerySet):
         return self.exclude(tx_hash__isnull=True).exclude(tx_hash="")
 
     def unconfirmed_request_uuids(self):
+        from tokens.models import ShareIssuanceRequest
+
         keys = self.broadcast().exclude(status=IssuanceStatus.COMPLETED).values_list("idempotency_key", flat=True)
-        return [key[len(ISSUANCE_KEY_PREFIX) :] for key in keys if key and key.startswith(ISSUANCE_KEY_PREFIX)]
+        identifiers = [key[len(ISSUANCE_KEY_PREFIX) :] for key in keys if key and key.startswith(ISSUANCE_KEY_PREFIX)]
+        return (
+            ShareIssuanceRequest.objects.filter(uuid__in=identifiers)
+            .filter(Q(dispatch_id__isnull=True) | Q(status="executing"))
+            .values_list("uuid", flat=True)
+        )
 
     def completed_supply(self, token) -> int:
         total = (

@@ -17,7 +17,7 @@ from blockchain.tests.outgoing_fixtures import receipt
 from shared.db import atomic, current_alias
 from tokens.exceptions import CapitalIncreaseConflict, CapitalIncreaseUnresolved
 from tokens.models import CapitalIncreaseExecution, CapitalIncreaseRequest, ShareToken
-from tokens.services import capital_execution, share_token_service
+from tokens.services import capital_execution
 from tokens.tasks import execute_review_request_task, recover_capital_increases
 from tokens.tests.capital_fixtures import (
     CHAIN_ID,
@@ -256,13 +256,11 @@ class CapitalExecutionRecoveryTest(TransactionTestCase):
             admit(self.request, self.actor, confirmed=form)
         self.assertFalse(CapitalIncreaseExecution.objects.exists())
 
-    def test_old_task_and_removed_sender_cannot_start_capital_execution(self):
+    def test_old_task_cannot_start_capital_execution(self):
         outcome = execute_review_request_task(
             model_label=self.request._meta.label, request_uuid=str(self.request.pk), executed_by=self.actor.pk
         )
         self.assertFalse(outcome["success"])
-        with self.assertRaisesMessage(Exception, "own admitted execution"):
-            share_token_service.execute_request(self.request, executed_by=self.actor)
         self.assertFalse(CapitalIncreaseExecution.objects.exists())
 
     def test_sweep_recovers_committed_admission_without_renewing_actor_authority(self):
@@ -306,3 +304,16 @@ class CapitalExecutionRecoveryTest(TransactionTestCase):
                 self.assertEqual(recover_capital_increases(), {"checked": 1, "resolved": 0})
                 self.assertEqual(recover_capital_increases(), {"checked": 1, "resolved": 0})
         self.assertEqual([call.args[0] for call in recover.call_args_list], [first.pk, second.pk])
+
+    def test_completed_retry_response_cannot_pair_success_with_a_stale_reverted_hash(self):
+        self.node.receipt_status = 0
+        self.assertEqual(self.execute()["status"], "failed")
+        stale = CapitalIncreaseExecution.objects.select_related("transaction").get()
+        failed_hash = stale.transaction.tx_hash
+        confirmed = capital_execution.confirmation(self.request, self.actor)
+        self.node.receipt_status = 1
+        winner = self.execute(confirmed=confirmed)
+        self.assertEqual(winner["status"], "executed")
+        self.assertNotEqual(winner["tx_hash"], failed_hash)
+        self.assertEqual(capital_execution._result(stale), winner)
+        self.assertEqual(BlockchainTransaction.objects.get(tx_hash=winner["tx_hash"]).status, "confirmed")

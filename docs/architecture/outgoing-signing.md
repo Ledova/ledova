@@ -3,7 +3,8 @@
 [Architecture](README.md) · [Documentation](../README.md)
 
 Settlement-asset and yield-token `MintRequest` execution, whitelist add/remove
-commands, share-token deployment and capital increases use the operator signing foundation. Signer
+commands, share-token deployment, capital increases and share issuances use the
+operator signing foundation. Signer
 admission remains closed. The [deployment flow](contracts-and-issuance.md) binds
 its original receipt to immutable deployment terms; an identifier lookup alone
 leaves the deployment pending for attribution.
@@ -12,10 +13,8 @@ The foundation now requires explicit signer admission. Existing and new
 `SigningAccount` rows start `closed`, and a missing row is also closed. A nonce
 counter, successful legacy status or inventory capture never grants admission.
 There is no activation command or admin edit surface; admitted synthetic test
-fixtures establish a test precondition only. Share issuance,
-swap approval, pause/unpause, NAV updates and settlement relaying still require
-conversion. Share issuance has its own older mint journal; it is separate from
-the `MintRequest` adapter described below.
+fixtures establish a test precondition only. Swap approval, pause/unpause, NAV
+updates and settlement relaying still require conversion.
 
 `close_signer_admission(chain_id=..., sender=...)` is an operator-only service
 that closes an account and advances its admission generation. It preserves
@@ -228,3 +227,48 @@ Only exact hashes from the admitted operations' signed attempts are exempt.
 This conservative fence cannot establish absent historical authority or drain an
 external same-key writer; complete cutover and receipt finality remain separate
 programme acceptance. See [operator recovery](../operations/recovery.md#capital-increases).
+
+
+## Share issuances
+
+`tokens.services.issuance_execution` admits approved share requests with current
+active staff authority and the originating admin model permission. A standalone
+execution confirmation binds the request, dispatch UUID, actor and failed claim.
+Subscription allotment commits its approved request, subscription association,
+private `ShareIssuanceExecution` and exact job together. App connections cannot
+read or write private commands; public issuer reads retain their existing shape.
+Accepted recovery remains operator-owned after the initiating actor loses access.
+
+Initial admission leaves the public request approved and the private command
+queued. A refund that wins before the worker claim rejects the request and retains
+a cancelled command in the same transaction. Delayed jobs return that cancellation
+without opening an operation or creating a public issuance. The worker commits
+executing state and its stamped public issuance before opening the outgoing
+operation. From that claim onward, uncertainty blocks refunds. A definite unsigned
+failure or original revert permits refund cancellation or an explicit retry of
+that exact failed claim. Reverts retain the original transaction and signed bytes.
+
+PostgreSQL guards freeze approved terms, dispatch identity, subscription linkage,
+payment and share quantities. Recorded refunds cannot be reduced or undone.
+Token identity stays fixed while new work can execute. Lock order is outgoing
+operation, token, subscription, request and private command; chain reads and sends
+run outside those transactions. Common-journal signing commits original bytes,
+nonce, hash, public transaction and issuance association before broadcast.
+
+Recovery projects only the original receipt and a unique matching zero-address
+`Transfer` event for the approved contract, recipient and amount. Receipt metadata
+is retained before event verification. Private completion, public issuance,
+request and subscription allotment commit atomically. Terminal replay preserves
+that outcome; a holding refresh uses the admitted contract address. Unknown sends
+reuse the original bytes and nonce. Missing receipts or events never permit a
+fresh attempt. The five-minute sweep recovers bounded batches of accepted work.
+
+Migrations `tokens/0047` and `0048` leave every historical dispatch null and retain
+its fields and mint journal without adoption. New private metadata has no
+customer-facing foreign-key dependency. Guard reversal refuses existing commands,
+including cancelled admissions. Historical recovery can replay validated saved
+bytes or observe a named hash, but cannot sign fresh work. Ambiguous journals,
+missing records after execution and hashless legacy mints remain held. Original
+ID-less revert entries remain valid historical evidence. Naming checks exact
+transaction terms and prevents reuse of another issuance's retained historical
+hash. See [issuance recovery](../operations/recovery.md#deployment-and-issuance).

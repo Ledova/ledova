@@ -61,7 +61,9 @@ def run(directory, phase, index):
 
         with connection.cursor() as cursor:
             cursor.execute("SELECT pg_backend_pid()")
-            (directory / "closing").write_text(str(cursor.fetchone()[0]))
+            pending = directory / f"closing-{os.getpid()}.pending"
+            pending.write_text(str(cursor.fetchone()[0]))
+            pending.replace(directory / "closing")
         generation = close_signer_admission(chain_id=CHAIN_ID, sender=SENDER)
         (directory / "closed").touch()
         print(json.dumps({"generation": generation}))
