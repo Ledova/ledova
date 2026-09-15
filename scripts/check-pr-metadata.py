@@ -27,6 +27,11 @@ def owning_issue(title, body, closing=(), commits=()):
             f"A Refs PR closes no issue, but GitHub would close {', '.join(closing)} on merge. "
             "Remove the closing phrase or the linked issue."
         )
+    titled = [found[1] for found in CLOSING.finditer(title)]
+    if reference[1] == "Refs" and titled:
+        raise ValueError(
+            f"A Refs PR closes no issue, but its title would close {', '.join(titled)} on merge. Reword the title."
+        )
     committed = [
         f"{commit['oid'][:7]} ({found[1]})"
         for commit in commits
@@ -66,6 +71,11 @@ def check(repository, number):
     issue = github_json(f"issue #{issue_number}", "api", f"repos/{repository}/issues/{issue_number}")
     if issue.get("number") != issue_number or "pull_request" in issue:
         raise ValueError(f"#{issue_number} must be an issue in {repository}, not a pull request.")
+    total = github_json(f"the commit count of PR #{number}", "api", f"repos/{repository}/pulls/{number}").get("commits")
+    if type(total) is not int or total != len(request["commits"]):
+        raise ValueError(
+            f"PR #{number} has {total!r} commits, but the gate read {len(request['commits'])}; they must match."
+        )
     return issue_number
 
 

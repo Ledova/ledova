@@ -106,6 +106,38 @@ class OwningIssue(unittest.TestCase):
                 for issue in closing:
                     self.assertIn(issue, str(refusal.exception))
 
+    def test_a_refs_pr_whose_title_would_close_an_issue_is_refused_by_reference(self):
+        commits = [commit("1111111aaaa", "test(#123): pin expiry", "Refs #123")]
+        for title, named in (
+            ("fix(#123): refuse expired signatures, fixes #8", ["#8"]),
+            ("fix(#123): CLOSES: owner/ledova#99 before release", ["owner/ledova#99"]),
+            (
+                "docs(#123): resolved https://github.com/owner/ledova/issues/7",
+                ["https://github.com/owner/ledova/issues/7"],
+            ),
+            ("fix(#123): fix #5 and close other/upstream#6", ["#5", "other/upstream#6"]),
+        ):
+            with self.subTest(title=title):
+                with self.assertRaises(ValueError) as refusal:
+                    gate.owning_issue(title, "Refs #123", (), commits)
+                self.assertIn(
+                    f"title would close {', '.join(named)} on merge. Reword the title.", str(refusal.exception)
+                )
+
+    def test_a_closing_title_is_allowed_on_a_closes_pr_and_a_mentioning_title_on_a_refs_pr(self):
+        commits = [commit("1111111aaaa", "test(#123): pin expiry", "Refs #123")]
+        for title, body in (
+            ("fix(#123): refuse expired signatures, fixes #8", "Closes #123"),
+            ("fix(#123): leave #8 open", "Refs #123"),
+            ("fix(#123): resolve the conflict with owner/ledova#8", "Refs #123"),
+        ):
+            with self.subTest(title=title, body=body):
+                self.assertEqual(gate.owning_issue(title, body, (), commits), 123)
+
+    def test_the_fix_type_prefix_alone_is_not_a_closing_phrase(self):
+        self.assertIsNone(gate.CLOSING.search("fix(#123): refuse expired signatures"))
+        self.assertEqual(gate.owning_issue("fix(#123): refuse expired signatures", "Refs #123"), 123)
+
     def test_title_needs_a_type_issue_and_description(self):
         for title in (
             "update dependencies",
@@ -145,6 +177,8 @@ class LiveIssueVerification(unittest.TestCase):
         "--json",
         "title,body,closingIssuesReferences,commits",
     )
+    COUNT = ("the commit count of PR #548", "api", "repos/owner/ledova/pulls/548")
+    COMMITS = [commit(f"{n:07d}", "test(#518): pin one step") for n in range(100)]
 
     def request(self, title="deps(#518): update dependencies", body="Refs #518", closing=(), commits=()):
         return {
@@ -154,13 +188,50 @@ class LiveIssueVerification(unittest.TestCase):
             "commits": list(commits),
         }
 
-    def test_reads_current_metadata_then_the_issue_in_the_same_repository(self):
-        with patch.object(gate, "github_json", side_effect=[self.request(), {"number": 518}]) as api:
+    def test_reads_current_metadata_the_issue_in_the_same_repository_then_the_commit_count(self):
+        with patch.object(gate, "github_json", side_effect=[self.request(), {"number": 518}, {"commits": 0}]) as api:
             self.assertEqual(gate.check("owner/ledova", 548), 518)
         self.assertEqual(
             [call.args for call in api.call_args_list],
-            [self.READ, ("issue #518", "api", "repos/owner/ledova/issues/518")],
+            [self.READ, ("issue #518", "api", "repos/owner/ledova/issues/518"), self.COUNT],
         )
+
+    def test_a_pr_passes_when_every_commit_github_counts_was_read(self):
+        responses = [self.request(commits=self.COMMITS), {"number": 518}, {"commits": 100}]
+        with patch.object(gate, "github_json", side_effect=responses):
+            self.assertEqual(gate.check("owner/ledova", 548), 518)
+
+    def test_any_pr_whose_commit_count_differs_from_the_commits_read_is_refused_with_both_counts(self):
+        for body in ("Refs #518", "Closes #518"):
+            for read, total in ((100, 99), (100, 101), (3, 2), (3, 4)):
+                responses = [self.request(body=body, commits=self.COMMITS[:read]), {"number": 518}, {"commits": total}]
+                with self.subTest(body=body, read=read, total=total):
+                    with patch.object(gate, "github_json", side_effect=responses), self.assertRaisesRegex(
+                        ValueError, f"PR #548 has {total} commits, but the gate read {read}; they must match"
+                    ):
+                        gate.check("owner/ledova", 548)
+
+    def test_a_missing_or_non_integer_commit_count_is_refused(self):
+        for count, shown in (
+            ({}, "None"),
+            ({"commits": "1"}, "'1'"),
+            ({"commits": 1.0}, "1.0"),
+            ({"commits": True}, "True"),
+        ):
+            responses = [self.request(commits=self.COMMITS[:1]), {"number": 518}, count]
+            with self.subTest(count=count), patch.object(gate, "github_json", side_effect=responses):
+                with self.assertRaisesRegex(ValueError, f"PR #548 has {shown} commits, but the gate read 1;"):
+                    gate.check("owner/ledova", 548)
+
+    def test_api_failure_on_the_commit_count_cannot_be_reported_as_a_valid_reference(self):
+        answers = [
+            subprocess.CompletedProcess([], 0, stdout=json.dumps(self.request())),
+            subprocess.CompletedProcess([], 0, stdout=json.dumps({"number": 518})),
+            subprocess.CalledProcessError(1, ["gh"]),
+        ]
+        with patch.object(gate.subprocess, "run", side_effect=answers):
+            with self.assertRaisesRegex(ValueError, "Cannot verify the commit count of PR #548 through GitHub"):
+                gate.check("owner/ledova", 548)
 
     def test_a_refs_pr_is_refused_when_github_reports_it_closes_an_issue(self):
         closing = ("https://github.com/owner/ledova/issues/518",)
