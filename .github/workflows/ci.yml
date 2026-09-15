@@ -116,9 +116,13 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  backend-suite:
-    name: Django ordinary suite
+  backend-suite-shard:
+    name: Django ordinary shard (${{ matrix.shard }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [tokens, others]
     env:
       SECRET_KEY: ci-only
       STORAGE_BACKEND: local
@@ -151,8 +155,25 @@ jobs:
             backend/schema/requirements.txt
       - name: Install dependencies
         run: pip install -r requirements-dev.txt -c schema/requirements.txt
+      - name: Shard labels are top-level packages, and each ordinary test id is unique and in exactly one shard
+        run: python ../scripts/check-ordinary-shards.py
       - name: Suite
-        run: python manage.py test --settings=ledova_backend.settings.test --parallel 4 --noinput
+        run: |
+          labels=$(python ../scripts/check-ordinary-shards.py --labels ${{ matrix.shard }})
+          python manage.py test --settings=ledova_backend.settings.test --parallel 4 --noinput $labels
+
+  backend-suite:
+    name: Django ordinary suite
+    needs: backend-suite-shard
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every shard succeeded
+        env:
+          RESULT: ${{ needs.backend-suite-shard.result }}
+        run: |
+          echo "Django ordinary shards: $RESULT"
+          test "$RESULT" = success
 
   backend:
     name: Django checks & tests

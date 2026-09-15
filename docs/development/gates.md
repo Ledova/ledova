@@ -24,6 +24,7 @@ fails, and an entry naming no script fails.
 | `check-docs.py` | [The documentation gate](#the-documentation-gate) | yes | source gates |
 | `check-pr-metadata.py` | [The PR metadata gate](#the-pr-metadata-gate) | no | PR metadata |
 | `check-api-schema.py` | [The API type drift gate](#the-api-type-drift-gate) | no | Django |
+| `check-ordinary-shards.py` | [The ordinary shard gate](#the-ordinary-shard-gate) | yes | Django ordinary shards |
 | `check-api-types.mjs` | [The API type drift gate](#the-api-type-drift-gate) | yes | JavaScript |
 | `check-client-operations.mjs` | [The API type drift gate](#the-api-type-drift-gate) | no | JavaScript |
 | `check-self-imports.mjs` | [Clients and the shared package](../architecture/clients.md) | yes | JavaScript |
@@ -194,6 +195,36 @@ The checker compares paths, anchors and names. It does not verify external URLs,
 cron values, arbitrary Markdown syntax or behavioral claims. New nested guides
 must remain discoverable from a parent; [documentation review](testing.md#documents-against-code)
 checks navigation and statements against source.
+
+## The ordinary shard gate
+
+CI splits the ordinary suite across parallel jobs, one per shard named in
+[`.github/ordinary-suite-shards.json`](../../.github/ordinary-suite-shards.json).
+`scripts/check-ordinary-shards.py` runs in every shard before the suite. Through the same
+settings and test runner, it discovers the suite once with no labels and once
+with each shard's labels, each in a fresh interpreter as each CI job is, so no
+discovery sees a module an earlier one imported. It counts each test id in every
+discovery, and refuses: a shard label that is not a package directly under
+`backend/`, or one listed more than once; a test id the unlabelled suite finds
+more than once, as when a factory builds two classes with one name; a module with
+a test id the shards find fewer or more times than the unlabelled suite; a test id
+a shard finds that the unlabelled suite does not; a module that fails to load; and
+a `backend-suite-shard` matrix that is anything but the file's shard names, such as
+one with an `include` or `exclude`.
+
+A new module inside an assigned label is covered with no change. A new app fails
+until its label is put in exactly one shard, unless modules in assigned shards
+already build or import each of its test ids.
+[Gate internals](../reference/gate-internals.md#layers-and-connection-binding)
+describes how. Balance shards by moving app labels, each a whole top-level
+package.
+
+The gate needs the backend requirements and a `SECRET_KEY` for the test settings,
+but no database. `make check` installs the requirements and runs it, through
+`make check-ordinary-shards`, from `backend/` with a generated key, as it runs
+`manage.py check`. `--labels SHARD` prints the labels that shard passes to
+`manage.py test`. The gate counts test identities, not durations, so balance
+remains a measurement.
 
 ## The API type drift gate
 
