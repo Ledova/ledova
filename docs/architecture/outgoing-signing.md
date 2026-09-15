@@ -3,7 +3,7 @@
 [Architecture](README.md) · [Documentation](../README.md)
 
 Settlement-asset and yield-token `MintRequest` execution, whitelist add/remove
-commands, share-token deployment, capital increases and share issuances use the
+commands, share-token deployment and its automatic swap approval, capital increases and share issuances use the
 operator signing foundation. Signer
 admission remains closed. The [deployment flow](contracts-and-issuance.md) binds
 its original receipt to immutable deployment terms; an identifier lookup alone
@@ -13,7 +13,7 @@ The foundation now requires explicit signer admission. Existing and new
 `SigningAccount` rows start `closed`, and a missing row is also closed. A nonce
 counter, successful legacy status or inventory capture never grants admission.
 There is no activation command or admin edit surface; admitted synthetic test
-fixtures establish a test precondition only. Swap approval, pause/unpause, NAV
+fixtures establish a test precondition only. Pause/unpause, NAV
 updates and settlement relaying still require conversion.
 
 `close_signer_admission(chain_id=..., sender=...)` is an operator-only service
@@ -75,6 +75,45 @@ Signed payloads are broadcast capabilities and belong in protected backups;
 errors retain a category rather than provider or database exception text.
 
 For existing databases, read [outgoing history and cutover constraints](../reference/outgoing-history.md).
+
+## Automatic swap approval
+
+After the issuer's token projection and asset bridge succeed, a bounded operator
+transaction commits `projected_at`, a frozen approval disposition and the exact
+`recover_swap_approval` job together on the existing private `TokenDeployment`.
+Approval runs asynchronously and never reverses a successful deployment. It has
+separate intent, outcome, outgoing operation and transaction fields; factory
+deployment evidence is never reused or reset. The five-minute approval sweep
+selects admitted pending/executing approvals independently of deployment recovery.
+
+Admission captures the original deployment's chain and signer, the attributed
+share-token address, the configured swap target and the exact approval calldata.
+A missing, malformed or zero swap address records `not_configured` with no
+approval authority. Historical projected deployments retain blank approval fields.
+Later settings cannot admit, enable or retarget either category automatically.
+Before fresh signing, configuration must still match the original intent.
+
+An initial verified `approvedShareTokens` reading at a recorded block can produce
+`observed_approved` without a local transaction. Its immutable block/time evidence
+records observation, never transaction attribution. A false reading commits an
+executing decision before opening the common operation. From that point, current
+approval state cannot replace the original transaction's result, including when
+another observer finishes late. Signed uncertainty retains its bytes, hash and nonce.
+
+The original successful receipt and a unique matching `ShareTokenApproved(token,
+true)` event from the admitted contract confirm the approval. A retained revert
+can be projected locally while the provider is unavailable. Explicit admin retry
+requires current active staff with token change permission and a signed form
+identifying the actor, deployment and exact completed failed claim. The previous
+transaction's receipt survives retry; replay acknowledges accepted work without
+opening another claim. The generic transaction monitor excludes this adapter.
+
+Migrations `tokens/0049` and `0050` preserve historical rows, guard admission and
+immutable associations, and refuse reversal after an approval disposition exists.
+The app role cannot read or write approval metadata. The old direct Python
+approval sender is removed. The standalone Hardhat deployment script remains in
+the all-writer inventory; this conversion does not establish complete signer
+cutover or finality, which remain #6 and #7 acceptance.
 
 ## Mint requests
 

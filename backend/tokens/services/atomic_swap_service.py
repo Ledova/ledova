@@ -715,36 +715,6 @@ class AtomicSwapService:
             logger.error(f"Error checking token approval: {e}")
             return False
 
-    def approve_share_token(self, token_address: str) -> Optional[str]:
-        try:
-            checksum = self.chain_client.to_checksum_address(token_address)
-
-            if self.is_share_token_approved(checksum):
-                logger.info(f"ShareToken {checksum} already approved in AtomicSwap")
-                return None
-
-            logger.info(f"Approving ShareToken {checksum} in AtomicSwap contract")
-
-            contract = self.chain_client.load_contract("AtomicSwap", self.contract_address)
-            approve_fn = contract.functions.setShareTokenApproval(checksum, True)
-
-            tx_hash, receipt = self.chain_client.send_transaction(
-                approve_fn,
-                self.relayer_private_key,
-                wait_for_receipt=True,
-            )
-
-            if receipt and receipt.get("status") == 1:
-                logger.info(f"ShareToken {checksum} approved in AtomicSwap - tx: {tx_hash}")
-                return tx_hash
-            else:
-                logger.error("ShareToken approval transaction reverted")
-                return None
-
-        except Exception as e:
-            logger.error(f"Failed to approve ShareToken in AtomicSwap: {e}")
-            return None
-
 
 def sign_and_execute_swap(service, swap_order, signature: str, signer_address: str, admission=None):
     options = {"admission": admission} if admission else {}

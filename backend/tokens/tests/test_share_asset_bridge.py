@@ -22,7 +22,6 @@ from wallets.models import Holding
 from whitelist.models import WhitelistEntry, WhitelistStatus
 
 CHAIN_CLIENT = "tokens.services.share_token_service.get_base_chain_client"
-SWAP = "tokens.services.share_token_service._approve_for_swap"
 WHITELISTED = "tokens.services.share_token_service.is_recipient_whitelisted"
 SUPPLY = "tokens.services.share_token_service.share_supply"
 CREATED = "0x" + "c0ffee" + "0" * 34
@@ -42,7 +41,6 @@ class ShareAssetBridgeTest(TestCase):
     def setUp(self):
         self.chain = patch(CHAIN_CLIENT).start().return_value
         self.chain.load_contract.return_value.functions.authorizedShares.return_value.call.return_value = 1000
-        patch(SWAP).start()
         self.addCleanup(patch.stopall)
         self.tenant = make_tenant("owner")
         self.token = self.tenant.token

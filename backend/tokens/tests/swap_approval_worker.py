@@ -6,39 +6,36 @@ import sys
 from contextlib import ExitStack
 from pathlib import Path
 from unittest.mock import patch
-from uuid import UUID
 
 import django
 
 from blockchain.tests.outgoing_worker import await_file
 
 
-def run(directory, phase, request_id, retry_of=None):
+def run(directory, phase, deployment_id, actor_id=None, confirmation=None):
     os.environ["DJANGO_SETTINGS_MODULE"] = "ledova_backend.settings.test"
     from django.conf import settings
 
-    database = json.loads(os.environ["DEPLOYMENT_TEST_DATABASE"])
+    database = json.loads(os.environ["APPROVAL_TEST_DATABASE"])
     if database["ENGINE"] != "django.db.backends.postgresql":
-        raise RuntimeError("Deployment crash tests require real PostgreSQL")
+        raise RuntimeError("Approval crash evidence requires real PostgreSQL")
     settings.DATABASES = {"default": database}
     settings.BLOCKCHAIN_OPERATOR_KEY = "0x" + "11" * 32
     settings.BLOCKCHAIN_CHAIN_ID = 31337
     settings.SHARE_TOKEN_FACTORY_ADDRESS = "0x" + "f" * 40
-    if phase == "handoff":
-        settings.ATOMIC_SWAP_ADDRESS = "0x" + "d" * 40
+    settings.ATOMIC_SWAP_ADDRESS = "0x" + "d" * 40
     django.setup()
 
+    from django.contrib.auth import get_user_model
     from web3 import Web3
 
     from blockchain.models import OutgoingOperation, SignedAttempt
     from blockchain.services import outgoing
-    from blockchain.tests.outgoing_fixtures import receipt
-    from tokens.models import ShareToken
-    from tokens.services import deployment
-    from tokens.tests.deployment_fixtures import CREATED, DeploymentNode
+    from tokens.models import ShareToken, TokenDeployment
+    from tokens.services import swap_approval
+    from tokens.tests.swap_approval_fixtures import ApprovalNode, approval_receipt
 
-    token = ShareToken.objects.select_related("company").get(pk=request_id)
-    node = DeploymentNode()
+    node = ApprovalNode()
 
     def send(raw):
         with (directory / "node.json").open("a+") as stream:
@@ -61,32 +58,28 @@ def run(directory, phase, request_id, retry_of=None):
             os.kill(os.getpid(), signal.SIGKILL)
         return tx_hash
 
-    def node_ledger():
+    def observed(tx_hash):
         path = directory / "node.json"
         if not path.exists():
-            return {"hashes": [], "reverted": []}
+            return None
         with path.open() as stream:
             fcntl.flock(stream, fcntl.LOCK_SH)
             data = stream.read()
-        return json.loads(data) if data else {"hashes": [], "reverted": []}
-
-    def observed(tx_hash):
-        ledger = node_ledger()
+        ledger = json.loads(data) if data else {"hashes": [], "reverted": []}
         if tx_hash in ledger["hashes"]:
-            return receipt(SignedAttempt.objects.get(tx_hash=tx_hash), int(tx_hash not in ledger["reverted"]))
+            return approval_receipt(SignedAttempt.objects.get(tx_hash=tx_hash), int(tx_hash not in ledger["reverted"]))
         return None
 
-    def existing_address():
-        ledger = node_ledger()
-        return CREATED if set(ledger["hashes"]) - set(ledger["reverted"]) else "0x" + "0" * 40
+    original_open = outgoing.open_operation
+    original_sign = outgoing.sign_operation
+    original_save = OutgoingOperation.save
+    original_decide = swap_approval._decide
+    original_outcome = swap_approval._record_outcome
 
-    def admitted(*args, **kwargs):
-        result = original_admit(*args, **kwargs)
-        if phase == "admitted":
+    def opened(*args, **kwargs):
+        result = original_open(*args, **kwargs)
+        if phase == "opened":
             os.kill(os.getpid(), signal.SIGKILL)
-        if phase == "race":
-            (directory / f"ready-{os.getpid()}").touch()
-            await_file(directory / "go")
         return result
 
     def signed(*args, **kwargs):
@@ -101,48 +94,43 @@ def run(directory, phase, request_id, retry_of=None):
             os.kill(os.getpid(), signal.SIGKILL)
         return result
 
-    original_admit = deployment._admit
-    original_sign = outgoing.sign_operation
-    original_save = OutgoingOperation.save
-    original_project = deployment._project
-    original_outcome = deployment.deployment_journal.record_outcome
-    original_marker = deployment.deployment_journal.mark_projected
-
-    def handed_off(*args):
-        result = original_marker(*args)
-        os.kill(os.getpid(), signal.SIGKILL)
+    def decided(*args, **kwargs):
+        result = original_decide(*args, **kwargs)
+        if phase == "decided":
+            os.kill(os.getpid(), signal.SIGKILL)
         return result
 
-    def projected(command):
-        if phase == "before_projection":
-            os.kill(os.getpid(), signal.SIGKILL)
-        return original_project(command)
-
-    def recorded_outcome(*args, **kwargs):
+    def outcome(*args, **kwargs):
         if phase == "reverted":
             os.kill(os.getpid(), signal.SIGKILL)
         return original_outcome(*args, **kwargs)
 
     node.client.send_raw_transaction.side_effect = send
     node.client.get_transaction_receipt.side_effect = observed
-    node.contract.functions.getTokenByIdentifier.return_value.call.side_effect = existing_address
+    if phase == "observe_true":
+
+        def approved(**kwargs):
+            (directory / "observation-ready").touch()
+            await_file(directory / "release-observation")
+            return True
+
+        node.contract.functions.approvedShareTokens.return_value.call.side_effect = approved
     with ExitStack() as stack:
-        stack.enter_context(patch("tokens.services.deployment.get_base_chain_client", return_value=node.client))
-        stack.enter_context(
-            patch("tokens.services.share_token_service.get_base_chain_client", return_value=node.client)
-        )
-        stack.enter_context(patch.object(deployment, "_admit", admitted))
+        stack.enter_context(patch.object(swap_approval, "get_base_chain_client", return_value=node.client))
+        stack.enter_context(patch.object(outgoing, "open_operation", opened))
         stack.enter_context(patch.object(outgoing, "sign_operation", signed))
-        stack.enter_context(patch.object(deployment, "_project", projected))
-        stack.enter_context(patch.object(deployment.deployment_journal, "record_outcome", recorded_outcome))
-        if phase == "handoff":
-            stack.enter_context(patch.object(deployment.deployment_journal, "mark_projected", handed_off))
+        stack.enter_context(patch.object(swap_approval, "_decide", decided))
+        stack.enter_context(patch.object(swap_approval, "_record_outcome", outcome))
         if phase == "before_commit":
             stack.enter_context(patch.object(OutgoingOperation, "save", before_commit))
-        if phase == "recover":
-            result = deployment.recover(token.deployment_id)
-        else:
-            result = deployment.deploy_token(token, retry_of=UUID(retry_of) if retry_of else None)["contract_address"]
+        if phase in ("race", "retry_race"):
+            (directory / f"ready-{os.getpid()}").touch()
+            await_file(directory / "go")
+        if phase == "retry_race":
+            command = TokenDeployment.objects.get(pk=deployment_id)
+            token = ShareToken.objects.get(pk=command.token_id)
+            swap_approval.retry(token, get_user_model().objects.get(pk=actor_id), confirmation)
+        result = swap_approval.recover(deployment_id)
     print(json.dumps({"status": result}))
 
 

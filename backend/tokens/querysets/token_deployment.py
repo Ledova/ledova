@@ -4,6 +4,9 @@ from blockchain.models import OutgoingStatus, TransactionStatus
 
 
 class TokenDeploymentQuerySet(models.QuerySet):
+    def recoverable_approvals(self, cutoff):
+        return self.filter(approval_outcome__in=("pending", "executing"), updated_at__lt=cutoff)
+
     def recoverable(self, cutoff):
         return self.filter(projected_at__isnull=True, attribution_required=False, updated_at__lt=cutoff).filter(
             models.Q(operation__isnull=True)

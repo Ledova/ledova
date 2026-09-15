@@ -146,8 +146,9 @@ writing public state. A failed asset bridge stays recoverable after the token's
 contract is recorded. The bounded sweep rotates unresolved work by update time
 and repairs interrupted revert projections without opening another attempt.
 Once their transaction projection is complete, terminal failures await explicit
-retry. Existing post-deployment swap approval remains a separate legacy writer
-scheduled for M2.5 of #6; complete
+retry. Successful projection atomically queues a separate immutable swap approval
+phase on the private deployment record. Approval failure leaves the token deployed;
+its own recovery follows the original signed transaction. Complete
 same-key cutover, historical attribution and finality remain outstanding. Signer
 admission remains closed by default. See [outgoing signing](outgoing-signing.md).
 
