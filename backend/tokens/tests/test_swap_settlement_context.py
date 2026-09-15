@@ -39,6 +39,15 @@ from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 
 
+def json_schema_with_nullability(value):
+    if isinstance(value, list):
+        return [json_schema_with_nullability(item) for item in value]
+    if not isinstance(value, dict):
+        return value
+    schema = {key: json_schema_with_nullability(item) for key, item in value.items() if key != "nullable"}
+    return {"anyOf": [schema, {"type": "null"}]} if value.get("nullable") else schema
+
+
 @override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT)
 class SwapSettlementContextTest(TestCase):
     def test_payment_selection_preserves_nullable_sides_and_buyer_precedence(self):
@@ -267,7 +276,7 @@ class SwapSettlementRouteTest(APITransactionTestCase):
             resolver=RefResolver.from_schema(document),
         )
         context = Draft7Validator(
-            components["SwapOrderDetail"]["properties"]["settlementContext"],
+            components["SettlementSwapOrder"]["properties"]["settlementContext"],
             resolver=RefResolver.from_schema(document),
         )
         self.assertEqual(list(typed_data.iter_errors(body["typedData"])), [])
@@ -630,6 +639,18 @@ class SwapSettlementRouteTest(APITransactionTestCase):
         self.assertTrue(list(validator.iter_errors({})))
         response = self.client.post(self.url + "/sign/", scoped, format="json")
         self.assertEqual(response.status_code, 200, response.content)
+        response_schema = document["paths"]["/api/v1/trading/orders/{uuid}/swap/sign/"]["post"]["responses"]["200"][
+            "content"
+        ]["application/json"]["schema"]
+        self.assertEqual(response_schema, {"$ref": "#/components/schemas/SettlementSwapOrder"})
+        response_validator = Draft7Validator(
+            response_schema, resolver=RefResolver.from_schema(json_schema_with_nullability(document))
+        )
+        self.assertEqual(
+            [(list(error.path), error.message) for error in response_validator.iter_errors(response.json())], []
+        )
+        legacy_response = {**response.json(), "settlementProtocolVersion": 0, "settlementContext": None}
+        self.assertFalse(response_validator.is_valid(legacy_response))
         with use_operator():
             self.swap.refresh_from_db()
         self.assertEqual(self.swap.seller_signature, signature)
