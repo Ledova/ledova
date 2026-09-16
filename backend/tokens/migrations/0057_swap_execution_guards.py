@@ -317,7 +317,8 @@ BEGIN
             WHERE 'swap-execution:' || uuid::text = NEW.operation_key;
     END IF;
     IF NOT FOUND OR NOT coalesce(journal.function_args ? 'admission', false)
-        OR NEW.intent IS DISTINCT FROM tokens_swap_execution_intent(journal) THEN
+        OR NEW.intent IS DISTINCT FROM tokens_swap_execution_intent(journal)
+        OR NEW.intent->>'chain_id' IS DISTINCT FROM journal.function_args->'settlement'->'domain'->>'chainId' THEN
         RAISE EXCEPTION 'Swap operations require their original admitted transaction and full intent';
     END IF;
     IF TG_OP = 'INSERT' THEN

@@ -233,6 +233,39 @@ class SwapExecutionStorageTest(SwapExecutionStorageFixtures, TransactionTestCase
         claim = self.open(journal)
         self.assertEqual(OutgoingOperation.objects.get(pk=claim.operation_id).intent, intent)
 
+    def test_operation_chain_uses_the_canonical_integer_representation(self):
+        journal = self.admit()
+        intent = self.abi_intent(journal)
+        with self.assertRaisesMessage(DatabaseError, "full intent"), atomic():
+            OutgoingOperation.objects.create(
+                operation_key=f"swap-execution:{journal.pk}",
+                intent=intent | {"chain_id": float(intent["chain_id"])},
+                claim_id=uuid4(),
+            )
+        claim = self.open(journal)
+        self.assertEqual(OutgoingOperation.objects.get(pk=claim.operation_id).intent, intent)
+        with self.assertRaisesMessage(DatabaseError, "full intent"), atomic():
+            OutgoingOperation.objects.filter(pk=claim.operation_id).update(
+                intent=intent | {"chain_id": float(intent["chain_id"])}
+            )
+
+    def test_every_noncalldata_intent_term_is_original_and_canonical(self):
+        journal = self.admit()
+        intent = self.abi_intent(journal)
+        for changes in (
+            {"chain_id": intent["chain_id"] + 1},
+            {"sender": "0x" + "e" * 40},
+            {"to": "0x" + "f" * 40},
+            {"value": "1"},
+            {"value": 0},
+            {"extra": "field"},
+        ):
+            with self.subTest(changes=changes), self.assertRaisesMessage(DatabaseError, "full intent"), atomic():
+                OutgoingOperation.objects.create(
+                    operation_key=f"swap-execution:{journal.pk}", intent=intent | changes, claim_id=uuid4()
+                )
+        self.assertIsNotNone(self.open(journal).operation_id)
+
     def test_admission_rejects_missing_malformed_and_foreign_authority(self):
         valid = self.fields()
         for admission in (
