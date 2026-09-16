@@ -3,6 +3,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 from django.conf import settings
+from django.db import IntegrityError
 from django.test import TestCase, override_settings
 from drf_spectacular.generators import SchemaGenerator
 from eth_account.messages import _hash_eip191_message, encode_typed_data
@@ -13,7 +14,7 @@ from web3 import Web3
 from assets.models import AssetChainDeployment
 from blockchain.models import TransactionStatus
 from feature_flags.models import FeatureFlag
-from shared.db import current_alias, set_principal, use_operator
+from shared.db import atomic, current_alias, set_principal, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.settlement import save_swap_with_context
 from shared.tests.tenants import make_tenant
@@ -816,6 +817,22 @@ class SwapSettlementRouteTest(APITransactionTestCase):
         self.client.force_authenticate(self.user)
         positive = self.client.get(self.url + "/", self.identity)
         self.assertEqual(positive.status_code, 200, positive.content)
+
+    def test_a_recorded_order_address_is_immutable_and_a_moved_wallet_refuses(self):
+        positive = self.client.get(self.url + "/", self.identity)
+        self.assertEqual(positive.status_code, 200, positive.content)
+        moved = Web3.to_checksum_address("0x" + "5a" * 20)
+        with use_operator():
+            before = persisted_outcome(self.swap)
+            with self.assertRaisesMessage(IntegrityError, "An order owner identity cannot change"), atomic():
+                TransferOrder.objects.filter(pk=self.seller_order.pk).update(wallet_address=moved)
+            Wallet.objects.filter(pk=self.swap.seller_wallet_id).update(address=moved)
+        with patch("tokens.services.atomic_swap_service.get_base_chain_client") as provider:
+            refused = self.client.get(self.url + "/", self.identity)
+        self.assertEqual(refused.status_code, 404, refused.content)
+        provider.assert_not_called()
+        with use_operator():
+            self.assertEqual(persisted_outcome(self.swap), before)
 
 
 class ScopedSwapSettlementRouteTest(RunsOnTheScopedConnection, SwapSettlementRouteTest):
