@@ -35,9 +35,14 @@ class OrderChild:
             env={**os.environ, "ORDER_TEST_DATABASES": json.dumps(worker_databases(), default=str)},
         )
         case.addCleanup(self.close)
-        self.process.stdin.write(
-            json.dumps({"phase": phase, "directory": str(directory), "user_id": case.tenant.user.pk, **message}) + "\n"
-        )
+        payload = {
+            "phase": phase,
+            "directory": str(directory),
+            "user_id": case.tenant.user.pk,
+            "share_contract": case.tenant.deployed_token.contract_address,
+            **message,
+        }
+        self.process.stdin.write(json.dumps(payload) + "\n")
         self.process.stdin.flush()
 
     def read(self):
