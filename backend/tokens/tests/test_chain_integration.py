@@ -36,11 +36,13 @@ from blockchain.models import (
 )
 from blockchain.tests.test_outgoing_processes import finish
 from companies.models import Company, CompanyStatus
+from feature_flags.models import FeatureFlag
 from integrations.base_chain.client import BaseChainClient, get_base_chain_client
 from integrations.base_chain.exceptions import BaseChainTransactionError
 from integrations.blockchain import BlockchainClientFactory
 from shared.db import current_alias
 from shared.tests.tenants import make_tenant
+from tokens.constants import MAX_UINT256
 from tokens.exceptions import (
     CapitalIncreaseConflict,
     IssuanceExecutionConflict,
@@ -56,12 +58,14 @@ from tokens.models import (
     ShareIssuanceRequest,
     ShareToken,
     ShareTokenStatus,
+    SwapApprovalSubmission,
     TokenDeployment,
     TransferOrder,
     TransferOrderType,
     YieldToken,
 )
 from tokens.services import (
+    approval_submissions,
     atomic_swap_service,
     capital_execution,
     deployment,
@@ -93,6 +97,7 @@ from tokens.tasks import (
     check_pending_token_deployments,
     deploy_share_token_task,
     execute_review_request_task,
+    recover_swap_approval_submissions,
 )
 from tokens.tests.deployment_fixtures import delete_approval_jobs
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
@@ -334,8 +339,9 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual(self.w3.eth.get_transaction_count(self.seller.address), nonce + 1)
         self.assertEqual(self.balances(), (before[0] - 3, before[1] + 3, before[2], before[3]))
 
-    def admit_swap(self):
+    def matched_swap(self):
         Asset.objects.filter(pk=self.tenant.refs.stablecoin.pk).update(decimals=6)
+        FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
         orders = []
         for party, kind in ((self.seller, TransferOrderType.SELL), (self.buyer, TransferOrderType.BUY)):
             wallet = self.party_wallets[party.address]
@@ -353,20 +359,49 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
             )
         swap = token_transfer_service.match_orders(orders[1], orders[0], 3)["swap_order"]
         self.assertEqual((swap.share_amount, swap.payment_amount), (3, 450))
+        return swap, orders
+
+    def approval_route(self, swap, order):
+        identity = {
+            "swap_uuid": str(swap.pk),
+            "owner_account_uuid": str(order.owner_account_id),
+            "wallet_uuid": str(order.wallet_id),
+            "settlement_digest": swap.settlement_digest,
+        }
+        return f"/api/v1/trading/orders/{order.pk}/swap", identity
+
+    def signed_approval(self, swap, order, party):
+        url, identity = self.approval_route(swap, order)
+        self.client.force_authenticate(self.party_accounts[party.address].user_profile.user)
+        prepared = self.client.get(url + "/approval-data/", identity)
+        self.assertEqual(prepared.status_code, 200, prepared.content)
+        self.assertTrue(prepared.json()["needsApproval"])
+        transaction = {
+            key: int(value, 16) if key in ("value", "gas", "gasPrice", "nonce", "chainId") else value
+            for key, value in prepared.json()["transaction"].items()
+            if key != "from"
+        }
+        return bytes(self.chain.sign_transaction(transaction, party.key))
+
+    def broadcast_approval(self, swap, order, raw):
+        url, identity = self.approval_route(swap, order)
+        return self.client.post(
+            url + "/approval-broadcast/", {**identity, "signed_transaction": Web3.to_hex(raw)}, format="json"
+        )
+
+    def admit_swap(self):
+        swap, orders = self.matched_swap()
         typed_data = atomic_swap_service.get_typed_data(swap)
         self.assertEqual(typed_data["message"]["paymentAmount"], "450")
         self.assertEqual(swap.settlement_context["payment_asset"]["pricing_decimals"], 6)
         self.assertEqual(swap.settlement_context["payment_asset"]["deployment_decimals"], 2)
-        for party, role in ((self.seller, "seller"), (self.buyer, "buyer")):
-            prepared = atomic_swap_service.get_approval_transaction_data(swap, role, unlimited=False)["transaction"]
-            transaction = {
-                key: int(value, 16) if key in ("value", "gas", "gasPrice", "nonce", "chainId") else value
-                for key, value in prepared.items()
-                if key != "from"
-            }
-            raw = self.chain.sign_transaction(transaction, party.key)
-            _hash, receipt = token_transfer_service.broadcast_transfer(Web3.to_hex(raw))
-            self.assertEqual(receipt["status"], 1)
+        for party, order in ((self.seller, orders[0]), (self.buyer, orders[1])):
+            raw = self.signed_approval(swap, order, party)
+            response = self.broadcast_approval(swap, order, raw)
+            self.assertEqual(response.status_code, 200, response.content)
+            self.assertEqual(response.json()["txHash"], Web3.to_hex(Web3.keccak(raw)))
+            recorded = SwapApprovalSubmission.objects.get(tx_hash=response.json()["txHash"])
+            self.assertEqual((recorded.outcome, recorded.block_number), ("confirmed", response.json()["blockNumber"]))
         allowances = atomic_swap_service.check_swap_allowances(swap)
         self.assertTrue(allowances["seller"]["has_sufficient_allowance"])
         self.assertTrue(allowances["buyer"]["has_sufficient_allowance"])
@@ -420,6 +455,62 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual(swap_execution.recover(completed.transaction_id), "confirmed")
         self.assertEqual(operation.attempts.count(), 1)
         self.assertEqual(self._signer_nonce(), nonce + 1)
+
+    def test_worker_killed_after_real_approval_acceptance_replays_nothing_and_records_the_receipt(self):
+        swap, orders = self.matched_swap()
+        raw = self.signed_approval(swap, orders[0], self.seller)
+        nonce = self.w3.eth.get_transaction_count(self.seller.address)
+        configured = {
+            name: getattr(settings, name) for name in (*CHAIN_ENV[1:], "BLOCKCHAIN_CHAIN_ID", "BLOCKCHAIN_RPC_URL")
+        }
+        process = subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "tokens.tests.swap_approval_submission_chain_worker",
+                str(swap.pk),
+                str(self.tenant.user.pk),
+                Web3.to_hex(raw),
+            ],
+            env={
+                **os.environ,
+                "SWAP_CHAIN_TEST_DATABASE": json.dumps(connections[current_alias()].settings_dict, default=str),
+                "SWAP_CHAIN_TEST_SETTINGS": json.dumps(configured),
+            },
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        code, out, err = finish(process)
+        self.assertEqual(code, -signal.SIGKILL, out + err)
+        row = SwapApprovalSubmission.objects.get(tx_hash=Web3.to_hex(Web3.keccak(raw)))
+        self.assertEqual(
+            (row.outcome, row.acknowledged_at, bytes(row.raw_transaction), row.nonce), ("pending", None, raw, nonce)
+        )
+        self.assertEqual(self.w3.eth.get_transaction_count(self.seller.address), nonce + 1)
+        with patch.object(
+            BaseChainClient, "send_raw_transaction", side_effect=AssertionError("No resend after original acceptance")
+        ):
+            self.assertEqual(recover_swap_approval_submissions(0), {"attempted": 1, "outcomes": {"confirmed": 1}})
+            replay = self.broadcast_approval(swap, orders[0], raw)
+        self.assertEqual(replay.status_code, 200, replay.content)
+        self.assertEqual(replay.json()["txHash"], row.tx_hash)
+        row.refresh_from_db()
+        receipt = self.w3.eth.get_transaction_receipt(row.tx_hash)
+        self.assertEqual(
+            (row.outcome, row.block_number, row.block_hash, row.gas_used),
+            ("confirmed", receipt["blockNumber"], Web3.to_hex(receipt["blockHash"]), receipt["gasUsed"]),
+        )
+        observed = self.w3.eth.get_transaction(row.tx_hash)
+        self.assertEqual(
+            (observed["nonce"], bytes(observed["input"])),
+            (row.nonce, approval_submissions.approve_calldata(settings.ATOMIC_SWAP_ADDRESS)),
+        )
+        self.assertEqual(
+            self._contract().functions.allowance(self.seller.address, settings.ATOMIC_SWAP_ADDRESS).call(),
+            MAX_UINT256,
+        )
+        self.assertEqual(SwapApprovalSubmission.objects.count(), 1)
 
     def test_worker_death_after_real_swap_acceptance_recovers_without_another_nonce(self):
         swap = self.admit_swap()

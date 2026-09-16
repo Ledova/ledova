@@ -21,7 +21,12 @@ from tokens.exceptions import (
     SwapNotReadyException,
 )
 from tokens.filters import TransferOrderFilter
-from tokens.models import OrderActionPurpose, OrderSubmissionStatus, TransferOrder
+from tokens.models import (
+    ApprovalSubmissionOutcome,
+    OrderActionPurpose,
+    OrderSubmissionStatus,
+    TransferOrder,
+)
 from tokens.serializers import (
     TransferOrderCreateSerializer,
     TransferOrderDetailSerializer,
@@ -96,6 +101,20 @@ SWAP_APPROVAL_PARAMETERS = [
     *SWAP_IDENTITY_PARAMETERS,
     OpenApiParameter("settlement_digest", OpenApiTypes.STR, OpenApiParameter.QUERY, required=True),
 ]
+APPROVAL_REPLAYED_DETAIL = (
+    "Approval recorded; recovery in progress. Do not sign another approval: "
+    "the recorded transaction is replayed until its outcome is known."
+)
+APPROVAL_TERMINAL_DETAILS = {
+    ApprovalSubmissionOutcome.REVERTED: (
+        "The recorded approval reverted on chain and took no effect. It is no longer replayed: "
+        "sign a fresh approval to continue."
+    ),
+    ApprovalSubmissionOutcome.SUPERSEDED: (
+        "The recorded approval was superseded at its nonce and took no effect. It is no longer "
+        "replayed: sign a fresh approval to continue."
+    ),
+}
 
 
 class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
@@ -373,8 +392,8 @@ class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
         admission = self._settlement_admission(request, identity)
         swap, role, _signed = resolve_exact_swap_context(request.user, uuid, identity)
         try:
-            tx_hash, receipt = atomic_swap_service.broadcast_settlement_approval(
-                swap, role, identity["signed_transaction"], admission
+            submission = atomic_swap_service.broadcast_settlement_approval(
+                swap, role, identity["signed_transaction"], admission, request.user.pk
             )
         except SettlementApprovalUncertain as exc:
             return Response(
@@ -382,16 +401,16 @@ class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
                     **self._settlement_echo(request, swap, role),
                     "tx_hash": exc.tx_hash,
                     "code": "swap_approval_unconfirmed",
-                    "detail": "Approval outcome remains unconfirmed. Check the original transaction before continuing.",
+                    "detail": APPROVAL_TERMINAL_DETAILS.get(exc.outcome, APPROVAL_REPLAYED_DETAIL),
                 },
                 status=503,
             )
         return Response(
             {
                 **self._settlement_echo(request, swap, role),
-                "tx_hash": tx_hash,
-                "block_number": receipt.get("blockNumber"),
-                "gas_used": receipt.get("gasUsed"),
+                "tx_hash": submission.tx_hash,
+                "block_number": submission.block_number,
+                "gas_used": submission.gas_used,
             }
         )
 

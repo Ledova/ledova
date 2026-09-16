@@ -58,24 +58,67 @@ the latest completed swap by completion time, then identifier, and preserve
 exact payment digits without floating-point conversion. These read rules do not
 grant permission to execute historical swaps.
 
+## Participant approvals
+
 The scoped approval-broadcast route verifies the actual signed bytes against
-the captured party, chain, token, spender and existing unlimited approval value.
-A confirmed result requires both the provider's returned hash and the receipt's
-transaction hash to equal the computed signed-byte hash. Missing or conflicting
-identity, or a send/receipt exception, returns `swap_approval_unconfirmed` with
-HTTP 503, the original scoped identity and computed hash. Retain that identity
-and check the original outcome; this is not confirmation, a new journal or
-permission to rebroadcast. A matching receipt remains attributed to its original
-context if the deadline or configuration changes during the wait. The general
-transfer service is unchanged. Signing and approval schemas describe only the
-exact settlement contract. Approval data has two mutually exclusive outcomes:
-sufficient allowance, or an approval transaction with the original identity.
+the captured party, chain, token, spender and existing unlimited approval value,
+then records them before any RPC. Inside one bounded operator transaction it
+locks the swap row, reuses the `SwapApprovalSubmission` that already holds the
+same bytes, refuses different bytes at a recorded sender nonce with HTTP 409
+`swap_approval_conflict`, and otherwise inserts the exact bytes, their locally
+computed hash, nonce, sender, token, spender, settlement digest, participant
+identity and requesting actor. The row commits before the send, so a lost
+response or a killed process cannot lose the effect. The journal is operator-only
+and `(chain_id, tx_hash)` and `(chain_id, sender_address, nonce)` are unique
+across every swap; PostgreSQL freezes the identity, writes the outcome once and
+refuses insertion unless the referenced V1 swap is still pending.
+
+Outside that transaction the recorded row is attempted: a row that already holds
+its receipt answers HTTP 200 with no RPC; otherwise the bytes are sent, the
+acknowledgement is recorded when the node returns the computed hash, and the
+request waits a few seconds for the receipt. A receipt whose transaction hash
+equals the computed hash is recorded as `confirmed` or `reverted` with its block
+and gas, and it remains attributed to the original context if the deadline or
+configuration changes during the wait. Only `confirmed` answers HTTP 200.
+Everything else returns `swap_approval_unconfirmed` with HTTP 503, the original
+scoped identity and computed hash. Its detail states the recorded row's own
+outcome. While the row is pending the approval is recorded and recovery is in
+progress: do not sign another approval for that swap. A `reverted` or
+`superseded` row says the approval took no effect and is no longer replayed,
+which is the state in which `approval-data` prepares a fresh one below. Neither
+response is confirmation, and the client keeps its saved hash as before.
+
+The five-minute `recover_swap_approval_submissions` sweep attempts at most 100
+pending rows, least recently attempted first. Each attempt verifies the bytes
+against the recorded identity, reads the endpoint's current chain ID, and looks
+for the receipt by hash first, recording it when found. With no receipt, a
+sender whose mined nonce has passed the recorded nonce marks the row
+`superseded`. Otherwise the exact bytes are resent, at most once a minute across
+route and sweep, only while the swap is still pending, its captured context
+still matches the current configuration and the signed deadline is live; after
+the deadline or after drift nothing is resent and the row is observed until a
+receipt or the nonce moves. Rows are retained indefinitely. The sweep never
+signs, never allocates a nonce and never sends bytes it did not record.
+
+`approval-data` refuses with HTTP 409 `swap_approval_pending` while a submission
+for the same chain, sender, token and spender is pending, so a second device
+cannot prepare a competing approval; a fresh approval is prepared only after
+`confirmed`, `reverted` or `superseded`. Execution admission still proceeds on
+an included approval without waiting for finality. Approval data otherwise has
+two mutually exclusive outcomes: sufficient allowance, or an approval
+transaction with the original identity. Signing and approval schemas describe
+only the exact settlement contract, and the general transfer service is
+unchanged.
 
 Approval provider admission still uses the inherited cached `assert_expected_chain`
 result. Execution recovery additionally reads the endpoint's current chain ID
 before observation and delivery. Execution admission retains complete signed
 arguments and their original domain. A receipt that cannot be attributed to that
 original chain/context leaves the claim unresolved.
+
+Migration `tokens/0059` creates the journal and its trigger and adopts no earlier
+approval: bytes sent before it have no row and are not replayed. Reversal refuses
+while any row exists. See [upgrades](../operations/upgrades.md).
 `tokens/0040` permits a captured-party signature through either currently
 authorized participant while the other order and wallet stay private. It first
 refuses existing swap/parent identity drift without rewriting history, freezes
