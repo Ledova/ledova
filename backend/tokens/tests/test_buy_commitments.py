@@ -1,3 +1,5 @@
+from decimal import Decimal
+from unittest.mock import patch
 from uuid import uuid4
 
 from django.test import TransactionTestCase, override_settings
@@ -90,6 +92,34 @@ class SignedBuyModificationsAreMeasuredAgainstPaymentTest(ActionFixtures, APITra
         self.assertEqual(self.journal(signed["action_id"]).status, "applied")
         self.order.refresh_from_db()
         self.assertEqual(self.order.quantity, 12)
+        self.assertEqual(self.provider_states, [False] * len(self.provider_states))
+        self.assertTrue(self.provider_states)
+
+    def test_another_open_buy_of_the_wallet_reduces_what_a_raise_may_commit(self):
+        with use_operator():
+            TransferOrder.objects.create(
+                token=self.tenant.deployed_token,
+                payment_asset=self.tenant.refs.stablecoin,
+                wallet=self.wallet,
+                owner_account=self.tenant.account,
+                wallet_address=self.wallet.address,
+                order_type="buy",
+                quantity=4,
+                min_quantity=0,
+                price_per_share=Decimal("2.50"),
+            )
+        self.assert_refused(12, "2.50")
+
+    def test_a_raise_first_seen_under_the_lock_is_refused_until_re_signed(self):
+        issued = self.modification(12, "2.50")
+        self.assertEqual(issued.status_code, 200, issued.content)
+        signed = self.sign(issued.json())
+        with patch("tokens.services.order_actions.available_modification_balance", return_value=None):
+            refused = self.execute("modify", signed)
+        self.assertEqual(refused.status_code, 400, refused.content)
+        self.assertIn("The order has changed", refused.json()["refusal"]["detail"])
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.quantity, 10)
 
 
 @override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT, BLOCKCHAIN_OPERATOR_KEY="")

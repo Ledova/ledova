@@ -11,7 +11,6 @@ from operators.settlement import deployment_for, require_deployment
 from shared.db import atomic
 from shared.utils.blockchain import decode_exception_to_message
 from shared.utils.token_amounts import token_base_units_ceiling
-from tokens.constants import MAX_SETTLEMENT_UNITS
 from tokens.exceptions import (
     CreateOrderInsufficientBalanceException,
     CreateOrderNotWhitelistedException,
@@ -349,8 +348,6 @@ def create_order_and_match(
 
         deployment = require_deployment(payment_asset)
         needed = token_base_units_ceiling(quantity * price_per_share, deployment.decimals)
-        if needed > MAX_SETTLEMENT_UNITS:
-            raise InvalidSettlementAmountException()
         balance = share_token_service.get_token_balance(deployment.contract_address, canonical_wallet_address)
         available = balance - TransferOrder.objects.committed_buy_payment(
             payment_asset, canonical_wallet_address, deployment.decimals

@@ -67,15 +67,20 @@ def validate_modifications(
                 f"with {available_balance} available."
             )
 
-    if order.order_type == TransferOrderType.BUY and available_balance is not None:
-        commitment = token_base_units_ceiling(
-            remaining * effective_price, require_deployment(order.payment_asset).decimals
-        )
-        if commitment > available_balance:
-            errors.append(
-                f"Insufficient {order.payment_asset.symbol} balance. The order would commit {commitment} base units, "
-                f"with {available_balance} available."
+    if order.order_type == TransferOrderType.BUY and (
+        effective_quantity > order.quantity or effective_price > order.price_per_share
+    ):
+        if available_balance is None:
+            errors.append("The order has changed. Please request and sign a new modification message.")
+        else:
+            commitment = token_base_units_ceiling(
+                remaining * effective_price, require_deployment(order.payment_asset).decimals
             )
+            if commitment > available_balance:
+                errors.append(
+                    f"Insufficient {order.payment_asset.symbol} balance. The order would commit {commitment} "
+                    f"base units, with {available_balance} available."
+                )
 
     return errors
 
