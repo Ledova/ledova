@@ -381,6 +381,7 @@ class SettlementApprovalPending(APIException):
 
 
 class SettlementApprovalUncertain(Exception):
-    def __init__(self, tx_hash):
-        super().__init__("Approval recorded; recovery in progress.")
+    def __init__(self, tx_hash, outcome):
+        super().__init__(f"Approval recorded; attempt outcome {outcome}.")
         self.tx_hash = tx_hash
+        self.outcome = outcome

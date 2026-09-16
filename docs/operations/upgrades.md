@@ -68,8 +68,10 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   before applying it, because an old binary still sends without recording.
   Afterwards `POST .../swap/approval-broadcast/` waits a few seconds rather
   than 120 for the receipt, so `swap_approval_unconfirmed` is answered more
-  often and now means recorded and replayed by the five-minute
-  `recover_swap_approval_submissions` sweep. Reversal refuses while any
+  often and now means recorded: replayed by the five-minute
+  `recover_swap_approval_submissions` sweep while the row is pending, and
+  finished without effect once it is `reverted` or `superseded`, which its
+  detail states. Reversal refuses while any
   submission row exists; the rows are broadcast capabilities and belong in
   protected backups.
 - `whitelist/0002_whitelistentry_treasury_addresses` makes

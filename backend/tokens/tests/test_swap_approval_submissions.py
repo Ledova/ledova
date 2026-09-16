@@ -191,14 +191,20 @@ class SwapApprovalSubmissionTest(APITransactionTestCase):
                 "transactionHash": TX_HASH,
             }
 
+        def superseded(node):
+            node.confirm = False
+            node.mined_nonce = 6
+
+        replayed = "the recorded transaction is replayed until its outcome is known"
         variants = (
-            ("lost acknowledgement", lost, ("pending", False, "BaseChainTransactionError")),
-            ("foreign acknowledgement", foreign, ("pending", False, "BaseChainTransactionError")),
-            ("no receipt within the wait", unmined, ("pending", True, "BaseChainTransactionError")),
-            ("reverted receipt", reverted, ("reverted", True, "")),
-            ("receipt for another hash", misattributed, ("pending", True, "")),
+            ("lost acknowledgement", lost, ("pending", False, "BaseChainTransactionError"), 1, replayed),
+            ("foreign acknowledgement", foreign, ("pending", False, "BaseChainTransactionError"), 1, replayed),
+            ("no receipt within the wait", unmined, ("pending", True, "BaseChainTransactionError"), 1, replayed),
+            ("reverted receipt", reverted, ("reverted", True, ""), 1, "reverted on chain and took no effect"),
+            ("receipt for another hash", misattributed, ("pending", True, ""), 1, replayed),
+            ("superseded nonce", superseded, ("superseded", False, ""), 0, "superseded at its nonce"),
         )
-        for nonce, (label, arrange, expected) in enumerate(variants):
+        for nonce, (label, arrange, expected, sent, detail) in enumerate(variants):
             with self.subTest(label):
                 node = approval_node(self)
                 arrange(node)
@@ -211,7 +217,7 @@ class SwapApprovalSubmissionTest(APITransactionTestCase):
                     (body["code"], body["txHash"], body["swapUuid"], body["settlementDigest"]),
                     ("swap_approval_unconfirmed", expected_hash, str(self.swap.pk), self.swap.settlement_digest),
                 )
-                self.assertIn("recorded", body["detail"])
+                self.assertIn(detail, body["detail"])
                 self.assertNotIn("Synthetic", response.content.decode())
                 self.assertNotIn("blockNumber", body)
                 row = self.rows()[-1]
@@ -219,7 +225,7 @@ class SwapApprovalSubmissionTest(APITransactionTestCase):
                     (row.tx_hash, row.outcome, row.acknowledged_at is not None, row.last_error),
                     (expected_hash, *expected),
                 )
-                self.assertEqual(node.broadcasts, [raw])
+                self.assertEqual(node.broadcasts, [raw] * sent)
         with use_operator():
             self.assertEqual((persisted_outcome(self.swap)[0]["tx_hash"], self.swap.transaction_id), ("", None))
 
@@ -250,6 +256,16 @@ class SwapApprovalSubmissionTest(APITransactionTestCase):
         self.assertEqual(refused.json()["code"], "swap_approval_conflict")
         self.assertEqual(self.node.broadcasts, [first])
         self.assertEqual([row.tx_hash for row in self.rows()], [Web3.keccak(first).to_0x_hex()])
+
+    def test_a_nonce_beyond_the_recorded_bound_is_refused_and_the_bound_itself_is_recorded(self):
+        beyond = approval_bytes(self.swap, nonce=approval_submissions.MAX_RECORDED_NONCE + 1)
+        refused = self.broadcast(beyond)
+        self.assertEqual(refused.status_code, 409, refused.content)
+        self.assertEqual(refused.json()["code"], "swap_settlement_context_changed")
+        self.assertEqual((self.rows(), self.node.broadcasts), ([], []))
+        admitted = self.broadcast(approval_bytes(self.swap, nonce=approval_submissions.MAX_RECORDED_NONCE))
+        self.assertEqual(admitted.status_code, 200, admitted.content)
+        self.assertEqual(self.row().nonce, approval_submissions.MAX_RECORDED_NONCE)
 
     def test_approval_data_refuses_while_pending_and_permits_after_each_definite_outcome(self):
         self.enterContext(patch.object(atomic_swap_service, "check_allowance", lambda *_args: 0))
@@ -324,6 +340,47 @@ class SwapApprovalSubmissionTest(APITransactionTestCase):
         with self.clock(minutes=4):
             self.assertEqual(self.sweep(), {"attempted": 1, "outcomes": {"held": 1}})
             self.node.mine(Web3.keccak(raw).to_0x_hex())
+            self.assertEqual(self.sweep(), {"attempted": 1, "outcomes": {"confirmed": 1}})
+        self.assertEqual((self.row().outcome, self.node.broadcasts), ("confirmed", [raw]))
+
+    def test_recorded_bytes_that_disagree_with_the_recorded_row_are_never_sent(self):
+        context = recorded_settlement_context(self.swap)
+        spender = context["typed_data"]["domain"]["verifyingContract"]
+        chain = int(context["typed_data"]["domain"]["chainId"])
+        elsewhere = Web3.to_checksum_address("0x" + "cd" * 20)
+        no_allowance = "0x095ea7b3" + spender[2:].rjust(64, "0") + "0" * 64
+        intent = self.submission_fields(approval_bytes(self.swap, nonce=1))["intent"]
+        variants = (
+            ("sender", approval_bytes(self.swap, key=BUYER, nonce=2), 2),
+            ("nonce", approval_bytes(self.swap, nonce=99), 3),
+            ("chain", approval_bytes(self.swap, nonce=4, chainId=chain + 1), 4),
+            ("target", approval_bytes(self.swap, nonce=5, to=elsewhere), 5),
+            ("value", approval_bytes(self.swap, nonce=6, value=1), 6),
+            ("calldata", approval_bytes(self.swap, nonce=7, data=no_allowance), 7),
+        )
+        for label, raw, nonce in variants:
+            with self.subTest(label):
+                fields = self.submission_fields(raw, nonce=nonce, intent=intent)
+                with use_operator():
+                    row = SwapApprovalSubmission.objects.create(**fields)
+                    outcome = approval_submissions.attempt(row.pk, client=self.node.client)
+                self.assertEqual((outcome, self.node.broadcasts), ("identity_unavailable", []))
+        self.assertEqual([row.outcome for row in self.rows()], ["pending"] * len(variants))
+
+    def test_an_endpoint_reporting_another_chain_is_neither_read_nor_resent(self):
+        raw = approval_bytes(self.swap)
+        self.node.confirm = False
+        self.assertEqual(self.broadcast(raw).status_code, 503)
+        recorded_chain = self.row().chain_id
+        self.node.client.w3.eth.chain_id = recorded_chain + 1
+        self.node.client.get_transaction_receipt.reset_mock()
+        with self.clock(minutes=2):
+            self.assertEqual(self.sweep(), {"attempted": 1, "outcomes": {"chain_unavailable": 1}})
+        self.node.client.get_transaction_receipt.assert_not_called()
+        self.assertEqual((self.row().outcome, self.node.broadcasts), ("pending", [raw]))
+        self.node.client.w3.eth.chain_id = recorded_chain
+        self.node.mine(Web3.keccak(raw).to_0x_hex())
+        with self.clock(minutes=4):
             self.assertEqual(self.sweep(), {"attempted": 1, "outcomes": {"confirmed": 1}})
         self.assertEqual((self.row().outcome, self.node.broadcasts), ("confirmed", [raw]))
 

@@ -210,7 +210,7 @@ def broadcast_settlement_approval(swap_order, user_role, signed_transaction, adm
             submission.pk, client=get_base_chain_client(), receipt_wait=SWAP_APPROVAL_RECEIPT_WAIT_SECONDS
         )
         if outcome != ApprovalSubmissionOutcome.CONFIRMED:
-            raise SettlementApprovalUncertain(submission.tx_hash)
+            raise SettlementApprovalUncertain(submission.tx_hash, outcome)
         return SwapApprovalSubmission.objects.get(pk=submission.pk)
 
 

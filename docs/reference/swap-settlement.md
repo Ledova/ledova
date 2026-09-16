@@ -81,9 +81,12 @@ equals the computed hash is recorded as `confirmed` or `reverted` with its block
 and gas, and it remains attributed to the original context if the deadline or
 configuration changes during the wait. Only `confirmed` answers HTTP 200.
 Everything else returns `swap_approval_unconfirmed` with HTTP 503, the original
-scoped identity and computed hash: the approval is recorded and recovery is in
-progress. Do not sign another approval for that swap; the response is not
-confirmation, and the client keeps its saved hash as before.
+scoped identity and computed hash. Its detail states the recorded row's own
+outcome. While the row is pending the approval is recorded and recovery is in
+progress: do not sign another approval for that swap. A `reverted` or
+`superseded` row says the approval took no effect and is no longer replayed,
+which is the state in which `approval-data` prepares a fresh one below. Neither
+response is confirmation, and the client keeps its saved hash as before.
 
 The five-minute `recover_swap_approval_submissions` sweep attempts at most 100
 pending rows, least recently attempted first. Each attempt verifies the bytes
