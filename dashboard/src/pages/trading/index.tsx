@@ -4,8 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { TransferOrder, CreateOrderRequest, Wallet, SwapOrder } from '@ledova/shared';
 import {
   DESIGN_TOKENS,
-  hasSwapSettlementContext,
-  selectSwapSettlementLookup,
+  selectSwapSettlement,
   useOrderSubmissions,
   useOrderActions,
   useSwapSettlements,
@@ -217,31 +216,10 @@ export function TradingPage() {
     submissions.close();
     actions.close();
     closeSwapSigning();
-    if (!hasSwapSettlementContext(swap) || !settlements.owner) {
-      setSwapSelectionError('The saved trade details are incomplete.');
-      return;
-    }
+    if (!settlements.owner) return;
     try {
-      const choices = (['seller', 'buyer'] as const).flatMap((role) => {
-        const party = swap.settlementContext[role];
-        const wallet = wallets.find(
-          (candidate) =>
-            candidate.uuid === party.walletUuid &&
-            candidate.userAccount === settlements.owner!.ownerAccountUuid &&
-            candidate.userAccount === party.ownerAccountUuid &&
-            candidate.address.toLowerCase() === party.address.toLowerCase(),
-        );
-        return wallet
-          ? [{ wallet, party, signed: role === 'seller' ? swap.sellerHasSigned : swap.buyerHasSigned }]
-          : [];
-      });
-      const choice = choices.find((candidate) => !candidate.signed) ?? choices[0];
-      if (!choice) {
-        setSwapSelectionError('This trade has no matching verified wallet in the current account.');
-        return;
-      }
-      const selection = selectSwapSettlementLookup(swap, settlements.owner, choice.wallet, choice.party.orderUuid);
-      settlements.open(selection, walletCurrent(choice.wallet.uuid));
+      const { selection, wallet } = selectSwapSettlement(swap, settlements.owner, wallets);
+      settlements.open(selection, walletCurrent(wallet.uuid));
     } catch {
       setSwapSelectionError('The trade details did not match the selected account and wallet.');
     }
@@ -378,7 +356,8 @@ export function TradingPage() {
                 onEditOrder={handleEditOrder}
                 swaps={swaps}
                 isLoadingSwaps={isLoadingSwaps}
-                walletAddresses={walletAddresses}
+                wallets={wallets}
+                settlementOwner={settlements.owner}
                 onSignSwap={handleSignSwap}
               />
 

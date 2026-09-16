@@ -10,9 +10,15 @@ import {
   QrCodeIcon,
   SpinnerGapIcon,
 } from '@phosphor-icons/react';
-import type { TransferOrder, SwapOrder, OrderBook as OrderBookType, OrderBookEntry } from '@ledova/shared';
-import { formatCurrency, DESIGN_TOKENS, hasSwapSettlementContext } from '@ledova/shared';
-import { exactSettlementAmount } from '@services/swapSettlements';
+import type {
+  Wallet,
+  OrderSubmissionOwner,
+  TransferOrder,
+  SwapOrder,
+  OrderBook as OrderBookType,
+  OrderBookEntry,
+} from '@ledova/shared';
+import { selectSwapSettlement, formatCurrency, DESIGN_TOKENS } from '@ledova/shared';
 
 const ICON_XS = DESIGN_TOKENS.icon.sizes.xs;
 const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
@@ -113,7 +119,8 @@ interface OrdersPanelProps {
   onEditOrder: (order: TransferOrder) => void;
   swaps: SwapOrder[] | undefined;
   isLoadingSwaps: boolean;
-  walletAddresses: string[];
+  wallets: Wallet[];
+  settlementOwner: OrderSubmissionOwner | null;
   onSignSwap: (swap: SwapOrder) => void;
 }
 
@@ -127,12 +134,13 @@ export function OrdersPanel({
   onEditOrder,
   swaps,
   isLoadingSwaps,
-  walletAddresses,
+  wallets,
+  settlementOwner,
   onSignSwap,
 }: OrdersPanelProps) {
   const [confirmingOrderId, setConfirmingOrderId] = useState<string | null>(null);
 
-  const normalizedAddresses = useMemo(() => walletAddresses.map((a) => a.toLowerCase()), [walletAddresses]);
+  const normalizedAddresses = useMemo(() => wallets.map((wallet) => wallet.address.toLowerCase()), [wallets]);
 
   const { asks, bids, maxQuantity, spread } = useMemo(() => {
     if (!orderBook)
@@ -157,15 +165,23 @@ export function OrdersPanel({
   );
 
   const pendingSwaps = useMemo(() => {
-    if (!swaps || walletAddresses.length === 0) return [];
-    return swaps.filter((s) => {
-      const isSeller = normalizedAddresses.includes(s.sellerAddress.toLowerCase());
-      const isBuyer = normalizedAddresses.includes(s.buyerAddress.toLowerCase());
-      if (!isSeller && !isBuyer) return false;
-      const unsigned = (isSeller && !s.sellerHasSigned) || (isBuyer && !s.buyerHasSigned);
-      return unsigned && ['created', 'seller_signed', 'buyer_signed'].includes(s.status);
+    if (!swaps) return [];
+    return swaps.flatMap((swap) => {
+      if (!['created', 'seller_signed', 'buyer_signed'].includes(swap.status)) return [];
+      if (swap.settlementProtocolVersion === 0) {
+        const isSeller = normalizedAddresses.includes(swap.sellerAddress.toLowerCase()) && !swap.sellerHasSigned;
+        const isBuyer = normalizedAddresses.includes(swap.buyerAddress.toLowerCase()) && !swap.buyerHasSigned;
+        return isSeller || isBuyer ? [{ swap, isSeller }] : [];
+      }
+      if (!settlementOwner) return [];
+      try {
+        const { selection } = selectSwapSettlement(swap, settlementOwner, wallets);
+        return [{ swap, isSeller: selection.orderUuid === swap.sellOrderUuid }];
+      } catch {
+        return [];
+      }
     });
-  }, [swaps, walletAddresses, normalizedAddresses]);
+  }, [swaps, wallets, settlementOwner, normalizedAddresses]);
 
   const handleConfirmCancel = (uuid: string) => {
     onCancelOrder(uuid);
@@ -286,19 +302,9 @@ export function OrdersPanel({
             );
           })}
 
-          {pendingSwaps.map((swap) => {
-            const isSeller = normalizedAddresses.includes(swap.sellerAddress.toLowerCase()) && !swap.sellerHasSigned;
+          {pendingSwaps.map(({ swap, isSeller }) => {
             const userRole = isSeller ? 'Seller' : 'Buyer';
             const legacy = swap.settlementProtocolVersion === 0;
-            let capturedDisplay: string | null = null;
-            if (hasSwapSettlementContext(swap)) {
-              try {
-                const context = swap.settlementContext;
-                capturedDisplay = `${exactSettlementAmount(context.typedData.message.shareAmount, context.shareToken.decimals)} ${context.shareToken.symbol} · ${exactSettlementAmount(context.typedData.message.paymentAmount, context.paymentAsset.deploymentDecimals)} ${context.paymentAsset.symbol}`;
-              } catch {
-                capturedDisplay = null;
-              }
-            }
 
             return (
               <div
@@ -312,9 +318,7 @@ export function OrdersPanel({
                   <span className="text-sm font-medium text-text-primary">{swap.shareTokenSymbol}</span>
                   <span className="text-xs text-text-muted">•</span>
                   <span className="text-sm text-text-primary">
-                    {legacy
-                      ? `${swap.shareAmount}@$${(swap.paymentAmount / 100).toFixed(2)}`
-                      : (capturedDisplay ?? 'Trade details need refreshing')}
+                    {legacy ? `${swap.shareAmount}@$${(swap.paymentAmount / 100).toFixed(2)}` : 'Review trade amounts'}
                   </span>
                   <span
                     className={`text-xs font-medium px-1.5 py-0.5 rounded ${isSeller ? 'bg-error-light/10 text-error-light' : 'bg-success-light/10 text-success-light'}`}

@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 
 import type { PropsWithChildren, ReactNode } from 'react';
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 import {
+  selectSwapSettlement,
   ApiClientProvider,
   AUTH_QUERY_KEY,
   USER_PREFERENCES_QUERY_KEY,
@@ -15,8 +16,10 @@ import {
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { swapSettlementStore } from '@services/swapSettlements';
 import * as localSigner from '@utils/softwareWallet/localSigner';
+import tradingApi from '@services/apiClient';
 import { TradingPage } from './index';
 import fixture from '../../../../packages/shared/tests/fixtures/swap-settlement-api.json';
+import { settlementListRow } from '../../../../packages/shared/tests/fixtures/swap-settlements';
 import { deferred, response, userUuid } from '../../../../packages/shared/tests/fixtures/order-submissions';
 
 const state = vi.hoisted(() => ({ wallets: [] as Wallet[], swaps: [] as SwapOrder[] }));
@@ -68,7 +71,7 @@ const listed = Object.keys(
 );
 const listShape = (swap: object, keys = listed) =>
   Object.fromEntries(Object.entries(swap).filter(([key]) => keys.includes(key))) as unknown as SwapOrder;
-const listedSwap = listShape(captured.swapOrder);
+const listedSwap = settlementListRow(captured);
 const owner = { userUuid, ownerAccountUuid: captured.ownerAccountUuid };
 let client: QueryClient;
 let requests: InternalAxiosRequestConfig[];
@@ -119,7 +122,7 @@ beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity, staleTime: Infinity } } });
   setAccount();
   state.wallets = [walletFor('buyer')];
-  state.swaps = [structuredClone(captured.swapOrder)];
+  state.swaps = [settlementListRow(captured)];
   requests = [];
   api = axios.create();
   api.defaults.adapter = async (config) => {
@@ -130,7 +133,13 @@ beforeEach(() => {
     const userRole =
       config.params?.wallet_uuid === captured.swapOrder.settlementContext.seller.walletUuid ? 'seller' : 'buyer';
     const party = captured.swapOrder.settlementContext[userRole];
-    const swapOrder = state.swaps.find((swap) => swap.uuid === config.params?.swap_uuid) ?? captured.swapOrder;
+    const row = state.swaps.find((swap) => swap.uuid === config.params?.swap_uuid);
+    const swapOrder = {
+      ...captured.swapOrder,
+      status: row?.status ?? captured.swapOrder.status,
+      sellerHasSigned: row?.sellerHasSigned ?? captured.swapOrder.sellerHasSigned,
+      buyerHasSigned: row?.buyerHasSigned ?? captured.swapOrder.buyerHasSigned,
+    };
     const hasSigned = userRole === 'seller' ? swapOrder.sellerHasSigned : swapOrder.buyerHasSigned;
     const body = {
       ...captured,
@@ -143,7 +152,9 @@ beforeEach(() => {
     };
     if (config.method === 'post') {
       const order = { ...swapOrder, buyerHasSigned: true, status: 'buyer_signed' as const };
-      state.swaps = state.swaps.map((candidate) => (candidate.uuid === order.uuid ? order : candidate));
+      state.swaps = state.swaps.map((candidate) =>
+        candidate.uuid === order.uuid ? { ...candidate, buyerHasSigned: true, status: order.status } : candidate,
+      );
       return response(config, order);
     }
     if (config.url.endsWith('/approval-status/'))
@@ -165,23 +176,25 @@ afterEach(async () => {
   vi.restoreAllMocks();
 });
 
-it('opens the buyer own order and shows exact captured quantities in the real order list', async () => {
+it('opens the buyer original order from a real list row before displaying exact captured quantities', async () => {
   render(<TradingPage />, { wrapper });
-  expect(screen.getByText('9007199254740993 DEP · 13510798882111489.50 TUSD')).toBeTruthy();
+  expect(screen.getByText('Review trade amounts')).toBeTruthy();
+  expect(screen.getByText('Buyer')).toBeTruthy();
   fireEvent.click(screen.getByTitle('Sign swap'));
   await waitFor(() => expect(screen.getByText('You are the buyer.')).toBeTruthy());
   expect(swapRequests()).toHaveLength(1);
   expect(swapRequests()[0]!.url).toContain(`/orders/${captured.swapOrder.buyOrderUuid}/swap/`);
   expect(swapRequests()[0]!.params).toMatchObject({
     wallet_uuid: captured.swapOrder.settlementContext.buyer.walletUuid,
-    settlement_digest: captured.settlementDigest,
+    owner_account_uuid: captured.ownerAccountUuid,
     swap_uuid: captured.swapUuid,
   });
+  expect(swapRequests()[0]!.params).not.toHaveProperty('settlement_digest');
 });
 
 it('keeps the unsigned buyer side available when both wallets are owned and the seller has already signed', async () => {
   state.wallets = [walletFor('seller'), walletFor('buyer')];
-  state.swaps = [{ ...captured.swapOrder, sellerHasSigned: true, status: 'seller_signed' }];
+  state.swaps = [{ ...listedSwap, sellerHasSigned: true, status: 'seller_signed' }];
   render(<TradingPage />, { wrapper });
   fireEvent.click(screen.getByTitle('Sign swap'));
   await waitFor(() => expect(screen.getByText('You are the buyer.')).toBeTruthy());
@@ -189,43 +202,19 @@ it('keeps the unsigned buyer side available when both wallets are owned and the 
 });
 
 it.each([
-  { name: 'in the swap list response shape', swap: listedSwap },
+  { name: 'missing viewer identities', swap: listShape(captured.swapOrder) },
+  { name: 'empty viewer identities', swap: { ...listedSwap, viewerParties: [] } },
   {
-    name: 'in the swap list response shape without its protocol version',
-    swap: listShape(
-      captured.swapOrder,
-      listed.filter((key) => key !== 'settlementProtocolVersion'),
-    ),
+    name: 'missing protocol version',
+    swap: { ...listedSwap, settlementProtocolVersion: undefined, viewerParties: [] },
   },
-  { name: 'with a null context', swap: { ...captured.swapOrder, settlementContext: null } },
-  {
-    name: 'with a null context and no digest',
-    swap: { ...captured.swapOrder, settlementContext: null, settlementDigest: '' },
-  },
-  {
-    name: 'with an empty context',
-    swap: { ...captured.swapOrder, settlementContext: {} },
-    alert: 'The trade details did not match the selected account and wallet.',
-  },
-  {
-    name: 'with a string version',
-    swap: { ...captured.swapOrder, settlementProtocolVersion: '0', settlementContext: null },
-  },
-  {
-    name: 'with a null version',
-    swap: { ...captured.swapOrder, settlementProtocolVersion: null, settlementContext: null },
-  },
-])(
-  'refuses a listed trade $name without the operator-review state',
-  async ({ swap, alert = 'The saved trade details are incomplete.' }) => {
-    state.swaps = [swap as unknown as SwapOrder];
-    render(<TradingPage />, { wrapper });
-    expect(screen.queryByText('Held for operator review')).toBeNull();
-    fireEvent.click(screen.getByTitle('Sign swap'));
-    await waitFor(() => expect(screen.getByRole('alert').textContent).toBe(alert));
-    expect(swapRequests()).toEqual([]);
-  },
-);
+])('offers no signing action for a list row with $name', ({ swap }) => {
+  state.swaps = [swap as SwapOrder];
+  render(<TradingPage />, { wrapper });
+  expect(screen.queryByText('Held for operator review')).toBeNull();
+  expect(screen.queryByTitle('Sign swap')).toBeNull();
+  expect(swapRequests()).toEqual([]);
+});
 
 it.each([
   { status: 'created', role: 'buyer', signed: {} },
@@ -243,7 +232,7 @@ it.each([
   },
 );
 
-it('holds explicit version0 history for operator review and refuses the version1 list row after refresh', async () => {
+it('holds explicit version0 history and opens a refreshed version1 list row without signing', async () => {
   const signer = vi.spyOn(localSigner, 'signEthereumTypedData');
   const legacy = listShape({ ...captured.swapOrder, settlementProtocolVersion: 0 });
   state.swaps = [legacy];
@@ -260,8 +249,9 @@ it('holds explicit version0 history for operator review and refuses the version1
   expect(screen.queryByText('Held for operator review')).toBeNull();
   expect(screen.getByText('Expired')).toBeTruthy();
   fireEvent.click(screen.getByTitle('Sign swap'));
-  await waitFor(() => expect(screen.getByRole('alert').textContent).toBe('The saved trade details are incomplete.'));
-  expect(swapRequests()).toEqual([]);
+  await waitFor(() => expect(screen.getByText('You are the buyer.')).toBeTruthy());
+  expect(swapRequests()).toHaveLength(1);
+  expect(swapRequests()[0]!.params).not.toHaveProperty('settlement_digest');
   expect(requests.filter((request) => request.method === 'post')).toEqual([]);
   expect(signer).not.toHaveBeenCalled();
 });
@@ -391,3 +381,49 @@ it('keeps a reviewed signer current through balance-only and unrelated-account c
   expect(requests.filter((request) => request.method === 'post')).toHaveLength(1);
   expect(await swapSettlementStore.list(owner)).toEqual([]);
 });
+
+it.each([false, true])(
+  'deduplicates multi-wallet list rows without losing either recorded side (reverse=%s)',
+  async (reverse) => {
+    const { useSwapOrdersMulti } =
+      await vi.importActual<typeof import('./hooks/useAtomicSwaps')>('./hooks/useAtomicSwaps');
+    const row = settlementListRow(captured);
+    const wallets = [walletFor('seller'), walletFor('buyer')];
+    if (reverse) wallets.reverse();
+    const get = vi.spyOn(tradingApi, 'get').mockResolvedValue({ data: { results: [row] } });
+    const view = renderHook(() => useSwapOrdersMulti(wallets.map((wallet) => wallet.address)), { wrapper });
+    await waitFor(() => expect(view.result.current.data).toHaveLength(1));
+    expect(get).toHaveBeenCalledTimes(2);
+    const listed = view.result.current.data![0]!;
+    expect(listed).not.toHaveProperty('settlementContext');
+    expect(selectSwapSettlement(listed, owner, wallets).selection.orderUuid).toBe(captured.swapOrder.sellOrderUuid);
+    expect(selectSwapSettlement({ ...listed, sellerHasSigned: true }, owner, wallets).selection.orderUuid).toBe(
+      captured.swapOrder.buyOrderUuid,
+    );
+  },
+);
+
+it.each(['other chain', 'other account'] as const)(
+  'uses the recorded buyer wallet when a same-address wallet comes first: %s',
+  async (kind) => {
+    const recorded = walletFor('buyer');
+    state.wallets = [
+      {
+        ...recorded,
+        uuid: '20000000-0000-4000-8000-000000000077',
+        chain: kind === 'other chain' ? 'ethereum' : recorded.chain,
+        userAccount: kind === 'other account' ? '20000000-0000-4000-8000-000000000099' : recorded.userAccount,
+      },
+      recorded,
+    ];
+    render(<TradingPage />, { wrapper });
+    fireEvent.click(screen.getByTitle('Sign swap'));
+    await waitFor(() => expect(screen.getByText('You are the buyer.')).toBeTruthy());
+    expect(swapRequests()[0]!.params.wallet_uuid).toBe(recorded.uuid);
+    expect(swapRequests()[0]!.params).not.toHaveProperty('settlement_digest');
+    fireEvent.click(screen.getByText('Check token approval'));
+    await waitFor(() => expect(swapRequests().length).toBeGreaterThan(1));
+    for (const request of swapRequests().slice(1))
+      expect(request.params.settlement_digest).toBe(captured.settlementDigest);
+  },
+);

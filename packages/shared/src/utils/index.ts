@@ -76,7 +76,7 @@ export type { SavedSwapSettlement, SwapSettlementStore } from './swap-settlement
 export { SwapSettlement } from './swap-settlement';
 export type { SwapSettlementState, SwapSettlementPhase, SwapSettlementDependencies } from './swap-settlement';
 export {
-  selectSwapSettlementLookup,
+  selectSwapSettlement,
   hasSwapSettlementContext,
   validateSwapSettlementLookup,
   validateSwapSettlementResponse,

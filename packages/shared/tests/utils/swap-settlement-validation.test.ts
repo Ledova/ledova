@@ -1,7 +1,7 @@
 import type { SwapSettlementResponse } from '../../src/types';
 import {
   hasSwapSettlementContext,
-  selectSwapSettlementLookup,
+  selectSwapSettlement,
   swapSettlementIdentity,
   validateSwapSettlementApprovalData,
   validateSwapSettlementApprovalResult,
@@ -13,38 +13,89 @@ import {
   settlementApproval,
   settlementCrypto,
   settlementOwner,
+  settlementListRow,
   settlementResponse,
 } from '../fixtures/swap-settlements';
 
 function wallet(response = settlementResponse()) {
   const side = response.swapOrder.settlementContext[response.userRole];
-  return { uuid: side.walletUuid, userAccount: side.ownerAccountUuid, address: side.address };
+  return {
+    uuid: side.walletUuid,
+    userAccount: side.ownerAccountUuid,
+    address: side.address,
+    chain: 'base' as const,
+    verificationStatus: 'VERIFIED' as const,
+  };
 }
 
-test('buyer selects the original buy-order and captured exact display without preferring the sell-order', async () => {
+test('a real list row selects the buyer original wallet and fetches its digest only in the exact GET', async () => {
   const value = settlementResponse('buyer');
-  const selection = selectSwapSettlementLookup(value.swapOrder, settlementOwner, wallet(value));
+  const row = settlementListRow(value);
+  expect(row).not.toHaveProperty('settlementContext');
+  expect(row).not.toHaveProperty('settlementDigest');
+  const { selection } = selectSwapSettlement(row, settlementOwner, [wallet(value)]);
   expect(selection.orderUuid).toBe(value.swapOrder.buyOrderUuid);
-  expect(selection.orderUuid).not.toBe(value.swapOrder.sellOrderUuid);
+  expect(selection).not.toHaveProperty('settlementDigest');
   await expect(validateSwapSettlementResponse(value, selection, settlementCrypto(value))).resolves.toBeUndefined();
-  expect(value.swapOrder.settlementContext.paymentAsset.pricingDecimals).toBe(2);
-  expect(value.typedData.message.paymentAmount).toBe('1351079888211148950');
 });
 
-test('current wallet or account mismatch cannot choose another captured side', () => {
-  const value = settlementResponse();
-  expect(() =>
-    selectSwapSettlementLookup(value.swapOrder, settlementOwner, {
-      ...wallet(),
-      userAccount: '20000000-0000-4000-8000-000000000009',
-    }),
-  ).toThrow();
-  expect(() =>
-    selectSwapSettlementLookup(value.swapOrder, settlementOwner, wallet(), value.swapOrder.buyOrderUuid),
-  ).toThrow();
-  expect(
-    selectSwapSettlementLookup(value.swapOrder, settlementOwner, wallet(), value.swapOrder.sellOrderUuid).orderUuid,
-  ).toBe(value.orderUuid);
+test.each([
+  { userAccount: '20000000-0000-4000-8000-000000000009' },
+  { uuid: '20000000-0000-4000-8000-000000000009' },
+  { address: '0x' + '99'.repeat(20) },
+  { verificationStatus: 'PENDING' as const },
+  { chain: 'bitcoin' as const },
+])('a changed wallet cannot substitute for its recorded identity: %s', (change) => {
+  expect(() => selectSwapSettlement(settlementListRow(), settlementOwner, [{ ...wallet(), ...change }])).toThrow();
+  expect(selectSwapSettlement(settlementListRow(), settlementOwner, [wallet()]).selection.walletUuid).toBe(
+    wallet().uuid,
+  );
+});
+
+test('same-address wallets in other accounts or chains cannot displace the recorded wallet', () => {
+  const original = wallet();
+  const alternatives = [
+    { ...original, uuid: '20000000-0000-4000-8000-000000000009', chain: 'ethereum' as const },
+    { ...original, uuid: '20000000-0000-4000-8000-000000000008', userAccount: '20000000-0000-4000-8000-000000000007' },
+  ];
+  expect(() => selectSwapSettlement(settlementListRow(), settlementOwner, alternatives)).toThrow();
+  for (const wallets of [
+    [...alternatives, original],
+    [original, ...alternatives],
+  ])
+    expect(selectSwapSettlement(settlementListRow(), settlementOwner, wallets).wallet).toBe(original);
+});
+
+test('both owned parties progress from unsigned seller to unsigned buyer independent of wallet order', () => {
+  const row = settlementListRow();
+  const seller = wallet();
+  const buyer = wallet(settlementResponse('buyer'));
+  for (const wallets of [
+    [seller, buyer],
+    [buyer, seller],
+  ]) {
+    expect(selectSwapSettlement(row, settlementOwner, wallets).selection.orderUuid).toBe(row.sellOrderUuid);
+    expect(selectSwapSettlement({ ...row, sellerHasSigned: true }, settlementOwner, wallets).selection.orderUuid).toBe(
+      row.buyOrderUuid,
+    );
+    expect(() =>
+      selectSwapSettlement({ ...row, sellerHasSigned: true, buyerHasSigned: true }, settlementOwner, wallets),
+    ).toThrow();
+  }
+});
+
+test.each([
+  { viewerParties: undefined },
+  { viewerParties: [] },
+  { viewerParties: null },
+  { viewerParties: [null] },
+  { viewerParties: [{ userRole: 'seller', ownerAccountUuid: settlementOwner.ownerAccountUuid }] },
+  { viewerParties: [{ ...settlementListRow().viewerParties[0], userRole: 'stranger' }] },
+  { viewerParties: [settlementListRow().viewerParties[0], settlementListRow().viewerParties[0]] },
+  { settlementProtocolVersion: 0 },
+])('incomplete or ambiguous viewer identity never guesses an address-based action: %s', (change) => {
+  const row = { ...settlementListRow(), ...change } as unknown as ReturnType<typeof settlementListRow>;
+  expect(() => selectSwapSettlement(row, settlementOwner, [wallet()])).toThrow();
 });
 
 test.each<[string, (value: SwapSettlementResponse) => void]>([
@@ -167,6 +218,8 @@ test('legacy discriminator preserves version0 without manufacturing an immutable
     settlementContext: null,
     settlementDigest: '',
   };
+  expect(hasSwapSettlementContext(null)).toBe(false);
+  expect(hasSwapSettlementContext(undefined)).toBe(false);
   expect(hasSwapSettlementContext(legacy)).toBe(false);
   expect(hasSwapSettlementContext(settlementResponse().swapOrder)).toBe(true);
   expect(hasSwapSettlementContext({ ...legacy, settlementProtocolVersion: 1 })).toBe(false);
