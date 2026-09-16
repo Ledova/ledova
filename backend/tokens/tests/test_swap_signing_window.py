@@ -7,18 +7,20 @@ from unittest.mock import patch
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.test import TransactionTestCase, override_settings
+from eth_abi import decode
 from eth_account.messages import encode_typed_data
 
 from blockchain.models import BlockchainTransaction
 from tokens.exceptions import SwapExpiredException
 from tokens.models import SwapOrder, SwapOrderStatus, TransferOrder, TransferOrderStatus
-from tokens.services import token_transfer_service
+from tokens.services import swap_execution, token_transfer_service
 from tokens.tests.swap_state_fixtures import (
     BUYER,
     CONTRACT,
     SELLER,
     make_swap,
     persisted_outcome,
+    sign_swap,
     swap_service,
 )
 
@@ -30,7 +32,7 @@ class NewlyMatchedSwapSigningWindowTest(TransactionTestCase):
         self.now = datetime(2026, 9, 10, 12, 0, tzinfo=UTC)
         self.clock = self.enterContext(patch("django.utils.timezone.now", return_value=self.now))
         self.enterContext(self.settings(SWAP_ORDER_EXPIRY_HOURS=self.configured_hours()))
-        self.enterContext(patch("tokens.services.atomic_swap_service.publish_trading_event"))
+        self.enterContext(patch("tokens.services.swap_execution.publish_trading_event"))
         self.template = make_swap("swap-signing-window")
         self.service = swap_service(self)
         TransferOrder.objects.filter(pk__in=[self.template.sell_order_id, self.template.buy_order_id]).update(
@@ -56,8 +58,9 @@ class NewlyMatchedSwapSigningWindowTest(TransactionTestCase):
 
     def ready_swap(self):
         swap = self.create_swap()
-        self.service.submit_signature(swap, self.signature(swap, SELLER), SELLER.address)
-        return self.service.submit_signature(swap, self.signature(swap, BUYER), BUYER.address)
+        with self.settings(BLOCKCHAIN_OPERATOR_KEY=""):
+            sign_swap(swap, self.signature(swap, SELLER), SELLER.address)
+            return sign_swap(swap, self.signature(swap, BUYER), BUYER.address)
 
     def test_default_matching_and_model_creation_persist_fifteen_minutes(self):
         with (
@@ -114,12 +117,12 @@ class NewlyMatchedSwapSigningWindowTest(TransactionTestCase):
         seller_signature = self.signature(swap, SELLER)
         buyer_signature = self.signature(swap, BUYER)
         self.clock.return_value = self.now + timedelta(minutes=14, seconds=59)
-        signed = self.service.submit_signature(swap, seller_signature, SELLER.address)
+        signed = sign_swap(swap, seller_signature, SELLER.address)
         self.assertEqual(signed.seller_signature, seller_signature)
         before = persisted_outcome(swap)
         self.clock.return_value = self.now + timedelta(minutes=15, seconds=1)
         with self.assertRaises(SwapExpiredException):
-            self.service.submit_signature(swap, buyer_signature, BUYER.address)
+            sign_swap(swap, buyer_signature, BUYER.address)
         self.assertEqual(persisted_outcome(swap), before)
 
     def test_expiry_during_signature_verification_is_rechecked_before_storage(self):
@@ -136,7 +139,7 @@ class NewlyMatchedSwapSigningWindowTest(TransactionTestCase):
 
         with patch.object(self.service, "verify_signature", side_effect=expire_after_verification):
             with self.assertRaises(SwapExpiredException):
-                self.service.submit_signature(swap, signature, SELLER.address)
+                sign_swap(swap, signature, SELLER.address)
         self.assertEqual(persisted_outcome(swap), before)
 
     def test_ready_swap_after_deadline_cannot_claim_build_sign_or_send(self):
@@ -145,7 +148,7 @@ class NewlyMatchedSwapSigningWindowTest(TransactionTestCase):
         before = persisted_outcome(swap)
         self.clock.return_value = self.now + timedelta(minutes=15, seconds=1)
         with self.assertRaises(SwapExpiredException):
-            self.service.execute_swap(swap)
+            sign_swap(swap, swap.seller_signature, SELLER.address)
         self.assertEqual(persisted_outcome(swap), before)
         self.service.get_base_chain_client().load_contract.assert_not_called()
         self.service.get_base_chain_client().build_transaction.assert_not_called()
@@ -155,13 +158,15 @@ class NewlyMatchedSwapSigningWindowTest(TransactionTestCase):
     def test_ready_swap_before_deadline_claims_and_uses_the_recorded_deadline(self):
         swap = self.ready_swap()
         self.clock.return_value = self.now + timedelta(minutes=14, seconds=59)
-        claimed, transaction = self.service._claim_execution(swap.pk)
-        self.assertEqual(claimed.status, SwapOrderStatus.EXECUTING)
-        self.assertEqual(claimed.transaction_id, transaction.pk)
+        admitted = sign_swap(swap, swap.seller_signature, SELLER.address)
+        self.assertEqual(admitted.status, SwapOrderStatus.EXECUTING)
+        transaction = admitted.transaction
         self.assertEqual(BlockchainTransaction.objects.filter(related_uuid=swap.pk).count(), 1)
-        self.service._execute_swap_call(claimed)
-        call = self.service.get_base_chain_client().load_contract.return_value.functions.executeSwap.call_args
-        self.assertEqual(call.args[7], int((self.now + timedelta(minutes=15)).timestamp()))
+        data = bytes.fromhex(swap_execution.transaction_intent(transaction)["data"][2:])
+        arguments = decode(["address"] * 4 + ["uint256"] * 4 + ["bytes"] * 2, data[4:])
+        self.assertEqual(arguments[7], int((self.now + timedelta(minutes=15)).timestamp()))
+        self.assertEqual(transaction.function_args["admission"]["participant"], "seller")
+        self.service.get_base_chain_client().load_contract.assert_not_called()
 
     def test_existing_twenty_four_hour_deadline_and_issued_signatures_survive_new_default(self):
         with self.settings(SWAP_ORDER_EXPIRY_HOURS=24):
@@ -170,7 +175,7 @@ class NewlyMatchedSwapSigningWindowTest(TransactionTestCase):
             order_hash = swap.order_hash
             seller_signature = self.signature(swap, SELLER)
             buyer_signature = self.signature(swap, BUYER)
-            self.service.submit_signature(swap, seller_signature, SELLER.address)
+            sign_swap(swap, seller_signature, SELLER.address)
         self.clock.return_value = self.now + timedelta(hours=1)
         swap.refresh_from_db()
         swap.save()
@@ -179,16 +184,12 @@ class NewlyMatchedSwapSigningWindowTest(TransactionTestCase):
         self.assertEqual(swap.order_hash, order_hash)
         self.assertEqual(self.service.get_typed_data(swap), typed_data)
         self.assertTrue(self.service.verify_signature(swap, seller_signature, SELLER.address))
-        ready = self.service.submit_signature(swap, buyer_signature, BUYER.address)
-        self.assertEqual((ready.seller_signature, ready.buyer_signature), (seller_signature, buyer_signature))
-        claimed, _transaction = self.service._claim_execution(ready.pk)
-        self.service._execute_swap_call(claimed)
-        call = self.service.get_base_chain_client().load_contract.return_value.functions.executeSwap.call_args
-        self.assertEqual(call.args[7], int(typed_data["message"]["deadline"]))
-        self.assertEqual(
-            call.args[8:],
-            (bytes.fromhex(seller_signature.removeprefix("0x")), bytes.fromhex(buyer_signature.removeprefix("0x"))),
-        )
-        claimed.refresh_from_db()
-        self.assertEqual(claimed.expires_at, self.now + timedelta(hours=24))
-        self.assertEqual(claimed.order_hash, order_hash)
+        admitted = sign_swap(swap, buyer_signature, BUYER.address)
+        self.assertEqual((admitted.seller_signature, admitted.buyer_signature), (seller_signature, buyer_signature))
+        data = bytes.fromhex(swap_execution.transaction_intent(admitted.transaction)["data"][2:])
+        arguments = decode(["address"] * 4 + ["uint256"] * 4 + ["bytes"] * 2, data[4:])
+        self.assertEqual(arguments[7], int(typed_data["message"]["deadline"]))
+        self.assertEqual(arguments[8:], (bytes.fromhex(seller_signature), bytes.fromhex(buyer_signature)))
+        admitted.refresh_from_db()
+        self.assertEqual(admitted.expires_at, self.now + timedelta(hours=24))
+        self.assertEqual(admitted.order_hash, order_hash)

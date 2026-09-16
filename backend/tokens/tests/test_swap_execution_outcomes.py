@@ -1,204 +1,133 @@
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from django.conf import settings
 from django.db import transaction
 from django.test import TransactionTestCase, override_settings
 
-from blockchain.models import BlockchainTransaction, TransactionStatus
+from blockchain.models import (
+    BlockchainTransaction,
+    OutgoingOperation,
+    SignedAttempt,
+    TransactionStatus,
+)
+from blockchain.tests.outgoing_fixtures import admitted_signer
 from integrations.base_chain.exceptions import GasEstimationError
-from shared.tests.tenants import make_tenant
-from tokens.exceptions import SwapExecutionException
-from tokens.models import SwapOrder
-from tokens.models.choices import SwapOrderStatus
-from tokens.services import atomic_swap_service
+from tokens.exceptions import SwapNotReadyException
+from tokens.models import SwapOrderStatus
+from tokens.services import swap_execution
+from tokens.tests.swap_execution_fixtures import ExecutionNode, make_execution
+from tokens.tests.swap_state_fixtures import BUYER, CONTRACT, SELLER
 
-CONTRACT = "0x" + "9d" * 20
-CONFIRMED = {"status": 1, "blockNumber": 7, "blockHash": "0xb", "gasUsed": 21000}
-REVERTED = {"status": 0, "blockNumber": 8, "blockHash": "0xc", "gasUsed": 500000}
-RPC_URL = "https://base-sepolia.g.alchemy.com/v2/pR3t3nd1ngT0B3aReAlK3y"
-SIGNATURE = "0x" + "ab" * 65
+RPC_URL = "https://synthetic.invalid/private-provider-token"
 
 
 @override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT, BLOCKCHAIN_OPERATOR_KEY="0x" + "11" * 32)
 class SwapExecutionRecordsItsOutcomeTest(TransactionTestCase):
-
     def setUp(self):
-        self.tenant = make_tenant("swapper")
-        self.swap = self.tenant.swap
-        SwapOrder.objects.filter(pk=self.swap.pk).update(
-            status=SwapOrderStatus.READY, seller_signature=SIGNATURE, buyer_signature=SIGNATURE
-        )
+        self.enterContext(patch("tokens.services.swap_execution.publish_trading_event"))
+        self.fixture = make_execution("outcome")
+        admitted_signer(chain_id=settings.BLOCKCHAIN_CHAIN_ID)
+        for participant, key in (("seller", SELLER), ("buyer", BUYER)):
+            self.swap = swap_execution.submit_signature(
+                self.fixture.swap,
+                self.fixture.signatures[participant],
+                key.address,
+                user=getattr(self.fixture, participant).user,
+                participant=participant,
+            )
+        self.record = self.swap.transaction
+        self.node = ExecutionNode(self.record.function_args)
+        self.before = self.parent_state()
+
+    def parent_state(self):
+        return [
+            (order.status, order.filled_quantity)
+            for order in type(self.fixture.orders[0])
+            .objects.filter(pk__in=[order.pk for order in self.fixture.orders])
+            .order_by("pk")
+        ]
+
+    def recover(self):
+        result = swap_execution.recover(self.record.pk, client=self.node.client)
         self.swap.refresh_from_db()
+        self.record.refresh_from_db()
+        return result
 
-    def service(self, client):
-        self.enterContext(patch.object(atomic_swap_service, "get_base_chain_client", return_value=client))
-        return atomic_swap_service
+    def assert_held(self):
+        self.assertEqual(self.swap.status, SwapOrderStatus.EXECUTING)
+        self.assertIsNone(self.swap.completed_at)
+        self.assertEqual(self.parent_state(), self.before)
 
-    @staticmethod
-    def chain_client():
-        client = Mock()
-        client.assert_expected_chain = Mock(return_value=settings.BLOCKCHAIN_CHAIN_ID)
-        client.to_checksum_address.side_effect = lambda address: address
-        client.build_transaction.return_value = {}
-        client.sign_transaction.return_value = b"signed"
-        client.wait_for_receipt.side_effect = AssertionError("the swap must read the receipt, not ask for a verdict")
-        return client
+    def test_lost_acknowledgement_keeps_the_durable_original_hash_and_bytes(self):
+        self.node.confirmed = False
+        self.node.lose_acknowledgement = True
+        self.assertEqual(self.recover(), "signed")
+        attempt = SignedAttempt.objects.get()
+        self.assertEqual(self.record.tx_hash, attempt.tx_hash)
+        self.assertEqual(self.node.broadcasts, [bytes(attempt.raw_transaction)])
+        self.assert_held()
 
-    def status(self):
-        self.swap.refresh_from_db()
-        return self.swap.status
+    def test_preparation_refusal_releases_only_an_unsigned_intent_once(self):
+        self.node.client.estimate_gas.side_effect = GasEstimationError("execution reverted")
+        self.assertEqual(self.recover(), "failed")
+        self.assertEqual((self.record.status, self.record.tx_hash), (TransactionStatus.FAILED, None))
+        self.assertEqual(self.swap.status, SwapOrderStatus.FAILED)
+        self.assertFalse(SignedAttempt.objects.exists())
+        self.assertTrue(all(filled == 0 for _status, filled in self.parent_state()))
+        after = self.parent_state()
+        self.assertEqual(self.recover(), "failed")
+        self.assertEqual(self.parent_state(), after)
+        self.node.client.send_raw_transaction.assert_not_called()
 
-    @patch.object(atomic_swap_service, "validate_swap_balances")
-    @patch.object(atomic_swap_service, "_execute_swap_call")
-    def test_a_broadcast_that_never_answers_leaves_the_swap_executing(self, _call, _balances):
-        client = self.chain_client()
-        client.send_raw_transaction.side_effect = TimeoutError("no response")
+    def test_missing_receipt_does_not_guess_the_financial_outcome(self):
+        self.node.confirmed = False
+        self.assertEqual(self.recover(), "signed")
+        self.assertEqual(self.record.status, TransactionStatus.SUBMITTED)
+        self.assert_held()
 
-        with self.assertRaises(SwapExecutionException):
-            self.service(client).execute_swap(self.swap)
+    def test_a_confirmed_receipt_is_recorded_with_financial_holds_unchanged(self):
+        self.assertEqual(self.recover(), "confirmed")
+        self.assertEqual(self.record.status, TransactionStatus.CONFIRMED)
+        self.assertEqual((self.record.block_number, self.record.gas_used), (12, 21000))
+        self.assert_held()
 
-        self.assertEqual(self.status(), SwapOrderStatus.EXECUTING)
-        record = BlockchainTransaction.objects.get(related_uuid=self.swap.uuid)
-        self.assertEqual(record.status, TransactionStatus.PENDING)
-        self.assertIsNone(record.tx_hash)
-        self.assertIn("no response", record.error_message)
+    def test_a_revert_is_distinguished_from_unknown_without_releasing_holds(self):
+        self.node.status = 0
+        self.assertEqual(self.recover(), "reverted")
+        self.assertEqual(self.record.status, TransactionStatus.REVERTED)
+        self.assertEqual(OutgoingOperation.objects.get().status, "reverted")
+        self.assert_held()
 
-    @patch.object(atomic_swap_service, "validate_swap_balances")
-    @patch.object(atomic_swap_service, "_execute_swap_call")
-    def test_a_rejection_before_broadcast_is_failed_and_says_why(self, _call, _balances):
-        client = self.chain_client()
-        client.sign_transaction.side_effect = ValueError("nonce too low")
+    def test_completed_receipt_projection_is_idempotent_without_more_rpc(self):
+        self.assertEqual(self.recover(), "confirmed")
+        before = BlockchainTransaction.objects.values().get(pk=self.record.pk)
+        self.node.client.reset_mock()
+        self.assertEqual(self.recover(), "confirmed")
+        after = BlockchainTransaction.objects.values().get(pk=self.record.pk)
+        before.pop("updated_at")
+        after.pop("updated_at")
+        self.assertEqual(after, before)
+        self.assertEqual(self.node.client.mock_calls, [])
+        self.assert_held()
 
-        with self.assertRaises(SwapExecutionException):
-            self.service(client).execute_swap(self.swap)
+    def test_private_node_details_do_not_reach_the_parties_or_journal(self):
+        self.node.client.estimate_gas.side_effect = ConnectionError(RPC_URL)
+        self.assertEqual(self.recover(), "failed")
+        for message in (self.swap.error_message, self.record.error_message):
+            self.assertNotIn("private-provider-token", message)
+            self.assertNotIn("synthetic.invalid", message)
+        self.assertEqual(self.swap.error_message, "Swap execution could not be prepared")
 
-        self.assertEqual(self.status(), SwapOrderStatus.FAILED)
-        record = BlockchainTransaction.objects.get(related_uuid=self.swap.uuid)
-        self.assertEqual(record.status, TransactionStatus.FAILED)
-        self.assertIn("nonce too low", record.error_message)
-
-    @patch.object(atomic_swap_service, "validate_swap_balances")
-    @patch.object(atomic_swap_service, "_execute_swap_call")
-    def test_a_broadcast_whose_receipt_never_arrives_keeps_its_hash(self, _call, _balances):
-        client = self.chain_client()
-        client.send_raw_transaction.return_value = "0xsent"
-        client.receipt_even_if_reverted.side_effect = TimeoutError("receipt timed out")
-
-        self.assertEqual(self.service(client).execute_swap(self.swap), "0xsent")
-
-        self.assertEqual(self.status(), SwapOrderStatus.EXECUTING)
-        record = BlockchainTransaction.objects.get(related_uuid=self.swap.uuid)
-        self.assertEqual((record.status, record.tx_hash), (TransactionStatus.SUBMITTED, "0xsent"))
-
-    @patch.object(atomic_swap_service, "validate_swap_balances")
-    @patch.object(atomic_swap_service, "_execute_swap_call")
-    def test_a_confirmed_receipt_completes_the_swap(self, _call, _balances):
-        client = self.chain_client()
-        client.send_raw_transaction.return_value = "0xdone"
-        client.receipt_even_if_reverted.return_value = CONFIRMED
-
-        self.service(client).execute_swap(self.swap)
-
-        self.assertEqual(self.status(), SwapOrderStatus.COMPLETED)
-
-    @patch.object(atomic_swap_service, "validate_swap_balances")
-    @patch.object(atomic_swap_service, "_execute_swap_call")
-    def test_a_swap_the_chain_reverted_is_failed_and_moved_nothing(self, _call, _balances):
-        client = self.chain_client()
-        client.send_raw_transaction.return_value = "0xreverted"
-        client.receipt_even_if_reverted.return_value = REVERTED
-
-        self.assertEqual(self.service(client).execute_swap(self.swap), "0xreverted")
-
-        self.assertEqual(self.status(), SwapOrderStatus.FAILED)
-        record = BlockchainTransaction.objects.get(related_uuid=self.swap.uuid)
-        self.assertEqual((record.status, record.tx_hash), (TransactionStatus.REVERTED, "0xreverted"))
-        self.assertIn("0xreverted", record.error_message)
-
-    @patch.object(atomic_swap_service, "validate_swap_balances")
-    @patch.object(atomic_swap_service, "_execute_swap_call")
-    def test_a_revert_and_an_unknown_receipt_do_not_land_in_the_same_state(self, _call, _balances):
-        reverted = self.chain_client()
-        reverted.send_raw_transaction.return_value = "0xreverted"
-        reverted.receipt_even_if_reverted.return_value = REVERTED
-        self.service(reverted).execute_swap(self.swap)
-        after_revert = self.status()
-
-        self.swap = make_tenant("other-outcome").swap
-        SwapOrder.objects.filter(pk=self.swap.pk).update(
-            status=SwapOrderStatus.READY, seller_signature=SIGNATURE, buyer_signature=SIGNATURE
-        )
-        self.swap.refresh_from_db()
-        silent = self.chain_client()
-        silent.send_raw_transaction.return_value = "0xsilent"
-        silent.receipt_even_if_reverted.side_effect = TimeoutError("no receipt")
-        self.service(silent).execute_swap(self.swap)
-
-        self.assertEqual(after_revert, SwapOrderStatus.FAILED)
-        self.assertEqual(self.status(), SwapOrderStatus.EXECUTING)
-
-    @patch.object(atomic_swap_service, "validate_swap_balances")
-    @patch.object(atomic_swap_service, "_execute_swap_call")
-    def test_the_parties_are_told_why_without_being_told_the_node_credentials(self, _call, _balances):
-        client = self.chain_client()
-        client.build_transaction.side_effect = ConnectionError(
-            f"HTTPSConnectionPool(host='base-sepolia.g.alchemy.com', port=443): "
-            f"Max retries exceeded with url: {RPC_URL}"
-        )
-
-        with self.assertRaises(SwapExecutionException) as refusal:
-            self.service(client).execute_swap(self.swap)
-
-        self.swap.refresh_from_db()
-        served = [self.swap.error_message, str(refusal.exception)]
-        for order in (self.swap.sell_order, self.swap.buy_order):
-            order.refresh_from_db()
-            served.append(order.error_message)
-
-        for message in served:
-            self.assertNotIn("pR3t3nd1ngT0B3aReAlK3y", message)
-            self.assertNotIn("alchemy.com", message)
-        self.assertEqual(self.swap.error_message, "Swap execution failed")
-
-        record = BlockchainTransaction.objects.get(related_uuid=self.swap.uuid)
-        self.assertIn("pR3t3nd1ngT0B3aReAlK3y", record.error_message)
-
-    @patch.object(atomic_swap_service, "validate_swap_balances")
-    @patch.object(atomic_swap_service, "_execute_swap_call")
-    def test_a_revert_reason_the_parties_can_act_on_still_reaches_them(self, _call, _balances):
-        client = self.chain_client()
-        client.build_transaction.side_effect = ValueError("execution reverted: 0xdf17e316 at " + RPC_URL)
-
-        with self.assertRaises(SwapExecutionException):
-            self.service(client).execute_swap(self.swap)
-
-        self.swap.refresh_from_db()
+    def test_a_recognised_revert_reason_remains_actionable_without_provider_details(self):
+        self.node.client.estimate_gas.side_effect = GasEstimationError("execution reverted: 0xdf17e316 at " + RPC_URL)
+        self.assertEqual(self.recover(), "failed")
         self.assertEqual(self.swap.error_message, "Account is not whitelisted")
-        self.assertNotIn("pR3t3nd1ngT0B3aReAlK3y", self.swap.error_message)
+        self.assertNotIn("private-provider-token", self.record.error_message)
+        self.node.client.send_raw_transaction.assert_not_called()
 
-    @patch.object(atomic_swap_service, "validate_swap_balances")
-    @patch.object(atomic_swap_service, "_execute_swap_call")
-    def test_a_swap_the_node_says_will_revert_is_never_sent(self, _call, _balances):
-        client = self.chain_client()
-        client.build_transaction.side_effect = GasEstimationError("execution reverted: 0xdf17e316")
-
-        with self.assertRaises(SwapExecutionException):
-            self.service(client).execute_swap(self.swap)
-
-        self.assertEqual(self.status(), SwapOrderStatus.FAILED)
-        client.send_raw_transaction.assert_not_called()
-        record = BlockchainTransaction.objects.get(related_uuid=self.swap.uuid)
-        self.assertEqual((record.status, record.tx_hash), (TransactionStatus.FAILED, None))
-
-    @patch.object(atomic_swap_service, "validate_swap_balances")
-    @patch.object(atomic_swap_service, "_execute_swap_call")
-    def test_a_caller_that_wraps_execution_in_a_transaction_is_refused(self, _call, _balances):
-        client = self.chain_client()
-        client.send_raw_transaction.return_value = "0xsent"
-
-        with self.assertRaises(RuntimeError):
-            with transaction.atomic():
-                self.service(client).execute_swap(self.swap)
-
-        client.send_raw_transaction.assert_not_called()
-        self.assertEqual(self.status(), SwapOrderStatus.READY)
+    def test_an_atomic_caller_is_refused_before_opening_or_sending(self):
+        with self.assertRaises(SwapNotReadyException), transaction.atomic():
+            self.recover()
+        self.assertFalse(OutgoingOperation.objects.exists())
+        self.assertEqual(self.node.client.mock_calls, [])
+        self.assert_held()
