@@ -23,15 +23,25 @@ Tip and network checks before and after the read detect inconsistent provider
 responses; they do not independently establish chain consensus. These records
 do not change transaction status, holdings, refunds, notifications or broadcasts.
 
-`WALLET_CHAIN_FINALITY_POLICIES` is an empty Django settings mapping by default.
-No public-testnet finality policy is selected. An explicitly configured policy
-is keyed by the recorded identity (`evm:<chain_id>` or `bitcoin:<genesis_hash>`)
-and uses `{"mode": "finalized"}` for EVM or
-`{"mode": "depth", "depth": <positive integer>}`. Each observation retains its
-normalized policy version. EVM finalized blocks must match the canonical block
-at their height; depth is derived inclusively from a stable tip. Missing or
-invalid policies retain unknown finality. Local fixture depth settings are not
-public-testnet acceptance decisions.
+`WALLET_CHAIN_FINALITY_POLICIES` defaults to the approved policies in
+`ledova_backend/chain_safety.py`: the finalized head for Base Sepolia and Ethereum
+Sepolia, six inclusive confirmations on the Bitcoin test network, and nothing for
+a local chain or regtest. A policy is keyed by the recorded identity
+(`evm:<chain_id>` or `bitcoin:<genesis_hash>`) and uses `{"mode": "finalized"}`
+for EVM or `{"mode": "depth", "depth": <positive integer>}`. Each observation
+retains its normalized policy version. EVM finalized blocks must match the
+canonical block at their height; depth is derived inclusively from a stable tip.
+Missing or invalid policies retain unknown finality. Local fixture depth settings
+are not public-testnet acceptance decisions.
+
+The swap finality consumer reuses the same evidence collector and policies, keyed
+by the swap's `evm:<chain_id>`, without a persisted observation: the verdict is
+recomputed every sweep and the settlement write, beside the frozen first-seen
+receipt summary, is the record. It completes or fails a swap only on `included`
+with `satisfied` finality, after reading and verifying the receipt again;
+`unknown`, `waiting` and `orphaned` hold. `LOCAL_CHAIN_FINALITY_DEPTH` adds a
+depth policy for the configured local chain id only and is refused for a public
+testnet. See [swap settlement](swap-settlement.md#durable-execution).
 
 Apply `wallets/0019_chain_observations` before starting the new worker. Existing
 journals and financial rows remain unchanged; legacy rows without authoritative

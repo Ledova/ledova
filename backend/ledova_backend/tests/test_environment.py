@@ -10,6 +10,7 @@ from django.test import SimpleTestCase
 from ledova_backend.chain_safety import (
     APPROVED_FINALITY_POLICIES,
     BITCOIN_TEST_GENESIS,
+    local_finality_policies,
     parse_bitcoin_network,
     parse_evm_chain_id,
 )
@@ -71,6 +72,14 @@ class EnvironmentParsingTests(SimpleTestCase):
             with self.subTest(network=synthetic):
                 self.assertNotIn(synthetic, APPROVED_FINALITY_POLICIES)
         self.assertEqual(settings.WALLET_CHAIN_FINALITY_POLICIES, APPROVED_FINALITY_POLICIES)
+
+    def test_the_local_finality_depth_override_reaches_only_a_local_chain(self):
+        self.assertEqual(local_finality_policies("", 31337), {})
+        self.assertEqual(local_finality_policies("3", 31337), {"evm:31337": {"mode": "depth", "depth": 3}})
+        self.assertEqual(local_finality_policies("1", 1337), {"evm:1337": {"mode": "depth", "depth": 1}})
+        for value, chain_id in (("3", 84532), ("3", 11155111), ("0", 31337), ("-1", 31337), ("three", 31337)):
+            with self.subTest(value=value, chain_id=chain_id), self.assertRaises(ImproperlyConfigured):
+                local_finality_policies(value, chain_id)
 
 
 class AuthorizationConfigurationTests(SimpleTestCase):
