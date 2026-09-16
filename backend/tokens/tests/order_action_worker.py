@@ -28,7 +28,7 @@ def run():
     os.environ["DJANGO_SETTINGS_MODULE"] = "ledova_backend.settings.test_postgres"
     from django.conf import settings
 
-    settings.DATABASES = json.loads(os.environ["ORDER_ACTION_TEST_DATABASES"])
+    settings.DATABASES = json.loads(os.environ["ORDER_TEST_DATABASES"])
     settings.RLS_AMBIENT_ALIAS = "app"
     settings.ALLOWED_HOSTS = ["testserver"]
     django.setup()

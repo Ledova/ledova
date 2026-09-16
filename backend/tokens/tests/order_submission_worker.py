@@ -28,7 +28,7 @@ def run():
     os.environ["DJANGO_SETTINGS_MODULE"] = "ledova_backend.settings.test_postgres"
     from django.conf import settings
 
-    settings.DATABASES = json.loads(os.environ["ORDER_SUBMISSION_TEST_DATABASES"])
+    settings.DATABASES = json.loads(os.environ["ORDER_TEST_DATABASES"])
     settings.RLS_AMBIENT_ALIAS = "app"
     settings.ALLOWED_HOSTS = ["testserver"]
     settings.ATOMIC_SWAP_ADDRESS = "0x" + "9d" * 20
@@ -55,9 +55,14 @@ def run():
     original_spend = service.spend
     original_create = token_transfer_service.create_order_and_match
     original_find = service._find_submission
+    original_matching = token_transfer_service.find_matching_orders
 
     def killed(*args, **kwargs):
         os.kill(os.getpid(), signal.SIGKILL)
+
+    def released():
+        if sys.stdin.readline().strip() != "continue":
+            raise AssertionError("The owned submission worker was not released")
 
     def spend_then_kill(*args):
         original_spend(*args)
@@ -70,13 +75,17 @@ def run():
     def find_then_pause(*args):
         submission = original_find(*args)
         notify("locked")
-        if sys.stdin.readline().strip() != "continue":
-            raise AssertionError("The owned submission worker was not released")
+        released()
         return submission
 
     def find_after_announcing(*args):
         notify("selecting")
         return original_find(*args)
+
+    def match_after_pausing(order):
+        notify("matching")
+        released()
+        return original_matching(order)
 
     def published(event, payload):
         with (directory / "events.jsonl").open("a") as output:
@@ -111,6 +120,10 @@ def run():
             stack.enter_context(patch.object(service, "_find_submission", side_effect=find_then_pause))
         elif phase == "compete":
             stack.enter_context(patch.object(service, "_find_submission", side_effect=find_after_announcing))
+        elif phase == "matching":
+            stack.enter_context(
+                patch.object(token_transfer_service, "find_matching_orders", side_effect=match_after_pausing)
+            )
         response = client.post(f"{BASE}create/", incoming["body"], format="json")
         print(
             json.dumps(

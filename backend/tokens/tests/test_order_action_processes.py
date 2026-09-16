@@ -1,95 +1,36 @@
 import json
-import os
-import select
 import signal
-import subprocess
-import sys
 import tempfile
-import time
-from copy import deepcopy
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Event
 from unittest import skipUnless
+from uuid import uuid4
 
 from django.conf import settings
 from django.db import connection, connections
 from rest_framework.test import APITransactionTestCase
 
-from shared.db import use_operator
+from operators.models import Operator
+from shared.db import current_alias, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import OrderModificationLog, SigningChallenge
-from tokens.tests.order_action_fixtures import ActionFixtures
+from tokens.tests.order_action_fixtures import BASE, ActionFixtures
+from tokens.tests.order_process_fixtures import OrderChild, wait_for_row_lock
+from wallets.models import Wallet
 
-
-class ActionChild:
-    def __init__(self, case, directory, phase, body):
-        self.errors = tempfile.TemporaryFile(mode="w+")
-        self.process = subprocess.Popen(
-            [sys.executable, "-m", "tokens.tests.order_action_worker"],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=self.errors,
-            text=True,
-            env={**os.environ, "ORDER_ACTION_TEST_DATABASES": json.dumps(case.worker_databases(), default=str)},
-        )
-        case.addCleanup(self.close)
-        self.process.stdin.write(
-            json.dumps(
-                {
-                    "phase": phase,
-                    "directory": str(directory),
-                    "body": body,
-                    "user_id": case.tenant.user.pk,
-                    "order_id": str(case.order.pk),
-                }
-            )
-            + "\n"
-        )
-        self.process.stdin.flush()
-
-    def read(self):
-        if not select.select([self.process.stdout], [], [], 20)[0]:
-            raise AssertionError("The owned action worker did not reach its expected stage")
-        line = self.process.stdout.readline()
-        if not line:
-            raise AssertionError(f"The owned action worker ended before its result: {self.error_output()}")
-        return json.loads(line)
-
-    def error_output(self):
-        self.errors.seek(0)
-        return self.errors.read()[-5000:]
-
-    def release(self):
-        self.process.stdin.write("continue\n")
-        self.process.stdin.flush()
-
-    def wait(self):
-        return self.process.wait(timeout=20)
-
-    def close(self):
-        if self.process.poll() is None:
-            self.process.kill()
-            self.process.wait(timeout=10)
-        self.process.stdin.close()
-        self.process.stdout.close()
-        self.errors.close()
+WORKER = "order_action_worker"
 
 
 class ActionProcessChecks(ActionFixtures):
-    def worker_databases(self):
-        base = deepcopy(connections["default"].settings_dict)
-        base["CONN_MAX_AGE"] = 0
-        result = {"default": base}
-        for alias in ("app", "operator"):
-            result[alias] = deepcopy(base)
-            result[alias]["USER"] = settings.DATABASES[alias]["USER"]
-            result[alias]["PASSWORD"] = settings.DATABASES[alias]["PASSWORD"]
-        return result
+    def child(self, phase, directory, signed):
+        return OrderChild(self, WORKER, phase, directory, body=signed, order_id=str(self.order.pk))
 
     def crash(self, phase):
         signed = self.signed("modify", self.modify_body())
         with tempfile.TemporaryDirectory(prefix="order-action-crash-") as temporary:
             directory = Path(temporary)
-            child = ActionChild(self, directory, phase, signed)
+            child = self.child(phase, directory, signed)
             self.assertEqual(child.wait(), -signal.SIGKILL, child.error_output())
             recovered = self.recover()
             self.assertEqual(recovered.status_code, 200, recovered.content)
@@ -132,25 +73,16 @@ class ActionProcessChecks(ActionFixtures):
         second = self.signed("modify", self.modify_body())
         with tempfile.TemporaryDirectory(prefix="order-action-retry-") as temporary:
             directory = Path(temporary)
-            one = ActionChild(self, directory, "pause", first)
+            one = self.child("pause", directory, first)
             locked = one.read()
             self.assertEqual(locked["stage"], "locked")
             self.assertEqual(locked["database_user"], settings.RLS_ROLES["app"])
-            two = ActionChild(self, directory, "compete", second)
+            two = self.child("compete", directory, second)
             selecting = two.read()
             self.assertEqual(selecting["stage"], "selecting")
             self.assertEqual(selecting["database_user"], settings.RLS_ROLES["app"])
             self.assertNotEqual(locked["pid"], selecting["pid"])
-            deadline = time.monotonic() + 10
-            blockers = []
-            while time.monotonic() < deadline:
-                with connections["default"].cursor() as cursor:
-                    cursor.execute("SELECT pg_blocking_pids(%s)", [selecting["pid"]])
-                    blockers = cursor.fetchone()[0]
-                if locked["pid"] in blockers:
-                    break
-                time.sleep(0.025)
-            self.assertIn(locked["pid"], blockers, "The second API request must wait for the same action journal row")
+            wait_for_row_lock(self, selecting["pid"], "tokens_orderactionsubmission", locked["pid"])
             one.release()
             original, recovered = one.read(), two.read()
             self.assertEqual((one.wait(), two.wait()), (0, 0))
@@ -169,6 +101,67 @@ class ActionProcessChecks(ActionFixtures):
             self.assertEqual(OrderModificationLog.objects.filter(order=self.order).count(), 3)
             self.assertTrue(SigningChallenge.objects.get(digest=first["digest"]).is_consumed)
             self.assertFalse(SigningChallenge.objects.get(digest=second["digest"]).is_consumed)
+
+    def submission_message(self):
+        return self.client.post(
+            f"{BASE}create/message/",
+            {
+                "submission_id": str(uuid4()),
+                "owner_account_uuid": str(self.tenant.account.pk),
+                "token": str(self.tenant.deployed_token.pk),
+                "wallet_uuid": str(self.wallet.pk),
+                "wallet_address": self.wallet.address,
+                "order_type": "buy",
+                "quantity": 10,
+                "min_quantity": 0,
+                "price_per_share": "2.50",
+            },
+            format="json",
+        )
+
+    def test_a_verification_change_waits_for_the_modify_and_then_refuses_a_fresh_submission(self):
+        with use_operator():
+            Wallet.objects.filter(pk=self.wallet.pk).update(verification_status="VERIFIED")
+            Operator.get().supported_settlement_assets.set([self.tenant.refs.stablecoin])
+        admitted = self.submission_message()
+        self.assertEqual(admitted.status_code, 200, admitted.content)
+        signed = self.signed("modify", self.modify_body())
+        pids = {}
+        connected = Event()
+
+        def change_verification():
+            try:
+                with use_operator():
+                    with connections[current_alias()].cursor() as cursor:
+                        cursor.execute("SET lock_timeout = '10s'")
+                        cursor.execute("SELECT pg_backend_pid()")
+                        pids["writer"] = cursor.fetchone()[0]
+                    connected.set()
+                    return Wallet.objects.filter(pk=self.wallet.pk).update(verification_status="PENDING")
+            finally:
+                connections.close_all()
+
+        with tempfile.TemporaryDirectory(prefix="order-action-authorization-") as temporary, ThreadPoolExecutor(
+            1
+        ) as pool:
+            child = self.child("pause", Path(temporary), signed)
+            locked = child.read()
+            self.assertEqual((locked["stage"], locked["database_user"]), ("locked", settings.RLS_ROLES["app"]))
+            writing = pool.submit(change_verification)
+            self.assertTrue(connected.wait(5), "The authorization writer did not connect")
+            wait_for_row_lock(self, pids["writer"], "wallets", locked["pid"])
+            child.release()
+            applied = child.read()
+            self.assertEqual(child.wait(), 0)
+            self.assertEqual((applied["status"], applied["body"]["status"]), (200, "applied"), child.error_output())
+            self.assertEqual(applied["database_user"], settings.RLS_ROLES["app"])
+            self.assertEqual(writing.result(timeout=10), 1)
+        denied = self.submission_message()
+        self.assertEqual(denied.status_code, 400, denied.content)
+        self.assertIn(b"verified EVM wallet", denied.content)
+        with use_operator():
+            self.order.refresh_from_db()
+            self.assertEqual((self.order.quantity, self.order.modification_count), (12, 1))
 
 
 @skipUnless(connection.vendor == "postgresql", "Independent action requests require PostgreSQL transactions and roles")

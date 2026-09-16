@@ -57,16 +57,9 @@ to create another order. A separate deliberate order still undergoes the ordinar
 creation and matching checks. This protocol adds no aggregate balance policy,
 outgoing signer activation or settlement finality guarantee.
 
-Order-submission admission and matching lock the current wallet with PostgreSQL
-`FOR NO KEY UPDATE`. Wallet changes and deletion still wait, while the foreign-key
-checks for a counterparty's swap may proceed. One account's two wallets can
-therefore submit without each transaction waiting for the other wallet at commit.
-The account row stays locked through the decision; moving the account to another
-person waits, and prevents a fresh submission afterward.
-These are [PostgreSQL row-lock semantics](https://www.postgresql.org/docs/16/explicit-locking.html#LOCKING-ROWS),
-not a replacement for the account-ownership, wallet address, verification or
-deployment checks. They do not establish aggregate buying power or the complete trading
-lock graph.
+The rows a submission holds across its decision, the order every trading journey
+takes its locks in, and the competing pairs the suite proves are in
+[the trading lock graph](#the-trading-lock-graph).
 
 ## Cancelling or modifying an order
 
@@ -117,3 +110,74 @@ A keyed pending action presenting an unlinked legacy challenge also receives
 execution fallback. Existing settlement signatures and stored swap deadlines are
 unchanged. This protocol neither changes balance eligibility nor enables trading,
 activates signers, broadcasts transactions or establishes settlement finality.
+
+## The trading lock graph
+
+Every trading journey locks rows in one global order, G, taking PostgreSQL
+`FOR UPDATE` unless stated otherwise:
+
+journal row (`OrderSubmission` or `OrderActionSubmission`) → `OutgoingOperation`
+→ `SigningAccount` → `Wallet` (`FOR NO KEY UPDATE`) → `UserAccount` →
+`UserProfile` → `User` → `SigningChallenge` → `TransferOrder` (ascending primary
+key) → `SwapOrder` → `BlockchainTransaction`. Wallet-side writers branch off after
+`Wallet` into `Transaction` → `Holding` and never touch an order or a swap.
+
+Each journey's sequence is a subsequence of G: create and match
+(`execute_order_submission`, `create_order_and_match`), cancel and modify
+(`execute_order_action`), the swap signature (`submit_signature`), execution
+recovery (`recover`), settlement (`settle`) and the expiry sweep
+(`expire_unclaimed_swap`). The one deviation is the action path, which locks its
+`SigningChallenge` after its `TransferOrder`; a challenge is bound to one
+submission or action and one wallet, so only replays of the same action contend
+for it, and those already serialised on the journal row. The action path's order
+lock is load-bearing: `apply_order_modification` saves every column of the order,
+so a decision taken on a stale read would overwrite a match.
+
+The one edge against G is the swap insert. `create_swap_order` writes
+`seller_wallet` and `buyer_wallet`, and PostgreSQL takes `FOR KEY SHARE` on both
+wallet rows for those foreign keys; the counterparty's wallet is a row the
+matcher never locked, and whatever journey that wallet's owner is running may
+hold it. Two rules keep the edge from closing a cycle:
+
+- **R1** — trading journeys lock `Wallet` with `FOR NO KEY UPDATE`, never
+  `FOR UPDATE` (`_lock_authorized_wallet`, `create_order_and_match`,
+  `_lock_authority`). `FOR KEY SHARE` is compatible with `FOR NO KEY UPDATE` and
+  conflicts with `FOR UPDATE`, so a matcher's swap insert never waits on another
+  trading transaction that holds the counterparty wallet. Without R1, one
+  account's two wallets deadlock: the first request holds the account and wants a
+  key share on the second wallet, while the second holds its wallet and waits for
+  the account. Wallet-side writers do hold `Wallet` `FOR UPDATE` and can delay the
+  insert, but they hold nothing at or after `TransferOrder` in G, so they can only
+  delay it, never wait on the matcher.
+- **R2** — every lock that can cover more than one `TransferOrder` row goes
+  through `lock_orders`, which orders by primary key before locking
+  (`find_matching_orders`, `match_orders`, `create_swap_order`, `_lock_swap`,
+  `expire_unclaimed_swap`). The action path's `_authorized_order` locks exactly
+  one row.
+
+`tokens/tests/test_trading_lock_rules.py` holds R1 and R2 against the source.
+
+Two properties of the graph are deliberate rather than defects. The create path
+reads the whitelist and the chain balance while holding its wallet and account
+rows, so a balance is measured against every commitment visible under the lock,
+while the modify path reads the chain outside every transaction; a slow provider
+therefore extends how long the wallet's other requests and its authorization
+changes wait on the create path only. And matching runs only inside creation:
+two crossing orders created concurrently each see only committed candidates, so
+both can rest unmatched until a third order arrives. That is a liveness limit of
+the book, not a lock defect; nothing sweeps a crossed book.
+
+| Pair | What must hold | Proved by |
+| --- | --- | --- |
+| P1 — create against create, one wallet | the second waits at the wallet lock and measures its balance against the first's committed order: refused when the two do not fit, open when they do | `test_order_submission_processes.py`: `test_a_second_sell_on_one_wallet_waits_and_is_refused_by_the_first_commitment` and `test_two_sells_that_fit_the_balance_together_both_open_after_waiting`, in independent processes on the app role |
+| P2 — create against create, two wallets of one account, crossing | the second waits on the account row; the matcher's key share on the second wallet does not deadlock; both commit and exactly one swap exists | `test_order_submission_processes.py`: `test_crossing_creates_on_two_wallets_wait_on_the_account_and_match_once`; reverting R1 turns it into a `DeadlockDetected` in one child |
+| P3 — a decision against an authorization change (wallet verification, account reassignment) | the change waits on the wallet or account row until the decision commits, then the next submission is refused | `test_matching_wallet_locks.py` for the create path; `test_order_action_processes.py`: `test_a_verification_change_waits_for_the_modify_and_then_refuses_a_fresh_submission` for the action path |
+| P4 — the matcher against a cancel or modify of its candidate | whichever holds the `TransferOrder` row first decides and the other re-reads the committed row, so a match uses the new terms or skips a cancelled row, and a modify of a matched order records a refusal with its spend committed | `test_cancel_concurrency.py` (`ACancelFromAStaleReadDoesNotOverwriteAMatchTest`) and `test_modification_refusals.py` (`test_a_state_change_during_the_chain_read_is_checked_again_under_the_lock`) run the two sides serially in one process; the pair across processes is not yet in the suite |
+| P5 — cancel or modify against signature, execution or settlement of the same order | fenced by status under the order lock: every interleaving records a refusal | `test_order_actions.py`: `test_a_pending_swap_is_a_recorded_refusal_only_after_validated_execution` |
+| P6 — signature, expiry and settlement of one swap against each other | both orders in primary-key order, then the swap: one release, a late admission refused, an admission never released | `test_swap_expiry_processes.py`, `test_swap_finality.py` (`test_two_settlement_workers_wait_for_the_orders_and_complete_once`) and `test_swap_process_concurrency.py`, in independent processes as the migrate role, so ownership rules are not in force there |
+| P7 — recovery against recovery | the operation row first, then G; every lock released before an RPC; one attempt and one nonce | `test_swap_execution_recovery.py`: `test_rpc_boundaries_release_every_operation_authority_and_order_lock` and `test_delayed_open_after_peer_confirmation_reuses_its_attempt_and_nonce` |
+| P8 — a wallet-side writer against a create on one wallet | serialisation only: the two sides share no accounting record, so their mutual exclusion buys identity freshness and nothing else | a property of G rather than a test: the wallet side holds nothing at or after `TransferOrder` |
+
+These are [PostgreSQL row-lock semantics](https://www.postgresql.org/docs/16/explicit-locking.html#LOCKING-ROWS),
+not a replacement for the account-ownership, wallet-address, verification,
+deployment and balance checks that run under the locks.
