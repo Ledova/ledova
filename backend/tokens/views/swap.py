@@ -29,27 +29,23 @@ class SwapOrderViewSet(AuthenticatedListViewSet):
         wallet_address = wallet_address.strip()
         if not Web3.is_address(wallet_address):
             raise NotFound("Wallet not found.")
-        viewer_wallets = {
-            str(wallet_id): (str(account_id), address.casefold())
-            for wallet_id, account_id, address in Wallet.objects.owned_by(request.user)
-            .verified_evm()
-            .values_list("uuid", "user_account_id", "address")
-        }
-        requested_wallet_ids = [
-            wallet_id
-            for wallet_id, (_account_id, address) in viewer_wallets.items()
-            if address == wallet_address.casefold()
-        ]
+        wallets = Wallet.objects.owned_by(request.user).verified_evm()
+        requested_wallet_ids = list(wallets.filter(address__iexact=wallet_address).values_list("uuid", flat=True))
         if not requested_wallet_ids:
             raise NotFound("Wallet not found.")
 
         swap_orders = self.filter_queryset(self.get_queryset().for_party_wallets(requested_wallet_ids))
-        context = {**self.get_serializer_context(), "viewer_wallets": viewer_wallets}
-
         page = self.paginate_queryset(swap_orders)
+        rows = page if page is not None else list(swap_orders)
+        party_wallet_ids = {wallet_id for swap in rows for wallet_id in (swap.seller_wallet_id, swap.buyer_wallet_id)}
+        viewer_wallets = {
+            str(wallet_id): (str(account_id), address.casefold())
+            for wallet_id, account_id, address in wallets.filter(pk__in=party_wallet_ids).values_list(
+                "uuid", "user_account_id", "address"
+            )
+        }
+        context = {**self.get_serializer_context(), "viewer_wallets": viewer_wallets}
+        serializer = self.get_serializer(rows, many=True, context=context)
         if page is not None:
-            serializer = self.get_serializer(page, many=True, context=context)
             return self.get_paginated_response(serializer.data)
-
-        serializer = self.get_serializer(swap_orders, many=True, context=context)
         return Response(serializer.data)

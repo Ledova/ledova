@@ -391,9 +391,38 @@ class SwapSettlementRouteTest(APITransactionTestCase):
         self.assertEqual(len(initial_queries), len(repeated_queries))
         for captured in (initial_queries, repeated_queries):
             sql = [query["sql"] for query in captured]
-            self.assertEqual(len([query for query in sql if f'FROM "{Wallet._meta.db_table}"' in query]), 1)
+            self.assertEqual(len([query for query in sql if f'FROM "{Wallet._meta.db_table}"' in query]), 2)
             self.assertFalse(any(f'JOIN "{TransferOrder._meta.db_table}"' in query for query in sql))
             self.assertFalse(any(f'FROM "{TransferOrder._meta.db_table}"' in query for query in sql))
+
+    def test_wallet_materialization_depends_on_the_page_not_all_viewer_wallets(self):
+        with use_operator():
+            for offset in range(20):
+                Wallet.objects.create(
+                    user_account_id=self.seller_order.owner_account_id,
+                    address="0x" + format(offset + 100, "040x"),
+                    chain="base",
+                    verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
+                )
+        self.listed_swap()
+        for address in (SELLER.address, BUYER.address, "0x" + format(100, "040x")):
+            wallet_rows = []
+
+            def measure(execute, sql, params, many, context):
+                result = execute(sql, params, many, context)
+                if sql.startswith("SELECT") and f'FROM "{Wallet._meta.db_table}"' in sql:
+                    wallet_rows.append(context["cursor"].rowcount)
+                return result
+
+            with self.subTest(address=address), connections[current_alias()].execute_wrapper(measure):
+                response = self.client.get("/api/v1/trading/swaps/", {"wallet_address": address})
+            self.assertEqual(response.status_code, 200, response.content)
+            if address in (SELLER.address, BUYER.address):
+                self.assertEqual(wallet_rows, [1, 2])
+                self.assertEqual(len(response.json()["results"][0]["viewerParties"]), 2)
+            else:
+                self.assertEqual(wallet_rows, [1])
+                self.assertEqual(response.json()["results"], [])
 
     def test_signing_schema_requires_recorded_context_and_decimal_string_chain_id(self):
         document = SchemaGenerator().get_schema(request=None, public=True)
