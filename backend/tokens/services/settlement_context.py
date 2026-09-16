@@ -9,10 +9,16 @@ from web3 import Web3
 from assets.models import Asset
 from operators.exceptions import SettlementAssetNotDeployedException
 from operators.settlement import require_deployment
-from tokens.exceptions import LegacySwapHeld, SettlementContextChanged
-from tokens.models import ShareToken
+from shared.db import use_operator
+from tokens.exceptions import (
+    InvalidSettlementAmountException,
+    LegacySwapHeld,
+    SettlementContextChanged,
+)
+from tokens.models import ShareToken, TokenDeployment
 
 SETTLEMENT_PROTOCOL_VERSION = 1
+CHAIN_DISAGREEMENT = "This share token was deployed on another chain than the settlement domain names."
 SETTLEMENT_TYPES = {
     "EIP712Domain": [
         {"name": "name", "type": "string"},
@@ -49,6 +55,18 @@ def configured_domain():
         "chainId": str(chain_id),
         "verifyingContract": settlement_address(settings.ATOMIC_SWAP_ADDRESS),
     }
+
+
+def _deployment_chain_disagrees(token, chain_id):
+    if token.deployment_id is None:
+        return False
+    with use_operator():
+        intent = (
+            TokenDeployment.objects.filter(pk=token.deployment_id, token_id=token.pk)
+            .values_list("intent", flat=True)
+            .first()
+        )
+    return str((intent or {}).get("chain_id")) != chain_id
 
 
 def _party(order, address):
@@ -95,6 +113,8 @@ def capture_settlement_context(swap, deployment, price_per_share=None):
             "deadline": str(int(swap.expires_at.timestamp())),
         },
     }
+    if _deployment_chain_disagrees(token, typed_data["domain"]["chainId"]):
+        raise InvalidSettlementAmountException(CHAIN_DISAGREEMENT)
     signable = encode_typed_data(full_message=typed_data)
     context = {
         "protocol_version": SETTLEMENT_PROTOCOL_VERSION,
@@ -212,7 +232,6 @@ def assert_current_settlement(swap):
             configured_domain(),
             settlement_address(token.contract_address),
             token.chain,
-            token.decimals,
             str(deployment.pk),
             deployment.chain,
             settlement_address(deployment.contract_address),
@@ -223,7 +242,6 @@ def assert_current_settlement(swap):
             context["typed_data"]["domain"],
             context["share_token"]["address"],
             context["share_token"]["chain"],
-            context["share_token"]["decimals"],
             context["payment_asset"]["deployment_uuid"],
             context["payment_asset"]["deployment_chain"],
             context["payment_asset"]["deployment_address"],
