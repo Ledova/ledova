@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import QuerySet
 
-from shared.utils.token_amounts import token_base_units
+from shared.utils.token_amounts import token_base_units_ceiling
 from tokens.models.choices import (
     SwapOrderStatus,
     TransferOrderStatus,
@@ -79,7 +79,7 @@ class TransferOrderQuerySet(QuerySet):
         if exclude_uuid:
             orders = orders.exclude(uuid=exclude_uuid)
         unfilled = sum(
-            token_base_units((row["quantity"] - row["filled_quantity"]) * row["price_per_share"], decimals)
+            token_base_units_ceiling((row["quantity"] - row["filled_quantity"]) * row["price_per_share"], decimals)
             for row in orders.values("quantity", "filled_quantity", "price_per_share")
         )
         held = orders.aggregate(

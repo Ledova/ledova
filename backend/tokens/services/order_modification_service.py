@@ -5,7 +5,7 @@ from typing import Optional
 from django.utils import timezone
 
 from operators.settlement import require_deployment
-from shared.utils.token_amounts import token_base_units
+from shared.utils.token_amounts import token_base_units_ceiling
 from tokens.exceptions import (
     OrderModificationConflictException,
     OrderModificationException,
@@ -67,23 +67,15 @@ def validate_modifications(
                 f"with {available_balance} available."
             )
 
-    if (
-        order.order_type == TransferOrderType.BUY
-        and available_balance is not None
-        and remaining > 0
-        and effective_price > 0
-    ):
-        symbol = order.payment_asset.symbol
-        try:
-            commitment = token_base_units(remaining * effective_price, require_deployment(order.payment_asset).decimals)
-        except ValueError:
-            errors.append(f"The order's payment cannot be represented in {symbol} base units at this price.")
-        else:
-            if commitment > available_balance:
-                errors.append(
-                    f"Insufficient {symbol} balance. The order would commit {commitment} base units, "
-                    f"with {available_balance} available."
-                )
+    if order.order_type == TransferOrderType.BUY and available_balance is not None:
+        commitment = token_base_units_ceiling(
+            remaining * effective_price, require_deployment(order.payment_asset).decimals
+        )
+        if commitment > available_balance:
+            errors.append(
+                f"Insufficient {order.payment_asset.symbol} balance. The order would commit {commitment} base units, "
+                f"with {available_balance} available."
+            )
 
     return errors
 

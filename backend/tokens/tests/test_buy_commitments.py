@@ -3,6 +3,7 @@ from uuid import uuid4
 from django.test import TransactionTestCase, override_settings
 from rest_framework.test import APITransactionTestCase
 
+from assets.models import AssetChainDeployment
 from operators.settlement import require_deployment
 from shared.db import use_operator
 from tokens.models import TransferOrder
@@ -42,6 +43,19 @@ class SerialBuyCreationsShareOnePaymentBalanceTest(SubmissionFixtures, APITransa
             created, _ = self.buy(quantity)
             self.assertEqual(created.status_code, 201, created.content)
         self.assertEqual(self.buy_quantities(), [5, 5])
+
+    def test_an_open_buy_the_asset_cannot_represent_exactly_commits_its_ceiling(self):
+        with use_operator():
+            AssetChainDeployment.objects.filter(asset=self.tenant.refs.stablecoin, chain="base").update(decimals=0)
+        self.counter_order(order_type="buy", quantity=1, price="1.23", wallet=self.wallet)
+        self.payment_balance = 26
+        refused, submission = self.buy(10)
+        self.assertEqual(refused.status_code, 400, refused.content)
+        self.assertEqual(submission.refusal_code, "insufficient_balance")
+        self.payment_balance = 27
+        created, _ = self.buy(10)
+        self.assertEqual(created.status_code, 201, created.content)
+        self.assertEqual(self.buy_quantities(), [1, 10])
 
 
 class SignedBuyModificationsAreMeasuredAgainstPaymentTest(ActionFixtures, APITransactionTestCase):
