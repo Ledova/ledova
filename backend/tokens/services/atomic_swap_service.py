@@ -12,9 +12,13 @@ from web3 import Web3
 
 from integrations.base_chain import get_base_chain_client
 from operators.settlement import require_deployment
-from shared.db import atomic
+from shared.db import atomic, use_operator
 from shared.utils.token_amounts import token_base_units
-from tokens.constants import MAX_SETTLEMENT_UNITS
+from tokens.constants import (
+    MAX_SETTLEMENT_UNITS,
+    MAX_UINT256,
+    SWAP_APPROVAL_RECEIPT_WAIT_SECONDS,
+)
 from tokens.exceptions import (
     AtomicSwapNotConfiguredException,
     InvalidSettlementAmountException,
@@ -22,26 +26,24 @@ from tokens.exceptions import (
     SettlementContextChanged,
 )
 from tokens.models import (
+    ApprovalSubmissionOutcome,
+    SwapApprovalSubmission,
     SwapOrder,
     SwapOrderStatus,
     TransferOrder,
     TransferOrderStatus,
     TransferOrderType,
 )
+from tokens.services import approval_submissions
 from tokens.services.settlement_context import (
     assert_current_settlement,
     capture_settlement_context,
     recorded_settlement_context,
 )
 from tokens.services.signed_transactions import decode_signed_transaction
-from tokens.services.trading_locks import (
-    hash_identity,
-    lock_orders,
-)
+from tokens.services.trading_locks import lock_orders
 
 logger = logging.getLogger(__name__)
-
-MAX_UINT256 = 2**256 - 1
 
 
 def payment_address(swap_order) -> str:
@@ -148,6 +150,7 @@ def get_approval_transaction_data(
         token_symbol = context["payment_asset"]["symbol"]
     else:
         raise ValueError(f"Invalid user_role: {user_role}")
+    approval_submissions.refuse_pending(swap_order, user_role)
 
     token_contract = get_base_chain_client().load_contract("ShareToken", token_address)
     approve_fn = token_contract.functions.approve(
@@ -179,8 +182,7 @@ def get_approval_transaction_data(
     }
 
 
-def broadcast_settlement_approval(swap_order, user_role, signed_transaction, admission):
-    from tokens.services import token_transfer_service
+def broadcast_settlement_approval(swap_order, user_role, signed_transaction, admission, actor_id):
     from tokens.services.trading_order_access import require_pending_settlement
 
     context = require_pending_settlement(swap_order)
@@ -189,37 +191,27 @@ def broadcast_settlement_approval(swap_order, user_role, signed_transaction, adm
         decoded = decode_signed_transaction(raw_transaction)
     except ValueError as exc:
         raise SettlementContextChanged() from exc
-    token = (
-        context["share_token"]["address"] if user_role == "seller" else context["payment_asset"]["deployment_address"]
-    )
-    spender = context["typed_data"]["domain"]["verifyingContract"]
-    expected_data = (
-        bytes.fromhex("095ea7b3") + bytes.fromhex(spender[2:]).rjust(32, b"\x00") + MAX_UINT256.to_bytes(32, "big")
-    )
+    terms = approval_submissions.party_terms(context, user_role)
     if (
-        decoded.sender != context[user_role]["address"]
-        or decoded.chain_id != int(context["typed_data"]["domain"]["chainId"])
-        or decoded.to != token
+        decoded.sender.lower() != terms["sender_address"]
+        or decoded.chain_id != terms["chain_id"]
+        or (decoded.to or "").lower() != terms["token_address"]
         or decoded.value != 0
-        or decoded.data != expected_data
+        or decoded.data != approval_submissions.approve_calldata(terms["spender_address"])
+        or not 0 <= decoded.nonce <= approval_submissions.MAX_RECORDED_NONCE
     ):
         raise SettlementContextChanged()
     assert_provider_settlement(swap_order)
     current = admission(swap_order)
     require_pending_settlement(current)
-    expected_hash = Web3.to_hex(Web3.keccak(raw_transaction))
-    try:
-        returned_hash, receipt = token_transfer_service.broadcast_transfer(signed_transaction)
-        if (
-            hash_identity(returned_hash) != hash_identity(expected_hash)
-            or hash_identity(receipt.get("transactionHash")) != hash_identity(expected_hash)
-            or type(receipt.get("status")) is not int
-            or receipt["status"] != 1
-        ):
-            raise SettlementApprovalUncertain(expected_hash)
-    except Exception as exc:
-        raise SettlementApprovalUncertain(expected_hash) from exc
-    return expected_hash, receipt
+    submission = approval_submissions.record(current, user_role, raw_transaction, decoded, actor_id)
+    with use_operator():
+        outcome = approval_submissions.attempt(
+            submission.pk, client=get_base_chain_client(), receipt_wait=SWAP_APPROVAL_RECEIPT_WAIT_SECONDS
+        )
+        if outcome != ApprovalSubmissionOutcome.CONFIRMED:
+            raise SettlementApprovalUncertain(submission.tx_hash, outcome)
+        return SwapApprovalSubmission.objects.get(pk=submission.pk)
 
 
 @atomic()

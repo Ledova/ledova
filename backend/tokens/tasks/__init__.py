@@ -1,3 +1,4 @@
+from .approval_submissions import recover_swap_approval_submissions
 from .deployment import (
     check_pending_swap_approvals,
     check_pending_token_deployments,
@@ -36,4 +37,5 @@ __all__ = [
     "recover_mint_requests",
     "recover_capital_increases",
     "recover_swap_approval",
+    "recover_swap_approval_submissions",
 ]

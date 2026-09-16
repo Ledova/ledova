@@ -22,11 +22,14 @@ from .share_issuance import ShareIssuance
 from .share_issuance_request import ShareIssuanceRequest
 from .share_token import ShareToken
 from .signing_challenge import SigningChallenge, SigningChallengePurpose
+from .swap_approval_submission import ApprovalSubmissionOutcome, SwapApprovalSubmission
 from .swap_order import SwapOrder
 from .transfer_order import TransferOrder
 from .yield_token import YieldToken
 
 __all__ = [
+    "ApprovalSubmissionOutcome",
+    "SwapApprovalSubmission",
     "PauseAuthority",
     "PauseChange",
     "PauseChangeStatus",
