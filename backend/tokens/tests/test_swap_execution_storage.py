@@ -392,6 +392,8 @@ class SwapExecutionStorageTest(SwapExecutionStorageFixtures, TransactionTestCase
         outgoing.record_receipt(claim, attempt.tx_hash, receipt(attempt))
         journal.refresh_from_db()
         self.assertEqual(journal.status, "submitted")
+        with self.assertRaisesMessage(DatabaseError, "confirmed original receipt"), atomic():
+            SwapOrder.objects.filter(pk=self.swap.pk).update(status="completed", completed_at=timezone.now())
         journal.mark_confirmed(12, receipt(attempt)["blockHash"], 21000)
         for model, pk, changes in (
             (BlockchainTransaction, journal.pk, {"block_number": 13}),
@@ -399,7 +401,8 @@ class SwapExecutionStorageTest(SwapExecutionStorageFixtures, TransactionTestCase
             (OutgoingOperation, claim.operation_id, {"block_number": 13}),
             (OutgoingOperation, claim.operation_id, {"block_hash": "0x" + "e" * 64}),
             (OutgoingOperation, claim.operation_id, {"gas_used": 21001}),
-            (SwapOrder, self.swap.pk, {"status": "completed", "completed_at": timezone.now()}),
+            (SwapOrder, self.swap.pk, {"status": "completed"}),
+            (SwapOrder, self.swap.pk, {"completed_at": timezone.now()}),
             (SwapOrder, self.swap.pk, {"status": "failed"}),
             (SwapOrder, self.swap.pk, {"transaction_id": None}),
             (SwapOrder, self.swap.pk, {"seller_signature": "ff" * 65}),

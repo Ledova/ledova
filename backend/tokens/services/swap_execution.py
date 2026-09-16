@@ -21,6 +21,7 @@ from blockchain.models import (
 )
 from blockchain.services import outgoing
 from integrations.base_chain import get_base_chain_client
+from shared.constants import BLOCKCHAIN_BASE
 from shared.db import APP_ALIAS, atomic, current_alias, principal_of, use_operator
 from shared.utils.blockchain import decode_exception_to_message
 from tokens.events import publish_trading_event
@@ -31,7 +32,12 @@ from tokens.exceptions import (
     SwapNotReadyException,
     SwapSignatureException,
 )
-from tokens.models import SwapOrder, SwapOrderStatus, TransferOrder
+from tokens.models import (
+    SwapOrder,
+    SwapOrderStatus,
+    TransferOrder,
+    TransferOrderStatus,
+)
 from tokens.services import atomic_swap_service
 from tokens.services.settlement_context import (
     assert_current_settlement,
@@ -42,9 +48,12 @@ from tokens.services.settlement_context import (
 from tokens.services.trading_locks import lock_orders, swap_terms
 from users.models import UserAccount, UserProfile
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
-from wallets.models import Wallet
+from wallets.models import ChainObservationFinality, ChainObservationResult, Wallet
+from wallets.services.chain_evidence import collect_chain_evidence
+from wallets.services.chain_observations import finality_policy
 
 logger = logging.getLogger(__name__)
+REVERTED_ON_CHAIN = "Swap execution reverted on chain"
 
 
 def require_autocommit():
@@ -461,3 +470,123 @@ def recover(transaction_id, *, client=None):
     _project(transaction, claim)
     operation.refresh_from_db()
     return operation.status
+
+
+def _retained(transaction):
+    if transaction.status not in (TransactionStatus.CONFIRMED, TransactionStatus.REVERTED):
+        return None
+    operation = (
+        OutgoingOperation.objects.select_related("current_attempt").filter(pk=transaction.outgoing_operation_id).first()
+    )
+    if operation is None or operation.status != transaction.status or operation.block_number is None:
+        return None
+    if operation.current_attempt.tx_hash != transaction.tx_hash:
+        return None
+    return operation
+
+
+def _summary(operation):
+    return (
+        operation.claim_id,
+        operation.status,
+        operation.current_attempt_id,
+        operation.block_number,
+        operation.block_hash,
+        operation.gas_used,
+    )
+
+
+def _finalized_outcome(transaction, operation, client, network, policy):
+    _original_chain(transaction, client)
+    verdict = collect_chain_evidence(
+        client,
+        chain=BLOCKCHAIN_BASE,
+        network=network,
+        tx_hash=transaction.tx_hash,
+        previous_block={"hash": operation.block_hash, "height": operation.block_number},
+        policy=policy,
+    )
+    if verdict["result"] == ChainObservationResult.ORPHANED:
+        logger.warning("Swap execution %s inclusion left the canonical chain: %s", transaction.pk, verdict["reason"])
+        return None
+    if (
+        verdict["result"] != ChainObservationResult.INCLUDED
+        or verdict["finality"] != ChainObservationFinality.SATISFIED
+    ):
+        logger.info("Swap execution %s awaits finality: %s", transaction.pk, verdict["reason"])
+        return None
+    included = verdict["evidence"]["receipt"]
+    receipt = client.get_transaction_receipt(transaction.tx_hash)
+    _verify_receipt(transaction, operation, client, receipt)
+    if (
+        outgoing._hex(receipt["blockHash"], 32) != included["hash"]
+        or receipt["blockNumber"] != included["height"]
+        or (receipt["status"] == 1) is not included["succeeded"]
+    ):
+        raise SwapNotReadyException("The receipt no longer matches its finalized inclusion.")
+    if (included["height"], included["hash"]) != (operation.block_number, operation.block_hash):
+        logger.info("Swap execution %s finalized in a later block than its first receipt", transaction.pk)
+    return included["succeeded"]
+
+
+def _complete(swap):
+    swap.status = SwapOrderStatus.COMPLETED
+    swap.completed_at = timezone.now()
+    swap.save(update_fields=["status", "completed_at", "updated_at"])
+    for order in (swap.sell_order, swap.buy_order):
+        order.tx_hash = swap.tx_hash
+        if order.filled_quantity >= order.quantity:
+            order.status = TransferOrderStatus.COMPLETED
+            order.completed_at = swap.completed_at
+        else:
+            order.status = TransferOrderStatus.PARTIALLY_FILLED
+        order.save(update_fields=["status", "tx_hash", "completed_at", "updated_at"])
+    publish_trading_event("swap_completed", str(swap.share_token_id))
+
+
+def settle(transaction_id, *, client=None):
+    require_autocommit()
+    if current_alias() == APP_ALIAS:
+        raise SwapNotReadyException("Swap settlement requires the operator connection.")
+    transaction = BlockchainTransaction.objects.filter(pk=transaction_id).first()
+    if transaction is None:
+        return None
+    _admission(transaction)
+    operation = _retained(transaction)
+    if operation is None:
+        return None
+    snapshot = SwapOrder.objects.filter(pk=transaction.related_uuid).first()
+    if (
+        snapshot is None
+        or snapshot.status != SwapOrderStatus.EXECUTING
+        or snapshot.transaction_id != transaction.pk
+        or snapshot.tx_hash != transaction.tx_hash
+    ):
+        return None
+    network = f"evm:{transaction_intent(transaction)['chain_id']}"
+    policy = finality_policy(network, BLOCKCHAIN_BASE)
+    if policy["mode"] not in ("finalized", "depth"):
+        logger.warning("Swap execution %s holds without an approved finality policy for %s", transaction.pk, network)
+        return None
+    BlockchainTransaction.objects.filter(pk=transaction.pk).update(updated_at=timezone.now())
+    succeeded = _finalized_outcome(transaction, operation, client or get_base_chain_client(), network, policy)
+    if succeeded is None:
+        return None
+    with atomic(durable=True):
+        swap, current = _lock_command(transaction)
+        if swap.status != SwapOrderStatus.EXECUTING:
+            return None
+        if (
+            _summary(OutgoingOperation.objects.get(pk=operation.pk)) != _summary(operation)
+            or current.outgoing_operation_id != operation.pk
+            or current.status != transaction.status
+            or swap.tx_hash != current.tx_hash
+            or current.tx_hash != operation.current_attempt.tx_hash
+        ):
+            raise SwapNotReadyException("The original swap execution identity no longer matches.")
+        if succeeded:
+            _complete(swap)
+        else:
+            swap.mark_failed(REVERTED_ON_CHAIN)
+            publish_trading_event("swap_failed", str(swap.share_token_id))
+        return swap.status

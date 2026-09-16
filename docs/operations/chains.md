@@ -19,6 +19,7 @@ Configure the local chain or Base Sepolia and align deployment ownership with th
 | `ATOMIC_SWAP_ADDRESS` | empty | Only for settlement |
 | `STABLECOIN_CONTRACT_ADDRESS` | empty | Only for stablecoin payment; seeds the `AUDY` deployment on `base` |
 | `SWAP_ORDER_EXPIRY_HOURS` | `0.25` (15 minutes) | No; finite fractional hours are accepted |
+| `LOCAL_CHAIN_FINALITY_DEPTH` | empty | No; a positive block depth at which a swap on a local chain (1337, 31337) settles. Refused for any other chain id |
 
 Malformed and non-finite values are refused at settings import. This default
 applies when issuing a new swap without an explicit signing window.
@@ -75,6 +76,15 @@ The deployment writes `WHITELIST_CONTRACT_ADDRESS`,
 `STABLECOIN_CONTRACT_ADDRESS` to `.deployed-contracts.env`. Copy them into
 `backend/.env` with `BLOCKCHAIN_RPC_URL`, `BLOCKCHAIN_CHAIN_ID=31337` and the
 Hardhat account #0 key as `BLOCKCHAIN_OPERATOR_KEY`.
+
+A swap on the local chain stays `executing` after its receipt, because
+`evm:31337` has no approved finality policy. To let the local stack settle swaps,
+set `LOCAL_CHAIN_FINALITY_DEPTH` (for example `3`) in `backend/.env`; the swap
+completes once that many blocks, counted inclusively from the receipt's block,
+sit on a stable tip. Hardhat mines one block per transaction, so the depth is
+reached only as further transactions or `evm_mine` calls land. The setting is
+refused when `BLOCKCHAIN_CHAIN_ID` names a public testnet, whose policies stay
+the approved ones in `backend/ledova_backend/chain_safety.py`.
 
 Base Sepolia (chain id 84532) is the supported public testnet:
 `npm --prefix contracts run deploy:testnet`, with `DEPLOYER_PRIVATE_KEY` and

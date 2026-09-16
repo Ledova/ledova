@@ -1,6 +1,7 @@
 from django.core.exceptions import ImproperlyConfigured
 
 SUPPORTED_EVM_CHAIN_IDS = frozenset({1337, 31337, 84532, 11155111})
+LOCAL_EVM_CHAIN_IDS = frozenset({1337, 31337})
 SUPPORTED_BITCOIN_NETWORKS = frozenset({"regtest", "test"})
 BITCOIN_TEST_GENESIS = "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943"
 APPROVED_FINALITY_POLICIES = {
@@ -19,6 +20,20 @@ def parse_evm_chain_id(value: str, setting_name: str) -> int:
     if chain_id not in SUPPORTED_EVM_CHAIN_IDS:
         raise ImproperlyConfigured(f"{setting_name}={chain_id} is not a supported local or public-testnet chain ID")
     return chain_id
+
+
+def local_finality_policies(value: str, chain_id: int) -> dict:
+    if not value:
+        return {}
+    if chain_id not in LOCAL_EVM_CHAIN_IDS:
+        raise ImproperlyConfigured("LOCAL_CHAIN_FINALITY_DEPTH applies only to a local chain id")
+    try:
+        depth = int(value)
+    except ValueError as exc:
+        raise ImproperlyConfigured("LOCAL_CHAIN_FINALITY_DEPTH must be a positive integer") from exc
+    if depth <= 0:
+        raise ImproperlyConfigured("LOCAL_CHAIN_FINALITY_DEPTH must be a positive integer")
+    return {f"evm:{chain_id}": {"mode": "depth", "depth": depth}}
 
 
 def parse_bitcoin_network(value: str) -> str:

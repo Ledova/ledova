@@ -18,6 +18,9 @@ from tokens.tests.swap_state_fixtures import BUYER, SELLER
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 
+HEAD_HASH = "0x" + "cc" * 32
+FINALIZED_HASH = "0x" + "dd" * 32
+
 
 def make_execution(label):
     seller = make_tenant(f"{label}-seller", with_swap=False)
@@ -63,7 +66,7 @@ def execution_contract():
     return Web3().eth.contract(abi=abi)
 
 
-def execution_receipt(attempt, arguments, *, status=1, changes=None):
+def execution_receipt(attempt, arguments, *, status=1, changes=None, block_number=12, block_hash=BLOCK_HASH):
     values = {
         "orderHash": arguments["settlement"]["digest"],
         **{key: arguments[key] for key in ("seller", "buyer", "shareToken", "paymentToken")},
@@ -88,10 +91,12 @@ def execution_receipt(attempt, arguments, *, status=1, changes=None):
         "logIndex": 0,
         "transactionIndex": 0,
         "transactionHash": HexBytes(attempt.tx_hash),
-        "blockNumber": 12,
-        "blockHash": HexBytes(BLOCK_HASH),
+        "blockNumber": block_number,
+        "blockHash": HexBytes(block_hash),
     }
     return receipt(attempt, status) | {
+        "blockNumber": block_number,
+        "blockHash": block_hash,
         "from": attempt.operation.intent["sender"],
         "to": attempt.operation.intent["to"],
         "logs": [log] if status else [],
@@ -106,6 +111,9 @@ class ExecutionChain:
     def chain_id(self):
         self.node.probe("chain_id")
         return self.node.chain_id
+
+    def get_block(self, identifier):
+        return self.node.block(identifier)
 
 
 class ExecutionNode:
@@ -125,6 +133,7 @@ class ExecutionNode:
         self.status = 1
         self.lose_acknowledgement = False
         self.receipts = {}
+        self.blocks = {}
         self.broadcasts = []
 
     def value(self, label, result):
@@ -136,6 +145,17 @@ class ExecutionNode:
 
     def observed(self, tx_hash):
         return self.value("receipt", self.receipts.get(tx_hash))
+
+    def block(self, identifier):
+        return self.value("block", self.blocks.get(identifier))
+
+    def advance(self, head, finalized=None):
+        self.blocks = {}
+        for mined in self.receipts.values():
+            self.blocks[mined["blockNumber"]] = {"hash": mined["blockHash"], "number": mined["blockNumber"]}
+        self.blocks["latest"] = self.blocks.setdefault(head, {"hash": HEAD_HASH, "number": head})
+        if finalized is not None:
+            self.blocks["finalized"] = self.blocks.setdefault(finalized, {"hash": FINALIZED_HASH, "number": finalized})
 
     def send(self, raw):
         self.probe("send")

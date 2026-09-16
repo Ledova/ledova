@@ -109,8 +109,10 @@ signed bytes, hash and nonce reservation commit with both transaction and swap
 hashes. Competing workers recover the same operation. A lost response, process
 stop or missing receipt cannot authorize a second transaction or nonce. The
 five-minute sweep considers at most 100 admitted pending/submitted transactions
-older than ten minutes, oldest update first. It can recover admission before the
-common operation exists and a receipt retained before its local projection.
+older than ten minutes, oldest update first, and separately at most 100 confirmed
+or reverted transactions whose swap is still executing, which it passes to the
+finality consumer below. It can recover admission before the common operation
+exists and a receipt retained before its local projection.
 
 Fresh preparation/signing requires the original caller's active ownership and
 verified wallet, unchanged settlement configuration and a live signed deadline.
@@ -131,10 +133,37 @@ financial processing must re-read and verify the original inclusion, holding whe
 that evidence is unavailable or contradictory.
 
 Both successful and reverted signed receipts leave the public swap EXECUTING and
-parent reservations held. The finality consumer remains separate work in #7.
-Only a proven unsigned preparation failure can fail the swap and unwind its
-reservation once. This adapter never restarts its original claim, including after
-a revert. Aggregate capital reservation remains #5 work.
+parent reservations held until finality. Only a proven unsigned preparation
+failure can fail the swap before that and unwind its reservation once. This
+adapter never restarts its original claim, including after a revert. Aggregate
+capital reservation remains #5 work.
+
+The finality consumer, `settle`, runs from the same sweep for every executing swap
+whose transaction is confirmed or reverted. It reads the chain with the wallet
+observer's evidence collector under the approved finality policy for the swap's
+own network, `evm:<chain_id>`: the finalized head for Base Sepolia and Ethereum
+Sepolia, and no policy for a local chain. It accepts only a canonical inclusion
+whose finality is satisfied, then reads the receipt again and re-verifies the
+`SwapExecuted` event before writing anything. A waiting head, a moving tip, an
+unavailable finalized block, an orphaned receipt block or an unconfigured network
+holds the swap for the next sweep. Nothing is resent: an inclusion that never
+returns to the canonical chain stays executing for operator attribution and is
+logged. Every chain read happens outside locks; the write locks both parents, the
+swap and the transaction in that order and checks the recorded identities again,
+so two workers cannot settle one swap twice and a settled swap is left alone
+without another chain call.
+
+A final successful inclusion completes the swap. `completed_at` is the settlement
+clock, when finality was observed, not the block time. Parents keep their filled
+quantity, take the transaction hash, and become `completed` when fully filled or
+return to `partially_filled` otherwise, where they can be modified or cancelled
+again. `swap_completed` is published after commit, and the market's last price
+moves at this point rather than at the first receipt. A reverted inclusion
+releases the reservation only once that revert is itself final, through the same
+unwind as an unsigned failure; its first receipt holds. A transaction re-included
+in a different block completes when the same hash is final there and the event
+re-verifies; the frozen receipt summary on the operation and transaction records
+the first-seen inclusion and is not rewritten.
 
 Migrations `blockchain/0007` and `tokens/0057` bind the existing transaction to its
 common operation and guard admission, complete intent bytes, immutable identities,
@@ -142,8 +171,15 @@ original signed evidence and retained outcomes. Application connections cannot
 read or write the private journal. Historical unmarked transactions gain no
 admission or signing authority; they stay held for attribution. Reversal refuses
 once admitted execution exists. The generic monitor remains excluded, and the
-old direct executor and receipt-driven financial completion are removed. Until
-#7's finality consumer completes swaps, market last price does not move.
+old direct executor and receipt-driven financial completion are removed.
+`tokens/0058` replaces the swap guard: `executing` to `completed` is legal only
+with a confirmed admitted journal, its confirmed operation, a matching hash and a
+completion time; `executing` to `failed` also with a reverted journal; `completed`
+and `failed` are terminal. PostgreSQL cannot see finality, so that remains the
+service's guarantee, carried by its tests. Other adapters still complete at their
+first receipt; only swaps hold a financial reservation. A local chain never
+settles a swap unless [`LOCAL_CHAIN_FINALITY_DEPTH`](../operations/chains.md#blockchain)
+is set.
 
 ## Legacy history hold
 
