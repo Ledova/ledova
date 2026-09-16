@@ -89,7 +89,7 @@ def run():
         stack.enter_context(
             patch(
                 "tokens.services.order_modification_service.share_token_service.get_token_balance",
-                return_value=10**30,
+                side_effect=lambda contract, address: (100 if contract == incoming["share_contract"] else 10**30),
             )
         )
         if phase == "spent":
