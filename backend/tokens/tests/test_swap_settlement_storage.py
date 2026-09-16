@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.db import IntegrityError
-from django.test import TestCase, TransactionTestCase, override_settings
+from django.test import TransactionTestCase, override_settings
 from eth_account import Account
 from eth_account.messages import encode_typed_data
 
@@ -16,7 +16,10 @@ from shared.db import atomic
 from shared.tests.schema import migrate_to, restore_every_migration
 from tokens.exceptions import LegacySwapHeld
 from tokens.models import SwapOrder, SwapOrderStatus
+from tokens.services import swap_execution
 from tokens.services.atomic_swap_service import payment_address
+from tokens.tasks.swap_reconciler import resolve_executing_swaps
+from tokens.tests.swap_execution_fixtures import make_execution
 from tokens.tests.swap_state_fixtures import (
     BUYER,
     CONTRACT,
@@ -33,7 +36,7 @@ MIGRATIONS_ENABLED = not ("tokens" in _migration_modules and _migration_modules[
 
 @skipUnless(IS_POSTGRES, "Requires the actual PostgreSQL settlement trigger")
 @override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT)
-class SwapSettlementStorageTest(TestCase):
+class SwapSettlementStorageTest(TransactionTestCase):
     def test_identity_updates_and_delete_refuse_while_both_signature_writes_remain_legal(self):
         swap = make_swap("settlement-guard", ready=True)
         before = persisted_outcome(swap)
@@ -59,17 +62,18 @@ class SwapSettlementStorageTest(TestCase):
         with self.assertRaises(IntegrityError), atomic():
             SwapOrder.objects.filter(pk=swap.pk).delete()
         self.assertEqual(persisted_outcome(swap), before)
-        SwapOrder.objects.filter(pk=swap.pk).update(status=SwapOrderStatus.EXECUTING, error_message="pending")
+        SwapOrder.objects.filter(pk=swap.pk).update(error_message="pending")
         swap.refresh_from_db()
         self.assertEqual(
             (swap.seller_signature, swap.buyer_signature), (before[0]["seller_signature"], before[0]["buyer_signature"])
         )
-        self.assertEqual(swap.status, SwapOrderStatus.EXECUTING)
+        self.assertEqual(swap.status, SwapOrderStatus.READY)
 
     def test_database_refuses_identity_change_during_real_signature_validation(self):
         from eth_account.messages import encode_typed_data
 
-        swap = make_swap("settlement-sign-guard")
+        fixture = make_execution("settlement-sign-guard")
+        swap = fixture.swap
         service = swap_service(self)
         signature = SELLER.sign_message(encode_typed_data(full_message=service.get_typed_data(swap))).signature.hex()
         verify = service.verify_signature
@@ -79,12 +83,16 @@ class SwapSettlementStorageTest(TestCase):
             SwapOrder.objects.filter(pk=swap.pk).update(share_amount=swap.share_amount + 1)
             return True
 
-        with patch.object(service, "verify_signature", side_effect=change), self.assertRaises(IntegrityError), atomic():
-            service.submit_signature(swap, signature, SELLER.address)
+        with patch.object(service, "verify_signature", side_effect=change), self.assertRaises(IntegrityError):
+            swap_execution.submit_signature(
+                swap, signature, SELLER.address, user=fixture.seller.user, participant="seller"
+            )
         swap.refresh_from_db()
         self.assertFalse(swap.seller_signature)
-        with patch("tokens.services.atomic_swap_service.publish_trading_event"):
-            signed = service.submit_signature(swap, signature, SELLER.address)
+        with patch("tokens.services.swap_execution.publish_trading_event"):
+            signed = swap_execution.submit_signature(
+                swap, signature, SELLER.address, user=fixture.seller.user, participant="seller"
+            )
         self.assertEqual(signed.seller_signature, signature)
 
 
@@ -152,7 +160,7 @@ class SwapSettlementMigrationTest(TransactionTestCase):
             service.get_typed_data(swap)
         untouched = persisted_outcome(swap)
         with patch("django.utils.timezone.now", return_value=swap.expires_at + timedelta(days=1)):
-            self.assertIsNone(service.resolve_executing_swap(swap))
+            self.assertEqual(resolve_executing_swaps.func(), {"checked": 0, "resolved": 0})
         self.assertEqual(persisted_outcome(swap), untouched)
         service.get_base_chain_client().receipt_even_if_reverted.assert_not_called()
         if IS_POSTGRES:

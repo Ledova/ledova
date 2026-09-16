@@ -54,8 +54,10 @@ SYSTEM_WIDE = {
     "tokens.tasks.signing_challenge.purge_signing_challenges": "Deletes expired challenges regardless of whose.",
     "tokens.tasks.swap_expiry.expire_unclaimed_matches": "Releases eligible unclaimed expired matches across both "
     "parties, retaining every swap with a transaction claim or uncertain history.",
-    "tokens.tasks.swap_reconciler.resolve_executing_swaps": "Asks the chain about every swap left executing, "
-    "and a swap has two parties, so neither one's principal would cover it.",
+    "tokens.tasks.swap_reconciler.recover_swap_execution": "Recovers one explicitly admitted swap execution "
+    "using its original participant and common signed journal. The exact job commits with admission.",
+    "tokens.tasks.swap_reconciler.resolve_executing_swaps": "Recovers admitted swap execution across private "
+    "counterparties without inventing an actor, restarting a claim or releasing signed financial holds.",
     "users.tasks.retention.purge_classification_evidence": "Applies the retention clock across every account.",
     "documents.tasks.retention.purge_document_evidence": "Purges expired supporting and unattached payslips "
     "across all uploaders on the operator connection, without a requesting user.",

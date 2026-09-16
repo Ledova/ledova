@@ -7,24 +7,25 @@ from django.utils import timezone
 from eth_account.messages import encode_typed_data
 from rest_framework.test import APITransactionTestCase
 
-from blockchain.models import TransactionStatus
+from blockchain.models import BlockchainTransaction, TransactionStatus
 from blockchain.services.transaction import check_pending_transactions
+from blockchain.tests.outgoing_fixtures import CHAIN_ID, KEY, admitted_signer
 from feature_flags.models import FeatureFlag
 from shared.db import atomic, current_alias, use_operator
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
-from tokens.exceptions import LegacySwapHeld
+from tokens.exceptions import LegacySwapHeld, SwapNotReadyException
 from tokens.models import SwapOrder, SwapOrderStatus, TransferOrder
-from tokens.services import atomic_swap_service
+from tokens.services import atomic_swap_service, swap_execution
+from tokens.services.settlement_context import settlement_execution_arguments
 from tokens.services.swap_expiry import expire_unclaimed_swap, expire_unclaimed_swaps
 from tokens.tasks.swap_reconciler import resolve_executing_swaps
+from tokens.tests.swap_execution_fixtures import ExecutionNode, make_execution
 from tokens.tests.swap_state_fixtures import (
-    CONFIRMED,
+    BUYER,
     CONTRACT,
     SELLER,
-    TX_HASH,
-    attach_claim,
     make_swap,
     persisted_outcome,
     swap_service,
@@ -40,7 +41,7 @@ BEFORE_CONTEXT = [("tokens", "0038_order_action_submissions")]
 class LegacySwapHoldTest(APITransactionTestCase):
     def setUp(self):
         self.addCleanup(restore_every_migration)
-        self.enterContext(patch("tokens.services.atomic_swap_service.publish_trading_event"))
+        self.enterContext(patch("tokens.services.swap_execution.publish_trading_event"))
         with use_operator():
             FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
             self.swap = make_swap("legacy-hold")
@@ -184,27 +185,43 @@ class ScopedLegacySwapHoldTest(RunsOnTheScopedConnection, LegacySwapHoldTest):
     pass
 
 
-@override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT)
+@override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT, BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
 class LegacySwapRecoveryHoldTest(TransactionTestCase):
     def setUp(self):
         self.addCleanup(restore_every_migration)
-        self.enterContext(patch("tokens.services.atomic_swap_service.publish_trading_event"))
+        self.enterContext(patch("tokens.services.swap_execution.publish_trading_event"))
         self.swaps = []
         self.transactions = {}
         self.service = swap_service(self)
         self.counter = 0
-        for index, status in enumerate(SwapOrderStatus.values):
-            swap = ExpiryFixtures.matched_swap(self, signed="both")
-            if status in (SwapOrderStatus.EXECUTING, SwapOrderStatus.COMPLETED, SwapOrderStatus.FAILED):
-                self.transactions[swap.pk] = attach_claim(swap, "0x" + f"{index + 200:064x}")
-            self.swaps.append(swap)
+        for status in SwapOrderStatus.values:
+            self.swaps.append(ExpiryFixtures.matched_swap(self, signed="both"))
         hashless = ExpiryFixtures.matched_swap(self, signed="both")
-        self.transactions[hashless.pk] = attach_claim(hashless, None, TransactionStatus.PENDING)
         self.swaps.append(hashless)
+        arguments = {swap.pk: settlement_execution_arguments(swap) for swap in self.swaps}
         old_apps = migrate_to(BEFORE_CONTEXT)
         old_swaps = old_apps.get_model("tokens", "SwapOrder").objects
-        for swap, status in zip(self.swaps, [*SwapOrderStatus.values, SwapOrderStatus.EXECUTING], strict=True):
+        for index, (swap, status) in enumerate(
+            zip(self.swaps, [*SwapOrderStatus.values, SwapOrderStatus.EXECUTING], strict=True)
+        ):
+            fields = {}
+            if status in (SwapOrderStatus.EXECUTING, SwapOrderStatus.COMPLETED, SwapOrderStatus.FAILED):
+                tx_hash = None if swap.pk == hashless.pk else "0x" + f"{index + 200:064x}"
+                journal = old_apps.get_model("blockchain", "BlockchainTransaction").objects.create(
+                    tx_type="atomic_swap",
+                    status="submitted" if tx_hash else "pending",
+                    tx_hash=tx_hash,
+                    from_address=SELLER.address,
+                    to_address=CONTRACT,
+                    function_name="executeSwap",
+                    function_args=arguments[swap.pk],
+                    related_model="tokens.SwapOrder",
+                    related_uuid=swap.pk,
+                )
+                self.transactions[swap.pk] = journal.pk
+                fields = {"transaction_id": journal.pk, "tx_hash": tx_hash or ""}
             old_swaps.filter(pk=swap.pk).update(
+                **fields,
                 status=status,
                 seller_signature=swap.seller_signature if status != SwapOrderStatus.CREATED else "",
                 buyer_signature=(
@@ -220,6 +237,10 @@ class LegacySwapRecoveryHoldTest(TransactionTestCase):
             TransferOrder.objects.filter(pk=swap.buy_order_id).update(matched_order_id=swap.sell_order_id)
         self.before_rows = list(old_swaps.order_by("pk").values())
         restore_every_migration()
+        self.transactions = {
+            swap_id: BlockchainTransaction.objects.get(pk=journal_id)
+            for swap_id, journal_id in self.transactions.items()
+        }
         self.before = {}
         for swap in self.swaps:
             swap.refresh_from_db()
@@ -246,83 +267,97 @@ class LegacySwapRecoveryHoldTest(TransactionTestCase):
                 cursor.execute("DELETE FROM tokens_swaporder WHERE uuid = %s", [swap.pk])
         self.assert_history_unchanged()
 
-    def test_actions_and_delayed_callbacks_cannot_mutate_any_legacy_state(self):
-        with patch("tokens.services.atomic_swap_service.get_base_chain_client") as provider, patch(
-            "tokens.services.atomic_swap_service.configured_relayer_key"
-        ) as key, patch("tokens.services.atomic_swap_service.publish_trading_event") as event:
+    def test_current_actions_and_recovery_refuse_every_legacy_state_before_provider_access(self):
+        with patch("tokens.services.atomic_swap_service.get_base_chain_client") as approval_provider, patch(
+            "tokens.services.swap_execution.get_base_chain_client"
+        ) as recovery_provider, patch("tokens.services.atomic_swap_service.configured_relayer_key") as key, patch(
+            "tokens.services.swap_execution.publish_trading_event"
+        ) as event:
             for swap in self.swaps:
                 for action, args in (
                     (self.service.payment_address, (swap,)),
                     (self.service.get_typed_data, (swap,)),
-                    (self.service.validate_swap_balances, (swap,)),
                     (self.service.check_swap_allowances, (swap,)),
                     (self.service.get_approval_transaction_data, (swap, "seller")),
-                    (self.service.submit_signature, (swap, swap.seller_signature, SELLER.address)),
-                    (self.service._store_signature, (swap, swap.seller_signature, True)),
-                    (self.service._claim_execution, (swap.pk,)),
-                    (self.service.execute_swap, (swap,)),
-                    (self.service._prepare_attempt, (swap,)),
-                    (self.service._execute_swap_call, (swap,)),
                 ):
                     with self.subTest(status=swap.status, action=action.__name__), self.assertRaises(LegacySwapHeld):
                         action(*args)
+                with self.subTest(status=swap.status, action="signature"), self.assertRaises(LegacySwapHeld):
+                    swap_execution.submit_signature(
+                        swap,
+                        swap.seller_signature,
+                        SELLER.address,
+                        user=swap.sell_order.owner_account.user_profile.user,
+                        participant="seller",
+                    )
                 transaction = self.transactions.get(swap.pk)
                 if transaction is not None:
-                    self.service._record_never_sent(swap, transaction, "never sent", "failed")
-                    self.service._record_unknown_fate(swap, transaction, "unknown")
-                    self.assertIsNone(self.service._record_sent(swap, transaction, TX_HASH))
-                    self.assertEqual(self.service._record_broadcast(swap, transaction, TX_HASH), TX_HASH)
-                    for status in (0, 1):
-                        self.assertIsNone(
-                            self.service._record_receipt(
-                                swap, transaction, transaction.tx_hash, {**CONFIRMED, "status": status}
-                            )
-                        )
-            provider.assert_not_called()
+                    with self.assertRaises(SwapNotReadyException):
+                        swap_execution.recover(transaction.pk)
+            approval_provider.assert_not_called()
+            recovery_provider.assert_not_called()
             key.assert_not_called()
             event.assert_not_called()
         self.assert_history_unchanged()
 
-    def test_recovery_and_expiry_sweeps_hold_history_and_a_current_swap_still_settles(self):
+    def test_sweeps_hold_legacy_history_and_current_receipt_keeps_financial_reservations(self):
         cutoff = max(swap.expires_at for swap in self.swaps) + timedelta(days=1)
-        with patch("tokens.services.atomic_swap_service.get_base_chain_client") as provider, patch(
+        with patch("tokens.services.swap_execution.get_base_chain_client") as provider, patch(
             "tokens.services.swap_expiry.publish_trading_event"
         ) as expiry_event:
             for swap in self.swaps:
-                self.assertIsNone(self.service.resolve_executing_swap(swap))
-                self.assertFalse(self.service.chain_says_this_swap_executed(swap, CONFIRMED))
                 self.assertFalse(expire_unclaimed_swap(swap, cutoff))
             self.assertEqual(resolve_executing_swaps.func(), {"checked": 0, "resolved": 0})
             self.assertEqual(expire_unclaimed_swaps(cutoff), {"checked": 0, "expired": 0, "retained": 0})
             provider.assert_not_called()
             expiry_event.assert_not_called()
         self.assert_history_unchanged()
-        current = make_swap("legacy-current-recovery", ready=True)
-        transaction = attach_claim(current)
-        SwapOrder.objects.filter(pk=current.pk).update(updated_at=timezone.now() - timedelta(hours=1))
-        current.refresh_from_db()
-        client = self.service.get_base_chain_client()
-        client.get_transaction_receipt.return_value = CONFIRMED
-        self.assertEqual(check_pending_transactions(client), {"checked": 0, "confirmed": 0, "failed": 0})
-        client.get_transaction_receipt.assert_not_called()
-        client.receipt_even_if_reverted.return_value = CONFIRMED
-        events = client.load_contract.return_value.events.SwapExecuted.return_value.process_receipt
-        events.return_value = [{"args": {"orderHash": self.service.executed_order_hash(current)}}]
-        with patch("tokens.services.atomic_swap_service.publish_trading_event") as event:
+        fixture = make_execution("legacy-current-recovery")
+        current = fixture.swap
+        for party, signer in (("seller", SELLER), ("buyer", BUYER)):
+            current = swap_execution.submit_signature(
+                current,
+                fixture.signatures[party],
+                signer.address,
+                user=getattr(fixture, party).user,
+                participant=party,
+            )
+        transaction = current.transaction
+        BlockchainTransaction.objects.filter(pk=transaction.pk).update(updated_at=timezone.now() - timedelta(hours=1))
+        admitted_signer()
+        node = ExecutionNode(transaction.function_args)
+        parent_rows = list(
+            TransferOrder.objects.filter(pk__in=[current.sell_order_id, current.buy_order_id])
+            .order_by("pk")
+            .values("status", "filled_quantity")
+        )
+        self.assertEqual(check_pending_transactions(node.client), {"checked": 0, "confirmed": 0, "failed": 0})
+        node.client.get_transaction_receipt.assert_not_called()
+        with patch("tokens.services.swap_execution.get_base_chain_client", return_value=node.client), patch(
+            "tokens.services.swap_execution.publish_trading_event"
+        ) as event:
             self.assertEqual(resolve_executing_swaps.func(), {"checked": 1, "resolved": 1})
-        client.receipt_even_if_reverted.assert_called_once_with(transaction.tx_hash)
         current.refresh_from_db()
         transaction.refresh_from_db()
-        self.assertEqual(current.status, SwapOrderStatus.COMPLETED)
+        self.assertEqual(current.status, SwapOrderStatus.EXECUTING)
         self.assertEqual(transaction.status, TransactionStatus.CONFIRMED)
-        event.assert_called_once_with("swap_completed", str(current.share_token_id))
+        self.assertEqual(current.tx_hash, transaction.outgoing_operation.current_attempt.tx_hash)
+        self.assertEqual(
+            list(
+                TransferOrder.objects.filter(pk__in=[current.sell_order_id, current.buy_order_id])
+                .order_by("pk")
+                .values("status", "filled_quantity")
+            ),
+            parent_rows,
+        )
+        event.assert_not_called()
         self.assert_history_unchanged()
 
 
 class EmptyLegacyHoldMigrationTest(TransactionTestCase):
     def test_reverse_and_reapply_are_available_without_legacy_history(self):
         self.addCleanup(restore_every_migration)
-        self.enterContext(patch("tokens.services.atomic_swap_service.publish_trading_event"))
+        self.enterContext(patch("tokens.services.swap_execution.publish_trading_event"))
         migrate_to([("tokens", "0055_order_submission_settlement_refusal")])
         with connections[current_alias()].cursor() as cursor:
             cursor.execute("SELECT count(*) FROM pg_trigger WHERE tgname = 'hold_legacy_swap'")

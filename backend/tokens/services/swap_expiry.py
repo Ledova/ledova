@@ -1,7 +1,7 @@
 from django.db.models import Q
 from django.utils import timezone
 
-from blockchain.models import BlockchainTransaction
+from blockchain.models import BlockchainTransaction, TransactionType
 from shared.db import atomic
 from tokens.events import publish_trading_event
 from tokens.models import SwapOrder, SwapOrderStatus, TransferOrder, TransferOrderStatus
@@ -36,7 +36,9 @@ def expire_unclaimed_swap(snapshot, cutoff):
         or len(orders) != 2
     ):
         return False
-    if BlockchainTransaction.objects.filter(related_model="tokens.SwapOrder", related_uuid=swap.pk).exists():
+    if BlockchainTransaction.objects.filter(
+        Q(related_model="tokens.SwapOrder") | Q(tx_type=TransactionType.ATOMIC_SWAP), related_uuid=swap.pk
+    ).exists():
         return False
     if any(
         order.status != TransferOrderStatus.PENDING_SIGNATURE or order.filled_quantity < swap.share_amount

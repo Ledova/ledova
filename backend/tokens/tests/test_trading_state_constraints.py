@@ -4,10 +4,11 @@ from unittest import skipUnless
 from uuid import uuid4
 
 from django.db import IntegrityError, connection
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
 from shared.db import atomic
+from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.settlement import save_swap_with_context
 from shared.tests.tenants import make_tenant
 from tokens.models import (
@@ -59,20 +60,36 @@ class TradingAmountsAndStatesAreDatabaseRulesTest(TestCase):
         with self.assertRaises(IntegrityError), atomic():
             TransferOrder.objects.bulk_create([TransferOrder(**values)])
 
-    def test_valid_partial_history_and_all_existing_status_values_survive(self):
-        values = SwapOrder.objects.filter(pk=self.tenant.swap.pk).values().get()
-        values.update(uuid=uuid4(), nonce=0)
-        self.tenant.swap = save_swap_with_context(SwapOrder(**values))
+    def test_valid_partial_history_and_every_order_status_survive(self):
         for status in TransferOrderStatus.values:
             TransferOrder.objects.filter(pk=self.order.pk).update(
                 quantity=10, filled_quantity=8, min_quantity=9, price_per_share=Decimal("0.01"), status=status
             )
             self.order.refresh_from_db()
-            self.assertEqual((self.order.filled_quantity, self.order.min_quantity), (8, 9))
-        for status in SwapOrderStatus.values:
-            SwapOrder.objects.filter(pk=self.tenant.swap.pk).update(status=status)
-            self.tenant.swap.refresh_from_db()
-            self.assertEqual((self.tenant.swap.status, self.tenant.swap.nonce), (status, 0))
+            self.assertEqual((self.order.status, self.order.filled_quantity, self.order.min_quantity), (status, 8, 9))
+
+
+class RecordedSwapStatesSurviveTheExecutionGuardsTest(TransactionTestCase):
+
+    def test_every_recorded_swap_status_survives_the_admitted_journal_guard(self):
+        values = SwapOrder.objects.filter(pk=make_tenant("recorded-bounds").swap.pk).values().get()
+        recorded = {
+            status: save_swap_with_context(
+                SwapOrder(**(values | {"uuid": uuid4(), "nonce": values["nonce"] + 1 + offset}))
+            )
+            for offset, status in enumerate(SwapOrderStatus.values)
+        }
+        keys = [swap.pk for swap in recorded.values()]
+        self.addCleanup(restore_every_migration)
+        historical = migrate_to([("tokens", "0056_hold_legacy_swaps")]).get_model("tokens", "SwapOrder").objects
+        for status, swap in recorded.items():
+            historical.filter(pk=swap.pk).update(status=status)
+        before = list(historical.filter(pk__in=keys).order_by("pk").values())
+        restore_every_migration()
+        self.assertEqual(list(SwapOrder.objects.filter(pk__in=keys).order_by("pk").values()), before)
+        for offset, (status, swap) in enumerate(recorded.items()):
+            swap.refresh_from_db()
+            self.assertEqual((swap.status, swap.nonce), (status, values["nonce"] + 1 + offset))
 
 
 @skipUnless(connection.vendor == "postgresql", "PostgreSQL numeric NaN needs a raw PostgreSQL write")

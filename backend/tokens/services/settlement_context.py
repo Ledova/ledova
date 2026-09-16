@@ -2,6 +2,7 @@ from copy import deepcopy
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
+from eth_abi import encode
 from eth_account.messages import _hash_eip191_message, encode_typed_data
 from web3 import Web3
 
@@ -256,3 +257,13 @@ def settlement_execution_arguments(swap):
             "domain": context["typed_data"]["domain"],
         },
     }
+
+
+def settlement_execution_calldata(arguments):
+    fields = ("seller", "buyer", "shareToken", "paymentToken", "shareAmount", "paymentAmount", "nonce", "deadline")
+    values = [arguments[field] if index < 4 else int(arguments[field]) for index, field in enumerate(fields)]
+    values.extend(bytes.fromhex(arguments[field].removeprefix("0x")) for field in ("sellerSignature", "buyerSignature"))
+    selector = Web3.keccak(
+        text="executeSwap(address,address,address,address,uint256,uint256,uint256,uint256,bytes,bytes)"
+    )[:4]
+    return Web3.to_hex(selector + encode(["address"] * 4 + ["uint256"] * 4 + ["bytes"] * 2, values))

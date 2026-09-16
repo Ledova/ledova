@@ -15,7 +15,7 @@ from .review_request import (
 )
 from .signing_challenge import purge_signing_challenges
 from .swap_expiry import expire_unclaimed_matches
-from .swap_reconciler import resolve_executing_swaps
+from .swap_reconciler import recover_swap_execution, resolve_executing_swaps
 
 __all__ = [
     "check_pending_nav_updates",
@@ -31,6 +31,7 @@ __all__ = [
     "fold_every_share_class",
     "purge_former_members_past_the_clock",
     "purge_signing_challenges",
+    "recover_swap_execution",
     "resolve_executing_swaps",
     "recover_mint_requests",
     "recover_capital_increases",

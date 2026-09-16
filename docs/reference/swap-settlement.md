@@ -71,10 +71,11 @@ transfer service is unchanged. Signing and approval schemas describe only the
 exact settlement contract. Approval data has two mutually exclusive outcomes:
 sufficient allowance, or an approval transaction with the original identity.
 
-Provider admission uses the inherited cached `assert_expected_chain` result;
-it is not a fresh endpoint-identity observation on every call. New claims retain
-complete signed arguments and their original domain. A receipt that cannot be
-attributed to that original chain/context leaves the claim unresolved.
+Approval provider admission still uses the inherited cached `assert_expected_chain`
+result. Execution recovery additionally reads the endpoint's current chain ID
+before observation and delivery. Execution admission retains complete signed
+arguments and their original domain. A receipt that cannot be attributed to that
+original chain/context leaves the claim unresolved.
 `tokens/0040` permits a captured-party signature through either currently
 authorized participant while the other order and wallet stay private. It first
 refuses existing swap/parent identity drift without rewriting history, freezes
@@ -91,20 +92,57 @@ Such unresolved claims and reservations remain retained for existing operator
 reconciliation; a successful signature response does not establish settlement.
 Trading and outgoing signer activation remain unchanged.
 
-- **One current swap execution is claimed before preparation.** A fresh READY
-  row receives a transaction UUID and becomes EXECUTING in a durable transaction
-  before balance checks, building, signing or sending. Competing callers cannot
-  prepare another attempt. Signature writes also reread the locked swap. Shared
-  order locks are acquired by primary key, followed by challenge, swap and
-  current transaction locks where needed; matching then selects by the existing
-  price/time priority. Receipt I/O runs outside these locks, and each outcome
-  rechecks the order links, current UUID, both recorded hashes and fresh terminal
-  transaction evidence before changing reservations. A local failure before any
-  send can unwind once; a missing receipt, provider exception, monitor timeout,
-  elapsed deadline or unattributed nonce use cannot. A process death after the
-  claim leaves unresolved history. This does not supply durable signed-byte
-  recovery, request idempotency, aggregate reservations, a complete cross-row
-  state machine; those remain in #5 and #6.
+## Durable execution
+
+The completing signature, a private `BlockchainTransaction` admission and its
+`recover_swap_execution` job commit together. Admission records the authenticated
+caller's original account participant and actor, even when that participant relays
+the other party's valid signature. Both parties' private parent orders are changed
+through a bounded operator transaction. If no valid relayer key is configured,
+both signatures remain READY; an explicit exact signature replay can admit the
+execution later. A sweep never invents the initiating actor.
+
+Recovery binds the original transaction to `swap-execution:<transaction UUID>`
+in the [outgoing foundation](../architecture/outgoing-signing.md). It uses the
+recorded chain, relayer, target and full ABI calldata. Before any send, the common
+signed bytes, hash and nonce reservation commit with both transaction and swap
+hashes. Competing workers recover the same operation. A lost response, process
+stop or missing receipt cannot authorize a second transaction or nonce. The
+five-minute sweep considers at most 100 admitted pending/submitted transactions
+older than ten minutes, oldest update first. It can recover admission before the
+common operation exists and a receipt retained before its local projection.
+
+Fresh preparation/signing requires the original caller's active ownership and
+verified wallet, unchanged settlement configuration and a live signed deadline.
+Signed delivery checks those conditions again, plus current signer admission,
+before the send. Locks commit before RPC; a call that crossed the boundary may
+still send after a concurrent change. Closing admission is a drain barrier.
+Original receipt observation remains available after authority, key, domain or
+deadline changes, provided the original chain remains reachable. No new authority
+is inferred from that observation.
+
+Success requires the original receipt hash, sender, target and one correctly
+decoded `SwapExecuted` event with the exact digest, parties, tokens and amounts.
+The event must belong to the receipt's transaction and block. A contradictory,
+removed, missing or duplicate event stays unresolved. Revert evidence must name
+the original transaction. The common operation retains its first receipt summary;
+full event evidence is verified before storing that summary. Later finality or
+financial processing must re-read and verify the original inclusion, holding when
+that evidence is unavailable or contradictory.
+
+Both successful and reverted signed receipts leave the public swap EXECUTING and
+parent reservations held. The finality consumer remains separate work in #7.
+Only a proven unsigned preparation failure can fail the swap and unwind its
+reservation once. This adapter never restarts its original claim, including after
+a revert. Aggregate capital reservation remains #5 work.
+
+Migrations `blockchain/0007` and `tokens/0057` bind the existing transaction to its
+common operation and guard admission, complete intent bytes, immutable identities,
+original signed evidence and retained outcomes. Application connections cannot
+read or write the private journal. Historical unmarked transactions gain no
+admission or signing authority; they stay held for attribution. Reversal refuses
+once admitted execution exists. The generic monitor remains excluded, and the
+old direct executor and receipt-driven financial completion are removed.
 
 ## Legacy history hold
 
@@ -124,10 +162,10 @@ cutover. The existing swap list still returns eligible V0 history.
 The generic transaction monitor excludes every atomic-swap transaction, every
 `tokens.SwapOrder` business reference and every transaction linked by a swap,
 even when the other associations are missing or inconsistent. It rechecks that
-exclusion after receipt I/O before writing an outcome. Valid V1 outcomes stay
-with the dedicated reconciler, which checks the original context and success
-event before updating the swap and transaction together. Unattributed history
-stays pending; this does not add finality or reorg handling.
+exclusion after receipt I/O before writing an outcome. Admitted V1 outcomes stay
+with the dedicated recovery worker, which verifies the original context and
+success event before recording receipt evidence. It leaves financial state held.
+Unattributed history stays pending; this does not add finality or reorg handling.
 
 ## Unclaimed expiry
 

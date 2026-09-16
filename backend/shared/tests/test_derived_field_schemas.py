@@ -11,7 +11,7 @@ from django.utils import timezone
 from drf_spectacular.drainage import GENERATOR_STATS
 from drf_spectacular.generators import SchemaGenerator
 from jsonschema import Draft4Validator, FormatChecker
-from rest_framework.test import APITestCase
+from rest_framework.test import APITransactionTestCase
 
 from assets.models import Asset, AssetChainDeployment
 from companies.models import Company, CompanyDocument, CompanyStatus
@@ -21,8 +21,9 @@ from documents.serializers.document import DocumentSerializer
 from feature_flags.models import FeatureFlag
 from offerings.models import Offering, OfferingStatus
 from operators.models import Operator
+from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_eligible, make_tenant, open_to_investors
-from tokens.models import SwapOrder, YieldToken
+from tokens.models import YieldToken
 from users.models import InvestorClassification, UserProfile
 from users.serializers.investor_classification import InvestorClassificationSerializer
 
@@ -35,7 +36,7 @@ DOCUMENTS = "/api/v1/documents/"
 TOKENS = "/api/v1/tokens/"
 
 
-class DerivedFieldResponseSchemaTest(APITestCase):
+class DerivedFieldResponseSchemaTest(APITransactionTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -486,7 +487,12 @@ class DerivedFieldResponseSchemaTest(APITestCase):
         untraded = self.directory_row()
         self.assertIsNone(untraded["lastPrice"])
         self.assert_fields_match(self.response_schema(DIRECTORY, page=True), untraded, fields)
-        SwapOrder.objects.filter(pk=self.owner.swap.pk).update(status="completed", completed_at=timezone.now())
+        self.addCleanup(restore_every_migration)
+        historical = migrate_to([("tokens", "0056_hold_legacy_swaps")])
+        historical.get_model("tokens", "SwapOrder").objects.filter(pk=self.owner.swap.pk).update(
+            status="completed", completed_at=timezone.now()
+        )
+        restore_every_migration()
         for path in (TOKENS, DIRECTORY):
             body = self.get_json(path)["results"]
             traded = next(row for row in body if row["uuid"] == str(self.owner.deployed_token.uuid))

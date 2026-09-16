@@ -212,12 +212,6 @@ class SwapSignatureException(APIException):
     default_code = "swap_signature_invalid"
 
 
-class SwapExecutionException(APIException):
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-    default_detail = "Swap execution failed."
-    default_code = "swap_execution_failed"
-
-
 class SwapNotReadyException(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = "Swap order is not ready for execution."

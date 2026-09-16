@@ -2,34 +2,45 @@ import logging
 from datetime import timedelta
 
 from django.utils import timezone
+from procrastinate import RetryStrategy
 
+from blockchain.models import BlockchainTransaction, TransactionStatus, TransactionType
 from ledova_backend.procrastinate_app import app
-from tokens.models import SwapOrder
-from tokens.services import atomic_swap_service
+from shared.db import use_operator
+from tokens.constants import SWAP_EXECUTION_RECOVERY_BATCH
+from tokens.services import swap_execution
 
 logger = logging.getLogger(__name__)
 
 STALE_EXECUTION_AGE = timedelta(minutes=10)
 
 
+@app.task(retry=RetryStrategy(max_attempts=4, wait=30))
+def recover_swap_execution(transaction_id: str):
+    with use_operator():
+        return swap_execution.recover(transaction_id)
+
+
 @app.periodic(cron="*/5 * * * *")
 @app.task
 def resolve_executing_swaps(timestamp: int = 0):
-    cutoff = timezone.now() - STALE_EXECUTION_AGE
-    stale = SwapOrder.objects.unresolved_on_chain(cutoff).select_related("share_token", "sell_order", "buy_order")
-
-    checked = 0
-    resolved = 0
-
-    for swap_order in stale:
-        checked += 1
-        try:
-            outcome = atomic_swap_service.resolve_executing_swap(swap_order)
-        except Exception as exc:
-            logger.error(f"Swap {swap_order.uuid} could not be reconciled: {exc}")
-            continue
-        if outcome is not None:
-            resolved += 1
-
-    logger.info(f"Executing swaps checked: {checked}, resolved: {resolved}")
-    return {"checked": checked, "resolved": resolved}
+    with use_operator():
+        pending = list(
+            BlockchainTransaction.objects.filter(
+                tx_type=TransactionType.ATOMIC_SWAP,
+                related_model="tokens.SwapOrder",
+                function_args__admission__version=1,
+                status__in=(TransactionStatus.PENDING, TransactionStatus.SUBMITTED),
+                updated_at__lt=timezone.now() - STALE_EXECUTION_AGE,
+            )
+            .order_by("updated_at", "pk")
+            .values_list("pk", flat=True)[:SWAP_EXECUTION_RECOVERY_BATCH]
+        )
+        observed = 0
+        for transaction_id in pending:
+            try:
+                outcome = swap_execution.recover(transaction_id)
+                observed += outcome in ("confirmed", "reverted", "failed")
+            except Exception as exc:
+                logger.warning("Swap execution %s remains held: %s", transaction_id, type(exc).__name__)
+        return {"checked": len(pending), "resolved": observed}
