@@ -3,13 +3,14 @@ import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from 'react-
 import { useFocusEffect } from '@react-navigation/native';
 import { useQueryClient, type QueryCacheNotifyEvent } from '@tanstack/react-query';
 import type { ShareToken, TransferOrder, CreateOrderRequest, SwapOrder, Wallet } from '@ledova/shared';
-import { useOrderSubmissions, useOrderActions, useSwapSettlements, type SavedSwapSettlement } from '@ledova/shared';
 import {
-  selectMobileSettlement,
-  settlementWalletMaterial,
-  swapSettlementCrypto,
-  swapSettlementStore,
-} from '../../services/swapSettlements';
+  selectSwapSettlement,
+  useOrderSubmissions,
+  useOrderActions,
+  useSwapSettlements,
+  type SavedSwapSettlement,
+} from '@ledova/shared';
+import { settlementWalletMaterial, swapSettlementCrypto, swapSettlementStore } from '../../services/swapSettlements';
 import { SwapSettlementModal } from './components/SwapSettlementModal';
 import { orderSubmissionSession, orderSubmissionStore } from '../../services/orderSubmissions';
 import { GradientBackground } from '../../components/GradientBackground';
@@ -195,7 +196,7 @@ export function TradingScreen() {
     setShowCreateOrder(false);
     try {
       if (!settlements.owner) throw new Error('No current account.');
-      const { selection, wallet } = selectMobileSettlement(swap, settlements.owner, wallets);
+      const { selection, wallet } = selectSwapSettlement(swap, settlements.owner, wallets);
       settlements.open(selection, walletBoundary(wallet));
     } catch {
       setSettlementError('This settlement cannot be opened with the current account and wallet.');
@@ -364,7 +365,8 @@ export function TradingScreen() {
                   onViewOrder={handleViewOrder}
                   swaps={swapOrders.data}
                   isLoadingSwaps={swapOrders.isLoading}
-                  walletAddresses={walletAddresses}
+                  wallets={wallets}
+                  settlementOwner={settlements.owner}
                   onSignSwap={handleSignSwap}
                 />
 

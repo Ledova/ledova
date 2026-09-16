@@ -53,6 +53,21 @@ class TheSwapListNamesEachSwapsRecordedProtocolTest(APITransactionTestCase):
         self.assertEqual(listed, {str(self.historical.uuid): 0, str(self.current.uuid): 1})
         self.assertEqual({type(version) for version in listed.values()}, {int})
 
+        response = self.client.get("/api/v1/trading/swaps/", {"wallet_address": self.owner.wallet.address})
+        rows = {row["uuid"]: row for row in response.json()["results"]}
+        self.assertEqual(rows[str(self.historical.pk)]["viewerParties"], [])
+        self.assertEqual(
+            rows[str(self.current.pk)]["viewerParties"],
+            [
+                {
+                    "userRole": role,
+                    "ownerAccountUuid": str(self.owner.account.pk),
+                    "walletUuid": str(self.owner.wallet.pk),
+                }
+                for role in ("seller", "buyer")
+            ],
+        )
+
     def test_a_historical_swap_that_no_longer_awaits_a_signature_leaves_the_list(self):
         self.historical_swaps.filter(pk=self.historical.pk).update(status=SwapOrderStatus.EXPIRED)
         self.restore_with_a_current_swap()

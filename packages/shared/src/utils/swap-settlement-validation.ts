@@ -277,29 +277,46 @@ export async function validateSwapSettlementResponse(
   );
 }
 
-export function selectSwapSettlementLookup(
-  swap: SettlementSwapOrder,
-  owner: OrderSubmissionOwner,
-  wallet: Pick<Wallet, 'uuid' | 'userAccount' | 'address'>,
-  orderUuid?: string,
-): SwapSettlementSelection {
-  requireValue(wallet.userAccount === owner.ownerAccountUuid && swap.settlementProtocolVersion === 1);
-  const sides = [swap.settlementContext.seller, swap.settlementContext.buyer].filter(
-    (side) =>
-      side.ownerAccountUuid === owner.ownerAccountUuid &&
-      side.walletUuid === wallet.uuid &&
-      sameAddress(side.address, wallet.address) &&
-      (orderUuid === undefined || orderUuid === side.orderUuid),
+export function selectSwapSettlement<
+  T extends Pick<Wallet, 'uuid' | 'userAccount' | 'address' | 'chain' | 'verificationStatus'>,
+>(swap: SwapOrder, owner: OrderSubmissionOwner, wallets: T[]): { selection: SwapSettlementSelection; wallet: T } {
+  requireValue(swap.settlementProtocolVersion === 1 && Array.isArray(swap.viewerParties));
+  const parties = swap.viewerParties;
+  requireValue(parties.length > 0 && parties.length <= 2);
+  requireValue(
+    parties.every(
+      (party) =>
+        party &&
+        (party.userRole === 'seller' || party.userRole === 'buyer') &&
+        party.ownerAccountUuid === owner.ownerAccountUuid &&
+        UUID.test(party.walletUuid),
+    ),
   );
-  requireValue(sides.length === 1, 'Choose the current account’s original order and wallet for this swap.');
-  return {
-    swapUuid: swap.uuid,
-    orderUuid: sides[0]!.orderUuid,
-    ownerAccountUuid: owner.ownerAccountUuid,
-    walletUuid: wallet.uuid,
-    walletAddress: wallet.address,
-    settlementDigest: swap.settlementDigest,
-  };
+  requireValue(new Set(parties.map((party) => party.userRole)).size === parties.length);
+  for (const role of ['seller', 'buyer'] as const) {
+    if (role === 'seller' ? swap.sellerHasSigned : swap.buyerHasSigned) continue;
+    const party = parties.find((candidate) => candidate.userRole === role);
+    if (!party) continue;
+    const wallet = wallets.find(
+      (candidate) =>
+        candidate.uuid === party.walletUuid &&
+        candidate.userAccount === party.ownerAccountUuid &&
+        candidate.verificationStatus === 'VERIFIED' &&
+        (candidate.chain === 'base' || candidate.chain === 'ethereum') &&
+        sameAddress(candidate.address, role === 'seller' ? swap.sellerAddress : swap.buyerAddress),
+    );
+    if (!wallet) continue;
+    const selection = {
+      swapUuid: swap.uuid,
+      orderUuid: role === 'seller' ? swap.sellOrderUuid : swap.buyOrderUuid,
+      ownerAccountUuid: owner.ownerAccountUuid,
+      walletUuid: wallet.uuid,
+      walletAddress: wallet.address,
+    };
+    validateSwapSettlementLookup(selection);
+    return { selection, wallet };
+  }
+  throw new SwapSettlementError('No unsigned side has its recorded verified wallet in this account.');
 }
 
 export function swapSettlementRole(response: SwapSettlementResponse, signerAddress: string): 'seller' | 'buyer' {
@@ -447,12 +464,17 @@ export function validateSwapSettlementApprovalResult(
   }
 }
 
-export function hasSwapSettlementContext(swap: SwapOrder): swap is SettlementSwapOrder {
+export function hasSwapSettlementContext(swap: unknown): swap is SettlementSwapOrder {
   return (
-    'settlementContext' in swap &&
+    typeof swap === 'object' &&
+    swap !== null &&
+    'settlementProtocolVersion' in swap &&
     swap.settlementProtocolVersion === 1 &&
+    'settlementContext' in swap &&
     !!swap.settlementContext &&
+    'settlementDigest' in swap &&
     typeof swap.settlementDigest === 'string' &&
+    'completedAt' in swap &&
     (swap.completedAt === null || typeof swap.completedAt === 'string')
   );
 }

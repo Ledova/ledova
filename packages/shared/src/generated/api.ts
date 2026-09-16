@@ -4275,12 +4275,18 @@ export interface ApiComponents {
       status: ApiComponents['schemas']['SwapOrderStatusEnum'];
       statusDisplay: string;
       uuid: string;
+      viewerParties: ApiComponents['schemas']['SwapViewerParty'][];
     };
     SwapOrderStatusEnum:
       'created' | 'seller_signed' | 'buyer_signed' | 'ready' | 'executing' | 'completed' | 'failed' | 'expired';
     SwapSigningTypes: {
       EIP712Domain: ApiComponents['schemas']['SigningType'][];
       SwapOrder: ApiComponents['schemas']['SigningType'][];
+    };
+    SwapViewerParty: {
+      ownerAccountUuid: string;
+      userRole: ApiComponents['schemas']['UserRoleEnum'];
+      walletUuid: string;
     };
     ThemeEnum: 'dark' | 'light';
     TokenDeploymentStarted: {

@@ -4,12 +4,8 @@ import { v4 as uuid } from 'uuid';
 import { Transaction, TypedDataEncoder, getNumber, keccak256, toBeHex, verifyTypedData } from 'ethers';
 import {
   createSwapSettlementStore,
-  hasSwapSettlementContext,
   isSupportedEvmTestChainId,
-  selectSwapSettlementLookup,
   type ApprovalTransaction,
-  type OrderSubmissionOwner,
-  type SwapOrder,
   type SwapSettlementCrypto,
   type Wallet,
 } from '@ledova/shared';
@@ -58,25 +54,6 @@ export function settlementWalletMaterial(wallet: Wallet | null | undefined): str
       wallet.parentDerivationPath,
     ],
   );
-}
-
-export function selectMobileSettlement(swap: SwapOrder, owner: OrderSubmissionOwner, wallets: Wallet[]) {
-  if (!hasSwapSettlementContext(swap)) throw new Error('This settlement has no valid captured details.');
-  const parties = [swap.settlementContext.seller, swap.settlementContext.buyer];
-  const unsigned = [!swap.sellerHasSigned, !swap.buyerHasSigned];
-  for (const index of [0, 1]) {
-    const party = parties[index];
-    if (!unsigned[index]) continue;
-    const wallet = wallets.find(
-      (item) =>
-        item.uuid === party.walletUuid &&
-        item.userAccount === owner.ownerAccountUuid &&
-        item.address.toLowerCase() === party.address.toLowerCase() &&
-        item.verificationStatus === 'VERIFIED',
-    );
-    if (wallet) return { wallet, selection: selectSwapSettlementLookup(swap, owner, wallet, party.orderUuid) };
-  }
-  throw new Error('No unsigned side has an available wallet in this account.');
 }
 
 export function settlementApprovalTransaction(transaction: ApprovalTransaction) {
