@@ -72,6 +72,11 @@ class SwapProcess:
         self.test.assertEqual(self.process.wait(timeout=10), 0, self.error_output())
         return result
 
+    def refused(self):
+        event = self.receive("error")
+        self.test.assertEqual(self.process.wait(timeout=10), 1, self.error_output())
+        return event["refused"]
+
     def close(self):
         if self.process.poll() is None:
             self.process.terminate()

@@ -99,7 +99,7 @@ if __name__ == "__main__":
     try:
         with patch("tokens.events.publish_trading_event"):
             run(*sys.argv[1:])
-    except BaseException:
+    except BaseException as refusal:
         traceback.print_exc()
-        report("error")
+        report("error", refused=type(refusal).__name__)
         sys.exit(1)
