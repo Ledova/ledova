@@ -107,7 +107,14 @@ in the [outgoing foundation](../architecture/outgoing-signing.md). It uses the
 recorded chain, relayer, target and full ABI calldata. Before any send, the common
 signed bytes, hash and nonce reservation commit with both transaction and swap
 hashes. Competing workers recover the same operation. A lost response, process
-stop or missing receipt cannot authorize a second transaction or nonce. The
+stop or missing receipt cannot authorize a second transaction or nonce. Before
+each resend, recovery reads the relayer's mined transaction count; once it passes
+the attempt's nonce, the attempt's own bytes go through the
+[nonce-spend reader](transaction-evidence.md#evm-nonce-spend-evidence), a warning
+names the consuming hash and its kind, and the swap holds for operator
+attribution with nothing resent. The foundation cannot replace or cancel a signed
+attempt, so a spend made outside it is recorded, never adopted, and a stuck
+relayer nonce has no supported remedy. The
 five-minute sweep considers at most 100 admitted pending/submitted transactions
 older than ten minutes, oldest update first, and separately at most 100 confirmed
 or reverted transactions whose swap is still executing, which it passes to the
@@ -163,7 +170,10 @@ releases the reservation only once that revert is itself final, through the same
 unwind as an unsigned failure; its first receipt holds. A transaction re-included
 in a different block completes when the same hash is final there and the event
 re-verifies; the frozen receipt summary on the operation and transaction records
-the first-seen inclusion and is not rewritten.
+the first-seen inclusion and is not rewritten. A re-inclusion whose finalized
+outcome differs from the first receipt's, a revert finalized as a success or the
+reverse, is held for operator attribution: the sweep logs both outcomes once per
+pass and neither completes nor releases the swap.
 
 Migrations `blockchain/0007` and `tokens/0057` bind the existing transaction to its
 common operation and guard admission, complete intent bytes, immutable identities,

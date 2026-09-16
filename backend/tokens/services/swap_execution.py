@@ -51,6 +51,7 @@ from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import ChainObservationFinality, ChainObservationResult, Wallet
 from wallets.services.chain_evidence import collect_chain_evidence
 from wallets.services.chain_observations import finality_policy
+from wallets.services.nonce_evidence import collect_nonce_evidence
 
 logger = logging.getLogger(__name__)
 REVERTED_ON_CHAIN = "Swap execution reverted on chain"
@@ -376,6 +377,23 @@ def _observe(transaction, claim, client):
     outgoing.record_receipt(claim, operation.current_attempt.tx_hash, receipt)
 
 
+def _consumed(transaction, operation, client):
+    attempt = operation.current_attempt
+    sender = Web3.to_checksum_address(operation.intent["sender"])
+    if outgoing._integer(client.w3.eth.get_transaction_count(sender, "latest")) <= attempt.nonce:
+        return False
+    spend = collect_nonce_evidence(client, attempt.raw_transaction)
+    candidate = spend.get("candidate", {})
+    logger.warning(
+        "Swap execution %s nonce %s consumed by %s (%s); held for operator attribution",
+        transaction.pk,
+        attempt.nonce,
+        candidate.get("tx_hash", "an unattributed transaction"),
+        candidate.get("intent_kind", spend["reason"]),
+    )
+    return True
+
+
 def _project(transaction, claim, refusal="Swap execution could not be prepared"):
     with atomic(durable=True):
         operation = OutgoingOperation.objects.select_for_update().get(pk=claim.operation_id)
@@ -461,7 +479,7 @@ def recover(transaction_id, *, client=None):
         logger.warning("Swap execution %s receipt remains unavailable: %s", transaction.pk, type(exc).__name__)
         return None
     operation.refresh_from_db()
-    if operation.status == OutgoingStatus.SIGNED:
+    if operation.status == OutgoingStatus.SIGNED and not _consumed(transaction, operation, client):
         outgoing.broadcast_operation(claim, client, before_send=lambda: _before_send(transaction, claim, client))
         try:
             _observe(transaction, claim, client)
@@ -516,6 +534,15 @@ def _finalized_outcome(transaction, operation, client, network, policy):
         logger.info("Swap execution %s awaits finality: %s", transaction.pk, verdict["reason"])
         return None
     included = verdict["evidence"]["receipt"]
+    if included["succeeded"] is not (operation.status == OutgoingStatus.CONFIRMED):
+        logger.warning(
+            "Swap execution %s hash %s was first seen %s and finalized %s; held for operator attribution",
+            transaction.pk,
+            transaction.tx_hash,
+            operation.status,
+            OutgoingStatus.CONFIRMED if included["succeeded"] else OutgoingStatus.REVERTED,
+        )
+        return None
     receipt = client.get_transaction_receipt(transaction.tx_hash)
     _verify_receipt(transaction, operation, client, receipt)
     if (

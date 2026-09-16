@@ -149,7 +149,10 @@ cancellation intent nor the absence of contract execution. Revert status is
 recorded separately. A nonce can also advance through a delegated-account
 authorization, so an increase with no attributable sender transaction stays
 unknown. The reader collects evidence only: it admits no replacement, releases
-no reservation and settles no wallet.
+no reservation and settles no wallet. Swap execution recovery runs the same
+reader on the relayer's attempt once the mined nonce has passed it, to name the
+consuming transaction and its kind in the hold it logs; see
+[swap settlement](swap-settlement.md#durable-execution).
 
 Each read permits at most 66 distinct nonce queries, 10,000 transactions in the
 returned block, 128 KiB of input and 4,096 combined access-list entries and
