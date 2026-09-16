@@ -143,8 +143,7 @@ read or write the private journal. Historical unmarked transactions gain no
 admission or signing authority; they stay held for attribution. Reversal refuses
 once admitted execution exists. The generic monitor remains excluded, and the
 old direct executor and receipt-driven financial completion are removed. Until
-#7's finality consumer completes swaps, parents and reservations stay as admitted
-and market last price does not move.
+#7's finality consumer completes swaps, market last price does not move.
 
 ## Legacy history hold
 

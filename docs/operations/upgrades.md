@@ -54,7 +54,9 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   common outgoing operation and install the admission, intent-byte, identity and
   retained-outcome guards. The forward step refuses when an admitted execution
   already exists in the database, and reversal refuses once one does, so apply
-  them before any signer is activated and expect no way back afterwards. Existing
+  them before the #619 code runs with `BLOCKCHAIN_OPERATOR_KEY` configured — the
+  first swap that collects both signatures under it admits an execution, whether
+  or not a signer is admitted — and expect no way back once one exists. Existing
   unmarked swap transactions gain no signing authority and stay held for
   attribution. Financial completion no longer follows a receipt: parents and
   reservations stay held until #7's finality consumer, and market last price
