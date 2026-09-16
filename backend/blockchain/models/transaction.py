@@ -60,6 +60,14 @@ class BlockchainTransaction(BaseModel):
     confirmed_at = models.DateTimeField(null=True, blank=True)
     related_model = models.CharField(max_length=100, null=True, blank=True)
     related_uuid = models.UUIDField(null=True, blank=True)
+    outgoing_operation = models.OneToOneField(
+        "blockchain.OutgoingOperation",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        editable=False,
+        related_name="swap_transaction",
+    )
 
     objects = BlockchainTransactionQuerySet.as_manager()
 
@@ -67,6 +75,13 @@ class BlockchainTransaction(BaseModel):
         verbose_name = "Blockchain Transaction"
         verbose_name_plural = "Blockchain Transactions"
         ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["related_uuid"],
+                condition=models.Q(tx_type="atomic_swap", function_args__has_key="admission"),
+                name="unique_admitted_swap_transaction",
+            ),
+        ]
         indexes = [
             models.Index(fields=["tx_hash"]),
             models.Index(fields=["status"]),
