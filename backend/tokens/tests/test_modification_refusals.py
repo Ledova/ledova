@@ -45,6 +45,7 @@ class ModificationChecks:
             )
         self.client.force_authenticate(self.tenant.user)
         self.balance = 200
+        self.payment_balance = 10**30
         self.balance_error = None
         self.before_balance_return = None
         self.balance_observations = []
@@ -65,7 +66,7 @@ class ModificationChecks:
             raise self.balance_error
         if self.before_balance_return:
             self.before_balance_return()
-        return self.balance
+        return self.balance if contract == self.order.token.contract_address else self.payment_balance
 
     def change_order(self, **values):
         with use_operator(), atomic():
