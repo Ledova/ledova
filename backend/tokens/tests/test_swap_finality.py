@@ -215,7 +215,7 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
             self.node.advance(head=20, finalized=12)
             heads = [self.node.blocks["latest"], {"hash": OTHER_HASH, "number": 21}]
             canonical = self.node.block
-            self.node.block = lambda identifier: (
+            self.node.block = lambda identifier, full_transactions=False: (
                 heads.pop(0) if identifier == "latest" and heads else canonical(identifier)
             )
             with self.assertLogs(LOGGER, "INFO") as logs:
