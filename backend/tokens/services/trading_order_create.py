@@ -7,6 +7,7 @@ from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 from web3 import Web3
 
+from operators.settlement import settlement_assets
 from shared.db import atomic, current_alias
 from tokens.exceptions import (
     ChallengeMismatchException,
@@ -115,13 +116,20 @@ def _eligible_token(token_id, wallet):
     return token
 
 
+def _settlement_asset():
+    assets = list(settlement_assets()[:2])
+    if len(assets) != 1:
+        raise ValidationError({"token": "Orders need exactly one configured settlement asset."})
+    return assets[0]
+
+
 def _pending_token(submission, wallet):
     token = _eligible_token(submission.token_id, wallet)
     if submission.chain_id != settings.BLOCKCHAIN_CHAIN_ID:
         raise ChallengeMismatchException("chain")
     if token.contract_address.lower() != submission.verifying_contract.lower():
         raise ChallengeMismatchException("contract")
-    return token
+    return token, _settlement_asset()
 
 
 def _recover_order(submission):
@@ -143,6 +151,7 @@ def issue_order_submission(actor, data):
         submission = _find_submission(data["owner_account_uuid"], data["submission_id"])
         if submission is None:
             token = _eligible_token(data["token"], data["wallet"])
+            _settlement_asset()
             submission, _ = OrderSubmission.objects.get_or_create(
                 owner_account_id=data["owner_account_uuid"],
                 submission_id=data["submission_id"],
@@ -166,7 +175,7 @@ def issue_order_submission(actor, data):
         if submission.status != OrderSubmissionStatus.PENDING:
             _recover_order(submission)
             return SubmissionResult(submission)
-        token = _pending_token(submission, wallet)
+        token, _ = _pending_token(submission, wallet)
         challenge = TradingOrderService.get_order_create_message(
             token=token,
             wallet_address=submission.wallet_address,
@@ -191,7 +200,7 @@ def execute_order_submission(actor, data):
         if submission.status != OrderSubmissionStatus.PENDING:
             _recover_order(submission)
             return SubmissionResult(submission)
-        token = _pending_token(submission, wallet)
+        token, payment_asset = _pending_token(submission, wallet)
         challenge = TradingOrderService.verify_order_create_signature(
             wallet_address=submission.wallet_address,
             token_uuid=str(submission.token_id),
@@ -216,6 +225,7 @@ def execute_order_submission(actor, data):
                     quantity=submission.quantity,
                     min_quantity=submission.min_quantity,
                     price_per_share=submission.price_per_share,
+                    payment_asset=payment_asset,
                 )
         except tuple(BUSINESS_REFUSALS) as exc:
             if type(exc) not in BUSINESS_REFUSALS:

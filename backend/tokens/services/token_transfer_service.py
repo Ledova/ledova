@@ -296,6 +296,7 @@ def create_order_and_match(
     wallet_address: str,
     quantity: int,
     price_per_share,
+    payment_asset,
     min_quantity: int = 0,
 ) -> tuple[TransferOrder, Optional[dict]]:
     try:
@@ -349,6 +350,7 @@ def create_order_and_match(
         quantity=quantity,
         min_quantity=min_quantity,
         price_per_share=price_per_share,
+        payment_asset=payment_asset,
         filled_quantity=0,
     )
 
