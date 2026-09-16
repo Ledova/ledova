@@ -101,11 +101,20 @@ class SignedModificationsCountHeldSharesTest(ActionFixtures, APITransactionTestC
         open_order = self.sell_order(10)
         refused = self.modification(open_order, 100)
         self.assertEqual(refused.status_code, 400, refused.content)
-        self.assertIn("Need 90 more, have 0 available", refused.json()["detail"])
+        self.assertIn("would leave 100 open, with 0 available", refused.json()["detail"])
         open_order.refresh_from_db()
         self.assertEqual(open_order.quantity, 10)
         registered = self.journal()
         self.assertEqual((registered.status, registered.executed_challenge_id), ("pending", None))
+
+    def test_a_raise_is_measured_against_the_whole_open_quantity_of_the_order(self):
+        self.held_sell(40)
+        open_order = self.sell_order(10)
+        refused = self.modification(open_order, 70)
+        self.assertEqual(refused.status_code, 400, refused.content)
+        self.assertIn("would leave 70 open, with 60 available", refused.json()["detail"])
+        open_order.refresh_from_db()
+        self.assertEqual(open_order.quantity, 10)
 
     def test_a_raise_within_the_unheld_balance_applies(self):
         self.held_sell(40)
