@@ -7,13 +7,19 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase
 
-from ledova_backend.chain_safety import parse_bitcoin_network, parse_evm_chain_id
+from ledova_backend.chain_safety import (
+    APPROVED_FINALITY_POLICIES,
+    BITCOIN_TEST_GENESIS,
+    parse_bitcoin_network,
+    parse_evm_chain_id,
+)
 from ledova_backend.environment import (
     assert_requests_are_served_on_the_scoped_connection,
     read_bool,
     read_choice,
     resolve_storage_backend,
 )
+from wallets.services.bitcoin_intent import GENESIS_HASHES
 
 
 class EnvironmentParsingTests(SimpleTestCase):
@@ -50,6 +56,21 @@ class EnvironmentParsingTests(SimpleTestCase):
             parse_bitcoin_network("main")
         self.assertEqual(parse_bitcoin_network("test"), "test")
         self.assertEqual(parse_bitcoin_network("regtest"), "regtest")
+
+    def test_the_approved_finality_policies_name_only_the_admitted_public_networks(self):
+        self.assertEqual(BITCOIN_TEST_GENESIS, GENESIS_HASHES["test"])
+        self.assertEqual(
+            APPROVED_FINALITY_POLICIES,
+            {
+                "evm:84532": {"mode": "finalized"},
+                "evm:11155111": {"mode": "finalized"},
+                f"bitcoin:{GENESIS_HASHES['test']}": {"mode": "depth", "depth": 6},
+            },
+        )
+        for synthetic in (f"bitcoin:{GENESIS_HASHES['regtest']}", "evm:1337", "evm:31337"):
+            with self.subTest(network=synthetic):
+                self.assertNotIn(synthetic, APPROVED_FINALITY_POLICIES)
+        self.assertEqual(settings.WALLET_CHAIN_FINALITY_POLICIES, APPROVED_FINALITY_POLICIES)
 
 
 class AuthorizationConfigurationTests(SimpleTestCase):

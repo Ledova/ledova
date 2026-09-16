@@ -4,8 +4,10 @@ from unittest.mock import Mock
 from django.test import SimpleTestCase, override_settings
 
 from integrations.blockchain.bitcoin import BitcoinClient
+from ledova_backend.chain_safety import BITCOIN_TEST_GENESIS
 from wallets.services.bitcoin_intent import GENESIS_HASHES
 from wallets.services.chain_evidence import collect_chain_evidence
+from wallets.services.chain_observations import finality_policy
 
 TX_HASH = "0x" + "11" * 32
 BLOCK_HASH = "0x" + "22" * 32
@@ -255,3 +257,172 @@ class ChainEvidenceTest(SimpleTestCase):
         head_height = 109
         result = observe()
         self.assertEqual((result["finality"], result["evidence"]["depth"]), ("satisfied", 6))
+
+    def test_the_approved_evm_policy_waits_until_the_finalized_head_reaches_the_receipt(self):
+        for network, chain_id, chain in (("evm:84532", 84532, "base"), ("evm:11155111", 11155111, "ethereum")):
+            policy = finality_policy(network, chain)
+            self.assertEqual(policy, {"version": 1, "mode": "finalized"})
+            self.client.assert_expected_chain.return_value = chain_id
+            for finalized_height, expected in ((102, "waiting"), (103, "satisfied"), (105, "satisfied")):
+                with self.subTest(network=network, finalized=finalized_height):
+                    finalized = {
+                        "hash": BLOCK_HASH if finalized_height == 103 else FINALIZED_HASH,
+                        "number": finalized_height,
+                        "timestamp": BLOCK_TIME,
+                    }
+
+                    def blocks(identifier, finalized=finalized):
+                        if identifier == "latest":
+                            return self.head
+                        if identifier == "finalized":
+                            return finalized
+                        if identifier in (103, BLOCK_HASH):
+                            return self.block
+                        if identifier == finalized["number"]:
+                            return finalized
+                        raise AssertionError(f"Unexpected block {identifier}")
+
+                    self.client.w3.eth.get_block.side_effect = blocks
+                    result = collect_chain_evidence(
+                        self.client,
+                        chain=chain,
+                        network=network,
+                        tx_hash=TX_HASH,
+                        previous_block=None,
+                        policy=policy,
+                    )
+                    self.assertEqual((result["result"], result["finality"]), ("included", expected))
+
+    def test_the_approved_bitcoin_policy_needs_six_inclusive_confirmations_on_its_own_genesis(self):
+        policy = finality_policy(f"bitcoin:{BITCOIN_TEST_GENESIS}", "bitcoin")
+        self.assertEqual(policy, {"version": 1, "mode": "depth", "depth": 6})
+        client = object.__new__(BitcoinClient)
+        client.expected_network = "test"
+        head_height = 108
+        genesis = BITCOIN_TEST_GENESIS
+
+        def rpc(method, params=None):
+            if method == "getblockchaininfo":
+                return {"chain": "test"}
+            if method == "getblockhash":
+                return genesis if params == [0] else BLOCK_HASH[2:]
+            if method == "getbestblockhash":
+                return HEAD_HASH[2:]
+            if method == "getblockheader":
+                return {
+                    "hash": params[0],
+                    "height": head_height if params[0] == HEAD_HASH[2:] else 104,
+                    "time": BLOCK_TIME,
+                }
+            if method == "getrawtransaction":
+                return {
+                    "txid": TX_HASH[2:],
+                    "blockhash": BLOCK_HASH[2:],
+                    "confirmations": 999,
+                    "fee": Decimal("0.0001"),
+                }
+            raise AssertionError(method)
+
+        client._rpc_call = Mock(side_effect=rpc)
+
+        def observe(network=f"bitcoin:{BITCOIN_TEST_GENESIS}"):
+            return collect_chain_evidence(
+                client,
+                chain="bitcoin",
+                network=network,
+                tx_hash=TX_HASH[2:],
+                previous_block=None,
+                policy=policy,
+            )
+
+        for height, expected, depth in ((108, "waiting", 5), (109, "satisfied", 6), (110, "satisfied", 7)):
+            head_height = height
+            with self.subTest(head=height):
+                result = observe()
+                self.assertEqual(
+                    (result["result"], result["finality"], result["evidence"]["depth"]), ("included", expected, depth)
+                )
+        wrong_genesis = observe(network=f"bitcoin:{GENESIS_HASHES['regtest']}")
+        self.assertEqual((wrong_genesis["result"], wrong_genesis["reason"]), ("unknown", "network_mismatch"))
+
+    def test_the_approved_evm_policy_refuses_a_replaced_block_and_a_moving_head(self):
+        policy = finality_policy("evm:84532", "base")
+        replaced = {"hash": OLD_HASH, "number": 103, "timestamp": BLOCK_TIME}
+
+        def reorganised(identifier):
+            if identifier == "latest":
+                return self.head
+            if identifier == "finalized":
+                return self.finalized
+            if identifier == BLOCK_HASH:
+                return self.block
+            if identifier == 103:
+                return replaced
+            if identifier == 102:
+                return self.finalized
+            raise AssertionError(f"Unexpected block {identifier}")
+
+        self.client.w3.eth.get_block.side_effect = reorganised
+        result = self.observe(policy)
+        self.assertEqual(
+            (result["result"], result["finality"], result["reason"]), ("orphaned", "unknown", "receipt_block_replaced")
+        )
+        heads = [self.head, {"hash": OLD_HASH, "number": 110, "timestamp": BLOCK_TIME}]
+
+        def moving(identifier):
+            if identifier == "latest":
+                return heads.pop(0) if heads else self.head
+            return self.get_block(identifier)
+
+        self.client.w3.eth.get_block.side_effect = moving
+        moved = self.observe(policy)
+        self.assertEqual((moved["result"], moved["reason"]), ("unknown", "head_changed"))
+
+    def test_the_approved_bitcoin_policy_refuses_an_orphaned_block_and_an_impossible_height(self):
+        policy = finality_policy(f"bitcoin:{BITCOIN_TEST_GENESIS}", "bitcoin")
+        client = object.__new__(BitcoinClient)
+        client.expected_network = "test"
+        receipt_height = 104
+        canonical_hash = BLOCK_HASH[2:]
+
+        def rpc(method, params=None):
+            if method == "getblockchaininfo":
+                return {"chain": "test"}
+            if method == "getblockhash":
+                return BITCOIN_TEST_GENESIS if params == [0] else canonical_hash
+            if method == "getbestblockhash":
+                return HEAD_HASH[2:]
+            if method == "getblockheader":
+                height = 109 if params[0] == HEAD_HASH[2:] else receipt_height
+                return {"hash": params[0], "height": height, "time": BLOCK_TIME}
+            if method == "getrawtransaction":
+                return {
+                    "txid": TX_HASH[2:],
+                    "blockhash": BLOCK_HASH[2:],
+                    "confirmations": 999,
+                    "fee": Decimal("0.0001"),
+                }
+            raise AssertionError(method)
+
+        client._rpc_call = Mock(side_effect=rpc)
+
+        def observe():
+            return collect_chain_evidence(
+                client,
+                chain="bitcoin",
+                network=f"bitcoin:{BITCOIN_TEST_GENESIS}",
+                tx_hash=TX_HASH[2:],
+                previous_block=None,
+                policy=policy,
+            )
+
+        canonical_hash = OLD_HASH[2:]
+        orphaned = observe()
+        self.assertEqual(
+            (orphaned["result"], orphaned["finality"], orphaned["reason"]),
+            ("orphaned", "unknown", "receipt_block_replaced"),
+        )
+        canonical_hash = BLOCK_HASH[2:]
+        receipt_height = 120
+        inconsistent = observe()
+        self.assertEqual((inconsistent["result"], inconsistent["reason"]), ("unknown", "receipt_unavailable"))

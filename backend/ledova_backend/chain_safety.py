@@ -2,6 +2,12 @@ from django.core.exceptions import ImproperlyConfigured
 
 SUPPORTED_EVM_CHAIN_IDS = frozenset({1337, 31337, 84532, 11155111})
 SUPPORTED_BITCOIN_NETWORKS = frozenset({"regtest", "test"})
+BITCOIN_TEST_GENESIS = "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943"
+APPROVED_FINALITY_POLICIES = {
+    "evm:84532": {"mode": "finalized"},
+    "evm:11155111": {"mode": "finalized"},
+    f"bitcoin:{BITCOIN_TEST_GENESIS}": {"mode": "depth", "depth": 6},
+}
 
 
 def parse_evm_chain_id(value: str, setting_name: str) -> int:
