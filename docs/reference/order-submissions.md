@@ -38,11 +38,13 @@ describe the owned order without granting visibility to the token itself.
 
 Challenge spend, order creation, matching and the recorded outcome share one
 independent database transaction. An enclosing transaction or disabled autocommit
-is refused. A negative whitelist result, insufficient seller balance or failure
-of every compatible fill's amount check records a terminal business refusal:
-creation and matching roll back to their savepoint
-while spend and refusal commit together. The amount refusal uses
-`invalid_settlement_amount`; the same submission UUID remains refused even if
+is refused. A negative whitelist result, insufficient seller balance, failure of every
+compatible fill's amount check, or a share token whose recorded deployment
+names a chain other than the one in the domain about to be signed records a
+terminal business refusal: creation and matching roll back to their savepoint
+while spend and refusal commit together. The amount and chain refusals share
+`invalid_settlement_amount`, so the recorded detail rather than the code names
+which of them occurred; the same submission UUID remains refused even if
 the counter-order or deployment later changes. A corrected intent uses a new
 UUID. Matching tries later candidates when a proposed fill fails the amount
 check, retaining price/time priority among usable fills. It neither rounds nor

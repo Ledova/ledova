@@ -58,6 +58,9 @@ SYSTEM_WIDE = {
     "using its original participant and common signed journal. The exact job commits with admission.",
     "tokens.tasks.swap_reconciler.resolve_executing_swaps": "Recovers admitted swap execution across private "
     "counterparties without inventing an actor, restarting a claim or releasing signed financial holds.",
+    "tokens.tasks.approval_submissions.recover_swap_approval_submissions": "Replays the exact recorded bytes of "
+    "every pending participant-signed approval across both parties and records the receipt it finds; it signs "
+    "nothing, allocates no nonce and reads the private journal on the operator connection.",
     "users.tasks.retention.purge_classification_evidence": "Applies the retention clock across every account.",
     "documents.tasks.retention.purge_document_evidence": "Purges expired supporting and unattached payslips "
     "across all uploaders on the operator connection, without a requesting user.",
