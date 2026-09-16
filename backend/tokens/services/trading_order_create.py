@@ -151,7 +151,6 @@ def issue_order_submission(actor, data):
         submission = _find_submission(data["owner_account_uuid"], data["submission_id"])
         if submission is None:
             token = _eligible_token(data["token"], data["wallet"])
-            _settlement_asset()
             submission, _ = OrderSubmission.objects.get_or_create(
                 owner_account_id=data["owner_account_uuid"],
                 submission_id=data["submission_id"],
