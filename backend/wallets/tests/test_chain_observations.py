@@ -174,8 +174,8 @@ class ChainObservationChecks(ChainObservationFixture):
         before = self.financial_state()
         self.assertEqual(observe_wallet_chain(self.tx_id), "recorded")
         first = self.observations()[0]
-        self.assertEqual((first["result"], first["finality"]), ("included", "unknown"))
-        self.assertEqual(first["policy"], {"version": 1, "mode": "unconfigured"})
+        self.assertEqual((first["result"], first["finality"]), ("included", "satisfied"))
+        self.assertEqual(first["policy"], {"version": 1, "mode": "finalized"})
         self.observer.get_transaction_receipt.return_value = None
         self.assertEqual(observe_wallet_chain(self.tx_id), "recorded")
         rows = self.observations()
