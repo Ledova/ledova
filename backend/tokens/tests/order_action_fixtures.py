@@ -42,6 +42,7 @@ class ActionFixtures:
         self.action_id = uuid4()
         self.events = []
         self.provider_states = []
+        self.payment_balance = 10**30
         self.balance = Mock()
         self.balance.get_token_balance.side_effect = self.provider_balance
         self.patch("tokens.services.order_modification_service.share_token_service", new=self.balance)
@@ -53,9 +54,9 @@ class ActionFixtures:
         self.addCleanup(patcher.stop)
         return patcher.start()
 
-    def provider_balance(self, *args):
+    def provider_balance(self, contract, address):
         self.provider_states.append(connections[current_alias()].in_atomic_block)
-        return 100
+        return 100 if contract == self.tenant.deployed_token.contract_address else self.payment_balance
 
     def identity(self, **changes):
         body = {"action_id": str(self.action_id), "owner_account_uuid": str(self.tenant.account.pk)}

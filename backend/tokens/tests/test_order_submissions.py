@@ -176,11 +176,11 @@ class SubmissionRecoveryChecks(SubmissionFixtures):
 
     def test_a_recorded_business_refusal_spends_once_and_remains_refused_when_conditions_improve(self):
         signed = self.signed_body(self.body(order_type="sell"))
-        self.balance.get_token_balance.return_value = 0
+        self.share_balance = 0
         first = self.create(signed)
         self.assertEqual(first.status_code, 400, first.content)
         self.assertEqual(first.json()["refusal"]["code"], "insufficient_balance")
-        self.balance.get_token_balance.return_value = 100
+        self.share_balance = 100
         replay = self.create(signed)
         self.assertEqual(replay.status_code, 400, replay.content)
         self.assertEqual(first.json(), replay.json())
@@ -676,7 +676,7 @@ class OrderSubmissionProtocolTest(SubmissionBoundaryChecks, SubmissionFixtures, 
                 response = self.create(signed)
                 self.assertGreaterEqual(response.status_code, 500, response.content)
                 self.assert_pending_and_unspent(signed)
-        self.balance.get_token_balance.side_effect = None
+        self.balance.get_token_balance.side_effect = self.provider_balance
         for error in (OrderMatchException(), InsufficientBalanceException()):
             with self.subTest(unclassified=type(error).__name__), patch.object(
                 token_transfer_service, "find_matching_orders", side_effect=error
