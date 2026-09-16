@@ -22,7 +22,10 @@ code within the 18-character reference limit.
 
 Settlement assets must be stablecoins with an active contract deployment on
 `receiving_wallet_chain`. The resolver is `operators/settlement.py`; do not use
-`Asset.contract_address`, which can select another chain's deployment.
+`Asset.contract_address`, which can select another chain's deployment. Order
+creation needs exactly one active, deployed asset in `supported_settlement_assets`:
+with none or several configured, order messages and executions are refused until
+the list holds one, and every created order records that asset.
 
 `investor_kyc_required` is enforced by investor/account eligibility.
 `issuer_kyc_required` is stored and exposed but has no enforcing reader yet.
