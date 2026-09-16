@@ -110,15 +110,15 @@ hashes. Competing workers recover the same operation. A lost response, process
 stop or missing receipt cannot authorize a second transaction or nonce. Before
 each resend, recovery reads the relayer's mined transaction count; once it passes
 the attempt's nonce, the attempt's own bytes go through the
-[nonce-spend reader](transaction-evidence.md#evm-nonce-spend-evidence), a warning
-names the consuming hash and its kind, and the swap holds for operator
-attribution with nothing resent. The foundation cannot replace or cancel a signed
-attempt, so a spend made outside it is recorded, never adopted, and a stuck
-relayer nonce has no supported remedy. The
-five-minute sweep considers at most 100 admitted pending/submitted transactions
-older than ten minutes, oldest update first, and separately at most 100 confirmed
-or reverted transactions whose swap is still executing, which it passes to the
-finality consumer below. It can recover admission before the common operation
+[nonce-spend reader](transaction-evidence.md#evm-nonce-spend-evidence) and the
+swap holds for operator attribution with nothing resent. The warning names the
+consuming hash and its kind when the provider can answer for them, and names the
+reason it could not when it cannot. The foundation cannot replace or cancel a
+signed attempt, so a spend made outside it is recorded, never adopted, and a
+stuck relayer nonce has no supported remedy. The five-minute sweep considers at
+most 100 admitted pending/submitted transactions older than ten minutes, oldest
+update first, and separately at most 100 confirmed or reverted transactions whose
+swap is still executing, which it passes to the finality consumer below. It can recover admission before the common operation
 exists and a receipt retained before its local projection.
 
 Fresh preparation/signing requires the original caller's active ownership and

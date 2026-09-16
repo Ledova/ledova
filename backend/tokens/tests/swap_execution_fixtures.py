@@ -12,7 +12,13 @@ from hexbytes import HexBytes
 from web3 import Web3
 
 from blockchain.models import SignedAttempt
-from blockchain.tests.outgoing_fixtures import BLOCK_HASH, KEY, chain_client, receipt
+from blockchain.tests.outgoing_fixtures import (
+    BLOCK_HASH,
+    KEY,
+    SENDER,
+    chain_client,
+    receipt,
+)
 from shared.tests.tenants import make_tenant
 from tokens.models import TransferOrder, TransferOrderStatus, TransferOrderType
 from tokens.services import atomic_swap_service
@@ -119,7 +125,7 @@ class ExecutionChain:
         return self.node.block(identifier, full_transactions)
 
     def get_transaction_count(self, address, identifier):
-        return self.node.count(identifier)
+        return self.node.count(address, identifier)
 
 
 class ExecutionNode:
@@ -159,7 +165,9 @@ class ExecutionNode:
             block = {**block, "transactions": [tx for tx in self.transactions if tx["blockNumber"] == block["number"]]}
         return block
 
-    def count(self, identifier):
+    def count(self, address, identifier):
+        if address.casefold() != SENDER.casefold():
+            return self.value("count", 0)
         mined = [tx for tx in self.transactions if identifier == "latest" or tx["blockNumber"] <= identifier]
         return self.value("count", NEXT_NONCE + len(mined))
 

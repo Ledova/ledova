@@ -110,6 +110,8 @@ class SwapFinalityFixtures:
         )
         self.node.advance(head=20, finalized=16)
         self.node.blocks[12] = {"hash": OTHER_HASH, "number": 12}
+        self.reads = []
+        self.node.probe = self.reads.append
         return attempt
 
     def assert_held_for_attribution(self, attempt, first, finalized, logs):
@@ -119,6 +121,7 @@ class SwapFinalityFixtures:
             "; held for operator attribution",
             logs[0],
         )
+        self.assertEqual(self.reads.count("receipt"), 1)
         with use_operator():
             self.swap.refresh_from_db()
         self.assert_held()
