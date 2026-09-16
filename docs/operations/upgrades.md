@@ -36,9 +36,11 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   PostgreSQL then freezes each issued challenge's envelope and completed spend.
   Expired unspent challenges can still be purged. Existing unresolved swaps,
   including those without a transaction/hash, retain their state and quantities;
-  neither timeout metadata nor nonce use alone resolves them. The current swap
-  transaction UUID prevents competing preparation but does not provide signed
-  transaction recovery after a process dies; #6 remains separate.
+  neither timeout metadata nor nonce use alone resolves them. At this point the
+  swap transaction UUID prevented competing preparation but did not provide signed
+  transaction recovery after a process dies; `tokens/0057_swap_execution_guards`
+  (#619) later added durable admission and exact-byte recovery, and finality
+  consumption remains #7.
 - `tokens/0039_swap_settlement_context` marks pre-existing swaps as legacy
   without changing their old fields, signatures or deadlines. It then requires
   a context on new inserts and refuses explicit legacy inserts, context changes
@@ -47,6 +49,16 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   domains, erase prior fields or bypass the cutover guard. Existing 24-hour
   signatures, the 15-minute new-match default, finite overrides and distinct
   equal orders retain their existing meaning. Changes to this protocol require composed PostgreSQL/scoped and chain validation.
+- `blockchain/0007_transaction_outgoing_operation` and
+  `tokens/0057_swap_execution_guards` (#619) bind a swap's transaction to its
+  common outgoing operation and install the admission, intent-byte, identity and
+  retained-outcome guards. The forward step refuses when an admitted execution
+  already exists in the database, and reversal refuses once one does, so apply
+  them before any signer is activated and expect no way back afterwards. Existing
+  unmarked swap transactions gain no signing authority and stay held for
+  attribution. Financial completion no longer follows a receipt: parents and
+  reservations stay held until #7's finality consumer, and market last price
+  does not move until then.
 - `whitelist/0002_whitelistentry_treasury_addresses` makes
   `WhitelistEntry.wallet` nullable and adds `address` and `label` with a check
   constraint; `whitelist/0003` adds the partial unique constraint on `address`

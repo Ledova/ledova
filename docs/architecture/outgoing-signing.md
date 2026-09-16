@@ -114,8 +114,9 @@ Migrations `tokens/0049` and `0050` preserve historical rows, guard admission an
 immutable associations, and refuse reversal after an approval disposition exists.
 The app role cannot read or write approval metadata. The old direct Python
 approval sender is removed. The standalone Hardhat deployment script remains in
-the all-writer inventory; this conversion does not establish complete signer
-cutover or finality, which remain #6 and #7 acceptance.
+the all-writer inventory; this conversion does not establish the all-writer signer
+cutover, which remains #6 acceptance, or finality, which remains #7's. The swap
+relayer itself is converted (#619) and described in the swap settlement reference.
 
 ## Mint requests
 
