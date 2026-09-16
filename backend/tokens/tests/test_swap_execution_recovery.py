@@ -302,6 +302,11 @@ class SwapExecutionRecoveryTest(APITransactionTestCase):
         self.assertEqual(len(self.node.broadcasts), 1)
         with use_operator():
             attempt = self.attempts().get()
+            outgoing.close_signer_admission(chain_id=CHAIN_ID, sender=self.record.from_address)
+        with self.assertRaises(outgoing.OutgoingTransactionError):
+            self.recover()
+        self.assertEqual(len(self.node.broadcasts), 1)
+        self.assert_held()
         self.node.receipts[attempt.tx_hash] = execution_receipt(attempt, self.record.function_args)
         with override_settings(ATOMIC_SWAP_ADDRESS="0x" + "be" * 20, BLOCKCHAIN_OPERATOR_KEY=""):
             self.assertEqual(self.recover(), "confirmed")
