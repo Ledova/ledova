@@ -47,6 +47,3 @@ class SwapOrderQuerySet(QuerySet):
 
     def pending_for_wallet_ids(self, wallet_ids):
         return self.for_wallet_ids(wallet_ids).awaiting_signature().with_related()
-
-    def unresolved_on_chain(self, cutoff):
-        return self.filter(settlement_protocol_version=1, status=SwapOrderStatus.EXECUTING, updated_at__lt=cutoff)

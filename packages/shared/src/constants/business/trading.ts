@@ -29,11 +29,6 @@ export const TRADING_EVENT_INVALIDATION_MAP: Record<TradingEventType, string[][]
     ['trading', 'swaps'],
   ],
   swap_signed: [['trading', 'swaps']],
-  swap_completed: [
-    ['trading', 'swaps'],
-    ['trading', 'userOrders'],
-    ['trading', 'walletBalances'],
-  ],
   swap_failed: [
     ['trading', 'swaps'],
     ['trading', 'userOrders'],

@@ -71,7 +71,6 @@ ALLOWED_NOTE_RECEIVERS = {
     "issuance.mark_failed": ("ShareIssuance", "error_message"),
     "issuance.mark_reverted": ("ShareIssuance", "error_message"),
     "tx_record.mark_failed": ("BlockchainTransaction", "error_message"),
-    "tx_record.mark_outcome_unknown": ("BlockchainTransaction", "error_message"),
     "tx_record.mark_reverted": ("BlockchainTransaction", "error_message"),
     "entry.mark_failed": ("WhitelistEntry", "notes"),
     "mint_request.mark_failed": ("MintRequest", "error_message"),

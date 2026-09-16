@@ -131,7 +131,7 @@ class MonitorObservationTest(TestCase):
 
     def test_an_error_note_change_does_not_block_an_unchanged_submission(self):
         def observe(requested):
-            BlockchainTransaction.objects.get(pk=self.tx.pk).mark_outcome_unknown("Updated diagnostic")
+            BlockchainTransaction.objects.filter(pk=self.tx.pk).update(error_message="Updated diagnostic")
             return RECEIPT
 
         self.assertEqual(sweep(observe), {"checked": 1, "confirmed": 1, "failed": 0})
