@@ -20,8 +20,14 @@ from shared.db import atomic, current_alias, set_principal, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.settlement import save_swap_with_context
 from shared.tests.tenants import make_tenant
+from tokens.constants import SWAP_APPROVAL_RECEIPT_WAIT_SECONDS
 from tokens.exceptions import SettlementContextChanged, SwapSignatureException
-from tokens.models import ShareToken, SwapOrderStatus, TransferOrder
+from tokens.models import (
+    ShareToken,
+    SwapApprovalSubmission,
+    SwapOrderStatus,
+    TransferOrder,
+)
 from tokens.services import atomic_swap_service, swap_execution
 from tokens.services.atomic_swap_service import MAX_UINT256
 from tokens.services.settlement_context import (
@@ -861,78 +867,100 @@ class SwapSettlementRouteTest(APITransactionTestCase):
         }
         return tx
 
+    def approval_provider(self):
+        provider = swap_service(self).get_base_chain_client()
+        provider.get_transaction_receipt.return_value = None
+        provider.w3.eth.get_transaction_count.return_value = 0
+        return provider
+
     def test_signed_approval_checks_actual_chain_target_spender_amount_and_owner(self):
         tx = self.approval_transaction()
         data = tx["data"]
-        service = swap_service(self)
-        provider = service.get_base_chain_client()
-        with patch("tokens.views.trading_order.atomic_swap_service", service), patch(
-            "tokens.services.token_transfer_service.get_base_chain_client", return_value=provider
-        ) as factory, patch("tokens.services.token_transfer_service.whitelist"):
-            for changes in ({"chainId": 1}, {"to": "0x" + "68" * 20}, {"value": 1}, {"data": data[:-1] + "0"}):
-                raw = SELLER.sign_transaction({**tx, **changes}).raw_transaction.hex()
-                with self.subTest(changes=changes):
-                    response = self.client.post(
-                        self.url + "/approval-broadcast/", {**self.identity, "signed_transaction": raw}, format="json"
-                    )
-                    self.assertEqual(response.status_code, 409, response.content)
-            wrong_owner = BUYER.sign_transaction(tx).raw_transaction.hex()
-            response = self.client.post(
-                self.url + "/approval-broadcast/", {**self.identity, "signed_transaction": wrong_owner}, format="json"
-            )
-            self.assertEqual(response.status_code, 409, response.content)
-            factory.assert_not_called()
-            provider.send_raw_transaction.assert_not_called()
-            raw = SELLER.sign_transaction(tx).raw_transaction.hex()
-            expected_hash = Web3.to_hex(Web3.keccak(bytes.fromhex(raw)))
-            provider.send_raw_transaction.return_value = expected_hash
-            provider.wait_for_receipt.return_value = {**CONFIRMED, "transactionHash": bytes.fromhex(expected_hash[2:])}
-            success = self.client.post(
-                self.url + "/approval-broadcast/", {**self.identity, "signed_transaction": raw}, format="json"
-            )
-            self.assertEqual(success.status_code, 200, success.content)
-            self.assertEqual(success.json()["txHash"], expected_hash)
-            provider.send_raw_transaction.assert_called_once_with(bytes.fromhex(raw))
-            provider.wait_for_receipt.assert_called_once_with(expected_hash)
+        provider = self.approval_provider()
+        for changes in ({"chainId": 1}, {"to": "0x" + "68" * 20}, {"value": 1}, {"data": data[:-1] + "0"}):
+            raw = SELLER.sign_transaction({**tx, **changes}).raw_transaction.hex()
+            with self.subTest(changes=changes):
+                response = self.client.post(
+                    self.url + "/approval-broadcast/", {**self.identity, "signed_transaction": raw}, format="json"
+                )
+                self.assertEqual(response.status_code, 409, response.content)
+        wrong_owner = BUYER.sign_transaction(tx).raw_transaction.hex()
+        response = self.client.post(
+            self.url + "/approval-broadcast/", {**self.identity, "signed_transaction": wrong_owner}, format="json"
+        )
+        self.assertEqual(response.status_code, 409, response.content)
+        provider.send_raw_transaction.assert_not_called()
+        with use_operator():
+            self.assertFalse(SwapApprovalSubmission.objects.exists())
+        raw = SELLER.sign_transaction(tx).raw_transaction.hex()
+        expected_hash = Web3.to_hex(Web3.keccak(bytes.fromhex(raw)))
+        provider.send_raw_transaction.return_value = expected_hash
+        provider.receipt_even_if_reverted.return_value = {
+            **CONFIRMED,
+            "transactionHash": bytes.fromhex(expected_hash[2:]),
+        }
+        success = self.client.post(
+            self.url + "/approval-broadcast/", {**self.identity, "signed_transaction": raw}, format="json"
+        )
+        self.assertEqual(success.status_code, 200, success.content)
+        self.assertEqual(success.json()["txHash"], expected_hash)
+        provider.send_raw_transaction.assert_called_once_with(bytes.fromhex(raw))
+        provider.receipt_even_if_reverted.assert_called_once_with(
+            expected_hash, timeout=SWAP_APPROVAL_RECEIPT_WAIT_SECONDS
+        )
+        with use_operator():
+            self.assertEqual(SwapApprovalSubmission.objects.get().outcome, "confirmed")
 
     def test_approval_receipt_identity_and_uncertain_send_keep_original_attribution(self):
-        raw = SELLER.sign_transaction(self.approval_transaction()).raw_transaction.hex()
-        expected_hash = Web3.to_hex(Web3.keccak(bytes.fromhex(raw)))
-        for returned, observed, status, failure in (
-            (TX_HASH, expected_hash, 1, None),
-            (None, expected_hash, 1, None),
-            ("malformed", expected_hash, 1, None),
-            (expected_hash, TX_HASH, 1, None),
-            (expected_hash, None, 1, None),
-            (expected_hash, "0x1234", 1, None),
-            (expected_hash, "0x" + "zz" * 32, 1, None),
-            (expected_hash, expected_hash, 0, None),
-            (expected_hash, expected_hash, None, None),
-            (expected_hash, expected_hash, 1, "send"),
-            (expected_hash, expected_hash, 1, "wait"),
+        for nonce, (returned, observed, status, failure, confirmed) in enumerate(
+            (
+                (TX_HASH, "computed", 1, None, True),
+                (None, "computed", 1, None, True),
+                ("malformed", "computed", 1, None, True),
+                ("computed", TX_HASH, 1, None, False),
+                ("computed", None, 1, None, False),
+                ("computed", "0x1234", 1, None, False),
+                ("computed", "0x" + "zz" * 32, 1, None, False),
+                ("computed", "computed", 0, None, False),
+                ("computed", "computed", None, None, False),
+                ("computed", "computed", 1, "send", True),
+                ("computed", "computed", 1, "wait", False),
+            )
         ):
+            raw = SELLER.sign_transaction({**self.approval_transaction(), "nonce": nonce}).raw_transaction.hex()
+            expected_hash = Web3.to_hex(Web3.keccak(bytes.fromhex(raw)))
             with self.subTest(returned=returned, observed=observed, status=status, failure=failure):
-                service = swap_service(self)
-                provider = service.get_base_chain_client()
-                provider.send_raw_transaction.return_value = returned
-                provider.wait_for_receipt.return_value = {**CONFIRMED, "status": status, "transactionHash": observed}
+                provider = self.approval_provider()
+                provider.send_raw_transaction.return_value = expected_hash if returned == "computed" else returned
+                provider.receipt_even_if_reverted.return_value = {
+                    **CONFIRMED,
+                    "status": status,
+                    "transactionHash": expected_hash if observed == "computed" else observed,
+                }
                 if failure:
-                    target = provider.send_raw_transaction if failure == "send" else provider.wait_for_receipt
+                    target = provider.send_raw_transaction if failure == "send" else provider.receipt_even_if_reverted
                     target.side_effect = TimeoutError("synthetic provider diagnostic must not reach response")
-                with patch("tokens.views.trading_order.atomic_swap_service", service), patch(
-                    "tokens.services.token_transfer_service.get_base_chain_client", return_value=provider
-                ), patch("tokens.services.token_transfer_service.whitelist"):
-                    response = self.client.post(
-                        self.url + "/approval-broadcast/", {**self.identity, "signed_transaction": raw}, format="json"
-                    )
-                self.assertEqual(response.status_code, 503, response.content)
-                self.assertEqual(response.json()["code"], "swap_approval_unconfirmed")
+                response = self.client.post(
+                    self.url + "/approval-broadcast/", {**self.identity, "signed_transaction": raw}, format="json"
+                )
+                self.assertEqual(response.status_code, 200 if confirmed else 503, response.content)
                 self.assertEqual(response.json()["txHash"], expected_hash)
                 self.assertEqual(response.json()["settlementDigest"], self.swap.settlement_digest)
                 self.assertEqual(response.json()["swapUuid"], str(self.swap.pk))
                 self.assertNotIn("diagnostic", response.content.decode())
-                self.assertNotIn("blockNumber", response.json())
+                if not confirmed:
+                    self.assertEqual(response.json()["code"], "swap_approval_unconfirmed")
+                    self.assertNotIn("blockNumber", response.json())
                 provider.send_raw_transaction.assert_called_once_with(bytes.fromhex(raw))
+                with use_operator():
+                    recorded = SwapApprovalSubmission.objects.get(tx_hash=expected_hash)
+                self.assertEqual(
+                    (recorded.outcome, recorded.acknowledged_at is not None),
+                    (
+                        "confirmed" if confirmed else ("reverted" if status == 0 else "pending"),
+                        returned == "computed" and failure != "send",
+                    ),
+                )
         with use_operator():
             self.swap.refresh_from_db()
         self.assertFalse(self.swap.tx_hash)
@@ -941,30 +969,28 @@ class SwapSettlementRouteTest(APITransactionTestCase):
     def test_matching_approval_receipt_remains_attributed_after_deadline_and_config_change(self):
         raw = SELLER.sign_transaction(self.approval_transaction()).raw_transaction.hex()
         expected_hash = Web3.to_hex(Web3.keccak(bytes.fromhex(raw)))
-        service = swap_service(self)
-        provider = service.get_base_chain_client()
+        provider = self.approval_provider()
         provider.send_raw_transaction.return_value = expected_hash
         changed = override_settings(ATOMIC_SWAP_ADDRESS="0x" + "ab" * 20)
         clock = patch("django.utils.timezone.now", return_value=self.swap.expires_at + timedelta(seconds=1))
         self.addCleanup(changed.disable)
         self.addCleanup(clock.stop)
 
-        def after_send(observed):
+        def after_send(observed, timeout):
             self.assertEqual(observed, expected_hash)
             changed.enable()
             clock.start()
             return {**CONFIRMED, "transactionHash": expected_hash}
 
-        provider.wait_for_receipt.side_effect = after_send
-        with patch("tokens.views.trading_order.atomic_swap_service", service), patch(
-            "tokens.services.token_transfer_service.get_base_chain_client", return_value=provider
-        ), patch("tokens.services.token_transfer_service.whitelist"):
-            response = self.client.post(
-                self.url + "/approval-broadcast/", {**self.identity, "signed_transaction": raw}, format="json"
-            )
+        provider.receipt_even_if_reverted.side_effect = after_send
+        response = self.client.post(
+            self.url + "/approval-broadcast/", {**self.identity, "signed_transaction": raw}, format="json"
+        )
         self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual(response.json()["txHash"], expected_hash)
         self.assertEqual(response.json()["settlementDigest"], self.swap.settlement_digest)
+        with use_operator():
+            self.assertEqual(SwapApprovalSubmission.objects.get(tx_hash=expected_hash).outcome, "confirmed")
         refused = self.client.get(self.url + "/approval-status/", self.identity)
         self.assertEqual(refused.status_code, 400, refused.content)
 

@@ -2,6 +2,7 @@ from collections import namedtuple
 from contextlib import contextmanager
 from datetime import timedelta
 from decimal import Decimal
+from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -546,7 +547,9 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         self._service("tokens.views.trading_order.get_modification_history").return_value = {}
         swaps = self._service("tokens.views.trading_order.atomic_swap_service")
         swaps.settlement_contract.return_value = SYNTHETIC_SETTLEMENT_CONTRACT
-        swaps.broadcast_settlement_approval.return_value = ("0x" + "ab" * 32, {"blockNumber": 1, "gasUsed": 21000})
+        swaps.broadcast_settlement_approval.return_value = SimpleNamespace(
+            tx_hash="0x" + "ab" * 32, block_number=1, gas_used=21000
+        )
         self.enterContext(override_settings(ATOMIC_SWAP_ADDRESS=SYNTHETIC_SETTLEMENT_CONTRACT))
         self._service("tokens.views.trading_order.swap_execution").submit_signature.side_effect = (
             lambda swap_order, **kwargs: swap_order
