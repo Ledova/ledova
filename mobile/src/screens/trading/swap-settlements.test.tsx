@@ -1,11 +1,12 @@
 import React from 'react';
-import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, renderHook, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import axios, { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Transaction } from 'ethers';
 import { ETHSignature } from '@keystonehq/bc-ur-registry-eth';
 import {
+  selectSwapSettlement,
   ApiClientProvider,
   AUTH_QUERY_KEY,
   USER_PREFERENCES_QUERY_KEY,
@@ -14,6 +15,7 @@ import {
   type SwapSettlementResponse,
 } from '@ledova/shared';
 import { TradingScreen } from './index';
+import { apiClient as tradingApi } from '../../services/apiClient';
 import { QRScanner } from '../../components/qr';
 import { getSeedPhrase } from '../../services/secureKeyStorage';
 import * as localSigner from '../../utils/softwareWallet/localSigner';
@@ -27,6 +29,7 @@ import { deferred, response, wallet as baseWallet } from '../../../../packages/s
 import {
   settlementFixture as fixture,
   settlementResponse,
+  settlementListRow,
   settlementOwner as owner,
   settlementNow,
   settlementApproval,
@@ -131,7 +134,7 @@ const listed = Object.keys(
 );
 const listShape = (swap: object, keys = listed) =>
   Object.fromEntries(Object.entries(swap).filter(([key]) => keys.includes(key))) as unknown as SwapOrder;
-const listedSwap = listShape(fixture.get_body.swapOrder);
+const listedSwap = settlementListRow(fixture.get_body as SwapSettlementResponse);
 type Rendered = { props: Record<string, unknown>; children: (Rendered | string)[] };
 const touchResponders = (node: Rendered): Rendered[] =>
   node.children.flatMap((child) =>
@@ -234,7 +237,7 @@ beforeEach(async () => {
   current = settlementResponse();
   needsApproval = false;
   mockWallets = [selectedWallet()];
-  mockSwaps = [copy(current.swapOrder)];
+  mockSwaps = [settlementListRow(current)];
   mockActualOrders = false;
   await AsyncStorage.clear();
   jest.mocked(AsyncStorage.setItem).mockImplementation(storageSet);
@@ -289,7 +292,7 @@ it('reviews exact captured terms and sends one real signature despite duplicate 
 
 it('displays signed payment units at the captured deployment precision when pricing differs', async () => {
   current.swapOrder.settlementContext.paymentAsset.deploymentDecimals = 6;
-  mockSwaps = [copy(current.swapOrder)];
+  mockSwaps = [settlementListRow(current)];
   const originalTypedData = copy(current.typedData);
   const view = await render(<TradingScreen />, { wrapper });
   await open(view);
@@ -335,7 +338,7 @@ it('selects the buyer own order and submits the actual recovered counterparty si
   current = settlementResponse('buyer');
   mockWallets = [selectedWallet('buyer')];
   mockWallets[0].signingPreference = 'hardware';
-  mockSwaps = [copy(current.swapOrder)];
+  mockSwaps = [settlementListRow(current)];
   account();
   const view = await render(<TradingScreen />, { wrapper });
   await open(view);
@@ -423,7 +426,7 @@ it('keeps multiple original approval hashes during recovery and sufficient allow
   expect(view.queryByText('Review token approval')).toBeNull();
 });
 
-it('holds explicit V0 history for operator review in the mounted list and refuses the V1 list row after refresh', async () => {
+it('holds explicit V0 history and opens the refreshed V1 list row without signing', async () => {
   const signer = jest.spyOn(localSigner, 'signEthereumTypedData');
   mockActualOrders = true;
   mockSwaps = [listShape({ ...current.swapOrder, settlementProtocolVersion: 0, shareAmount: 10 })];
@@ -435,13 +438,14 @@ it('holds explicit V0 history for operator review in the mounted list and refuse
   await fireEvent.press(view.getByText('Held for operator review'));
   await act(async () => {});
   expect(view.queryByRole('alert')).toBeNull();
-  mockSwaps = [listShape(current.swapOrder)];
+  mockSwaps = [settlementListRow(current)];
   await view.rerender(<TradingScreen />);
   expect(view.queryByText('Held for operator review')).toBeNull();
   expect(view.getByText('Expired')).toBeTruthy();
   await fireEvent.press(view.getByText('Sign'));
-  expect(view.getByText('This settlement cannot be opened with the current account and wallet.')).toBeTruthy();
-  expect(requests).toHaveLength(0);
+  await waitFor(() => expect(view.getByText('Check token approval')).toBeTruthy());
+  expect(requests).toHaveLength(1);
+  expect(requests[0]!.params).not.toHaveProperty('settlement_digest');
   expect(getSeedPhrase).not.toHaveBeenCalled();
   expect(signer).not.toHaveBeenCalled();
 });
@@ -465,35 +469,18 @@ it.each([
 );
 
 it.each([
-  { name: 'in the swap list response shape', swap: listedSwap },
+  { name: 'missing viewer identities', swap: listShape(fixture.get_body.swapOrder) },
+  { name: 'empty viewer identities', swap: { ...listedSwap, viewerParties: [] } },
   {
-    name: 'in the swap list response shape without its protocol version',
-    swap: listShape(
-      fixture.get_body.swapOrder,
-      listed.filter((key) => key !== 'settlementProtocolVersion'),
-    ),
+    name: 'missing protocol version',
+    swap: { ...listedSwap, settlementProtocolVersion: undefined, viewerParties: [] },
   },
-  {
-    name: 'with a null V1 context and no digest',
-    swap: { ...fixture.get_body.swapOrder, settlementContext: null, settlementDigest: '' },
-  },
-  { name: 'with an empty V1 context', swap: { ...fixture.get_body.swapOrder, settlementContext: {} } },
-  {
-    name: 'with a string version',
-    swap: { ...fixture.get_body.swapOrder, settlementProtocolVersion: '0', settlementContext: null },
-  },
-  {
-    name: 'with a null version',
-    swap: { ...fixture.get_body.swapOrder, settlementProtocolVersion: null, settlementContext: null },
-  },
-  { name: 'with a null V1 context', swap: { ...fixture.get_body.swapOrder, settlementContext: null } },
-])('refuses a listed settlement $name without the operator-review state', async ({ swap }) => {
+])('offers no signing action for a list row with $name', async ({ swap }) => {
   mockActualOrders = true;
-  mockSwaps = [swap as unknown as SwapOrder];
+  mockSwaps = [swap as SwapOrder];
   const view = await render(<TradingScreen />, { wrapper });
   expect(view.queryByText('Held for operator review')).toBeNull();
-  await fireEvent.press(view.getByText('Sign'));
-  expect(view.getByText('This settlement cannot be opened with the current account and wallet.')).toBeTruthy();
+  expect(view.queryByText('Sign')).toBeNull();
   expect(requests).toHaveLength(0);
 });
 
@@ -503,7 +490,7 @@ it('keeps late context A from replacing B and submits only B identity', async ()
   b.swapUuid = '70000000-0000-4000-8000-000000000077';
   b.swapOrder.uuid = b.swapUuid;
   b.swapOrder.settlementContext.swapUuid = b.swapUuid;
-  mockSwaps = [a.swapOrder, b.swapOrder];
+  mockSwaps = [settlementListRow(a), settlementListRow(b)];
   const held = deferred<AxiosResponse>();
   let waiting: InternalAxiosRequestConfig;
   handler = async (config) => {
@@ -615,9 +602,9 @@ it('reconstructs the reviewed hardware approval and refuses an unrelated scanned
   expect(await swapSettlementStore.list(owner)).toHaveLength(0);
 });
 
-it('keeps either owned unsigned side visible in the actual orders list and displays exact V1 shares', async () => {
+it('keeps either owned unsigned side available for review in the actual orders list', async () => {
   const { OrdersCard } = jest.requireActual<typeof import('./components/OrdersCard')>('./components/OrdersCard');
-  const swap = { ...current.swapOrder, sellerHasSigned: true, status: 'seller_signed' as const };
+  const swap = { ...settlementListRow(current), sellerHasSigned: true, status: 'seller_signed' as const };
   const props = {
     tokenSymbol: swap.shareTokenSymbol,
     orderBook: null,
@@ -629,11 +616,12 @@ it('keeps either owned unsigned side visible in the actual orders list and displ
     onViewOrder: jest.fn(),
     swaps: [swap],
     isLoadingSwaps: false,
-    walletAddresses: fixture.addresses,
+    wallets: [selectedWallet(), selectedWallet('buyer')],
+    settlementOwner: owner,
     onSignSwap: jest.fn(),
   };
   const view = await render(<OrdersCard {...props} />);
-  expect(view.getByText('9007199254740993 shares')).toBeTruthy();
+  expect(view.getByText('Review trade amounts')).toBeTruthy();
   expect(view.getByText('Buyer')).toBeTruthy();
   await fireEvent.press(view.getByText('Sign'));
   expect(props.onSignSwap).toHaveBeenCalledWith(swap);
@@ -666,7 +654,7 @@ it.each([true, false])('chooses the remaining buyer side with signed or unbound 
   current.swapOrder.status = sellerSigned ? 'seller_signed' : 'created';
   mockWallets = [selectedWallet(), selectedWallet('buyer')];
   if (!sellerSigned) mockWallets[0].address = '0x' + 'aa'.repeat(20);
-  mockSwaps = [copy(current.swapOrder)];
+  mockSwaps = [settlementListRow(current)];
   account();
   const view = await render(<TradingScreen />, { wrapper });
   await open(view);
@@ -677,9 +665,9 @@ it.each([true, false])('chooses the remaining buyer side with signed or unbound 
   expect(JSON.parse(posts()[0].data).signature).toBe(fixture.signatures[1]);
 });
 
-it('displays exact V1 shares in the actual list before either party has signed', async () => {
+it('offers review from the actual V1 list before either party has signed', async () => {
   const { OrdersCard } = jest.requireActual<typeof import('./components/OrdersCard')>('./components/OrdersCard');
-  const swap = current.swapOrder;
+  const swap = settlementListRow(current);
   const view = await render(
     <OrdersCard
       tokenSymbol={swap.shareTokenSymbol}
@@ -692,10 +680,49 @@ it('displays exact V1 shares in the actual list before either party has signed',
       onViewOrder={() => {}}
       swaps={[swap]}
       isLoadingSwaps={false}
-      walletAddresses={[swap.sellerAddress]}
+      wallets={[selectedWallet()]}
+      settlementOwner={owner}
       onSignSwap={() => {}}
     />,
   );
-  expect(view.getByText('9007199254740993 shares')).toBeTruthy();
+  expect(view.getByText('Review trade amounts')).toBeTruthy();
   expect(view.getByText('Seller')).toBeTruthy();
 });
+
+it.each([false, true])('deduplicates both wallet lists without losing unsigned sides (reverse=%s)', async (reverse) => {
+  const { useSwapOrdersMulti } = jest.requireActual<typeof import('./useAtomicSwaps')>('./useAtomicSwaps');
+  const row = settlementListRow(current);
+  const wallets = [selectedWallet('seller'), selectedWallet('buyer')];
+  if (reverse) wallets.reverse();
+  const get = jest.spyOn(tradingApi, 'get').mockResolvedValue({ data: { results: [row] } });
+  const view = await renderHook(() => useSwapOrdersMulti(wallets.map((wallet) => wallet.address)), { wrapper });
+  await waitFor(() => expect(view.result.current.data).toHaveLength(1));
+  expect(get).toHaveBeenCalledTimes(2);
+  const listed = view.result.current.data![0]!;
+  expect(listed).not.toHaveProperty('settlementContext');
+  expect(selectSwapSettlement(listed, owner, wallets).selection.orderUuid).toBe(current.swapOrder.sellOrderUuid);
+  expect(selectSwapSettlement({ ...listed, sellerHasSigned: true }, owner, wallets).selection.orderUuid).toBe(
+    current.swapOrder.buyOrderUuid,
+  );
+});
+
+it.each(['other chain', 'other account'] as const)(
+  'uses the recorded wallet when a same-address wallet comes first: %s',
+  async (kind) => {
+    const recorded = selectedWallet();
+    mockWallets = [
+      {
+        ...recorded,
+        uuid: '20000000-0000-4000-8000-000000000077',
+        chain: kind === 'other chain' ? 'ethereum' : recorded.chain,
+        userAccount: kind === 'other account' ? '20000000-0000-4000-8000-000000000099' : recorded.userAccount,
+      },
+      recorded,
+    ];
+    const view = await render(<TradingScreen />, { wrapper });
+    await open(view);
+    expect(requests[0]!.params.wallet_uuid).toBe(recorded.uuid);
+    expect(requests[0]!.params).not.toHaveProperty('settlement_digest');
+    for (const request of requests.slice(1)) expect(request.params.settlement_digest).toBe(current.settlementDigest);
+  },
+);

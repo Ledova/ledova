@@ -1,4 +1,9 @@
-import type { SwapSettlementApprovalData, SwapSettlementCrypto, SwapSettlementResponse } from '../../src/types';
+import type {
+  SwapOrder,
+  SwapSettlementApprovalData,
+  SwapSettlementCrypto,
+  SwapSettlementResponse,
+} from '../../src/types';
 import fixture from './swap-settlement-api.json';
 
 export const settlementFixture = fixture;
@@ -18,6 +23,36 @@ export function settlementResponse(role: 'seller' | 'buyer' = 'seller'): SwapSet
   response.walletUuid = party.walletUuid;
   response.ownerAccountUuid = party.ownerAccountUuid;
   return response;
+}
+
+export function settlementListRow(response = settlementResponse()): SwapOrder {
+  const swap = response.swapOrder;
+  return {
+    uuid: swap.uuid,
+    status: swap.status,
+    statusDisplay: swap.statusDisplay,
+    shareTokenSymbol: swap.shareTokenSymbol,
+    shareTokenName: swap.shareTokenName,
+    paymentTokenSymbol: swap.paymentTokenSymbol,
+    sellerAddress: swap.sellerAddress,
+    buyerAddress: swap.buyerAddress,
+    shareAmount: swap.shareAmount,
+    paymentAmount: swap.paymentAmount,
+    settlementProtocolVersion: swap.settlementProtocolVersion,
+    sellOrderUuid: swap.sellOrderUuid,
+    buyOrderUuid: swap.buyOrderUuid,
+    sellerHasSigned: swap.sellerHasSigned,
+    buyerHasSigned: swap.buyerHasSigned,
+    expiresAt: swap.expiresAt,
+    createdAt: swap.createdAt,
+    viewerParties: (['seller', 'buyer'] as const)
+      .filter((role) => swap.settlementContext[role].ownerAccountUuid === response.ownerAccountUuid)
+      .map((userRole) => ({
+        userRole,
+        ownerAccountUuid: swap.settlementContext[userRole].ownerAccountUuid,
+        walletUuid: swap.settlementContext[userRole].walletUuid,
+      })),
+  };
 }
 
 export function settlementApproval(

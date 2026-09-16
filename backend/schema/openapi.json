@@ -10186,6 +10186,13 @@
             "format": "uuid",
             "readOnly": true,
             "type": "string"
+          },
+          "viewerParties": {
+            "items": {
+              "$ref": "#/components/schemas/SwapViewerParty"
+            },
+            "readOnly": true,
+            "type": "array"
           }
         },
         "required": [
@@ -10205,7 +10212,8 @@
           "shareTokenSymbol",
           "status",
           "statusDisplay",
-          "uuid"
+          "uuid",
+          "viewerParties"
         ],
         "type": "object"
       },
@@ -10241,6 +10249,27 @@
         "required": [
           "EIP712Domain",
           "SwapOrder"
+        ],
+        "type": "object"
+      },
+      "SwapViewerParty": {
+        "properties": {
+          "ownerAccountUuid": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "userRole": {
+            "$ref": "#/components/schemas/UserRoleEnum"
+          },
+          "walletUuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ownerAccountUuid",
+          "userRole",
+          "walletUuid"
         ],
         "type": "object"
       },

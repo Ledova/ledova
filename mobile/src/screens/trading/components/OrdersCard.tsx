@@ -9,9 +9,15 @@ import {
   PencilSimpleIcon,
   TrashIcon,
 } from 'phosphor-react-native';
-import type { TransferOrder, SwapOrder, OrderBook as OrderBookType, OrderBookEntry } from '@ledova/shared';
-import { formatCurrency, hasSwapSettlementContext } from '@ledova/shared';
-import { formatUnits } from 'ethers';
+import type {
+  Wallet,
+  OrderSubmissionOwner,
+  TransferOrder,
+  SwapOrder,
+  OrderBook as OrderBookType,
+  OrderBookEntry,
+} from '@ledova/shared';
+import { selectSwapSettlement, formatCurrency } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 
 interface OrdersCardProps {
@@ -25,19 +31,9 @@ interface OrdersCardProps {
   onViewOrder: (order: TransferOrder) => void;
   swaps: SwapOrder[] | undefined;
   isLoadingSwaps: boolean;
-  walletAddresses: string[];
+  wallets: Wallet[];
+  settlementOwner: OrderSubmissionOwner | null;
   onSignSwap: (swap: SwapOrder) => void;
-}
-
-function displayedSwapShares(swap: SwapOrder): string {
-  try {
-    if (hasSwapSettlementContext(swap))
-      return formatUnits(
-        swap.settlementContext.typedData.message.shareAmount,
-        swap.settlementContext.shareToken.decimals,
-      );
-  } catch {}
-  return 'Unavailable';
 }
 
 function getTimeAgo(date: Date): string {
@@ -151,7 +147,8 @@ export function OrdersCard({
   onViewOrder,
   swaps,
   isLoadingSwaps,
-  walletAddresses,
+  wallets,
+  settlementOwner,
   onSignSwap,
 }: OrdersCardProps) {
   const theme = useAppTheme();
@@ -307,7 +304,7 @@ export function OrdersCard({
     },
   }));
 
-  const normalizedAddresses = useMemo(() => walletAddresses.map((a) => a.toLowerCase()), [walletAddresses]);
+  const normalizedAddresses = useMemo(() => wallets.map((wallet) => wallet.address.toLowerCase()), [wallets]);
 
   const { asks, bids, maxQuantity, spread } = useMemo(() => {
     if (!orderBook)
@@ -332,16 +329,24 @@ export function OrdersCard({
   );
 
   const pendingSwaps = useMemo(() => {
-    if (!swaps || walletAddresses.length === 0) return [];
-    return swaps.filter((s) => {
-      if (s.shareTokenSymbol !== tokenSymbol) return false;
-      const isSeller = normalizedAddresses.includes(s.sellerAddress.toLowerCase());
-      const isBuyer = normalizedAddresses.includes(s.buyerAddress.toLowerCase());
-      if (!isSeller && !isBuyer) return false;
-      const needsSignature = (isSeller && !s.sellerHasSigned) || (isBuyer && !s.buyerHasSigned);
-      return needsSignature && ['created', 'seller_signed', 'buyer_signed'].includes(s.status);
+    if (!swaps) return [];
+    return swaps.flatMap((swap) => {
+      if (swap.shareTokenSymbol !== tokenSymbol) return [];
+      if (!['created', 'seller_signed', 'buyer_signed'].includes(swap.status)) return [];
+      if (swap.settlementProtocolVersion === 0) {
+        const isSeller = normalizedAddresses.includes(swap.sellerAddress.toLowerCase()) && !swap.sellerHasSigned;
+        const isBuyer = normalizedAddresses.includes(swap.buyerAddress.toLowerCase()) && !swap.buyerHasSigned;
+        return isSeller || isBuyer ? [{ swap, isSeller }] : [];
+      }
+      if (!settlementOwner) return [];
+      try {
+        const { selection } = selectSwapSettlement(swap, settlementOwner, wallets);
+        return [{ swap, isSeller: selection.orderUuid === swap.sellOrderUuid }];
+      } catch {
+        return [];
+      }
     });
-  }, [swaps, walletAddresses, normalizedAddresses, tokenSymbol]);
+  }, [swaps, wallets, settlementOwner, normalizedAddresses, tokenSymbol]);
 
   const hasMarketOrders = asks.length > 0 || bids.length > 0;
   const hasUserActivity = openOrders.length > 0 || pendingSwaps.length > 0;
@@ -467,8 +472,7 @@ export function OrdersCard({
             );
           })}
 
-          {pendingSwaps.map((swap) => {
-            const isSeller = !swap.sellerHasSigned && normalizedAddresses.includes(swap.sellerAddress.toLowerCase());
+          {pendingSwaps.map(({ swap, isSeller }) => {
             const userRole = isSeller ? 'Seller' : 'Buyer';
             const legacy = swap.settlementProtocolVersion === 0;
 
@@ -485,7 +489,7 @@ export function OrdersCard({
                     <ArrowsLeftRightIcon size={theme.icon.sizes.xs} color={theme.colors.brand.light} weight="bold" />
                   </View>
                   <Text style={styles.orderDetails}>
-                    {legacy ? String(swap.shareAmount) : displayedSwapShares(swap)} shares
+                    {legacy ? `${swap.shareAmount} shares` : 'Review trade amounts'}
                   </Text>
                   <Text
                     style={[

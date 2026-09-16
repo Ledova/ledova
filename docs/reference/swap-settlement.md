@@ -19,6 +19,22 @@ after expiry or configuration drift; it does not authorize a new signature or
 approval under changed terms. Ordinary numeric order/swap fields are not a
 lossless source for rebuilding those signed values.
 
+The swap list supplies `viewerParties`: each entry names a recorded buyer or
+seller role, account UUID and wallet UUID that still belongs to the authenticated
+viewer and is verified with the original address. It never exposes the other
+participant's private account or wallet identifiers. V0 rows have no entries.
+The projection includes both owned sides regardless of which wallet address
+selected the row, so combining wallet lists cannot discard a signing side.
+
+Dashboard and mobile use those identities to select an available unsigned side,
+then fetch the exact original context without a digest. They pin the returned
+digest for every subsequent approval and signature request. The lookup checks
+current ownership and verification again; a list entry is not authorization.
+Same-address wallets cannot substitute for the recorded wallet. List rows offer
+review; exact amounts come from the fetched context before signing, never from
+rounded numeric list fields. Signed sides remain visible only while another
+owned side still needs a signature. Legacy history stays held for operator review.
+
 New matches calculate payment from the share quantity and execution price using
 the deployed payment token's decimals. Calculation and context capture share one
 deployment snapshot. The total must be exactly representable, positive and fit
