@@ -78,6 +78,10 @@ class SwapOrderStatus(models.TextChoices):
     FAILED = "failed", "Failed"
     EXPIRED = "expired", "Expired"
 
+    @classmethod
+    def unsettled(cls):
+        return [cls.CREATED, cls.SELLER_SIGNED, cls.BUYER_SIGNED, cls.READY, cls.EXECUTING]
+
 
 IDENTITY_LIVE = "profile"
 IDENTITY_STAMPED = "stamped"

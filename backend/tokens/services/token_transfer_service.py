@@ -296,6 +296,7 @@ def create_order_and_match(
     wallet_address: str,
     quantity: int,
     price_per_share,
+    payment_asset,
     min_quantity: int = 0,
 ) -> tuple[TransferOrder, Optional[dict]]:
     try:
@@ -337,8 +338,9 @@ def create_order_and_match(
         from tokens.services import share_token_service
 
         balance = share_token_service.get_token_balance(token.contract_address, canonical_wallet_address)
-        if balance < quantity:
-            raise CreateOrderInsufficientBalanceException(balance, quantity)
+        available = balance - TransferOrder.objects.committed_sell_quantity(token, canonical_wallet_address)
+        if available < quantity:
+            raise CreateOrderInsufficientBalanceException(max(available, 0), quantity)
 
     order = TransferOrder.objects.create(
         token=token,
@@ -349,6 +351,7 @@ def create_order_and_match(
         quantity=quantity,
         min_quantity=min_quantity,
         price_per_share=price_per_share,
+        payment_asset=payment_asset,
         filled_quantity=0,
     )
 

@@ -9,7 +9,7 @@ from web3 import Web3
 
 from companies.models import Company
 from feature_flags.models import FeatureFlag
-from shared.tests.tenants import a_profile
+from shared.tests.tenants import a_profile, reference_data
 from shared.tests.under_the_policies import what_the_policies_admit_to
 from tokens.exceptions import InvalidRecipientAddressException
 from tokens.models import ShareToken, TransferOrder
@@ -327,6 +327,7 @@ class TransferOrderOwnershipBindingTest(APITestCase):
             wallet_address=self.wallet.address,
             quantity=2,
             price_per_share=Decimal("1.50"),
+            payment_asset=reference_data().stablecoin,
         )
 
         self.assertIsNone(match)
@@ -355,6 +356,7 @@ class TransferOrderOwnershipBindingTest(APITestCase):
                 wallet_address=self.wallet.address,
                 quantity=2,
                 price_per_share=Decimal("1.50"),
+                payment_asset=reference_data().stablecoin,
             )
 
         Wallet.objects.filter(pk=self.wallet.pk).update(verification_status="VERIFIED")
@@ -371,4 +373,5 @@ class TransferOrderOwnershipBindingTest(APITestCase):
                 wallet_address=self.wallet.address,
                 quantity=2,
                 price_per_share=Decimal("1.50"),
+                payment_asset=reference_data().stablecoin,
             )

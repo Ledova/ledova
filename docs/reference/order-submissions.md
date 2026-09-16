@@ -24,7 +24,9 @@ that a preceding request failed to commit. Keep the same ID when retrying.
 Changed original terms return `submission_conflict` and never spend a challenge.
 Recovery of a created or refused outcome precedes current deployment, wallet
 verification and challenge-expiry checks. A pending submission still needs an
-eligible token/wallet and a valid, unspent linked signature before creating an
+eligible token/wallet, exactly one configured settlement asset (which the created
+order records; none or several refuse the message and the execution alike before
+any challenge is spent) and a valid, unspent linked signature before creating an
 order. Recovery returns immutable `intent` alongside the current `order` and
 the original `match`; order modification or cancellation does not rewrite intent.
 The immutable intent's `quantity` and `min_quantity` are canonical decimal
