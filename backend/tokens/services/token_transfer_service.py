@@ -337,8 +337,9 @@ def create_order_and_match(
         from tokens.services import share_token_service
 
         balance = share_token_service.get_token_balance(token.contract_address, canonical_wallet_address)
-        if balance < quantity:
-            raise CreateOrderInsufficientBalanceException(balance, quantity)
+        available = balance - TransferOrder.objects.committed_sell_quantity(token, canonical_wallet_address)
+        if available < quantity:
+            raise CreateOrderInsufficientBalanceException(max(available, 0), quantity)
 
     order = TransferOrder.objects.create(
         token=token,
