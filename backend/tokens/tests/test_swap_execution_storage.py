@@ -35,6 +35,7 @@ from shared.tests.scoped import RunsOnTheScopedConnection, aliases_this_deployme
 from shared.tests.settlement import save_swap_with_context
 from shared.tests.tenants import make_tenant
 from tokens.models import SwapOrder, TransferOrder
+from tokens.services import atomic_swap_service
 from tokens.services.settlement_context import settlement_execution_arguments
 from wallets.models import Wallet
 
@@ -45,6 +46,7 @@ class SwapExecutionStorageFixtures:
     def setUp(self):
         super().setUp()
         self.enterContext(use_operator())
+        self.enterContext(override_settings(ATOMIC_SWAP_ADDRESS="0x" + "9d" * 20))
         self.seller = make_tenant("execution-seller", with_swap=False)
         self.buyer = make_tenant("execution-buyer", with_swap=False)
         self.seller_key = Account.from_key("0x" + "41" * 32)
@@ -56,7 +58,7 @@ class SwapExecutionStorageFixtures:
         self.swap = self.make_swap()
         self.sign_swap(self.swap)
 
-    def make_swap(self, **changes):
+    def make_swap(self):
         sell = TransferOrder.objects.create(
             token=self.seller.deployed_token,
             payment_asset=self.seller.refs.stablecoin,
@@ -81,19 +83,7 @@ class SwapExecutionStorageFixtures:
             price_per_share="1.50",
             status="pending_signature",
         )
-        return save_swap_with_context(
-            sell_order=sell,
-            buy_order=buy,
-            share_token=self.seller.deployed_token,
-            payment_asset=self.seller.refs.stablecoin,
-            seller_address=self.seller.wallet.address,
-            buyer_address=self.buyer.wallet.address,
-            share_amount=10,
-            payment_amount=1500,
-            nonce=uuid4().int % (2**63 - 1),
-            order_hash="0x" + uuid4().hex * 2,
-            **changes,
-        )
+        return atomic_swap_service.create_swap_order(sell, buy, share_amount=10)
 
     def sign_swap(self, swap):
         message = encode_typed_data(full_message=swap.settlement_context["typed_data"])
@@ -171,6 +161,19 @@ class SwapExecutionStorageFixtures:
 
 @override_settings(BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
 class SwapExecutionStorageTest(SwapExecutionStorageFixtures, TransactionTestCase):
+    def test_real_creation_and_admission_preserve_original_expiry_eligibility(self):
+        self.assertTrue(self.swap.expiry_release_eligible)
+        journal = self.admit()
+        claim = self.open(journal)
+        attempt = self.sign(journal, claim)
+        outgoing.record_receipt(claim, attempt.tx_hash, receipt(attempt))
+        journal.mark_confirmed(12, receipt(attempt)["blockHash"], 21000)
+        retained = SwapOrder.objects.get(pk=self.swap.pk)
+        self.assertTrue(retained.expiry_release_eligible)
+        self.assertEqual(retained.status, "executing")
+        with self.assertRaisesMessage(DatabaseError, "fixed at creation"), atomic():
+            SwapOrder.objects.filter(pk=self.swap.pk).update(expiry_release_eligible=False)
+
     def test_exact_abi_bytes_agree_for_optional_prefix_case_and_integer_boundaries(self):
         for seller_prefix, buyer_prefix in (("", "0x"), ("0x", "")):
             with self.subTest(seller=seller_prefix, buyer=buyer_prefix):
@@ -236,6 +239,7 @@ class SwapExecutionStorageTest(SwapExecutionStorageFixtures, TransactionTestCase
             None,
             {},
             {"version": 2, "actor_id": str(self.seller.user.pk), "participant": "seller"},
+            {"version": 1.0, "actor_id": str(self.seller.user.pk), "participant": "seller"},
             {"version": 1, "actor_id": self.seller.user.pk, "participant": "seller"},
             {"version": 1, "actor_id": "0" + str(self.seller.user.pk), "participant": "seller"},
             {"version": 1, "actor_id": str(self.buyer.user.pk), "participant": "seller"},

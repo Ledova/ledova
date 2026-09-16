@@ -133,6 +133,7 @@ BEGIN
     IF jsonb_typeof(admission) IS DISTINCT FROM 'object'
         OR admission IS DISTINCT FROM jsonb_build_object('version', 1, 'actor_id', admission->'actor_id',
             'participant', admission->'participant')
+        OR admission->>'version' IS DISTINCT FROM '1'
         OR jsonb_typeof(admission->'actor_id') IS DISTINCT FROM 'string'
         OR coalesce(admission->>'actor_id', '') !~ '^[1-9][0-9]{0,18}$'
         OR (admission->>'actor_id')::numeric > 9223372036854775807
@@ -165,7 +166,7 @@ BEGIN
             OR NEW.gas_used IS NOT NULL OR NEW.gas_limit IS NOT NULL OR NEW.gas_price IS NOT NULL
             OR NEW.submitted_at IS NOT NULL OR NEW.confirmed_at IS NOT NULL
             OR swap.status <> 'ready' OR swap.transaction_id IS NOT NULL OR swap.tx_hash <> ''
-            OR swap.completed_at IS NOT NULL OR swap.expiry_release_eligible
+            OR swap.completed_at IS NOT NULL
             OR EXISTS (SELECT 1 FROM blockchain_blockchaintransaction
                 WHERE (related_model = 'tokens.SwapOrder' OR tx_type = 'atomic_swap') AND related_uuid = swap.uuid)
             OR EXISTS (SELECT 1 FROM blockchain_outgoingoperation
@@ -241,8 +242,7 @@ DECLARE
 BEGIN
     IF TG_OP = 'INSERT' THEN
         IF NEW.status <> 'created' OR NEW.seller_signature <> '' OR NEW.buyer_signature <> ''
-            OR NEW.transaction_id IS NOT NULL OR NEW.tx_hash <> '' OR NEW.completed_at IS NOT NULL
-            OR NEW.expiry_release_eligible THEN
+            OR NEW.transaction_id IS NOT NULL OR NEW.tx_hash <> '' OR NEW.completed_at IS NOT NULL THEN
             RAISE EXCEPTION 'Fresh swaps start without signatures or execution claims';
         END IF;
         RETURN NEW;
@@ -275,7 +275,7 @@ BEGIN
         RETURN NEW;
     END IF;
     IF journal.related_uuid IS DISTINCT FROM NEW.uuid OR journal.related_model <> 'tokens.SwapOrder'
-        OR NEW.completed_at IS NOT NULL OR NEW.expiry_release_eligible
+        OR NEW.completed_at IS NOT NULL
         OR NEW.tx_hash IS DISTINCT FROM coalesce(journal.tx_hash, '')
         OR NEW.seller_signature IS DISTINCT FROM journal.function_args->>'sellerSignature'
         OR NEW.buyer_signature IS DISTINCT FROM journal.function_args->>'buyerSignature'
