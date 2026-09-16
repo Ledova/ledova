@@ -18,8 +18,9 @@ from offerings.tests.factories import (
     eligible_subscriber,
     open_offering,
 )
+from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import an_acn, make_eligible, make_tenant, open_to_investors
-from tokens.models import ShareIssuance, SwapOrder
+from tokens.models import ShareIssuance
 from tokens.services import atomic_swap_service, token_transfer_service
 from tokens.tests.test_signed_transactions import SIGNER, sign_legacy
 from users.models import FinancialProfile, Notification, UserPreferences, UserProfile
@@ -252,7 +253,12 @@ class ActionResponseContractTest(APITransactionTestCase):
         self.assertEqual(body["bestBid"], "1.50")
 
     def test_market_completed_trade_declares_its_actual_nested_shape(self):
-        SwapOrder.objects.filter(pk=self.owner.swap.pk).update(status="completed", completed_at=timezone.now())
+        self.addCleanup(restore_every_migration)
+        historical = migrate_to([("tokens", "0056_hold_legacy_swaps")])
+        historical.get_model("tokens", "SwapOrder").objects.filter(pk=self.owner.swap.pk).update(
+            status="completed", completed_at=timezone.now()
+        )
+        restore_every_migration()
         body, schema = self.market_response()
         self.assertEqual(body["lastTradePrice"], "1.5")
         self.assertEqual(body["lastTrade"]["paymentAmount"], "15")

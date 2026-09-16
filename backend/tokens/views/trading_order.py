@@ -59,6 +59,7 @@ from tokens.serializers.trading_responses import (
 )
 from tokens.services import (
     atomic_swap_service,
+    swap_execution,
 )
 from tokens.services.order_actions import (
     execute_order_action,
@@ -289,12 +290,13 @@ class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
         serializer = SettlementSignatureSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         identity = serializer.validated_data
-        swap_order, _role, _signed = resolve_exact_swap_context(request.user, uuid, identity)
-        updated = atomic_swap_service.sign_and_execute_swap(
+        swap_order, role, _signed = resolve_exact_swap_context(request.user, uuid, identity)
+        updated = swap_execution.submit_signature(
             swap_order=swap_order,
             signature=identity["signature"],
             signer_address=identity["signer_address"],
-            admission=self._settlement_admission(request, identity),
+            user=request.user,
+            participant=role,
         )
         return Response(SettlementSwapOrderSerializer(updated).data)
 

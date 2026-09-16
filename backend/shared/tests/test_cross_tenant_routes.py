@@ -548,7 +548,9 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         swaps.settlement_contract.return_value = SYNTHETIC_SETTLEMENT_CONTRACT
         swaps.broadcast_settlement_approval.return_value = ("0x" + "ab" * 32, {"blockNumber": 1, "gasUsed": 21000})
         self.enterContext(override_settings(ATOMIC_SWAP_ADDRESS=SYNTHETIC_SETTLEMENT_CONTRACT))
-        swaps.sign_and_execute_swap.side_effect = lambda swap_order, **kwargs: swap_order
+        self._service("tokens.views.trading_order.swap_execution").submit_signature.side_effect = (
+            lambda swap_order, **kwargs: swap_order
+        )
         swaps.get_typed_data.return_value = {}
         swaps.check_swap_allowances.return_value = {"seller": ALLOWANCE, "buyer": ALLOWANCE}
         swaps.get_approval_transaction_data.return_value = {}

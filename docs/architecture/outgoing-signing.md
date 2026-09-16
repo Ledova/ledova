@@ -3,7 +3,7 @@
 [Architecture](README.md) · [Documentation](../README.md)
 
 Settlement-asset and yield-token `MintRequest` execution, whitelist add/remove
-commands, share-token deployment and its automatic swap approval, capital increases, share issuances, pause/unpause and NAV updates use the
+commands, share-token deployment and its automatic swap approval, capital increases, share issuances, swap execution, pause/unpause and NAV updates use the
 operator signing foundation. Signer
 admission remains closed. The [deployment flow](contracts-and-issuance.md) binds
 its original receipt to immutable deployment terms; an identifier lookup alone
@@ -13,8 +13,8 @@ The foundation now requires explicit signer admission. Existing and new
 `SigningAccount` rows start `closed`, and a missing row is also closed. A nonce
 counter, successful legacy status or inventory capture never grants admission.
 There is no activation command or admin edit surface; admitted synthetic test
-fixtures establish a test precondition only. Settlement relaying still requires
-conversion.
+fixtures establish a test precondition only. Participant-signed approval delivery
+still requires conversion.
 
 `close_signer_admission(chain_id=..., sender=...)` is an operator-only service
 that closes an account and advances its admission generation. It preserves
@@ -60,7 +60,9 @@ delayed workers. Once signed, uncertainty never authorizes another nonce: retrie
 validate and broadcast the saved bytes, and missing receipts, provider errors,
 already-known responses and nonce errors leave the operation unresolved. Receipt
 updates require the same claim and hash. A recorded revert permits a new claim
-and nonce while retaining the immutable earlier attempt. Here `confirmed` means
+and nonce while retaining the immutable earlier attempt. Individual adapters may
+refuse restart: swap execution retains a single original claim even after revert.
+Here `confirmed` means
 a successful receipt was observed; confirmation depth, replacement detection and
 reorg repair remain part of the separate finality work.
 
@@ -112,8 +114,10 @@ Migrations `tokens/0049` and `0050` preserve historical rows, guard admission an
 immutable associations, and refuse reversal after an approval disposition exists.
 The app role cannot read or write approval metadata. The old direct Python
 approval sender is removed. The standalone Hardhat deployment script remains in
-the all-writer inventory; this conversion does not establish complete signer
-cutover or finality, which remain #6 and #7 acceptance.
+the all-writer inventory; this conversion does not establish participant-signed
+approval delivery recovery or the all-writer signer cutover, which remain #6
+acceptance, or finality, which remains #7's. The swap relayer itself is converted
+(#619) and described in the [swap settlement reference](../reference/swap-settlement.md).
 
 ## Mint requests
 

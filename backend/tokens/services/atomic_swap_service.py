@@ -1,6 +1,5 @@
 import logging
 import secrets
-from collections.abc import Mapping
 from datetime import timedelta
 from decimal import Decimal, localcontext
 from typing import Optional
@@ -8,27 +7,19 @@ from typing import Optional
 from django.conf import settings
 from django.utils import timezone
 from eth_account import Account
-from eth_account.messages import _hash_eip191_message, encode_typed_data
+from eth_account.messages import encode_typed_data
 from web3 import Web3
 
-from blockchain.models import BlockchainTransaction, TransactionStatus, TransactionType
 from integrations.base_chain import get_base_chain_client
 from operators.settlement import require_deployment
-from shared.db import atomic, use_operator
-from shared.utils.blockchain import decode_exception_to_message
+from shared.db import atomic
 from shared.utils.token_amounts import token_base_units
 from tokens.constants import MAX_SETTLEMENT_UNITS
-from tokens.events import publish_trading_event
 from tokens.exceptions import (
     AtomicSwapNotConfiguredException,
-    InsufficientBalanceException,
     InvalidSettlementAmountException,
     SettlementApprovalUncertain,
     SettlementContextChanged,
-    SwapExecutionException,
-    SwapExpiredException,
-    SwapNotReadyException,
-    SwapSignatureException,
 )
 from tokens.models import (
     SwapOrder,
@@ -41,14 +32,11 @@ from tokens.services.settlement_context import (
     assert_current_settlement,
     capture_settlement_context,
     recorded_settlement_context,
-    settlement_execution_arguments,
 )
 from tokens.services.signed_transactions import decode_signed_transaction
 from tokens.services.trading_locks import (
     hash_identity,
-    lock_current_claim,
     lock_orders,
-    swap_terms,
 )
 
 logger = logging.getLogger(__name__)
@@ -99,44 +87,6 @@ def check_allowance(token_address: str, owner_address: str, spender) -> int:
         )
     )
     return allowance
-
-
-def check_balance(token_address: str, owner_address: str) -> int:
-    token_contract = get_base_chain_client().load_contract("ShareToken", token_address)
-    balance = get_base_chain_client().call_contract_function(
-        token_contract.functions.balanceOf(
-            get_base_chain_client().to_checksum_address(owner_address),
-        )
-    )
-    return balance
-
-
-def validate_swap_balances(swap_order: SwapOrder) -> None:
-    assert_provider_settlement(swap_order)
-    context = recorded_settlement_context(swap_order)
-    seller_balance = check_balance(
-        context["share_token"]["address"],
-        swap_order.seller_address,
-    )
-    if seller_balance < swap_order.share_amount:
-        raise InsufficientBalanceException(
-            balance=seller_balance,
-            required=swap_order.share_amount,
-            token_symbol=context["share_token"]["symbol"],
-        )
-
-    buyer_balance = check_balance(
-        payment_address(swap_order),
-        swap_order.buyer_address,
-    )
-    if buyer_balance < swap_order.payment_amount:
-        raise InsufficientBalanceException(
-            balance=buyer_balance,
-            required=swap_order.payment_amount,
-            token_symbol=context["payment_asset"]["symbol"],
-            decimals=context["payment_asset"]["deployment_decimals"],
-        )
-    assert_provider_settlement(swap_order)
 
 
 def check_swap_allowances(swap_order: SwapOrder) -> dict:
@@ -364,306 +314,3 @@ def verify_signature(swap_order: SwapOrder, signature: str, expected_signer: str
     except Exception as e:
         logger.warning(f"Signature verification failed: {e}", exc_info=True)
         return False
-
-
-def submit_signature(
-    swap_order: SwapOrder,
-    signature: str,
-    signer_address: str,
-    admission=None,
-) -> SwapOrder:
-    snapshot = SwapOrder.objects.get(pk=swap_order.pk)
-    recorded_settlement_context(snapshot)
-    if admission:
-        admission(snapshot)
-    signer_checksum = Web3.to_checksum_address(signer_address)
-    if signer_checksum == Web3.to_checksum_address(snapshot.seller_address):
-        is_seller = True
-        expected_signer = snapshot.seller_address
-    elif signer_checksum == Web3.to_checksum_address(snapshot.buyer_address):
-        is_seller = False
-        expected_signer = snapshot.buyer_address
-    else:
-        raise SwapSignatureException("Signer is neither the buyer nor seller")
-    if not verify_signature(snapshot, signature, expected_signer):
-        raise SwapSignatureException("Invalid signature")
-    return _store_signature(snapshot, signature, is_seller, admission=admission)
-
-
-@atomic()
-def _store_signature(snapshot, signature, is_seller, admission=None):
-    swap = SwapOrder.objects.select_for_update(of=("self",)).get(pk=snapshot.pk)
-    recorded_settlement_context(swap)
-    if swap_terms(swap) != swap_terms(snapshot):
-        raise SwapSignatureException("The swap changed while its signature was being checked")
-    if admission:
-        admission(swap)
-    stored = swap.seller_signature if is_seller else swap.buyer_signature
-    if stored:
-        if stored != signature:
-            raise SwapSignatureException("This party has already signed the swap")
-        return swap
-    assert_current_settlement(swap)
-    allowed = (
-        (SwapOrderStatus.CREATED, SwapOrderStatus.BUYER_SIGNED)
-        if is_seller
-        else (SwapOrderStatus.CREATED, SwapOrderStatus.SELLER_SIGNED)
-    )
-    if swap.status not in allowed or swap.transaction_id is not None or swap.tx_hash:
-        raise SwapNotReadyException()
-    if swap.deadline_passed:
-        raise SwapExpiredException()
-    if is_seller:
-        swap.add_seller_signature(signature)
-    else:
-        swap.add_buyer_signature(signature)
-    publish_trading_event("swap_signed", str(swap.share_token_id))
-    return swap
-
-
-def execute_swap(swap_order: SwapOrder, admission=None) -> str:
-    if admission:
-        admission(swap_order)
-    assert_provider_settlement(swap_order)
-    swap, tx_record = _claim_execution(swap_order.pk, admission=admission)
-    try:
-        validate_swap_balances(swap)
-        signed_tx = _prepare_attempt(swap)
-    except SettlementContextChanged:
-        raise
-    except Exception as exc:
-        told_to_the_parties = decode_exception_to_message(exc, "Swap execution failed")
-        _record_never_sent(swap, tx_record, str(exc), told_to_the_parties)
-        if isinstance(exc, InsufficientBalanceException):
-            raise
-        raise SwapExecutionException(f"Swap execution failed: {told_to_the_parties}") from exc
-    assert_provider_settlement(swap)
-    if admission:
-        admission(swap)
-    _admit_claim(swap, tx_record)
-    try:
-        tx_hash = get_base_chain_client().send_raw_transaction(signed_tx)
-    except Exception as exc:
-        _record_unknown_fate(swap, tx_record, str(exc))
-        raise SwapExecutionException(
-            f"Swap execution outcome is unknown: {decode_exception_to_message(exc, 'no response from the chain')}"
-        ) from exc
-    return _record_broadcast(swap, tx_record, tx_hash)
-
-
-@atomic()
-def _admit_claim(swap, transaction):
-    current = lock_current_claim(swap, transaction)
-    if current is None:
-        raise SwapNotReadyException()
-    assert_current_settlement(current[0])
-    if current[0].deadline_passed:
-        raise SwapExpiredException()
-
-
-@atomic(durable=True)
-def _claim_execution(swap_id, admission=None):
-    swap = SwapOrder.objects.select_for_update(of=("self",)).get(pk=swap_id)
-    recorded_settlement_context(swap)
-    if not swap.is_ready or swap.transaction_id is not None or swap.tx_hash:
-        raise SwapNotReadyException()
-    if swap.deadline_passed:
-        raise SwapExpiredException()
-    if admission:
-        admission(swap)
-    assert_current_settlement(swap)
-    relayer_account = Account.from_key(configured_relayer_key())
-    arguments = settlement_execution_arguments(swap)
-    tx_record = _new_transaction_record(swap, relayer_account.address, arguments)
-    swap.mark_executing(transaction=tx_record)
-    return swap, tx_record
-
-
-def _prepare_attempt(swap_order: SwapOrder):
-    assert_provider_settlement(swap_order)
-    relayer_account = Account.from_key(configured_relayer_key())
-    execute_fn = _execute_swap_call(swap_order)
-    tx = get_base_chain_client().build_transaction(execute_fn, from_address=relayer_account.address)
-    return get_base_chain_client().sign_transaction(tx, configured_relayer_key())
-
-
-def _execute_swap_call(swap_order: SwapOrder):
-    address = settlement_contract(swap_order)
-    message = get_typed_data(swap_order)["message"]
-    contract = get_base_chain_client().load_contract("AtomicSwap", address)
-
-    return contract.functions.executeSwap(
-        Web3.to_checksum_address(message["seller"]),
-        Web3.to_checksum_address(message["buyer"]),
-        Web3.to_checksum_address(message["shareToken"]),
-        Web3.to_checksum_address(message["paymentToken"]),
-        int(message["shareAmount"]),
-        int(message["paymentAmount"]),
-        int(message["nonce"]),
-        int(message["deadline"]),
-        _signature_bytes(swap_order.seller_signature),
-        _signature_bytes(swap_order.buyer_signature),
-    )
-
-
-def _new_transaction_record(swap_order: SwapOrder, relayer_address: str, arguments: dict):
-    return BlockchainTransaction.objects.create(
-        tx_type=TransactionType.ATOMIC_SWAP,
-        status=TransactionStatus.PENDING,
-        from_address=relayer_address,
-        to_address=settlement_contract(swap_order),
-        function_name="executeSwap",
-        function_args=arguments,
-        related_model="tokens.SwapOrder",
-        related_uuid=swap_order.uuid,
-    )
-
-
-@atomic(durable=True)
-def _record_never_sent(swap_order, tx_record, raw_error, told_to_the_parties):
-    current = lock_current_claim(swap_order, tx_record, with_orders=True)
-    if current is None:
-        return
-    swap, transaction = current
-    if transaction.tx_hash or transaction.status not in (TransactionStatus.PENDING, TransactionStatus.FAILED):
-        return
-    transaction.mark_failed(raw_error)
-    swap.mark_failed(told_to_the_parties)
-    logger.error("Swap %s was never sent", swap.uuid)
-    publish_trading_event("swap_failed", str(swap.share_token_id))
-
-
-@atomic()
-def _record_unknown_fate(swap_order, tx_record, raw_error):
-    current = lock_current_claim(swap_order, tx_record)
-    if current is None:
-        return
-    _swap, transaction = current
-    if transaction.status not in (TransactionStatus.CONFIRMED, TransactionStatus.REVERTED):
-        transaction.mark_outcome_unknown(raw_error)
-
-
-def _record_broadcast(swap_order, tx_record, tx_hash):
-    current = _record_sent(swap_order, tx_record, tx_hash)
-    if current is None:
-        return tx_hash
-    swap, transaction = current
-    try:
-        receipt = get_base_chain_client().receipt_even_if_reverted(tx_hash)
-    except Exception:
-        logger.warning("Swap %s has a recorded broadcast and no receipt yet", swap.uuid)
-        return tx_hash
-    _record_receipt(swap, transaction, tx_hash, receipt)
-    return tx_hash
-
-
-@atomic()
-def _record_sent(swap_order, tx_record, tx_hash):
-    current = lock_current_claim(swap_order, tx_record)
-    if current is None or not hash_identity(tx_hash):
-        return None
-    swap, transaction = current
-    if transaction.tx_hash and hash_identity(transaction.tx_hash) != hash_identity(tx_hash):
-        return None
-    if transaction.status in (TransactionStatus.CONFIRMED, TransactionStatus.REVERTED):
-        return current if transaction.tx_hash else None
-    if transaction.status != TransactionStatus.SUBMITTED or not transaction.tx_hash:
-        transaction.mark_submitted(tx_hash)
-    if not swap.tx_hash:
-        swap.mark_executing(tx_hash, transaction=transaction)
-    return swap, transaction
-
-
-@atomic()
-def _record_receipt(swap_order, tx_record, tx_hash, receipt):
-    if not isinstance(receipt, Mapping) or receipt.get("status") not in (0, 1):
-        return None
-    if not hash_identity(tx_hash):
-        return None
-    receipt_hash = receipt.get("transactionHash")
-    if receipt_hash is not None and hash_identity(receipt_hash) != hash_identity(tx_hash):
-        return None
-    current = lock_current_claim(swap_order, tx_record, with_orders=True)
-    if current is None:
-        return None
-    swap, transaction = current
-    if hash_identity(transaction.tx_hash) != hash_identity(tx_hash):
-        return None
-    if receipt["status"] == 1:
-        if transaction.status == TransactionStatus.REVERTED:
-            return None
-        if transaction.status != TransactionStatus.CONFIRMED:
-            block_hash = receipt.get("blockHash", "")
-            transaction.mark_confirmed(
-                block_number=receipt.get("blockNumber"),
-                block_hash=block_hash.hex() if isinstance(block_hash, bytes) else block_hash,
-                gas_used=receipt.get("gasUsed"),
-            )
-        swap.mark_completed()
-        publish_trading_event("swap_completed", str(swap.share_token_id))
-        return "executed"
-    if transaction.status == TransactionStatus.CONFIRMED:
-        return None
-    reason = f"The chain reverted the swap: {tx_hash}"
-    if transaction.status != TransactionStatus.REVERTED:
-        transaction.mark_reverted(reason)
-    swap.mark_failed(reason)
-    publish_trading_event("swap_failed", str(swap.share_token_id))
-    return "reverted"
-
-
-def executed_order_hash(swap_order: SwapOrder) -> str:
-    signable = encode_typed_data(full_message=get_typed_data(swap_order))
-    return _hash_eip191_message(signable).hex()
-
-
-def chain_says_this_swap_executed(swap_order: SwapOrder, receipt=None) -> bool:
-    if swap_order.settlement_protocol_version == 0 or not swap_order.tx_hash:
-        return False
-    recorded = recorded_settlement_context(swap_order)
-    if receipt is None:
-        receipt = get_base_chain_client().receipt_even_if_reverted(swap_order.tx_hash)
-    if not isinstance(receipt, Mapping) or receipt.get("status") != 1:
-        return False
-    if get_base_chain_client().w3.eth.chain_id != int(recorded["typed_data"]["domain"]["chainId"]):
-        return False
-    contract = get_base_chain_client().load_contract("AtomicSwap", settlement_contract(swap_order))
-    expected = executed_order_hash(swap_order)
-    for event in contract.events.SwapExecuted().process_receipt(receipt):
-        if hash_identity(event["args"]["orderHash"]) == hash_identity(expected):
-            return True
-    return False
-
-
-def resolve_executing_swap(swap_order: SwapOrder) -> Optional[str]:
-    if swap_order.settlement_protocol_version == 0:
-        return None
-    recorded_settlement_context(swap_order)
-    if swap_order.status != SwapOrderStatus.EXECUTING or not swap_order.transaction_id or not swap_order.tx_hash:
-        return None
-    transaction = BlockchainTransaction.objects.get(pk=swap_order.transaction_id)
-    if hash_identity(transaction.tx_hash) != hash_identity(swap_order.tx_hash):
-        return None
-    receipt = get_base_chain_client().receipt_even_if_reverted(swap_order.tx_hash)
-    if isinstance(receipt, Mapping) and receipt.get("status") == 1:
-        if not chain_says_this_swap_executed(swap_order, receipt):
-            return None
-    return _record_receipt(swap_order, transaction, swap_order.tx_hash, receipt)
-
-
-def sign_and_execute_swap(swap_order, signature: str, signer_address: str, admission=None):
-    with use_operator():
-        signed = submit_signature(
-            swap_order=swap_order, signature=signature, signer_address=signer_address, admission=admission
-        )
-
-        if signed.is_ready:
-            logger.info(f"Both signatures present, executing swap {signed.uuid}")
-            execute_swap(signed, admission=admission)
-            signed.refresh_from_db()
-
-    return signed
-
-
-def _signature_bytes(signature: str) -> bytes:
-    return bytes.fromhex(signature[2:] if signature.startswith("0x") else signature)

@@ -18,8 +18,11 @@ lookup never proves that an earlier request failed to commit.
 
 Matching captures settlement domain, exact signed values and participant context.
 New signatures and approvals recheck a current authorized participant against
-that context. Execution claims the current swap before preparing or sending;
-receipt I/O stays outside locks, and outcomes recheck the durable claim.
+that context. The completing signature, original execution admission and recovery
+job commit together. Recovery journals signed bytes and a shared signer nonce
+before sending; receipt I/O stays outside locks. A verified receipt updates the
+private execution evidence while the swap and its financial reservations remain
+pending for finality.
 
 The expiry sweep releases only matches whose eligibility marker and recorded
 state prove they have no execution claim or competing reservation. Legacy,

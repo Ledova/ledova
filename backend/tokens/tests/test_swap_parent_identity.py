@@ -18,6 +18,7 @@ from shared.db import atomic, current_alias, reset_principal, use_operator
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import a_profile, make_tenant
+from tokens.exceptions import SwapNotReadyException
 from tokens.models import (
     SwapOrder,
     SwapOrderStatus,
@@ -25,14 +26,13 @@ from tokens.models import (
     TransferOrderStatus,
     TransferOrderType,
 )
-from tokens.services import atomic_swap_service
+from tokens.services import atomic_swap_service, swap_execution
 from tokens.services.settlement_context import capture_settlement_context
 from tokens.tests.swap_state_fixtures import (
     BUYER,
     CONTRACT,
     SELLER,
     make_swap,
-    swap_service,
 )
 from users.models import UserAccount
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
@@ -91,11 +91,11 @@ class SwapParentStorageTest(TestCase):
             order.refresh_from_db()
         self.assertEqual((order.quantity, order.min_quantity, order.status), (12, 2, TransferOrderStatus.CANCELLED))
         self.assertIsNone(order.payment_asset_id)
-        swap = make_swap("parent-in-place")
-        SwapOrder.objects.filter(pk=swap.pk).update(status=SwapOrderStatus.EXECUTING, error_message="unresolved")
+        swap = make_swap("parent-in-place", ready=True)
+        SwapOrder.objects.filter(pk=swap.pk).update(error_message="unresolved")
         with use_operator():
             swap.refresh_from_db()
-        self.assertEqual((swap.status, swap.error_message), (SwapOrderStatus.EXECUTING, "unresolved"))
+        self.assertEqual((swap.status, swap.error_message), (SwapOrderStatus.READY, "unresolved"))
 
     def test_referenced_parent_delete_cannot_be_deferred_until_a_replacement_insert(self):
         swap = make_swap("parent-replacement")
@@ -296,7 +296,7 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
             )
             FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
         self.client = APIClient()
-        event = patch("tokens.services.atomic_swap_service.publish_trading_event")
+        event = patch("tokens.services.swap_execution.publish_trading_event")
         self.event = event.start()
         self.addCleanup(event.stop)
         self.choose_caller("seller")
@@ -367,26 +367,31 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
                     self.assertEqual(self.event.call_count, 1)
                     self.assert_private_boundary()
 
-    def test_second_signature_and_claim_persist_but_invisible_parent_outcome_remains_unresolved(self):
+    def test_second_signature_admits_once_and_app_recovery_cannot_release_private_parents(self):
         first = self.post_signature("buyer")
         self.assertEqual(first.status_code, 200, first.content)
-        service = swap_service(self)
-        with patch("tokens.views.trading_order.atomic_swap_service", service), patch.object(
-            service, "execute_swap"
-        ) as execute:
+        with patch("tokens.services.swap_execution.get_base_chain_client") as provider:
             second = self.post_signature("seller")
-        self.assertEqual(second.status_code, 200, second.content)
-        execute.assert_called_once()
-        self.choose_caller(self.caller)
+            self.assertEqual(second.status_code, 200, second.content)
+            with use_operator():
+                self.swap.refresh_from_db()
+                transaction = self.swap.transaction
+                self.assertEqual(self.swap.status, SwapOrderStatus.EXECUTING)
+                self.assertEqual(transaction.status, "pending")
+                self.assertEqual(
+                    transaction.function_args["admission"],
+                    {"version": 1, "actor_id": str(self.parties[self.caller].user.pk), "participant": self.caller},
+                )
+            self.assert_private_boundary()
+            with self.assertRaises(SwapNotReadyException):
+                swap_execution.recover(transaction.pk)
+            replay = self.post_signature("seller")
+            self.assertEqual(replay.status_code, 200, replay.content)
+            provider.assert_not_called()
         with use_operator():
-            claimed, transaction = service._claim_execution(self.swap.pk)
-        self.assertEqual(claimed.status, SwapOrderStatus.EXECUTING)
-        self.assertEqual(claimed.transaction_id, transaction.pk)
-        service._record_never_sent(claimed, transaction, "synthetic failure", "Synthetic refusal")
-        with use_operator():
-            claimed.refresh_from_db()
-        self.assertEqual(claimed.status, SwapOrderStatus.EXECUTING)
-        with use_operator():
+            self.swap.refresh_from_db()
+            self.assertEqual(self.swap.transaction_id, transaction.pk)
+            self.assertEqual(self.swap.status, SwapOrderStatus.EXECUTING)
             self.assertEqual(TransferOrder.objects.get(pk=self.orders["seller"].pk).filled_quantity, 10)
             self.assertEqual(TransferOrder.objects.get(pk=self.orders["buyer"].pk).filled_quantity, 10)
         self.assert_private_boundary()

@@ -44,7 +44,6 @@ from shared.tests.tenants import make_tenant
 from tokens.exceptions import (
     CapitalIncreaseConflict,
     IssuanceExecutionConflict,
-    SwapNotReadyException,
 )
 from tokens.models import (
     CapitalIncreaseExecution,
@@ -73,6 +72,7 @@ from tokens.services import (
     pause_recovery,
     share_token_service,
     swap_approval,
+    swap_execution,
     token_transfer_service,
 )
 from tokens.services.former_holders import fold_former_holders
@@ -282,9 +282,11 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
         self.seller = SELLER
         self.buyer = BUYER
         self.investor = self.seller.address
+        self.buyer_tenant = make_tenant("chain-buyer", with_swap=False)
+        self.party_accounts = {self.seller.address: self.tenant.account, self.buyer.address: self.buyer_tenant.account}
         self.party_wallets = {
             party.address: Wallet.objects.create(
-                user_account=self.tenant.account,
+                user_account=self.party_accounts[party.address],
                 address=party.address,
                 chain="base",
                 verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
@@ -332,7 +334,7 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual(self.w3.eth.get_transaction_count(self.seller.address), nonce + 1)
         self.assertEqual(self.balances(), (before[0] - 3, before[1] + 3, before[2], before[3]))
 
-    def test_matching_approval_signing_and_execution_preserve_one_settlement(self):
+    def admit_swap(self):
         Asset.objects.filter(pk=self.tenant.refs.stablecoin.pk).update(decimals=6)
         orders = []
         for party, kind in ((self.seller, TransferOrderType.SELL), (self.buyer, TransferOrderType.BUY)):
@@ -342,7 +344,7 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
                     token=self.token,
                     payment_asset=self.tenant.refs.stablecoin,
                     wallet=wallet,
-                    owner_account=self.tenant.account,
+                    owner_account=self.party_accounts[party.address],
                     wallet_address=party.address,
                     order_type=kind,
                     quantity=10,
@@ -368,26 +370,119 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
         allowances = atomic_swap_service.check_swap_allowances(swap)
         self.assertTrue(allowances["seller"]["has_sufficient_allowance"])
         self.assertTrue(allowances["buyer"]["has_sufficient_allowance"])
-        before = self.balances()
         nonce = self._signer_nonce()
         signable = encode_typed_data(full_message=typed_data)
-        first = atomic_swap_service.sign_and_execute_swap(
-            swap, self.seller.sign_message(signable).signature.hex(), self.seller.address
+        first = swap_execution.submit_signature(
+            swap,
+            self.seller.sign_message(signable).signature.hex(),
+            self.seller.address,
+            user=self.tenant.user,
+            participant="seller",
         )
         self.assertEqual(first.status, "seller_signed")
-        completed = atomic_swap_service.sign_and_execute_swap(
-            first, self.buyer.sign_message(signable).signature.hex(), self.buyer.address
+        completed = swap_execution.submit_signature(
+            first,
+            self.buyer.sign_message(signable).signature.hex(),
+            self.buyer.address,
+            user=self.buyer_tenant.user,
+            participant="buyer",
         )
-        self.assertEqual(completed.status, "completed")
+        self.assertEqual(completed.status, "executing")
+        self.assertEqual(self._signer_nonce(), nonce)
+        return completed
+
+    def test_matching_approval_signing_and_execution_preserve_one_settlement(self):
+        completed = self.admit_swap()
+        before = self.balances()
+        nonce = self._signer_nonce()
+        self.assertEqual(swap_execution.recover(completed.transaction_id), "confirmed")
+        completed.refresh_from_db()
         self.assertEqual(self._signer_nonce(), nonce + 1)
         self.assertEqual(self.balances(), (before[0] - 3, before[1] + 3, before[2] + 450, before[3] - 450))
         self.assertEqual(completed.transaction.function_args["paymentAmount"], "450")
         self.assertEqual(completed.transaction.tx_hash, completed.tx_hash)
         self.assertEqual(completed.transaction.status, TransactionStatus.CONFIRMED)
-        self.assertTrue(atomic_swap_service.chain_says_this_swap_executed(completed))
-        with self.assertRaises(SwapNotReadyException):
-            atomic_swap_service.execute_swap(completed)
+        self.assertEqual(completed.status, "executing")
+        self.assertIsNone(completed.completed_at)
+        self.assertEqual(
+            [
+                order.filled_quantity
+                for order in TransferOrder.objects.filter(pk__in=[completed.sell_order_id, completed.buy_order_id])
+            ],
+            [3, 3],
+        )
+        operation = completed.transaction.outgoing_operation
+        original = operation.current_attempt
+        self.assertEqual(original.tx_hash, completed.tx_hash)
+        self.assertEqual(
+            bytes(self.w3.eth.get_transaction(original.tx_hash)["input"]), bytes.fromhex(operation.intent["data"][2:])
+        )
+        self.assertEqual(swap_execution.recover(completed.transaction_id), "confirmed")
+        self.assertEqual(operation.attempts.count(), 1)
         self.assertEqual(self._signer_nonce(), nonce + 1)
+
+    def test_worker_death_after_real_swap_acceptance_recovers_without_another_nonce(self):
+        swap = self.admit_swap()
+        before = self.balances()
+        nonce = self._signer_nonce()
+        configured = {
+            name: getattr(settings, name) for name in (*CHAIN_ENV[1:], "BLOCKCHAIN_CHAIN_ID", "BLOCKCHAIN_RPC_URL")
+        }
+        process = subprocess.Popen(
+            [sys.executable, "-m", "tokens.tests.swap_execution_chain_worker", str(swap.transaction_id)],
+            env={
+                **os.environ,
+                "SWAP_CHAIN_TEST_DATABASE": json.dumps(connections[current_alias()].settings_dict, default=str),
+                "SWAP_CHAIN_TEST_SETTINGS": json.dumps(configured),
+            },
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        code, out, err = finish(process)
+        self.assertEqual(code, -signal.SIGKILL, out + err)
+        swap.refresh_from_db()
+        original = swap.transaction.outgoing_operation.current_attempt
+        self.assertEqual(original.nonce, nonce)
+        self.assertEqual(self._signer_nonce(), nonce + 1)
+        self.assertEqual(swap.status, "executing")
+        self.assertEqual(swap.transaction.status, "submitted")
+        self.assertEqual(self.balances(), (before[0] - 3, before[1] + 3, before[2] + 450, before[3] - 450))
+        with patch.object(BaseChainClient, "send_raw_transaction", side_effect=AssertionError("Already included")):
+            self.assertEqual(swap_execution.recover(swap.transaction_id), "confirmed")
+        swap.refresh_from_db()
+        self.assertEqual(swap.transaction.outgoing_operation.current_attempt_id, original.pk)
+        self.assertEqual(swap.status, "executing")
+        self.assertEqual(self._signer_nonce(), nonce + 1)
+
+    def test_unsent_swap_reuses_bytes_while_another_common_writer_reserves_the_next_nonce(self):
+        from blockchain.services import outgoing
+
+        swap = self.admit_swap()
+        nonce = self._signer_nonce()
+        with patch.object(BaseChainClient, "send_raw_transaction", side_effect=ConnectionError("Synthetic outage")):
+            self.assertEqual(swap_execution.recover(swap.transaction_id), "signed")
+        swap.refresh_from_db()
+        original = swap.transaction.outgoing_operation.current_attempt
+        self.assertEqual(self._signer_nonce(), nonce)
+        other = outgoing.open_operation(
+            "synthetic-common-writer",
+            chain_id=31337,
+            sender=original.operation.intent["sender"],
+            to=self.seller.address,
+            data="0x",
+        )
+        sibling = outgoing.sign_operation(
+            other, outgoing.prepare_operation(other, self.chain), settings.BLOCKCHAIN_OPERATOR_KEY
+        )
+        self.assertEqual((original.nonce, sibling.nonce), (nonce, nonce + 1))
+        original_send = self.chain.send_raw_transaction
+        with patch.object(self.chain, "send_raw_transaction", wraps=original_send) as send:
+            self.assertEqual(swap_execution.recover(swap.transaction_id, client=self.chain), "confirmed")
+        send.assert_called_once_with(bytes(original.raw_transaction))
+        self.assertEqual(self._signer_nonce(), nonce + 1)
+        self.assertEqual(outgoing.broadcast_operation(other, self.chain).tx_hash, sibling.tx_hash)
+        self.assertEqual(self._signer_nonce(), nonce + 2)
 
 
 @chain_available

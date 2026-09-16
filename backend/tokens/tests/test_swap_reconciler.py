@@ -1,114 +1,75 @@
 import inspect
 from datetime import timedelta
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
-from web3 import Web3
 
+from blockchain.models import BlockchainTransaction
 from shared.tests.settlement import save_swap_with_context
 from shared.tests.tenants import make_tenant
 from tokens.models import SwapOrder, TransferOrder
 from tokens.models.choices import SwapOrderStatus, TransferOrderStatus
-from tokens.services import atomic_swap_service
-from tokens.tasks.swap_reconciler import STALE_EXECUTION_AGE, resolve_executing_swaps
-from tokens.tests.swap_state_fixtures import CONFIRMED, attach_claim, swap_service
-
-CONTRACT = "0x" + "9d" * 20
-LEADING_ZERO_HASH = "0a" + "bc" * 31
-
-
-def swap_executed(order_hash):
-    return {"args": {"orderHash": bytes.fromhex(order_hash.removeprefix("0x"))}}
+from tokens.services import atomic_swap_service, swap_execution
+from tokens.tasks.swap_reconciler import resolve_executing_swaps
+from tokens.tests.swap_execution_fixtures import make_execution
+from tokens.tests.swap_state_fixtures import BUYER, CONTRACT, SELLER
 
 
 @override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT, BLOCKCHAIN_OPERATOR_KEY="0x" + "11" * 32)
-@patch("tokens.services.atomic_swap_service.publish_trading_event")
-class AnExecutingSwapIsAskedOfTheChainTest(TestCase):
-
+class TheSweepFindsOnlyStuckSwapsTest(TransactionTestCase):
     def setUp(self):
-        self.tenant = make_tenant("stuck")
-        self.swap = self.tenant.swap
-        self.stale(self.swap)
+        self.enterContext(patch("tokens.services.swap_execution.publish_trading_event"))
+        self.record = self.admit("sweep-first")
 
-    @staticmethod
-    def stale(swap, status=SwapOrderStatus.EXECUTING):
-        SwapOrder.objects.filter(pk=swap.pk).update(
-            status=status, updated_at=timezone.now() - STALE_EXECUTION_AGE - timedelta(minutes=1)
-        )
-        swap.refresh_from_db()
+    def admit(self, label):
+        fixture = make_execution(label)
+        for participant, key in (("seller", SELLER), ("buyer", BUYER)):
+            swap = swap_execution.submit_signature(
+                fixture.swap,
+                fixture.signatures[participant],
+                key.address,
+                user=getattr(fixture, participant).user,
+                participant=participant,
+            )
+        return swap.transaction
 
-    def expire(self):
-        self.enterContext(patch("django.utils.timezone.now", return_value=self.swap.expires_at + timedelta(minutes=1)))
-
-    def service(self, nonce_used):
-        service = swap_service(self)
-        nonce_call = service.get_base_chain_client().load_contract.return_value.functions.isNonceUsed.return_value.call
-        nonce_call.return_value = nonce_used
-        return service
-
-    def status(self):
-        self.swap.refresh_from_db()
-        return self.swap.status
-
-    def test_a_used_nonce_without_a_recorded_transaction_does_not_complete_history(self, _publish):
-        self.assertIsNone(self.service(True).resolve_executing_swap(self.swap))
-
-        self.assertEqual(self.status(), SwapOrderStatus.EXECUTING)
-
-    def test_an_unused_nonce_and_elapsed_deadline_do_not_release_reservations(self, _publish):
-        self.expire()
-
-        self.assertIsNone(self.service(False).resolve_executing_swap(self.swap))
-
-        self.assertEqual(self.status(), SwapOrderStatus.EXECUTING)
-
-    def test_a_swap_whose_nonce_is_unused_and_still_live_is_left_alone(self, _publish):
-        self.assertIsNone(self.service(False).resolve_executing_swap(self.swap))
-
-        self.assertEqual(self.status(), SwapOrderStatus.EXECUTING)
-
-
-@override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT, BLOCKCHAIN_OPERATOR_KEY="0x" + "11" * 32)
-class TheSweepFindsOnlyStuckSwapsTest(TestCase):
-
-    def setUp(self):
-        self.tenant = make_tenant("sweeper")
-        self.swap = self.tenant.swap
-
-    def age(self, status, minutes):
-        SwapOrder.objects.filter(pk=self.swap.pk).update(
-            status=status, updated_at=timezone.now() - timedelta(minutes=minutes)
+    def age(self, record, minutes):
+        BlockchainTransaction.objects.filter(pk=record.pk).update(
+            updated_at=timezone.now() - timedelta(minutes=minutes)
         )
 
-    @patch("tokens.tasks.swap_reconciler.atomic_swap_service")
-    def test_a_swap_executing_for_longer_than_the_grace_period_is_checked(self, service_module):
-        service_module.resolve_executing_swap.return_value = "executed"
-        self.age(SwapOrderStatus.EXECUTING, 20)
+    def test_a_stale_admitted_transaction_is_recovered_by_its_original_uuid(self):
+        self.age(self.record, 20)
+        with patch("tokens.tasks.swap_reconciler.swap_execution.recover", return_value="confirmed") as recover:
+            self.assertEqual(resolve_executing_swaps(), {"checked": 1, "resolved": 1})
+        recover.assert_called_once_with(self.record.pk)
 
-        self.assertEqual(resolve_executing_swaps(), {"checked": 1, "resolved": 1})
+    def test_a_recent_admission_is_left_for_its_durable_job(self):
+        with patch("tokens.tasks.swap_reconciler.swap_execution.recover") as recover:
+            self.assertEqual(resolve_executing_swaps(), {"checked": 0, "resolved": 0})
+        recover.assert_not_called()
 
-    @patch("tokens.tasks.swap_reconciler.atomic_swap_service")
-    def test_a_swap_that_has_just_started_executing_is_left_for_the_broadcast(self, service_module):
-        self.age(SwapOrderStatus.EXECUTING, 1)
+    def test_one_unreachable_transaction_does_not_stop_the_next(self):
+        other = self.admit("sweep-second")
+        self.age(self.record, 30)
+        self.age(other, 20)
+        with patch(
+            "tokens.tasks.swap_reconciler.swap_execution.recover", side_effect=[RuntimeError(), "reverted"]
+        ) as recover:
+            self.assertEqual(resolve_executing_swaps(), {"checked": 2, "resolved": 1})
+        self.assertEqual([call.args[0] for call in recover.call_args_list], [self.record.pk, other.pk])
 
-        self.assertEqual(resolve_executing_swaps(), {"checked": 0, "resolved": 0})
-        self.assertEqual(service_module.mock_calls, [])
-
-    @patch("tokens.tasks.swap_reconciler.atomic_swap_service")
-    def test_a_swap_in_any_other_status_is_not_swept(self, service_module):
-        for status in (SwapOrderStatus.READY, SwapOrderStatus.COMPLETED, SwapOrderStatus.FAILED):
-            self.age(status, 20)
-
-            self.assertEqual(resolve_executing_swaps(), {"checked": 0, "resolved": 0}, status)
-
-    @patch("tokens.tasks.swap_reconciler.atomic_swap_service")
-    def test_one_swap_that_cannot_be_reached_does_not_stop_the_sweep(self, service_module):
-        service_module.resolve_executing_swap.side_effect = RuntimeError("rpc down")
-        self.age(SwapOrderStatus.EXECUTING, 20)
-
-        self.assertEqual(resolve_executing_swaps(), {"checked": 1, "resolved": 0})
+    def test_the_batch_is_bounded_and_starts_with_the_oldest_transaction(self):
+        other = self.admit("sweep-second")
+        self.age(self.record, 30)
+        self.age(other, 20)
+        with patch("tokens.tasks.swap_reconciler.SWAP_EXECUTION_RECOVERY_BATCH", 1), patch(
+            "tokens.tasks.swap_reconciler.swap_execution.recover", return_value="signed"
+        ) as recover:
+            self.assertEqual(resolve_executing_swaps(), {"checked": 1, "resolved": 0})
+        recover.assert_called_once_with(self.record.pk)
 
 
 class UnwindingASwapTwiceCostsTheOrdersNothingExtraTest(TestCase):
@@ -145,28 +106,6 @@ class UnwindingASwapTwiceCostsTheOrdersNothingExtraTest(TestCase):
 
         self.swap.refresh_from_db()
         self.assertEqual(self.swap.error_message, "the chain refused it")
-
-
-@override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT, BLOCKCHAIN_OPERATOR_KEY="0x" + "11" * 32)
-@patch("tokens.services.atomic_swap_service.publish_trading_event")
-class TheChainIsAskedOutsideEveryTransactionTest(TransactionTestCase):
-
-    def setUp(self):
-        self.tenant = make_tenant("outside")
-        self.swap = self.tenant.swap
-        attach_claim(self.swap)
-
-    def test_the_receipt_read_does_not_happen_inside_an_open_transaction(self, _publish):
-        service = swap_service(self)
-        seen = []
-        service.get_base_chain_client().receipt_even_if_reverted = Mock(
-            side_effect=lambda *_: seen.append(transaction.get_connection().in_atomic_block) or CONFIRMED
-        )
-        self.enterContext(patch.object(service, "chain_says_this_swap_executed", Mock(return_value=True)))
-
-        self.assertEqual(service.resolve_executing_swap(self.swap), "executed")
-
-        self.assertEqual(seen, [False])
 
 
 class TwoSwapsCannotShareANonceTest(TestCase):
@@ -211,65 +150,6 @@ class TwoSwapsCannotShareANonceTest(TestCase):
         )
 
         self.assertNotEqual(second.pk, first.pk)
-
-
-@override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT, BLOCKCHAIN_OPERATOR_KEY="0x" + "11" * 32)
-@patch("tokens.services.atomic_swap_service.publish_trading_event")
-class TheReceiptMustNameThisOrderTest(TestCase):
-
-    def setUp(self):
-        self.tenant = make_tenant("receipts")
-        self.swap = self.tenant.swap
-        attach_claim(self.swap, "0xsettled")
-
-    def hashing_service(self):
-        service = swap_service(self)
-        service.get_base_chain_client().chain_id = 84532
-        service.get_base_chain_client().to_checksum_address.side_effect = Web3.to_checksum_address
-        return service
-
-    def service(self, events):
-        service = self.hashing_service()
-        nonce_call = service.get_base_chain_client().load_contract.return_value.functions.isNonceUsed.return_value.call
-        nonce_call.return_value = True
-        contract = Mock()
-        contract.events.SwapExecuted.return_value.process_receipt.return_value = events
-        service.get_base_chain_client().load_contract.return_value = contract
-        service.get_base_chain_client().receipt_even_if_reverted.return_value = {"status": 1}
-        return service
-
-    def test_a_receipt_naming_this_order_completes_the_swap(self, _publish):
-        expected = self.hashing_service().executed_order_hash(self.swap)
-        service = self.service([swap_executed(expected)])
-
-        self.assertEqual(service.resolve_executing_swap(self.swap), "executed")
-
-    def test_a_receipt_naming_another_order_leaves_the_swap_alone(self, _publish):
-        service = self.service([swap_executed("ee" * 32)])
-
-        self.assertIsNone(service.resolve_executing_swap(self.swap))
-
-        self.swap.refresh_from_db()
-        self.assertEqual(self.swap.status, SwapOrderStatus.EXECUTING)
-
-    def test_a_receipt_with_no_swap_event_leaves_the_swap_alone(self, _publish):
-        service = self.service([])
-
-        self.assertIsNone(service.resolve_executing_swap(self.swap))
-
-    def test_the_hash_checked_is_the_digest_the_contract_emits_not_the_struct_hash(self, _publish):
-        service = self.hashing_service()
-
-        self.assertNotEqual(
-            service.executed_order_hash(self.swap).removeprefix("0x"),
-            self.swap.order_hash.removeprefix("0x"),
-        )
-
-    def test_a_hash_that_begins_with_a_zero_survives_being_built_into_an_event(self, _publish):
-        service = self.service([swap_executed(LEADING_ZERO_HASH)])
-        self.enterContext(patch.object(service, "executed_order_hash", Mock(return_value=LEADING_ZERO_HASH)))
-
-        self.assertEqual(service.resolve_executing_swap(self.swap), "executed")
 
 
 class TheNonceGeneratorDoesNotRelyOnTheConstraintTest(TestCase):

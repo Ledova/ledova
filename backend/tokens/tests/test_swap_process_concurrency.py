@@ -14,28 +14,15 @@ from django.db import DatabaseError, connection
 from django.test import TransactionTestCase, override_settings
 from eth_account.messages import encode_typed_data
 
-from blockchain.models import BlockchainTransaction
 from shared.db import atomic
 from shared.tests.tenants import make_tenant
 from tokens.models import SwapOrder, SwapOrderStatus, TransferOrder, TransferOrderType
-from tokens.services.trading_locks import lock_orders
-from tokens.tests.order_action_fixtures import (
-    cancel_for_order,
-    cancel_message_for_order,
-)
 from tokens.tests.swap_state_fixtures import (
     BUYER,
-    CONFIRMED,
     CONTRACT,
-    OTHER_HASH,
-    REVERTED,
     SELLER,
-    TX_HASH,
-    attach_claim,
     make_swap,
-    persisted_outcome,
     swap_service,
-    transaction_for,
 )
 from wallets.models import Wallet
 
@@ -85,6 +72,11 @@ class SwapProcess:
         self.test.assertEqual(self.process.wait(timeout=10), 0, self.error_output())
         return result
 
+    def refused(self):
+        event = self.receive("error")
+        self.test.assertEqual(self.process.wait(timeout=10), 1, self.error_output())
+        return event["refused"]
+
     def close(self):
         if self.process.poll() is None:
             self.process.terminate()
@@ -105,7 +97,7 @@ class SwapWorkersUseOneCurrentClaimTest(TransactionTestCase):
     def setUp(self):
         self.swap = make_swap("process-swap", ready=True)
         for path in (
-            "tokens.services.atomic_swap_service.publish_trading_event",
+            "tokens.services.swap_execution.publish_trading_event",
             "tokens.events.publish_trading_event",
         ):
             publisher = patch(path)
@@ -134,27 +126,6 @@ class SwapWorkersUseOneCurrentClaimTest(TransactionTestCase):
             time.sleep(0.01)
         self.fail(f"Worker never waited for the held {table} row: {observed}")
 
-    def test_two_ready_workers_prepare_only_one_committed_claim(self):
-        first = SwapProcess(self, "execute", self.swap.pk)
-        second = SwapProcess(self, "execute", self.swap.pk)
-        first.send("run")
-        self.assertFalse(first.receive("prepare")["in_atomic"])
-        self.swap.refresh_from_db()
-        self.assertEqual(self.swap.status, SwapOrderStatus.EXECUTING)
-        self.assertIsNotNone(self.swap.transaction_id)
-        with atomic():
-            self.assertEqual(SwapOrder.objects.select_for_update(nowait=True).get(pk=self.swap.pk).status, "executing")
-        second.send("run")
-        self.assertEqual(second.done().get("refused"), "SwapNotReadyException")
-        first.send("prepare")
-        self.assertFalse(first.receive("sign")["in_atomic"])
-        self.assertFalse(first.receive("send")["in_atomic"])
-        self.assertEqual(first.done()["result"], TX_HASH)
-        self.assertEqual(BlockchainTransaction.objects.filter(related_uuid=self.swap.pk).count(), 1)
-        self.swap.refresh_from_db()
-        self.assertEqual(self.swap.transaction.tx_hash, TX_HASH)
-        self.assertEqual(self.swap.sell_order.filled_quantity, 30)
-
     def test_opposite_verified_signatures_recompute_ready_after_the_other_commits(self):
         SwapOrder.objects.filter(pk=self.swap.pk).update(status="created", seller_signature="", buyer_signature="")
         seller = SwapProcess(self, "signature", self.swap.pk, "seller")
@@ -172,23 +143,6 @@ class SwapWorkersUseOneCurrentClaimTest(TransactionTestCase):
         self.assertEqual(self.swap.seller_signature, SELLER.sign_message(signable).signature.hex())
         self.assertEqual(self.swap.buyer_signature, BUYER.sign_message(signable).signature.hex())
 
-    def test_an_overlapping_ready_claim_waits_for_the_first_locked_decision(self):
-        first = SwapProcess(self, "execute_overlap", self.swap.pk)
-        second = SwapProcess(self, "execute", self.swap.pk)
-        first.send("run")
-        self.assertTrue(first.receive("claim_locked")["in_atomic"])
-        second.send("run")
-        self.wait_for_row_lock(second, "tokens_swaporder", first.database_pid)
-        self.assertFalse(BlockchainTransaction.objects.filter(related_uuid=self.swap.pk).exists())
-        first.send("claim")
-        self.assertFalse(first.receive("prepare")["in_atomic"])
-        self.assertEqual(second.done().get("refused"), "SwapNotReadyException")
-        first.send("prepare")
-        first.receive("sign")
-        first.receive("send")
-        self.assertEqual(first.done()["result"], TX_HASH)
-        self.assertEqual(BlockchainTransaction.objects.filter(related_uuid=self.swap.pk).count(), 1)
-
     def test_an_overlapping_signature_waits_and_reads_the_committed_other_signature(self):
         SwapOrder.objects.filter(pk=self.swap.pk).update(status="created", seller_signature="", buyer_signature="")
         seller = SwapProcess(self, "signature_overlap", self.swap.pk, "seller")
@@ -200,88 +154,13 @@ class SwapWorkersUseOneCurrentClaimTest(TransactionTestCase):
         seller.send("store")
         self.assertTrue(seller.receive("signature_locked")["in_atomic"])
         buyer.send("store")
-        self.wait_for_row_lock(buyer, "tokens_swaporder", seller.database_pid)
+        self.wait_for_row_lock(buyer, "customer_accounts_account", seller.database_pid)
         seller.send("signature")
         self.assertEqual(seller.done()["result"], SwapOrderStatus.SELLER_SIGNED)
         self.assertEqual(buyer.done()["result"], SwapOrderStatus.READY)
         self.swap.refresh_from_db()
         self.assertTrue(self.swap.seller_signature)
         self.assertTrue(self.swap.buyer_signature)
-
-    def start_observation(self, kind, outcome):
-        child = SwapProcess(self, kind, self.swap.pk, outcome)
-        child.send("run")
-        self.assertFalse(child.receive("observed")["in_atomic"])
-        return child
-
-    def changed_identity(self, change):
-        with atomic():
-            lock_orders(TransferOrder.objects.filter(pk__in=[self.swap.sell_order_id, self.swap.buy_order_id]))
-            swap = SwapOrder.objects.select_for_update().get(pk=self.swap.pk)
-            transaction = BlockchainTransaction.objects.select_for_update().get(pk=swap.transaction_id)
-            if change == "uuid":
-                transaction.tx_hash = OTHER_HASH
-                transaction.save(update_fields=["tx_hash"])
-                newer = transaction_for(swap, TX_HASH)
-                swap.transaction = newer
-            else:
-                transaction.tx_hash = OTHER_HASH
-                transaction.save(update_fields=["tx_hash"])
-                swap.tx_hash = OTHER_HASH
-            swap.save(update_fields=["transaction", "tx_hash"])
-
-    def test_stale_uuid_and_hash_observations_cannot_apply_success_or_failure(self):
-        for kind in ("receipt", "reconcile"):
-            for change in ("uuid", "hash"):
-                for outcome in ("positive", "negative"):
-                    with self.subTest(kind=kind, change=change, outcome=outcome):
-                        BlockchainTransaction.objects.filter(related_uuid=self.swap.pk).delete()
-                        self.swap.refresh_from_db()
-                        attach_claim(self.swap)
-                        child = self.start_observation(kind, outcome)
-                        self.changed_identity(change)
-                        before = persisted_outcome(self.swap)
-                        child.send("apply")
-                        self.assertIsNone(child.done()["result"])
-                        self.assertEqual(persisted_outcome(self.swap), before)
-
-    def test_a_late_opposite_receipt_cannot_reverse_settlement_or_cancellation(self):
-        for outcome, first_receipt in (("negative", CONFIRMED), ("positive", REVERTED)):
-            with self.subTest(late=outcome):
-                BlockchainTransaction.objects.filter(related_uuid=self.swap.pk).delete()
-                self.swap.refresh_from_db()
-                attach_claim(self.swap)
-                TransferOrder.objects.filter(pk__in=[self.swap.sell_order_id, self.swap.buy_order_id]).update(
-                    filled_quantity=30, status="pending_signature"
-                )
-                child = self.start_observation("receipt", outcome)
-                swap_service(self)._record_receipt(self.swap, self.swap.transaction, TX_HASH, first_receipt)
-                if first_receipt == REVERTED:
-                    order = TransferOrder.objects.get(pk=self.swap.sell_order_id)
-                    issued = cancel_message_for_order(order.owner_account.user_profile.user, order)
-                    signature = SELLER.sign_message(
-                        encode_typed_data(
-                            domain_data=issued["domain"], message_types=issued["types"], message_data=issued["message"]
-                        )
-                    ).signature.to_0x_hex()
-                    cancel_for_order(order.owner_account.user_profile.user, order, issued["digest"], signature)
-                before = persisted_outcome(self.swap)
-                child.send("apply")
-                self.assertIsNone(child.done()["result"])
-                self.assertEqual(persisted_outcome(self.swap), before)
-
-    def test_receipt_waits_for_and_rereads_the_actual_transaction_row(self):
-        transaction = attach_claim(self.swap)
-        child = SwapProcess(self, "receipt_locked", self.swap.pk, "negative")
-        with atomic():
-            current = BlockchainTransaction.objects.select_for_update().get(pk=transaction.pk)
-            current.mark_confirmed(12, OTHER_HASH, 12345)
-            child.send("run")
-            child.receive("applying")
-            self.wait_for_row_lock(child, "blockchain_blockchaintransaction")
-        before = persisted_outcome(self.swap)
-        self.assertIsNone(child.done()["result"])
-        self.assertEqual(persisted_outcome(self.swap), before)
 
     def test_order_locks_use_primary_key_order_while_selection_keeps_best_price(self):
         tenant = make_tenant("match-locks", with_swap=False)
