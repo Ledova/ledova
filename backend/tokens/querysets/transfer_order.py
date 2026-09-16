@@ -1,7 +1,11 @@
 from django.db import models
 from django.db.models import QuerySet
 
-from tokens.models.choices import TransferOrderStatus, TransferOrderType
+from tokens.models.choices import (
+    SwapOrderStatus,
+    TransferOrderStatus,
+    TransferOrderType,
+)
 
 
 class TransferOrderQuerySet(QuerySet):
@@ -39,19 +43,28 @@ class TransferOrderQuerySet(QuerySet):
         )
 
     def committed_sell_quantity(self, token, wallet_address, exclude_uuid=None) -> int:
-        qs = self.ownership_bound().filter(
+        orders = self.ownership_bound().filter(
             token=token,
             wallet_address__iexact=wallet_address,
             order_type=TransferOrderType.SELL,
-            status__in=[TransferOrderStatus.OPEN, TransferOrderStatus.PARTIALLY_FILLED],
+            status__in=[
+                TransferOrderStatus.OPEN,
+                TransferOrderStatus.PARTIALLY_FILLED,
+                TransferOrderStatus.MATCHED,
+                TransferOrderStatus.PENDING_SIGNATURE,
+                TransferOrderStatus.EXECUTING,
+            ],
         )
-
         if exclude_uuid:
-            qs = qs.exclude(uuid=exclude_uuid)
-
-        result = qs.aggregate(total=models.Sum(models.F("quantity") - models.F("filled_quantity")))["total"]
-
-        return result or 0
+            orders = orders.exclude(uuid=exclude_uuid)
+        unfilled = orders.aggregate(total=models.Sum(models.F("quantity") - models.F("filled_quantity")))["total"]
+        held = orders.aggregate(
+            total=models.Sum(
+                "swap_as_sell__share_amount",
+                filter=models.Q(swap_as_sell__status__in=SwapOrderStatus.unsettled()),
+            )
+        )["total"]
+        return (unfilled or 0) + (held or 0)
 
     def order_book_levels(self, token, order_type: str, limit: int = 20):
         qs = self.ownership_bound().open_or_partial().filter(token=token)

@@ -57,12 +57,12 @@ def validate_modifications(
         errors.append("Price must be positive")
 
     if order.order_type == TransferOrderType.SELL and new_quantity is not None and new_quantity > order.quantity:
-        additional_needed = new_quantity - order.quantity
         if available_balance is None:
             errors.append("The order has changed. Please request and sign a new modification message.")
-        elif additional_needed > available_balance:
+        elif remaining > available_balance:
             errors.append(
-                f"Insufficient token balance. Need {additional_needed} more, have {available_balance} available."
+                f"Insufficient token balance. The order would leave {remaining} open, "
+                f"with {available_balance} available."
             )
 
     return errors
