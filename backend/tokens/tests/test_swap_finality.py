@@ -113,6 +113,22 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
             self.assertEqual(SwapOrder.objects.completed_for_token(self.swap.share_token_id).first(), self.swap)
         self.publisher.assert_called_with("swap_completed", str(self.swap.share_token_id))
 
+    def committed(self):
+        with use_operator():
+            return TransferOrder.objects.committed_sell_quantity(self.swap.share_token_id, self.swap.seller_address)
+
+    def test_completion_releases_the_held_commitment_and_keeps_the_settled_remainder(self):
+        self.confirm()
+        with use_operator():
+            TransferOrder.objects.filter(pk=self.fixture.orders[0].pk).update(quantity=25)
+        self.before = self.parents()
+        with override_settings(WALLET_CHAIN_FINALITY_POLICIES=FINALIZED):
+            self.node.advance(head=20, finalized=12)
+            self.assertEqual(self.committed(), 25)
+            self.assertEqual(self.settle(), SwapOrderStatus.COMPLETED)
+        self.assertEqual(self.committed(), 15)
+        self.assertEqual(self.parents()["sell"]["status"], TransferOrderStatus.PARTIALLY_FILLED)
+
     def test_a_confirmed_swap_completes_only_when_the_finalized_head_reaches_its_receipt(self):
         attempt = self.confirm()
         with use_operator():
