@@ -360,7 +360,27 @@ class LegacySwapHeld(APIException):
     expose_code = True
 
 
+class SettlementApprovalConflict(APIException):
+    status_code = 409
+    default_detail = (
+        "Different signed bytes are already recorded for this sender nonce. "
+        "Check the recorded approval before signing another."
+    )
+    default_code = "swap_approval_conflict"
+    expose_code = True
+
+
+class SettlementApprovalPending(APIException):
+    status_code = 409
+    default_detail = (
+        "A signed approval for this token and spender is already recorded and awaiting its outcome. "
+        "Wait for that outcome before preparing another."
+    )
+    default_code = "swap_approval_pending"
+    expose_code = True
+
+
 class SettlementApprovalUncertain(Exception):
     def __init__(self, tx_hash):
-        super().__init__("Approval outcome remains unconfirmed.")
+        super().__init__("Approval recorded; recovery in progress.")
         self.tx_hash = tx_hash

@@ -431,6 +431,9 @@ OPERATOR_ONLY = {
     "authorization and original transaction attribution. Issuer request paths never read the private execution record.",
     "tokens_tokendeployment": "Immutable deployment intent and issuer authority snapshots, written through a bounded "
     "operator journal. Public token lifecycle writes retain their issuer connection.",
+    "tokens_swapapprovalsubmission": "Immutable participant-signed approval bytes, their nonce and hash, and the "
+    "receipt written once. The route records it through a bounded operator transaction before any send and the "
+    "sweep replays it; the participant's own connection never reads a signed broadcast capability.",
     "whitelist_whitelistchange": "Immutable operator-authorized whitelist commands and their outgoing-operation "
     "associations. Public membership reads never read this private recovery journal.",
     "documents_documentread": "Append-only administrative document read records, written on the operator "

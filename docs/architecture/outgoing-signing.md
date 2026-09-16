@@ -13,8 +13,11 @@ The foundation now requires explicit signer admission. Existing and new
 `SigningAccount` rows start `closed`, and a missing row is also closed. A nonce
 counter, successful legacy status or inventory capture never grants admission.
 There is no activation command or admin edit surface; admitted synthetic test
-fixtures establish a test precondition only. Participant-signed approval delivery
-still requires conversion.
+fixtures establish a test precondition only. Participant-signed approvals are the
+one settlement writer outside this foundation, because the backend never holds
+the participant's key: their delivery is journaled and replayed as exact bytes
+by `tokens.SwapApprovalSubmission`, described in the
+[swap settlement reference](../reference/swap-settlement.md#participant-approvals).
 
 `close_signer_admission(chain_id=..., sender=...)` is an operator-only service
 that closes an account and advances its admission generation. It preserves
@@ -114,10 +117,11 @@ Migrations `tokens/0049` and `0050` preserve historical rows, guard admission an
 immutable associations, and refuse reversal after an approval disposition exists.
 The app role cannot read or write approval metadata. The old direct Python
 approval sender is removed. The standalone Hardhat deployment script remains in
-the all-writer inventory; this conversion does not establish participant-signed
-approval delivery recovery or the all-writer signer cutover, which remain #6
-acceptance, or finality, which remains #7's. The swap relayer itself is converted
-(#619) and described in the [swap settlement reference](../reference/swap-settlement.md).
+the all-writer inventory; this conversion does not establish the all-writer
+signer cutover, which remains #6 acceptance, or finality, which remains #7's.
+The swap relayer itself is converted (#619) and the participant-signed approval
+is journaled (#6), both described in the
+[swap settlement reference](../reference/swap-settlement.md).
 
 ## Mint requests
 

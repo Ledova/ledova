@@ -61,6 +61,17 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   attribution. Financial completion no longer follows a receipt: parents and
   reservations stay held until #7's finality consumer, and market last price
   does not move until then.
+- `tokens/0059_swap_approval_submission` (#6) creates the operator-only journal
+  of participant-signed approval broadcasts and its trigger. It adopts nothing:
+  approvals sent before it have no row and are never replayed, and a device
+  that saved only a hash stays on today's behaviour. Stop old API processes
+  before applying it, because an old binary still sends without recording.
+  Afterwards `POST .../swap/approval-broadcast/` waits a few seconds rather
+  than 120 for the receipt, so `swap_approval_unconfirmed` is answered more
+  often and now means recorded and replayed by the five-minute
+  `recover_swap_approval_submissions` sweep. Reversal refuses while any
+  submission row exists; the rows are broadcast capabilities and belong in
+  protected backups.
 - `whitelist/0002_whitelistentry_treasury_addresses` makes
   `WhitelistEntry.wallet` nullable and adds `address` and `label` with a check
   constraint; `whitelist/0003` adds the partial unique constraint on `address`
