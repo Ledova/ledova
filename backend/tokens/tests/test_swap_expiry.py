@@ -6,7 +6,10 @@ from unittest.mock import patch
 from django.db import IntegrityError, connection
 from django.test import SimpleTestCase, TransactionTestCase, override_settings
 from eth_account.messages import encode_typed_data
+from rest_framework.test import APIClient
 
+from blockchain.models import OutgoingOperation
+from feature_flags.models import FeatureFlag
 from ledova_backend.procrastinate_app import app
 from shared.db import atomic
 from shared.tests.schema import migrate_to, restore_every_migration
@@ -73,9 +76,12 @@ class ExpiryFixtures:
             swap = token_transfer_service.match_orders(orders[1], orders[0], match_quantity=10)["swap_order"]
         for party, signer in (("seller", SELLER), ("buyer", BUYER)):
             if party in signed or signed == "both":
-                signature = signer.sign_message(
-                    encode_typed_data(full_message=self.service.get_typed_data(swap))
-                ).signature.hex()
+                signature = (
+                    "0x"
+                    + signer.sign_message(
+                        encode_typed_data(full_message=self.service.get_typed_data(swap))
+                    ).signature.hex()
+                )
                 with self.settings(BLOCKCHAIN_OPERATOR_KEY=""):
                     swap = swap_execution.submit_signature(
                         swap, signature, signer.address, user=tenant.user, participant=party
@@ -100,7 +106,7 @@ class ExpiryFixtures:
 @override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT, BLOCKCHAIN_OPERATOR_KEY="0x" + "11" * 32)
 class UnclaimedSwapExpiryTest(ExpiryFixtures, TransactionTestCase):
 
-    def seed_historical_state(self, swap, *, field, value):
+    def seed_historical_state(self, swap, *, field, value, related_model="tokens.SwapOrder"):
         self.addCleanup(restore_every_migration)
         arguments = settlement_execution_arguments(swap)
         previous = migrate_to([("tokens", "0056_hold_legacy_swaps")])
@@ -113,7 +119,7 @@ class UnclaimedSwapExpiryTest(ExpiryFixtures, TransactionTestCase):
                 to_address=CONTRACT,
                 function_name="executeSwap",
                 function_args=arguments,
-                related_model="tokens.SwapOrder",
+                related_model=related_model,
                 related_uuid=swap.pk,
             )
             if value == "attached":
@@ -194,6 +200,39 @@ class UnclaimedSwapExpiryTest(ExpiryFixtures, TransactionTestCase):
                 before = persisted_outcome(swap)
                 self.assertFalse(expire_unclaimed_swap(swap, self.expired_at(swap)))
                 self.assertEqual(persisted_outcome(swap), before)
+
+    def test_replay_and_expiry_hold_atomic_swap_history_with_blank_or_wrong_related_model(self):
+        FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
+        client = APIClient()
+        for related_model in ("", "tokens.ShareToken"):
+            with self.subTest(related_model=related_model):
+                swap = self.matched_swap(signed="both")
+                self.seed_historical_state(swap, field="transaction", value="orphan", related_model=related_model)
+                before = persisted_outcome(swap)
+                client.force_authenticate(swap.sell_order.owner_account.user_profile.user)
+                with patch("tokens.services.swap_execution.get_base_chain_client") as provider:
+                    response = client.post(
+                        f"/api/v1/trading/orders/{swap.sell_order_id}/swap/sign/",
+                        {
+                            "swap_uuid": str(swap.pk),
+                            "owner_account_uuid": str(swap.sell_order.owner_account_id),
+                            "wallet_uuid": str(swap.seller_wallet_id),
+                            "settlement_digest": swap.settlement_digest,
+                            "signature": swap.seller_signature,
+                            "signer_address": SELLER.address,
+                        },
+                        format="json",
+                    )
+                self.assertEqual(response.status_code, 400, response.content)
+                self.assertEqual(response.json()["detail"], SwapNotReadyException.default_detail)
+                provider.assert_not_called()
+                self.assertEqual(persisted_outcome(swap), before)
+                self.assertFalse(OutgoingOperation.objects.exists())
+                released = expire_unclaimed_swap(swap, self.expired_at(swap))
+                after = persisted_outcome(swap)
+                self.assertFalse(released, (after[0]["status"], [order["filled_quantity"] for order in after[2]]))
+                self.assertEqual(after, before)
+        self.publisher.assert_not_called()
 
     def test_legacy_unsigned_and_ready_rows_cannot_be_released_from_absent_claim_data(self):
         for ready in (False, True):
