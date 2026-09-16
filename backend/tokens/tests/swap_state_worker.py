@@ -85,6 +85,24 @@ def run(mode, row_id, detail):
 
         report("expiring")
         result = expire_unclaimed_swap(row, datetime.fromisoformat(detail))
+    elif mode == "settle":
+        from blockchain.models import SignedAttempt
+        from tokens.services import swap_execution
+        from tokens.tests.swap_execution_fixtures import (
+            ExecutionNode,
+            execution_receipt,
+        )
+
+        settings.WALLET_CHAIN_FINALITY_POLICIES = {f"evm:{settings.BLOCKCHAIN_CHAIN_ID}": {"mode": "depth", "depth": 1}}
+        record = row.transaction
+        node = ExecutionNode(record.function_args)
+        attempt = SignedAttempt.objects.get(tx_hash=record.tx_hash)
+        node.receipts[record.tx_hash] = execution_receipt(
+            attempt, record.function_args, status=int(record.status == "confirmed")
+        )
+        node.advance(head=12)
+        report("settling")
+        result = swap_execution.settle(record.pk, client=node.client)
     elif mode == "match":
         with atomic():
             matches = token_transfer_service.find_matching_orders(row)

@@ -36,6 +36,7 @@ SCOPED_TEST_LABELS = (
     "tokens.tests.test_swap_settlement_context.ScopedSwapSettlementRouteTest",
     "tokens.tests.test_swap_execution_recovery.ScopedSwapExecutionRecoveryTest",
     "tokens.tests.test_swap_execution_storage.ScopedSwapExecutionAppStorageTest",
+    "tokens.tests.test_swap_finality.ScopedSwapFinalityTest",
     "tokens.tests.test_legacy_swap_hold.ScopedLegacySwapHoldTest",
     "tokens.tests.test_swap_parent_identity.ScopedSwapParentIdentityTest",
     "tokens.tests.test_order_submissions.ScopedOrderSubmissionRecoveryTest",

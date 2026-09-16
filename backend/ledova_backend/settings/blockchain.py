@@ -5,6 +5,7 @@ from django.core.exceptions import ImproperlyConfigured
 
 from ledova_backend.chain_safety import (
     APPROVED_FINALITY_POLICIES,
+    local_finality_policies,
     parse_bitcoin_network,
     parse_evm_chain_id,
 )
@@ -16,6 +17,9 @@ BLOCKCHAIN_CHAIN_ID = parse_evm_chain_id(os.environ.get("BLOCKCHAIN_CHAIN_ID", "
 ETHEREUM_CHAIN_ID = parse_evm_chain_id(os.environ.get("ETHEREUM_CHAIN_ID", "11155111"), "ETHEREUM_CHAIN_ID")
 BITCOIN_NETWORK = parse_bitcoin_network(os.environ.get("BITCOIN_NETWORK", "test"))
 WALLET_CHAIN_FINALITY_POLICIES = {network: dict(policy) for network, policy in APPROVED_FINALITY_POLICIES.items()}
+WALLET_CHAIN_FINALITY_POLICIES.update(
+    local_finality_policies(os.environ.get("LOCAL_CHAIN_FINALITY_DEPTH", ""), BLOCKCHAIN_CHAIN_ID)
+)
 EVM_ASSET_TRANSFER_HISTORY_ENABLED = read_bool("EVM_ASSET_TRANSFER_HISTORY_ENABLED", default=False)
 
 BLOCKCHAIN_OPERATOR_KEY = os.environ.get("BLOCKCHAIN_OPERATOR_KEY", "")

@@ -9709,6 +9709,7 @@ export type TradingEventType =
   | 'order_created'
   | 'order_matched'
   | 'order_modified'
+  | 'swap_completed'
   | 'swap_expired'
   | 'swap_failed'
   | 'swap_signed';

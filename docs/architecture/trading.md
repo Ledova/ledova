@@ -22,7 +22,11 @@ that context. The completing signature, original execution admission and recover
 job commit together. Recovery journals signed bytes and a shared signer nonce
 before sending; receipt I/O stays outside locks. A verified receipt updates the
 private execution evidence while the swap and its financial reservations remain
-pending for finality.
+pending for finality. The same sweep settles the swap once its network's approved
+finality policy is satisfied and the inclusion re-verifies: a successful swap
+completes and its parents keep their fill, a final revert releases the
+reservation once, and anything unknown, waiting or orphaned holds. Local chains
+hold until an explicit depth override is configured.
 
 The expiry sweep releases only matches whose eligibility marker and recorded
 state prove they have no execution claim or competing reservation. Legacy,
