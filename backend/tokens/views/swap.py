@@ -1,11 +1,12 @@
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
+from web3 import Web3
 
 from shared.views import AuthenticatedListViewSet
 from tokens.models import SwapOrder
 from tokens.serializers.swap_order import SwapOrderListSerializer
-from tokens.trading_wallet_access import resolve_verified_evm_wallets
+from wallets.models import Wallet
 
 
 class SwapOrderViewSet(AuthenticatedListViewSet):
@@ -25,14 +26,30 @@ class SwapOrderViewSet(AuthenticatedListViewSet):
         if not wallet_address:
             raise ValidationError({"wallet_address": "This query parameter is required."})
 
-        authorized_wallets = resolve_verified_evm_wallets(request.user, [wallet_address])
+        wallet_address = wallet_address.strip()
+        if not Web3.is_address(wallet_address):
+            raise NotFound("Wallet not found.")
+        viewer_wallets = {
+            str(wallet_id): (str(account_id), address.casefold())
+            for wallet_id, account_id, address in Wallet.objects.owned_by(request.user)
+            .verified_evm()
+            .values_list("uuid", "user_account_id", "address")
+        }
+        requested_wallet_ids = [
+            wallet_id
+            for wallet_id, (_account_id, address) in viewer_wallets.items()
+            if address == wallet_address.casefold()
+        ]
+        if not requested_wallet_ids:
+            raise NotFound("Wallet not found.")
 
-        swap_orders = self.filter_queryset(self.get_queryset().for_party_wallets(authorized_wallets.wallet_ids))
+        swap_orders = self.filter_queryset(self.get_queryset().for_party_wallets(requested_wallet_ids))
+        context = {**self.get_serializer_context(), "viewer_wallets": viewer_wallets}
 
         page = self.paginate_queryset(swap_orders)
         if page is not None:
-            serializer = self.get_serializer(page, many=True)
+            serializer = self.get_serializer(page, many=True, context=context)
             return self.get_paginated_response(serializer.data)
 
-        serializer = self.get_serializer(swap_orders, many=True)
+        serializer = self.get_serializer(swap_orders, many=True, context=context)
         return Response(serializer.data)

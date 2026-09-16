@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from operators.settlement import deployment_for
@@ -30,6 +31,12 @@ class RecordedSwapDisplay:
         return result
 
 
+class SwapViewerPartySerializer(serializers.Serializer):
+    user_role = serializers.ChoiceField(choices=("buyer", "seller"))
+    owner_account_uuid = serializers.UUIDField()
+    wallet_uuid = serializers.UUIDField()
+
+
 class SwapOrderListSerializer(RecordedSwapDisplay, serializers.ModelSerializer):
 
     status_display = serializers.CharField(source="get_status_display", read_only=True)
@@ -40,6 +47,24 @@ class SwapOrderListSerializer(RecordedSwapDisplay, serializers.ModelSerializer):
     buy_order_uuid = serializers.UUIDField(source="buy_order_id", read_only=True)
     seller_has_signed = serializers.BooleanField(read_only=True)
     buyer_has_signed = serializers.BooleanField(read_only=True)
+    viewer_parties = serializers.SerializerMethodField()
+
+    @extend_schema_field(SwapViewerPartySerializer(many=True))
+    def get_viewer_parties(self, swap_order):
+        if not swap_order.settlement_protocol_version:
+            return []
+        context = recorded_settlement_context(swap_order)
+        wallets = self.context.get("viewer_wallets", {})
+        return [
+            {
+                "user_role": role,
+                "owner_account_uuid": context[role]["owner_account_uuid"],
+                "wallet_uuid": context[role]["wallet_uuid"],
+            }
+            for role in ("seller", "buyer")
+            if wallets.get(context[role]["wallet_uuid"])
+            == (context[role]["owner_account_uuid"], context[role]["address"].casefold())
+        ]
 
     class Meta:
         model = SwapOrder
@@ -59,6 +84,7 @@ class SwapOrderListSerializer(RecordedSwapDisplay, serializers.ModelSerializer):
             "buy_order_uuid",
             "seller_has_signed",
             "buyer_has_signed",
+            "viewer_parties",
             "expires_at",
             "created_at",
         ]

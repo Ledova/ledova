@@ -3,7 +3,9 @@ from datetime import timedelta
 from unittest.mock import patch
 
 from django.conf import settings
+from django.db import connections
 from django.test import TestCase, override_settings
+from django.test.utils import CaptureQueriesContext
 from drf_spectacular.generators import SchemaGenerator
 from eth_account.messages import _hash_eip191_message, encode_typed_data
 from jsonschema import Draft7Validator, RefResolver
@@ -260,6 +262,139 @@ class SwapSettlementRouteTest(APITransactionTestCase):
         }
         self.url = f"/api/v1/trading/orders/{self.seller_order.pk}/swap"
 
+    def listed_swap(self, address=SELLER.address):
+        response = self.client.get("/api/v1/trading/swaps/", {"wallet_address": address})
+        self.assertEqual(response.status_code, 200, response.content)
+        return next(row for row in response.json()["results"] if row["uuid"] == str(self.swap.pk))
+
+    def test_list_exposes_both_owned_parties_independent_of_requested_address(self):
+        seller_list = self.listed_swap()
+        buyer_list = self.listed_swap(BUYER.address)
+        expected = [
+            {
+                "userRole": role,
+                "ownerAccountUuid": str(order.owner_account_id),
+                "walletUuid": str(order.wallet_id),
+            }
+            for role, order in (("seller", self.seller_order), ("buyer", self.buyer_order))
+        ]
+        self.assertEqual(seller_list["viewerParties"], expected)
+        self.assertEqual(buyer_list, seller_list)
+        self.assertNotIn("settlementContext", seller_list)
+        self.assertNotIn("settlementDigest", seller_list)
+        for party, order in zip(seller_list["viewerParties"], (self.seller_order, self.buyer_order)):
+            response = self.client.get(
+                f"/api/v1/trading/orders/{order.pk}/swap/",
+                {
+                    "swap_uuid": seller_list["uuid"],
+                    "owner_account_uuid": party["ownerAccountUuid"],
+                    "wallet_uuid": party["walletUuid"],
+                },
+            )
+            self.assertEqual(response.status_code, 200, response.content)
+            self.assertEqual(response.json()["userRole"], party["userRole"])
+            self.assertEqual(response.json()["settlementDigest"], self.swap.settlement_digest)
+
+    def test_list_excludes_unverified_recorded_wallet_despite_verified_same_address(self):
+        with use_operator():
+            Wallet.objects.create(
+                user_account_id=self.seller_order.owner_account_id,
+                address=SELLER.address,
+                chain="ethereum",
+                verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
+            )
+            Wallet.objects.filter(pk=self.swap.seller_wallet_id).update(verification_status="PENDING")
+        row = self.listed_swap(BUYER.address)
+        self.assertEqual([party["userRole"] for party in row["viewerParties"]], ["buyer"])
+        refused = self.client.get(self.url + "/", self.identity)
+        self.assertEqual(refused.status_code, 404, refused.content)
+        with use_operator():
+            Wallet.objects.filter(pk=self.swap.seller_wallet_id).update(
+                verification_status=WALLET_VERIFICATION_STATUS_VERIFIED
+            )
+        self.assertEqual([party["userRole"] for party in self.listed_swap()["viewerParties"]], ["seller", "buyer"])
+
+    def test_list_excludes_a_recorded_wallet_whose_address_changed(self):
+        with use_operator():
+            Wallet.objects.filter(pk=self.swap.seller_wallet_id).update(address="0x" + "76" * 20)
+        self.assertEqual([party["userRole"] for party in self.listed_swap(BUYER.address)["viewerParties"]], ["buyer"])
+        refused = self.client.get(self.url + "/", self.identity)
+        self.assertEqual(refused.status_code, 404, refused.content)
+
+    def test_list_excludes_a_recorded_wallet_after_ownership_changes(self):
+        with use_operator():
+            other = make_tenant("context-list-new-owner", with_swap=False)
+            Wallet.objects.filter(pk=self.swap.seller_wallet_id).update(user_account=other.account)
+        row = self.listed_swap(BUYER.address)
+        self.assertEqual([party["userRole"] for party in row["viewerParties"]], ["buyer"])
+        refused = self.client.get(self.url + "/", self.identity)
+        self.assertEqual(refused.status_code, 404, refused.content)
+        self.client.force_authenticate(other.user)
+        self.assertEqual(self.listed_swap()["viewerParties"], [])
+        refused = self.client.get(self.url + "/", {**self.identity, "owner_account_uuid": str(other.account.pk)})
+        self.assertEqual(refused.status_code, 404, refused.content)
+
+    def test_list_excludes_a_recorded_wallet_that_is_no_longer_on_an_evm_chain(self):
+        with use_operator():
+            Wallet.objects.filter(pk=self.swap.seller_wallet_id).update(chain="bitcoin")
+        row = self.listed_swap(BUYER.address)
+        self.assertEqual([party["userRole"] for party in row["viewerParties"]], ["buyer"])
+        refused = self.client.get(self.url + "/", self.identity)
+        self.assertEqual(refused.status_code, 404, refused.content)
+
+    def test_viewer_party_schema_is_required_read_only_and_contains_only_selector_fields(self):
+        document = SchemaGenerator().get_schema(request=None, public=True)
+        schema = document["components"]["schemas"]["SwapOrderList"]
+        self.assertIn("viewerParties", schema["required"])
+        parties = schema["properties"]["viewerParties"]
+        self.assertTrue(parties["readOnly"])
+        self.assertEqual(parties["type"], "array")
+        party = document["components"]["schemas"][parties["items"]["$ref"].rsplit("/", 1)[-1]]
+        fields = {"userRole", "ownerAccountUuid", "walletUuid"}
+        self.assertEqual(set(party["properties"]), fields)
+        self.assertEqual(set(party["required"]), fields)
+        validator = Draft7Validator(schema, resolver=RefResolver.from_schema(document))
+        row = self.listed_swap()
+        self.assertEqual(list(validator.iter_errors(row)), [])
+        self.assertFalse(validator.is_valid({key: value for key, value in row.items() if key != "viewerParties"}))
+        self.assertFalse(
+            validator.is_valid({**row, "viewerParties": [{**row["viewerParties"][0], "userRole": "other"}]})
+        )
+        self.assertNotIn("settlementContext", row)
+        self.assertNotIn("settlementDigest", row)
+
+    def test_viewer_wallet_queries_are_bounded_across_multiple_swaps_without_private_parent_joins(self):
+        self.listed_swap()
+        with CaptureQueriesContext(connections[current_alias()]) as initial_queries:
+            initial = self.client.get("/api/v1/trading/swaps/", {"wallet_address": SELLER.address})
+        self.assertEqual(initial.status_code, 200, initial.content)
+        self.assertEqual(len(initial.json()["results"]), 1)
+        with use_operator():
+            for offset in range(1, 9):
+                save_swap_with_context(
+                    sell_order=self.seller_order,
+                    buy_order=self.buyer_order,
+                    share_token=self.swap.share_token,
+                    payment_asset=self.swap.payment_asset,
+                    seller_address=SELLER.address,
+                    buyer_address=BUYER.address,
+                    share_amount=10,
+                    payment_amount=1500,
+                    nonce=self.swap.nonce + offset,
+                )
+        with CaptureQueriesContext(connections[current_alias()]) as repeated_queries:
+            repeated = self.client.get("/api/v1/trading/swaps/", {"wallet_address": SELLER.address})
+        self.assertEqual(repeated.status_code, 200, repeated.content)
+        rows = repeated.json()["results"]
+        self.assertEqual(len(rows), 9)
+        self.assertTrue(all(row["viewerParties"] == initial.json()["results"][0]["viewerParties"] for row in rows))
+        self.assertEqual(len(initial_queries), len(repeated_queries))
+        for captured in (initial_queries, repeated_queries):
+            sql = [query["sql"] for query in captured]
+            self.assertEqual(len([query for query in sql if f'FROM "{Wallet._meta.db_table}"' in query]), 1)
+            self.assertFalse(any(f'JOIN "{TransferOrder._meta.db_table}"' in query for query in sql))
+            self.assertFalse(any(f'FROM "{TransferOrder._meta.db_table}"' in query for query in sql))
+
     def test_signing_schema_requires_recorded_context_and_decimal_string_chain_id(self):
         document = SchemaGenerator().get_schema(request=None, public=True)
         response = self.client.get(self.url + "/", self.identity)
@@ -403,6 +538,18 @@ class SwapSettlementRouteTest(APITransactionTestCase):
                 chain="base",
                 verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
             )
+            Wallet.objects.create(
+                user_account_id=self.seller_order.owner_account_id,
+                address=BUYER.address,
+                chain="ethereum",
+                verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
+            )
+            Wallet.objects.create(
+                user_account=buyer.account,
+                address=SELLER.address,
+                chain="ethereum",
+                verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
+            )
             order = TransferOrder.objects.create(
                 token=self.swap.share_token,
                 payment_asset=self.swap.payment_asset,
@@ -436,6 +583,21 @@ class SwapSettlementRouteTest(APITransactionTestCase):
                         "owner_account_uuid": str(recorded_order.owner_account_id),
                         "wallet_uuid": str(recorded_order.wallet_id),
                     }
+                    listed = self.client.get(
+                        "/api/v1/trading/swaps/", {"wallet_address": recorded_order.wallet_address}
+                    )
+                    self.assertEqual(listed.status_code, 200, listed.content)
+                    row = next(row for row in listed.json()["results"] if row["uuid"] == str(swap.pk))
+                    self.assertEqual(
+                        row["viewerParties"],
+                        [
+                            {
+                                "userRole": role,
+                                "ownerAccountUuid": str(recorded_order.owner_account_id),
+                                "walletUuid": str(recorded_order.wallet_id),
+                            }
+                        ],
+                    )
                     url = f"/api/v1/trading/orders/{recorded_order.pk}/swap/"
                     response = self.client.get(url, identity)
                     self.assertEqual(response.status_code, 200, response.content)
