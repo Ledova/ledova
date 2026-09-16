@@ -1,7 +1,6 @@
 from rest_framework.exceptions import NotFound
 
 from tokens.exceptions import (
-    LegacySwapHeld,
     SettlementContextChanged,
     SwapExpiredException,
     SwapNotReadyException,
@@ -31,8 +30,6 @@ def resolve_exact_swap_context(user, order_id, identity, snapshot=None):
     swap = SwapOrder.objects.filter(pk=identity["swap_uuid"]).first()
     if swap is None or (snapshot is not None and snapshot.pk != swap.pk):
         raise NotFound("Swap not found.")
-    if not swap.settlement_protocol_version:
-        raise LegacySwapHeld()
     context = recorded_settlement_context(swap)
     role = next(
         (
@@ -42,7 +39,6 @@ def resolve_exact_swap_context(user, order_id, identity, snapshot=None):
             and context[role]["owner_account_uuid"] == str(order.owner_account_id)
             and context[role]["wallet_uuid"] == str(wallet.pk)
             and context[role]["payment_asset_uuid"] == (str(order.payment_asset_id) if order.payment_asset_id else None)
-            and context[role]["address"].casefold() == wallet.address.casefold()
         ),
         None,
     )
