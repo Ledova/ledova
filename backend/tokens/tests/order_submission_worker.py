@@ -51,7 +51,7 @@ def run():
     whitelist = Mock()
     whitelist.is_whitelisted.return_value = True
     balance = Mock()
-    balance.get_token_balance.return_value = 100
+    balance.get_token_balance.return_value = 10**30
     original_spend = service.spend
     original_create = token_transfer_service.create_order_and_match
     original_find = service._find_submission

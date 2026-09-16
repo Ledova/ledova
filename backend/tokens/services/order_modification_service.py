@@ -4,6 +4,8 @@ from typing import Optional
 
 from django.utils import timezone
 
+from operators.settlement import require_deployment
+from shared.utils.token_amounts import token_base_units
 from tokens.exceptions import (
     OrderModificationConflictException,
     OrderModificationException,
@@ -64,6 +66,24 @@ def validate_modifications(
                 f"Insufficient token balance. The order would leave {remaining} open, "
                 f"with {available_balance} available."
             )
+
+    if (
+        order.order_type == TransferOrderType.BUY
+        and available_balance is not None
+        and remaining > 0
+        and effective_price > 0
+    ):
+        symbol = order.payment_asset.symbol
+        try:
+            commitment = token_base_units(remaining * effective_price, require_deployment(order.payment_asset).decimals)
+        except ValueError:
+            errors.append(f"The order's payment cannot be represented in {symbol} base units at this price.")
+        else:
+            if commitment > available_balance:
+                errors.append(
+                    f"Insufficient {symbol} balance. The order would commit {commitment} base units, "
+                    f"with {available_balance} available."
+                )
 
     return errors
 
@@ -141,10 +161,31 @@ def apply_order_modification(order, challenge, available_balance, ip_address=Non
     return order, changes
 
 
-def available_modification_balance(order: TransferOrder, quantity: int) -> Optional[int]:
+def available_modification_balance(
+    order: TransferOrder, quantity: int, price: Optional[Decimal] = None
+) -> Optional[int]:
     if order.order_type == TransferOrderType.SELL and quantity > order.quantity:
         return _get_available_balance(order)
+    if order.order_type == TransferOrderType.BUY and (
+        quantity > order.quantity or (price is not None and price > order.price_per_share)
+    ):
+        return _get_available_payment(order)
     return None
+
+
+def _get_available_payment(order: TransferOrder) -> int:
+    deployment = require_deployment(order.payment_asset)
+    try:
+        total_balance = share_token_service.get_token_balance(deployment.contract_address, order.wallet_address)
+    except Exception:
+        logger.error("Could not fetch payment balance for order %s", order.pk)
+        raise OrderModificationException("Unable to verify payment balance. Please try again later.")
+
+    committed = TransferOrder.objects.committed_buy_payment(
+        order.payment_asset, order.wallet_address, deployment.decimals, exclude_uuid=order.uuid
+    )
+
+    return max(0, total_balance - committed)
 
 
 def _get_available_balance(order: TransferOrder) -> int:

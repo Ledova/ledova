@@ -306,15 +306,19 @@ class TransferOrderOwnershipBindingTest(APITestCase):
         self.assertEqual(sell_levels[0]["price_per_share"], Decimal("1.20"))
         self.assertEqual(TransferOrder.objects.best_ask(self.token), valid_candidate)
 
+    @patch("tokens.services.share_token_service")
     @patch("tokens.events.publish_trading_event")
     @patch("tokens.services.token_transfer_service.whitelist")
     @patch("tokens.services.token_transfer_service.get_base_chain_client")
-    def test_service_persists_wallet_and_account_snapshot(self, get_client, whitelist_service, _publish_trading_event):
+    def test_service_persists_wallet_and_account_snapshot(
+        self, get_client, whitelist_service, _publish_trading_event, share_tokens
+    ):
         chain_client = Mock()
         chain_client.is_valid_address.return_value = True
         chain_client.to_checksum_address.side_effect = Web3.to_checksum_address
         get_client.return_value = chain_client
         whitelist_service.is_whitelisted.return_value = True
+        share_tokens.get_token_balance.return_value = 10**30
 
         service = token_transfer_service
         self.enterContext(patch.object(service, "find_matching_orders", return_value=[]))

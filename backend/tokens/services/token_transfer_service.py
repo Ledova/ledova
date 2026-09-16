@@ -7,9 +7,11 @@ from integrations.base_chain.exceptions import (
     BaseChainContractError,
     BaseChainTransactionError,
 )
-from operators.settlement import deployment_for
+from operators.settlement import deployment_for, require_deployment
 from shared.db import atomic
 from shared.utils.blockchain import decode_exception_to_message
+from shared.utils.token_amounts import token_base_units
+from tokens.constants import MAX_SETTLEMENT_UNITS
 from tokens.exceptions import (
     CreateOrderInsufficientBalanceException,
     CreateOrderNotWhitelistedException,
@@ -341,6 +343,25 @@ def create_order_and_match(
         available = balance - TransferOrder.objects.committed_sell_quantity(token, canonical_wallet_address)
         if available < quantity:
             raise CreateOrderInsufficientBalanceException(max(available, 0), quantity)
+
+    if order_type == TransferOrderType.BUY:
+        from tokens.services import share_token_service
+
+        deployment = require_deployment(payment_asset)
+        try:
+            needed = token_base_units(quantity * price_per_share, deployment.decimals)
+        except ValueError as exc:
+            raise InvalidSettlementAmountException() from exc
+        if needed > MAX_SETTLEMENT_UNITS:
+            raise InvalidSettlementAmountException()
+        balance = share_token_service.get_token_balance(deployment.contract_address, canonical_wallet_address)
+        available = balance - TransferOrder.objects.committed_buy_payment(
+            payment_asset, canonical_wallet_address, deployment.decimals
+        )
+        if available < needed:
+            raise CreateOrderInsufficientBalanceException(
+                max(available, 0), needed, token_symbol=payment_asset.symbol, decimals=deployment.decimals
+            )
 
     order = TransferOrder.objects.create(
         token=token,

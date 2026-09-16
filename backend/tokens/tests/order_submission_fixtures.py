@@ -81,7 +81,9 @@ class SubmissionFixtures:
         self.whitelist = Mock()
         self.whitelist.is_whitelisted.return_value = True
         self.balance = Mock()
-        self.balance.get_token_balance.return_value = 100
+        self.share_balance = 100
+        self.payment_balance = 10**30
+        self.balance.get_token_balance.side_effect = self.provider_balance
         self.events = []
         for target, replacement in (
             ("tokens.services.token_transfer_service.get_base_chain_client", self.chain),
@@ -104,6 +106,9 @@ class SubmissionFixtures:
         patcher = patch(target, **kwargs)
         self.addCleanup(patcher.stop)
         return patcher.start()
+
+    def provider_balance(self, contract, address):
+        return self.share_balance if contract == self.tenant.deployed_token.contract_address else self.payment_balance
 
     def published(self, event, payload):
         self.events.append((event, payload, current_alias(), connections[current_alias()].in_atomic_block))

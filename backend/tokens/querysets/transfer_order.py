@@ -1,11 +1,20 @@
 from django.db import models
 from django.db.models import QuerySet
 
+from shared.utils.token_amounts import token_base_units
 from tokens.models.choices import (
     SwapOrderStatus,
     TransferOrderStatus,
     TransferOrderType,
 )
+
+COMMITTED_STATUSES = [
+    TransferOrderStatus.OPEN,
+    TransferOrderStatus.PARTIALLY_FILLED,
+    TransferOrderStatus.MATCHED,
+    TransferOrderStatus.PENDING_SIGNATURE,
+    TransferOrderStatus.EXECUTING,
+]
 
 
 class TransferOrderQuerySet(QuerySet):
@@ -47,13 +56,7 @@ class TransferOrderQuerySet(QuerySet):
             token=token,
             wallet_address__iexact=wallet_address,
             order_type=TransferOrderType.SELL,
-            status__in=[
-                TransferOrderStatus.OPEN,
-                TransferOrderStatus.PARTIALLY_FILLED,
-                TransferOrderStatus.MATCHED,
-                TransferOrderStatus.PENDING_SIGNATURE,
-                TransferOrderStatus.EXECUTING,
-            ],
+            status__in=COMMITTED_STATUSES,
         )
         if exclude_uuid:
             orders = orders.exclude(uuid=exclude_uuid)
@@ -65,6 +68,27 @@ class TransferOrderQuerySet(QuerySet):
             )
         )["total"]
         return (unfilled or 0) + (held or 0)
+
+    def committed_buy_payment(self, payment_asset, wallet_address, decimals, exclude_uuid=None) -> int:
+        orders = self.ownership_bound().filter(
+            payment_asset=payment_asset,
+            wallet_address__iexact=wallet_address,
+            order_type=TransferOrderType.BUY,
+            status__in=COMMITTED_STATUSES,
+        )
+        if exclude_uuid:
+            orders = orders.exclude(uuid=exclude_uuid)
+        unfilled = sum(
+            token_base_units((row["quantity"] - row["filled_quantity"]) * row["price_per_share"], decimals)
+            for row in orders.values("quantity", "filled_quantity", "price_per_share")
+        )
+        held = orders.aggregate(
+            total=models.Sum(
+                "swap_as_buy__payment_amount",
+                filter=models.Q(swap_as_buy__status__in=SwapOrderStatus.unsettled()),
+            )
+        )["total"]
+        return unfilled + (held or 0)
 
     def order_book_levels(self, token, order_type: str, limit: int = 20):
         qs = self.ownership_bound().open_or_partial().filter(token=token)

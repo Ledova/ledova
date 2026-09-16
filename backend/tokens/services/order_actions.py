@@ -215,7 +215,7 @@ def _preflight(action, *, executing=False):
         if executing:
             return None
         raise
-    return available_modification_balance(action.order, action.new_quantity)
+    return available_modification_balance(action.order, action.new_quantity, action.new_price_per_share)
 
 
 def _fields(action):
