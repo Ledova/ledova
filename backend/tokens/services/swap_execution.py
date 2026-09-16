@@ -5,6 +5,7 @@ from uuid import UUID
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import connections
+from django.db.models import Q
 from django.utils import timezone
 from eth_account import Account
 from eth_utils import event_abi_to_log_topic
@@ -208,7 +209,9 @@ def submit_signature(swap_order, signature, signer_address, *, user, participant
         if (
             swap.transaction_id is not None
             or swap.tx_hash
-            or BlockchainTransaction.objects.filter(related_model="tokens.SwapOrder", related_uuid=swap.pk).exists()
+            or BlockchainTransaction.objects.filter(
+                Q(related_model="tokens.SwapOrder") | Q(tx_type=TransactionType.ATOMIC_SWAP), related_uuid=swap.pk
+            ).exists()
         ):
             raise SwapNotReadyException()
         try:
