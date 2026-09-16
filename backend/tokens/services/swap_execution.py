@@ -431,6 +431,8 @@ def recover(transaction_id, *, client=None):
             )
         except Exception as exc:
             refusal = decode_exception_to_message(exc, "Swap execution could not be prepared")
+            if isinstance(exc, outgoing.OutgoingPreparationError) and exc.revert_message:
+                refusal = exc.revert_message
             if outgoing.fail_preparing(claim):
                 _project(transaction, claim, refusal)
                 return OutgoingStatus.FAILED

@@ -16,6 +16,7 @@ from blockchain.models import (
     SigningAccount,
 )
 from shared.db import APP_ALIAS, atomic, current_alias
+from shared.utils.blockchain import decode_exception_to_message
 
 MAX_DATABASE_INTEGER = 2**63 - 1
 MAX_TRANSACTION_VALUE = 2**256 - 1
@@ -25,6 +26,12 @@ OPERATOR_REQUIRED = "Outgoing transaction storage requires an operator connectio
 
 class OutgoingTransactionError(ValueError):
     pass
+
+
+class OutgoingPreparationError(OutgoingTransactionError):
+    def __init__(self, exception):
+        super().__init__("The outgoing transaction could not be prepared.")
+        self.revert_message = decode_exception_to_message(exception, "")
 
 
 @dataclass(frozen=True)
@@ -210,8 +217,8 @@ def prepare_operation(claim, client):
             raise OutgoingTransactionError("The transaction gas limit must be positive.")
     except OutgoingTransactionError:
         raise
-    except Exception:
-        raise OutgoingTransactionError("The outgoing transaction could not be prepared.") from None
+    except Exception as exc:
+        raise OutgoingPreparationError(exc) from None
     return PreparedTransaction(
         claim,
         intent["chain_id"],
