@@ -166,16 +166,10 @@ class TransferOrder(BaseModel):
     def has_pending_swap(self):
         from .choices import SwapOrderStatus
 
-        pending_statuses = [
-            SwapOrderStatus.CREATED,
-            SwapOrderStatus.SELLER_SIGNED,
-            SwapOrderStatus.BUYER_SIGNED,
-            SwapOrderStatus.READY,
-            SwapOrderStatus.EXECUTING,
-        ]
+        unsettled = SwapOrderStatus.unsettled()
         return (
-            self.swap_as_sell.filter(status__in=pending_statuses).exists()
-            or self.swap_as_buy.filter(status__in=pending_statuses).exists()
+            self.swap_as_sell.filter(status__in=unsettled).exists()
+            or self.swap_as_buy.filter(status__in=unsettled).exists()
         )
 
     def partial_match_with(self, other_order: "TransferOrder", match_quantity: int):

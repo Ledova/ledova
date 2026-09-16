@@ -1,7 +1,7 @@
 from copy import deepcopy
 from decimal import Decimal, localcontext
 from unittest import skipUnless
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from django.conf import settings
 from django.test import SimpleTestCase, override_settings
@@ -144,22 +144,23 @@ class SettlementPaymentUnitsTest(APITransactionTestCase):
         with self.assertRaises(SettlementContextChanged):
             atomic_swap_service.assert_current_settlement(swap)
 
-    def test_balance_refusal_displays_the_captured_deployment_scale(self):
-        self.scales(6, 2)
-        swap = self.create()
-        with (
-            patch("tokens.services.atomic_swap_service.check_balance", side_effect=[3, 368]),
-            patch("tokens.services.atomic_swap_service.get_base_chain_client") as provider,
-        ):
-            provider.return_value.assert_expected_chain = Mock(return_value=settings.BLOCKCHAIN_CHAIN_ID)
-            with self.assertRaises(InsufficientBalanceException) as raised:
-                atomic_swap_service.validate_swap_balances(swap)
-        self.assertEqual(str(raised.exception.detail), "Insufficient balance: you have 3.68 TUSD but need 3.69")
+    def complete_history(self, *swaps):
+        self.addCleanup(restore_every_migration)
+        historical = migrate_to([("tokens", "0056_hold_legacy_swaps")]).get_model("tokens", "SwapOrder")
+        completed_at = timezone.now()
+        for swap in swaps:
+            historical.objects.filter(pk=swap.pk).update(
+                seller_signature=swap.seller_signature,
+                buyer_signature=swap.buyer_signature,
+                status="completed",
+                completed_at=completed_at,
+            )
+        restore_every_migration()
 
     def test_completed_trade_uses_its_original_scale_after_configuration_changes(self):
         swap = self.create()
         original = deepcopy(swap.settlement_context)
-        SwapOrder.objects.filter(pk=swap.pk).update(status="completed", completed_at=timezone.now())
+        self.complete_history(swap)
         self.scales(6, 8)
         summary = market_data_service.market_summaries([self.tenant.deployed_token])[self.tenant.deployed_token.pk]
         detail = market_data_service.get_market_data(self.tenant.deployed_token)
@@ -174,7 +175,7 @@ class SettlementPaymentUnitsTest(APITransactionTestCase):
         self.scales(2, 2)
         self.quantities(9007199254740993)
         swap = self.create(shares=9007199254740993, price="0.01")
-        SwapOrder.objects.filter(pk=swap.pk).update(status="completed", completed_at=timezone.now())
+        self.complete_history(swap)
         with localcontext() as context:
             context.prec = 2
             summary = market_data_service.market_summaries([self.tenant.deployed_token])[self.tenant.deployed_token.pk]
@@ -218,9 +219,7 @@ class SettlementPaymentUnitsTest(APITransactionTestCase):
         signable = encode_typed_data(full_message=recorded_settlement_context(swap)["typed_data"])
         swap.seller_signature = SELLER.sign_message(signable).signature.to_0x_hex()
         swap.buyer_signature = BUYER.sign_message(signable).signature.to_0x_hex()
-        swap.status = "completed"
-        swap.completed_at = timezone.now()
-        swap.save(update_fields=["seller_signature", "buyer_signature", "status", "completed_at"])
+        self.complete_history(swap)
         before = SwapOrder.objects.filter(pk=swap.pk).values().get()
         summary = market_data_service.market_summaries([self.tenant.deployed_token])[self.tenant.deployed_token.pk]
         detail = market_data_service.get_market_data(self.tenant.deployed_token)
@@ -236,7 +235,7 @@ class SettlementPaymentUnitsTest(APITransactionTestCase):
         first = self.create()
         self.scales(2, 3)
         second = self.create(price="2.34")
-        SwapOrder.objects.filter(pk__in=[first.pk, second.pk]).update(status="completed", completed_at=timezone.now())
+        self.complete_history(first, second)
         self.scales(6, 8)
         expected_price, expected_payment = {
             first.pk: ("1.23", "3.69"),

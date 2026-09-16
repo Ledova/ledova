@@ -1,24 +1,25 @@
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
-from rest_framework.test import APITestCase
+from rest_framework.test import APITransactionTestCase
 
 from companies.models import Company
 from feature_flags.models import FeatureFlag
+from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import (
     make_associated,
     make_eligible,
     make_tenant,
     open_to_investors,
 )
-from tokens.models import ShareToken, SwapOrder
+from tokens.models import ShareToken
 from tokens.services.market_data_service import market_summaries
 
 DIRECTORY = "/api/v1/directory/tokens/"
 TRADING = "/api/v1/trading/tokens/"
 
 
-class MarketSummaryTest(APITestCase):
+class MarketSummaryTest(APITransactionTestCase):
     def setUp(self):
         FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
         self.alice = make_tenant("alice")
@@ -26,7 +27,12 @@ class MarketSummaryTest(APITestCase):
         make_eligible(self.alice)
         open_to_investors(self.alice)
         open_to_investors(self.bob)
-        SwapOrder.objects.filter(pk=self.alice.swap.pk).update(status="completed", completed_at=timezone.now())
+        self.addCleanup(restore_every_migration)
+        historical = migrate_to([("tokens", "0056_hold_legacy_swaps")])
+        historical.get_model("tokens", "SwapOrder").objects.filter(pk=self.alice.swap.pk).update(
+            status="completed", completed_at=timezone.now()
+        )
+        restore_every_migration()
         self.client.force_authenticate(self.alice.user)
 
     @staticmethod

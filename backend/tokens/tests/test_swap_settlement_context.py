@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.db import IntegrityError, connections
-from django.test import TestCase, override_settings
+from django.test import TransactionTestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from drf_spectacular.generators import SchemaGenerator
 from eth_account.messages import _hash_eip191_message, encode_typed_data
@@ -13,7 +13,8 @@ from rest_framework.test import APIClient, APITransactionTestCase
 from web3 import Web3
 
 from assets.models import AssetChainDeployment
-from blockchain.models import TransactionStatus
+from blockchain.models import SignedAttempt, TransactionStatus
+from blockchain.tests.outgoing_fixtures import admitted_signer
 from feature_flags.models import FeatureFlag
 from shared.db import atomic, current_alias, set_principal, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
@@ -21,12 +22,13 @@ from shared.tests.settlement import save_swap_with_context
 from shared.tests.tenants import make_tenant
 from tokens.exceptions import SettlementContextChanged, SwapSignatureException
 from tokens.models import ShareToken, SwapOrderStatus, TransferOrder
-from tokens.services import atomic_swap_service
+from tokens.services import atomic_swap_service, swap_execution
 from tokens.services.atomic_swap_service import MAX_UINT256
 from tokens.services.settlement_context import (
     recorded_settlement_context,
 )
 from tokens.services.trading_order_access import require_pending_settlement
+from tokens.tests.swap_execution_fixtures import ExecutionNode, execution_receipt
 from tokens.tests.swap_state_fixtures import (
     BUYER,
     CONFIRMED,
@@ -35,6 +37,7 @@ from tokens.tests.swap_state_fixtures import (
     TX_HASH,
     make_swap,
     persisted_outcome,
+    sign_swap,
     swap_service,
 )
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
@@ -51,7 +54,7 @@ def json_schema_with_nullability(value):
 
 
 @override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT)
-class SwapSettlementContextTest(TestCase):
+class SwapSettlementContextTest(TransactionTestCase):
     def test_payment_selection_preserves_nullable_sides_and_buyer_precedence(self):
         tenant = make_tenant("context-payment-selection")
         selected = tenant.refs.stablecoin
@@ -170,11 +173,11 @@ class SwapSettlementContextTest(TestCase):
             altered[section][field] = value
             signature = "0x" + SELLER.sign_message(encode_typed_data(full_message=altered)).signature.hex()
             with self.subTest(field=field), self.assertRaises(SwapSignatureException):
-                service.submit_signature(swap, signature, SELLER.address)
+                sign_swap(swap, signature, SELLER.address)
         signature = "0x" + SELLER.sign_message(encode_typed_data(full_message=original)).signature.hex()
-        with patch("tokens.services.atomic_swap_service.publish_trading_event") as event:
-            service.submit_signature(swap, signature, SELLER.address)
-            service.submit_signature(swap, signature, SELLER.address)
+        with patch("tokens.services.swap_execution.publish_trading_event") as event:
+            sign_swap(swap, signature, SELLER.address)
+            sign_swap(swap, signature, SELLER.address)
         self.assertEqual(event.call_count, 1)
         service.get_base_chain_client().load_contract.assert_not_called()
 
@@ -182,65 +185,62 @@ class SwapSettlementContextTest(TestCase):
 @override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT, BLOCKCHAIN_OPERATOR_KEY="0x" + "33" * 32)
 class SwapSettlementExecutionTest(APITransactionTestCase):
     def setUp(self):
-        event = patch("tokens.services.atomic_swap_service.publish_trading_event")
+        event = patch("tokens.services.swap_execution.publish_trading_event")
         event.start()
         self.addCleanup(event.stop)
 
     def test_claim_records_complete_original_signed_args_and_receipt_uses_original_domain(self):
         swap = make_swap("context-claim", ready=True)
-        service = swap_service(self)
-        claimed, transaction = service._claim_execution(swap.pk)
+        claimed = sign_swap(swap, swap.seller_signature, SELLER.address)
+        record = claimed.transaction
         context = recorded_settlement_context(claimed)
-        self.assertEqual(transaction.function_args.get("deadline"), context["typed_data"]["message"]["deadline"])
-        self.assertEqual(transaction.function_args["sellerSignature"], swap.seller_signature)
-        self.assertEqual(transaction.function_args["settlement"]["digest"], swap.settlement_digest)
-        self.assertEqual(transaction.to_address, context["typed_data"]["domain"]["verifyingContract"])
-        service._record_sent(claimed, transaction, TX_HASH)
-        with use_operator():
-            claimed.refresh_from_db()
-        contract = service.get_base_chain_client().load_contract.return_value
-        contract.events.SwapExecuted.return_value.process_receipt.return_value = [
-            {"args": {"orderHash": swap.settlement_digest}}
-        ]
-        service.get_base_chain_client().receipt_even_if_reverted.return_value = CONFIRMED
+        self.assertEqual(record.function_args["deadline"], context["typed_data"]["message"]["deadline"])
+        self.assertEqual(record.function_args["sellerSignature"], swap.seller_signature)
+        self.assertEqual(record.function_args["settlement"]["digest"], swap.settlement_digest)
+        self.assertEqual(record.to_address, context["typed_data"]["domain"]["verifyingContract"])
+        admitted_signer(chain_id=settings.BLOCKCHAIN_CHAIN_ID, sender=record.from_address)
+        node = ExecutionNode(record.function_args)
+        node.confirmed = False
+        self.assertEqual(swap_execution.recover(record.pk, client=node.client), "signed")
+        attempt = SignedAttempt.objects.get()
+        node.receipts[attempt.tx_hash] = execution_receipt(attempt, record.function_args)
         with override_settings(ATOMIC_SWAP_ADDRESS="0x" + "72" * 20):
-            self.assertEqual(service.resolve_executing_swap(claimed), "executed")
-        service.get_base_chain_client().load_contract.assert_called_with(
-            "AtomicSwap", context["typed_data"]["domain"]["verifyingContract"]
-        )
-        with use_operator():
-            claimed.refresh_from_db()
-        self.assertEqual(claimed.status, SwapOrderStatus.COMPLETED)
+            self.assertEqual(swap_execution.recover(record.pk, client=node.client), "confirmed")
+        node.client.load_contract.assert_called_with("AtomicSwap", context["typed_data"]["domain"]["verifyingContract"])
+        claimed.refresh_from_db()
+        self.assertEqual(claimed.status, SwapOrderStatus.EXECUTING)
+        self.assertEqual(claimed.transaction.status, TransactionStatus.CONFIRMED)
+        self.assertEqual(len(node.broadcasts), 1)
 
-    def test_drift_before_claim_prevents_claim_and_drift_after_prepare_keeps_reservation(self):
+    def test_drift_refuses_admission_or_releases_only_the_still_unsigned_intent(self):
         swap = make_swap("context-send-drift", ready=True)
-        service = swap_service(self)
         before = persisted_outcome(swap)
         with override_settings(ATOMIC_SWAP_ADDRESS="0x" + "71" * 20), self.assertRaises(SettlementContextChanged):
-            service.execute_swap(swap)
+            sign_swap(swap, swap.seller_signature, SELLER.address)
         self.assertEqual(persisted_outcome(swap), before)
+        claimed = sign_swap(swap, swap.seller_signature, SELLER.address)
+        record = claimed.transaction
+        admitted_signer(chain_id=settings.BLOCKCHAIN_CHAIN_ID, sender=record.from_address)
+        node = ExecutionNode(record.function_args)
 
-        def prepare(_swap):
-            ShareToken.objects.filter(pk=swap.share_token_id).update(contract_address="0x" + "70" * 20)
-            return b"synthetic-unused"
+        def drift(label):
+            if label == "estimate":
+                ShareToken.objects.filter(pk=swap.share_token_id).update(contract_address="0x" + "70" * 20)
 
-        with patch.object(service, "validate_swap_balances"), patch.object(
-            service, "_prepare_attempt", side_effect=prepare
-        ):
-            with self.assertRaises(SettlementContextChanged):
-                service.execute_swap(swap)
-        with use_operator():
-            swap.refresh_from_db()
-        self.assertEqual(swap.status, SwapOrderStatus.EXECUTING)
-        self.assertEqual(swap.transaction.status, TransactionStatus.PENDING)
-        self.assertEqual(swap.sell_order.filled_quantity, 30)
-        service.get_base_chain_client().send_raw_transaction.assert_not_called()
+        node.probe = drift
+        self.assertEqual(swap_execution.recover(record.pk, client=node.client), "failed")
+        claimed.refresh_from_db()
+        self.assertEqual(claimed.status, SwapOrderStatus.FAILED)
+        self.assertEqual(claimed.transaction.status, TransactionStatus.FAILED)
+        self.assertEqual(claimed.sell_order.filled_quantity, 20)
+        self.assertFalse(SignedAttempt.objects.exists())
+        node.client.send_raw_transaction.assert_not_called()
 
 
 @override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT)
 class SwapSettlementRouteTest(APITransactionTestCase):
     def setUp(self):
-        event = patch("tokens.services.atomic_swap_service.publish_trading_event")
+        event = patch("tokens.services.swap_execution.publish_trading_event")
         event.start()
         self.addCleanup(event.stop)
         with use_operator():
@@ -508,7 +508,7 @@ class SwapSettlementRouteTest(APITransactionTestCase):
             before = persisted_outcome(self.swap)
         fields = {"swap_uuid": "swapUuid", "owner_account_uuid": "ownerAccountUuid", "wallet_uuid": "walletUuid"}
         with patch("tokens.services.atomic_swap_service.get_base_chain_client") as provider, patch(
-            "tokens.services.atomic_swap_service.publish_trading_event"
+            "tokens.services.swap_execution.publish_trading_event"
         ) as event:
             provider.side_effect = AssertionError("Incomplete identity must not reach a provider")
             for action in ("", "approval-status", "approval-data", "sign", "approval-broadcast"):
@@ -537,7 +537,7 @@ class SwapSettlementRouteTest(APITransactionTestCase):
         with use_operator():
             before = persisted_outcome(self.swap)
         with patch("tokens.services.atomic_swap_service.get_base_chain_client") as provider, patch(
-            "tokens.services.atomic_swap_service.publish_trading_event"
+            "tokens.services.swap_execution.publish_trading_event"
         ) as event:
             provider.side_effect = AssertionError("Invalid digest must not reach a provider")
             for action in ("approval-status", "approval-data", "sign", "approval-broadcast"):

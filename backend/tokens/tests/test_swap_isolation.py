@@ -3,11 +3,12 @@ from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from rest_framework.test import APITestCase
+from rest_framework.test import APITransactionTestCase
 
 from assets.models import Asset, AssetChainDeployment
 from companies.models import Company
 from feature_flags.models import FeatureFlag
+from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.settlement import save_swap_with_context
 from shared.tests.under_the_policies import (
     only_what_the_policies_admit_to,
@@ -27,7 +28,7 @@ from wallets.models import Wallet
 User = get_user_model()
 
 
-class SwapQuerysetIsScopedToTheCallerTest(APITestCase):
+class SwapQuerysetIsScopedToTheCallerTest(APITransactionTestCase):
 
     def setUp(self):
         FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
@@ -98,6 +99,14 @@ class SwapQuerysetIsScopedToTheCallerTest(APITestCase):
             expires_at=timezone.now() + timedelta(hours=1),
         )
 
+    def _historical_outcome(self, status):
+        self.addCleanup(restore_every_migration)
+        historical = migrate_to([("tokens", "0056_hold_legacy_swaps")])
+        historical.get_model("tokens", "SwapOrder").objects.filter(pk=self.owner_swap.pk).update(
+            status=status, completed_at=timezone.now() if status == SwapOrderStatus.COMPLETED else None
+        )
+        restore_every_migration()
+
     def _visible(self, user):
         with only_what_the_policies_admit_to(user):
             return set(SwapOrder.objects.values_list("uuid", flat=True))
@@ -164,9 +173,7 @@ class SwapQuerysetIsScopedToTheCallerTest(APITestCase):
         self.assertEqual(response.json(), {"walletAddress": "This query parameter is required."})
 
     def test_a_completed_swap_is_not_listed_as_awaiting_signature(self):
-        self.owner_swap.status = SwapOrderStatus.COMPLETED
-        self.owner_swap.completed_at = timezone.now()
-        self.owner_swap.save(update_fields=["status", "completed_at"])
+        self._historical_outcome(SwapOrderStatus.COMPLETED)
         self.client.force_authenticate(self.owner)
 
         response = self.client.get("/api/v1/trading/swaps/", {"wallet_address": self.owner_wallet.address})
@@ -174,8 +181,7 @@ class SwapQuerysetIsScopedToTheCallerTest(APITestCase):
         self.assertEqual(response.data["results"], [])
 
     def test_a_swap_being_executed_is_not_listed_either(self):
-        self.owner_swap.status = SwapOrderStatus.EXECUTING
-        self.owner_swap.save(update_fields=["status"])
+        self._historical_outcome(SwapOrderStatus.EXECUTING)
         self.client.force_authenticate(self.owner)
 
         response = self.client.get("/api/v1/trading/swaps/", {"wallet_address": self.owner_wallet.address})

@@ -211,27 +211,6 @@ class SwapOrder(DerivesWalletsFromOrders, BaseModel):
             update_fields.append("transaction")
         self.save(update_fields=update_fields)
 
-    def mark_completed(self):
-        self.status = SwapOrderStatus.COMPLETED
-        self.completed_at = timezone.now()
-        self.save(update_fields=["status", "completed_at", "updated_at"])
-
-        from .choices import TransferOrderStatus
-
-        for order in [self.sell_order, self.buy_order]:
-            order.tx_hash = self.tx_hash
-
-            if order.filled_quantity >= order.quantity:
-                order.status = TransferOrderStatus.COMPLETED
-                order.completed_at = self.completed_at
-                update_fields = ["status", "completed_at", "tx_hash", "updated_at"]
-            else:
-
-                order.status = TransferOrderStatus.OPEN
-                update_fields = ["status", "tx_hash", "updated_at"]
-
-            order.save(update_fields=update_fields)
-
     def mark_failed(self, error_message: str):
         if self.status == SwapOrderStatus.FAILED:
             return

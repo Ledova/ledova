@@ -8,6 +8,7 @@ from rest_framework.test import APITransactionTestCase
 
 from feature_flags.models import FeatureFlag
 from shared.db import APP_ALIAS, OPERATOR_ALIAS, acting_for, principal_of, use_operator
+from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_eligible, make_tenant, open_to_investors
 from tokens.models import SwapOrder, TransferOrder
@@ -23,7 +24,12 @@ class ScopedMarketReadsTest(RunsOnTheScopedConnection, APITransactionTestCase):
             self.issuer = make_tenant("market-issuer")
             make_eligible(self.reader)
             open_to_investors(self.issuer)
-            SwapOrder.objects.filter(pk=self.issuer.swap.pk).update(status="completed", completed_at=timezone.now())
+            self.addCleanup(restore_every_migration)
+            historical = migrate_to([("tokens", "0056_hold_legacy_swaps")])
+            historical.get_model("tokens", "SwapOrder").objects.filter(pk=self.issuer.swap.pk).update(
+                status="completed", completed_at=timezone.now()
+            )
+            restore_every_migration()
         self.client.force_authenticate(self.reader.user)
         self.statements = []
 
