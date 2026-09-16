@@ -344,7 +344,7 @@ def _record_broadcast(claim, tx_hash, error):
         operation.save(update_fields=["last_error", "acknowledged_at", "updated_at"])
 
 
-def broadcast_operation(claim, client):
+def broadcast_operation(claim, client, *, before_send=None):
     _boundary()
     with atomic(durable=True):
         operation = _current(claim, lock=True)
@@ -358,6 +358,8 @@ def broadcast_operation(claim, client):
     try:
         if client.assert_expected_chain() != operation.intent["chain_id"]:
             raise OutgoingTransactionError("The endpoint is on a different chain from the outgoing intent.")
+        if before_send is not None:
+            before_send()
         if _hex(client.send_raw_transaction(raw), 32) != attempt.tx_hash:
             error = "UnexpectedTransactionHash"
     except Exception as exc:
