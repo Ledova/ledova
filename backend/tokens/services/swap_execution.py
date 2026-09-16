@@ -159,6 +159,7 @@ def submit_signature(swap_order, signature, signer_address, *, user, participant
         raise NotFound("Swap not found.")
     snapshot = SwapOrder.objects.get(pk=swap_order.pk)
     recorded_settlement_context(snapshot)
+    terms = swap_terms(snapshot)
     signer = Web3.to_checksum_address(signer_address)
     if signer == Web3.to_checksum_address(snapshot.seller_address):
         is_seller = True
@@ -168,6 +169,8 @@ def submit_signature(swap_order, signature, signer_address, *, user, participant
         raise SwapSignatureException("Signer is neither the buyer nor seller")
     if not atomic_swap_service.verify_signature(snapshot, signature, signer):
         raise SwapSignatureException("Invalid signature")
+    if swap_terms(snapshot) != terms:
+        raise SwapSignatureException("The swap changed while its signature was being checked")
     with use_operator(), atomic(durable=True):
         _lock_authority(snapshot, user.pk, participant)
         swap = _lock_swap(snapshot)
@@ -328,7 +331,16 @@ def _verify_receipt(transaction, operation, client, receipt):
     ]
     if len(matches) != 1:
         raise SwapNotReadyException("The receipt has no unique original swap event.")
-    values = event.process_log(matches[0])["args"]
+    log = matches[0]
+    if (
+        outgoing._hex(log["transactionHash"], 32) != operation.current_attempt.tx_hash
+        or outgoing._hex(log["blockHash"], 32) != outgoing._hex(receipt["blockHash"], 32)
+        or type(log["blockNumber"]) is not int
+        or log["blockNumber"] != receipt["blockNumber"]
+        or log.get("removed", False) is not False
+    ):
+        raise SwapNotReadyException("The swap event does not belong to the original receipt.")
+    values = event.process_log(log)["args"]
     arguments = transaction.function_args
     if outgoing._hex(values["orderHash"], 32) != arguments["settlement"]["digest"]:
         raise SwapNotReadyException()
