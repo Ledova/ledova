@@ -16,11 +16,12 @@ from tokens.models import (
     TransferOrderStatus,
     TransferOrderType,
 )
-from tokens.services import atomic_swap_service
+from tokens.services import atomic_swap_service, swap_execution
 from tokens.services.settlement_context import (
     recorded_settlement_context,
     settlement_execution_arguments,
 )
+from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 
 CONTRACT = "0x" + "9d" * 20
@@ -45,7 +46,12 @@ def make_swap(label, *, ready=False):
     tenant = make_tenant(label)
     orders = []
     for key, order_type in ((SELLER, TransferOrderType.SELL), (BUYER, TransferOrderType.BUY)):
-        wallet = Wallet.objects.create(user_account=tenant.account, address=key.address, chain="base")
+        wallet = Wallet.objects.create(
+            user_account=tenant.account,
+            address=key.address,
+            chain="base",
+            verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
+        )
         orders.append(
             TransferOrder.objects.create(
                 token=tenant.deployed_token,
@@ -110,4 +116,11 @@ def persisted_outcome(swap):
         SwapOrder.objects.filter(pk=swap.pk).values().get(),
         list(BlockchainTransaction.objects.filter(related_uuid=swap.pk).order_by("pk").values()),
         list(TransferOrder.objects.filter(pk__in=[swap.sell_order_id, swap.buy_order_id]).order_by("pk").values()),
+    )
+
+
+def sign_swap(swap, signature, signer_address, participant="seller"):
+    party = swap.sell_order if participant == "seller" else swap.buy_order
+    return swap_execution.submit_signature(
+        swap, signature, signer_address, user=party.owner_account.user_profile.user, participant=participant
     )
