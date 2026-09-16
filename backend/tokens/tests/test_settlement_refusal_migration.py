@@ -17,7 +17,7 @@ class SettlementRefusalMigrationTest(SubmissionFixtures, APITransactionTestCase)
         self.addCleanup(restore_every_migration)
         historical = migrate_to([("tokens", "0054_nav_update_guards")])
         signed = self.signed_body(self.body(order_type="sell"))
-        self.balance.get_token_balance.return_value = 0
+        self.share_balance = 0
         refused = self.create(signed)
         self.assertEqual(refused.status_code, 400, refused.content)
         self.assertEqual(refused.json()["refusal"]["code"], "insufficient_balance")

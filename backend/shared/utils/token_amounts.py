@@ -1,4 +1,4 @@
-from decimal import Decimal, localcontext
+from decimal import ROUND_CEILING, Decimal, localcontext
 
 
 def token_full_units(raw: int, decimals: int) -> Decimal:
@@ -29,3 +29,9 @@ def token_base_units(amount: Decimal, decimals: int) -> int:
     if units >= 2**256:
         raise ValueError("Token amount exceeds uint256")
     return units
+
+
+def token_base_units_ceiling(amount: Decimal, decimals: int) -> int:
+    with localcontext() as context:
+        context.prec = 78
+        return int(amount.scaleb(decimals).to_integral_value(rounding=ROUND_CEILING))
