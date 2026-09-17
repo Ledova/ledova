@@ -35,6 +35,38 @@ review; exact amounts come from the fetched context before signing, never from
 rounded numeric list fields. Signed sides remain visible only while another
 owned side still needs a signature. Legacy history stays held for operator review.
 
+## The settlement admission matrix
+
+Every `swap/*` route on the order resource resolves the exact swap context and
+re-checks admission before it answers. The resolver,
+`resolve_exact_swap_context` (`trading_order_access.py`), binds the caller's
+order, account and verified wallet to the swap's recorded settlement context
+and names the caller's party; anything else is an ordinary not-found. The
+re-check, `require_pending_settlement`, requires a pending status, no
+transaction, a live signed deadline and a settlement context that still matches
+current configuration.
+
+| Route | Resolves | Re-checks |
+| --- | --- | --- |
+| `GET swap/` | identity lookup | the re-check result is reported as `admission_refusal` rather than raised, so a review read never 409s |
+| `POST swap/sign` | exact identity | `submit_signature` re-reads the swap, verifies the signature against the recorded terms, and under the operator lock re-authorizes the actor, account and wallet (`_lock_authority`) and re-checks drift, deadline and status before storing |
+| `GET swap/approval-status` | identity lookup | re-check, then a fresh resolve and re-check before answering |
+| `GET swap/approval-data` | identity lookup | re-check, then a fresh resolve and re-check before answering, on both outcomes |
+| `POST swap/approval-broadcast` | exact identity | the service re-checks before decoding, re-invokes the route's fresh resolver, and the recording transaction re-checks the locked swap and its digest |
+
+`backend/tokens/tests/test_settlement_admission_rules.py` holds the matrix as a
+rule: every `swap/*` action in the trading viewset must reach the resolver and a
+re-check — its own, or a declared service leg that itself performs its under-lock
+re-check — so a new route that skips either fails that test by name.
+
+Delivery and recovery re-authorize the *recorded* actor under the lock
+(`_lock_command(authority=True)` to `_lock_authority`), never a fresh one. The
+finality consumer `settle` deliberately performs no actor authorization at all:
+finality is not an actor's action, and the rule records that exemption — its own
+body reaches neither the resolver, the re-check nor the authority lock. The swap
+*list* is a wallet-scoped read under row-level security, not an admission, and
+is outside this matrix.
+
 New matches calculate payment from the share quantity and execution price using
 the deployed payment token's decimals. Calculation and context capture share one
 deployment snapshot. The total must be exactly representable, positive and fit
