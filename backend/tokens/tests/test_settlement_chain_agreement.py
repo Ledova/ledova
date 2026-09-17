@@ -1,6 +1,7 @@
 import secrets
 from datetime import timedelta
 from decimal import Decimal
+from unittest.mock import patch
 from uuid import uuid4
 
 from django.conf import settings
@@ -15,7 +16,7 @@ from shared.constants import BLOCKCHAIN_BASE
 from shared.db import use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
-from tokens.exceptions import InvalidSettlementAmountException, SettlementContextChanged
+from tokens.exceptions import SettlementChainDisagreement, SettlementContextChanged
 from tokens.models import (
     OrderSubmission,
     ShareToken,
@@ -31,7 +32,11 @@ from tokens.services.settlement_context import (
     capture_settlement_context,
     recorded_settlement_context,
 )
-from tokens.tests.order_submission_fixtures import COUNTERPARTY, SubmissionFixtures
+from tokens.tests.order_submission_fixtures import (
+    COUNTERPARTY,
+    OTHER_KEY,
+    SubmissionFixtures,
+)
 from tokens.tests.swap_state_fixtures import CONTRACT, make_swap
 from wallets.models import Wallet
 
@@ -128,9 +133,9 @@ class SettlementChainAgreementTest(TransactionTestCase):
         for token in refused:
             with self.subTest(token=token.symbol):
                 swap = unsigned_swap(tenant, token)
-                with self.assertRaises(InvalidSettlementAmountException) as caught:
+                with self.assertRaises(SettlementChainDisagreement) as caught:
                     capture_settlement_context(swap, deployment)
-                self.assertEqual(caught.exception.detail.code, "invalid_settlement_amount")
+                self.assertEqual(caught.exception.detail.code, "settlement_chain_disagreement")
                 self.assertEqual(str(caught.exception.detail), CHAIN_DISAGREEMENT)
                 self.assertEqual(swap.order_hash, "")
                 self.assertFalse(SwapOrder.objects.filter(share_token=token).exists())
@@ -164,15 +169,57 @@ class SettlementChainRefusalJournalTest(SubmissionFixtures, APITransactionTestCa
         self.assertEqual(refused.status_code, 400, refused.content)
         snapshot = refused.json()
         self.assertEqual(snapshot["status"], "refused")
-        self.assertEqual(snapshot["refusal"], {"code": "invalid_settlement_amount", "detail": CHAIN_DISAGREEMENT})
+        self.assertEqual(snapshot["refusal"], {"code": "settlement_chain_disagreement", "detail": CHAIN_DISAGREEMENT})
         self.assertIsNone(snapshot["order"])
         self.assertIsNone(snapshot["match"])
         self.assertEqual(self.recover().json(), snapshot)
         with use_operator():
             recorded = OrderSubmission.objects.get(owner_account=self.tenant.account, submission_id=self.submission_id)
-            self.assertEqual(recorded.refusal_code, "invalid_settlement_amount")
+            self.assertEqual(recorded.refusal_code, "settlement_chain_disagreement")
             self.assertEqual(recorded.refusal_detail, CHAIN_DISAGREEMENT)
             self.assertIsNotNone(recorded.resolved_at)
+            self.assertEqual(TransferOrder.objects.count(), before_orders)
+            self.assertEqual(SwapOrder.objects.count(), before_swaps)
+        self.assertEqual(self.events, [])
+
+    def test_the_token_wide_chain_refusal_is_not_retried_per_candidate(self):
+        with use_operator():
+            token = deployed_token(self.tenant, FOREIGN_CHAIN_ID, "FGN", FOREIGN_ADDRESS)
+            sellers = [
+                Wallet.objects.create(
+                    user_account=self.tenant.account,
+                    address=address,
+                    chain="base",
+                    verification_status="VERIFIED",
+                )
+                for address in (COUNTERPARTY.address, OTHER_KEY.address)
+            ]
+            for seller, price in zip(sellers, ("2.00", "2.50")):
+                TransferOrder.objects.create(
+                    token=token,
+                    payment_asset=self.tenant.refs.stablecoin,
+                    wallet=seller,
+                    owner_account=self.tenant.account,
+                    wallet_address=seller.address,
+                    order_type=TransferOrderType.SELL,
+                    quantity=10,
+                    price_per_share=Decimal(price),
+                )
+            before_orders = TransferOrder.objects.count()
+            before_swaps = SwapOrder.objects.count()
+
+        with patch(
+            "tokens.services.atomic_swap_service.capture_settlement_context",
+            side_effect=capture_settlement_context,
+        ) as capture:
+            refused = self.create(self.signed_body(self.body(token=str(token.pk))))
+
+        self.assertEqual(refused.status_code, 400, refused.content)
+        self.assertEqual(capture.call_count, 1)
+        self.assertEqual(
+            refused.json()["refusal"], {"code": "settlement_chain_disagreement", "detail": CHAIN_DISAGREEMENT}
+        )
+        with use_operator():
             self.assertEqual(TransferOrder.objects.count(), before_orders)
             self.assertEqual(SwapOrder.objects.count(), before_swaps)
         self.assertEqual(self.events, [])
@@ -252,5 +299,6 @@ class ScopedSettlementChainAgreementTest(RunsOnTheScopedConnection, APITransacti
         context = capture_settlement_context(admitted, deployment)
 
         self.assertEqual(context["share_token"]["uuid"], str(agreeing.pk))
-        with self.assertRaises(InvalidSettlementAmountException):
+        with self.assertRaises(SettlementChainDisagreement) as caught:
             capture_settlement_context(refused, deployment)
+        self.assertEqual(caught.exception.detail.code, "settlement_chain_disagreement")

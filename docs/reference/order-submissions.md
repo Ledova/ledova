@@ -38,17 +38,19 @@ describe the owned order without granting visibility to the token itself.
 
 Challenge spend, order creation, matching and the recorded outcome share one
 independent database transaction. An enclosing transaction or disabled autocommit
-is refused. A negative whitelist result, insufficient seller balance, failure of every
-compatible fill's amount check, or a share token whose recorded deployment
-names a chain other than the one in the domain about to be signed records a
-terminal business refusal: creation and matching roll back to their savepoint
-while spend and refusal commit together. The amount and chain refusals share
-`invalid_settlement_amount`, so the recorded detail rather than the code names
-which of them occurred; the same submission UUID remains refused even if
-the counter-order or deployment later changes. A corrected intent uses a new
-UUID. Matching tries later candidates when a proposed fill fails the amount
-check, retaining price/time priority among usable fills. It neither rounds nor
-resizes a fill, and leaves skipped resting orders unchanged. See
+is refused. A negative whitelist result, insufficient seller share or buyer payment
+balance, failure of every compatible fill's amount check, or a share token whose
+recorded deployment names a chain other than the one in the domain about to be
+signed — including one whose deployment row cannot be read — records a terminal
+business refusal: creation and matching roll back to their savepoint
+while spend and refusal commit together. The chain disagreement records its own
+`settlement_chain_disagreement` code and is token-wide, so matching refuses at the
+first candidate rather than retrying the refusal per candidate; the amount refusal
+keeps `invalid_settlement_amount`, and matching tries later candidates when a
+proposed fill fails that check, retaining price/time priority among usable fills. It
+neither rounds nor resizes a fill, and leaves skipped resting orders unchanged. The
+same submission UUID remains refused even if the counter-order or deployment later
+changes. A corrected intent uses a new UUID. See
 [payment units](swap-settlement.md) for the exact calculation rules.
 Provider, configuration,
 database and unclassified matching failures remain retryable; a lost commit

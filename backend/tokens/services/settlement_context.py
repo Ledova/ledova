@@ -11,8 +11,8 @@ from operators.exceptions import SettlementAssetNotDeployedException
 from operators.settlement import require_deployment
 from shared.db import use_operator
 from tokens.exceptions import (
-    InvalidSettlementAmountException,
     LegacySwapHeld,
+    SettlementChainDisagreement,
     SettlementContextChanged,
 )
 from tokens.models import ShareToken, TokenDeployment
@@ -114,7 +114,7 @@ def capture_settlement_context(swap, deployment, price_per_share=None):
         },
     }
     if _deployment_chain_disagrees(token, typed_data["domain"]["chainId"]):
-        raise InvalidSettlementAmountException(CHAIN_DISAGREEMENT)
+        raise SettlementChainDisagreement(CHAIN_DISAGREEMENT)
     signable = encode_typed_data(full_message=typed_data)
     context = {
         "protocol_version": SETTLEMENT_PROTOCOL_VERSION,
