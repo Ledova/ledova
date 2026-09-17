@@ -263,7 +263,8 @@ Unattributed history stays pending; this does not add finality or reorg handling
 V1 swap only when the current matching service marked it eligible at creation,
 both orders still name that match, and no execution claim, transaction record,
 hash or other active match exists. The sweep locks both orders in identifier
-order, then the current swap, and commits each release separately. It preserves
+order, then the current swap, as [the trading lock graph](order-submissions.md#the-trading-lock-graph)
+requires, and commits each release separately. It preserves
 previously filled quantities and signed terms, marks the swap `expired`, and
 publishes `swap_expired` so both clients refresh their orders and swaps. A retry
 cannot release the same reservation twice. Signing still stops at the recorded
