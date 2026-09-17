@@ -12,6 +12,7 @@ you need context. These documents describe the contracts behind a particular flo
 | Receipt attribution, chain observations and nonce evidence | [Transaction evidence](transaction-evidence.md) |
 | Create/cancel/modify intent and replay | [Order protocols](order-submissions.md) |
 | Captured settlement context and execution | [Swap settlement](swap-settlement.md) |
+| The immutable reviewed intent and its freeze map | [Reviewed intent](reviewed-intent.md) |
 | Legacy signer inventory and future cutover | [Outgoing history](outgoing-history.md) |
 | Android native scanner ownership and instrumentation | [Scanner probe](native-scanner-probe.md) |
 | Wallet history and balance effects | [Wallet reconciliation](wallet-reconciliation.md) |
