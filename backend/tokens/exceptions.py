@@ -360,6 +360,13 @@ class LegacySwapHeld(APIException):
     expose_code = True
 
 
+class SettlementChainDisagreement(APIException):
+    status_code = 400
+    default_detail = "This share token was deployed on another chain than the settlement domain names."
+    default_code = "settlement_chain_disagreement"
+    expose_code = True
+
+
 class SettlementApprovalConflict(APIException):
     status_code = 409
     default_detail = (

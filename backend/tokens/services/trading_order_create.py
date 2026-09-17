@@ -15,6 +15,7 @@ from tokens.exceptions import (
     CreateOrderNotWhitelistedException,
     InvalidSettlementAmountException,
     OrderSubmissionConflictException,
+    SettlementChainDisagreement,
 )
 from tokens.models import (
     OrderSubmission,
@@ -36,6 +37,7 @@ BUSINESS_REFUSALS = {
     CreateOrderNotWhitelistedException: "not_whitelisted",
     CreateOrderInsufficientBalanceException: "insufficient_balance",
     InvalidSettlementAmountException: "invalid_settlement_amount",
+    SettlementChainDisagreement: "settlement_chain_disagreement",
 }
 
 
