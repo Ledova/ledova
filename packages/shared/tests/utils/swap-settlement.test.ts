@@ -535,3 +535,73 @@ test('an observed wallet/session retirement cannot revive the old controller whe
   await f.controller.sign(signer);
   expect(signer).not.toHaveBeenCalled();
 });
+
+describe('a drifted or held settlement is refused, not retried', () => {
+  test('a lookup reporting swap_settlement_context_changed refuses new work without asking for a signature', async () => {
+    const drifted = settlementResponse();
+    drifted.admissionRefusal = 'swap_settlement_context_changed';
+    drifted.canSign = false;
+    const f = setup(drifted);
+    await f.controller.load();
+    expect(f.controller.getSnapshot().phase).toBe('ready');
+    expect(f.controller.getSnapshot().response?.admissionRefusal).toBe('swap_settlement_context_changed');
+    const requestsAfterLookup = f.requests.length;
+    const signer = jest.fn(async () => null);
+    await f.controller.sign(signer);
+    expect(f.controller.getSnapshot().phase).toBe('error');
+    expect(f.controller.getSnapshot().error).toBe('Refresh the original settlement before continuing.');
+    expect(signer).not.toHaveBeenCalled();
+    await f.controller.refreshApprovalStatus();
+    expect(f.controller.getSnapshot().error).toBe('Refresh the original settlement before continuing.');
+    expect(f.requests.length).toBe(requestsAfterLookup);
+  });
+
+  test('a signature refused with swap_settlement_context_changed surfaces the recorded reason and stops', async () => {
+    const f = setup();
+    await f.controller.load();
+    f.handle(async (config) => {
+      if (config.method === 'post' && config.url?.includes('/swap/sign/')) {
+        failed(config, 409, {
+          code: 'swap_settlement_context_changed',
+          detail: 'The original swap context is no longer admitted. Review the recorded swap before continuing.',
+        });
+      }
+      return reply(config, f.response);
+    });
+    await f.controller.submitSignature(settlementFixture.signatures[0]!, settlementFixture.addresses[0]!);
+    const snapshot = f.controller.getSnapshot();
+    expect(snapshot.phase).toBe('error');
+    expect(snapshot.error).toBe(
+      'The original swap context is no longer admitted. Review the recorded swap before continuing.',
+    );
+    const requestsAfterRefusal = f.requests.length;
+    await f.controller.submitSignature(settlementFixture.signatures[0]!, settlementFixture.addresses[0]!);
+    expect(f.controller.getSnapshot().phase).toBe('error');
+    expect(f.requests.length).toBe(requestsAfterRefusal);
+  });
+
+  test('a legacy swap held for attribution is surfaced and never offered for signing', async () => {
+    const f = setup();
+    f.handle(async (config) => {
+      failed(config, 409, {
+        code: 'legacy_swap_held',
+        detail:
+          'This legacy swap is held for operator attribution. New approvals, signatures and execution are unavailable.',
+      });
+    });
+    await f.controller.load();
+    const snapshot = f.controller.getSnapshot();
+    expect(snapshot.phase).toBe('error');
+    expect(snapshot.error).toBe(
+      'This legacy swap is held for operator attribution. New approvals, signatures and execution are unavailable.',
+    );
+    expect(snapshot.response).toBeNull();
+    const signer = jest.fn(async () => null);
+    await f.controller.sign(signer);
+    expect(signer).not.toHaveBeenCalled();
+    const requestsAfterLookup = f.requests.length;
+    await f.controller.refreshApprovalStatus();
+    expect(f.controller.getSnapshot().error).toBe('Refresh the original settlement before continuing.');
+    expect(f.requests.length).toBe(requestsAfterLookup);
+  });
+});

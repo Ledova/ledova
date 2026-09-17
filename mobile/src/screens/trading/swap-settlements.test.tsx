@@ -726,3 +726,41 @@ it.each(['other chain', 'other account'] as const)(
     for (const request of requests.slice(1)) expect(request.params.settlement_digest).toBe(current.settlementDigest);
   },
 );
+
+it('refuses a settlement whose recorded context changed without offering a signature', async () => {
+  current.admissionRefusal = 'swap_settlement_context_changed';
+  current.canSign = false;
+  mockSwaps = [settlementListRow(current)];
+  const view = await render(<TradingScreen />, { wrapper });
+  await fireEvent.press(view.getByText('Open settlement 1'));
+  await waitFor(() => expect(view.getByText('Current status: created')).toBeTruthy());
+  expect(view.queryByText('Check token approval')).toBeNull();
+  expect(view.queryByText('Sign settlement')).toBeNull();
+  expect(posts()).toHaveLength(0);
+}, 10_000);
+
+it('surfaces a legacy swap held for operator attribution and offers no signing', async () => {
+  handler = async (config) => {
+    throw new AxiosError(
+      'Synthetic held response',
+      '409',
+      config,
+      undefined,
+      response(
+        config,
+        {
+          code: 'legacy_swap_held',
+          detail:
+            'This legacy swap is held for operator attribution. New approvals, signatures and execution are unavailable.',
+        },
+        409,
+      ),
+    );
+  };
+  const view = await render(<TradingScreen />, { wrapper });
+  await fireEvent.press(view.getByText('Open settlement 1'));
+  await waitFor(() => expect(view.getByText(/held for operator attribution/)).toBeTruthy());
+  expect(view.queryByText('Your role: seller')).toBeNull();
+  expect(view.queryByText('Sign settlement')).toBeNull();
+  expect(posts()).toHaveLength(0);
+}, 10_000);
