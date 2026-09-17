@@ -21,7 +21,7 @@ from blockchain.models import (
     SigningAccount,
 )
 from blockchain.services import outgoing
-from blockchain.tests.outgoing_fixtures import CHAIN_ID, KEY, admitted_signer
+from blockchain.tests.outgoing_fixtures import CHAIN_ID, KEY, SENDER, admitted_signer
 from blockchain.tests.test_outgoing_processes import finish
 from feature_flags.models import FeatureFlag
 from shared.db import atomic, current_alias, use_operator
@@ -275,6 +275,68 @@ class SwapExecutionRecoveryTest(APITransactionTestCase):
             self.node.receipts[attempt.tx_hash] = execution_receipt(attempt, self.record.function_args)
         self.assertEqual(self.recover(), "confirmed")
         self.assertEqual(len(self.node.broadcasts), 2)
+        self.assert_held()
+
+    def test_a_consumed_nonce_is_attributed_and_held_without_a_resend(self):
+        self.admit()
+        self.node.confirmed = False
+        self.assertEqual(self.recover(), "signed")
+        with use_operator():
+            attempt = self.attempts().get()
+        consuming = self.node.replace(attempt, gasPrice=10**9 + 1)
+        self.node.advance(head=20)
+        with self.assertLogs("tokens.services.swap_execution", "WARNING") as logs:
+            self.assertEqual(self.recover(), "signed")
+        self.assertEqual(len(logs.output), 1)
+        self.assertIn(
+            f"Swap execution {self.record.pk} nonce {attempt.nonce} consumed by {consuming} (fee_bump)"
+            "; held for operator attribution",
+            logs.output[0],
+        )
+        self.assertEqual(len(self.node.broadcasts), 1)
+        with use_operator():
+            self.assertEqual(OutgoingOperation.objects.get(pk=attempt.operation_id).status, "signed")
+            self.assertEqual(self.attempts().count(), 1)
+            self.assertEqual(SigningAccount.objects.get(pk=self.signer.pk).next_nonce, 8)
+            self.record.refresh_from_db()
+        self.assertEqual((self.record.status, self.record.tx_hash), ("submitted", attempt.tx_hash))
+        self.assert_held()
+
+    def test_a_cancelling_self_call_is_attributed_by_its_kind_and_held(self):
+        self.admit()
+        self.node.confirmed = False
+        self.assertEqual(self.recover(), "signed")
+        with use_operator():
+            attempt = self.attempts().get()
+        consuming = self.node.replace(attempt, to=SENDER, data=b"")
+        self.node.advance(head=20)
+        with self.assertLogs("tokens.services.swap_execution", "WARNING") as logs:
+            self.assertEqual(self.recover(), "signed")
+        self.assertEqual(len(logs.output), 1)
+        self.assertIn(
+            f"Swap execution {self.record.pk} nonce {attempt.nonce} consumed by {consuming} (zero_value_self_call)"
+            "; held for operator attribution",
+            logs.output[0],
+        )
+        self.assertEqual(len(self.node.broadcasts), 1)
+        self.assert_held()
+
+    def test_an_unreadable_spend_is_held_as_an_unattributed_transaction(self):
+        self.admit()
+        self.node.confirmed = False
+        self.assertEqual(self.recover(), "signed")
+        with use_operator():
+            attempt = self.attempts().get()
+        self.node.replace(attempt, gasPrice=10**9 + 1)
+        with self.assertLogs("tokens.services.swap_execution", "WARNING") as logs:
+            self.assertEqual(self.recover(), "signed")
+        self.assertEqual(len(logs.output), 1)
+        self.assertIn(
+            f"Swap execution {self.record.pk} nonce {attempt.nonce} consumed by an unattributed transaction"
+            " (provider_evidence_unavailable); held for operator attribution",
+            logs.output[0],
+        )
+        self.assertEqual(len(self.node.broadcasts), 1)
         self.assert_held()
 
     def test_changed_authority_stops_resend_but_original_receipt_is_still_observed(self):

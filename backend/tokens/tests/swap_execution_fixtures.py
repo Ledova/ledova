@@ -4,13 +4,21 @@ from types import SimpleNamespace
 
 from django.conf import settings
 from eth_abi import encode
+from eth_account import Account
+from eth_account._utils.legacy_transactions import Transaction as LegacyTransaction
 from eth_account.messages import encode_typed_data
 from eth_utils import event_abi_to_log_topic
 from hexbytes import HexBytes
 from web3 import Web3
 
 from blockchain.models import SignedAttempt
-from blockchain.tests.outgoing_fixtures import BLOCK_HASH, chain_client, receipt
+from blockchain.tests.outgoing_fixtures import (
+    BLOCK_HASH,
+    KEY,
+    SENDER,
+    chain_client,
+    receipt,
+)
 from shared.tests.tenants import make_tenant
 from tokens.models import TransferOrder, TransferOrderStatus, TransferOrderType
 from tokens.services import atomic_swap_service
@@ -20,6 +28,7 @@ from wallets.models import Wallet
 
 HEAD_HASH = "0x" + "cc" * 32
 FINALIZED_HASH = "0x" + "dd" * 32
+NEXT_NONCE = 7
 
 
 def make_execution(label):
@@ -112,8 +121,11 @@ class ExecutionChain:
         self.node.probe("chain_id")
         return self.node.chain_id
 
-    def get_block(self, identifier):
-        return self.node.block(identifier)
+    def get_block(self, identifier, full_transactions=False):
+        return self.node.block(identifier, full_transactions)
+
+    def get_transaction_count(self, address, identifier):
+        return self.node.count(address, identifier)
 
 
 class ExecutionNode:
@@ -124,7 +136,7 @@ class ExecutionNode:
         self.client = chain_client()
         self.client.w3 = SimpleNamespace(eth=ExecutionChain(self))
         self.client.assert_expected_chain.side_effect = self.expected_chain
-        self.client.get_nonce.side_effect = lambda sender: self.value("nonce", 7)
+        self.client.get_nonce.side_effect = lambda sender: self.value("nonce", NEXT_NONCE)
         self.client.estimate_gas.side_effect = lambda transaction: self.value("estimate", 600000)
         self.client.load_contract.side_effect = lambda name, address: execution_contract()
         self.client.send_raw_transaction.side_effect = self.send
@@ -134,6 +146,7 @@ class ExecutionNode:
         self.lose_acknowledgement = False
         self.receipts = {}
         self.blocks = {}
+        self.transactions = []
         self.broadcasts = []
 
     def value(self, label, result):
@@ -146,8 +159,56 @@ class ExecutionNode:
     def observed(self, tx_hash):
         return self.value("receipt", self.receipts.get(tx_hash))
 
-    def block(self, identifier):
-        return self.value("block", self.blocks.get(identifier))
+    def block(self, identifier, full_transactions=False):
+        block = self.value("block", self.blocks.get(identifier))
+        if block is not None and full_transactions:
+            block = {**block, "transactions": [tx for tx in self.transactions if tx["blockNumber"] == block["number"]]}
+        return block
+
+    def count(self, address, identifier):
+        if address.casefold() != SENDER.casefold():
+            return self.value("count", 0)
+        mined = [tx for tx in self.transactions if identifier == "latest" or tx["blockNumber"] <= identifier]
+        return self.value("count", NEXT_NONCE + len(mined))
+
+    def replace(self, attempt, *, block_number=12, block_hash=BLOCK_HASH, **changes):
+        fields = LegacyTransaction.from_bytes(bytes(attempt.raw_transaction)).as_dict()
+        signed = Account.from_key(KEY).sign_transaction(
+            {
+                "chainId": self.chain_id,
+                **{key: fields[key] for key in ("nonce", "gasPrice", "gas", "value", "data")},
+                "to": Web3.to_checksum_address(fields["to"]),
+                **changes,
+            }
+        )
+        fields = LegacyTransaction.from_bytes(signed.raw_transaction).as_dict()
+        sender = attempt.operation.intent["sender"]
+        self.transactions.append(
+            {
+                **fields,
+                "type": 0,
+                "chainId": self.chain_id,
+                "hash": signed.hash,
+                "from": sender,
+                "to": Web3.to_checksum_address(fields["to"]),
+                "input": fields["data"],
+                "blockHash": block_hash,
+                "blockNumber": block_number,
+                "transactionIndex": 0,
+            }
+        )
+        self.receipts[signed.hash.to_0x_hex()] = {
+            "transactionHash": signed.hash,
+            "blockHash": block_hash,
+            "blockNumber": block_number,
+            "transactionIndex": 0,
+            "from": sender,
+            "to": Web3.to_checksum_address(fields["to"]),
+            "status": 1,
+            "gasUsed": 21000,
+            "effectiveGasPrice": fields["gasPrice"],
+        }
+        return signed.hash.to_0x_hex()
 
     def advance(self, head, finalized=None):
         self.blocks = {}

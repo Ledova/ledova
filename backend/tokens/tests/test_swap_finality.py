@@ -103,6 +103,30 @@ class SwapFinalityFixtures:
     def refuse_rpc(self):
         self.node.probe = lambda label: self.fail(f"Settlement performed RPC: {label}")
 
+    def flip(self, status):
+        attempt = self.confirm(status)
+        self.node.receipts[attempt.tx_hash] = execution_receipt(
+            attempt, self.record.function_args, status=1 - status, block_number=14, block_hash=REORG_HASH
+        )
+        self.node.advance(head=20, finalized=16)
+        self.node.blocks[12] = {"hash": OTHER_HASH, "number": 12}
+        self.reads = []
+        self.node.probe = self.reads.append
+        return attempt
+
+    def assert_held_for_attribution(self, attempt, first, finalized, logs):
+        self.assertEqual(len(logs), 1)
+        self.assertIn(
+            f"Swap execution {self.record.pk} hash {attempt.tx_hash} was first seen {first} and finalized {finalized}"
+            "; held for operator attribution",
+            logs[0],
+        )
+        self.assertEqual(self.reads.count("receipt"), 1)
+        with use_operator():
+            self.swap.refresh_from_db()
+        self.assert_held()
+        self.assertFalse({"swap_completed", "swap_failed"} & {call.args[0] for call in self.publisher.call_args_list})
+
 
 @override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, ATOMIC_SWAP_ADDRESS=CONTRACT)
 class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
@@ -194,7 +218,7 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
             self.node.advance(head=20, finalized=12)
             heads = [self.node.blocks["latest"], {"hash": OTHER_HASH, "number": 21}]
             canonical = self.node.block
-            self.node.block = lambda identifier: (
+            self.node.block = lambda identifier, full_transactions=False: (
                 heads.pop(0) if identifier == "latest" and heads else canonical(identifier)
             )
             with self.assertLogs(LOGGER, "INFO") as logs:
@@ -248,6 +272,26 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
             self.record.refresh_from_db()
         self.assertEqual((operation.block_number, operation.block_hash), (12, BLOCK_HASH))
         self.assertEqual((self.record.block_number, self.record.block_hash), (12, BLOCK_HASH))
+
+    def test_a_first_seen_revert_finalized_as_a_success_is_held_for_attribution(self):
+        attempt = self.flip(0)
+        with override_settings(WALLET_CHAIN_FINALITY_POLICIES=FINALIZED), self.assertLogs(LOGGER, "WARNING") as logs:
+            self.assertIsNone(self.settle())
+        self.assert_held_for_attribution(attempt, "reverted", "confirmed", logs.output)
+
+    def test_a_first_seen_success_finalized_as_a_revert_is_held_for_attribution(self):
+        attempt = self.flip(1)
+        with override_settings(WALLET_CHAIN_FINALITY_POLICIES=FINALIZED), self.assertLogs(LOGGER, "WARNING") as logs:
+            self.assertIsNone(self.settle())
+        self.assert_held_for_attribution(attempt, "confirmed", "reverted", logs.output)
+
+    def test_the_sweep_logs_a_flipped_outcome_once_rather_than_a_database_refusal(self):
+        attempt = self.flip(0)
+        with override_settings(WALLET_CHAIN_FINALITY_POLICIES=FINALIZED), patch.object(
+            swap_execution, "get_base_chain_client", return_value=self.node.client
+        ), use_operator(), self.assertLogs("tokens", "WARNING") as logs:
+            self.assertEqual(resolve_executing_swaps(), {"checked": 1, "resolved": 0})
+        self.assert_held_for_attribution(attempt, "reverted", "confirmed", logs.output)
 
     def test_a_settled_swap_is_left_alone_without_writes_or_chain_calls(self):
         self.confirm()
