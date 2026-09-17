@@ -28,7 +28,7 @@ def run():
     os.environ["DJANGO_SETTINGS_MODULE"] = "ledova_backend.settings.test_postgres"
     from django.conf import settings
 
-    settings.DATABASES = json.loads(os.environ["ORDER_ACTION_TEST_DATABASES"])
+    settings.DATABASES = json.loads(os.environ["ORDER_TEST_DATABASES"])
     settings.RLS_AMBIENT_ALIAS = "app"
     settings.ALLOWED_HOSTS = ["testserver"]
     django.setup()
@@ -89,7 +89,7 @@ def run():
         stack.enter_context(
             patch(
                 "tokens.services.order_modification_service.share_token_service.get_token_balance",
-                return_value=10**30,
+                side_effect=lambda contract, address: (100 if contract == incoming["share_contract"] else 10**30),
             )
         )
         if phase == "spent":
