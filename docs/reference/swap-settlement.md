@@ -48,7 +48,7 @@ current configuration.
 
 | Route | Resolves | Re-checks |
 | --- | --- | --- |
-| `GET swap/` | identity lookup | the re-check result is reported as `admission_refusal` rather than raised, so a review read never 409s |
+| `GET swap/` | identity lookup | the re-check result is reported as `admission_refusal` rather than raised; a stale supplied digest or a legacy row still refuses with HTTP 409 through the resolver |
 | `POST swap/sign` | exact identity | `submit_signature` re-reads the swap, verifies the signature against the recorded terms, and under the operator lock re-authorizes the actor, account and wallet (`_lock_authority`) and re-checks drift, deadline and status before storing |
 | `GET swap/approval-status` | identity lookup | re-check, then a fresh resolve and re-check before answering |
 | `GET swap/approval-data` | identity lookup | re-check, then a fresh resolve and re-check before answering, on both outcomes |
@@ -56,8 +56,13 @@ current configuration.
 
 `backend/tokens/tests/test_settlement_admission_rules.py` holds the matrix as a
 rule: every `swap/*` action in the trading viewset must reach the resolver and a
-re-check — its own, or a declared service leg that itself performs its under-lock
-re-check — so a new route that skips either fails that test by name.
+re-check — its own, or a declared service leg that itself performs its declared
+re-check — so a new route that skips either fails that test by name. Route
+discovery reads the literal `url_path` of the `@action` decorator, as every
+current route declares one, and the service-leg rules hold the presence of the
+declared calls, not their placement inside a lock or transaction; both limits
+are stated in the rule's own failure message, and the legs' placement is the
+prose above.
 
 Delivery and recovery re-authorize the *recorded* actor under the lock
 (`_lock_command(authority=True)` to `_lock_authority`), never a fresh one. The

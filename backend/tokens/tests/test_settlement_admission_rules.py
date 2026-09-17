@@ -19,15 +19,18 @@ SERVICE_LEGS = {
 SETTLE_EXEMPTION = (
     "settle() deliberately performs no actor authorization: finality is not an actor's action. "
     "Drift and evidence re-verification are not authorization, and the recorded actor is "
-    "re-authorized by the delivery and recovery paths, never by finality. Revise the settlement "
+    "re-authorized by the delivery and recovery paths, never by finality. This exemption reads "
+    "settle's own call sites, not the bodies of helpers it calls: _lock_command's opt-in "
+    "authority branch belongs to the delivery and recovery paths. Revise the settlement "
     "admission matrix and this exemption together, never silently."
 )
 BEYOND_THE_RULE = (
     "This rule follows authored call sites, lambda bodies included, through same-module helpers; "
     "calls reached only through another module's internals, dynamic dispatch or a name rebound at "
-    "runtime are beyond it. The settle exemption reads settle's own call sites, not the bodies of "
-    "helpers it calls: _lock_command's opt-in authority branch belongs to the delivery and recovery "
-    "paths. A new swap/* route or a moved re-check must be added to the declared tables consciously."
+    "runtime are beyond it. Route discovery reads a literal url_path string, so a concatenated "
+    "path or an action relying on the method-name default escapes it. The service-leg rules hold "
+    "the presence of the declared calls, not their placement inside a lock or transaction. "
+    "A new swap/* route or a moved re-check must be added to the declared tables consciously."
 )
 
 
