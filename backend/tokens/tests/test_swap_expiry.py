@@ -11,7 +11,7 @@ from rest_framework.test import APIClient
 from blockchain.models import OutgoingOperation
 from feature_flags.models import FeatureFlag
 from ledova_backend.procrastinate_app import app
-from shared.db import atomic
+from shared.db import atomic, use_operator
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_tenant
 from tokens.events import publish_trading_event
@@ -51,42 +51,43 @@ class ExpiryFixtures:
         self.counter = 0
 
     def matched_swap(self, *, already_filled=20, signed=""):
-        self.counter += 1
-        tenant = make_tenant(f"expiry-{self.counter}", with_swap=False)
-        orders = []
-        for key, order_type in ((SELLER, TransferOrderType.SELL), (BUYER, TransferOrderType.BUY)):
-            wallet = Wallet.objects.create(
-                user_account=tenant.account, address=key.address, chain="base", verification_status="VERIFIED"
-            )
-            orders.append(
-                TransferOrder.objects.create(
-                    token=tenant.deployed_token,
-                    payment_asset=tenant.refs.stablecoin,
-                    wallet=wallet,
-                    owner_account=tenant.account,
-                    wallet_address=wallet.address,
-                    order_type=order_type,
-                    quantity=40,
-                    filled_quantity=already_filled,
-                    price_per_share="1.50",
-                    status=TransferOrderStatus.OPEN,
+        with use_operator():
+            self.counter += 1
+            tenant = make_tenant(f"expiry-{self.counter}", with_swap=False)
+            orders = []
+            for key, order_type in ((SELLER, TransferOrderType.SELL), (BUYER, TransferOrderType.BUY)):
+                wallet = Wallet.objects.create(
+                    user_account=tenant.account, address=key.address, chain="base", verification_status="VERIFIED"
                 )
-            )
-        with patch("tokens.services.atomic_swap_service", self.service):
-            swap = token_transfer_service.match_orders(orders[1], orders[0], match_quantity=10)["swap_order"]
-        for party, signer in (("seller", SELLER), ("buyer", BUYER)):
-            if party in signed or signed == "both":
-                signature = (
-                    "0x"
-                    + signer.sign_message(
-                        encode_typed_data(full_message=self.service.get_typed_data(swap))
-                    ).signature.hex()
-                )
-                with self.settings(BLOCKCHAIN_OPERATOR_KEY=""):
-                    swap = swap_execution.submit_signature(
-                        swap, signature, signer.address, user=tenant.user, participant=party
+                orders.append(
+                    TransferOrder.objects.create(
+                        token=tenant.deployed_token,
+                        payment_asset=tenant.refs.stablecoin,
+                        wallet=wallet,
+                        owner_account=tenant.account,
+                        wallet_address=wallet.address,
+                        order_type=order_type,
+                        quantity=40,
+                        filled_quantity=already_filled,
+                        price_per_share="1.50",
+                        status=TransferOrderStatus.OPEN,
                     )
-        return swap
+                )
+            with patch("tokens.services.atomic_swap_service", self.service):
+                swap = token_transfer_service.match_orders(orders[1], orders[0], match_quantity=10)["swap_order"]
+            for party, signer in (("seller", SELLER), ("buyer", BUYER)):
+                if party in signed or signed == "both":
+                    signature = (
+                        "0x"
+                        + signer.sign_message(
+                            encode_typed_data(full_message=self.service.get_typed_data(swap))
+                        ).signature.hex()
+                    )
+                    with self.settings(BLOCKCHAIN_OPERATOR_KEY=""):
+                        swap = swap_execution.submit_signature(
+                            swap, signature, signer.address, user=tenant.user, participant=party
+                        )
+            return swap
 
     def expired_at(self, swap):
         return swap.expires_at + timedelta(seconds=1)
