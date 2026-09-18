@@ -17,7 +17,7 @@ source of truth for this positioning and for what is in and out of scope.
 
 Ledova is infrastructure used by companies and investors — not an exchange,
 broker, custodian, market operator, investment adviser or counterparty. The
-[responsibility boundary](docs/product-direction.md#4-the-responsibility-boundary)
+[responsibility boundary](docs/product-direction.md#4-responsibility-boundary)
 keeps every regulated decision with the issuing company: companies configure
 share classes and investor requirements, approve investors and transfers, and
 keep the legal register of members; investors control their own wallets and
@@ -60,8 +60,10 @@ Report vulnerabilities through the [security policy](SECURITY.md).
 
 The codebase still contains an earlier trading and portfolio surface — order
 matching, swap settlement, crypto wallet portfolio and pricing screens — which
-the product direction places out of scope for V1. Those routes remain disabled
-by default, and their removal or retention is being sequenced through the
+the product direction places out of scope for V1. The trading routes remain
+disabled by default; the wallet-portfolio and pricing screens remain live
+pending the same disposition. The removal or retention of each surface is
+being sequenced through the
 [direction adoption programme](https://github.com/Ledova/ledova/issues/639),
 together with the registry-first V1 the direction defines. Nothing in this
 repository should be read as an offer to operate a market.
