@@ -8,6 +8,7 @@ focused guides, and each guide links to the implementation detail behind it.
 | I want to… | Start here |
 | --- | --- |
 | Understand Ledova and what works today | [Product and terminology](product.md) |
+| Read the agreed product direction | [Product direction](product-direction.md) |
 | Run it locally | [Getting started](getting-started.md) |
 | Understand the system | [Architecture](architecture/README.md) |
 | Configure or operate an instance | [Operations](operations/README.md) |
