@@ -7,6 +7,7 @@ from eth_account.messages import encode_typed_data
 from web3 import Web3
 
 from blockchain.models import BlockchainTransaction
+from shared.db import use_operator
 from shared.tests.settlement import save_swap_with_context
 from shared.tests.tenants import make_tenant
 from tokens.models import (
@@ -37,6 +38,11 @@ def swap_service(test_case):
 
 
 def make_swap(label, *, ready=False):
+    with use_operator():
+        return _make_swap(label, ready=ready)
+
+
+def _make_swap(label, *, ready=False):
     tenant = make_tenant(label)
     orders = []
     for key, order_type in ((SELLER, TransferOrderType.SELL), (BUYER, TransferOrderType.BUY)):
