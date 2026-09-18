@@ -134,14 +134,6 @@ class SwapWorkersUseOneCurrentClaimTest(TransactionTestCase):
             ):
                 return
             time.sleep(0.01)
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT pg_blocking_pids(%s)", [child.database_pid])
-            blockers = cursor.fetchone()[0]
-            cursor.execute(
-                "SELECT pid, wait_event_type, wait_event, query FROM pg_stat_activity WHERE pid = ANY(%s) OR pid = %s",
-                [blockers, child.database_pid],
-            )
-            print("WAIT-DEBUG", child.database_pid, "blockers", blockers, cursor.fetchall())
         self.fail(f"Worker never waited for the held {table} row: {observed}")
 
     def test_opposite_verified_signatures_recompute_ready_after_the_other_commits(self):
