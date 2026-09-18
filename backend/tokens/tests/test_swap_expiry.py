@@ -13,6 +13,7 @@ from feature_flags.models import FeatureFlag
 from ledova_backend.procrastinate_app import app
 from shared.db import atomic, use_operator
 from shared.tests.schema import migrate_to, restore_every_migration
+from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from tokens.events import publish_trading_event
 from tokens.exceptions import SwapNotReadyException
@@ -102,6 +103,16 @@ class ExpiryFixtures:
             )
             self.assertTrue(order.can_cancel)
             self.assertTrue(order.can_be_modified)
+
+
+@override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT, BLOCKCHAIN_OPERATOR_KEY="0x" + "11" * 32)
+class ScopedSwapExpiryTaskWiringTest(RunsOnTheScopedConnection, ExpiryFixtures, TransactionTestCase):
+    def test_the_periodic_task_runs_the_sweep_as_the_operator_and_releases_the_expired_match(self):
+        swap = self.matched_swap(signed="both")
+        self.clock.return_value = self.expired_at(swap)
+        self.assertEqual(expire_unclaimed_matches(), {"checked": 1, "expired": 1, "retained": 0})
+        with use_operator():
+            self.assert_available(swap, 20)
 
 
 @override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT, BLOCKCHAIN_OPERATOR_KEY="0x" + "11" * 32)
