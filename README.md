@@ -1,26 +1,30 @@
 # Ledova
 
-Ledova is a platform for creating and operating digital private equity markets.
-It brings company onboarding, investor eligibility, share issuance, payments and
-ownership records into one system. Companies can represent share classes as
-blockchain tokens and manage their lifecycle through a web dashboard.
-
-A company can operate an instance for its own shares, or a registry provider can
-host multiple issuers. Investors interact through the dashboard and mobile app;
-operators review applications and manage the deployment through Django admin.
-The [product overview](docs/product.md) explains the roles, deployment modes and
-which features are available in each client.
+Ledova is non-custodial, multi-company share-registry and tokenisation
+infrastructure built on public blockchain networks. Companies use Ledova to
+administer and represent their shares, but each company remains responsible for
+issuing shares, approving and verifying investors, meeting its legal
+obligations, approving transfers and maintaining its legal shareholder
+register. The agreed [product direction](docs/product-direction.md) is the
+source of truth for this positioning and for what is in and out of scope.
 
 > **Experimental and unaudited.** Use only synthetic data on a local development
 > chain or supported public testnet. Ledova is not production ready and must not
 > be used with real funds, securities, companies, identities, wallets or personal
-> information. It makes no claim of regulatory compliance or legal recognition.
+> information. It makes no claim of regulatory compliance or legal recognition,
+> and the direction document itself requires specialist legal review before any
+> launch.
 
-Primary subscriptions use operator-confirmed payments and allotment. Secondary
-trading remains disabled by default while the
-[hardening work](https://github.com/Ledova/ledova/issues?q=is%3Aopen+label%3Ahardening)
-is unresolved. The [roadmap](docs/roadmap.md) distinguishes these current limits
-from the project's intended scope.
+Ledova is infrastructure used by companies and investors — not an exchange,
+broker, custodian, market operator, investment adviser or counterparty. The
+[responsibility boundary](docs/product-direction.md#4-responsibility-boundary)
+keeps every regulated decision with the issuing company: companies configure
+share classes and investor requirements, approve investors and transfers, and
+keep the legal register of members; investors control their own wallets and
+keys; a public blockchain preserves the verifiable ownership record. The
+[scope and exclusions](docs/product-direction.md#9-explicitly-out-of-scope-for-v1)
+rule out for V1 the order book, automatic matching, buy and sell flows,
+market execution, custody and any platform-issued stablecoin.
 
 ## Main components
 
@@ -43,19 +47,32 @@ starting the stack, signing in and preparing a synthetic demo.
 
 Use the [documentation index](docs/README.md) to choose a route:
 
-- [Understand the product](docs/product.md) and its terminology.
-- [Run an instance](docs/operations/README.md): configuration, jobs and recovery.
-- [Contribute](CONTRIBUTING.md): workflow, standards and verification.
-- [Review assumptions and open legal questions](docs/legal.md).
+- Understand the [product and terminology](docs/product.md) and the
+  [product direction](docs/product-direction.md).
+- Run an instance: [configuration, jobs and recovery](docs/operations/README.md).
+- Contribute: [workflow, standards and verification](CONTRIBUTING.md).
+- Review assumptions and open legal questions: [legal positions](docs/legal.md)
+  and the direction's [regulatory validation list](docs/product-direction.md#14-regulatory-validation-required).
 
 Report vulnerabilities through the [security policy](SECURITY.md).
+
+## Current state and the direction programme
+
+The codebase still contains an earlier trading and portfolio surface — order
+matching, swap settlement, crypto wallet portfolio and pricing screens — which
+the product direction places out of scope for V1. The trading routes remain
+disabled by default; the wallet-portfolio and pricing screens remain live
+pending the same disposition. The removal or retention of each surface is
+being sequenced through the
+[direction adoption programme](https://github.com/Ledova/ledova/issues/639),
+together with the registry-first V1 the direction defines. Nothing in this
+repository should be read as an offer to operate a market.
 
 ## Ownership and license
 
 Ronildo da Rocha Braga Junior builds and maintains Ledova and holds its copyright.
-Blueberry Money sponsors the work and
-intends to be its first hosted operator. Sponsorship transfers neither ownership
-nor control over the project.
+Blueberry Money sponsors the work and intends to be its first hosted operator.
+Sponsorship transfers neither ownership nor control over the project.
 
 Ledova is source-available under [FSL-1.1-ALv2](LICENSE). Each release becomes
 Apache 2.0 two years after publication; releases before 2026-09-10 remain under
