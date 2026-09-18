@@ -88,8 +88,8 @@ class ActionFixtures:
             ).signature.to_0x_hex(),
         }
 
-    def signed(self, purpose="cancel", body=None):
-        response = self.message(purpose, body)
+    def signed(self, purpose="cancel", body=None, order=None):
+        response = self.message(purpose, body, order=order)
         self.assertEqual(response.status_code, 200, response.content)
         return self.sign(response.json())
 

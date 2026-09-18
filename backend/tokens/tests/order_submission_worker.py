@@ -89,6 +89,12 @@ def run():
         released()
         return original_matching(order)
 
+    def candidates_after_locking(order):
+        matches = original_matching(order)
+        notify("candidates-locked")
+        released()
+        return matches
+
     def published(event, payload):
         with (directory / "events.jsonl").open("a") as output:
             output.write(json.dumps({"event": event, "payload": payload, "alias": current_alias()}) + "\n")
@@ -125,6 +131,10 @@ def run():
         elif phase == "matching":
             stack.enter_context(
                 patch.object(token_transfer_service, "find_matching_orders", side_effect=match_after_pausing)
+            )
+        elif phase == "candidates":
+            stack.enter_context(
+                patch.object(token_transfer_service, "find_matching_orders", side_effect=candidates_after_locking)
             )
         response = client.post(f"{BASE}create/", incoming["body"], format="json")
         print(

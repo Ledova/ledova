@@ -2,6 +2,7 @@ import json
 import signal
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
+from decimal import Decimal
 from pathlib import Path
 from threading import Event
 from unittest import skipUnless
@@ -12,10 +13,19 @@ from django.db import connection, connections
 from rest_framework.test import APITransactionTestCase
 
 from operators.models import Operator
+from operators.settlement import require_deployment
 from shared.db import current_alias, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
-from tokens.models import OrderModificationLog, SigningChallenge
-from tokens.tests.order_action_fixtures import BASE, ActionFixtures
+from shared.utils.token_amounts import token_base_units_ceiling
+from shared.utils.typed_data import signable_message
+from tokens.models import (
+    OrderModificationLog,
+    SigningChallenge,
+    SwapOrder,
+    TransferOrder,
+    TransferOrderStatus,
+)
+from tokens.tests.order_action_fixtures import BASE, OTHER_KEY, ActionFixtures
 from tokens.tests.order_process_fixtures import OrderChild, wait_for_row_lock
 from wallets.models import Wallet
 
@@ -23,8 +33,10 @@ WORKER = "order_action_worker"
 
 
 class ActionProcessChecks(ActionFixtures):
-    def child(self, phase, directory, signed):
-        return OrderChild(self, WORKER, phase, directory, body=signed, order_id=str(self.order.pk))
+    def child(self, phase, directory, signed, *, order=None, endpoint="modify"):
+        return OrderChild(
+            self, WORKER, phase, directory, body=signed, order_id=str((order or self.order).pk), endpoint=endpoint
+        )
 
     def crash(self, phase):
         signed = self.signed("modify", self.modify_body())
@@ -101,6 +113,142 @@ class ActionProcessChecks(ActionFixtures):
             self.assertEqual(OrderModificationLog.objects.filter(order=self.order).count(), 3)
             self.assertTrue(SigningChallenge.objects.get(digest=first["digest"]).is_consumed)
             self.assertFalse(SigningChallenge.objects.get(digest=second["digest"]).is_consumed)
+
+    def match_pair_setup(self):
+        with use_operator():
+            Wallet.objects.filter(pk=self.wallet.pk).update(verification_status="VERIFIED")
+            Operator.get().supported_settlement_assets.set([self.tenant.refs.stablecoin])
+            TransferOrder.objects.filter(token=self.tenant.deployed_token).update(status=TransferOrderStatus.CANCELLED)
+            self.counterparty = Wallet.objects.create(
+                user_account=self.tenant.account,
+                address=OTHER_KEY.address,
+                chain="base",
+                verification_status="VERIFIED",
+            )
+            self.candidate = TransferOrder.objects.create(
+                token=self.tenant.deployed_token,
+                payment_asset=self.tenant.refs.stablecoin,
+                wallet=self.wallet,
+                owner_account=self.tenant.account,
+                wallet_address=self.wallet.address,
+                order_type="sell",
+                quantity=10,
+                min_quantity=0,
+                price_per_share=Decimal("2.50"),
+            )
+
+    def signed_create(self, price):
+        body = {
+            "submission_id": str(uuid4()),
+            "owner_account_uuid": str(self.tenant.account.pk),
+            "token": str(self.tenant.deployed_token.pk),
+            "wallet_uuid": str(self.counterparty.pk),
+            "wallet_address": self.counterparty.address,
+            "order_type": "buy",
+            "quantity": 10,
+            "min_quantity": 0,
+            "price_per_share": price,
+        }
+        response = self.client.post(f"{BASE}create/message/", body, format="json")
+        self.assertEqual(response.status_code, 200, response.content)
+        challenge = response.json()["challenge"]
+        return {
+            **body,
+            "digest": challenge["digest"],
+            "signature": OTHER_KEY.sign_message(
+                signable_message(challenge["domain"], challenge["types"], challenge["message"])
+            ).signature.to_0x_hex(),
+        }
+
+    def test_a_modify_waits_for_the_match_and_is_then_refused_on_the_matched_order(self):
+        self.match_pair_setup()
+        signed = self.signed("modify", self.modify_body(), order=self.candidate)
+        create = self.signed_create("2.50")
+        with tempfile.TemporaryDirectory(prefix="order-action-match-") as temporary:
+            directory = Path(temporary)
+            matcher = OrderChild(self, "order_submission_worker", "candidates", directory, body=create)
+            locked = matcher.read()
+            self.assertEqual(locked["stage"], "candidates-locked")
+            action = self.child("compete", directory, signed, order=self.candidate)
+            selecting = action.read()
+            self.assertEqual(selecting["stage"], "selecting")
+            wait_for_row_lock(self, selecting["pid"], "customer_accounts_account", locked["pid"])
+            matcher.release()
+            matched, refused = matcher.read(), action.read()
+            self.assertEqual((matcher.wait(), action.wait()), (0, 0), (matcher.error_output(), action.error_output()))
+        self.assertEqual(matched["status"], 201, matched)
+        self.assertIsNotNone(matched["body"]["match"])
+        self.assertEqual(refused["status"], 409, refused)
+        self.assertEqual(refused["body"]["status"], "refused")
+        self.assertEqual(refused["body"]["refusal"]["code"], "order_modification_conflict")
+        with use_operator():
+            self.candidate.refresh_from_db()
+            swap = SwapOrder.objects.get(pk=matched["body"]["match"]["swapOrder"])
+            self.assertEqual(
+                (self.candidate.status, self.candidate.modification_count, self.candidate.filled_quantity),
+                ("pending_signature", 0, 10),
+            )
+            self.assertEqual((swap.share_amount, swap.payment_amount), (10, 2500))
+        recorded = self.recover(action_id=signed["action_id"]).json()
+        self.assertEqual(recorded["status"], "refused")
+
+    def test_a_cancellation_waits_for_the_match_and_is_then_refused_on_the_matched_order(self):
+        self.match_pair_setup()
+        signed = self.signed("cancel", self.identity(), order=self.candidate)
+        create = self.signed_create("2.50")
+        with tempfile.TemporaryDirectory(prefix="order-action-match-") as temporary:
+            directory = Path(temporary)
+            matcher = OrderChild(self, "order_submission_worker", "candidates", directory, body=create)
+            locked = matcher.read()
+            self.assertEqual(locked["stage"], "candidates-locked")
+            action = self.child("compete", directory, signed, order=self.candidate, endpoint="cancel")
+            selecting = action.read()
+            self.assertEqual(selecting["stage"], "selecting")
+            wait_for_row_lock(self, selecting["pid"], "customer_accounts_account", locked["pid"])
+            matcher.release()
+            matched, refused = matcher.read(), action.read()
+            self.assertEqual((matcher.wait(), action.wait()), (0, 0), (matcher.error_output(), action.error_output()))
+        self.assertEqual(matched["status"], 201, matched)
+        self.assertEqual(refused["status"], 400, refused)
+        self.assertEqual(refused["body"]["status"], "refused")
+        self.assertEqual(refused["body"]["refusal"]["code"], "order_cancellation_failed")
+        with use_operator():
+            self.candidate.refresh_from_db()
+            self.assertEqual((self.candidate.status, self.candidate.filled_quantity), ("pending_signature", 10))
+            self.assertTrue(SwapOrder.objects.filter(pk=matched["body"]["match"]["swapOrder"]).exists())
+
+    def test_a_match_waits_for_a_modification_and_matches_the_modified_values(self):
+        self.match_pair_setup()
+        signed = self.signed(
+            "modify", self.modify_body(new_quantity="12", new_price_per_share="3.00"), order=self.candidate
+        )
+        create = self.signed_create("3.00")
+        with tempfile.TemporaryDirectory(prefix="order-action-match-") as temporary:
+            directory = Path(temporary)
+            action = self.child("order-locked", directory, signed, order=self.candidate)
+            holding = action.read()
+            self.assertEqual(holding["stage"], "order-locked")
+            matcher = OrderChild(self, "order_submission_worker", "compete", directory, body=create)
+            matching = matcher.read()
+            self.assertEqual(matching["stage"], "selecting")
+            wait_for_row_lock(self, matching["pid"], "customer_accounts_account", holding["pid"])
+            action.release()
+            applied, matched = action.read(), matcher.read()
+            self.assertEqual((action.wait(), matcher.wait()), (0, 0), (action.error_output(), matcher.error_output()))
+        self.assertEqual(applied["status"], 200, applied)
+        self.assertEqual(applied["body"]["status"], "applied")
+        self.assertEqual(matched["status"], 201, matched)
+        expected_payment = token_base_units_ceiling(
+            Decimal(10) * Decimal("3.00"), require_deployment(self.tenant.refs.stablecoin).decimals
+        )
+        with use_operator():
+            self.candidate.refresh_from_db()
+            swap = SwapOrder.objects.get(pk=matched["body"]["match"]["swapOrder"])
+            self.assertEqual(
+                (self.candidate.quantity, self.candidate.modification_count, self.candidate.filled_quantity),
+                (12, 1, 10),
+            )
+            self.assertEqual((swap.share_amount, swap.payment_amount), (10, expected_payment))
 
     def submission_message(self):
         return self.client.post(

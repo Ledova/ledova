@@ -48,6 +48,7 @@ def run():
     original_apply = service._apply
     original_verify = service._verify
     original_load = service._load_action
+    original_order = service._authorized_order
     verifications = 0
     selections = 0
 
@@ -79,6 +80,21 @@ def run():
             notify("selecting")
         return original_load(*args)
 
+    def released():
+        if sys.stdin.readline().strip() != "continue":
+            raise AssertionError("The owned action worker was not released")
+
+    reads = 0
+
+    def order_then_pause(*args, **kwargs):
+        nonlocal reads
+        order = original_order(*args, **kwargs)
+        reads += 1
+        if reads == 2:
+            notify("order-locked")
+            released()
+        return order
+
     def published(event, payload):
         with (directory / "events.jsonl").open("a") as output:
             output.write(json.dumps({"event": event, "alias": current_alias()}) + "\n")
@@ -102,8 +118,12 @@ def run():
             stack.enter_context(patch.object(service, "_verify", side_effect=verify_then_pause))
         elif phase == "compete":
             stack.enter_context(patch.object(service, "_load_action", side_effect=load_after_announcing))
+        elif phase == "order-locked":
+            stack.enter_context(patch.object(service, "_authorized_order", side_effect=order_then_pause))
         response = client.post(
-            f"/api/v1/trading/orders/{incoming['order_id']}/modify/", incoming["body"], format="json"
+            f"/api/v1/trading/orders/{incoming['order_id']}/{incoming.get('endpoint', 'modify')}/",
+            incoming["body"],
+            format="json",
         )
         print(
             json.dumps(
