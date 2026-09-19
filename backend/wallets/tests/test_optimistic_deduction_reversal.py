@@ -7,6 +7,7 @@ from web3 import Web3
 from assets.services.identity import native_asset_for_chain
 from wallets.models import Holding, Transaction
 from wallets.services import transaction_confirmation, transfers
+from wallets.tests.finality import settle_evm_transfer
 from wallets.tests.test_broadcast_transfer_guard import (
     RECIPIENT,
     USDC_CONTRACT,
@@ -20,7 +21,7 @@ FEE = "0.002"
 
 @patch.object(transfers, "_schedule_confirmation_checks")
 @patch("wallets.services.submissions.get_blockchain_client")
-class ReversingOnlyWhatWasDeductedTest(BroadcastTransferGuardTestCase):
+class RetainingOnlyWhatWasDeductedTest(BroadcastTransferGuardTestCase):
 
     def setUp(self):
         super().setUp()
@@ -69,10 +70,12 @@ class ReversingOnlyWhatWasDeductedTest(BroadcastTransferGuardTestCase):
         )
 
     def fail_transfer(self, tx_hash):
-        with patch.object(transaction_confirmation, "_notify_wallet_users"):
-            return transaction_confirmation.fail_transaction(tx_hash, reason="reverted", wallet=self.wallet)
+        with patch.object(transaction_confirmation, "_notify_wallet_users"), patch(
+            "wallets.services.holdings.fetch_chain_balance", return_value=None
+        ):
+            return settle_evm_transfer(self.wallet, tx_hash, succeeded=False)
 
-    def test_a_wallet_with_no_native_holding_is_not_given_one_by_a_failed_transfer(self, get_client, schedule):
+    def test_a_final_failure_cannot_create_native_funds_during_a_balance_outage(self, get_client, schedule):
         self.hold(self.token, "100")
 
         self.assertEqual(self.send_token(get_client).status_code, 200)
@@ -80,9 +83,9 @@ class ReversingOnlyWhatWasDeductedTest(BroadcastTransferGuardTestCase):
         self.fail_transfer(self.tx_hash)
 
         self.assertEqual(self.quantity(self.native), Decimal("0"))
-        self.assertEqual(self.quantity(self.token), Decimal("100"))
+        self.assertEqual(self.quantity(self.token), Decimal("98.5"))
 
-    def test_a_transfer_larger_than_the_holding_comes_back_to_where_it_started(self, get_client, schedule):
+    def test_a_clamped_token_deduction_stays_held_until_balance_repair(self, get_client, schedule):
         self.hold(self.token, "1")
         self.hold(self.native, "5")
 
@@ -90,10 +93,10 @@ class ReversingOnlyWhatWasDeductedTest(BroadcastTransferGuardTestCase):
         self.assertEqual(self.quantity(self.token), Decimal("0"))
         self.fail_transfer(self.tx_hash)
 
-        self.assertEqual(self.quantity(self.token), Decimal("1"))
-        self.assertEqual(self.quantity(self.native), Decimal("5"))
+        self.assertEqual(self.quantity(self.token), Decimal("0"))
+        self.assertEqual(self.quantity(self.native), Decimal("4.998"))
 
-    def test_a_fee_larger_than_the_native_holding_comes_back_to_where_it_started(self, get_client, schedule):
+    def test_a_clamped_fee_stays_held_until_balance_repair(self, get_client, schedule):
         self.hold(self.token, "100")
         self.hold(self.native, "5")
 
@@ -101,19 +104,19 @@ class ReversingOnlyWhatWasDeductedTest(BroadcastTransferGuardTestCase):
         self.assertEqual(self.quantity(self.native), Decimal("0"))
         self.fail_transfer(self.tx_hash)
 
-        self.assertEqual(self.quantity(self.native), Decimal("5"))
-        self.assertEqual(self.quantity(self.token), Decimal("100"))
+        self.assertEqual(self.quantity(self.native), Decimal("0"))
+        self.assertEqual(self.quantity(self.token), Decimal("98.5"))
 
-    def test_a_native_send_larger_than_the_one_holding_comes_back_to_where_it_started(self, get_client, schedule):
+    def test_a_clamped_native_send_stays_held_until_balance_repair(self, get_client, schedule):
         self.hold(self.native, "0.1")
 
         self.assertEqual(self.send_native(get_client).status_code, 200)
         self.assertEqual(self.quantity(self.native), Decimal("0"))
         self.fail_transfer(self.tx_hash)
 
-        self.assertEqual(self.quantity(self.native), Decimal("0.1"))
+        self.assertEqual(self.quantity(self.native), Decimal("0"))
 
-    def test_an_unclamped_transfer_still_comes_back_in_full(self, get_client, schedule):
+    def test_an_unclamped_transfer_keeps_its_amount_and_fee_during_a_repair_outage(self, get_client, schedule):
         self.hold(self.token, "100")
         self.hold(self.native, "5")
 
@@ -121,7 +124,7 @@ class ReversingOnlyWhatWasDeductedTest(BroadcastTransferGuardTestCase):
         self.assertEqual((self.quantity(self.token), self.quantity(self.native)), (Decimal("98.5"), Decimal("4.998")))
         self.fail_transfer(self.tx_hash)
 
-        self.assertEqual((self.quantity(self.token), self.quantity(self.native)), (Decimal("100"), Decimal("5")))
+        self.assertEqual((self.quantity(self.token), self.quantity(self.native)), (Decimal("98.5"), Decimal("4.998")))
 
     def test_the_row_records_what_each_holding_actually_gave_up(self, get_client, schedule):
         self.hold(self.token, "100")

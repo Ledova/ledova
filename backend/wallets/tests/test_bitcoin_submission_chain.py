@@ -28,6 +28,7 @@ from wallets.models import (
 from wallets.services import transfers
 from wallets.services.bitcoin_submissions import attempt_bitcoin_submission
 from wallets.services.chain_observations import observe_wallet_chain
+from wallets.services.holdings import sync_holding
 from wallets.tasks.confirmation import confirm_pending_transaction
 
 RPC_URL = os.environ.get("BITCOIN_TEST_RPC_URL", "")
@@ -38,7 +39,12 @@ COOKIE = os.environ.get("BITCOIN_TEST_COOKIE", "")
     RPC_URL and COOKIE and connection.vendor == "postgresql",
     "An isolated Bitcoin regtest and PostgreSQL are required",
 )
-@override_settings(BITCOIN_NETWORK="regtest")
+@override_settings(
+    BITCOIN_NETWORK="regtest",
+    WALLET_CHAIN_FINALITY_POLICIES={
+        "bitcoin:0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206": {"mode": "depth", "depth": 6}
+    },
+)
 class BitcoinSubmissionChainTest(APITransactionTestCase):
     def setUp(self):
         super().setUp()
@@ -90,10 +96,23 @@ class BitcoinSubmissionChainTest(APITransactionTestCase):
         self.client.force_authenticate(self.tenant.user)
         for target in (
             "wallets.tasks.confirm_pending_transaction.configure",
-            "wallets.services.transaction_confirmation.send_transaction_notification.defer",
-            "wallets.services.transaction_confirmation.sync_holding",
+            "wallets.services.transaction_confirmation._notify_wallet_users",
         ):
             boundary = patch(target)
+            boundary.start()
+            self.addCleanup(boundary.stop)
+        for target, kwargs in (
+            ("wallets.services.transaction_confirmation.sync_holding", {"wraps": sync_holding}),
+            (
+                "wallets.services.holdings.fetch_chain_balance",
+                {
+                    "side_effect": lambda wallet, asset: self.provider._rpc_call(
+                        "scantxoutset", ["start", [f"addr({wallet.address})"]]
+                    )["total_amount"]
+                },
+            ),
+        ):
+            boundary = patch(target, **kwargs)
             boundary.start()
             self.addCleanup(boundary.stop)
         provider = patch(
@@ -127,6 +146,15 @@ class BitcoinSubmissionChainTest(APITransactionTestCase):
             self.provider._rpc_call("gettxout", [mined["txid"], 0])["value"],
             Decimal("2"),
         )
+        self.assertEqual(
+            confirm_pending_transaction(submission.tx_hash, str(self.wallet.pk), principal_id=self.tenant.user.pk)[
+                "status"
+            ],
+            "finality_pending",
+        )
+        with use_operator():
+            self.assertEqual(Transaction.objects.get(pk=submission.transaction_id).status, "pending")
+        self.provider._rpc_call("generatetoaddress", [5, self.miner])
         self.assertEqual(
             confirm_pending_transaction(
                 submission.tx_hash,
@@ -209,12 +237,9 @@ class BitcoinSubmissionChainTest(APITransactionTestCase):
         self.mine_and_confirm()
         submission = self.submission()
         before = self.financial_state()
-        with patch.object(self.provider, "broadcast_transaction") as sent:
-            self.assertEqual(observe_wallet_chain(submission.transaction_id), "recorded")
-            sent.assert_not_called()
         with use_operator():
-            first = WalletChainObservation.objects.get(watch__transaction_id=submission.transaction_id)
-        self.assertEqual((first.result, first.finality), ("included", "unknown"))
+            first = WalletChainObservation.objects.get(watch__transaction_id=submission.transaction_id, generation=2)
+        self.assertEqual((first.result, first.finality), ("included", "satisfied"))
         old_hash = first.evidence["receipt"]["hash"]
         original = dict(first.evidence)
         self.provider._rpc_call("invalidateblock", [old_hash])
@@ -231,11 +256,12 @@ class BitcoinSubmissionChainTest(APITransactionTestCase):
                     "generation"
                 )
             )
-        self.assertEqual([row.result for row in rows], ["included", "orphaned", "included"])
-        self.assertEqual(rows[0].evidence, original)
-        self.assertTrue(rows[1].evidence["previous_orphaned"])
+        self.assertEqual([row.result for row in rows], ["included", "included", "orphaned", "included"])
+        self.assertEqual([row.finality for row in rows], ["waiting", "satisfied", "unknown", "waiting"])
+        self.assertEqual(rows[1].evidence, original)
         self.assertTrue(rows[2].evidence["previous_orphaned"])
-        self.assertNotEqual(rows[2].evidence["receipt"]["hash"], old_hash)
+        self.assertTrue(rows[3].evidence["previous_orphaned"])
+        self.assertNotEqual(rows[3].evidence["receipt"]["hash"], old_hash)
         self.assertEqual(self.financial_state(), before)
 
     def test_process_exit_before_or_after_actual_send_keeps_recoverable_durable_intent(
@@ -299,7 +325,7 @@ class BitcoinSubmissionChainTest(APITransactionTestCase):
                 with use_operator():
                     self.assertEqual(attempt_bitcoin_submission(submission.pk), "acknowledged")
                 self.assertEqual(self.financial_state(), before)
-                self.provider._rpc_call("generatetoaddress", [1, self.miner])
+                self.provider._rpc_call("generatetoaddress", [6, self.miner])
                 self.assertEqual(
                     confirm_pending_transaction(
                         submission.tx_hash,

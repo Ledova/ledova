@@ -41,7 +41,7 @@ class SubmissionFixture:
         self.client.raise_request_exception = False
         for target in (
             "wallets.tasks.confirm_pending_transaction.configure",
-            "wallets.services.transaction_confirmation.send_transaction_notification.defer",
+            "wallets.services.transaction_confirmation._notify_wallet_users",
             "wallets.services.transaction_confirmation.sync_holding",
         ):
             boundary = patch(target)

@@ -7,10 +7,9 @@ from django.test import SimpleTestCase
 from rest_framework.test import APITransactionTestCase
 
 from integrations.blockchain.bitcoin import BitcoinClient
-from shared.db import acting_for, use_operator
+from shared.db import use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from wallets.models import Transaction
-from wallets.services import transaction_confirmation
 from wallets.services.receipt_readers import extract_actual_fee, get_receipt_reader
 from wallets.tasks.confirmation import confirm_pending_transaction
 from wallets.tests.test_submission_durability import SubmissionFixture
@@ -21,21 +20,26 @@ BLOCK_SECONDS = 1700000000
 BLOCK_TIME = datetime.fromtimestamp(BLOCK_SECONDS, tz=timezone.utc)
 
 
-class ReceiptMetadataChecks(SubmissionFixture):
+class ImportedReceiptMetadataChecks(SubmissionFixture):
     def setUp(self):
         super().setUp()
         self.sequence = 1200
 
-    def pending(self, *, imported=False, **metadata):
+    def pending(self, **metadata):
         self.sequence += 1
-        with acting_for(self.tenant.user.pk):
-            result = transaction_confirmation.create_pending_transaction(
-                self.wallet, "0x" + f"{self.sequence:064x}", self.recipient, Decimal("0.1")
-            )
-            tx = Transaction.objects.get(pk=result["transaction_id"])
         with use_operator():
-            Transaction.objects.filter(pk=tx.pk).update(imported_from_history=imported, **metadata)
-            tx.refresh_from_db()
+            tx = Transaction.objects.create(
+                wallet=self.wallet,
+                tx_hash="0x" + f"{self.sequence:064x}",
+                chain="base",
+                asset=self.native,
+                from_address=self.recipient,
+                to_address=self.wallet.address,
+                amount=Decimal("0.1"),
+                imported_from_history=True,
+                **metadata,
+            )
+
         return tx
 
     def observe(self, tx, *, succeeded=True, header=None, fields=None):
@@ -58,23 +62,21 @@ class ReceiptMetadataChecks(SubmissionFixture):
         return provider
 
     def test_success_and_revert_retain_the_same_observed_block_and_actual_fee(self):
-        for imported in (False, True):
-            for succeeded in (True, False):
-                with self.subTest(imported=imported, succeeded=succeeded):
-                    tx = self.pending(imported=imported)
-                    holdings = self.financial_state()[1:]
-                    provider = self.observe(
-                        tx,
-                        succeeded=succeeded,
-                        header={"hash": BLOCK_HASH, "number": 17, "timestamp": BLOCK_SECONDS},
-                    )
-                    self.assertEqual(
-                        (tx.block_hash, tx.block_number, tx.block_timestamp, tx.transaction_fee),
-                        (BLOCK_HASH, 17, BLOCK_TIME, Decimal("0.000042")),
-                    )
-                    provider.w3.eth.get_block.assert_called_once_with(BLOCK_HASH)
-                    if imported:
-                        self.assertEqual(self.financial_state()[1:], holdings)
+        for succeeded in (True, False):
+            with self.subTest(succeeded=succeeded):
+                tx = self.pending()
+                holdings = self.financial_state()[1:]
+                provider = self.observe(
+                    tx,
+                    succeeded=succeeded,
+                    header={"hash": BLOCK_HASH, "number": 17, "timestamp": BLOCK_SECONDS},
+                )
+                self.assertEqual(
+                    (tx.block_hash, tx.block_number, tx.block_timestamp, tx.transaction_fee),
+                    (BLOCK_HASH, 17, BLOCK_TIME, Decimal("0.000042")),
+                )
+                provider.w3.eth.get_block.assert_called_once_with(BLOCK_HASH)
+                self.assertEqual(self.financial_state()[1:], holdings)
 
     def test_missing_or_conflicting_headers_leave_the_time_unknown(self):
         for header in (
@@ -91,56 +93,50 @@ class ReceiptMetadataChecks(SubmissionFixture):
                 self.assertEqual(self.financial_state()[2], snapshots)
 
     def test_missing_metadata_preserves_existing_evidence(self):
-        for imported in (False, True):
-            for succeeded in (True, False):
-                with self.subTest(imported=imported, succeeded=succeeded):
-                    tx = self.pending(
-                        imported=imported,
-                        block_hash=BLOCK_HASH,
-                        block_number=17,
-                        block_timestamp=BLOCK_TIME,
-                        transaction_fee=Decimal("0.000042"),
-                    )
-                    self.observe(
-                        tx,
-                        succeeded=succeeded,
-                        fields={"blockHash": None, "blockNumber": None, "gasUsed": None},
-                    )
-                    self.assertEqual(
-                        (tx.block_hash, tx.block_number, tx.block_timestamp, tx.transaction_fee),
-                        (BLOCK_HASH, 17, BLOCK_TIME, Decimal("0.000042")),
-                    )
+        for succeeded in (True, False):
+            with self.subTest(succeeded=succeeded):
+                tx = self.pending(
+                    block_hash=BLOCK_HASH,
+                    block_number=17,
+                    block_timestamp=BLOCK_TIME,
+                    transaction_fee=Decimal("0.000042"),
+                )
+                self.observe(
+                    tx,
+                    succeeded=succeeded,
+                    fields={"blockHash": None, "blockNumber": None, "gasUsed": None},
+                )
+                self.assertEqual(
+                    (tx.block_hash, tx.block_number, tx.block_timestamp, tx.transaction_fee),
+                    (BLOCK_HASH, 17, BLOCK_TIME, Decimal("0.000042")),
+                )
 
     def test_a_new_block_context_cannot_inherit_a_previous_blocks_time_or_fee(self):
-        for imported in (False, True):
-            for succeeded in (True, False):
-                with self.subTest(imported=imported, succeeded=succeeded):
-                    tx = self.pending(
-                        imported=imported,
-                        block_hash=OTHER_BLOCK_HASH,
-                        block_number=16,
-                        block_timestamp=BLOCK_TIME,
-                        transaction_fee=Decimal("0.00003"),
-                    )
-                    self.observe(tx, succeeded=succeeded, fields={"gasUsed": None})
-                    self.assertEqual((tx.block_hash, tx.block_number), (BLOCK_HASH, 17))
-                    self.assertIsNone(tx.block_timestamp)
-                    self.assertIsNone(tx.transaction_fee)
+        for succeeded in (True, False):
+            with self.subTest(succeeded=succeeded):
+                tx = self.pending(
+                    block_hash=OTHER_BLOCK_HASH,
+                    block_number=16,
+                    block_timestamp=BLOCK_TIME,
+                    transaction_fee=Decimal("0.00003"),
+                )
+                self.observe(tx, succeeded=succeeded, fields={"gasUsed": None})
+                self.assertEqual((tx.block_hash, tx.block_number), (BLOCK_HASH, 17))
+                self.assertIsNone(tx.block_timestamp)
+                self.assertIsNone(tx.transaction_fee)
 
     def test_a_first_block_hash_cannot_validate_earlier_height_only_metadata(self):
-        for imported in (False, True):
-            for succeeded in (True, False):
-                with self.subTest(imported=imported, succeeded=succeeded):
-                    tx = self.pending(
-                        imported=imported,
-                        block_number=17,
-                        block_timestamp=BLOCK_TIME,
-                        transaction_fee=Decimal("0.00003"),
-                    )
-                    self.observe(tx, succeeded=succeeded, fields={"gasUsed": None})
-                    self.assertEqual((tx.block_hash, tx.block_number), (BLOCK_HASH, 17))
-                    self.assertIsNone(tx.block_timestamp)
-                    self.assertIsNone(tx.transaction_fee)
+        for succeeded in (True, False):
+            with self.subTest(succeeded=succeeded):
+                tx = self.pending(
+                    block_number=17,
+                    block_timestamp=BLOCK_TIME,
+                    transaction_fee=Decimal("0.00003"),
+                )
+                self.observe(tx, succeeded=succeeded, fields={"gasUsed": None})
+                self.assertEqual((tx.block_hash, tx.block_number), (BLOCK_HASH, 17))
+                self.assertIsNone(tx.block_timestamp)
+                self.assertIsNone(tx.transaction_fee)
 
     def test_malformed_metadata_does_not_block_an_identified_receipts_outcome(self):
         for succeeded in (True, False):
@@ -155,11 +151,11 @@ class ReceiptMetadataChecks(SubmissionFixture):
                 provider.w3.eth.get_block.assert_not_called()
 
 
-class ReceiptMetadataTest(ReceiptMetadataChecks, APITransactionTestCase):
+class ReceiptMetadataTest(ImportedReceiptMetadataChecks, APITransactionTestCase):
     pass
 
 
-class ScopedReceiptMetadataTest(RunsOnTheScopedConnection, ReceiptMetadataChecks, APITransactionTestCase):
+class ScopedReceiptMetadataTest(RunsOnTheScopedConnection, ImportedReceiptMetadataChecks, APITransactionTestCase):
     pass
 
 
