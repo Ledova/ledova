@@ -76,6 +76,9 @@ class Transaction(DerivesAccountFromWallet, BaseModel):
     deducted_amount_sync_version = models.UUIDField(null=True, blank=True, editable=False)
     deducted_fee_sync_version = models.UUIDField(null=True, blank=True, editable=False)
     balance_reconciliation_token = models.UUIDField(null=True, blank=True, editable=False)
+    finality_observation = models.ForeignKey(
+        "wallets.WalletChainObservation", on_delete=models.PROTECT, null=True, editable=False, related_name="+"
+    )
     wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name="transactions")
 
     user_account = models.ForeignKey(

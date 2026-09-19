@@ -124,21 +124,17 @@ class HistoryPreservationChecks:
         quarantine.assert_not_called()
         self.assertEqual(self.state(), before)
 
-    def test_history_cannot_strand_a_pending_debit_before_the_real_failure_refunds_once(self):
+    def test_history_cannot_resolve_an_unattributed_local_debit(self):
         tx = self.pending()
-        with use_operator():
-            self.holding.refresh_from_db()
-        self.assertEqual(self.holding.quantity, Decimal("7.99"))
         self.import_history(self.history(amount="900", status="success"))
         with acting_for(self.tenant.user.pk):
-            first = transaction_confirmation.fail_transaction(tx.tx_hash, wallet=self.wallet)
-            second = transaction_confirmation.fail_transaction(tx.tx_hash, wallet=self.wallet)
-        self.assertEqual((first["status"], second["status"]), ("failed", "not_pending"))
+            result = transaction_confirmation.settle_observed_transaction(tx.tx_hash, wallet=self.wallet)
+        self.assertEqual(result["status"], "attribution_pending")
         with use_operator():
             tx.refresh_from_db()
             self.holding.refresh_from_db()
-        self.assertEqual((tx.amount, tx.deducted_amount), (Decimal("2"), Decimal("0")))
-        self.assertEqual(self.holding.quantity, Decimal("10"))
+        self.assertEqual((tx.status, tx.amount, tx.deducted_amount), ("pending", Decimal("2"), Decimal("2.01")))
+        self.assertEqual(self.holding.quantity, Decimal("7.99"))
 
     def test_new_history_is_imported_once_without_accepting_provider_status_as_a_receipt(self):
         for index, status in enumerate(("success", "confirmed", "failed", "pending", None, "unexpected")):
@@ -258,7 +254,7 @@ class HistoryPreservationChecks:
             self.holding.refresh_from_db()
         self.assertEqual(self.holding.quantity, Decimal("37"))
 
-    def test_history_receipts_do_not_notify_but_local_transfers_do(self):
+    def test_history_receipts_and_unattributed_local_transfers_do_not_notify(self):
         with patch("wallets.services.transaction_confirmation.send_transaction_notification.defer") as notification:
             for status in (0, 1):
                 data = self.history(tx_hash="0x" + f"{status + 200:064x}")
@@ -266,13 +262,9 @@ class HistoryPreservationChecks:
                 result = self.check_receipt(data, self.receipt_client(status=status, transactionHash=data["tx_hash"]))
                 self.assertEqual(result["status"], "confirmed" if status else "failed")
             notification.assert_not_called()
-            local = self.pending()
-            self.assertEqual(self.check_receipt(self.history(), self.receipt_client())["status"], "confirmed")
-            notification.assert_called_once_with(
-                user_id=str(self.tenant.user.pk),
-                transaction_id=str(local.pk),
-                event_type="confirmed",
-            )
+            self.pending()
+            self.assertEqual(self.check_receipt(self.history(), self.receipt_client())["status"], "attribution_pending")
+            notification.assert_not_called()
 
     def test_quarantined_history_receipt_never_opens_a_holding_or_snapshot(self):
         data = self.history(contract_address="0x" + "cd" * 20)
@@ -333,25 +325,18 @@ class HistoryPreservationChecks:
                 self.assertEqual(self.state()[1:], before)
 
     def test_a_receipt_for_a_still_missing_row_cannot_enter_the_local_transfer_writer(self):
-        with (
-            patch(
-                "wallets.tasks.confirmation.transaction_confirmation.confirm_transaction",
-                wraps=transaction_confirmation.confirm_transaction,
-            ) as confirm,
-            patch(
-                "wallets.tasks.confirmation.transaction_confirmation.fail_transaction",
-                wraps=transaction_confirmation.fail_transaction,
-            ) as fail,
-        ):
+        with patch(
+            "wallets.tasks.confirmation.transaction_confirmation.settle_observed_transaction",
+            wraps=transaction_confirmation.settle_observed_transaction,
+        ) as settle:
             for status in (0, 1):
                 data = self.history()
                 client = self.receipt_client(status=status)
                 self.assertEqual(self.check_receipt(data, client)["status"], "not_found")
                 client.get_transaction_receipt.assert_not_called()
-            confirm.assert_not_called()
-            fail.assert_not_called()
+            settle.assert_not_called()
         self.pending()
-        self.assertEqual(self.check_receipt(self.history(), self.receipt_client())["status"], "confirmed")
+        self.assertEqual(self.check_receipt(self.history(), self.receipt_client())["status"], "attribution_pending")
 
     @skipUnless(connections[configured(APP_ALIAS)].vendor == "postgresql", "Concurrent connections need PostgreSQL")
     def test_a_missing_lookup_in_one_connection_cannot_settle_an_import_from_another(self):
@@ -529,28 +514,6 @@ class HistoryPreservationChecks:
             (first.status, first.amount, first.deducted_amount), ("pending", Decimal("2"), Decimal("2.01"))
         )
         self.assertEqual(self.holding.quantity, Decimal("7.99"))
-
-    @skipUnless(connections[configured(APP_ALIAS)].vendor == "postgresql", "Concurrent row locks need PostgreSQL")
-    def test_history_waits_for_confirmation_and_preserves_the_committed_receipt(self):
-        tx = self.pending()
-        timestamp = timezone.now()
-
-        def confirm():
-            return transaction_confirmation.confirm_transaction(
-                tx.tx_hash, wallet=self.wallet, block_number=80, block_timestamp=timestamp, actual_fee=Decimal("0.003")
-            )
-
-        first, second = self.overlapping_history(
-            confirm, "wallets.services.transaction_confirmation.send_transaction_notification.defer"
-        )
-        self.assertEqual(first["status"], "confirmed")
-        self.assertEqual(second["transactions"], 0)
-        with use_operator():
-            tx.refresh_from_db()
-        self.assertEqual((tx.status, tx.block_number, tx.block_timestamp), ("confirmed", 80, timestamp))
-        self.assertEqual(
-            (tx.amount, tx.transaction_fee, tx.deducted_amount), (Decimal("2"), Decimal("0.003"), Decimal("2.01"))
-        )
 
     @skipUnless(connections[configured(APP_ALIAS)].vendor == "postgresql", "Concurrent row locks need PostgreSQL")
     def test_overlapping_history_imports_keep_the_first_observation_and_one_snapshot(self):

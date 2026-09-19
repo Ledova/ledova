@@ -86,7 +86,10 @@ SYSTEM_WIDE = {
 PRINCIPAL_BEARING = {
     "tokens.tasks.deployment.deploy_share_token_task": "Deploys one issuer's token and writes back to it.",
     "wallets.tasks.confirmation.confirm_pending_transaction": "Confirms one wallet's transaction and moves the "
-    "balance it belongs to, on the money path. Converted: its principal is a required argument, the "
+    "balance it belongs to, on the money path. Local journal evidence is collected and persisted in a "
+    "bounded operator observation step after the scoped wallet lookup; finality consumption, holding "
+    "repair and notification enqueue return to the captured principal. Imported history uses its "
+    "separate receipt writer and has no financial authority. Converted: its principal is a required argument, the "
     "request that broadcast the transfer passes its user, and the Alchemy webhook and the "
     "check_all_pending_transactions sweep pass None because no user caused those runs. The principal is "
     "captured at enqueue and used at run, and that gap grows with the delay: the second confirmation check "

@@ -46,7 +46,11 @@ TOKEN_ABI = [
 
 
 @skipUnless(RPC_URL and TOKEN_ADDRESS, "A local chain and deployed test stablecoin are required")
-@override_settings(BLOCKCHAIN_RPC_URL=RPC_URL, BLOCKCHAIN_CHAIN_ID=31337)
+@override_settings(
+    BLOCKCHAIN_RPC_URL=RPC_URL,
+    BLOCKCHAIN_CHAIN_ID=31337,
+    WALLET_CHAIN_FINALITY_POLICIES={"evm:31337": {"mode": "depth", "depth": 1}},
+)
 class SubmissionChainTest(SubmissionFixture, APITransactionTestCase):
     def setUp(self):
         super().setUp()

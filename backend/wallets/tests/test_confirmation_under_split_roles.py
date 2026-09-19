@@ -20,7 +20,7 @@ from wallets.models import Transaction, Wallet
 from wallets.tasks.confirmation import confirm_pending_transaction
 
 
-class ConfirmationUsesSeparateRolesTest(RunsOnTheScopedConnection, TransactionTestCase):
+class ImportedConfirmationUsesSeparateRolesTest(RunsOnTheScopedConnection, TransactionTestCase):
     def setUp(self):
         with use_operator():
             self.owner = make_tenant("confirm-owner")
@@ -32,6 +32,7 @@ class ConfirmationUsesSeparateRolesTest(RunsOnTheScopedConnection, TransactionTe
                     chain=tenant.spare_wallet.chain,
                     from_address=tenant.spare_wallet.address,
                     tx_hash="0x" + f"{tenant.user.pk:064x}",
+                    imported_from_history=True,
                 )
                 tenant.transaction.refresh_from_db()
         self.observed = []
@@ -73,7 +74,7 @@ class ConfirmationUsesSeparateRolesTest(RunsOnTheScopedConnection, TransactionTe
         self.assertEqual(self.status_of(self.owner), TRANSACTION_STATUS_CONFIRMED)
         self.assertEqual(self.status_of(self.other), TRANSACTION_STATUS_PENDING)
         self.assertIn(principal_of(APP_ALIAS), (None, ""))
-        self.delivery.assert_called_once()
+        self.delivery.assert_not_called()
 
     def test_a_foreign_wallet_is_invisible_before_any_chain_or_write_effect(self):
         with use_operator():
