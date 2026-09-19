@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import timedelta
 from threading import Barrier
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.db import DatabaseError, connections
@@ -404,7 +405,78 @@ class SwapApprovalSubmissionTest(APITransactionTestCase):
         self.assertEqual(self.sweep(), {"attempted": 1, "outcomes": {"confirmed": 1}})
         self.assertEqual([row.outcome for row in self.rows()], ["superseded", "confirmed"])
 
-    def test_the_sweep_is_bounded_and_attempts_the_least_recently_attempted_first(self):
+    def assert_the_sweep_advances_past_unavailable_evidence(self, failure, outcome):
+        first_raw = approval_bytes(self.swap, nonce=99 if failure == "identity" else 0)
+        second_raw = approval_bytes(self.swap, nonce=1)
+        with use_operator():
+            first = SwapApprovalSubmission.objects.create(**self.submission_fields(first_raw, nonce=0))
+            second = SwapApprovalSubmission.objects.create(**self.submission_fields(second_raw, nonce=1))
+        self.node.mine(second.tx_hash)
+        factories = 0
+
+        def node():
+            nonlocal factories
+            factories += 1
+            if factories == 1:
+                if failure == "client":
+                    raise ConnectionError("Synthetic client unavailable")
+                if failure == "chain":
+                    return SimpleNamespace(w3=SimpleNamespace(eth=SimpleNamespace(chain_id=first.chain_id + 1)))
+            return self.node.client
+
+        def receipt(tx_hash):
+            if tx_hash == first.tx_hash:
+                if failure == "receipt":
+                    raise ConnectionError("Synthetic receipt unavailable")
+                if failure == "malformed":
+                    return {**CONFIRMED, "transactionHash": TX_HASH}
+                raise AssertionError("Unattributed approvals must not reach receipt reads")
+            return self.node.receipts.get(tx_hash)
+
+        with (
+            patch("tokens.tasks.approval_submissions.SWAP_APPROVAL_RECOVERY_BATCH", 1),
+            patch("tokens.services.approval_submissions.get_base_chain_client", side_effect=node),
+            patch.object(self.node.client, "get_transaction_receipt", side_effect=receipt),
+        ):
+            self.assertEqual(self.sweep(), {"attempted": 1, "outcomes": {outcome: 1}})
+            self.assertEqual(self.sweep(), {"attempted": 1, "outcomes": {"confirmed": 1}})
+        with use_operator():
+            first.refresh_from_db()
+            second.refresh_from_db()
+        self.assertEqual((first.outcome, second.outcome), ("pending", "confirmed"))
+        self.assertEqual((first.last_attempt_at, second.last_attempt_at), (None, None))
+        self.assertEqual(bytes(first.raw_transaction), first_raw)
+        self.assertEqual(self.node.broadcasts, [])
+
+    def test_receipt_read_failure_does_not_starve_later_approvals(self):
+        self.assert_the_sweep_advances_past_unavailable_evidence("receipt", "delivery_unavailable")
+
+    def test_chain_mismatch_does_not_starve_later_approvals(self):
+        self.assert_the_sweep_advances_past_unavailable_evidence("chain", "chain_unavailable")
+
+    def test_identity_mismatch_does_not_starve_later_approvals(self):
+        self.assert_the_sweep_advances_past_unavailable_evidence("identity", "identity_unavailable")
+
+    def test_malformed_receipt_does_not_starve_later_approvals(self):
+        self.assert_the_sweep_advances_past_unavailable_evidence("malformed", "receipt_identity_unavailable")
+
+    def test_client_initialization_failure_does_not_abort_recovery_of_later_approvals(self):
+        self.assert_the_sweep_advances_past_unavailable_evidence("client", "delivery_unavailable")
+
+    def test_receipt_failure_does_not_postpone_an_eligible_resend(self):
+        raw = approval_bytes(self.swap)
+        self.node.confirm = False
+        self.assertEqual(self.broadcast(raw).status_code, 503)
+        last_send = self.row().last_attempt_at
+        with self.clock(minutes=2):
+            with patch.object(self.node.client, "get_transaction_receipt", side_effect=ConnectionError("Synthetic")):
+                self.assertEqual(self.sweep(), {"attempted": 1, "outcomes": {"delivery_unavailable": 1}})
+            self.assertEqual(self.row().last_attempt_at, last_send)
+            self.assertEqual(self.sweep(), {"attempted": 1, "outcomes": {"acknowledged": 1}})
+            self.assertEqual(self.sweep(), {"attempted": 1, "outcomes": {"observing": 1}})
+        self.assertEqual(self.node.broadcasts, [raw, raw])
+
+    def test_the_sweep_is_bounded_and_attempts_the_least_recently_updated_first(self):
         unattempted = approval_bytes(self.swap, nonce=0)
         with use_operator():
             never = approval_submissions.record(

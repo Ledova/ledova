@@ -30,7 +30,7 @@ class SwapApprovalSubmission(BaseModel):
     tx_hash = models.CharField(max_length=66, editable=False)
     raw_transaction = models.BinaryField(editable=False)
     intent = models.JSONField(editable=False)
-    last_attempt_at = models.DateTimeField(null=True, editable=False, db_index=True)
+    last_attempt_at = models.DateTimeField(null=True, editable=False)
     acknowledged_at = models.DateTimeField(null=True, editable=False)
     last_error = models.CharField(max_length=100, blank=True, default="", editable=False)
     outcome = models.CharField(
@@ -45,6 +45,13 @@ class SwapApprovalSubmission(BaseModel):
     confirmed_at = models.DateTimeField(null=True, editable=False)
 
     class Meta:
+        indexes = [
+            models.Index(
+                fields=["updated_at", "created_at", "uuid"],
+                condition=models.Q(outcome=ApprovalSubmissionOutcome.PENDING),
+                name="pending_swap_approval_recovery",
+            )
+        ]
         constraints = [
             models.UniqueConstraint(fields=["chain_id", "tx_hash"], name="unique_swap_approval_submission_hash"),
             models.UniqueConstraint(

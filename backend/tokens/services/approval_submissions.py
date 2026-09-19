@@ -112,11 +112,12 @@ def attempt(submission_id, *, client=None, receipt_wait=0):
         return "not_found"
     if submission.outcome != PENDING:
         return submission.outcome
+    SwapApprovalSubmission.objects.filter(pk=submission.pk, outcome=PENDING).update(updated_at=timezone.now())
     raw = bytes(submission.raw_transaction)
     if not _identity_holds(submission, raw):
         return "identity_unavailable"
-    client = client or get_base_chain_client()
     try:
+        client = client or get_base_chain_client()
         if client.w3.eth.chain_id != submission.chain_id:
             return "chain_unavailable"
         receipt = client.get_transaction_receipt(submission.tx_hash)

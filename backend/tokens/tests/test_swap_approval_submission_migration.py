@@ -1,3 +1,5 @@
+import json
+
 from django.db import DatabaseError, connection
 from django.test import TransactionTestCase, override_settings
 from web3 import Web3
@@ -13,6 +15,7 @@ from tokens.tests.swap_state_fixtures import CONTRACT, make_swap
 
 BEFORE_JOURNAL = [("tokens", "0058_swap_finality_completion")]
 BEFORE_CONTEXT = [("tokens", "0038_order_action_submissions")]
+BEFORE_RECOVERY_INDEX = [("tokens", "0060_order_submission_settlement_chain_refusal")]
 
 
 @override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT)
@@ -33,6 +36,38 @@ class SwapApprovalSubmissionMigrationTest(TransactionTestCase):
         raw = approval_bytes(swap)
         actor = swap.sell_order.owner_account.user_profile.user
         return approval_submissions.record(swap, "seller", raw, decode_signed_transaction(raw), actor.pk)
+
+    def recovery_plan(self):
+        with atomic(), connection.cursor() as cursor:
+            cursor.execute("SET LOCAL enable_seqscan = off")
+            plan = json.loads(
+                SwapApprovalSubmission.objects.filter(outcome="pending")
+                .order_by("updated_at", "created_at", "pk")
+                .values_list("pk", flat=True)[:100]
+                .explain(format="JSON")
+            )[0]["Plan"]
+        nodes = []
+        pending = [plan]
+        while pending:
+            node = pending.pop()
+            nodes.append(node)
+            pending.extend(node.get("Plans", []))
+        return nodes
+
+    def test_recovery_index_supports_the_bounded_order_and_round_trips_without_changing_history(self):
+        row = self.record(make_swap("approval-recovery-index"))
+        recorded = SwapApprovalSubmission.objects.values().get(pk=row.pk)
+        nodes = self.recovery_plan()
+        self.assertTrue(any(node.get("Index Name") == "pending_swap_approval_recovery" for node in nodes))
+        self.assertFalse(any("Sort" in node["Node Type"] for node in nodes))
+        migrate_to(BEFORE_RECOVERY_INDEX)
+        self.assertTrue(any("Sort" in node["Node Type"] for node in self.recovery_plan()))
+        self.assertEqual(SwapApprovalSubmission.objects.values().get(pk=row.pk), recorded)
+        restore_every_migration()
+        nodes = self.recovery_plan()
+        self.assertTrue(any(node.get("Index Name") == "pending_swap_approval_recovery" for node in nodes))
+        self.assertFalse(any("Sort" in node["Node Type"] for node in nodes))
+        self.assertEqual(SwapApprovalSubmission.objects.values().get(pk=row.pk), recorded)
 
     def test_forward_installs_the_journal_and_reverse_removes_it_while_empty(self):
         self.assertEqual(self.installed(), (True, 1, 1))
