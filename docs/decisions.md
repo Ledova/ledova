@@ -32,7 +32,8 @@ is small and admin history records changes. There is no separate payment-per-tra
 model: a second payment updates the cumulative total with a note. A future
 `SubscriptionPayment` table is additive if automated reconciliation needs it.
 
-The bank-feed/payment provider is deliberately undecided until Phase 3. Incoming
+The bank-feed/payment provider remains undecided; selection and settlement
+automation are unscheduled in the [current roadmap](roadmap.md#remaining-work). Incoming
 AUD transfers must carry their reference text unchanged through a webhook or a
 poll. References use the operator prefix plus an eight-character Crockford code
 within an 18-character field. See [B7c](https://github.com/Ledova/ledova/issues/115#issuecomment-5574962513)
@@ -104,7 +105,8 @@ those numbers as current.
 ## Clients and API types
 
 Both clients compile `@ledova/shared` from source, without a package build step.
-The mobile investor directory and subscription journey are scheduled for Phase 4;
+The mobile investor directory and subscription journey remain unscheduled in the
+[current roadmap](roadmap.md#remaining-work);
 shared hooks created earlier must accommodate both clients. The primary issuer
 workflow remains dashboard-led. See [B7b](https://github.com/Ledova/ledova/issues/115#issuecomment-5574947880)
 and [B2](https://github.com/Ledova/ledova/issues/115#issuecomment-5574848881).

@@ -6,7 +6,7 @@ from unittest import TestCase
 import tokens
 
 TOKENS = Path(tokens.__file__).parent
-NO_KEY_WALLET_LOCKS = {
+NO_KEY_AUTHORITY_LOCKS = {
     ("services/swap_execution.py", "_lock_authority"),
     ("services/token_transfer_service.py", "create_order_and_match"),
     ("services/trading_order_create.py", "_lock_authorized_wallet"),
@@ -74,10 +74,12 @@ def _no_key(call):
 
 
 class TradingLockRulesTest(TestCase):
-    def test_trading_journeys_lock_wallets_for_no_key_update_only(self):
-        found = [(path, function, call) for path, function, root, call in _sites() if root == "Wallet"]
-        self.assertEqual({site[:2] for site in found}, NO_KEY_WALLET_LOCKS, BEYOND_THE_RULE)
-        self.assertEqual([site[:2] for site in found if not _no_key(site[2])], [], BEYOND_THE_RULE)
+    def test_trading_journeys_lock_wallets_and_accounts_for_no_key_update_only(self):
+        for model in ("Wallet", "UserAccount"):
+            with self.subTest(model=model):
+                found = [(path, function, call) for path, function, root, call in _sites() if root == model]
+                self.assertEqual({site[:2] for site in found}, NO_KEY_AUTHORITY_LOCKS, BEYOND_THE_RULE)
+                self.assertEqual([site[:2] for site in found if not _no_key(site[2])], [], BEYOND_THE_RULE)
 
     def test_multi_row_order_locks_go_through_lock_orders(self):
         sites = [(path, function, root) for path, function, root, _ in _sites()]

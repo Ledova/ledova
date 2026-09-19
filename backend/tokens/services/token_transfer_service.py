@@ -1,6 +1,8 @@
 import logging
 from typing import Optional, Union
 
+from django.conf import settings
+
 from assets.models import Asset
 from integrations.base_chain import get_base_chain_client
 from integrations.base_chain.exceptions import (
@@ -254,7 +256,9 @@ def find_matching_orders(order: TransferOrder) -> list[tuple[TransferOrder, int]
             )
         )
 
-    candidates = lock_orders(qs.exclude(wallet_address__iexact=order.wallet_address))
+    candidates = lock_orders(
+        qs.admitted_to_match(order, settings.BLOCKCHAIN_CHAIN_ID).exclude(wallet_address__iexact=order.wallet_address)
+    )
     candidates.sort(
         key=lambda candidate: (
             candidate.price_per_share if order.order_type == TransferOrderType.BUY else -candidate.price_per_share,
@@ -313,7 +317,7 @@ def create_order_and_match(
     actor_owns_the_account = (
         actor is not None
         and actor.is_authenticated
-        and UserAccount.objects.select_for_update(of=("self",))
+        and UserAccount.objects.select_for_update(of=("self",), no_key=True)
         .filter(pk=wallet.user_account_id, user_profile__user=actor)
         .exists()
     )

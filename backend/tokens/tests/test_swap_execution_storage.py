@@ -471,7 +471,7 @@ class SwapExecutionStorageTest(SwapExecutionStorageFixtures, TransactionTestCase
 
 
 class SwapExecutionAppChecks(SwapExecutionStorageFixtures):
-    def test_fresh_app_insert_works_without_private_journal_access_and_forged_execution_refuses(self):
+    def test_the_app_cannot_insert_swaps_or_read_the_private_journal(self):
         fresh = self.make_swap()
         values = {field.attname: getattr(fresh, field.attname) for field in SwapOrder._meta.concrete_fields}
         values.pop("uuid")
@@ -507,9 +507,10 @@ class SwapExecutionAppChecks(SwapExecutionStorageFixtures):
                 self.assertEqual(cursor.fetchone(), (settings.RLS_ROLES["app"], False))
                 cursor.execute("SELECT has_table_privilege(current_user, 'blockchain_blockchaintransaction', 'SELECT')")
                 self.assertEqual(cursor.fetchone(), (False,))
-            candidate = save_swap_with_context(SwapOrder(**(values | {"nonce": fresh.nonce + 1})))
-            self.assertEqual(candidate.status, "created")
-        self.assertTrue(SwapOrder.objects.filter(pk=candidate.pk).exists())
+            candidate = SwapOrder(**(values | {"nonce": fresh.nonce + 1}))
+            with self.assertRaisesMessage(DatabaseError, "row-level security"), atomic():
+                save_swap_with_context(candidate)
+        self.assertFalse(SwapOrder.objects.filter(pk=candidate.pk).exists())
 
 
 @override_settings(BLOCKCHAIN_CHAIN_ID=CHAIN_ID)

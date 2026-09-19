@@ -106,7 +106,7 @@ def _lock_authority(swap, actor_id, participant):
         raise NotFound("Swap not found.")
     party = context[participant]
     wallet = Wallet.objects.select_for_update(of=("self",), no_key=True).filter(pk=party["wallet_uuid"]).first()
-    account = UserAccount.objects.select_for_update().filter(pk=party["owner_account_uuid"]).first()
+    account = UserAccount.objects.select_for_update(no_key=True).filter(pk=party["owner_account_uuid"]).first()
     profile = UserProfile.objects.select_for_update().filter(pk=account.user_profile_id).first() if account else None
     actor = get_user_model().objects.select_for_update().filter(pk=actor_id).first()
     if (

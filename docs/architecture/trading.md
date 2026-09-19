@@ -14,6 +14,14 @@ participants follows the [regulatory pathway](../regulatory-pathway.md).
 
 ## Intent and settlement
 
+Private orders remain visible and editable only to their owners. Eligible market
+readers see aggregated prices and quantities. The bounded create service can match
+across accounts after authorizing the caller's exact submission. A foreign
+candidate needs a recorded signed create admission with the current wallet,
+account, token and chain identity and the same payment asset. Unjournaled orders
+retain their same-account behavior; they gain no cross-account matching authority.
+Both participants still approve and sign the captured settlement before execution.
+
 Deliberate new orders receive account-scoped submission UUIDs. Cancel and modify
 actions use separate action UUIDs. Retries retain those identities; equal terms
 do not make two deliberate actions the same action. Immutable intent and recorded
@@ -50,6 +58,18 @@ for scope.
   approval attribution, execution locking and unresolved outcomes.
 - [Recovery](../operations/recovery.md): operator response to pending work.
 
-The Redis event stream uses after-commit publication and has no transactional
-outbox or exactly-once delivery guarantee. Recovery of database state does not
-guarantee an event was delivered.
+## Accepted experimental limits
+
+The owner accepted these limits for the experimental version in
+[#646](https://github.com/Ledova/ledova/issues/646#issuecomment-5745382310):
+
+- The Redis event stream uses after-commit publication and has no transactional
+  outbox or exactly-once delivery guarantee. Live updates may be missed until
+  refresh; recovery of database state does not guarantee an event was delivered.
+- Concurrently created crossing orders can both remain unmatched. No background
+  sweep matches a crossed book.
+- Editing an order does not run matching again.
+
+These are accepted boundaries of this version, not scheduled work. The separate
+[owner direction on bounded cross-account matching](https://github.com/Ledova/ledova/issues/646#issuecomment-5745448042)
+preserves private-order visibility.

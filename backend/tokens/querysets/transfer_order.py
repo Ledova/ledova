@@ -51,6 +51,22 @@ class TransferOrderQuerySet(QuerySet):
             status__in=[TransferOrderStatus.OPEN, TransferOrderStatus.PARTIALLY_FILLED],
         )
 
+    def admitted_to_match(self, order, chain_id):
+        return self.filter(
+            models.Q(owner_account_id=order.owner_account_id)
+            | models.Q(
+                submission__status="created",
+                submission__owner_account_id=models.F("owner_account_id"),
+                submission__wallet_id=models.F("wallet_id"),
+                submission__token_id=models.F("token_id"),
+                submission__wallet_address__iexact=models.F("wallet_address"),
+                submission__chain_id=chain_id,
+                submission__verifying_contract__iexact=models.F("token__contract_address"),
+                submission__executed_challenge__consumed_at__isnull=False,
+                payment_asset_id=order.payment_asset_id,
+            )
+        )
+
     def committed_sell_quantity(self, token, wallet_address, exclude_uuid=None) -> int:
         orders = self.ownership_bound().filter(
             token=token,

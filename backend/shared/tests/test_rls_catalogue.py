@@ -12,7 +12,6 @@ from shared.db.policies import (
     BYPASSES_THE_POLICIES,
     DERIVED_FROM_A_MUTABLE_ATTRIBUTE,
     HELPERS,
-    INSERTABLE,
     LEAF_TABLES,
     POLICIES,
     READS_WIDER_THAN_OWNERSHIP,
@@ -99,7 +98,7 @@ class EveryTenantTableIsScopedByAPolicyTest(TransactionTestCase):
                 )
 
     def test_the_update_policy_still_narrows_what_may_be_written(self):
-        for table in sorted(set(POLICIES) - set(INSERTABLE)):
+        for table in sorted(POLICIES):
             with self.subTest(table=table):
                 policies = {name: check for name, _, check in self._ask(POLICY_EXPRESSIONS, table)}
 
@@ -112,13 +111,6 @@ class EveryTenantTableIsScopedByAPolicyTest(TransactionTestCase):
                 quals = {name: qual for name, qual, _ in self._ask(POLICY_EXPRESSIONS, table)}
 
                 self.assertEqual(checks[f"{table}_update"], quals[f"{table}_delete"])
-
-    def test_an_insert_only_override_moves_insert_alone(self):
-        for table in sorted(INSERTABLE):
-            with self.subTest(table=table):
-                checks = {name: check for name, _, check in self._ask(POLICY_EXPRESSIONS, table)}
-
-                self.assertNotEqual(checks[f"{table}_insert"], checks[f"{table}_update"])
 
     def test_the_tables_an_invoker_helper_reads_carry_leaf_policies(self):
         for table in LEAF_TABLES:

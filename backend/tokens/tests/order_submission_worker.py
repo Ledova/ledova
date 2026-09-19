@@ -30,6 +30,7 @@ def run():
 
     settings.DATABASES = json.loads(os.environ["ORDER_TEST_DATABASES"])
     settings.RLS_AMBIENT_ALIAS = "app"
+    settings.RLS_ROLE_PER_REQUEST = False
     settings.ALLOWED_HOSTS = ["testserver"]
     settings.ATOMIC_SWAP_ADDRESS = "0x" + "9d" * 20
     django.setup()
