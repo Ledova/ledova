@@ -45,7 +45,7 @@ class HistoryPreservationChecks:
             self.other_asset = Asset.objects.create(symbol="HISTORY", name="Synthetic history token")
             AssetChainDeployment.objects.create(asset=self.other_asset, chain="base", contract_address="0x" + "cd" * 20)
         for target in (
-            "wallets.services.transaction_confirmation.send_transaction_notification.defer",
+            "wallets.services.transaction_confirmation._notify_wallet_users",
             "wallets.services.transaction_confirmation.sync_holding",
         ):
             patched = patch(target, return_value=None)
@@ -255,7 +255,7 @@ class HistoryPreservationChecks:
         self.assertEqual(self.holding.quantity, Decimal("37"))
 
     def test_history_receipts_and_unattributed_local_transfers_do_not_notify(self):
-        with patch("wallets.services.transaction_confirmation.send_transaction_notification.defer") as notification:
+        with patch("wallets.services.transaction_confirmation._notify_wallet_users") as notification:
             for status in (0, 1):
                 data = self.history(tx_hash="0x" + f"{status + 200:064x}")
                 self.import_history(data)
@@ -304,9 +304,7 @@ class HistoryPreservationChecks:
 
                 with (
                     patch.object(Transaction.objects, "get", side_effect=history_arrives),
-                    patch(
-                        "wallets.services.transaction_confirmation.send_transaction_notification.defer"
-                    ) as notification,
+                    patch("wallets.services.transaction_confirmation._notify_wallet_users") as notification,
                     patch("wallets.services.transaction_confirmation.sync_holding", wraps=sync_holding),
                     patch("wallets.services.holdings.fetch_chain_balance", return_value=Decimal("37")),
                 ):
@@ -363,7 +361,7 @@ class HistoryPreservationChecks:
 
         with (
             patch.object(Transaction.objects, "get", side_effect=missing_lookup),
-            patch("wallets.services.transaction_confirmation.send_transaction_notification.defer") as notification,
+            patch("wallets.services.transaction_confirmation._notify_wallet_users") as notification,
             patch("wallets.services.transaction_confirmation.sync_holding", wraps=sync_holding),
             patch("wallets.services.holdings.fetch_chain_balance", return_value=Decimal("37")),
             ThreadPoolExecutor(max_workers=1) as pool,

@@ -133,7 +133,7 @@ class ConfirmationChecks(WalletFinalityFixture):
     def test_history_waits_on_the_same_wallet_lock_before_preserving_a_finalized_transfer(self):
         observed = []
 
-        def notify(**kwargs):
+        def notify(tx, event):
             connection = connections[current_alias()]
 
             def attempt():

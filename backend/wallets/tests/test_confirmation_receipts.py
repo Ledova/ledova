@@ -72,9 +72,7 @@ class BitcoinReceiptReaderTest(TestCase):
 
 class ImportedBitcoinConfirmationTaskTest(TestCase):
     def setUp(self):
-        self.notification = patch(
-            "wallets.services.transaction_confirmation.send_transaction_notification.defer"
-        ).start()
+        self.notification = patch("wallets.services.transaction_confirmation._notify_wallet_users").start()
         self.balance = patch("wallets.services.holdings.fetch_chain_balance", return_value=None).start()
         self.addCleanup(patch.stopall)
         self.tenant = make_tenant("btcreceipt")

@@ -5,6 +5,8 @@ from uuid import uuid4
 
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from procrastinate import App
+from procrastinate.contrib.django.django_connector import DjangoConnector
 
 from assets.models import Asset, AssetType
 from assets.services.identity import (
@@ -13,7 +15,7 @@ from assets.services.identity import (
 )
 from compliance.services.transaction_monitoring import TransactionMonitoringService
 from shared.constants import normalize_chain
-from shared.db import atomic
+from shared.db import atomic, current_alias
 from users.tasks.notifications import send_transaction_notification
 from wallets.constants import (
     SNAPSHOT_REASON_TRANSACTION,
@@ -223,7 +225,10 @@ def reconcile_transaction(tx_hash: str, *, wallet: Wallet) -> bool:
 
 def _notify_wallet_users(tx: Transaction, event: str) -> None:
     owner = tx.wallet.user_account.user_profile.user
-    send_transaction_notification.defer(user_id=str(owner.pk), transaction_id=str(tx.uuid), event_type=event)
+    queue = App(connector=DjangoConnector(alias=current_alias()))
+    queue.configure_task(send_transaction_notification.name).defer(
+        user_id=str(owner.pk), transaction_id=str(tx.uuid), event_type=event
+    )
 
 
 def _move_holding(tx: Transaction, asset: Asset, delta: Decimal) -> tuple[Holding, Decimal]:

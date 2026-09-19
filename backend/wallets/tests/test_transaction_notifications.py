@@ -10,7 +10,7 @@ from users.tasks.notifications import send_transaction_notification
 from wallets.services import transaction_confirmation
 from wallets.tests.test_wallet_finality import WalletFinalityFixture
 
-DEFER_NOTIFICATION = send_transaction_notification.defer
+NOTIFY_OWNER = transaction_confirmation._notify_wallet_users
 
 
 class TransactionNotificationChecks(WalletFinalityFixture):
@@ -23,7 +23,7 @@ class TransactionNotificationChecks(WalletFinalityFixture):
             )
 
     def test_final_confirmation_durably_queues_once_for_the_owner(self):
-        self.notification.side_effect = DEFER_NOTIFICATION
+        self.notification.side_effect = NOTIFY_OWNER
         self.assertEqual(self.finish()["status"], "confirmed")
         self.assertEqual(self.finish()["status"], "reconciliation_pending")
         rows = self.job_rows()
@@ -46,7 +46,7 @@ class TransactionNotificationChecks(WalletFinalityFixture):
 
     def test_final_failure_durably_queues_once_for_the_owner(self):
         self.observer.get_transaction_receipt.return_value["status"] = 0
-        self.notification.side_effect = DEFER_NOTIFICATION
+        self.notification.side_effect = NOTIFY_OWNER
         self.assertEqual(self.finish()["status"], "failed")
         self.assertEqual(self.finish()["status"], "reconciliation_pending")
         rows = self.job_rows()
@@ -63,12 +63,12 @@ class TransactionNotificationChecks(WalletFinalityFixture):
         self.assertIsNone(tx["finality_observation_id"])
         self.assertIsNone(tx["balance_reconciliation_token"])
         self.assertEqual(self.job_rows(), [])
-        self.notification.side_effect = DEFER_NOTIFICATION
+        self.notification.side_effect = NOTIFY_OWNER
         self.assertEqual(self.settle()["status"], "confirmed")
         self.assertEqual(len(self.job_rows()), 1)
 
     def test_failure_after_deferring_rolls_back_the_job_with_the_outcome(self):
-        self.notification.side_effect = DEFER_NOTIFICATION
+        self.notification.side_effect = NOTIFY_OWNER
         notify = transaction_confirmation._notify_wallet_users
 
         def interrupted(tx, event):

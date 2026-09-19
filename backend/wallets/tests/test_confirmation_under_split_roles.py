@@ -43,7 +43,7 @@ class ImportedConfirmationUsesSeparateRolesTest(RunsOnTheScopedConnection, Trans
         balances = patch("wallets.services.chain.get_blockchain_client", return_value=client)
         self.addCleanup(balances.stop)
         balances.start()
-        delivery = patch("wallets.services.transaction_confirmation.send_transaction_notification.defer")
+        delivery = patch("wallets.services.transaction_confirmation._notify_wallet_users")
         self.addCleanup(delivery.stop)
         self.delivery = delivery.start()
 

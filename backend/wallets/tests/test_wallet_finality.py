@@ -29,12 +29,12 @@ class WalletFinalityFixture(ChainObservationFixture):
         for target, kwargs in (
             ("wallets.services.transaction_confirmation.sync_holding", {"wraps": sync_holding}),
             ("wallets.services.holdings.fetch_chain_balance", {"side_effect": self.read_balance}),
-            ("wallets.services.transaction_confirmation.send_transaction_notification.defer", {}),
+            ("wallets.services.transaction_confirmation._notify_wallet_users", {}),
         ):
             boundary = patch(target, **kwargs)
             result = boundary.start()
             self.addCleanup(boundary.stop)
-            if target.endswith(".defer"):
+            if target.endswith("._notify_wallet_users"):
                 self.notification = result
 
     def read_balance(self, wallet, asset):

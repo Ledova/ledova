@@ -96,7 +96,7 @@ class BitcoinSubmissionChainTest(APITransactionTestCase):
         self.client.force_authenticate(self.tenant.user)
         for target in (
             "wallets.tasks.confirm_pending_transaction.configure",
-            "wallets.services.transaction_confirmation.send_transaction_notification.defer",
+            "wallets.services.transaction_confirmation._notify_wallet_users",
         ):
             boundary = patch(target)
             boundary.start()

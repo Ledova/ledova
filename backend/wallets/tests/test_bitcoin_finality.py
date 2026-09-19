@@ -53,14 +53,14 @@ class BitcoinFinalityChecks(BitcoinSubmissionFixture):
         for target, kwargs in (
             ("wallets.services.transaction_confirmation.sync_holding", {"wraps": sync_holding}),
             ("wallets.services.holdings.fetch_chain_balance", {"return_value": None}),
-            ("wallets.services.transaction_confirmation.send_transaction_notification.defer", {}),
+            ("wallets.services.transaction_confirmation._notify_wallet_users", {}),
         ):
             boundary = patch(target, **kwargs)
             value = boundary.start()
             self.addCleanup(boundary.stop)
             if "fetch_chain_balance" in target:
                 self.balance = value
-            elif target.endswith(".defer"):
+            elif target.endswith("._notify_wallet_users"):
                 self.notification = value
 
     def finish(self):
