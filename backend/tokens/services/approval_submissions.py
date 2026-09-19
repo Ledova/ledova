@@ -56,6 +56,22 @@ def refuse_pending(swap, participant):
         raise SettlementApprovalPending()
 
 
+def recorded_outcome(swap, participant, tx_hash):
+    context = recorded_settlement_context(swap)
+    party = context[participant]
+    with use_operator():
+        return (
+            SwapApprovalSubmission.objects.filter(
+                tx_hash=tx_hash.lower(),
+                owner_account_id=party["owner_account_uuid"],
+                wallet_id=party["wallet_uuid"],
+                **party_terms(context, participant),
+            )
+            .values("tx_hash", "outcome")
+            .first()
+        )
+
+
 def record(swap, participant, raw, decoded, actor_id):
     context = recorded_settlement_context(swap)
     terms = party_terms(context, participant)

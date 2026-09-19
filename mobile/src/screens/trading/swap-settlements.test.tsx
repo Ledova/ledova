@@ -587,6 +587,52 @@ it.each([
   expect(await swapSettlementStore.list(owner)).toHaveLength(status === 503 ? 1 : 0);
 });
 
+it.each(['confirmed', 'reverted', 'superseded'] as const)(
+  'recovers an original %s approval after a lost response and app restart',
+  async (outcome) => {
+    needsApproval = true;
+    let originalHash = '';
+    let recovered = false;
+    handler = async (config) => {
+      if (config.url?.endsWith('/approval-broadcast/')) {
+        originalHash = Transaction.from(JSON.parse(config.data).signed_transaction).hash!;
+        throw new Error('Synthetic lost approval response');
+      }
+      if (recovered && config.params?.approval_tx_hash) {
+        expect(config.params.approval_tx_hash).toBe(originalHash);
+        return response(config, { ...current, approvalOutcome: { txHash: originalHash, outcome } });
+      }
+      return ordinary(config);
+    };
+    const signer = jest.spyOn(localSigner, 'signEthereumTransaction');
+    let view = await render(<TradingScreen />, { wrapper });
+    await open(view);
+    await fireEvent.press(view.getByText('Review token approval'));
+    await fireEvent.press(await view.findByText('Sign token approval'));
+    await waitFor(() => expect(view.getByRole('alert')).toBeTruthy());
+    expect(await swapSettlementStore.list(owner)).toEqual([
+      expect.objectContaining({ kind: 'approval', txHash: originalHash }),
+    ]);
+    await view.unmount();
+    recovered = true;
+    needsApproval = outcome !== 'confirmed';
+    view = await render(<TradingScreen />, { wrapper });
+    await fireEvent.press(await view.findByText('Check saved settlement 1'));
+    await waitFor(() => expect(view.getByText(`Original approval ${outcome}.`)).toBeTruthy());
+    await waitFor(() => expect(view.queryByText('Approval outcome unconfirmed')).toBeNull());
+    expect(view.getByText(originalHash)).toBeTruthy();
+    expect(await swapSettlementStore.list(owner)).toEqual([]);
+    await fireEvent.press(view.getByText('Check token approval'));
+    if (outcome !== 'confirmed') {
+      await fireEvent.press(await view.findByText('Review token approval'));
+      expect(await view.findByText('Sign token approval')).toBeTruthy();
+    } else expect(await view.findByText('Sign settlement')).toBeTruthy();
+    expect(signer).toHaveBeenCalledTimes(1);
+    expect(posts()).toHaveLength(1);
+    expect(requests.filter((request) => request.params?.approval_tx_hash === originalHash)).toHaveLength(1);
+  },
+);
+
 it('reconstructs the reviewed hardware approval and refuses an unrelated scanned signer', async () => {
   needsApproval = true;
   mockWallets[0].signingPreference = 'hardware';

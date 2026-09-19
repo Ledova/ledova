@@ -3360,6 +3360,7 @@ export interface ApiComponents {
       detail: string;
     };
     OrderSubmissionStatusEnum: 'pending' | 'created' | 'refused';
+    OutcomeEnum: 'pending' | 'confirmed' | 'reverted' | 'superseded';
     PaginatedAssetList: {
       count: number;
       next?: string | null;
@@ -3796,6 +3797,10 @@ export interface ApiComponents {
       swapUuid: string;
       walletUuid: string;
     };
+    SettlementApprovalOutcome: {
+      outcome: ApiComponents['schemas']['OutcomeEnum'];
+      txHash: string;
+    };
     SettlementApprovalReceipt: {
       blockNumber: number | null;
       gasUsed: number | null;
@@ -3952,6 +3957,7 @@ export interface ApiComponents {
     };
     SettlementSwapOrderForSigning: {
       admissionRefusal: string | null;
+      approvalOutcome?: ApiComponents['schemas']['SettlementApprovalOutcome'] | null;
       canSign: boolean;
       hasSigned: boolean;
       orderUuid: string;
@@ -8550,6 +8556,7 @@ export interface ApiOperations {
   api_v1_trading_orders_swap_retrieve: {
     parameters: {
       query: {
+        approval_tx_hash?: string;
         owner_account_uuid: string;
         settlement_digest?: string;
         swap_uuid: string;

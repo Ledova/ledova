@@ -51,6 +51,7 @@ from tokens.serializers.order_submission import (
 from tokens.serializers.swap_order import (
     SettlementApprovalBroadcastSerializer,
     SettlementIdentitySerializer,
+    SettlementRecoveryIdentitySerializer,
     SettlementSignatureSerializer,
     SettlementWriteIdentitySerializer,
 )
@@ -63,6 +64,7 @@ from tokens.serializers.trading_responses import (
     SettlementSwapOrderSerializer,
 )
 from tokens.services import (
+    approval_submissions,
     atomic_swap_service,
     swap_execution,
 )
@@ -96,6 +98,7 @@ SWAP_IDENTITY_PARAMETERS = [
 SWAP_LOOKUP_PARAMETERS = [
     *SWAP_IDENTITY_PARAMETERS,
     OpenApiParameter("settlement_digest", OpenApiTypes.STR, OpenApiParameter.QUERY),
+    OpenApiParameter("approval_tx_hash", OpenApiTypes.STR, OpenApiParameter.QUERY),
 ]
 SWAP_APPROVAL_PARAMETERS = [
     *SWAP_IDENTITY_PARAMETERS,
@@ -281,11 +284,21 @@ class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
     @extend_schema(parameters=SWAP_LOOKUP_PARAMETERS, responses=SettlementSwapOrderForSigningSerializer)
     @action(detail=True, methods=["get"], url_path="swap")
     def swap(self, request, uuid=None):
-        swap_order, user_role, has_signed = self._get_authorized_swap_context(request)
+        serializer = SettlementRecoveryIdentitySerializer(data=request.query_params.dict())
+        serializer.is_valid(raise_exception=True)
+        identity = serializer.validated_data
+        swap_order, user_role, has_signed = resolve_exact_swap_context(request.user, uuid, identity)
+        approval = {}
+        if "approval_tx_hash" in identity:
+            approval["approval_outcome"] = approval_submissions.recorded_outcome(
+                swap_order, user_role, identity["approval_tx_hash"]
+            )
+            swap_order, user_role, has_signed = resolve_exact_swap_context(request.user, uuid, identity, swap_order)
 
         typed_data = atomic_swap_service.get_typed_data(swap_order)
 
         result = {
+            **approval,
             "swap_order": SettlementSwapOrderSerializer(swap_order).data,
             "typed_data": typed_data,
             "user_role": user_role,
@@ -437,7 +450,7 @@ class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
         }
 
     def _get_authorized_swap_context(self, request):
-        identity = self._settlement_identity(request, write=self.action != "swap")
+        identity = self._settlement_identity(request, write=True)
         return resolve_exact_swap_context(request.user, self.kwargs["uuid"], identity)
 
     @extend_schema(request=OrderActionModifyRequestSerializer, responses=ORDER_ACTION_RESPONSES)

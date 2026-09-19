@@ -108,6 +108,204 @@ function approvalResult(response = settlementResponse()) {
   };
 }
 
+function approvalRecord(response = settlementResponse()): SavedSwapSettlement {
+  return {
+    version: 1,
+    ...settlementOwner,
+    ...swapSettlementIdentity(response),
+    kind: 'approval',
+    txHash: approvalHash,
+  };
+}
+
+test.each(['confirmed', 'reverted', 'superseded'])(
+  'saved original %s approval recovers after restart without another broadcast',
+  async (outcome) => {
+    const f = setup();
+    await f.store.save(approvalRecord());
+    f.handle(async (config) => {
+      if (config.params?.approval_tx_hash) {
+        expect(config.params.approval_tx_hash).toBe(approvalHash);
+        return reply(config, { ...f.response, approvalOutcome: { txHash: approvalHash, outcome } });
+      }
+      return reply(config, f.response);
+    });
+    await f.controller.recover();
+    expect(f.controller.getSnapshot().error).toBeNull();
+    expect(await f.store.list(settlementOwner)).toEqual([]);
+    expect(f.controller.getSnapshot().unconfirmedApprovalHashes).toEqual([]);
+    expect(f.controller.getSnapshot().approvalOutcomes).toEqual([{ txHash: approvalHash, outcome }]);
+    expect(f.requests.filter((request) => request.params?.approval_tx_hash)).toHaveLength(1);
+    expect(f.requests.every((request) => request.method === 'get')).toBe(true);
+  },
+);
+
+test.each([
+  ['pending', { txHash: approvalHash, outcome: 'pending' }],
+  ['missing', null],
+  ['older server', undefined],
+])('%s original approval evidence retains its saved reminder', async (_label, approvalOutcome) => {
+  const f = setup();
+  await f.store.save(approvalRecord());
+  f.handle(async (config) => reply(config, { ...f.response, approvalOutcome }));
+  await f.controller.recover();
+  expect(f.controller.getSnapshot().error).toBeNull();
+  expect(f.controller.getSnapshot().unconfirmedApprovalHashes).toEqual([approvalHash]);
+  expect(f.controller.getSnapshot().approvalOutcomes).toEqual([]);
+  expect(await f.store.list(settlementOwner)).toEqual([approvalRecord()]);
+  expect(f.requests.every((request) => request.method === 'get')).toBe(true);
+});
+
+test.each([
+  ['foreign hash', { approvalOutcome: { txHash: '0x' + 'cd'.repeat(32), outcome: 'confirmed' } }],
+  ['malformed hash', { approvalOutcome: { txHash: '0x12', outcome: 'confirmed' } }],
+  ['unknown outcome', { approvalOutcome: { txHash: approvalHash, outcome: 'available' } }],
+  ['missing outcome', { approvalOutcome: { txHash: approvalHash } }],
+  ['malformed outcome', { approvalOutcome: 'confirmed' }],
+  ['foreign owner', { ownerAccountUuid: '20000000-0000-4000-8000-000000000001' }],
+  ['foreign wallet', { walletUuid: '20000000-0000-4000-8000-000000000002' }],
+  ['foreign digest', { settlementDigest: '0x' + 'cd'.repeat(32) }],
+])('%s recovery evidence cannot clear an approval', async (_label, changes) => {
+  const f = setup();
+  await f.store.save(approvalRecord());
+  f.handle(async (config) =>
+    reply(
+      config,
+      config.params?.approval_tx_hash
+        ? { ...f.response, approvalOutcome: { txHash: approvalHash, outcome: 'confirmed' }, ...changes }
+        : f.response,
+    ),
+  );
+  await f.controller.recover();
+  expect(f.controller.getSnapshot().error).not.toBeNull();
+  expect(f.controller.getSnapshot().unconfirmedApprovalHashes).toEqual([approvalHash]);
+  expect(f.controller.getSnapshot().approvalOutcomes).toEqual([]);
+  expect(await f.store.list(settlementOwner)).toEqual([approvalRecord()]);
+});
+
+test.each(['transport', 'status'])('%s recovery failure preserves the original approval', async (failure) => {
+  const f = setup();
+  await f.store.save(approvalRecord());
+  f.handle(async (config) => {
+    if (!config.params?.approval_tx_hash) return reply(config, f.response);
+    if (failure === 'transport') throw new Error('Synthetic recovery outage');
+    return reply(config, { ...f.response, approvalOutcome: { txHash: approvalHash, outcome: 'confirmed' } }, 503);
+  });
+  await f.controller.recover();
+  expect(f.controller.getSnapshot().error).not.toBeNull();
+  expect(await f.store.list(settlementOwner)).toEqual([approvalRecord()]);
+});
+
+test('a retired recovery response cannot publish or clear its original approval', async () => {
+  const f = setup();
+  await f.store.save(approvalRecord());
+  const started = deferred<void>();
+  const held = deferred<void>();
+  f.handle(async (config) => {
+    if (!config.params?.approval_tx_hash) return reply(config, f.response);
+    started.resolve();
+    await held.promise;
+    return reply(config, { ...f.response, approvalOutcome: { txHash: approvalHash, outcome: 'confirmed' } });
+  });
+  const pending = f.controller.recover();
+  await started.promise;
+  expect(f.controller.getSnapshot().phase).toBe('loading');
+  f.retire();
+  held.resolve();
+  await pending;
+  expect(f.controller.getSnapshot().approvalOutcomes).toEqual([]);
+  expect(await f.store.list(settlementOwner)).toEqual([approvalRecord()]);
+});
+
+test('recovery clears only the matching definite approval and preserves other hashes and contexts', async () => {
+  const f = setup();
+  const pending = { ...approvalRecord(), kind: 'approval' as const, txHash: '0x' + 'cd'.repeat(32) };
+  const other = { ...approvalRecord(), swapUuid: '20000000-0000-4000-8000-000000000003' };
+  for (const record of [approvalRecord(), pending, other]) await f.store.save(record);
+  f.handle(async (config) =>
+    reply(config, {
+      ...f.response,
+      ...(config.params?.approval_tx_hash
+        ? {
+            approvalOutcome: {
+              txHash: config.params.approval_tx_hash,
+              outcome: config.params.approval_tx_hash === approvalHash ? 'confirmed' : 'pending',
+            },
+          }
+        : {}),
+    }),
+  );
+  await f.controller.recover();
+  expect(f.controller.getSnapshot().error).toBeNull();
+  expect(f.controller.getSnapshot().unconfirmedApprovalHashes).toEqual([pending.txHash]);
+  expect(await f.store.list(settlementOwner)).toEqual(expect.arrayContaining([pending, other]));
+  expect(await f.store.list(settlementOwner)).toHaveLength(2);
+  expect(f.requests.filter((request) => request.params?.approval_tx_hash)).toHaveLength(2);
+});
+
+test('a definite approval survives reminder removal failure and can be recovered again', async () => {
+  const f = setup();
+  await f.store.save(approvalRecord());
+  f.handle(async (config) =>
+    reply(config, { ...f.response, approvalOutcome: { txHash: approvalHash, outcome: 'reverted' } }),
+  );
+  jest.spyOn(f.store, 'remove').mockRejectedValueOnce(new Error('Synthetic storage failure'));
+  await f.controller.recover();
+  expect(f.controller.getSnapshot().approvalOutcomes).toEqual([{ txHash: approvalHash, outcome: 'reverted' }]);
+  expect(f.controller.getSnapshot().notice).toMatch(/saved reminder could not be cleared/);
+  expect(f.controller.getSnapshot().unconfirmedApprovalHashes).toEqual([approvalHash]);
+  expect(await f.store.list(settlementOwner)).toEqual([approvalRecord()]);
+  await f.controller.recover();
+  expect(f.controller.getSnapshot().unconfirmedApprovalHashes).toEqual([]);
+  expect(await f.store.list(settlementOwner)).toEqual([]);
+  expect(f.requests.every((request) => request.method === 'get')).toBe(true);
+});
+
+test('recovering a definite original outcome clears the live 503 banner and permits fresh review', async () => {
+  const f = setup();
+  f.handle(async (config) => {
+    if (config.method === 'post')
+      return failed(config, 503, {
+        ...swapSettlementIdentity(f.response),
+        userRole: f.response.userRole,
+        txHash: approvalHash,
+        code: 'swap_approval_unconfirmed',
+        detail: 'Unavailable',
+      });
+    if (config.url?.endsWith('approval-data/')) return reply(config, settlementApproval());
+    if (config.params?.approval_tx_hash)
+      return reply(config, { ...f.response, approvalOutcome: { txHash: approvalHash, outcome: 'reverted' } });
+    return reply(config, f.response);
+  });
+  await f.controller.load();
+  await f.controller.prepareApproval();
+  await f.controller.broadcastApproval(approvalRaw);
+  expect(f.controller.getSnapshot().approvalResult).toMatchObject({ code: 'swap_approval_unconfirmed' });
+  await f.controller.recover();
+  expect(f.controller.getSnapshot().approvalResult).toBeNull();
+  expect(f.controller.getSnapshot().notice).toBeNull();
+  expect(f.controller.getSnapshot().approvalOutcomes).toEqual([{ txHash: approvalHash, outcome: 'reverted' }]);
+  await f.controller.prepareApproval();
+  expect(f.controller.getSnapshot().phase).toBe('approval-ready');
+  expect(f.requests.filter((request) => request.method === 'post')).toHaveLength(1);
+});
+
+test('expired saved settlements can resolve approvals without admitting new signing', async () => {
+  const response = { ...settlementResponse(), canSign: false, admissionRefusal: 'swap_expired' };
+  const f = setup(response);
+  await f.store.save(approvalRecord(response));
+  f.handle(async (config) =>
+    reply(config, { ...response, approvalOutcome: { txHash: approvalHash, outcome: 'confirmed' } }),
+  );
+  await f.controller.recover();
+  expect(await f.store.list(settlementOwner)).toEqual([]);
+  expect(f.controller.getSnapshot().response!.canSign).toBe(false);
+  const signer = jest.fn();
+  await f.controller.sign(signer);
+  expect(signer).not.toHaveBeenCalled();
+  expect(f.requests.every((request) => request.method === 'get')).toBe(true);
+});
+
 beforeEach(() => {
   jest.spyOn(Date, 'now').mockReturnValue(settlementNow);
 });

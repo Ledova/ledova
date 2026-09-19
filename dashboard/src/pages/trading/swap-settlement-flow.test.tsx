@@ -14,6 +14,7 @@ import {
   type SwapSettlementResponse,
   type SwapSettlementApprovalStatus,
   type SwapSettlementApprovalData,
+  type SwapSettlementApprovalOutcome,
   type Wallet,
 } from '@ledova/shared';
 import { useQRScanner } from '@components/qr';
@@ -87,7 +88,15 @@ function setup(needsApproval = false) {
     nonce: '0x0',
     chainId: '0x14a34',
   };
-  const state = { current: true, lostSignature: false, loseApproval: false, needsApproval, submitted: '' };
+  const state = {
+    current: true,
+    lostSignature: false,
+    loseApproval: false,
+    uncertainApproval: false,
+    needsApproval,
+    submitted: '',
+    approvalOutcome: undefined as SwapSettlementApprovalOutcome | null | undefined,
+  };
   const api = axios.create();
   api.defaults.adapter = async (config) => {
     config.ledovaSubmissionGuard?.();
@@ -104,6 +113,18 @@ function setup(needsApproval = false) {
       if (config.url?.endsWith('/approval-broadcast/')) {
         expect(reminders[0]).toMatchObject({ kind: 'approval', txHash: keccak256(body.signed_transaction) });
         state.needsApproval = false;
+        if (state.uncertainApproval)
+          return response(
+            config,
+            JSON.stringify({
+              ...identity,
+              userRole: 'seller',
+              txHash: keccak256(body.signed_transaction),
+              code: 'swap_approval_unconfirmed',
+              detail: 'Original approval recorded; recovery in progress.',
+            }),
+            503,
+          );
         if (state.loseApproval) throw new Error('Synthetic lost approval response');
         return response(
           config,
@@ -161,21 +182,31 @@ function setup(needsApproval = false) {
       : state.submitted
         ? { ...fixture.swapOrder, buyerHasSigned: true, status: 'buyer_signed' }
         : fixture.swapOrder;
-    return response(config, JSON.stringify({ ...fixture, hasSigned: signed, canSign: !signed, swapOrder }));
+    return response(
+      config,
+      JSON.stringify({
+        ...fixture,
+        hasSigned: signed,
+        canSign: !signed,
+        swapOrder,
+        ...(config.params?.approval_tx_hash ? { approvalOutcome: state.approvalOutcome } : {}),
+      }),
+    );
   };
-  const settlement = new SwapSettlement(
-    owner,
-    { ...identity, walletAddress: wallet.address },
-    {
-      apiClient: api,
-      store,
-      crypto: swapSettlementCrypto,
-      isCurrent: () => state.current,
-      onRecordsChanged: () => {},
-      onUpdated: () => {},
-    },
-  );
-  return { settlement, calls, store, memory, state, approval };
+  const reopen = () =>
+    new SwapSettlement(
+      owner,
+      { ...identity, walletAddress: wallet.address },
+      {
+        apiClient: api,
+        store,
+        crypto: swapSettlementCrypto,
+        isCurrent: () => state.current,
+        onRecordsChanged: () => {},
+        onUpdated: () => {},
+      },
+    );
+  return { settlement: reopen(), reopen, calls, store, memory, state, approval };
 }
 
 async function load(settlement: SwapSettlement) {
@@ -289,6 +320,56 @@ it('keeps an unknown approval hash after allowance becomes sufficient and never 
   await waitFor(() => expect(screen.getByText('Continue to sign')).toBeTruthy());
   expect(screen.getByText(keccak256(signed))).toBeTruthy();
   expect(await store.list(owner)).toHaveLength(1);
+  expect(calls.filter((call) => call.method === 'post')).toHaveLength(1);
+});
+
+it.each(['confirmed', 'reverted', 'superseded'] as const)(
+  'recovers the original %s approval after reopening and requires review before new work',
+  async (outcome) => {
+    const { settlement, reopen, calls, store, state } = setup(true);
+    state.loseApproval = true;
+    const view = render(<SwapSettlementFlow settlement={settlement} wallets={[wallet]} onClose={() => {}} />);
+    await load(settlement);
+    fireEvent.click(screen.getByText('Prepare approval'));
+    await waitFor(() => expect(screen.getByText('Continue to approve')).toBeTruthy());
+    enterSeed('approval');
+    await waitFor(() => expect(settlement.getSnapshot().phase).toBe('error'));
+    const saved = (await store.list(owner)).find((record) => record.kind === 'approval')!;
+    expect(saved).toBeTruthy();
+    state.approvalOutcome = { txHash: saved.txHash, outcome };
+    state.needsApproval = outcome !== 'confirmed';
+    view.unmount();
+    const reopened = reopen();
+    render(<SwapSettlementFlow settlement={reopened} wallets={[wallet]} onClose={() => {}} />);
+    await load(reopened);
+    expect(screen.getByText(`Original approval ${outcome}.`)).toBeTruthy();
+    expect(screen.getByText(`Approval transaction: ${saved.txHash}`)).toBeTruthy();
+    expect(screen.queryByText(/Earlier approval transactions remain saved/)).toBeNull();
+    expect(await store.list(owner)).toEqual([]);
+    if (outcome !== 'confirmed') {
+      fireEvent.click(screen.getByText('Prepare approval'));
+      await waitFor(() => expect(screen.getByText('Continue to approve')).toBeTruthy());
+    }
+    expect(calls.filter((call) => call.params?.approval_tx_hash === saved.txHash)).toHaveLength(1);
+    expect(calls.filter((call) => call.method === 'post')).toHaveLength(1);
+  },
+);
+
+it('offers an immediate saved-status check after a recorded 503 approval', async () => {
+  const { settlement, calls, store, state } = setup(true);
+  state.uncertainApproval = true;
+  render(<SwapSettlementFlow settlement={settlement} wallets={[wallet]} onClose={() => {}} />);
+  await load(settlement);
+  fireEvent.click(screen.getByText('Prepare approval'));
+  await waitFor(() => expect(screen.getByText('Continue to approve')).toBeTruthy());
+  enterSeed('approval');
+  await waitFor(() => expect(screen.getByText(/The approval result is still unknown/)).toBeTruthy());
+  const saved = (await store.list(owner)).find((record) => record.kind === 'approval')!;
+  state.approvalOutcome = { txHash: saved.txHash, outcome: 'confirmed' };
+  fireEvent.click(screen.getByText('Check saved status'));
+  await waitFor(() => expect(screen.getByText('Original approval confirmed.')).toBeTruthy());
+  await waitFor(() => expect(screen.queryByText(/The approval result is still unknown/)).toBeNull());
+  expect(await store.list(owner)).toEqual([]);
   expect(calls.filter((call) => call.method === 'post')).toHaveLength(1);
 });
 

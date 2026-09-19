@@ -121,6 +121,17 @@ export function SwapSettlementModal({ settlement, wallet, visible = true, onClos
           {state.approvalResult && !('code' in state.approvalResult) && (
             <Text style={styles.text}>Original approval confirmed: {state.approvalResult.txHash}</Text>
           )}
+          {state.approvalOutcomes.map((approvalOutcome) => (
+            <View key={approvalOutcome.txHash}>
+              <Text style={styles.text}>Original approval {approvalOutcome.outcome}.</Text>
+              <Text selectable style={styles.text}>
+                {approvalOutcome.txHash}
+              </Text>
+              {approvalOutcome.outcome !== 'confirmed' && (
+                <Text style={styles.text}>This approval took no effect. Review a fresh approval if needed.</Text>
+              )}
+            </View>
+          ))}
           {state.error && (
             <Text accessibilityRole="alert" style={styles.text}>
               {state.error}

@@ -5773,6 +5773,16 @@
         ],
         "type": "string"
       },
+      "OutcomeEnum": {
+        "description": "* `pending` - Pending\n* `confirmed` - Confirmed\n* `reverted` - Reverted\n* `superseded` - Superseded",
+        "enum": [
+          "pending",
+          "confirmed",
+          "reverted",
+          "superseded"
+        ],
+        "type": "string"
+      },
       "PaginatedAssetList": {
         "properties": {
           "count": {
@@ -7768,6 +7778,22 @@
         ],
         "type": "object"
       },
+      "SettlementApprovalOutcome": {
+        "properties": {
+          "outcome": {
+            "$ref": "#/components/schemas/OutcomeEnum"
+          },
+          "txHash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "outcome",
+          "txHash"
+        ],
+        "type": "object"
+      },
       "SettlementApprovalReceipt": {
         "properties": {
           "blockNumber": {
@@ -8487,6 +8513,14 @@
           "admissionRefusal": {
             "nullable": true,
             "type": "string"
+          },
+          "approvalOutcome": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SettlementApprovalOutcome"
+              }
+            ],
+            "nullable": true
           },
           "canSign": {
             "type": "boolean"
@@ -20542,6 +20576,13 @@
       "get": {
         "operationId": "api_v1_trading_orders_swap_retrieve",
         "parameters": [
+          {
+            "in": "query",
+            "name": "approval_tx_hash",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "description": "The recorded settlement party identity.",
             "in": "query",

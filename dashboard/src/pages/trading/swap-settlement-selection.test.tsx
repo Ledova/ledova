@@ -282,14 +282,20 @@ it('lists multiple scoped reminders and recovers the exact selected identity wit
     fireEvent.click(
       screen.getByText(`Check saved ${record.kind === 'approval' ? 'approval' : 'trade signature'} ${index + 1}`),
     );
-    await waitFor(() => expect(swapRequests()).toHaveLength(index + 1));
-    expect(swapRequests()[index]!.params).toMatchObject({
-      swap_uuid: record.swapUuid,
-      wallet_uuid: record.walletUuid,
-      owner_account_uuid: record.ownerAccountUuid,
-      settlement_digest: record.settlementDigest,
-    });
-    expect(swapRequests()[index]!.url).toContain(`/orders/${record.orderUuid}/swap/`);
+    await waitFor(() => expect(swapRequests()).toHaveLength((index + 1) * 2));
+    await waitFor(() => expect(screen.getByText('Check token approval')).toBeTruthy());
+    const [context, outcome] = swapRequests().slice(index * 2, index * 2 + 2);
+    for (const request of [context!, outcome!]) {
+      expect(request.params).toMatchObject({
+        swap_uuid: record.swapUuid,
+        wallet_uuid: record.walletUuid,
+        owner_account_uuid: record.ownerAccountUuid,
+        settlement_digest: record.settlementDigest,
+      });
+      expect(request.url).toContain(`/orders/${record.orderUuid}/swap/`);
+    }
+    expect(context!.params).not.toHaveProperty('approval_tx_hash');
+    expect(outcome!.params.approval_tx_hash).toBe(savedApproval.txHash);
   }
   expect(await swapSettlementStore.list(owner)).toHaveLength(2);
   expect(requests.filter((request) => request.method === 'post')).toEqual([]);
