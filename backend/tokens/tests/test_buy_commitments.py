@@ -114,7 +114,7 @@ class SignedBuyModificationsAreMeasuredAgainstPaymentTest(ActionFixtures, APITra
         issued = self.modification(12, "2.50")
         self.assertEqual(issued.status_code, 200, issued.content)
         signed = self.sign(issued.json())
-        with patch("tokens.services.order_actions.available_modification_balance", return_value=None):
+        with patch("tokens.services.order_actions.read_modification_balance", return_value=None):
             refused = self.execute("modify", signed)
         self.assertEqual(refused.status_code, 400, refused.content)
         self.assertIn("The order has changed", refused.json()["refusal"]["detail"])
