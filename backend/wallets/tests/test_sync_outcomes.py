@@ -12,13 +12,14 @@ from integrations.tests.test_transfer_history_pagination import (
     transfer,
 )
 from shared.tests.tenants import make_tenant
-from wallets.models import Holding
+from wallets.models import Holding, Transaction
 
 
 class WalletSyncOutcomeTest(APITestCase):
     def setUp(self):
         self.tenant = make_tenant("sync-outcome")
         self.wallet = self.tenant.wallet
+        Transaction.objects.filter(wallet=self.wallet).update(imported_from_history=True)
         self.wallet.last_synced_at = timezone.now() - timezone.timedelta(days=1)
         self.wallet.save(update_fields=["last_synced_at"])
         self.last_success = self.wallet.last_synced_at

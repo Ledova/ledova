@@ -98,10 +98,10 @@ class TheTaskRunsAsWhoeverCausedItTest(TestCase):
 
         self.assertIn(principal_of(), (None, ""))
 
-    def test_the_task_itself_completes_under_the_policies_as_that_principal(self):
+    def test_imported_history_completes_under_the_policies_as_that_principal(self):
         transaction = Transaction.objects.filter(wallet=self.tenant.wallet).first()
         Transaction.objects.filter(pk=transaction.pk).update(
-            status=TRANSACTION_STATUS_PENDING, tx_hash="0x" + "79" * 32
+            status=TRANSACTION_STATUS_PENDING, tx_hash="0x" + "79" * 32, imported_from_history=True
         )
         transaction.refresh_from_db()
 

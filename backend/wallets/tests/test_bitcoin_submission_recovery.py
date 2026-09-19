@@ -27,7 +27,6 @@ from wallets.models import (
     Transaction,
     Wallet,
 )
-from wallets.services import transaction_confirmation
 from wallets.services.bitcoin_submissions import attempt_bitcoin_submission
 from wallets.services.sync import _process_transactions
 from wallets.tasks.submissions import recover_wallet_submissions
@@ -122,12 +121,12 @@ class BitcoinSubmissionRecoveryChecks(BitcoinSubmissionFixture):
     def test_terminal_retries_never_send_or_recreate_accounting(self):
         self.submit_direct()
         with acting_for(self.tenant.user.pk):
-            transaction_confirmation.fail_transaction(FIXTURE["txid"], wallet=self.wallet)
+            Transaction.objects.filter(wallet=self.wallet, tx_hash=FIXTURE["txid"]).update(status="failed")
         before = self.transactions()
         self.assertEqual(self.submit_direct()["status"], "failed")
         self.assertEqual(self.sent(), [FIXTURE["raw_transaction"]])
         self.assertEqual(self.transactions(), before)
-        self.assertEqual(self.quantity(), Decimal("50"))
+        self.assertEqual(self.quantity(), Decimal("47.9999"))
 
     def test_history_without_a_submission_is_never_adopted_or_broadcast(self):
         with acting_for(self.tenant.user.pk):

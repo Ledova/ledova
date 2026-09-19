@@ -10,7 +10,6 @@ from assets.services.identity import native_asset_for_chain
 from shared.tests.tenants import make_tenant
 from wallets.constants import TRANSACTION_STATUS_CONFIRMED
 from wallets.models import Holding, HoldingSnapshot, Transaction
-from wallets.services import transaction_confirmation
 from wallets.services.receipt_readers import get_receipt_reader
 from wallets.tasks.confirmation import confirm_pending_transaction
 
@@ -71,7 +70,7 @@ class BitcoinReceiptReaderTest(TestCase):
         self.assertEqual(stamp, datetime.fromtimestamp(1600000000, tz=datetime_timezone.utc))
 
 
-class BitcoinConfirmationTaskTest(TestCase):
+class ImportedBitcoinConfirmationTaskTest(TestCase):
     def setUp(self):
         self.notification = patch(
             "wallets.services.transaction_confirmation.send_transaction_notification.defer"
@@ -84,14 +83,16 @@ class BitcoinConfirmationTaskTest(TestCase):
         self.wallet.save(update_fields=["chain"])
         native = native_asset_for_chain("bitcoin")
         self.holding = Holding.objects.create(wallet=self.wallet, asset=native, quantity=Decimal("2"))
-        transaction_confirmation.create_pending_transaction(
+        self.tx = Transaction.objects.create(
             wallet=self.wallet,
+            asset=native,
+            chain="bitcoin",
             tx_hash=BITCOIN_HASH,
-            to_address="tb1qexample",
-            amount=Decimal("1"),
-            transaction_fee=Decimal("0.0001"),
+            from_address="tb1qexample",
+            to_address=self.wallet.address,
+            amount=1,
+            imported_from_history=True,
         )
-        self.tx = Transaction.objects.get(tx_hash=BITCOIN_HASH, wallet=self.wallet)
 
     def stored_accounting(self):
         return (
@@ -117,9 +118,9 @@ class BitcoinConfirmationTaskTest(TestCase):
         self.assertEqual(self.tx.block_hash, BITCOIN_BLOCK_HASH)
         self.assertEqual(self.tx.block_timestamp, datetime.fromtimestamp(1700000000, tz=datetime_timezone.utc))
         self.holding.refresh_from_db()
-        self.assertEqual(self.holding.quantity, Decimal("0.9999"))
-        self.assertEqual(self.tx.deducted_amount, Decimal("1.0001"))
-        self.notification.assert_called_once()
+        self.assertEqual(self.holding.quantity, Decimal("2"))
+        self.assertIsNone(self.tx.deducted_amount)
+        self.notification.assert_not_called()
 
     def test_an_unconfirmed_bitcoin_receipt_is_not_treated_as_success(self):
         client = Mock(spec=["get_transaction_receipt", "get_block_timestamp"])
@@ -150,7 +151,7 @@ class BitcoinConfirmationTaskTest(TestCase):
             self.assertEqual(
                 confirm_pending_transaction(BITCOIN_HASH, str(self.wallet.pk), principal_id=None)["status"], "confirmed"
             )
-        self.notification.assert_called_once()
+        self.notification.assert_not_called()
 
     def test_unsupported_bitcoin_confirmation_values_retain_the_debit_until_a_valid_receipt(self):
         unsupported = (
@@ -195,7 +196,7 @@ class BitcoinConfirmationTaskTest(TestCase):
         self.assertEqual(result["status"], "confirmed")
         self.tx.refresh_from_db()
         self.assertEqual(self.tx.status, TRANSACTION_STATUS_CONFIRMED)
-        self.assertEqual(self.tx.deducted_amount, Decimal("1.0001"))
+        self.assertIsNone(self.tx.deducted_amount)
         self.holding.refresh_from_db()
-        self.assertEqual(self.holding.quantity, Decimal("0.9999"))
-        self.notification.assert_called_once()
+        self.assertEqual(self.holding.quantity, Decimal("2"))
+        self.notification.assert_not_called()

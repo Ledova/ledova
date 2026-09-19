@@ -4,6 +4,7 @@ from typing import Any, Dict, Optional
 from uuid import uuid4
 
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 from assets.models import Asset, AssetType
 from assets.services.identity import (
@@ -11,7 +12,7 @@ from assets.services.identity import (
     recorded_native_asset_for_chain,
 )
 from compliance.services.transaction_monitoring import TransactionMonitoringService
-from shared.constants import get_native_asset_symbol, normalize_chain
+from shared.constants import normalize_chain
 from shared.db import atomic
 from users.tasks.notifications import send_transaction_notification
 from wallets.constants import (
@@ -19,12 +20,21 @@ from wallets.constants import (
     TRANSACTION_STATUS_CONFIRMED,
     TRANSACTION_STATUS_FAILED,
     TRANSACTION_STATUS_PENDING,
-    TRANSACTION_STATUS_REORGED,
-    TRANSACTION_STATUS_REPLACED,
-    TRANSACTION_STATUSES_THAT_RETURN_THE_OPTIMISTIC_DEBIT,
 )
 from wallets.exceptions import InvalidTransactionException
-from wallets.models import Holding, HoldingSnapshot, Transaction, Wallet
+from wallets.models import (
+    Holding,
+    HoldingSnapshot,
+    Transaction,
+    Wallet,
+    WalletChainWatch,
+)
+from wallets.services.chain_observations import (
+    final_receipt,
+    finality_policy,
+    receipt_target_fingerprint,
+    settled_chain_observation,
+)
 from wallets.services.holdings import sync_holding
 from wallets.services.receipt_metadata import apply_receipt_metadata
 from wallets.services.receipt_targets import capture_receipt_target
@@ -115,110 +125,60 @@ def create_pending_transaction(
     }
 
 
-def confirm_transaction(
-    tx_hash: str,
-    *,
-    wallet: Wallet,
-    block_number: Optional[int] = None,
-    block_hash: Optional[str] = None,
-    block_timestamp: Optional[timezone.datetime] = None,
-    actual_fee: Optional[Decimal] = None,
-    expected=None,
-) -> Dict[str, Any]:
-    def confirm_once(tx):
-        if tx.status == TRANSACTION_STATUS_CONFIRMED:
-            return {"status": "already_confirmed", "tx_hash": tx_hash}, None
-        tx.status = TRANSACTION_STATUS_CONFIRMED
+def settle_observed_transaction(tx_hash: str, *, wallet: Wallet) -> Dict[str, Any]:
+    with atomic(durable=True):
+        locked_wallet = Wallet.objects.select_for_update().get(pk=wallet.pk)
+        tx = Transaction.objects.select_for_update().filter(tx_hash=tx_hash, wallet=locked_wallet).first()
+        if tx is None:
+            return {"status": "not_found", "tx_hash": tx_hash}
+        first_settlement = tx.status == TRANSACTION_STATUS_PENDING
+        if not first_settlement:
+            if (
+                tx.balance_reconciliation_token is None
+                or settled_chain_observation(tx, require_current_policy=False) is None
+                or settled_chain_observation(tx) is not None
+            ):
+                return {"status": "already_processed", "current_status": tx.status}
+        watch = WalletChainWatch.objects.select_related("latest_observation").filter(transaction=tx).first()
+        observation = watch.latest_observation if watch is not None else None
+        if observation is None:
+            return {"status": "attribution_pending", "tx_hash": tx_hash}
+        if (
+            tx.imported_from_history
+            or (watch.wallet_id, watch.user_account_id, watch.chain, watch.tx_hash)
+            != (locked_wallet.pk, locked_wallet.user_account_id, tx.chain, tx.tx_hash)
+            or watch.generation != observation.generation
+            or watch.last_started_at != observation.started_at
+            or watch.target_fingerprint != observation.target_fingerprint
+            or receipt_target_fingerprint(capture_receipt_target(locked_wallet, tx)) != observation.target_fingerprint
+            or observation.policy != finality_policy(watch.network, watch.chain)
+        ):
+            return {"status": "observation_changed", "tx_hash": tx_hash}
+        receipt = final_receipt(observation)
+        if receipt is None:
+            return {"status": "finality_pending", "tx_hash": tx_hash}
+        previous = watch.observations.filter(result="included").order_by("generation").first()
+        if previous.evidence.get("receipt", {}).get("succeeded") is not receipt["succeeded"]:
+            return {"status": "attribution_pending", "tx_hash": tx_hash}
+        tx.status = TRANSACTION_STATUS_CONFIRMED if receipt["succeeded"] else TRANSACTION_STATUS_FAILED
         fields = apply_receipt_metadata(
-            tx, block_hash=block_hash, block_number=block_number, block_timestamp=block_timestamp, actual_fee=actual_fee
+            tx,
+            block_hash=receipt["hash"],
+            block_number=receipt["height"],
+            block_timestamp=parse_datetime(receipt["timestamp"]) if receipt["timestamp"] is not None else None,
+            actual_fee=Decimal(receipt["actual_fee"]) if receipt["actual_fee"] is not None else None,
         )
-        tx.balance_reconciliation_token = uuid4()
-        tx.save(update_fields=["status", "balance_reconciliation_token", *fields])
+        tx.finality_observation = observation
+        tx.balance_reconciliation_token = tx.balance_reconciliation_token or uuid4()
+        tx.save(update_fields=["status", "finality_observation", "balance_reconciliation_token", "updated_at", *fields])
         _invalidate_balance_reads(tx)
-
-        _notify_wallet_users(tx, "confirmed")
-        logger.info(f"Transaction confirmed: tx_hash={tx_hash}, block={block_number}")
-        return {"status": "confirmed", "tx_hash": tx_hash, "block_number": block_number}, None
-
-    result = _on_this_wallets_row(tx_hash, wallet, confirm_once, expected=expected)
-    if result["status"] == "observation_changed":
-        return result
-    reconcile_transaction(tx_hash, wallet=wallet)
+        if first_settlement:
+            _notify_wallet_users(tx, tx.status)
+        result = {"status": tx.status, "tx_hash": tx_hash, "block_number": tx.block_number}
+    repaired = reconcile_transaction(tx_hash, wallet=wallet)
+    if not first_settlement:
+        result["status"] = "reconciled" if repaired else "reconciliation_pending"
     return result
-
-
-def fail_transaction(
-    tx_hash: str,
-    reason: Optional[str] = None,
-    *,
-    wallet: Wallet,
-    block_number: Optional[int] = None,
-    block_hash: Optional[str] = None,
-    block_timestamp: Optional[timezone.datetime] = None,
-    actual_fee: Optional[Decimal] = None,
-    expected=None,
-) -> Dict[str, Any]:
-    def fail_once(tx):
-        if tx.status != TRANSACTION_STATUS_PENDING:
-            return {"status": "not_pending", "tx_hash": tx_hash, "current_status": tx.status}, None
-        fields = apply_receipt_metadata(
-            tx, block_hash=block_hash, block_number=block_number, block_timestamp=block_timestamp, actual_fee=actual_fee
-        )
-        _settle_the_optimistic_debit(tx, TRANSACTION_STATUS_FAILED, fields)
-        _notify_wallet_users(tx, "failed")
-        logger.info(f"Transaction marked as failed: tx_hash={tx_hash}, reason={reason}")
-        return {"status": "failed", "tx_hash": tx_hash, "reason": reason}, None
-
-    result = _on_this_wallets_row(tx_hash, wallet, fail_once, expected=expected)
-    if result["status"] == "observation_changed":
-        return result
-    reconcile_transaction(tx_hash, wallet=wallet)
-    return result
-
-
-def mark_reorged(tx_hash: str, wallet: Wallet) -> Dict[str, Any]:
-    def reverse_once(tx):
-        if tx.status != TRANSACTION_STATUS_CONFIRMED:
-            return {"status": "not_confirmed", "tx_hash": tx_hash, "current_status": tx.status}, None
-
-        _settle_the_optimistic_debit(tx, TRANSACTION_STATUS_REORGED)
-        _notify_wallet_users(tx, "reorged")
-        logger.warning(f"Transaction dropped by a reorganisation: tx_hash={tx_hash}, block={tx.block_number}")
-        return {"status": TRANSACTION_STATUS_REORGED, "tx_hash": tx_hash}, None
-
-    result = _on_this_wallets_row(tx_hash, wallet, reverse_once)
-    reconcile_transaction(tx_hash, wallet=wallet)
-    return result
-
-
-def mark_replaced(tx_hash: str, wallet: Wallet, replacement_tx_hash: str) -> Dict[str, Any]:
-    def link_and_leave_the_holding(tx):
-        if tx.status != TRANSACTION_STATUS_PENDING:
-            return {"status": "not_pending", "tx_hash": tx_hash, "current_status": tx.status}, None
-
-        tx.replaced_by_tx_hash = replacement_tx_hash
-        _settle_the_optimistic_debit(tx, TRANSACTION_STATUS_REPLACED, ["replaced_by_tx_hash"])
-        _notify_wallet_users(tx, "replaced")
-        logger.info(f"Transaction replaced: tx_hash={tx_hash} landed as {replacement_tx_hash}")
-        return {
-            "status": TRANSACTION_STATUS_REPLACED,
-            "tx_hash": tx_hash,
-            "replaced_by": replacement_tx_hash,
-        }, None
-
-    return _on_this_wallets_row(tx_hash, wallet, link_and_leave_the_holding)
-
-
-def _settle_the_optimistic_debit(tx: Transaction, status: str, extra_fields=None) -> None:
-    tx.status = status
-    fields = ["status", "updated_at", *(extra_fields or [])]
-    if status in TRANSACTION_STATUSES_THAT_RETURN_THE_OPTIMISTIC_DEBIT:
-        tx.balance_reconciliation_token = uuid4()
-        fields.append("balance_reconciliation_token")
-    tx.save(update_fields=fields)
-    if status in TRANSACTION_STATUSES_THAT_RETURN_THE_OPTIMISTIC_DEBIT:
-        _invalidate_balance_reads(tx)
-        _revert_optimistic_holding(tx, clear_superseded=status != TRANSACTION_STATUS_REORGED)
 
 
 def _invalidate_balance_reads(tx: Transaction) -> None:
@@ -227,40 +187,38 @@ def _invalidate_balance_reads(tx: Transaction) -> None:
 
 
 def reconcile_transaction(tx_hash: str, *, wallet: Wallet) -> bool:
-    tx = Transaction.objects.select_related("asset").filter(tx_hash=tx_hash, wallet=wallet).first()
+    tx = (
+        Transaction.objects.select_related("asset", "finality_observation__watch")
+        .filter(tx_hash=tx_hash, wallet=wallet)
+        .first()
+    )
     if tx is None or tx.balance_reconciliation_token is None:
         return True
-    expected = tx.balance_reconciliation_token
-    if not _verify_holding_balance(wallet, tx.asset):
+    observation = settled_chain_observation(tx)
+    if observation is None:
+        return False
+    watch = observation.watch
+    expected = capture_receipt_target(wallet, tx)
+    holdings = _verify_holding_balance(wallet, tx.asset)
+    if holdings is None:
         return False
     with atomic():
-        Wallet.objects.select_for_update().get(pk=wallet.pk)
+        locked_wallet = Wallet.objects.select_for_update().get(pk=wallet.pk)
         locked = Transaction.objects.select_for_update().get(pk=tx.pk)
-        if locked.balance_reconciliation_token != expected:
+        if capture_receipt_target(locked_wallet, locked) != expected:
             return False
+        if observation.policy != finality_policy(watch.network, watch.chain):
+            return False
+        for holding in holdings:
+            if not Holding.objects.filter(pk=holding.pk, balance_version=holding.balance_version).exists():
+                return False
         if locked.status == TRANSACTION_STATUS_CONFIRMED:
             _update_snapshot_on_confirmation(locked)
-        if locked.status == TRANSACTION_STATUS_REORGED:
-            locked.deducted_amount = Decimal("0")
-            locked.deducted_fee = Decimal("0")
+        locked.deducted_amount = Decimal("0")
+        locked.deducted_fee = Decimal("0")
         locked.balance_reconciliation_token = None
         locked.save(update_fields=["balance_reconciliation_token", "deducted_amount", "deducted_fee"])
     return True
-
-
-def _on_this_wallets_row(tx_hash: str, wallet: Wallet, act, *, expected=None) -> Dict[str, Any]:
-    with atomic():
-        locked_wallet = Wallet.objects.select_for_update().get(pk=wallet.pk)
-        tx = Transaction.objects.select_for_update().filter(tx_hash=tx_hash, wallet=wallet).first()
-        if tx is None:
-            return {"status": "not_found", "tx_hash": tx_hash}
-        if expected is not None and capture_receipt_target(locked_wallet, tx) != expected:
-            return {"status": "observation_changed", "tx_hash": tx_hash}
-        answer, refusal = act(tx)
-
-    if refusal is not None:
-        raise refusal
-    return answer
 
 
 def _notify_wallet_users(tx: Transaction, event: str) -> None:
@@ -292,15 +250,12 @@ def _move_holding(tx: Transaction, asset: Asset, delta: Decimal) -> tuple[Holdin
     return holding, holding.quantity - before
 
 
-def _verify_holding_balance(wallet: Wallet, asset: Asset) -> bool:
-    holding = sync_holding(wallet, asset)
+def _verify_holding_balance(wallet: Wallet, asset: Asset):
     native = recorded_native_asset_for_chain(wallet.chain)
     if native is None:
-        return False
-    if asset != native:
-        native_holding = sync_holding(wallet, native)
-        return holding is not None and native_holding is not None
-    return holding is not None
+        return None
+    holdings = [sync_holding(wallet, held_asset) for held_asset in dict.fromkeys([asset, native])]
+    return None if any(holding is None for holding in holdings) else holdings
 
 
 def _update_snapshot_on_confirmation(tx: Transaction) -> None:
@@ -323,49 +278,3 @@ def _update_snapshot_on_confirmation(tx: Transaction) -> None:
             "caused_by_transaction": tx,
         },
     )
-
-
-def _revert_optimistic_holding(tx: Transaction, *, clear_superseded=True) -> None:
-    with atomic():
-        Wallet.objects.select_for_update().get(pk=tx.wallet_id)
-        locked = Transaction.objects.select_for_update().get(pk=tx.pk)
-        _return_outstanding_deductions(locked, clear_superseded=clear_superseded)
-        tx.deducted_amount = locked.deducted_amount
-        tx.deducted_fee = locked.deducted_fee
-
-
-def _return_outstanding_deductions(tx: Transaction, *, clear_superseded=True) -> None:
-    native = recorded_native_asset_for_chain(tx.wallet.chain)
-    amount, fee = _deductions_to_reverse(tx, native)
-    if clear_superseded or amount:
-        tx.deducted_amount = Decimal("0")
-    if native is not None and (clear_superseded or fee):
-        tx.deducted_fee = Decimal("0")
-    tx.save(update_fields=["deducted_amount", "deducted_fee"])
-    if not amount and not fee:
-        return
-    holding, _ = _move_holding(tx, tx.asset, amount)
-    if fee:
-        _move_holding(tx, native, fee)
-
-    logger.info(
-        f"Reverted optimistic holding: +{amount} {tx.asset.symbol} "
-        f"and +{fee} {get_native_asset_symbol(tx.wallet.chain)}, "
-        f"new_balance={holding.quantity}"
-    )
-
-
-def _deductions_to_reverse(tx: Transaction, native: Asset) -> tuple[Decimal, Decimal]:
-    return (
-        _outstanding_deduction(tx, tx.asset, tx.deducted_amount, tx.deducted_amount_sync_version),
-        _outstanding_deduction(tx, native, tx.deducted_fee, tx.deducted_fee_sync_version),
-    )
-
-
-def _outstanding_deduction(tx, asset, amount, sync_version) -> Decimal:
-    if amount is None or sync_version is None:
-        return Decimal("0")
-    holding = (
-        Holding.objects.select_for_update().filter(wallet=tx.wallet, asset=asset, sync_version=sync_version).first()
-    )
-    return amount if holding is not None else Decimal("0")

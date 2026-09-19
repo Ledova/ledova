@@ -15,6 +15,10 @@ from shared.db import acting_for
 from wallets.constants import TRANSACTION_STATUS_PENDING
 from wallets.models import Transaction, Wallet
 from wallets.services import transaction_confirmation
+from wallets.services.chain_observations import (
+    observe_wallet_chain,
+    settled_chain_observation,
+)
 from wallets.services.history_receipts import record_history_receipt
 from wallets.services.receipt_readers import extract_actual_fee, get_receipt_reader
 from wallets.services.receipt_targets import capture_receipt_target
@@ -39,12 +43,25 @@ def _confirm_pending_transaction(tx_hash: str, wallet_uuid: str) -> Dict[str, An
         tx = Transaction.objects.get(tx_hash=tx_hash, wallet=wallet)
         if tx.status != TRANSACTION_STATUS_PENDING:
             if tx.balance_reconciliation_token is not None:
+                if tx.finality_observation_id is not None and settled_chain_observation(tx) is None:
+                    if observe_wallet_chain(tx.pk) == "recorded":
+                        transaction_confirmation.settle_observed_transaction(tx_hash, wallet=wallet)
+                    repaired = Transaction.objects.filter(pk=tx.pk, balance_reconciliation_token__isnull=True).exists()
+                    return {"status": "reconciled" if repaired else "reconciliation_pending", "tx_hash": tx_hash}
                 repaired = transaction_confirmation.reconcile_transaction(tx_hash, wallet=wallet)
                 return {"status": "reconciled" if repaired else "reconciliation_pending", "tx_hash": tx_hash}
             logger.info(f"Transaction already processed: {tx_hash}")
             return {"status": "already_processed", "current_status": tx.status}
     except Transaction.DoesNotExist:
         return {"status": "not_found", "tx_hash": tx_hash}
+
+    if not tx.imported_from_history:
+        observed = observe_wallet_chain(tx.pk)
+        if observed == "identity_unavailable":
+            return {"status": "attribution_pending", "tx_hash": tx_hash}
+        if observed == "observation_changed":
+            return {"status": observed, "tx_hash": tx_hash}
+        return transaction_confirmation.settle_observed_transaction(tx_hash, wallet=wallet)
 
     expected = capture_receipt_target(wallet, tx)
     client = get_blockchain_client(wallet.chain)
@@ -68,45 +85,16 @@ def _confirm_pending_transaction(tx_hash: str, wallet_uuid: str) -> Dict[str, An
     block_timestamp = reader.block_timestamp(client, receipt, block_number)
     actual_fee = extract_actual_fee(receipt, wallet.chain)
 
-    if tx.imported_from_history:
-        return record_history_receipt(
-            tx_hash,
-            wallet=wallet,
-            succeeded=succeeded,
-            block_number=block_number,
-            block_hash=block_hash,
-            block_timestamp=block_timestamp,
-            actual_fee=actual_fee,
-            expected=expected,
-        )
-
-    if succeeded:
-        result = transaction_confirmation.confirm_transaction(
-            tx_hash=tx_hash,
-            wallet=wallet,
-            block_number=block_number,
-            block_hash=block_hash,
-            block_timestamp=block_timestamp,
-            actual_fee=actual_fee,
-            expected=expected,
-        )
-        if result["status"] == "confirmed":
-            logger.info(f"Transaction confirmed: {tx_hash}, actual_fee={actual_fee}")
-    else:
-        result = transaction_confirmation.fail_transaction(
-            tx_hash=tx_hash,
-            wallet=wallet,
-            reason="Transaction reverted on-chain",
-            block_number=block_number,
-            block_hash=block_hash,
-            block_timestamp=block_timestamp,
-            actual_fee=actual_fee,
-            expected=expected,
-        )
-        if result["status"] == "failed":
-            logger.warning(f"Transaction failed on-chain: {tx_hash}")
-
-    return result
+    return record_history_receipt(
+        tx_hash,
+        wallet=wallet,
+        succeeded=succeeded,
+        block_number=block_number,
+        block_hash=block_hash,
+        block_timestamp=block_timestamp,
+        actual_fee=actual_fee,
+        expected=expected,
+    )
 
 
 @app.periodic(cron="*/5 * * * *")

@@ -10,6 +10,8 @@ from shared.constants import (
     normalize_chain,
 )
 from wallets.exceptions import InvalidTransactionException
+from wallets.models import BitcoinSubmission, WalletSubmission
+from wallets.services.chain_evidence import _network_matches
 
 logger = logging.getLogger(__name__)
 
@@ -49,14 +51,43 @@ def fetch_chain_balance(wallet, asset) -> Optional[Decimal]:
     if asset.asset_type == AssetType.TOKENIZED_SECURITY.value:
         return _share_balance(wallet, asset, deployment)
     try:
+        networks = set(
+            f"evm:{chain_id}"
+            for chain_id in WalletSubmission.objects.filter(wallet=wallet).values_list("chain_id", flat=True).distinct()
+        )
+        networks.update(
+            "bitcoin:" + genesis
+            for genesis in BitcoinSubmission.objects.filter(wallet=wallet)
+            .values_list("genesis_hash", flat=True)
+            .distinct()
+        )
+        if len(networks) > 1:
+            return None
+        network = next(iter(networks), None)
+        recorded_units = (
+            WalletSubmission.objects.filter(wallet=wallet, asset=asset)
+            .values_list("intent__token_contract", "intent__asset_decimals")
+            .distinct()
+        )
+        for contract, decimals in recorded_units:
+            if (contract or "").casefold() != (
+                deployment.contract_address or ""
+            ).casefold() or decimals != deployment.decimals:
+                return None
         client = get_blockchain_client(wallet.chain)
+        if network is not None and not _network_matches(client, wallet.chain, network):
+            return None
         if deployment.contract_address:
-            return client.get_token_balance(
+            balance = client.get_token_balance(
                 address=wallet.address,
                 contract_address=deployment.contract_address,
                 decimals=deployment.decimals,
             )
-        return client.get_native_balance(wallet.address)
+        else:
+            balance = client.get_native_balance(wallet.address)
+        if network is not None and not _network_matches(client, wallet.chain, network):
+            return None
+        return balance
     except Exception as e:
         logger.warning(f"Balance query failed for {asset.symbol} on {wallet.chain}: {e}")
         return None

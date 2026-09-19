@@ -1,111 +1,94 @@
-from unittest import skipUnless
 from unittest.mock import patch
 
-from django.db import connection
-from django.test import TestCase
 from procrastinate.contrib.django.models import ProcrastinateJob
+from rest_framework.test import APITransactionTestCase
 
-from shared.tests.tenants import make_tenant
+from shared.db import use_operator
+from shared.tests.scoped import RunsOnTheScopedConnection
 from users.models import Notification
-from users.tasks.notifications import send_transaction_notification as run_task
-from wallets.constants import TRANSACTION_STATUS_CONFIRMED
+from users.tasks.notifications import send_transaction_notification
 from wallets.services import transaction_confirmation
+from wallets.tests.test_wallet_finality import WalletFinalityFixture
 
-TASK = "wallets.services.transaction_confirmation.send_transaction_notification"
-
-
-class TransactionNotificationProducerTest(TestCase):
-    def setUp(self):
-        patch("users.services.notifications.ExpoPushClient").start()
-        self.addCleanup(patch.stopall)
-        self.tenant = make_tenant("notified")
-        self.bystander = make_tenant("bystander")
-        self.tx = self.tenant.transaction
-
-    def transaction_rows(self, user):
-        return Notification.objects.filter(user=user, notification_type="transaction")
-
-    def test_confirmation_creates_the_row_and_defers_one_job_for_the_owner(self):
-        with patch(TASK) as task:
-            task.defer.side_effect = run_task
-            result = transaction_confirmation.confirm_transaction(
-                self.tx.tx_hash, block_number=7, wallet=self.tx.wallet
-            )
-
-        self.assertEqual(result["status"], "confirmed")
-        task.defer.assert_called_once_with(
-            user_id=str(self.tenant.user.pk), transaction_id=str(self.tx.uuid), event_type="confirmed"
-        )
-        row = self.transaction_rows(self.tenant.user).get()
-        self.assertEqual(row.title, "Transaction Confirmed")
-        self.assertEqual(row.data, {"type": "transaction", "event": "confirmed", "transaction_id": str(self.tx.uuid)})
-        self.assertFalse(self.transaction_rows(self.bystander.user).exists())
-
-        with patch(TASK) as task:
-            self.assertEqual(
-                transaction_confirmation.confirm_transaction(self.tx.tx_hash, wallet=self.tx.wallet)["status"],
-                "already_confirmed",
-            )
-        task.defer.assert_not_called()
-
-    def test_failure_creates_the_row_and_defers_one_job_for_the_owner(self):
-        with patch(TASK) as task:
-            task.defer.side_effect = run_task
-            result = transaction_confirmation.fail_transaction(
-                self.tx.tx_hash, reason="reverted", wallet=self.tx.wallet
-            )
-
-        self.assertEqual(result["status"], "failed")
-        task.defer.assert_called_once_with(
-            user_id=str(self.tenant.user.pk), transaction_id=str(self.tx.uuid), event_type="failed"
-        )
-        self.assertEqual(self.transaction_rows(self.tenant.user).get().title, "Transaction Failed")
-        self.assertFalse(self.transaction_rows(self.bystander.user).exists())
-
-    def test_a_job_that_cannot_be_deferred_rolls_the_status_change_back(self):
-        with patch(TASK) as task:
-            task.defer.side_effect = RuntimeError("queue down")
-            with self.assertRaises(RuntimeError):
-                transaction_confirmation.confirm_transaction(self.tx.tx_hash, wallet=self.tx.wallet)
-
-        self.tx.refresh_from_db()
-        self.assertNotEqual(self.tx.status, TRANSACTION_STATUS_CONFIRMED)
+DEFER_NOTIFICATION = send_transaction_notification.defer
 
 
-@skipUnless(connection.vendor == "postgresql", "procrastinate job rows live in PostgreSQL only")
-class TransactionNotificationJobRowTest(TestCase):
-
-    def setUp(self):
-        self.tenant = make_tenant("jobrow")
-        self.tx = self.tenant.transaction
-
+class TransactionNotificationChecks(WalletFinalityFixture):
     def job_rows(self):
-        return ProcrastinateJob.objects.filter(task_name=run_task.name)
+        with use_operator():
+            return list(
+                ProcrastinateJob.objects.filter(
+                    task_name=send_transaction_notification.name, args__transaction_id=str(self.tx_id)
+                ).values()
+            )
 
-    def test_confirmation_writes_one_todo_job_for_the_account_owner(self):
+    def test_final_confirmation_durably_queues_once_for_the_owner(self):
+        self.notification.side_effect = DEFER_NOTIFICATION
+        self.assertEqual(self.finish()["status"], "confirmed")
+        self.assertEqual(self.finish()["status"], "reconciliation_pending")
+        rows = self.job_rows()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["status"], "todo")
         self.assertEqual(
-            transaction_confirmation.confirm_transaction(self.tx.tx_hash, wallet=self.tx.wallet)["status"],
-            "confirmed",
+            rows[0]["args"],
+            {
+                "user_id": str(self.tenant.user.pk),
+                "transaction_id": str(self.tx_id),
+                "event_type": "confirmed",
+            },
         )
+        with patch("users.services.notifications.ExpoPushClient"):
+            send_transaction_notification.func(**rows[0]["args"])
+        with use_operator():
+            row = Notification.objects.filter(notification_type="transaction", user=self.tenant.user).get()
+        self.assertEqual(row.user_id, self.tenant.user.pk)
+        self.assertEqual(row.title, "Transaction Confirmed")
 
-        rows = list(self.job_rows())
-        self.assertEqual([row.args["user_id"] for row in rows], [str(self.tenant.account.user_profile.user_id)])
-        self.assertEqual({row.status for row in rows}, {"todo"})
-        self.assertEqual({row.args["transaction_id"] for row in rows}, {str(self.tx.uuid)})
-        self.assertEqual({row.args["event_type"] for row in rows}, {"confirmed"})
+    def test_final_failure_durably_queues_once_for_the_owner(self):
+        self.observer.get_transaction_receipt.return_value["status"] = 0
+        self.notification.side_effect = DEFER_NOTIFICATION
+        self.assertEqual(self.finish()["status"], "failed")
+        self.assertEqual(self.finish()["status"], "reconciliation_pending")
+        rows = self.job_rows()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["args"]["event_type"], "failed")
+        self.assertEqual(rows[0]["args"]["user_id"], str(self.tenant.user.pk))
 
-    def test_a_failure_after_the_defer_rolls_the_job_rows_back_with_the_status(self):
+    def test_queue_failure_rolls_back_the_outcome_and_its_finality_link(self):
+        self.notification.side_effect = RuntimeError("Synthetic queue outage")
+        with self.assertRaisesRegex(RuntimeError, "Synthetic queue outage"):
+            self.finish()
+        tx = self.transactions()[0]
+        self.assertEqual(tx["status"], "pending")
+        self.assertIsNone(tx["finality_observation_id"])
+        self.assertIsNone(tx["balance_reconciliation_token"])
+        self.assertEqual(self.job_rows(), [])
+        self.notification.side_effect = DEFER_NOTIFICATION
+        self.assertEqual(self.settle()["status"], "confirmed")
+        self.assertEqual(len(self.job_rows()), 1)
+
+    def test_failure_after_deferring_rolls_back_the_job_with_the_outcome(self):
+        self.notification.side_effect = DEFER_NOTIFICATION
         notify = transaction_confirmation._notify_wallet_users
 
-        def notify_then_fail(tx, event):
+        def interrupted(tx, event):
             notify(tx, event)
-            raise RuntimeError("after the defer")
+            raise RuntimeError("Synthetic post-defer interruption")
 
-        with patch.object(transaction_confirmation, "_notify_wallet_users", side_effect=notify_then_fail):
-            with self.assertRaises(RuntimeError):
-                transaction_confirmation.confirm_transaction(self.tx.tx_hash, block_number=9, wallet=self.tx.wallet)
+        with patch.object(transaction_confirmation, "_notify_wallet_users", side_effect=interrupted):
+            with self.assertRaisesRegex(RuntimeError, "Synthetic post-defer interruption"):
+                self.finish()
+        self.assertEqual(self.job_rows(), [])
+        self.assertEqual(self.transactions()[0]["status"], "pending")
+        self.assertEqual(self.settle()["status"], "confirmed")
+        self.assertEqual(len(self.job_rows()), 1)
 
-        self.assertEqual(self.job_rows().count(), 0)
-        self.tx.refresh_from_db()
-        self.assertNotEqual(self.tx.status, TRANSACTION_STATUS_CONFIRMED)
-        self.assertIsNone(self.tx.block_number)
+
+class TransactionNotificationTest(TransactionNotificationChecks, APITransactionTestCase):
+    pass
+
+
+class ScopedTransactionNotificationTest(
+    RunsOnTheScopedConnection, TransactionNotificationChecks, APITransactionTestCase
+):
+    pass

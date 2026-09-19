@@ -46,7 +46,11 @@ TOKEN_ABI = [
 
 
 @skipUnless(RPC_URL and TOKEN_ADDRESS, "A local chain and deployed test stablecoin are required")
-@override_settings(BLOCKCHAIN_RPC_URL=RPC_URL, BLOCKCHAIN_CHAIN_ID=31337)
+@override_settings(
+    BLOCKCHAIN_RPC_URL=RPC_URL,
+    BLOCKCHAIN_CHAIN_ID=31337,
+    WALLET_CHAIN_FINALITY_POLICIES={"evm:31337": {"mode": "depth", "depth": 1}},
+)
 class SubmissionChainTest(SubmissionFixture, APITransactionTestCase):
     def setUp(self):
         super().setUp()
@@ -366,11 +370,10 @@ class SubmissionChainTest(SubmissionFixture, APITransactionTestCase):
         signed = self.signed(nonce=0, gas=90000)
         self.submit_direct(signed)
         submission = self.submission()
-        self.assertEqual(self.confirm(submission.tx_hash)["status"], "confirmed")
-        before = self.financial_state()
         with patch.object(EthereumClient, "broadcast_transaction") as sent:
-            self.assertEqual(observe_wallet_chain(submission.transaction_id), "recorded")
+            self.assertEqual(self.confirm(submission.tx_hash)["status"], "confirmed")
             sent.assert_not_called()
+        before = self.financial_state()
         with use_operator():
             first = WalletChainObservation.objects.get(watch__transaction_id=submission.transaction_id)
         original = dict(first.evidence)

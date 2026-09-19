@@ -110,9 +110,7 @@ def claim_chain_observation(transaction_id):
         ):
             return None
         target = capture_receipt_target(wallet, tx)
-        fingerprint = hashlib.sha256(
-            json.dumps(target, cls=DjangoJSONEncoder, separators=(",", ":")).encode()
-        ).hexdigest()
+        fingerprint = receipt_target_fingerprint(target)
         previous = watch.observations.filter(result="included").first()
         previous_block = previous.evidence.get("receipt") if previous is not None else None
         watch.generation += 1
@@ -135,6 +133,10 @@ def claim_chain_observation(transaction_id):
             bytes(evm.raw_transaction) if evm is not None else None,
             evm.intent.get("mined_nonce_observation") if evm is not None and isinstance(evm.intent, Mapping) else None,
         )
+
+
+def receipt_target_fingerprint(target):
+    return hashlib.sha256(json.dumps(target, cls=DjangoJSONEncoder, separators=(",", ":")).encode()).hexdigest()
 
 
 def complete_chain_observation(claim, result):
@@ -201,3 +203,35 @@ def observe_wallet_chain(transaction_id):
     except Exception:
         result = {"result": "unknown", "finality": "unknown", "reason": "provider_unavailable", "evidence": {}}
     return complete_chain_observation(claim, result)
+
+
+def final_receipt(observation):
+    if observation.result != "included" or observation.finality != "satisfied":
+        return None
+    evidence = observation.evidence
+    receipt = evidence.get("receipt")
+    if (
+        evidence.get("complete") is not True
+        or not isinstance(receipt, dict)
+        or type(receipt.get("succeeded")) is not bool
+        or evidence.get("canonical_receipt") != {"hash": receipt.get("hash"), "height": receipt.get("height")}
+    ):
+        return None
+    return receipt
+
+
+def settled_chain_observation(tx, *, require_current_policy=True):
+    observation = tx.finality_observation
+    if observation is None or tx.imported_from_history:
+        return None
+    watch = observation.watch
+    receipt = final_receipt(observation)
+    if (
+        receipt is None
+        or (watch.transaction_id, watch.wallet_id, watch.user_account_id, watch.chain, watch.tx_hash)
+        != (tx.pk, tx.wallet_id, tx.user_account_id, tx.chain, tx.tx_hash)
+        or tx.status != ("confirmed" if receipt["succeeded"] else "failed")
+        or (require_current_policy and observation.policy != finality_policy(watch.network, watch.chain))
+    ):
+        return None
+    return observation

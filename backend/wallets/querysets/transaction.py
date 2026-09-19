@@ -5,6 +5,16 @@ from shared.constants import EVM_BLOCKCHAINS, normalize_chain
 
 
 class TransactionQuerySet(QuerySet):
+    def holding_unresolved(self, wallet, asset, native):
+        affected = Q(asset=asset)
+        if asset == native:
+            affected |= Q(transaction_fee_estimated__gt=0) | Q(deducted_fee__gt=0) | Q(deducted_fee__isnull=True)
+        return (
+            self.filter(wallet=wallet, imported_from_history=False)
+            .filter(affected)
+            .filter(Q(status__in=("pending", "reorged", "replaced")) | Q(balance_reconciliation_token__isnull=False))
+        )
+
     def filter_by_address(self, address, *, chain):
         chain = normalize_chain(chain)
         suffix = "__iexact" if chain in EVM_BLOCKCHAINS else ""

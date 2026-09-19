@@ -7,6 +7,7 @@ from web3 import Web3
 from assets.services.identity import native_asset_for_chain
 from wallets.models import Holding, Transaction
 from wallets.services import transaction_confirmation, transfers
+from wallets.tests.finality import settle_evm_transfer
 from wallets.tests.test_broadcast_transfer_guard import (
     RECIPIENT,
     USDC_CONTRACT,
@@ -73,28 +74,34 @@ class TransferFeeAccountingTest(BroadcastTransferGuardTestCase):
         self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual(self.quantities(), (Decimal("100"), Decimal("4.748")))
 
-    def test_a_failed_transfer_returns_the_fee_it_took_as_well_as_the_amount(self, get_client, schedule):
+    def test_a_failed_transfer_holds_the_amount_and_fee_until_chain_balance_repair(self, get_client, schedule):
         self.send_token(get_client)
 
-        with patch.object(transaction_confirmation, "_notify_wallet_users"):
-            transaction_confirmation.fail_transaction(self.tx_hash, reason="reverted", wallet=self.wallet)
+        with patch.object(transaction_confirmation, "_notify_wallet_users"), patch(
+            "wallets.services.holdings.fetch_chain_balance", return_value=None
+        ):
+            settle_evm_transfer(self.wallet, self.tx_hash, succeeded=False)
 
-        self.assertEqual(self.quantities(), (Decimal("100"), Decimal("5")))
+        self.assertEqual(self.quantities(), (Decimal("98.5"), Decimal("4.998")))
 
-    def test_a_failed_native_send_returns_both_from_the_one_holding(self, get_client, schedule):
+    def test_a_failed_native_send_keeps_both_held_until_chain_balance_repair(self, get_client, schedule):
         self.send_native(get_client)
 
-        with patch.object(transaction_confirmation, "_notify_wallet_users"):
-            transaction_confirmation.fail_transaction(self.tx_hash, reason="reverted", wallet=self.wallet)
+        with patch.object(transaction_confirmation, "_notify_wallet_users"), patch(
+            "wallets.services.holdings.fetch_chain_balance", return_value=None
+        ):
+            settle_evm_transfer(self.wallet, self.tx_hash, succeeded=False)
 
-        self.assertEqual(self.quantities(), (Decimal("100"), Decimal("5")))
+        self.assertEqual(self.quantities(), (Decimal("100"), Decimal("4.748")))
 
     def test_confirmation_resyncs_the_native_holding_as_well_as_the_transferred_one(self, get_client, schedule):
         self.send_token(get_client)
 
-        with patch("wallets.services.transaction_confirmation.sync_holding") as sync:
-            with patch.object(transaction_confirmation, "_notify_wallet_users"):
-                transaction_confirmation.confirm_transaction(self.tx_hash, block_number=1, wallet=self.wallet)
+        with patch("wallets.services.transaction_confirmation.sync_holding", return_value=None) as sync:
+            with patch.object(transaction_confirmation, "_notify_wallet_users"), patch(
+                "wallets.services.holdings.fetch_chain_balance", return_value=None
+            ):
+                settle_evm_transfer(self.wallet, self.tx_hash)
 
         synced = {call.args[1].symbol for call in sync.call_args_list}
         self.assertEqual(synced, {self.token.symbol, self.native.symbol})
@@ -102,9 +109,11 @@ class TransferFeeAccountingTest(BroadcastTransferGuardTestCase):
     def test_a_native_confirmation_syncs_that_holding_once(self, get_client, schedule):
         self.send_native(get_client)
 
-        with patch("wallets.services.transaction_confirmation.sync_holding") as sync:
-            with patch.object(transaction_confirmation, "_notify_wallet_users"):
-                transaction_confirmation.confirm_transaction(self.tx_hash, block_number=1, wallet=self.wallet)
+        with patch("wallets.services.transaction_confirmation.sync_holding", return_value=None) as sync:
+            with patch.object(transaction_confirmation, "_notify_wallet_users"), patch(
+                "wallets.services.holdings.fetch_chain_balance", return_value=None
+            ):
+                settle_evm_transfer(self.wallet, self.tx_hash)
 
         self.assertEqual([call.args[1].symbol for call in sync.call_args_list], [self.native.symbol])
 
