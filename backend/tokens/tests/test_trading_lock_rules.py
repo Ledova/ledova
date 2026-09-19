@@ -11,7 +11,7 @@ NO_KEY_AUTHORITY_LOCKS = {
     ("services/token_transfer_service.py", "create_order_and_match"),
     ("services/trading_order_create.py", "_lock_authorized_wallet"),
 }
-FOREIGN_WALLET_LOCK = ("services/token_transfer_service.py", "_lock_foreign_matching_wallets")
+FOREIGN_AUTHORITY_LOCK = ("services/token_transfer_service.py", "_lock_foreign_matching_authority")
 SINGLE_ROW_ORDER_LOCKS = {("services/order_actions.py", "_authorized_order"): 1}
 ORDER_LOCK_PROBES = {
     (
@@ -79,18 +79,22 @@ class TradingLockRulesTest(TestCase):
         for model in ("Wallet", "UserAccount"):
             with self.subTest(model=model):
                 found = [(path, function, call) for path, function, root, call in _sites() if root == model]
-                expected = NO_KEY_AUTHORITY_LOCKS | ({FOREIGN_WALLET_LOCK} if model == "Wallet" else set())
+                expected = NO_KEY_AUTHORITY_LOCKS | ({FOREIGN_AUTHORITY_LOCK} if model == "Wallet" else set())
                 self.assertEqual({site[:2] for site in found}, expected, BEYOND_THE_RULE)
                 self.assertEqual([site[:2] for site in found if not _no_key(site[2])], [], BEYOND_THE_RULE)
 
-    def test_foreign_wallet_locks_never_wait_behind_the_incoming_authority(self):
-        calls = [call for path, function, root, call in _sites() if (path, function) == FOREIGN_WALLET_LOCK]
+    def test_foreign_authority_locks_never_wait_behind_the_incoming_authority(self):
+        calls = [call for path, function, root, call in _sites() if (path, function) == FOREIGN_AUTHORITY_LOCK]
         self.assertEqual(len(calls), 1)
         self.assertTrue(
             any(
                 keyword.arg == "nowait" and getattr(keyword.value, "value", None) is True
                 for keyword in calls[0].keywords
             )
+        )
+        self.assertEqual(
+            next(ast.literal_eval(keyword.value) for keyword in calls[0].keywords if keyword.arg == "of"),
+            ("self", "user_account", "user_account__user_profile", "user_account__user_profile__user"),
         )
 
     def test_multi_row_order_locks_go_through_lock_orders(self):

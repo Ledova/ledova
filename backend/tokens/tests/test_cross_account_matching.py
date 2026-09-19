@@ -3,14 +3,16 @@ import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from queue import Queue
+from threading import Event
 from unittest.mock import patch
 from uuid import uuid4
 
+from django.contrib.auth import get_user_model
 from django.db import connections
 from rest_framework.test import APITransactionTestCase
 
 from companies.models import Company
-from shared.db import configured, current_alias, use_operator
+from shared.db import atomic, configured, current_alias, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_eligible, make_tenant
 from shared.utils.typed_data import signable_message
@@ -82,6 +84,18 @@ class CrossAccountMatchingChecks(CrossAccountMatchingFixtures):
 
     def test_a_foreign_wallet_changed_to_a_non_evm_chain_is_not_matched(self):
         self.stale_foreign_wallet_is_not_matched(chain="bitcoin")
+
+    def test_a_foreign_owner_who_deleted_their_account_is_not_matched(self):
+        seller_id = self.seller_order()
+        deleted = self.client.post("/api/user-profiles/delete-account/")
+        self.assertEqual(deleted.status_code, 200, deleted.content)
+        created = self.create(self.buyer_intent())
+        self.assertEqual(created.status_code, 201, created.content)
+        self.assertIsNone(created.json()["match"])
+        with use_operator():
+            self.assertEqual(TransferOrder.objects.get(pk=seller_id).filled_quantity, 0)
+            self.wallet.refresh_from_db()
+            self.assertEqual(self.wallet.verification_status, "VERIFIED")
 
     def test_a_later_sell_matches_the_other_accounts_signed_buy(self):
         buy = self.create(self.buyer_intent())
@@ -386,19 +400,19 @@ class CrossAccountMatchingProcessChecks(CrossAccountMatchingFixtures):
             self.assertEqual(TransferOrder.objects.get(pk=seller_id).modification_count, 1)
             self.assertEqual(SwapOrder.objects.filter(sell_order_id=seller_id).count(), 1)
 
-    def test_a_foreign_wallet_verification_change_waits_until_matching_commits(self):
+    def assert_foreign_authority_change_waits_for_matching(self, change, table):
         seller_id = self.seller_order()
         signed_buy = self.buyer_intent()
         connected = Queue()
 
-        def deverify():
+        def change_authority():
             try:
                 with use_operator():
                     with connections[current_alias()].cursor() as cursor:
                         cursor.execute("SET lock_timeout = '10s'")
                         cursor.execute("SELECT pg_backend_pid()")
                         connected.put(cursor.fetchone()[0])
-                    return Wallet.objects.filter(pk=self.wallet.pk).update(verification_status="PENDING")
+                    return change()
             finally:
                 connections.close_all()
 
@@ -413,9 +427,9 @@ class CrossAccountMatchingProcessChecks(CrossAccountMatchingFixtures):
             )
             holding = matcher.read()
             with ThreadPoolExecutor(1) as pool:
-                changing = pool.submit(deverify)
+                changing = pool.submit(change_authority)
                 try:
-                    wait_for_row_lock(self, connected.get(timeout=5), "wallets", holding["pid"])
+                    wait_for_row_lock(self, connected.get(timeout=5), table, holding["pid"])
                 finally:
                     matcher.release()
                 matched = matcher.read()
@@ -423,6 +437,50 @@ class CrossAccountMatchingProcessChecks(CrossAccountMatchingFixtures):
                 self.assertEqual(changing.result(timeout=10), 1)
         self.assertEqual(matched["status"], 201, matched)
         self.assertEqual(matched["body"]["match"]["counterOrder"], seller_id)
+
+    def test_a_foreign_wallet_verification_change_waits_until_matching_commits(self):
+        self.assert_foreign_authority_change_waits_for_matching(
+            lambda: Wallet.objects.filter(pk=self.wallet.pk).update(verification_status="PENDING"),
+            Wallet._meta.db_table,
+        )
+
+    def test_a_foreign_owner_deactivation_waits_until_matching_commits(self):
+        self.assert_foreign_authority_change_waits_for_matching(
+            lambda: get_user_model().objects.filter(pk=self.tenant.user.pk).update(is_active=False),
+            get_user_model()._meta.db_table,
+        )
+
+    def test_a_busy_owner_deactivation_is_retryable_then_excludes_the_inactive_counterparty(self):
+        seller_id = self.seller_order()
+        signed_buy = self.buyer_intent()
+        connected = Event()
+        release = Event()
+
+        def deactivate():
+            try:
+                with use_operator(), atomic():
+                    changed = get_user_model().objects.filter(pk=self.tenant.user.pk).update(is_active=False)
+                    connected.set()
+                    if not release.wait(20):
+                        raise AssertionError("The owner deactivation was never released")
+                    return changed
+            finally:
+                connections.close_all()
+
+        with ThreadPoolExecutor(1) as pool:
+            changing = pool.submit(deactivate)
+            try:
+                self.assertTrue(connected.wait(5))
+                busy = self.create(signed_buy)
+                self.assert_busy_submission_is_pending(signed_buy, {"status": busy.status_code, "body": busy.json()})
+            finally:
+                release.set()
+            self.assertEqual(changing.result(timeout=10), 1)
+        matched = self.create(signed_buy)
+        self.assertEqual(matched.status_code, 201, matched.content)
+        self.assertIsNone(matched.json()["match"])
+        with use_operator():
+            self.assertEqual(TransferOrder.objects.get(pk=seller_id).filled_quantity, 0)
 
 
 class CrossAccountMatchingProcessTest(CrossAccountMatchingProcessChecks, APITransactionTestCase):

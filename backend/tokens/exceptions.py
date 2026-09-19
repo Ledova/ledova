@@ -44,7 +44,7 @@ class OrderSubmissionConflictException(APIException):
 
 class OrderMatchingBusyException(APIException):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-    default_detail = "A matching wallet is busy. Retry this order using the same submission ID."
+    default_detail = "Matching is busy. Retry this order using the same submission ID."
     default_code = "order_matching_busy"
     expose_code = True
 

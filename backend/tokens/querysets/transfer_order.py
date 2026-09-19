@@ -68,6 +68,7 @@ class TransferOrderQuerySet(QuerySet):
                 payment_asset_id=order.payment_asset_id,
                 wallet__verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
                 wallet__chain__in=(BLOCKCHAIN_ETHEREUM, BLOCKCHAIN_BASE),
+                owner_account__user_profile__user__is_active=True,
             )
         )
 

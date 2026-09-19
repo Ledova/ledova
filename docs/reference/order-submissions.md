@@ -46,9 +46,10 @@ the same recorded result through the owner-scoped lookup; no second commit or
 matching queue is introduced. `shared/0012` removes the app's redundant swap
 INSERT permission on existing databases as well as fresh installs.
 
-Foreign candidates must still have verified EVM wallets. The matcher acquires
-those wallets with `FOR NO KEY UPDATE NOWAIT` before locking the candidate orders,
-then considers only foreign wallets whose authority it holds. PostgreSQL lock
+Foreign candidates must still have verified EVM wallets and active account owners.
+The matcher acquires their wallet, account, profile and user rows together with
+`FOR NO KEY UPDATE NOWAIT` before locking the candidate orders,
+then considers only foreign wallets whose complete authority it holds. PostgreSQL lock
 contention returns HTTP 503 with code `order_matching_busy`. Challenge spend,
 new orders, matches and reservations roll back; the existing submission remains
 pending, and the client retries its same UUID. A fresh UUID is not a retry.
@@ -152,19 +153,19 @@ recovery (`recover`), settlement (`settle`) and the expiry sweep
 submission or action and one wallet, so only replays of the same action contend
 for it, and those already serialised on the journal row. The action path's order
 lock is load-bearing: `apply_order_modification` saves every column of the order,
-so a decision taken on a stale read would overwrite a match. The foreign-wallet
+so a decision taken on a stale read would overwrite a match. The foreign-authority
 lock comes after the incoming authority and challenge but never waits (R3).
 
 Foreign-key checks introduce edges against G. A swap insert references both
 wallets; deferred checks after repeated order updates can also take `FOR KEY SHARE`
 on the counterparty's account at commit. Same-account legacy candidates retain
-their earlier wallet-lock behavior; foreign candidates have their wallets locked,
-but the matcher does not lock their accounts. Three rules keep these edges from
-closing a cycle:
+their earlier authority-lock behavior; foreign candidates have their complete
+authority locked before their orders. Three rules keep these edges from closing
+a cycle:
 
 - **R1** — trading journeys lock `Wallet` and `UserAccount` with `FOR NO KEY UPDATE`, never
   `FOR UPDATE` (`_lock_authorized_wallet`, `create_order_and_match`,
-  `_lock_authority`, `_lock_foreign_matching_wallets`). `FOR KEY SHARE` is compatible
+  `_lock_authority`, `_lock_foreign_matching_authority`). `FOR KEY SHARE` is compatible
   with `FOR NO KEY UPDATE` and
   conflicts with `FOR UPDATE`, so a matcher's foreign-key checks never wait on
   another trading transaction's wallet or account lock. These locks still exclude
@@ -182,9 +183,9 @@ closing a cycle:
   `expire_unclaimed_swap`). The action path's `_authorized_order` locks exactly
   one row.
 
-- **R3** — foreign-wallet acquisition uses `NOWAIT`. Two creates holding different
-  incoming wallets cannot wait on one another's wallet, nor can a matcher wait
-  behind a foreign action while holding its own authority. Contention aborts the
+- **R3** — foreign wallet/account/profile/user acquisition uses `NOWAIT`. Two creates holding different
+  incoming wallets cannot wait on one another's authority, nor can a matcher wait
+  behind a foreign action or account deletion while holding its own authority. Contention aborts the
   complete create transaction and leaves the submission retryable.
 
 `tokens/tests/test_trading_lock_rules.py` holds R1, R2 and R3 against the source.

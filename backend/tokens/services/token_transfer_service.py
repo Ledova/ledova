@@ -237,19 +237,26 @@ def match_orders(buy_order: TransferOrder, sell_order: TransferOrder, match_quan
     }
 
 
-def _lock_foreign_matching_wallets(queryset, order):
+def _lock_foreign_matching_authority(queryset, order):
     wallet_ids = list(queryset.exclude(owner_account_id=order.owner_account_id).values_list("wallet_id", flat=True))
     try:
-        return list(
-            Wallet.objects.select_for_update(of=("self",), no_key=True, nowait=True)
+        wallets = (
+            Wallet.objects.select_related("user_account__user_profile__user")
+            .select_for_update(
+                of=("self", "user_account", "user_account__user_profile", "user_account__user_profile__user"),
+                no_key=True,
+                nowait=True,
+            )
             .filter(
                 pk__in=wallet_ids,
                 verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
                 chain__in=(Blockchain.ETHEREUM.value, Blockchain.BASE.value),
+                user_account__user_profile__user__is_active=True,
             )
             .order_by("pk")
-            .values_list("pk", flat=True)
+            .only("user_account__user_profile__user__is_active")
         )
+        return [wallet.pk for wallet in wallets]
     except OperationalError as exc:
         if getattr(exc.__cause__, "sqlstate", None) != "55P03":
             raise
@@ -279,7 +286,7 @@ def find_matching_orders(order: TransferOrder) -> list[tuple[TransferOrder, int]
         )
 
     qs = qs.admitted_to_match(order, settings.BLOCKCHAIN_CHAIN_ID).exclude(wallet_address__iexact=order.wallet_address)
-    foreign_wallets = _lock_foreign_matching_wallets(qs, order)
+    foreign_wallets = _lock_foreign_matching_authority(qs, order)
     candidates = lock_orders(qs.filter(Q(owner_account_id=order.owner_account_id) | Q(wallet_id__in=foreign_wallets)))
     candidates.sort(
         key=lambda candidate: (
