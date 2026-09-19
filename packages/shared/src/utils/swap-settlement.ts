@@ -5,6 +5,7 @@ import type {
   SettlementSwapOrder,
   SwapSettlementApprovalConfirmed,
   SwapSettlementApprovalData,
+  SwapSettlementApprovalOutcome,
   SwapSettlementApprovalStatus,
   SwapSettlementApprovalUnconfirmed,
   SwapSettlementCrypto,
@@ -55,6 +56,7 @@ export interface SwapSettlementState {
   approvalStatus: SwapSettlementApprovalStatus | null;
   approvalData: SwapSettlementApprovalData | null;
   approvalResult: SwapSettlementApprovalConfirmed | SwapSettlementApprovalUnconfirmed | null;
+  approvalOutcomes: readonly SwapSettlementApprovalOutcome[];
   unconfirmedApprovalHashes: readonly string[];
   error: string | null;
   notice: string | null;
@@ -92,6 +94,7 @@ export class SwapSettlement {
     approvalStatus: null,
     approvalData: null,
     approvalResult: null,
+    approvalOutcomes: [],
     unconfirmedApprovalHashes: [],
     error: null,
     notice: null,
@@ -209,7 +212,34 @@ export class SwapSettlement {
     }
     if (this.current(generation)) this.dependencies.onRecordsChanged();
   }
-  private async clearObservedSignatures(generation: number): Promise<void> {
+  private async recoverApproval(record: Extract<SavedSwapSettlement, { kind: 'approval' }>, generation: number) {
+    const result = await getSwapSettlementContext(
+      this.dependencies.apiClient,
+      { ...swapSettlementIdentity(this.state.response!), approvalTxHash: record.txHash },
+      this.config(generation),
+    );
+    if (!this.current(generation)) return;
+    const response = copied(result.data);
+    if (result.status !== 200) throw new SwapSettlementError('The original approval result is unavailable.');
+    await validateSwapSettlementResponse(response, this.selection, this.dependencies.crypto, this.known);
+    if (!this.current(generation)) return;
+    const outcome = response.approvalOutcome;
+    if (outcome && outcome.txHash.toLowerCase() !== record.txHash)
+      throw new SwapSettlementError('The approval result did not match the original transaction.');
+    this.known = response.swapOrder;
+    this.publish({ response });
+    if (!outcome || outcome.outcome === 'pending' || !this.current(generation)) return;
+    this.publish({
+      approvalOutcomes: [
+        ...this.state.approvalOutcomes.filter((item) => item.txHash !== record.txHash),
+        frozen({ ...outcome, txHash: record.txHash }),
+      ],
+      approvalResult:
+        this.state.approvalResult?.txHash.toLowerCase() === record.txHash ? null : this.state.approvalResult,
+    });
+    await this.clear(record, generation);
+  }
+  private async recoverSavedRecords(generation: number): Promise<void> {
     const records = await this.dependencies.store.list(this.owner);
     if (!this.current(generation)) return;
     this.publish({
@@ -219,7 +249,11 @@ export class SwapSettlement {
     });
     for (const record of records) {
       if (!this.current(generation)) return;
-      if (record.kind !== 'signature' || !this.sameRecord(record)) continue;
+      if (!this.sameRecord(record)) continue;
+      if (record.kind === 'approval') {
+        await this.recoverApproval(record, generation);
+        continue;
+      }
       const role = swapSettlementRole(this.state.response!, record.signerAddress);
       if (
         role === 'seller'
@@ -240,9 +274,10 @@ export class SwapSettlement {
     if (!this.current(generation)) return;
     this.known = response.swapOrder;
     this.signatureRecoveryRequired = false;
-    this.publish({ phase: 'ready', response, approvalStatus: null, approvalData: null });
+    this.publish({ response, approvalStatus: null, approvalData: null });
     if (!this.current(generation)) return;
-    await this.clearObservedSignatures(generation);
+    await this.recoverSavedRecords(generation);
+    if (this.current(generation)) this.publish({ phase: 'ready' });
   }
   load = (): Promise<void> => this.run('loading', (generation) => this.read(generation));
   recover = (): Promise<void> => this.load();

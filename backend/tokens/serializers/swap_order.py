@@ -158,6 +158,10 @@ class SettlementWriteIdentitySerializer(SettlementIdentitySerializer):
     settlement_digest = serializers.RegexField(r"^0x[0-9a-f]{64}$")
 
 
+class SettlementRecoveryIdentitySerializer(SettlementIdentitySerializer):
+    approval_tx_hash = serializers.RegexField(r"^0x[0-9a-fA-F]{64}$", required=False)
+
+
 class SettlementSignatureSerializer(SettlementWriteIdentitySerializer):
     signature = serializers.CharField(min_length=130, max_length=132)
     signer_address = serializers.RegexField(r"^0x[0-9a-fA-F]{40}$")

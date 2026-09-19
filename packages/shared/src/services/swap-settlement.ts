@@ -21,12 +21,16 @@ const identityBody = (identity: SwapSettlementLookup) => ({
 
 export const getSwapSettlementContext = (
   apiClient: AxiosInstance,
-  identity: SwapSettlementLookup,
+  identity: SwapSettlementLookup & { approvalTxHash?: string },
   config?: AxiosRequestConfig,
 ) =>
   apiClient.get<SwapSettlementResponse>(TRADING_ENDPOINTS.ORDERS.SWAP(identity.orderUuid), {
     ...config,
-    params: { ...config?.params, ...identityBody(identity) },
+    params: {
+      ...config?.params,
+      ...identityBody(identity),
+      ...(identity.approvalTxHash === undefined ? {} : { approval_tx_hash: identity.approvalTxHash }),
+    },
   });
 
 export const submitSwapSettlementSignature = (

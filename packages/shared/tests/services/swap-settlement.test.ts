@@ -34,6 +34,7 @@ test('every scoped service pins exact identity and carries its existing transpor
   await getSwapSettlementApprovalStatus(api, identity, config);
   await getSwapSettlementApprovalData(api, identity, config);
   await broadcastSwapSettlementApproval(api, identity, '0x0123', config);
+  await getSwapSettlementContext(api, { ...identity, approvalTxHash: '0x' + 'ab'.repeat(32) }, config);
   for (const request of requests) {
     expect(request.url).toContain(`/orders/${identity.orderUuid}/swap/`);
     expect(request.ledovaSubmissionGuard).toBe(guard);
@@ -48,4 +49,6 @@ test('every scoped service pins exact identity and carries its existing transpor
   }
   expect(requests[4]!.url).toMatch(/approval-broadcast\/$/);
   expect(JSON.parse(requests[4]!.data).signed_transaction).toBe('0x0123');
+  expect(requests[0]!.params.approval_tx_hash).toBeUndefined();
+  expect(requests[5]!.params.approval_tx_hash).toBe('0x' + 'ab'.repeat(32));
 });

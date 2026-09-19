@@ -1,6 +1,7 @@
 from drf_spectacular.utils import PolymorphicProxySerializer, inline_serializer
 from rest_framework import serializers
 
+from tokens.models import ApprovalSubmissionOutcome
 from tokens.serializers.signing import (
     SettlementContextField,
     SettlementTypedDataSerializer,
@@ -23,12 +24,18 @@ class SettlementSwapOrderSerializer(SwapOrderDetailSerializer):
     settlement_context = SettlementContextField(read_only=True)
 
 
+class SettlementApprovalOutcomeSerializer(serializers.Serializer):
+    tx_hash = serializers.RegexField(r"^0x[0-9a-f]{64}$")
+    outcome = serializers.ChoiceField(choices=ApprovalSubmissionOutcome.choices)
+
+
 class SettlementSwapOrderForSigningSerializer(SettlementResponseIdentitySerializer):
     swap_order = SettlementSwapOrderSerializer()
     typed_data = SettlementTypedDataSerializer()
     has_signed = serializers.BooleanField()
     can_sign = serializers.BooleanField()
     admission_refusal = serializers.CharField(allow_null=True)
+    approval_outcome = SettlementApprovalOutcomeSerializer(required=False, allow_null=True)
 
 
 class SettlementApprovalStatusSerializer(SettlementResponseIdentitySerializer):

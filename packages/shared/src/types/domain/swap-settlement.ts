@@ -37,6 +37,8 @@ export type SwapSettlementApprovalConfirmed = ApiSchema<'SettlementApprovalRecei
 
 export type SwapSettlementApprovalUnconfirmed = ApiSchema<'SettlementApprovalUncertain'>;
 
+export type SwapSettlementApprovalOutcome = ApiSchema<'SettlementApprovalOutcome'>;
+
 export type SwapSettlementSignature = Pick<ApiSchema<'SettlementSignatureRequest'>, 'signature' | 'signerAddress'>;
 
 export interface SwapSettlementSignedApproval {

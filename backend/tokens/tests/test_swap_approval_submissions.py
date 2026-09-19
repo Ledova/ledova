@@ -22,8 +22,15 @@ from shared.db import (
 )
 from shared.db.principal import give_the_role_back, take_the_app_role
 from shared.tests.scoped import RunsOnTheScopedConnection
+from shared.tests.settlement import save_swap_with_context
+from shared.tests.tenants import make_tenant
 from tokens.constants import SWAP_APPROVAL_RECEIPT_WAIT_SECONDS
-from tokens.models import SwapApprovalSubmission, SwapOrder, SwapOrderStatus
+from tokens.models import (
+    SwapApprovalSubmission,
+    SwapOrder,
+    SwapOrderStatus,
+    TransferOrder,
+)
 from tokens.services import approval_submissions, atomic_swap_service
 from tokens.services.settlement_context import recorded_settlement_context
 from tokens.services.signed_transactions import decode_signed_transaction
@@ -112,6 +119,181 @@ class SwapApprovalSubmissionTest(APITransactionTestCase):
             "intent": approval_submissions._intent(decode_signed_transaction(raw)),
             **overrides,
         }
+
+    def saved_approval(self, participant="seller", nonce=0, swap=None):
+        swap = swap or self.swap
+        raw = approval_bytes(swap, SELLER if participant == "seller" else BUYER, participant, nonce=nonce)
+        with use_operator():
+            return approval_submissions.record(swap, participant, raw, decode_signed_transaction(raw), self.user.pk)
+
+    def test_saved_context_recovers_each_original_approval_outcome_without_rpc(self):
+        for nonce, outcome in enumerate(("pending", "confirmed", "reverted", "superseded")):
+            submission = self.saved_approval(nonce=nonce)
+            if outcome != "pending":
+                if outcome == "superseded":
+                    self.node.mined_nonce = nonce + 1
+                else:
+                    self.node.status = 1 if outcome == "confirmed" else 0
+                    self.node.mine(submission.tx_hash)
+                with use_operator():
+                    self.assertEqual(approval_submissions.attempt(submission.pk, client=self.node.client), outcome)
+            with (
+                self.subTest(outcome=outcome),
+                patch("tokens.services.approval_submissions.get_base_chain_client") as journal_provider,
+                patch("tokens.services.atomic_swap_service.get_base_chain_client") as provider,
+            ):
+                response = self.client.get(self.url + "/", {**self.identity, "approval_tx_hash": submission.tx_hash})
+                self.assertEqual(response.status_code, 200, response.content)
+                self.assertEqual(response.json()["approvalOutcome"], {"txHash": submission.tx_hash, "outcome": outcome})
+                journal_provider.assert_not_called()
+                provider.assert_not_called()
+        self.assertEqual(self.node.broadcasts, [])
+
+    def test_saved_approval_recovery_distinguishes_missing_and_unrequested_evidence(self):
+        submission = self.saved_approval()
+        for value, expected in (
+            ("0x" + "12" * 32, None),
+            ("0x" + submission.tx_hash[2:].upper(), {"txHash": submission.tx_hash, "outcome": "pending"}),
+        ):
+            response = self.client.get(self.url + "/", {**self.identity, "approval_tx_hash": value})
+            self.assertEqual(response.status_code, 200, response.content)
+            self.assertEqual(response.json()["approvalOutcome"], expected)
+        ordinary = self.client.get(self.url + "/", self.identity)
+        self.assertEqual(ordinary.status_code, 200, ordinary.content)
+        self.assertNotIn("approvalOutcome", ordinary.json())
+        for value in ("", "0x12", "0x" + "zz" * 32, "0x" + "11" * 33):
+            with self.subTest(value=value):
+                refused = self.client.get(self.url + "/", {**self.identity, "approval_tx_hash": value})
+                self.assertEqual(refused.status_code, 400, refused.content)
+                self.assertIn("approvalTxHash", refused.json())
+
+    def test_approval_recovery_survives_expiry_and_configuration_drift(self):
+        submission = self.saved_approval()
+        with self.clock(hours=1), override_settings(ATOMIC_SWAP_ADDRESS="0x" + "72" * 20):
+            response = self.client.get(self.url + "/", {**self.identity, "approval_tx_hash": submission.tx_hash})
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertFalse(response.json()["canSign"])
+        self.assertEqual(response.json()["approvalOutcome"], {"txHash": submission.tx_hash, "outcome": "pending"})
+
+    def test_approval_recovery_reuses_the_same_effect_across_saved_swaps(self):
+        submission = self.saved_approval()
+        with use_operator():
+            later = save_swap_with_context(
+                sell_order=self.swap.sell_order,
+                buy_order=self.swap.buy_order,
+                share_token=self.swap.share_token,
+                payment_asset=self.swap.payment_asset,
+                seller_address=SELLER.address,
+                buyer_address=BUYER.address,
+                share_amount=1,
+                payment_amount=150,
+                nonce=self.swap.nonce + 1,
+            )
+        response = self.client.get(
+            self.url + "/",
+            {
+                **self.identity,
+                "swap_uuid": str(later.pk),
+                "settlement_digest": later.settlement_digest,
+                "approval_tx_hash": submission.tx_hash,
+            },
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertNotEqual(submission.settlement_digest, later.settlement_digest)
+        self.assertEqual(response.json()["swapUuid"], str(later.pk))
+        self.assertEqual(response.json()["approvalOutcome"], {"txHash": submission.tx_hash, "outcome": "pending"})
+
+    def test_seller_and_buyer_recover_only_their_own_approval(self):
+        seller = self.saved_approval()
+        buyer = self.saved_approval("buyer")
+        cases = (
+            (self.url + "/", self.identity, seller, buyer),
+            (
+                f"/api/v1/trading/orders/{self.swap.buy_order_id}/swap/",
+                {**self.identity, "wallet_uuid": str(self.swap.buyer_wallet_id)},
+                buyer,
+                seller,
+            ),
+        )
+        for url, identity, own, other in cases:
+            for submission in (own, other):
+                with self.subTest(wallet=identity["wallet_uuid"], hash=submission.tx_hash):
+                    response = self.client.get(url, {**identity, "approval_tx_hash": submission.tx_hash})
+                    self.assertEqual(response.status_code, 200, response.content)
+                    self.assertEqual(
+                        response.json()["approvalOutcome"],
+                        {"txHash": own.tx_hash, "outcome": "pending"} if submission == own else None,
+                    )
+
+    def test_same_effect_approval_from_another_account_or_wallet_remains_private(self):
+        with use_operator():
+            other = make_tenant("approval-recovery-private", with_swap=False)
+            accounts = (self.swap.sell_order.owner_account, other.account)
+        for nonce, account in enumerate(accounts, start=20):
+            with use_operator():
+                wallet = Wallet.objects.create(
+                    user_account=account,
+                    address=SELLER.address,
+                    chain="ethereum",
+                    verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
+                )
+                order = TransferOrder.objects.create(
+                    token=self.swap.share_token,
+                    payment_asset=self.swap.payment_asset,
+                    wallet=wallet,
+                    owner_account=account,
+                    wallet_address=SELLER.address,
+                    order_type="sell",
+                    quantity=10,
+                    price_per_share="1.50",
+                )
+                swap = save_swap_with_context(
+                    sell_order=order,
+                    buy_order=self.swap.buy_order,
+                    share_token=self.swap.share_token,
+                    payment_asset=self.swap.payment_asset,
+                    seller_address=SELLER.address,
+                    buyer_address=BUYER.address,
+                    share_amount=1,
+                    payment_amount=150,
+                    nonce=self.swap.nonce + nonce,
+                )
+                user = account.user_profile.user
+            submission = self.saved_approval(nonce=nonce, swap=swap)
+            own = self.client.get(self.url + "/", {**self.identity, "approval_tx_hash": submission.tx_hash})
+            self.assertEqual(own.status_code, 200, own.content)
+            self.assertIsNone(own.json()["approvalOutcome"])
+            identity = {
+                "swap_uuid": str(swap.pk),
+                "owner_account_uuid": str(account.pk),
+                "wallet_uuid": str(wallet.pk),
+                "approval_tx_hash": submission.tx_hash,
+            }
+            url = f"/api/v1/trading/orders/{order.pk}/swap/"
+            client = APIClient()
+            client.force_authenticate(user)
+            positive = client.get(url, identity)
+            self.assertEqual(positive.status_code, 200, positive.content)
+            self.assertEqual(positive.json()["approvalOutcome"], {"txHash": submission.tx_hash, "outcome": "pending"})
+            if user != self.user:
+                refused = self.client.get(url, identity)
+                self.assertEqual(refused.status_code, 404, refused.content)
+
+    def test_approval_recovery_rechecks_wallet_authority_after_the_operator_read(self):
+        submission = self.saved_approval()
+        original = approval_submissions.recorded_outcome
+
+        def revoke(swap, participant, tx_hash):
+            result = original(swap, participant, tx_hash)
+            self.assertEqual(result, {"tx_hash": submission.tx_hash, "outcome": "pending"})
+            with use_operator():
+                Wallet.objects.filter(pk=self.swap.seller_wallet_id).update(verification_status="PENDING")
+            return result
+
+        with patch("tokens.services.approval_submissions.recorded_outcome", side_effect=revoke):
+            refused = self.client.get(self.url + "/", {**self.identity, "approval_tx_hash": submission.tx_hash})
+        self.assertEqual(refused.status_code, 404, refused.content)
+        self.assertNotIn("approvalOutcome", refused.json())
 
     def test_first_broadcast_records_before_sending_and_confirms_from_the_receipt(self):
         raw = approval_bytes(self.swap)

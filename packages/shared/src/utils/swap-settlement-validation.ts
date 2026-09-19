@@ -253,6 +253,14 @@ export async function validateSwapSettlementResponse(
   known?: SettlementSwapOrder | null,
 ): Promise<void> {
   echo(value, selection);
+  const approval = value.approvalOutcome;
+  requireValue(
+    approval == null ||
+      (typeof approval === 'object' &&
+        typeof approval.txHash === 'string' &&
+        HASH.test(approval.txHash) &&
+        ['pending', 'confirmed', 'reverted', 'superseded'].includes(approval.outcome)),
+  );
   requireValue(
     ['seller', 'buyer'].includes(value.userRole) &&
       typeof value.hasSigned === 'boolean' &&

@@ -248,6 +248,15 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
             ))}
           </div>
         )}
+        {state.approvalOutcomes.map((approvalOutcome) => (
+          <div role="status" className="space-y-2" key={approvalOutcome.txHash}>
+            <p>Original approval {approvalOutcome.outcome}.</p>
+            <p className="break-all">Approval transaction: {approvalOutcome.txHash}</p>
+            {approvalOutcome.outcome !== 'confirmed' && (
+              <p>This approval took no effect. Review a fresh approval if needed.</p>
+            )}
+          </div>
+        ))}
         {response?.hasSigned && (
           <p role="status">Your signature is recorded. Trade status: {response.swapOrder.status}.</p>
         )}
@@ -335,9 +344,13 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
             Back
           </button>
         )}
-        {(state.phase === 'error' || response?.hasSigned || (response && !response.canSign)) && (
+        {(state.phase === 'error' ||
+          response?.hasSigned ||
+          (response && !response.canSign) ||
+          state.unconfirmedApprovalHashes.length > 0) && (
           <button
             className={button}
+            disabled={!ready && state.phase !== 'error'}
             onClick={() => {
               resetView();
               void settlement.recover();

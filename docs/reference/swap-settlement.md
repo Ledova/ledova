@@ -5,8 +5,7 @@
 Captured settlement context, participant authorization and durable execution claims. These controls do not enable trading.
 
 New matches use the immutable settlement context introduced by `tokens/0039`.
-Coordinate backend, shared package, dashboard and mobile before deploying this
-protocol: this backend phase alone does not complete the client recovery flow.
+The backend, shared package, dashboard and mobile carry this protocol together.
 New-context swap requests require the exact swap, order, account and verified
 wallet identity; signing and approval requests also require the recorded full
 settlement digest. Initial authorized context lookup may omit that digest;
@@ -48,7 +47,7 @@ current configuration.
 
 | Route | Resolves | Re-checks |
 | --- | --- | --- |
-| `GET swap/` | identity lookup | the re-check result is reported as `admission_refusal` rather than raised; a stale supplied digest or a legacy row still refuses with HTTP 409 through the resolver |
+| `GET swap/` | identity lookup, repeated after an optional approval-journal read | the re-check result is reported as `admission_refusal` rather than raised; a stale supplied digest or a legacy row still refuses with HTTP 409 through the resolver |
 | `POST swap/sign` | exact identity | `submit_signature` re-reads the swap, verifies the signature against the recorded terms, and under the operator lock re-authorizes the actor, account and wallet (`_lock_authority`) and re-checks drift, deadline and status before storing |
 | `GET swap/approval-status` | identity lookup | re-check, then a fresh resolve and re-check before answering |
 | `GET swap/approval-data` | identity lookup | re-check, then a fresh resolve and re-check before answering, on both outcomes |
@@ -123,10 +122,35 @@ outcome. While the row is pending the approval is recorded and recovery is in
 progress: do not sign another approval for that swap. A `reverted` or
 `superseded` row says the approval took no effect and is no longer replayed,
 which is the state in which `approval-data` prepares a fresh one below. Neither
-response is confirmation, and the client keeps its saved hash as before.
+response is confirmation, and the client keeps its saved hash until exact
+outcome recovery establishes a definite result.
+
+The existing `GET swap/` accepts one optional `approval_tx_hash`. Its
+`approval_outcome` is absent when no hash was requested, null when no authorized
+journal row matches, or the original `tx_hash` and
+`pending|confirmed|reverted|superseded` outcome. This is a bounded operator read
+of the supplied hash, captured chain, sender, token and spender, and the current
+party's account and wallet. Authorization is resolved again after the read.
+It returns no signed bytes and makes no provider call, so expiry, configuration
+drift or a provider outage cannot prevent reading a recorded outcome. An
+unlimited approval can serve another swap with identical effect terms for the
+same account and wallet; its journal's first swap is not its only valid consumer.
+
+Both clients recover saved approval hashes through that exact-context read.
+They validate the returned context and requested hash before clearing a
+`confirmed`, `reverted` or `superseded` reminder and displaying its outcome.
+Pending, missing, inaccessible or malformed evidence remains unresolved, as
+does an older server response without the optional field. Storage removal
+failure retains the reminder and allows another check. A sufficient allowance
+does not establish the original transaction's outcome. Recovery never signs or
+sends a new approval: after a definite failure, a still-admitted settlement can
+use the existing fresh approval review.
 
 The five-minute `recover_swap_approval_submissions` sweep attempts at most 100
-pending rows, least recently attempted first. Each attempt verifies the bytes
+pending rows, least recently updated first. An attempt advances that activity
+timestamp before checking identity or reading a provider, so an unavailable
+row cannot repeatedly monopolize a bounded batch. The send timestamp remains
+separate and controls the existing resend interval. Each attempt verifies the bytes
 against the recorded identity, reads the endpoint's current chain ID, and looks
 for the receipt by hash first, recording it when found. With no receipt, a
 sender whose mined nonce has passed the recorded nonce marks the row
