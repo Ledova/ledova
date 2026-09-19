@@ -33,9 +33,16 @@ WORKER = "order_action_worker"
 
 
 class ActionProcessChecks(ActionFixtures):
-    def child(self, phase, directory, signed, *, order=None, endpoint="modify"):
+    def child(self, phase, directory, signed, *, order=None, endpoint="modify", **options):
         return OrderChild(
-            self, WORKER, phase, directory, body=signed, order_id=str((order or self.order).pk), endpoint=endpoint
+            self,
+            WORKER,
+            phase,
+            directory,
+            body=signed,
+            order_id=str((order or self.order).pk),
+            endpoint=endpoint,
+            **options,
         )
 
     def crash(self, phase):
@@ -113,6 +120,74 @@ class ActionProcessChecks(ActionFixtures):
             self.assertEqual(OrderModificationLog.objects.filter(order=self.order).count(), 3)
             self.assertTrue(SigningChallenge.objects.get(digest=first["digest"]).is_consumed)
             self.assertFalse(SigningChallenge.objects.get(digest=second["digest"]).is_consumed)
+
+    def assert_competing_raises_share_the_current_balance(self, order_type, quantity, increased):
+        self.payment_balance = 6000
+        with use_operator():
+            self.order.order_type = order_type
+            self.order.quantity = quantity
+            self.order.save(update_fields=["order_type", "quantity"])
+            other = TransferOrder.objects.create(
+                token=self.order.token,
+                payment_asset=self.order.payment_asset,
+                wallet=self.wallet,
+                owner_account=self.tenant.account,
+                wallet_address=self.wallet.address,
+                order_type=order_type,
+                quantity=quantity,
+                price_per_share=Decimal("2.50"),
+            )
+        intent = self.modify_body(new_quantity=str(increased), new_price_per_share="2.50")
+        first = self.signed("modify", intent)
+        second = self.signed("modify", {**intent, "action_id": str(uuid4())}, order=other)
+        with tempfile.TemporaryDirectory(prefix="order-action-budget-") as temporary:
+            directory = Path(temporary)
+            one = self.child("preflight", directory, first, payment_balance=self.payment_balance)
+            first_read = one.read()
+            two = self.child("preflight", directory, second, order=other, payment_balance=self.payment_balance)
+            second_read = two.read()
+            for read in (first_read, second_read):
+                self.assertEqual((read["stage"], read["database_user"]), ("preflight", settings.RLS_ROLES["app"]))
+            self.assertNotEqual(first_read["pid"], second_read["pid"])
+            one.release()
+            accepted = one.read()
+            self.assertEqual(one.wait(), 0, one.error_output())
+            two.release()
+            refused = two.read()
+            self.assertEqual(two.wait(), 0, two.error_output())
+        self.assertEqual((accepted["status"], accepted["body"]["status"]), (200, "applied"), accepted)
+        self.assertEqual((refused["status"], refused["body"]["status"]), (400, "refused"), refused)
+        self.assertEqual(refused["body"]["refusal"]["code"], "order_modification_failed")
+        with use_operator():
+            self.order.refresh_from_db()
+            other.refresh_from_db()
+            self.assertEqual((self.order.quantity, other.quantity), (increased, quantity))
+            self.assertEqual((self.order.modification_count, other.modification_count), (1, 0))
+            self.assertEqual(
+                SigningChallenge.objects.filter(
+                    digest__in=[first["digest"], second["digest"]], consumed_at__isnull=False
+                ).count(),
+                2,
+            )
+            if order_type == "sell":
+                committed = TransferOrder.objects.committed_sell_quantity(self.order.token, self.wallet.address)
+                self.assertEqual(committed, 100)
+            else:
+                decimals = require_deployment(self.order.payment_asset).decimals
+                committed = TransferOrder.objects.committed_buy_payment(
+                    self.order.payment_asset, self.wallet.address, decimals
+                )
+                self.assertEqual(committed, self.payment_balance)
+        retry = self.execute("modify", second, order=other)
+        self.assertEqual(retry.status_code, 400, retry.content)
+        self.assertEqual(retry.json(), refused["body"])
+        self.assertEqual(self.recover(action_id=second["action_id"]).json(), refused["body"])
+
+    def test_competing_buy_raises_use_commitments_current_at_the_decision_lock(self):
+        self.assert_competing_raises_share_the_current_balance("buy", 10, 14)
+
+    def test_competing_sell_raises_use_commitments_current_at_the_decision_lock(self):
+        self.assert_competing_raises_share_the_current_balance("sell", 40, 60)
 
     def match_pair_setup(self):
         with use_operator():

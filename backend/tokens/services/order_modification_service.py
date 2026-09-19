@@ -37,9 +37,10 @@ def validate_modifications(
     new_min_quantity: Optional[int] = None,
     new_price: Optional[Decimal] = None,
     *,
-    available_balance: Optional[int],
+    observed_balance: Optional[int],
 ) -> list[str]:
     errors = []
+    available_balance = _uncommitted_balance(order, observed_balance)
 
     effective_quantity = new_quantity if new_quantity is not None else order.quantity
     effective_min_qty = new_min_quantity if new_min_quantity is not None else order.min_quantity
@@ -85,15 +86,13 @@ def validate_modifications(
     return errors
 
 
-def apply_order_modification(order, challenge, available_balance, ip_address=None, user_agent=None):
+def apply_order_modification(order, challenge, observed_balance, ip_address=None, user_agent=None):
     validate_can_modify(order)
     intent = challenge.payload["message"]
     new_quantity = int(intent["newQuantity"])
     new_min_quantity = int(intent["newMinQuantity"])
     new_price = Decimal(intent["newPricePerShare"])
-    errors = validate_modifications(
-        order, new_quantity, new_min_quantity, new_price, available_balance=available_balance
-    )
+    errors = validate_modifications(order, new_quantity, new_min_quantity, new_price, observed_balance=observed_balance)
     if errors:
         raise OrderModificationException("; ".join(errors))
     signature = challenge.consumed_signature
@@ -158,48 +157,37 @@ def apply_order_modification(order, challenge, available_balance, ip_address=Non
     return order, changes
 
 
-def available_modification_balance(
-    order: TransferOrder, quantity: int, price: Optional[Decimal] = None
-) -> Optional[int]:
+def read_modification_balance(order: TransferOrder, quantity: int, price: Optional[Decimal] = None) -> Optional[int]:
     if order.order_type == TransferOrderType.SELL and quantity > order.quantity:
-        return _get_available_balance(order)
-    if order.order_type == TransferOrderType.BUY and (
+        contract_address = order.token.contract_address
+        balance_kind = "token"
+    elif order.order_type == TransferOrderType.BUY and (
         quantity > order.quantity or (price is not None and price > order.price_per_share)
     ):
-        return _get_available_payment(order)
-    return None
-
-
-def _get_available_payment(order: TransferOrder) -> int:
-    deployment = require_deployment(order.payment_asset)
+        contract_address = require_deployment(order.payment_asset).contract_address
+        balance_kind = "payment"
+    else:
+        return None
     try:
-        total_balance = share_token_service.get_token_balance(deployment.contract_address, order.wallet_address)
+        return share_token_service.get_token_balance(contract_address, order.wallet_address)
     except Exception:
-        logger.error("Could not fetch payment balance for order %s", order.pk)
-        raise OrderModificationException("Unable to verify payment balance. Please try again later.")
-
-    committed = TransferOrder.objects.committed_buy_payment(
-        order.payment_asset, order.wallet_address, deployment.decimals, exclude_uuid=order.uuid
-    )
-
-    return max(0, total_balance - committed)
+        logger.error("Could not fetch %s balance for order %s", balance_kind, order.pk)
+        raise OrderModificationException(f"Unable to verify {balance_kind} balance. Please try again later.")
 
 
-def _get_available_balance(order: TransferOrder) -> int:
-    try:
-        token_service = share_token_service
-        total_balance = token_service.get_token_balance(order.token.contract_address, order.wallet_address)
-    except Exception:
-        logger.error("Could not fetch balance for order %s", order.pk)
-        raise OrderModificationException("Unable to verify token balance. Please try again later.")
-
-    committed = TransferOrder.objects.committed_sell_quantity(
-        token=order.token,
-        wallet_address=order.wallet_address,
-        exclude_uuid=order.uuid,
-    )
-
-    return max(0, total_balance - committed)
+def _uncommitted_balance(order: TransferOrder, observed_balance: Optional[int]) -> Optional[int]:
+    if observed_balance is None:
+        return None
+    if order.order_type == TransferOrderType.SELL:
+        committed = TransferOrder.objects.committed_sell_quantity(
+            token=order.token, wallet_address=order.wallet_address, exclude_uuid=order.uuid
+        )
+    else:
+        deployment = require_deployment(order.payment_asset)
+        committed = TransferOrder.objects.committed_buy_payment(
+            order.payment_asset, order.wallet_address, deployment.decimals, exclude_uuid=order.uuid
+        )
+    return max(0, observed_balance - committed)
 
 
 def get_modification_history(order: TransferOrder) -> dict:

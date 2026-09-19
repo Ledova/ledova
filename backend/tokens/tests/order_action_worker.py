@@ -49,6 +49,7 @@ def run():
     original_verify = service._verify
     original_load = service._load_action
     original_order = service._authorized_order
+    original_preflight = service._preflight
     verifications = 0
     selections = 0
 
@@ -95,6 +96,16 @@ def run():
             released()
         return order
 
+    def preflight_then_pause(*args, **kwargs):
+        from django.db import connections
+
+        balance = original_preflight(*args, **kwargs)
+        if connections[current_alias()].in_atomic_block:
+            raise AssertionError("The modification balance read must release its database locks")
+        notify("preflight")
+        released()
+        return balance
+
     def published(event, payload):
         with (directory / "events.jsonl").open("a") as output:
             output.write(json.dumps({"event": event, "alias": current_alias()}) + "\n")
@@ -105,7 +116,9 @@ def run():
         stack.enter_context(
             patch(
                 "tokens.services.order_modification_service.share_token_service.get_token_balance",
-                side_effect=lambda contract, address: (100 if contract == incoming["share_contract"] else 10**30),
+                side_effect=lambda contract, address: (
+                    100 if contract == incoming["share_contract"] else incoming.get("payment_balance", 10**30)
+                ),
             )
         )
         if phase == "spent":
@@ -118,6 +131,8 @@ def run():
             stack.enter_context(patch.object(service, "_verify", side_effect=verify_then_pause))
         elif phase == "compete":
             stack.enter_context(patch.object(service, "_load_action", side_effect=load_after_announcing))
+        elif phase == "preflight":
+            stack.enter_context(patch.object(service, "_preflight", side_effect=preflight_then_pause))
         elif phase == "order-locked":
             stack.enter_context(patch.object(service, "_authorized_order", side_effect=order_then_pause))
         response = client.post(

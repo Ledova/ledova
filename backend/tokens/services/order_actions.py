@@ -29,7 +29,7 @@ from tokens.models import (
 )
 from tokens.services.order_modification_service import (
     apply_order_modification,
-    available_modification_balance,
+    read_modification_balance,
     validate_can_modify,
     validate_modifications,
 )
@@ -215,7 +215,7 @@ def _preflight(action, *, executing=False):
         if executing:
             return None
         raise
-    return available_modification_balance(action.order, action.new_quantity, action.new_price_per_share)
+    return read_modification_balance(action.order, action.new_quantity, action.new_price_per_share)
 
 
 def _fields(action):
@@ -236,7 +236,7 @@ def _fields(action):
     return fields
 
 
-def _validate_issue(action, available_balance):
+def _validate_issue(action, observed_balance):
     if action.purpose == OrderActionPurpose.CANCEL:
         if not action.order.can_cancel:
             raise OrderCancellationException(
@@ -249,7 +249,7 @@ def _validate_issue(action, available_balance):
         action.new_quantity,
         action.new_min_quantity,
         action.new_price_per_share,
-        available_balance=available_balance,
+        observed_balance=observed_balance,
     )
     if errors:
         raise OrderModificationException("; ".join(errors))
@@ -260,7 +260,7 @@ def issue_order_action(actor, order_id, purpose, data):
     action = _register_action(actor, order_id, purpose, data)
     if action.status != OrderActionStatus.PENDING:
         return OrderActionResponse(action)
-    available_balance = _preflight(action)
+    observed_balance = _preflight(action)
     with atomic(durable=True):
         action = _load_action(actor, data["owner_account_uuid"], data["action_id"])
         if action is None:
@@ -269,7 +269,7 @@ def issue_order_action(actor, order_id, purpose, data):
         if action.status != OrderActionStatus.PENDING:
             return OrderActionResponse(action)
         _token_context(action.order, action)
-        _validate_issue(action, available_balance)
+        _validate_issue(action, observed_balance)
         challenge = issue_challenge(
             "order_" + purpose,
             action.wallet_address,
@@ -300,13 +300,13 @@ def _verify(action, credentials):
     return challenge
 
 
-def _apply(action, challenge, available_balance, ip_address, user_agent):
+def _apply(action, challenge, observed_balance, ip_address, user_agent):
     if action.purpose == OrderActionPurpose.CANCEL:
         _validate_issue(action, None)
         previous = action.order.status
         action.order.cancel()
         return {"kind": "cancel", "from_status": previous, "to_status": action.order.status}
-    _, changes = apply_order_modification(action.order, challenge, available_balance, ip_address, user_agent)
+    _, changes = apply_order_modification(action.order, challenge, observed_balance, ip_address, user_agent)
     return {"kind": "modify", "modification_count": action.order.modification_count, "changes": changes}
 
 
@@ -321,7 +321,7 @@ def execute_order_action(actor, order_id, purpose, data, credentials, *, ip_addr
             return OrderActionResponse(action)
         _token_context(action.order, action)
         _verify(action, credentials)
-    available_balance = _preflight(action, executing=True)
+    observed_balance = _preflight(action, executing=True)
     with atomic(durable=True):
         action = _load_action(actor, data["owner_account_uuid"], data["action_id"])
         if action is None:
@@ -334,7 +334,7 @@ def execute_order_action(actor, order_id, purpose, data, credentials, *, ip_addr
         spend(challenge, credentials["signature"])
         try:
             with atomic():
-                result = _apply(action, challenge, available_balance, ip_address, user_agent)
+                result = _apply(action, challenge, observed_balance, ip_address, user_agent)
         except tuple(BUSINESS_REFUSALS) as exc:
             if type(exc) not in BUSINESS_REFUSALS or BUSINESS_REFUSALS[type(exc)][0] != purpose:
                 raise
