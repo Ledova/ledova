@@ -71,5 +71,4 @@ an unchanged-looking snapshot authorizes cutover. Later adoption must drain all
 old signing paths, revalidate provenance and coverage, then perform a separate
 guarded import/activation. Application requests will also need scoped
 authorization before a narrow operator handoff, with transaction-boundary checks
-on the originating connection. Those adapter changes remain future work, and
-trading stays disabled.
+on the originating connection. Those adapter changes remain future work.

@@ -433,8 +433,10 @@ company.
 a registry as a market; or the remade instrument narrowing who may register.
 
 **Which way to be wrong.** Operating an unlicensed market is an offence; the
-feature stays off until a registration or licence covers it, which is the
-current default.
+feature is not offered for real use until a registration or licence covers it.
+The experimental deployment runs on synthetic data only, which does not engage
+this trigger; see
+[what bites now](README.md#what-bites-now-and-what-does-not).
 
 **Trigger.** Any feature where holders post offers to one another.
 

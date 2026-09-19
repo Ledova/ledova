@@ -2,7 +2,7 @@
 
 [Reference](README.md) · [Documentation](../README.md)
 
-The immutable identities and recovery contracts for creating, cancelling and modifying orders. Trading remains disabled by default.
+The immutable identities and recovery contracts for creating, cancelling and modifying orders. Trading is enabled by default.
 
 ## Creating an order
 

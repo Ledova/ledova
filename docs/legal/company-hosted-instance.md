@@ -102,7 +102,7 @@ is the company doing what it must do anyway.
    the last seven years, and reconcile it against the share structure ASIC
     holds. Fix any discrepancy with ASIC before relying on the instance. This is
     the import listed as remaining work in the
-    [roadmap](../roadmap.md#phase-2--eligibility-and-the-register).
+    [stored-register issue](https://github.com/Ledova/ledova/issues/647).
 3. **Name who may make entries and who approves.** An officer instructs, a
    director approves, and the record shows both. Where the administrator is also
    a recipient of shares, someone else approves that entry.

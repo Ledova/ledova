@@ -56,7 +56,7 @@ The CSV has three sections with different widths:
 Read sections by their headers rather than assuming one width or column index.
 `csv_cell` neutralizes formula-opening user values. An export logs requesting
 user ID and row count; there is no durable, queryable export audit model yet.
-A discrepancy also logs a warning. See the [remaining register work](../roadmap.md#phase-2--eligibility-and-the-register).
+A discrepancy also logs a warning. See the [stored-register work](https://github.com/Ledova/ledova/issues/647).
 
 The company shareholder tile counts distinct completed allotment addresses and
 does no chain read. Operator identity queues also use allotment addresses and
