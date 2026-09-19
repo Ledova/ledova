@@ -116,17 +116,18 @@ class GeneratedClientContractTest(APITestCase):
         self.assertEqual(response.status_code, 204)
         self.assertNotIn("content", self.document["paths"][unregister]["post"]["responses"]["204"])
 
-    def test_swap_lookup_requires_exact_identity_and_only_initial_lookup_omits_digest(self):
+    def test_swap_lookup_requires_identity_and_limits_optional_recovery_parameters(self):
         for suffix in ("swap", "swap/approval-status", "swap/approval-data"):
             path = f"/api/v1/trading/orders/{{uuid}}/{suffix}/"
             parameters = self.document["paths"][path]["get"]["parameters"]
             queries = {parameter["name"]: parameter for parameter in parameters if parameter["in"] == "query"}
+            optional = {"settlement_digest", "approval_tx_hash"} if suffix == "swap" else set()
             with self.subTest(path=path):
                 self.assertEqual(
                     set(queries),
-                    {"swap_uuid", "owner_account_uuid", "wallet_uuid", "settlement_digest"},
+                    {"swap_uuid", "owner_account_uuid", "wallet_uuid", "settlement_digest"} | optional,
                 )
                 for name, parameter in queries.items():
-                    self.assertEqual(parameter.get("required", False), name != "settlement_digest" or suffix != "swap")
+                    self.assertEqual(parameter.get("required", False), name not in optional)
                     if name.endswith("_uuid"):
                         self.assertEqual(parameter["schema"]["format"], "uuid")
