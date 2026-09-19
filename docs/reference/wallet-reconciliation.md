@@ -107,6 +107,12 @@ deductions and removes the repair token after rechecking the transaction target
 and every returned holding version. A capped or failed read cannot clear that
 token. Token and native balances can repair independently; the transaction's
 repair remains pending until both have succeeded without a concurrent change.
+If the approved policy changes while repair is unfinished, the task obtains fresh
+canonical evidence under the new policy. Only an already attributable terminal
+outcome can renew its repair authority, and only for the same outcome after the
+new policy is satisfied. This replaces the observation link without repeating
+the notification; earlier immutable observations remain in the watch's history.
+Unknown evidence continues to hold availability and legacy rows gain no authority.
 
 A worker interruption, provider outage or snapshot failure leaves durable repair
 work for the existing five-minute sweep, including terminal transactions. A retry

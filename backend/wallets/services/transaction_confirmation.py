@@ -131,8 +131,14 @@ def settle_observed_transaction(tx_hash: str, *, wallet: Wallet) -> Dict[str, An
         tx = Transaction.objects.select_for_update().filter(tx_hash=tx_hash, wallet=locked_wallet).first()
         if tx is None:
             return {"status": "not_found", "tx_hash": tx_hash}
-        if tx.status != TRANSACTION_STATUS_PENDING:
-            return {"status": "already_processed", "current_status": tx.status}
+        first_settlement = tx.status == TRANSACTION_STATUS_PENDING
+        if not first_settlement:
+            if (
+                tx.balance_reconciliation_token is None
+                or settled_chain_observation(tx, require_current_policy=False) is None
+                or settled_chain_observation(tx) is not None
+            ):
+                return {"status": "already_processed", "current_status": tx.status}
         watch = WalletChainWatch.objects.select_related("latest_observation").filter(transaction=tx).first()
         observation = watch.latest_observation if watch is not None else None
         if observation is None:
@@ -163,12 +169,15 @@ def settle_observed_transaction(tx_hash: str, *, wallet: Wallet) -> Dict[str, An
             actual_fee=Decimal(receipt["actual_fee"]) if receipt["actual_fee"] is not None else None,
         )
         tx.finality_observation = observation
-        tx.balance_reconciliation_token = uuid4()
+        tx.balance_reconciliation_token = tx.balance_reconciliation_token or uuid4()
         tx.save(update_fields=["status", "finality_observation", "balance_reconciliation_token", "updated_at", *fields])
         _invalidate_balance_reads(tx)
-        _notify_wallet_users(tx, tx.status)
+        if first_settlement:
+            _notify_wallet_users(tx, tx.status)
         result = {"status": tx.status, "tx_hash": tx_hash, "block_number": tx.block_number}
-    reconcile_transaction(tx_hash, wallet=wallet)
+    repaired = reconcile_transaction(tx_hash, wallet=wallet)
+    if not first_settlement:
+        result["status"] = "reconciled" if repaired else "reconciliation_pending"
     return result
 
 

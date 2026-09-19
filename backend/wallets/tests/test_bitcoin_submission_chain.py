@@ -237,12 +237,9 @@ class BitcoinSubmissionChainTest(APITransactionTestCase):
         self.mine_and_confirm()
         submission = self.submission()
         before = self.financial_state()
-        with patch.object(self.provider, "broadcast_transaction") as sent:
-            self.assertEqual(observe_wallet_chain(submission.transaction_id), "recorded")
-            sent.assert_not_called()
         with use_operator():
-            first = WalletChainObservation.objects.get(watch__transaction_id=submission.transaction_id)
-        self.assertEqual((first.result, first.finality), ("included", "unknown"))
+            first = WalletChainObservation.objects.get(watch__transaction_id=submission.transaction_id, generation=2)
+        self.assertEqual((first.result, first.finality), ("included", "satisfied"))
         old_hash = first.evidence["receipt"]["hash"]
         original = dict(first.evidence)
         self.provider._rpc_call("invalidateblock", [old_hash])
@@ -259,11 +256,12 @@ class BitcoinSubmissionChainTest(APITransactionTestCase):
                     "generation"
                 )
             )
-        self.assertEqual([row.result for row in rows], ["included", "orphaned", "included"])
-        self.assertEqual(rows[0].evidence, original)
-        self.assertTrue(rows[1].evidence["previous_orphaned"])
+        self.assertEqual([row.result for row in rows], ["included", "included", "orphaned", "included"])
+        self.assertEqual([row.finality for row in rows], ["waiting", "satisfied", "unknown", "waiting"])
+        self.assertEqual(rows[1].evidence, original)
         self.assertTrue(rows[2].evidence["previous_orphaned"])
-        self.assertNotEqual(rows[2].evidence["receipt"]["hash"], old_hash)
+        self.assertTrue(rows[3].evidence["previous_orphaned"])
+        self.assertNotEqual(rows[3].evidence["receipt"]["hash"], old_hash)
         self.assertEqual(self.financial_state(), before)
 
     def test_process_exit_before_or_after_actual_send_keeps_recoverable_durable_intent(
@@ -327,7 +325,7 @@ class BitcoinSubmissionChainTest(APITransactionTestCase):
                 with use_operator():
                     self.assertEqual(attempt_bitcoin_submission(submission.pk), "acknowledged")
                 self.assertEqual(self.financial_state(), before)
-                self.provider._rpc_call("generatetoaddress", [1, self.miner])
+                self.provider._rpc_call("generatetoaddress", [6, self.miner])
                 self.assertEqual(
                     confirm_pending_transaction(
                         submission.tx_hash,

@@ -15,7 +15,10 @@ from shared.db import acting_for
 from wallets.constants import TRANSACTION_STATUS_PENDING
 from wallets.models import Transaction, Wallet
 from wallets.services import transaction_confirmation
-from wallets.services.chain_observations import observe_wallet_chain
+from wallets.services.chain_observations import (
+    observe_wallet_chain,
+    settled_chain_observation,
+)
 from wallets.services.history_receipts import record_history_receipt
 from wallets.services.receipt_readers import extract_actual_fee, get_receipt_reader
 from wallets.services.receipt_targets import capture_receipt_target
@@ -40,6 +43,11 @@ def _confirm_pending_transaction(tx_hash: str, wallet_uuid: str) -> Dict[str, An
         tx = Transaction.objects.get(tx_hash=tx_hash, wallet=wallet)
         if tx.status != TRANSACTION_STATUS_PENDING:
             if tx.balance_reconciliation_token is not None:
+                if tx.finality_observation_id is not None and settled_chain_observation(tx) is None:
+                    if observe_wallet_chain(tx.pk) == "recorded":
+                        transaction_confirmation.settle_observed_transaction(tx_hash, wallet=wallet)
+                    repaired = Transaction.objects.filter(pk=tx.pk, balance_reconciliation_token__isnull=True).exists()
+                    return {"status": "reconciled" if repaired else "reconciliation_pending", "tx_hash": tx_hash}
                 repaired = transaction_confirmation.reconcile_transaction(tx_hash, wallet=wallet)
                 return {"status": "reconciled" if repaired else "reconciliation_pending", "tx_hash": tx_hash}
             logger.info(f"Transaction already processed: {tx_hash}")

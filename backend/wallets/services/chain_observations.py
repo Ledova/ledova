@@ -220,7 +220,7 @@ def final_receipt(observation):
     return receipt
 
 
-def settled_chain_observation(tx):
+def settled_chain_observation(tx, *, require_current_policy=True):
     observation = tx.finality_observation
     if observation is None or tx.imported_from_history:
         return None
@@ -231,7 +231,7 @@ def settled_chain_observation(tx):
         or (watch.transaction_id, watch.wallet_id, watch.user_account_id, watch.chain, watch.tx_hash)
         != (tx.pk, tx.wallet_id, tx.user_account_id, tx.chain, tx.tx_hash)
         or tx.status != ("confirmed" if receipt["succeeded"] else "failed")
-        or observation.policy != finality_policy(watch.network, watch.chain)
+        or (require_current_policy and observation.policy != finality_policy(watch.network, watch.chain))
     ):
         return None
     return observation

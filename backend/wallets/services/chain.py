@@ -53,19 +53,26 @@ def fetch_chain_balance(wallet, asset) -> Optional[Decimal]:
     try:
         networks = set(
             f"evm:{chain_id}"
-            for chain_id in WalletSubmission.objects.filter(wallet=wallet).values_list("chain_id", flat=True)
+            for chain_id in WalletSubmission.objects.filter(wallet=wallet).values_list("chain_id", flat=True).distinct()
         )
         networks.update(
             "bitcoin:" + genesis
-            for genesis in BitcoinSubmission.objects.filter(wallet=wallet).values_list("genesis_hash", flat=True)
+            for genesis in BitcoinSubmission.objects.filter(wallet=wallet)
+            .values_list("genesis_hash", flat=True)
+            .distinct()
         )
         if len(networks) > 1:
             return None
         network = next(iter(networks), None)
-        for journal in WalletSubmission.objects.filter(wallet=wallet, asset=asset):
-            if (journal.intent.get("token_contract") or "").casefold() != (
+        recorded_units = (
+            WalletSubmission.objects.filter(wallet=wallet, asset=asset)
+            .values_list("intent__token_contract", "intent__asset_decimals")
+            .distinct()
+        )
+        for contract, decimals in recorded_units:
+            if (contract or "").casefold() != (
                 deployment.contract_address or ""
-            ).casefold() or journal.intent.get("asset_decimals") != deployment.decimals:
+            ).casefold() or decimals != deployment.decimals:
                 return None
         client = get_blockchain_client(wallet.chain)
         if network is not None and not _network_matches(client, wallet.chain, network):

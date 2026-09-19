@@ -202,6 +202,33 @@ class WalletFinalityChecks(WalletFinalityFixture):
         self.assertEqual(self.transactions()[0]["status"], "pending")
         self.assertEqual(self.finish()["status"], "confirmed")
 
+    def assert_policy_rollout_recovery(self, succeeded):
+        self.observer.get_transaction_receipt.return_value["status"] = int(succeeded)
+        outcome = "confirmed" if succeeded else "failed"
+        self.assertEqual(self.finish()["status"], outcome)
+        original = self.transactions()[0]["finality_observation_id"]
+        self.balance = Decimal("7.999979" if succeeded else "9.999979")
+        policy = {f"evm:{settings.BLOCKCHAIN_CHAIN_ID}": {"mode": "depth", "depth": 6}}
+        with override_settings(WALLET_CHAIN_FINALITY_POLICIES=policy):
+            self.assertEqual(self.finish()["status"], "reconciliation_pending")
+            self.assertEqual(self.quantity(), Decimal("7.999958"))
+            self.assertEqual(self.transactions()[0]["finality_observation_id"], original)
+            self.head["number"] = 105
+            self.assertEqual(self.finish()["status"], "reconciled")
+            self.assertEqual(self.quantity(), self.balance)
+        tx = self.transactions()[0]
+        self.assertEqual(tx["status"], outcome)
+        self.assertIsNone(tx["balance_reconciliation_token"])
+        self.assertNotEqual(tx["finality_observation_id"], original)
+        self.assertEqual(self.observations()[-1]["policy"], {"version": 1, "mode": "depth", "depth": 6})
+        self.notification.assert_called_once()
+
+    def test_policy_rollout_reauthorizes_unfinished_repair_only_after_fresh_satisfied_evidence(self):
+        self.assert_policy_rollout_recovery(True)
+
+    def test_policy_rollout_can_reauthorize_final_failure_repair_without_refunding_twice(self):
+        self.assert_policy_rollout_recovery(False)
+
     def test_missing_or_malformed_evidence_retains_every_deduction_before_a_valid_control(self):
         valid = dict(self.observer.get_transaction_receipt.return_value)
         before = self.financial_state()
@@ -304,21 +331,6 @@ class WalletFinalityChecks(WalletFinalityFixture):
         self.assertEqual(self.finish()["status"], "confirmed")
         self.assertIsNone(self.transactions()[0]["block_timestamp"])
 
-    def test_foreign_principal_is_refused_before_operator_observation_or_balance_effect(self):
-        from shared.tests.tenants import make_tenant
-
-        with use_operator():
-            other = make_tenant("finality-other")
-        before = self.financial_state()
-        with patch("wallets.tasks.confirmation.observe_wallet_chain") as observe:
-            result = confirm_pending_transaction.func(
-                self.signed_transfer.hash.to_0x_hex(), str(self.wallet.pk), principal_id=other.user.pk
-            )
-        self.assertEqual(result, {"status": "error", "error": "Wallet not found"})
-        observe.assert_not_called()
-        self.assertEqual(self.financial_state(), before)
-        self.assertEqual(self.finish()["status"], "confirmed")
-
     def test_balance_writes_return_to_the_captured_principal_after_operator_observation(self):
         from shared.db import APP_ALIAS, configured
 
@@ -333,4 +345,17 @@ class WalletFinalityTest(WalletFinalityChecks, APITransactionTestCase):
 
 
 class ScopedWalletFinalityTest(RunsOnTheScopedConnection, WalletFinalityChecks, APITransactionTestCase):
-    pass
+    def test_foreign_principal_is_refused_before_operator_observation_or_balance_effect(self):
+        from shared.tests.tenants import make_tenant
+
+        with use_operator():
+            other = make_tenant("finality-other")
+        before = self.financial_state()
+        with patch("wallets.tasks.confirmation.observe_wallet_chain") as observe:
+            result = confirm_pending_transaction.func(
+                self.signed_transfer.hash.to_0x_hex(), str(self.wallet.pk), principal_id=other.user.pk
+            )
+        self.assertEqual(result, {"status": "error", "error": "Wallet not found"})
+        observe.assert_not_called()
+        self.assertEqual(self.financial_state(), before)
+        self.assertEqual(self.finish()["status"], "confirmed")
