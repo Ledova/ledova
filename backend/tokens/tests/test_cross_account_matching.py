@@ -1,6 +1,8 @@
 import signal
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from queue import Queue
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -65,6 +67,22 @@ class CrossAccountMatchingFixtures(SubmissionFixtures):
 
 
 class CrossAccountMatchingChecks(CrossAccountMatchingFixtures):
+    def stale_foreign_wallet_is_not_matched(self, **changes):
+        seller_id = self.seller_order()
+        with use_operator():
+            Wallet.objects.filter(pk=self.wallet.pk).update(**changes)
+        created = self.create(self.buyer_intent())
+        self.assertEqual(created.status_code, 201, created.content)
+        self.assertIsNone(created.json()["match"])
+        with use_operator():
+            self.assertEqual(TransferOrder.objects.get(pk=seller_id).filled_quantity, 0)
+
+    def test_a_deverified_foreign_wallet_is_not_matched(self):
+        self.stale_foreign_wallet_is_not_matched(verification_status="PENDING")
+
+    def test_a_foreign_wallet_changed_to_a_non_evm_chain_is_not_matched(self):
+        self.stale_foreign_wallet_is_not_matched(chain="bitcoin")
+
     def test_a_later_sell_matches_the_other_accounts_signed_buy(self):
         buy = self.create(self.buyer_intent())
         self.assertEqual(buy.status_code, 201, buy.content)
@@ -189,6 +207,18 @@ class ScopedCrossAccountMatchingTest(RunsOnTheScopedConnection, CrossAccountMatc
 
 
 class CrossAccountMatchingProcessChecks(CrossAccountMatchingFixtures):
+    def assert_busy_submission_is_pending(self, signed, response):
+        self.assertEqual(response["status"], 503, response)
+        self.assertEqual(response["body"]["code"], "order_matching_busy")
+        recovered = self.recover(signed["submission_id"], signed["owner_account_uuid"])
+        self.assertEqual(recovered.status_code, 200, recovered.content)
+        self.assertEqual(recovered.json()["status"], "pending")
+        self.assertIsNone(recovered.json()["order"])
+        self.assertIsNone(recovered.json()["match"])
+        with use_operator():
+            self.assertIsNone(SigningChallenge.objects.get(digest=signed["digest"]).consumed_at)
+            self.assertFalse(TransferOrder.objects.filter(wallet_id=signed["wallet_uuid"]).exists())
+
     def crash_and_recover(self, phase):
         seller_id = self.seller_order()
         signed = self.buyer_intent()
@@ -223,7 +253,7 @@ class CrossAccountMatchingProcessChecks(CrossAccountMatchingFixtures):
     def test_process_death_after_commit_recovers_one_cross_account_match(self):
         self.crash_and_recover("committed")
 
-    def test_two_buyers_wait_on_one_foreign_order_and_only_one_matches(self):
+    def test_a_competing_buyer_retries_the_same_submission_after_the_first_matches(self):
         seller_id = self.seller_order()
         first = self.buyer_intent()
         with use_operator():
@@ -244,14 +274,18 @@ class CrossAccountMatchingProcessChecks(CrossAccountMatchingFixtures):
             holding = one.read()
             self.assertEqual(holding["stage"], "candidates-locked")
             two = OrderChild(self, "order_submission_worker", "compete", directory, body=second, user_id=third.user.pk)
-            waiting = two.read()
-            wait_for_row_lock(self, waiting["pid"], "tokens_transferorder", holding["pid"])
+            self.assertEqual(two.read()["stage"], "selecting")
+            busy = two.read()
+            self.assertEqual(two.wait(), 0, two.error_output())
+            self.assert_busy_submission_is_pending(second, busy)
             one.release()
-            matched, unmatched = one.read(), two.read()
-            self.assertEqual((one.wait(), two.wait()), (0, 0), (one.error_output(), two.error_output()))
-        self.assertEqual((matched["status"], unmatched["status"]), (201, 201))
+            matched = one.read()
+            self.assertEqual(one.wait(), 0, one.error_output())
+        retried = self.create(second)
+        self.assertEqual((matched["status"], retried.status_code), (201, 201), retried.content)
         self.assertEqual(matched["body"]["match"]["counterOrder"], seller_id)
-        self.assertIsNone(unmatched["body"]["match"])
+        self.assertIsNone(retried.json()["match"])
+        self.assertEqual(self.create(second).json(), retried.json())
         with use_operator():
             self.assertEqual(TransferOrder.objects.get(pk=seller_id).filled_quantity, 10)
             self.assertEqual(SwapOrder.objects.filter(sell_order_id=seller_id).count(), 1)
@@ -294,7 +328,7 @@ class CrossAccountMatchingProcessChecks(CrossAccountMatchingFixtures):
                 endpoint=purpose,
             )
             waiting = action.read()
-            wait_for_row_lock(self, waiting["pid"], "tokens_transferorder", holding["pid"])
+            wait_for_row_lock(self, waiting["pid"], "wallets", holding["pid"])
             matcher.release()
             matched, refused = matcher.read(), action.read()
             self.assertEqual((matcher.wait(), action.wait()), (0, 0), (matcher.error_output(), action.error_output()))
@@ -315,7 +349,7 @@ class CrossAccountMatchingProcessChecks(CrossAccountMatchingFixtures):
     def test_the_foreign_sellers_modify_waits_for_matching_and_is_refused(self):
         self.foreign_action_waits_for_matching("modify")
 
-    def test_matching_waits_for_the_foreign_sellers_modify_and_uses_its_committed_terms(self):
+    def test_a_busy_foreign_modification_leaves_the_submission_retryable_with_no_spend(self):
         seller_id = self.seller_order()
         signed_action = self.seller_action(seller_id, "modify")
         signed_buy = self.buyer_intent(price="3.00")
@@ -330,20 +364,65 @@ class CrossAccountMatchingProcessChecks(CrossAccountMatchingFixtures):
                 order_id=seller_id,
                 endpoint="modify",
             )
-            holding = action.read()
+            self.assertEqual(action.read()["stage"], "order-locked")
             matcher = OrderChild(
                 self, "order_submission_worker", "compete", directory, body=signed_buy, user_id=self.buyer.user.pk
             )
-            waiting = matcher.read()
-            wait_for_row_lock(self, waiting["pid"], "tokens_transferorder", holding["pid"])
+            self.assertEqual(matcher.read()["stage"], "selecting")
+            busy = matcher.read()
+            self.assertEqual(matcher.wait(), 0, matcher.error_output())
+            self.assert_busy_submission_is_pending(signed_buy, busy)
+            with use_operator():
+                self.assertFalse(SwapOrder.objects.filter(sell_order_id=seller_id).exists())
             action.release()
-            applied, matched = action.read(), matcher.read()
-            self.assertEqual((action.wait(), matcher.wait()), (0, 0), (action.error_output(), matcher.error_output()))
-        self.assertEqual((applied["status"], matched["status"]), (200, 201))
+            applied = action.read()
+            self.assertEqual(action.wait(), 0, action.error_output())
+        matched = self.create(signed_buy)
+        self.assertEqual((applied["status"], matched.status_code), (200, 201), matched.content)
+        self.assertEqual(self.create(signed_buy).json(), matched.json())
         with use_operator():
-            swap = SwapOrder.objects.get(pk=matched["body"]["match"]["swapOrder"])
+            swap = SwapOrder.objects.get(pk=matched.json()["match"]["swapOrder"])
             self.assertEqual((swap.share_amount, swap.payment_amount), (10, 3000))
             self.assertEqual(TransferOrder.objects.get(pk=seller_id).modification_count, 1)
+            self.assertEqual(SwapOrder.objects.filter(sell_order_id=seller_id).count(), 1)
+
+    def test_a_foreign_wallet_verification_change_waits_until_matching_commits(self):
+        seller_id = self.seller_order()
+        signed_buy = self.buyer_intent()
+        connected = Queue()
+
+        def deverify():
+            try:
+                with use_operator():
+                    with connections[current_alias()].cursor() as cursor:
+                        cursor.execute("SET lock_timeout = '10s'")
+                        cursor.execute("SELECT pg_backend_pid()")
+                        connected.put(cursor.fetchone()[0])
+                    return Wallet.objects.filter(pk=self.wallet.pk).update(verification_status="PENDING")
+            finally:
+                connections.close_all()
+
+        with tempfile.TemporaryDirectory(prefix="cross-account-verification-") as temporary:
+            matcher = OrderChild(
+                self,
+                "order_submission_worker",
+                "candidates",
+                Path(temporary),
+                body=signed_buy,
+                user_id=self.buyer.user.pk,
+            )
+            holding = matcher.read()
+            with ThreadPoolExecutor(1) as pool:
+                changing = pool.submit(deverify)
+                try:
+                    wait_for_row_lock(self, connected.get(timeout=5), "wallets", holding["pid"])
+                finally:
+                    matcher.release()
+                matched = matcher.read()
+                self.assertEqual(matcher.wait(), 0, matcher.error_output())
+                self.assertEqual(changing.result(timeout=10), 1)
+        self.assertEqual(matched["status"], 201, matched)
+        self.assertEqual(matched["body"]["match"]["counterOrder"], seller_id)
 
 
 class CrossAccountMatchingProcessTest(CrossAccountMatchingProcessChecks, APITransactionTestCase):

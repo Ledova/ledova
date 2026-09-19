@@ -46,6 +46,15 @@ the same recorded result through the owner-scoped lookup; no second commit or
 matching queue is introduced. `shared/0012` removes the app's redundant swap
 INSERT permission on existing databases as well as fresh installs.
 
+Foreign candidates must still have verified EVM wallets. The matcher acquires
+those wallets with `FOR NO KEY UPDATE NOWAIT` before locking the candidate orders,
+then considers only foreign wallets whose authority it holds. PostgreSQL lock
+contention returns HTTP 503 with code `order_matching_busy`. Challenge spend,
+new orders, matches and reservations roll back; the existing submission remains
+pending, and the client retries its same UUID. A fresh UUID is not a retry.
+The [owner chose this contention behavior](https://github.com/Ledova/ledova/issues/646#issuecomment-5745891659)
+instead of accepting an order while silently skipping a busy counterparty.
+
 A negative whitelist result, insufficient seller share or buyer payment
 balance, failure of every compatible fill's amount check, or a share token whose
 recorded deployment names a chain other than the one in the domain about to be
@@ -138,22 +147,25 @@ Each journey's sequence is a subsequence of G: create and match
 (`execute_order_submission`, `create_order_and_match`), cancel and modify
 (`execute_order_action`), the swap signature (`submit_signature`), execution
 recovery (`recover`), settlement (`settle`) and the expiry sweep
-(`expire_unclaimed_swap`). The one deviation is the action path, which locks its
+(`expire_unclaimed_swap`), with two exceptions. The action path locks its
 `SigningChallenge` after its `TransferOrder`; a challenge is bound to one
 submission or action and one wallet, so only replays of the same action contend
 for it, and those already serialised on the journal row. The action path's order
 lock is load-bearing: `apply_order_modification` saves every column of the order,
-so a decision taken on a stale read would overwrite a match.
+so a decision taken on a stale read would overwrite a match. The foreign-wallet
+lock comes after the incoming authority and challenge but never waits (R3).
 
 Foreign-key checks introduce edges against G. A swap insert references both
 wallets; deferred checks after repeated order updates can also take `FOR KEY SHARE`
-on the counterparty's account at commit. The matcher does not lock those foreign
-authority rows, and a concurrent action can hold them while waiting for its order.
-Two rules keep these edges from closing a cycle:
+on the counterparty's account at commit. Same-account legacy candidates retain
+their earlier wallet-lock behavior; foreign candidates have their wallets locked,
+but the matcher does not lock their accounts. Three rules keep these edges from
+closing a cycle:
 
 - **R1** — trading journeys lock `Wallet` and `UserAccount` with `FOR NO KEY UPDATE`, never
   `FOR UPDATE` (`_lock_authorized_wallet`, `create_order_and_match`,
-  `_lock_authority`). `FOR KEY SHARE` is compatible with `FOR NO KEY UPDATE` and
+  `_lock_authority`, `_lock_foreign_matching_wallets`). `FOR KEY SHARE` is compatible
+  with `FOR NO KEY UPDATE` and
   conflicts with `FOR UPDATE`, so a matcher's foreign-key checks never wait on
   another trading transaction's wallet or account lock. These locks still exclude
   concurrent authorization changes. Without R1, one
@@ -170,7 +182,12 @@ Two rules keep these edges from closing a cycle:
   `expire_unclaimed_swap`). The action path's `_authorized_order` locks exactly
   one row.
 
-`tokens/tests/test_trading_lock_rules.py` holds R1 and R2 against the source.
+- **R3** — foreign-wallet acquisition uses `NOWAIT`. Two creates holding different
+  incoming wallets cannot wait on one another's wallet, nor can a matcher wait
+  behind a foreign action while holding its own authority. Contention aborts the
+  complete create transaction and leaves the submission retryable.
+
+`tokens/tests/test_trading_lock_rules.py` holds R1, R2 and R3 against the source.
 
 Two properties of the graph are deliberate rather than defects. The create path
 reads the whitelist and the chain balance while holding its wallet and account
@@ -187,7 +204,7 @@ the book, not a lock defect; nothing sweeps a crossed book.
 | P1 — create against create, one wallet | the second waits at the wallet lock and measures its balance against the first's committed order: refused when the two do not fit, open when they do | `test_order_submission_processes.py`: `test_a_second_sell_on_one_wallet_waits_and_is_refused_by_the_first_commitment` and `test_two_sells_that_fit_the_balance_together_both_open_after_waiting`, through independent app requests with bounded operator commits |
 | P2 — create against create, two wallets of one account, crossing | the second waits on the account row; the matcher's key share on the second wallet does not deadlock; both commit and exactly one swap exists | `test_order_submission_processes.py`: `test_crossing_creates_on_two_wallets_wait_on_the_account_and_match_once`; reverting R1 turns it into a `DeadlockDetected` in one child |
 | P3 — a decision against an authorization change (wallet verification, account reassignment) | the change waits on the wallet or account row until the decision commits, then the next submission is refused | `test_matching_wallet_locks.py` for the create path, whose two sides are threads on separate connections in one process; `test_order_action_processes.py`: `test_a_verification_change_waits_for_the_modify_and_then_refuses_a_fresh_submission` for the action path, where the modify is an independent process and the competing authorization change is a thread on the operator connection in the test process |
-| P4 — the matcher against a cancel or modify of its candidate | same-account journeys serialize at the account; different-account journeys serialize at the candidate order and re-read its committed state: a modify or cancel of a matched order records its refusal with the spend committed, and a match after a modify uses the modified terms | `test_order_action_processes.py`: `test_a_modify_waits_for_the_match_and_is_then_refused_on_the_matched_order`, `test_a_cancellation_waits_for_the_match_and_is_then_refused_on_the_matched_order` and `test_a_match_waits_for_a_modification_and_matches_the_modified_values`, plus the foreign-account variants in `test_cross_account_matching.py`, using independent app requests and the bounded operator matcher; the serial one-process fences remain in `test_cancel_concurrency.py` and `test_modification_refusals.py` |
+| P4 — the matcher against a cancel or modify of its candidate | same-account journeys serialize at the account; a foreign action waits behind an admitted matcher at the wallet, while a matcher encountering a busy foreign wallet returns retryable 503 and re-reads committed terms on retry: a modify or cancel of a matched order records its refusal with the spend committed, and a match after a modify uses the modified terms | `test_order_action_processes.py`: `test_a_modify_waits_for_the_match_and_is_then_refused_on_the_matched_order`, `test_a_cancellation_waits_for_the_match_and_is_then_refused_on_the_matched_order` and `test_a_match_waits_for_a_modification_and_matches_the_modified_values`, plus `test_the_foreign_sellers_modify_waits_for_matching_and_is_refused`, `test_the_foreign_sellers_cancel_waits_for_matching_and_is_refused` and `test_a_busy_foreign_modification_leaves_the_submission_retryable_with_no_spend` in `test_cross_account_matching.py`, using independent app requests and the bounded operator matcher; the serial one-process fences remain in `test_cancel_concurrency.py` and `test_modification_refusals.py` |
 | P5 — cancel or modify against signature, execution or settlement of the same order | fenced by status under the order lock: a decision taken while a swap is pending records a refusal, and that refusal is what every later replay returns | `test_order_actions.py`: `test_a_pending_swap_is_a_recorded_refusal_only_after_validated_execution`, which proves that one interleaving and its terminal replay once the swap has failed; a swap arriving while an action is already in flight is not in the suite |
 | P6 — signature, expiry and settlement of one swap against each other | both orders in primary-key order, then the swap: one release, a late admission refused, an admission never released | `test_swap_expiry_processes.py`, `test_swap_finality.py` (`test_two_settlement_workers_wait_for_the_orders_and_complete_once`) and `test_swap_process_concurrency.py`, in independent processes; the expiry and signature/matching pairs also run as scoped twins with the ownership rules in force — the signing and matching requests authenticate the recorded principal before their bounded operator commits, while the expiry sweep runs as the operator, matching the task framework's `acting_for(None)` shape — while the settlement-process class stays ordinary-only because `settle` requires the operator connection by design |
 | P7 — recovery against recovery | the operation row first, then G; every lock released before an RPC; one attempt and one nonce | `test_swap_execution_recovery.py`: `test_rpc_boundaries_release_every_operation_authority_and_order_lock` and `test_delayed_open_after_peer_confirmation_reuses_its_attempt_and_nonce` |

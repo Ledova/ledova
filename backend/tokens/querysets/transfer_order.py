@@ -1,12 +1,14 @@
 from django.db import models
 from django.db.models import QuerySet
 
+from shared.constants import BLOCKCHAIN_BASE, BLOCKCHAIN_ETHEREUM
 from shared.utils.token_amounts import token_base_units_ceiling
 from tokens.models.choices import (
     SwapOrderStatus,
     TransferOrderStatus,
     TransferOrderType,
 )
+from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 
 COMMITTED_STATUSES = [
     TransferOrderStatus.OPEN,
@@ -64,6 +66,8 @@ class TransferOrderQuerySet(QuerySet):
                 submission__verifying_contract__iexact=models.F("token__contract_address"),
                 submission__executed_challenge__consumed_at__isnull=False,
                 payment_asset_id=order.payment_asset_id,
+                wallet__verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
+                wallet__chain__in=(BLOCKCHAIN_ETHEREUM, BLOCKCHAIN_BASE),
             )
         )
 

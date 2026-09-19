@@ -270,7 +270,7 @@ class TransferOrderOwnershipBindingTest(APITestCase):
         counter_profile = UserProfile.objects.create(user=counter_user)
         counter_account = UserAccount.objects.create(user_profile=counter_profile)
         counter_wallet = Wallet.objects.create(
-            user_account=counter_account,
+            user_account=self.account,
             address="0x" + "c" * 40,
             chain="ethereum",
             verification_status="VERIFIED",
@@ -280,7 +280,7 @@ class TransferOrderOwnershipBindingTest(APITestCase):
             order_type=TransferOrderType.SELL,
             status=TransferOrderStatus.OPEN,
             wallet=counter_wallet,
-            owner_account=counter_account,
+            owner_account=self.account,
             wallet_address=counter_wallet.address,
             quantity=10,
             price_per_share=Decimal("1.20"),

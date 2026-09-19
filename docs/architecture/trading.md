@@ -18,7 +18,10 @@ Private orders remain visible and editable only to their owners. Eligible market
 readers see aggregated prices and quantities. The bounded create service can match
 across accounts after authorizing the caller's exact submission. A foreign
 candidate needs a recorded signed create admission with the current wallet,
-account, token and chain identity and the same payment asset. Unjournaled orders
+account, token and chain identity and the same payment asset. Its wallet must
+still be verified and on EVM. The matcher locks foreign candidate wallets without
+waiting; a busy wallet returns a retryable response, preserving the pending
+submission UUID and rolling back execution effects. Unjournaled orders
 retain their same-account behavior; they gain no cross-account matching authority.
 Both participants still approve and sign the captured settlement before execution.
 
