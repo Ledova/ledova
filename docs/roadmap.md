@@ -2,72 +2,47 @@
 
 [Documentation](README.md) · [Current capabilities](product.md)
 
-This page records remaining outcomes. [Product decisions](decisions.md) explain
-constraints that outlive a phase; focused architecture pages describe shipped code.
-The [open hardening issues](https://github.com/Ledova/ledova/issues?q=is%3Aopen+label%3Ahardening)
-track security and correctness work. Phase labels are milestones, not dates.
+This page orients the remaining work; the detail lives in the
+[product alignment programme](https://github.com/Ledova/ledova/issues/645) and
+its phase issues, and the [open issues](https://github.com/Ledova/ledova/issues)
+are the working list. Phase labels are milestones, not dates.
 
-## Phase 0 — Issuance works on chain
+## Shipped
 
-Shipped: share-class deployment, whitelisted issuance, authorized caps and recovery
-of interrupted requests. See [contracts and issuance](architecture/contracts-and-issuance.md)
-and [operator recovery](operations/recovery.md). Shipped mechanisms still have
-explicit hardening limits, including signer coordination and receipt finality.
+- Issuance on chain: share-class deployment, whitelisted recipients, authorized
+  caps and recovery of interrupted requests
+  ([contracts and issuance](architecture/contracts-and-issuance.md),
+  [operator recovery](operations/recovery.md)).
+- The investor directory, offerings, subscriptions, recorded payments and
+  allotment, current/former register views, private uploads and the operator
+  console ([product boundaries](product.md#current-capability-boundaries)).
+- Eligibility readers, former-member retention and transfer-only holder
+  discovery ([eligibility](architecture/companies-and-eligibility.md),
+  [the register](architecture/register.md)).
+- The secondary market: order, matching and settlement code, its recovery
+  journeys proven end to end
+  ([#5](https://github.com/Ledova/ledova/issues/5)), and trading enabled by
+  default.
+- Shared API types generated from the committed OpenAPI snapshot
+  ([decisions](decisions.md#clients-and-api-types)).
 
-## Phase 1 — Investor directory and primary offering
+## Remaining work
 
-Shipped: eligibility-gated discovery, offerings, subscriptions, manually recorded
-payments/refunds/allotment, current/former register views, private uploads and the
-operator console. See [product boundaries](product.md#current-capability-boundaries)
-for client availability and [the primary-offering flow](architecture/offerings.md).
-
-## Phase 2 — Eligibility and the register
-
-Part shipped. Eligibility readers, former-member retention and transfer-only
-holder discovery exist. Remaining outcomes include:
-
-- An authoritative stored current-members register and a durable, queryable
-  record of exports; the current register is derived at read time.
-- Import of an existing register, including former members within the last
-  seven years, reconciled against the ASIC share-structure extract.
-- Issue and transfer workflows with the attached instrument or resolution and
-  a recorded director approval, reusing the reviewed-evidence pattern.
-- Certificate PDFs, ASIC notice figures and inspection copies, on the durable
-  export record.
-- Enforcement of the issuer KYC switch; investor KYC already affects eligibility.
-- Completion of company authority, ownership and capital checks. Identifier
-  validation hooks and registry verification do not establish every invariant
-  for every write path.
-- Deployment configurations matching the two [operating models](legal/README.md),
-  each with offerings, payments, classification, wallets, trading and the chain
-  off by default, and an onboarding checklist without the business plan and
-  risk disclosure. A registry services agreement template and Forms 909 and
-  991 onboarding belong here too.
-
-See [eligibility](architecture/companies-and-eligibility.md) and
-[register design and gaps](architecture/register.md).
-
-## Phase 3 — Settlement automation
-
-Planned: automate payment matching and the operator's primary-allotment workflow.
-Incoming AUD transfers must preserve the issued reference text and arrive through
-a webhook or polling. The provider will be selected when this phase is scheduled;
-the choices considered are an open-banking feed and a payment service with a PayID
-or virtual account per subscription. A stablecoin chain watcher is also planned.
-Multi-tranche records can be added if reconciliation needs them.
-See [the payment-provider decision](decisions.md#payments-and-settlement).
-
-## Phase 4 — Secondary transfers
-
-Planned and gated on unresolved trading hardening and independent review. The
-trading flag remains off by default; [trading](architecture/trading.md) defines
-its current scope and links implemented protocols.
-
-The mobile investor directory and subscription flow are scheduled here: offering
-detail, both payment rails, payment instructions and allotment views. Existing
-shared hooks must support both clients. Current company/token screens should not
-be read as a complete mobile issuer or primary-investor workflow.
-See [the mobile scope decision](decisions.md#clients-and-api-types).
+- [Phase 0 residuals](https://github.com/Ledova/ledova/issues/646): the recorded
+  marketplace journey evidence and the accepted-limits decisions (SSE outbox,
+  crossed-book sweep, modify re-match).
+- [Phase 1](https://github.com/Ledova/ledova/issues/647): the authoritative
+  stored register — event log, materialised members, reconciliation, import,
+  certificates and notice figures, export audit.
+- [Phase 2](https://github.com/Ledova/ledova/issues/648): company-scoped
+  on-chain approvals with expiry ([product §5](product.md#5-verification-and-transaction-controls)).
+- [Phase 3](https://github.com/Ledova/ledova/issues/649): shareholder
+  administration — documents, voting, corporate actions.
+- [Phase 4](https://github.com/Ledova/ledova/issues/650): reporting and the
+  portability pack.
+- Payment-provider selection and settlement automation when scheduled
+  ([the payment decision](decisions.md#payments-and-settlement)); the mobile
+  investor directory and subscription flow.
 
 ## Not on the roadmap
 
@@ -82,6 +57,3 @@ record the unresolved conditions before any real-world use.
   does not report a candidate match.
 - Should `NotificationPreferences` fold into `UserPreferences` with the next
   settings-screen change?
-- The owner must resolve the legal and contractual questions in the
-  [legal positions](legal/positions.md) and follow the
-  [regulatory pathway](regulatory-pathway.md) before any live operation.

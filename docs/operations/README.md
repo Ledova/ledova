@@ -28,7 +28,9 @@ assume the API, worker and database run compatible code.
    401. The health route does not test database or provider readiness.
 5. Open the operator console and resolve configuration warnings relevant to the
    selected payment rail. Confirm a worker is running and scheduled work advances.
-6. Keep `trading_enabled` off. See [trading boundaries](../architecture/trading.md).
+6. Confirm `trading_enabled` matches this deployment's intent: it is seeded on,
+   and an operator can disable it in Django admin. See
+   [trading boundaries](../architecture/trading.md).
 
 Before a native release, run the [native and physical-device checks](../development/native-probes.md).
 The [legal positions](../legal/positions.md) describe unresolved assumptions before any real use.

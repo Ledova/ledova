@@ -23,11 +23,15 @@ class TradingFeatureFlagMiddlewareTests(TestCase):
         self.middleware = TradingFeatureFlagMiddleware(downstream)
 
     def test_missing_flag_blocks_every_sensitive_prefix(self):
+        FeatureFlag.objects.filter(name="trading_enabled").delete()
         for path in TRADING_WRITE_PREFIXES:
             with self.subTest(path=path):
                 response = self.middleware(self.factory.get(path))
                 self.assertEqual(response.status_code, 403)
         self.assertEqual(self.downstream_calls, 0)
+
+    def test_seed_enables_trading_by_default(self):
+        self.assertIs(FeatureFlag.objects.get(name="trading_enabled").enabled, True)
 
     def test_disabled_flag_blocks_sensitive_prefix(self):
         FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": False})

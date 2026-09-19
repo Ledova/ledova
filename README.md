@@ -19,11 +19,12 @@ client.
 > information. It makes no claim of regulatory compliance or legal recognition.
 
 Primary subscriptions use operator-confirmed payments and allotment. Secondary
-trading is implemented but disabled by default: both the unresolved
-[hardening work](https://github.com/Ledova/ledova/issues?q=is%3Aopen+label%3Ahardening)
-and the conditions in the [regulatory pathway](docs/regulatory-pathway.md) must
-be settled before it is enabled. The [roadmap](docs/roadmap.md) distinguishes
-these current limits from the project's intended scope.
+trading is enabled by default: its hardening programme is complete and this
+experimental deployment runs on synthetic data only. Operation with real
+participants follows the conditions in the
+[regulatory pathway](docs/regulatory-pathway.md), and releases require the human
+checks in [#624](https://github.com/Ledova/ledova/issues/624). The
+[roadmap](docs/roadmap.md) orients the remaining work.
 
 ## Main components
 

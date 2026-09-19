@@ -223,7 +223,11 @@ Both successful and reverted signed receipts leave the public swap EXECUTING and
 parent reservations held until finality. Only a proven unsigned preparation
 failure can fail the swap before that and unwind its reservation once. This
 adapter never restarts its original claim, including after a revert. Aggregate
-capital reservation remains #5 work.
+capital reservation was resolved by owner decision on 16 September 2026:
+[#625](https://github.com/Ledova/ledova/issues/625) closed as not planned, and
+the per-row guards and triggers stand, with the sell-side
+[#620](https://github.com/Ledova/ledova/issues/620) and buyer-side
+[#626](https://github.com/Ledova/ledova/issues/626) commitment checks.
 
 The finality consumer, `settle`, runs from the same sweep for every executing swap
 whose transaction is confirmed or reverted. It reads the chain with the wallet
@@ -316,5 +320,5 @@ all API and worker processes and stop older processes before permitting new
 matches; the eligibility marker describes the current service's durable claim
 protocol. Claimed, executing, inconsistent and legacy matches retain their
 reservations for reconciliation. This sweep does not inspect the chain, refund
-money, cancel a broadcast or change an existing signature/deadline. Trading
-remains disabled by default.
+money, cancel a broadcast or change an existing signature/deadline. Trading is
+enabled by default.

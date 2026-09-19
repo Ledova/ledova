@@ -93,7 +93,7 @@ operator submissions remains separate work; do not infer compensation from timeo
 [Transaction evidence](../reference/transaction-evidence.md) explains receipt,
 canonicality and finality limits. Evidence collection does not settle balances.
 
-Trading remains off. [Order](../reference/order-submissions.md),
+Trading is enabled by default. [Order](../reference/order-submissions.md),
 [swap](../reference/swap-settlement.md) and [outgoing-signing](../architecture/outgoing-signing.md)
 references describe their own recovery and activation constraints.
 

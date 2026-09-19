@@ -205,13 +205,13 @@ payments and assets synthetic.
 | AUD and stablecoin payments | Operator records receipt, refunds and allotment in admin; bank-feed and stablecoin-watcher reconciliation is planned |
 | Register | Current members are derived from chain data; former members are retained records; a fully authoritative stored current register and durable export audit remain future work |
 | Portfolios and crypto wallets | Holdings, valuations, history, verified-address flows and supported test-network transfers exist; unpriced shares do not imply a market valuation |
-| Secondary trading | Code and client screens exist, but trading action/event route prefixes remain disabled by default pending hardening |
+| Secondary trading | Order, matching and settlement are enabled by default on the experimental deployment; releases still require the human checks in [#624](https://github.com/Ledova/ledova/issues/624) |
 | Mobile | Wallets, portfolio, company/token screens, eligibility and supporting-document flows exist; native security needs a Ledova build, with separate device acceptance checks |
 | Fiat conversion | An optional on-ramp integration exists; there is no off-ramp |
 
-The [roadmap](roadmap.md) records remaining outcomes and the scheduled mobile
-investor work. A feature flag or configured provider does not establish safety
-or regulatory compliance.
+The [roadmap](roadmap.md) orients the remaining work, including the scheduled
+mobile investor flow. A feature flag or configured provider does not establish
+safety or regulatory compliance.
 
 ## Terms that must stay distinct
 

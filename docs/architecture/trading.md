@@ -2,11 +2,15 @@
 
 [Architecture](README.md) · [Product scope](../product.md)
 
-The secondary market has order, matching and settlement code, but trading stays
-disabled by default pending the remaining hardening work. `trading_enabled`
+The secondary market has order, matching and settlement code, and trading is
+enabled by default. `trading_enabled`
 middleware refuses every method under `/api/v1/trading/orders/`, `wallets/`,
-`transfers/`, `swaps/` and `events/`. The read-only token market and whitelist
-status sit outside those prefixes. Enabling the flag does not establish safety.
+`transfers/`, `swaps/` and `events/` when the flag is off, and an operator can
+disable it per deployment in Django admin. The read-only token market and
+whitelist status sit outside those prefixes. The flag does not establish
+safety: releases require the human checks in
+[#624](https://github.com/Ledova/ledova/issues/624), and operation with real
+participants follows the [regulatory pathway](../regulatory-pathway.md).
 
 ## Intent and settlement
 
@@ -35,7 +39,8 @@ receipt, age or nonce use alone cannot release a reservation.
 
 Current swap policies are installed; their existence does not complete every
 settlement, reservation or signer guarantee. See [tenancy](tenancy.md) for access
-boundaries and the [roadmap](../roadmap.md#phase-4--secondary-transfers) for scope.
+boundaries and the [Phase 0 residuals](https://github.com/Ledova/ledova/issues/646)
+for scope.
 
 ## Protocol detail
 

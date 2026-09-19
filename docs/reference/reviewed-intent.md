@@ -70,6 +70,6 @@ open hardening work.
 
 Finality and canonicality policy, aggregate fund or share reservations, and
 any public order-book behaviour are not established here; they stay on their
-issues. Trading remains disabled by default, signer admission remains closed,
+issues. Signer admission remains closed,
 and no live migration or activation is implied. V0 rows keep their hold with
 no operator attribution or re-enabling endpoint.

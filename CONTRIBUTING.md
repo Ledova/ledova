@@ -16,18 +16,21 @@ before opening your first pull request.
 - **No secrets, ever.** No `.env` files, private keys, seed phrases, API tokens,
   real personal data or internal infrastructure identifiers. Only `.env.example`
   templates with blank values belong in the repository.
-- **Trading routes are disabled by default** while the
-  [`hardening`](https://github.com/Ledova/ledova/issues?q=is%3Aopen+label%3Ahardening) issues are open. That default is containment,
-  not a bug to "fix" by enabling them.
+- **Trading routes are enabled by default** on the experimental deployment, an
+  owner decision recorded in
+  [#646](https://github.com/Ledova/ledova/issues/646). That default stays
+  synthetic-data-only: operation with real participants follows the
+  [regulatory pathway](docs/regulatory-pathway.md), and releases require the
+  human checks in [#624](https://github.com/Ledova/ledova/issues/624).
 - Be respectful and constructive. Assume good faith.
   See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ## Where to start
 
 - Issues are tracked on GitHub, not in this repository. Browse the
-  [open issues](https://github.com/Ledova/ledova/issues); the ones labeled
-  [`hardening`](https://github.com/Ledova/ledova/issues?q=is%3Aopen+label%3Ahardening) are the known high-risk work, each naming
-  where it lives in the code. They need redesigns, not patches.
+  [open issues](https://github.com/Ledova/ledova/issues); the
+  [product alignment programme](https://github.com/Ledova/ledova/issues/645)
+  sequences the current phases.
 - Every work item, including owner-requested changes, is tracked in a GitHub
   issue. Reuse an existing issue when its scope fits; otherwise create one before
   implementation.

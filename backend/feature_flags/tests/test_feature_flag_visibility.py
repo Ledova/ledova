@@ -8,6 +8,7 @@ User = get_user_model()
 
 class FeatureFlagVisibilityTests(APITestCase):
     def setUp(self):
+        FeatureFlag.objects.filter(name="trading_enabled").delete()
         self.enabled = FeatureFlag.objects.create(name="enable_dark_mode", enabled=True)
         self.disabled = FeatureFlag.objects.create(name="enable_beta_charts", enabled=False)
         self.user = User.objects.create_user(email="investor@example.com", password="pw")

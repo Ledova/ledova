@@ -15,8 +15,9 @@ with synthetic data pending the required advice.
 
 An `associated_person` claim reaches only its named issuer's directory entries;
 it does not widen the secondary market. A holder who lacks market eligibility
-cannot see the market for shares they own. Revisit that trade-off before enabling
-trading. [Eligibility](architecture/companies-and-eligibility.md) owns enforcement details.
+cannot see the market for shares they own. Revisit that trade-off before live
+operation with real participants.
+[Eligibility](architecture/companies-and-eligibility.md) owns enforcement details.
 
 The register leaves amount paid blank when it cannot be established exactly;
 zero would assert an amount that is not known. Classification evidence has a
