@@ -31,4 +31,4 @@ assume the API, worker and database run compatible code.
 6. Keep `trading_enabled` off. See [trading boundaries](../architecture/trading.md).
 
 Before a native release, run the [native and physical-device checks](../development/native-probes.md).
-The [legal positions](../legal.md) describe unresolved assumptions before any real use.
+The [legal positions](../legal/positions.md) describe unresolved assumptions before any real use.

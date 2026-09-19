@@ -85,4 +85,4 @@ retroactively certify legacy files.
 
 Next: [upload configuration](../operations/uploads.md),
 [storage migration recovery](../operations/recovery.md#private-file-migrations)
-and [legal retention assumptions](../legal.md).
+and [legal retention positions](../legal/positions.md).

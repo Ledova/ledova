@@ -1,6 +1,6 @@
 # Operating model B: a registry service
 
-[Legal and regulatory](README.md) · [Company-hosted instance](company-hosted-instance.md) · [Positions](positions.md) · [Regulatory pathway](regulatory-pathway.md)
+[Legal and regulatory](README.md) · [Company-hosted instance](company-hosted-instance.md) · [Positions](positions.md) · [Regulatory pathway](../regulatory-pathway.md)
 
 One operator hosts the platform and keeps the share registers of many private
 companies, making each entry on the written instruction of that company's
@@ -70,7 +70,7 @@ service. This model is the second line.
 | Regime | When the operator crosses it | What it then needs |
 | --- | --- | --- |
 | Market licensing | When holders can post offers to each other through the platform, whether or not it matches or settles them (s767A). | Registration with ASIC as a low-volume market, one registration per company; a crowd-funding intermediary already appears on ASIC's register that way ([position 7](positions.md#7-a-register-is-not-a-financial-market)). Matching or settling trades at scale needs a market licence and possibly a CS facility licence, the shape FCX holds. |
-| Financial services licensing | When the platform hosts a company's offer, checks investors' eligibility for it, introduces investors, takes money for shares, is paid per transaction, or holds shares, tokens or keys for holders. | An AFSL: dealing and arranging in securities, wholesale-only to begin, a responsible manager, base financial requirements, four to eight months; custody adds a $10m net tangible assets requirement. See the [pathway](regulatory-pathway.md#the-ladder). |
+| Financial services licensing | When the platform hosts a company's offer, checks investors' eligibility for it, introduces investors, takes money for shares, is paid per transaction, or holds shares, tokens or keys for holders. | An AFSL: dealing and arranging in securities, wholesale-only to begin, a responsible manager, base financial requirements, four to eight months; custody adds a $10m net tangible assets requirement. See the [pathway's operating routes](../regulatory-pathway.md#4-operating-routes-to-compare). |
 | AML/CTF | The Table 6 services in force since 1 July 2026 are not engaged by keeping a register on instruction; an AFS licensee that arranges any designated service is caught; exchanging, transferring or safekeeping virtual assets for customers has needed registration since 31 March 2026 ([position 8](positions.md#8-amlctf-obligations-of-the-operator)). | Nothing while a clerk; enrolment and a program once licensed; registration before touching stablecoins for a customer. Observing payments made straight to a company's own wallet is designed to stay outside. |
 | Digital assets, from 9 April 2027 | Possessing tokens for or on behalf of holders; INFO 225 already treats a token that represents a share as the share, so holding them is custody today ([position 9](positions.md#9-digital-assets-and-custody)). | Never hold them. |
 | Privacy | From the first real shareholder record: the operator holds other people's personal information for many companies ([position 10](positions.md#10-privacy)). | The Australian Privacy Principles built in regardless of the small-business exemption, data in Australia, and an agreement that allocates responsibility with each company. |
@@ -88,7 +88,7 @@ service. This model is the second line.
 | Finding investors, hosting an offer, checking eligibility | Licence: wholesale-only AFSL plus AML enrolment |
 | Taking stablecoin payments | Avoid handling them: observe payments to the company's wallet only, or register as a virtual-asset service |
 | Holding tokens or keys for holders | Avoid: custody licensing today, the 2027 regime after |
-| The ledger as the register of record | Relief or the 2027 sandbox, as the [pathway](regulatory-pathway.md#the-ladder) sets out |
+| The ledger as the register of record | Relief or the 2027 sandbox, as the [pathway's routes](../regulatory-pathway.md#4-operating-routes-to-compare) set out |
 
 ## Getting an operator to market
 
@@ -169,6 +169,12 @@ licence-free instance, and safe only while the boundary holds.
    instrument of transfer" under s1071B.
 5. Pricing: a flat subscription is the recommendation, because a fee per
    transaction is an indicator of arranging.
+6. Conflict of interest where the owner would be employee, shareholder and
+   operator of the registry recording their own issue. Mitigation is
+   procedural: the director approves, and the record shows who instructed and
+   who approved.
+7. Whether to produce scheme reporting (issue date, price, market value) from
+   the register for clients' ATO obligations, if clients want it.
 
-Next: the [regulatory pathway](regulatory-pathway.md) for the features beyond the
-clerk boundary, and the [handover](handover.md) for the reasoning.
+Next: the [regulatory pathway](../regulatory-pathway.md) for the route beyond
+the clerk boundary, and the [positions](positions.md) it rests on.

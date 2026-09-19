@@ -9,7 +9,7 @@ architecture guides. This page makes no new product, licensing or legal decision
 
 The first offerings target wholesale and sophisticated investors. The four
 classification categories and the deliberately excluded experienced-investor
-category are recorded in [legal positions](legal.md#4-the-excluded-category-and-why-this-one-stays-unanswered).
+category are recorded in [legal positions](legal/positions.md#4b-issuance-payments-and-transfers-need-a-licence-a-registration-or-relief).
 Those positions were taken without advice; deployment stays on test networks
 with synthetic data pending the required advice.
 
@@ -21,7 +21,7 @@ trading. [Eligibility](architecture/companies-and-eligibility.md) owns enforceme
 The register leaves amount paid blank when it cannot be established exactly;
 zero would assert an amount that is not known. Classification evidence has a
 fixed retention horizon, independent of account deletion. The legal basis and
-uncertain clock are in [legal positions](legal.md); implementation belongs to
+uncertain clock are in [legal positions](legal/positions.md#3-the-evidence-retention-period); implementation belongs to
 [the register](architecture/register.md) and [file retention](architecture/files-and-retention.md).
 
 ## Payments and settlement

@@ -1,6 +1,6 @@
 # Operating model A: a company-hosted instance
 
-[Legal and regulatory](README.md) · [Registry service](registry-service.md) · [Positions](positions.md) · [Regulatory pathway](regulatory-pathway.md)
+[Legal and regulatory](README.md) · [Registry service](registry-service.md) · [Positions](positions.md) · [Regulatory pathway](../regulatory-pathway.md)
 
 A private company deploys and runs its own Ledova instance, for its own shares
 and its own shareholders, with no other company on it. Its own officers make
@@ -100,9 +100,9 @@ is the company doing what it must do anyway.
    lodges the notice of where the computer record is kept (s1301, Form 991).
 2. **Load the existing register**, including anyone who ceased to be a member in
    the last seven years, and reconcile it against the share structure ASIC
-   holds. Fix any discrepancy with ASIC before relying on the instance. This is
-   the import the [handover](handover.md#10-engineering-consequences-already-identified)
-   lists as the first thing to build.
+    holds. Fix any discrepancy with ASIC before relying on the instance. This is
+    the import listed as remaining work in the
+    [roadmap](../roadmap.md#phase-2--eligibility-and-the-register).
 3. **Name who may make entries and who approves.** An officer instructs, a
    director approves, and the record shows both. Where the administrator is also
    a recipient of shares, someone else approves that entry.

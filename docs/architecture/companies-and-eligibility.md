@@ -72,4 +72,4 @@ use eligibility for at least one company.
 
 Next: [offerings](offerings.md), [subscriptions](subscriptions.md),
 [registry verification procedure](../operations/integrations.md#company-registry-verification),
-and [legal positions](../legal.md).
+and [legal positions](../legal/positions.md).

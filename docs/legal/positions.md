@@ -1,6 +1,6 @@
 # Legal positions taken without advice
 
-[Legal and regulatory](README.md) · [Regulatory pathway](regulatory-pathway.md) · [Handover](handover.md)
+[Legal and regulatory](README.md) · [Regulatory pathway](../regulatory-pathway.md)
 
 Eleven questions the project depends on. Nobody qualified has been asked any of
 them. Each position records what the source says, what the code does, the
@@ -35,7 +35,7 @@ position says so.
 
 Position 4 is the one where being wrong is an offence rather than a defect, and
 its second half keeps the original stance: do not reach the trigger without a
-licence, a registration or relief. The [regulatory pathway](regulatory-pathway.md)
+licence, a registration or relief. The [regulatory pathway](../regulatory-pathway.md)
 is the page about how those are obtained.
 
 ## 1. Section 169(3): members who ceased in the last seven years
@@ -141,7 +141,7 @@ The original question was what would allow an operator to run this platform
 without an Australian financial services licence (AFSL), and the original answer
 was to not reach the trigger. The registry-service model splits the question.
 One half can be answered from primary sources; the other keeps the original answer
-and gains a [pathway](regulatory-pathway.md) for reaching the trigger lawfully.
+and gains a [pathway](../regulatory-pathway.md) for reaching the trigger lawfully.
 
 ### 4a. A registry service acting only on instruction is not a financial service
 
@@ -169,7 +169,8 @@ probably is.
 **What the code does.** Today the register is derived from chain transfers, and
 the platform also hosts offerings, subscriptions, payment recording, investor
 classification and disabled trading — none of which a registry service would run.
-The [handover](handover.md) lists what the registry model switches off.
+The [registry service](registry-service.md) page's feature table says which
+features that model switches off or defers.
 
 **The position.** A hosted register-of-members service is not a financial
 service while all of the following hold: entries are made only on written
@@ -232,7 +233,7 @@ required is an offence, not a defect — the cost of being wrong is not
 symmetrical with anything else on this page. So the platform stays on testnet
 with synthetic data for issuance, payments and transfers until the operator
 holds the AFSL authorisations, the market registration or the relief that the
-[regulatory pathway](regulatory-pathway.md) sets out, and the chain guards are
+[regulatory pathway](../regulatory-pathway.md) sets out, and the chain guards are
 what make that a mechanism rather than an intention. This half binds both
 operating models: in either, the licence question arises the moment the
 platform rather than the company makes or hosts the offer.
@@ -254,7 +255,7 @@ instrument changes who may certify, this category's evidence rules change with i
 is an offence is carried over; what changed is the release condition, from
 "until someone qualified has answered this" to holding the permission each step
 needs, and the sentence that this is not a question to answer by reading now
-lives in the [handover](handover.md#12-conventions-the-owner-has-set-for-this-work).
+lives in the [folder's conventions](README.md#conventions).
 
 ## 5. The licence's Competing Use test, and who "we" is
 
@@ -304,8 +305,8 @@ may ever need; assigning it early risks the asset itself.
 copyright are different arrangements. No assignment, new company licence or
 change to the existing future Apache grant is made here; each needs the owner's
 decision on its actual terms and its effect on existing rights. The operating
-entity for a first client — Blueberry Money or another — is an open question in
-the [handover](handover.md). The test binds the registry service and any
+entity for a first client — Blueberry Money or another — is an open question on
+the [registry service](registry-service.md) page. The test binds the registry service and any
 third-party operator; a company running its own instance for its own purposes
 is not making the Software available to others, so it is not engaged.
 
@@ -384,8 +385,8 @@ set by regulation, has not been checked against those regulations.
 
 **What would show this wrong.** ASIC approving a distributed ledger as a form of
 register under s1306(1)(c), or declaring an on-ledger transfer sufficient under
-Part 7.11 — which is precisely the relief the [pathway](regulatory-pathway.md)
-proposes seeking, and the reason the ledger question is the novel one.
+Part 7.11 — which is precisely the relief a [pathway](../regulatory-pathway.md)
+route would seek, and the reason the ledger question is the novel one.
 
 **Which way to be wrong.** A correctable record that is also mirrored on a chain
 wastes a mirror. A chain that is the only record cannot be corrected, inspected
@@ -509,17 +510,18 @@ or $150,000 where custody is incidental and under ten per cent of revenue.
 
 **What the code does.** Share tokens are issued to whitelisted addresses and the
 operator holds a signer for deployment; investors verify their own wallets.
-Wallet functionality is feature 12 in the owner's twelve-feature definition,
-enumerated in the [handover](handover.md#2-what-ledova-is-and-where-the-code-stands).
+Wallet functionality is part of the [product definition](../product.md).
 
 **The position.** Ledova never possesses a token for or on behalf of a member,
 in either operating model: in a company-hosted instance the company must not
 hold tokens for its shareholders through the instance, and in a registry service
 the operator must not. Members either hold their own keys or there are no tokens
-in their hands at all. The moment a key for a member's holding sits with the
-operator, the operator is a custodian of a financial product today and a
-digital asset platform from April 2027, and the financial requirements that
-follow are beyond this project.
+in their hands at all. The [product definition](../product.md#4-self-custody-and-ownership-records)
+settles this as a design decision, not only a legal position: self-custody, with
+no Ledova-held key capable of seizing holdings. The moment a key for a member's
+holding sits with the operator, the operator is a custodian of a financial
+product today and a digital asset platform from April 2027, and the financial
+requirements that follow are beyond this project.
 
 **What would show this wrong.** ASIC guidance under the 2026 Act treating a
 whitelisted, transfer-restricted registry token as something other than the
@@ -611,5 +613,5 @@ documents.
 
 [Product decisions](../decisions.md), [operator setup](../operations/operator-console.md),
 [retention configuration](../operations/uploads.md), [register design](../architecture/register.md),
-the [regulatory pathway](regulatory-pathway.md), the [handover](handover.md),
+the [regulatory pathway](../regulatory-pathway.md),
 and the authoritative [LICENSE](../../LICENSE).
