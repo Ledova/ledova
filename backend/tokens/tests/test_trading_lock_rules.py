@@ -13,12 +13,6 @@ NO_KEY_AUTHORITY_LOCKS = {
 }
 FOREIGN_AUTHORITY_LOCK = ("services/token_transfer_service.py", "_lock_foreign_matching_authority")
 SINGLE_ROW_ORDER_LOCKS = {("services/order_actions.py", "_authorized_order"): 1}
-ORDER_LOCK_PROBES = {
-    (
-        "tests/test_swap_process_concurrency.py",
-        "test_order_locks_use_primary_key_order_while_selection_keeps_best_price",
-    ): 2
-}
 QUERYSET_LOCKS = {("services/pause_changes.py", "_actor"): 1, ("services/trading_locks.py", "lock_orders"): 1}
 BEYOND_THE_RULE = (
     "Raw SQL locks, saved select_for_update references and models rebound to another "
@@ -100,5 +94,23 @@ class TradingLockRulesTest(TestCase):
     def test_multi_row_order_locks_go_through_lock_orders(self):
         sites = [(path, function, root) for path, function, root, _ in _sites()]
         orders = Counter(site[:2] for site in sites if site[2] == "TransferOrder")
-        self.assertEqual(dict(orders), {**SINGLE_ROW_ORDER_LOCKS, **ORDER_LOCK_PROBES})
+        self.assertEqual(dict(orders), SINGLE_ROW_ORDER_LOCKS)
         self.assertEqual(dict(Counter(site[:2] for site in sites if site[2] == "queryset")), QUERYSET_LOCKS)
+
+    def test_candidate_order_locks_never_wait(self):
+        tree = ast.parse((TOKENS / "services/token_transfer_service.py").read_text())
+        candidate = next(
+            node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef) and node.name == "_match_candidate"
+        )
+        calls = [
+            node
+            for node in ast.walk(candidate)
+            if isinstance(node, ast.Call) and getattr(node.func, "id", None) == "lock_orders"
+        ]
+        self.assertEqual(len(calls), 1)
+        self.assertTrue(
+            any(
+                keyword.arg == "nowait" and getattr(keyword.value, "value", None) is True
+                for keyword in calls[0].keywords
+            )
+        )

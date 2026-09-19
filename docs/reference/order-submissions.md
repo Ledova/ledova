@@ -47,15 +47,17 @@ matching queue is introduced. `shared/0012` removes the app's redundant swap
 INSERT permission on existing databases as well as fresh installs.
 
 Foreign candidates must still have verified EVM wallets and active account owners.
-The matcher acquires the first compatible candidate's wallet, account, profile and
-user rows together with `FOR NO KEY UPDATE NOWAIT` before locking candidate orders
-in primary-key order. It rechecks that authority before matching, and acquires a
-later candidate's authority only if matching reaches that fallback. A busy
-lower-priority or minimum-incompatible wallet does not by itself refuse an
-available better match. PostgreSQL lock
-contention returns HTTP 503 with code `order_matching_busy`. Challenge spend,
+The matcher reads compatible candidates in price/time order, then attempts each
+in its own savepoint. It acquires that candidate's wallet, account, profile and
+user rows with `FOR NO KEY UPDATE NOWAIT`, and only the incoming/candidate order
+pair with `FOR UPDATE NOWAIT` in primary-key order. The locked order terms must
+still match the selected snapshot. A busy or changed candidate returns HTTP 503
+with code `order_matching_busy`. Challenge spend,
 new orders, matches and reservations roll back; the existing submission remains
 pending, and the client retries its same UUID. A fresh UUID is not a retry.
+An unrepresentable settlement rolls back its candidate savepoint, releasing its
+authority/order locks before the next candidate is attempted. Unrelated
+lower-priority or minimum-incompatible wallets and order rows are not locked.
 The [owner chose this contention behavior](https://github.com/Ledova/ledova/issues/646#issuecomment-5745891659)
 instead of accepting an order while silently skipping a busy counterparty.
 
@@ -157,8 +159,7 @@ submission or action and one wallet, so only replays of the same action contend
 for it, and those already serialised on the journal row. The action path's order
 lock is load-bearing: `apply_order_modification` saves every column of the order,
 so a decision taken on a stale read would overwrite a match. Foreign authority
-comes after the incoming authority and challenge, with fallback authority acquired
-after candidate-order locks, but never waits (R3).
+comes after the incoming authority and challenge but never waits (R3).
 
 Foreign-key checks introduce edges against G. A swap insert references both
 wallets; deferred checks after repeated order updates can also take `FOR KEY SHARE`
@@ -187,10 +188,12 @@ a cycle:
   `expire_unclaimed_swap`). The action path's `_authorized_order` locks exactly
   one row.
 
-- **R3** — foreign wallet/account/profile/user acquisition uses `NOWAIT`. Two creates holding different
+- **R3** — foreign wallet/account/profile/user acquisition and each candidate's order pair use `NOWAIT`. Two creates holding different
   incoming wallets cannot wait on one another's authority, nor can a matcher wait
-  behind a foreign action or account deletion while holding its own authority. Contention aborts the
-  complete create transaction and leaves the submission retryable.
+  behind a foreign action, expiry or account deletion while holding its own authority. Contention or
+  changed candidate terms abort the complete create transaction and leave the submission retryable.
+  Each failed amount check rolls back its candidate savepoint before a fallback;
+  locks from earlier candidates do not accumulate across the priority walk.
 
 `tokens/tests/test_trading_lock_rules.py` holds R1, R2 and R3 against the source.
 

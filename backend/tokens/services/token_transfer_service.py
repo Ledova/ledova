@@ -239,30 +239,24 @@ def match_orders(buy_order: TransferOrder, sell_order: TransferOrder, match_quan
 def _lock_foreign_matching_authority(order, candidate):
     if candidate.owner_account_id == order.owner_account_id:
         return True
-    try:
-        wallets = (
-            Wallet.objects.select_related("user_account__user_profile__user")
-            .select_for_update(
-                of=("self", "user_account", "user_account__user_profile", "user_account__user_profile__user"),
-                no_key=True,
-                nowait=True,
-            )
-            .filter(
-                pk=candidate.wallet_id,
-                user_account_id=candidate.owner_account_id,
-                address__iexact=candidate.wallet_address,
-                verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
-                chain__in=(Blockchain.ETHEREUM.value, Blockchain.BASE.value),
-                user_account__user_profile__user__is_active=True,
-            )
-            .order_by("pk")
-            .only("user_account__user_profile__user__is_active")
+    wallets = (
+        Wallet.objects.select_related("user_account__user_profile__user")
+        .select_for_update(
+            of=("self", "user_account", "user_account__user_profile", "user_account__user_profile__user"),
+            no_key=True,
+            nowait=True,
         )
-        return wallets.first() is not None
-    except OperationalError as exc:
-        if getattr(exc.__cause__, "sqlstate", None) != "55P03":
-            raise
-        raise OrderMatchingBusyException() from exc
+        .filter(
+            pk=candidate.wallet_id,
+            user_account_id=candidate.owner_account_id,
+            address__iexact=candidate.wallet_address,
+            verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
+            chain__in=(Blockchain.ETHEREUM.value, Blockchain.BASE.value),
+            user_account__user_profile__user__is_active=True,
+        )
+        .only("user_account__user_profile__user__is_active")
+    )
+    return wallets.first() is not None
 
 
 def find_matching_orders(order: TransferOrder) -> list[tuple[TransferOrder, int]]:
@@ -288,10 +282,7 @@ def find_matching_orders(order: TransferOrder) -> list[tuple[TransferOrder, int]
         )
 
     qs = qs.admitted_to_match(order, settings.BLOCKCHAIN_CHAIN_ID).exclude(wallet_address__iexact=order.wallet_address)
-    for candidate, _ in _compatible_matches(qs, order):
-        if _lock_foreign_matching_authority(order, candidate):
-            break
-    return _compatible_matches(lock_orders(qs), order)
+    return _compatible_matches(qs, order)
 
 
 def _compatible_matches(candidates, order):
@@ -326,6 +317,46 @@ def _compatible_matches(candidates, order):
         matches.append((candidate, match_qty))
 
     return matches
+
+
+def _matching_terms(order):
+    return (
+        order.owner_account_id,
+        order.wallet_id,
+        order.wallet_address,
+        order.token_id,
+        order.payment_asset_id,
+        order.order_type,
+        order.status,
+        order.quantity,
+        order.filled_quantity,
+        order.min_quantity,
+        order.price_per_share,
+        order.created_at,
+    )
+
+
+def _match_candidate(order, candidate, match_quantity):
+    try:
+        with atomic():
+            if not _lock_foreign_matching_authority(order, candidate):
+                raise OrderMatchingBusyException()
+            locked = {
+                row.pk: row
+                for row in lock_orders(TransferOrder.objects.filter(pk__in=(order.pk, candidate.pk)), nowait=True)
+            }
+            for expected in (order, candidate):
+                current = locked.get(expected.pk)
+                if current is None or _matching_terms(current) != _matching_terms(expected):
+                    raise OrderMatchingBusyException()
+            order, candidate = locked[order.pk], locked[candidate.pk]
+            if order.order_type == TransferOrderType.BUY:
+                return match_orders(order, candidate, match_quantity)
+            return match_orders(candidate, order, match_quantity)
+    except OperationalError as exc:
+        if getattr(exc.__cause__, "sqlstate", None) != "55P03":
+            raise
+        raise OrderMatchingBusyException() from exc
 
 
 @atomic()
@@ -413,13 +444,8 @@ def create_order_and_match(
 
     amount_refusal = None
     for matching_order, match_quantity in find_matching_orders(order):
-        if not _lock_foreign_matching_authority(order, matching_order):
-            continue
         try:
-            if order_type == TransferOrderType.BUY:
-                match_result = match_orders(order, matching_order, match_quantity)
-            else:
-                match_result = match_orders(matching_order, order, match_quantity)
+            match_result = _match_candidate(order, matching_order, match_quantity)
         except InvalidSettlementAmountException as exc:
             amount_refusal = exc
             continue

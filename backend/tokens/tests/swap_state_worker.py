@@ -41,9 +41,8 @@ def run(mode, row_id, detail):
     from django.db import connections
     from eth_account.messages import encode_typed_data
 
-    from shared.db import atomic, current_alias, set_principal, use_operator
-    from tokens.models import SwapOrder, TransferOrder
-    from tokens.services import token_transfer_service
+    from shared.db import current_alias, set_principal, use_operator
+    from tokens.models import SwapOrder
     from tokens.tests.swap_state_fixtures import (
         BUYER,
         SELLER,
@@ -57,7 +56,7 @@ def run(mode, row_id, detail):
         with connections[alias].cursor() as cursor:
             cursor.execute("SET statement_timeout = '20s'")
             cursor.execute("SET lock_timeout = '15s'")
-    row = TransferOrder.objects.get(pk=row_id) if mode == "match" else SwapOrder.objects.get(pk=row_id)
+    row = SwapOrder.objects.get(pk=row_id)
     test_case = TestCase()
     service = swap_service(test_case)
     report("loaded")
@@ -120,10 +119,6 @@ def run(mode, row_id, detail):
         node.advance(head=12)
         report("settling")
         result = swap_execution.settle(record.pk, client=node.client)
-    elif mode == "match":
-        with atomic():
-            matches = token_transfer_service.find_matching_orders(row)
-            result = str(matches[0][0].pk) if matches else None
     else:
         raise AssertionError(mode)
     report("done", result=result)

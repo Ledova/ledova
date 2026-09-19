@@ -20,9 +20,10 @@ across accounts after authorizing the caller's exact submission. A foreign
 candidate needs a recorded signed create admission with the current wallet,
 account, token and chain identity and the same payment asset. Its wallet must
 still be verified and on EVM, with an active account owner. The matcher locks
-the first compatible foreign candidate's wallet and account/profile/user authority
-without waiting, acquiring a fallback's authority only if matching reaches it.
-A busy counterparty actually attempted returns a retryable response, preserving the pending
+one compatible candidate's wallet and account/profile/user authority and only
+that incoming/candidate order pair without waiting. Each attempt uses a savepoint;
+an unrepresentable settlement releases that candidate's locks before a fallback.
+A busy or concurrently changed candidate returns a retryable response, preserving the pending
 submission UUID and rolling back execution effects. Unjournaled orders
 retain their same-account behavior; they gain no cross-account matching authority.
 Both participants still approve and sign the captured settlement before execution.
