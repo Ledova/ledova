@@ -7,14 +7,15 @@ focused guides, and each guide links to the implementation detail behind it.
 
 | I want to… | Start here |
 | --- | --- |
-| Understand Ledova and what works today | [Product and terminology](product.md) |
+| Understand Ledova and what works today | [Product and functionality](product.md) |
+| Understand the route to lawful launch | [Regulatory pathway](regulatory-pathway.md) |
 | Run it locally | [Getting started](getting-started.md) |
 | Understand the system | [Architecture](architecture/README.md) |
 | Configure or operate an instance | [Operations](operations/README.md) |
 | Change or test the code | [Contributing](../CONTRIBUTING.md) |
 | Understand future work | [Roadmap](roadmap.md) |
 | Understand why a choice was made | [Decisions](decisions.md) |
-| Review legal assumptions | [Legal positions](legal.md) |
+| Review legal positions and sources | [Legal and regulatory](legal/README.md) |
 
 For a specific technical contract, use the [reference index](reference/README.md).
 For a failing check, start at the [gate inventory](development/gates.md). For a

@@ -17,7 +17,7 @@ Days an investor classification's evidence file is kept, measured from
 for a verified one. 2557 days is seven calendar years including two leap days,
 chosen because the Corporations Act's financial-records obligation and the
 AML/CTF customer-identification obligation both land there. **That reading was
-made without advice** — see [legal positions](../legal.md), question 3. Set `0` to retain
+made without advice** — see [legal position 3](../legal/positions.md#3-the-evidence-retention-period). Set `0` to retain
 indefinitely: the deadline stays unset and nothing is deleted. Attached payslips
 inherit this same claim clock; unattached uploads use their separate, shorter
 lifetime. Neither setting changes an eligibility decision.
@@ -27,7 +27,7 @@ way: `retention_cutoff` raises `ImproperlyConfigured` below 2557 days, so the
 floor cannot be configured away and `0` is not a valid value. The purge measures
 from the cessation date, and a later full-history fold cannot recreate what it
 removed. It implements the accepted seven-year assumption for s169(3); the legal
-basis is unadvised, and is question 1 in [legal positions](../legal.md).
+basis is unadvised, and is [legal position 1](../legal/positions.md#1-section-1693-members-who-ceased-in-the-last-seven-years).
 
 ## Media storage
 

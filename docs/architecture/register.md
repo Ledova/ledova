@@ -102,5 +102,5 @@ retain their original identity independently. Allotment identity stamps preserve
 the member identity where one was resolved when shares were issued. Treasury relabeling or current profile guesses
 must not replace that historical source.
 
-Next: [legal assumptions](../legal.md), [scheduled folds](../operations/jobs.md)
+Next: [legal positions](../legal/positions.md), [scheduled folds](../operations/jobs.md)
 and [operator recovery](../operations/recovery.md).

@@ -28,10 +28,21 @@ holder discovery exist. Remaining outcomes include:
 
 - An authoritative stored current-members register and a durable, queryable
   record of exports; the current register is derived at read time.
+- Import of an existing register, including former members within the last
+  seven years, reconciled against the ASIC share-structure extract.
+- Issue and transfer workflows with the attached instrument or resolution and
+  a recorded director approval, reusing the reviewed-evidence pattern.
+- Certificate PDFs, ASIC notice figures and inspection copies, on the durable
+  export record.
 - Enforcement of the issuer KYC switch; investor KYC already affects eligibility.
 - Completion of company authority, ownership and capital checks. Identifier
   validation hooks and registry verification do not establish every invariant
   for every write path.
+- Deployment configurations matching the two [operating models](legal/README.md),
+  each with offerings, payments, classification, wallets, trading and the chain
+  off by default, and an onboarding checklist without the business plan and
+  risk disclosure. A registry services agreement template and Forms 909 and
+  991 onboarding belong here too.
 
 See [eligibility](architecture/companies-and-eligibility.md) and
 [register design and gaps](architecture/register.md).
@@ -62,7 +73,7 @@ See [the mobile scope decision](decisions.md#clients-and-api-types).
 
 No off-ramp, public investor directory, retail offering or mainnet deployment
 configuration is planned for the first releases. Register access remains per
-share class for its issuer and the operator. The [legal positions](legal.md)
+share class for its issuer and the operator. The [legal positions](legal/positions.md)
 record the unresolved conditions before any real-world use.
 
 ## Open questions
@@ -71,4 +82,6 @@ record the unresolved conditions before any real-world use.
   does not report a candidate match.
 - Should `NotificationPreferences` fold into `UserPreferences` with the next
   settings-screen change?
-- The owner must resolve the legal and contractual questions in [legal.md](legal.md).
+- The owner must resolve the legal and contractual questions in the
+  [legal positions](legal/positions.md) and follow the
+  [regulatory pathway](regulatory-pathway.md) before any live operation.

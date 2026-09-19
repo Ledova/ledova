@@ -1,27 +1,24 @@
 # Legal and regulatory
 
-[Documentation](../README.md) · [Positions](positions.md) · [Regulatory pathway](regulatory-pathway.md) · [Handover](handover.md)
+[Documentation](../README.md) · [Positions](positions.md) · [Regulatory pathway](../regulatory-pathway.md)
 
 This folder records what the project has decided about the law it operates
-under, why, and what it still has to find out. **Nobody qualified has been asked
-any of it.** The owner cannot afford counsel, so each question is worked out from
-primary sources and written down as a position: the source it rests on, what
-would show it wrong, which way to be wrong where the directions are not equal,
-and the trigger that must happen before the question bites. Nothing here is
-legal advice or a legal opinion.
+under, why, and what it still has to find out. **Nobody qualified has been
+asked any of it.** Each question is worked out from primary sources and
+written down as a position: the source it rests on, what would show it wrong,
+which way to be wrong where the directions are not equal, and the trigger that
+must happen before the question bites. Nothing here is legal advice or a legal
+opinion. The [regulatory pathway](../regulatory-pathway.md) defines how
+counsel is engaged — a targeted assessment is step 2 of its engagement
+sequence — and the conditions that must hold before live operation.
 
 | Page | What it holds | Read it when |
 | --- | --- | --- |
 | [Company-hosted instance](company-hosted-instance.md) | Operating model A: a company runs its own instance for its own shares; what it can do without permission, its duties, the perimeter, the path for a first company | Before offering the software to a company to run itself |
 | [Registry service](registry-service.md) | Operating model B: one operator keeps the registers of many companies on instruction; the clerk boundary, the perimeter, the path to market | Before operating a hosted service for anyone |
 | [Positions](positions.md) | The positions taken, one per question, with sources, triggers, the model each binds, and status | Before changing anything that touches the register, evidence, licensing or the licence |
-| [Regulatory pathway](regulatory-pathway.md) | What exists in Australia for operating the fuller model under restriction, what ASIC can and cannot change, precedents, fees and a staged path | Before talking to ASIC, applying for anything, or turning on issuance, payments or transfers |
-| [Handover](handover.md) | The context another person or agent needs to continue this work without the conversation history | Before picking the work up, and after finishing a session of it |
+| [Regulatory pathway](../regulatory-pathway.md) | The route to lawful live operation: obligation allocation, open questions, operating routes, engagement sequence and launch conditions | Before talking to ASIC, applying for anything, or enabling any live regulated activity |
 | [LICENSE](../../LICENSE) | The Functional Source License the code is published under | Position 5 |
-
-The previous single page, `docs/legal.md`, was absorbed into this folder on
-2026-09-15. A stub remains at the old path only so that existing links resolve;
-it goes when the wider documentation is next revised.
 
 ## How a position is written
 
@@ -34,13 +31,29 @@ silence:
   constrains, linked.
 - **The position** — the reading the project acts on.
 - **What would show it wrong** — the fact or ruling that would overturn it.
-- **Which way to be wrong** — where one error is a defect and the other an
+- **Which way to be wrong** — where one error is a defect and the other is an
   offence, the position leans towards the defect.
 - **Trigger** — the event that must happen before the question is engaged.
 - **Status** — either carried over from the previous page and reviewed, or
   *drafted* by the assistant and not yet confirmed by the owner. A draft is a
   reading written down; confirming it means the owner removes the marker in a
   later change. Product and legal decisions remain the owner's.
+
+## Conventions
+
+- **Positions, not open questions.** A document that records questions nothing
+  will close is worse than one that records a decision with its trigger; every
+  position says what would show it wrong and which way to be wrong.
+- **Never state a legal conclusion as fact.** It is the owner's reading; the
+  owner signs off; the assistant drafts and marks drafts.
+- **Answer what primary sources can settle; do not assemble a confident
+  paragraph where being wrong is an offence.** Position 4b is deliberately
+  reached only by licence, registration or relief.
+- **Less is more.** Favour the simpler option; where a trade-off is meaningful,
+  recommend and ask. Remove what a change makes redundant, in the same change.
+- **Everything lands through a pull request**, documentation included, with an
+  owning issue, and the documentation gate (`make check-docs`) green.
+- **Product and legal decisions remain the owner's.**
 
 ## What bites now, and what does not
 
@@ -70,7 +83,7 @@ whoever operates the register:
 
 The pivot between them is who makes the entries, not who hosts the servers. Each
 model's page says what it can do with no permission and where its perimeter is;
-the [regulatory pathway](regulatory-pathway.md) covers the features beyond that
+the [regulatory pathway](../regulatory-pathway.md) covers the route beyond that
 perimeter, which position 4b reads as needing a licence, a registration or
 relief in either model.
 
@@ -141,4 +154,71 @@ legal centres and legal aid do not take commercial financial-services work.
 Fixed-fee opinions are affordable only on questions already made precise, which
 is what the positions page is for.
 
-Next: [positions](positions.md), then the [regulatory pathway](regulatory-pathway.md).
+**How the research is done.** Statute is read section by section from AustLII,
+which sits behind a browser challenge, so scripted fetches fail; open one
+AustLII page in a real browser and fetch other sections same-origin from there.
+The Federal Register of Legislation renders instrument text only in a browser.
+Regulatory guides and reports are downloaded as PDFs and converted with
+`pdftotext`; the summaries a fetch tool returns for PDFs are unreliable. Where
+a primary text was not read, the position or pathway page says so.
+
+## Next investigations
+
+In the order they unblock work. Each says what it settles.
+
+1. **Part 2 of ASIC Corporations (Low Volume Financial Markets) Instrument
+   2016/888**, and the remade instrument after 1 October 2026. Settles the
+   operator's conditions for a low-volume market registration and whether it is
+   per company or per platform.
+2. **The Acacia instrument (F2025L00831) and its explanatory statement.**
+   Settles the exact shape of a pilot exemption.
+3. **The Corporations Regulations on the details a proper instrument of
+   transfer must show**, and whether Part 1.2AA reaches it. Settles whether an
+   in-app signature satisfies s1071B, before the first transfer is registered.
+4. **AML/CTF Act designated services Table 1 items for dealing in securities,
+   and Table 6 in the amended Act**, rather than summaries. Settles position 8.
+5. **The Digital Assets Framework Act text**: the definitions of digital
+   token, digital asset platform and tokenised custody platform, and the
+   small-scale exemption. Settles the wording of position 9.
+6. **RG 105 and RG 166** for what a responsible manager and the base-level
+   financial requirements actually demand of a wholesale-only licensee. Settles
+   whether licensing is affordable.
+7. **The Innovation Hub application form** and the Financial Innovation
+   Committee's membership process. Settles how engagement starts.
+8. **RG 261 and RG 262** in full, only if retail is ever wanted.
+9. **The FCX operating rules and licence conditions** as published, for what a
+   licensed venue is held to.
+10. **Division 1A of Part 7.12** and the ATO's start-up concession pages in
+    full, to replace the summaries behind position 11.
+11. **State duties on unlisted share transfers**, which vary and were not
+    looked at.
+12. **The OAIC's reform page** for any legislated change to the small business
+    exemption.
+
+## Glossary
+
+| Term | Meaning |
+| --- | --- |
+| AFSL | Australian financial services licence, Part 7.6 of the Corporations Act |
+| AML/CTF | Anti-Money Laundering and Counter-Terrorism Financing Act 2006 and its rules, administered by AUSTRAC |
+| ASIC | Australian Securities and Investments Commission |
+| CS facility | Clearing and settlement facility, licensed under Part 7.3 |
+| CSF | Crowd-sourced funding, Part 6D.3A |
+| DAF Act | Corporations Amendment (Digital Assets Framework) Act 2026 |
+| DAP, TCP | Digital asset platform and tokenised custody platform, the two products the DAF Act creates |
+| DFCRC | Digital Finance Cooperative Research Centre |
+| DFMI | Digital financial market infrastructure |
+| ERS | Enhanced Regulatory Sandbox, INFO 248, being repealed |
+| ESS | Employee share scheme, Division 1A of Part 7.12 for offers and Division 83A of the tax Act for tax |
+| FSL | Functional Source License, the code's licence |
+| INFO | An ASIC information sheet |
+| LVFM | Low volume financial market, Instrument 2016/888 |
+| NTA | Net tangible assets, RG 166 |
+| REP | An ASIC report |
+| RG | An ASIC regulatory guide |
+| Responsible manager | The person whose experience an AFSL applicant relies on, RG 105 |
+| s708 | The exemptions from disclosure for offers to wholesale, sophisticated, professional and associated investors |
+| Tier 2 | The lighter tier of Australian market licence in RG 172 |
+
+Next: [positions](positions.md), then the
+[regulatory pathway](../regulatory-pathway.md).
