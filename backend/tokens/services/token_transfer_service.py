@@ -3,7 +3,6 @@ from typing import Optional, Union
 
 from django.conf import settings
 from django.db import OperationalError
-from django.db.models import Q
 
 from assets.models import Asset
 from integrations.base_chain import get_base_chain_client
@@ -237,8 +236,9 @@ def match_orders(buy_order: TransferOrder, sell_order: TransferOrder, match_quan
     }
 
 
-def _lock_foreign_matching_authority(queryset, order):
-    wallet_ids = list(queryset.exclude(owner_account_id=order.owner_account_id).values_list("wallet_id", flat=True))
+def _lock_foreign_matching_authority(order, candidate):
+    if candidate.owner_account_id == order.owner_account_id:
+        return True
     try:
         wallets = (
             Wallet.objects.select_related("user_account__user_profile__user")
@@ -248,7 +248,9 @@ def _lock_foreign_matching_authority(queryset, order):
                 nowait=True,
             )
             .filter(
-                pk__in=wallet_ids,
+                pk=candidate.wallet_id,
+                user_account_id=candidate.owner_account_id,
+                address__iexact=candidate.wallet_address,
                 verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
                 chain__in=(Blockchain.ETHEREUM.value, Blockchain.BASE.value),
                 user_account__user_profile__user__is_active=True,
@@ -256,7 +258,7 @@ def _lock_foreign_matching_authority(queryset, order):
             .order_by("pk")
             .only("user_account__user_profile__user__is_active")
         )
-        return [wallet.pk for wallet in wallets]
+        return wallets.first() is not None
     except OperationalError as exc:
         if getattr(exc.__cause__, "sqlstate", None) != "55P03":
             raise
@@ -286,13 +288,19 @@ def find_matching_orders(order: TransferOrder) -> list[tuple[TransferOrder, int]
         )
 
     qs = qs.admitted_to_match(order, settings.BLOCKCHAIN_CHAIN_ID).exclude(wallet_address__iexact=order.wallet_address)
-    foreign_wallets = _lock_foreign_matching_authority(qs, order)
-    candidates = lock_orders(qs.filter(Q(owner_account_id=order.owner_account_id) | Q(wallet_id__in=foreign_wallets)))
-    candidates.sort(
+    for candidate, _ in _compatible_matches(qs, order):
+        if _lock_foreign_matching_authority(order, candidate):
+            break
+    return _compatible_matches(lock_orders(qs), order)
+
+
+def _compatible_matches(candidates, order):
+    candidates = sorted(
+        candidates,
         key=lambda candidate: (
             candidate.price_per_share if order.order_type == TransferOrderType.BUY else -candidate.price_per_share,
             candidate.created_at,
-        )
+        ),
     )
 
     order_remaining = order.quantity - (order.filled_quantity or 0)
@@ -405,6 +413,8 @@ def create_order_and_match(
 
     amount_refusal = None
     for matching_order, match_quantity in find_matching_orders(order):
+        if not _lock_foreign_matching_authority(order, matching_order):
+            continue
         try:
             if order_type == TransferOrderType.BUY:
                 match_result = match_orders(order, matching_order, match_quantity)

@@ -221,6 +221,54 @@ class ScopedCrossAccountMatchingTest(RunsOnTheScopedConnection, CrossAccountMatc
 
 
 class CrossAccountMatchingProcessChecks(CrossAccountMatchingFixtures):
+    def assert_an_unused_busy_wallet_does_not_block_matching(self, **terms):
+        with use_operator():
+            unused_wallet = Wallet.objects.create(
+                user_account=self.tenant.account,
+                address=OTHER_KEY.address,
+                chain="base",
+                verification_status="VERIFIED",
+            )
+        unused = self.create(
+            self.signed_body(
+                self.body(
+                    submission_id=str(uuid4()),
+                    wallet_uuid=str(unused_wallet.pk),
+                    wallet_address=unused_wallet.address,
+                    order_type="sell",
+                    **terms,
+                ),
+                signer=OTHER_KEY,
+            )
+        )
+        self.assertEqual(unused.status_code, 201, unused.content)
+        seller_id = self.seller_order()
+        signed = self.buyer_intent(price="3.00")
+        with tempfile.TemporaryDirectory(prefix="cross-account-unrelated-wallet-") as temporary:
+            with use_operator(), atomic():
+                Wallet.objects.filter(pk=unused_wallet.pk).update(verification_status="VERIFIED")
+                matcher = OrderChild(
+                    self,
+                    "order_submission_worker",
+                    "compete",
+                    Path(temporary),
+                    body=signed,
+                    user_id=self.buyer.user.pk,
+                )
+                self.assertEqual(matcher.read()["stage"], "selecting")
+                response = matcher.read()
+                self.assertEqual(matcher.wait(), 0, matcher.error_output())
+        self.assertEqual(response["status"], 201, response)
+        self.assertEqual(response["body"]["match"]["counterOrder"], seller_id)
+        with use_operator():
+            self.assertEqual(TransferOrder.objects.get(pk=unused.json()["order"]["uuid"]).filled_quantity, 0)
+
+    def test_a_busy_lower_priority_wallet_does_not_block_the_best_match(self):
+        self.assert_an_unused_busy_wallet_does_not_block_matching(price_per_share="3.00")
+
+    def test_a_busy_minimum_incompatible_wallet_does_not_block_a_compatible_match(self):
+        self.assert_an_unused_busy_wallet_does_not_block_matching(price_per_share="2.00", quantity=20, min_quantity=20)
+
     def assert_busy_submission_is_pending(self, signed, response):
         self.assertEqual(response["status"], 503, response)
         self.assertEqual(response["body"]["code"], "order_matching_busy")

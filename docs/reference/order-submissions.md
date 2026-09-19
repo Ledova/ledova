@@ -47,9 +47,12 @@ matching queue is introduced. `shared/0012` removes the app's redundant swap
 INSERT permission on existing databases as well as fresh installs.
 
 Foreign candidates must still have verified EVM wallets and active account owners.
-The matcher acquires their wallet, account, profile and user rows together with
-`FOR NO KEY UPDATE NOWAIT` before locking the candidate orders,
-then considers only foreign wallets whose complete authority it holds. PostgreSQL lock
+The matcher acquires the first compatible candidate's wallet, account, profile and
+user rows together with `FOR NO KEY UPDATE NOWAIT` before locking candidate orders
+in primary-key order. It rechecks that authority before matching, and acquires a
+later candidate's authority only if matching reaches that fallback. A busy
+lower-priority or minimum-incompatible wallet does not by itself refuse an
+available better match. PostgreSQL lock
 contention returns HTTP 503 with code `order_matching_busy`. Challenge spend,
 new orders, matches and reservations roll back; the existing submission remains
 pending, and the client retries its same UUID. A fresh UUID is not a retry.
@@ -153,14 +156,15 @@ recovery (`recover`), settlement (`settle`) and the expiry sweep
 submission or action and one wallet, so only replays of the same action contend
 for it, and those already serialised on the journal row. The action path's order
 lock is load-bearing: `apply_order_modification` saves every column of the order,
-so a decision taken on a stale read would overwrite a match. The foreign-authority
-lock comes after the incoming authority and challenge but never waits (R3).
+so a decision taken on a stale read would overwrite a match. Foreign authority
+comes after the incoming authority and challenge, with fallback authority acquired
+after candidate-order locks, but never waits (R3).
 
 Foreign-key checks introduce edges against G. A swap insert references both
 wallets; deferred checks after repeated order updates can also take `FOR KEY SHARE`
 on the counterparty's account at commit. Same-account legacy candidates retain
 their earlier authority-lock behavior; foreign candidates have their complete
-authority locked before their orders. Three rules keep these edges from closing
+authority locked before matching. Three rules keep these edges from closing
 a cycle:
 
 - **R1** — trading journeys lock `Wallet` and `UserAccount` with `FOR NO KEY UPDATE`, never
