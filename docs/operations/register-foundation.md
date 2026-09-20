@@ -118,14 +118,20 @@ canonical block-hash `eth_call` requests. Unsupported or unavailable historical
 reads are refused rather than replaced by current balances.
 
 The JSON records the company, class, deployment transaction, network, contract,
-block number/hash/date, finality policy, issued/authorized supply, positive
-holdings and transfer events with their transaction/log identities. All share
-quantities are exact integer strings; names and residential addresses are absent.
-The transfer fold must agree with every participant's balance, including zero
-balances, and total supply at that same hash. Duplicate or noncanonical logs,
-incomplete history, a reorg, a changed deployment/network/policy or unavailable
-finality refuse the result. This is an inspection result, not an approval,
-register import or permanent proof of chain finality. No signing or database
+block number/hash/date, finality policy, issued/authorized supply and positive
+holdings. All share quantities are exact integer strings; names and residential
+addresses are absent. The observed transfer fold must agree with each observed
+participant's balance, including zero balances, and total supply at that same
+hash. Duplicate or noncanonical logs, inconsistent quantities, a reorg, a changed
+deployment/network/policy or unavailable finality refuse the result.
+
+Matching balances cannot establish that every historical log was returned: an
+omitted self-transfer or round trip can leave all quantities unchanged. The
+command therefore exports only the reconciled state candidate. It provides no
+event-history export, entry/cessation dates or evidence of complete historical
+membership. Those require separate evidence when an opening is activated or a
+workflow event is recorded. This inspection neither approves nor imports the
+register, and cannot guarantee future chain finality. No signing or database
 writes take place.
 
 Next: [the remaining register work](https://github.com/Ledova/ledova/issues/647)

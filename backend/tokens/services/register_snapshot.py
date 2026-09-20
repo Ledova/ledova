@@ -124,7 +124,7 @@ def _boundary(client, policy):
     _unavailable("A register snapshot requires an available block under the approved finality policy.")
 
 
-def _entries(contract, target, boundary):
+def _observed_entries(contract, target, boundary):
     entries = []
     for event in transfer_logs(contract, target.deployment_block, boundary["number"]):
         height = _number(event["blockNumber"], MAX_BLOCK_NUMBER)
@@ -138,14 +138,13 @@ def _entries(contract, target, boundary):
             {
                 "from": _address(event["args"]["from"]),
                 "to": _address(event["args"]["to"]),
-                "shares": str(_number(event["args"]["value"])),
+                "shares": _number(event["args"]["value"]),
                 "block_number": height,
                 "block_hash": _hash(event["blockHash"]),
-                "transaction_hash": _hash(event["transactionHash"]),
                 "log_index": _number(event["logIndex"], MAX_BLOCK_NUMBER),
             }
         )
-        if entries[-1]["from"] == entries[-1]["to"] == ZERO_ADDRESS and int(entries[-1]["shares"]):
+        if entries[-1]["from"] == entries[-1]["to"] == ZERO_ADDRESS and entries[-1]["shares"]:
             _unavailable("Transfer history contains a positive transfer without a participant.")
     entries.sort(key=lambda entry: (entry["block_number"], entry["log_index"]))
     if len({(entry["block_number"], entry["log_index"]) for entry in entries}) != len(entries):
@@ -156,7 +155,7 @@ def _entries(contract, target, boundary):
 def _holdings(entries):
     balances = defaultdict(int)
     for entry in entries:
-        sender, recipient, shares = entry["from"], entry["to"], int(entry["shares"])
+        sender, recipient, shares = entry["from"], entry["to"], entry["shares"]
         if sender != ZERO_ADDRESS:
             if balances[sender] < shares:
                 _unavailable("Transfer history spends shares that were never received.")
@@ -194,7 +193,7 @@ def read_snapshot(target, *, client):
         _unavailable("A share register requires whole-share contract units.")
     issued = _contract_uint(client, target, boundary, contract.functions.totalSupply())
     authorized = _contract_uint(client, target, boundary, contract.functions.authorizedShares())
-    entries = _entries(contract, target, boundary)
+    entries = _observed_entries(contract, target, boundary)
     balances = _holdings(entries)
     if issued > authorized or sum(balances.values()) != issued:
         _unavailable("Transfer history does not reconcile with the issued and authorized supply at this block.")
@@ -232,7 +231,6 @@ def read_snapshot(target, *, client):
         "holdings": [
             {"address": address, "shares": str(shares)} for address, shares in sorted(balances.items()) if shares
         ],
-        "transfers": entries,
     }
 
 

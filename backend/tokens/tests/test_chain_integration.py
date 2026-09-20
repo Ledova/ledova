@@ -683,7 +683,7 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         completed = register_snapshot.capture_snapshot(self.token.pk)
         self.assertEqual(completed["issued_supply"], "15")
         self.assertEqual(completed["holdings"], [{"address": self.investor, "shares": "15"}])
-        self.assertEqual(len(completed["transfers"]), 2)
+        self.assertNotIn("transfers", completed)
         self.assertGreater(completed["block"]["number"], initial["block"]["number"])
 
     def test_real_unwhitelisted_and_paused_transfer_estimates_explain_the_refusal_without_sending(self):

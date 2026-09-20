@@ -107,7 +107,7 @@ class RegisterSnapshotReadTest(SimpleTestCase):
         self.assertEqual(result["block"]["hash"], block_hash(4))
         self.assertEqual((result["issued_supply"], result["authorized_supply"]), ("100", "1000"))
         self.assertEqual(result["holdings"], [{"address": ALICE, "shares": "80"}, {"address": BOB, "shares": "20"}])
-        self.assertEqual(len(result["transfers"]), 2)
+        self.assertNotIn("transfers", result)
         self.assertEqual(result["deployment_transaction"], self.node.target.deployment_tx_hash)
         for function in ("decimals", "totalSupply", "authorizedShares"):
             getattr(self.node.contract.functions, function).return_value.call.assert_not_called()
@@ -165,6 +165,22 @@ class RegisterSnapshotReadTest(SimpleTestCase):
         self.node.events.append(deepcopy(self.node.events[0]))
         with self.assertRaisesMessage(RegisterUnavailableException, "repeats"):
             self.node.capture()
+
+    def test_state_neutral_log_gaps_cannot_be_presented_as_a_complete_event_history(self):
+        for neutral in (
+            [transfer(4, ALICE, ALICE, 10)],
+            [transfer(4, ALICE, BOB, 5), transfer(4, BOB, ALICE, 5, index=1)],
+        ):
+            with self.subTest(neutral=neutral):
+                node = SnapshotNode()
+                node.events.extend(neutral)
+                all_observed = node.capture()
+                node.events = node.events[:2]
+                omitted = node.capture()
+                self.assertEqual(all_observed["holdings"], omitted["holdings"])
+                self.assertEqual(all_observed["issued_supply"], omitted["issued_supply"])
+                self.assertNotIn("transfers", omitted)
+                self.assertEqual(all_observed, omitted)
 
     def test_wrong_contract_removed_or_out_of_range_log_is_refused(self):
         for field, value in (("address", ALICE), ("removed", True), ("blockNumber", 5), ("blockNumber", 1)):
