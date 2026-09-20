@@ -1,0 +1,14 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<p>Company: {{ original.company.name }}</p>
+<p>Document: {{ original.name }} — {{ original.get_document_type_display }}</p>
+<p>Valid from: {{ original.valid_from|default:"Not specified" }}. Valid until: {{ original.valid_until|default:"Not specified" }}.</p>
+<p>{{ file_link }}</p>
+<p>Review the uploaded file before confirming. If its contents or details change, start a fresh review. Confirmation expires after 15 minutes.</p>
+<p>This verifies documentary evidence. It does not approve a register change or attest director authority.</p>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <input type="submit" value="Record verification">
+</form>
+{% endblock %}

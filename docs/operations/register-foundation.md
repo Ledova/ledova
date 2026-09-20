@@ -136,3 +136,40 @@ writes take place.
 
 Next: [the remaining register work](https://github.com/Ledova/ledova/issues/647)
 and [backend verification](../development/testing.md#backend-verification).
+
+## Reviewing documentary evidence
+
+The register approval model will use documentary director authority submitted by
+the company owner and verified by authorised staff. An owner account alone is
+not proof of director authority. The proposal/approval workflow is still pending;
+the company-document admin now provides its content-verification prerequisite.
+
+In the company document admin, choose **Review and verify document**, open the
+private file, review its company, document type and validity details, then confirm.
+The action requires an active staff user with `companies.change_companydocument`
+and the admin's object permission. The confirmation is bound to that reviewer and
+document and expires after 15 minutes. Bulk verification and manually editable
+verification flags have been removed.
+
+Confirmation re-reads the file and locks the document row. It records a SHA-256
+fingerprint covering the file's bytes and its document/company IDs, type, name,
+storage key, size, MIME type, external URL and validity dates. A changed preview,
+missing or empty file, wrong size, rejection or non-current validity is refused.
+An external URL alone cannot establish file content and must be replaced by an
+uploaded document before this review can be used.
+
+PostgreSQL clears verification when the bound document details or rejection
+reason change, and refuses customer-role writes to verification fields. Notes
+alone do not revoke verification. Older verified records keep their historical
+flag without gaining a fabricated fingerprint; they need a fresh review before
+they can supply content-bound evidence. Downgrade refuses to discard any recorded
+fingerprints.
+
+This is a record of what was verified at a time. Storage can become unavailable
+or be changed outside the application, and validity can expire without a database
+write. A later register approval consumer must recheck the current file against
+the recorded fingerprint, the company and operation, and the validity dates;
+the historical `is_verified` flag alone is insufficient. No background storage
+monitoring, register approval, retained file copy or deletion/retention change is
+introduced here. Documentary authority and an exact proposed register change
+remain separate requirements of the upcoming approval workflow.
