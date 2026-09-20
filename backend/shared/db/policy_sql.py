@@ -13,11 +13,20 @@ from shared.db.policies import (
 
 SUFFIXES = ("read", "insert", "update", "delete")
 
+TABLE_CREATION_AFTER_INITIAL_GRANTS = {
+    table: ("tokens", "0062_register_foundation")
+    for table in (
+        "tokens_registermember",
+        "tokens_shareregister",
+        "tokens_registerentry",
+        "tokens_registerposition",
+    )
+}
+
 NOT_YET_CREATED = (
     "The catalogue says the app role reaches {tables}, and the grant ran before they existed. "
     "Default privileges now deny them, so leaving this silent would take the role's access away "
-    "rather than leave it unchanged. Add the migration that creates them to this migration's "
-    "dependencies."
+    "rather than leave it unchanged. Check the creating migration and its grant step."
 )
 
 
@@ -57,6 +66,13 @@ def grant_reachable_tables(schema_editor):
         for table in reachable_by_the_app_role():
             cursor.execute("SELECT to_regclass(%s) IS NOT NULL", [table])
             if not cursor.fetchone()[0]:
+                migration = TABLE_CREATION_AFTER_INITIAL_GRANTS.get(table)
+                if migration:
+                    cursor.execute(
+                        "SELECT EXISTS (SELECT 1 FROM django_migrations WHERE app = %s AND name = %s)", migration
+                    )
+                    if not cursor.fetchone()[0]:
+                        continue
                 missing.append(table)
                 continue
             cursor.execute(f"GRANT SELECT, INSERT, UPDATE, DELETE ON {table} TO {quoted_app}")

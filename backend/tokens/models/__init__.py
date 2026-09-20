@@ -18,6 +18,13 @@ from .order_action import OrderActionPurpose, OrderActionStatus, OrderActionSubm
 from .order_modification_log import OrderModificationLog
 from .order_submission import OrderSubmission, OrderSubmissionStatus
 from .pause_change import PauseAuthority, PauseChange, PauseChangeStatus
+from .register import (
+    RegisterEntry,
+    RegisterEntryKind,
+    RegisterMember,
+    RegisterPosition,
+    ShareRegister,
+)
 from .share_issuance import ShareIssuance
 from .share_issuance_request import ShareIssuanceRequest
 from .share_token import ShareToken
@@ -50,6 +57,11 @@ __all__ = [
     "OrderSubmission",
     "OrderSubmissionStatus",
     "RequestStatus",
+    "RegisterEntry",
+    "RegisterEntryKind",
+    "RegisterMember",
+    "RegisterPosition",
+    "ShareRegister",
     "ShareIssuance",
     "ShareIssuanceExecution",
     "ShareIssuanceRequest",

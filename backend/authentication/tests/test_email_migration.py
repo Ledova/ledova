@@ -14,9 +14,10 @@ from django.db.migrations.executor import MigrationExecutor
 from django.db.migrations.recorder import MigrationRecorder
 from django.test import TransactionTestCase
 
+from shared.tests.schema import restore_every_migration, unapplied_migrations
+
 MIGRATE_FROM = [("authentication", "0002_authsession_refreshcredential")]
 MIGRATE_TO = [("authentication", "0003_customuser_v2_email_constraints")]
-MIGRATE_LATEST = [("authentication", "0009_otp_attempts_drop_unused_columns")]
 PREFLIGHT_ERROR = "V2 email migration preflight failed."
 MIGRATION_NAME = "0003_customuser_v2_email_constraints"
 CONSTRAINT_NAMES = {
@@ -52,7 +53,7 @@ class EmailMigrationTest(TransactionTestCase):
         try:
             self.delete_users()
         finally:
-            self.migrate(MIGRATE_LATEST)
+            restore_every_migration()
         tables = connection.introspection.table_names()
         for table in (
             "authentication_auth_session",
@@ -82,6 +83,10 @@ class EmailMigrationTest(TransactionTestCase):
         captured = stdout.getvalue() + stderr.getvalue() + logs.getvalue()
         if private_value:
             self.assertNotIn(private_value, captured)
+
+    def test_cleanup_restores_migrations_in_dependent_apps(self):
+        self.restore_latest_schema()
+        self.assertEqual(unapplied_migrations(), [])
 
     def test_preflight_rejects_invalid_noncanonical_and_non_ascii_rows(self):
         values = [
@@ -209,7 +214,7 @@ class EmailMigrationPostgresLockTest(TransactionTestCase):
         return executor.loader.project_state(targets).apps
 
     def restore_latest_schema(self):
-        self.migrate(MIGRATE_LATEST)
+        restore_every_migration()
 
     def writer(self, table, started, outcomes):
         close_old_connections()
