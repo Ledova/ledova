@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.db.models import QuerySet
 
+from operators.settlement import single_settlement_asset
 from shared.constants import BLOCKCHAIN_BASE, BLOCKCHAIN_ETHEREUM
 from shared.utils.token_amounts import token_base_units_ceiling
 from tokens.models.choices import (
@@ -77,11 +78,15 @@ class TransferOrderQuerySet(QuerySet):
         )
 
     def advertised_liquidity(self):
+        asset = single_settlement_asset()
+        if asset is None:
+            return self.none()
         return (
             self.ownership_bound()
             .open_or_partial()
             .filter(
                 signed_matching_admission(settings.BLOCKCHAIN_CHAIN_ID),
+                payment_asset=asset,
                 quantity__gt=models.F("filled_quantity"),
                 min_quantity__lte=models.F("quantity") - models.F("filled_quantity"),
             )

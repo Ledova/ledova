@@ -7,7 +7,7 @@ from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 from web3 import Web3
 
-from operators.settlement import settlement_assets
+from operators.settlement import single_settlement_asset
 from shared.db import atomic, current_alias, use_operator
 from tokens.exceptions import (
     ChallengeMismatchException,
@@ -119,10 +119,10 @@ def _eligible_token(token_id, wallet):
 
 
 def _settlement_asset():
-    assets = list(settlement_assets()[:2])
-    if len(assets) != 1:
+    asset = single_settlement_asset()
+    if asset is None:
         raise ValidationError({"token": "Orders need exactly one configured settlement asset."})
-    return assets[0]
+    return asset
 
 
 def _pending_token(submission, wallet):

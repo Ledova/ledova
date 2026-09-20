@@ -4,6 +4,7 @@ from django.conf import settings
 from django.utils import timezone
 from web3 import Web3
 
+from operators.models import Operator
 from shared.tests.tenants import make_tenant
 from tokens.models import OrderSubmission, SigningChallenge
 from tokens.services.trading_order_service import TradingOrderService
@@ -11,6 +12,7 @@ from tokens.services.trading_order_service import TradingOrderService
 
 def record_synthetic_admission(order):
     order.refresh_from_db()
+    Operator.get().supported_settlement_assets.set([order.payment_asset])
     order.wallet_address = Web3.to_checksum_address(order.wallet_address)
     order.save(update_fields=["wallet_address"])
     submission = OrderSubmission.objects.create(

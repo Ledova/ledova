@@ -13,8 +13,9 @@ from django.db import connections
 from django.db.models.signals import post_init
 from rest_framework.test import APITransactionTestCase
 
-from assets.models import AssetChainDeployment
+from assets.models import Asset, AssetChainDeployment
 from companies.models import Company
+from operators.models import Operator
 from shared.db import atomic, configured, current_alias, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_eligible, make_tenant
@@ -100,6 +101,54 @@ class CrossAccountMatchingChecks(CrossAccountMatchingFixtures):
         self.assertIsNone(buy.json()["match"])
         self.assert_market_quotes()
         return seller_id
+
+    def another_settlement_asset(self):
+        with use_operator():
+            asset = Asset.objects.create(name="Second dollar", symbol="SUSD", asset_type="stablecoin", decimals=2)
+            AssetChainDeployment.objects.create(
+                asset=asset, chain="base", contract_address="0x" + "ad" * 20, decimals=2
+            )
+        return asset
+
+    def test_market_quotes_follow_the_only_current_settlement_asset(self):
+        self.resting_market()
+        replacement = self.another_settlement_asset()
+        with use_operator():
+            Operator.get().supported_settlement_assets.set([replacement])
+        self.assert_market_quotes(bid=None, ask=None)
+        seller_id = self.seller_order(submission_id=str(uuid4()), price_per_share="3.00")
+        buy = self.create(self.buyer_intent(price="1.50"))
+        self.assertEqual(buy.status_code, 201, buy.content)
+        self.assertIsNone(buy.json()["match"])
+        self.assert_market_quotes(bid="1.50", ask="3.00")
+        matched = self.create(self.buyer_intent(price="3.00"))
+        self.assertEqual(matched.status_code, 201, matched.content)
+        self.assertEqual(matched.json()["match"]["counterOrder"], seller_id)
+        self.assert_market_quotes(bid="1.50", ask=None)
+
+    def test_market_quotes_require_exactly_one_settlement_asset(self):
+        self.resting_market()
+        replacement = self.another_settlement_asset()
+        original = self.tenant.refs.stablecoin
+        for assets in ([], [original, replacement]):
+            with self.subTest(assets=assets), use_operator():
+                Operator.get().supported_settlement_assets.set(assets)
+            self.assert_market_quotes(bid=None, ask=None)
+            with use_operator():
+                Operator.get().supported_settlement_assets.set([original])
+            self.assert_market_quotes()
+
+    def test_market_quotes_require_an_active_asset_and_deployment(self):
+        self.resting_market()
+        with use_operator():
+            deployment = AssetChainDeployment.objects.get(asset=self.tenant.refs.stablecoin, chain="base")
+        for model, identifier in ((Asset, self.tenant.refs.stablecoin.pk), (AssetChainDeployment, deployment.pk)):
+            with self.subTest(model=model), use_operator():
+                model.objects.filter(pk=identifier).update(is_active=False)
+            self.assert_market_quotes(bid=None, ask=None)
+            with use_operator():
+                model.objects.filter(pk=identifier).update(is_active=True)
+            self.assert_market_quotes()
 
     def test_market_quotes_exclude_a_deverified_wallet(self):
         self.resting_market()

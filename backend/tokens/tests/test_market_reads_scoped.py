@@ -57,7 +57,10 @@ class ScopedMarketReadsTest(RunsOnTheScopedConnection, APITransactionTestCase):
             self.assertEqual(len(self.statements), 1)
             alias, role, _, params = self.statements[0]
             self.assertEqual((alias, role), (OPERATOR_ALIAS, settings.RLS_ROLES[OPERATOR_ALIAS]))
-            self.assertEqual({str(value) for value in params if isinstance(value, UUID)}, set(rows))
+            self.assertEqual(
+                {str(value) for value in params if isinstance(value, UUID)} - {str(self.issuer.refs.stablecoin.pk)},
+                set(rows),
+            )
         with acting_for(self.reader.user.pk):
             self.assertFalse(TransferOrder.objects.filter(pk=self.issuer.order.pk).exists())
             self.assertFalse(SwapOrder.objects.filter(pk=self.issuer.swap.pk).exists())

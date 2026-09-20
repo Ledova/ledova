@@ -278,6 +278,7 @@ class TransferOrderOwnershipBindingTest(APITestCase):
         )
         valid_candidate = TransferOrder.objects.create(
             token=self.token,
+            payment_asset=reference_data().stablecoin,
             order_type=TransferOrderType.SELL,
             status=TransferOrderStatus.OPEN,
             wallet=counter_wallet,

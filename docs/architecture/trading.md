@@ -18,7 +18,9 @@ Private orders remain visible and editable only to their owners. Eligible market
 readers see aggregated prices and remaining quantities from open or partially
 filled orders that meet the same signed admission and current-authority checks
 as foreign matching. Unjournaled, stale-domain, unverified-wallet and inactive-owner
-orders do not advertise market liquidity. These quotes are a snapshot, not a
+orders do not advertise market liquidity. Quotes use the same uniquely configured,
+active settlement asset and live deployment as new orders; absent or ambiguous
+configuration suppresses quotes. These quotes are a snapshot, not a
 reservation or a guarantee that a submitted order will match.
 The bounded create service can match
 across accounts after authorizing the caller's exact submission. A foreign
