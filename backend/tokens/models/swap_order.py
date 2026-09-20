@@ -107,6 +107,7 @@ class SwapOrder(DerivesWalletsFromOrders, BaseModel):
         related_name="swap_orders",
     )
     completed_at = models.DateTimeField(null=True, blank=True)
+    finalized_receipt = models.JSONField(null=True, editable=False)
     error_message = models.TextField(blank=True)
 
     class Meta:
@@ -217,7 +218,7 @@ class SwapOrder(DerivesWalletsFromOrders, BaseModel):
 
         self.status = SwapOrderStatus.FAILED
         self.error_message = error_message
-        self.save(update_fields=["status", "error_message", "updated_at"])
+        self.save(update_fields=["status", "error_message", "finalized_receipt", "updated_at"])
 
         from .choices import TransferOrderStatus
 

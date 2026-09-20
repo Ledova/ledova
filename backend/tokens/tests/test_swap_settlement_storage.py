@@ -136,8 +136,8 @@ class SwapSettlementMigrationTest(TransactionTestCase):
             .order_by("pk")
             .values()
         )
-        migrate_to([("tokens", "0039_swap_settlement_context")])
-        current = SwapOrder.objects.filter(pk=swap.pk).values().get()
+        at_cutover = migrate_to([("tokens", "0039_swap_settlement_context")]).get_model("tokens", "SwapOrder")
+        current = at_cutover.objects.filter(pk=swap.pk).values().get()
         self.assertEqual(current.pop("settlement_protocol_version"), 0)
         self.assertIsNone(current.pop("settlement_context"))
         self.assertEqual(current.pop("settlement_digest"), "")
@@ -173,13 +173,13 @@ class SwapSettlementMigrationTest(TransactionTestCase):
         self.addCleanup(restore_every_migration)
         old_swaps = old_apps.get_model("tokens", "SwapOrder").objects
         old_values = old_swaps.filter(pk=swap.pk).values().get()
-        migrate_to([("tokens", "0039_swap_settlement_context")])
+        at_cutover = migrate_to([("tokens", "0039_swap_settlement_context")]).get_model("tokens", "SwapOrder")
         old_values.update(uuid=uuid4(), nonce=swap.nonce + 1, order_hash="cc" * 32)
         with self.assertRaises(IntegrityError), atomic():
             old_swaps.create(**old_values)
         if IS_POSTGRES:
             with self.assertRaises(IntegrityError), atomic():
-                SwapOrder.objects.create(**old_values, settlement_protocol_version=0)
+                at_cutover.objects.create(**old_values, settlement_protocol_version=0)
         restore_every_migration()
         fresh = make_swap("settlement-new-writer")
         self.assertEqual(fresh.settlement_protocol_version, 1)

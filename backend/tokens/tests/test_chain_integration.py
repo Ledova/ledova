@@ -462,6 +462,49 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual(operation.attempts.count(), 1)
         self.assertEqual(self._signer_nonce(), nonce + 1)
 
+    def test_real_swap_reinclusion_records_final_block_and_keeps_both_first_receipts(self):
+        swap = self.admit_swap()
+        balances = self.balances()
+        before = self.w3.provider.make_request("evm_snapshot", [])["result"]
+        with override_settings(WALLET_CHAIN_FINALITY_POLICIES={"evm:31337": {"mode": "depth", "depth": 2}}):
+            self.assertEqual(swap_execution.recover(swap.transaction_id), "confirmed")
+            swap.refresh_from_db()
+            operation = swap.transaction.outgoing_operation
+            attempt = operation.current_attempt
+            original_block = (operation.block_number, operation.block_hash)
+            self.assertIsNone(swap_execution.settle(swap.transaction_id))
+            swap.refresh_from_db()
+            self.assertIsNone(swap.finalized_receipt)
+            self.assertTrue(self.w3.provider.make_request("evm_revert", [before])["result"])
+            self.assertEqual(self.balances(), balances)
+            self.assertIsNone(swap_execution.settle(swap.transaction_id))
+            self.w3.provider.make_request("evm_mine", [])
+            self.assertEqual(
+                Web3.to_hex(self.w3.eth.send_raw_transaction(bytes(attempt.raw_transaction))), attempt.tx_hash
+            )
+            receipt = self.w3.eth.wait_for_transaction_receipt(attempt.tx_hash)
+            self.assertNotEqual((receipt["blockNumber"], Web3.to_hex(receipt["blockHash"])), original_block)
+            self.w3.provider.make_request("evm_mine", [])
+            self.assertEqual(swap_execution.settle(swap.transaction_id), "completed")
+            swap.refresh_from_db()
+            self.assertEqual(
+                swap.finalized_receipt,
+                {
+                    "block_number": receipt["blockNumber"],
+                    "block_hash": Web3.to_hex(receipt["blockHash"]),
+                    "gas_used": receipt["gasUsed"],
+                    "policy": {"version": 1, "mode": "depth", "depth": 2},
+                },
+            )
+            self.assertIsNone(swap_execution.settle(swap.transaction_id))
+            self.assertEqual(swap_execution.recover(swap.transaction_id), "confirmed")
+        operation.refresh_from_db()
+        record = BlockchainTransaction.objects.get(pk=swap.transaction_id)
+        self.assertEqual((record.block_number, record.block_hash), original_block)
+        self.assertEqual((operation.block_number, operation.block_hash), original_block)
+        self.assertEqual(operation.attempts.count(), 1)
+        self.assertEqual(self.balances(), (balances[0] - 3, balances[1] + 3, balances[2] + 450, balances[3] - 450))
+
     def signed_http_order(self, party, kind):
         account = self.party_accounts[party.address]
         wallet = self.party_wallets[party.address]

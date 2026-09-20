@@ -86,7 +86,10 @@ class RecordedSwapStatesSurviveTheExecutionGuardsTest(TransactionTestCase):
             historical.filter(pk=swap.pk).update(status=status)
         before = list(historical.filter(pk__in=keys).order_by("pk").values())
         restore_every_migration()
-        self.assertEqual(list(SwapOrder.objects.filter(pk__in=keys).order_by("pk").values()), before)
+        self.assertEqual(
+            list(SwapOrder.objects.filter(pk__in=keys).order_by("pk").values()),
+            [row | {"finalized_receipt": None} for row in before],
+        )
         for offset, (status, swap) in enumerate(recorded.items()):
             swap.refresh_from_db()
             self.assertEqual((swap.status, swap.nonce), (status, values["nonce"] + 1 + offset))
