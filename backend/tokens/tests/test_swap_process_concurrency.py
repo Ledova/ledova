@@ -7,17 +7,15 @@ import tempfile
 import time
 from unittest import skipUnless
 from unittest.mock import patch
-from uuid import UUID
 
 from django.conf import settings
-from django.db import DatabaseError, connection, connections
+from django.db import connection
 from django.test import TransactionTestCase, override_settings
 from eth_account.messages import encode_typed_data
 
-from shared.db import atomic, current_alias, use_operator
+from shared.db import use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
-from shared.tests.tenants import make_tenant
-from tokens.models import SwapOrder, SwapOrderStatus, TransferOrder, TransferOrderType
+from tokens.models import SwapOrder, SwapOrderStatus
 from tokens.tests.order_process_fixtures import worker_databases
 from tokens.tests.swap_state_fixtures import (
     BUYER,
@@ -26,7 +24,6 @@ from tokens.tests.swap_state_fixtures import (
     make_swap,
     swap_service,
 )
-from wallets.models import Wallet
 
 
 class SwapProcess:
@@ -35,10 +32,7 @@ class SwapProcess:
         self.test = test
         self.errors = tempfile.TemporaryFile()
         with use_operator():
-            if mode == "match":
-                owner = TransferOrder.objects.get(pk=row_id).owner_account
-            else:
-                owner = SwapOrder.objects.get(pk=row_id).sell_order.owner_account
+            owner = SwapOrder.objects.get(pk=row_id).sell_order.owner_account
             user_id = owner.user_profile.user_id
         self.process = subprocess.Popen(
             [sys.executable, "-m", "tokens.tests.swap_state_worker", mode, str(row_id), detail],
@@ -176,38 +170,6 @@ class SwapWorkersUseOneCurrentClaimTest(TransactionTestCase):
         self.swap.refresh_from_db()
         self.assertTrue(self.swap.seller_signature)
         self.assertTrue(self.swap.buyer_signature)
-
-    def test_order_locks_use_primary_key_order_while_selection_keeps_best_price(self):
-        with use_operator():
-            tenant = make_tenant("match-locks", with_swap=False)
-            template = TransferOrder.objects.filter(pk=tenant.order.pk).values().get()
-            tenant.order.cancel()
-            wallet = Wallet.objects.create(user_account=tenant.account, address=BUYER.address, chain="base")
-            incoming = TransferOrder.objects.create(
-                **{
-                    **template,
-                    "uuid": UUID(int=3),
-                    "order_type": TransferOrderType.BUY,
-                    "wallet_id": wallet.pk,
-                    "wallet_address": wallet.address,
-                    "price_per_share": "3.00",
-                }
-            )
-            low = TransferOrder.objects.create(**{**template, "uuid": UUID(int=1), "price_per_share": "2.00"})
-            best = TransferOrder.objects.create(**{**template, "uuid": UUID(int=2), "price_per_share": "1.00"})
-        child = SwapProcess(self, "match", incoming.pk)
-        with use_operator(), atomic():
-            TransferOrder.objects.select_for_update().get(pk=low.pk)
-            with connections[current_alias()].cursor() as cursor:
-                cursor.execute("SELECT pg_backend_pid()")
-                holder = cursor.fetchone()[0]
-            child.send("run")
-            self.wait_for_row_lock(child, "tokens_transferorder", holder)
-            try:
-                TransferOrder.objects.select_for_update(nowait=True).get(pk=best.pk)
-            except DatabaseError as exc:
-                self.fail(f"The waiter acquired the higher primary key before the blocked lower key: {exc}")
-        self.assertEqual(child.done()["result"], str(best.pk))
 
 
 @skipUnless(connection.vendor == "postgresql", "Requires independent PostgreSQL row locks")

@@ -1,5 +1,5 @@
-def lock_orders(queryset):
-    return list(queryset.order_by("pk").select_for_update(of=("self",)))
+def lock_orders(queryset, *, nowait=False):
+    return list(queryset.order_by("pk").select_for_update(of=("self",), nowait=nowait))
 
 
 def swap_terms(swap):

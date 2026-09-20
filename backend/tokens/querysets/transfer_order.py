@@ -1,12 +1,16 @@
+from django.conf import settings
 from django.db import models
 from django.db.models import QuerySet
 
+from operators.settlement import single_settlement_asset
+from shared.constants import BLOCKCHAIN_BASE, BLOCKCHAIN_ETHEREUM
 from shared.utils.token_amounts import token_base_units_ceiling
 from tokens.models.choices import (
     SwapOrderStatus,
     TransferOrderStatus,
     TransferOrderType,
 )
+from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 
 COMMITTED_STATUSES = [
     TransferOrderStatus.OPEN,
@@ -15,6 +19,22 @@ COMMITTED_STATUSES = [
     TransferOrderStatus.PENDING_SIGNATURE,
     TransferOrderStatus.EXECUTING,
 ]
+
+
+def signed_matching_admission(chain_id):
+    return models.Q(
+        submission__status="created",
+        submission__owner_account_id=models.F("owner_account_id"),
+        submission__wallet_id=models.F("wallet_id"),
+        submission__token_id=models.F("token_id"),
+        submission__wallet_address__iexact=models.F("wallet_address"),
+        submission__chain_id=chain_id,
+        submission__verifying_contract__iexact=models.F("token__contract_address"),
+        submission__executed_challenge__consumed_at__isnull=False,
+        wallet__verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
+        wallet__chain__in=(BLOCKCHAIN_ETHEREUM, BLOCKCHAIN_BASE),
+        owner_account__user_profile__user__is_active=True,
+    )
 
 
 class TransferOrderQuerySet(QuerySet):
@@ -49,6 +69,27 @@ class TransferOrderQuerySet(QuerySet):
     def open_or_partial(self):
         return self.filter(
             status__in=[TransferOrderStatus.OPEN, TransferOrderStatus.PARTIALLY_FILLED],
+        )
+
+    def admitted_to_match(self, order, chain_id):
+        return self.filter(
+            models.Q(owner_account_id=order.owner_account_id)
+            | (signed_matching_admission(chain_id) & models.Q(payment_asset_id=order.payment_asset_id))
+        )
+
+    def advertised_liquidity(self):
+        asset = single_settlement_asset()
+        if asset is None:
+            return self.none()
+        return (
+            self.ownership_bound()
+            .open_or_partial()
+            .filter(
+                signed_matching_admission(settings.BLOCKCHAIN_CHAIN_ID),
+                payment_asset=asset,
+                quantity__gt=models.F("filled_quantity"),
+                min_quantity__lte=models.F("quantity") - models.F("filled_quantity"),
+            )
         )
 
     def committed_sell_quantity(self, token, wallet_address, exclude_uuid=None) -> int:
@@ -91,7 +132,7 @@ class TransferOrderQuerySet(QuerySet):
         return unfilled + (held or 0)
 
     def order_book_levels(self, token, order_type: str, limit: int = 20):
-        qs = self.ownership_bound().open_or_partial().filter(token=token)
+        qs = self.advertised_liquidity().filter(token=token)
 
         if order_type == TransferOrderType.BUY:
             qs = qs.buy_orders().order_by("-price_per_share")
@@ -104,24 +145,10 @@ class TransferOrderQuerySet(QuerySet):
         )[:limit]
 
     def best_bid(self, token):
-        return (
-            self.ownership_bound()
-            .open_or_partial()
-            .buy_orders()
-            .filter(token=token)
-            .order_by("-price_per_share")
-            .first()
-        )
+        return self.advertised_liquidity().buy_orders().filter(token=token).order_by("-price_per_share").first()
 
     def best_ask(self, token):
-        return (
-            self.ownership_bound()
-            .open_or_partial()
-            .sell_orders()
-            .filter(token=token)
-            .order_by("price_per_share")
-            .first()
-        )
+        return self.advertised_liquidity().sell_orders().filter(token=token).order_by("price_per_share").first()
 
     def with_relations(self):
         return self.select_related(

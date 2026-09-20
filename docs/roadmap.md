@@ -26,11 +26,12 @@ are the working list. Phase labels are milestones, not dates.
 - Shared API types generated from the committed OpenAPI snapshot
   ([decisions](decisions.md#clients-and-api-types)).
 
+Phase 0 verification and the bounded cross-account matcher are recorded in
+[#646](https://github.com/Ledova/ledova/issues/646). The owner accepted the
+[experimental limits](architecture/trading.md#accepted-experimental-limits).
+
 ## Remaining work
 
-- [Phase 0 residuals](https://github.com/Ledova/ledova/issues/646): the recorded
-  marketplace journey evidence and the accepted-limits decisions (SSE outbox,
-  crossed-book sweep, modify re-match).
 - [Phase 1](https://github.com/Ledova/ledova/issues/647): the authoritative
   stored register — event log, materialised members, reconciliation, import,
   certificates and notice figures, export audit.
@@ -53,7 +54,5 @@ record the unresolved conditions before any real-world use.
 
 ## Open questions
 
-- Should modifying an order re-run matching? Creation matches; modification
-  does not report a candidate match.
 - Should `NotificationPreferences` fold into `UserPreferences` with the next
   settings-screen change?

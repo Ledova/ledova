@@ -201,7 +201,7 @@ payments and assets synthetic.
 | Company onboarding and share classes | Application/review flow, company and token screens exist; operator approval and chain configuration are required |
 | Tokenized shares | Whole-share issuance, authorized caps and recipient whitelist are enforced on chain |
 | Investor classification | Claim/evidence submission and review status exist in both clients; staff review is in admin; eligibility scopes discovery and subscriptions |
-| Primary offerings and subscriptions | Investor directory, subscription and payment instructions are available in the dashboard; the mobile investor flow is scheduled for Phase 4 |
+| Primary offerings and subscriptions | Investor directory, subscription and payment instructions are available in the dashboard; the mobile investor flow remains unscheduled |
 | AUD and stablecoin payments | Operator records receipt, refunds and allotment in admin; bank-feed and stablecoin-watcher reconciliation is planned |
 | Register | Current members are derived from chain data; former members are retained records; a fully authoritative stored current register and durable export audit remain future work |
 | Portfolios and crypto wallets | Holdings, valuations, history, verified-address flows and supported test-network transfers exist; unpriced shares do not imply a market valuation |
@@ -209,7 +209,7 @@ payments and assets synthetic.
 | Mobile | Wallets, portfolio, company/token screens, eligibility and supporting-document flows exist; native security needs a Ledova build, with separate device acceptance checks |
 | Fiat conversion | An optional on-ramp integration exists; there is no off-ramp |
 
-The [roadmap](roadmap.md) orients the remaining work, including the scheduled
+The [roadmap](roadmap.md) orients the remaining work, including the unscheduled
 mobile investor flow. A feature flag or configured provider does not establish
 safety or regulatory compliance.
 

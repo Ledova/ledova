@@ -5,29 +5,12 @@ from django.db import connection, transaction
 from django.db.utils import ProgrammingError
 from django.test import TestCase
 
-from shared.db.policies import INSERT_ONLY_REASONS, INSERTABLE, POLICIES
 from shared.db.principal import PRINCIPAL_SETTING
 from shared.tests.tenants import a_profile
 from users.models import UserAccount
 
 POSTGRES = connection.vendor == "postgresql"
 REASON = "row-level security exists only in PostgreSQL, and on SQLite every write here would be allowed"
-
-
-class TheCatalogueKeepsTheOverrideHonestTest(TestCase):
-
-    def test_every_insert_only_term_is_a_table_the_catalogue_carries(self):
-        self.assertEqual(sorted(set(INSERTABLE) - set(POLICIES)), [])
-
-    def test_every_insert_only_term_states_why_it_differs_from_the_writable_one(self):
-        for table in INSERTABLE:
-            with self.subTest(table=table):
-                self.assertGreater(len(INSERT_ONLY_REASONS.get(table, "")), 200)
-
-    def test_an_override_that_matched_its_writable_term_would_be_pointless(self):
-        for table, term in INSERTABLE.items():
-            with self.subTest(table=table):
-                self.assertNotEqual(term, POLICIES[table][1])
 
 
 @skipUnless(POSTGRES, REASON)

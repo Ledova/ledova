@@ -168,7 +168,8 @@ probably is.
 
 **What the code does.** Today the register is derived from chain transfers, and
 the platform also hosts offerings, subscriptions, payment recording, investor
-classification and disabled trading — none of which a registry service would run.
+classification and trading enabled by default for synthetic/testnet use — none of
+which a registry service would run.
 The [registry service](registry-service.md) page's feature table says which
 features that model switches off or defers.
 

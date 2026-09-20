@@ -21,6 +21,7 @@ from tokens.models.choices import (
 )
 from tokens.serializers import TransferOrderCreateSerializer
 from tokens.services import token_transfer_service
+from tokens.tests.market_fixtures import record_synthetic_admission
 from users.models import UserAccount, UserProfile
 from wallets.models import Wallet
 
@@ -151,7 +152,7 @@ class TenantOrderIsolationTest(APITestCase):
 
 class TransferOrderOwnershipBindingTest(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(email="owner@example.test", password="pw-12345678")
+        self.user = User.objects.create_user(email="owner@example.test", password="pw-12345678", is_active=True)
         self.profile = UserProfile.objects.create(user=self.user)
         self.account = UserAccount.objects.create(user_profile=self.profile)
         self.wallet = Wallet.objects.create(
@@ -270,17 +271,18 @@ class TransferOrderOwnershipBindingTest(APITestCase):
         counter_profile = UserProfile.objects.create(user=counter_user)
         counter_account = UserAccount.objects.create(user_profile=counter_profile)
         counter_wallet = Wallet.objects.create(
-            user_account=counter_account,
+            user_account=self.account,
             address="0x" + "c" * 40,
             chain="ethereum",
             verification_status="VERIFIED",
         )
         valid_candidate = TransferOrder.objects.create(
             token=self.token,
+            payment_asset=reference_data().stablecoin,
             order_type=TransferOrderType.SELL,
             status=TransferOrderStatus.OPEN,
             wallet=counter_wallet,
-            owner_account=counter_account,
+            owner_account=self.account,
             wallet_address=counter_wallet.address,
             quantity=10,
             price_per_share=Decimal("1.20"),
@@ -297,8 +299,9 @@ class TransferOrderOwnershipBindingTest(APITestCase):
             price_per_share=Decimal("1.10"),
         )
 
+        record_synthetic_admission(valid_candidate)
         service = token_transfer_service
-        matches = service.find_matching_orders(incoming)
+        matches = list(service.find_matching_orders(incoming))
         sell_levels = list(TransferOrder.objects.order_book_levels(self.token, TransferOrderType.SELL))
 
         self.assertEqual(matches, [(valid_candidate, 10)])
@@ -321,7 +324,7 @@ class TransferOrderOwnershipBindingTest(APITestCase):
         share_tokens.get_token_balance.return_value = 10**30
 
         service = token_transfer_service
-        self.enterContext(patch.object(service, "find_matching_orders", return_value=[]))
+        self.enterContext(patch.object(service, "find_matching_orders", return_value=(row for row in ())))
         order, match = service.create_order_and_match(
             token=self.token,
             order_type=TransferOrderType.BUY,

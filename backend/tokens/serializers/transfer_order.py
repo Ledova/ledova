@@ -55,7 +55,7 @@ class TransferOrderDetailSerializer(serializers.ModelSerializer):
     total_value = serializers.DecimalField(max_digits=20, decimal_places=2, read_only=True)
     remaining_quantity = serializers.IntegerField(read_only=True)
     remaining_value = serializers.DecimalField(max_digits=20, decimal_places=2, read_only=True)
-    matched_order_uuid = serializers.UUIDField(source="matched_order.uuid", read_only=True, allow_null=True)
+    matched_order_uuid = serializers.UUIDField(source="matched_order_id", read_only=True, allow_null=True)
     can_be_modified = serializers.BooleanField(read_only=True)
 
     class Meta:

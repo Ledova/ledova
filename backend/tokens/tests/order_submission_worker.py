@@ -30,11 +30,13 @@ def run():
 
     settings.DATABASES = json.loads(os.environ["ORDER_TEST_DATABASES"])
     settings.RLS_AMBIENT_ALIAS = "app"
+    settings.RLS_ROLE_PER_REQUEST = False
     settings.ALLOWED_HOSTS = ["testserver"]
     settings.ATOMIC_SWAP_ADDRESS = "0x" + "9d" * 20
     django.setup()
 
     from django.contrib.auth import get_user_model
+    from django.db import connections
     from rest_framework.test import APIClient
 
     from shared.db import current_alias
@@ -43,6 +45,10 @@ def run():
     from tokens.tests.order_submission_fixtures import BASE, chain_client
 
     incoming = json.loads(sys.stdin.readline())
+    if incoming.get("short_lock_timeout"):
+        for alias in ("app", "operator"):
+            with connections[alias].cursor() as cursor:
+                cursor.execute("SET lock_timeout = '1s'")
     phase = incoming["phase"]
     directory = Path(incoming["directory"])
     client = APIClient()
@@ -58,6 +64,9 @@ def run():
     original_create = token_transfer_service.create_order_and_match
     original_find = service._find_submission
     original_matching = token_transfer_service.find_matching_orders
+    original_match = token_transfer_service.match_orders
+    original_candidate = token_transfer_service._match_candidate
+    candidate_attempts = 0
 
     def killed(*args, **kwargs):
         os.kill(os.getpid(), signal.SIGKILL)
@@ -89,11 +98,18 @@ def run():
         released()
         return original_matching(order)
 
-    def candidates_after_locking(order):
-        matches = original_matching(order)
+    def candidates_after_locking(*args, **kwargs):
         notify("candidates-locked")
         released()
-        return matches
+        return original_match(*args, **kwargs)
+
+    def candidate_after_pausing(*args):
+        nonlocal candidate_attempts
+        candidate_attempts += 1
+        if phase == "candidate-selected" or candidate_attempts == 2:
+            notify("candidate-selected" if phase == "candidate-selected" else "fallback")
+            released()
+        return original_candidate(*args)
 
     def published(event, payload):
         with (directory / "events.jsonl").open("a") as output:
@@ -134,7 +150,11 @@ def run():
             )
         elif phase == "candidates":
             stack.enter_context(
-                patch.object(token_transfer_service, "find_matching_orders", side_effect=candidates_after_locking)
+                patch.object(token_transfer_service, "match_orders", side_effect=candidates_after_locking)
+            )
+        elif phase in ("candidate-selected", "fallback"):
+            stack.enter_context(
+                patch.object(token_transfer_service, "_match_candidate", side_effect=candidate_after_pausing)
             )
         response = client.post(f"{BASE}create/", incoming["body"], format="json")
         print(

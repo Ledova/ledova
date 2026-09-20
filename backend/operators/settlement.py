@@ -48,6 +48,11 @@ def settlement_assets():
     return Asset.objects.filter(pk__in=settlement_deployments().values("asset_id"))
 
 
+def single_settlement_asset() -> Optional[Asset]:
+    assets = list(settlement_assets()[:2])
+    return assets[0] if len(assets) == 1 else None
+
+
 def settlement_errors(assets, field: str, chain: str) -> dict:
     for asset in assets:
         if asset.asset_type != AssetType.STABLECOIN.value:

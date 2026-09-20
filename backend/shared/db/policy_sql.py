@@ -6,7 +6,6 @@ from shared.db.policies import (
     BYPASSES_THE_POLICIES,
     FRAMEWORK,
     HELPERS,
-    INSERTABLE,
     NOT_TENANCY,
     POLICIES,
     REACHED_DESPITE_OPERATOR_ONLY,
@@ -80,9 +79,8 @@ def install_tables(schema_editor, tables):
             for suffix in SUFFIXES:
                 cursor.execute(f"DROP POLICY IF EXISTS {table}_{suffix} ON {table}")
             cursor.execute(f"CREATE POLICY {table}_read ON {table} FOR SELECT USING ({ADMITTED} AND ({readable}))")
-            insertable = INSERTABLE.get(table, writable)
             cursor.execute(
-                f"CREATE POLICY {table}_insert ON {table} FOR INSERT WITH CHECK ({ADMITTED} AND ({insertable}))"
+                f"CREATE POLICY {table}_insert ON {table} FOR INSERT WITH CHECK ({ADMITTED} AND ({writable}))"
             )
             cursor.execute(
                 f"CREATE POLICY {table}_update ON {table} FOR UPDATE USING ({ADMITTED} AND ({readable})) "

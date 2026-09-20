@@ -1,8 +1,5 @@
 from typing import NamedTuple
 
-from shared.constants import BLOCKCHAIN_BASE, BLOCKCHAIN_ETHEREUM
-from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
-
 
 class MissingOwnerColumns(NamedTuple):
     columns: tuple[str, ...]
@@ -126,13 +123,6 @@ A_PARTY_TO_THE_SWAP = (
     "EXISTS (SELECT 1 FROM wallets party "
     "WHERE party.uuid IN (tokens_swaporder.seller_wallet_id, tokens_swaporder.buyer_wallet_id) "
     f"AND party.user_account_id IN (SELECT {PRINCIPAL_ACCOUNTS}()))"
-)
-A_VERIFIED_PARTY_TO_THE_SWAP = (
-    "EXISTS (SELECT 1 FROM wallets party "
-    "WHERE party.uuid IN (tokens_swaporder.seller_wallet_id, tokens_swaporder.buyer_wallet_id) "
-    f"AND party.user_account_id IN (SELECT {PRINCIPAL_ACCOUNTS}()) "
-    f"AND party.verification_status = '{WALLET_VERIFICATION_STATUS_VERIFIED}' "
-    f"AND party.chain IN ('{BLOCKCHAIN_ETHEREUM}', '{BLOCKCHAIN_BASE}'))"
 )
 
 
@@ -377,25 +367,6 @@ PUBLIC_TERM = {
     "services/subscription.py re-read the offering under select_for_update, and an owner-only policy turns "
     "that into DoesNotExist on the subscribe path rather than a refusal.",
 }
-
-INSERTABLE = {
-    "tokens_swaporder": A_VERIFIED_PARTY_TO_THE_SWAP,
-}
-
-INSERT_ONLY_REASONS = {
-    "tokens_swaporder": (
-        "A party may bring a swap into existence with a verified wallet, and may never change one. "
-        "The read term asks only for membership, deliberately: verification in the read term would "
-        "hide a swap whose wallet has drifted, and a hidden row cannot be updated, so tokens/0040's "
-        "parent-identity triggers would stop firing and a refusal that should raise would silently "
-        "match nothing instead. Creation happens inside "
-        "create_order_and_match, which is atomic over the orders, the reservations and the swap "
-        "together, so it cannot move to another connection without the swap surviving a rollback that "
-        "takes the rest. Every transition afterwards - executing, failed, completed, the hashes - is "
-        "the relayer's work and runs as the operator, so no counterparty can move a swap it is in."
-    ),
-}
-
 
 AWAITING_R0: dict[str, MissingOwnerColumns] = {}
 

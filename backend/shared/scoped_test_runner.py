@@ -43,6 +43,8 @@ SCOPED_TEST_LABELS = (
     "tokens.tests.test_legacy_swap_hold.ScopedLegacySwapHoldTest",
     "tokens.tests.test_swap_parent_identity.ScopedSwapParentIdentityTest",
     "tokens.tests.test_order_submissions.ScopedOrderSubmissionRecoveryTest",
+    "tokens.tests.test_cross_account_matching.ScopedCrossAccountMatchingTest",
+    "tokens.tests.test_cross_account_matching.ScopedCrossAccountMatchingProcessTest",
     "tokens.tests.test_order_submission_processes.ScopedOrderSubmissionProcessTest",
     "tokens.tests.test_swap_expiry_processes.ScopedExpiryProcessesRespectExecutionClaimsTest",
     "tokens.tests.test_swap_expiry.ScopedSwapExpiryTaskWiringTest",

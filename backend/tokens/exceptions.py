@@ -42,6 +42,13 @@ class OrderSubmissionConflictException(APIException):
     expose_code = True
 
 
+class OrderMatchingBusyException(APIException):
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    default_detail = "Matching is busy. Retry this order using the same submission ID."
+    default_code = "order_matching_busy"
+    expose_code = True
+
+
 class OrderSubmissionRefreshRequiredException(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = "Request a new challenge bound to this order submission."

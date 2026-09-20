@@ -1,5 +1,9 @@
 import logging
-from typing import Optional, Union
+from contextlib import closing
+from typing import Generator, Optional, Union
+
+from django.conf import settings
+from django.db import OperationalError
 
 from assets.models import Asset
 from integrations.base_chain import get_base_chain_client
@@ -20,6 +24,7 @@ from tokens.exceptions import (
     InvalidTokenAddressException,
     NotWhitelistedException,
     OrderMatchException,
+    OrderMatchingBusyException,
     TokenPausedException,
     TransferBroadcastException,
     TransferPreparationException,
@@ -232,7 +237,30 @@ def match_orders(buy_order: TransferOrder, sell_order: TransferOrder, match_quan
     }
 
 
-def find_matching_orders(order: TransferOrder) -> list[tuple[TransferOrder, int]]:
+def _lock_foreign_matching_authority(order, candidate):
+    if candidate.owner_account_id == order.owner_account_id:
+        return True
+    wallets = (
+        Wallet.objects.select_related("user_account__user_profile__user")
+        .select_for_update(
+            of=("self", "user_account", "user_account__user_profile", "user_account__user_profile__user"),
+            no_key=True,
+            nowait=True,
+        )
+        .filter(
+            pk=candidate.wallet_id,
+            user_account_id=candidate.owner_account_id,
+            address__iexact=candidate.wallet_address,
+            verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
+            chain__in=(Blockchain.ETHEREUM.value, Blockchain.BASE.value),
+            user_account__user_profile__user__is_active=True,
+        )
+        .only("user_account__user_profile__user__is_active")
+    )
+    return wallets.first() is not None
+
+
+def find_matching_orders(order: TransferOrder) -> Generator[tuple[TransferOrder, int], None, None]:
     if order.order_type == TransferOrderType.BUY:
         qs = (
             TransferOrder.objects.ownership_bound()
@@ -254,16 +282,14 @@ def find_matching_orders(order: TransferOrder) -> list[tuple[TransferOrder, int]
             )
         )
 
-    candidates = lock_orders(qs.exclude(wallet_address__iexact=order.wallet_address))
-    candidates.sort(
-        key=lambda candidate: (
-            candidate.price_per_share if order.order_type == TransferOrderType.BUY else -candidate.price_per_share,
-            candidate.created_at,
-        )
-    )
+    qs = qs.admitted_to_match(order, settings.BLOCKCHAIN_CHAIN_ID).exclude(wallet_address__iexact=order.wallet_address)
+    price_order = "price_per_share" if order.order_type == TransferOrderType.BUY else "-price_per_share"
+    candidates = qs.order_by(price_order, "created_at", "pk").iterator(chunk_size=100)
+    yield from _compatible_matches(candidates, order)
 
+
+def _compatible_matches(candidates, order):
     order_remaining = order.quantity - (order.filled_quantity or 0)
-    matches = []
 
     for candidate in candidates:
         candidate_remaining = candidate.quantity - (candidate.filled_quantity or 0)
@@ -282,9 +308,47 @@ def find_matching_orders(order: TransferOrder) -> list[tuple[TransferOrder, int]
         if candidate_min > 0 and match_qty < candidate_min:
             continue
 
-        matches.append((candidate, match_qty))
+        yield candidate, match_qty
 
-    return matches
+
+def _matching_terms(order):
+    return (
+        order.owner_account_id,
+        order.wallet_id,
+        order.wallet_address,
+        order.token_id,
+        order.payment_asset_id,
+        order.order_type,
+        order.status,
+        order.quantity,
+        order.filled_quantity,
+        order.min_quantity,
+        order.price_per_share,
+        order.created_at,
+    )
+
+
+def _match_candidate(order, candidate, match_quantity):
+    try:
+        with atomic():
+            if not _lock_foreign_matching_authority(order, candidate):
+                raise OrderMatchingBusyException()
+            locked = {
+                row.pk: row
+                for row in lock_orders(TransferOrder.objects.filter(pk__in=(order.pk, candidate.pk)), nowait=True)
+            }
+            for expected in (order, candidate):
+                current = locked.get(expected.pk)
+                if current is None or _matching_terms(current) != _matching_terms(expected):
+                    raise OrderMatchingBusyException()
+            order, candidate = locked[order.pk], locked[candidate.pk]
+            if order.order_type == TransferOrderType.BUY:
+                return match_orders(order, candidate, match_quantity)
+            return match_orders(candidate, order, match_quantity)
+    except OperationalError as exc:
+        if getattr(exc.__cause__, "sqlstate", None) != "55P03":
+            raise
+        raise OrderMatchingBusyException() from exc
 
 
 @atomic()
@@ -313,7 +377,7 @@ def create_order_and_match(
     actor_owns_the_account = (
         actor is not None
         and actor.is_authenticated
-        and UserAccount.objects.select_for_update(of=("self",))
+        and UserAccount.objects.select_for_update(of=("self",), no_key=True)
         .filter(pk=wallet.user_account_id, user_profile__user=actor)
         .exists()
     )
@@ -371,22 +435,20 @@ def create_order_and_match(
     )
 
     amount_refusal = None
-    for matching_order, match_quantity in find_matching_orders(order):
-        try:
-            if order_type == TransferOrderType.BUY:
-                match_result = match_orders(order, matching_order, match_quantity)
-            else:
-                match_result = match_orders(matching_order, order, match_quantity)
-        except InvalidSettlementAmountException as exc:
-            amount_refusal = exc
-            continue
-        order = match_result["buy_order" if order_type == TransferOrderType.BUY else "sell_order"]
+    with closing(find_matching_orders(order)) as candidates:
+        for matching_order, match_quantity in candidates:
+            try:
+                match_result = _match_candidate(order, matching_order, match_quantity)
+            except InvalidSettlementAmountException as exc:
+                amount_refusal = exc
+                continue
+            order = match_result["buy_order" if order_type == TransferOrderType.BUY else "sell_order"]
 
-        from tokens.events import publish_trading_event
+            from tokens.events import publish_trading_event
 
-        publish_trading_event("order_created", str(token.uuid))
-        publish_trading_event("order_matched", str(token.uuid))
-        return order, match_result
+            publish_trading_event("order_created", str(token.uuid))
+            publish_trading_event("order_matched", str(token.uuid))
+            return order, match_result
 
     if amount_refusal is not None:
         raise amount_refusal

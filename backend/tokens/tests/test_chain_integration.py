@@ -459,53 +459,25 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual(operation.attempts.count(), 1)
         self.assertEqual(self._signer_nonce(), nonce + 1)
 
-    def test_a_signed_http_create_settles_to_completed_under_a_local_depth_policy(self):
-        journey_buyer = Account.from_key("0x" + "34" * 32)
-        journey_wallet = Wallet.objects.create(
-            user_account=self.tenant.account,
-            address=journey_buyer.address,
-            chain="base",
-            verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
-        )
-        self._whitelist(journey_buyer.address)
-        self.party_accounts[journey_buyer.address] = self.tenant.account
-        _hash, receipt = self.chain.send_transaction(
-            self.payment.functions.mint(journey_buyer.address, 50000), private_key=settings.BLOCKCHAIN_OPERATOR_KEY
-        )
-        self.assertEqual(receipt["status"], 1)
-        funding = self.w3.eth.send_transaction(
-            {"from": self.w3.eth.accounts[0], "to": journey_buyer.address, "value": 10**18}
-        )
-        self.assertEqual(self.w3.eth.wait_for_transaction_receipt(funding)["status"], 1)
-        Asset.objects.filter(pk=self.tenant.refs.stablecoin.pk).update(decimals=6)
-        FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
-        Operator.get().supported_settlement_assets.set([self.tenant.refs.stablecoin])
-        resting = TransferOrder.objects.create(
-            token=self.token,
-            payment_asset=self.tenant.refs.stablecoin,
-            wallet=self.party_wallets[self.seller.address],
-            owner_account=self.party_accounts[self.seller.address],
-            wallet_address=self.seller.address,
-            order_type=TransferOrderType.SELL,
-            quantity=10,
-            price_per_share=Decimal("1.50"),
-        )
+    def signed_http_order(self, party, kind):
+        account = self.party_accounts[party.address]
+        wallet = self.party_wallets[party.address]
         body = {
             "submission_id": str(uuid4()),
-            "owner_account_uuid": str(self.tenant.account.pk),
+            "owner_account_uuid": str(account.pk),
             "token": str(self.token.pk),
-            "wallet_uuid": str(journey_wallet.pk),
-            "wallet_address": journey_wallet.address,
-            "order_type": "buy",
+            "wallet_uuid": str(wallet.pk),
+            "wallet_address": wallet.address,
+            "order_type": kind,
             "quantity": 10,
             "min_quantity": 0,
             "price_per_share": "1.50",
         }
-        self.client.force_authenticate(self.tenant.user)
+        self.client.force_authenticate(account.user_profile.user)
         message = self.client.post("/api/v1/trading/orders/create/message/", body, format="json")
         self.assertEqual(message.status_code, 200, message.content)
         challenge = message.json()["challenge"]
-        signature = journey_buyer.sign_message(
+        signature = party.sign_message(
             signable_message(challenge["domain"], challenge["types"], challenge["message"])
         ).signature.to_0x_hex()
         created = self.client.post(
@@ -514,66 +486,61 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(created.status_code, 201, created.content)
-        snapshot = created.json()
-        self.assertEqual(snapshot["status"], "created")
-        self.assertEqual(snapshot["match"]["counterOrder"], str(resting.pk))
-        swap = SwapOrder.objects.get(pk=snapshot["match"]["swapOrder"])
-        self.assertEqual((swap.share_amount, swap.payment_amount), (10, 1500))
-        buy_order = TransferOrder.objects.get(pk=snapshot["order"]["uuid"])
+        return created.json()
 
-        for party, order in ((self.seller, resting), (journey_buyer, buy_order)):
+    def test_two_accounts_signed_http_orders_settle_to_completed_under_a_local_depth_policy(self):
+        Asset.objects.filter(pk=self.tenant.refs.stablecoin.pk).update(decimals=6)
+        FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
+        Operator.get().supported_settlement_assets.set([self.tenant.refs.stablecoin])
+        self.assertNotEqual(self.tenant.account.pk, self.buyer_tenant.account.pk)
+        resting = self.signed_http_order(self.seller, "sell")
+        self.assertIsNone(resting["match"])
+        created = self.signed_http_order(self.buyer, "buy")
+        self.assertEqual(created["match"]["counterOrder"], resting["order"]["uuid"])
+        swap = SwapOrder.objects.get(pk=created["match"]["swapOrder"])
+        self.assertEqual((swap.share_amount, swap.payment_amount), (10, 1500))
+        orders = (
+            TransferOrder.objects.get(pk=resting["order"]["uuid"]),
+            TransferOrder.objects.get(pk=created["order"]["uuid"]),
+        )
+        for party, order in zip((self.seller, self.buyer), orders):
             raw = self.signed_approval(swap, order, party)
             response = self.broadcast_approval(swap, order, raw)
             self.assertEqual(response.status_code, 200, response.content)
-        typed_data = atomic_swap_service.get_typed_data(swap)
-        signable = encode_typed_data(full_message=typed_data)
-        first = swap_execution.submit_signature(
-            swap,
-            self.seller.sign_message(signable).signature.hex(),
-            self.seller.address,
-            user=self.tenant.user,
-            participant="seller",
-        )
-        self.assertEqual(first.status, "seller_signed")
-        executing = swap_execution.submit_signature(
-            first,
-            journey_buyer.sign_message(signable).signature.hex(),
-            journey_buyer.address,
-            user=self.tenant.user,
-            participant="buyer",
-        )
-        self.assertEqual(executing.status, "executing")
-        before = (
-            self._contract().functions.balanceOf(self.seller.address).call(),
-            self._contract().functions.balanceOf(journey_buyer.address).call(),
-            self.payment.functions.balanceOf(self.seller.address).call(),
-            self.payment.functions.balanceOf(journey_buyer.address).call(),
-        )
-        self.assertEqual(swap_execution.recover(executing.transaction_id), "confirmed")
-
+            recorded = SwapApprovalSubmission.objects.get(tx_hash=response.json()["txHash"])
+            self.assertEqual(recorded.outcome, "confirmed")
+            url, identity = self.approval_route(swap, order)
+            message = self.client.get(url + "/", identity)
+            self.assertEqual(message.status_code, 200, message.content)
+            signable = encode_typed_data(full_message=message.json()["typedData"])
+            signed = self.client.post(
+                url + "/sign/",
+                identity
+                | {
+                    "signature": party.sign_message(signable).signature.to_0x_hex(),
+                    "signer_address": party.address,
+                },
+                format="json",
+            )
+            self.assertEqual(signed.status_code, 200, signed.content)
+        swap.refresh_from_db()
+        self.assertEqual(swap.status, "executing")
+        before = self.balances()
+        self.assertEqual(swap_execution.recover(swap.transaction_id), "confirmed")
         with override_settings(WALLET_CHAIN_FINALITY_POLICIES={"evm:31337": {"mode": "depth", "depth": 2}}):
-            self.assertIsNone(swap_execution.settle(executing.transaction_id))
-            executing.refresh_from_db()
-            self.assertEqual(executing.status, "executing")
-            self.assertIsNone(executing.completed_at)
+            self.assertIsNone(swap_execution.settle(swap.transaction_id))
+            swap.refresh_from_db()
+            self.assertEqual(swap.status, "executing")
+            self.assertIsNone(swap.completed_at)
             self.w3.provider.make_request("evm_mine", [])
-            self.assertEqual(swap_execution.settle(executing.transaction_id), "completed")
-            self.assertIsNone(swap_execution.settle(executing.transaction_id))
-
-        executing.refresh_from_db()
-        self.assertEqual(executing.status, "completed")
-        self.assertIsNotNone(executing.completed_at)
-        parents = TransferOrder.objects.filter(pk__in=[executing.sell_order_id, executing.buy_order_id]).order_by("pk")
+            self.assertEqual(swap_execution.settle(swap.transaction_id), "completed")
+            self.assertIsNone(swap_execution.settle(swap.transaction_id))
+        swap.refresh_from_db()
+        self.assertEqual(swap.status, "completed")
+        self.assertIsNotNone(swap.completed_at)
+        parents = TransferOrder.objects.filter(pk__in=[swap.sell_order_id, swap.buy_order_id]).order_by("pk")
         self.assertEqual([(order.status, order.filled_quantity) for order in parents], [("completed", 10)] * 2)
-        self.assertEqual(
-            (
-                self._contract().functions.balanceOf(self.seller.address).call(),
-                self._contract().functions.balanceOf(journey_buyer.address).call(),
-                self.payment.functions.balanceOf(self.seller.address).call(),
-                self.payment.functions.balanceOf(journey_buyer.address).call(),
-            ),
-            (before[0] - 10, before[1] + 10, before[2] + 1500, before[3] - 1500),
-        )
+        self.assertEqual(self.balances(), (before[0] - 10, before[1] + 10, before[2] + 1500, before[3] - 1500))
 
     def test_worker_killed_after_real_approval_acceptance_replays_nothing_and_records_the_receipt(self):
         swap, orders = self.matched_swap()

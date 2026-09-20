@@ -14,6 +14,29 @@ participants follows the [regulatory pathway](../regulatory-pathway.md).
 
 ## Intent and settlement
 
+Private orders remain visible and editable only to their owners. Eligible market
+readers see aggregated prices and remaining quantities from open or partially
+filled orders that meet the same signed admission and current-authority checks
+as foreign matching. Unjournaled, stale-domain, unverified-wallet and inactive-owner
+orders do not advertise market liquidity. Quotes use the same uniquely configured,
+active settlement asset and live deployment as new orders; absent or ambiguous
+configuration suppresses quotes. These quotes are a snapshot, not a
+reservation or a guarantee that a submitted order will match.
+The bounded create service can match
+across accounts after authorizing the caller's exact submission. A foreign
+candidate needs a recorded signed create admission with the current wallet,
+account, token and chain identity and the same payment asset. Its wallet must
+still be verified and on EVM, with an active account owner. The matcher locks
+one compatible candidate's wallet and account/profile/user authority and only
+that incoming/candidate order pair without waiting. Each attempt uses a savepoint;
+an unrepresentable settlement releases that candidate's locks before a fallback.
+Candidates stream in database priority order in batches of 100, with no whole-book
+Python sort or match list.
+A busy or concurrently changed candidate returns a retryable response, preserving the pending
+submission UUID and rolling back execution effects. Unjournaled orders
+retain their same-account behavior; they gain no cross-account matching authority.
+Both participants still approve and sign the captured settlement before execution.
+
 Deliberate new orders receive account-scoped submission UUIDs. Cancel and modify
 actions use separate action UUIDs. Retries retain those identities; equal terms
 do not make two deliberate actions the same action. Immutable intent and recorded
@@ -50,6 +73,18 @@ for scope.
   approval attribution, execution locking and unresolved outcomes.
 - [Recovery](../operations/recovery.md): operator response to pending work.
 
-The Redis event stream uses after-commit publication and has no transactional
-outbox or exactly-once delivery guarantee. Recovery of database state does not
-guarantee an event was delivered.
+## Accepted experimental limits
+
+The owner accepted these limits for the experimental version in
+[#646](https://github.com/Ledova/ledova/issues/646#issuecomment-5745382310):
+
+- The Redis event stream uses after-commit publication and has no transactional
+  outbox or exactly-once delivery guarantee. Live updates may be missed until
+  refresh; recovery of database state does not guarantee an event was delivered.
+- Concurrently created crossing orders can both remain unmatched. No background
+  sweep matches a crossed book.
+- Editing an order does not run matching again.
+
+These are accepted boundaries of this version, not scheduled work. The separate
+[owner direction on bounded cross-account matching](https://github.com/Ledova/ledova/issues/646#issuecomment-5745448042)
+preserves private-order visibility.

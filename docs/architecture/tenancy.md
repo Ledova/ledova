@@ -41,8 +41,8 @@ unclassified tables are denied rather than receiving blanket grants. The current
 Important invariants:
 
 - Policies are per command. UPDATE `USING` is the read scope so readable rows
-  can be locked; `WITH CHECK` is the write scope. DELETE uses that write scope.
-  INSERT exceptions carry explicit reasons in the catalogue.
+  can be locked; `WITH CHECK` is the write scope. INSERT and DELETE use that
+  write scope too.
 - Positive ownership predicates fail closed for unknown owners. A visible
   child's non-nullable parents must also be readable, or `select_related`
   can remove rows that `count()` counted.
@@ -97,9 +97,15 @@ Two bounded operator reads retain existing product behavior: resolving a supplie
 active issuer UUID for an associated-person claim, and fetching public market
 prices for already admitted tokens. They do not expose private orders or wallets.
 
+Order creation authorizes the exact submission in app scope, then rechecks its
+owner and wallet under locks in one bounded operator transaction. Challenge spend,
+matching, reservations and the recorded result commit together. Private order
+reads and edits remain owner-scoped; swap insertion is operator-only. See the
+[create protocol](../reference/order-submissions.md#creating-an-order).
+
 ## Verification
 
-The ordinary and behind-policy request suites take the app role on one ambient
+The ordinary request suite takes the app role on one ambient
 test connection, keeping fixtures visible without cross-alias deadlocks. That
 checks policy behavior. The separate scoped suite checks actual alias routing,
 transaction rollback, locks and task boundaries. Role/catalogue commands check

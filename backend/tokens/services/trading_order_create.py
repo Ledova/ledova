@@ -7,8 +7,8 @@ from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 from web3 import Web3
 
-from operators.settlement import settlement_assets
-from shared.db import atomic, current_alias
+from operators.settlement import single_settlement_asset
+from shared.db import atomic, current_alias, use_operator
 from tokens.exceptions import (
     ChallengeMismatchException,
     CreateOrderInsufficientBalanceException,
@@ -94,7 +94,7 @@ def _lock_authorized_wallet(actor, submission):
     if not (
         actor is not None
         and actor.is_authenticated
-        and UserAccount.objects.select_for_update(of=("self",))
+        and UserAccount.objects.select_for_update(of=("self",), no_key=True)
         .filter(pk=submission.owner_account_id, user_profile__user=actor)
         .exists()
     ):
@@ -119,10 +119,10 @@ def _eligible_token(token_id, wallet):
 
 
 def _settlement_asset():
-    assets = list(settlement_assets()[:2])
-    if len(assets) != 1:
+    asset = single_settlement_asset()
+    if asset is None:
         raise ValidationError({"token": "Orders need exactly one configured settlement asset."})
-    return assets[0]
+    return asset
 
 
 def _pending_token(submission, wallet):
@@ -192,6 +192,27 @@ def issue_order_submission(actor, data):
 
 def execute_order_submission(actor, data):
     _independent_boundary()
+    if actor is None or not actor.is_authenticated:
+        raise NotFound(NOT_FOUND)
+    admitted = OrderSubmission.objects.filter(
+        owner_account_id=data["owner_account_uuid"],
+        submission_id=data["submission_id"],
+        owner_account__user_profile__user=actor,
+    ).first()
+    if admitted is None:
+        raise NotFound(NOT_FOUND)
+    _assert_original_terms(admitted, data)
+    if (
+        admitted.status == OrderSubmissionStatus.PENDING
+        and not ShareToken.objects.filter(pk=admitted.token_id).exists()
+    ):
+        raise ValidationError({"token": "Token not found"})
+    with use_operator():
+        _independent_boundary()
+        return _execute_authorized_submission(actor, data)
+
+
+def _execute_authorized_submission(actor, data):
     with atomic(durable=True):
         submission = _find_submission(data["owner_account_uuid"], data["submission_id"])
         if submission is None:

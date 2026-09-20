@@ -22,6 +22,7 @@ from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import an_acn, make_eligible, make_tenant, open_to_investors
 from tokens.models import ShareIssuance
 from tokens.services import atomic_swap_service, token_transfer_service
+from tokens.tests.market_fixtures import record_synthetic_admission
 from tokens.tests.test_signed_transactions import SIGNER, sign_legacy
 from users.models import FinancialProfile, Notification, UserPreferences, UserProfile
 from wallets.models import Wallet
@@ -227,6 +228,8 @@ class ActionResponseContractTest(APITransactionTestCase):
         self.assertEqual(set(schema["required"]), set(body))
 
     def market_response(self):
+        for order in (self.owner.order, self.owner.counter_order):
+            record_synthetic_admission(order)
         response = self.client.get(f"/api/v1/trading/tokens/{self.owner.deployed_token.uuid}/market-data/")
         self.assertEqual(response.status_code, 200)
         body = response.json()
@@ -275,6 +278,8 @@ class ActionResponseContractTest(APITransactionTestCase):
         )
 
     def test_order_book_declares_aggregated_arrays_without_changing_the_market(self):
+        for order in (self.owner.order, self.owner.counter_order):
+            record_synthetic_admission(order)
         response = self.client.get(f"/api/v1/trading/tokens/{self.owner.deployed_token.uuid}/order-book/")
         self.assertEqual(response.status_code, 200)
         body = response.json()

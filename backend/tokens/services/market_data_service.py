@@ -29,7 +29,7 @@ def market_summaries(tokens):
         return {}
     with use_operator(), localcontext() as context:
         context.prec = 28
-        open_orders = TransferOrder.objects.ownership_bound().open().filter(token=OuterRef("pk"))
+        open_orders = TransferOrder.objects.advertised_liquidity().filter(token=OuterRef("pk"))
         last_trade = SwapOrder.objects.completed_for_token(OuterRef("pk"))
         rows = (
             ShareToken.objects.filter(pk__in=identifiers)

@@ -43,7 +43,7 @@ class SubmissionProcessChecks(SubmissionFixtures):
                 self.assertEqual(swap_count, original_swaps + 1)
                 events = [json.loads(line) for line in (directory / "events.jsonl").read_text().splitlines()]
                 self.assertEqual([event["event"] for event in events], ["order_created", "order_matched"])
-                self.assertTrue(all(event["alias"] == "app" for event in events))
+                self.assertTrue(all(event["alias"] == "operator" for event in events))
             else:
                 self.assertEqual(recovered.json()["status"], "pending")
                 self.assertFalse(consumed)
@@ -79,11 +79,11 @@ class SubmissionProcessChecks(SubmissionFixtures):
             one = OrderChild(self, WORKER, "pause", directory, body=first)
             locked = one.read()
             self.assertEqual(locked["stage"], "locked")
-            self.assertEqual(locked["database_user"], settings.RLS_ROLES["app"])
+            self.assertEqual(locked["database_user"], settings.RLS_ROLES["operator"])
             two = OrderChild(self, WORKER, "compete", directory, body=second)
             selecting = two.read()
             self.assertEqual(selecting["stage"], "selecting")
-            self.assertEqual(selecting["database_user"], settings.RLS_ROLES["app"])
+            self.assertEqual(selecting["database_user"], settings.RLS_ROLES["operator"])
             self.assertNotEqual(locked["pid"], selecting["pid"])
             wait_for_row_lock(self, selecting["pid"], "tokens_ordersubmission", locked["pid"])
             one.release()
@@ -133,8 +133,9 @@ class SubmissionProcessChecks(SubmissionFixtures):
                 tuple(result["status"] for result in results), statuses, one.error_output() + two.error_output()
             )
             self.assertEqual(
-                {report["database_user"] for report in (matching, selecting, *results)}, {settings.RLS_ROLES["app"]}
+                {report["database_user"] for report in (matching, selecting)}, {settings.RLS_ROLES["operator"]}
             )
+            self.assertEqual({report["database_user"] for report in results}, {settings.RLS_ROLES["app"]})
             return tuple(result["body"] for result in results)
 
     def test_a_second_sell_on_one_wallet_waits_and_is_refused_by_the_first_commitment(self):
