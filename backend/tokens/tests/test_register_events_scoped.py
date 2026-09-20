@@ -125,7 +125,8 @@ class ScopedRegisterFoundationTest(RunsOnTheScopedConnection, TransactionTestCas
                 while time.monotonic() < deadline:
                     with connections[current_alias()].cursor() as cursor:
                         cursor.execute(
-                            "SELECT bool_and(cardinality(pg_blocking_pids(pid)) > 0) FROM pg_stat_activity WHERE pid = ANY(%s)",
+                            "SELECT bool_and(cardinality(pg_blocking_pids(pid)) > 0) "
+                            "FROM pg_stat_activity WHERE pid = ANY(%s)",
                             [[pid for pid, _ in workers]],
                         )
                         blocked = cursor.fetchone()[0]
