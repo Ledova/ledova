@@ -115,6 +115,27 @@ class RegisterCorrectionTest(TestCase):
         self.assertEqual(verify_register(proposal.register_id)["issued_supply"], "100")
         self.assertEqual(RegisterEntry.objects.filter(register_id=proposal.register_id).count(), 3)
 
+    def test_completed_decision_retry_survives_confirmation_expiry_and_missing_source(self):
+        proposal = self.submit()
+        confirmation = self.review(proposal)
+        applied = self.apply(proposal, confirmation=confirmation)
+        self.document.delete()
+        with patch("django.core.signing.time.time", return_value=timezone.now().timestamp() + 901):
+            try:
+                retried = decide_correction(
+                    proposal_id=proposal.pk, reviewer=self.reviewer, confirmation=confirmation, decision="apply"
+                )
+            except ValidationError:
+                self.fail("An already applied decision was refused after confirmation expiry")
+        self.assertEqual(retried.applied_entry_id, applied.applied_entry_id)
+        self.assertEqual(RegisterEntry.objects.filter(operation_id=proposal.pk).count(), 1)
+        self.reviewer.is_active = False
+        self.reviewer.save(update_fields=["is_active"])
+        with self.assertRaises(PermissionDenied):
+            decide_correction(
+                proposal_id=proposal.pk, reviewer=self.reviewer, confirmation=confirmation, decision="apply"
+            )
+
     def test_conflicting_uuid_reuse_and_second_correction_refused(self):
         proposal = self.submit()
         for change in (

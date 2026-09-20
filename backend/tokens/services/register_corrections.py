@@ -193,15 +193,6 @@ def decide_correction(*, proposal_id, reviewer, confirmation, decision, rejectio
         or len(rejection_reason) > 1000
     ):
         raise ValidationError("Choose application or rejection with a reason.")
-    if decision == "apply":
-        try:
-            preview = signing.loads(
-                confirmation, salt="tokens.register-correction", max_age=REGISTER_CORRECTION_REVIEW_MAX_AGE
-            )
-        except signing.BadSignature:
-            raise ValidationError("The review confirmation is invalid or expired. Open a fresh review.") from None
-        if preview.get("proposal") != str(proposal_id) or preview.get("reviewer") != reviewer.pk:
-            raise ValidationError("The confirmation belongs to another proposal or reviewer.")
     with atomic():
         initial = RegisterCorrection.objects.get(pk=proposal_id)
         company = Company.objects.select_for_update(no_key=True).get(pk=initial.company_id)
@@ -220,6 +211,14 @@ def decide_correction(*, proposal_id, reviewer, confirmation, decision, rejectio
                 return proposal
             raise RegisterChangeConflict()
         if decision == "apply":
+            try:
+                preview = signing.loads(
+                    confirmation, salt="tokens.register-correction", max_age=REGISTER_CORRECTION_REVIEW_MAX_AGE
+                )
+            except signing.BadSignature:
+                raise ValidationError("The review confirmation is invalid or expired. Open a fresh review.") from None
+            if preview.get("proposal") != str(proposal_id) or preview.get("reviewer") != reviewer.pk:
+                raise ValidationError("The confirmation belongs to another proposal or reviewer.")
             if preview.get("evidence") != proposal.evidence_fingerprint:
                 raise ValidationError("The review confirmation does not match this evidence.")
             _check_head(proposal, register)

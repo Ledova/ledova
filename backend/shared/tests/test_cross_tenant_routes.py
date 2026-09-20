@@ -169,6 +169,13 @@ CAPITAL_INCREASE = {
     "purpose": "Growth",
     "boardResolutionReference": "BOARD-NEW",
 }
+REGISTER_CORRECTION_ROUTES = {
+    "create": ("post", "/api/v1/tokens/register-corrections/"),
+    "list": ("get", "/api/v1/tokens/register-corrections/"),
+    "detail": ("get", "/api/v1/tokens/register-corrections/{uuid}/"),
+    "file": ("get", "/api/v1/tokens/register-corrections/{uuid}/file/"),
+}
+
 ROUTES = (
     Route("get", "/api/user-profiles/{profile}/"),
     Route("put", "/api/user-profiles/{profile}/", {"fullName": "Renamed", "citizenshipCountry": "{country}"}),
@@ -774,12 +781,13 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             owner, reviewer, document, issue = correction_fixture()
         self.client.force_authenticate(owner)
         payload = correction_payload(document, issue)
-        response = self.client.post(reverse("tokens:register-corrections-list"), payload, format="json")
+        response = self.client.post(REGISTER_CORRECTION_ROUTES["create"][1], payload, format="json")
         self.assertEqual(response.status_code, 201, response.content)
         proposal_id = response.json()["uuid"]
-        detail = reverse("tokens:register-corrections-detail", args=[proposal_id])
-        file = reverse("tokens:register-corrections-file", args=[proposal_id])
-        for path in (detail, file):
+        listing = REGISTER_CORRECTION_ROUTES["list"][1]
+        self.assertEqual([row["uuid"] for row in self.rows(self.client.get(listing))], [proposal_id])
+        for name in ("detail", "file"):
+            path = REGISTER_CORRECTION_ROUTES[name][1].format(uuid=proposal_id)
             self.assertEqual(self.client.get(path).status_code, 200)
             for actor in self.actors:
                 self.client.force_authenticate(actor.user)
@@ -787,12 +795,14 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
                 missing = self.client.get(path.replace(proposal_id, str(uuid4())))
                 self.assertEqual((denied.status_code, denied.content), (missing.status_code, missing.content))
                 self.assertEqual(denied.status_code, 404)
+                self.assertEqual(self.rows(self.client.get(listing)), [])
             self.client.force_authenticate(None)
             self.assertEqual(self.client.get(path).status_code, 401)
+            self.assertEqual(self.client.get(listing).status_code, 401)
             self.client.force_authenticate(owner)
         self.client.force_authenticate(self.actors[0].user)
         self.assertEqual(
-            self.client.post(reverse("tokens:register-corrections-list"), payload, format="json").status_code, 404
+            self.client.post(REGISTER_CORRECTION_ROUTES["create"][1], payload, format="json").status_code, 404
         )
         self.client.force_authenticate(None)
         review = reverse("admin:tokens_registercorrection_review", args=[proposal_id])
