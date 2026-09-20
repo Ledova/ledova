@@ -172,8 +172,9 @@ class PrivateStorageMigrationRoundTripTest(TransactionTestCase):
 
         migrate([COMPANIES_BEFORE])
 
-        document.refresh_from_db()
-        self.assertEqual(document.file.name, key)
+        historical = MigrationExecutor(connection).loader.project_state([COMPANIES_BEFORE]).apps
+        restored = historical.get_model("companies", "CompanyDocument").objects.get(pk=document.pk)
+        self.assertEqual(restored.file.name, key)
 
     def test_the_reverse_never_narrows_the_widened_column(self):
         self.make_company_document("mig-company-width", "111000555")

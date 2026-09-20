@@ -21,6 +21,7 @@ from companies.models import (
     CompanyStatus,
 )
 from companies.tests.registry_fixtures import DECLARATION
+from companies.tests.test_document_file_access import attach_file, make_document
 from feature_flags.models import FeatureFlag
 from integrations.abr.client import RegistryObservation
 from offerings.models import Offering, OfferingStatus, Subscription
@@ -755,6 +756,30 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         with self.committed_where_a_request_on_another_connection_can_read_it():
             make_eligible(alice)
         self.assertEqual(self.client.get(GLOBAL_ROUTES[0]).json()["paymentInstructions"], RAILS)
+
+    @override_settings(
+        STORAGES={
+            "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+            "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+        }
+    )
+    def test_document_review_refuses_tenants_and_unprivileged_staff_and_admits_the_operator(self):
+        self.client.force_authenticate(None)
+        with self.as_an_operator_would():
+            document = attach_file(make_document(self.other.company))
+        path = reverse("admin:companies_companydocument_verify", args=[document.pk])
+        for actor, expected in zip(self.actors, (302, 403, 200)):
+            self.client.force_login(actor.user)
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, expected)
+            with self.as_an_operator_would():
+                self.assertFalse(CompanyDocument.objects.get(pk=document.pk).is_verified)
+            confirmation = response.context["form"].initial["confirmation"] if expected == 200 else "forged"
+            response = self.client.post(path, {"confirmation": confirmation, "reviewed": "on"})
+            self.assertEqual(response.status_code, 302 if expected == 200 else expected)
+            with self.as_an_operator_would():
+                self.assertEqual(CompanyDocument.objects.get(pk=document.pk).is_verified, expected == 200)
+            self.client.logout()
 
     @override_settings(
         STORAGES={

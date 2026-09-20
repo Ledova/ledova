@@ -84,6 +84,7 @@ class CompanyDocument(BaseModel):
     valid_until = models.DateField(null=True, blank=True)
 
     is_verified = models.BooleanField(default=False)
+    verified_fingerprint = models.CharField(max_length=64, blank=True, editable=False)
     verified_at = models.DateTimeField(null=True, blank=True)
     verified_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
