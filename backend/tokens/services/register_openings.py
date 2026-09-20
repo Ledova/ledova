@@ -202,8 +202,8 @@ def _check_mapping_against_boundary(mapping, boundary):
 
 
 def _recheck_boundary(boundary, *, client=None):
-    client = client or get_base_chain_client()
     try:
+        client = client or get_base_chain_client()
         chain_id = client.assert_expected_chain()
         block = client.w3.eth.get_block(boundary["block"]["number"])
         covered = _boundary(client, boundary["policy"])

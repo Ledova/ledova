@@ -93,6 +93,34 @@ BEGIN
                 USING ERRCODE = '23514';
         END IF;
     ELSIF OLD.boundary IS NULL AND NEW.boundary IS NOT NULL THEN
+        IF jsonb_typeof(NEW.boundary) IS DISTINCT FROM 'object'
+            OR EXISTS (SELECT 1 FROM (VALUES
+                (ARRAY['version'], 'number'),
+                (ARRAY['token'], 'string'),
+                (ARRAY['company'], 'string'),
+                (ARRAY['deployment'], 'string'),
+                (ARRAY['chain_id'], 'number'),
+                (ARRAY['contract_address'], 'string'),
+                (ARRAY['deployment_transaction'], 'string'),
+                (ARRAY['deployment_block'], 'number'),
+                (ARRAY['deployment_hash'], 'string'),
+                (ARRAY['block'], 'object'),
+                (ARRAY['block', 'number'], 'number'),
+                (ARRAY['block', 'hash'], 'string'),
+                (ARRAY['block', 'timestamp'], 'number'),
+                (ARRAY['block', 'date'], 'string'),
+                (ARRAY['policy'], 'object'),
+                (ARRAY['policy', 'version'], 'number'),
+                (ARRAY['policy', 'mode'], 'string'),
+                (ARRAY['authorized_supply'], 'string'),
+                (ARRAY['issued_supply'], 'string'),
+                (ARRAY['holdings'], 'array')
+            ) AS required(path, kind)
+                WHERE jsonb_typeof(NEW.boundary #> required.path) IS DISTINCT FROM required.kind)
+        THEN
+            RAISE EXCEPTION 'The captured boundary requires complete typed snapshot provenance'
+                USING ERRCODE = '23514';
+        END IF;
         SELECT count(*) INTO mapping_count FROM jsonb_array_elements(NEW.mapping);
         SELECT count(*) INTO holdings_count FROM jsonb_array_elements(NEW.boundary->'holdings');
         SELECT count(*) INTO pair_count FROM jsonb_array_elements(NEW.mapping) m(item)
@@ -107,26 +135,35 @@ BEGIN
             OR COALESCE(NEW.boundary->>'version', '') <> '1'
             OR NEW.boundary->>'token' IS DISTINCT FROM NEW.token_id::text
             OR NEW.boundary->>'company' IS DISTINCT FROM NEW.company_id::text
+            OR NEW.boundary->>'deployment' !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+            OR NEW.boundary->>'contract_address' !~ '^0x[0-9a-fA-F]{40}$'
+            OR NEW.boundary->>'deployment_transaction' !~ '^0x[0-9a-f]{64}$'
+            OR NEW.boundary->>'deployment_hash' !~ '^0x[0-9a-f]{64}$'
+            OR NEW.boundary->>'deployment_block' !~ '^[0-9]+$'
             OR COALESCE(NEW.boundary->>'chain_id', '') !~ '^[0-9]+$'
             OR COALESCE(NEW.boundary->'block'->>'number', '') !~ '^[0-9]+$'
             OR COALESCE(NEW.boundary->'block'->>'hash', '') !~ '^0x[0-9a-f]{64}$'
             OR COALESCE(NEW.boundary->'block'->>'timestamp', '') !~ '^[0-9]+$'
             OR COALESCE(NEW.boundary->'block'->>'date', '') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+            OR NEW.boundary->'policy'->>'version' <> '1'
             OR COALESCE(NEW.boundary->'policy'->>'mode', '') NOT IN ('finalized', 'depth')
             OR (NEW.boundary->'policy'->>'mode' = 'depth') <> (NEW.boundary->'policy' ? 'depth')
+            OR (NEW.boundary->'policy'->>'mode' = 'depth' AND (
+                jsonb_typeof(NEW.boundary->'policy'->'depth') IS DISTINCT FROM 'number'
+                OR COALESCE(NEW.boundary->'policy'->>'depth', '') !~ '^[1-9][0-9]*$'))
             OR COALESCE(NEW.boundary->>'authorized_supply', '') !~ '^[0-9]+$'
             OR COALESCE(NEW.boundary->>'issued_supply', 'x') !~ '^[0-9]+$'
             OR (CASE WHEN COALESCE(NEW.boundary->>'issued_supply', '') ~ '^[0-9]+$'
                      AND COALESCE(NEW.boundary->>'authorized_supply', '') ~ '^[0-9]+$'
                 THEN (NEW.boundary->>'issued_supply')::numeric > (NEW.boundary->>'authorized_supply')::numeric
                 ELSE FALSE END)
-            OR jsonb_typeof(NEW.boundary->'holdings') <> 'array'
             OR EXISTS (SELECT 1 FROM jsonb_array_elements(NEW.boundary->'holdings') item
-                WHERE jsonb_typeof(item) <> 'object'
+                WHERE jsonb_typeof(item) IS DISTINCT FROM 'object'
                 OR (SELECT count(*) FROM jsonb_object_keys(item)) <> 2
-                OR NOT (item ? 'address' AND item ? 'shares')
-                OR item->>'address' !~ '^0x[0-9a-fA-F]{40}$'
-                OR item->>'shares' !~ '^[1-9][0-9]*$')
+                OR jsonb_typeof(item->'address') IS DISTINCT FROM 'string'
+                OR jsonb_typeof(item->'shares') IS DISTINCT FROM 'string'
+                OR COALESCE(item->>'address', '') !~ '^0x[0-9a-fA-F]{40}$'
+                OR COALESCE(item->>'shares', '') !~ '^[1-9][0-9]*$')
             OR (CASE WHEN COALESCE(NEW.boundary->>'issued_supply', '') ~ '^[0-9]+$'
                 THEN (SELECT COALESCE(sum((item->>'shares')::numeric), 0)
                     FROM jsonb_array_elements(NEW.boundary->'holdings') item)
@@ -137,6 +174,19 @@ BEGIN
             OR pair_count <> mapping_count OR pair_count <> holdings_count
         THEN
             RAISE EXCEPTION 'The captured boundary must bind this share class and its mapped holders exactly'
+                USING ERRCODE = '23514';
+        END IF;
+        IF (NEW.boundary->>'chain_id')::numeric > 9223372036854775807
+            OR (NEW.boundary->>'deployment_block')::numeric > (NEW.boundary->'block'->>'number')::numeric
+            OR (NEW.boundary->'block'->>'number')::numeric > 9223372036854775807
+            OR (NEW.boundary->'block'->>'timestamp')::numeric > 9223372036854775807
+            OR (NEW.boundary->'policy'->>'depth')::numeric > 9223372036854775807
+            OR (NEW.boundary->>'authorized_supply')::numeric >
+                115792089237316195423570985008687907853269984665640564039457584007913129639935
+            OR (NEW.boundary->'block'->>'date')::date IS DISTINCT FROM
+                (to_timestamp((NEW.boundary->'block'->>'timestamp')::double precision) AT TIME ZONE 'UTC')::date
+        THEN
+            RAISE EXCEPTION 'The captured boundary must preserve valid chain quantities and its UTC date'
                 USING ERRCODE = '23514';
         END IF;
     ELSE

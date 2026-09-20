@@ -27,6 +27,7 @@ from companies.tests.test_document_file_access import (
     attach_file,
     make_document,
 )
+from integrations.base_chain.exceptions import BaseChainConnectionError
 from shared.db import atomic, current_alias
 from shared.tests.schema import migrate_to, restore_every_migration
 from tokens.exceptions import RegisterChangeConflict, RegisterUnavailableException
@@ -487,6 +488,94 @@ class RegisterOpeningTest(TransactionTestCase):
         with self.assertRaises(DatabaseError), atomic():
             RegisterOpening.objects.filter(pk=second.pk).update(boundary=malformed)
         self.assertIsNone(RegisterOpening.objects.get(pk=second.pk).boundary)
+
+    def assert_boundary_refused(self, boundary, *, mapping=None):
+        proposal = self.submit(operation_id=uuid4(), **({"mapping": mapping} if mapping is not None else {}))
+        with self.assertRaises(DatabaseError), atomic(), connections[current_alias()].cursor() as cursor:
+            cursor.execute("SET LOCAL ROLE ledova_operator")
+            RegisterOpening.objects.filter(pk=proposal.pk).update(boundary=boundary)
+        self.assertIsNone(RegisterOpening.objects.get(pk=proposal.pk).boundary)
+
+    def captured_boundary(self):
+        proposal = self.submit()
+        self.review(proposal)
+        return RegisterOpening.objects.get(pk=proposal.pk).boundary
+
+    def test_boundary_guard_requires_explicit_holdings_even_when_empty(self):
+        boundary = self.captured_boundary()
+        boundary["issued_supply"] = "0"
+        del boundary["holdings"]
+        self.assert_boundary_refused(boundary, mapping=[])
+        for value in (None, {}, "", 0):
+            with self.subTest(holdings=value):
+                self.assert_boundary_refused({**boundary, "holdings": value}, mapping=[])
+
+    def test_boundary_guard_refuses_null_or_non_string_share_quantities(self):
+        boundary = self.captured_boundary()
+        for value in (None, 80, True, {}, [], "", "-1", "0", "1.5"):
+            malformed = deepcopy(boundary)
+            malformed["holdings"][0]["shares"] = value
+            if value is None:
+                malformed["issued_supply"] = "20"
+            with self.subTest(shares=value):
+                self.assert_boundary_refused(malformed)
+
+    def test_boundary_guard_requires_complete_typed_deployment_provenance(self):
+        boundary = self.captured_boundary()
+        for key in ("deployment", "deployment_transaction", "deployment_block", "deployment_hash", "contract_address"):
+            for value in (None, {}, [], True, "invalid"):
+                with self.subTest(key=key, value=value):
+                    self.assert_boundary_refused({**boundary, key: value})
+            malformed = deepcopy(boundary)
+            del malformed[key]
+            with self.subTest(missing=key):
+                self.assert_boundary_refused(malformed)
+
+    def test_boundary_guard_requires_typed_block_policy_and_supply(self):
+        boundary = self.captured_boundary()
+        changes = [
+            {"version": "1"},
+            {"chain_id": str(boundary["chain_id"])},
+            {"issued_supply": 100},
+            {"authorized_supply": 1000},
+            {"block": {**boundary["block"], "number": str(boundary["block"]["number"])}},
+            {"block": {**boundary["block"], "timestamp": None}},
+            {"block": {**boundary["block"], "date": "2026-02-31"}},
+            {"policy": {"mode": "finalized"}},
+            {"policy": {"version": 1, "mode": "depth", "depth": None}},
+            {"policy": {"version": 1, "mode": "depth", "depth": "1"}},
+            {"policy": {"version": 1, "mode": "depth", "depth": 0}},
+        ]
+        for change in changes:
+            with self.subTest(change=change):
+                self.assert_boundary_refused({**boundary, **change})
+
+    @override_settings(STORAGES=ADMIN_STORAGES)
+    def test_admin_preserves_review_and_rejection_when_provider_construction_fails(self):
+        proposal = self.submit()
+        confirmation = self.review(proposal)
+        self.client.force_login(self.reviewer)
+        self.client.raise_request_exception = False
+        url = reverse("admin:tokens_registeropening_review", args=[proposal.pk])
+        with patch(
+            "tokens.services.register_openings.get_base_chain_client",
+            side_effect=BaseChainConnectionError("private endpoint connection details"),
+        ):
+            for method, payload in (
+                (self.client.get, {}),
+                (self.client.post, {"decision": "apply", "reviewed": "on", "confirmation": confirmation}),
+            ):
+                with self.subTest(method=method.__name__):
+                    response = method(url, payload)
+                    self.assertEqual(response.status_code, 200)
+                    self.assertContains(response, "Retry the review, or reject this request with a reason.")
+                    self.assertNotContains(response, "private endpoint")
+                    self.assertEqual(RegisterOpening.objects.get(pk=proposal.pk).status, "submitted")
+                    self.assertFalse(RegisterEntry.objects.exists())
+                    self.assertFalse(RegisterMemberWallet.objects.exists())
+            response = self.client.post(url, {"decision": "reject", "rejection_reason": "Boundary unreadable"})
+            self.assertEqual(response.status_code, 302)
+        self.assertEqual(RegisterOpening.objects.get(pk=proposal.pk).status, "rejected")
 
     def test_case_insensitive_wallet_links_admit_one_identity_concurrently(self):
         members = [create_member(company_id=self.tenant.company.pk, member_id=uuid4()) for _ in range(2)]

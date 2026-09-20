@@ -1,5 +1,6 @@
 import time
 from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
 from queue import Queue
 from uuid import uuid4
 
@@ -83,6 +84,25 @@ class ScopedRegisterOpeningTest(RunsOnTheScopedConnection, APITransactionTestCas
             )
         with use_operator():
             self.assertEqual(RegisterMemberWallet.objects.count(), 0)
+
+    def test_operator_boundary_guard_refuses_missing_provenance_and_null_quantities(self):
+        boundary = RegisterOpening.objects.get(pk=self.proposal.pk).boundary
+        malformed = deepcopy(boundary)
+        malformed["holdings"][0]["shares"] = None
+        malformed["issued_supply"] = "20"
+        missing_provenance = deepcopy(boundary)
+        del missing_provenance["deployment"]
+        for value in (malformed, missing_provenance):
+            proposal = submit_opening(actor=self.owner, **opening_payload(self.document, self.target))
+            with self.subTest(boundary=value), use_operator():
+                with connections[current_alias()].cursor() as cursor:
+                    cursor.execute("SELECT current_user")
+                    self.assertEqual(cursor.fetchone()[0], settings.RLS_ROLES["operator"])
+                with self.assertRaises(DatabaseError), atomic():
+                    RegisterOpening.objects.filter(pk=proposal.pk).update(boundary=value)
+            self.assertIsNone(RegisterOpening.objects.get(pk=proposal.pk).boundary)
+        with use_operator():
+            self.assertEqual(self.apply().status, "applied")
 
     def test_real_operator_rollback_preserves_submission_and_initializes_nothing(self):
         with self.assertRaises(RuntimeError), use_operator(), atomic():
