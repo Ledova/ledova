@@ -52,6 +52,7 @@ from wallets.models import ChainObservationFinality, ChainObservationResult, Wal
 from wallets.services.chain_evidence import collect_chain_evidence
 from wallets.services.chain_observations import finality_policy
 from wallets.services.nonce_evidence import collect_nonce_evidence
+from wallets.services.receipt_readers import MAX_BLOCK_NUMBER
 
 logger = logging.getLogger(__name__)
 REVERTED_ON_CHAIN = "Swap execution reverted on chain"
@@ -418,7 +419,7 @@ def _project(transaction, claim, refusal="Swap execution could not be prepared")
         if current.status in (TransactionStatus.CONFIRMED, TransactionStatus.REVERTED):
             return
         if any(
-            type(value) is not int or not 0 <= value <= 2**31 - 1
+            type(value) is not int or not 0 <= value <= MAX_BLOCK_NUMBER
             for value in (operation.block_number, operation.gas_used)
         ):
             raise SwapNotReadyException("The retained receipt cannot fit the transaction projection.")
@@ -514,7 +515,7 @@ def _summary(operation):
     )
 
 
-def _finalized_outcome(transaction, operation, client, network, policy):
+def _finalized_receipt(transaction, operation, client, network, policy):
     _original_chain(transaction, client)
     verdict = collect_chain_evidence(
         client,
@@ -553,13 +554,24 @@ def _finalized_outcome(transaction, operation, client, network, policy):
         raise SwapNotReadyException("The receipt no longer matches its finalized inclusion.")
     if (included["height"], included["hash"]) != (operation.block_number, operation.block_hash):
         logger.info("Swap execution %s finalized in a later block than its first receipt", transaction.pk)
-    return included["succeeded"]
+    if any(
+        type(value) is not int or not 0 <= value <= MAX_BLOCK_NUMBER
+        for value in (included["height"], receipt["gasUsed"])
+    ):
+        raise SwapNotReadyException("The finalized receipt cannot fit the supported range.")
+    _original_chain(transaction, client)
+    return {
+        "block_number": included["height"],
+        "block_hash": included["hash"],
+        "gas_used": receipt["gasUsed"],
+        "policy": policy,
+    }
 
 
 def _complete(swap):
     swap.status = SwapOrderStatus.COMPLETED
     swap.completed_at = timezone.now()
-    swap.save(update_fields=["status", "completed_at", "updated_at"])
+    swap.save(update_fields=["status", "completed_at", "finalized_receipt", "updated_at"])
     for order in (swap.sell_order, swap.buy_order):
         order.tx_hash = swap.tx_hash
         if order.filled_quantity >= order.quantity:
@@ -596,8 +608,8 @@ def settle(transaction_id, *, client=None):
         logger.warning("Swap execution %s holds without an approved finality policy for %s", transaction.pk, network)
         return None
     BlockchainTransaction.objects.filter(pk=transaction.pk).update(updated_at=timezone.now())
-    succeeded = _finalized_outcome(transaction, operation, client or get_base_chain_client(), network, policy)
-    if succeeded is None:
+    finalized = _finalized_receipt(transaction, operation, client or get_base_chain_client(), network, policy)
+    if finalized is None:
         return None
     with atomic(durable=True):
         swap, current = _lock_command(transaction)
@@ -609,9 +621,11 @@ def settle(transaction_id, *, client=None):
             or current.status != transaction.status
             or swap.tx_hash != current.tx_hash
             or current.tx_hash != operation.current_attempt.tx_hash
+            or finalized["policy"] != finality_policy(network, BLOCKCHAIN_BASE)
         ):
-            raise SwapNotReadyException("The original swap execution identity no longer matches.")
-        if succeeded:
+            raise SwapNotReadyException("The original swap execution identity or finality policy no longer matches.")
+        swap.finalized_receipt = finalized
+        if operation.status == OutgoingStatus.CONFIRMED:
             _complete(swap)
         else:
             swap.mark_failed(REVERTED_ON_CHAIN)

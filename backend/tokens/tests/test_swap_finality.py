@@ -1,3 +1,4 @@
+from contextlib import ExitStack
 from datetime import timedelta
 from unittest import skipUnless
 from unittest.mock import call, patch
@@ -98,6 +99,7 @@ class SwapFinalityFixtures:
 
     def assert_held(self):
         self.assertEqual((self.swap.status, self.swap.completed_at), (SwapOrderStatus.EXECUTING, None))
+        self.assertIsNone(self.swap.finalized_receipt)
         self.assertEqual(self.parents(), self.before)
 
     def refuse_rpc(self):
@@ -137,6 +139,17 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
             self.assertEqual(SwapOrder.objects.completed_for_token(self.swap.share_token_id).first(), self.swap)
         self.publisher.assert_called_with("swap_completed", str(self.swap.share_token_id))
 
+    def assert_finalized_receipt(self, *, block=12, block_hash=BLOCK_HASH, gas=21000):
+        self.assertEqual(
+            self.swap.finalized_receipt,
+            {
+                "block_number": block,
+                "block_hash": block_hash,
+                "gas_used": gas,
+                "policy": {"version": 1, "mode": "finalized"},
+            },
+        )
+
     def committed(self):
         with use_operator():
             return TransferOrder.objects.committed_sell_quantity(self.swap.share_token_id, self.swap.seller_address)
@@ -165,6 +178,7 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
             self.node.advance(head=20, finalized=12)
             self.assertEqual(self.settle(), SwapOrderStatus.COMPLETED)
         self.assert_completed(attempt)
+        self.assert_finalized_receipt()
         parents = self.parents()
         self.assertEqual(
             [(row["status"], row["filled_quantity"], row["tx_hash"]) for row in (parents["sell"], parents["buy"])],
@@ -263,10 +277,12 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
             self.node.receipts[attempt.tx_hash] = execution_receipt(
                 attempt, arguments, block_number=14, block_hash=REORG_HASH
             )
+            self.node.receipts[attempt.tx_hash]["gasUsed"] = 22000
             with self.assertLogs(LOGGER, "INFO") as logs:
                 self.assertEqual(self.settle(), SwapOrderStatus.COMPLETED)
         self.assertIn("later block", logs.output[-1])
         self.assert_completed(attempt)
+        self.assert_finalized_receipt(block=14, block_hash=REORG_HASH, gas=22000)
         with use_operator():
             operation = OutgoingOperation.objects.get(pk=self.record.outgoing_operation_id)
             self.record.refresh_from_db()
@@ -304,6 +320,87 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
         self.assertEqual(self.rows(), settled)
         self.assertEqual(self.publisher.call_args_list.count(call("swap_completed", str(self.swap.share_token_id))), 1)
 
+    def test_a_policy_changed_after_rpc_cannot_complete_the_swap(self):
+        self.confirm()
+        self.node.advance(head=20, finalized=12)
+        collect = swap_execution._finalized_receipt
+
+        def change_policy(*args):
+            result = collect(*args)
+            changes.enter_context(override_settings(WALLET_CHAIN_FINALITY_POLICIES={}))
+            return result
+
+        with override_settings(WALLET_CHAIN_FINALITY_POLICIES=FINALIZED), ExitStack() as changes, patch.object(
+            swap_execution, "_finalized_receipt", side_effect=change_policy
+        ):
+            with self.assertRaises(SwapNotReadyException):
+                self.settle()
+        with use_operator():
+            self.swap.refresh_from_db()
+        self.assert_held()
+
+    def test_reincluded_revert_records_final_evidence_and_releases_once(self):
+        attempt = self.confirm(status=0)
+        self.node.receipts[attempt.tx_hash] = execution_receipt(
+            attempt, self.record.function_args, status=0, block_number=14, block_hash=REORG_HASH
+        )
+        self.node.advance(head=20, finalized=16)
+        self.node.blocks[12] = {"hash": OTHER_HASH, "number": 12}
+        with override_settings(WALLET_CHAIN_FINALITY_POLICIES=FINALIZED):
+            self.assertEqual(self.settle(), SwapOrderStatus.FAILED)
+            self.assert_finalized_receipt(block=14, block_hash=REORG_HASH)
+            released = self.rows()
+            self.assertIsNone(self.settle())
+            self.assertEqual(self.rows(), released)
+        with use_operator():
+            self.record.refresh_from_db()
+            attempt.operation.refresh_from_db()
+        self.assertEqual((self.record.block_number, self.record.block_hash), (12, BLOCK_HASH))
+        self.assertEqual((attempt.operation.block_number, attempt.operation.block_hash), (12, BLOCK_HASH))
+        self.assertEqual([row["filled_quantity"] for row in self.parents().values()], [0, 0])
+
+    def assert_projection_rolls_back(self, status):
+        self.confirm(status)
+        self.node.advance(head=20, finalized=12)
+        save = TransferOrder.save
+
+        def interrupted(order, *args, **kwargs):
+            save(order, *args, **kwargs)
+            raise RuntimeError("Synthetic interrupted projection")
+
+        with override_settings(WALLET_CHAIN_FINALITY_POLICIES=FINALIZED):
+            with patch.object(TransferOrder, "save", interrupted), self.assertRaises(RuntimeError):
+                self.settle()
+            with use_operator():
+                self.swap.refresh_from_db()
+            self.assert_held()
+            self.assertEqual(self.settle(), "completed" if status else "failed")
+            self.assert_finalized_receipt()
+
+    def test_failed_success_projection_rolls_back_final_evidence(self):
+        self.assert_projection_rolls_back(1)
+
+    def test_failed_revert_projection_rolls_back_final_evidence(self):
+        self.assert_projection_rolls_back(0)
+
+    def test_receipt_changed_between_finality_evidence_and_verification_is_refused(self):
+        self.confirm()
+        self.node.advance(head=20, finalized=12)
+        calls = 0
+        observe = self.node.client.get_transaction_receipt.side_effect
+
+        def changed(tx_hash):
+            nonlocal calls
+            calls += 1
+            original = observe(tx_hash)
+            return original if calls == 1 else {**original, "blockHash": OTHER_HASH}
+
+        with override_settings(WALLET_CHAIN_FINALITY_POLICIES=FINALIZED), patch.object(
+            self.node.client, "get_transaction_receipt", side_effect=changed
+        ), self.assertRaises(SwapNotReadyException):
+            self.settle()
+        self.assert_held()
+
     def test_the_sweep_settles_a_confirmed_executing_swap_and_then_leaves_it(self):
         self.confirm()
         with override_settings(WALLET_CHAIN_FINALITY_POLICIES=FINALIZED), patch.object(
@@ -329,7 +426,28 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
 
 
 class ScopedSwapFinalityTest(RunsOnTheScopedConnection, SwapFinalityTest):
-    pass
+    def test_scoped_task_collects_outside_locks_and_records_final_inclusion(self):
+        self.confirm()
+        self.node.advance(head=20, finalized=12)
+        probes = []
+
+        def probe(label):
+            probes.append(label)
+            self.assertEqual(current_alias(), "operator")
+            self.assertTrue(connections[current_alias()].get_autocommit())
+            self.assertFalse(connections[current_alias()].in_atomic_block)
+
+        self.node.probe = probe
+        with override_settings(WALLET_CHAIN_FINALITY_POLICIES=FINALIZED), patch.object(
+            swap_execution, "get_base_chain_client", return_value=self.node.client
+        ):
+            self.assertEqual(current_alias(), "app")
+            self.assertEqual(resolve_executing_swaps(), {"checked": 1, "resolved": 1})
+            self.assertEqual(current_alias(), "app")
+        with use_operator():
+            self.swap.refresh_from_db()
+        self.assert_finalized_receipt()
+        self.assertIn("receipt", probes)
 
 
 @skipUnless(connection.vendor == "postgresql", "Independent processes require PostgreSQL row locks")
@@ -352,6 +470,7 @@ class SwapFinalityProcessTest(SwapFinalityFixtures, TransactionTestCase):
         self.assertEqual(sorted(outcomes, key=str), [None, "completed"])
         self.swap.refresh_from_db()
         self.assertEqual((self.swap.status, self.swap.tx_hash), (SwapOrderStatus.COMPLETED, attempt.tx_hash))
+        self.assertEqual(self.swap.finalized_receipt["block_hash"], BLOCK_HASH)
         self.assertEqual(
             {side: (row["status"], row["filled_quantity"]) for side, row in self.parents().items()},
             {"sell": (TransferOrderStatus.COMPLETED, 10), "buy": (TransferOrderStatus.COMPLETED, 10)},
@@ -360,6 +479,15 @@ class SwapFinalityProcessTest(SwapFinalityFixtures, TransactionTestCase):
 
 @override_settings(BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
 class SwapFinalityGuardTest(SwapExecutionStorageFixtures, TransactionTestCase):
+    def finalized(self, **changes):
+        return {
+            "block_number": 14,
+            "block_hash": REORG_HASH,
+            "gas_used": 22000,
+            "policy": {"version": 1, "mode": "finalized"},
+            **changes,
+        }
+
     def retain(self, status=1):
         journal = self.admit()
         claim = self.open(journal)
@@ -389,7 +517,13 @@ class SwapFinalityGuardTest(SwapExecutionStorageFixtures, TransactionTestCase):
         self.refuse("original execution hash", status="completed", completed_at=now, tx_hash="0x" + "f" * 64)
         self.refuse("held until finality", status="failed")
         self.refuse("executing to completed or failed", status="ready")
-        self.assertEqual(SwapOrder.objects.filter(pk=self.swap.pk).update(status="completed", completed_at=now), 1)
+        self.refuse("requires finalized receipt evidence", status="completed", completed_at=now)
+        self.assertEqual(
+            SwapOrder.objects.filter(pk=self.swap.pk).update(
+                status="completed", completed_at=now, finalized_receipt=self.finalized()
+            ),
+            1,
+        )
         completed = SwapOrder.objects.get(pk=self.swap.pk)
         self.assertEqual((completed.status, completed.completed_at), ("completed", now))
         self.refuse("terminal", status="executing", completed_at=None)
@@ -402,11 +536,88 @@ class SwapFinalityGuardTest(SwapExecutionStorageFixtures, TransactionTestCase):
         self.project(journal, "reverted")
         self.refuse("confirmed original receipt", status="completed", completed_at=timezone.now())
         self.swap.refresh_from_db()
+        self.swap.finalized_receipt = self.finalized()
         self.swap.mark_failed("reverted")
         failed = SwapOrder.objects.get(pk=self.swap.pk)
         self.assertEqual((failed.status, failed.error_message), ("failed", "reverted"))
         self.refuse("terminal", status="executing")
         self.refuse("terminal", status="completed", completed_at=timezone.now())
+
+    def test_finality_evidence_is_only_written_with_its_terminal_transition(self):
+        journal = self.retain()
+        self.project(journal, "confirmed")
+        self.refuse("original signed settlement transition", finalized_receipt=self.finalized())
+        now = timezone.now()
+        SwapOrder.objects.filter(pk=self.swap.pk).update(
+            status="completed", completed_at=now, finalized_receipt=self.finalized()
+        )
+        for value in (None, self.finalized(block_hash=OTHER_HASH)):
+            self.refuse("retain their recorded finality evidence", finalized_receipt=value)
+        SwapOrder.objects.filter(pk=self.swap.pk).update(finalized_receipt=self.finalized(), error_message="noted")
+        self.swap.refresh_from_db()
+        self.assertEqual(self.swap.finalized_receipt, self.finalized())
+        journal.refresh_from_db()
+        self.assertEqual((journal.block_number, journal.block_hash), (12, BLOCK_HASH))
+
+    def test_invalid_finality_payloads_are_refused_by_postgresql(self):
+        journal = self.retain()
+        self.project(journal, "confirmed")
+        invalid = [
+            [],
+            {},
+            {"policy": {}},
+            self.finalized(extra="unsupported"),
+            self.finalized(block_number=True),
+            self.finalized(block_number=-1),
+            self.finalized(block_number="12"),
+            self.finalized(block_number=2**31),
+            self.finalized(block_hash="not-a-hash"),
+            self.finalized(gas_used=0.5),
+            self.finalized(policy=None),
+            self.finalized(policy={"version": 1, "mode": "unconfigured"}),
+            self.finalized(policy={"version": 1, "mode": "finalized", "depth": 1}),
+            self.finalized(policy={"version": 1, "mode": "depth", "depth": 0}),
+            self.finalized(policy={"version": 1, "mode": "depth", "depth": "2"}),
+            self.finalized(policy={"version": 1, "mode": "depth", "depth": 2**31}),
+        ]
+        for evidence in invalid:
+            with self.subTest(evidence=evidence), self.assertRaises(DatabaseError), atomic():
+                SwapOrder.objects.filter(pk=self.swap.pk).update(
+                    status="completed", completed_at=timezone.now(), finalized_receipt=evidence
+                )
+        self.swap.refresh_from_db()
+        self.assertEqual(self.swap.status, "executing")
+        SwapOrder.objects.filter(pk=self.swap.pk).update(
+            status="completed",
+            completed_at=timezone.now(),
+            finalized_receipt=self.finalized(policy={"version": 1, "mode": "depth", "depth": 2}),
+        )
+
+    def test_upgrade_preserves_historical_null_evidence_and_refuses_later_backfill(self):
+        journal = self.retain()
+        self.project(journal, "confirmed")
+        self.addCleanup(restore_every_migration)
+        previous = migrate_to([("tokens", "0062_register_foundation")])
+        previous.get_model("tokens", "SwapOrder").objects.filter(pk=self.swap.pk).update(
+            status="completed", completed_at=timezone.now()
+        )
+        restore_every_migration()
+        self.swap.refresh_from_db()
+        self.assertEqual(self.swap.status, "completed")
+        self.assertIsNone(self.swap.finalized_receipt)
+        self.refuse("retain their recorded finality evidence", finalized_receipt=self.finalized())
+
+    def test_downgrade_cannot_discard_recorded_finality_evidence(self):
+        journal = self.retain()
+        self.project(journal, "confirmed")
+        SwapOrder.objects.filter(pk=self.swap.pk).update(
+            status="completed", completed_at=timezone.now(), finalized_receipt=self.finalized()
+        )
+        self.addCleanup(restore_every_migration)
+        with self.assertRaisesMessage(DatabaseError, "Cannot remove recorded swap finality evidence"):
+            migrate_to([("tokens", "0062_register_foundation")])
+        self.swap.refresh_from_db()
+        self.assertEqual(self.swap.finalized_receipt, self.finalized())
 
     def test_reversing_the_guard_restores_the_previous_function_verbatim(self):
         self.addCleanup(restore_every_migration)
