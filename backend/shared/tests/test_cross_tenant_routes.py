@@ -169,6 +169,13 @@ CAPITAL_INCREASE = {
     "purpose": "Growth",
     "boardResolutionReference": "BOARD-NEW",
 }
+REGISTER_CORRECTION_ROUTES = {
+    "create": ("post", "/api/v1/tokens/register-corrections/"),
+    "list": ("get", "/api/v1/tokens/register-corrections/"),
+    "detail": ("get", "/api/v1/tokens/register-corrections/{uuid}/"),
+    "file": ("get", "/api/v1/tokens/register-corrections/{uuid}/file/"),
+}
+
 ROUTES = (
     Route("get", "/api/user-profiles/{profile}/"),
     Route("put", "/api/user-profiles/{profile}/", {"fullName": "Renamed", "citizenshipCountry": "{country}"}),
@@ -756,6 +763,63 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         with self.committed_where_a_request_on_another_connection_can_read_it():
             make_eligible(alice)
         self.assertEqual(self.client.get(GLOBAL_ROUTES[0]).json()["paymentInstructions"], RAILS)
+
+    @override_settings(
+        STORAGES={
+            "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+            "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+        }
+    )
+    def test_register_correction_routes_keep_evidence_private_and_review_operator_only(self):
+        from tokens.models import RegisterCorrection
+        from tokens.tests.test_register_corrections import (
+            correction_fixture,
+            correction_payload,
+        )
+
+        with self.as_an_operator_would():
+            owner, reviewer, document, issue = correction_fixture()
+        self.client.force_authenticate(owner)
+        payload = correction_payload(document, issue)
+        response = self.client.post(REGISTER_CORRECTION_ROUTES["create"][1], payload, format="json")
+        self.assertEqual(response.status_code, 201, response.content)
+        proposal_id = response.json()["uuid"]
+        listing = REGISTER_CORRECTION_ROUTES["list"][1]
+        self.assertEqual([row["uuid"] for row in self.rows(self.client.get(listing))], [proposal_id])
+        for name in ("detail", "file"):
+            path = REGISTER_CORRECTION_ROUTES[name][1].format(uuid=proposal_id)
+            self.assertEqual(self.client.get(path).status_code, 200)
+            for actor in self.actors:
+                self.client.force_authenticate(actor.user)
+                denied = self.client.get(path)
+                missing = self.client.get(path.replace(proposal_id, str(uuid4())))
+                self.assertEqual((denied.status_code, denied.content), (missing.status_code, missing.content))
+                self.assertEqual(denied.status_code, 404)
+                self.assertEqual(self.rows(self.client.get(listing)), [])
+            self.client.force_authenticate(None)
+            self.assertEqual(self.client.get(path).status_code, 401)
+            self.assertEqual(self.client.get(listing).status_code, 401)
+            self.client.force_authenticate(owner)
+        self.client.force_authenticate(self.actors[0].user)
+        self.assertEqual(
+            self.client.post(REGISTER_CORRECTION_ROUTES["create"][1], payload, format="json").status_code, 404
+        )
+        self.client.force_authenticate(None)
+        review = reverse("admin:tokens_registercorrection_review", args=[proposal_id])
+        evidence = reverse("admin:tokens_registercorrection_evidence", args=[proposal_id])
+        for actor, expected in zip(self.actors, (302, 403, 200)):
+            self.client.force_login(actor.user)
+            response = self.client.get(review)
+            self.assertEqual(response.status_code, expected)
+            self.assertEqual(self.client.get(evidence).status_code, expected)
+            confirmation = response.context["form"].initial["confirmation"] if expected == 200 else "forged"
+            response = self.client.post(review, {"confirmation": confirmation, "reviewed": "on", "decision": "apply"})
+            self.assertEqual(response.status_code, 302 if expected == 200 else expected)
+            with self.as_an_operator_would():
+                self.assertEqual(
+                    RegisterCorrection.objects.get(pk=proposal_id).status, "applied" if expected == 200 else "submitted"
+                )
+            self.client.logout()
 
     @override_settings(
         STORAGES={

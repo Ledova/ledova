@@ -198,6 +198,10 @@ POLICIES = {
         _company("company_id", MANAGEABLE_COMPANIES),
     ),
     "tokens_formerholder": (f"owner_id = {PRINCIPAL}", "false"),
+    "tokens_registercorrection": (
+        _company("company_id", VISIBLE_COMPANIES),
+        f"{_company('company_id', MANAGEABLE_COMPANIES)} AND submitted_by_id = {PRINCIPAL} AND status = 'submitted'",
+    ),
     "tokens_registermember": (_company("company_id", VISIBLE_COMPANIES), "false"),
     "tokens_shareregister": (_company("company_id", VISIBLE_COMPANIES), "false"),
     "tokens_registerentry": ("register_id IN (SELECT uuid FROM tokens_shareregister)", "false"),

@@ -175,3 +175,79 @@ the historical `is_verified` flag alone is insufficient. No background storage
 monitoring, register approval, retained file copy or deletion/retention change is
 introduced here. Documentary authority and an exact proposed register change
 remain separate requirements of the upcoming approval workflow.
+
+## Reviewed compensating corrections
+
+The synthetic stored register accepts owner-submitted requests to reverse one
+identified entry exactly. This is a compensation, not an editable replacement:
+the original entry and its hash remain, and the new entry names the original.
+It does not update the chain-derived HTTP register or broadcast a chain change.
+Opening/read cutover, replacement transactions and reconciliation remain #647 work.
+
+An external issuer integration can use these authenticated routes:
+
+| Method and route | Result |
+| --- | --- |
+| `POST /api/v1/tokens/register-corrections/` | Submit the owner's precise correction; return the retained request |
+| `GET /api/v1/tokens/register-corrections/` | Paginated requests for companies currently owned by the caller |
+| `GET /api/v1/tokens/register-corrections/{uuid}/` | Request, bound revision/evidence metadata and decision |
+| `GET /api/v1/tokens/register-corrections/{uuid}/file/` | Authenticated attachment of the retained authority file |
+
+For a synthetic exercise, use the register foundation command to create an
+opening and identify the entry to compensate. Upload a synthetic signed resolution
+through the existing company document route and have permitted staff complete its
+content review. Submit this JSON as that company's owner, replacing UUIDs with
+those from the exercise:
+
+```json
+{
+  "operation_id": "10000000-0000-4000-8000-000000000001",
+  "corrects_id": "10000000-0000-4000-8000-000000000002",
+  "document_id": "10000000-0000-4000-8000-000000000003",
+  "effective_on": "2026-09-20",
+  "authority": "director_resolution",
+  "approving_director": "Synthetic Director",
+  "authority_reference": "SYNTHETIC-RESOLUTION-1",
+  "reason": "Reverse the identified erroneous synthetic entry"
+}
+```
+
+The service derives the exact inverse share changes and captures the register's
+current sequence/hash. One reviewed uploaded file must include the authority for
+this precise correction. A director resolution names the approving director;
+`court_order` instead uses a court reference and an empty `approving_director`.
+An owner account is not proof of director authority. Staff document verification
+alone does not approve the correction. External-only links and legacy verification
+flags without content binding cannot supply its evidence.
+
+In **Admin → Tokens → Register corrections**, open the request's review link.
+An active staff user with change permission must inspect the retained file, named
+authority, company identity, original entry, inverse quantities, date and register
+revision, then explicitly confirm authority and choose **Approve and apply**.
+The confirmation is reviewer-specific and expires after fifteen minutes. Approval,
+its compensating entry and the holdings projection commit together; a failure
+rolls them all back. Repeated identical submission/decision returns the existing
+result, while conflicting UUID reuse is refused. The database prevents rewriting
+or deleting the request and prevents the customer role from deciding it.
+
+A changed register revision, company identity or original document makes
+application unavailable. Missing, rejected, expired or altered evidence also
+refuses application, including replacement with different bytes of the same size.
+A retained copy is checked against the verified content again at application.
+Reject an obsolete request with a reason, then submit corrected intent with a new
+UUID and freshly reviewed evidence. Rejection remains available even when a file
+is unavailable. An already compensated entry cannot be compensated a second time.
+An inverse that would make a current holding negative is refused by the existing
+register guard. Use the foundation verifier to check the resulting event chain
+and projection; that is not a claim of chain reconciliation.
+
+The owner chose private retention without automatic expiry for correction
+requests and authority files during the synthetic-only experiment. Ordinary
+request deletion is blocked. Deleting the original company document does not
+delete the retained copy or decision, but prevents a pending request from being
+applied. Committed copies are protected by their retained row; copies left by a
+rolled-back or interrupted submission fall under the existing 24-hour orphan
+sweep. Account/company deletion still respects protected register relations.
+Production retention needs its own decision before real data is admitted.
+Classification evidence, former-member retention and future export records have
+independent policies; this choice does not change them.

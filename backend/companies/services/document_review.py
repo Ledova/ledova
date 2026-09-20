@@ -1,5 +1,6 @@
 import hashlib
 import json
+from contextlib import nullcontext
 
 from django.contrib.auth import get_user_model
 from django.core import signing
@@ -20,7 +21,7 @@ def _reviewer(user):
     return reviewer
 
 
-def _fingerprint(document):
+def document_review_content(document, *, content=None):
     today = timezone.localdate()
     if (
         not document.file
@@ -32,7 +33,7 @@ def _fingerprint(document):
     digest = hashlib.sha256()
     size = 0
     try:
-        with document.file.open("rb") as source:
+        with document.file.open("rb") if content is None else nullcontext(content) as source:
             for chunk in source.chunks():
                 digest.update(chunk)
                 size += len(chunk)
@@ -40,7 +41,7 @@ def _fingerprint(document):
         raise ValidationError("The private document file is unavailable. Restore it before review.") from None
     if size != document.file_size or not size:
         raise ValidationError("The private file does not match the recorded size. Submit a new document.")
-    content = {
+    return {
         "document": str(document.pk),
         "company": str(document.company_id),
         "company_identity": {
@@ -60,14 +61,18 @@ def _fingerprint(document):
         "valid_until": document.valid_until.isoformat() if document.valid_until else None,
         "sha256": digest.hexdigest(),
     }
-    return hashlib.sha256(json.dumps(content, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def document_fingerprint(document, *, content=None):
+    reviewed = document_review_content(document, content=content)
+    return hashlib.sha256(json.dumps(reviewed, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
 def prepare_document_review(*, document_id, reviewer):
     reviewer = _reviewer(reviewer)
     document = CompanyDocument.objects.select_related("company").get(pk=document_id)
     confirmation = signing.dumps(
-        {"document": str(document.pk), "reviewer": reviewer.pk, "fingerprint": _fingerprint(document)},
+        {"document": str(document.pk), "reviewer": reviewer.pk, "fingerprint": document_fingerprint(document)},
         salt="companies.document-review",
     )
     return document, confirmation
@@ -88,7 +93,7 @@ def verify_document(*, document_id, reviewer, confirmation):
         if document.company_id != company.pk:
             raise ValidationError("The document changed after review began. Review the current file again.")
         document.company = company
-        fingerprint = _fingerprint(document)
+        fingerprint = document_fingerprint(document)
         if fingerprint != preview["fingerprint"]:
             raise ValidationError("The document changed after review began. Review the current file again.")
         document.is_verified = True

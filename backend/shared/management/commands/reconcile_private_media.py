@@ -3,8 +3,12 @@ import os
 import shutil
 
 from django.conf import settings
+from django.core.exceptions import FieldDoesNotExist
 from django.core.management.base import BaseCommand, CommandError
+from django.db import connections
+from django.db.migrations.executor import MigrationExecutor
 
+from shared.db import current_alias
 from shared.storage import private_file_fields
 
 
@@ -30,9 +34,16 @@ class Command(BaseCommand):
                 self.stdout.write("STORAGE_BACKEND is not local: nothing to reconcile.")
             return
 
+        loader = MigrationExecutor(connections[current_alias()]).loader
+        applied_apps = loader.project_state(list(loader.applied_migrations)).apps
         strays = []
         conflicts = []
         for model, field_name in private_file_fields():
+            try:
+                model = applied_apps.get_model(model._meta.app_label, model._meta.model_name)
+                model._meta.get_field(field_name)
+            except (LookupError, FieldDoesNotExist):
+                continue
             label = f"{model._meta.label}.{field_name}"
             for name in stored_names(model, field_name):
                 public = os.path.join(settings.MEDIA_ROOT, name)

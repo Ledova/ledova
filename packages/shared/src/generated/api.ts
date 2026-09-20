@@ -1503,6 +1503,54 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/register-corrections/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_corrections_list'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_corrections_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-corrections/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_corrections_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-corrections/{uuid}/file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_corrections_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/trading/events/stream/': {
     parameters: {
       query?: never;
@@ -2337,6 +2385,7 @@ export interface ApiComponents {
       isEmailVerified: boolean;
       uuid: string | null;
     };
+    AuthorityEnum: 'director_resolution' | 'court_order';
     AuthPasswordChanged: {
       message: string;
     };
@@ -3451,6 +3500,12 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['Portfolio'][];
     };
+    PaginatedRegisterCorrectionList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['RegisterCorrection'][];
+    };
     PaginatedShareIssuanceListList: {
       count: number;
       next?: string | null;
@@ -3775,6 +3830,41 @@ export interface ApiComponents {
     PriceCurrencyEnum: 'AUD' | 'USD' | 'EUR' | 'GBP' | 'CAD' | 'JPY' | 'NZD' | 'SGD';
     PrimaryTypeEnum: 'SwapOrder';
     ProtocolVersionEnum: 1;
+    RegisterCorrection: {
+      appliedEntry: string | null;
+      approvingDirector: string;
+      authority: ApiComponents['schemas']['AuthorityEnum'];
+      authorityReference: string;
+      baseHash: string;
+      baseSequence: number;
+      changes: unknown;
+      company: string;
+      corrects: string;
+      createdAt: string;
+      effectiveOn: string;
+      evidenceFingerprint: string;
+      evidenceSnapshot: unknown;
+      reason: string;
+      register: string;
+      rejectionReason: string;
+      reviewedAt: string | null;
+      reviewedBy: number | null;
+      sourceDocument: string;
+      status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
+      submittedBy: number;
+      uuid: string;
+    };
+    RegisterCorrectionCreateRequest: {
+      approvingDirector?: string;
+      authority: ApiComponents['schemas']['AuthorityEnum'];
+      authorityReference: string;
+      correctsId: string;
+      documentId: string;
+      effectiveOn: string;
+      operationId: string;
+      reason: string;
+    };
+    RegisterCorrectionStatusEnum: 'submitted' | 'applied' | 'rejected';
     RegisterDeviceTokenRequest: {
       deviceType: ApiComponents['schemas']['DeviceTypeEnum'];
       pushToken: string;
@@ -7952,6 +8042,95 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['ShareIssuanceRequest'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_corrections_list: {
+    parameters: {
+      query?: {
+        ordering?: string;
+        page?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedRegisterCorrectionList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_corrections_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterCorrectionCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterCorrectionCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterCorrectionCreateRequest'];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterCorrection'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_corrections_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterCorrection'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_corrections_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
         };
       };
     };
