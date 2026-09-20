@@ -198,6 +198,23 @@ class RegisterEventsTest(TestCase):
         self.record("correction", [{"member": str(self.member.pk), "shares": "5"}], corrects_id=inverse.pk)
         self.assertEqual((self.shares(self.member), verify_register(self.register.pk)["entries"]), (105, 4))
 
+    def test_correction_retries_accept_uuid_strings_and_objects_as_the_same_identity(self):
+        original = self.record()
+        operation = uuid4()
+        changes = [{"member": str(self.member.pk), "shares": "-5"}]
+        entry = self.record("correction", changes, operation_id=operation, corrects_id=str(original.pk))
+        self.assertEqual(
+            self.record("correction", changes, operation_id=operation, corrects_id=str(original.pk)).pk, entry.pk
+        )
+        self.assertEqual(
+            self.record("correction", changes, operation_id=operation, corrects_id=original.pk).pk, entry.pk
+        )
+
+    def test_member_retry_accepts_company_and_member_uuid_strings(self):
+        self.assertEqual(
+            create_member(company_id=str(self.company.pk), member_id=str(self.member.pk)).pk, self.member.pk
+        )
+
     def test_a_returning_member_has_a_new_entry_date(self):
         self.record("cessation", [{"member": str(self.member.pk), "shares": "-100"}])
         self.record(effective_on=date(2026, 9, 21))

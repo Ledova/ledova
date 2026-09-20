@@ -22,6 +22,13 @@ def _operator():
         raise PermissionDenied("Register recording and verification require the operator connection.")
 
 
+def _uuid(value):
+    try:
+        return UUID(str(value))
+    except (ValueError, TypeError, AttributeError):
+        raise ValidationError("Register references must be UUIDs.") from None
+
+
 def _changes(changes):
     if not isinstance(changes, list):
         raise ValidationError("Register changes must be a list of member IDs and integer shares.")
@@ -41,6 +48,7 @@ def _changes(changes):
 
 def create_member(*, company_id, member_id):
     _operator()
+    company_id, member_id = _uuid(company_id), _uuid(member_id)
     member, _ = RegisterMember.objects.get_or_create(uuid=member_id, defaults={"company_id": company_id})
     if member.company_id != company_id:
         raise RegisterChangeConflict()
@@ -69,7 +77,7 @@ def record_entry(*, register_id, operation_id, kind, changes, effective_on, reco
         "changes": _changes(changes),
         "effective_on": effective_on,
         "recorded_by_id": recorded_by.pk,
-        "corrects_id": corrects_id,
+        "corrects_id": _uuid(corrects_id) if corrects_id is not None else None,
     }
     if kind not in RegisterEntryKind.values or type(effective_on) is not date:
         raise ValidationError("Register changes require a known event kind and an effective date.")
