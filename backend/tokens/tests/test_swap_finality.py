@@ -1,3 +1,4 @@
+import time
 from contextlib import ExitStack
 from datetime import timedelta
 from unittest import skipUnless
@@ -401,6 +402,34 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
             self.settle()
         self.assert_held()
 
+    def test_first_receipt_outside_journal_integer_range_is_held_before_projection(self):
+        send = self.node.client.send_raw_transaction.side_effect
+
+        def oversized_receipt(raw):
+            tx_hash = send(raw)
+            self.node.receipts[tx_hash]["gasUsed"] = 2**31
+            return tx_hash
+
+        with patch.object(self.node.client, "send_raw_transaction", side_effect=oversized_receipt), use_operator():
+            with self.assertRaises(SwapNotReadyException):
+                swap_execution.recover(self.record.pk, client=self.node.client)
+            self.record.refresh_from_db()
+            self.swap.refresh_from_db()
+            self.assertEqual(self.record.status, "submitted")
+            self.assertIsNone(self.record.gas_used)
+            self.assertEqual(self.swap.status, "executing")
+            self.assertIsNone(self.swap.finalized_receipt)
+
+    def test_finalized_receipt_outside_journal_integer_range_is_held_before_projection(self):
+        self.confirm()
+        self.node.receipts[self.record.tx_hash]["gasUsed"] = 2**31
+        self.node.advance(head=20, finalized=12)
+        with override_settings(WALLET_CHAIN_FINALITY_POLICIES=FINALIZED), self.assertRaises(SwapNotReadyException):
+            self.settle()
+        with use_operator():
+            self.swap.refresh_from_db()
+        self.assert_held()
+
     def test_the_sweep_settles_a_confirmed_executing_swap_and_then_leaves_it(self):
         self.confirm()
         with override_settings(WALLET_CHAIN_FINALITY_POLICIES=FINALIZED), patch.object(
@@ -475,6 +504,41 @@ class SwapFinalityProcessTest(SwapFinalityFixtures, TransactionTestCase):
             {side: (row["status"], row["filled_quantity"]) for side, row in self.parents().items()},
             {"sell": (TransferOrderStatus.COMPLETED, 10), "buy": (TransferOrderStatus.COMPLETED, 10)},
         )
+
+    def test_downgrade_waits_for_uncommitted_settlement_and_preserves_its_evidence(self):
+        self.confirm()
+        self.addCleanup(restore_every_migration)
+        worker = workers.SwapProcess(self, "reverse_inclusion", self.swap.pk)
+        evidence = {
+            "block_number": 12,
+            "block_hash": BLOCK_HASH,
+            "gas_used": 21000,
+            "policy": {"version": 1, "mode": "finalized"},
+        }
+        with atomic():
+            SwapOrder.objects.filter(pk=self.swap.pk).update(
+                status="completed", completed_at=timezone.now(), finalized_receipt=evidence
+            )
+            worker.send("run")
+            worker.receive("reversing")
+            deadline = time.monotonic() + 10
+            while time.monotonic() < deadline:
+                with connections[current_alias()].cursor() as cursor:
+                    cursor.execute("SELECT pg_stat_clear_snapshot()")
+                    cursor.execute(
+                        "SELECT pg_backend_pid() = ANY(pg_blocking_pids(pid)), wait_event_type, query "
+                        "FROM pg_stat_activity WHERE pid = %s",
+                        [worker.database_pid],
+                    )
+                    observed = cursor.fetchone()
+                if observed and observed[0] and observed[1] == "Lock" and "tokens_swaporder" in observed[2]:
+                    break
+                time.sleep(0.01)
+            else:
+                self.fail(f"Downgrade never waited for the committing settlement: {observed}")
+        self.assertEqual(worker.done()["result"], "refused")
+        self.swap.refresh_from_db()
+        self.assertEqual(self.swap.finalized_receipt, evidence)
 
 
 @override_settings(BLOCKCHAIN_CHAIN_ID=CHAIN_ID)

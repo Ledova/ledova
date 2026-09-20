@@ -31,7 +31,7 @@ def run(mode, row_id, detail):
     from django.conf import settings
 
     settings.DATABASES = json.loads(os.environ["TRADING_TEST_DATABASES"])
-    settings.RLS_AMBIENT_ALIAS = "default" if mode == "settle" else "app"
+    settings.RLS_AMBIENT_ALIAS = "default" if mode in ("settle", "reverse_inclusion") else "app"
     settings.ATOMIC_SWAP_ADDRESS = "0x" + "9d" * 20
     settings.BLOCKCHAIN_OPERATOR_KEY = ""
     settings.BLOCKCHAIN_CHAIN_ID = int(os.environ["TRADING_TEST_CHAIN_ID"])
@@ -50,7 +50,7 @@ def run(mode, row_id, detail):
         swap_service,
     )
 
-    if mode != "settle":
+    if mode not in ("settle", "reverse_inclusion"):
         set_principal(int(os.environ["TRADING_TEST_USER"]))
     for alias in ("default", "app", "operator"):
         with connections[alias].cursor() as cursor:
@@ -119,6 +119,20 @@ def run(mode, row_id, detail):
         node.advance(head=12)
         report("settling")
         result = swap_execution.settle(record.pk, client=node.client)
+    elif mode == "reverse_inclusion":
+        from django.db import DatabaseError
+
+        from shared.tests.schema import migrate_to
+
+        report("reversing")
+        try:
+            migrate_to([("tokens", "0062_register_foundation")])
+        except DatabaseError as exc:
+            if "Cannot remove recorded swap finality evidence" not in str(exc):
+                raise
+            result = "refused"
+        else:
+            result = "reversed"
     else:
         raise AssertionError(mode)
     report("done", result=result)

@@ -24,6 +24,7 @@ from integrations.base_chain import get_base_chain_client
 from shared.constants import BLOCKCHAIN_BASE
 from shared.db import APP_ALIAS, atomic, current_alias, principal_of, use_operator
 from shared.utils.blockchain import decode_exception_to_message
+from tokens.constants import MAX_SWAP_RECEIPT_VALUE
 from tokens.events import publish_trading_event
 from tokens.exceptions import (
     AtomicSwapNotConfiguredException,
@@ -52,7 +53,6 @@ from wallets.models import ChainObservationFinality, ChainObservationResult, Wal
 from wallets.services.chain_evidence import collect_chain_evidence
 from wallets.services.chain_observations import finality_policy
 from wallets.services.nonce_evidence import collect_nonce_evidence
-from wallets.services.receipt_readers import MAX_BLOCK_NUMBER
 
 logger = logging.getLogger(__name__)
 REVERTED_ON_CHAIN = "Swap execution reverted on chain"
@@ -419,7 +419,7 @@ def _project(transaction, claim, refusal="Swap execution could not be prepared")
         if current.status in (TransactionStatus.CONFIRMED, TransactionStatus.REVERTED):
             return
         if any(
-            type(value) is not int or not 0 <= value <= MAX_BLOCK_NUMBER
+            type(value) is not int or not 0 <= value <= MAX_SWAP_RECEIPT_VALUE
             for value in (operation.block_number, operation.gas_used)
         ):
             raise SwapNotReadyException("The retained receipt cannot fit the transaction projection.")
@@ -555,7 +555,7 @@ def _finalized_receipt(transaction, operation, client, network, policy):
     if (included["height"], included["hash"]) != (operation.block_number, operation.block_hash):
         logger.info("Swap execution %s finalized in a later block than its first receipt", transaction.pk)
     if any(
-        type(value) is not int or not 0 <= value <= MAX_BLOCK_NUMBER
+        type(value) is not int or not 0 <= value <= MAX_SWAP_RECEIPT_VALUE
         for value in (included["height"], receipt["gasUsed"])
     ):
         raise SwapNotReadyException("The finalized receipt cannot fit the supported range.")

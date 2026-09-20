@@ -19,6 +19,11 @@ BEGIN
         END IF;
         RETURN NEW;
     END IF;
+    IF NEW.finalized_receipt IS NULL AND (
+        OLD.status <> 'executing' OR NEW.status NOT IN ('completed', 'failed') OR NEW.transaction_id IS NULL
+    ) THEN
+        RETURN NEW;
+    END IF;
     SELECT * INTO journal FROM blockchain_blockchaintransaction WHERE uuid = NEW.transaction_id;
     IF NEW.finalized_receipt IS NULL THEN
         IF OLD.status = 'executing' AND NEW.status IN ('completed', 'failed')
@@ -83,6 +88,7 @@ FOR EACH ROW EXECUTE FUNCTION protect_swap_finalized_receipt();
 
 REVERSE = """
 DO $$ BEGIN
+    LOCK TABLE tokens_swaporder IN ACCESS EXCLUSIVE MODE;
     IF EXISTS (SELECT 1 FROM tokens_swaporder WHERE finalized_receipt IS NOT NULL) THEN
         RAISE EXCEPTION 'Cannot remove recorded swap finality evidence';
     END IF;
