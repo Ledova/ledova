@@ -6,6 +6,11 @@ The current-members register is derived at read time for one share class.
 [register.py](../../backend/tokens/services/register.py) combines chain membership
 with identity and allotment records. Former members are stored separately.
 
+The [stored register foundation](../operations/register-foundation.md) adds member
+references, immutable events and a holdings projection for #647. It has an operator
+exercise and integrity verifier; these HTTP reads and the execution workflows
+have not switched to it yet.
+
 ## Membership and identity
 
 The holder set unions completed issuance recipients with every non-zero

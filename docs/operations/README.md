@@ -34,3 +34,6 @@ assume the API, worker and database run compatible code.
 
 Before a native release, run the [native and physical-device checks](../development/native-probes.md).
 The [legal positions](../legal/positions.md) describe unresolved assumptions before any real use.
+
+The [stored register foundation](register-foundation.md) documents the staged
+#647 operator exercise and integrity checks.

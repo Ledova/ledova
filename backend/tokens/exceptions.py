@@ -309,6 +309,16 @@ class RegisterUnavailableException(APIException):
     )
 
 
+class RegisterChangeConflict(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = "The register operation conflicts with its recorded identity or holdings."
+    default_code = "register_change_conflict"
+
+
+class RegisterIntegrityError(Exception):
+    pass
+
+
 class WalletBalancesUnavailableException(APIException):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     default_detail = (
