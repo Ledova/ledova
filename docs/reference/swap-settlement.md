@@ -268,6 +268,23 @@ swap and the transaction in that order and checks the recorded identities again,
 so two workers cannot settle one swap twice and a settled swap is left alone
 without another chain call.
 
+Completion also rechecks the configured finality policy under those locks. The
+swap's `finalized_receipt` records the verified final block number/hash, gas and
+policy in the same transaction as completion or final failure and the parent
+updates. A same-outcome reinclusion may have a different block from the first
+receipt; both the common operation and the transaction retain their immutable
+first summaries. Register integration must use the swap's final inclusion when
+comparing settlement against an opening boundary. The database validates the
+evidence shape and freezes it on settlement; provider evidence is verified by
+the service, not proven by those database checks.
+
+Migration `tokens/0063` adds nullable evidence without attributing earlier
+completed swaps. Such historical null evidence remains explicit and cannot be
+backfilled through an ordinary update. New signed settlement requires evidence;
+unsigned preparation failures retain none. Reversal refuses once evidence has
+been recorded, so downgrade cannot discard it. Stored-register activation is
+still tracked in [#647](https://github.com/Ledova/ledova/issues/647).
+
 A final successful inclusion completes the swap. `completed_at` is the settlement
 clock, when finality was observed, not the block time. Parents keep their filled
 quantity, take the transaction hash, and become `completed` when fully filled or
