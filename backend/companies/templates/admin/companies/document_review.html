@@ -1,6 +1,7 @@
 {% extends "admin/base_site.html" %}
 {% block content %}
 <p>Company: {{ original.company.name }}</p>
+<p>ACN: {{ original.company.acn }}. ABN: {{ original.company.abn|default:"Not specified" }}. Type: {{ original.company.get_company_type_display }}.</p>
 <p>Document: {{ original.name }} — {{ original.get_document_type_display }}</p>
 <p>Valid from: {{ original.valid_from|default:"Not specified" }}. Valid until: {{ original.valid_until|default:"Not specified" }}.</p>
 <p>{{ file_link }}</p>

@@ -7,7 +7,7 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from companies.constants import DOCUMENT_REVIEW_MAX_AGE
-from companies.models import CompanyDocument
+from companies.models import Company, CompanyDocument
 from shared.db import APP_ALIAS, atomic, current_alias
 
 
@@ -43,6 +43,13 @@ def _fingerprint(document):
     content = {
         "document": str(document.pk),
         "company": str(document.company_id),
+        "company_identity": {
+            "name": document.company.name,
+            "acn": document.company.acn,
+            "abn": document.company.abn,
+            "company_type": document.company.company_type,
+            "owner": document.company.owner_id,
+        },
         "document_type": document.document_type,
         "name": document.name,
         "file": document.file.name,
@@ -58,7 +65,7 @@ def _fingerprint(document):
 
 def prepare_document_review(*, document_id, reviewer):
     reviewer = _reviewer(reviewer)
-    document = CompanyDocument.objects.get(pk=document_id)
+    document = CompanyDocument.objects.select_related("company").get(pk=document_id)
     confirmation = signing.dumps(
         {"document": str(document.pk), "reviewer": reviewer.pk, "fingerprint": _fingerprint(document)},
         salt="companies.document-review",
@@ -75,7 +82,12 @@ def verify_document(*, document_id, reviewer, confirmation):
     if preview["document"] != str(document_id) or preview["reviewer"] != reviewer.pk:
         raise ValidationError("The review confirmation belongs to another document or reviewer.")
     with atomic():
+        company_id = CompanyDocument.objects.values_list("company_id", flat=True).get(pk=document_id)
+        company = Company.objects.select_for_update(no_key=True).get(pk=company_id)
         document = CompanyDocument.objects.select_for_update().get(pk=document_id)
+        if document.company_id != company.pk:
+            raise ValidationError("The document changed after review began. Review the current file again.")
+        document.company = company
         fingerprint = _fingerprint(document)
         if fingerprint != preview["fingerprint"]:
             raise ValidationError("The document changed after review began. Review the current file again.")

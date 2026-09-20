@@ -7,7 +7,7 @@ from django.db import DatabaseError, connections
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.test import APITransactionTestCase
 
-from companies.models import CompanyDocument
+from companies.models import Company, CompanyDocument
 from companies.services.document_review import prepare_document_review, verify_document
 from companies.tests.test_document_file_access import (
     attach_file,
@@ -86,7 +86,16 @@ class ScopedCompanyDocumentReviewTest(RunsOnTheScopedConnection, APITransactionT
         with use_operator():
             self.assertTrue(self.verify().is_verified)
 
-    def test_concurrent_metadata_commit_is_rechecked_after_the_document_lock(self):
+    def test_app_company_identity_edit_revokes_the_companys_verified_documents(self):
+        with use_operator():
+            self.verify()
+        self.the_principal_the_middleware_would_set(self.owner)
+        self.assertEqual(Company.objects.filter(pk=self.company.pk).update(name="New registered name"), 1)
+        self.assertFalse(CompanyDocument.objects.get(pk=self.document.pk).is_verified)
+        with use_operator(), self.assertRaisesMessage(ValidationError, "changed"):
+            self.verify()
+
+    def competing_confirmation(self, company=False):
         reached = Queue()
 
         def confirm():
@@ -101,7 +110,8 @@ class ScopedCompanyDocumentReviewTest(RunsOnTheScopedConnection, APITransactionT
 
         with ThreadPoolExecutor(max_workers=1) as pool:
             with use_operator(), atomic():
-                CompanyDocument.objects.select_for_update().get(pk=self.document.pk)
+                model, pk = (Company, self.company.pk) if company else (CompanyDocument, self.document.pk)
+                model.objects.select_for_update().get(pk=pk)
                 future = pool.submit(confirm)
                 pid, role = reached.get(timeout=10)
                 self.assertEqual(role, settings.RLS_ROLES["operator"])
@@ -117,9 +127,15 @@ class ScopedCompanyDocumentReviewTest(RunsOnTheScopedConnection, APITransactionT
                     if blocked:
                         break
                     time.sleep(0.02)
-                self.assertTrue(blocked, "The verifier did not reach the document lock")
-                CompanyDocument.objects.filter(pk=self.document.pk).update(name="Concurrent edit")
+                self.assertTrue(blocked, "The verifier did not reach the held row lock")
+                model.objects.filter(pk=pk).update(name="Concurrent edit")
             with self.assertRaisesMessage(ValidationError, "changed"):
                 future.result(timeout=15)
         self.the_principal_the_middleware_would_set(self.owner)
         self.assertFalse(CompanyDocument.objects.get(pk=self.document.pk).is_verified)
+
+    def test_concurrent_metadata_commit_is_rechecked_after_the_document_lock(self):
+        self.competing_confirmation()
+
+    def test_concurrent_company_identity_commit_is_rechecked_after_the_company_lock(self):
+        self.competing_confirmation(company=True)

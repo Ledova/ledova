@@ -13,7 +13,7 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from companies.admin.document import CompanyDocumentAdmin
-from companies.models import CompanyDocument
+from companies.models import Company, CompanyDocument
 from companies.services.document_review import prepare_document_review, verify_document
 from companies.tests.test_document_file_access import (
     ADMIN_STORAGES,
@@ -104,6 +104,34 @@ class CompanyDocumentReviewTest(TestCase):
         self.assertFalse(self.document.is_verified)
         with self.assertRaises(ValidationError):
             self.preview()
+
+    def test_company_identity_changes_revoke_verification_and_refuse_old_confirmation(self):
+        for field, value in {
+            "name": "Changed Company Pty Ltd",
+            "acn": "987654320",
+            "abn": "51987654320",
+            "company_type": "public",
+            "owner_id": self.reviewer.pk,
+        }.items():
+            with self.subTest(field=field):
+                self.verify()
+                confirmation = self.preview()
+                Company.objects.filter(pk=self.company.pk).update(**{field: value})
+                self.document.refresh_from_db()
+                self.assertFalse(self.document.is_verified)
+                self.assertEqual(self.document.verified_fingerprint, "")
+                with self.assertRaisesMessage(ValidationError, "changed"):
+                    self.verify(confirmation)
+                self.assertTrue(self.verify().is_verified)
+
+    def test_legacy_null_reviewer_verification_survives_a_notes_only_update(self):
+        historical = make_document(self.company, is_verified=True, verified_at=timezone.now())
+        self.assertIsNone(historical.verified_by_id)
+        CompanyDocument.objects.filter(pk=historical.pk).update(notes="Historical review remains unattributed")
+        historical.refresh_from_db()
+        self.assertTrue(historical.is_verified)
+        self.assertIsNotNone(historical.verified_at)
+        self.assertEqual(historical.verified_fingerprint, "")
 
     def test_missing_empty_mismatched_or_external_only_files_cannot_be_verified(self):
         self.verify()
