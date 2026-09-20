@@ -214,10 +214,30 @@ class CompanyDocumentReviewAdminTest(TestCase):
         self.assertEqual(self.client.get(self.url).status_code, 200)
 
     def test_the_old_bulk_action_and_editable_verification_fields_are_removed(self):
-        model_admin = admin.site._registry[CompanyDocument]
-        self.assertFalse(hasattr(model_admin, "verify_documents"))
-        for field in ("is_verified", "verified_by", "verified_at", "verified_fingerprint"):
-            self.assertIn(field, model_admin.readonly_fields)
+        response = self.client.post(
+            reverse("admin:companies_companydocument_change", args=[self.document.pk]),
+            {
+                "company": str(self.company.pk),
+                "document_type": self.document.document_type,
+                "name": self.document.name,
+                "file_size": self.document.file_size,
+                "mime_type": self.document.mime_type,
+                "is_verified": "on",
+                "verified_by": self.reviewer.pk,
+                "verified_fingerprint": "a" * 64,
+                "_save": "Save",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.client.post(
+            reverse("admin:companies_companydocument_changelist"),
+            {"action": "verify_documents", "_selected_action": str(self.document.pk)},
+        )
+        self.document.refresh_from_db()
+        self.assertFalse(self.document.is_verified)
+        self.assertEqual(self.document.verified_fingerprint, "")
+        self.assertIsNone(self.document.verified_by_id)
+        self.assertIsNone(self.document.verified_at)
 
     def test_changed_evidence_redirects_with_no_verification(self):
         confirmation = self.client.get(self.url).context["form"].initial["confirmation"]
