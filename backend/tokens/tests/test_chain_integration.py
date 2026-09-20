@@ -77,6 +77,7 @@ from tokens.services import (
     nav_recovery,
     pause_changes,
     pause_recovery,
+    register_snapshot,
     share_token_service,
     swap_approval,
     swap_execution,
@@ -665,6 +666,26 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
 @chain_available
 @override_settings(**CHAIN_SETTINGS)
 class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
+    @override_settings(WALLET_CHAIN_FINALITY_POLICIES={"evm:31337": {"mode": "depth", "depth": 2}})
+    def test_register_snapshot_pins_real_contract_reads_and_excludes_a_later_unfinalized_mint(self):
+        self._deployed()
+        first = self._whitelisted_request(10)
+        self.assertTrue(self._execute(first)["success"])
+        self.w3.provider.make_request("evm_mine", [])
+        initial = register_snapshot.capture_snapshot(self.token.pk)
+        self.assertEqual(initial["issued_supply"], "10")
+        second = self._issuance_request(5)
+        self.assertTrue(self._execute(second)["success"])
+        pending = register_snapshot.capture_snapshot(self.token.pk)
+        self.assertEqual(pending["issued_supply"], "10")
+        self.assertEqual(self._contract().functions.totalSupply().call(), 15)
+        self.w3.provider.make_request("evm_mine", [])
+        completed = register_snapshot.capture_snapshot(self.token.pk)
+        self.assertEqual(completed["issued_supply"], "15")
+        self.assertEqual(completed["holdings"], [{"address": self.investor, "shares": "15"}])
+        self.assertEqual(len(completed["transfers"]), 2)
+        self.assertGreater(completed["block"]["number"], initial["block"]["number"])
+
     def test_real_unwhitelisted_and_paused_transfer_estimates_explain_the_refusal_without_sending(self):
         self._deployed()
         self.assertTrue(self._execute(self._whitelisted_request(10))["success"])

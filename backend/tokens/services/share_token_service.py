@@ -185,10 +185,9 @@ def finalized_block() -> int:
     return number
 
 
-def _transfer_logs(contract_address: str, from_block: int, to_block: int, window: int):
+def transfer_logs(token_contract, from_block: int, to_block: int, window: int = LOG_WINDOW):
     if window <= 0:
         raise ValueError("Transfer-log window must be positive.")
-    token_contract = load_share_token(contract_address)
     for start in range(from_block, to_block + 1, window):
         end = min(start + window - 1, to_block)
         yield from token_contract.events.Transfer().get_logs(from_block=start, to_block=end)
@@ -203,7 +202,7 @@ def transfer_entries(contract_address: str, from_block: int, to_block: int, wind
             "block_number": int(entry["blockNumber"]),
             "log_index": int(entry["logIndex"]),
         }
-        for entry in _transfer_logs(contract_address, from_block, to_block, window)
+        for entry in transfer_logs(load_share_token(contract_address), from_block, to_block, window)
     ]
     return sorted(entries, key=lambda item: (item["block_number"], item["log_index"]))
 
@@ -216,7 +215,7 @@ def block_date(block_number: int):
 def transfer_participants(contract_address: str, from_block: int, window: int = LOG_WINDOW) -> set:
     return {
         address
-        for entry in _transfer_logs(contract_address, from_block, head_block(), window)
+        for entry in transfer_logs(load_share_token(contract_address), from_block, head_block(), window)
         for address in (entry["args"]["from"], entry["args"]["to"])
     }
 
