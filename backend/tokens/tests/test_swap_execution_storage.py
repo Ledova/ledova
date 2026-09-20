@@ -538,7 +538,7 @@ class SwapExecutionMigrationTest(SwapExecutionStorageFixtures, TransactionTestCa
         before = (
             previous.get_model("blockchain", "BlockchainTransaction").objects.filter(pk=journal.pk).values().get()
             | {"outgoing_operation_id": None},
-            old_swap.filter(pk=self.swap.pk).values().get(),
+            old_swap.filter(pk=self.swap.pk).values().get() | {"finalized_receipt": None},
         )
         restore_every_migration()
         return journal.pk, before

@@ -271,6 +271,7 @@ class SettlementPaymentHistoryMigrationTest(APITransactionTestCase):
         self.assertEqual(after.pop("settlement_protocol_version"), 0)
         self.assertIsNone(after.pop("settlement_context"))
         self.assertEqual(after.pop("settlement_digest"), "")
+        self.assertIsNone(after.pop("finalized_receipt"))
         self.assertEqual(after, before)
 
 

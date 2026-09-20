@@ -177,13 +177,15 @@ class TheTriggerRefusesWhatTheServiceDidNotSupplyTest(TransactionTestCase):
         swap = self.tenant.swap
         self.addCleanup(restore_every_migration)
         migrate_to([("tokens", "0038_order_action_submissions")])
-        migrate_to([("tokens", "0055_order_submission_settlement_refusal")])
-        swap.refresh_from_db()
+        historical = migrate_to([("tokens", "0055_order_submission_settlement_refusal")]).get_model(
+            "tokens", "SwapOrder"
+        )
+        swap = historical.objects.get(pk=swap.pk)
         self.assertEqual(swap.settlement_protocol_version, 0)
 
         with self.assertRaises(Exception) as refusal:
             with transaction.atomic():
-                SwapOrder.objects.filter(pk=swap.pk).update(seller_wallet=other)
+                historical.objects.filter(pk=swap.pk).update(seller_wallet_id=other.pk)
 
         self.assertIn("does not match", str(refusal.exception))
         swap.refresh_from_db()
