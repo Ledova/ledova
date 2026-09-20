@@ -28,6 +28,7 @@ from tokens.services import swap_execution, token_transfer_service
 from tokens.services.settlement_context import settlement_execution_arguments
 from tokens.services.swap_expiry import expire_unclaimed_swap, expire_unclaimed_swaps
 from tokens.tasks.swap_expiry import expire_unclaimed_matches
+from tokens.tests.market_fixtures import record_synthetic_admission
 from tokens.tests.swap_state_fixtures import (
     BUYER,
     CONTRACT,
@@ -262,6 +263,8 @@ class UnclaimedSwapExpiryTest(ExpiryFixtures, TransactionTestCase):
 
     def test_previously_filled_orders_return_to_the_book_with_only_their_remaining_quantity(self):
         swap = self.matched_swap()
+        for order in (swap.sell_order, swap.buy_order):
+            record_synthetic_admission(order)
         orders = TransferOrder.objects.filter(pk__in=[swap.sell_order_id, swap.buy_order_id])
         for side in ("buy", "sell"):
             self.assertEqual(list(orders.order_book_levels(swap.share_token, side)), [])

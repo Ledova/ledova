@@ -7,6 +7,7 @@ from threading import Event
 from unittest.mock import patch
 from uuid import uuid4
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import connections
 from django.db.models.signals import post_init
@@ -18,7 +19,7 @@ from shared.db import atomic, configured, current_alias, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_eligible, make_tenant
 from shared.utils.typed_data import signable_message
-from tokens.models import SigningChallenge, SwapOrder, TransferOrder
+from tokens.models import ShareToken, SigningChallenge, SwapOrder, TransferOrder
 from tokens.services import token_transfer_service
 from tokens.tests.order_process_fixtures import OrderChild, wait_for_row_lock
 from tokens.tests.order_submission_fixtures import (
@@ -72,6 +73,95 @@ class CrossAccountMatchingFixtures(SubmissionFixtures):
 
 
 class CrossAccountMatchingChecks(CrossAccountMatchingFixtures):
+    def assert_market_quotes(self, *, bid="1.00", ask="2.50", quantity=10):
+        self.client.force_authenticate(self.buyer.user)
+        token_id = str(self.tenant.deployed_token.pk)
+        for path in ("/api/v1/trading/tokens/", "/api/v1/directory/tokens/"):
+            for endpoint in (path, f"{path}{token_id}/"):
+                response = self.client.get(endpoint)
+                self.assertEqual(response.status_code, 200, response.content)
+                body = response.json()
+                row = next(row for row in body["results"] if row["uuid"] == token_id) if endpoint == path else body
+                self.assertEqual((row["bestBid"], row["bestAsk"]), (bid, ask), endpoint)
+        market = self.client.get(f"/api/v1/trading/tokens/{token_id}/market-data/")
+        self.assertEqual(market.status_code, 200, market.content)
+        self.assertEqual((market.json()["bestBid"], market.json()["bestAsk"]), (bid, ask))
+        book = self.client.get(f"/api/v1/trading/tokens/{token_id}/order-book/")
+        self.assertEqual(book.status_code, 200, book.content)
+        self.assertEqual(book.json()["buyOrders"], [] if bid is None else [{"price": bid, "quantity": 10, "orders": 1}])
+        self.assertEqual(
+            book.json()["sellOrders"], [] if ask is None else [{"price": ask, "quantity": quantity, "orders": 1}]
+        )
+
+    def resting_market(self):
+        seller_id = self.seller_order()
+        buy = self.create(self.buyer_intent(price="1.00"))
+        self.assertEqual(buy.status_code, 201, buy.content)
+        self.assertIsNone(buy.json()["match"])
+        self.assert_market_quotes()
+        return seller_id
+
+    def test_market_quotes_exclude_a_deverified_wallet(self):
+        self.resting_market()
+        with use_operator():
+            Wallet.objects.filter(pk=self.wallet.pk).update(verification_status="PENDING")
+        self.assert_market_quotes(ask=None)
+
+    def test_market_quotes_exclude_a_non_evm_wallet(self):
+        self.resting_market()
+        with use_operator():
+            Wallet.objects.filter(pk=self.wallet.pk).update(chain="bitcoin")
+        self.assert_market_quotes(ask=None)
+
+    def test_market_quotes_exclude_an_owner_who_deleted_their_account(self):
+        self.resting_market()
+        self.client.force_authenticate(self.tenant.user)
+        deleted = self.client.post("/api/user-profiles/delete-account/")
+        self.assertEqual(deleted.status_code, 200, deleted.content)
+        self.assert_market_quotes(ask=None)
+
+    def test_market_quotes_exclude_orders_without_signed_admission(self):
+        self.resting_market()
+        with use_operator():
+            TransferOrder.objects.create(
+                token=self.tenant.deployed_token,
+                payment_asset=self.tenant.refs.stablecoin,
+                wallet=self.wallet,
+                owner_account=self.tenant.account,
+                wallet_address=self.wallet.address,
+                order_type="sell",
+                quantity=20,
+                price_per_share="0.50",
+            )
+        self.assert_market_quotes()
+
+    def test_market_quotes_exclude_orders_from_a_different_chain(self):
+        self.resting_market()
+        with self.settings(BLOCKCHAIN_CHAIN_ID=settings.BLOCKCHAIN_CHAIN_ID + 1):
+            self.assert_market_quotes(bid=None, ask=None)
+        self.assert_market_quotes()
+
+    def test_market_quotes_exclude_orders_from_a_replaced_contract(self):
+        self.resting_market()
+        with use_operator():
+            ShareToken.objects.filter(pk=self.tenant.deployed_token.pk).update(contract_address="0x" + "af" * 20)
+        self.assert_market_quotes(bid=None, ask=None)
+
+    def test_market_quotes_include_only_the_remaining_partial_quantity(self):
+        seller_id = self.resting_market()
+        with use_operator():
+            TransferOrder.objects.filter(pk=seller_id).update(status="partially_filled", filled_quantity=3)
+        self.assert_market_quotes(quantity=7)
+
+    def test_market_quotes_exclude_exhausted_or_below_minimum_remainders(self):
+        seller_id = self.resting_market()
+        for filled, minimum in ((10, 0), (3, 8)):
+            with self.subTest(filled=filled, minimum=minimum), use_operator():
+                TransferOrder.objects.filter(pk=seller_id).update(
+                    status="partially_filled", filled_quantity=filled, min_quantity=minimum
+                )
+            self.assert_market_quotes(ask=None)
+
     def test_a_successful_match_does_not_materialize_later_candidates(self):
         candidates = [
             self.seller_order(submission_id=str(uuid4()), price_per_share=price) for price in ("1.00", "2.00", "3.00")

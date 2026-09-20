@@ -9,11 +9,11 @@ from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import (
     make_associated,
     make_eligible,
-    make_tenant,
     open_to_investors,
 )
 from tokens.models import ShareToken
 from tokens.services.market_data_service import market_summaries
+from tokens.tests.market_fixtures import make_market_tenant
 
 DIRECTORY = "/api/v1/directory/tokens/"
 TRADING = "/api/v1/trading/tokens/"
@@ -22,8 +22,8 @@ TRADING = "/api/v1/trading/tokens/"
 class MarketSummaryTest(APITransactionTestCase):
     def setUp(self):
         FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
-        self.alice = make_tenant("alice")
-        self.bob = make_tenant("bob")
+        self.alice = make_market_tenant("alice")
+        self.bob = make_market_tenant("bob")
         make_eligible(self.alice)
         open_to_investors(self.alice)
         open_to_investors(self.bob)
@@ -63,7 +63,7 @@ class MarketSummaryTest(APITransactionTestCase):
                 traded = rows[str(self.alice.deployed_token.uuid)]
                 self.assertEqual((traded["lastPrice"], traded["bestBid"], traded["bestAsk"]), ("1.5", "1.50", "1.50"))
 
-                extra = [make_tenant(f"extra-{position}-{index}") for index in range(2)]
+                extra = [make_market_tenant(f"extra-{position}-{index}") for index in range(2)]
                 for tenant in extra:
                     open_to_investors(tenant)
                 self.client.force_authenticate(self.alice.user)
@@ -95,7 +95,7 @@ class MarketSummaryTest(APITransactionTestCase):
         self.assertEqual((row["lastPrice"], row["bestBid"], row["bestAsk"]), ("1.5", "1.50", "1.50"))
 
     def test_an_issuer_association_does_not_replace_general_market_eligibility(self):
-        associate = make_tenant("associate")
+        associate = make_market_tenant("associate")
         make_associated(associate, self.bob.company)
         self.client.force_authenticate(associate.user)
 

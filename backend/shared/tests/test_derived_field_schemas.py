@@ -24,6 +24,7 @@ from operators.models import Operator
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_eligible, make_tenant, open_to_investors
 from tokens.models import YieldToken
+from tokens.tests.market_fixtures import record_synthetic_admission
 from users.models import InvestorClassification, UserProfile
 from users.serializers.investor_classification import InvestorClassificationSerializer
 
@@ -475,6 +476,8 @@ class DerivedFieldResponseSchemaTest(APITransactionTestCase):
         self.assert_matches(self.response_schema(DOCUMENTS, page=True)["properties"]["latestExtraction"], body)
 
     def test_issuer_and_directory_prices_remain_decimal_strings_or_null(self):
+        for order in (self.owner.order, self.owner.counter_order):
+            record_synthetic_admission(order)
         FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
         make_eligible(self.owner)
         open_to_investors(self.owner)

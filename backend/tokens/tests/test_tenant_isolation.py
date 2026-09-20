@@ -21,6 +21,7 @@ from tokens.models.choices import (
 )
 from tokens.serializers import TransferOrderCreateSerializer
 from tokens.services import token_transfer_service
+from tokens.tests.market_fixtures import record_synthetic_admission
 from users.models import UserAccount, UserProfile
 from wallets.models import Wallet
 
@@ -151,7 +152,7 @@ class TenantOrderIsolationTest(APITestCase):
 
 class TransferOrderOwnershipBindingTest(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(email="owner@example.test", password="pw-12345678")
+        self.user = User.objects.create_user(email="owner@example.test", password="pw-12345678", is_active=True)
         self.profile = UserProfile.objects.create(user=self.user)
         self.account = UserAccount.objects.create(user_profile=self.profile)
         self.wallet = Wallet.objects.create(
@@ -297,6 +298,7 @@ class TransferOrderOwnershipBindingTest(APITestCase):
             price_per_share=Decimal("1.10"),
         )
 
+        record_synthetic_admission(valid_candidate)
         service = token_transfer_service
         matches = list(service.find_matching_orders(incoming))
         sell_levels = list(TransferOrder.objects.order_book_levels(self.token, TransferOrderType.SELL))

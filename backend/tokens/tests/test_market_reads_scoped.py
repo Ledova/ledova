@@ -12,6 +12,7 @@ from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_eligible, make_tenant, open_to_investors
 from tokens.models import SwapOrder, TransferOrder
+from tokens.tests.market_fixtures import make_market_tenant
 from tokens.tests.test_market_summary import DIRECTORY, TRADING
 
 
@@ -21,7 +22,7 @@ class ScopedMarketReadsTest(RunsOnTheScopedConnection, APITransactionTestCase):
         with use_operator():
             FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
             self.reader = make_tenant("market-reader")
-            self.issuer = make_tenant("market-issuer")
+            self.issuer = make_market_tenant("market-issuer")
             make_eligible(self.reader)
             open_to_investors(self.issuer)
             self.addCleanup(restore_every_migration)
