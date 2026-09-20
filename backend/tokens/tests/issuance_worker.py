@@ -32,7 +32,9 @@ def run(directory, phase, request_id, actor_id, confirmation):
     from blockchain.tests.outgoing_fixtures import receipt
     from tokens.models import ShareIssuanceExecution, ShareIssuanceRequest
     from tokens.services import issuance_execution
-    from tokens.tests.issuance_fixtures import IssuanceNode
+    from tokens.tests.issuance_fixtures import FINALITY_POLICIES, IssuanceNode
+
+    settings.WALLET_CHAIN_FINALITY_POLICIES = FINALITY_POLICIES
 
     request = ShareIssuanceRequest.objects.get(pk=request_id)
     actor = get_user_model().objects.get(pk=actor_id)

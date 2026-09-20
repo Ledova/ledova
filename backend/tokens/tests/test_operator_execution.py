@@ -30,12 +30,20 @@ from shared.tests.tenants import make_tenant
 from tokens.models import RequestStatus, ShareIssuance, ShareIssuanceRequest
 from tokens.services import issuance_execution, share_token_service
 from tokens.tasks import execute_review_request_task
-from tokens.tests.issuance_fixtures import CHAIN_ID, KEY, IssuanceNode, admit
+from tokens.tests.issuance_fixtures import (
+    CHAIN_ID,
+    FINALITY_POLICIES,
+    KEY,
+    IssuanceNode,
+    admit,
+)
 from wallets.models import Holding, HoldingSnapshot
 from whitelist.models import WhitelistEntry
 
 
-@override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
+@override_settings(
+    BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, WALLET_CHAIN_FINALITY_POLICIES=FINALITY_POLICIES
+)
 class OperatorExecutionFromScopedContextTest(RunsOnTheScopedConnection, TransactionTestCase):
     def setUp(self):
         super().setUp()

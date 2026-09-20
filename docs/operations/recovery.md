@@ -12,6 +12,10 @@ Deployment, capital and issuance sweeps recover accepted work; see the
 [issuance flow](../architecture/contracts-and-issuance.md). New share issuances
 use the private `ShareIssuanceExecution` command and common signing journal.
 `check_executing_issuance_requests` processes bounded batches every five minutes.
+An executing command with an observed success or revert is eligible on every sweep,
+without the ten-minute stale cutoff used for unmined work. The batch limit can delay
+a particular command until a later sweep; each checked command moves to the back
+of the ordered queue.
 It checks the original receipt and may replay the same saved bytes, hash and
 nonce. Provider absence never authorizes another attempt. Backups containing
 signed payloads contain transactions that can be broadcast.
@@ -19,9 +23,13 @@ signed payloads contain transactions that can be broadcast.
 Initial queued subscription allotment can be cancelled by a valid refund. That
 cancellation is durable even if the old task arrives later. After the worker's
 executing claim, unknown delivery keeps the refund hold. A known unsigned failure
-or original revert allows refund cancellation or a fresh admin retry confirmation
+or policy-final original revert allows refund cancellation or a fresh admin retry confirmation
 for that exact failed claim. Reverted transactions and signed history remain
-recorded. New completion updates the issuance, request and subscription together.
+recorded. A first receipt alone leaves execution and the refund hold pending.
+New completion waits for the configured network finality policy and updates the
+issuance, request and subscription together. Missing policy/provider evidence or
+a changed receipt outcome remains held; see the
+[issuance finality boundary](../architecture/outgoing-signing.md#share-issuances).
 
 Historical null-dispatch requests keep their old journal and transaction fields.
 Recovery validates saved signed bytes before replay; a named hash without bytes
@@ -33,7 +41,7 @@ Hashless legacy rows remain held. After the grace period, use **Record legacy
 transaction hash** in admin with a mint identified from operator history. Naming
 validates the exact contract, recipient and amount and refuses a hash already
 attributed to another issuance, including retained reverted history. There is no
-Release claim action. Finality and complete same-key writer cutover remain separate
+Release claim action. Historical finality and complete same-key writer cutover remain separate
 programme requirements; see [outgoing signing](../architecture/outgoing-signing.md).
 
 ## Capital increases

@@ -292,7 +292,7 @@ a cancelled command in the same transaction. Delayed jobs return that cancellati
 without opening an operation or creating a public issuance. The worker commits
 executing state and its stamped public issuance before opening the outgoing
 operation. From that claim onward, uncertainty blocks refunds. A definite unsigned
-failure or original revert permits refund cancellation or an explicit retry of
+failure or policy-final original revert permits refund cancellation or an explicit retry of
 that exact failed claim. Reverts retain the original transaction and signed bytes.
 
 PostgreSQL guards freeze approved terms, dispatch identity, subscription linkage,
@@ -302,13 +302,26 @@ operation, token, subscription, request and private command; chain reads and sen
 run outside those transactions. Common-journal signing commits original bytes,
 nonce, hash, public transaction and issuance association before broadcast.
 
-Recovery projects only the original receipt and a unique matching zero-address
-`Transfer` event for the approved contract, recipient and amount. Receipt metadata
-is retained before event verification. Private completion, public issuance,
-request and subscription allotment commit atomically. Terminal replay preserves
-that outcome; a holding refresh uses the admitted contract address. Unknown sends
-reuse the original bytes and nonce. Missing receipts or events never permit a
-fresh attempt. The five-minute sweep recovers bounded batches of accepted work.
+Recovery retains the first receipt before checking finality. A transaction marked
+confirmed or reverted is evidence of that first inclusion; the issuance remains
+executing until the existing `WALLET_CHAIN_FINALITY_POLICIES` rule for its original
+network is satisfied. This uses the same canonical-block evidence reader as swap
+settlement. Missing or invalid policy, unavailable evidence, a changing head or an
+orphaned receipt leaves the command and its refund hold pending.
+
+Before completion, recovery re-reads the original transaction and verifies the
+finalized inclusion, sender, contract and, for success, one matching zero-address
+`Transfer` for the approved recipient and amount. A same-outcome reinclusion may
+complete at its newly verified block: the public transaction and issuance record
+that final inclusion while the immutable outgoing journal retains the first one.
+A changed success/revert outcome remains held for operator attribution. The
+locked projection rechecks the original claim, attempt and current finality
+policy. Private completion, public issuance, request and subscription allotment
+commit atomically. Terminal replay preserves that outcome; a holding refresh uses
+the admitted contract address. Unknown sends reuse the original bytes and nonce.
+Missing receipts or events never permit a fresh attempt. The five-minute sweep
+recovers bounded batches of accepted work. Register event recording remains
+[integration work](register.md) after this finality prerequisite.
 
 Migrations `tokens/0047` and `0048` leave every historical dispatch null and retain
 its fields and mint journal without adoption. New private metadata has no

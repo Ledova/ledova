@@ -29,6 +29,7 @@ from web3 import Web3
 from assets.models import Asset, AssetChainDeployment, AssetType
 from blockchain.models import (
     BlockchainTransaction,
+    OutgoingOperation,
     SignedAttempt,
     SigningAccount,
     TransactionStatus,
@@ -121,6 +122,7 @@ CHAIN_ENV = (
 CHAIN_SETTINGS = {
     "BLOCKCHAIN_RPC_URL": os.environ.get("CHAIN_TEST_RPC_URL", ""),
     "BLOCKCHAIN_CHAIN_ID": 31337,
+    "WALLET_CHAIN_FINALITY_POLICIES": {"evm:31337": {"mode": "depth", "depth": 1}},
     **{name: os.environ.get(name, "") for name in CHAIN_ENV[1:]},
 }
 CAP = 1000
@@ -670,21 +672,74 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
     def test_register_snapshot_pins_real_contract_reads_and_excludes_a_later_unfinalized_mint(self):
         self._deployed()
         first = self._whitelisted_request(10)
-        self.assertTrue(self._execute(first)["success"])
+        self.assertEqual(self._execute(first)["status"], "executing")
         self.w3.provider.make_request("evm_mine", [])
+        self.assertTrue(self._execute(first)["success"])
         initial = register_snapshot.capture_snapshot(self.token.pk)
         self.assertEqual(initial["issued_supply"], "10")
         second = self._issuance_request(5)
-        self.assertTrue(self._execute(second)["success"])
+        self.assertEqual(self._execute(second)["status"], "executing")
         pending = register_snapshot.capture_snapshot(self.token.pk)
         self.assertEqual(pending["issued_supply"], "10")
         self.assertEqual(self._contract().functions.totalSupply().call(), 15)
         self.w3.provider.make_request("evm_mine", [])
         completed = register_snapshot.capture_snapshot(self.token.pk)
+        self.assertTrue(self._execute(second)["success"])
         self.assertEqual(completed["issued_supply"], "15")
         self.assertEqual(completed["holdings"], [{"address": self.investor, "shares": "15"}])
         self.assertNotIn("transfers", completed)
         self.assertGreater(completed["block"]["number"], initial["block"]["number"])
+
+    @override_settings(WALLET_CHAIN_FINALITY_POLICIES={"evm:31337": {"mode": "depth", "depth": 2}})
+    def test_real_issuance_waits_for_finality_then_completes_without_another_mint(self):
+        self._deployed()
+        request = self._whitelisted_request(10)
+        nonce = self._signer_nonce()
+        result = self._execute(request)
+        self.assertEqual((result["success"], result["status"]), (False, "executing"))
+        command = ShareIssuanceExecution.objects.get(request_id=request.pk)
+        issuance = ShareIssuance.objects.get(pk=command.issuance_id)
+        self.assertEqual(issuance.status, "processing")
+        self.assertIsNone(issuance.completed_at)
+        self.assertEqual(self._contract().functions.totalSupply().call(), 10)
+        self.assertEqual(check_executing_issuance_requests(), {"checked": 1, "resolved": 0})
+        self.w3.provider.make_request("evm_mine", [])
+        self.assertEqual(check_executing_issuance_requests(), {"checked": 1, "resolved": 1})
+        completed = self._execute(request)
+        self.assertTrue(completed["success"])
+        self.assertEqual(completed["tx_hash"], result["tx_hash"])
+        self.assertEqual(self._signer_nonce(), nonce + 1)
+        self.assertEqual(SignedAttempt.objects.filter(operation_id=command.operation_id).count(), 1)
+        self.assertEqual(self._contract().functions.totalSupply().call(), 10)
+
+    @override_settings(WALLET_CHAIN_FINALITY_POLICIES={"evm:31337": {"mode": "depth", "depth": 2}})
+    def test_real_issuance_reorg_reinclusion_keeps_original_bytes_and_records_final_block(self):
+        self._deployed()
+        request = self._whitelisted_request(10)
+        before = self.w3.provider.make_request("evm_snapshot", [])["result"]
+        pending = self._execute(request)
+        self.assertEqual(pending["status"], "executing")
+        command = ShareIssuanceExecution.objects.get(request_id=request.pk)
+        operation = OutgoingOperation.objects.get(pk=command.operation_id)
+        attempt = operation.current_attempt
+        original_block = (operation.block_number, operation.block_hash)
+        self.assertTrue(self.w3.provider.make_request("evm_revert", [before])["result"])
+        self.assertEqual(self._contract().functions.totalSupply().call(), 0)
+        self.assertEqual(self._execute(request)["status"], "executing")
+        self.w3.provider.make_request("evm_mine", [])
+        self.assertEqual(Web3.to_hex(self.w3.eth.send_raw_transaction(bytes(attempt.raw_transaction))), attempt.tx_hash)
+        receipt = self.w3.eth.wait_for_transaction_receipt(attempt.tx_hash)
+        self.assertNotEqual((receipt["blockNumber"], Web3.to_hex(receipt["blockHash"])), original_block)
+        self.w3.provider.make_request("evm_mine", [])
+        completed = self._execute(request)
+        self.assertTrue(completed["success"])
+        self.assertEqual(completed["block_number"], receipt["blockNumber"])
+        record = BlockchainTransaction.objects.get(pk=command.transaction_id)
+        self.assertEqual(record.block_hash, Web3.to_hex(receipt["blockHash"]))
+        operation.refresh_from_db()
+        self.assertEqual((operation.block_number, operation.block_hash), original_block)
+        self.assertEqual(SignedAttempt.objects.filter(operation_id=operation.pk).count(), 1)
+        self.assertEqual(self._contract().functions.totalSupply().call(), 10)
 
     def test_real_unwhitelisted_and_paused_transfer_estimates_explain_the_refusal_without_sending(self):
         self._deployed()
@@ -1401,10 +1456,6 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual(self._contract().functions.balanceOf(self.investor).call(), 10)
         self.assertEqual(ShareIssuance.objects.completed_supply(self.token), 0)
 
-        self.assertEqual(check_executing_issuance_requests(), {"checked": 0, "resolved": 0})
-        ShareIssuanceExecution.objects.filter(request_id=request.pk).update(
-            updated_at=timezone.now() - timedelta(hours=1)
-        )
         nonce_before = self._signer_nonce()
         self.assertEqual(check_executing_issuance_requests(), {"checked": 1, "resolved": 1})
 

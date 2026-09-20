@@ -134,7 +134,8 @@ class IssuanceExecutionProcessTest(TransactionTestCase):
             code, out, err = finish(self.worker(directory, "before_revert_projection"))
             self.assertEqual(code, -signal.SIGKILL, out + err)
             previous = BlockchainTransaction.objects.get()
-            self.assertEqual(previous.status, "submitted")
+            self.assertEqual(previous.status, "reverted")
+            self.assertEqual(ShareIssuanceExecution.objects.get().status, "executing")
             claim = OutgoingOperation.objects.get().claim_id
             self.assertEqual(self.successful(self.worker(directory, "recover"))["status"], "failed")
             previous.refresh_from_db()

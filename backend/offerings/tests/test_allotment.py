@@ -48,7 +48,13 @@ from tokens.models import (
     ShareIssuanceRequest,
 )
 from tokens.services import issuance_execution, legacy_issuance, share_token_service
-from tokens.tests.issuance_fixtures import CHAIN_ID, KEY, IssuanceNode
+from tokens.tasks import check_executing_issuance_requests
+from tokens.tests.issuance_fixtures import (
+    CHAIN_ID,
+    FINALITY_POLICIES,
+    KEY,
+    IssuanceNode,
+)
 
 CHAIN_CLIENT = "tokens.services.share_token_service.get_base_chain_client"
 DEFER = "offerings.tasks.subscription.allot_subscription_task.defer"
@@ -57,7 +63,9 @@ SIGNER = "0x" + "e" * 40
 ROOMY = (1000000, 0)
 
 
-@override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
+@override_settings(
+    BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, WALLET_CHAIN_FINALITY_POLICIES=FINALITY_POLICIES
+)
 class AllotmentTestCase(TransactionTestCase):
     def setUp(self):
         chain = patch(CHAIN_CLIENT).start().return_value
@@ -128,6 +136,35 @@ def _create_request(token, recipient, amount, user, reason="", issuance_type="ad
 
 
 class AllotOneSubscriptionTest(AllotmentTestCase):
+    def test_finality_keeps_allotment_and_refund_held_until_atomic_completion(self):
+        subscription = paid_subscription(self.tenant, quantity=10)
+        request = allot(subscription, self.operator_user)
+        self.node.finalized = 11
+        self.assertEqual(self._execute(request)["status"], "executing")
+        subscription.refresh_from_db()
+        self.assertEqual(subscription.status, SubscriptionStatus.PAID)
+        with self.assertRaises(SubscriptionRefusedException):
+            record_refund(subscription, Decimal("1.00"))
+        self.node.finalized = 12
+        original = Subscription.mark_allotted
+
+        def interrupted(row):
+            original(row)
+            raise RuntimeError("Synthetic allotment completion interruption")
+
+        with patch.object(Subscription, "mark_allotted", interrupted):
+            with self.assertRaises(RuntimeError):
+                self._execute(request)
+        subscription.refresh_from_db()
+        request.refresh_from_db()
+        self.assertEqual((subscription.status, request.status), (SubscriptionStatus.PAID, RequestStatus.EXECUTING))
+        self.assertIsNone(request.executed_at)
+        self.assertEqual(ShareIssuanceExecution.objects.get(request_id=request.pk).status, "executing")
+        self.assertEqual(check_executing_issuance_requests(), {"checked": 1, "resolved": 1})
+        subscription.refresh_from_db()
+        self.assertEqual(subscription.status, SubscriptionStatus.ALLOTTED)
+        self.assertEqual(len(self.node.broadcasts), 1)
+
     def test_a_paid_subscription_creates_an_approved_request_and_defers_the_mint(self):
         subscription = paid_subscription(self.tenant, quantity=10)
         request = allot(subscription, self.operator_user, notes="Allotted by the operator")

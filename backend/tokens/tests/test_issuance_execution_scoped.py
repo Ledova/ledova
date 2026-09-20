@@ -15,7 +15,7 @@ from shared.db import (
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import ShareIssuanceExecution, ShareIssuanceRequest
 from tokens.services import issuance_execution
-from tokens.tasks import execute_review_request_task
+from tokens.tasks import check_executing_issuance_requests, execute_review_request_task
 from tokens.tests.issuance_fixtures import CHAIN_ID, KEY, admit, install_issuance
 
 
@@ -111,6 +111,37 @@ class ScopedIssuanceExecutionTest(RunsOnTheScopedConnection, TransactionTestCase
         with use_operator():
             self.assertFalse(ShareIssuanceExecution.objects.exists())
             self.assertFalse(OutgoingOperation.objects.exists())
+
+    def test_operator_job_from_app_context_holds_until_finality_without_locks_during_rpc(self):
+        with use_operator():
+            command = admit(self.request, self.actor)
+        original = self.node.block
+        observations = []
+
+        def block(identifier):
+            self.assertEqual(current_alias(), OPERATOR_ALIAS)
+            self.assertTrue(connections[OPERATOR_ALIAS].get_autocommit())
+            self.assertFalse(connections[OPERATOR_ALIAS].in_atomic_block)
+            observations.append(identifier)
+            return original(identifier)
+
+        self.node.client.w3.eth.get_block.side_effect = block
+        self.node.finalized = 11
+        with acting_for(self.tenant.user.pk):
+            pending = execute_review_request_task(
+                model_label="tokens.ShareIssuanceRequest",
+                request_uuid=str(self.request.pk),
+                executed_by=self.actor.pk,
+                execution_id=str(command.pk),
+            )
+            self.assertEqual((pending["success"], pending["status"]), (False, "executing"))
+            self.assertEqual(ShareIssuanceRequest.objects.get(pk=self.request.pk).status, "executing")
+            self.node.finalized = 12
+            self.assertEqual(check_executing_issuance_requests(), {"checked": 1, "resolved": 1})
+            self.assertEqual(ShareIssuanceRequest.objects.get(pk=self.request.pk).status, "executed")
+            self.assertEqual(current_alias(), APP_ALIAS)
+        self.assertIn("finalized", observations)
+        self.assertEqual(len(self.node.broadcasts), 1)
 
     def test_subscriber_cannot_retarget_delete_or_fake_refund_after_admission(self):
         from decimal import Decimal

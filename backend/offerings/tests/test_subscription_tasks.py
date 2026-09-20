@@ -30,14 +30,21 @@ from tokens.models import (
     ShareIssuanceRequest,
 )
 from tokens.services import issuance_execution
-from tokens.tests.issuance_fixtures import CHAIN_ID, KEY, IssuanceNode
+from tokens.tests.issuance_fixtures import (
+    CHAIN_ID,
+    FINALITY_POLICIES,
+    KEY,
+    IssuanceNode,
+)
 
 WHITELISTED = "tokens.services.share_token_service.is_recipient_whitelisted"
 SUPPLY = "tokens.services.share_token_service.share_supply"
 DEFER = "offerings.tasks.subscription.allot_subscription_task.defer"
 
 
-@override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
+@override_settings(
+    BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, WALLET_CHAIN_FINALITY_POLICIES=FINALITY_POLICIES
+)
 class SubscriptionTaskTestCase(TransactionTestCase):
     def setUp(self):
         self.node = IssuanceNode()
