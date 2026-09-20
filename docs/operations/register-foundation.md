@@ -98,5 +98,41 @@ installer, so historical grant installation can run before those tables exist.
 The creating migration installs their policies and grants; a missing table after
 that migration is recorded remains an error.
 
+## Inspecting a canonical chain snapshot
+
+Before an opening can be activated, its chain quantities need one recorded
+boundary. The read-only operator command below inspects an attributed deployment
+on the configured local/testnet provider. It does not load an opening, record
+member identities, switch HTTP reads or change issuance completion timing.
+
+```bash
+python manage.py register_snapshot --token TOKEN_UUID > snapshot.json
+```
+
+The token must have its original confirmed deployment journal and transaction;
+an unattributed legacy contract is refused. The network must have an approved
+finality policy. Public testnets use their configured finalized boundary; local
+depth policies select the last block with the required confirmations. The
+provider needs historical contract calls and transfer logs, including support for
+canonical block-hash `eth_call` requests. Unsupported or unavailable historical
+reads are refused rather than replaced by current balances.
+
+The JSON records the company, class, deployment transaction, network, contract,
+block number/hash/date, finality policy, issued/authorized supply and positive
+holdings. All share quantities are exact integer strings; names and residential
+addresses are absent. The observed transfer fold must agree with each observed
+participant's balance, including zero balances, and total supply at that same
+hash. Duplicate or noncanonical logs, inconsistent quantities, a reorg, a changed
+deployment/network/policy or unavailable finality refuse the result.
+
+Matching balances cannot establish that every historical log was returned: an
+omitted self-transfer or round trip can leave all quantities unchanged. The
+command therefore exports only the reconciled state candidate. It provides no
+event-history export, entry/cessation dates or evidence of complete historical
+membership. Those require separate evidence when an opening is activated or a
+workflow event is recorded. This inspection neither approves nor imports the
+register, and cannot guarantee future chain finality. No signing or database
+writes take place.
+
 Next: [the remaining register work](https://github.com/Ledova/ledova/issues/647)
 and [backend verification](../development/testing.md#backend-verification).
