@@ -24,9 +24,9 @@ on its behalf unless the company chooses a host.
 
 Ledova the project is a software supplier. On the reading in
 [position 4a](positions.md#4a-a-registry-service-acting-only-on-instruction-is-not-a-financial-service),
-supplying software is not a financial service, and the licence permits a company
-to use the software for its own purposes
-([position 5](positions.md#5-the-licences-competing-use-test-and-who-we-is)).
+supplying software is not a financial service. Separately, the current software
+licence requires written commercial permission for a company's own business use
+([position 5](positions.md#5-software-licensing-and-commercial-permission)).
 If the project also hosts or supports the instance, the reading is that it
 becomes an IT supplier to the company: a hosting agreement with a data-processing
 clause, and nothing from the financial services perimeter, provided it never
@@ -37,9 +37,10 @@ every issue and transfer, on whatever servers, is running this model. The moment
 someone outside the company makes entries on its behalf, the
 [registry service](registry-service.md) begins, and with it a second legal person.
 
-## What the company can do with no permission
+## What the company can do without additional regulatory permission
 
-On the readings in positions 4a, 4b, 6, 7, 9 and 11:
+On the readings in positions 4a, 4b, 6, 7, 9 and 11, subject to the software
+permission above and the [live-operation conditions](../regulatory-pathway.md):
 
 - **Keep its register** in the instance as the register of members.
 - **Issue its own shares.** A body corporate's transaction relating only to its
@@ -76,6 +77,9 @@ On the readings in positions 4a, 4b, 6, 7, 9 and 11:
 
 ## Feature by feature
 
+"No permission" in this table refers to additional regulatory permission. The
+current software licence still requires separate written commercial permission.
+
 | Feature | Status in this model |
 | --- | --- |
 | Register of members, certificates, figures for notices | No permission |
@@ -90,9 +94,10 @@ On the readings in positions 4a, 4b, 6, 7, 9 and 11:
 
 ## Getting a first company there
 
-A private company that wants to issue shares to an employee can run this model
-now, on the positions as drafted. The sequence is short because almost all of it
-is the company doing what it must do anyway.
+A private company that wants to issue shares to an employee would first need
+written commercial permission to use the software and to meet the
+[live-operation conditions](../regulatory-pathway.md). The sequence below is the
+operating model on the positions as drafted.
 
 1. **Choose where the instance runs.** The company's own cloud account, or a
    managed host. Hosting can be outsourced; the entries cannot, or the model
@@ -117,7 +122,8 @@ is the company doing what it must do anyway.
 
 | Cost | In this model |
 | --- | --- |
-| Licence and enrolment fees | None, on the positions as drafted: no AFSL, no market licence, no AUSTRAC enrolment for a company acting for itself |
+| Regulatory licence and enrolment fees | None, on the positions as drafted: no AFSL, no market licence, no AUSTRAC enrolment for a company acting for itself |
+| Software licence | Separate written commercial permission; any fee is agreed separately |
 | Recurring | Hosting, backups and someone to administer the instance; the accountant who already lodges the company's notices |
 | Optional filings | The computer-storage notice; a low-volume market registration if a transfer board is opened |
 
@@ -145,9 +151,9 @@ a privacy posture, and constant discipline about a boundary this model does not
 have, because a business assembled from exempt clerical tasks can still be
 judged an arranging business in aggregate (RG 36.53). The trade is that
 companies get a service instead of a system to run, and the project gets a
-business. This model is the simplest legal position available and is where a
-first company can be tomorrow; the registry service is where a company that
-keeps registers for others is built.
+business. This model has fewer regulatory dependencies on the positions as
+drafted; both models require software permission and the live-operation
+conditions to be satisfied.
 
 ## Open questions
 

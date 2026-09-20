@@ -14,11 +14,11 @@ sequence — and the conditions that must hold before live operation.
 
 | Page | What it holds | Read it when |
 | --- | --- | --- |
-| [Company-hosted instance](company-hosted-instance.md) | Operating model A: a company runs its own instance for its own shares; what it can do without permission, its duties, the perimeter, the path for a first company | Before offering the software to a company to run itself |
+| [Company-hosted instance](company-hosted-instance.md) | Operating model A: a company runs its own instance for its own shares; software permission, regulatory duties, the perimeter, the path for a first company | Before offering the software to a company to run itself |
 | [Registry service](registry-service.md) | Operating model B: one operator keeps the registers of many companies on instruction; the clerk boundary, the perimeter, the path to market | Before operating a hosted service for anyone |
 | [Positions](positions.md) | The positions taken, one per question, with sources, triggers, the model each binds, and status | Before changing anything that touches the register, evidence, licensing or the licence |
 | [Regulatory pathway](../regulatory-pathway.md) | The route to lawful live operation: obligation allocation, open questions, operating routes, engagement sequence and launch conditions | Before talking to ASIC, applying for anything, or enabling any live regulated activity |
-| [LICENSE](../../LICENSE) | The Functional Source License the code is published under | Position 5 |
+| [LICENSE](../../LICENSE) | The Ledova Noncommercial License 1.0 the code is published under | Position 5 |
 
 ## How a position is written
 
@@ -65,10 +65,12 @@ not engaged by a register of fictional members.
 
 Each position therefore names its trigger. Most triggers are the first real
 company's first real member, the first fee charged for keeping a real register,
-or the first real offer of a security. The licence question (position 5) is the
-exception: it waits on somebody wanting to compete, not on real use. A fork
-alone is not a Competing Use, since the test is about the use made of the
-software and the relationship between its Licensor and operator.
+or the first real offer of a security. The software licence (position 5) applies
+from the outset: permitted noncommercial study, testing and contributions are
+allowed, while commercial use or using the code for a competing product or
+service requires separate written permission. That includes a company's own
+business use and a free competing service. Public forks for permitted purposes
+remain welcome.
 
 The positions serve two operating models, each with its own page, because the
 law places register duties on the company and asks its licence questions of
@@ -82,7 +84,7 @@ whoever operates the register:
   second legal person, with an agreement per company and a boundary to hold.
 
 The pivot between them is who makes the entries, not who hosts the servers. Each
-model's page says what it can do with no permission and where its perimeter is;
+model's page distinguishes software permission from its regulatory perimeter;
 the [regulatory pathway](../regulatory-pathway.md) covers the route beyond that
 perimeter, which position 4b reads as needing a licence, a registration or
 relief in either model.
@@ -210,7 +212,7 @@ In the order they unblock work. Each says what it settles.
 | DFMI | Digital financial market infrastructure |
 | ERS | Enhanced Regulatory Sandbox, INFO 248, being repealed |
 | ESS | Employee share scheme, Division 1A of Part 7.12 for offers and Division 83A of the tax Act for tax |
-| FSL | Functional Source License, the code's licence |
+| FSL | Functional Source License, used for earlier versions; their existing grants remain effective |
 | INFO | An ASIC information sheet |
 | LVFM | Low volume financial market, Instrument 2016/888 |
 | NTA | Net tangible assets, RG 166 |

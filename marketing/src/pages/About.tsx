@@ -1,5 +1,5 @@
 const STATUS = [
-  { label: 'License', value: 'FSL-1.1-ALv2' },
+  { label: 'License', value: 'Ledova Noncommercial License 1.0' },
   { label: 'Environment', value: 'Local + testnet' },
   { label: 'Security review', value: 'Not audited' },
   { label: 'Service status', value: 'No hosted service' },

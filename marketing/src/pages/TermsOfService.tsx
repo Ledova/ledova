@@ -10,8 +10,18 @@ export function TermsOfService() {
       <section className="border-t border-border-subtle bg-surface-raised/50 py-24">
         <div className="mx-auto max-w-3xl space-y-8 px-6 leading-relaxed text-text-muted">
           <p>
-            Ledova is unaudited source-available software supplied under the repository license for development and
-            evaluation. It is not an exchange, custodian, broker, issuer, investment product, or financial service.
+            Ledova is unaudited source-available software supplied under the Ledova Noncommercial License 1.0 for the
+            permitted noncommercial purposes. It is not an exchange, custodian, broker, issuer, investment product, or
+            financial service.
+          </p>
+          <p>
+            Commercial use, including internal business use and paid services, and using the code for a competing
+            product or service, even for free, require a separate written license. Developers are welcome to study, test
+            and contribute under the{' '}
+            <a href="https://github.com/Ledova/ledova/blob/main/LICENSE" className="underline">
+              repository license
+            </a>
+            .
           </p>
           <div>
             <h2 className="text-xl font-semibold text-text-primary">Development use</h2>

@@ -32,7 +32,7 @@ export function Footer() {
           </div>
         </div>
         <div className="mt-10 border-t border-border-subtle pt-6 text-center text-xs text-text-muted">
-          <p>&copy; {currentYear} Ledova contributors. FSL-1.1-ALv2.</p>
+          <p>&copy; {currentYear} Ledova contributors. Ledova Noncommercial License 1.0.</p>
         </div>
       </div>
     </footer>

@@ -57,12 +57,27 @@ Report vulnerabilities through the [security policy](SECURITY.md).
 
 ## Ownership and license
 
-Ronildo da Rocha Braga Junior builds and maintains Ledova and holds its copyright.
+Ronildo da Rocha Braga Junior created and maintains Ledova. Contributors retain
+copyright in their contributions.
 Blueberry Money sponsors the work and
 intends to be its first hosted operator. Sponsorship transfers neither ownership
 nor control over the project.
 
-Ledova is source-available under [FSL-1.1-ALv2](LICENSE). Each release becomes
-Apache 2.0 two years after publication; releases before 2026-09-10 remain under
-Apache 2.0. Read the license for permitted uses and commercial restrictions.
-It grants no trademark rights beyond identifying the software's origin.
+Ledova is public and source-available under the
+[Ledova Noncommercial License 1.0](LICENSE). You may download, study, modify and
+share it for the permitted noncommercial purposes, including preparing
+contributions. Commercial use, including internal business use and paid services,
+and using its code to offer a competing product or service, even for free,
+require a separate written license. There is no automatic open-source conversion
+under this license, and it grants no general trademark rights.
+
+Developers are welcome to fork the repository and contribute fixes, tests,
+documentation and improvements. Read the [contribution terms](CONTRIBUTING.md#licensing-of-contributions)
+before submitting work. Contact Ronildo da Rocha Braga Junior through the
+[repository](https://github.com/Ledova/ledova) to discuss commercial permission.
+
+Earlier grants remain effective: releases before 2026-09-10 remain under Apache
+2.0, and versions published under FSL retain their two-year future Apache grant.
+The new terms do not revoke those rights or replace third-party licenses. See
+the [licensing position](docs/legal/positions.md#5-software-licensing-and-commercial-permission)
+for the transition and operating-company arrangements.
