@@ -9,6 +9,7 @@ from uuid import uuid4
 
 from django.contrib.auth import get_user_model
 from django.db import connections
+from django.db.models.signals import post_init
 from rest_framework.test import APITransactionTestCase
 
 from assets.models import AssetChainDeployment
@@ -71,6 +72,26 @@ class CrossAccountMatchingFixtures(SubmissionFixtures):
 
 
 class CrossAccountMatchingChecks(CrossAccountMatchingFixtures):
+    def test_a_successful_match_does_not_materialize_later_candidates(self):
+        candidates = [
+            self.seller_order(submission_id=str(uuid4()), price_per_share=price) for price in ("1.00", "2.00", "3.00")
+        ]
+        signed = self.buyer_intent(price="3.00")
+        observed = set()
+
+        def record_candidate(sender, instance, **kwargs):
+            if str(instance.pk) in candidates:
+                observed.add(str(instance.pk))
+
+        post_init.connect(record_candidate, sender=TransferOrder)
+        try:
+            created = self.create(signed)
+        finally:
+            post_init.disconnect(record_candidate, sender=TransferOrder)
+        self.assertEqual(created.status_code, 201, created.content)
+        self.assertEqual(created.json()["match"]["counterOrder"], candidates[0])
+        self.assertEqual(observed, {candidates[0]})
+
     def stale_foreign_wallet_is_not_matched(self, **changes):
         seller_id = self.seller_order()
         with use_operator():

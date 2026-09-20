@@ -23,6 +23,8 @@ still be verified and on EVM, with an active account owner. The matcher locks
 one compatible candidate's wallet and account/profile/user authority and only
 that incoming/candidate order pair without waiting. Each attempt uses a savepoint;
 an unrepresentable settlement releases that candidate's locks before a fallback.
+Candidates stream in database priority order in batches of 100, with no whole-book
+Python sort or match list.
 A busy or concurrently changed candidate returns a retryable response, preserving the pending
 submission UUID and rolling back execution effects. Unjournaled orders
 retain their same-account behavior; they gain no cross-account matching authority.

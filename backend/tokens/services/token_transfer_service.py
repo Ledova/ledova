@@ -1,5 +1,6 @@
 import logging
-from typing import Optional, Union
+from contextlib import closing
+from typing import Generator, Optional, Union
 
 from django.conf import settings
 from django.db import OperationalError
@@ -259,7 +260,7 @@ def _lock_foreign_matching_authority(order, candidate):
     return wallets.first() is not None
 
 
-def find_matching_orders(order: TransferOrder) -> list[tuple[TransferOrder, int]]:
+def find_matching_orders(order: TransferOrder) -> Generator[tuple[TransferOrder, int], None, None]:
     if order.order_type == TransferOrderType.BUY:
         qs = (
             TransferOrder.objects.ownership_bound()
@@ -282,20 +283,13 @@ def find_matching_orders(order: TransferOrder) -> list[tuple[TransferOrder, int]
         )
 
     qs = qs.admitted_to_match(order, settings.BLOCKCHAIN_CHAIN_ID).exclude(wallet_address__iexact=order.wallet_address)
-    return _compatible_matches(qs, order)
+    price_order = "price_per_share" if order.order_type == TransferOrderType.BUY else "-price_per_share"
+    candidates = qs.order_by(price_order, "created_at", "pk").iterator(chunk_size=100)
+    yield from _compatible_matches(candidates, order)
 
 
 def _compatible_matches(candidates, order):
-    candidates = sorted(
-        candidates,
-        key=lambda candidate: (
-            candidate.price_per_share if order.order_type == TransferOrderType.BUY else -candidate.price_per_share,
-            candidate.created_at,
-        ),
-    )
-
     order_remaining = order.quantity - (order.filled_quantity or 0)
-    matches = []
 
     for candidate in candidates:
         candidate_remaining = candidate.quantity - (candidate.filled_quantity or 0)
@@ -314,9 +308,7 @@ def _compatible_matches(candidates, order):
         if candidate_min > 0 and match_qty < candidate_min:
             continue
 
-        matches.append((candidate, match_qty))
-
-    return matches
+        yield candidate, match_qty
 
 
 def _matching_terms(order):
@@ -443,19 +435,20 @@ def create_order_and_match(
     )
 
     amount_refusal = None
-    for matching_order, match_quantity in find_matching_orders(order):
-        try:
-            match_result = _match_candidate(order, matching_order, match_quantity)
-        except InvalidSettlementAmountException as exc:
-            amount_refusal = exc
-            continue
-        order = match_result["buy_order" if order_type == TransferOrderType.BUY else "sell_order"]
+    with closing(find_matching_orders(order)) as candidates:
+        for matching_order, match_quantity in candidates:
+            try:
+                match_result = _match_candidate(order, matching_order, match_quantity)
+            except InvalidSettlementAmountException as exc:
+                amount_refusal = exc
+                continue
+            order = match_result["buy_order" if order_type == TransferOrderType.BUY else "sell_order"]
 
-        from tokens.events import publish_trading_event
+            from tokens.events import publish_trading_event
 
-        publish_trading_event("order_created", str(token.uuid))
-        publish_trading_event("order_matched", str(token.uuid))
-        return order, match_result
+            publish_trading_event("order_created", str(token.uuid))
+            publish_trading_event("order_matched", str(token.uuid))
+            return order, match_result
 
     if amount_refusal is not None:
         raise amount_refusal

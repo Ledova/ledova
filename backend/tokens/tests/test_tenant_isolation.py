@@ -298,7 +298,7 @@ class TransferOrderOwnershipBindingTest(APITestCase):
         )
 
         service = token_transfer_service
-        matches = service.find_matching_orders(incoming)
+        matches = list(service.find_matching_orders(incoming))
         sell_levels = list(TransferOrder.objects.order_book_levels(self.token, TransferOrderType.SELL))
 
         self.assertEqual(matches, [(valid_candidate, 10)])
@@ -321,7 +321,7 @@ class TransferOrderOwnershipBindingTest(APITestCase):
         share_tokens.get_token_balance.return_value = 10**30
 
         service = token_transfer_service
-        self.enterContext(patch.object(service, "find_matching_orders", return_value=[]))
+        self.enterContext(patch.object(service, "find_matching_orders", return_value=(row for row in ())))
         order, match = service.create_order_and_match(
             token=self.token,
             order_type=TransferOrderType.BUY,

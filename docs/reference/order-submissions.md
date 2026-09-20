@@ -47,8 +47,10 @@ matching queue is introduced. `shared/0012` removes the app's redundant swap
 INSERT permission on existing databases as well as fresh installs.
 
 Foreign candidates must still have verified EVM wallets and active account owners.
-The matcher reads compatible candidates in price/time order, then attempts each
-in its own savepoint. It acquires that candidate's wallet, account, profile and
+The database orders candidates by price, creation time and primary key. The matcher
+streams batches of 100 rows and yields compatible candidates one at a time, closing
+the iterator on success or refusal; it does not materialize the entire book or a
+second match list. Each attempt has its own savepoint. It acquires that candidate's wallet, account, profile and
 user rows with `FOR NO KEY UPDATE NOWAIT`, and only the incoming/candidate order
 pair with `FOR UPDATE NOWAIT` in primary-key order. The locked order terms must
 still match the selected snapshot. A busy or changed candidate returns HTTP 503
