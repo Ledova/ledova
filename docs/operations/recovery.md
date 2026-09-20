@@ -12,6 +12,10 @@ Deployment, capital and issuance sweeps recover accepted work; see the
 [issuance flow](../architecture/contracts-and-issuance.md). New share issuances
 use the private `ShareIssuanceExecution` command and common signing journal.
 `check_executing_issuance_requests` processes bounded batches every five minutes.
+An executing command with an observed success or revert is eligible on every sweep,
+without the ten-minute stale cutoff used for unmined work. The batch limit can delay
+a particular command until a later sweep; each checked command moves to the back
+of the ordered queue.
 It checks the original receipt and may replay the same saved bytes, hash and
 nonce. Provider absence never authorizes another attempt. Backups containing
 signed payloads contain transactions that can be broadcast.

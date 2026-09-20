@@ -15,7 +15,7 @@ from shared.db import (
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import ShareIssuanceExecution, ShareIssuanceRequest
 from tokens.services import issuance_execution
-from tokens.tasks import execute_review_request_task
+from tokens.tasks import check_executing_issuance_requests, execute_review_request_task
 from tokens.tests.issuance_fixtures import CHAIN_ID, KEY, admit, install_issuance
 
 
@@ -137,13 +137,7 @@ class ScopedIssuanceExecutionTest(RunsOnTheScopedConnection, TransactionTestCase
             self.assertEqual((pending["success"], pending["status"]), (False, "executing"))
             self.assertEqual(ShareIssuanceRequest.objects.get(pk=self.request.pk).status, "executing")
             self.node.finalized = 12
-            completed = execute_review_request_task(
-                model_label="tokens.ShareIssuanceRequest",
-                request_uuid=str(self.request.pk),
-                executed_by=self.actor.pk,
-                execution_id=str(command.pk),
-            )
-            self.assertEqual((completed["success"], completed["status"]), (True, "executed"))
+            self.assertEqual(check_executing_issuance_requests(), {"checked": 1, "resolved": 1})
             self.assertEqual(ShareIssuanceRequest.objects.get(pk=self.request.pk).status, "executed")
             self.assertEqual(current_alias(), APP_ALIAS)
         self.assertIn("finalized", observations)

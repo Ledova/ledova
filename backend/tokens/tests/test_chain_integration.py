@@ -702,8 +702,9 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual(issuance.status, "processing")
         self.assertIsNone(issuance.completed_at)
         self.assertEqual(self._contract().functions.totalSupply().call(), 10)
-        self.assertEqual(self._execute(request)["status"], "executing")
+        self.assertEqual(check_executing_issuance_requests(), {"checked": 1, "resolved": 0})
         self.w3.provider.make_request("evm_mine", [])
+        self.assertEqual(check_executing_issuance_requests(), {"checked": 1, "resolved": 1})
         completed = self._execute(request)
         self.assertTrue(completed["success"])
         self.assertEqual(completed["tx_hash"], result["tx_hash"])
@@ -1455,10 +1456,6 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual(self._contract().functions.balanceOf(self.investor).call(), 10)
         self.assertEqual(ShareIssuance.objects.completed_supply(self.token), 0)
 
-        self.assertEqual(check_executing_issuance_requests(), {"checked": 0, "resolved": 0})
-        ShareIssuanceExecution.objects.filter(request_id=request.pk).update(
-            updated_at=timezone.now() - timedelta(hours=1)
-        )
         nonce_before = self._signer_nonce()
         self.assertEqual(check_executing_issuance_requests(), {"checked": 1, "resolved": 1})
 

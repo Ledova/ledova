@@ -48,6 +48,7 @@ from tokens.models import (
     ShareIssuanceRequest,
 )
 from tokens.services import issuance_execution, legacy_issuance, share_token_service
+from tokens.tasks import check_executing_issuance_requests
 from tokens.tests.issuance_fixtures import (
     CHAIN_ID,
     FINALITY_POLICIES,
@@ -159,7 +160,7 @@ class AllotOneSubscriptionTest(AllotmentTestCase):
         self.assertEqual((subscription.status, request.status), (SubscriptionStatus.PAID, RequestStatus.EXECUTING))
         self.assertIsNone(request.executed_at)
         self.assertEqual(ShareIssuanceExecution.objects.get(request_id=request.pk).status, "executing")
-        self.assertEqual(self._execute(request)["status"], "executed")
+        self.assertEqual(check_executing_issuance_requests(), {"checked": 1, "resolved": 1})
         subscription.refresh_from_db()
         self.assertEqual(subscription.status, SubscriptionStatus.ALLOTTED)
         self.assertEqual(len(self.node.broadcasts), 1)

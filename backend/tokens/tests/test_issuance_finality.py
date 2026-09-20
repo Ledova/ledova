@@ -6,6 +6,7 @@ from blockchain.models import BlockchainTransaction, OutgoingOperation, SignedAt
 from tokens.exceptions import IssuanceExecutionUnresolved
 from tokens.models import ShareIssuance, ShareIssuanceRequest
 from tokens.services import issuance_execution
+from tokens.tasks import check_executing_issuance_requests
 from tokens.tests.issuance_fixtures import CHAIN_ID, KEY, admit, install_issuance
 
 
@@ -51,6 +52,25 @@ class IssuanceFinalityTest(TransactionTestCase):
         self.node.finalized = 12
         self.assertEqual(self.recover()["status"], "failed")
         self.assertEqual(BlockchainTransaction.objects.get().status, "reverted")
+
+    def assert_recent_receipt_is_polled(self, receipt_status, expected_status):
+        self.assertEqual(check_executing_issuance_requests(), {"checked": 0, "resolved": 0})
+        self.node.receipt_status = receipt_status
+        self.pending()
+        self.assertEqual(check_executing_issuance_requests(), {"checked": 1, "resolved": 0})
+        self.node.finalized = 12
+        self.assertEqual(check_executing_issuance_requests(), {"checked": 1, "resolved": 1})
+        self.request.refresh_from_db()
+        self.assertEqual(self.request.status, expected_status)
+        self.assertEqual(check_executing_issuance_requests(), {"checked": 0, "resolved": 0})
+        self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.assertEqual(len(self.node.broadcasts), 1)
+
+    def test_sweep_polls_recent_success_until_finality(self):
+        self.assert_recent_receipt_is_polled(1, "executed")
+
+    def test_sweep_polls_recent_revert_until_finality(self):
+        self.assert_recent_receipt_is_polled(0, "failed")
 
     def test_depth_policy_requires_every_confirmation(self):
         with self.settings(WALLET_CHAIN_FINALITY_POLICIES={f"evm:{CHAIN_ID}": {"mode": "depth", "depth": 3}}):
