@@ -11,6 +11,12 @@ references, immutable events and a holdings projection for #647. It has an opera
 exercise and integrity verifier; these HTTP reads and the execution workflows
 have not switched to it yet.
 
+Owner-submitted [compensating corrections](../operations/register-foundation.md#reviewed-compensating-corrections)
+now bind documentary authority to an exact reversal and register revision.
+Permitted staff review and application commit together, retaining the original
+entry and private evidence. This applies to the stored foundation; it does not
+change these chain-derived HTTP reads or perform chain reconciliation.
+
 ## Membership and identity
 
 The holder set unions completed issuance recipients with every non-zero

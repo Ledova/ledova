@@ -16,6 +16,7 @@ account and classification UUIDs in prefixes remain pseudonymous identifiers.
 
 | Upload | Storage prefix and lifecycle |
 | --- | --- |
+| Register correction authority | `companies/`; retained request prevents ordinary deletion; interrupted-copy orphans are swept |
 | Company document | `companies/`; swept after becoming an orphan |
 | Unattached payslip | `documents/`; ordinary deletion and orphan cleanup |
 | Classification evidence | `users/`; retained by the classification clock |
@@ -62,6 +63,12 @@ Every operations page/file/extraction/changelist read records `DocumentRead`;
 an audit write failure refuses delivery. Audit rows survive content purge and
 have no admin mutation path. Single-issuer mode disables supporting payslips;
 conversion is refused while unpurged content remains.
+
+Correction requests retain a private copy of the reviewed authority document,
+with its content and company binding. During the synthetic experiment those
+requests and files have no automatic expiry. The database refuses ordinary row
+deletion; the existing orphan sweep removes only unreferenced copies. See the
+[correction workflow](../operations/register-foundation.md#reviewed-compensating-corrections).
 
 ## Validation and extraction
 

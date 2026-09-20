@@ -25,6 +25,11 @@ from .register import (
     RegisterPosition,
     ShareRegister,
 )
+from .register_correction import (
+    RegisterCorrection,
+    RegisterCorrectionAuthority,
+    RegisterCorrectionStatus,
+)
 from .share_issuance import ShareIssuance
 from .share_issuance_request import ShareIssuanceRequest
 from .share_token import ShareToken
@@ -57,6 +62,9 @@ __all__ = [
     "OrderSubmission",
     "OrderSubmissionStatus",
     "RequestStatus",
+    "RegisterCorrection",
+    "RegisterCorrectionAuthority",
+    "RegisterCorrectionStatus",
     "RegisterEntry",
     "RegisterEntryKind",
     "RegisterMember",
