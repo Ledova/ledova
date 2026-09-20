@@ -9,7 +9,7 @@ from rest_framework.exceptions import ValidationError
 
 from shared.utils.admin_actions import admin_action_path
 from shared.utils.admin_files import admin_file_path
-from tokens.exceptions import RegisterChangeConflict
+from tokens.exceptions import RegisterChangeConflict, RegisterUnavailableException
 from tokens.models import RegisterOpening
 from tokens.services.register_openings import (
     decide_opening,
@@ -115,6 +115,11 @@ class RegisterOpeningAdmin(admin.ModelAdmin):
             refusal = "This opening conflicts with the current register or an existing decision."
         except ValidationError as error:
             refusal = " ".join(str(item) for item in error.detail)
+        except RegisterUnavailableException:
+            refusal = (
+                "The canonical boundary could not be captured or reverified from the chain. "
+                "Retry the review, or reject this request with a reason."
+            )
         return render(
             request,
             "admin/tokens/register_opening_review.html",

@@ -1,6 +1,11 @@
 import importlib
+import time
 from collections import ChainMap
+from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
 from datetime import date
+from queue import Queue
+from threading import Barrier, Event
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -13,6 +18,7 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.test import APITransactionTestCase
+from web3 import Web3
 
 from companies.models import CompanyDocument
 from companies.services.document_review import prepare_document_review, verify_document
@@ -23,7 +29,7 @@ from companies.tests.test_document_file_access import (
 )
 from shared.db import atomic, current_alias
 from shared.tests.schema import migrate_to, restore_every_migration
-from tokens.exceptions import RegisterChangeConflict
+from tokens.exceptions import RegisterChangeConflict, RegisterUnavailableException
 from tokens.models import (
     RegisterEntry,
     RegisterMember,
@@ -393,6 +399,212 @@ class RegisterOpeningTest(TransactionTestCase):
         )
         self.assertEqual(applied.status, "applied")
 
+    def test_completed_retries_do_not_require_a_live_provider_but_revoked_reviewers_are_refused(self):
+        proposal = self.submit()
+        confirmation = self.review(proposal)
+        applied = decide_opening(
+            proposal_id=proposal.pk,
+            reviewer=self.reviewer,
+            confirmation=confirmation,
+            decision="apply",
+            client=self.node.client,
+        )
+        self.node.client.w3.eth.get_block.side_effect = RuntimeError("provider offline")
+        retried = decide_opening(
+            proposal_id=proposal.pk,
+            reviewer=self.reviewer,
+            confirmation=confirmation,
+            decision="apply",
+            client=self.node.client,
+        )
+        self.assertEqual(retried.applied_entry_id, applied.applied_entry_id)
+        self.reviewer.is_active = False
+        self.reviewer.save(update_fields=["is_active"])
+        with self.assertRaises(PermissionDenied):
+            decide_opening(
+                proposal_id=proposal.pk,
+                reviewer=self.reviewer,
+                confirmation=confirmation,
+                decision="apply",
+                client=self.node.client,
+            )
+
+    def test_application_refuses_when_current_finality_coverage_retreats(self):
+        proposal = self.submit()
+        confirmation = self.review(proposal)
+        boundary = RegisterOpening.objects.get(pk=proposal.pk).boundary
+        self.node.finalized = boundary["block"]["number"] - 1
+        with self.assertRaises(ValidationError):
+            decide_opening(
+                proposal_id=proposal.pk,
+                reviewer=self.reviewer,
+                confirmation=confirmation,
+                decision="apply",
+                client=self.node.client,
+            )
+        self.assertEqual(RegisterOpening.objects.get(pk=proposal.pk).status, "submitted")
+        self.node.finalized = boundary["block"]["number"]
+        with self.settings(WALLET_CHAIN_FINALITY_POLICIES={f"evm:{CHAIN_ID}": {"mode": "depth", "depth": 1}}):
+            self.node.latest = boundary["block"]["number"]
+            depth_proposal = self.submit(operation_id=uuid4())
+            depth_confirmation = self.review(depth_proposal)
+            depth_boundary = RegisterOpening.objects.get(pk=depth_proposal.pk).boundary
+            self.assertEqual(depth_boundary["block"]["number"], self.node.latest)
+            self.node.latest = depth_boundary["block"]["number"] - 2
+            with self.assertRaises(ValidationError):
+                decide_opening(
+                    proposal_id=depth_proposal.pk,
+                    reviewer=self.reviewer,
+                    confirmation=depth_confirmation,
+                    decision="apply",
+                    client=self.node.client,
+                )
+            self.assertEqual(RegisterOpening.objects.get(pk=depth_proposal.pk).status, "submitted")
+
+    def test_provider_failure_during_the_boundary_recheck_is_actionable(self):
+        proposal = self.submit()
+        confirmation = self.review(proposal)
+        self.node.client.w3.eth.get_block.side_effect = RuntimeError("private endpoint response")
+        with self.assertRaises(RegisterUnavailableException) as error:
+            decide_opening(
+                proposal_id=proposal.pk,
+                reviewer=self.reviewer,
+                confirmation=confirmation,
+                decision="apply",
+                client=self.node.client,
+            )
+        self.assertNotIn("private endpoint", str(error.exception))
+        self.assertEqual(RegisterOpening.objects.get(pk=proposal.pk).status, "submitted")
+
+    def test_the_boundary_guard_counts_the_mapping_on_boundary_updates(self):
+        proposal = self.submit()
+        self.review(proposal)
+        boundary = RegisterOpening.objects.get(pk=proposal.pk).boundary
+        second = self.submit(operation_id=uuid4())
+        malformed = deepcopy(boundary)
+        malformed["holdings"] = malformed["holdings"][:1]
+        malformed["issued_supply"] = malformed["holdings"][0]["shares"]
+        with self.assertRaises(DatabaseError), atomic():
+            RegisterOpening.objects.filter(pk=second.pk).update(boundary=malformed)
+        self.assertIsNone(RegisterOpening.objects.get(pk=second.pk).boundary)
+
+    def test_case_insensitive_wallet_links_admit_one_identity_concurrently(self):
+        members = [create_member(company_id=self.tenant.company.pk, member_id=uuid4()) for _ in range(2)]
+        address = Web3.to_checksum_address("0xabcdefabcdefabcdefabcdefabcdefabcdefabcd")
+        variants = [address, address.lower()]
+        self.assertNotEqual(*variants)
+        start = Barrier(2)
+
+        def insert(index):
+            try:
+                with atomic():
+                    start.wait(timeout=10)
+                    RegisterMemberWallet.objects.create(
+                        company_id=self.tenant.company.pk, member_id=members[index].pk, address=variants[index]
+                    )
+                    return "committed"
+            except DatabaseError:
+                return "refused"
+            finally:
+                connections.close_all()
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            futures = [pool.submit(insert, index) for index in range(2)]
+            outcomes = {future.result(timeout=20) for future in futures}
+        self.assertEqual(outcomes, {"committed", "refused"})
+        self.assertEqual(
+            RegisterMemberWallet.objects.filter(company=self.tenant.company, address__iexact=address).count(), 1
+        )
+
+    @override_settings(STORAGES=ADMIN_STORAGES)
+    def test_admin_renders_expected_provider_failures_as_a_review_refusal(self):
+        proposal = self.submit()
+        self.client.force_login(self.reviewer)
+        self.client.raise_request_exception = False
+        url = reverse("admin:tokens_registeropening_review", args=[proposal.pk])
+        with patch(
+            "tokens.services.register_openings.capture_snapshot",
+            side_effect=RegisterUnavailableException("provider unavailable"),
+        ):
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200, response.content)
+            self.assertContains(response, "Reject")
+            response = self.client.post(url, {"decision": "reject", "rejection_reason": "Boundary unreadable"})
+            self.assertEqual(response.status_code, 302)
+        self.assertEqual(RegisterOpening.objects.get(pk=proposal.pk).status, "rejected")
+
+    def test_submission_and_approval_share_one_lock_order(self):
+        proposal = self.submit()
+        confirmation = self.review(proposal)
+        held = Event()
+        release = Event()
+        pids = Queue()
+        errors = []
+
+        def apply_worker():
+            try:
+                conn = connections["default"]
+                with conn.cursor() as cursor:
+                    cursor.execute("SELECT pg_backend_pid()")
+                    pids.put(("apply", cursor.fetchone()[0]))
+
+                def pause_company(execute, sql, params, many, context):
+                    result = execute(sql, params, many, context)
+                    if 'FROM "companies_company"' in sql and "FOR NO KEY UPDATE" in sql:
+                        held.set()
+                        if not release.wait(timeout=10):
+                            raise RuntimeError("Test synchronization timed out")
+                    return result
+
+                with conn.execute_wrapper(pause_company):
+                    decide_opening(
+                        proposal_id=proposal.pk,
+                        reviewer=self.reviewer,
+                        confirmation=confirmation,
+                        decision="apply",
+                        client=self.node.client,
+                    )
+                return "applied"
+            except Exception as exc:
+                errors.append((type(exc).__name__, str(exc)))
+                return type(exc).__name__
+            finally:
+                connections.close_all()
+
+        def submit_worker():
+            try:
+                if not held.wait(timeout=10):
+                    raise RuntimeError("Test synchronization timed out")
+                with connections["default"].cursor() as cursor:
+                    cursor.execute("SELECT pg_backend_pid()")
+                    pids.put(("submit", cursor.fetchone()[0]))
+                submit_opening(actor=self.owner, **{**self.payload, "operation_id": proposal.pk})
+                return "submitted"
+            except Exception as exc:
+                errors.append((type(exc).__name__, str(exc)))
+                return type(exc).__name__
+            finally:
+                connections.close_all()
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            apply_future = pool.submit(apply_worker)
+            submit_future = pool.submit(submit_worker)
+            workers = dict(pids.get(timeout=10) for _ in range(2))
+            deadline = time.monotonic() + 8
+            blocked = False
+            while time.monotonic() < deadline:
+                with connections["default"].cursor() as cursor:
+                    cursor.execute("SELECT pg_blocking_pids(%s)", [workers["submit"]])
+                    blocked = workers["apply"] in (cursor.fetchone()[0] or [])
+                if blocked:
+                    break
+                time.sleep(0.02)
+            release.set()
+            outcomes = [apply_future.result(timeout=15), submit_future.result(timeout=15)]
+        self.assertTrue(blocked, "The test did not overlap submission with the held company row")
+        self.assertFalse(errors, f"Concurrent outcomes {outcomes}: {errors}")
+        self.assertEqual(RegisterOpening.objects.get(pk=proposal.pk).status, "applied")
+
     def test_a_register_initialized_after_preparation_refuses_application(self):
         proposal = self.submit()
         confirmation = self.review(proposal)
@@ -524,11 +736,15 @@ class RegisterOpeningTest(TransactionTestCase):
             self.assertEqual(RegisterOpening.objects.get(pk=proposal.pk).status, "applied")
             raise RuntimeError("rollback")
         self.assertEqual(RegisterOpening.objects.get(pk=proposal.pk).status, "submitted")
-        member = create_member(company_id=self.tenant.company.pk, member_id=uuid4())
+        first = create_member(company_id=self.tenant.company.pk, member_id=uuid4())
+        second = create_member(company_id=self.tenant.company.pk, member_id=uuid4())
+        address = Web3.to_checksum_address("0xabcdefabcdefabcdefabcdefabcdefabcdefabcd")
         with self.assertRaises(RuntimeError), atomic(), connections[current_alias()].cursor() as cursor:
             cursor.execute("DROP TRIGGER tokens_register_member_wallet_identity ON tokens_registermemberwallet")
-            RegisterMemberWallet.objects.create(company=self.tenant.company, member=member, address=ALICE)
-            self.assertTrue(RegisterMemberWallet.objects.filter(address=ALICE).exists())
+            cursor.execute("DROP INDEX tokens_registermemberwallet_company_address_ci")
+            RegisterMemberWallet.objects.create(company=self.tenant.company, member=first, address=address)
+            RegisterMemberWallet.objects.create(company=self.tenant.company, member=second, address=address.lower())
+            self.assertEqual(RegisterMemberWallet.objects.filter(address__iexact=address).count(), 2)
             raise RuntimeError("rollback")
         self.assertFalse(RegisterMemberWallet.objects.exists())
 

@@ -8,6 +8,7 @@ from django.contrib.auth import get_user_model
 from django.core import signing
 from django.core.files.base import ContentFile
 from django.db import IntegrityError
+from django.db.models.functions import Lower
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from web3 import Web3
@@ -23,7 +24,7 @@ from integrations.blockchain.receipts import normalized_hash
 from shared.constants import BLOCKCHAIN_BASE
 from shared.db import APP_ALIAS, atomic, current_alias
 from tokens.constants import REGISTER_OPENING_REVIEW_MAX_AGE
-from tokens.exceptions import RegisterChangeConflict
+from tokens.exceptions import RegisterChangeConflict, RegisterUnavailableException
 from tokens.models import (
     RegisterEntry,
     RegisterEntryKind,
@@ -35,7 +36,7 @@ from tokens.models import (
     ShareTokenStatus,
 )
 from tokens.services.register_events import create_member, record_entry
-from tokens.services.register_snapshot import capture_snapshot
+from tokens.services.register_snapshot import _boundary, capture_snapshot
 from wallets.services.chain_observations import finality_policy
 
 
@@ -103,11 +104,14 @@ def submit_opening(
     values = _authority_values(authority, approving_director, authority_reference, reason)
     normalized = _mapping(mapping)
     with atomic():
-        token = ShareToken.objects.select_for_update().filter(pk=token_id, company__owner=actor).first()
+        token = ShareToken.objects.filter(pk=token_id, company__owner=actor).first()
         if token is None:
             raise NotFound("Share class not found.")
         company = Company.objects.select_for_update(no_key=True).get(pk=token.company_id)
         if company.owner_id != actor.pk:
+            raise NotFound("Share class not found.")
+        token = ShareToken.objects.select_for_update().get(pk=token_id)
+        if token.company_id != company.pk:
             raise NotFound("Share class not found.")
         existing = RegisterOpening.objects.filter(pk=operation_id).first()
         if existing:
@@ -129,12 +133,13 @@ def submit_opening(
         members = [UUID(link["member"]) for link in normalized]
         if RegisterMember.objects.filter(uuid__in=members).exclude(company=company).exists():
             raise ValidationError("Mapped members must belong to this company.")
-        addresses = [link["address"] for link in normalized]
-        for link in RegisterMemberWallet.objects.filter(company=company, address__in=addresses).select_related(
-            "member"
+        lowered = {link["address"].lower(): link["member"] for link in normalized}
+        for link in (
+            RegisterMemberWallet.objects.filter(company=company)
+            .annotate(address_lower=Lower("address"))
+            .filter(address_lower__in=lowered)
         ):
-            expected_member = next(item["member"] for item in normalized if item["address"] == link.address)
-            if str(link.member_id) != expected_member:
+            if str(link.member_id) != lowered[link.address_lower]:
                 raise ValidationError("A mapped wallet address already belongs to another member of this company.")
         document = CompanyDocument.objects.select_for_update().filter(pk=document_id, company=company).first()
         if document is None:
@@ -198,14 +203,23 @@ def _check_mapping_against_boundary(mapping, boundary):
 
 def _recheck_boundary(boundary, *, client=None):
     client = client or get_base_chain_client()
-    if client.assert_expected_chain() != boundary["chain_id"]:
+    try:
+        chain_id = client.assert_expected_chain()
+        block = client.w3.eth.get_block(boundary["block"]["number"])
+        covered = _boundary(client, boundary["policy"])
+    except RegisterUnavailableException:
+        raise
+    except Exception:
+        raise RegisterUnavailableException("The captured boundary could not be reverified against the chain.") from None
+    if chain_id != boundary["chain_id"]:
         raise ValidationError("The captured boundary is not on the share class's original deployment chain.")
     if finality_policy(f"evm:{boundary['chain_id']}", BLOCKCHAIN_BASE) != boundary["policy"]:
         raise ValidationError("The approved finality policy changed since the boundary was captured.")
-    block = client.w3.eth.get_block(boundary["block"]["number"])
     block_hash = normalized_hash(block.get("hash")) if isinstance(block, Mapping) else None
     if block_hash is None or f"0x{block_hash}" != boundary["block"]["hash"]:
         raise ValidationError("The captured boundary block is no longer canonical.")
+    if covered["number"] < boundary["block"]["number"]:
+        raise ValidationError("The captured boundary is no longer covered by the approved finality policy.")
 
 
 def _check_uninitialized(token):
@@ -256,6 +270,15 @@ def prepare_opening_review(*, proposal_id, reviewer, client=None):
     return proposal, confirmation
 
 
+def _completed_decision(proposal, reviewer, decision, rejection_reason):
+    if proposal.reviewed_by_id == reviewer.pk and (
+        (decision == "apply" and proposal.status == "applied")
+        or (decision == "reject" and proposal.status == "rejected" and proposal.rejection_reason == rejection_reason)
+    ):
+        return proposal
+    raise RegisterChangeConflict()
+
+
 def decide_opening(*, proposal_id, reviewer, confirmation, decision, rejection_reason="", client=None):
     reviewer = _reviewer(reviewer)
     if (
@@ -265,6 +288,8 @@ def decide_opening(*, proposal_id, reviewer, confirmation, decision, rejection_r
     ):
         raise ValidationError("Choose application or rejection with a reason.")
     initial = RegisterOpening.objects.get(pk=proposal_id)
+    if initial.status != "submitted":
+        return _completed_decision(initial, reviewer, decision, rejection_reason)
     if decision == "apply":
         if initial.boundary is None:
             raise ValidationError("Open a review before applying this opening.")
@@ -275,16 +300,7 @@ def decide_opening(*, proposal_id, reviewer, confirmation, decision, rejection_r
         document = CompanyDocument.objects.select_for_update().filter(pk=initial.source_document).first()
         proposal = RegisterOpening.objects.select_for_update().get(pk=proposal_id)
         if proposal.status != "submitted":
-            if proposal.reviewed_by_id == reviewer.pk and (
-                (decision == "apply" and proposal.status == "applied")
-                or (
-                    decision == "reject"
-                    and proposal.status == "rejected"
-                    and proposal.rejection_reason == rejection_reason
-                )
-            ):
-                return proposal
-            raise RegisterChangeConflict()
+            return _completed_decision(proposal, reviewer, decision, rejection_reason)
         if decision == "apply":
             try:
                 preview = signing.loads(
@@ -303,12 +319,17 @@ def decide_opening(*, proposal_id, reviewer, confirmation, decision, rejection_r
             register = _check_uninitialized(token)
             for link in proposal.mapping:
                 create_member(company_id=company.pk, member_id=UUID(link["member"]))
-                wallet, created = RegisterMemberWallet.objects.get_or_create(
-                    company=company,
-                    address=link["address"],
-                    defaults={"member_id": UUID(link["member"])},
+                wallet = (
+                    RegisterMemberWallet.objects.filter(company=company)
+                    .annotate(address_lower=Lower("address"))
+                    .filter(address_lower=link["address"].lower())
+                    .first()
                 )
-                if not created and str(wallet.member_id) != link["member"]:
+                if wallet is None:
+                    RegisterMemberWallet.objects.create(
+                        company=company, member_id=UUID(link["member"]), address=link["address"]
+                    )
+                elif str(wallet.member_id) != link["member"]:
                     raise RegisterChangeConflict()
             proposal.applied_entry = record_entry(
                 register_id=register.pk,

@@ -751,11 +751,40 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
 
         from django.contrib.auth import get_user_model
 
+        investor = Account.create()
+        Wallet.objects.filter(address=self.investor).update(address=investor.address)
+        self.investor = investor.address
         self._deployed()
         request = self._whitelisted_request(10)
         self.assertEqual(self._execute(request)["status"], "executing")
         self.w3.provider.make_request("evm_mine", [])
         self.assertTrue(self._execute(request)["success"])
+        recipient = self.w3.eth.accounts[1]
+        recipient_tenant = make_tenant("opening-recipient")
+        Wallet.objects.filter(pk=recipient_tenant.wallet.pk).update(
+            address=recipient, verification_status=WALLET_VERIFICATION_STATUS_VERIFIED
+        )
+        self._whitelist(recipient)
+        self.w3.eth.wait_for_transaction_receipt(
+            self.w3.eth.send_transaction(
+                {"from": self.w3.eth.accounts[0], "to": investor.address, "value": self.w3.to_wei(1, "ether")}
+            )
+        )
+        transfer = (
+            self._contract()
+            .functions.transfer(recipient, 4)
+            .build_transaction(
+                {
+                    "from": investor.address,
+                    "nonce": self.w3.eth.get_transaction_count(investor.address),
+                    "chainId": 31337,
+                }
+            )
+        )
+        signed = investor.sign_transaction(transfer)
+        receipt = self.w3.eth.wait_for_transaction_receipt(self.w3.eth.send_raw_transaction(signed.raw_transaction))
+        self.assertEqual(receipt["status"], 1)
+        self.w3.provider.make_request("evm_mine", [])
         owner = self.tenant.user
         owner.is_staff = False
         owner.save(update_fields=["is_staff"])
@@ -776,7 +805,10 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
             operation_id=uuid4(),
             token_id=self.token.pk,
             document_id=document.pk,
-            mapping=[{"address": self.investor, "member": str(member)}],
+            mapping=[
+                {"address": self.investor, "member": str(member)},
+                {"address": recipient, "member": str(member)},
+            ],
             authority="director_resolution",
             approving_director="Synthetic Director",
             authority_reference="SYNTHETIC-RESOLUTION-CHAIN-1",
@@ -785,7 +817,13 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertIsNone(proposal.boundary)
         _, review_confirmation = prepare_opening_review(proposal_id=proposal.pk, reviewer=reviewer)
         boundary = RegisterOpening.objects.get(pk=proposal.pk).boundary
-        self.assertEqual(boundary["holdings"], [{"address": self.investor, "shares": "10"}])
+        self.assertEqual(
+            sorted(boundary["holdings"], key=lambda row: row["address"]),
+            sorted(
+                [{"address": self.investor, "shares": "6"}, {"address": recipient, "shares": "4"}],
+                key=lambda row: row["address"],
+            ),
+        )
         applied = decide_opening(
             proposal_id=proposal.pk, reviewer=reviewer, confirmation=review_confirmation, decision="apply"
         )
@@ -794,12 +832,18 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual((entry.kind, entry.sequence), ("opening", 1))
         self.assertEqual(entry.changes, [{"member": str(member), "shares": "10"}])
         self.assertEqual(entry.effective_on, date.fromisoformat(boundary["block"]["date"]))
-        wallet = RegisterMemberWallet.objects.get(company=self.tenant.company, address=self.investor)
-        self.assertEqual(str(wallet.member_id), str(member))
+        self.assertEqual(
+            sorted(RegisterMemberWallet.objects.values_list("address", flat=True)),
+            sorted([self.investor, recipient]),
+        )
+        for wallet in RegisterMemberWallet.objects.all():
+            self.assertEqual(str(wallet.member_id), str(member))
         result = verify_register(entry.register_id)
         self.assertEqual((result["entries"], result["members"], result["issued_supply"]), (1, 1, "10"))
         position = RegisterPosition.objects.get(register_id=entry.register_id)
-        self.assertEqual(self._contract().functions.balanceOf(self.investor).call(), int(position.shares))
+        self.assertEqual(self._contract().functions.balanceOf(self.investor).call(), 6)
+        self.assertEqual(self._contract().functions.balanceOf(recipient).call(), 4)
+        self.assertEqual(int(position.shares), 10)
         with self.assertRaises(ValidationError):
             submit_opening(
                 actor=owner,

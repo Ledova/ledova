@@ -15,6 +15,8 @@ def install_guards(apps, schema_editor):
     with schema_editor.connection.cursor() as cursor:
         cursor.execute(
             """
+CREATE UNIQUE INDEX tokens_registermemberwallet_company_address_ci
+    ON tokens_registermemberwallet (company_id, lower(address));
 CREATE FUNCTION tokens_guard_register_member_wallet() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
     IF TG_OP <> 'INSERT' THEN
@@ -91,6 +93,7 @@ BEGIN
                 USING ERRCODE = '23514';
         END IF;
     ELSIF OLD.boundary IS NULL AND NEW.boundary IS NOT NULL THEN
+        SELECT count(*) INTO mapping_count FROM jsonb_array_elements(NEW.mapping);
         SELECT count(*) INTO holdings_count FROM jsonb_array_elements(NEW.boundary->'holdings');
         SELECT count(*) INTO pair_count FROM jsonb_array_elements(NEW.mapping) m(item)
             JOIN jsonb_array_elements(NEW.boundary->'holdings') h(item)
@@ -101,24 +104,34 @@ BEGIN
             OR (to_jsonb(NEW) - ARRAY['boundary', 'updated_at'])
                 IS DISTINCT FROM
                 (to_jsonb(OLD) - ARRAY['boundary', 'updated_at'])
-            OR NEW.boundary->>'version' <> '1'
+            OR COALESCE(NEW.boundary->>'version', '') <> '1'
             OR NEW.boundary->>'token' IS DISTINCT FROM NEW.token_id::text
             OR NEW.boundary->>'company' IS DISTINCT FROM NEW.company_id::text
-            OR NEW.boundary->'block'->>'number' !~ '^[0-9]+$'
-            OR NEW.boundary->'block'->>'hash' !~ '^0x[0-9a-f]{64}$'
-            OR NEW.boundary->'block'->>'date' !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
-            OR NEW.boundary->'policy'->>'mode' NOT IN ('finalized', 'depth')
+            OR COALESCE(NEW.boundary->>'chain_id', '') !~ '^[0-9]+$'
+            OR COALESCE(NEW.boundary->'block'->>'number', '') !~ '^[0-9]+$'
+            OR COALESCE(NEW.boundary->'block'->>'hash', '') !~ '^0x[0-9a-f]{64}$'
+            OR COALESCE(NEW.boundary->'block'->>'timestamp', '') !~ '^[0-9]+$'
+            OR COALESCE(NEW.boundary->'block'->>'date', '') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+            OR COALESCE(NEW.boundary->'policy'->>'mode', '') NOT IN ('finalized', 'depth')
             OR (NEW.boundary->'policy'->>'mode' = 'depth') <> (NEW.boundary->'policy' ? 'depth')
+            OR COALESCE(NEW.boundary->>'authorized_supply', '') !~ '^[0-9]+$'
+            OR COALESCE(NEW.boundary->>'issued_supply', 'x') !~ '^[0-9]+$'
+            OR (CASE WHEN COALESCE(NEW.boundary->>'issued_supply', '') ~ '^[0-9]+$'
+                     AND COALESCE(NEW.boundary->>'authorized_supply', '') ~ '^[0-9]+$'
+                THEN (NEW.boundary->>'issued_supply')::numeric > (NEW.boundary->>'authorized_supply')::numeric
+                ELSE FALSE END)
             OR jsonb_typeof(NEW.boundary->'holdings') <> 'array'
             OR EXISTS (SELECT 1 FROM jsonb_array_elements(NEW.boundary->'holdings') item
                 WHERE jsonb_typeof(item) <> 'object'
                 OR (SELECT count(*) FROM jsonb_object_keys(item)) <> 2
                 OR NOT (item ? 'address' AND item ? 'shares')
                 OR item->>'address' !~ '^0x[0-9a-fA-F]{40}$'
-                OR item->>'shares' !~ '^[0-9]+$')
-            OR (SELECT COALESCE(sum((item->>'shares')::numeric), 0)
-                FROM jsonb_array_elements(NEW.boundary->'holdings') item)
-                IS DISTINCT FROM (NEW.boundary->>'issued_supply')::numeric
+                OR item->>'shares' !~ '^[1-9][0-9]*$')
+            OR (CASE WHEN COALESCE(NEW.boundary->>'issued_supply', '') ~ '^[0-9]+$'
+                THEN (SELECT COALESCE(sum((item->>'shares')::numeric), 0)
+                    FROM jsonb_array_elements(NEW.boundary->'holdings') item)
+                    IS DISTINCT FROM (NEW.boundary->>'issued_supply')::numeric
+                ELSE FALSE END)
             OR holdings_count <>
                (SELECT count(DISTINCT lower(item->>'address')) FROM jsonb_array_elements(NEW.boundary->'holdings') item)
             OR pair_count <> mapping_count OR pair_count <> holdings_count
@@ -205,6 +218,7 @@ def remove_guards(apps, schema_editor):
             raise RuntimeError("Retain register wallet links; downgrade would discard them.")
         cursor.execute("DROP TRIGGER tokens_register_member_wallet_identity ON tokens_registermemberwallet")
         cursor.execute("DROP FUNCTION tokens_guard_register_member_wallet()")
+        cursor.execute("DROP INDEX tokens_registermemberwallet_company_address_ci")
 
 
 class Migration(migrations.Migration):
