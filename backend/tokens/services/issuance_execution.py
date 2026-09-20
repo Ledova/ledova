@@ -1,4 +1,6 @@
 import logging
+from collections.abc import Mapping
+from typing import NamedTuple
 from uuid import UUID
 
 from django.conf import settings
@@ -8,7 +10,6 @@ from django.db import connections
 from django.utils import timezone
 from eth_abi import encode
 from eth_account import Account
-from hexbytes import HexBytes
 from rest_framework.exceptions import PermissionDenied
 from web3 import Web3
 from web3.logs import DISCARD
@@ -22,7 +23,13 @@ from blockchain.models import (
 )
 from blockchain.services import outgoing
 from integrations.base_chain import get_base_chain_client
+from integrations.blockchain.receipts import (
+    nonnegative_integer,
+    normalized_hash,
+    transaction_hash_matches,
+)
 from offerings.models import Subscription, SubscriptionStatus
+from shared.constants import BLOCKCHAIN_BASE
 from shared.db import APP_ALIAS, atomic, current_alias
 from tokens.constants import ISSUANCE_RECOVERY_COLLISION_RETRIES
 from tokens.exceptions import (
@@ -42,6 +49,10 @@ from tokens.models import (
     ShareTokenStatus,
 )
 from tokens.services.holder_identity import identity_at_allotment
+from wallets.models import ChainObservationFinality, ChainObservationResult
+from wallets.services.chain_evidence import collect_chain_evidence
+from wallets.services.chain_observations import finality_policy
+from wallets.services.receipt_readers import MAX_BLOCK_NUMBER
 
 logger = logging.getLogger(__name__)
 INTENT_FIELDS = ("chain_id", "sender", "to", "value", "data")
@@ -50,6 +61,13 @@ ATTRIBUTION_REQUIRED = "This issuance requires operator attribution; its origina
 REQUEST_AUTHORITY = "tokens.change_shareissuancerequest"
 SUBSCRIPTION_AUTHORITY = "offerings.change_subscription"
 TERMINAL = (IssuanceExecutionStatus.EXECUTED, IssuanceExecutionStatus.FAILED, IssuanceExecutionStatus.CANCELLED)
+
+
+class FinalizedIssuanceReceipt(NamedTuple):
+    claim_id: UUID
+    attempt_id: UUID
+    policy: dict
+    receipt: Mapping
 
 
 def _operator():
@@ -392,7 +410,7 @@ def _record_signed(execution_id, attempt):
     issuance.save(update_fields=["transaction", "tx_hash", "status", "processed_at", "error_message", "updated_at"])
 
 
-def _retain_receipt(execution, operation):
+def _retain_receipt(execution, operation, receipt=None):
     if operation.status not in (OutgoingStatus.CONFIRMED, OutgoingStatus.REVERTED):
         return
     record = execution.transaction
@@ -401,28 +419,59 @@ def _retain_receipt(execution, operation):
     record.status = (
         TransactionStatus.CONFIRMED if operation.status == OutgoingStatus.CONFIRMED else TransactionStatus.REVERTED
     )
-    record.block_number = operation.block_number
-    record.block_hash = operation.block_hash
-    record.gas_used = operation.gas_used
+    record.block_number = receipt["blockNumber"] if receipt is not None else operation.block_number
+    record.block_hash = "0x" + normalized_hash(receipt["blockHash"]) if receipt is not None else operation.block_hash
+    record.gas_used = receipt["gasUsed"] if receipt is not None else operation.gas_used
     record.confirmed_at = record.confirmed_at or timezone.now()
     record.save(update_fields=["status", "block_number", "block_hash", "gas_used", "confirmed_at", "updated_at"])
 
 
-def _verified_receipt(execution, operation, client):
+def _finalized_receipt(execution, operation, client):
     if client.assert_expected_chain() != execution.intent["chain_id"]:
         raise IssuanceExecutionUnresolved()
+    network = f"evm:{execution.intent['chain_id']}"
+    policy = finality_policy(network, BLOCKCHAIN_BASE)
+    if policy["mode"] not in ("finalized", "depth"):
+        logger.warning("Issuance execution %s awaits an approved finality policy", execution.pk)
+        return None
     tx_hash = operation.current_attempt.tx_hash
+    verdict = collect_chain_evidence(
+        client,
+        chain=BLOCKCHAIN_BASE,
+        network=network,
+        tx_hash=tx_hash,
+        previous_block={"hash": operation.block_hash, "height": operation.block_number},
+        policy=policy,
+    )
+    if (
+        verdict["result"] != ChainObservationResult.INCLUDED
+        or verdict["finality"] != ChainObservationFinality.SATISFIED
+    ):
+        logger.info("Issuance execution %s awaits finality: %s", execution.pk, verdict["reason"])
+        return None
+    included = verdict["evidence"]["receipt"]
+    if included["succeeded"] is not (operation.status == OutgoingStatus.CONFIRMED):
+        logger.warning("Issuance execution %s has a changed receipt outcome; attribution is required", execution.pk)
+        return None
     receipt = client.get_transaction_receipt(tx_hash)
-    if receipt is None or (
+    if not isinstance(receipt, Mapping) or (
         type(receipt.get("status")) is not int
-        or receipt["status"] != 1
-        or Web3.to_hex(HexBytes(receipt.get("transactionHash", b""))) != tx_hash
-        or receipt.get("blockNumber") != operation.block_number
-        or Web3.to_hex(HexBytes(receipt.get("blockHash", b""))) != operation.block_hash
+        or receipt["status"] != int(included["succeeded"])
+        or not transaction_hash_matches(receipt.get("transactionHash"), tx_hash)
+        or nonnegative_integer(receipt.get("blockNumber"), maximum=MAX_BLOCK_NUMBER) != included["height"]
+        or not transaction_hash_matches(receipt.get("blockHash"), included["hash"])
+        or nonnegative_integer(receipt.get("gasUsed"), maximum=MAX_BLOCK_NUMBER) is None
         or str(receipt.get("to", "")).lower() != execution.intent["to"]
         or str(receipt.get("from", "")).lower() != execution.intent["sender"]
+        or client.assert_expected_chain() != execution.intent["chain_id"]
     ):
-        raise IssuanceExecutionUnresolved("The receipt does not identify the original issuance transaction.")
+        raise IssuanceExecutionUnresolved("The receipt does not identify the original issuance's finalized inclusion.")
+    if included["succeeded"]:
+        _verify_mint(execution, client, receipt)
+    return FinalizedIssuanceReceipt(operation.claim_id, operation.current_attempt_id, policy, dict(receipt))
+
+
+def _verify_mint(execution, client, receipt):
     contract = client.load_contract("ShareToken", execution.intent["to"])
     events = contract.events.Transfer().process_receipt(receipt, errors=DISCARD)
     matches = [
@@ -437,19 +486,31 @@ def _verified_receipt(execution, operation, client):
         raise IssuanceExecutionUnresolved("The receipt has no unique mint event matching the approved issuance.")
 
 
-def _project(execution, claim, *, verified=False, refusal=None):
+def _project(execution, claim, *, finalized=None, refusal=None):
     with atomic(durable=True):
         current, request, _, subscription, operation = _lock(execution.pk, claim.operation_id)
         if operation.claim_id != claim.claim_id:
             return current
         if current.status in TERMINAL or current.retry_of == operation.claim_id:
             return current
-        _retain_receipt(current, operation)
-        if operation.status == OutgoingStatus.CONFIRMED:
-            if not verified:
+        if operation.status in (OutgoingStatus.CONFIRMED, OutgoingStatus.REVERTED):
+            if finalized is None:
                 return current
-            current.status = IssuanceExecutionStatus.EXECUTED
-        elif operation.status in (OutgoingStatus.FAILED, OutgoingStatus.REVERTED):
+            if (
+                finalized.claim_id != operation.claim_id
+                or finalized.attempt_id != operation.current_attempt_id
+                or finalized.policy != finality_policy(f"evm:{current.intent['chain_id']}", BLOCKCHAIN_BASE)
+                or not transaction_hash_matches(finalized.receipt["transactionHash"], operation.current_attempt.tx_hash)
+                or finalized.receipt["status"] != int(operation.status == OutgoingStatus.CONFIRMED)
+            ):
+                raise IssuanceExecutionUnresolved("The issuance identity or finality policy changed before completion.")
+            _retain_receipt(current, operation, finalized.receipt)
+            current.status = (
+                IssuanceExecutionStatus.EXECUTED
+                if operation.status == OutgoingStatus.CONFIRMED
+                else IssuanceExecutionStatus.FAILED
+            )
+        elif operation.status == OutgoingStatus.FAILED:
             current.status = IssuanceExecutionStatus.FAILED
         else:
             return current
@@ -458,8 +519,8 @@ def _project(execution, claim, *, verified=False, refusal=None):
         if current.status == IssuanceExecutionStatus.EXECUTED:
             issuance.mark_completed(
                 tx_hash=current.transaction.tx_hash,
-                block_number=operation.block_number,
-                gas_used=operation.gas_used,
+                block_number=current.transaction.block_number,
+                gas_used=current.transaction.gas_used,
                 transaction=current.transaction,
             )
             request.mark_executed(issuance)
@@ -537,16 +598,15 @@ def _recover(execution_id):
             outgoing.broadcast_operation(claim, client)
             outgoing.reconcile_operation(claim, client)
         operation.refresh_from_db()
-    verified = False
-    if operation.status == OutgoingStatus.CONFIRMED:
+    finalized = None
+    if operation.status in (OutgoingStatus.CONFIRMED, OutgoingStatus.REVERTED):
         with atomic(durable=True):
             current, _, _, _, locked = _lock(execution.pk, claim.operation_id)
-            if locked.claim_id != claim.claim_id:
+            if locked.claim_id != claim.claim_id or current.status in TERMINAL or current.retry_of == locked.claim_id:
                 return _result(current)
             _retain_receipt(current, locked)
-        _verified_receipt(execution, operation, client)
-        verified = True
-    return _result(_project(execution, claim, verified=verified, refusal=refusal))
+        finalized = _finalized_receipt(execution, operation, client)
+    return _result(_project(execution, claim, finalized=finalized, refusal=refusal))
 
 
 def recover(execution_id):

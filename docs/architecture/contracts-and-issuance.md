@@ -69,8 +69,10 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
 7. The worker durably claims the request before opening its shared outgoing
    operation. Its public `ShareIssuance` uses `issuance-request:<uuid>` as the
    idempotency key. Signed bytes, hash, nonce and the transaction association
-   commit together before broadcast. Original receipt and mint-event verification
-   precede atomic completion of the issuance, request and linked subscription.
+   commit together before broadcast. The existing network finality policy and
+   original receipt/mint-event verification precede atomic completion of the
+   issuance, request and linked subscription. A first receipt alone leaves it
+   executing; a mined revert also waits for finality before failure permits retry.
    `check_executing_issuance_requests` recovers interrupted work every five
    minutes. Unknown sends retain the original identity; a confirmed failure
    requires a fresh confirmation naming that failed attempt.

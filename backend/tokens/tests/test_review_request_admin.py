@@ -23,7 +23,7 @@ from tokens.models import (
 from tokens.services import capital_execution, issuance_execution, share_token_service
 from tokens.services.capital_increase import submit_capital_increase
 from tokens.tests.capital_fixtures import CHAIN_ID, KEY, CapitalNode
-from tokens.tests.issuance_fixtures import IssuanceNode
+from tokens.tests.issuance_fixtures import FINALITY_POLICIES, IssuanceNode
 
 User = get_user_model()
 
@@ -38,7 +38,12 @@ def url(obj, action):
     return reverse(f"admin:tokens_{obj._meta.model_name}_{action}", args=args)
 
 
-@override_settings(STORAGES=TEST_STORAGES, BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
+@override_settings(
+    STORAGES=TEST_STORAGES,
+    BLOCKCHAIN_OPERATOR_KEY=KEY,
+    BLOCKCHAIN_CHAIN_ID=CHAIN_ID,
+    WALLET_CHAIN_FINALITY_POLICIES=FINALITY_POLICIES,
+)
 class ReviewRequestAdminTest(TransactionTestCase):
     def setUp(self):
         self.admin = User.objects.create_superuser(email="admin@example.test", password="pw-12345678")

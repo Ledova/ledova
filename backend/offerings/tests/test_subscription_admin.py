@@ -39,7 +39,12 @@ from tokens.models import (
     ShareIssuanceRequest,
 )
 from tokens.services import issuance_execution
-from tokens.tests.issuance_fixtures import CHAIN_ID, KEY, IssuanceNode
+from tokens.tests.issuance_fixtures import (
+    CHAIN_ID,
+    FINALITY_POLICIES,
+    KEY,
+    IssuanceNode,
+)
 from users.models import InvestorClassification
 from whitelist.models import WhitelistEntry
 
@@ -54,7 +59,12 @@ TEST_STORAGES = {
 }
 
 
-@override_settings(STORAGES=TEST_STORAGES, BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
+@override_settings(
+    STORAGES=TEST_STORAGES,
+    BLOCKCHAIN_OPERATOR_KEY=KEY,
+    BLOCKCHAIN_CHAIN_ID=CHAIN_ID,
+    WALLET_CHAIN_FINALITY_POLICIES=FINALITY_POLICIES,
+)
 class SubscriptionAdminTestCase(TransactionTestCase):
     def setUp(self):
         chain = patch(CHAIN_CLIENT).start().return_value

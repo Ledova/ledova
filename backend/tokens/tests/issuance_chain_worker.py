@@ -17,6 +17,7 @@ def run(phase, request_id, actor_id):
     settings.DATABASES = {"default": database}
     settings.BLOCKCHAIN_RPC_URL = os.environ["CHAIN_TEST_RPC_URL"]
     settings.BLOCKCHAIN_CHAIN_ID = 31337
+    settings.WALLET_CHAIN_FINALITY_POLICIES = {"evm:31337": {"mode": "depth", "depth": 1}}
     django.setup()
 
     from django.contrib.auth import get_user_model
