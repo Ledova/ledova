@@ -27,13 +27,16 @@ SWAP = "0x" + "d" * 40
 )
 class SwapApprovalHandoffTest(TransactionTestCase):
     def setUp(self):
+        with connections[current_alias()].cursor() as cursor:
+            cursor.execute("SELECT coalesce(max(id), 0) FROM procrastinate_jobs")
+            self.job_floor = cursor.fetchone()[0]
         install_deployment(self)
 
     def approval_jobs(self):
         with connections[current_alias()].cursor() as cursor:
             cursor.execute(
-                "SELECT args FROM procrastinate_jobs WHERE task_name=%s ORDER BY id",
-                ["tokens.tasks.deployment.recover_swap_approval"],
+                "SELECT args FROM procrastinate_jobs WHERE task_name=%s AND id>%s ORDER BY id",
+                ["tokens.tasks.deployment.recover_swap_approval", self.job_floor],
             )
             return [row[0] if isinstance(row[0], dict) else json.loads(row[0]) for row in cursor.fetchall()]
 
