@@ -153,15 +153,23 @@ vulnerability*). See [SECURITY.md](SECURITY.md).
 ## Licensing of contributions
 
 By submitting a contribution you agree that it is licensed under the project's
-[Functional Source License, Version 1.1, ALv2 Future License](LICENSE) and that
-you have the right to submit it under that license. Like every other release,
-your contribution becomes available under the Apache License 2.0 two years after
-it is published.
+[Ledova Noncommercial License 1.0](LICENSE) and that you have the right to submit
+it under that license. Noncommercial forks, local testing and pull requests for
+the permitted purposes are welcome. Keep the license and copyright notices and
+identify your modifications when sharing your fork.
 
-Ledova is source-available rather than open source in the OSI sense: the licence
-permits any use except competing with the project commercially, and converts to
-Apache 2.0 on a fixed two-year schedule. Copyright is held by Ronildo da Rocha
-Braga Junior. The full terms are set out in [LICENSE](LICENSE), with a summary in
+You retain copyright in your contribution. Submission does not assign it to the
+maintainer or grant a separate commercial license. Commercial use of contributed
+material requires the relevant contributor's separate written permission; the
+maintainer must obtain that permission before including it in a commercial
+offering or granting commercial rights to others.
+
+Ledova is source-available, not open source in the OSI sense. Commercial use,
+including internal business use and paid services, and using its code for a
+competing product or service, whether free or paid, require separate written
+permission. Contributions under this license do not automatically become Apache
+licensed after two years. Earlier grants and third-party licenses are unaffected.
+The full terms are in [LICENSE](LICENSE), with a summary in
 [README.md](README.md#ownership-and-license).
 
 Ledova makes no claim of regulatory compliance or legal recognition.

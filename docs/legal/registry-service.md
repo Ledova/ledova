@@ -12,6 +12,10 @@ This page is the project's reading of primary sources and regulator guidance,
 not advice; the [positions](positions.md) it rests on are numbered where they
 apply, and the drafted ones remain unconfirmed until the owner signs them off.
 
+Separately, the current software licence requires written commercial permission
+to operate this service, including for Blueberry Money. Sponsorship is not that
+permission. See [position 5](positions.md#5-software-licensing-and-commercial-permission).
+
 ## Whom the law looks at
 
 Both the companies and the operator. Each company still carries every duty for
@@ -77,6 +81,9 @@ service. This model is the second line.
 
 ## Feature by feature
 
+"No permission" in this table refers to additional regulatory permission. It
+does not waive the software licence or the live-operation conditions.
+
 | Feature | Status in this model |
 | --- | --- |
 | Register of members, certificates, figures for notices, for many companies | No permission, within the clerk boundary |
@@ -92,12 +99,14 @@ service. This model is the second line.
 
 ## Getting an operator to market
 
-Lawful without permission from the first client, on the positions as drafted,
-provided the boundary is built into the product rather than left to good
-intentions.
+On the positions as drafted, a clerk-only service does not need the financial
+services permissions discussed below while it stays within that boundary. The
+operator still needs written commercial permission to use the software and must
+meet the [live-operation conditions](../regulatory-pathway.md).
 
 1. **Choose the operating entity.** Every contract, privacy obligation,
-   enrolment and licence attaches to it.
+   enrolment and licence attaches to it. Obtain its written commercial software
+   permission before using the code for the business.
 2. **Write the registry services agreement**: authorised officers, instructions
    in writing, director approval recorded, data kept in Australia, export or
    escrow on exit, no advice, flat fees, a liability cap, and an explicit
@@ -121,7 +130,8 @@ intentions.
 
 | Cost | In this model |
 | --- | --- |
-| Licence and enrolment fees at the start | None, on the positions as drafted: the clerk model needs no AFSL, market licence or AUSTRAC enrolment |
+| Regulatory licence and enrolment fees at the start | None, on the positions as drafted: the clerk model needs no AFSL, market licence or AUSTRAC enrolment |
+| Software licence | Separate written commercial permission; any fee is agreed separately |
 | What it does need | An entity, an agreement per company, Australian hosting, a privacy program, and the boundary enforced by the software |
 | Later, if wanted | Low-volume registration per company; a wholesale AFSL at $2,233 or $5,025 plus a responsible manager; relief at $3,487 per head of power |
 
@@ -148,13 +158,13 @@ default.
 ## How this differs from the company-hosted instance
 
 In the [company-hosted instance](company-hosted-instance.md) a company runs its
-own instance and its own officers make every entry. No legal person is added, no
-agreement is needed, and the project is only a software supplier; the company
-carries the technical burden and the project earns nothing unless it sells
-hosting or support. That model is the simplest legal position available and is
-where a first company can be tomorrow. This model is where a company that keeps
-registers for others is built: lighter than a licence, heavier than a
-licence-free instance, and safe only while the boundary holds.
+own instance and its own officers make every entry. No separate registry operator
+is added, so no registry services agreement is needed, but written commercial
+software permission still is. The company carries the technical burden; software
+licensing, hosting and support terms are agreed separately. A registry service
+adds an operator and a services agreement per company. Both models require the
+live-operation conditions to be satisfied, and the clerk model depends on staying
+within its regulatory boundary.
 
 ## Open questions
 

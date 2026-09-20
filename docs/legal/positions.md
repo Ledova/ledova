@@ -10,7 +10,8 @@ relying on a summary of it; the [sources](README.md#sources) are listed once.
 
 Positions 1 to 5 were carried over from the previous `docs/legal.md` and
 reviewed on 2026-09-15; position 4 was rewritten because a registry that only
-records changes its shape. Positions 6 to 11 were drafted on 2026-09-15 by the
+records changes its shape. Position 5 records the owner-directed licence change
+of 2026-09-20. Positions 6 to 11 were drafted on 2026-09-15 by the
 assistant from primary sources and are **not yet confirmed by the owner**.
 
 The positions serve two operating models, the
@@ -25,7 +26,7 @@ position says so.
 | 2 | s168, who is obliged to keep the register | The same moment, plus the terms between operator and company | B; in A the company keeps it itself | Reviewed; model sentence awaiting sign-off |
 | 3 | Evidence retention period | The first real identity document held | A and B, once investor onboarding is on | Reviewed |
 | 4 | Operating without an AFSL, in two halves | The first fee for a real register; the first real offer of a security | 4a binds B; 4b binds both | Rewritten, awaiting sign-off |
-| 5 | Who "we" is in the licence's Competing Use test | Someone offering a competing service, or Blueberry Money beginning to operate | B and third-party operators; not a company's own use | Reviewed; model sentence awaiting sign-off |
+| 5 | Software licensing and commercial permission | Any commercial use or use of the code for a competing product or service | A, B and third-party users | Licence policy approved by owner 2026-09-20; not legal advice |
 | 6 | Where and in what form the register is kept | The first real register | A and B, with different forms to lodge | Drafted |
 | 7 | Whether a register is a financial market | Any feature where holders post offers to one another | A and B, with a different registrant | Drafted |
 | 8 | AML/CTF obligations of the operator | Acting for a company in a transaction; holding an AFSL; touching virtual assets | B; a company acting for itself is not engaged | Drafted |
@@ -258,62 +259,61 @@ is an offence is carried over; what changed is the release condition, from
 needs, and the sentence that this is not a question to answer by reading now
 lives in the [folder's conventions](README.md#conventions).
 
-## 5. The licence's Competing Use test, and who "we" is
+## 5. Software licensing and commercial permission
 
-**The question.** The Functional Source License defines a Competing Use as
-making the Software available to others in a commercial product or service
-that: (1) substitutes for the Software; (2) substitutes for any other product
-or service *we* offer using the Software **that exists as of the date we make
-the Software available**; or (3) offers the same or substantially similar
-functionality as the Software. In each, *we* is the Licensor. The Licensor named
-in [LICENSE](../../LICENSE) is an individual. The company expected to operate
-Ledova as hosted infrastructure is Blueberry Money, a separate legal person
-whose service does not exist yet — so limb (2) is doubtful here on two counts at
-once, not one.
+**The decision.** On 2026-09-20 the owner directed the project to adopt the
+[Ledova Noncommercial License 1.0](../../LICENSE) and keep the repository public
+for learning and contributions. This is a custom source-available licence, not
+an open-source licence or a lawyer-reviewed instrument.
 
-**What the documents do today.** `LICENSE` is FSL-1.1-ALv2 with
-`Copyright 2026 Ronildo da Rocha Braga Junior`, and every human commit in the
-history is his. The [README](../../README.md) names Blueberry Money as sponsor
-and prospective first operator, and says sponsorship transfers no ownership and
-no control. The repository contains no written licence, assignment or service
-agreement between the individual and the company — which is the repository's
-silence, not proof that no private agreement exists. The trade mark position is
-separate and unaffected: the licence grants no right to the Ledova or Blueberry
-Money names beyond identifying the origin of the software.
+**What the licence says.** Personal study, noncommercial education and research,
+private noncommercial testing and preparing noncommercial contributions are
+permitted. Sharing for those purposes requires the licence, copyright notices
+and identification of modifications. Commercial use, including internal business
+use, paid hosting and paid support, requires a separate written licence. So does
+using the code to develop or offer a competing product or service, even for free.
+These conditions extend to copies and modifications. There is no automatic
+open-source conversion under the new licence.
 
-**The position.** Limbs (1) and (3) do not depend on who offers what, so a rival
-hosted platform is very likely caught by them whatever limb (2) does. The
-licence is therefore left as it stands, with the individual as Licensor.
+**Who needs permission.** A company running the code for its own business and an
+operator hosting it for other companies both need commercial permission. That
+includes Blueberry Money: sponsorship transfers neither copyright nor commercial
+rights. The repository contains no separate commercial agreement with that
+company; this does not establish whether a private agreement exists. Contributors
+retain their copyright; [contribution terms](../../CONTRIBUTING.md#licensing-of-contributions)
+explain how their material is licensed. Software permission is separate from
+financial-services permissions and the live-operation conditions.
 
-**What would make that position unnecessary, and it is not advice.** Limb (2) is
-doubtful only because the relationship between the Licensor and the operator is
-unwritten. A written licence from the individual to Blueberry Money, and a line
-in the README describing the company's service as offered under it, would make
-the operator's service visibly one the Licensor offers using the Software. That
-is the same shape as the gap under position 2 — a document nobody has written —
-and it is the cheapest thing on this page to close. Limb (2) fixes its condition
-at the version's publication date, so a later agreement does not reach back to a
-version published before it.
+**Earlier grants.** Releases before 2026-09-10 remain under Apache 2.0. Versions
+published under FSL-1.1-ALv2 before this change keep that licence and its
+irrevocable future Apache grant, effective two years after each version was made
+available. The [previous licence at the pre-change commit](https://github.com/Ledova/ledova/blob/4f516468ef0788a73363a3175db2e32d6978cc3f/LICENSE)
+records those terms. The new licence does not revoke rights already granted in
+historical versions or previously licensed material, or replace third-party
+licences. Keeping the history public leaves those versions accessible.
 
-**Which way to be wrong.** Assigning copyright to Blueberry Money would remove
-the doubt at the source, and it is the option to be slowest about: it is a real
-transfer of an asset, the two-year Apache grant would then flow from the company
-rather than from him, and what happens to the code if that company is wound up
-or sold becomes a live question. Leaving the licence alone risks a limb nobody
-may ever need; assigning it early risks the asset itself.
+**The limits.** Public access allows inspection and downloading; GitHub's terms
+also permit viewing and forking public repositories. A licence is a legal
+permission boundary, not an access control. It does not stop independent
+implementation of a competing product without using Ledova's protected material,
+and it grants no general trademark permission.
 
-**Decisions this does not make.** A licence to the company and an assignment of
-copyright are different arrangements. No assignment, new company licence or
-change to the existing future Apache grant is made here; each needs the owner's
-decision on its actual terms and its effect on existing rights. The operating
-entity for a first client — Blueberry Money or another — is an open question on
-the [registry service](registry-service.md) page. The test binds the registry service and any
-third-party operator; a company running its own instance for its own purposes
-is not making the Software available to others, so it is not engaged.
+**What would show the position wrong.** An applicable earlier grant, a
+contributor's rights, third-party terms or a ruling on the custom wording could
+limit a claimed restriction. The current text must not be presented as erasing
+those rights or guaranteeing enforcement.
 
-**Status.** Reviewed 2026-09-15; the operating-entity sentence was added
-afterwards, and the model-binding sentence was drafted for the model split and
-awaits the owner's sign-off.
+**Which way to be wrong.** Preserve existing grants and contributor ownership;
+do not assert commercial rights that have not been obtained. Counsel should
+review the custom terms before reliance on them in a commercial agreement or
+enforcement action.
+
+**Trigger.** Any commercial use or use of the code to develop or offer a
+competing product or service, whether or not real securities or funds are involved.
+
+**Status.** Licence policy approved by the owner on 2026-09-20. Implementation
+tracked in [#661](https://github.com/Ledova/ledova/issues/661). No assignment of
+copyright or separate commercial licence is created by this position.
 
 ## 6. Where and in what form the register is kept
 
