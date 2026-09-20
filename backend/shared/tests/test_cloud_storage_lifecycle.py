@@ -1,9 +1,12 @@
 from contextlib import ExitStack, contextmanager
 from datetime import timedelta
+from types import SimpleNamespace
 from unittest.mock import patch
+from uuid import uuid4
 
 from django.apps import apps
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.core.files.base import ContentFile
 from django.db import models, transaction
 from django.db.models.signals import post_delete
@@ -14,19 +17,54 @@ from storages.backends.gcloud import GoogleCloudStorage
 from storages.backends.s3 import S3Storage
 
 from companies.models import Company, CompanyDocument
+from companies.services.document_review import prepare_document_review, verify_document
+from companies.tests.test_document_file_access import attach_file, make_document
 from documents.models import Document, DocumentType
 from shared.services.orphaned_files import GRACE, sweep_orphaned_files
 from shared.storage import private_file_fields
 from shared.tests.tenants import an_account
-from tokens.models import RegisterCorrection
+from tokens.models import (
+    RegisterCorrection,
+    RegisterOpening,
+    ShareToken,
+    ShareTokenStatus,
+)
 from tokens.services.register_corrections import submit_correction
+from tokens.services.register_openings import submit_opening
 from tokens.tests.test_register_corrections import (
     correction_fixture,
     correction_payload,
 )
+from tokens.tests.test_register_events import register_fixture
+from tokens.tests.test_register_openings import opening_payload
 from users.models import InvestorClassification
 
 PDF = b"%PDF-1.4 synthetic cloud lifecycle fixture"
+
+
+def opening_proposal_fixture():
+    owner, company, _, _, _, _ = register_fixture()
+    owner.is_staff = False
+    owner.save(update_fields=["is_staff"])
+    reviewer = get_user_model().objects.create_user(
+        email=f"opening-cloud-{uuid4()}@example.test", is_active=True, is_staff=True
+    )
+    reviewer.user_permissions.add(
+        *Permission.objects.filter(
+            codename__in=["change_companydocument", "change_registeropening", "view_registeropening"]
+        )
+    )
+    document = attach_file(make_document(company))
+    _, confirmation = prepare_document_review(document_id=document.pk, reviewer=reviewer)
+    verify_document(document_id=document.pk, reviewer=reviewer, confirmation=confirmation)
+    deployed = ShareToken.objects.create(
+        company=company,
+        name="Cloud opening",
+        symbol="CLOUD",
+        total_supply="100",
+        status=ShareTokenStatus.DEPLOYED,
+    )
+    return submit_opening(actor=owner, **opening_payload(document, SimpleNamespace(token_id=deployed.pk))), document
 
 
 class ObjectStore:
@@ -122,14 +160,30 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                         (CompanyDocument, "file"),
                         (InvestorClassification, "evidence_file"),
                         (RegisterCorrection, "file"),
+                        (RegisterOpening, "file"),
                     },
                 )
                 connected = {lookup[0] for lookup, *_rest in post_delete.receivers}
-                for model in (Document, CompanyDocument, RegisterCorrection):
+                for model in (Document, CompanyDocument, RegisterCorrection, RegisterOpening):
                     self.assertIn(f"shared.storage.sweep:{model._meta.label}.file", connected)
                 self.assertNotIn("shared.storage.sweep:users.InvestorClassification.evidence_file", connected)
                 with self.assertRaises(NotImplementedError):
                     storage.path("documents/no-filesystem.pdf")
+
+    def test_retained_opening_copy_survives_source_deletion_and_orphan_sweep(self):
+        for backend in ("s3", "gcs"):
+            with self.subTest(backend=backend), self.cloud_storage(backend) as (storage, objects):
+                proposal, document = opening_proposal_fixture()
+                original = objects.files[proposal.file.name]
+                document.delete()
+                orphan = storage.save("companies/interrupted-opening.bin", ContentFile(PDF))
+                for key in objects.files:
+                    objects.modified[key] = timezone.now() - GRACE - timedelta(seconds=1)
+                result = sweep_orphaned_files(storage=storage)
+                self.assertEqual(result["deleted"], 1)
+                self.assertNotIn(orphan, objects.files)
+                self.assertEqual(objects.files[proposal.file.name], original)
+                self.assertTrue(RegisterOpening.objects.filter(pk=proposal.pk).exists())
 
     def test_retained_correction_copy_survives_source_deletion_and_orphan_sweep(self):
         for backend in ("s3", "gcs"):

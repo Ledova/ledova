@@ -2,20 +2,23 @@
 
 [Operations](README.md) · [Register architecture](../architecture/register.md)
 
-The first [#647](https://github.com/Ledova/ledova/issues/647) slice provides
-company-scoped member references, an append-only share-event chain and stored
-holdings. It is a foundation for the authoritative register. Current HTTP and CSV
-register routes still use the existing chain reader; issuance and settlement do
-not yet populate these new tables. Do not use the foundation as an activated
-company register.
+The first [#647](https://github.com/Ledova/ledova/issues/647) slices provide
+company-scoped member references with durable wallet links, an append-only
+share-event chain, stored holdings, an approved opening capture and reviewed
+compensating corrections. It is a foundation for the authoritative register.
+Current HTTP and CSV register routes still use the existing chain reader;
+issuance and settlement do not yet populate these new tables. Do not use the
+foundation as an activated company register.
 
 ## Identity and events
 
 A member has a UUID belonging to one company, independent of a wallet or platform
 account. The owner chose this so imports can include walletless members and one
-member can later have multiple wallet links. This slice stores the reference
-only: wallet mappings, retained personal particulars, allotment consideration and
-the API/client changes belong to the integration work. It never merges members
+member can have multiple wallet links. Wallet links are durable insert-only
+identity records created by the approved opening below: one address resolves to
+one member per company, and an existing link for a mapped address must agree
+with the mapping. Retained personal particulars, allotment consideration and
+the API/client changes belong to later integration work. It never merges members
 by matching names.
 
 A register belongs to one share class. Its first entry records the opening state,
@@ -32,9 +35,10 @@ A transfer that empties a holding leaves a zero position. Cessation here describ
 the class holding, not a conclusion about membership across the company's other
 classes. Former-member recording remains on the existing path. A correction can
 itself be compensated, but each original entry can be compensated only once and
-no change can make a position negative. Partial corrections and the reviewed
-evidence workflow remain later work. Recording a cessation or correction does
-not burn, seize or transfer tokens on chain.
+no change can make a position negative. Partial corrections and general
+replacement transactions remain later work; the reviewed evidence workflow for
+corrections and openings is documented below. Recording a cessation or
+correction does not burn, seize or transfer tokens on chain.
 
 PostgreSQL locks the register head, validates the event and member company,
 assigns the next sequence and hashes the event with its predecessor. It updates
@@ -139,10 +143,11 @@ and [backend verification](../development/testing.md#backend-verification).
 
 ## Reviewing documentary evidence
 
-The register approval model will use documentary director authority submitted by
+The register approval model uses documentary director authority submitted by
 the company owner and verified by authorised staff. An owner account alone is
-not proof of director authority. The proposal/approval workflow is still pending;
-the company-document admin now provides its content-verification prerequisite.
+not proof of director authority. The company-document admin provides its
+content-verification prerequisite; the correction and opening workflows below
+are its current consumers.
 
 In the company document admin, choose **Review and verify document**, open the
 private file, review its company, document type and validity details, then confirm.
@@ -169,12 +174,12 @@ fingerprints.
 
 This is a record of what was verified at a time. Storage can become unavailable
 or be changed outside the application, and validity can expire without a database
-write. A later register approval consumer must recheck the current file against
-the recorded fingerprint, the company and operation, and the validity dates;
-the historical `is_verified` flag alone is insufficient. No background storage
-monitoring, register approval, retained file copy or deletion/retention change is
-introduced here. Documentary authority and an exact proposed register change
-remain separate requirements of the upcoming approval workflow.
+write. The correction and opening consumers therefore recheck the current file
+against the recorded fingerprint, the company and the proposed change, and the
+validity dates; the historical `is_verified` flag alone is insufficient. No
+background storage monitoring or deletion/retention change is introduced here.
+Documentary authority and an exact proposed register change remain separate
+requirements of each approval workflow.
 
 ## Reviewed compensating corrections
 
@@ -251,3 +256,89 @@ sweep. Account/company deletion still respects protected register relations.
 Production retention needs its own decision before real data is admitted.
 Classification evidence, former-member retention and future export records have
 independent policies; this choice does not change them.
+
+## Approved opening capture and wallet links
+
+The stored register can be initialised from a verified canonical boundary using
+the same documentary-authority model as corrections. The company owner submits
+an opening proposal for one deployed share class: an exact mapping of boundary
+wallet addresses to company member IDs, the reviewed company document carrying
+the authority, and either a director resolution naming the approving director or
+a distinct court order with a reference and reason. There are no free-typed
+quantities or dates: the opening's effective date is the captured boundary date
+and its share changes are the boundary's holdings grouped by the mapped members.
+The proposal retains a private copy of the authority file.
+
+Walletless members and several wallets per member are supported. One address
+resolves to one member per company; an existing wallet link for a mapped address
+must agree with the mapping, and a mapping may not repeat an address. Member
+personal particulars are still not stored — names and residential addresses
+remain outside these records, and their retention is a separate owner decision
+before the import milestone.
+
+An external issuer integration can use these authenticated routes:
+
+| Method and route | Result |
+| --- | --- |
+| `POST /api/v1/tokens/register-openings/` | Submit the owner's opening proposal; return the retained request |
+| `GET /api/v1/tokens/register-openings/` | Paginated requests for companies currently owned by the caller |
+| `GET /api/v1/tokens/register-openings/{uuid}/` | Request, captured boundary, mapping and decision |
+| `GET /api/v1/tokens/register-openings/{uuid}/file/` | Authenticated attachment of the retained authority file |
+
+Submission accepts this JSON, replacing UUIDs with those from the exercise. The
+mapping must cover exactly the boundary's holding addresses before review.
+
+```json
+{
+  "operation_id": "10000000-0000-4000-8000-000000000011",
+  "token_id": "10000000-0000-4000-8000-000000000012",
+  "document_id": "10000000-0000-4000-8000-000000000013",
+  "mapping": [
+    {"address": "0x1111111111111111111111111111111111111111", "member": "10000000-0000-4000-8000-000000000014"}
+  ],
+  "authority": "director_resolution",
+  "approving_director": "Synthetic Director",
+  "authority_reference": "SYNTHETIC-RESOLUTION-OPENING-1",
+  "reason": "Establish the register from the attributed deployment boundary"
+}
+```
+
+Opening the staff review captures a fresh canonical snapshot (the section
+above) and binds it to the proposal; the mapping must cover exactly the
+boundary's holding addresses, no missing and no unknown address. Database guards
+freeze the proposal after submission except for that one-time boundary capture,
+the staff decision and the review fields. A repeated review rechecks the
+boundary block's current canonicity and the approved finality policy instead of
+re-capturing, and issues a fresh reviewer-bound confirmation.
+
+In **Admin → Tokens → Register openings**, open the request's review link. An
+active staff user with change permission must inspect the retained file, named
+authority, company identity, captured boundary, deployment provenance, supply
+reconciliation and the address-to-member mapping, then explicitly confirm and
+choose **Approve and apply**. Application rechecks the reviewer-bound expiring
+confirmation, the retained evidence, the boundary and that the register is still
+uninitialized under the share-class lock, then commits the members, wallet
+links, the OPENING entry (the register's first entry) and the decision
+atomically; a failure rolls them all back. Repeated identical submission and
+decision is idempotent, including after the confirmation expires, while
+conflicting UUID reuse is refused. The database prevents rewriting or deleting
+the request and the wallet links, and prevents the customer role from deciding
+or capturing anything.
+
+An explicitly empty boundary produces an explicit empty opening, distinct from
+an uninitialized register. An already-initialised register refuses a further
+opening at submission and at application. A boundary that is no longer
+canonical, a changed finality policy, changed company/document evidence or a
+register initialised in the meantime refuses application; rejection with a
+reason remains available. Issuance completion takes the same share-class lock,
+so an opening cannot interleave with an issuance completion. Later workflow
+event recording will classify each completion's verified final inclusion
+against this captured boundary, so each economic effect appears exactly once.
+
+Retention follows the owner's correction decision: opening proposals, their
+retained authority copies and the captured boundary are retained without
+automatic expiry during the synthetic-only experiment; ordinary deletion is
+blocked, the retained copy survives source-document deletion and deleting the
+source prevents a pending application. Production retention needs its own
+decision before real data. This activates no HTTP register read: holders and
+CSV routes remain chain-derived until the stored-reader cutover.

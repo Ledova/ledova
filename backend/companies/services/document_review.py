@@ -2,6 +2,7 @@ import hashlib
 import json
 from contextlib import nullcontext
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core import signing
 from django.utils import timezone
@@ -66,6 +67,26 @@ def document_review_content(document, *, content=None):
 def document_fingerprint(document, *, content=None):
     reviewed = document_review_content(document, content=content)
     return hashlib.sha256(json.dumps(reviewed, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def private_document_bytes(file):
+    try:
+        with file.open("rb") as source:
+            raw = source.read(settings.UPLOAD_MAX_BYTES + 1)
+    except (OSError, ValueError):
+        raise ValidationError("The private authority evidence is unavailable.") from None
+    if not raw or len(raw) > settings.UPLOAD_MAX_BYTES:
+        raise ValidationError("The authority evidence is empty or exceeds the upload limit.")
+    return raw
+
+
+def verified_document_snapshot(document, *, content=None):
+    if not document.is_verified or not document.verified_fingerprint or not document.verified_by_id:
+        raise ValidationError("Authority evidence requires a current content-bound document verification.")
+    snapshot = document_review_content(document, content=content)
+    if document_fingerprint(document, content=content) != document.verified_fingerprint:
+        raise ValidationError("The authority evidence changed since document verification.")
+    return snapshot
 
 
 def prepare_document_review(*, document_id, reviewer):

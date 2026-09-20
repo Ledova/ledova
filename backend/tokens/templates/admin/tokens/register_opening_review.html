@@ -1,0 +1,42 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Review register opening</h1>
+<p>Approval records your verification of documentary authority and initialises the stored register from the captured canonical boundary. Document verification alone does not establish director authority.</p>
+<dl>
+<dt>Company as submitted</dt><dd>{{ original.evidence_snapshot.company_identity.name }}</dd>
+<dt>Company identifiers</dt><dd>ACN {{ original.evidence_snapshot.company_identity.acn }}; ABN {{ original.evidence_snapshot.company_identity.abn }}</dd>
+<dt>Share class</dt><dd>{{ original.token_id }}</dd>
+<dt>Authority</dt><dd>{{ original.get_authority_display }}</dd>
+<dt>Approving director</dt><dd>{{ original.approving_director|default:"Not applicable: court order" }}</dd>
+<dt>Authority reference</dt><dd>{{ original.authority_reference }}</dd>
+<dt>Reason</dt><dd>{{ original.reason }}</dd>
+<dt>Retained evidence</dt><dd>{{ evidence_link }}</dd>
+<dt>Verified evidence fingerprint</dt><dd>{{ original.evidence_fingerprint }}</dd>
+</dl>
+{% if original.boundary %}
+<dl>
+<dt>Captured boundary</dt><dd>Block {{ original.boundary.block.number }} / {{ original.boundary.block.hash }}</dd>
+<dt>Boundary date</dt><dd>{{ original.boundary.block.date }}</dd>
+<dt>Finality policy</dt><dd>{{ original.boundary.policy.mode }}{% if original.boundary.policy.depth %} (depth {{ original.boundary.policy.depth }}){% endif %}</dd>
+<dt>Deployment</dt><dd>{{ original.boundary.deployment_transaction }} at block {{ original.boundary.deployment_block }}</dd>
+<dt>Issued / authorized supply</dt><dd>{{ original.boundary.issued_supply }} / {{ original.boundary.authorized_supply }}</dd>
+</dl>
+<table>
+<thead><tr><th>Wallet address at the boundary</th><th>Boundary shares</th><th>Member ID</th></tr></thead>
+<tbody>
+{% for row in mapping_rows %}<tr><td>{{ row.address }}</td><td>{{ row.shares }}</td><td>{{ row.member }}</td></tr>{% endfor %}
+</tbody>
+</table>
+{% else %}
+<p>No canonical boundary has been captured for this proposal yet. Opening the review captures it from the share class's deployment chain.</p>
+<table>
+<thead><tr><th>Submitted wallet address</th><th>Member ID</th></tr></thead>
+<tbody>
+{% for link in original.mapping %}<tr><td>{{ link.address }}</td><td>{{ link.member }}</td></tr>{% endfor %}
+</tbody>
+</table>
+{% endif %}
+{% if refusal %}<p class="errornote">{{ refusal }} Application is unavailable. You may reject this request with a reason.</p>{% endif %}
+<p>Review confirmation expires after fifteen minutes. A changed register, boundary or evidence requires a fresh review or submission.</p>
+<form method="post">{% csrf_token %}{{ form.as_p }}<input type="submit" value="Record decision"></form>
+{% endblock %}

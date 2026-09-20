@@ -1551,6 +1551,54 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/register-openings/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_openings_list'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_openings_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-openings/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_openings_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-openings/{uuid}/file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_openings_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/trading/events/stream/': {
     parameters: {
       query?: never;
@@ -2385,7 +2433,6 @@ export interface ApiComponents {
       isEmailVerified: boolean;
       uuid: string | null;
     };
-    AuthorityEnum: 'director_resolution' | 'court_order';
     AuthPasswordChanged: {
       message: string;
     };
@@ -3506,6 +3553,12 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['RegisterCorrection'][];
     };
+    PaginatedRegisterOpeningList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['RegisterOpening'][];
+    };
     PaginatedShareIssuanceListList: {
       count: number;
       next?: string | null;
@@ -3833,7 +3886,7 @@ export interface ApiComponents {
     RegisterCorrection: {
       appliedEntry: string | null;
       approvingDirector: string;
-      authority: ApiComponents['schemas']['AuthorityEnum'];
+      authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
       authorityReference: string;
       baseHash: string;
       baseSequence: number;
@@ -3854,9 +3907,10 @@ export interface ApiComponents {
       submittedBy: number;
       uuid: string;
     };
+    RegisterCorrectionAuthorityEnum: 'director_resolution' | 'court_order';
     RegisterCorrectionCreateRequest: {
       approvingDirector?: string;
-      authority: ApiComponents['schemas']['AuthorityEnum'];
+      authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
       authorityReference: string;
       correctsId: string;
       documentId: string;
@@ -3868,6 +3922,39 @@ export interface ApiComponents {
     RegisterDeviceTokenRequest: {
       deviceType: ApiComponents['schemas']['DeviceTypeEnum'];
       pushToken: string;
+    };
+    RegisterOpening: {
+      appliedEntry: string | null;
+      approvingDirector: string;
+      authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
+      authorityReference: string;
+      boundary: unknown;
+      company: string;
+      createdAt: string;
+      evidenceFingerprint: string;
+      evidenceSnapshot: unknown;
+      mapping: unknown;
+      reason: string;
+      rejectionReason: string;
+      reviewedAt: string | null;
+      reviewedBy: number | null;
+      sourceDocument: string;
+      status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
+      submittedBy: number;
+      token: string;
+      uuid: string;
+    };
+    RegisterOpeningCreateRequest: {
+      approvingDirector?: string;
+      authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
+      authorityReference: string;
+      documentId: string;
+      mapping: {
+        [key: string]: string;
+      }[];
+      operationId: string;
+      reason: string;
+      tokenId: string;
     };
     ResendVerificationRequest: {
       email?: string;
@@ -8115,6 +8202,95 @@ export interface ApiOperations {
     };
   };
   api_v1_tokens_register_corrections_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_openings_list: {
+    parameters: {
+      query?: {
+        ordering?: string;
+        page?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedRegisterOpeningList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_openings_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterOpeningCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterOpeningCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterOpeningCreateRequest'];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterOpening'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_openings_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterOpening'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_openings_file_retrieve: {
     parameters: {
       query?: never;
       header?: never;
