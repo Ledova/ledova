@@ -55,6 +55,8 @@ SPECTACULAR_SETTINGS = {
         "UserDocumentTypeEnum": "documents.models.document.DocumentType",
         "UserVerificationStatusEnum": "integrations.kyc.constants.VERIFICATION_STATUS_CHOICES",
         "WalletSigningPreferenceEnum": "wallets.models.wallet.WalletSigningPreference.choices",
+        "RegisterCorrectionStatusEnum": "tokens.models.register_correction.RegisterCorrectionStatus",
+        "RegisterCorrectionAuthorityEnum": "tokens.models.register_correction.RegisterCorrectionAuthority",
     },
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",

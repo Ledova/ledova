@@ -3,7 +3,6 @@ import json
 from datetime import date
 from uuid import UUID
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core import signing
 from django.core.files.base import ContentFile
@@ -14,7 +13,8 @@ from rest_framework.exceptions import NotFound, PermissionDenied, ValidationErro
 from companies.models import Company, CompanyDocument
 from companies.services.document_review import (
     document_fingerprint,
-    document_review_content,
+    private_document_bytes,
+    verified_document_snapshot,
 )
 from shared.db import APP_ALIAS, atomic, current_alias
 from tokens.constants import REGISTER_CORRECTION_REVIEW_MAX_AGE
@@ -28,23 +28,11 @@ def _digest(value):
 
 
 def _content(file):
-    try:
-        with file.open("rb") as source:
-            raw = source.read(settings.UPLOAD_MAX_BYTES + 1)
-    except (OSError, ValueError):
-        raise ValidationError("The private authority evidence is unavailable.") from None
-    if not raw or len(raw) > settings.UPLOAD_MAX_BYTES:
-        raise ValidationError("The authority evidence is empty or exceeds the upload limit.")
-    return raw
+    return private_document_bytes(file)
 
 
 def _verified(document, content=None):
-    if not document.is_verified or not document.verified_fingerprint or not document.verified_by_id:
-        raise ValidationError("Authority evidence requires a current content-bound document verification.")
-    snapshot = document_review_content(document, content=content)
-    if _digest(snapshot) != document.verified_fingerprint:
-        raise ValidationError("The authority evidence changed since document verification.")
-    return snapshot
+    return verified_document_snapshot(document, content=content)
 
 
 def _reviewer(user):

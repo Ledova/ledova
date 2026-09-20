@@ -23,6 +23,7 @@ from django.test import override_settings
 from django.utils import timezone
 from eth_account import Account
 from eth_account.messages import encode_typed_data
+from rest_framework.exceptions import ValidationError
 from rest_framework.test import APITransactionTestCase
 from web3 import Web3
 
@@ -37,6 +38,8 @@ from blockchain.models import (
 )
 from blockchain.tests.test_outgoing_processes import finish
 from companies.models import Company, CompanyStatus
+from companies.services.document_review import prepare_document_review, verify_document
+from companies.tests.test_document_file_access import attach_file, make_document
 from feature_flags.models import FeatureFlag
 from integrations.base_chain.client import BaseChainClient, get_base_chain_client
 from integrations.base_chain.exceptions import BaseChainTransactionError
@@ -55,6 +58,9 @@ from tokens.models import (
     CapitalIncreaseRequest,
     FormerHolder,
     IssuanceStatus,
+    RegisterMemberWallet,
+    RegisterOpening,
+    RegisterPosition,
     RequestStatus,
     ShareIssuance,
     ShareIssuanceExecution,
@@ -91,6 +97,12 @@ from tokens.services.register import (
     REGISTER_HEADERS,
     SOURCE_CHAIN,
     SOURCE_LABELS,
+)
+from tokens.services.register_events import verify_register
+from tokens.services.register_openings import (
+    decide_opening,
+    prepare_opening_review,
+    submit_opening,
 )
 from tokens.services.share_token_service import (
     EXCEEDS_AUTHORIZED,
@@ -732,6 +744,74 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual(completed["holdings"], [{"address": self.investor, "shares": "15"}])
         self.assertNotIn("transfers", completed)
         self.assertGreater(completed["block"]["number"], initial["block"]["number"])
+
+    @override_settings(WALLET_CHAIN_FINALITY_POLICIES={"evm:31337": {"mode": "depth", "depth": 2}})
+    def test_reviewed_opening_initialises_the_stored_register_from_the_real_boundary(self):
+        from datetime import date
+
+        from django.contrib.auth import get_user_model
+
+        self._deployed()
+        request = self._whitelisted_request(10)
+        self.assertEqual(self._execute(request)["status"], "executing")
+        self.w3.provider.make_request("evm_mine", [])
+        self.assertTrue(self._execute(request)["success"])
+        owner = self.tenant.user
+        owner.is_staff = False
+        owner.save(update_fields=["is_staff"])
+        reviewer = get_user_model().objects.create_user(
+            email=f"opening-chain-{uuid4()}@example.test", is_active=True, is_staff=True
+        )
+        reviewer.user_permissions.add(
+            *Permission.objects.filter(
+                codename__in=["change_companydocument", "change_registeropening", "view_registeropening"]
+            )
+        )
+        document = attach_file(make_document(self.tenant.company))
+        _, confirmation = prepare_document_review(document_id=document.pk, reviewer=reviewer)
+        verify_document(document_id=document.pk, reviewer=reviewer, confirmation=confirmation)
+        member = uuid4()
+        proposal = submit_opening(
+            actor=owner,
+            operation_id=uuid4(),
+            token_id=self.token.pk,
+            document_id=document.pk,
+            mapping=[{"address": self.investor, "member": str(member)}],
+            authority="director_resolution",
+            approving_director="Synthetic Director",
+            authority_reference="SYNTHETIC-RESOLUTION-CHAIN-1",
+            reason="Establish the register from the real local chain boundary",
+        )
+        self.assertIsNone(proposal.boundary)
+        _, review_confirmation = prepare_opening_review(proposal_id=proposal.pk, reviewer=reviewer)
+        boundary = RegisterOpening.objects.get(pk=proposal.pk).boundary
+        self.assertEqual(boundary["holdings"], [{"address": self.investor, "shares": "10"}])
+        applied = decide_opening(
+            proposal_id=proposal.pk, reviewer=reviewer, confirmation=review_confirmation, decision="apply"
+        )
+        self.assertEqual(applied.status, "applied")
+        entry = applied.applied_entry
+        self.assertEqual((entry.kind, entry.sequence), ("opening", 1))
+        self.assertEqual(entry.changes, [{"member": str(member), "shares": "10"}])
+        self.assertEqual(entry.effective_on, date.fromisoformat(boundary["block"]["date"]))
+        wallet = RegisterMemberWallet.objects.get(company=self.tenant.company, address=self.investor)
+        self.assertEqual(str(wallet.member_id), str(member))
+        result = verify_register(entry.register_id)
+        self.assertEqual((result["entries"], result["members"], result["issued_supply"]), (1, 1, "10"))
+        position = RegisterPosition.objects.get(register_id=entry.register_id)
+        self.assertEqual(self._contract().functions.balanceOf(self.investor).call(), int(position.shares))
+        with self.assertRaises(ValidationError):
+            submit_opening(
+                actor=owner,
+                operation_id=uuid4(),
+                token_id=self.token.pk,
+                document_id=document.pk,
+                mapping=[{"address": self.investor, "member": str(member)}],
+                authority="director_resolution",
+                approving_director="Synthetic Director",
+                authority_reference="SYNTHETIC-RESOLUTION-CHAIN-1",
+                reason="A second opening after initialization",
+            )
 
     @override_settings(WALLET_CHAIN_FINALITY_POLICIES={"evm:31337": {"mode": "depth", "depth": 2}})
     def test_real_issuance_waits_for_finality_then_completes_without_another_mint(self):

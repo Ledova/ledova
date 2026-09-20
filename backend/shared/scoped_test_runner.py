@@ -10,6 +10,7 @@ from shared.db import APP_ALIAS, MIGRATE_ALIAS, OPERATOR_ALIAS
 SCOPED_TEST_LABELS = (
     "companies.tests.test_document_review_scoped.ScopedCompanyDocumentReviewTest",
     "tokens.tests.test_register_corrections_scoped.ScopedRegisterCorrectionTest",
+    "tokens.tests.test_register_openings_scoped.ScopedRegisterOpeningTest",
     "tokens.tests.test_register_snapshot_scoped.ScopedRegisterSnapshotTest",
     "tokens.tests.test_register_events_scoped.ScopedRegisterFoundationTest",
     "tokens.tests.test_nav_scoped.ScopedNAVRecoveryTest",

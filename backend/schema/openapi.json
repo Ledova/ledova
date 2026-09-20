@@ -844,14 +844,6 @@
         ],
         "type": "object"
       },
-      "AuthorityEnum": {
-        "description": "* `director_resolution` - Director resolution\n* `court_order` - Court order",
-        "enum": [
-          "director_resolution",
-          "court_order"
-        ],
-        "type": "string"
-      },
       "BatchBalanceRequestRequest": {
         "properties": {
           "addresses": {
@@ -6287,6 +6279,37 @@
         ],
         "type": "object"
       },
+      "PaginatedRegisterOpeningList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterOpening"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
       "PaginatedShareIssuanceListList": {
         "properties": {
           "count": {
@@ -7717,7 +7740,7 @@
           "authority": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/AuthorityEnum"
+                "$ref": "#/components/schemas/RegisterCorrectionAuthorityEnum"
               }
             ],
             "readOnly": true
@@ -7841,6 +7864,14 @@
         ],
         "type": "object"
       },
+      "RegisterCorrectionAuthorityEnum": {
+        "description": "* `director_resolution` - Director resolution\n* `court_order` - Court order",
+        "enum": [
+          "director_resolution",
+          "court_order"
+        ],
+        "type": "string"
+      },
       "RegisterCorrectionCreateRequest": {
         "properties": {
           "approvingDirector": {
@@ -7849,7 +7880,7 @@
             "type": "string"
           },
           "authority": {
-            "$ref": "#/components/schemas/AuthorityEnum"
+            "$ref": "#/components/schemas/RegisterCorrectionAuthorityEnum"
           },
           "authorityReference": {
             "maxLength": 255,
@@ -7918,6 +7949,183 @@
         "required": [
           "deviceType",
           "pushToken"
+        ],
+        "type": "object"
+      },
+      "RegisterOpening": {
+        "properties": {
+          "appliedEntry": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "approvingDirector": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "authority": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterCorrectionAuthorityEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "authorityReference": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "boundary": {
+            "nullable": true,
+            "readOnly": true
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "evidenceFingerprint": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "evidenceSnapshot": {
+            "readOnly": true
+          },
+          "mapping": {
+            "readOnly": true
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "rejectionReason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "reviewedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "reviewedBy": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
+          },
+          "sourceDocument": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterCorrectionStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "submittedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "token": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appliedEntry",
+          "approvingDirector",
+          "authority",
+          "authorityReference",
+          "boundary",
+          "company",
+          "createdAt",
+          "evidenceFingerprint",
+          "evidenceSnapshot",
+          "mapping",
+          "reason",
+          "rejectionReason",
+          "reviewedAt",
+          "reviewedBy",
+          "sourceDocument",
+          "status",
+          "submittedBy",
+          "token",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterOpeningCreateRequest": {
+        "properties": {
+          "approvingDirector": {
+            "default": "",
+            "maxLength": 255,
+            "type": "string"
+          },
+          "authority": {
+            "$ref": "#/components/schemas/RegisterCorrectionAuthorityEnum"
+          },
+          "authorityReference": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "documentId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "mapping": {
+            "items": {
+              "additionalProperties": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "maxItems": 10000,
+            "type": "array"
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "tokenId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "authority",
+          "authorityReference",
+          "documentId",
+          "mapping",
+          "operationId",
+          "reason",
+          "tokenId"
         ],
         "type": "object"
       },
@@ -18946,6 +19154,183 @@
     "/api/v1/tokens/register-corrections/{uuid}/file/": {
       "get": {
         "operationId": "api_v1_tokens_register_corrections_file_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-openings/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_openings_list",
+        "parameters": [
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedRegisterOpeningList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_tokens_register_openings_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterOpeningCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterOpeningCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterOpeningCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterOpening"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-openings/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_openings_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterOpening"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-openings/{uuid}/file/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_openings_file_retrieve",
         "parameters": [
           {
             "in": "path",

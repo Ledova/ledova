@@ -203,6 +203,14 @@ POLICIES = {
         f"{_company('company_id', MANAGEABLE_COMPANIES)} AND submitted_by_id = {PRINCIPAL} AND status = 'submitted'",
     ),
     "tokens_registermember": (_company("company_id", VISIBLE_COMPANIES), "false"),
+    "tokens_registermemberwallet": (
+        _company("company_id", VISIBLE_COMPANIES),
+        "false",
+    ),
+    "tokens_registeropening": (
+        _company("company_id", VISIBLE_COMPANIES),
+        f"{_company('company_id', MANAGEABLE_COMPANIES)} AND submitted_by_id = {PRINCIPAL} AND status = 'submitted'",
+    ),
     "tokens_shareregister": (_company("company_id", VISIBLE_COMPANIES), "false"),
     "tokens_registerentry": ("register_id IN (SELECT uuid FROM tokens_shareregister)", "false"),
     "tokens_registerposition": ("register_id IN (SELECT uuid FROM tokens_shareregister)", "false"),

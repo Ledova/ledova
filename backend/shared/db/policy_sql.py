@@ -21,7 +21,11 @@ TABLE_CREATION_AFTER_INITIAL_GRANTS = {
         "tokens_registerentry",
         "tokens_registerposition",
     )
-} | {"tokens_registercorrection": ("tokens", "0064_reviewed_register_corrections")}
+} | {
+    "tokens_registercorrection": ("tokens", "0064_reviewed_register_corrections"),
+    "tokens_registermemberwallet": ("tokens", "0065_register_opening"),
+    "tokens_registeropening": ("tokens", "0065_register_opening"),
+}
 
 NOT_YET_CREATED = (
     "The catalogue says the app role reaches {tables}, and the grant ran before they existed. "

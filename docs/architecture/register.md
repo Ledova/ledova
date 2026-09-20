@@ -7,9 +7,14 @@ The current-members register is derived at read time for one share class.
 with identity and allotment records. Former members are stored separately.
 
 The [stored register foundation](../operations/register-foundation.md) adds member
-references, immutable events and a holdings projection for #647. It has an operator
-exercise and integrity verifier; these HTTP reads and the execution workflows
-have not switched to it yet.
+references with durable wallet links, immutable events and a holdings projection
+for #647. An [approved opening capture](../operations/register-foundation.md#approved-opening-capture-and-wallet-links)
+initialises it from one verified canonical chain boundary under documentary
+authority, and the integrity verifier replays the whole chain. These HTTP reads
+and the execution workflows have not switched to it yet: issuance and settlement
+do not record register events, and later workflow recording will classify each
+completion's verified final inclusion against the captured opening boundary so
+each economic effect appears exactly once.
 
 Owner-submitted [compensating corrections](../operations/register-foundation.md#reviewed-compensating-corrections)
 now bind documentary authority to an exact reversal and register revision.
