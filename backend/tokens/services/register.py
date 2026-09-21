@@ -245,7 +245,7 @@ def _cessations(token, member_of):
         if member is None:
             former.append(row)
         else:
-            ceased[member].append(row.ceased_on)
+            ceased[member].append(row)
     return ceased, former
 
 
@@ -273,7 +273,11 @@ def _stored_register(token):
         addresses = wallets[position.member_id]
         holder_type, name, residential_address, source, stamped_at = _member_identity(addresses, identities, stamps)
         allotment = _merged(allotments[address.lower()] for address in addresses if address.lower() in allotments)
-        allotted_on, interrupted = _allotted(allotment, opened_on, ceased[position.member_id])
+        allotted_on, interrupted = _allotted(
+            allotment, opened_on, [row.ceased_on for row in ceased[position.member_id]]
+        )
+        entered_on = _entered_on(position, member in held and not interrupted, allotted_on)
+        former.extend(row for row in ceased[position.member_id] if row.ceased_on < entered_on)
         shares = int(position.shares)
         rows.append(
             {
@@ -292,12 +296,14 @@ def _stored_register(token):
                 "holder_type": holder_type,
                 "holder_type_display": HolderType(holder_type).label,
                 "identity_source": identity_source_label(source, stamped_at),
-                "entered_on": _entered_on(position, member in held and not interrupted, allotted_on),
+                "entered_on": entered_on,
                 "share_class": token.symbol,
                 "residential_address": residential_address,
                 "amount_paid": _amount_paid(allotment, shares, member in transferred or interrupted),
             }
         )
+    former.sort(key=lambda row: row.wallet_address)
+    former.sort(key=lambda row: row.ceased_on, reverse=True)
     return {
         "rows": rows,
         "sequence": register.sequence,

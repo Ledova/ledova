@@ -133,14 +133,16 @@ block and records cessations in `FormerHolder`. Particulars are frozen at first
 recorded cessation: current profile at recording, otherwise an allotment stamp
 no later than cessation, otherwise unknown. Refolding does not rewrite them.
 
-The fold sees wallets, not members. A cessation whose wallet is linked to a
-member who currently holds shares of the class is left out of the former
-members, in the API and the CSV, because that member is listed as current: a
-member who empties one linked wallet into another records nothing in the stored
-register, yet the fold sees that wallet cease. The same rule hides a linked
-wallet's cessation for a member who ceased and later holds again, for as long
-as they hold. The rows left out are kept, and still count against that member's
-date entered and amount paid.
+The fold sees wallets, not members. A cessation of a wallet linked to a member
+who currently holds shares of the class is left out of the former members, in
+the API and the CSV, only when it falls on or after that member's date entered:
+the member held throughout, and emptying one linked wallet into another records
+nothing in the stored register even though the fold sees that wallet cease. A
+cessation before the member's date entered stays listed, because the member
+ceased and holds again, and s169(3) keeps that cessation on the register. Before
+the opening the fold cannot tell a wallet rotation from a cessation, so such a
+rotation stays listed as well, the recoverable direction. The rows left out are
+kept, and still count against that member's date entered and amount paid.
 
 Each class fold is all-or-nothing. Failure leaves its last successful timestamp
 and block unchanged and does not stop processing other classes. The register

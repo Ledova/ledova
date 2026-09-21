@@ -549,6 +549,31 @@ class StoredRegisterReadTest(RegisterTestBase):
         self.assertEqual(sorted(former), sorted([STRANGER, TREASURY]))
         self.assertEqual(sorted(exported), sorted([STRANGER, TREASURY]))
 
+    def test_a_member_who_ceased_and_holds_again_is_still_listed_as_ceased(self):
+        members = self._stored({MEMBER: 70, STRANGER: 20})
+        self._transfer(members[STRANGER], members[MEMBER], 20)
+        self._cessation(STRANGER, DAY, block=1)
+        record_entry(
+            register_id=self.opening.register_id,
+            operation_id=uuid4(),
+            kind=RegisterEntryKind.TRANSFER,
+            changes=[
+                {"member": str(members[MEMBER].pk), "shares": "-5"},
+                {"member": str(members[STRANGER].pk), "shares": "5"},
+            ],
+            effective_on=DAY + timedelta(days=10),
+            recorded_by=self.owner,
+        )
+
+        body = self._holders()
+        _, rows = self._export()
+        section = rows[rows.index(FORMER_MEMBER_HEADERS) + 1 :]
+        exported = [row[FORMER_MEMBER_HEADERS.index("Wallet address")] for row in section if row[0] != AS_AT_ROW]
+
+        self.assertIn(STRANGER, [row["wallets"][0]["address"] for row in body["holders"]])
+        self.assertEqual([row["walletAddress"] for row in body["formerMembers"]], [STRANGER])
+        self.assertEqual(exported, [STRANGER])
+
     def test_the_register_and_its_export_are_served_with_the_chain_unreachable(self):
         self._stored({MEMBER: 100, TREASURY: 40})
         unreachable = RuntimeError("chain unreachable")
