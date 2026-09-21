@@ -4,7 +4,6 @@ from django.contrib.auth import get_user_model
 from django.db import DatabaseError
 from django.test import TestCase, override_settings
 from django.urls import reverse
-from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
 
 from shared.db import atomic, use_operator
@@ -40,9 +39,10 @@ class RegisterExportAuditTest(TestCase):
         self.assertEqual(RegisterExport.objects.get(pk=self.record.pk).member_rows, 2)
 
     def test_the_purge_keeps_records_until_the_seven_year_clock_then_removes_them(self):
-        self.assertEqual(purge_register_exports(now=timezone.now() + timedelta(days=2557)), 0)
+        exported_at = self.record.created_at
+        self.assertEqual(purge_register_exports(now=exported_at + timedelta(days=2557)), 0)
         self.assertTrue(RegisterExport.objects.filter(pk=self.record.pk).exists())
-        self.assertEqual(purge_register_exports(now=timezone.now() + timedelta(days=2558)), 1)
+        self.assertEqual(purge_register_exports(now=exported_at + timedelta(days=2558)), 1)
         self.assertFalse(RegisterExport.objects.exists())
 
     def test_the_daily_retention_job_purges_exports_with_former_members(self):
