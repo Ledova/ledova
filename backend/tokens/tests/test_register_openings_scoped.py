@@ -19,6 +19,11 @@ from tokens.models import (
     ShareRegister,
 )
 from tokens.services.register_events import verify_register
+from tokens.services.register_inclusions import (
+    classified_inclusions,
+    completed_inclusions,
+    opening_boundary,
+)
 from tokens.services.register_openings import (
     decide_opening,
     prepare_opening_review,
@@ -103,6 +108,20 @@ class ScopedRegisterOpeningTest(RunsOnTheScopedConnection, APITransactionTestCas
             self.assertIsNone(RegisterOpening.objects.get(pk=proposal.pk).boundary)
         with use_operator():
             self.assertEqual(self.apply().status, "applied")
+
+    def test_only_the_operator_connection_classifies_inclusions(self):
+        for read in (completed_inclusions, opening_boundary, classified_inclusions):
+            with self.subTest(read=read.__name__), self.assertRaises(PermissionDenied):
+                read(self.tenant.token.pk)
+        with use_operator():
+            self.assertIsNone(opening_boundary(self.tenant.token.pk))
+            self.assertEqual(completed_inclusions(self.tenant.token.pk), [])
+            report = classified_inclusions(self.tenant.token.pk)
+            self.assertEqual((report["boundary"], report["inclusions"]), (None, []))
+            applied = self.apply()
+            boundary = classified_inclusions(self.tenant.token.pk)["boundary"]
+            self.assertEqual(boundary["block"], applied.boundary["block"])
+            self.assertEqual(opening_boundary(self.tenant.token.pk), applied.boundary)
 
     def test_real_operator_rollback_preserves_submission_and_initializes_nothing(self):
         with self.assertRaises(RuntimeError), use_operator(), atomic():

@@ -34,6 +34,7 @@ from tokens.exceptions import (
     SwapSignatureException,
 )
 from tokens.models import (
+    ShareToken,
     SwapOrder,
     SwapOrderStatus,
     TransferOrder,
@@ -136,6 +137,10 @@ def _lock_swap(snapshot):
     swap.sell_order = orders[swap.sell_order_id]
     swap.buy_order = orders[swap.buy_order_id]
     return swap
+
+
+def _lock_share_class(snapshot):
+    return ShareToken.objects.select_for_update().get(pk=snapshot.share_token_id)
 
 
 def _lock_command(transaction, *, authority=False):
@@ -612,6 +617,7 @@ def settle(transaction_id, *, client=None):
     if finalized is None:
         return None
     with atomic(durable=True):
+        _lock_share_class(snapshot)
         swap, current = _lock_command(transaction)
         if swap.status != SwapOrderStatus.EXECUTING:
             return None

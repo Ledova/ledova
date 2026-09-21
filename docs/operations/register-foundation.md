@@ -6,9 +6,10 @@ The first [#647](https://github.com/Ledova/ledova/issues/647) slices provide
 company-scoped member references with durable wallet links, an append-only
 share-event chain, stored holdings, an approved opening capture and reviewed
 compensating corrections. It is a foundation for the authoritative register.
-Current HTTP and CSV register routes still use the existing chain reader;
-issuance and settlement do not yet populate these new tables. Do not use the
-foundation as an activated company register.
+Current HTTP and CSV register routes still use the existing chain reader, and
+issuance and settlement do not yet populate these new tables; opening review and
+the inclusion report classify their completed effects against the captured
+boundary. Do not use the foundation as an activated company register.
 
 ## Identity and events
 
@@ -330,10 +331,8 @@ an uninitialized register. An already-initialised register refuses a further
 opening at submission and at application. A boundary that is no longer
 canonical, a changed finality policy, changed company/document evidence or a
 register initialised in the meantime refuses application; rejection with a
-reason remains available. Issuance completion takes the same share-class lock,
-so an opening cannot interleave with an issuance completion. Later workflow
-event recording will classify each completion's verified final inclusion
-against this captured boundary, so each economic effect appears exactly once.
+reason remains available. Issuance and settlement completion both take the same
+share-class lock, so neither can interleave with an opening application.
 
 Retention follows the owner's correction decision: opening proposals, their
 retained authority copies and the captured boundary are retained without
@@ -342,3 +341,45 @@ blocked, the retained copy survives source-document deletion and deleting the
 source prevents a pending application. Production retention needs its own
 decision before real data. This activates no HTTP register read: holders and
 CSV routes remain chain-derived until the stored-reader cutover.
+
+## Classifying completed inclusions
+
+The boundary an opening captures fixes which economic effects the opening already
+represents. Every completed issuance and settlement for that share class carries
+the verified final inclusion recorded at its completion: an executed issuance's
+confirmed transaction block, and a completed settlement's finalized receipt. Each
+one is classified against the captured boundary:
+
+| Classification | Meaning |
+| --- | --- |
+| `unopened` | The share class has no applied opening, so nothing represents the effect yet |
+| `opening` | The inclusion is in the boundary block or earlier, so the opening's holdings already contain it |
+| `after_opening` | The inclusion is in a later block, so the opening does not represent it |
+
+Review and application refuse an opening whose captured boundary leaves a
+completed effect `after_opening`, naming the effect and both block numbers. The
+boundary is captured once and then frozen, so the remedy is a fresh opening whose
+new boundary covers the effect, with the mapping that boundary requires. That
+refusal is what keeps the gap between capture and application closed: a
+completion cannot land in it unobserved, because both completions take the
+share-class lock the application holds.
+
+An inclusion at the boundary height on a different block hash, and a completed
+effect with no verified final inclusion at all — a historical mint or settlement
+completed from a first receipt before finality evidence was retained — are
+refused rather than assumed to be covered. They need operator attribution first.
+
+The read-only operator command below reports the boundary and each
+classification. It performs no provider read and writes nothing:
+
+```bash
+python manage.py register_inclusions --token TOKEN_UUID
+```
+
+Classification does not record register events. Attaching the issue and transfer
+entries for effects after the opening, and the member links an issue or transfer
+to a wallet that no opening mapped would need, remain
+[#647](https://github.com/Ledova/ledova/issues/647) work.
+
+Next: [the remaining register work](https://github.com/Ledova/ledova/issues/647)
+and [register architecture](../architecture/register.md).
