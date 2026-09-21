@@ -363,16 +363,19 @@ completion's transaction is in that history:
 
 A lower block number is not ancestry. A completion at an earlier height whose
 transaction is missing from the captured history was orphaned, or belongs to
-another chain, and is held for `attribution` rather than read as represented — as
-is a completion recorded after the boundary yet present in its history, and any
-opening captured before the history was retained, which therefore represents
-nothing and must be recaptured.
+another chain, and is held for `attribution` rather than read as represented, as
+is a completion recorded after the boundary yet present in its history. A missing
+or malformed history is not an empty one: it cannot show that a transaction was
+absent, so every completion is held for `attribution` against it, whatever its
+height.
 
 Review and application refuse an opening whose captured boundary leaves any
-completed effect unrepresented, naming the effect, its block and the reason. The
-boundary is captured once and then frozen, so the remedy is a fresh opening whose
-new boundary covers the effect, with the mapping that boundary requires. That
-refusal is what keeps the gap between capture and application closed: a
+completed effect unrepresented, naming the effect, its block and the reason, and
+refuse a boundary without a valid history outright; PostgreSQL refuses to apply
+one too. The boundary is captured once and then frozen, so the remedy for a
+pending opening is a fresh opening whose new boundary covers the effect, with the
+mapping that boundary requires; reject the superseded proposal with a reason.
+That refusal is what keeps the gap between capture and application closed: a
 completion cannot land in it unobserved, because both completions take the
 share-class lock the application holds.
 
@@ -402,6 +405,24 @@ Classification does not record register events. Attaching the issue and transfer
 entries for effects after the opening, and the member links an issue or transfer
 to a wallet that no opening mapped would need, remain
 [#647](https://github.com/Ledova/ledova/issues/647) work.
+
+### Openings captured before the history was retained
+
+`tokens/0066` introduced the retained history and rewrites no existing opening,
+so a boundary captured before it has none. What that means depends on whether
+the opening was applied:
+
+| Opening | Behaviour | Remedy |
+| --- | --- | --- |
+| Pending | Review and application refuse it, and PostgreSQL refuses its application | Reject it with a reason, then submit a fresh opening, whose review captures a boundary with history |
+| Applied | It remains the register's opening, and every completion classifies as `attribution` against it | None implemented |
+
+An applied opening cannot be recaptured. The register is initialised, so a fresh
+opening is refused at submission and at application, and the applied opening's
+boundary and OPENING entry are immutable. Holding every completion for
+attribution keeps a later workflow from recording an effect the opening may
+already contain. Resolving such a register needs a separately specified recovery
+procedure, and none exists yet.
 
 Next: [the remaining register work](https://github.com/Ledova/ledova/issues/647)
 and [register architecture](../architecture/register.md).

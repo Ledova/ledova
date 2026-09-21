@@ -91,28 +91,35 @@ def completed_inclusions(token_id):
     return sorted(inclusions, key=lambda inclusion: (inclusion["block_number"], inclusion["kind"], inclusion["source"]))
 
 
-def _recorded(history, inclusion):
+def _history(boundary):
+    history = boundary.get("history")
     if not isinstance(history, list):
         return None
+    entries = []
     for entry in history:
-        if isinstance(entry, dict) and normalized_hash(entry.get("transaction")) == inclusion["transaction"]:
-            return entry
-    return None
+        if not isinstance(entry, dict) or set(entry) != {"block", "block_hash", "transaction"}:
+            return None
+        recorded = (
+            normalized_hash(entry["transaction"]),
+            nonnegative_integer(entry["block"], maximum=MAX_BLOCK_NUMBER),
+            normalized_hash(entry["block_hash"]),
+        )
+        if None in recorded:
+            return None
+        entries.append(recorded)
+    return entries
 
 
 def classify_inclusion(boundary, inclusion):
     if boundary is None:
         return UNOPENED
-    history = boundary.get("history")
-    recorded = _recorded(history, inclusion)
-    if inclusion["block_number"] > boundary["block"]["number"]:
-        return ATTRIBUTION if recorded is not None else AFTER_OPENING
-    if not isinstance(history, list) or recorded is None:
+    history = _history(boundary)
+    if history is None:
         return ATTRIBUTION
-    if (recorded.get("block"), normalized_hash(recorded.get("block_hash"))) != (
-        inclusion["block_number"],
-        inclusion["block_hash"],
-    ):
+    recorded = {(block, digest) for transaction, block, digest in history if transaction == inclusion["transaction"]}
+    if inclusion["block_number"] > boundary["block"]["number"]:
+        return ATTRIBUTION if recorded else AFTER_OPENING
+    if recorded != {(inclusion["block_number"], inclusion["block_hash"])}:
         return ATTRIBUTION
     return OPENING
 
@@ -124,6 +131,11 @@ def unrepresented_inclusions(token_id, boundary):
 
 
 def assert_boundary_represents_completions(token_id, boundary):
+    if _history(boundary) is None:
+        raise ValidationError(
+            "The captured boundary has no canonical transfer history, so it cannot show which completed effects it "
+            "represents. Reject this opening and submit a fresh one."
+        )
     unrepresented = unrepresented_inclusions(token_id, boundary)
     if unrepresented:
         first = unrepresented[0]

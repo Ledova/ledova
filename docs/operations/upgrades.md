@@ -74,6 +74,18 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   detail states. Reversal refuses while any
   submission row exists; the rows are broadcast capabilities and belong in
   protected backups.
+- `tokens/0066_issuance_finality_and_boundary_history` (#647) records each
+  issuance completion's finalized receipt and requires a register opening's
+  captured boundary to carry its canonical transfer history, at capture and at
+  application. It rewrites no existing row. Issuances completed before it have no
+  recorded receipt and need operator attribution before any opening can represent
+  them; a pending opening captured before it cannot be applied, so reject it and
+  submit a fresh one; an opening applied before it holds every completion for
+  attribution and cannot be recaptured. See
+  [openings captured before the history was retained](register-foundation.md#openings-captured-before-the-history-was-retained).
+  The database refuses an issuance completion without the receipt and a capture
+  without the history, so an older binary still running fails closed on both.
+  Reversal refuses once any finality evidence is recorded.
 - `whitelist/0002_whitelistentry_treasury_addresses` makes
   `WhitelistEntry.wallet` nullable and adds `address` and `label` with a check
   constraint; `whitelist/0003` adds the partial unique constraint on `address`

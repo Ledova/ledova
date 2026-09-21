@@ -17,11 +17,12 @@ against that boundary instead, from evidence both sides record: each completion'
 finalized receipt, and the canonical transfer history the boundary retains. A
 completion is represented by the opening only when its transaction is in that
 history; one in a later block falls after it; anything the evidence cannot place,
-including an earlier inclusion that was orphaned, is held for operator
-attribution. An opening whose captured boundary does not represent a completed
-effect is refused rather than applied over it. Settlement completion takes the
-same share-class lock as issuance completion, so neither can interleave with an
-opening. Recording the later events themselves remains open.
+including an earlier inclusion that was orphaned and every completion against a
+boundary [captured before that history was retained](../operations/register-foundation.md#openings-captured-before-the-history-was-retained),
+is held for operator attribution. An opening whose captured boundary does not
+represent a completed effect is refused rather than applied over it. Settlement
+completion takes the same share-class lock as issuance completion, so neither can
+interleave with an opening. Recording the later events themselves remains open.
 
 Owner-submitted [compensating corrections](../operations/register-foundation.md#reviewed-compensating-corrections)
 now bind documentary authority to an exact reversal and register revision.

@@ -1,10 +1,12 @@
 import json
+from contextlib import contextmanager
 from io import StringIO
 from unittest.mock import patch
 from uuid import uuid4
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.db import IntegrityError
 from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
@@ -17,12 +19,13 @@ from tokens.models import (
     IssuanceExecutionStatus,
     IssuanceStatus,
     RegisterEntry,
+    RegisterMember,
     RegisterOpening,
     ShareIssuance,
     ShareIssuanceExecution,
     ShareIssuanceRequest,
 )
-from tokens.services import issuance_execution
+from tokens.services import issuance_execution, register_openings
 from tokens.services.register_inclusions import (
     AFTER_OPENING,
     ATTRIBUTION,
@@ -143,6 +146,33 @@ class RegisterInclusionTest(TransactionTestCase):
             transfers=[(height, ZERO_ADDRESS, self.recipient, 10, issuance.tx_hash)],
             mapping=[{"address": self.recipient, "member": str(uuid4())}],
         )
+
+    @contextmanager
+    def before_history(self):
+        capture = register_openings.capture_snapshot
+        self.addCleanup(restore_every_migration)
+        migrate_to([("tokens", "0065_register_opening")])
+        with (
+            patch.object(
+                register_openings,
+                "capture_snapshot",
+                side_effect=lambda *args, **kwargs: {
+                    key: value for key, value in capture(*args, **kwargs).items() if key != "history"
+                },
+            ),
+            patch.object(register_openings, "assert_boundary_represents_completions"),
+        ):
+            yield
+        restore_every_migration()
+
+    def review_before_history(self):
+        with self.before_history():
+            proposal = submit_opening(actor=self.owner, **self.payload())
+            proposal, confirmation = prepare_opening_review(
+                proposal_id=proposal.pk, reviewer=self.reviewer, client=self.node.client
+            )
+        self.assertNotIn("history", RegisterOpening.objects.get(pk=proposal.pk).boundary)
+        return proposal, confirmation
 
     def test_an_unopened_register_leaves_completed_inclusions_unrepresented(self):
         issuance = self.mint()
@@ -325,6 +355,115 @@ class RegisterInclusionTest(TransactionTestCase):
         self.assertLess(inclusion["block_number"], boundary_height)
         self.assertEqual(classify_inclusion(captured, inclusion), ATTRIBUTION)
         self.assertEqual(unrepresented_inclusions(self.tenant.token.pk, captured), [inclusion])
+
+    def test_a_boundary_without_valid_history_holds_even_a_later_completion_for_attribution(self):
+        issuance = self.mint()
+        boundary = self.open_holding_the_mint(issuance).boundary
+        (recorded,) = boundary["history"]
+        later = {
+            **completed_inclusions(self.tenant.token.pk)[0],
+            "transaction": normalized_hash(block_hash(99)),
+            "block_number": MINT_BLOCK + 1,
+            "block_hash": normalized_hash(block_hash(MINT_BLOCK + 1)),
+        }
+        self.assertEqual(classify_inclusion(boundary, later), AFTER_OPENING)
+        self.assertEqual(classify_inclusion({**boundary, "history": []}, later), AFTER_OPENING)
+        absent = {key: value for key, value in boundary.items() if key != "history"}
+        self.assertEqual(classify_inclusion(absent, later), ATTRIBUTION)
+        for history in (
+            None,
+            {},
+            [None],
+            [{**recorded, "block": str(recorded["block"])}],
+            [{**recorded, "transaction": recorded["transaction"][:-2]}],
+            [{**recorded, "observed": True}],
+            [recorded, {"block": recorded["block"], "block_hash": recorded["block_hash"]}],
+        ):
+            with self.subTest(history=history):
+                self.assertEqual(classify_inclusion({**boundary, "history": history}, later), ATTRIBUTION)
+
+    def test_an_opening_applied_before_history_was_retained_holds_a_reincluded_mint_for_attribution(self):
+        self.enterContext(
+            override_settings(WALLET_CHAIN_FINALITY_POLICIES={f"evm:{CHAIN_ID}": {"mode": "depth", "depth": 3}})
+        )
+        request = ShareIssuanceRequest.objects.create(
+            token=self.tenant.token, recipient_address=self.recipient, amount=10, reason="Allotment"
+        )
+        request.approve(self.actor)
+        command = admit(request, self.actor)
+        original = self.mint_node.send
+
+        def send(raw):
+            tx_hash = original(raw)
+            self.mint_node.receipts[tx_hash].update(blockNumber=14, blockHash=block_hash(14))
+            return tx_hash
+
+        self.mint_node.client.send_raw_transaction.side_effect = send
+        self.mint_node.head, self.mint_node.finalized = 14, 13
+        self.assertEqual(issuance_execution.recover(command.pk)["status"], "executing")
+        command.refresh_from_db()
+        tx_hash = command.transaction.tx_hash
+        self.node.latest = 18
+        with self.before_history():
+            applied = self.open_at(
+                18,
+                holdings={self.recipient: 10},
+                transfers=[(14, ZERO_ADDRESS, self.recipient, 10, tx_hash)],
+                mapping=[{"address": self.recipient, "member": str(uuid4())}],
+            )
+        self.assertEqual((applied.status, applied.boundary["block"]["number"]), ("applied", 16))
+        self.assertNotIn("history", applied.boundary)
+        self.mint_node.block_hashes.update({14: block_hash(777), 18: block_hash(18)})
+        self.mint_node.receipts[tx_hash].update(blockNumber=18, blockHash=block_hash(18))
+        self.mint_node.head, self.mint_node.finalized = 20, 18
+        self.assertEqual(issuance_execution.recover(command.pk)["status"], "executed")
+        inclusion = completed_inclusions(self.tenant.token.pk)[0]
+        self.assertEqual(inclusion["block_number"], 18)
+        self.assertEqual(
+            classified_inclusions(self.tenant.token.pk)["inclusions"],
+            [{**inclusion, "classification": ATTRIBUTION}],
+        )
+        with self.assertRaisesMessage(ValidationError, "already has a stored register"):
+            submit_opening(actor=self.owner, **self.payload())
+        repeated = self.decide(applied, self.applied_confirmation)
+        self.assertEqual((repeated.pk, repeated.status, repeated.boundary), (applied.pk, "applied", applied.boundary))
+        self.assertEqual(RegisterEntry.objects.count(), 1)
+
+    def test_a_pending_opening_captured_before_history_was_retained_can_only_be_rejected(self):
+        proposal, confirmation = self.review_before_history()
+        with self.assertRaisesMessage(ValidationError, "no canonical transfer history"):
+            prepare_opening_review(proposal_id=proposal.pk, reviewer=self.reviewer, client=self.node.client)
+        with self.assertRaisesMessage(ValidationError, "no canonical transfer history"):
+            self.decide(proposal, confirmation)
+        self.assertEqual(RegisterOpening.objects.get(pk=proposal.pk).status, "submitted")
+        self.assertFalse(RegisterEntry.objects.exists())
+        rejection = {
+            "proposal_id": proposal.pk,
+            "reviewer": self.reviewer,
+            "confirmation": "",
+            "decision": "reject",
+            "rejection_reason": "Captured before canonical history was retained",
+            "client": self.node.client,
+        }
+        self.assertEqual(decide_opening(**rejection).status, "rejected")
+        self.assertEqual(decide_opening(**rejection).status, "rejected")
+        fresh = submit_opening(actor=self.owner, **self.payload())
+        fresh, fresh_confirmation = prepare_opening_review(
+            proposal_id=fresh.pk, reviewer=self.reviewer, client=self.node.client
+        )
+        self.assertEqual(len(fresh.boundary["history"]), 2)
+        self.assertEqual(self.decide(fresh, fresh_confirmation).status, "applied")
+
+    def test_postgresql_refuses_to_apply_a_boundary_captured_without_history(self):
+        proposal, confirmation = self.review_before_history()
+        with (
+            patch.object(register_openings, "assert_boundary_represents_completions"),
+            self.assertRaisesMessage(IntegrityError, "requires its canonical transfer history"),
+        ):
+            self.decide(proposal, confirmation)
+        self.assertEqual(RegisterOpening.objects.get(pk=proposal.pk).status, "submitted")
+        self.assertFalse(RegisterEntry.objects.exists())
+        self.assertFalse(RegisterMember.objects.exists())
 
     def test_an_unknown_share_class_is_refused_rather_than_reported_empty(self):
         with self.assertRaises(NotFound):

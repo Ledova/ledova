@@ -99,7 +99,8 @@ DECLARE
     history jsonb;
     entries bigint;
 BEGIN
-    IF TG_OP <> 'UPDATE' OR OLD.boundary IS NOT NULL OR NEW.boundary IS NULL THEN
+    IF TG_OP <> 'UPDATE' OR NEW.boundary IS NULL
+        OR (OLD.boundary IS NOT NULL AND (OLD.status <> 'submitted' OR NEW.status <> 'applied')) THEN
         RETURN NEW;
     END IF;
     history := NEW.boundary->'history';
