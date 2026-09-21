@@ -9,8 +9,9 @@ compensating corrections. It is a foundation for the authoritative register.
 The HTTP and CSV register routes serve it once a share class's opening is
 applied, and issuance and settlement then record each later completed effect in
 it; opening review and the inclusion report classify completed effects against
-the captured boundary. Import, reconciliation and a durable export audit are
-still missing, so no real company's register may rely on it yet.
+the captured boundary, and a scheduled job reconciles it with the chain. Import
+and a durable export audit are still missing, so no real company's register may
+rely on it yet.
 
 ## Identity and events
 
@@ -524,7 +525,50 @@ completions could not be classified, or the register has no captured boundary to
 classify them against, as with one loaded by the synthetic command above;
 `register_inclusions` prints the refusal or a null boundary.
 
-Attribution procedures and the scheduled reconciliation job are still
+## Reconciling with the chain
+
+Every six hours, at :50 UTC, `reconcile_every_register` reconciles each share
+class that has an applied opening. It reads the chain; it writes only
+reconciliation records, never a register entry. It captures a fresh canonical
+snapshot at the finality boundary, as an opening's review does, and compares it
+with the stored register under the share-class lock that completions take:
+
+- every chain transfer after the opening boundary must be a recorded effect, a
+  completed effect still waiting to be recorded, or an issuance or settlement
+  whose signed transaction is on chain but not yet completed;
+- every completed effect after the opening must be on chain in the block its
+  receipt names;
+- each member's linked wallets must hold its stored shares plus those pending
+  movements, an unlinked address only what pending movements give it, and the
+  issued supply must equal the stored supply plus pending issues. An effect
+  recorded beyond the snapshot block is left out of the comparison.
+
+Each run is retained in `RegisterReconciliation`: `matched`, `discrepant` with
+its discrepancies, or `failed` with the reason the chain could not be read. The
+record also keeps the block and the register sequence compared. A chain failure
+is a failed reconciliation; the register reads are unaffected. Discrepancies are
+logged at error level, which is the alert, and the CSV summary states the
+latest result.
+
+| Discrepancy | Meaning and next step |
+| --- | --- |
+| `unrecognised_transfer` | A chain transfer the platform did not make, such as a direct token transfer between whitelisted wallets. Record its effect through a reviewed correction, or dispute it |
+| `missing_transfer` | A completed effect whose transaction is not on chain in its block. Treat it as a reorganisation: stop, and attribute it before relying on the register |
+| `member`, `unlinked`, `supply` | Holdings or supply that differ from the stored register plus pending movements. They usually accompany one of the two above |
+| `attribution` | A completion the evidence cannot place, as in [classification](#classifying-completed-inclusions) |
+
+To reconcile one share class on demand, from `backend/`:
+
+```bash
+python manage.py register_reconcile --token TOKEN_UUID
+```
+
+It prints the retained record. The database refuses to rewrite or delete a
+reconciliation, or to record one inconsistent with its status. Only the
+operator records them, and the issuer reads its own. Downgrading `tokens/0070`
+refuses while any exist.
+
+Attribution procedures are still
 [#647](https://github.com/Ledova/ledova/issues/647) work.
 
 Next: [the remaining register work](https://github.com/Ledova/ledova/issues/647)

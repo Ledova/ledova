@@ -23,6 +23,8 @@ from .register import (
     RegisterEntryKind,
     RegisterMember,
     RegisterPosition,
+    RegisterReconciliation,
+    RegisterReconciliationStatus,
     ShareRegister,
 )
 from .register_correction import (
@@ -76,6 +78,8 @@ __all__ = [
     "RegisterMemberWallet",
     "RegisterOpening",
     "RegisterPosition",
+    "RegisterReconciliation",
+    "RegisterReconciliationStatus",
     "RegisterWalletLink",
     "ShareRegister",
     "ShareIssuance",

@@ -56,3 +56,22 @@ class RegisterPosition(BaseModel):
             models.UniqueConstraint(fields=["register", "member"], name="register_member_position"),
             models.CheckConstraint(condition=models.Q(shares__gte=0), name="register_position_nonnegative"),
         ]
+
+
+class RegisterReconciliationStatus(models.TextChoices):
+    MATCHED = "matched", "Matched"
+    DISCREPANT = "discrepant", "Discrepant"
+    FAILED = "failed", "Failed"
+
+
+class RegisterReconciliation(BaseModel):
+    token = models.ForeignKey("tokens.ShareToken", on_delete=models.PROTECT, related_name="register_reconciliations")
+    status = models.CharField(max_length=12, choices=RegisterReconciliationStatus.choices, editable=False)
+    block_number = models.PositiveBigIntegerField(null=True, editable=False)
+    block_hash = models.CharField(max_length=66, blank=True, editable=False)
+    register_sequence = models.PositiveBigIntegerField(null=True, editable=False)
+    discrepancies = models.JSONField(default=list, editable=False)
+    failure = models.CharField(max_length=500, blank=True, editable=False)
+
+    class Meta:
+        ordering = ["-created_at", "-uuid"]

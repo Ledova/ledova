@@ -346,8 +346,9 @@ absence of contrary evidence.
 [stored](../architecture/register.md): each share class keeps an append-only,
 hash-chained event log and the holdings it produces, and the register is read
 from them with the chain unreachable. A correction is a compensating entry that
-those holdings already reflect. Former members are stored. No import exists,
-and nothing yet reconciles the stored register with the chain.
+those holdings already reflect. A scheduled job reconciles the stored register
+with the chain and retains each result. Former members are stored. No import
+exists.
 
 **The position.** The stored database record is the register; anything on a
 chain is at most a mirror of it. Three provisions decide that: s175, because an

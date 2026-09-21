@@ -14,6 +14,7 @@ from tokens.models import (
     RegisterEntryKind,
     RegisterMemberWallet,
     RegisterPosition,
+    RegisterReconciliation,
     ShareIssuance,
     ShareRegister,
 )
@@ -64,6 +65,8 @@ ISSUED_SUPPLY_ROW = "Issued supply"
 LISTED_TOTAL_ROW = "Held by listed members"
 WAITING_ROW = "Completed effects waiting to be recorded"
 WAITING_UNKNOWN = "unknown"
+RECONCILED_ROW = "Reconciled with the chain"
+NEVER_RECONCILED = "never"
 FORMER_MEMBERS_HEADING = "Former members (retained under s169(3) of the Corporations Act)"
 FORMER_MEMBER_HEADERS = [
     "Name",
@@ -310,6 +313,7 @@ def _stored_register(token):
         "issued_supply": issued,
         "waiting_effects": waiting_effects(token.pk),
         "former_members": former,
+        "reconciliation": RegisterReconciliation.objects.filter(token=token).first(),
     }
 
 
@@ -331,7 +335,16 @@ def _summary_rows(register) -> list[list]:
         summary.append([WAITING_ROW, WAITING_UNKNOWN])
     elif register["waiting_effects"]:
         summary.append([WAITING_ROW, str(register["waiting_effects"])])
-    return summary
+    return summary + [_reconciliation_row(register["reconciliation"])]
+
+
+def _reconciliation_row(record):
+    if record is None:
+        return [RECONCILED_ROW, NEVER_RECONCILED]
+    count = len(record.discrepancies)
+    outcome = f"{count} {'discrepancy' if count == 1 else 'discrepancies'}" if count else record.status
+    reached = "" if record.block_number is None else f"block {record.block_number}"
+    return [RECONCILED_ROW, outcome, reached, record.created_at.isoformat()]
 
 
 def export_rows(token, requested_by) -> list[list]:

@@ -116,6 +116,10 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   member, and applying that proposal then failed with a server error, so it
   could only be rejected. It rewrites and rechecks no existing proposal.
   Reversal drops the check.
+- `tokens/0070_register_reconciliation` adds the retained reconciliation records
+  and the six-hourly `reconcile_every_register` task. Nothing is backfilled; the
+  CSV summary says `never` until the first run. Reversal refuses once any record
+  exists.
 - `whitelist/0002_whitelistentry_treasury_addresses` makes
   `WhitelistEntry.wallet` nullable and adds `address` and `label` with a check
   constraint; `whitelist/0003` adds the partial unique constraint on `address`

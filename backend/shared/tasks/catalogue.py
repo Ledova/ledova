@@ -48,6 +48,9 @@ SYSTEM_WIDE = {
     "tokens.tasks.former_holders.fold_every_share_class": "Reads the Transfer log of every deployed "
     "share class and writes the cessations it finds. It is the deployment's statutory register rather "
     "than any owner's data, and R24 makes the table operator-written for that reason.",
+    "tokens.tasks.register_reconciliation.reconcile_every_register": "Compares every opened share class's "
+    "stored register with a fresh canonical chain snapshot and records the result. It is the deployment's "
+    "statutory register rather than any owner's data; it writes only reconciliation records.",
     "tokens.tasks.former_holders.purge_former_members_past_the_clock": "Deletes former-member records "
     "seven years after the date they ceased, which is the only deletion anyone may perform on that "
     "table - the app role's policy refuses all three write commands.",
