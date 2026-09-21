@@ -30,7 +30,10 @@ the list holds one, and every created order records that asset.
 `investor_kyc_required` is enforced by investor/account eligibility.
 `issuer_kyc_required` stops an owner whose identity is unverified from submitting
 a company for review, and stops staff from activating it once approved. Resolving
-a warning and reinstating are not affected.
+a warning and reinstating are not affected. Turn it on only with a KYC provider
+configured ([integrations](integrations.md#kyc-providers)): an owner becomes
+verified only through the provider, so with none configured every submission is
+refused.
 Single-issuer mode disables the supporting-payslip store; switching is refused
 while unpurged payslips exist. Classification evidence and review remain available.
 See [eligibility](../architecture/companies-and-eligibility.md) and
