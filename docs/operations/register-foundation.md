@@ -16,7 +16,8 @@ boundary. Do not use the foundation as an activated company register.
 A member has a UUID belonging to one company, independent of a wallet or platform
 account. The owner chose this so imports can include walletless members and one
 member can have multiple wallet links. Wallet links are durable insert-only
-identity records created by the approved opening below: one address resolves to
+identity records created by the approved opening or a reviewed link request
+below: one address resolves to
 one member per company, and an existing link for a mapped address must agree
 with the mapping. Retained personal particulars, allotment consideration and
 the API/client changes belong to later integration work. It never merges members
