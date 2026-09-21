@@ -448,6 +448,20 @@ class RegisterExportTest(RegisterTestBase):
         self.assertEqual(response.status_code, 409)
         self.assertFalse(RegisterExport.objects.exists())
 
+    def test_an_export_that_fails_while_its_rows_are_built_records_nothing(self):
+        self._stored({MEMBER: 100})
+        self.client.raise_request_exception = False
+        with patch.object(register_reader, "_summary_rows", side_effect=RuntimeError("summary failed")):
+            response, _ = self._export()
+        self.assertEqual(response.status_code, 500)
+        self.assertFalse(RegisterExport.objects.exists())
+
+    def test_a_head_request_is_refused_and_records_nothing(self):
+        self._stored({MEMBER: 100})
+        response = self.client.head(f"/api/v1/tokens/{self.token.uuid}/register/export/")
+        self.assertEqual(response.status_code, 405)
+        self.assertFalse(RegisterExport.objects.exists())
+
     def test_effects_waiting_to_be_recorded_are_stated_in_the_export_and_the_api(self):
         self._stored({MEMBER: 100})
         for waiting, text in ((2, "2"), (None, "unknown")):

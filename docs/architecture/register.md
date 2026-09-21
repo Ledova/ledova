@@ -119,11 +119,12 @@ The CSV has three sections with different widths:
 
 Read sections by their headers rather than assuming one width or column index.
 `csv_cell` neutralizes formula-opening user values. Each export is recorded in
-`RegisterExport`: the requester's ID, the share class, the kind, the stored
-register sequence exported, the current- and former-member row counts, and the
-time. A refused export records nothing. Records cannot be rewritten; the issuer
-reads its own through its register and operators query them in admin. The daily
-former-member purge removes them after the same
+`RegisterExport` once its rows are built: the requester's ID, the share class,
+the kind, the stored register sequence exported, the current- and former-member
+row counts, and the time. A refused or failed export records nothing, and the
+route refuses `HEAD`, which would record a sheet it never sends. Records cannot
+be rewritten; the issuer reads its own through its register and operators query
+them in admin. The daily former-member purge removes them after the same
 [2,557-day floor](../operations/uploads.md#data-retention).
 
 The company shareholder tile counts distinct completed allotment addresses and

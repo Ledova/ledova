@@ -351,6 +351,9 @@ def export_rows(token, requested_by) -> list[list]:
     if register is None:
         raise RegisterNotInitialized()
     former = register["former_members"]
+    rows = (
+        [_csv_row(row) for row in register["rows"]] + [[]] + _summary_rows(register) + former_member_rows(token, former)
+    )
     RegisterExport.objects.create(
         token=token,
         requested_by_id=requested_by.pk,
@@ -359,9 +362,7 @@ def export_rows(token, requested_by) -> list[list]:
         member_rows=len(register["rows"]),
         former_rows=len(former),
     )
-    return (
-        [_csv_row(row) for row in register["rows"]] + [[]] + _summary_rows(register) + former_member_rows(token, former)
-    )
+    return rows
 
 
 def former_member_rows(token, members) -> list[list]:
