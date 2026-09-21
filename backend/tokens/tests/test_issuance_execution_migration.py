@@ -1,12 +1,22 @@
+from unittest.mock import patch
 from uuid import uuid4
 
 from django.db import DatabaseError
 from django.test import TransactionTestCase, override_settings
 
+from blockchain.tests.outgoing_fixtures import BLOCK_HASH
+from shared.db import atomic
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_tenant
 from tokens.models import ShareIssuanceExecution, ShareIssuanceRequest
-from tokens.tests.issuance_fixtures import CHAIN_ID, KEY, admit, issuance_request
+from tokens.services import issuance_execution
+from tokens.tests.issuance_fixtures import (
+    CHAIN_ID,
+    KEY,
+    admit,
+    install_issuance,
+    issuance_request,
+)
 
 
 @override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
@@ -78,4 +88,68 @@ class IssuanceExecutionMigrationTest(TransactionTestCase):
         command = admit(tenant.issuance_request, actor)
         with self.assertRaisesMessage(DatabaseError, "Cannot remove admitted issuance execution history"):
             migrate_to([("tokens", "0046_capital_execution_guards")])
+        restore_every_migration()
         self.assertEqual(ShareIssuanceExecution.objects.get(pk=command.pk).intent, command.intent)
+
+
+@override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
+class IssuanceFinalityEvidenceTest(TransactionTestCase):
+    def setUp(self):
+        install_issuance(self)
+        self.command = admit(self.request, self.actor)
+        self.enterContext(patch("tokens.services.share_token_service.seed_recipient_holding"))
+
+    def evidence(self, **changes):
+        return {
+            "block_number": 12,
+            "block_hash": BLOCK_HASH,
+            "gas_used": 21000,
+            "policy": {"version": 1, "mode": "finalized"},
+            **changes,
+        }
+
+    def recover(self):
+        return issuance_execution.recover(self.command.pk)["status"]
+
+    def test_completion_records_its_finalized_receipt_and_cannot_rewrite_it(self):
+        self.assertEqual(self.recover(), "executed")
+        execution = ShareIssuanceExecution.objects.get(pk=self.command.pk)
+        self.assertEqual(execution.finalized_receipt, self.evidence())
+        for value in (None, self.evidence(block_number=13), self.evidence(policy={"version": 1, "mode": "depth"})):
+            with self.subTest(value=value), self.assertRaisesMessage(
+                DatabaseError, "retain their recorded finality evidence"
+            ), atomic():
+                ShareIssuanceExecution.objects.filter(pk=execution.pk).update(finalized_receipt=value)
+        self.assertEqual(ShareIssuanceExecution.objects.get(pk=execution.pk).finalized_receipt, self.evidence())
+
+    def test_a_first_receipt_completion_without_finality_evidence_is_refused(self):
+        self.node.finalized = 11
+        self.assertEqual(self.recover(), "executing")
+        refusals = (
+            ("requires finalized receipt evidence", {"status": "executed"}),
+            ("belongs to its completion", {"finalized_receipt": self.evidence()}),
+            ("requires its exact block, gas and policy", {"status": "executed", "finalized_receipt": {"block": 12}}),
+            (
+                "exact nonnegative quantities",
+                {"status": "executed", "finalized_receipt": self.evidence(block_number="12")},
+            ),
+            (
+                "belongs to the original confirmed mint journal",
+                {"status": "executed", "finalized_receipt": self.evidence(block_number=13)},
+            ),
+        )
+        for message, changes in refusals:
+            with self.subTest(message=message), self.assertRaisesMessage(DatabaseError, message), atomic():
+                ShareIssuanceExecution.objects.filter(pk=self.command.pk).update(**changes)
+        execution = ShareIssuanceExecution.objects.get(pk=self.command.pk)
+        self.assertEqual((execution.status, execution.finalized_receipt), ("executing", None))
+        self.node.finalized = 12
+        self.assertEqual(self.recover(), "executed")
+        self.assertEqual(ShareIssuanceExecution.objects.get(pk=self.command.pk).finalized_receipt, self.evidence())
+
+    def test_downgrade_cannot_discard_recorded_issuance_finality_evidence(self):
+        self.assertEqual(self.recover(), "executed")
+        self.addCleanup(restore_every_migration)
+        with self.assertRaisesMessage(DatabaseError, "Cannot remove recorded issuance finality evidence"):
+            migrate_to([("tokens", "0065_register_opening")])
+        self.assertEqual(ShareIssuanceExecution.objects.get(pk=self.command.pk).finalized_receipt, self.evidence())

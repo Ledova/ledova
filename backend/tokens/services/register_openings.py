@@ -36,6 +36,7 @@ from tokens.models import (
     ShareTokenStatus,
 )
 from tokens.services.register_events import create_member, record_entry
+from tokens.services.register_inclusions import assert_boundary_represents_completions
 from tokens.services.register_snapshot import _boundary, capture_snapshot
 from wallets.services.chain_observations import finality_policy
 
@@ -258,6 +259,7 @@ def prepare_opening_review(*, proposal_id, reviewer, client=None):
     else:
         _recheck_boundary(proposal.boundary, client=client)
         _check_mapping_against_boundary(proposal.mapping, proposal.boundary)
+    assert_boundary_represents_completions(proposal.token_id, proposal.boundary)
     confirmation = signing.dumps(
         {
             "proposal": str(proposal.pk),
@@ -317,6 +319,7 @@ def decide_opening(*, proposal_id, reviewer, confirmation, decision, rejection_r
                 raise ValidationError("The confirmation belongs to another proposal, reviewer, evidence or boundary.")
             _check_evidence(proposal, company, document)
             register = _check_uninitialized(token)
+            assert_boundary_represents_completions(token.pk, proposal.boundary)
             for link in proposal.mapping:
                 create_member(company_id=company.pk, member_id=UUID(link["member"]))
                 wallet = (

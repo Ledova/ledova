@@ -30,6 +30,7 @@ class ShareIssuanceExecution(BaseModel):
     transaction = models.ForeignKey(
         "blockchain.BlockchainTransaction", on_delete=models.PROTECT, null=True, related_name="issuance_executions"
     )
+    finalized_receipt = models.JSONField(null=True, editable=False)
     retry_of = models.UUIDField(null=True, editable=False)
 
     objects = ShareIssuanceExecutionQuerySet.as_manager()

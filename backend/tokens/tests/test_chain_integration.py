@@ -58,6 +58,7 @@ from tokens.models import (
     CapitalIncreaseRequest,
     FormerHolder,
     IssuanceStatus,
+    RegisterEntry,
     RegisterMemberWallet,
     RegisterOpening,
     RegisterPosition,
@@ -99,6 +100,14 @@ from tokens.services.register import (
     SOURCE_LABELS,
 )
 from tokens.services.register_events import verify_register
+from tokens.services.register_inclusions import (
+    AFTER_OPENING,
+    OPENING,
+    classified_inclusions,
+    classify_inclusion,
+    completed_inclusions,
+    unrepresented_inclusions,
+)
 from tokens.services.register_openings import (
     decide_opening,
     prepare_opening_review,
@@ -856,6 +865,86 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
                 authority_reference="SYNTHETIC-RESOLUTION-CHAIN-1",
                 reason="A second opening after initialization",
             )
+
+    @override_settings(WALLET_CHAIN_FINALITY_POLICIES={"evm:31337": {"mode": "depth", "depth": 2}})
+    def test_completed_issuance_is_classified_against_the_captured_opening_boundary(self):
+        from django.contrib.auth import get_user_model
+
+        self._deployed()
+        first = self._whitelisted_request(10)
+        self.assertEqual(self._execute(first)["status"], "executing")
+        self.w3.provider.make_request("evm_mine", [])
+        self.assertTrue(self._execute(first)["success"])
+        owner = self.tenant.user
+        owner.is_staff = False
+        owner.save(update_fields=["is_staff"])
+        reviewer = get_user_model().objects.create_user(
+            email=f"inclusion-chain-{uuid4()}@example.test", is_active=True, is_staff=True
+        )
+        reviewer.user_permissions.add(
+            *Permission.objects.filter(
+                codename__in=["change_companydocument", "change_registeropening", "view_registeropening"]
+            )
+        )
+        document = attach_file(make_document(self.tenant.company))
+        _, review = prepare_document_review(document_id=document.pk, reviewer=reviewer)
+        verify_document(document_id=document.pk, reviewer=reviewer, confirmation=review)
+        member = uuid4()
+
+        def propose():
+            return submit_opening(
+                actor=owner,
+                operation_id=uuid4(),
+                token_id=self.token.pk,
+                document_id=document.pk,
+                mapping=[{"address": self.investor, "member": str(member)}],
+                authority="director_resolution",
+                approving_director="Synthetic Director",
+                authority_reference="SYNTHETIC-RESOLUTION-INCLUSION-1",
+                reason="Establish the register from the real local chain boundary",
+            )
+
+        proposal = propose()
+        _, confirmation = prepare_opening_review(proposal_id=proposal.pk, reviewer=reviewer)
+        captured = RegisterOpening.objects.get(pk=proposal.pk).boundary
+        included = completed_inclusions(self.token.pk)
+        self.assertEqual(len(included), 1)
+        self.assertLessEqual(included[0]["block_number"], captured["block"]["number"])
+        self.assertEqual(classify_inclusion(captured, included[0]), OPENING)
+        second = self._issuance_request(10)
+        self.assertEqual(self._execute(second)["status"], "executing")
+        self.w3.provider.make_request("evm_mine", [])
+        self.assertTrue(self._execute(second)["success"])
+        unrepresented = unrepresented_inclusions(self.token.pk, captured)
+        self.assertEqual(len(unrepresented), 1)
+        self.assertGreater(unrepresented[0]["block_number"], captured["block"]["number"])
+        with self.assertRaises(ValidationError):
+            decide_opening(proposal_id=proposal.pk, reviewer=reviewer, confirmation=confirmation, decision="apply")
+        self.assertEqual(RegisterOpening.objects.get(pk=proposal.pk).status, "submitted")
+        self.assertFalse(RegisterEntry.objects.exists())
+        fresh = propose()
+        self.w3.provider.make_request("evm_mine", [])
+        _, fresh_confirmation = prepare_opening_review(proposal_id=fresh.pk, reviewer=reviewer)
+        applied = decide_opening(
+            proposal_id=fresh.pk, reviewer=reviewer, confirmation=fresh_confirmation, decision="apply"
+        )
+        self.assertEqual(applied.status, "applied")
+        self.assertEqual(applied.applied_entry.changes, [{"member": str(member), "shares": "20"}])
+        self.assertEqual(unrepresented_inclusions(self.token.pk, applied.boundary), [])
+        third = self._issuance_request(5)
+        self.assertEqual(self._execute(third)["status"], "executing")
+        self.w3.provider.make_request("evm_mine", [])
+        self.assertTrue(self._execute(third)["success"])
+        after = unrepresented_inclusions(self.token.pk, applied.boundary)
+        self.assertEqual(len(after), 1)
+        self.assertGreater(after[0]["block_number"], applied.boundary["block"]["number"])
+        self.assertEqual(classify_inclusion(applied.boundary, after[0]), AFTER_OPENING)
+        report = classified_inclusions(self.token.pk)
+        self.assertEqual(
+            sorted(inclusion["classification"] for inclusion in report["inclusions"]),
+            [AFTER_OPENING, OPENING, OPENING],
+        )
+        self.assertEqual(verify_register(applied.applied_entry.register_id)["issued_supply"], "20")
 
     @override_settings(WALLET_CHAIN_FINALITY_POLICIES={"evm:31337": {"mode": "depth", "depth": 2}})
     def test_real_issuance_waits_for_finality_then_completes_without_another_mint(self):

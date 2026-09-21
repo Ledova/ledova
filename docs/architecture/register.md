@@ -11,10 +11,18 @@ references with durable wallet links, immutable events and a holdings projection
 for #647. An [approved opening capture](../operations/register-foundation.md#approved-opening-capture-and-wallet-links)
 initialises it from one verified canonical chain boundary under documentary
 authority, and the integrity verifier replays the whole chain. These HTTP reads
-and the execution workflows have not switched to it yet: issuance and settlement
-do not record register events, and later workflow recording will classify each
-completion's verified final inclusion against the captured opening boundary so
-each economic effect appears exactly once.
+have not switched to it yet, and issuance and settlement still record no register
+events. Opening review and an operator report classify their completed effects
+against that boundary instead, from evidence both sides record: each completion's
+finalized receipt, and the canonical transfer history the boundary retains. A
+completion is represented by the opening only when its transaction is in that
+history; one in a later block falls after it; anything the evidence cannot place,
+including an earlier inclusion that was orphaned and every completion against a
+boundary [captured before that history was retained](../operations/register-foundation.md#openings-captured-before-the-history-was-retained),
+is held for operator attribution. An opening whose captured boundary does not
+represent a completed effect is refused rather than applied over it. Settlement
+completion takes the same share-class lock as issuance completion, so neither can
+interleave with an opening. Recording the later events themselves remains open.
 
 Owner-submitted [compensating corrections](../operations/register-foundation.md#reviewed-compensating-corrections)
 now bind documentary authority to an exact reversal and register revision.
