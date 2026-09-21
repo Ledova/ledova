@@ -180,7 +180,14 @@ class RegisterSnapshotReadTest(SimpleTestCase):
                 self.assertEqual(all_observed["holdings"], omitted["holdings"])
                 self.assertEqual(all_observed["issued_supply"], omitted["issued_supply"])
                 self.assertNotIn("transfers", omitted)
-                self.assertEqual(all_observed, omitted)
+                self.assertEqual(
+                    {key: value for key, value in all_observed.items() if key != "history"},
+                    {key: value for key, value in omitted.items() if key != "history"},
+                )
+                self.assertEqual(
+                    [entry for entry in all_observed["history"] if entry not in omitted["history"]],
+                    [{"block": 4, "block_hash": block_hash(4), "transaction": block_hash(104)}],
+                )
 
     def test_wrong_contract_removed_or_out_of_range_log_is_refused(self):
         for field, value in (("address", ALICE), ("removed", True), ("blockNumber", 5), ("blockNumber", 1)):

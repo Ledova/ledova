@@ -6,9 +6,10 @@ The first [#647](https://github.com/Ledova/ledova/issues/647) slices provide
 company-scoped member references with durable wallet links, an append-only
 share-event chain, stored holdings, an approved opening capture and reviewed
 compensating corrections. It is a foundation for the authoritative register.
-Current HTTP and CSV register routes still use the existing chain reader;
-issuance and settlement do not yet populate these new tables. Do not use the
-foundation as an activated company register.
+Current HTTP and CSV register routes still use the existing chain reader, and
+issuance and settlement do not yet populate these new tables; opening review and
+the inclusion report classify their completed effects against the captured
+boundary. Do not use the foundation as an activated company register.
 
 ## Identity and events
 
@@ -122,12 +123,14 @@ canonical block-hash `eth_call` requests. Unsupported or unavailable historical
 reads are refused rather than replaced by current balances.
 
 The JSON records the company, class, deployment transaction, network, contract,
-block number/hash/date, finality policy, issued/authorized supply and positive
-holdings. All share quantities are exact integer strings; names and residential
-addresses are absent. The observed transfer fold must agree with each observed
-participant's balance, including zero balances, and total supply at that same
-hash. Duplicate or noncanonical logs, inconsistent quantities, a reorg, a changed
-deployment/network/policy or unavailable finality refuse the result.
+block number/hash/date, finality policy, issued/authorized supply, positive
+holdings and the canonical transfer history it folded: one entry per observed
+transaction with its block number and block hash. All share quantities are exact
+integer strings; names and residential addresses are absent. The observed
+transfer fold must agree with each observed participant's balance, including zero
+balances, and total supply at that same hash. Duplicate or noncanonical logs,
+inconsistent quantities, a reorg, a changed deployment/network/policy or
+unavailable finality refuse the result.
 
 Matching balances cannot establish that every historical log was returned: an
 omitted self-transfer or round trip can leave all quantities unchanged. The
@@ -304,8 +307,9 @@ mapping must cover exactly the boundary's holding addresses before review.
 ```
 
 Opening the staff review captures a fresh canonical snapshot (the section
-above) and binds it to the proposal; the mapping must cover exactly the
-boundary's holding addresses, no missing and no unknown address. Database guards
+above), including the canonical transfer history that later classification needs,
+and binds it to the proposal; the mapping must cover exactly the boundary's
+holding addresses, no missing and no unknown address. Database guards
 freeze the proposal after submission except for that one-time boundary capture,
 the staff decision and the review fields. A repeated review rechecks the
 boundary block's current canonicity and the approved finality policy instead of
@@ -330,10 +334,8 @@ an uninitialized register. An already-initialised register refuses a further
 opening at submission and at application. A boundary that is no longer
 canonical, a changed finality policy, changed company/document evidence or a
 register initialised in the meantime refuses application; rejection with a
-reason remains available. Issuance completion takes the same share-class lock,
-so an opening cannot interleave with an issuance completion. Later workflow
-event recording will classify each completion's verified final inclusion
-against this captured boundary, so each economic effect appears exactly once.
+reason remains available. Issuance and settlement completion both take the same
+share-class lock, so neither can interleave with an opening application.
 
 Retention follows the owner's correction decision: opening proposals, their
 retained authority copies and the captured boundary are retained without
@@ -342,3 +344,85 @@ blocked, the retained copy survives source-document deletion and deleting the
 source prevents a pending application. Production retention needs its own
 decision before real data. This activates no HTTP register read: holders and
 CSV routes remain chain-derived until the stored-reader cutover.
+
+## Classifying completed inclusions
+
+The boundary an opening captures fixes which economic effects the opening already
+represents. Each completed issuance and settlement for that share class carries
+the finalized receipt recorded when it completed — its block number, block hash,
+gas and the approved finality policy — and the captured boundary carries the
+canonical transfer history it folded. Classification asks whether the
+completion's transaction is in that history:
+
+| Classification | Meaning |
+| --- | --- |
+| `unopened` | The share class has no applied opening, so nothing represents the effect yet |
+| `opening` | The completion's transaction is in the boundary's canonical history, at the same block and hash, so the opening's holdings already contain it |
+| `after_opening` | The completion is in a later block than the boundary and absent from its history |
+| `attribution` | The boundary's own evidence cannot place the completion, so an operator must resolve it |
+
+A lower block number is not ancestry. A completion at an earlier height whose
+transaction is missing from the captured history was orphaned, or belongs to
+another chain, and is held for `attribution` rather than read as represented, as
+is a completion recorded after the boundary yet present in its history. A missing
+or malformed history is not an empty one: it cannot show that a transaction was
+absent, so every completion is held for `attribution` against it, whatever its
+height.
+
+Review and application refuse an opening whose captured boundary leaves any
+completed effect unrepresented, naming the effect, its block and the reason, and
+refuse a boundary without a valid history outright; PostgreSQL refuses to apply
+one too. The boundary is captured once and then frozen, so the remedy for a
+pending opening is a fresh opening whose new boundary covers the effect, with the
+mapping that boundary requires; reject the superseded proposal with a reason.
+That refusal is what keeps the gap between capture and application closed: a
+completion cannot land in it unobserved, because both completions take the
+share-class lock the application holds.
+
+These are the effects the platform itself completes. A holder's own on-chain
+transfer, made outside settlement, is not one of them: the boundary's holdings
+already contain it up to the boundary block, and anything later is a
+reconciliation question rather than a classified completion.
+
+A completed effect with no recorded finalized receipt is refused outright rather
+than classified. Issuance execution wrote a terminal status and a confirmed
+transaction block before it waited for finality, so those fields cannot show that
+an older completion passed the policy; only the recorded receipt can. Such
+completions, and settlements completed before settlement evidence was retained,
+need operator attribution before any boundary can represent or exclude them. The
+database enforces the same rule going forward: a completed issuance must record
+its finalized receipt, bound to its original confirmed mint journal, and recorded
+evidence can never be rewritten, removed or dropped by a downgrade.
+
+The read-only operator command below reports the boundary and each
+classification. It performs no provider read and writes nothing:
+
+```bash
+python manage.py register_inclusions --token TOKEN_UUID
+```
+
+Classification does not record register events. Attaching the issue and transfer
+entries for effects after the opening, and the member links an issue or transfer
+to a wallet that no opening mapped would need, remain
+[#647](https://github.com/Ledova/ledova/issues/647) work.
+
+### Openings captured before the history was retained
+
+`tokens/0066` introduced the retained history and rewrites no existing opening,
+so a boundary captured before it has none. What that means depends on whether
+the opening was applied:
+
+| Opening | Behaviour | Remedy |
+| --- | --- | --- |
+| Pending | Review and application refuse it, and PostgreSQL refuses its application | Reject it with a reason, then submit a fresh opening, whose review captures a boundary with history |
+| Applied | It remains the register's opening, and every completion classifies as `attribution` against it | None implemented |
+
+An applied opening cannot be recaptured. The register is initialised, so a fresh
+opening is refused at submission and at application, and the applied opening's
+boundary and OPENING entry are immutable. Holding every completion for
+attribution keeps a later workflow from recording an effect the opening may
+already contain. Resolving such a register needs a separately specified recovery
+procedure, and none exists yet.
+
+Next: [the remaining register work](https://github.com/Ledova/ledova/issues/647)
+and [register architecture](../architecture/register.md).

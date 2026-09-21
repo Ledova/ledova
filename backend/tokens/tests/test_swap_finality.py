@@ -7,6 +7,7 @@ from unittest.mock import call, patch
 from django.db import DatabaseError, connection, connections
 from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 
 from blockchain.models import BlockchainTransaction, OutgoingOperation, SignedAttempt
 from blockchain.services import outgoing
@@ -21,8 +22,24 @@ from shared.db import atomic, current_alias, use_operator
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.exceptions import SwapNotReadyException
-from tokens.models import SwapOrder, SwapOrderStatus, TransferOrder, TransferOrderStatus
+from tokens.models import (
+    ShareToken,
+    SwapOrder,
+    SwapOrderStatus,
+    TransferOrder,
+    TransferOrderStatus,
+)
 from tokens.services import swap_execution
+from tokens.services.register_inclusions import (
+    AFTER_OPENING,
+    ATTRIBUTION,
+    OPENING,
+    UNOPENED,
+    classify_inclusion,
+    completed_inclusions,
+    opening_boundary,
+    unrepresented_inclusions,
+)
 from tokens.services.trading_locks import lock_orders
 from tokens.tasks.swap_reconciler import resolve_executing_swaps
 from tokens.tests import test_swap_process_concurrency as workers
@@ -430,6 +447,44 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
             self.swap.refresh_from_db()
         self.assert_held()
 
+    def test_completion_records_the_inclusion_a_register_boundary_classifies(self):
+        self.confirm()
+        with override_settings(WALLET_CHAIN_FINALITY_POLICIES=FINALIZED):
+            self.node.advance(head=20, finalized=12)
+            self.assertEqual(self.settle(), SwapOrderStatus.COMPLETED)
+        token_id = self.swap.share_token_id
+        recorded = [{"block": 12, "block_hash": BLOCK_HASH, "transaction": self.swap.tx_hash}]
+        with use_operator():
+            inclusions = completed_inclusions(token_id)
+            self.assertEqual(
+                inclusions,
+                [
+                    {
+                        "kind": "transfer",
+                        "source": str(self.swap.pk),
+                        "transaction": self.swap.tx_hash.removeprefix("0x"),
+                        "block_number": 12,
+                        "block_hash": BLOCK_HASH.removeprefix("0x"),
+                    }
+                ],
+            )
+            self.assertIsNone(opening_boundary(token_id))
+            self.assertEqual(classify_inclusion(None, inclusions[0]), UNOPENED)
+            represented = {"block": {"number": 12, "hash": BLOCK_HASH}, "history": recorded}
+            self.assertEqual(classify_inclusion(represented, inclusions[0]), OPENING)
+            self.assertEqual(unrepresented_inclusions(token_id, represented), [])
+            earlier = {"block": {"number": 11, "hash": OTHER_HASH}, "history": []}
+            self.assertEqual(classify_inclusion(earlier, inclusions[0]), AFTER_OPENING)
+            self.assertEqual(unrepresented_inclusions(token_id, earlier), inclusions)
+            orphaned = {"block": {"number": 12, "hash": OTHER_HASH}, "history": []}
+            self.assertEqual(classify_inclusion(orphaned, inclusions[0]), ATTRIBUTION)
+            self.assertEqual(unrepresented_inclusions(token_id, orphaned), inclusions)
+            replaced = {
+                "block": {"number": 12, "hash": BLOCK_HASH},
+                "history": [{**recorded[0], "block_hash": OTHER_HASH}],
+            }
+            self.assertEqual(classify_inclusion(replaced, inclusions[0]), ATTRIBUTION)
+
     def test_the_sweep_settles_a_confirmed_executing_swap_and_then_leaves_it(self):
         self.confirm()
         with override_settings(WALLET_CHAIN_FINALITY_POLICIES=FINALIZED), patch.object(
@@ -485,16 +540,17 @@ class SwapFinalityProcessTest(SwapFinalityFixtures, TransactionTestCase):
     def wait_for_row_lock(self, child, table, blocker_pid=None):
         workers.SwapWorkersUseOneCurrentClaimTest.wait_for_row_lock(self, child, table, blocker_pid)
 
-    def test_two_settlement_workers_wait_for_the_orders_and_complete_once(self):
+    def test_two_settlement_workers_wait_for_the_share_class_an_opening_holds_and_complete_once(self):
         attempt = self.confirm()
         first = workers.SwapProcess(self, "settle", self.swap.pk)
         second = workers.SwapProcess(self, "settle", self.swap.pk)
         with atomic():
+            ShareToken.objects.select_for_update().get(pk=self.swap.share_token_id)
             lock_orders(TransferOrder.objects.filter(pk__in=[self.swap.sell_order_id, self.swap.buy_order_id]))
             for worker, blocker in ((first, None), (second, first.database_pid)):
                 worker.send("run")
                 worker.receive("settling")
-                self.wait_for_row_lock(worker, "tokens_transferorder", blocker)
+                self.wait_for_row_lock(worker, "tokens_sharetoken", blocker)
         outcomes = [first.done()["result"], second.done()["result"]]
         self.assertEqual(sorted(outcomes, key=str), [None, "completed"])
         self.swap.refresh_from_db()
@@ -670,6 +726,21 @@ class SwapFinalityGuardTest(SwapExecutionStorageFixtures, TransactionTestCase):
         self.assertEqual(self.swap.status, "completed")
         self.assertIsNone(self.swap.finalized_receipt)
         self.refuse("retain their recorded finality evidence", finalized_receipt=self.finalized())
+
+    def test_a_historical_completion_without_finality_evidence_refuses_classification(self):
+        journal = self.retain()
+        self.project(journal, "confirmed")
+        self.addCleanup(restore_every_migration)
+        previous = migrate_to([("tokens", "0062_register_foundation")])
+        previous.get_model("tokens", "SwapOrder").objects.filter(pk=self.swap.pk).update(
+            status="completed", completed_at=timezone.now()
+        )
+        restore_every_migration()
+        self.swap.refresh_from_db()
+        self.assertIsNone(self.swap.finalized_receipt)
+        with self.assertRaises(ValidationError) as refused:
+            completed_inclusions(self.swap.share_token_id)
+        self.assertIn(str(self.swap.pk), str(refused.exception.detail))
 
     def test_downgrade_cannot_discard_recorded_finality_evidence(self):
         journal = self.retain()
