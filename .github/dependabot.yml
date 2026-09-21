@@ -37,6 +37,17 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "@eslint/js"
         update-types: ["version-update:semver-major"]
+      # @types/node follows the Node runtime, which CI pins at 22. Version 26 drops
+      # the Array `at()` declarations that dashboard and packages/shared compile
+      # against under their ES2020 lib: 15 TS2550 errors in `npm run typecheck`
+      # (#672). Drop this when the runtime moves past 22.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # eslint-plugin-react-hooks 7 enables the React Compiler rules, and the
+      # dashboard has 46 errors under them (#672). Only 7 is proven to block, so
+      # 6.x can still be proposed. Drop this when #673 is done.
+      - dependency-name: eslint-plugin-react-hooks
+        versions: [">=7.0.0"]
     groups:
       root-and-workspaces:
         patterns: ["*"]
@@ -92,6 +103,26 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "@eslint/js"
         update-types: ["version-update:semver-major"]
+      # react-test-renderer must equal `react`, which Expo SDK 54 pins at 19.1.0;
+      # 19.3 fails `npm ci` with ERESOLVE (#668). It moves with the SDK above.
+      - dependency-name: react-test-renderer
+      # Babel 8 is an SDK change too: babel-preset-expo and Metro resolve their own
+      # @babel/core 7, so 8 at the root leaves npm reporting an invalid tree and only
+      # Jest on 8 (#668). Drop this with the SDK upgrade that adopts Babel 8.
+      - dependency-name: "@babel/core"
+        update-types: ["version-update:semver-major"]
+      # jsdom 30 depends on the ESM-only @exodus/bytes, which Jest cannot load under
+      # Node 22, so VerificationFormModal.test.tsx fails to run (#668). @types/jsdom
+      # moves with it. Only 30 is proven to block, so 21-29 can still be proposed.
+      # Drop both when Jest loads it: Node 24.9+ or a transform.
+      - dependency-name: jsdom
+        versions: [">=30.0.0"]
+      - dependency-name: "@types/jsdom"
+        versions: [">=30.0.0"]
+      # eslint-plugin-react-hooks 7.1 tightens the React Compiler rules: 28 new
+      # errors against 7.0.1 (#668). Drop this when #673 is done.
+      - dependency-name: eslint-plugin-react-hooks
+        versions: [">=7.1.0"]
     groups:
       all:
         patterns: ["*"]
@@ -141,6 +172,17 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "@types/chai"
         update-types: ["version-update:semver-major"]
+      # TypeScript 7 belongs to the same migration: Hardhat 2 compiles its config
+      # through ts-node, which fails on 7 before reading a contract ("Cannot read
+      # properties of undefined (reading 'fileExists')", #665).
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      # OpenZeppelin is pinned at 5.4.0 by the recorded toolchain decision
+      # (docs/decisions.md): 5.5 and later use Cancun's `mcopy`, which does not
+      # compile for `paris` (#665). Only a needed feature or an advisory against
+      # 5.4.0 reopens it, not a newer release.
+      - dependency-name: "@openzeppelin/contracts"
+        versions: [">=5.5.0"]
     groups:
       all:
         patterns: ["*"]
