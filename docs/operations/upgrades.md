@@ -135,6 +135,24 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   when a ceased wallet's member has only recorded particulars. The holders API's
   `formerMembers` now lists imported former members, whose `walletAddress` and
   `ceasedAtBlock` are `null`. Reversal refuses once any import exists.
+- `tokens/0073_register_instructions` adds
+  [register instructions](register-foundation.md#register-instructions-for-issues)
+  for issues, with four owner routes under `/api/v1/tokens/register-instructions/`
+  and a staff review in admin. Applying one is now the only way to approve a
+  direct share issuance request; the admin **Approve** action for those requests
+  is gone. It rewrites no existing row, and it adds a second guard to
+  `tokens_shareissuancerequest` beside the `0048` one. The company's own database
+  role can no longer approve, reject or start review of a request, insert one
+  already decided, or change its reviewer, review time, notes or rejection
+  reason. No role can approve one without an active staff reviewer. Allotment
+  refuses a subscription that no applied instruction lists with its current
+  terms. A request approved before `0073` keeps its approval and reviewer and can
+  still execute, but once its class has an opening its issue waits until an
+  instruction lists it, holding later effects in that class behind it; applying
+  that instruction records it without approving it again, and entries already
+  recorded stay as they are. Run the new code with the migration: an older binary
+  still approves from admin and allots without cover, and the issues it approves
+  then wait for an instruction. Reversal refuses once any instruction exists.
 - `whitelist/0002_whitelistentry_treasury_addresses` makes
   `WhitelistEntry.wallet` nullable and adds `address` and `label` with a check
   constraint; `whitelist/0003` adds the partial unique constraint on `address`

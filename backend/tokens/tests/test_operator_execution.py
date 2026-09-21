@@ -12,10 +12,10 @@ from offerings.models import SubscriptionStatus
 from offerings.services.subscription import allot
 from offerings.tasks import allot_subscription_task
 from offerings.tests.factories import (
+    allottable_subscription,
     configure_operator,
     eligible_subscriber,
     open_offering,
-    paid_subscription,
 )
 from shared.db import (
     APP_ALIAS,
@@ -68,7 +68,7 @@ class OperatorExecutionFromScopedContextTest(RunsOnTheScopedConnection, Transact
             self.investor.offering = open_offering(self.issuer, target_shares=200, cap_shares=500)
             eligible_subscriber(self.investor)
             WhitelistEntry.objects.create(wallet=self.investor.wallet, is_whitelisted=True)
-            self.subscription = paid_subscription(self.investor)
+            self.subscription = allottable_subscription(self.investor)
             allot(self.subscription, self.staff)
             self.request = self.subscription.issuance_request
             AssetChainDeployment.objects.create(

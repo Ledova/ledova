@@ -17,6 +17,7 @@ from offerings.services.subscription import (
     ISSUANCE_ALREADY_CLAIMED,
     MINT_BROADCAST,
     NO_REQUEST_TO_RETRY,
+    NOT_INSTRUCTED,
     NOT_PAID,
     NOTHING_TO_ALLOT,
     allot,
@@ -31,10 +32,12 @@ from offerings.services.subscription import (
 )
 from offerings.tasks.subscription import allot_subscription_task
 from offerings.tests.factories import (
+    allottable_subscription,
     configure_operator,
     draft_subscription,
     eligible_subscriber,
     extra_wallet,
+    instruct,
     open_offering,
     paid_subscription,
 )
@@ -48,7 +51,13 @@ from tokens.models import (
     ShareIssuanceRequest,
 )
 from tokens.services import issuance_execution, legacy_issuance, share_token_service
+from tokens.services.register_instructions import submit_instruction
 from tokens.tasks import check_executing_issuance_requests
+from tokens.tests.instruction_fixtures import (
+    instruction_payload,
+    instruction_reviewer,
+    verified_authority,
+)
 from tokens.tests.issuance_fixtures import (
     CHAIN_ID,
     FINALITY_POLICIES,
@@ -108,6 +117,7 @@ class AllotmentTestCase(TransactionTestCase):
             amount=10,
             dispatch_id=None,
             status="approved",
+            reviewed_by=self.operator_user,
         )
         subscription.issuance_request = request
         subscription.save(update_fields=["issuance_request"])
@@ -137,7 +147,7 @@ def _create_request(token, recipient, amount, user, reason="", issuance_type="ad
 
 class AllotOneSubscriptionTest(AllotmentTestCase):
     def test_finality_keeps_allotment_and_refund_held_until_atomic_completion(self):
-        subscription = paid_subscription(self.tenant, quantity=10)
+        subscription = allottable_subscription(self.tenant, quantity=10)
         request = allot(subscription, self.operator_user)
         self.node.finalized = 11
         self.assertEqual(self._execute(request)["status"], "executing")
@@ -166,7 +176,7 @@ class AllotOneSubscriptionTest(AllotmentTestCase):
         self.assertEqual(len(self.node.broadcasts), 1)
 
     def test_a_paid_subscription_creates_an_approved_request_and_defers_the_mint(self):
-        subscription = paid_subscription(self.tenant, quantity=10)
+        subscription = allottable_subscription(self.tenant, quantity=10)
         request = allot(subscription, self.operator_user, notes="Allotted by the operator")
 
         subscription.refresh_from_db()
@@ -187,7 +197,7 @@ class AllotOneSubscriptionTest(AllotmentTestCase):
         )
 
     def test_allotting_the_same_subscription_twice_refuses_and_creates_one_request(self):
-        subscription = paid_subscription(self.tenant, quantity=10)
+        subscription = allottable_subscription(self.tenant, quantity=10)
         request = allot(subscription, self.operator_user)
 
         with self.assertRaises(SubscriptionRefusedException) as raised:
@@ -211,12 +221,12 @@ class AllotOneSubscriptionTest(AllotmentTestCase):
         self.assertEqual(str(raised.exception.detail), NOTHING_TO_ALLOT)
 
     def test_a_scaled_back_subscription_mints_the_scaled_amount(self):
-        subscription = paid_subscription(self.tenant, quantity=10, allotted=4)
+        subscription = allottable_subscription(self.tenant, quantity=10, allotted=4)
         request = allot(subscription, self.operator_user)
         self.assertEqual(request.amount, 4)
 
     def test_retry_requeues_accepted_work_and_replays_terminal_success(self):
-        subscription = paid_subscription(self.tenant, quantity=10)
+        subscription = allottable_subscription(self.tenant, quantity=10)
         request = allot(subscription, self.operator_user)
         self.defer.reset_mock()
         retry_allotment(subscription, self.operator_user, confirmed=self._confirmation(subscription))
@@ -228,7 +238,7 @@ class AllotOneSubscriptionTest(AllotmentTestCase):
         self.assertEqual(len(self.node.broadcasts), 1)
 
     def test_a_failed_request_requires_its_confirmed_retry(self):
-        subscription = paid_subscription(self.tenant, quantity=10)
+        subscription = allottable_subscription(self.tenant, quantity=10)
         request = allot(subscription, self.operator_user)
         self.node.client.estimate_gas.side_effect = RuntimeError("Synthetic unsigned failure")
         self.assertEqual(self._execute(request)["status"], "failed")
@@ -244,10 +254,59 @@ class AllotOneSubscriptionTest(AllotmentTestCase):
             retry_allotment(subscription, self.operator_user, confirmed="")
         self.assertEqual(str(raised.exception.detail), NO_REQUEST_TO_RETRY)
 
+    def _uninstructed(self, subscription, amount):
+        with self.assertRaises(SubscriptionRefusedException) as raised:
+            allot(subscription, self.operator_user)
+        self.assertEqual(
+            str(raised.exception.detail),
+            NOT_INSTRUCTED.format(
+                amount=amount, recipient=self.tenant.wallet.address, reference=subscription.reference
+            ),
+        )
+        self.assertFalse(ShareIssuanceRequest.objects.exists())
+        self.defer.assert_not_called()
+
+    def test_allotment_needs_an_applied_instruction_for_exactly_its_terms(self):
+        subscription = paid_subscription(self.tenant, quantity=10)
+        self._uninstructed(subscription, 10)
+        reviewer = instruction_reviewer()
+        submit_instruction(
+            actor=self.tenant.user,
+            **instruction_payload(
+                self.offering.token, verified_authority(self.tenant.company, reviewer), [subscription]
+            ),
+        )
+        self._uninstructed(subscription, 10)
+        instruct(subscription)
+        Subscription.objects.filter(pk=subscription.pk).update(allotted_quantity=4)
+        subscription.refresh_from_db()
+        self._uninstructed(subscription, 4)
+        instruct(subscription)
+        request = allot(subscription, self.operator_user)
+        self.assertEqual((request.amount, request.reviewed_by), (4, self.operator_user))
+
+    def test_a_batch_refuses_an_uninstructed_row_on_its_own(self):
+        instructed = allottable_subscription(self.tenant, quantity=10, wallet=extra_wallet(self.tenant, "1"))
+        uninstructed = paid_subscription(self.tenant, quantity=10)
+        result = allot_batch([instructed, uninstructed], self.operator_user, service=self._supply())
+        self.assertEqual(
+            result,
+            {
+                "allotted": 1,
+                "refusals": [
+                    NOT_INSTRUCTED.format(
+                        amount=10, recipient=self.tenant.wallet.address, reference=uninstructed.reference
+                    )
+                ],
+            },
+        )
+        uninstructed.refresh_from_db()
+        self.assertIsNone(uninstructed.issuance_request_id)
+
 
 class MoneyOutNeverLeavesSharesOutTest(AllotmentTestCase):
     def _allotted(self, **kwargs):
-        subscription = paid_subscription(self.tenant, quantity=10, **kwargs)
+        subscription = allottable_subscription(self.tenant, quantity=10, **kwargs)
         return subscription, allot(subscription, self.operator_user)
 
     def _claimed(self, request, verb):
@@ -465,7 +524,7 @@ class MoneyOutNeverLeavesSharesOutTest(AllotmentTestCase):
 class BulkAllotmentTest(AllotmentTestCase):
     def _three(self):
         return [
-            paid_subscription(self.tenant, quantity=40, wallet=extra_wallet(self.tenant, letter))
+            allottable_subscription(self.tenant, quantity=40, wallet=extra_wallet(self.tenant, letter))
             for letter in ("1", "2", "3")
         ]
 
@@ -546,8 +605,8 @@ class BulkAllotmentTest(AllotmentTestCase):
         other = make_tenant("second-issuer")
         open_offering(other)
         eligible_subscriber(other)
-        mine = paid_subscription(self.tenant, quantity=40)
-        theirs = paid_subscription(other, quantity=50)
+        mine = allottable_subscription(self.tenant, quantity=40)
+        theirs = allottable_subscription(other, quantity=50)
         self._cap(other.offering, 10)
 
         service = self._supply(authorized=1000, issued=0)
@@ -603,8 +662,7 @@ class ScaleBackTest(AllotmentTestCase):
         ]
         self._cap(self.offering, 50)
         scale_back(self.offering)
-        for row in rows:
-            row.refresh_from_db()
+        instruct(*rows)
 
         service = self._supply(authorized=1000, issued=0)
         self.assertEqual(allot_batch(rows, self.operator_user, service=service)["allotted"], 2)
@@ -622,7 +680,7 @@ class ScaleBackTest(AllotmentTestCase):
 class SingleAllotmentHeadroomTest(AllotmentTestCase):
     def test_the_cap_is_guarded_on_the_single_entry_point_not_only_on_the_batch(self):
         rows = [
-            paid_subscription(self.tenant, quantity=10, wallet=extra_wallet(self.tenant, letter))
+            allottable_subscription(self.tenant, quantity=10, wallet=extra_wallet(self.tenant, letter))
             for letter in ("1", "2", "3")
         ]
         self._cap(self.offering, 10)
@@ -645,7 +703,7 @@ class SingleAllotmentHeadroomTest(AllotmentTestCase):
         self.assertEqual(self.defer.call_count, 1)
 
     def test_the_authorized_supply_stops_a_single_allotment_the_cap_would_allow(self):
-        subscription = paid_subscription(self.tenant, quantity=40)
+        subscription = allottable_subscription(self.tenant, quantity=40)
         self.supply.return_value = (30, 0)
 
         with self.assertRaises(SubscriptionRefusedException) as raised:
@@ -661,7 +719,7 @@ class SingleAllotmentHeadroomTest(AllotmentTestCase):
 
     def test_a_batch_still_reads_the_chain_supply_once_for_the_whole_group(self):
         rows = [
-            paid_subscription(self.tenant, quantity=10, wallet=extra_wallet(self.tenant, letter))
+            allottable_subscription(self.tenant, quantity=10, wallet=extra_wallet(self.tenant, letter))
             for letter in ("1", "2", "3")
         ]
         service = self._supply(authorized=1000, issued=0)
@@ -670,9 +728,9 @@ class SingleAllotmentHeadroomTest(AllotmentTestCase):
         self.assertEqual(service.share_supply.call_count, 1)
 
     def test_a_stale_row_is_refused_on_its_own_and_the_rest_of_the_batch_still_goes(self):
-        already = paid_subscription(self.tenant, quantity=40, wallet=extra_wallet(self.tenant, "1"))
+        already = allottable_subscription(self.tenant, quantity=40, wallet=extra_wallet(self.tenant, "1"))
         allot(already, self.operator_user)
-        fresh = paid_subscription(self.tenant, quantity=40, wallet=extra_wallet(self.tenant, "2"))
+        fresh = allottable_subscription(self.tenant, quantity=40, wallet=extra_wallet(self.tenant, "2"))
         self._cap(self.offering, 80)
 
         service = self._supply(authorized=1000, issued=0)
@@ -684,7 +742,7 @@ class SingleAllotmentHeadroomTest(AllotmentTestCase):
         self.assertIsNotNone(fresh.issuance_request_id)
 
     def test_a_group_of_nothing_but_stale_rows_reads_no_supply_and_refuses_each_row(self):
-        already = paid_subscription(self.tenant, quantity=10, wallet=extra_wallet(self.tenant, "1"))
+        already = allottable_subscription(self.tenant, quantity=10, wallet=extra_wallet(self.tenant, "1"))
         allot(already, self.operator_user)
         unpaid = draft_subscription(self.tenant, quantity=10, wallet=extra_wallet(self.tenant, "2"))
 
@@ -708,11 +766,13 @@ class HeadroomSnapshotConsistencyTest(AllotmentTestCase):
             submitted_by=self.operator_user,
             dispatch_id=None,
         )
-        ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.APPROVED)
+        ShareIssuanceRequest.objects.filter(pk=request.pk).update(
+            status=RequestStatus.APPROVED, reviewed_by=self.operator_user
+        )
         return request
 
     def test_a_mint_confirming_after_the_supply_snapshot_cannot_inflate_the_chain_room(self):
-        subscription = paid_subscription(self.tenant, quantity=10)
+        subscription = allottable_subscription(self.tenant, quantity=10)
         self.supply.return_value = (1000, 0)
         pending = self._pending_mint(995)
         read_the_row = subscription_service._locked
@@ -736,7 +796,7 @@ class HeadroomSnapshotConsistencyTest(AllotmentTestCase):
         self.assertEqual(self.defer.call_count, 0)
 
     def test_a_request_created_after_the_snapshot_is_still_counted_against_the_chain_room(self):
-        subscription = paid_subscription(self.tenant, quantity=10)
+        subscription = allottable_subscription(self.tenant, quantity=10)
         self.supply.return_value = (1000, 0)
         read_the_row = subscription_service._locked
 
@@ -758,7 +818,7 @@ class HeadroomSnapshotConsistencyTest(AllotmentTestCase):
         self.assertIsNone(subscription.issuance_request_id)
 
     def test_an_undisturbed_allotment_still_reads_the_chain_once_and_goes_through(self):
-        subscription = paid_subscription(self.tenant, quantity=10)
+        subscription = allottable_subscription(self.tenant, quantity=10)
         self.supply.return_value = (1000, 0)
         self._pending_mint(985)
 
@@ -797,7 +857,7 @@ class ScaleBackResidualTest(AllotmentTestCase):
         self.assertEqual((second.allotted_quantity, second.refund_amount), (5, None))
 
     def test_a_negative_headroom_scales_to_zero_rather_than_a_negative_quantity(self):
-        soaked = paid_subscription(self.tenant, quantity=40, wallet=extra_wallet(self.tenant, "1"))
+        soaked = allottable_subscription(self.tenant, quantity=40, wallet=extra_wallet(self.tenant, "1"))
         allot(soaked, self.operator_user)
         pending = paid_subscription(self.tenant, quantity=10, wallet=extra_wallet(self.tenant, "2"))
         self._cap(self.offering, 10)
@@ -811,6 +871,7 @@ class ScaleBackResidualTest(AllotmentTestCase):
 
     def test_the_stranded_residual_is_refundable_once_the_shares_are_allotted(self):
         subscription = self._scaled()
+        instruct(subscription)
         allot(subscription, self.operator_user)
         subscription.refresh_from_db()
         self.assertEqual(self._execute(subscription.issuance_request)["status"], "executed")
@@ -829,7 +890,7 @@ class ScaleBackResidualTest(AllotmentTestCase):
         self.assertEqual(subscription.amount_refundable, Decimal("0.00"))
 
     def test_the_money_that_paid_for_allotted_shares_can_never_come_back(self):
-        subscription = paid_subscription(self.tenant, quantity=10)
+        subscription = allottable_subscription(self.tenant, quantity=10)
         allot(subscription, self.operator_user)
         subscription.refresh_from_db()
         self.assertEqual(self._execute(subscription.issuance_request)["status"], "executed")

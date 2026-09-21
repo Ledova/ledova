@@ -27,12 +27,12 @@ from offerings.services.subscription import (
     withdraw,
 )
 from offerings.tests.factories import (
+    allottable_subscription,
     configure_operator,
     draft_subscription,
     eligible_subscriber,
     extra_wallet,
     open_offering,
-    paid_subscription,
 )
 from shared.tests.tenants import make_tenant
 from tokens.models import ShareIssuanceRequest
@@ -159,7 +159,7 @@ class SubscriptionConcurrencyTest(TransactionTestCase):
             )
 
     def test_two_concurrent_allotments_of_one_subscription_create_exactly_one_request(self):
-        subscription = paid_subscription(self.tenant, quantity=10)
+        subscription = allottable_subscription(self.tenant, quantity=10)
         barrier = threading.Barrier(2)
 
         def race():

@@ -69,7 +69,7 @@ class ReviewableRequestModelTest(TestCase):
 
     def test_new_request_requires_admission_before_claiming_execution(self):
         request = issuance_request(self.token)
-        request.approve(self.tenant.user)
+        request.approve(make_tenant("staff", staff=True).user)
         with self.assertRaises(DatabaseError), atomic():
             request.mark_executing()
         request.refresh_from_db()

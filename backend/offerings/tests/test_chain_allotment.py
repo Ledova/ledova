@@ -33,6 +33,7 @@ from offerings.tests.factories import (
     configure_operator,
     eligible_subscriber,
     forget_fixture_subscriptions,
+    instruct,
 )
 from tokens.models import (
     IssuanceStatus,
@@ -77,7 +78,7 @@ class AllotmentChainMixin(ChainTestMixin):
             status=OfferingStatus.APPROVED,
         )
 
-    def _paid(self, offering, quantity):
+    def _allottable(self, offering, quantity):
         subscription = create_draft(offering, self.tenant.account, self.wallet, quantity, self.tenant.user)
         submit(subscription, submitted_by=self.tenant.user)
         accept(subscription)
@@ -89,7 +90,7 @@ class AllotmentChainMixin(ChainTestMixin):
             received_on=timezone.now().date(),
             reference_seen=subscription.reference,
         )
-        subscription.refresh_from_db()
+        instruct(subscription)
         return subscription
 
     def _run_task(self, subscription):
@@ -104,7 +105,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
         self._deployed()
         self._whitelist(self.investor)
         offering = self._offering()
-        subscription = self._paid(offering, quantity=40)
+        subscription = self._allottable(offering, quantity=40)
 
         request = allot(subscription, self.staff, notes="Allotted from the operator console")
         self.assertEqual(request.status, RequestStatus.APPROVED)
@@ -131,7 +132,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
     def test_running_the_allotment_twice_in_sequence_mints_exactly_once(self):
         self._deployed()
         self._whitelist(self.investor)
-        subscription = self._paid(self._offering(), quantity=25)
+        subscription = self._allottable(self._offering(), quantity=25)
         allot(subscription, self.staff)
 
         first = self._run_task(subscription)
@@ -150,7 +151,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
     def test_a_second_allot_click_refuses_before_it_reaches_the_chain(self):
         self._deployed()
         self._whitelist(self.investor)
-        subscription = self._paid(self._offering(), quantity=10)
+        subscription = self._allottable(self._offering(), quantity=10)
         allot(subscription, self.staff)
         self._run_task(subscription)
 
@@ -166,7 +167,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
     def test_a_refund_between_the_click_and_the_worker_leaves_no_shares_on_chain(self):
         self._deployed()
         self._whitelist(self.investor)
-        subscription = self._paid(self._offering(), quantity=30)
+        subscription = self._allottable(self._offering(), quantity=30)
         request = allot(subscription, self.staff)
 
         record_refund(subscription, amount=Decimal("75.00"), reference="RTGS-CHAIN")
@@ -187,7 +188,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
     def test_a_refund_is_refused_once_the_shares_are_on_chain(self):
         self._deployed()
         self._whitelist(self.investor)
-        subscription = self._paid(self._offering(), quantity=20)
+        subscription = self._allottable(self._offering(), quantity=20)
         allot(subscription, self.staff)
 
         self.assertTrue(self._run_task(subscription)["success"])
@@ -204,7 +205,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
     def test_a_refund_is_refused_while_a_lost_receipt_leaves_the_mint_unresolved(self):
         self._deployed()
         self._whitelist(self.investor)
-        subscription = self._paid(self._offering(), quantity=20)
+        subscription = self._allottable(self._offering(), quantity=20)
         request = allot(subscription, self.staff)
 
         with self._missing_issuance_receipts():
@@ -232,7 +233,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
     def test_the_sweep_finishes_a_broadcast_mint_that_lost_its_receipt(self):
         self._deployed()
         self._whitelist(self.investor)
-        subscription = self._paid(self._offering(), quantity=20)
+        subscription = self._allottable(self._offering(), quantity=20)
         request = allot(subscription, self.staff)
 
         with self._missing_issuance_receipts():
@@ -260,7 +261,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
     def test_interrupted_subscription_projection_recovers_all_public_outcomes_together(self):
         self._deployed()
         self._whitelist(self.investor)
-        subscription = self._paid(self._offering(), quantity=15)
+        subscription = self._allottable(self._offering(), quantity=15)
         allot(subscription, self.staff)
 
         with patch.object(Subscription, "mark_allotted", side_effect=KeyboardInterrupt):
@@ -288,7 +289,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
         offering = self._offering()
         Offering.objects.filter(pk=offering.pk).update(cap_shares=CAP * 2)
         offering.refresh_from_db()
-        rows = [self._paid(offering, quantity=CAP - 100), self._paid(offering, quantity=200)]
+        rows = [self._allottable(offering, quantity=CAP - 100), self._allottable(offering, quantity=200)]
 
         blocks_before = self.w3.eth.block_number
         result = allot_batch(rows, self.staff)
@@ -311,7 +312,7 @@ class SubscriptionAllotmentChainConcurrencyTest(AllotmentChainMixin, APITransact
     def test_two_workers_racing_the_same_allotment_mint_exactly_once(self):
         self._deployed()
         self._whitelist(self.investor)
-        subscription = self._paid(self._offering(), quantity=30)
+        subscription = self._allottable(self._offering(), quantity=30)
         allot(subscription, self.staff)
 
         nonce_before = self._signer_nonce()
@@ -350,7 +351,7 @@ class SubscriptionAllotmentChainConcurrencyTest(AllotmentChainMixin, APITransact
     def test_two_operators_clicking_allot_at_once_create_one_issuance_request(self):
         self._deployed()
         self._whitelist(self.investor)
-        subscription = self._paid(self._offering(), quantity=20)
+        subscription = self._allottable(self._offering(), quantity=20)
 
         barrier = threading.Barrier(2)
         results = {}

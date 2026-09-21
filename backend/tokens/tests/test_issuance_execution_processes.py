@@ -215,16 +215,16 @@ class IssuanceExecutionProcessTest(TransactionTestCase):
 
         from offerings.services.subscription import allot
         from offerings.tests.factories import (
+            allottable_subscription,
             configure_operator,
             eligible_subscriber,
             open_offering,
-            paid_subscription,
         )
 
         configure_operator()
         open_offering(self.tenant, target_shares=200, cap_shares=500)
         eligible_subscriber(self.tenant)
-        subscription = paid_subscription(self.tenant, quantity=10)
+        subscription = allottable_subscription(self.tenant, quantity=10)
         with patch("offerings.tasks.allot_subscription_task.defer"):
             self.request = allot(subscription, self.actor, headroom=(1000, 1000))
         self.form = issuance_execution.confirmation(self.request, self.actor, subscription=subscription)

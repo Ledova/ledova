@@ -8,6 +8,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied, ValidationErro
 
 from blockchain.models import TransactionStatus
 from integrations.blockchain.receipts import nonnegative_integer, normalized_hash
+from offerings.models import Subscription
 from shared.db import APP_ALIAS, atomic, current_alias
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
@@ -16,6 +17,7 @@ from tokens.models import (
     RegisterCorrectionStatus,
     RegisterEntry,
     RegisterEntryKind,
+    RegisterInstruction,
     RegisterMemberWallet,
     RegisterOpening,
     ShareIssuance,
@@ -229,12 +231,18 @@ def _members(company_id, addresses):
     }
 
 
+def issue_covered(request):
+    subscription = Subscription.objects.filter(issuance_request=request).values_list("pk", flat=True).first()
+    listed = [{"request": str(request.pk)}, *([{"subscription": str(subscription)}] if subscription else [])]
+    return RegisterInstruction.objects.covering(*listed).exists()
+
+
 def _effect(inclusion, company_id):
     if inclusion["kind"] == ISSUE:
         issuance = ShareIssuance.objects.get(pk=inclusion["source"])
         request = ShareIssuanceRequest.objects.filter(executed_issuance=issuance).select_related("reviewed_by").first()
         member = _members(company_id, [issuance.recipient_address]).get(issuance.recipient_address.lower())
-        if member is None or request is None or request.reviewed_by is None:
+        if member is None or request is None or request.reviewed_by is None or not issue_covered(request):
             return None
         return {
             "kind": RegisterEntryKind.ISSUE,

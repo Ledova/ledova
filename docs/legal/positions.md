@@ -177,7 +177,13 @@ the platform also hosts offerings, subscriptions, payment recording, investor
 classification and trading enabled by default for synthetic/testnet use — none of
 which a registry service would run.
 The [registry service](registry-service.md) page's feature table says which
-features that model switches off or defers.
+features that model switches off or defers. An issue is now approved only under
+a [register instruction](../operations/register-foundation.md#register-instructions-for-issues),
+and entered only once an applied one covers it: the company owner lists the
+exact issues a named director approved, staff verify the documentary authority,
+and applying the instruction is the approval. Transfers are not yet entered on
+instruction: a completed settlement is still recorded without a director's
+approval, so that clause of the position is not yet met for them.
 
 **The position.** A hosted register-of-members service is not a financial
 service while all of the following hold: entries are made only on written
@@ -602,7 +608,9 @@ value, and the interests held for three years. The Division 1A and concession
 details come from professional and ATO summaries, not the enacted text.
 
 **What the code does.** The [offerings flow](../architecture/offerings.md) hosts
-offers; the registry model does not.
+offers; the registry model does not. Each allotment and direct issue is approved
+by a register instruction that retains the directors' authority document and
+names the approving director beside the issues it lists.
 
 **The position.** Every obligation in this position belongs to the company and
 its advisers. In the registry model Ledova records the outcome — the allotment,

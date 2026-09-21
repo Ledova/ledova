@@ -223,6 +223,10 @@ POLICIES = {
         _company("company_id", VISIBLE_COMPANIES),
         f"{_company('company_id', MANAGEABLE_COMPANIES)} AND submitted_by_id = {PRINCIPAL} AND status = 'submitted'",
     ),
+    "tokens_registerinstruction": (
+        _company("company_id", VISIBLE_COMPANIES),
+        f"{_company('company_id', MANAGEABLE_COMPANIES)} AND submitted_by_id = {PRINCIPAL} AND status = 'submitted'",
+    ),
     "tokens_registermemberparticulars": ("member_id IN (SELECT uuid FROM tokens_registermember)", "false"),
     "tokens_importedformermember": ("token_id IN (SELECT token_id FROM tokens_shareregister)", "false"),
     "blockchain_outgoingoperation": ("false", "false"),

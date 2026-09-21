@@ -49,6 +49,7 @@ from tokens.services.register_openings import (
     submit_opening,
 )
 from tokens.services.register_snapshot import ZERO_ADDRESS
+from tokens.tests.instruction_fixtures import apply_instruction
 from tokens.tests.issuance_fixtures import CHAIN_ID, IssuanceNode, admit
 from tokens.tests.test_register_openings import (
     ALICE,
@@ -80,17 +81,21 @@ class InclusionFixtures:
     def payload(self, **changes):
         return {**opening_payload(self.document, self.target), **changes}
 
-    def mint(self, *, amount=10, block=MINT_BLOCK, recipient=None, index=None):
-        command = self.admitted(amount=amount, block=block, recipient=recipient, index=index)
+    def mint(self, *, block=MINT_BLOCK, **terms):
+        command = self.admitted(block=block, **terms)
         self.assertEqual(issuance_execution.recover(command.pk)["status"], "executed")
         command.refresh_from_db()
         return ShareIssuance.objects.get(pk=command.issuance_id)
 
-    def admitted(self, *, amount=10, block=MINT_BLOCK, recipient=None, index=None):
+    def admitted(self, *, amount=10, block=MINT_BLOCK, recipient=None, index=None, reviewer=None, instructed=True):
         request = ShareIssuanceRequest.objects.create(
             token=self.tenant.token, recipient_address=recipient or self.recipient, amount=amount, reason="Allotment"
         )
-        request.approve(self.actor)
+        if instructed:
+            apply_instruction(self.tenant.token, request, reviewer=reviewer or self.actor, document=self.document)
+            request.refresh_from_db()
+        else:
+            request.approve(reviewer or self.actor)
         command = admit(request, self.actor)
         self.mint_node.head = self.mint_node.finalized = block
         if block != MINT_BLOCK or index is not None:

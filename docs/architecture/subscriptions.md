@@ -68,7 +68,10 @@ How payment, refund, scale-back and share allotment fit together.
    failures and confirmed reverts permit cancellation; unknown delivery does not.
    Historical failed rows with unresolved hashes or unidentified mint evidence
    retain their holds. An allotted subscription may still return only its excess.
-6. Allotment admits one private `ShareIssuanceExecution` alongside its approved
+6. Allotment needs an applied
+   [register instruction](../operations/register-foundation.md#register-instructions-for-issues)
+   that lists the subscription with its current recipient and shares. It admits
+   one private `ShareIssuanceExecution` alongside its approved
    request, `OneToOne` subscription link and exact task identity. Initial queued
    work remains refundable until the worker claims it. The shared outgoing journal
    commits the original signed transaction and public associations before send.
@@ -82,8 +85,9 @@ How payment, refund, scale-back and share allotment fit together.
    — is guarded however the shares are raised. Bulk allotment groups by
    offering, drops the rows `allot()`
    would refuse anyway — already linked to a request, not `paid`, scaled to
-   nothing — before it sums, so one stale row does not poison the batch, makes
-   one `share_supply()` read before locks, then admits the group under the
+   nothing, or listed by no applied instruction — before it sums, so one stale
+   row does not poison the batch, makes one `share_supply()` read before locks,
+   then admits the group under the
    offering and token locks with the same snapshot. It
    refuses the **whole** remaining batch when the total exceeds `min(offering
    headroom, authorized - issued - unminted)`, because part-filling first-come

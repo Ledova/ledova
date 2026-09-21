@@ -70,6 +70,32 @@ unambiguous; imported particulars fill in only for a member with no live
 identity, and an ambiguous identity stays ambiguous, so a later profile change
 reaches the register and particulars never hide a conflict
 ([#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5767606273)).
+
+On 22 September 2026 the owner chose one register instruction as the approval
+behind issues and transfers, over evidence attached to each workflow and over
+standing authorities ([#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5767606273),
+decision 2). The company owner submits an instruction listing the exact issuance
+requests, offering subscriptions or settlements it approves, with a named
+approving director and documentary authority that staff verify and review as
+they review openings. Applying an issue instruction is the approval, so the
+separate staff Approve action goes and the company's own connection may no
+longer write an issuance request's review decision. An issue or transfer is
+entered only once an applied instruction covers it, and trading is unchanged.
+With it the owner chose that:
+
+- directors decide on a settlement after it, while its entry waits;
+- the retained signed order is the instrument of transfer, with s1071B left open;
+- a refused settled transfer is not modelled yet, so it keeps waiting and stays
+  visible;
+- an instruction lists offering allotments by subscription;
+- a late entry is dated when it is made;
+- the clients stay API-only, plus the issuer's list of waiting entries;
+- evidence copies are retained like openings and corrections.
+
+Issue instructions came first; the issuer's waiting list and transfer
+instructions follow. Until then a completed settlement is still recorded without
+an instruction, and every entry takes its completion date rather than the date
+it is made.
 [The register](architecture/register.md) owns the mechanisms.
 
 ## Payments and settlement

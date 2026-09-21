@@ -8,8 +8,10 @@ share-event chain, stored holdings, an approved opening capture and reviewed
 compensating corrections. It is a foundation for the authoritative register.
 The HTTP and CSV register routes serve it once a share class's opening is
 applied, and issuance and settlement then record each later completed effect in
-it; opening review and the inclusion report classify completed effects against
-the captured boundary, and a scheduled job reconciles it with the chain. An
+it, an issue only under an applied register instruction that a named director's
+approval supports; opening review and the inclusion report classify completed
+effects against the captured boundary, and a scheduled job reconciles it with the
+chain. An
 import adds an existing register's particulars and former members to a class
 opened from the chain. A class not yet on chain cannot be opened from an import
 yet, so no real company's register may rely on the foundation yet.
@@ -405,6 +407,91 @@ wallet unlinked. Retention follows openings and corrections.
 A link records no register event of its own. Applying it records any issue or
 transfer that was [waiting for it](#recording-issues-and-transfers-after-the-opening).
 
+## Register instructions for issues
+
+An issue is the directors' act, so the platform approves one only once staff have
+verified a named director's approval (owner decision 2, 22 September 2026). The
+company owner submits a register instruction listing the exact issues
+it approves, each with its recipient wallet and whole number of shares: a direct
+issue by its issuance request, and an offering allotment by its subscription. It
+names the approving director and carries the same verified company document an
+opening does, and it retains a private copy of the authority file. Its kind is
+`issue`; transfer instructions are later work.
+
+| Method and route | Result |
+| --- | --- |
+| `POST /api/v1/tokens/register-instructions/` | Submit the owner's instruction; return the retained instruction |
+| `GET /api/v1/tokens/register-instructions/` | Paginated instructions for companies currently owned by the caller |
+| `GET /api/v1/tokens/register-instructions/{uuid}/` | Instruction, items and decision |
+| `GET /api/v1/tokens/register-instructions/{uuid}/file/` | Authenticated attachment of the retained authority file |
+
+```json
+{
+  "operation_id": "10000000-0000-4000-8000-000000000041",
+  "token_id": "10000000-0000-4000-8000-000000000011",
+  "document_id": "10000000-0000-4000-8000-000000000013",
+  "kind": "issue",
+  "items": [
+    {"request": "10000000-0000-4000-8000-000000000042", "recipient": "0x3333333333333333333333333333333333333333", "amount": "100"},
+    {"subscription": "10000000-0000-4000-8000-000000000043", "recipient": "0x4444444444444444444444444444444444444444", "amount": "40"}
+  ],
+  "approving_director": "Synthetic Director",
+  "authority_reference": "SYNTHETIC-RESOLUTION-ISSUE-1",
+  "reason": "Allot the shares the board resolved to issue"
+}
+```
+
+Each item must belong to the share class and match the request's or
+subscription's recipient and shares as they stand. It must also still await
+approval: a request submitted or under review, or a paid subscription not yet
+allotted. The one exception is an issue approved before `tokens/0073`, by the old
+Approve action or an allotment, whose issue entry is not yet recorded. Listing it
+adds the cover its entry waits for, without approving it again. An allotment is
+always listed by its subscription, never by its request.
+
+In **Admin → Tokens → Register instructions**, open the instruction's review
+link. An active staff user with change permission inspects the retained file, the
+named director, the authority reference and the company identity. They check each
+item's exact terms, shown with the recipient wallet, the names it identifies, the
+shares and the class, and that the director is not a recipient. Then they
+explicitly confirm and choose **Approve and apply**. Submission, review and
+application all refuse:
+
+- an item whose recipient or shares differ from its request's or subscription's
+  current terms, as when they change after submission;
+- an item no longer awaiting approval, such as a request staff rejected or one
+  another instruction approved;
+- a director who is the recipient an item identifies, by the request's
+  recipient name or the profile name of the account holding the recipient
+  wallet.
+
+Rejection with a reason stays available. Application rechecks the reviewer-bound,
+expiring confirmation, the retained evidence and every item under the company and
+share-class locks, then in one transaction:
+
+- approves each listed request still awaiting approval, with the applying staff
+  member as its reviewer, who is therefore the recorder of its issue entry;
+- lets staff allot each listed subscription on exactly its listed terms;
+- records any listed issue approved before `tokens/0073` that completed and was
+  [waiting for cover](#recording-issues-and-transfers-after-the-opening).
+
+Applying an instruction is now the only way to approve a direct issuance
+request: the staff **Approve** action is gone, and a submitted request shows
+"Awaiting a register instruction". **Reject** stays. Allotment refuses a
+subscription that no applied instruction lists with its current recipient and
+shares, so a scale-back or a partial payment after the instruction needs a fresh
+one.
+
+Repeated identical submissions and decisions are idempotent, and conflicting UUID
+reuse is refused. The database keeps instructions immutable and undeletable,
+refuses an item outside the instruction's company and share class, and refuses
+customer-role or forged decisions. It also refuses an application that leaves a
+listed request unapproved. `tokens/0073` also guards issuance requests: the
+company's own connection can no longer approve, reject or start review of one, or
+change its reviewer, review time, notes or rejection reason, and no connection
+can approve one without an active staff reviewer. Retention follows openings and
+corrections.
+
 ## Classifying completed inclusions
 
 The boundary an opening captures fixes which economic effects the opening already
@@ -487,7 +574,7 @@ transaction that completes it:
 
 | Effect | Entry | Recorded by | Effective date |
 | --- | --- | --- | --- |
-| Issuance | `issue` of the minted shares to the recipient's linked member | The staff member who approved the issuance request | The completion date (UTC) |
+| Issuance | `issue` of the minted shares to the recipient's linked member | The staff member who approved the issuance request: who applied the [register instruction](#register-instructions-for-issues) listing it, allotted the subscription one lists, or approved it before `tokens/0073` | The completion date (UTC) |
 | Settlement | `transfer` from the seller's linked member to the buyer's | The transferor, whose signed order is the instrument | The completion date (UTC) |
 
 The entry's operation ID is the completed issuance or settlement, so recording is
@@ -495,21 +582,30 @@ idempotent. Only an issue or transfer entry counts: a correction or opening that
 reuses a completion's ID does not mark it recorded. The completion then waits,
 with the register's refusal logged. An effect the opening already represents records nothing, and so does
 a settlement between two wallets of the same member, since no holding changes.
+An issue is recorded only once an applied register instruction covers its request
+or, for an allotment, its subscription. Every issue approved since `tokens/0073`
+is covered, because applying an instruction is its approval and allotment needs
+one; an issue approved before it waits until an instruction lists it. The
+recorder is the request's reviewer, which the company's own connection cannot
+change since `tokens/0073`. A request with no recorded reviewer waits rather than
+recording someone else. Entries recorded before `tokens/0073` stay as they are, and no
+approval is invented for them.
 
 Recording follows chain order: by block, then by the transaction index the
 completion's finalized receipt records. A completion finalized before
 `tokens/0068` has no index; within its block it follows the kind and ID.
 Recording stops at the first effect it cannot record:
-a wallet with no link, a completion held for attribution, or an entry the
-register refuses, such as a transfer whose seller's stored holding does not cover
-it after a move outside settlement. Nothing is recorded past that effect, so the
+a wallet with no link, an issue no applied instruction covers, a completion held
+for attribution, or an entry the register refuses, such as a transfer whose
+seller's stored holding does not cover it after a move outside settlement. Nothing is recorded past that effect, so the
 stored holdings never skip ahead of the chain. The completion itself still
 commits, because a register record must not stall the workflow; the reason is
-logged. Recording resumes at the next completion in that share class or the next
-applied wallet link in the company, so an effect waits until one of those runs
-after its cause is resolved. Applying a
-reviewed wallet link records whatever was waiting for it; it takes each share
-class's lock first, so a completion in progress cannot miss the new link.
+logged. Recording resumes at the next completion in that share class, the next
+applied wallet link in the company or the next applied register instruction for
+that share class, so an effect waits until one of those runs after its cause is
+resolved. Applying a reviewed wallet link or a register instruction records
+whatever was waiting for it; each takes the share class's lock first, so a
+completion in progress cannot miss the new link or cover.
 `register_inclusions` reports `recorded` for each effect.
 
 ## Reading the register
@@ -522,8 +618,9 @@ describes both. Before a share class's opening is applied, holders report
 `waitingEffects` count, or the CSV's "Completed effects waiting to be recorded"
 row, means completions are not yet in the holdings. Run `register_inclusions`
 for that share class to find the first unrecorded effect: an unlinked wallet
-needs a reviewed link request, and an effect held for attribution waits for the
-attribution procedure. A count of `null`, or `unknown` in the CSV, means the
+needs a reviewed link request, an issue approved before `tokens/0073` needs a
+[register instruction](#register-instructions-for-issues) that lists it, and an
+effect held for attribution waits for the attribution procedure. A count of `null`, or `unknown` in the CSV, means the
 completions could not be classified, or the register has no captured boundary to
 classify them against, as with one loaded by the synthetic command above;
 `register_inclusions` prints the refusal or a null boundary.

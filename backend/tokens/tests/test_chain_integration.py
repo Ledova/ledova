@@ -105,6 +105,12 @@ from tokens.services.register_inclusions import (
     classify_inclusion,
     completed_inclusions,
     unrepresented_inclusions,
+    waiting_effects,
+)
+from tokens.services.register_instructions import (
+    decide_instruction,
+    prepare_instruction_review,
+    submit_instruction,
 )
 from tokens.services.register_openings import (
     decide_opening,
@@ -886,7 +892,12 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         )
         reviewer.user_permissions.add(
             *Permission.objects.filter(
-                codename__in=["change_companydocument", "change_registeropening", "view_registeropening"]
+                codename__in=[
+                    "change_companydocument",
+                    "change_registeropening",
+                    "view_registeropening",
+                    "change_registerinstruction",
+                ]
             )
         )
         document = attach_file(make_document(self.tenant.company))
@@ -942,11 +953,33 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual(len(after), 1)
         self.assertGreater(after[0]["block_number"], applied.boundary["block"]["number"])
         self.assertEqual(classify_inclusion(applied.boundary, after[0]), AFTER_OPENING)
-        report = classified_inclusions(self.token.pk)
-        self.assertEqual(
-            sorted((inclusion["classification"], inclusion["recorded"]) for inclusion in report["inclusions"]),
-            [(AFTER_OPENING, True), (OPENING, False), (OPENING, False)],
+
+        def recorded_classifications():
+            return sorted(
+                (inclusion["classification"], inclusion["recorded"])
+                for inclusion in classified_inclusions(self.token.pk)["inclusions"]
+            )
+
+        self.assertEqual(recorded_classifications(), [(AFTER_OPENING, False), (OPENING, False), (OPENING, False)])
+        self.assertEqual(waiting_effects(self.token.pk), 1)
+        self.assertFalse(RegisterEntry.objects.filter(kind="issue").exists())
+        instruction = submit_instruction(
+            actor=owner,
+            operation_id=uuid4(),
+            token_id=self.token.pk,
+            document_id=document.pk,
+            kind="issue",
+            items=[{"request": str(third.pk), "recipient": self.investor, "amount": "5"}],
+            approving_director="Synthetic Director",
+            authority_reference="SYNTHETIC-RESOLUTION-ISSUE-1",
+            reason="Approve the issue made before register instructions",
         )
+        _, _, instruction_review = prepare_instruction_review(proposal_id=instruction.pk, reviewer=reviewer)
+        decide_instruction(
+            proposal_id=instruction.pk, reviewer=reviewer, confirmation=instruction_review, decision="apply"
+        )
+        self.assertEqual(recorded_classifications(), [(AFTER_OPENING, True), (OPENING, False), (OPENING, False)])
+        self.assertEqual(waiting_effects(self.token.pk), 0)
         issued = ShareIssuanceRequest.objects.get(pk=third.pk)
         recorded = RegisterEntry.objects.get(operation_id=issued.executed_issuance_id)
         self.assertEqual(

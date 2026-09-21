@@ -31,6 +31,7 @@ STATUS_COLORS = {
     RequestStatus.SUPERSEDED: "#6c757d",
 }
 APPROVE = ("Approve", "approve", "#28a745")
+AWAITING_INSTRUCTION = ("Awaiting a register instruction", None, "#e9ecef", "#6c757d")
 REJECT = ("Reject", "reject", "#dc3545")
 STATUS_ACTIONS = {
     RequestStatus.DRAFT: [("Awaiting Submission", None, "#e9ecef", "#6c757d")],
@@ -76,6 +77,7 @@ class ReviewWorkflowAdmin(admin.ModelAdmin):
 
     label = "Request"
     deletable_status = RequestStatus.DRAFT
+    approved_by_instruction = False
     detail_fieldset = ("Details", {"fields": []})
     ordering = ["-created_at"]
     status_badge = status_badge(STATUS_COLORS)
@@ -131,7 +133,7 @@ class ReviewWorkflowAdmin(admin.ModelAdmin):
     def get_urls(self):
         views = [
             ("start-review", "start_review", self.start_review_view),
-            ("approve", "approve", self.approve_view),
+            *([] if self.approved_by_instruction else [("approve", "approve", self.approve_view)]),
             ("reject", "reject", self.reject_view),
             ("execute", "execute", self.execute_view),
             ("name-mint", "name_mint", self.name_mint_view),
@@ -168,7 +170,10 @@ class ReviewWorkflowAdmin(admin.ModelAdmin):
     def status_actions(self, obj):
         if obj.pk is None:
             return "-"
-        items = STATUS_ACTIONS.get(obj.status, [])
+        items = [
+            AWAITING_INSTRUCTION if self.approved_by_instruction and item is APPROVE else item
+            for item in STATUS_ACTIONS.get(obj.status, [])
+        ]
         if self._has_an_unnamed_mint(obj):
             items = items + UNNAMED_MINT_ACTIONS
         return action_buttons(

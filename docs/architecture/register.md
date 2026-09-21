@@ -28,8 +28,18 @@ completion takes the same share-class lock as issuance completion, so neither ca
 interleave with an opening. Each completion after the opening is
 [recorded as an issue or transfer](../operations/register-foundation.md#recording-issues-and-transfers-after-the-opening)
 in its own completion transaction, in chain order; recording waits, without
-stalling the completion, at the first effect whose wallet has no link or which
-needs attribution.
+stalling the completion, at the first effect whose wallet has no link, which
+needs attribution, or which is an issue no applied register instruction covers.
+
+An issue is approved only under a
+[register instruction](../operations/register-foundation.md#register-instructions-for-issues):
+the company owner lists the exact issuance requests, and offering subscriptions
+for allotments, that a named director approved, with staff-verified documentary
+authority, and staff review it. Applying it approves each listed request with the
+reviewer, who becomes the issue entry's recorder, and allotment refuses a
+subscription no applied instruction lists on its current terms. PostgreSQL keeps
+instructions immutable, and keeps an issuance request's review decision and
+reviewer out of the company's own connection. Transfers are not yet instructed.
 
 Owner-submitted [compensating corrections](../operations/register-foundation.md#reviewed-compensating-corrections)
 now bind documentary authority to an exact reversal and register revision.
@@ -112,7 +122,8 @@ waiting count and former members from one database snapshot, so an entry
 recorded during the read cannot make them disagree.
 
 A completed issue or transfer after the opening waits while its wallet has no
-link or an earlier effect waits; see
+link, while an issue has no applied register instruction, or while an earlier
+effect waits; see
 [recording](../operations/register-foundation.md#recording-issues-and-transfers-after-the-opening).
 A waiting effect is counted, not included in any holding, so a register with
 waiting effects is behind the chain until they are recorded. A count that cannot

@@ -15,6 +15,7 @@ from offerings.tasks import (
     reconcile_subscriptions,
 )
 from offerings.tests.factories import (
+    allottable_subscription,
     configure_operator,
     draft_subscription,
     eligible_subscriber,
@@ -65,7 +66,7 @@ class SubscriptionTaskTestCase(TransactionTestCase):
         self.operator_user.save(update_fields=["is_superuser"])
 
     def _allotted(self, quantity=10, wallet=None):
-        subscription = paid_subscription(self.tenant, quantity=quantity, wallet=wallet)
+        subscription = allottable_subscription(self.tenant, quantity=quantity, wallet=wallet)
         allot(subscription, self.operator_user)
         subscription.refresh_from_db()
         return subscription

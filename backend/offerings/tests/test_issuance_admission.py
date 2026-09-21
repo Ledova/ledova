@@ -11,10 +11,10 @@ from offerings.models import Subscription
 from offerings.services.subscription import allot, record_refund
 from offerings.tasks import allot_subscription_task
 from offerings.tests.factories import (
+    allottable_subscription,
     configure_operator,
     eligible_subscriber,
     open_offering,
-    paid_subscription,
 )
 from shared.db import atomic
 from shared.tests.tenants import make_tenant
@@ -38,7 +38,7 @@ class QueuedIssuanceTermsTest(TransactionTestCase):
         self.operator = make_tenant("queued-operator", staff=True).user
         self.operator.is_superuser = True
         self.operator.save(update_fields=["is_superuser"])
-        self.subscription = paid_subscription(self.tenant, quantity=10)
+        self.subscription = allottable_subscription(self.tenant, quantity=10)
         self.enterContext(patch("offerings.tasks.subscription.allot_subscription_task.defer"))
         self.request = allot(self.subscription, self.operator, headroom=(1000, 1000))
         self.assertEqual(self.request.status, RequestStatus.APPROVED)

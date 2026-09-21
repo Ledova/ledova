@@ -23,6 +23,7 @@ class IssuanceExecutionForm(forms.Form):
 class ShareIssuanceRequestAdmin(ReviewWorkflowAdmin):
     label = "Issuance"
     deletable_status = RequestStatus.SUBMITTED
+    approved_by_instruction = True
 
     def recorded_execution_error(self, obj) -> str:
         execution = (

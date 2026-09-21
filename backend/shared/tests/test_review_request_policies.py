@@ -2,7 +2,7 @@ from unittest import skipUnless
 
 from django.conf import settings
 from django.db import connection, transaction
-from django.db.utils import ProgrammingError
+from django.db.utils import IntegrityError, ProgrammingError
 from django.test import TestCase
 
 from offerings.exceptions import SubscriptionRefusedException
@@ -137,8 +137,10 @@ class ReviewRequestPolicyTest(TestCase):
         self.assertEqual(ShareIssuanceRequest.objects.select_for_update().get(pk=linked.pk), linked)
         with self.assertRaises(ProgrammingError) as refused:
             with transaction.atomic():
-                ShareIssuanceRequest.objects.filter(pk=linked.pk).update(status=RequestStatus.REJECTED)
+                ShareIssuanceRequest.objects.filter(pk=linked.pk).update(execution_notes="Forged by a subscriber")
         self.assertIn("row-level security", str(refused.exception))
+        with self.assertRaisesMessage(IntegrityError, "Only operator review may decide"), transaction.atomic():
+            ShareIssuanceRequest.objects.filter(pk=linked.pk).update(status=RequestStatus.REJECTED)
         self.assertEqual(ShareIssuanceRequest.objects.filter(pk=linked.pk).delete()[0], 0)
 
     def test_withdrawal_after_an_issuance_is_claimed_still_returns_the_business_refusal(self):
