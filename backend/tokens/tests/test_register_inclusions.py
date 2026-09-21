@@ -27,7 +27,7 @@ from tokens.models import (
     ShareIssuanceExecution,
     ShareIssuanceRequest,
 )
-from tokens.services import issuance_execution, register_openings
+from tokens.services import issuance_execution, register_inclusions, register_openings
 from tokens.services.register_events import record_entry
 from tokens.services.register_inclusions import (
     AFTER_OPENING,
@@ -244,6 +244,16 @@ class RegisterInclusionTest(InclusionFixtures, TransactionTestCase):
             {source: (row["classification"], row["recorded"]) for source, row in rows.items()},
             {str(issuance.pk): (OPENING, False), str(later.pk): (AFTER_OPENING, True)},
         )
+
+    def test_a_read_and_a_recording_pass_parse_the_boundary_history_once(self):
+        self.open_holding_the_mint(self.mint())
+        self.mint(block=MINT_BLOCK + 2)
+        self.mint(block=MINT_BLOCK + 3)
+        with patch.object(register_inclusions, "_history", wraps=register_inclusions._history) as parsed:
+            rows = classified_inclusions(self.tenant.token.pk)["inclusions"]
+            record_completed_effects(self.tenant.token.pk)
+        self.assertEqual([row["classification"] for row in rows], [OPENING, AFTER_OPENING, AFTER_OPENING])
+        self.assertEqual(parsed.call_count, 2)
 
     def test_completion_evidence_keeps_the_transaction_index_that_orders_a_block(self):
         issuance = self.mint(index=3)

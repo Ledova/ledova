@@ -515,6 +515,7 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
                     "block_hash": Web3.to_hex(receipt["blockHash"]),
                     "gas_used": receipt["gasUsed"],
                     "policy": {"version": 1, "mode": "depth", "depth": 2},
+                    "transaction_index": receipt["transactionIndex"],
                 },
             )
             self.assertIsNone(swap_execution.settle(swap.transaction_id))

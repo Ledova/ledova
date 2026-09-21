@@ -138,24 +138,35 @@ def _history(boundary):
     return entries
 
 
-def classify_inclusion(boundary, inclusion):
+def classifier(boundary):
     if boundary is None:
-        return UNOPENED
+        return lambda inclusion: UNOPENED
     history = _history(boundary)
     if history is None:
-        return ATTRIBUTION
-    recorded = {(block, digest) for transaction, block, digest in history if transaction == inclusion["transaction"]}
-    if inclusion["block_number"] > boundary["block"]["number"]:
-        return ATTRIBUTION if recorded else AFTER_OPENING
-    if recorded != {(inclusion["block_number"], inclusion["block_hash"])}:
-        return ATTRIBUTION
-    return OPENING
+        return lambda inclusion: ATTRIBUTION
+    blocks = {}
+    for transaction, block, digest in history:
+        blocks.setdefault(transaction, set()).add((block, digest))
+    height = boundary["block"]["number"]
+
+    def classify(inclusion):
+        recorded = blocks.get(inclusion["transaction"], set())
+        if inclusion["block_number"] > height:
+            return ATTRIBUTION if recorded else AFTER_OPENING
+        if recorded != {(inclusion["block_number"], inclusion["block_hash"])}:
+            return ATTRIBUTION
+        return OPENING
+
+    return classify
+
+
+def classify_inclusion(boundary, inclusion):
+    return classifier(boundary)(inclusion)
 
 
 def unrepresented_inclusions(token_id, boundary):
-    return [
-        inclusion for inclusion in completed_inclusions(token_id) if classify_inclusion(boundary, inclusion) != OPENING
-    ]
+    classify = classifier(boundary)
+    return [inclusion for inclusion in completed_inclusions(token_id) if classify(inclusion) != OPENING]
 
 
 def assert_boundary_represents_completions(token_id, boundary):
@@ -193,6 +204,7 @@ def classified_inclusions(token_id):
     if not ShareToken.objects.filter(pk=token_id).exists():
         raise NotFound("Share class not found.")
     boundary = opening_boundary(token_id)
+    classify = classifier(boundary)
     recorded = _recorded(token_id)
     return {
         "token": str(token_id),
@@ -200,7 +212,7 @@ def classified_inclusions(token_id):
         "inclusions": [
             {
                 **inclusion,
-                "classification": classify_inclusion(boundary, inclusion),
+                "classification": classify(inclusion),
                 "recorded": inclusion["source"] in recorded,
             }
             for inclusion in completed_inclusions(token_id)
@@ -264,10 +276,11 @@ def record_completed_effects(token_id):
     except ValidationError:
         logger.warning("Register recording for share class %s waits for attribution of a completed effect", token_id)
         return []
+    classify = classifier(boundary)
     recorded = _recorded(token_id)
     appended = []
     for inclusion in inclusions:
-        classification = classify_inclusion(boundary, inclusion)
+        classification = classify(inclusion)
         if classification == OPENING or inclusion["source"] in recorded:
             continue
         effect = _effect(inclusion, register.token.company_id) if classification == AFTER_OPENING else None
