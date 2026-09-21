@@ -264,8 +264,9 @@ applied. Committed copies are protected by their retained row; copies left by a
 rolled-back or interrupted submission fall under the existing 24-hour orphan
 sweep. Account/company deletion still respects protected register relations.
 Production retention needs its own decision before real data is admitted.
-Classification evidence, former-member retention and future export records have
-independent policies; this choice does not change them.
+Classification evidence, former-member retention and export records have
+independent policies; this choice does not change them. Export records follow
+the 2,557-day floor, purged by the daily retention job.
 
 ## Approved opening capture and wallet links
 
