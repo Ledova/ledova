@@ -364,6 +364,11 @@ refusal is what keeps the gap between capture and application closed: a
 completion cannot land in it unobserved, because both completions take the
 share-class lock the application holds.
 
+These are the effects the platform itself completes. A holder's own on-chain
+transfer, made outside settlement, is not one of them: the boundary's holdings
+already contain it up to the boundary block, and anything later is a
+reconciliation question rather than a classified completion.
+
 An inclusion at the boundary height on a different block hash, and a completed
 effect with no verified final inclusion at all — a historical mint or settlement
 completed from a first receipt before finality evidence was retained — are
