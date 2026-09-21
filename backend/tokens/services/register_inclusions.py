@@ -95,18 +95,22 @@ def _history(boundary):
     history = boundary.get("history")
     if not isinstance(history, list):
         return None
+    anchors = {
+        boundary.get("deployment_block"): normalized_hash(boundary.get("deployment_hash")),
+        boundary["block"]["number"]: normalized_hash(boundary["block"]["hash"]),
+    }
     entries = []
     for entry in history:
         if not isinstance(entry, dict) or set(entry) != {"block", "block_hash", "transaction"}:
             return None
-        recorded = (
+        transaction, block, digest = (
             normalized_hash(entry["transaction"]),
             nonnegative_integer(entry["block"], maximum=MAX_BLOCK_NUMBER),
             normalized_hash(entry["block_hash"]),
         )
-        if None in recorded:
+        if None in (transaction, block, digest) or anchors.get(block, digest) != digest:
             return None
-        entries.append(recorded)
+        entries.append((transaction, block, digest))
     return entries
 
 

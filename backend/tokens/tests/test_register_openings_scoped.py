@@ -113,6 +113,7 @@ class ScopedRegisterOpeningTest(RunsOnTheScopedConnection, APITransactionTestCas
         boundary = RegisterOpening.objects.get(pk=self.proposal.pk).boundary
         self.assertTrue(boundary["history"])
         entry = boundary["history"][0]
+        deployment = {"block": boundary["deployment_block"], "block_hash": boundary["deployment_hash"]}
         absent = {key: value for key, value in boundary.items() if key != "history"}
         refusals = (
             absent,
@@ -122,14 +123,20 @@ class ScopedRegisterOpeningTest(RunsOnTheScopedConnection, APITransactionTestCas
             {**boundary, "history": [{**entry, "block": boundary["block"]["number"] + 1}]},
             {**boundary, "history": [entry, {**entry, "block_hash": "0x" + "ee" * 32}]},
             {**boundary, "history": [entry, entry]},
+            {**boundary, "history": [{**item, "block_hash": "0x" + "ee" * 32} for item in boundary["history"]]},
+            {**boundary, "history": [*boundary["history"], {**entry, **deployment, "block_hash": "0x" + "dd" * 32}]},
         )
         for value in refusals:
             proposal = submit_opening(actor=self.owner, **opening_payload(self.document, self.target))
-            with self.subTest(history=value.get("history")), use_operator():
-                with self.assertRaises(DatabaseError), atomic():
+            with self.subTest(history=value.get("history")):
+                with use_operator(), self.assertRaises(DatabaseError), atomic():
                     RegisterOpening.objects.filter(pk=proposal.pk).update(boundary=value)
-            self.assertIsNone(RegisterOpening.objects.get(pk=proposal.pk).boundary)
+                self.assertIsNone(RegisterOpening.objects.get(pk=proposal.pk).boundary)
+        anchored = {**boundary, "history": [*boundary["history"], {**entry, **deployment}]}
+        proposal = submit_opening(actor=self.owner, **opening_payload(self.document, self.target))
         with use_operator():
+            RegisterOpening.objects.filter(pk=proposal.pk).update(boundary=anchored)
+            self.assertEqual(RegisterOpening.objects.get(pk=proposal.pk).boundary["history"], anchored["history"])
             self.assertEqual(self.apply().status, "applied")
 
     def test_only_the_operator_connection_classifies_inclusions(self):

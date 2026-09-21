@@ -234,6 +234,11 @@ class RegisterInclusionTest(TransactionTestCase):
         reorganised = {**inclusion, "block_hash": normalized_hash(block_hash(MINT_BLOCK))}
         self.assertNotEqual(reorganised["block_hash"], normalized_hash(applied.boundary["block"]["hash"]))
         self.assertEqual(classify_inclusion(applied.boundary, reorganised), ATTRIBUTION)
+        forked = {
+            **applied.boundary,
+            "history": [{**entry, "block_hash": block_hash(MINT_BLOCK)} for entry in applied.boundary["history"]],
+        }
+        self.assertEqual(classify_inclusion(forked, reorganised), ATTRIBUTION)
         recorded = {**inclusion, "transaction": normalized_hash(block_hash(98)), "block_number": MINT_BLOCK - 1}
         self.assertEqual(classify_inclusion(applied.boundary, recorded), ATTRIBUTION)
 
@@ -378,6 +383,7 @@ class RegisterInclusionTest(TransactionTestCase):
             [{**recorded, "transaction": recorded["transaction"][:-2]}],
             [{**recorded, "observed": True}],
             [recorded, {"block": recorded["block"], "block_hash": recorded["block_hash"]}],
+            [{**recorded, "block_hash": block_hash(777)}],
         ):
             with self.subTest(history=history):
                 self.assertEqual(classify_inclusion({**boundary, "history": history}, later), ATTRIBUTION)

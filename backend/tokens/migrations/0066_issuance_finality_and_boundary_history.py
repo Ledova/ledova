@@ -118,7 +118,11 @@ BEGIN
             OR jsonb_typeof(item->'transaction') IS DISTINCT FROM 'string'
             OR item->>'transaction' !~ '^0x[0-9a-f]{64}$'
             OR (item->>'block')::numeric < (NEW.boundary->>'deployment_block')::numeric
-            OR (item->>'block')::numeric > (NEW.boundary->'block'->>'number')::numeric)
+            OR (item->>'block')::numeric > (NEW.boundary->'block'->>'number')::numeric
+            OR ((item->>'block')::numeric = (NEW.boundary->>'deployment_block')::numeric
+                AND item->>'block_hash' IS DISTINCT FROM NEW.boundary->>'deployment_hash')
+            OR ((item->>'block')::numeric = (NEW.boundary->'block'->>'number')::numeric
+                AND item->>'block_hash' IS DISTINCT FROM NEW.boundary->'block'->>'hash'))
         OR entries <> (SELECT count(DISTINCT (item->>'block') || ':' || (item->>'transaction'))
             FROM jsonb_array_elements(history) item)
         OR EXISTS (SELECT 1 FROM jsonb_array_elements(history) item
