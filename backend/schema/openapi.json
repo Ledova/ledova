@@ -3525,6 +3525,7 @@
       "FormerMember": {
         "properties": {
           "ceasedAtBlock": {
+            "nullable": true,
             "readOnly": true,
             "type": "integer"
           },
@@ -3571,6 +3572,7 @@
             "type": "string"
           },
           "walletAddress": {
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           }
@@ -3704,11 +3706,12 @@
         "type": "integer"
       },
       "IdentitySourceEnum": {
-        "description": "* `profile` - Current profile\n* `stamped` - Stamped at the time\n* `recorded` - Name recorded at allotment, identity never resolved\n* `treasury_label` - Whitelist entry label, no profile exists\n* `unresolvable` - Not resolvable, two wallets share this address\n* `none` - Not identified\n* `unknown` - Never identified while it held shares",
+        "description": "* `profile` - Current profile\n* `stamped` - Stamped at the time\n* `recorded` - Name recorded at allotment, identity never resolved\n* `particulars` - Recorded register particulars\n* `treasury_label` - Whitelist entry label, no profile exists\n* `unresolvable` - Not resolvable, two wallets share this address\n* `none` - Not identified\n* `unknown` - Never identified while it held shares",
         "enum": [
           "profile",
           "stamped",
           "recorded",
+          "particulars",
           "treasury_label",
           "unresolvable",
           "none",

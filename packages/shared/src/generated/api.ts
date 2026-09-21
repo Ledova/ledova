@@ -3120,7 +3120,7 @@ export interface ApiComponents {
       sourceOfFundsOtherText?: string | null;
     };
     FormerMember: {
-      ceasedAtBlock: number;
+      ceasedAtBlock: number | null;
       ceasedOn: string;
       identityRecordedAt: string;
       identitySource: ApiComponents['schemas']['IdentitySourceEnum'];
@@ -3129,7 +3129,7 @@ export interface ApiComponents {
       residentialAddress: string;
       sharesAtCessation: string;
       uuid: string;
-      walletAddress: string;
+      walletAddress: string | null;
     };
     HolderTypeEnum: 'member' | 'treasury' | 'ambiguous' | 'unidentified';
     Holding: {
@@ -3149,7 +3149,8 @@ export interface ApiComponents {
       walletUuid: string;
     };
     HttpStatusEnum: 400 | 409;
-    IdentitySourceEnum: 'profile' | 'stamped' | 'recorded' | 'treasury_label' | 'unresolvable' | 'none' | 'unknown';
+    IdentitySourceEnum:
+      'profile' | 'stamped' | 'recorded' | 'particulars' | 'treasury_label' | 'unresolvable' | 'none' | 'unknown';
     IdentityVerificationSession: {
       accessToken: string | null;
       applicantId: string | null;
