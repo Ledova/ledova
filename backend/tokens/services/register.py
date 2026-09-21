@@ -1,8 +1,12 @@
 import logging
 from collections import defaultdict
+from contextlib import contextmanager
 from datetime import timezone as utc_zone
 from decimal import Decimal
 
+from django.db import connections
+
+from shared.db import atomic, current_alias
 from shared.utils import csv_cell
 from tokens.exceptions import RegisterNotInitialized
 from tokens.models import (
@@ -37,6 +41,7 @@ SOURCE_LABELS = {
 }
 
 MEMBER_AMBIGUOUS_NAME = "The member's wallets resolve to different people"
+MEMBER_AMBIGUOUS = (HolderType.AMBIGUOUS.value, MEMBER_AMBIGUOUS_NAME, "", IDENTITY_UNRESOLVABLE, None)
 
 EMPTY_ALLOTMENT = {"shares": 0, "entered_on": None, "paid": ZERO, "backed": 0, "unbacked": 0}
 
@@ -134,8 +139,8 @@ def _backing(issuance, shares):
     return backing if backing > ZERO else None
 
 
-def _amount_paid(allotment, balance):
-    if allotment["unbacked"] or allotment["backed"] != int(balance):
+def _amount_paid(allotment, balance, touched):
+    if touched or allotment["unbacked"] or allotment["backed"] != int(balance):
         return None
     return allotment["paid"]
 
@@ -159,6 +164,8 @@ def _merged(allotments):
     for allotment in allotments:
         for key in ("shares", "paid", "backed", "unbacked"):
             merged[key] += allotment[key]
+        if merged["entered_on"] is None or allotment["entered_on"] < merged["entered_on"]:
+            merged["entered_on"] = allotment["entered_on"]
     return merged
 
 
@@ -169,12 +176,14 @@ def _member_identity(addresses, identities, stamps):
         if identity.holder_type != HolderType.UNIDENTIFIED.value
     }
     if len(people) > 1 or any(holder_type == HolderType.AMBIGUOUS.value for holder_type, _, _ in people):
-        return HolderType.AMBIGUOUS.value, MEMBER_AMBIGUOUS_NAME, "", IDENTITY_UNRESOLVABLE, None
+        return MEMBER_AMBIGUOUS
     if people:
         holder_type, name, residential_address = people.pop()
         return holder_type, name, residential_address, IDENTITY_BY_HOLDER_TYPE[holder_type], None
     found = [stamps[address.lower()] for address in addresses if address.lower() in stamps]
     resolved = [stamp for stamp in found if stamp["stamped_at"]]
+    if len({(stamp["name"], stamp["residential_address"]) for stamp in resolved}) > 1:
+        return MEMBER_AMBIGUOUS
     if resolved:
         stamp = max(resolved, key=lambda stamp: stamp["stamped_at"])
         return (
@@ -188,37 +197,87 @@ def _member_identity(addresses, identities, stamps):
     return HolderType.UNIDENTIFIED.value, named, "", IDENTITY_RECORDED if named else IDENTITY_NONE, None
 
 
-def _entered_on(position, opening, allotted):
-    if opening is None or position.entered_on != opening.effective_on:
-        return position.entered_on
-    if str(position.member_id) not in {change["member"] for change in opening.changes}:
-        return position.entered_on
-    return min([position.entered_on, *(moment.astimezone(utc_zone.utc).date() for moment in allotted)])
+def _allotted(allotment, opened_on, ceased):
+    if allotment["entered_on"] is None:
+        return None, False
+    allotted_on = allotment["entered_on"].astimezone(utc_zone.utc).date()
+    return allotted_on, any(allotted_on <= day <= opened_on for day in ceased)
 
 
-def stored_register(token):
+def _entered_on(position, continuous, allotted_on):
+    if continuous and allotted_on is not None and allotted_on < position.entered_on:
+        return allotted_on
+    return position.entered_on
+
+
+@contextmanager
+def _snapshot():
+    outermost = not connections[current_alias()].in_atomic_block
+    with atomic():
+        if outermost:
+            with connections[current_alias()].cursor() as cursor:
+                cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+        yield
+
+
+def _history(register):
+    entries = RegisterEntry.objects.filter(register=register).order_by("sequence")
+    (_, opened_on, opening), *later = entries.values_list("kind", "effective_on", "changes")
+    running = {change["member"]: int(change["shares"]) for change in opening}
+    transferred = set()
+    for kind, _, changes in later:
+        for change in changes:
+            if kind == RegisterEntryKind.TRANSFER:
+                transferred.add(change["member"])
+            if change["member"] in running:
+                running[change["member"]] += int(change["shares"])
+                if not running[change["member"]]:
+                    del running[change["member"]]
+    return opened_on, set(running), transferred
+
+
+def _cessations(token, member_of):
+    from tokens.services.former_holders import former_members_of
+
+    ceased, former = defaultdict(list), []
+    for row in former_members_of(token):
+        member = member_of.get(row.wallet_address.lower())
+        if member is None:
+            former.append(row)
+        else:
+            ceased[member].append(row.ceased_on)
+    return ceased, former
+
+
+def _stored_register(token):
     register = ShareRegister.objects.filter(token=token).first()
     if register is None or register.sequence == 0:
         return None
-    opening = RegisterEntry.objects.filter(register=register, kind=RegisterEntryKind.OPENING).first()
+    opened_on, held, transferred = _history(register)
     positions = list(RegisterPosition.objects.filter(register=register, shares__gt=0).order_by("-shares", "member_id"))
     wallets = defaultdict(list)
     for link in RegisterMemberWallet.objects.filter(
         company_id=token.company_id, member_id__in=[position.member_id for position in positions]
     ).order_by("address"):
         wallets[link.member_id].append(link.address)
+    ceased, former = _cessations(
+        token, {address.lower(): member for member, addresses in wallets.items() for address in addresses}
+    )
     identities = identities_for([address for addresses in wallets.values() for address in addresses])
     stamps = ShareIssuance.objects.filter_by_token(token).latest_identity_stamps()
     allotments = {address.lower(): allotment for address, allotment in _allotments(token).items()}
     issued = int(register.issued_supply)
     rows = []
     for position in positions:
+        member = str(position.member_id)
         addresses = wallets[position.member_id]
         holder_type, name, residential_address, source, stamped_at = _member_identity(addresses, identities, stamps)
+        allotment = _merged(allotments[address.lower()] for address in addresses if address.lower() in allotments)
+        allotted_on, interrupted = _allotted(allotment, opened_on, ceased[position.member_id])
         shares = int(position.shares)
         rows.append(
             {
-                "member": str(position.member_id),
+                "member": member,
                 "wallets": [
                     {
                         "address": address,
@@ -233,24 +292,24 @@ def stored_register(token):
                 "holder_type": holder_type,
                 "holder_type_display": HolderType(holder_type).label,
                 "identity_source": identity_source_label(source, stamped_at),
-                "entered_on": _entered_on(
-                    position,
-                    opening,
-                    [
-                        allotments[address.lower()]["entered_on"]
-                        for address in addresses
-                        if address.lower() in allotments
-                    ],
-                ),
+                "entered_on": _entered_on(position, member in held and not interrupted, allotted_on),
                 "share_class": token.symbol,
                 "residential_address": residential_address,
-                "amount_paid": _amount_paid(
-                    _merged(allotments[address.lower()] for address in addresses if address.lower() in allotments),
-                    shares,
-                ),
+                "amount_paid": _amount_paid(allotment, shares, member in transferred or interrupted),
             }
         )
-    return {"rows": rows, "issued_supply": issued, "waiting_effects": waiting_effects(token.pk)}
+    return {
+        "rows": rows,
+        "sequence": register.sequence,
+        "issued_supply": issued,
+        "waiting_effects": waiting_effects(token.pk),
+        "former_members": former,
+    }
+
+
+def stored_register(token):
+    with _snapshot():
+        return _stored_register(token)
 
 
 def api_holders(rows) -> list[dict]:
@@ -277,11 +336,16 @@ def export_rows(token, requested_by) -> list[list]:
         f"Register export of {token.symbol} for company {token.company_id}: "
         f"{len(register['rows'])} rows, requested by user {getattr(requested_by, 'pk', None)}"
     )
-    return [_csv_row(row) for row in register["rows"]] + [[]] + _summary_rows(register) + former_member_rows(token)
+    return (
+        [_csv_row(row) for row in register["rows"]]
+        + [[]]
+        + _summary_rows(register)
+        + former_member_rows(token, register["former_members"])
+    )
 
 
-def former_member_rows(token) -> list[list]:
-    from tokens.services.former_holders import fold_is_stale, former_members_of
+def former_member_rows(token, members) -> list[list]:
+    from tokens.services.former_holders import fold_is_stale
 
     rows = [
         [
@@ -297,7 +361,7 @@ def former_member_rows(token) -> list[list]:
             ),
             csv_cell(row.created_at.isoformat()),
         ]
-        for row in former_members_of(token)
+        for row in members
     ]
     return [[], [FORMER_MEMBERS_HEADING], FORMER_MEMBER_HEADERS, *rows, _as_at_row(token, fold_is_stale(token))]
 

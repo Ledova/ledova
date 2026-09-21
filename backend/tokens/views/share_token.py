@@ -232,7 +232,9 @@ class ShareTokenViewSet(AuthenticatedModelViewSet):
                 "total_holders": len(rows),
                 "issued_supply": None if register is None else str(register["issued_supply"]),
                 "waiting_effects": None if register is None else register["waiting_effects"],
-                "former_members": FormerMemberSerializer(former_members_of(token), many=True).data,
+                "former_members": FormerMemberSerializer(
+                    register["former_members"] if register else former_members_of(token), many=True
+                ).data,
                 "former_members_as_at": token.former_holders_folded_at,
                 "former_members_block": token.former_holders_block,
                 "former_members_stale": fold_is_stale(token),

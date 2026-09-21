@@ -102,9 +102,11 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   reports `initialized: false` and its export returns 409
   `register_not_initialized` until an
   [opening is applied](register-foundation.md#approved-opening-capture-and-wallet-links).
-  Rows become one per member with its `wallets` in place of `address`, the
-  response drops `listedTotal` and `discrepancy`, and the CSV gains a Member ID
-  column and joins a member's wallets in Wallet addresses. Release the backend
+  Rows become one per member with its `wallets` in place of `address`, each
+  row's `enteredOn` becomes a date (`YYYY-MM-DD`) that is always present where
+  it was a date-time or `null`, the response drops `listedTotal` and
+  `discrepancy`, and the CSV gains a Member ID column and joins a member's
+  wallets in Wallet addresses. Release the backend
   and the clients together: an older dashboard or mobile build reads `address`
   from each row and fails on the new ones. Update anything that parses the CSV
   by its old headers.

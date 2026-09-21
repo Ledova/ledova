@@ -21,8 +21,8 @@ export const REGISTER_COPY = {
     'downloaded. An approved register opening starts it.',
   WAITING_NOTE: (count: number) =>
     `${count} completed ${count === 1 ? 'issue or transfer waits' : 'issues or transfers wait'} to be recorded, ` +
-    'so these holdings leave them out. One waits while its wallet has no reviewed link to a member, or while an ' +
-    'earlier one waits.',
+    'so these holdings leave them out. Recording stops at the first one that cannot be recorded yet, such as one ' +
+    'whose wallet has no reviewed link to a member, and every later one waits behind it.',
   WAITING_UNKNOWN_NOTE:
     'Whether any completed issue or transfer waits to be recorded could not be checked. Try again before relying ' +
     'on these holdings.',

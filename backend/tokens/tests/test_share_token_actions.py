@@ -103,7 +103,13 @@ class ShareTokenActionTest(APITestCase):
             token=token, recipient_address=RECIPIENT, amount=7, reason="Owner request", submitted_by=self.tenant.user
         )
         service_class.create_issuance_request.return_value = issuance_request
-        register.return_value = {"rows": HOLDERS, "issued_supply": 5, "waiting_effects": 0}
+        register.return_value = {
+            "rows": HOLDERS,
+            "sequence": 1,
+            "issued_supply": 5,
+            "waiting_effects": 0,
+            "former_members": [],
+        }
 
         issue = self.client.post(
             f"/api/v1/tokens/{token.uuid}/issue/",

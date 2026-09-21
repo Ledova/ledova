@@ -1,12 +1,16 @@
 from decimal import Decimal
 from unittest.mock import patch
+from uuid import uuid4
 
 from django.test import TestCase
 
 from assets.models import Asset, AssetChainDeployment
 from shared.tests.tenants import make_tenant
+from tokens.models import RegisterMemberWallet
 from tokens.services import share_token_service
 from tokens.services.register import stored_register
+from tokens.services.register_events import create_member, open_register
+from tokens.tests.test_register_events import DAY
 from wallets.models import Holding
 from wallets.services.sync import _sync_holdings_from_blockchain, sync_wallet
 
@@ -50,10 +54,22 @@ class TheCacheAndTheRegisterReadOneChainTest(TestCase):
         self.assertEqual(self.holding.quantity, Decimal(ON_CHAIN))
 
     def test_reading_the_register_leaves_the_cache_and_the_chain_alone(self):
+        member = create_member(company_id=self.token.company_id, member_id=uuid4())
+        RegisterMemberWallet.objects.create(
+            company_id=self.token.company_id, member=member, address=self.wallet.address
+        )
+        open_register(
+            token_id=self.token.pk,
+            operation_id=uuid4(),
+            changes=[{"member": str(member.pk), "shares": str(ON_CHAIN)}],
+            effective_on=DAY,
+            recorded_by=self.tenant.user,
+        )
         reader = self._chain()
 
-        stored_register(self.token)
+        register = stored_register(self.token)
 
+        self.assertEqual([row["balance"] for row in register["rows"]], [str(ON_CHAIN)])
         self.holding.refresh_from_db()
         self.assertEqual((self.holding.quantity, self.holding.last_synced_at), (CACHED, None))
         reader.assert_not_called()
