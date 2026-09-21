@@ -1,14 +1,15 @@
 import logging
 from collections import defaultdict
 
-from django.db.models.functions import Lower
+from django.db.models import F
 from rest_framework.exceptions import ValidationError
 
-from blockchain.models import SignedAttempt
+from blockchain.models import OutgoingStatus, SignedAttempt
 from integrations.blockchain.receipts import normalized_hash
 from shared.db import atomic
 from tokens.exceptions import RegisterUnavailableException
 from tokens.models import (
+    IssuanceExecutionStatus,
     RegisterEntry,
     RegisterEntryKind,
     RegisterMemberWallet,
@@ -20,6 +21,7 @@ from tokens.models import (
     ShareRegister,
     ShareToken,
     SwapOrder,
+    SwapOrderStatus,
 )
 from tokens.services.register_inclusions import (
     ATTRIBUTION,
@@ -27,7 +29,7 @@ from tokens.services.register_inclusions import (
     OPENING,
     _operator,
     _recorded,
-    classify_inclusion,
+    classifier,
     completed_inclusions,
     opening_boundary,
 )
@@ -37,6 +39,10 @@ logger = logging.getLogger(__name__)
 
 ISSUANCE_OPERATION = "share-issuance:"
 SWAP_OPERATION = "swap-execution:"
+BELOW_OPENING = (
+    "The chain snapshot at block {snapshot} is below the opening boundary at block {boundary}, "
+    "so it cannot be compared with the stored register."
+)
 
 
 def _swap_movement(swap):
@@ -52,35 +58,42 @@ def _completed_movement(inclusion):
 
 def _in_flight(token, transactions):
     movements = {}
-    attempts = (
-        SignedAttempt.objects.annotate(lowered=Lower("tx_hash"))
-        .filter(lowered__in=[f"0x{transaction}" for transaction in transactions])
-        .select_related("operation")
-    )
+    attempts = SignedAttempt.objects.filter(
+        tx_hash__in=[f"0x{transaction}" for transaction in transactions],
+        operation__current_attempt=F("pk"),
+        operation__status__in=[OutgoingStatus.SIGNED, OutgoingStatus.CONFIRMED],
+    ).select_related("operation")
     for attempt in attempts:
         transaction = normalized_hash(attempt.tx_hash)
         key = attempt.operation.operation_key
         if key.startswith(ISSUANCE_OPERATION):
-            execution = ShareIssuanceExecution.objects.filter(pk=key.rsplit(":", 1)[1], token_id=token.pk).first()
+            execution = ShareIssuanceExecution.objects.filter(
+                pk=key.rsplit(":", 1)[1], token_id=token.pk, status=IssuanceExecutionStatus.EXECUTING
+            ).first()
             if execution is not None:
                 amount = int(execution.intent["amount"])
                 movements[transaction] = ([(execution.intent["recipient"], amount)], amount)
         elif key.startswith(SWAP_OPERATION):
-            swap = SwapOrder.objects.filter(transaction_id=key[len(SWAP_OPERATION) :], share_token=token).first()
+            swap = SwapOrder.objects.filter(
+                transaction_id=key[len(SWAP_OPERATION) :], share_token=token, status=SwapOrderStatus.EXECUTING
+            ).first()
             if swap is not None:
                 movements[transaction] = _swap_movement(swap)
     return movements
 
 
-def _compare(token, snapshot):
-    boundary = opening_boundary(token.pk)
-    register = ShareRegister.objects.get(token=token)
+def _compare(token, snapshot, boundary):
+    register = ShareRegister.objects.select_for_update().get(token=token)
     height = snapshot["block"]["number"]
-    history = {normalized_hash(entry["transaction"]): entry["block"] for entry in snapshot["history"]}
+    history = {
+        normalized_hash(entry["transaction"]): (entry["block"], normalized_hash(entry["block_hash"]))
+        for entry in snapshot["history"]
+    }
     try:
         inclusions = completed_inclusions(token.pk)
     except ValidationError as exc:
         return [{"kind": "attribution", "detail": " ".join(str(item) for item in exc.detail)}], register.sequence
+    classify = classifier(boundary)
     recorded = _recorded(token.pk)
     positions = defaultdict(int)
     for position in RegisterPosition.objects.filter(register=register):
@@ -91,10 +104,11 @@ def _compare(token, snapshot):
     explained = set()
     discrepancies = []
     for inclusion in inclusions:
-        classification = classify_inclusion(boundary, inclusion)
+        classification = classify(inclusion)
         if classification == OPENING:
             continue
         if classification == ATTRIBUTION:
+            explained.add(inclusion["transaction"])
             discrepancies.append({"kind": "attribution", "effect": inclusion["kind"], "source": inclusion["source"]})
             continue
         if inclusion["block_number"] > height:
@@ -105,7 +119,7 @@ def _compare(token, snapshot):
                     if entry.kind == RegisterEntryKind.ISSUE:
                         supply -= int(change["shares"])
             continue
-        if history.get(inclusion["transaction"]) != inclusion["block_number"]:
+        if history.get(inclusion["transaction"]) != (inclusion["block_number"], inclusion["block_hash"]):
             discrepancies.append(
                 {
                     "kind": "missing_transfer",
@@ -123,7 +137,7 @@ def _compare(token, snapshot):
             pending_supply += issued
     unexplained = {
         transaction: block
-        for transaction, block in history.items()
+        for transaction, (block, _) in history.items()
         if block > boundary["block"]["number"] and transaction not in explained
     }
     for transaction, (deltas, issued) in _in_flight(token, unexplained).items():
@@ -177,21 +191,30 @@ def _compare(token, snapshot):
     return discrepancies, register.sequence
 
 
+def _failed(token, failure):
+    logger.warning("Register reconciliation for share class %s could not compare the chain", token.pk)
+    return RegisterReconciliation.objects.create(
+        token=token, status=RegisterReconciliationStatus.FAILED, failure=failure
+    )
+
+
 def reconcile_register(token_id, *, client=None):
     _operator()
     token = ShareToken.objects.get(pk=token_id)
-    if opening_boundary(token.pk) is None:
+    boundary = opening_boundary(token.pk)
+    if boundary is None:
         return None
     try:
         snapshot = capture_snapshot(token.pk, client=client)
     except RegisterUnavailableException as exc:
-        logger.warning("Register reconciliation for share class %s could not read the chain", token.pk)
-        return RegisterReconciliation.objects.create(
-            token=token, status=RegisterReconciliationStatus.FAILED, failure=str(exc.detail)
+        return _failed(token, str(exc.detail))
+    if snapshot["block"]["number"] < boundary["block"]["number"]:
+        return _failed(
+            token, BELOW_OPENING.format(snapshot=snapshot["block"]["number"], boundary=boundary["block"]["number"])
         )
     with atomic():
         locked = ShareToken.objects.select_for_update().get(pk=token.pk)
-        discrepancies, sequence = _compare(locked, snapshot)
+        discrepancies, sequence = _compare(locked, snapshot, boundary)
         record = RegisterReconciliation.objects.create(
             token=locked,
             status=RegisterReconciliationStatus.DISCREPANT if discrepancies else RegisterReconciliationStatus.MATCHED,

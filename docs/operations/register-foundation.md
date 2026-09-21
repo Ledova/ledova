@@ -535,20 +535,34 @@ with the stored register under the share-class lock that completions take:
 
 - every chain transfer after the opening boundary must be a recorded effect, a
   completed effect still waiting to be recorded, or an issuance or settlement
-  whose signed transaction is on chain but not yet completed;
-- every completed effect after the opening must be on chain in the block its
-  receipt names;
+  still executing whose current signed transaction is the one on chain and whose
+  receipt, if one is recorded yet, succeeded. A completed, failed or cancelled
+  operation explains nothing, and nor does a superseded attempt or one whose
+  recorded revert the chain contradicts, which is held for operator attribution;
+- every completed effect after the opening must be on chain in the block, number
+  and hash, that its receipt names;
 - each member's linked wallets must hold its stored shares plus those pending
   movements, an unlinked address only what pending movements give it, and the
   issued supply must equal the stored supply plus pending issues. An effect
-  recorded beyond the snapshot block is left out of the comparison.
+  recorded beyond the snapshot block is left out of the comparison. A completion
+  held for attribution accounts for its own transfer but moves nothing, since
+  its place relative to the opening is what is unknown.
+
+The stored register row is locked for the comparison, so a correction cannot
+land between reading the supply and reading the holdings. A snapshot below the
+opening's boundary block, from a lagging provider or a deeper finality policy,
+is never compared: the stored holdings are as at the opening, and an older chain
+state would report differences that do not exist.
 
 Each run is retained in `RegisterReconciliation`: `matched`, `discrepant` with
-its discrepancies, or `failed` with the reason the chain could not be read. The
-record also keeps the block and the register sequence compared. A chain failure
-is a failed reconciliation; the register reads are unaffected. Discrepancies are
+its discrepancies, or `failed` with the reason it could not compare: the chain
+could not be read, or its snapshot is below the opening boundary. The record
+also keeps the block and the register sequence compared. A chain failure is a
+failed reconciliation; the register reads are unaffected. Discrepancies are
 logged at error level, which is the alert, and the CSV summary states the
-latest result.
+latest result. The job tries every share class, then fails if any could not be
+reconciled. A class whose run raised rather than recording `failed` keeps its
+previous result in the CSV, so the failed job is the signal to look at.
 
 | Discrepancy | Meaning and next step |
 | --- | --- |

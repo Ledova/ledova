@@ -1,26 +1,37 @@
 import json
 from io import StringIO
 from unittest.mock import patch
+from uuid import uuid4
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.db import DatabaseError
+from django.db import DatabaseError, connections
 from django.test import TransactionTestCase, override_settings
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.test import APITransactionTestCase
 
-from shared.db import atomic, use_operator
+from integrations.blockchain.receipts import normalized_hash
+from shared.db import atomic, current_alias, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import (
     IssuanceExecutionStatus,
     RegisterReconciliation,
     ShareIssuanceExecution,
+    ShareIssuanceRequest,
+    ShareRegister,
+    SwapOrderStatus,
 )
-from tokens.services import issuance_execution
+from tokens.services import (
+    issuance_execution,
+    register_inclusions,
+    register_reconciliation,
+)
 from tokens.services.register import RECONCILED_ROW, export_rows
 from tokens.services.register_reconciliation import reconcile_register
 from tokens.services.register_snapshot import ZERO_ADDRESS
 from tokens.tasks.register_reconciliation import reconcile_every_register
+from tokens.tests import test_swap_finality
+from tokens.tests.issuance_fixtures import admit
 from tokens.tests.test_register_events import register_fixture
 from tokens.tests.test_register_inclusions import MINT_BLOCK, InclusionFixtures
 from tokens.tests.test_register_openings import ALICE, BOB, SETTINGS
@@ -54,11 +65,13 @@ class RegisterReconciliationTest(InclusionFixtures, TransactionTestCase):
             (LATER, ZERO_ADDRESS, self.recipient, 10, later.tx_hash),
             holdings={self.recipient: 20},
         )
-        record = self.reconcile()
+        with patch.object(register_inclusions, "_history", wraps=register_inclusions._history) as parsed:
+            record = self.reconcile()
         self.assertEqual(
             (record.status, record.discrepancies, record.block_number, record.register_sequence, record.failure),
             ("matched", [], LATER + 2, 2, ""),
         )
+        self.assertEqual(parsed.call_count, 1)
         self.assertEqual(record.block_hash, block_hash(LATER + 2))
 
     def test_a_transfer_made_outside_the_platform_is_reported(self):
@@ -122,6 +135,72 @@ class RegisterReconciliationTest(InclusionFixtures, TransactionTestCase):
         )
         self.assertEqual(self.reconcile().status, "matched")
 
+    def test_an_issuance_held_for_attribution_does_not_explain_its_transfer(self):
+        first = self.opened()
+        command = self.admitted(amount=4, block=LATER)
+        self.mint_node.receipt_status = 0
+        self.mint_node.finalized = LATER - 1
+        self.assertEqual(issuance_execution.recover(command.pk)["status"], "executing")
+        attempt = ShareIssuanceExecution.objects.get(pk=command.pk).operation.current_attempt
+        self.mint_node.receipts[attempt.tx_hash]["status"] = 1
+        self.mint_node.finalized = LATER
+        with self.assertLogs("tokens.services.issuance_execution", "WARNING") as held:
+            self.assertEqual(issuance_execution.recover(command.pk)["status"], "executing")
+        self.assertIn("attribution is required", held.output[0])
+        self.chain(
+            LATER + 1,
+            (MINT_BLOCK, ZERO_ADDRESS, self.recipient, 10, first.tx_hash),
+            (LATER, ZERO_ADDRESS, self.recipient, 4, attempt.tx_hash),
+            holdings={self.recipient: 14},
+        )
+        record = self.reconcile()
+        self.assertEqual(self.kinds(record), ["member", "supply", "unrecognised_transfer"])
+        unrecognised = next(item for item in record.discrepancies if item["kind"] == "unrecognised_transfer")
+        self.assertEqual(unrecognised["transaction"], attempt.tx_hash)
+
+    def test_a_superseded_attempt_found_on_chain_is_not_in_flight(self):
+        first = self.opened()
+        command = self.admitted(amount=4, block=LATER)
+        self.mint_node.receipt_status = 0
+        self.assertEqual(issuance_execution.recover(command.pk)["status"], "failed")
+        superseded = ShareIssuanceExecution.objects.get(pk=command.pk).operation.current_attempt
+        admit(ShareIssuanceRequest.objects.get(pk=command.request_id), self.actor)
+        self.mint_node.receipt_status = 1
+        self.mint_node.finalized = LATER - 1
+        self.assertEqual(issuance_execution.recover(command.pk)["status"], "executing")
+        current = ShareIssuanceExecution.objects.get(pk=command.pk).operation.current_attempt
+        self.assertNotEqual(current.pk, superseded.pk)
+        self.chain(
+            LATER + 1,
+            (MINT_BLOCK, ZERO_ADDRESS, self.recipient, 10, first.tx_hash),
+            (LATER - 1, ZERO_ADDRESS, self.recipient, 4, superseded.tx_hash),
+            (LATER, ZERO_ADDRESS, self.recipient, 4, current.tx_hash),
+            holdings={self.recipient: 18},
+        )
+        record = self.reconcile()
+        self.assertEqual(self.kinds(record), ["member", "supply", "unrecognised_transfer"])
+        unrecognised = next(item for item in record.discrepancies if item["kind"] == "unrecognised_transfer")
+        self.assertEqual(unrecognised["transaction"], superseded.tx_hash)
+
+    def test_a_completion_held_for_attribution_accounts_for_its_own_transfer(self):
+        command = self.admitted(block=LATER)
+        self.mint_node.finalized = LATER - 1
+        self.assertEqual(issuance_execution.recover(command.pk)["status"], "executing")
+        execution = ShareIssuanceExecution.objects.get(pk=command.pk)
+        tx_hash = execution.transaction.tx_hash
+        self.open_at(
+            LATER - 2,
+            holdings={self.recipient: 10},
+            transfers=[(MINT_BLOCK, ZERO_ADDRESS, self.recipient, 10, tx_hash)],
+            mapping=[{"address": self.recipient, "member": str(uuid4())}],
+        )
+        self.mint_node.finalized = LATER
+        self.assertEqual(issuance_execution.recover(command.pk)["status"], "executed")
+        self.chain(LATER + 1, (LATER, ZERO_ADDRESS, self.recipient, 10, tx_hash), holdings={self.recipient: 10})
+        record = self.reconcile()
+        self.assertEqual(self.kinds(record), ["attribution"])
+        self.assertEqual(record.discrepancies[0]["source"], str(execution.issuance_id))
+
     def test_an_effect_recorded_beyond_the_snapshot_is_left_out_of_the_comparison(self):
         first = self.opened()
         self.mint(block=LATER + 3)
@@ -140,6 +219,21 @@ class RegisterReconciliationTest(InclusionFixtures, TransactionTestCase):
         missing = next(item for item in record.discrepancies if item["kind"] == "missing_transfer")
         self.assertEqual((missing["source"], missing["transaction"]), (str(later.pk), later.tx_hash.lower()))
 
+    def test_a_completed_effect_in_a_replaced_block_is_missing_even_at_its_height(self):
+        first = self.opened()
+        later = self.mint(block=LATER)
+        self.chain(
+            LATER + 1,
+            (MINT_BLOCK, ZERO_ADDRESS, self.recipient, 10, first.tx_hash),
+            (LATER, ZERO_ADDRESS, self.recipient, 10, later.tx_hash),
+            holdings={self.recipient: 20},
+        )
+        self.node.blocks[LATER]["hash"] = self.node.events[1]["blockHash"] = block_hash(777)
+        record = self.reconcile()
+        self.assertEqual(self.kinds(record), ["missing_transfer", "unrecognised_transfer"])
+        unrecognised = next(item for item in record.discrepancies if item["kind"] == "unrecognised_transfer")
+        self.assertEqual((unrecognised["transaction"], unrecognised["block"]), (later.tx_hash.lower(), LATER))
+
     def test_an_unreadable_chain_is_a_failed_reconciliation_not_a_register_failure(self):
         self.opened()
         self.node.client.assert_expected_chain.return_value = 999
@@ -149,6 +243,57 @@ class RegisterReconciliationTest(InclusionFixtures, TransactionTestCase):
         self.assertIn("original deployment chain", record.failure)
         summary = [row for row in export_rows(self.tenant.token, self.owner) if row and row[0] == RECONCILED_ROW]
         self.assertEqual(summary[0][:3], [RECONCILED_ROW, "failed", ""])
+
+    def test_a_snapshot_below_the_opening_boundary_is_a_failed_reconciliation(self):
+        first = self.mint()
+        minted = (MINT_BLOCK, ZERO_ADDRESS, self.recipient, 10, first.tx_hash)
+        moved = (LATER - 1, self.recipient, BOB, 3, None)
+        self.open_at(
+            LATER,
+            holdings={self.recipient: 7, BOB: 3},
+            transfers=[minted, moved],
+            mapping=[{"address": self.recipient, "member": str(uuid4())}, {"address": BOB, "member": str(uuid4())}],
+        )
+        self.chain(LATER - 2, minted, holdings={self.recipient: 10})
+        with self.assertLogs("tokens.services.register_reconciliation", "WARNING"):
+            record = self.reconcile()
+        self.assertEqual((record.status, record.block_number, record.discrepancies), ("failed", None, []))
+        self.assertEqual(
+            record.failure,
+            register_reconciliation.BELOW_OPENING.format(snapshot=LATER - 2, boundary=LATER),
+        )
+        self.chain(LATER, minted, moved, holdings={self.recipient: 7, BOB: 3})
+        self.assertEqual(self.reconcile().status, "matched")
+
+    def test_the_stored_register_is_locked_while_it_is_compared(self):
+        first = self.opened()
+        self.chain(
+            MINT_BLOCK + 1, (MINT_BLOCK, ZERO_ADDRESS, self.recipient, 10, first.tx_hash), holdings={self.recipient: 10}
+        )
+        register = ShareRegister.objects.get(token=self.tenant.token)
+        probe = connections[current_alias()].copy(alias="reconciliation-lock-probe")
+        self.addCleanup(probe.close)
+        recorded = register_reconciliation._recorded
+        observed = []
+
+        def lockable():
+            with probe.cursor() as cursor:
+                try:
+                    cursor.execute(
+                        "SELECT uuid FROM tokens_shareregister WHERE uuid = %s FOR UPDATE NOWAIT", [register.pk]
+                    )
+                except DatabaseError:
+                    return False
+                return cursor.fetchall() == [(register.pk,)]
+
+        def probed(token_id):
+            observed.append(lockable())
+            return recorded(token_id)
+
+        with patch.object(register_reconciliation, "_recorded", side_effect=probed):
+            self.assertEqual(self.reconcile().status, "matched")
+        self.assertEqual(observed, [False])
+        self.assertTrue(lockable())
 
     def test_a_share_class_without_an_applied_opening_is_not_reconciled(self):
         self.mint()
@@ -195,7 +340,7 @@ class RegisterReconciliationTest(InclusionFixtures, TransactionTestCase):
                 RegisterReconciliation.objects.create(**fields)
         self.assertEqual(RegisterReconciliation.objects.count(), 1)
 
-    def test_the_task_reconciles_every_opened_share_class_and_survives_an_unexpected_error(self):
+    def test_the_task_reconciles_every_opened_share_class_and_fails_when_one_could_not_be_reconciled(self):
         first = self.opened()
         self.chain(
             MINT_BLOCK + 1, (MINT_BLOCK, ZERO_ADDRESS, self.recipient, 10, first.tx_hash), holdings={self.recipient: 10}
@@ -205,8 +350,17 @@ class RegisterReconciliationTest(InclusionFixtures, TransactionTestCase):
             with (
                 patch("tokens.tasks.register_reconciliation.reconcile_register", side_effect=RuntimeError("boom")),
                 self.assertLogs("tokens.tasks.register_reconciliation", "ERROR"),
+                self.assertRaisesMessage(RuntimeError, "Register reconciliation failed for 1 share classes."),
             ):
-                self.assertEqual(reconcile_every_register(), {"matched": 0, "discrepant": 0, "failed": 1})
+                reconcile_every_register()
+            self.assertEqual(RegisterReconciliation.objects.count(), 1)
+            self.node.client.assert_expected_chain.return_value = 999
+            with (
+                self.assertLogs("tokens.services.register_reconciliation", "WARNING"),
+                self.assertRaisesMessage(RuntimeError, "Register reconciliation failed for 1 share classes."),
+            ):
+                reconcile_every_register()
+        self.assertEqual(RegisterReconciliation.objects.first().status, "failed")
 
     def test_the_command_prints_the_recorded_result(self):
         first = self.opened()
@@ -221,6 +375,45 @@ class RegisterReconciliationTest(InclusionFixtures, TransactionTestCase):
         self.assertEqual(printed["reconciliation"], str(RegisterReconciliation.objects.get().pk))
         with self.assertRaisesRegex(CommandError, "no applied register opening"):
             call_command("register_reconcile", token=register_fixture()[2].pk, stdout=StringIO())
+
+
+@override_settings(
+    BLOCKCHAIN_OPERATOR_KEY=test_swap_finality.KEY,
+    BLOCKCHAIN_CHAIN_ID=test_swap_finality.CHAIN_ID,
+    ATOMIC_SWAP_ADDRESS=test_swap_finality.CONTRACT,
+)
+class InFlightSettlementTest(test_swap_finality.SwapFinalityFixtures, TransactionTestCase):
+    def in_flight(self):
+        with use_operator():
+            return register_reconciliation._in_flight(self.swap.share_token, [normalized_hash(self.record.tx_hash)])
+
+    def test_only_a_settlement_still_executing_explains_its_transfer(self):
+        self.confirm()
+        amount = self.swap.share_amount
+        self.assertEqual(
+            self.in_flight(),
+            {
+                normalized_hash(self.record.tx_hash): (
+                    [(self.swap.seller_address, -amount), (self.swap.buyer_address, amount)],
+                    0,
+                )
+            },
+        )
+        with override_settings(WALLET_CHAIN_FINALITY_POLICIES=test_swap_finality.FINALIZED):
+            self.node.advance(head=20, finalized=12)
+            self.assertEqual(self.settle(), SwapOrderStatus.COMPLETED)
+        self.assertEqual(self.in_flight(), {})
+
+    def test_a_settlement_held_for_attribution_does_not_explain_its_transfer(self):
+        self.flip(0)
+        with (
+            override_settings(WALLET_CHAIN_FINALITY_POLICIES=test_swap_finality.FINALIZED),
+            self.assertLogs(test_swap_finality.LOGGER, "WARNING") as held,
+        ):
+            self.assertIsNone(self.settle())
+        self.assertIn("held for operator attribution", held.output[0])
+        self.assertEqual(self.swap.status, SwapOrderStatus.EXECUTING)
+        self.assertEqual(self.in_flight(), {})
 
 
 class ScopedRegisterReconciliationTest(RunsOnTheScopedConnection, APITransactionTestCase):

@@ -25,4 +25,8 @@ def reconcile_every_register(timestamp: int = 0):
             continue
         if record is not None:
             results[record.status] += 1
+    if results[RegisterReconciliationStatus.FAILED]:
+        raise RuntimeError(
+            f"Register reconciliation failed for {results[RegisterReconciliationStatus.FAILED]} share classes."
+        )
     return results
