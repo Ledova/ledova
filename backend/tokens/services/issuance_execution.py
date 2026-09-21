@@ -53,6 +53,7 @@ from tokens.services.register_inclusions import record_completed_effects
 from wallets.models import ChainObservationFinality, ChainObservationResult
 from wallets.services.chain_evidence import collect_chain_evidence
 from wallets.services.chain_observations import finality_policy
+from wallets.services.nonce_evidence import MAX_BLOCK_TRANSACTIONS
 from wallets.services.receipt_readers import MAX_BLOCK_NUMBER
 
 logger = logging.getLogger(__name__)
@@ -472,6 +473,11 @@ def _finalized_receipt(execution, operation, client):
     return FinalizedIssuanceReceipt(operation.claim_id, operation.current_attempt_id, policy, dict(receipt))
 
 
+def _transaction_index(receipt):
+    index = nonnegative_integer(receipt.get("transactionIndex"), maximum=MAX_BLOCK_TRANSACTIONS)
+    return {} if index is None else {"transaction_index": index}
+
+
 def _verify_mint(execution, client, receipt):
     contract = client.load_contract("ShareToken", execution.intent["to"])
     events = contract.events.Transfer().process_receipt(receipt, errors=DISCARD)
@@ -517,6 +523,7 @@ def _project(execution, claim, *, finalized=None, refusal=None):
                     "block_hash": current.transaction.block_hash,
                     "gas_used": current.transaction.gas_used,
                     "policy": finalized.policy,
+                    **_transaction_index(finalized.receipt),
                 }
         elif operation.status == OutgoingStatus.FAILED:
             current.status = IssuanceExecutionStatus.FAILED

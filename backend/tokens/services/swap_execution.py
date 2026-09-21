@@ -21,6 +21,7 @@ from blockchain.models import (
 )
 from blockchain.services import outgoing
 from integrations.base_chain import get_base_chain_client
+from integrations.blockchain.receipts import nonnegative_integer
 from shared.constants import BLOCKCHAIN_BASE
 from shared.db import APP_ALIAS, atomic, current_alias, principal_of, use_operator
 from shared.utils.blockchain import decode_exception_to_message
@@ -54,7 +55,10 @@ from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import ChainObservationFinality, ChainObservationResult, Wallet
 from wallets.services.chain_evidence import collect_chain_evidence
 from wallets.services.chain_observations import finality_policy
-from wallets.services.nonce_evidence import collect_nonce_evidence
+from wallets.services.nonce_evidence import (
+    MAX_BLOCK_TRANSACTIONS,
+    collect_nonce_evidence,
+)
 
 logger = logging.getLogger(__name__)
 REVERTED_ON_CHAIN = "Swap execution reverted on chain"
@@ -566,11 +570,13 @@ def _finalized_receipt(transaction, operation, client, network, policy):
     ):
         raise SwapNotReadyException("The finalized receipt cannot fit the supported range.")
     _original_chain(transaction, client)
+    index = nonnegative_integer(receipt.get("transactionIndex"), maximum=MAX_BLOCK_TRANSACTIONS)
     return {
         "block_number": included["height"],
         "block_hash": included["hash"],
         "gas_used": receipt["gasUsed"],
         "policy": policy,
+        **({} if index is None else {"transaction_index": index}),
     }
 
 

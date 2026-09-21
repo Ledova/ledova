@@ -19,22 +19,27 @@ from tokens.models import (
     IssuanceExecutionStatus,
     IssuanceStatus,
     RegisterEntry,
+    RegisterEntryKind,
     RegisterMember,
+    RegisterMemberWallet,
     RegisterOpening,
     ShareIssuance,
     ShareIssuanceExecution,
     ShareIssuanceRequest,
 )
 from tokens.services import issuance_execution, register_openings
+from tokens.services.register_events import record_entry
 from tokens.services.register_inclusions import (
     AFTER_OPENING,
     ATTRIBUTION,
     OPENING,
     UNOPENED,
+    chain_order,
     classified_inclusions,
     classify_inclusion,
     completed_inclusions,
     opening_boundary,
+    record_completed_effects,
     unrepresented_inclusions,
 )
 from tokens.services.register_openings import (
@@ -74,28 +79,28 @@ class InclusionFixtures:
     def payload(self, **changes):
         return {**opening_payload(self.document, self.target), **changes}
 
-    def mint(self, *, amount=10, block=MINT_BLOCK, recipient=None):
-        command = self.admitted(amount=amount, block=block, recipient=recipient)
+    def mint(self, *, amount=10, block=MINT_BLOCK, recipient=None, index=None):
+        command = self.admitted(amount=amount, block=block, recipient=recipient, index=index)
         self.assertEqual(issuance_execution.recover(command.pk)["status"], "executed")
         command.refresh_from_db()
         return ShareIssuance.objects.get(pk=command.issuance_id)
 
-    def admitted(self, *, amount=10, block=MINT_BLOCK, recipient=None):
+    def admitted(self, *, amount=10, block=MINT_BLOCK, recipient=None, index=None):
         request = ShareIssuanceRequest.objects.create(
             token=self.tenant.token, recipient_address=recipient or self.recipient, amount=amount, reason="Allotment"
         )
         request.approve(self.actor)
         command = admit(request, self.actor)
         self.mint_node.head = self.mint_node.finalized = block
-        if block != MINT_BLOCK:
+        if block != MINT_BLOCK or index is not None:
             original = self.mint_node.send
 
             def send(raw):
                 tx_hash = original(raw)
                 self.mint_node.receipts[tx_hash] = {
                     **self.mint_node.receipts[tx_hash],
-                    "blockNumber": block,
-                    "blockHash": block_hash(block),
+                    **({"blockNumber": block, "blockHash": block_hash(block)} if block != MINT_BLOCK else {}),
+                    **({} if index is None else {"transactionIndex": index}),
                 }
                 return tx_hash
 
@@ -193,6 +198,7 @@ class RegisterInclusionTest(InclusionFixtures, TransactionTestCase):
                     "transaction": normalized_hash(issuance.tx_hash),
                     "block_number": MINT_BLOCK,
                     "block_hash": normalized_hash(BLOCK_HASH),
+                    "transaction_index": None,
                 }
             ],
         )
@@ -238,6 +244,49 @@ class RegisterInclusionTest(InclusionFixtures, TransactionTestCase):
             {source: (row["classification"], row["recorded"]) for source, row in rows.items()},
             {str(issuance.pk): (OPENING, False), str(later.pk): (AFTER_OPENING, True)},
         )
+
+    def test_completion_evidence_keeps_the_transaction_index_that_orders_a_block(self):
+        issuance = self.mint(index=3)
+        execution = ShareIssuanceExecution.objects.get(issuance_id=issuance.pk)
+        self.assertEqual(execution.finalized_receipt["transaction_index"], 3)
+        self.assertEqual(completed_inclusions(self.tenant.token.pk)[0]["transaction_index"], 3)
+        issue = {"kind": "issue", "source": "f" * 8, "block_number": 20, "transaction_index": 1}
+        transfer = {"kind": "transfer", "source": "0" * 8, "block_number": 20, "transaction_index": 0}
+        unindexed = {"kind": "issue", "source": "0" * 8, "block_number": 20, "transaction_index": None}
+        earlier = {"kind": "transfer", "source": "f" * 8, "block_number": 19, "transaction_index": 9}
+        self.assertEqual(
+            sorted([issue, unindexed, transfer, earlier], key=chain_order), [earlier, transfer, issue, unindexed]
+        )
+
+    def test_an_unrelated_entry_reusing_a_completion_id_does_not_mark_it_recorded(self):
+        first = self.mint()
+        applied = self.open_holding_the_mint(first)
+        waiting = self.mint(block=MINT_BLOCK + 4, recipient=ALICE)
+        member = applied.applied_entry.changes[0]["member"]
+        register_id = applied.applied_entry.register_id
+        earlier = record_entry(
+            register_id=register_id,
+            operation_id=uuid4(),
+            kind=RegisterEntryKind.ISSUE,
+            changes=[{"member": member, "shares": "5"}],
+            effective_on=applied.applied_entry.effective_on,
+            recorded_by=self.reviewer,
+        )
+        record_entry(
+            register_id=register_id,
+            operation_id=waiting.pk,
+            kind=RegisterEntryKind.CORRECTION,
+            changes=[{"member": member, "shares": "-5"}],
+            effective_on=applied.applied_entry.effective_on,
+            recorded_by=self.reviewer,
+            corrects_id=earlier.pk,
+        )
+        RegisterMemberWallet.objects.create(company=self.tenant.company, member_id=member, address=ALICE)
+        with self.assertLogs("tokens.services.register_inclusions", "WARNING"):
+            self.assertEqual(record_completed_effects(self.tenant.token.pk), [])
+        rows = {row["source"]: row for row in classified_inclusions(self.tenant.token.pk)["inclusions"]}
+        self.assertFalse(rows[str(waiting.pk)]["recorded"])
+        self.assertFalse(RegisterEntry.objects.filter(operation_id=waiting.pk, kind=RegisterEntryKind.ISSUE).exists())
 
     def test_the_boundary_height_reached_through_another_block_is_held_for_attribution(self):
         issuance = self.mint()
@@ -503,6 +552,7 @@ class RegisterInclusionTest(InclusionFixtures, TransactionTestCase):
                     "transaction": normalized_hash(issuance.tx_hash),
                     "block_number": MINT_BLOCK,
                     "block_hash": normalized_hash(BLOCK_HASH),
+                    "transaction_index": None,
                     "classification": OPENING,
                     "recorded": False,
                 }

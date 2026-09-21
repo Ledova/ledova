@@ -86,6 +86,11 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   The database refuses an issuance completion without the receipt and a capture
   without the history, so an older binary still running fails closed on both.
   Reversal refuses once any finality evidence is recorded.
+- `tokens/0068_completion_transaction_index` lets a settlement's or issuance's
+  finalized receipt carry the transaction's index in its block. It rewrites no
+  existing receipt. Completions finalized from then on record the index, and
+  register recording uses it to follow chain order inside a block. Reversal
+  refuses once any index is recorded.
 - `whitelist/0002_whitelistentry_treasury_addresses` makes
   `WhitelistEntry.wallet` nullable and adds `address` and `label` with a check
   constraint; `whitelist/0003` adds the partial unique constraint on `address`

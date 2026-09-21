@@ -484,10 +484,15 @@ transaction that completes it:
 | Settlement | `transfer` from the seller's linked member to the buyer's | The transferor, whose signed order is the instrument | The completion date (UTC) |
 
 The entry's operation ID is the completed issuance or settlement, so recording is
-idempotent. An effect the opening already represents records nothing, and so does
+idempotent. Only an issue or transfer entry counts: a correction or opening that
+reuses a completion's ID does not mark it recorded. The completion then waits,
+with the register's refusal logged. An effect the opening already represents records nothing, and so does
 a settlement between two wallets of the same member, since no holding changes.
 
-Recording follows chain order and stops at the first effect it cannot record:
+Recording follows chain order: by block, then by the transaction index the
+completion's finalized receipt records. A completion finalized before
+`tokens/0068` has no index; within its block it follows the kind and ID.
+Recording stops at the first effect it cannot record:
 a wallet with no link, a completion held for attribution, or an entry the
 register refuses, such as a transfer whose seller's stored holding does not cover
 it after a move outside settlement. Nothing is recorded past that effect, so the

@@ -27,6 +27,7 @@ from tokens.models import (
     SwapOrderStatus,
 )
 from tokens.services.register_events import record_entry
+from wallets.services.nonce_evidence import MAX_BLOCK_TRANSACTIONS
 from wallets.services.receipt_readers import MAX_BLOCK_NUMBER
 
 logger = logging.getLogger(__name__)
@@ -64,6 +65,9 @@ def _inclusion(kind, source, receipt, tx_hash):
         "transaction": transaction,
         "block_number": height,
         "block_hash": digest,
+        "transaction_index": nonnegative_integer(
+            (receipt or {}).get("transaction_index"), maximum=MAX_BLOCK_TRANSACTIONS
+        ),
     }
 
 
@@ -103,7 +107,12 @@ def completed_inclusions(token_id):
         inclusions.append(inclusion)
     for swap in SwapOrder.objects.filter(share_token_id=token_id, status=SwapOrderStatus.COMPLETED):
         inclusions.append(_inclusion(TRANSFER, swap.pk, swap.finalized_receipt, swap.tx_hash))
-    return sorted(inclusions, key=lambda inclusion: (inclusion["block_number"], inclusion["kind"], inclusion["source"]))
+    return sorted(inclusions, key=chain_order)
+
+
+def chain_order(inclusion):
+    index = inclusion["transaction_index"]
+    return (inclusion["block_number"], index is None, index or 0, inclusion["kind"], inclusion["source"])
 
 
 def _history(boundary):
@@ -173,9 +182,9 @@ def assert_boundary_represents_completions(token_id, boundary):
 def _recorded(token_id):
     return {
         str(operation)
-        for operation in RegisterEntry.objects.filter(register__token_id=token_id).values_list(
-            "operation_id", flat=True
-        )
+        for operation in RegisterEntry.objects.filter(
+            register__token_id=token_id, kind__in=[RegisterEntryKind.ISSUE, RegisterEntryKind.TRANSFER]
+        ).values_list("operation_id", flat=True)
     }
 
 
