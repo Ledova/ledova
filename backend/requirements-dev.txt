@@ -5,7 +5,7 @@ black>=26.5.1
 isort>=9.0.1
 flake8>=7.3.0
 autoflake>=2.4.0
-debugpy>=1.8.21
+debugpy>=1.8.22
 ipython>=9.17.1
 PyYAML>=6.0.3
 tblib==3.2.2
