@@ -41,6 +41,7 @@ from tokens.models import (
     TransferOrderStatus,
 )
 from tokens.services import atomic_swap_service
+from tokens.services.register_inclusions import record_completed_effects
 from tokens.services.settlement_context import (
     assert_current_settlement,
     recorded_settlement_context,
@@ -633,6 +634,7 @@ def settle(transaction_id, *, client=None):
         swap.finalized_receipt = finalized
         if operation.status == OutgoingStatus.CONFIRMED:
             _complete(swap)
+            record_completed_effects(swap.share_token_id)
         else:
             swap.mark_failed(REVERTED_ON_CHAIN)
             publish_trading_event("swap_failed", str(swap.share_token_id))

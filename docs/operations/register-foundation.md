@@ -6,10 +6,11 @@ The first [#647](https://github.com/Ledova/ledova/issues/647) slices provide
 company-scoped member references with durable wallet links, an append-only
 share-event chain, stored holdings, an approved opening capture and reviewed
 compensating corrections. It is a foundation for the authoritative register.
-Current HTTP and CSV register routes still use the existing chain reader, and
-issuance and settlement do not yet populate these new tables; opening review and
-the inclusion report classify their completed effects against the captured
-boundary. Do not use the foundation as an activated company register.
+Current HTTP and CSV register routes still use the existing chain reader. Once
+an opening is applied, issuance and settlement record each later completed
+effect in these tables; opening review and the inclusion report classify
+completed effects against the captured boundary. Do not use the foundation as an
+activated company register.
 
 ## Identity and events
 
@@ -394,9 +395,8 @@ refused. The database keeps requests immutable and undeletable, refuses forged
 or customer-role decisions, and refuses an application that leaves a mapped
 wallet unlinked. Retention follows openings and corrections.
 
-A link records no register event. Recording issues and transfers after the
-opening is the next part of this work. A completion to a wallet that has no link
-waits for its link rather than inventing a member.
+A link records no register event of its own. Applying it records any issue or
+transfer that was [waiting for it](#recording-issues-and-transfers-after-the-opening).
 
 ## Classifying completed inclusions
 
@@ -454,11 +454,6 @@ classification. It performs no provider read and writes nothing:
 python manage.py register_inclusions --token TOKEN_UUID
 ```
 
-Classification does not record register events. Attaching the issue and transfer
-entries for effects after the opening, and the member links an issue or transfer
-to a wallet that no opening mapped would need, remain
-[#647](https://github.com/Ledova/ledova/issues/647) work.
-
 ### Openings captured before the history was retained
 
 `tokens/0066` introduced the retained history and rewrites no existing opening,
@@ -476,6 +471,37 @@ boundary and OPENING entry are immutable. Holding every completion for
 attribution keeps a later workflow from recording an effect the opening may
 already contain. Resolving such a register needs a separately specified recovery
 procedure, and none exists yet.
+
+## Recording issues and transfers after the opening
+
+Once a share class has an applied opening, each completed issuance and settlement
+that classifies `after_opening` is recorded as a register event in the same
+transaction that completes it:
+
+| Effect | Entry | Recorded by | Effective date |
+| --- | --- | --- | --- |
+| Issuance | `issue` of the minted shares to the recipient's linked member | The staff member who approved the issuance request | The completion date (UTC) |
+| Settlement | `transfer` from the seller's linked member to the buyer's | The transferor, whose signed order is the instrument | The completion date (UTC) |
+
+The entry's operation ID is the completed issuance or settlement, so recording is
+idempotent. An effect the opening already represents records nothing, and so does
+a settlement between two wallets of the same member, since no holding changes.
+
+Recording follows chain order and stops at the first effect it cannot record:
+a wallet with no link, a completion held for attribution, or an entry the
+register refuses, such as a transfer whose seller's stored holding does not cover
+it after a move outside settlement. Nothing is recorded past that effect, so the
+stored holdings never skip ahead of the chain. The completion itself still
+commits, because a register record must not stall the workflow; the reason is
+logged. Recording resumes at the next completion in that share class or the next
+applied wallet link in the company, so an effect waits until one of those runs
+after its cause is resolved. Applying a
+reviewed wallet link records whatever was waiting for it; it takes each share
+class's lock first, so a completion in progress cannot miss the new link.
+`register_inclusions` reports `recorded` for each effect.
+
+Attribution procedures, the scheduled reconciliation job and the stored-register
+reads are still [#647](https://github.com/Ledova/ledova/issues/647) work.
 
 Next: [the remaining register work](https://github.com/Ledova/ledova/issues/647)
 and [register architecture](../architecture/register.md).

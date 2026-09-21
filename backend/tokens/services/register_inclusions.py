@@ -1,20 +1,35 @@
+import logging
+from datetime import timezone as utc_zone
+from uuid import UUID
+
+from django.db import DatabaseError
+from django.db.models.functions import Lower
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 
 from blockchain.models import TransactionStatus
 from integrations.blockchain.receipts import nonnegative_integer, normalized_hash
-from shared.db import APP_ALIAS, current_alias
+from shared.db import APP_ALIAS, atomic, current_alias
+from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
     IssuanceExecutionStatus,
     IssuanceStatus,
     RegisterCorrectionStatus,
+    RegisterEntry,
+    RegisterEntryKind,
+    RegisterMemberWallet,
     RegisterOpening,
     ShareIssuance,
     ShareIssuanceExecution,
+    ShareIssuanceRequest,
+    ShareRegister,
     ShareToken,
     SwapOrder,
     SwapOrderStatus,
 )
+from tokens.services.register_events import record_entry
 from wallets.services.receipt_readers import MAX_BLOCK_NUMBER
+
+logger = logging.getLogger(__name__)
 
 UNOPENED = "unopened"
 OPENING = "opening"
@@ -155,16 +170,118 @@ def assert_boundary_represents_completions(token_id, boundary):
         )
 
 
+def _recorded(token_id):
+    return {
+        str(operation)
+        for operation in RegisterEntry.objects.filter(register__token_id=token_id).values_list(
+            "operation_id", flat=True
+        )
+    }
+
+
 def classified_inclusions(token_id):
     _operator()
     if not ShareToken.objects.filter(pk=token_id).exists():
         raise NotFound("Share class not found.")
     boundary = opening_boundary(token_id)
+    recorded = _recorded(token_id)
     return {
         "token": str(token_id),
         "boundary": None if boundary is None else {"block": boundary["block"], "policy": boundary["policy"]},
         "inclusions": [
-            {**inclusion, "classification": classify_inclusion(boundary, inclusion)}
+            {
+                **inclusion,
+                "classification": classify_inclusion(boundary, inclusion),
+                "recorded": inclusion["source"] in recorded,
+            }
             for inclusion in completed_inclusions(token_id)
         ],
     }
+
+
+def _members(company_id, addresses):
+    return {
+        link.address_lower: str(link.member_id)
+        for link in RegisterMemberWallet.objects.filter(company_id=company_id)
+        .annotate(address_lower=Lower("address"))
+        .filter(address_lower__in=[address.lower() for address in addresses])
+    }
+
+
+def _effect(inclusion, company_id):
+    if inclusion["kind"] == ISSUE:
+        issuance = ShareIssuance.objects.get(pk=inclusion["source"])
+        request = ShareIssuanceRequest.objects.filter(executed_issuance=issuance).select_related("reviewed_by").first()
+        member = _members(company_id, [issuance.recipient_address]).get(issuance.recipient_address.lower())
+        if member is None or request is None or request.reviewed_by is None:
+            return None
+        return {
+            "kind": RegisterEntryKind.ISSUE,
+            "changes": [{"member": member, "shares": str(int(issuance.amount))}],
+            "effective_on": issuance.completed_at.astimezone(utc_zone.utc).date(),
+            "recorded_by": request.reviewed_by,
+        }
+    swap = SwapOrder.objects.select_related("seller_wallet__user_account__user_profile__user").get(
+        pk=inclusion["source"]
+    )
+    members = _members(company_id, [swap.seller_address, swap.buyer_address])
+    seller, buyer = members.get(swap.seller_address.lower()), members.get(swap.buyer_address.lower())
+    if seller is None or buyer is None:
+        return None
+    if seller == buyer:
+        return {}
+    return {
+        "kind": RegisterEntryKind.TRANSFER,
+        "changes": sorted(
+            [
+                {"member": seller, "shares": str(-swap.share_amount)},
+                {"member": buyer, "shares": str(swap.share_amount)},
+            ],
+            key=lambda change: change["member"],
+        ),
+        "effective_on": swap.completed_at.astimezone(utc_zone.utc).date(),
+        "recorded_by": swap.seller_wallet.user_account.user_profile.user,
+    }
+
+
+def record_completed_effects(token_id):
+    _operator()
+    boundary = opening_boundary(token_id)
+    register = ShareRegister.objects.filter(token_id=token_id).select_related("token").first()
+    if boundary is None or register is None:
+        return []
+    try:
+        inclusions = completed_inclusions(token_id)
+    except ValidationError:
+        logger.warning("Register recording for share class %s waits for attribution of a completed effect", token_id)
+        return []
+    recorded = _recorded(token_id)
+    appended = []
+    for inclusion in inclusions:
+        classification = classify_inclusion(boundary, inclusion)
+        if classification == OPENING or inclusion["source"] in recorded:
+            continue
+        effect = _effect(inclusion, register.token.company_id) if classification == AFTER_OPENING else None
+        if effect == {}:
+            continue
+        if effect is None:
+            logger.info(
+                "Register recording for share class %s waits at %s %s (%s)",
+                token_id,
+                inclusion["kind"],
+                inclusion["source"],
+                classification,
+            )
+            return appended
+        try:
+            with atomic():
+                appended.append(record_entry(register_id=register.pk, operation_id=UUID(inclusion["source"]), **effect))
+        except (ValidationError, RegisterChangeConflict, DatabaseError):
+            logger.warning(
+                "The register refused %s %s for share class %s; later effects wait",
+                inclusion["kind"],
+                inclusion["source"],
+                token_id,
+            )
+            return appended
+    return appended

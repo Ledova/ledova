@@ -40,7 +40,10 @@ from tokens.models import (
     ShareTokenStatus,
 )
 from tokens.services.register_events import create_member, record_entry
-from tokens.services.register_inclusions import assert_boundary_represents_completions
+from tokens.services.register_inclusions import (
+    assert_boundary_represents_completions,
+    record_completed_effects,
+)
 from tokens.services.register_snapshot import _boundary, capture_snapshot
 from wallets.services.chain_observations import finality_policy
 
@@ -477,6 +480,8 @@ def decide_link(*, proposal_id, reviewer, confirmation, decision, rejection_reas
             _check_evidence(proposal, company, document)
             _check_unlinked(company, proposal.mapping)
             _link(company, proposal.mapping)
+            for token in ShareToken.objects.select_for_update().filter(company=company).order_by("pk"):
+                record_completed_effects(token.pk)
             proposal.status = "applied"
         else:
             proposal.status = "rejected"

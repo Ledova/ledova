@@ -56,8 +56,7 @@ from tokens.tests.test_register_snapshot import block_hash, transfer
 MINT_BLOCK = 12
 
 
-@override_settings(**SETTINGS)
-class RegisterInclusionTest(TransactionTestCase):
+class InclusionFixtures:
     def setUp(self):
         self.tenant, self.owner, self.reviewer, self.document, self.target, self.node = opening_fixture()
         self.actor = self.reviewer
@@ -75,9 +74,15 @@ class RegisterInclusionTest(TransactionTestCase):
     def payload(self, **changes):
         return {**opening_payload(self.document, self.target), **changes}
 
-    def mint(self, *, amount=10, block=MINT_BLOCK):
+    def mint(self, *, amount=10, block=MINT_BLOCK, recipient=None):
+        command = self.admitted(amount=amount, block=block, recipient=recipient)
+        self.assertEqual(issuance_execution.recover(command.pk)["status"], "executed")
+        command.refresh_from_db()
+        return ShareIssuance.objects.get(pk=command.issuance_id)
+
+    def admitted(self, *, amount=10, block=MINT_BLOCK, recipient=None):
         request = ShareIssuanceRequest.objects.create(
-            token=self.tenant.token, recipient_address=self.recipient, amount=amount, reason="Allotment"
+            token=self.tenant.token, recipient_address=recipient or self.recipient, amount=amount, reason="Allotment"
         )
         request.approve(self.actor)
         command = admit(request, self.actor)
@@ -95,9 +100,7 @@ class RegisterInclusionTest(TransactionTestCase):
                 return tx_hash
 
             self.mint_node.client.send_raw_transaction.side_effect = send
-        self.assertEqual(issuance_execution.recover(command.pk)["status"], "executed")
-        command.refresh_from_db()
-        return ShareIssuance.objects.get(pk=command.issuance_id)
+        return command
 
     def boundary_at(self, height, *, holdings, transfers):
         self.node.finalized = height
@@ -174,6 +177,9 @@ class RegisterInclusionTest(TransactionTestCase):
         self.assertNotIn("history", RegisterOpening.objects.get(pk=proposal.pk).boundary)
         return proposal, confirmation
 
+
+@override_settings(**SETTINGS)
+class RegisterInclusionTest(InclusionFixtures, TransactionTestCase):
     def test_an_unopened_register_leaves_completed_inclusions_unrepresented(self):
         issuance = self.mint()
         self.assertIsNone(opening_boundary(self.tenant.token.pk))
@@ -193,7 +199,7 @@ class RegisterInclusionTest(TransactionTestCase):
         self.assertEqual(classify_inclusion(None, inclusions[0]), UNOPENED)
         report = classified_inclusions(self.tenant.token.pk)
         self.assertIsNone(report["boundary"])
-        self.assertEqual(report["inclusions"], [{**inclusions[0], "classification": UNOPENED}])
+        self.assertEqual(report["inclusions"], [{**inclusions[0], "classification": UNOPENED, "recorded": False}])
 
     def test_an_inclusion_in_the_boundary_block_is_represented_and_a_later_block_is_not(self):
         issuance = self.mint()
@@ -218,14 +224,20 @@ class RegisterInclusionTest(TransactionTestCase):
         )
         self.assertEqual(
             classified_inclusions(self.tenant.token.pk)["inclusions"],
-            [{**inclusion, "classification": OPENING}],
+            [{**inclusion, "classification": OPENING, "recorded": False}],
         )
-        self.mint(block=MINT_BLOCK + 4)
+        later = self.mint(block=MINT_BLOCK + 4)
         repeated = self.decide(applied, self.applied_confirmation)
         self.assertEqual((repeated.pk, repeated.status), (applied.pk, "applied"))
-        self.assertEqual(RegisterEntry.objects.count(), 1)
-        classifications = [row["classification"] for row in classified_inclusions(self.tenant.token.pk)["inclusions"]]
-        self.assertEqual(sorted(classifications), [AFTER_OPENING, OPENING])
+        self.assertEqual(
+            list(RegisterEntry.objects.order_by("sequence").values_list("kind", "operation_id")),
+            [("opening", applied.pk), ("issue", later.pk)],
+        )
+        rows = {row["source"]: row for row in classified_inclusions(self.tenant.token.pk)["inclusions"]}
+        self.assertEqual(
+            {source: (row["classification"], row["recorded"]) for source, row in rows.items()},
+            {str(issuance.pk): (OPENING, False), str(later.pk): (AFTER_OPENING, True)},
+        )
 
     def test_the_boundary_height_reached_through_another_block_is_held_for_attribution(self):
         issuance = self.mint()
@@ -427,7 +439,7 @@ class RegisterInclusionTest(TransactionTestCase):
         self.assertEqual(inclusion["block_number"], 18)
         self.assertEqual(
             classified_inclusions(self.tenant.token.pk)["inclusions"],
-            [{**inclusion, "classification": ATTRIBUTION}],
+            [{**inclusion, "classification": ATTRIBUTION, "recorded": False}],
         )
         with self.assertRaisesMessage(ValidationError, "already has a stored register"):
             submit_opening(actor=self.owner, **self.payload())
@@ -492,6 +504,7 @@ class RegisterInclusionTest(TransactionTestCase):
                     "block_number": MINT_BLOCK,
                     "block_hash": normalized_hash(BLOCK_HASH),
                     "classification": OPENING,
+                    "recorded": False,
                 }
             ],
         )

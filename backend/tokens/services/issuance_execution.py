@@ -49,6 +49,7 @@ from tokens.models import (
     ShareTokenStatus,
 )
 from tokens.services.holder_identity import identity_at_allotment
+from tokens.services.register_inclusions import record_completed_effects
 from wallets.models import ChainObservationFinality, ChainObservationResult
 from wallets.services.chain_evidence import collect_chain_evidence
 from wallets.services.chain_observations import finality_policy
@@ -533,6 +534,7 @@ def _project(execution, claim, *, finalized=None, refusal=None):
             request.mark_executed(issuance)
             if subscription:
                 subscription.mark_allotted()
+            record_completed_effects(current.token_id)
         else:
             reason = (
                 "The original issuance transaction reverted."
