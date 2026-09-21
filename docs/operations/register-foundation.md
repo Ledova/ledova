@@ -16,7 +16,8 @@ boundary. Do not use the foundation as an activated company register.
 A member has a UUID belonging to one company, independent of a wallet or platform
 account. The owner chose this so imports can include walletless members and one
 member can have multiple wallet links. Wallet links are durable insert-only
-identity records created by the approved opening below: one address resolves to
+identity records created by the approved opening or a reviewed link request
+below: one address resolves to
 one member per company, and an existing link for a mapped address must agree
 with the mapping. Retained personal particulars, allotment consideration and
 the API/client changes belong to later integration work. It never merges members
@@ -275,9 +276,9 @@ The proposal retains a private copy of the authority file.
 Walletless members and several wallets per member are supported. One address
 resolves to one member per company; an existing wallet link for a mapped address
 must agree with the mapping, and a mapping may not repeat an address. Member
-personal particulars are still not stored — names and residential addresses
-remain outside these records, and their retention is a separate owner decision
-before the import milestone.
+personal particulars are still not stored: names and residential addresses
+remain outside these records until the import milestone, which keeps them for
+the former-member retention floor the owner chose on 21 September 2026.
 
 An external issuer integration can use these authenticated routes:
 
@@ -344,6 +345,58 @@ blocked, the retained copy survives source-document deletion and deleting the
 source prevents a pending application. Production retention needs its own
 decision before real data. This activates no HTTP register read: holders and
 CSV routes remain chain-derived until the stored-reader cutover.
+
+## Reviewed wallet links after the opening
+
+A wallet that no opening mapped, such as a new subscriber's, a first-time
+buyer's or another wallet of an existing member, is linked to a company member
+by a reviewed request (owner decision, 21 September 2026). The company owner
+submits an exact mapping of wallet addresses to member IDs with the same
+documentary authority an opening carries. A member ID may be new or may already
+belong to the company. Links are company-wide, so one link serves every share
+class. The request retains a private copy of the authority file.
+
+| Method and route | Result |
+| --- | --- |
+| `POST /api/v1/tokens/register-links/` | Submit the owner's link request; return the retained request |
+| `GET /api/v1/tokens/register-links/` | Paginated requests for companies currently owned by the caller |
+| `GET /api/v1/tokens/register-links/{uuid}/` | Request, mapping and decision |
+| `GET /api/v1/tokens/register-links/{uuid}/file/` | Authenticated attachment of the retained authority file |
+
+```json
+{
+  "operation_id": "10000000-0000-4000-8000-000000000021",
+  "company_id": "10000000-0000-4000-8000-000000000022",
+  "document_id": "10000000-0000-4000-8000-000000000013",
+  "mapping": [
+    {"address": "0x3333333333333333333333333333333333333333", "member": "10000000-0000-4000-8000-000000000024"}
+  ],
+  "authority": "director_resolution",
+  "approving_director": "Synthetic Director",
+  "authority_reference": "SYNTHETIC-RESOLUTION-LINK-1",
+  "reason": "Link the new subscriber's wallet to their member record"
+}
+```
+
+In **Admin → Tokens → Register wallet links**, open the request's review link.
+An active staff user with change permission inspects the retained file, the
+named authority, the company identity and each address-member pair, then
+explicitly confirms and chooses **Approve and apply**. Application rechecks the
+reviewer-bound, expiring confirmation and the retained evidence under the
+company lock, then creates any new members and the links atomically; a failure
+rolls both back.
+
+An address already linked in the company is refused at submission, at review and
+at application, including one linked by another request or an opening after
+this one was submitted. Rejection with a reason stays available. Repeated
+identical submissions and decisions are idempotent, and conflicting UUID reuse is
+refused. The database keeps requests immutable and undeletable, refuses forged
+or customer-role decisions, and refuses an application that leaves a mapped
+wallet unlinked. Retention follows openings and corrections.
+
+A link records no register event. Recording issues and transfers after the
+opening is the next part of this work. A completion to a wallet that has no link
+waits for its link rather than inventing a member.
 
 ## Classifying completed inclusions
 

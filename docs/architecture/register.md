@@ -10,7 +10,10 @@ The [stored register foundation](../operations/register-foundation.md) adds memb
 references with durable wallet links, immutable events and a holdings projection
 for #647. An [approved opening capture](../operations/register-foundation.md#approved-opening-capture-and-wallet-links)
 initialises it from one verified canonical chain boundary under documentary
-authority, and the integrity verifier replays the whole chain. These HTTP reads
+authority, and the integrity verifier replays the whole chain. A wallet the
+opening did not map is linked to a member only by a
+[reviewed link request](../operations/register-foundation.md#reviewed-wallet-links-after-the-opening)
+carrying the same authority. These HTTP reads
 have not switched to it yet, and issuance and settlement still record no register
 events. Opening review and an operator report classify their completed effects
 against that boundary instead, from evidence both sides record: each completion's
