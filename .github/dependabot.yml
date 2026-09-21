@@ -111,14 +111,15 @@ updates:
       # Jest on 8 (#668). Drop this with the SDK upgrade that adopts Babel 8.
       - dependency-name: "@babel/core"
         update-types: ["version-update:semver-major"]
-      # jsdom 30 depends on the ESM-only @exodus/bytes, which Jest cannot load under
-      # Node 22, so VerificationFormModal.test.tsx fails to run (#668). @types/jsdom
-      # moves with it. Only 30 is proven to block, so 21-29 can still be proposed.
-      # Drop both when Jest loads it: Node 24.9+ or a transform.
+      # jsdom 27 and later load ES-module-only packages that Jest cannot require
+      # under Node 22: @csstools/css-calc from 27.0.0, and @exodus/bytes from 27.4.
+      # VerificationFormModal.test.tsx then fails to run (#668, #677); 26.1.0
+      # passes. @types/jsdom moves with it. Drop both when Jest loads ES modules:
+      # Node 24.9+ or a transform.
       - dependency-name: jsdom
-        versions: [">=30.0.0"]
+        versions: [">=27.0.0"]
       - dependency-name: "@types/jsdom"
-        versions: [">=30.0.0"]
+        versions: [">=27.0.0"]
       # eslint-plugin-react-hooks 7.1 tightens the React Compiler rules: 28 new
       # errors against 7.0.1 (#668). Drop this when #673 is done.
       - dependency-name: eslint-plugin-react-hooks
