@@ -118,9 +118,13 @@ The CSV has three sections with different widths:
 3. Former members: retained particulars, cessation and fold freshness.
 
 Read sections by their headers rather than assuming one width or column index.
-`csv_cell` neutralizes formula-opening user values. An export logs requesting
-user ID and row count; there is no durable, queryable export audit model yet.
-See the [stored-register work](https://github.com/Ledova/ledova/issues/647).
+`csv_cell` neutralizes formula-opening user values. Each export is recorded in
+`RegisterExport`: the requester's ID, the share class, the kind, the stored
+register sequence exported, the current- and former-member row counts, and the
+time. A refused export records nothing. Records cannot be rewritten; the issuer
+reads its own through its register and operators query them in admin. The daily
+former-member purge removes them after the same
+[2,557-day floor](../operations/uploads.md#data-retention).
 
 The company shareholder tile counts distinct completed allotment addresses and
 does no chain read. Operator identity queues also use allotment addresses and

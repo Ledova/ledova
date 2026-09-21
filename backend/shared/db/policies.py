@@ -219,6 +219,7 @@ POLICIES = {
     "tokens_registerentry": ("register_id IN (SELECT uuid FROM tokens_shareregister)", "false"),
     "tokens_registerposition": ("register_id IN (SELECT uuid FROM tokens_shareregister)", "false"),
     "tokens_registerreconciliation": ("token_id IN (SELECT token_id FROM tokens_shareregister)", "false"),
+    "tokens_registerexport": ("token_id IN (SELECT token_id FROM tokens_shareregister)", "false"),
     "blockchain_outgoingoperation": ("false", "false"),
     "blockchain_signingaccount": ("false", "false"),
     "blockchain_signedattempt": ("false", "false"),

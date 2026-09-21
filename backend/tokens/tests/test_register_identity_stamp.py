@@ -156,7 +156,7 @@ class IdentitySurvivesAWalletDeletionTest(TestCase):
         buffer = io.StringIO()
         writer = csv.writer(buffer)
         writer.writerow(REGISTER_HEADERS)
-        for row in export_rows(self.token, None):
+        for row in export_rows(self.token, self.tenant.user):
             writer.writerow(row)
         rows = list(csv.reader(io.StringIO(buffer.getvalue())))
 

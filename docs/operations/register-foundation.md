@@ -10,8 +10,7 @@ The HTTP and CSV register routes serve it once a share class's opening is
 applied, and issuance and settlement then record each later completed effect in
 it; opening review and the inclusion report classify completed effects against
 the captured boundary, and a scheduled job reconciles it with the chain. Import
-and a durable export audit are still missing, so no real company's register may
-rely on it yet.
+is still missing, so no real company's register may rely on it yet.
 
 ## Identity and events
 

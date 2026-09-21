@@ -4,7 +4,11 @@ from procrastinate import RetryStrategy
 
 from ledova_backend.procrastinate_app import app
 from tokens.models import ShareToken, ShareTokenStatus
-from tokens.services.former_holders import fold_former_holders, purge_former_holders
+from tokens.services.former_holders import (
+    fold_former_holders,
+    purge_former_holders,
+    purge_register_exports,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -36,5 +40,4 @@ def fold_every_share_class(timestamp: int = 0):
 @app.periodic(cron="40 3 * * *")
 @app.task(retry=RetryStrategy(max_attempts=3, wait=600))
 def purge_former_members_past_the_clock(timestamp: int = 0):
-    removed = purge_former_holders()
-    return {"removed": removed}
+    return {"removed": purge_former_holders(), "exports_removed": purge_register_exports()}

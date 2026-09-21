@@ -27,6 +27,7 @@ TABLE_CREATION_AFTER_INITIAL_GRANTS = {
     "tokens_registeropening": ("tokens", "0065_register_opening"),
     "tokens_registerwalletlink": ("tokens", "0067_register_wallet_links"),
     "tokens_registerreconciliation": ("tokens", "0070_register_reconciliation"),
+    "tokens_registerexport": ("tokens", "0071_register_export_audit"),
 }
 
 NOT_YET_CREATED = (
