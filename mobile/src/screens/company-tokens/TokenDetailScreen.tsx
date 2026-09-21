@@ -31,7 +31,7 @@ import type {
   CapitalIncreaseListItem,
   CapitalIncreaseStatus,
 } from '@ledova/shared';
-import { getBlockExplorerAddressUrl, getErrorMessage } from '@ledova/shared';
+import { REGISTER_COPY, getBlockExplorerAddressUrl, getErrorMessage } from '@ledova/shared';
 import { GradientBackground } from '../../components/GradientBackground';
 import { PrimaryButton } from '../../components/buttons';
 import { CustomModal } from '../../components/modal';
@@ -100,6 +100,8 @@ export function TokenDetailScreen({ route }: Props) {
     isLoading,
     holders,
     totalHolders,
+    registerOpened,
+    waitingEffects,
     issuances,
     issuanceCount,
     capitalIncreases,
@@ -283,6 +285,8 @@ export function TokenDetailScreen({ route }: Props) {
             <HoldersContent
               holders={holders}
               isDeployed={isDeployed}
+              registerOpened={registerOpened}
+              waitingEffects={waitingEffects}
               styles={styles}
               theme={theme}
               copiedField={copiedField}
@@ -452,6 +456,8 @@ function SharesContent({
 function HoldersContent({
   holders,
   isDeployed,
+  registerOpened,
+  waitingEffects,
   styles,
   theme,
   copiedField,
@@ -459,6 +465,8 @@ function HoldersContent({
 }: {
   holders: TokenHolder[];
   isDeployed: boolean;
+  registerOpened: boolean | undefined;
+  waitingEffects: number | null | undefined;
   styles: ReturnType<typeof useStyles>;
   theme: ReturnType<typeof useAppTheme>;
   copiedField: string | null;
@@ -474,30 +482,52 @@ function HoldersContent({
     );
   }
 
+  if (registerOpened === false) {
+    return (
+      <View style={styles.emptyState}>
+        <UsersThreeIcon size={32} color={theme.colors.text.muted} weight="regular" />
+        <Text style={styles.emptyTitle}>Register Not Opened</Text>
+        <Text style={styles.emptySubtitle}>{REGISTER_COPY.NOT_OPENED_NOTE}</Text>
+      </View>
+    );
+  }
+
+  const waiting =
+    waitingEffects === null ? (
+      <Text style={styles.emptySubtitle}>{REGISTER_COPY.WAITING_UNKNOWN_NOTE}</Text>
+    ) : waitingEffects ? (
+      <Text style={styles.emptySubtitle}>{REGISTER_COPY.WAITING_NOTE(waitingEffects)}</Text>
+    ) : null;
+
   if (holders.length === 0) {
     return (
       <View style={styles.emptyState}>
         <UsersThreeIcon size={32} color={theme.colors.text.muted} weight="regular" />
         <Text style={styles.emptyTitle}>No Holders</Text>
         <Text style={styles.emptySubtitle}>Request issuance to add holders.</Text>
+        {waiting}
       </View>
     );
   }
 
   return (
     <>
+      {waiting}
       {holders.map((holder, index) => (
-        <View key={holder.address} style={[styles.holderRow, index < holders.length - 1 && styles.rowBorder]}>
+        <View key={holder.member} style={[styles.holderRow, index < holders.length - 1 && styles.rowBorder]}>
           <View style={styles.holderLeft}>
-            <TouchableOpacity style={styles.copyRow} onPress={() => onCopy(holder.address, holder.address)}>
-              <Text style={styles.holderName}>{holder.name || truncateAddress(holder.address)}</Text>
-              {copiedField === holder.address ? (
-                <CheckCircleIcon size={14} color={theme.colors.status.success.icon} />
-              ) : (
-                <CopyIcon size={14} color={theme.colors.text.muted} />
-              )}
-            </TouchableOpacity>
-            {holder.name && <Text style={styles.holderAddress}>{truncateAddress(holder.address)}</Text>}
+            {holder.name && <Text style={styles.holderName}>{holder.name}</Text>}
+            {holder.wallets.length === 0 && <Text style={styles.holderAddress}>{REGISTER_COPY.NO_WALLET}</Text>}
+            {holder.wallets.map(({ address }) => (
+              <TouchableOpacity key={address} style={styles.copyRow} onPress={() => onCopy(address, address)}>
+                <Text style={holder.name ? styles.holderAddress : styles.holderName}>{truncateAddress(address)}</Text>
+                {copiedField === address ? (
+                  <CheckCircleIcon size={14} color={theme.colors.status.success.icon} />
+                ) : (
+                  <CopyIcon size={14} color={theme.colors.text.muted} />
+                )}
+              </TouchableOpacity>
+            ))}
           </View>
           <View style={styles.holderRight}>
             <Text style={styles.holderBalance}>{formatNumber(holder.balance)}</Text>

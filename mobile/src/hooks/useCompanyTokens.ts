@@ -5,7 +5,8 @@ import type { TokenCreate, TokenHoldersResponse } from '@ledova/shared';
 import { apiClient } from '../services/apiClient';
 
 type ShareholderSummary = {
-  address: string;
+  member: string;
+  wallets: string[];
   name: string | null;
   totalBalance: number;
   tokens: Array<{ name: string; symbol: string; balance: number; percentage: number }>;
@@ -73,7 +74,7 @@ export function useCompanyShareholders() {
           try {
             const response = await getCompanyTokenHolders(apiClient, token.uuid);
             const data: TokenHoldersResponse = response.data;
-            return { token, holders: data.holders };
+            return { token, holders: data.holders, initialized: data.initialized };
           } catch {
             return { token, holders: [] };
           }
@@ -89,8 +90,9 @@ export function useCompanyShareholders() {
   if (holdersQuery.data) {
     for (const { token, holders } of holdersQuery.data) {
       for (const holder of holders) {
-        const existing: ShareholderSummary = holdersMap.get(holder.address) || {
-          address: holder.address,
+        const existing: ShareholderSummary = holdersMap.get(holder.member) || {
+          member: holder.member,
+          wallets: [],
           name: holder.name,
           totalBalance: 0,
           tokens: [],
@@ -103,17 +105,24 @@ export function useCompanyShareholders() {
           balance,
           percentage: holder.percentage,
         });
+        for (const { address } of holder.wallets) {
+          if (!existing.wallets.includes(address)) existing.wallets.push(address);
+        }
         if (holder.name && !existing.name) existing.name = holder.name;
-        holdersMap.set(holder.address, existing);
+        holdersMap.set(holder.member, existing);
       }
     }
   }
 
   const holders = Array.from(holdersMap.values()).sort((a, b) => b.totalBalance - a.totalBalance);
+  const unopenedTokens = (holdersQuery.data || [])
+    .filter(({ initialized }) => initialized === false)
+    .map(({ token }) => token.symbol);
 
   return {
     holders,
     deployedTokens,
+    unopenedTokens,
     isLoading: tokensLoading || holdersQuery.isLoading,
     refetch: async () => {
       await holdersQuery.refetch();

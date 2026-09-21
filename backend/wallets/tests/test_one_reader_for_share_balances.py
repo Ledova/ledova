@@ -6,7 +6,7 @@ from django.test import TestCase
 from assets.models import Asset, AssetChainDeployment
 from shared.tests.tenants import make_tenant
 from tokens.services import share_token_service
-from tokens.services.register import token_register
+from tokens.services.register import stored_register
 from wallets.models import Holding
 from wallets.services.sync import _sync_holdings_from_blockchain, sync_wallet
 
@@ -30,9 +30,6 @@ class TheCacheAndTheRegisterReadOneChainTest(TestCase):
     def _chain(self, balance=ON_CHAIN):
         self.addCleanup(patch.stopall)
         patch("tokens.services.share_token_service.get_base_chain_client").start()
-        patch.object(share_token_service, "deployment_block", return_value=1).start()
-        patch.object(share_token_service, "transfer_participants", return_value={self.wallet.address}).start()
-        patch.object(share_token_service, "share_supply", return_value=(0, balance)).start()
         return patch.object(share_token_service, "get_token_balance", return_value=balance).start()
 
     def test_a_transfer_the_platform_did_not_make_is_closed_by_the_next_sync(self):
@@ -52,35 +49,14 @@ class TheCacheAndTheRegisterReadOneChainTest(TestCase):
         self.holding.refresh_from_db()
         self.assertEqual(self.holding.quantity, Decimal(ON_CHAIN))
 
-    def test_the_register_and_the_holding_state_the_same_number_after_that_sync(self):
-        self._chain()
-
-        _sync_holdings_from_blockchain(self.wallet)
-        rows, _ = token_register(self.token)
-
-        self.holding.refresh_from_db()
-        listed = {row["address"].lower(): int(row["balance"]) for row in rows}
-        self.assertEqual(listed[self.wallet.address.lower()], int(self.holding.quantity))
-
-    def test_reading_the_register_leaves_the_cache_exactly_where_it_was(self):
-        self._chain()
-
-        token_register(self.token)
-
-        self.holding.refresh_from_db()
-        self.assertEqual(self.holding.quantity, CACHED)
-        self.assertIsNone(self.holding.last_synced_at)
-
-    def test_both_surfaces_call_the_same_reader(self):
+    def test_reading_the_register_leaves_the_cache_and_the_chain_alone(self):
         reader = self._chain()
 
-        _sync_holdings_from_blockchain(self.wallet)
-        token_register(self.token)
+        stored_register(self.token)
 
-        self.assertEqual(
-            [call.args for call in reader.call_args_list],
-            [(self.token.contract_address, self.wallet.address)] * 2,
-        )
+        self.holding.refresh_from_db()
+        self.assertEqual((self.holding.quantity, self.holding.last_synced_at), (CACHED, None))
+        reader.assert_not_called()
 
 
 class TheWalletDoesNotClaimAFreshnessItDoesNotHaveTest(TestCase):

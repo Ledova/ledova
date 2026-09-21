@@ -1,3 +1,4 @@
+from datetime import date
 from unittest.mock import patch
 
 from rest_framework.test import APITestCase
@@ -13,19 +14,20 @@ from tokens.models import (
 from wallets.models import Wallet
 
 RECIPIENT = "0x" + "9" * 40
+MEMBER = "00000000-0000-4000-8000-000000000001"
 HOLDERS = [
     {
-        "address": RECIPIENT,
+        "member": MEMBER,
+        "wallets": [{"address": RECIPIENT, "whitelist_status": "Active"}],
         "name": "Register Holder",
         "balance": "5",
         "percentage": 100.0,
-        "source": "issuances",
+        "source": "stored",
         "holder_type": "member",
         "holder_type_display": "Member",
-        "entered_on": None,
+        "entered_on": date(2026, 9, 20),
         "share_class": "DEP",
         "identity_source": "Current profile",
-        "whitelist_status": "Active",
         "residential_address": "1 Register Street",
         "amount_paid": None,
     }
@@ -93,7 +95,7 @@ class ShareTokenActionTest(APITestCase):
         self.assertEqual(response.status_code, 400, response.content)
         self.assertEqual(response.json(), {"nonFieldErrors": ["The fields company, symbol must make a unique set."]})
 
-    @patch("tokens.views.share_token.token_register")
+    @patch("tokens.views.share_token.stored_register")
     @patch("tokens.views.share_token.share_token_service")
     def test_issue_and_holders_shapes(self, service_class, register):
         token = self.tenant.deployed_token
@@ -101,7 +103,7 @@ class ShareTokenActionTest(APITestCase):
             token=token, recipient_address=RECIPIENT, amount=7, reason="Owner request", submitted_by=self.tenant.user
         )
         service_class.create_issuance_request.return_value = issuance_request
-        register.return_value = (HOLDERS, 0)
+        register.return_value = {"rows": HOLDERS, "issued_supply": 5, "waiting_effects": 0}
 
         issue = self.client.post(
             f"/api/v1/tokens/{token.uuid}/issue/",
@@ -125,19 +127,23 @@ class ShareTokenActionTest(APITestCase):
             holders.json()["holders"],
             [
                 {
-                    "address": RECIPIENT,
+                    "member": MEMBER,
+                    "wallets": [{"address": RECIPIENT, "whitelistStatus": "Active"}],
                     "name": "Register Holder",
                     "balance": "5",
                     "percentage": 100.0,
-                    "source": "issuances",
+                    "source": "stored",
                     "holderType": "member",
-                    "enteredOn": None,
+                    "enteredOn": "2026-09-20",
                     "shareClass": "DEP",
                     "identitySource": "Current profile",
                 }
             ],
         )
-        self.assertEqual(holders.json()["totalHolders"], 1)
+        self.assertEqual(
+            [holders.json()[key] for key in ("totalHolders", "initialized", "issuedSupply", "waitingEffects")],
+            [1, True, "5", 0],
+        )
         register.assert_called_once_with(token)
 
     @patch("tokens.views.share_token.share_token_service")
@@ -163,13 +169,8 @@ class ShareTokenActionTest(APITestCase):
         self.assertIn("issuanceType", bad_type.json())
         service_class.create_issuance_request.assert_not_called()
 
-    @patch("tokens.services.register.share_token_service")
     @patch("tokens.views.share_token.share_token_service")
-    def test_detail_actions_keep_filter_params_off_the_token_lookup(self, service_class, register_chain):
-        register_chain.deployment_block.return_value = 1
-        register_chain.transfer_participants.return_value = set()
-        register_chain.get_token_balance.return_value = 0
-        register_chain.share_supply.return_value = (0, 0)
+    def test_detail_actions_keep_filter_params_off_the_token_lookup(self, service_class):
         token = self.tenant.deployed_token
         completed = ShareIssuance.objects.create(
             token=token, recipient_address=RECIPIENT, amount="5", status=IssuanceStatus.COMPLETED

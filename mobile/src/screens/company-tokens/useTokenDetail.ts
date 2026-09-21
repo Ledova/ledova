@@ -67,6 +67,8 @@ export function useTokenDetail(uuid: string) {
     error: tokenQuery.error,
     holders,
     totalHolders,
+    registerOpened: holdersQuery.data?.initialized,
+    waitingEffects: holdersQuery.data?.waitingEffects,
     isLoadingHolders: holdersQuery.isLoading,
     issuances,
     issuanceCount,

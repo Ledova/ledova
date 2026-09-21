@@ -32,7 +32,7 @@ from tokens.services.register import (
     REGISTER_HEADERS,
     api_holders,
     export_rows,
-    token_register,
+    stored_register,
 )
 from tokens.services.share_token_service import delete_share_token
 
@@ -201,11 +201,11 @@ class ShareTokenViewSet(AuthenticatedModelViewSet):
                         "total_supply": serializers.CharField(),
                     },
                 ),
+                "initialized": serializers.BooleanField(),
                 "holders": ShareRegisterHolderSerializer(many=True),
                 "total_holders": serializers.IntegerField(),
-                "issued_supply": serializers.CharField(),
-                "listed_total": serializers.CharField(),
-                "discrepancy": serializers.CharField(),
+                "issued_supply": serializers.CharField(allow_null=True),
+                "waiting_effects": serializers.IntegerField(allow_null=True),
                 "former_members": FormerMemberSerializer(many=True),
                 "former_members_as_at": serializers.DateTimeField(allow_null=True),
                 "former_members_block": serializers.IntegerField(allow_null=True),
@@ -216,8 +216,8 @@ class ShareTokenViewSet(AuthenticatedModelViewSet):
     @action(detail=True, methods=["get"])
     def holders(self, request, uuid=None):
         token = self.get_object()
-        rows, discrepancy = token_register(token)
-        listed = sum(int(row["balance"]) for row in rows)
+        register = stored_register(token)
+        rows = register["rows"] if register else []
         return Response(
             {
                 "token": {
@@ -227,11 +227,11 @@ class ShareTokenViewSet(AuthenticatedModelViewSet):
                     "status": token.status,
                     "total_supply": token.total_supply,
                 },
+                "initialized": register is not None,
                 "holders": api_holders(rows),
                 "total_holders": len(rows),
-                "issued_supply": str(listed + discrepancy),
-                "listed_total": str(listed),
-                "discrepancy": str(discrepancy),
+                "issued_supply": None if register is None else str(register["issued_supply"]),
+                "waiting_effects": None if register is None else register["waiting_effects"],
                 "former_members": FormerMemberSerializer(former_members_of(token), many=True).data,
                 "former_members_as_at": token.former_holders_folded_at,
                 "former_members_block": token.former_holders_block,

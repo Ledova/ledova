@@ -4297,27 +4297,28 @@ export interface ApiComponents {
       token: ApiComponents['schemas']['ShareTokenDetail'];
     };
     ShareRegister: {
-      discrepancy: string;
       formerMembers: ApiComponents['schemas']['FormerMember'][];
       formerMembersAsAt: string | null;
       formerMembersBlock: number | null;
       formerMembersStale: boolean;
       holders: ApiComponents['schemas']['ShareRegisterHolder'][];
-      issuedSupply: string;
-      listedTotal: string;
+      initialized: boolean;
+      issuedSupply: string | null;
       token: ApiComponents['schemas']['ShareRegisterToken'];
       totalHolders: number;
+      waitingEffects: number | null;
     };
     ShareRegisterHolder: {
-      address: string;
       balance: string;
-      enteredOn: string | null;
+      enteredOn: string;
       holderType: ApiComponents['schemas']['HolderTypeEnum'];
       identitySource: string;
+      member: string;
       name: string | null;
       percentage: number;
       shareClass: string;
       source: string;
+      wallets: ApiComponents['schemas']['ShareRegisterWallet'][];
     };
     ShareRegisterToken: {
       name: string;
@@ -4325,6 +4326,10 @@ export interface ApiComponents {
       symbol: string;
       totalSupply: string;
       uuid: string;
+    };
+    ShareRegisterWallet: {
+      address: string;
+      whitelistStatus: string;
     };
     ShareTokenCreateRequest: {
       company?: string;

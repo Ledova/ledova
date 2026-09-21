@@ -96,6 +96,18 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   longer be submitted or resubmitted for review, or activated once approved. A
   company made active before the upgrade can still have a warning resolved or be
   reinstated. Check the setting before upgrading.
+- The stored-register reads have no migration, but they change what an issuer
+  sees. `GET /api/v1/tokens/{uuid}/holders/` and the register CSV serve the
+  stored register and read no chain, so a share class with no applied opening
+  reports `initialized: false` and its export returns 409
+  `register_not_initialized` until an
+  [opening is applied](register-foundation.md#approved-opening-capture-and-wallet-links).
+  Rows become one per member with its `wallets` in place of `address`, the
+  response drops `listedTotal` and `discrepancy`, and the CSV gains a Member ID
+  column and joins a member's wallets in Wallet addresses. Release the backend
+  and the clients together: an older dashboard or mobile build reads `address`
+  from each row and fails on the new ones. Update anything that parses the CSV
+  by its old headers.
 - `whitelist/0002_whitelistentry_treasury_addresses` makes
   `WhitelistEntry.wallet` nullable and adds `address` and `label` with a check
   constraint; `whitelist/0003` adds the partial unique constraint on `address`

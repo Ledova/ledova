@@ -1,12 +1,17 @@
 import csv
 import io
-from unittest.mock import Mock, patch
+from uuid import uuid4
 
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 
 from shared.tests.tenants import make_tenant
-from tokens.models import RequestStatus, ShareIssuance, ShareIssuanceRequest
+from tokens.models import (
+    RegisterMemberWallet,
+    RequestStatus,
+    ShareIssuance,
+    ShareIssuanceRequest,
+)
 from tokens.services import issuance_execution
 from tokens.services.holder_identity import identity_at_allotment
 from tokens.services.register import (
@@ -17,16 +22,15 @@ from tokens.services.register import (
     IDENTITY_RECORDED,
     REGISTER_HEADERS,
     export_rows,
-    token_register,
+    stored_register,
 )
+from tokens.services.register_events import create_member, open_register
 from tokens.tests.issuance_fixtures import CHAIN_ID, KEY, admit, install_issuance
+from tokens.tests.test_register_events import DAY
 from wallets.models import Wallet
 from whitelist.models import HolderType, WhitelistEntry
 
 HOLDER = "0x" + "ab" * 20
-CHAIN_CLIENT = "tokens.services.share_token_service.get_base_chain_client"
-WHITELISTED = "tokens.services.share_token_service.is_recipient_whitelisted"
-SUPPLY = "tokens.services.share_token_service.share_supply"
 IDENTITY_COLUMN = REGISTER_HEADERS.index("Identity source")
 
 
@@ -56,19 +60,15 @@ class IdentitySurvivesAWalletDeletionTest(TestCase):
         self.account = self.tenant.account
         self.wallet = Wallet.objects.create(user_account=self.account, address=HOLDER, chain="base")
         WhitelistEntry.objects.create(wallet=self.wallet)
-        self.chain = Mock()
-        self.chain.deployment_block.return_value = 1
-        self.chain.transfer_participants.return_value = set()
-        self.chain.get_token_balance.return_value = 100
-        self.chain.share_supply.return_value = (1000, 100)
-        service = patch("tokens.services.register.share_token_service").start()
-        service.configure_mock(
-            **{
-                name: getattr(self.chain, name)
-                for name in ("deployment_block", "transfer_participants", "share_supply", "get_token_balance")
-            }
+        member = create_member(company_id=self.token.company_id, member_id=uuid4())
+        RegisterMemberWallet.objects.create(company_id=self.token.company_id, member=member, address=HOLDER)
+        open_register(
+            token_id=self.token.pk,
+            operation_id=uuid4(),
+            changes=[{"member": str(member.pk), "shares": "100"}],
+            effective_on=DAY,
+            recorded_by=self.tenant.user,
         )
-        self.addCleanup(patch.stopall)
 
     def _allot(self, name="", address="", stamped=True):
         return ShareIssuance.objects.create(
@@ -82,8 +82,9 @@ class IdentitySurvivesAWalletDeletionTest(TestCase):
         )
 
     def _row(self):
-        rows, _ = token_register(self.token, service=self.chain)
-        return next(row for row in rows if row["address"].lower() == HOLDER)
+        (row,) = stored_register(self.token)["rows"]
+        self.assertEqual([wallet["address"] for wallet in row["wallets"]], [HOLDER])
+        return row
 
     def test_the_stamp_resolves_the_holders_identity_at_allotment(self):
         stamped = identity_at_allotment(HOLDER, chain="base")
@@ -161,8 +162,10 @@ class IdentitySurvivesAWalletDeletionTest(TestCase):
 
         self.assertEqual(rows[0], REGISTER_HEADERS)
         self.assertTrue(rows[1][IDENTITY_COLUMN].startswith("Stamped at allotment on "), rows[1])
-        self.assertEqual(rows[1][0], "Ada Lovelace")
-        self.assertEqual(rows[1][1], "1 Analytical Way")
+        self.assertEqual(
+            (rows[1][REGISTER_HEADERS.index("Name")], rows[1][REGISTER_HEADERS.index("Residential address")]),
+            ("Ada Lovelace", "1 Analytical Way"),
+        )
 
 
 @override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)

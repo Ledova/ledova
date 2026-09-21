@@ -307,3 +307,26 @@ def record_completed_effects(token_id):
             )
             return appended
     return appended
+
+
+def waiting_effects(token_id):
+    _operator()
+    boundary = opening_boundary(token_id)
+    register = ShareRegister.objects.filter(token_id=token_id).select_related("token").first()
+    if boundary is None or register is None:
+        return None
+    try:
+        inclusions = completed_inclusions(token_id)
+    except ValidationError:
+        return None
+    classify = classifier(boundary)
+    recorded = _recorded(token_id)
+    waiting = 0
+    for inclusion in inclusions:
+        classification = classify(inclusion)
+        if classification == OPENING or inclusion["source"] in recorded:
+            continue
+        if classification == AFTER_OPENING and _effect(inclusion, register.token.company_id) == {}:
+            continue
+        waiting += 1
+    return waiting

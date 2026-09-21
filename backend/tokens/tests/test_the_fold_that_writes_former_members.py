@@ -1,13 +1,15 @@
 from datetime import date, timedelta
 from unittest.mock import Mock, patch
+from uuid import uuid4
 
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.utils import timezone
 from web3 import Web3
 
 from shared.tests.tenants import make_tenant
 from tokens.models import FormerHolder, ShareToken
 from tokens.models.choices import IDENTITY_UNKNOWN
+from tokens.services import share_token_service
 from tokens.services.former_holders import (
     STALE_AFTER,
     cessations_in,
@@ -22,6 +24,8 @@ from tokens.services.register import (
     STALE,
     export_rows,
 )
+from tokens.services.register_events import open_register
+from tokens.tests.test_register_events import DAY
 
 ALICE = Web3.to_checksum_address("0x" + "a1" * 20)
 BOB = Web3.to_checksum_address("0x" + "b2" * 20)
@@ -216,12 +220,12 @@ class WhatTheExportSaysAboutFormerMembersTest(TestCase):
     def setUp(self):
         self.tenant = make_tenant("export")
         self.token = self.tenant.deployed_token
+        open_register(
+            token_id=self.token.pk, operation_id=uuid4(), changes=[], effective_on=DAY, recorded_by=self.tenant.user
+        )
 
     def rows(self):
-        from unittest.mock import patch
-
-        with patch("tokens.services.register.token_register", return_value=([], 0)):
-            return export_rows(self.token, self.tenant.user)
+        return export_rows(self.token, self.tenant.user)
 
     def a_former_member(self):
         return FormerHolder.objects.create(
@@ -295,3 +299,31 @@ class TheRetentionClockIsTheOnlyDeletionTest(TestCase):
 
         self.assertEqual(purge_former_holders(), 0)
         self.assertEqual(FormerHolder.objects.count(), 1)
+
+
+class TheTransferReadIsBoundedTest(SimpleTestCase):
+    def test_the_log_read_is_chunked_and_never_asks_for_an_open_range(self):
+        contract = Mock()
+        contract.events.Transfer.return_value.get_logs.return_value = []
+
+        with patch.object(share_token_service, "load_share_token", return_value=contract):
+            share_token_service.transfer_entries("0x" + "c" * 40, from_block=1, to_block=4500, window=2000)
+
+        self.assertEqual(
+            [call.kwargs for call in contract.events.Transfer.return_value.get_logs.call_args_list],
+            [
+                {"from_block": 1, "to_block": 2000},
+                {"from_block": 2001, "to_block": 4000},
+                {"from_block": 4001, "to_block": 4500},
+            ],
+        )
+
+    def test_a_chunk_that_fails_is_a_failed_read_rather_than_a_short_answer(self):
+        contract = Mock()
+        contract.events.Transfer.return_value.get_logs.side_effect = RuntimeError("range too wide")
+
+        with (
+            patch.object(share_token_service, "load_share_token", return_value=contract),
+            self.assertRaises(RuntimeError),
+        ):
+            share_token_service.transfer_entries("0x" + "c" * 40, from_block=1, to_block=10)

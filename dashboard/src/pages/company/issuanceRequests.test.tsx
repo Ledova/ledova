@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import axios from 'axios';
-import { ApiClientProvider, COMPANY_TOKEN_ENDPOINTS } from '@ledova/shared';
+import { ApiClientProvider, COMPANY_TOKEN_ENDPOINTS, REGISTER_COPY } from '@ledova/shared';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
@@ -42,7 +42,45 @@ const REQUEST = {
   createdAt: '2026-09-07T00:00:00Z',
 };
 
+const OPENED_EMPTY = { holders: [], totalHolders: 0, initialized: true, issuedSupply: '0', waitingEffects: 0 };
+
+const MEMBERS = {
+  ...OPENED_EMPTY,
+  holders: [
+    {
+      member: 'member-1',
+      wallets: [
+        { address: `0x${'1'.repeat(40)}`, whitelistStatus: 'active' },
+        { address: `0x${'2'.repeat(40)}`, whitelistStatus: '' },
+      ],
+      name: 'Mia Member',
+      balance: '60',
+      percentage: 60,
+      source: 'stored',
+      holderType: 'member',
+      enteredOn: '2026-09-01',
+      shareClass: 'QAT',
+      identitySource: 'Live profile',
+    },
+    {
+      member: 'member-2',
+      wallets: [],
+      name: null,
+      balance: '40',
+      percentage: 40,
+      source: 'stored',
+      holderType: 'unidentified',
+      enteredOn: '2026-09-02',
+      shareClass: 'QAT',
+      identitySource: 'None',
+    },
+  ],
+  totalHolders: 2,
+  issuedSupply: '100',
+};
+
 let requests: Array<typeof REQUEST & { executionNotes?: string }>;
+let register: Record<string, unknown>;
 let tokenStatus: string;
 let refuseRequests: boolean;
 let queryClient: QueryClient;
@@ -59,6 +97,7 @@ function showHistory() {
 
 beforeEach(() => {
   requests = [];
+  register = OPENED_EMPTY;
   tokenStatus = 'deployed';
   refuseRequests = false;
   queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
@@ -66,7 +105,7 @@ beforeEach(() => {
   api.post.mockReset();
   api.get.mockImplementation(async (url: string, config?: { params?: { page?: number } }) => {
     if (url === COMPANY_TOKEN_ENDPOINTS.DETAIL('token-1')) return { data: { ...TOKEN, status: tokenStatus } };
-    if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS('token-1')) return { data: { holders: [], totalHolders: 0 } };
+    if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS('token-1')) return { data: register };
     if (url === COMPANY_TOKEN_ENDPOINTS.ISSUANCES('token-1') || url === COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASES) {
       return { data: { results: [], count: 0, next: null, previous: null } };
     }
@@ -100,6 +139,33 @@ describe('the issuer request history through real query and service hooks', () =
     await screen.findByText('No issuance requests yet.');
     const download = screen.getByRole('button', { name: 'Download CSV' }) as HTMLButtonElement;
     expect(download.disabled).toBe(false);
+  });
+
+  it('refuses the export and says why while the register is not opened', async () => {
+    register = { holders: [], totalHolders: 0, initialized: false, issuedSupply: null, waitingEffects: null };
+    showHistory();
+    await screen.findByText(REGISTER_COPY.NOT_OPENED_NOTE);
+    expect((screen.getByRole('button', { name: 'Download CSV' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByText(REGISTER_COPY.WAITING_UNKNOWN_NOTE)).toBeNull();
+  });
+
+  it('lists each member once with every linked wallet and the effects still waiting', async () => {
+    register = { ...MEMBERS, waitingEffects: 2 };
+    showHistory();
+    await screen.findByText('Mia Member');
+    expect(screen.getByText('0x1111...1111')).toBeDefined();
+    expect(screen.getByText('0x2222...2222')).toBeDefined();
+    expect(screen.getByText(REGISTER_COPY.NO_WALLET)).toBeDefined();
+    expect(screen.getByText('(2)')).toBeDefined();
+    expect(screen.getByText(REGISTER_COPY.WAITING_NOTE(2))).toBeDefined();
+    expect((screen.getByRole('button', { name: 'Download CSV' }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('says so when it could not check for effects still waiting', async () => {
+    register = { ...MEMBERS, waitingEffects: null };
+    showHistory();
+    await screen.findByText(REGISTER_COPY.WAITING_UNKNOWN_NOTE);
+    expect(screen.queryByText(REGISTER_COPY.NOT_OPENED_NOTE)).toBeNull();
   });
 
   it('refreshes the history after a submitted request receives 201', async () => {
