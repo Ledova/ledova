@@ -48,6 +48,8 @@ BEGIN
                 WHERE jsonb_typeof(item) <> 'object'
                 OR (SELECT count(*) FROM jsonb_object_keys(item)) <> 2
                 OR NOT (item ? 'address' AND item ? 'member')
+                OR jsonb_typeof(item->'address') IS DISTINCT FROM 'string'
+                OR jsonb_typeof(item->'member') IS DISTINCT FROM 'string'
                 OR item->>'address' !~ '^0x[0-9a-fA-F]{40}$'
                 OR item->>'member' !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
             OR mapping_count <>

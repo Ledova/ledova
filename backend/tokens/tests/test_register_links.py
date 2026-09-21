@@ -249,6 +249,9 @@ class RegisterWalletLinkTest(TransactionTestCase):
             raise RuntimeError("rollback")
         with self.assertRaises(DatabaseError), atomic():
             self.forged(proposal, mapping=[])
+        for item in ({"address": DAVE, "member": None}, {"address": None, "member": proposal.mapping[0]["member"]}):
+            with self.subTest(item=item), self.assertRaises(DatabaseError), atomic():
+                self.forged(proposal, mapping=[item])
         with self.assertRaises(RuntimeError), atomic():
             self.forged(proposal)
             raise RuntimeError("rollback")
