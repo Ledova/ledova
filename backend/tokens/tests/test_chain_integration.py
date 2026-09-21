@@ -515,6 +515,7 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
                     "block_hash": Web3.to_hex(receipt["blockHash"]),
                     "gas_used": receipt["gasUsed"],
                     "policy": {"version": 1, "mode": "depth", "depth": 2},
+                    "transaction_index": receipt["transactionIndex"],
                 },
             )
             self.assertIsNone(swap_execution.settle(swap.transaction_id))
@@ -941,10 +942,17 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual(classify_inclusion(applied.boundary, after[0]), AFTER_OPENING)
         report = classified_inclusions(self.token.pk)
         self.assertEqual(
-            sorted(inclusion["classification"] for inclusion in report["inclusions"]),
-            [AFTER_OPENING, OPENING, OPENING],
+            sorted((inclusion["classification"], inclusion["recorded"]) for inclusion in report["inclusions"]),
+            [(AFTER_OPENING, True), (OPENING, False), (OPENING, False)],
         )
-        self.assertEqual(verify_register(applied.applied_entry.register_id)["issued_supply"], "20")
+        issued = ShareIssuanceRequest.objects.get(pk=third.pk)
+        recorded = RegisterEntry.objects.get(operation_id=issued.executed_issuance_id)
+        self.assertEqual(
+            (recorded.kind, recorded.changes, recorded.recorded_by_id),
+            ("issue", [{"member": str(member), "shares": "5"}], issued.reviewed_by_id),
+        )
+        self.assertEqual(verify_register(applied.applied_entry.register_id)["issued_supply"], "25")
+        self.assertEqual(self._contract().functions.totalSupply().call(), 25)
 
     @override_settings(WALLET_CHAIN_FINALITY_POLICIES={"evm:31337": {"mode": "depth", "depth": 2}})
     def test_real_issuance_waits_for_finality_then_completes_without_another_mint(self):

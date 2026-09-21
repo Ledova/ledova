@@ -35,6 +35,10 @@ the register could never merge. Member particulars are kept while the person is
 a member and then for at least the former-member retention floor, so the
 register's seven-year obligation and its purge share one clock. Both were
 chosen on 21 September 2026 in [#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5755636585).
+An entry recorded automatically names the person who authorised its change: the
+staff member who approved an issue, or the transferor whose signed order is a
+transfer's instrument, rather than the company owner or a service account that
+took no action ([#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5756732848)).
 [The register](architecture/register.md) owns the mechanisms.
 
 ## Payments and settlement

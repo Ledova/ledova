@@ -447,6 +447,16 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
             self.swap.refresh_from_db()
         self.assert_held()
 
+    def test_completion_keeps_the_transaction_index_of_its_finalized_receipt(self):
+        self.confirm()
+        self.node.receipts[self.record.tx_hash]["transactionIndex"] = 4
+        with override_settings(WALLET_CHAIN_FINALITY_POLICIES=FINALIZED):
+            self.node.advance(head=20, finalized=12)
+            self.assertEqual(self.settle(), SwapOrderStatus.COMPLETED)
+        self.assertEqual(self.swap.finalized_receipt["transaction_index"], 4)
+        with use_operator():
+            self.assertEqual(completed_inclusions(self.swap.share_token_id)[0]["transaction_index"], 4)
+
     def test_completion_records_the_inclusion_a_register_boundary_classifies(self):
         self.confirm()
         with override_settings(WALLET_CHAIN_FINALITY_POLICIES=FINALIZED):
@@ -465,6 +475,7 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
                         "transaction": self.swap.tx_hash.removeprefix("0x"),
                         "block_number": 12,
                         "block_hash": BLOCK_HASH.removeprefix("0x"),
+                        "transaction_index": None,
                     }
                 ],
             )

@@ -13,10 +13,9 @@ initialises it from one verified canonical chain boundary under documentary
 authority, and the integrity verifier replays the whole chain. A wallet the
 opening did not map is linked to a member only by a
 [reviewed link request](../operations/register-foundation.md#reviewed-wallet-links-after-the-opening)
-carrying the same authority. These HTTP reads
-have not switched to it yet, and issuance and settlement still record no register
-events. Opening review and an operator report classify their completed effects
-against that boundary instead, from evidence both sides record: each completion's
+carrying the same authority. These HTTP reads have not switched to it yet.
+Opening review and an operator report classify completed effects against that
+boundary from evidence both sides record: each completion's
 finalized receipt, and the canonical transfer history the boundary retains. A
 completion is represented by the opening only when its transaction is in that
 history; one in a later block falls after it; anything the evidence cannot place,
@@ -25,7 +24,11 @@ boundary [captured before that history was retained](../operations/register-foun
 is held for operator attribution. An opening whose captured boundary does not
 represent a completed effect is refused rather than applied over it. Settlement
 completion takes the same share-class lock as issuance completion, so neither can
-interleave with an opening. Recording the later events themselves remains open.
+interleave with an opening. Each completion after the opening is
+[recorded as an issue or transfer](../operations/register-foundation.md#recording-issues-and-transfers-after-the-opening)
+in its own completion transaction, in chain order; recording waits, without
+stalling the completion, at the first effect whose wallet has no link or which
+needs attribution.
 
 Owner-submitted [compensating corrections](../operations/register-foundation.md#reviewed-compensating-corrections)
 now bind documentary authority to an exact reversal and register revision.
