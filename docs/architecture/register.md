@@ -56,15 +56,17 @@ account and profile, in bounded address chunks. Holder types are:
 | `ambiguous` | The wallets resolve to different people, live or through their stamps, or one of them to more than one wallet or entry |
 | `unidentified` | No wallet resolves to an identity |
 
-Particulars recorded by an [import](../operations/register-foundation.md#importing-an-existing-register)
-come first: such a member is a `member` named by its recorded name and
-residential address, with the identity source "Recorded register particulars".
-Otherwise live identity is preferred. A member with no live identity can fall back to the
-latest resolved identity stamp among its wallets' completed allotments. Resolved
-stamps that differ in name or residential address make the member `ambiguous`,
-as live identities that differ do. The row names the source and stamp date; a
-name without a resolved stamp remains unidentified. Old unstamped issuances are
-not backfilled by guessing identity.
+Live identity is preferred when it is present and unambiguous. A member with no
+live identity can fall back to the latest resolved identity stamp among its
+wallets' completed allotments. Resolved stamps that differ in name or residential
+address make the member `ambiguous`, as live identities that differ do. The row
+names the source and stamp date. Where neither resolves, particulars recorded by
+an [import](../operations/register-foundation.md#importing-an-existing-register)
+fill in: the member is a `member` named by its recorded name and residential
+address, with the identity source "Recorded register particulars". Particulars
+never replace a live identity or hide an ambiguous one (owner decision,
+22 September 2026). Otherwise a name without a resolved stamp remains
+unidentified. Old unstamped issuances are not backfilled by guessing identity.
 
 Allotments to the member's wallets provide consideration, not membership. Amount
 paid is shown only for a holding that transfers have not touched and that is
@@ -84,8 +86,14 @@ holding has been continuous since: the opening carried the member in, no later
 entry took it to no shares, and the fold recorded no cessation of one of its
 wallets from the allotment's date to the opening's. Otherwise a member the
 opening carried in shows the opening's date, as one who held only through
-transfers before the opening does. While a holding is unchanged since an applied
-import, the import's date entered and amount paid replace both rules.
+transfers before the opening does.
+
+An applied import's date entered replaces both rules for a member the opening
+carried in whose holding has been continuous since, because a continuing
+member's date entered does not change; later issues and transfers leave it in
+place. The import's amount paid applies only while that holding is also
+unchanged since the import. A member who entered through a later entry keeps the
+date and amount the stored register gives.
 
 A cessation counts in these two rules once the fold has read it; the
 former-member section states how far the fold has read.
@@ -155,8 +163,10 @@ the discrepancies and what each asks of an operator.
 
 `former_holders.py` folds `Transfer` history through the provider's finalized
 block and records cessations in `FormerHolder`. Particulars are frozen at first
-recorded cessation: current profile at recording, otherwise an allotment stamp
-no later than cessation, otherwise unknown. Refolding does not rewrite them.
+recorded cessation: current profile at recording, otherwise a resolved allotment
+stamp no later than cessation, otherwise the particulars an import recorded for
+the member the wallet is linked to, otherwise a name recorded at allotment,
+otherwise unknown. Refolding does not rewrite them.
 
 The fold sees wallets, not members. A cessation of a wallet linked to a member
 who currently holds shares of the class is left out of the former members, in
@@ -166,8 +176,10 @@ nothing in the stored register even though the fold sees that wallet cease. A
 cessation before the member's date entered stays listed, because the member
 ceased and holds again, and s169(3) keeps that cessation on the register. Before
 the opening the fold cannot tell a wallet rotation from a cessation, so such a
-rotation stays listed as well, the recoverable direction. The rows left out are
-kept, and still count against that member's date entered and amount paid.
+rotation stays listed as well, the recoverable direction. An imported date
+entered does not move that line: the comparison uses the date the stored register
+and allotments give. The rows left out are kept, and still count against that
+member's date entered and amount paid.
 
 Each class fold is all-or-nothing. Failure leaves its last successful timestamp
 and block unchanged and does not stop processing other classes. The register
@@ -179,8 +191,9 @@ The retention floor and clock are documented in
 cannot be recreated by a later full-history fold. Only the company owner and
 operator read them; the application role cannot write them. Pre-platform former
 members cannot be reconstructed from the chain; an import records them as
-`ImportedFormerMember` rows, which the CSV lists beside the folded ones and the
-same daily job purges from their date ceased.
+`ImportedFormerMember` rows. Each ceased before the opening. The holders API and
+the CSV list them beside the folded ones, from the same snapshot, with no wallet
+address or block, and the same daily job purges them from their date ceased.
 
 ## Deletion protection
 

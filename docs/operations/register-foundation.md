@@ -22,9 +22,9 @@ member can have multiple wallet links. Wallet links are durable insert-only
 identity records created by the approved opening or a reviewed link request
 below: one address resolves to
 one member per company, and an existing link for a mapped address must agree
-with the mapping. Retained personal particulars belong to later integration
-work; the register routes name members from their wallets' identities and
-allotment stamps. It never merges members
+with the mapping. The register routes name members from their wallets'
+identities and allotment stamps; an [import's](#importing-an-existing-register)
+recorded particulars fill in only where neither resolves. It never merges members
 by matching names.
 
 A register belongs to one share class. Its first entry records the opening state,
@@ -531,18 +531,24 @@ classify them against, as with one loaded by the synthetic command above;
 ## Importing an existing register
 
 A company that arrives with a register keeps its members' particulars and its
-pre-platform former members. Imports follow the owner decisions of 21 September
-2026:
+pre-platform former members. Imports follow the owner decisions of
+21 September 2026:
 - for a class already opened from the chain, the import adds particulars and
   former members and leaves holdings to the stored register;
 - for a class not yet on chain, the import will become the opening, which is
   later work;
 - a staff reviewer enters the ASIC extract's figures.
 
-The owner submits one import per share class. It names a staff-verified
-`SHARE_REGISTER` document (the company's current register, of which the import
-retains a private copy), a staff-verified ASIC extract, documentary authority as
-for an opening, and the register date:
+The owner decided on 22 September 2026 that:
+- the applied import's reviewed copy and uploaded file are evidence, kept like
+  opening and correction evidence;
+- a member's live verified identity wins over imported particulars.
+
+A share class takes one applied import. Submission, review and application each
+refuse another once one is applied, and a partial unique index backs them. The
+import names a staff-verified `SHARE_REGISTER` document (the company's current
+register, of which the import retains a private copy), a staff-verified ASIC
+extract, documentary authority as for an opening, and the register date:
 
 | Method and route | Result |
 | --- | --- |
@@ -574,31 +580,66 @@ for an opening, and the register date:
 }
 ```
 
-Every current member must already be a member of the company with a stored
-holding, dates may not follow the register date, and `amount_paid` is a
-two-decimal amount or `null` when not known. In **Admin → Tokens → Register
-imports** a staff reviewer with change permission opens the review, which
+Submission refuses rows that do not fit the stored columns, with a message
+naming the problem:
+- every current member must already be a member of the company with a stored
+  holding;
+- a name has at most 255 characters and a residential address at most 1,000;
+- `shares` is a whole number of at most 78 digits;
+- `amount_paid` is a plain amount such as `250.00`, with at most two decimal
+  places and eighteen whole digits, or `null` when not known;
+- dates may not follow the register date;
+- a former member must have ceased before the register's opening, because the
+  stored register and the fold record later cessations, and within the
+  former-member retention period (`FORMER_MEMBER_RETENTION_DAYS`, 2,557 days by
+  default), because the retention job would purge an older one.
+
+In **Admin → Tokens → Register imports** a staff reviewer with change permission
+opens the review. For each member it shows the imported name beside the
+member's linked wallets and current live identity, so names swapped between
+equal holdings show, and the stored date entered beside the imported one. It
 compares each imported holding with the stored one. The reviewer reads the ASIC
 extract, enters its issued total and member count for the class, confirms and
 applies. Application refuses:
 - figures that differ from the import's totals;
 - any holding that differs from the stored register, which includes a member
   the import leaves out;
-- changed evidence or a changed ASIC extract.
+- changed evidence or a changed ASIC extract;
+- a class that already has an applied import.
 
-It then stores each member's particulars and the imported former members, and
-keeps the figures and the register sequence on the request. Rejection with a
-reason stays available. The database keeps imports immutable and refuses forged
-decisions, an application whose figures differ from the rows, and one that
-leaves a member without particulars.
+It then stores each member's particulars, except where the member already has
+particulars from an import with a later register date, and the imported former
+members. It keeps the figures and the register sequence on the request.
+Repeating an application with the same figures returns it; different figures
+conflict. Rejection with a reason stays available. The database keeps imports
+immutable and refuses:
+- forged decisions;
+- rows whose keys or types differ from what submission accepts;
+- a former member who ceased on or after the opening;
+- an application whose figures differ from the rows;
+- an application that leaves a member without particulars from it or from a
+  later-dated import;
+- a second applied import for the class.
 
 The [register reads](../architecture/register.md#membership-and-identity) then
-name members from their recorded particulars. They print the imported date
-entered and amount paid while a holding is unchanged since the import, and list
-imported former members beside the chain-derived ones. Particulars are purged
-once the member has held nothing in the company for the 2,557-day floor, and
-imported former members that long after their date ceased, by the daily
-retention job.
+show a member's live verified identity when it is present and unambiguous.
+Recorded particulars fill in only for a member with no live identity and no
+resolved allotment stamp, and an ambiguous identity stays ambiguous. The
+imported date entered applies to a member the opening carried in for as long as
+the holding stays continuous, and the imported amount paid only while that
+holding is also unchanged since the import. A member who entered on the
+platform keeps the date and amount the platform recorded. The holders API and
+the CSV list imported former members beside the chain-derived ones. A folded
+former member whose wallet resolves to no profile and no resolved stamp takes
+the particulars of the member the wallet is linked to.
+
+The daily retention job purges particulars once the member has held nothing in
+the company for the 2,557-day floor, and imported former members that long after
+their date ceased. It purges nothing else of an import. The applied import's
+reviewed copy, with every name and address it carried, and its uploaded register
+file are evidence, kept like opening and correction evidence: nothing expires
+them automatically during the synthetic experiment, and production retention is
+decided before any real data (owner decision, 22 September 2026).
 
 ## Reconciling with the chain
 

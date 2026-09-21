@@ -128,9 +128,13 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   exists.
 - `tokens/0072_register_import` adds register imports, recorded member
   particulars and imported former members, with four owner routes under
-  `/api/v1/tokens/register-imports/`. Nothing is backfilled. Recorded particulars
-  change the name, address and identity source the register prints for the
-  members they cover. Reversal refuses once any import exists.
+  `/api/v1/tokens/register-imports/`, and a partial unique index that allows one
+  applied import per share class. Nothing is backfilled. Recorded particulars
+  name a member only where no live identity or resolved allotment stamp does.
+  `FormerHolder.identity_source` gains `particulars`, which the fold records
+  when a ceased wallet's member has only recorded particulars. The holders API's
+  `formerMembers` now lists imported former members, whose `walletAddress` and
+  `ceasedAtBlock` are `null`. Reversal refuses once any import exists.
 - `whitelist/0002_whitelistentry_treasury_addresses` makes
   `WhitelistEntry.wallet` nullable and adds `address` and `label` with a check
   constraint; `whitelist/0003` adds the partial unique constraint on `address`

@@ -31,7 +31,11 @@ basis is unadvised, and is [legal position 1](../legal/positions.md#1-section-16
 Register export records share this clock, measured from the export. So do
 imported former members, from their date ceased, and a member's recorded
 particulars, from the last date the member held shares in the company. The same
-daily job purges them all (owner decision, 21 September 2026).
+daily job purges them all (owner decisions, 21 September 2026). It removes
+nothing else of a register import: the applied import's reviewed copy and its
+uploaded register file are evidence, kept like opening and correction evidence
+with no automatic expiry during the synthetic experiment, and their production
+retention is decided before any real data (owner decision, 22 September 2026).
 
 ## Media storage
 

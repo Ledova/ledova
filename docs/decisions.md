@@ -60,6 +60,16 @@ only the operator writes, and later runs treat it as explained, so a share class
 can return to `matched`. Transfers of zero shares are ignored, because anyone
 can emit one. Both were chosen on 22 September 2026 in
 [#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5767606273).
+The same decision settled two import questions. An applied import's reviewed
+copy and uploaded register file are evidence, kept like opening and correction
+evidence: nothing expires them automatically during the synthetic experiment,
+and production retention is decided before any real data. The retention purge
+removes only the particulars the register reads and the imported former members.
+A linked member's live verified identity is shown when it is present and
+unambiguous; imported particulars fill in only for a member with no live
+identity, and an ambiguous identity stays ambiguous, so a later profile change
+reaches the register and particulars never hide a conflict
+([#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5767606273)).
 [The register](architecture/register.md) owns the mechanisms.
 
 ## Payments and settlement

@@ -70,7 +70,8 @@ the ASIC extract's figures. A class not yet on chain cannot be opened from an
 import yet, and in either operating model that remains the first gap, because a
 real company arrives with a register and former members already.
 
-**Status.** Reviewed 2026-09-15; unchanged except the last sentence.
+**Status.** Reviewed 2026-09-15; unchanged except the last three sentences, which
+now describe the import.
 
 ## 2. Section 168: who is obliged to keep the register
 
