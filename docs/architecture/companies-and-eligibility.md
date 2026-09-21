@@ -41,6 +41,13 @@ ACTIVATION purpose against this `lifecycle_revision` **and this identity**,
 which `companies/identity.py:company_identity` defines as name (NFKC-casefolded,
 whitespace-collapsed), ACN, ABN and `company_type`.
 
+With the operator's `issuer_kyc_required` on, the same service refuses to submit
+or resubmit a company, or to make it active by activation, warning resolution or
+reinstatement, unless the owner's profile is identity-verified (`is_id_verified`).
+The refusal is a 400 with code `issuer_identity_verification_required`. Activation
+checks it before spending a registry check and again at the transition. Every later
+issuer action relies on that gate. With the switch off nothing changes.
+
 Reference: `backend/companies/validators.py`. Gates:
 `backend/companies/tests/test_identifier_checksums.py`, whose fixtures are the
 **published worked examples** — ASIC's `004 085 616` and the ABR number above —
@@ -55,7 +62,8 @@ activation gate.
 predicate. It requires an investing account in good standing and a live classification.
 With `investor_kyc_required` on, pending accounts and an unverified profile are
 refused; with it off, pending alone does not refuse. Rejected, suspended and
-terminated accounts remain refused. `issuer_kyc_required` has no enforcing reader.
+terminated accounts remain refused. `issuer_kyc_required` gates the company
+lifecycle above, not investor eligibility.
 
 `investor_eligibility(user, company=...)` answers discovery questions;
 `account_eligibility(account, company=..., amount_aud=...)` binds the actual account.

@@ -6,6 +6,7 @@ from rest_framework.exceptions import PermissionDenied
 from companies.exceptions import (
     CompanyHoldsARegisterException,
     CompanyHoldsShareClassesException,
+    IssuerIdentityVerificationRequiredException,
     MissingRequiredDocumentsException,
     OfficeholderAttestationRequiredException,
     RegistryVerificationRequiredException,
@@ -19,6 +20,7 @@ from companies.models import (
     RegistryCheckPurpose,
 )
 from companies.services.registry import begin_registry_check, perform_registry_check
+from operators.models import Operator
 from shared.constants import normalize_chain
 from shared.db import atomic
 from users.models import UserProfile
@@ -100,6 +102,13 @@ def _attest_officeholder(company, actor, declaration):
     )
 
 
+def _require_verified_owner(company):
+    if Operator.get().issuer_kyc_required and not (
+        UserProfile.objects.filter(user_id=company.owner_id, is_id_verified=True).exists()
+    ):
+        raise IssuerIdentityVerificationRequiredException()
+
+
 ACTIVE_METHODS = {
     CompanyStatus.APPROVED: "activate",
     CompanyStatus.WARNING: "resolve_warning",
@@ -133,6 +142,7 @@ def _registry_transition(company, method, actor, declaration):
             if declaration:
                 _attest_officeholder(current, actor, declaration)
             current._require_attestation()
+            _require_verified_owner(current)
             purpose = RegistryCheckPurpose.ACTIVATION
         check = begin_registry_check(current, purpose, actor)
     check = perform_registry_check(check)
@@ -142,6 +152,7 @@ def _registry_transition(company, method, actor, declaration):
         current = Company.objects.select_for_update().get(pk=company.pk)
         if current.registry_check_id != check.pk:
             raise RegistryVerificationRequiredException()
+        _require_verified_owner(current)
         getattr(current, method)()
         _notify_transition(current, method)
     return current
@@ -161,6 +172,8 @@ def transition_company(company: Company, method: str, *, actor=None, declaration
             current._require_status([CompanyStatus.REVIEW], CompanyStatus.APPROVED)
             _attest_officeholder(current, actor, declaration or {})
             kwargs["approved_by"] = actor
+        if method in ("submit", "resubmit"):
+            _require_verified_owner(current)
         getattr(current, method)(**kwargs)
         _notify_transition(current, method, **kwargs)
     return current
