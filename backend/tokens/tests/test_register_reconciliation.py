@@ -3,6 +3,7 @@ from io import StringIO
 from unittest.mock import patch
 from uuid import uuid4
 
+from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db import DatabaseError, connections
@@ -15,6 +16,8 @@ from shared.db import atomic, current_alias, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import (
     IssuanceExecutionStatus,
+    RegisterAcknowledgement,
+    RegisterEntry,
     RegisterReconciliation,
     ShareIssuanceExecution,
     ShareIssuanceRequest,
@@ -27,11 +30,20 @@ from tokens.services import (
     register_reconciliation,
 )
 from tokens.services.register import RECONCILED_ROW, export_rows
-from tokens.services.register_reconciliation import reconcile_register
+from tokens.services.register_corrections import (
+    decide_correction,
+    prepare_correction_review,
+    submit_correction,
+)
+from tokens.services.register_reconciliation import (
+    acknowledge_discrepancy,
+    reconcile_register,
+)
 from tokens.services.register_snapshot import ZERO_ADDRESS
 from tokens.tasks.register_reconciliation import reconcile_every_register
 from tokens.tests import test_swap_finality
 from tokens.tests.issuance_fixtures import admit
+from tokens.tests.test_register_corrections import correction_payload
 from tokens.tests.test_register_events import register_fixture
 from tokens.tests.test_register_inclusions import MINT_BLOCK, InclusionFixtures
 from tokens.tests.test_register_openings import ALICE, BOB, SETTINGS
@@ -93,6 +105,9 @@ class RegisterReconciliationTest(InclusionFixtures, TransactionTestCase):
             (by_kind["unlinked"]["address"], by_kind["unlinked"]["chain"], by_kind["unlinked"]["expected"]),
             (BOB.lower(), "3", "0"),
         )
+        for index in range(len(record.discrepancies)):
+            self.acknowledge(record, index)
+        self.assertEqual(self.reconcile().status, "matched")
 
     def test_a_mint_outside_the_platform_breaks_the_supply(self):
         first = self.opened()
@@ -362,6 +377,198 @@ class RegisterReconciliationTest(InclusionFixtures, TransactionTestCase):
                 reconcile_every_register()
         self.assertEqual(RegisterReconciliation.objects.first().status, "failed")
 
+    def test_a_transfer_of_no_shares_is_not_a_discrepancy(self):
+        first = self.opened()
+        self.chain(
+            LATER,
+            (MINT_BLOCK, ZERO_ADDRESS, self.recipient, 10, first.tx_hash),
+            (LATER - 1, BOB, ZERO_ADDRESS, 0, None),
+            holdings={self.recipient: 10, BOB: 0},
+        )
+        self.assertEqual(self.reconcile().status, "matched")
+
+    def two_members(self):
+        first = self.mint()
+        self.minted = (MINT_BLOCK, ZERO_ADDRESS, self.recipient, 10, first.tx_hash)
+        self.moved = (LATER - 1, self.recipient, BOB, 3, None)
+        self.members = str(uuid4()), str(uuid4())
+        self.open_at(
+            LATER,
+            holdings={self.recipient: 7, BOB: 3},
+            transfers=[self.minted, self.moved],
+            mapping=[
+                {"address": self.recipient, "member": self.members[0]},
+                {"address": BOB, "member": self.members[1]},
+            ],
+        )
+
+    def acknowledge(self, record, index, reason="Accepted by the directors"):
+        return acknowledge_discrepancy(reconciliation_id=record.pk, index=index, reason=reason, actor=self.reviewer)
+
+    def outcome(self, record):
+        return sorted(
+            (item["kind"], item.get("member", item.get("transaction")), item.get("chain"), item.get("expected"))
+            for item in record.discrepancies
+        )
+
+    def test_acknowledged_discrepancies_are_explained_and_a_later_divergence_still_surfaces(self):
+        self.two_members()
+        outside = (LATER + 1, self.recipient, BOB, 2, None)
+        self.chain(LATER + 2, self.minted, self.moved, outside, holdings={self.recipient: 5, BOB: 5})
+        record = self.reconcile()
+        self.assertEqual(
+            self.outcome(record),
+            sorted(
+                [
+                    ("member", self.members[0], "5", "7"),
+                    ("member", self.members[1], "5", "3"),
+                    ("unrecognised_transfer", block_hash(100 + LATER + 1), None, None),
+                ]
+            ),
+        )
+        for index in range(len(record.discrepancies)):
+            self.acknowledge(record, index)
+        self.assertEqual(self.reconcile().status, "matched")
+        again = (LATER + 3, BOB, self.recipient, 1, None)
+        self.chain(LATER + 4, self.minted, self.moved, outside, again, holdings={self.recipient: 6, BOB: 4})
+        self.assertEqual(
+            self.outcome(self.reconcile()),
+            sorted(
+                [
+                    ("member", self.members[0], "6", "5"),
+                    ("member", self.members[1], "4", "5"),
+                    ("unrecognised_transfer", block_hash(100 + LATER + 3), None, None),
+                ]
+            ),
+        )
+
+    def test_an_applied_correction_is_acknowledged_like_any_other_difference(self):
+        first = self.opened()
+        later = self.mint(block=LATER)
+        issue = RegisterEntry.objects.get(operation_id=later.pk, kind="issue")
+        proposal = submit_correction(actor=self.owner, **correction_payload(self.document, issue))
+        _, confirmation = prepare_correction_review(proposal_id=proposal.pk, reviewer=self.reviewer)
+        decided = decide_correction(
+            proposal_id=proposal.pk, reviewer=self.reviewer, confirmation=confirmation, decision="apply"
+        )
+        self.assertEqual(decided.status, "applied")
+        self.chain(
+            LATER + 1,
+            (MINT_BLOCK, ZERO_ADDRESS, self.recipient, 10, first.tx_hash),
+            (LATER, ZERO_ADDRESS, self.recipient, 10, later.tx_hash),
+            holdings={self.recipient: 20},
+        )
+        record = self.reconcile()
+        self.assertEqual(
+            [(item["kind"], item["chain"], item["expected"]) for item in record.discrepancies],
+            [("member", "20", "10"), ("supply", "20", "10")],
+        )
+        self.acknowledge(record, 1, reason="The duplicate allotment was corrected by resolution")
+        self.assertEqual(self.kinds(self.reconcile()), ["member"])
+        self.acknowledge(RegisterReconciliation.objects.first(), 0)
+        self.assertEqual(self.reconcile().status, "matched")
+
+    def test_acknowledgements_are_retained_as_recorded_and_refused_unless_exact(self):
+        first = self.opened()
+        self.chain(
+            LATER,
+            (MINT_BLOCK, ZERO_ADDRESS, self.recipient, 10, first.tx_hash),
+            (LATER - 1, ZERO_ADDRESS, self.recipient, 5, None),
+            holdings={self.recipient: 15},
+        )
+        record = self.reconcile()
+        rows = {item["kind"]: item for item in record.discrepancies}
+        valid = {
+            "token_id": self.tenant.token.pk,
+            "reconciliation": record,
+            "discrepancy": rows["member"],
+            "reason": "Accepted by the directors",
+            "acknowledged_by_id": self.reviewer.pk,
+        }
+        acknowledgement = RegisterAcknowledgement.objects.create(**valid)
+        with self.assertRaises(DatabaseError), atomic():
+            RegisterAcknowledgement.objects.filter(pk=acknowledgement.pk).update(reason="Rewritten")
+        with self.assertRaises(DatabaseError), atomic():
+            acknowledgement.delete()
+        clerk = get_user_model().objects.create_user(email=f"clerk-{uuid4()}@example.test", is_active=True)
+        for changes in (
+            {},
+            {"discrepancy": {**rows["supply"], "chain": "16"}},
+            {"discrepancy": rows["supply"], "reason": " "},
+            {"discrepancy": rows["supply"], "acknowledged_by_id": clerk.pk},
+            {"discrepancy": rows["supply"], "token_id": register_fixture()[2].pk},
+        ):
+            with self.subTest(changes=changes), self.assertRaises(DatabaseError), atomic():
+                RegisterAcknowledgement.objects.create(**{**valid, **changes})
+        RegisterAcknowledgement.objects.create(**{**valid, "discrepancy": rows["supply"]})
+        held = RegisterReconciliation.objects.create(
+            token=self.tenant.token,
+            status="discrepant",
+            block_number=LATER,
+            block_hash=block_hash(LATER),
+            register_sequence=1,
+            discrepancies=[
+                {"kind": "attribution", "effect": "issue", "source": str(first.pk)},
+                {"kind": "missing_transfer", "effect": "issue", "source": str(first.pk), "transaction": first.tx_hash},
+            ],
+        )
+        for row in held.discrepancies:
+            with self.subTest(row=row), self.assertRaises(DatabaseError), atomic():
+                RegisterAcknowledgement.objects.create(**{**valid, "reconciliation": held, "discrepancy": row})
+        self.assertEqual(RegisterAcknowledgement.objects.count(), 2)
+
+    def test_the_acknowledge_command_records_one_discrepancy_and_refuses_what_it_cannot(self):
+        first = self.opened()
+        self.chain(
+            LATER,
+            (MINT_BLOCK, ZERO_ADDRESS, self.recipient, 10, first.tx_hash),
+            (LATER - 1, ZERO_ADDRESS, self.recipient, 5, None),
+            holdings={self.recipient: 15},
+        )
+        record = self.reconcile()
+        supply = [item["kind"] for item in record.discrepancies].index("supply")
+        arguments = {
+            "reconciliation": record.pk,
+            "discrepancy": supply,
+            "reason": "Accepted by the directors",
+            "actor": self.reviewer.pk,
+        }
+        clerk = get_user_model().objects.create_user(email=f"clerk-{uuid4()}@example.test", is_active=True)
+        for changes, refusal in (
+            ({"reason": " "}, "reason"),
+            ({"actor": clerk.pk}, "active staff"),
+            ({"discrepancy": 3}, "position"),
+            ({"reconciliation": uuid4()}, "not found"),
+        ):
+            with self.subTest(changes=changes), self.assertRaisesRegex(CommandError, refusal):
+                call_command("register_acknowledge", **{**arguments, **changes}, stdout=StringIO())
+        with self.assertRaisesRegex(CommandError, "--reason"):
+            call_command("register_acknowledge", reconciliation=record.pk, discrepancy=supply, actor=self.reviewer.pk)
+        self.assertFalse(RegisterAcknowledgement.objects.exists())
+        output = StringIO()
+        call_command("register_acknowledge", **arguments, stdout=output)
+        printed = json.loads(output.getvalue())
+        self.assertEqual(
+            (printed["acknowledgement"], printed["discrepancy"], printed["reason"]),
+            (str(RegisterAcknowledgement.objects.get().pk), record.discrepancies[supply], arguments["reason"]),
+        )
+        with self.assertRaisesRegex(CommandError, "already acknowledged"):
+            call_command("register_acknowledge", **arguments, stdout=StringIO())
+        self.reconcile()
+        with self.assertRaisesRegex(CommandError, "latest reconciliation"):
+            call_command("register_acknowledge", **{**arguments, "discrepancy": 0}, stdout=StringIO())
+        held = RegisterReconciliation.objects.create(
+            token=self.tenant.token,
+            status="discrepant",
+            block_number=LATER,
+            block_hash=block_hash(LATER),
+            register_sequence=1,
+            discrepancies=[{"kind": "attribution", "effect": "issue", "source": str(first.pk)}],
+        )
+        with self.assertRaisesRegex(CommandError, "needs attribution"):
+            call_command("register_acknowledge", **{**arguments, "reconciliation": held.pk, "discrepancy": 0})
+        self.assertEqual(RegisterAcknowledgement.objects.count(), 1)
+
     def test_the_command_prints_the_recorded_result(self):
         first = self.opened()
         self.chain(
@@ -438,9 +645,14 @@ class ScopedRegisterReconciliationTest(RunsOnTheScopedConnection, APITransaction
             RegisterReconciliation.objects.create(
                 token=self.token, status="matched", block_number=8, block_hash="0x" + "cd" * 32, register_sequence=1
             )
+        with self.assertRaises(PermissionDenied):
+            acknowledge_discrepancy(reconciliation_id=self.record.pk, index=0, reason="Accepted", actor=self.owner)
+        with self.assertRaises(DatabaseError), atomic():
+            RegisterAcknowledgement.objects.exists()
         self.the_principal_the_middleware_would_set(self.stranger)
         self.assertEqual(RegisterReconciliation.objects.count(), 0)
         self.no_principal_is_set()
         self.assertEqual(RegisterReconciliation.objects.count(), 0)
         with use_operator():
             self.assertEqual(RegisterReconciliation.objects.count(), 1)
+            self.assertFalse(RegisterAcknowledgement.objects.exists())

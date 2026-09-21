@@ -415,6 +415,9 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
+    "tokens_registeracknowledgement": "Staff acknowledgements of register reconciliation discrepancies, recorded "
+    "by an operator command and read only by reconciliation on the operator connection. The issuer reads the "
+    "reconciliation result, which already reflects them.",
     "tokens_pausechange": "Immutable issuer or staff pause submissions and their original outgoing outcomes. "
     "Bounded operator admission retains exact authority and job; issuer token projection uses the scoped connection.",
     "tokens_shareissuanceexecution": "Immutable operator-authorized share issuance intent, queued cancellation, "

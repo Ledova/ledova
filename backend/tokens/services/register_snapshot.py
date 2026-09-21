@@ -234,7 +234,9 @@ def read_snapshot(target, *, client):
         ],
         "history": [
             {"block": block, "block_hash": hashes[block], "transaction": transaction}
-            for block, transaction in sorted({(entry["block_number"], entry["transaction"]) for entry in entries})
+            for block, transaction in sorted(
+                {(entry["block_number"], entry["transaction"]) for entry in entries if entry["shares"]}
+            )
         ],
     }
 

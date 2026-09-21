@@ -980,6 +980,19 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual((matched.status, matched.discrepancies), ("matched", []))
         self.assertEqual(matched.register_sequence, 2)
         outsider = self.w3.eth.accounts[1]
+        burned = self._contract().functions.burn(0).transact({"from": outsider})
+        burn = self.w3.eth.wait_for_transaction_receipt(burned)
+        self.assertEqual(burn["status"], 1)
+        self.assertEqual(
+            [
+                (event["args"]["from"], event["args"]["value"])
+                for event in self._contract().events.Transfer().process_receipt(burn)
+            ],
+            [(outsider, 0)],
+        )
+        self.w3.provider.make_request("evm_mine", [])
+        self.w3.provider.make_request("evm_mine", [])
+        self.assertEqual(reconcile_register(self.token.pk).status, "matched")
         outsider_tenant = make_tenant("reconciliation-outsider")
         Wallet.objects.filter(pk=outsider_tenant.wallet.pk).update(
             address=outsider, verification_status=WALLET_VERIFICATION_STATUS_VERIFIED

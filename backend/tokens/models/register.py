@@ -75,3 +75,19 @@ class RegisterReconciliation(BaseModel):
 
     class Meta:
         ordering = ["-created_at", "-uuid"]
+
+
+class RegisterAcknowledgement(BaseModel):
+    token_id = models.UUIDField(editable=False)
+    reconciliation = models.ForeignKey(
+        RegisterReconciliation, on_delete=models.PROTECT, related_name="acknowledgements", editable=False
+    )
+    discrepancy = models.JSONField(editable=False)
+    reason = models.CharField(max_length=1000, editable=False)
+    acknowledged_by_id = models.PositiveBigIntegerField(editable=False)
+
+    class Meta:
+        ordering = ["created_at", "uuid"]
+        constraints = [
+            models.UniqueConstraint(fields=["reconciliation", "discrepancy"], name="register_acknowledged_once"),
+        ]

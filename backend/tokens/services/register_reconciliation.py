@@ -1,8 +1,9 @@
 import logging
 from collections import defaultdict
 
+from django.contrib.auth import get_user_model
 from django.db.models import F
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 
 from blockchain.models import OutgoingStatus, SignedAttempt
 from integrations.blockchain.receipts import normalized_hash
@@ -10,6 +11,7 @@ from shared.db import atomic
 from tokens.exceptions import RegisterUnavailableException
 from tokens.models import (
     IssuanceExecutionStatus,
+    RegisterAcknowledgement,
     RegisterEntry,
     RegisterEntryKind,
     RegisterMemberWallet,
@@ -39,6 +41,7 @@ logger = logging.getLogger(__name__)
 
 ISSUANCE_OPERATION = "share-issuance:"
 SWAP_OPERATION = "swap-execution:"
+ACKNOWLEDGEABLE = ("unrecognised_transfer", "member", "unlinked", "supply")
 BELOW_OPENING = (
     "The chain snapshot at block {snapshot} is below the opening boundary at block {boundary}, "
     "so it cannot be compared with the stored register."
@@ -80,6 +83,18 @@ def _in_flight(token, transactions):
             if swap is not None:
                 movements[transaction] = _swap_movement(swap)
     return movements
+
+
+def _acknowledged(token):
+    ignored = set()
+    adjusted = {"member": defaultdict(int), "unlinked": defaultdict(int), "supply": defaultdict(int)}
+    for acknowledgement in RegisterAcknowledgement.objects.filter(token_id=token.pk):
+        row = acknowledgement.discrepancy
+        if row["kind"] == "unrecognised_transfer":
+            ignored.add(normalized_hash(row["transaction"]))
+        else:
+            adjusted[row["kind"]][row.get("member", row.get("address"))] += int(row["chain"]) - int(row["expected"])
+    return ignored, adjusted
 
 
 def _compare(token, snapshot, boundary):
@@ -145,8 +160,10 @@ def _compare(token, snapshot, boundary):
             pending[address.lower()] += delta
         pending_supply += issued
         del unexplained[transaction]
+    ignored, adjusted = _acknowledged(token)
     for transaction, block in sorted(unexplained.items(), key=lambda item: (item[1], item[0])):
-        discrepancies.append({"kind": "unrecognised_transfer", "transaction": f"0x{transaction}", "block": block})
+        if transaction not in ignored:
+            discrepancies.append({"kind": "unrecognised_transfer", "transaction": f"0x{transaction}", "block": block})
     links = {
         link.address.lower(): str(link.member_id)
         for link in RegisterMemberWallet.objects.filter(company_id=token.company_id)
@@ -164,6 +181,10 @@ def _compare(token, snapshot, boundary):
             expected_members[links[address]] += delta
         else:
             expected_unlinked[address] += delta
+    for member, difference in adjusted["member"].items():
+        expected_members[member] += difference
+    for address, difference in adjusted["unlinked"].items():
+        expected_unlinked[address] += difference
     for member in sorted(set(chain_members) | set(expected_members)):
         if chain_members[member] != expected_members[member]:
             discrepancies.append(
@@ -184,10 +205,9 @@ def _compare(token, snapshot, boundary):
                     "expected": str(expected_unlinked[address]),
                 }
             )
-    if int(snapshot["issued_supply"]) != supply + pending_supply:
-        discrepancies.append(
-            {"kind": "supply", "chain": snapshot["issued_supply"], "expected": str(supply + pending_supply)}
-        )
+    expected_supply = supply + pending_supply + sum(adjusted["supply"].values())
+    if int(snapshot["issued_supply"]) != expected_supply:
+        discrepancies.append({"kind": "supply", "chain": snapshot["issued_supply"], "expected": str(expected_supply)})
     return discrepancies, register.sequence
 
 
@@ -231,3 +251,33 @@ def reconcile_register(token_id, *, client=None):
             snapshot["block"]["number"],
         )
     return record
+
+
+def acknowledge_discrepancy(*, reconciliation_id, index, reason, actor):
+    _operator()
+    staff = get_user_model().objects.filter(pk=getattr(actor, "pk", None), is_active=True, is_staff=True).first()
+    if staff is None:
+        raise PermissionDenied("Only active staff can acknowledge a register discrepancy.")
+    if not isinstance(reason, str) or not reason.strip() or len(reason) > 1000:
+        raise ValidationError("Give the reason this discrepancy is acknowledged, in at most 1000 characters.")
+    reconciliation = RegisterReconciliation.objects.filter(pk=reconciliation_id).first()
+    if reconciliation is None:
+        raise NotFound("Reconciliation not found.")
+    if type(index) is not int or not 0 <= index < len(reconciliation.discrepancies):
+        raise ValidationError("Name one of this reconciliation's discrepancies by its position, counting from zero.")
+    discrepancy = reconciliation.discrepancies[index]
+    if discrepancy["kind"] not in ACKNOWLEDGEABLE:
+        raise ValidationError("An attribution or a missing transfer needs attribution, not an acknowledgement.")
+    with atomic():
+        token = ShareToken.objects.select_for_update().get(pk=reconciliation.token_id)
+        if RegisterReconciliation.objects.filter(token=token).first() != reconciliation:
+            raise ValidationError("Acknowledge a discrepancy of the share class's latest reconciliation.")
+        if RegisterAcknowledgement.objects.filter(reconciliation=reconciliation, discrepancy=discrepancy).exists():
+            raise ValidationError("This discrepancy is already acknowledged.")
+        return RegisterAcknowledgement.objects.create(
+            token_id=token.pk,
+            reconciliation=reconciliation,
+            discrepancy=discrepancy,
+            reason=reason,
+            acknowledged_by_id=staff.pk,
+        )

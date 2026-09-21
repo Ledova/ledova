@@ -19,6 +19,7 @@ from .order_modification_log import OrderModificationLog
 from .order_submission import OrderSubmission, OrderSubmissionStatus
 from .pause_change import PauseAuthority, PauseChange, PauseChangeStatus
 from .register import (
+    RegisterAcknowledgement,
     RegisterEntry,
     RegisterEntryKind,
     RegisterMember,
@@ -69,6 +70,7 @@ __all__ = [
     "OrderSubmission",
     "OrderSubmissionStatus",
     "RequestStatus",
+    "RegisterAcknowledgement",
     "RegisterCorrection",
     "RegisterCorrectionAuthority",
     "RegisterCorrectionStatus",

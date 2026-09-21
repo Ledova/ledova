@@ -135,8 +135,11 @@ hours. Every chain transfer after the opening must be accounted for by a recorde
 effect, a waiting effect or an in-flight platform operation. Holdings and supply
 must equal the stored ones plus those pending movements. Each run is retained as
 `matched`, `discrepant` or `failed`; a chain failure fails the reconciliation,
-never the register. The [runbook](../operations/register-foundation.md#reconciling-with-the-chain)
-lists the discrepancies and what each asks of an operator.
+never the register. A transfer of zero shares is ignored. Staff can acknowledge
+an investigated divergence, one row at a time with a reason, in an append-only
+record only the operator writes; later runs treat it as explained. The
+[runbook](../operations/register-foundation.md#reconciling-with-the-chain) lists
+the discrepancies and what each asks of an operator.
 
 ## Former members
 

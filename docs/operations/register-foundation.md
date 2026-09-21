@@ -131,7 +131,9 @@ reads are refused rather than replaced by current balances.
 The JSON records the company, class, deployment transaction, network, contract,
 block number/hash/date, finality policy, issued/authorized supply, positive
 holdings and the canonical transfer history it folded: one entry per observed
-transaction with its block number and block hash. All share quantities are exact
+transaction that moved shares, with its block number and block hash. A
+transaction whose transfers all carry zero shares is folded but not listed,
+since anyone can emit one with `burn(0)`. All share quantities are exact
 integer strings; names and residential addresses are absent. The observed
 transfer fold must agree with each observed participant's balance, including zero
 balances, and total supply at that same hash. Duplicate or noncanonical logs,
@@ -548,6 +550,9 @@ with the stored register under the share-class lock that completions take:
   held for attribution accounts for its own transfer but moves nothing, since
   its place relative to the opening is what is unknown.
 
+A transfer of zero shares is ignored, and a discrepancy staff have
+[acknowledged](#acknowledging-a-discrepancy) is treated as explained.
+
 The stored register row is locked for the comparison, so a correction cannot
 land between reading the supply and reading the holdings. A snapshot below the
 opening's boundary block, from a lagging provider or a deeper finality policy,
@@ -566,10 +571,10 @@ previous result in the CSV, so the failed job is the signal to look at.
 
 | Discrepancy | Meaning and next step |
 | --- | --- |
-| `unrecognised_transfer` | A chain transfer the platform did not make, such as a direct token transfer between whitelisted wallets. Record its effect through a reviewed correction, or dispute it |
-| `missing_transfer` | A completed effect whose transaction is not on chain in its block. Treat it as a reorganisation: stop, and attribute it before relying on the register |
-| `member`, `unlinked`, `supply` | Holdings or supply that differ from the stored register plus pending movements. They usually accompany one of the two above |
-| `attribution` | A completion the evidence cannot place, as in [classification](#classifying-completed-inclusions) |
+| `unrecognised_transfer` | A chain transfer after the opening that no recorded, waiting or executing platform operation accounts for, such as a direct token transfer between whitelisted wallets. A transfer of zero shares is never reported. Investigate it; if it is accepted, [acknowledge](#acknowledging-a-discrepancy) it and the rows it causes, otherwise dispute it with the holders |
+| `missing_transfer` | A completed effect whose transaction is not on chain in its block. Treat it as a reorganisation: stop, and attribute it before relying on the register. It cannot be acknowledged |
+| `member`, `unlinked`, `supply` | Holdings or supply that differ from the stored register plus pending movements and earlier acknowledgements. They accompany one of the others, or follow an applied correction, which changes the stored register and not the chain. Acknowledge them once their cause is understood |
+| `attribution` | A completion the evidence cannot place, as in [classification](#classifying-completed-inclusions). It cannot be acknowledged |
 
 To reconcile one share class on demand, from `backend/`:
 
@@ -582,8 +587,47 @@ reconciliation, or to record one inconsistent with its status. Only the
 operator records them, and the issuer reads its own. Downgrading `tokens/0070`
 refuses while any exist.
 
-Attribution procedures are still
+### Acknowledging a discrepancy
+
+The register itself cannot follow a divergence it did not cause: no reviewed
+entry records an outside transfer, and a correction only compensates an
+existing entry. Once staff have investigated a divergence and accepted it, they
+acknowledge it, one row at a time, from the share class's latest
+reconciliation, from `backend/`:
+
+```bash
+python manage.py register_acknowledge --reconciliation RECONCILIATION_UUID \
+    --discrepancy POSITION --reason "WHY IT IS ACCEPTED" --actor STAFF_USER_ID
+```
+
+`POSITION` counts from zero through the record's `discrepancies`, in the order
+`register_reconcile` prints them. Later runs treat the row as explained:
+
+- an acknowledged `unrecognised_transfer` is not reported again for that
+  transaction hash;
+- an acknowledged `member`, `unlinked` or `supply` row keeps its difference,
+  chain minus expected, and later runs add it to the expected side for that
+  member, address or the supply. A further change for the same key is reported
+  as a new difference.
+
+Accepting an outside transfer therefore takes its `unrecognised_transfer` row
+and the `member` or `unlinked` rows it caused. An applied correction's effect is
+acknowledged the same way, through the `member` and `supply` rows it leaves.
+Once every row is acknowledged, the next run is `matched`. An acknowledgement
+explains a divergence; it records nothing in the register, whose holdings stay
+as recorded. `attribution` and `missing_transfer` cannot be acknowledged: they
+need the attribution procedure, which is still
 [#647](https://github.com/Ledova/ledova/issues/647) work.
+
+Each acknowledgement is retained with the reconciliation, the exact row, the
+reason, the staff member and the time, and the command prints it. The command
+takes rows of the latest reconciliation only, under the share-class lock a run
+holds, so no divergence is counted twice; for a row of an older record,
+reconcile again and use the new one. The database refuses to change or delete
+an acknowledgement, a row that is not verbatim in the class's reconciliation, a
+second acknowledgement of the same row, a blank reason, a user who is not
+active staff, and any insert from the app role. Only the operator reads them;
+the issuer sees the reconciliation result they produce.
 
 Next: [the remaining register work](https://github.com/Ledova/ledova/issues/647)
 and [register architecture](../architecture/register.md).
