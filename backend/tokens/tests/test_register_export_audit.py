@@ -68,17 +68,14 @@ class ScopedRegisterExportAuditTest(RunsOnTheScopedConnection, APITransactionTes
     def setUp(self):
         with use_operator():
             self.owner, _, self.token, _, _, _ = register_fixture()
-            self.stranger, _, _, _, _, _ = register_fixture()
-            self.record = recorded(self.token, self.owner)
-
-    def test_the_issuer_reads_its_export_records_and_only_the_operator_writes_them(self):
-        self.the_principal_the_middleware_would_set(self.owner)
-        self.assertEqual(list(RegisterExport.objects.values_list("pk", flat=True)), [self.record.pk])
-        with self.assertRaises(DatabaseError), atomic():
             recorded(self.token, self.owner)
-        self.the_principal_the_middleware_would_set(self.stranger)
-        self.assertEqual(RegisterExport.objects.count(), 0)
-        self.no_principal_is_set()
-        self.assertEqual(RegisterExport.objects.count(), 0)
+
+    def test_only_the_operator_reads_or_writes_export_records_and_the_issuer_is_refused_both(self):
+        self.the_principal_the_middleware_would_set(self.owner)
+        with self.assertRaisesRegex(DatabaseError, "permission denied for table tokens_registerexport"), atomic():
+            RegisterExport.objects.exists()
+        with self.assertRaisesRegex(DatabaseError, "permission denied for table tokens_registerexport"), atomic():
+            recorded(self.token, self.owner)
         with use_operator():
-            self.assertEqual(RegisterExport.objects.count(), 1)
+            recorded(self.token, self.owner)
+            self.assertEqual(RegisterExport.objects.count(), 2)

@@ -98,7 +98,7 @@ class RegisterExportKind(models.TextChoices):
 
 
 class RegisterExport(BaseModel):
-    token = models.ForeignKey("tokens.ShareToken", on_delete=models.PROTECT, related_name="register_exports")
+    token = models.ForeignKey("tokens.ShareToken", on_delete=models.DO_NOTHING, related_name="register_exports")
     requested_by_id = models.PositiveBigIntegerField(editable=False)
     kind = models.CharField(max_length=24, choices=RegisterExportKind.choices, editable=False)
     register_sequence = models.PositiveBigIntegerField(editable=False)

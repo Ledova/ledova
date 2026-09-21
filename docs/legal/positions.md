@@ -95,11 +95,11 @@ fixing where the data is kept, promising an export on exit, disclaiming advice,
 and capping liability.
 
 **The export trail.** Each register export is recorded durably: the
-requester, share class, register sequence, row counts and time. The operator
-can query the records and the company can read its own. They are kept for the
-seven-year floor the owner chose on 21 September 2026. The record says who took
-a copy, not what they did with it: every download is still a full sheet of
-members' residential addresses.
+requester, share class, register sequence, row counts and time. The records are
+kept for staff: the operator can query them in admin, and no company-facing
+route exposes them. They are kept for the seven-year floor the owner chose on
+21 September 2026. The record says who took a copy, not what they did with it:
+every download is still a full sheet of members' residential addresses.
 
 **Status.** Reviewed 2026-09-15; the note pointing s168 to s1306 and the
 agreement's contents added. The company-hosted-instance sentence was drafted

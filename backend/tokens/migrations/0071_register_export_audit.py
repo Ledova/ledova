@@ -5,9 +5,6 @@ from django.db import migrations, models
 
 
 def install_guards(apps, schema_editor):
-    from shared.db.policy_sql import grant_reachable_tables, install_tables
-
-    install_tables(schema_editor, ["tokens_registerexport"])
     with schema_editor.connection.cursor() as cursor:
         cursor.execute("""
 CREATE FUNCTION tokens_guard_register_export() RETURNS trigger LANGUAGE plpgsql AS $$
@@ -19,7 +16,6 @@ CREATE TRIGGER tokens_register_export_record
     BEFORE UPDATE ON tokens_registerexport
     FOR EACH ROW EXECUTE FUNCTION tokens_guard_register_export();
 """)
-    grant_reachable_tables(schema_editor)
 
 
 def remove_guards(apps, schema_editor):
@@ -62,7 +58,7 @@ class Migration(migrations.Migration):
                 (
                     "token",
                     models.ForeignKey(
-                        on_delete=django.db.models.deletion.PROTECT,
+                        on_delete=django.db.models.deletion.DO_NOTHING,
                         related_name="register_exports",
                         to="tokens.sharetoken",
                     ),
