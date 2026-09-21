@@ -24,7 +24,7 @@ position says so.
 | --- | --- | --- | --- | --- |
 | 1 | s169(3) retention of former members | The first real company's first real member | A and B | Reviewed |
 | 2 | s168, who is obliged to keep the register | The same moment, plus the terms between operator and company | B; in A the company keeps it itself | Reviewed; model sentence awaiting sign-off |
-| 3 | Evidence retention period | The first real identity document held | A and B, once investor onboarding is on | Reviewed |
+| 3 | Evidence retention period | The first real identity document held | A and B, once investor onboarding or the issuer KYC switch is on | Reviewed |
 | 4 | Operating without an AFSL, in two halves | The first fee for a real register; the first real offer of a security | 4a binds B; 4b binds both | Rewritten, awaiting sign-off |
 | 5 | Software licensing and commercial permission | Any commercial use or use of the code for a competing product or service | A, B and third-party users | Licence policy approved by owner 2026-09-20; not legal advice |
 | 6 | Where and in what form the register is kept | The first real register | A and B, with different forms to lodge | Drafted |
@@ -133,8 +133,10 @@ destroying it too early is a compliance failure that cannot be undone. Where the
 two conflict, the code keeps the evidence, which is the recoverable direction.
 
 **Status.** Reviewed 2026-09-15; unchanged. Note that neither operating model
-collects an identity document until investor onboarding is switched on, so this
-position is engaged only then.
+collects an identity document until investor onboarding is switched on or the
+operator turns on the issuer KYC switch, which requires a company's owner to be
+identity-verified before the company is submitted for review; this position is
+engaged only then. The issuer switch was added to this note on 2026-09-21.
 
 ## 4. Operating without a licence: the two halves
 
@@ -464,8 +466,10 @@ s248 where the risks are low. These items were read from AUSTRAC's pages and
 professional summaries, not from the amended Act.
 
 **What the code does.** Investor onboarding and classification exist for the
-fuller model; the registry model collects no identity evidence and moves no
-money or tokens.
+fuller model; the registry model moves no money or tokens, and collects no
+identity evidence unless the operator turns on the issuer KYC switch, which
+requires each company's owner to be identity-verified before the company is
+submitted for review.
 
 **The position.** Keeping a register and preparing registration or transfer
 documents on the company's instruction is not a Table 6 service, because the

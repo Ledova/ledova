@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TransactionTestCase, override_settings
+from django.urls import reverse
 from rest_framework.test import APIClient
 
 from companies.exceptions import IssuerIdentityVerificationRequiredException
@@ -14,11 +15,7 @@ from companies.models import (
 from companies.services import company as company_service
 from companies.services import transition_company
 from companies.tests.registry_fixtures import DECLARATION, matching_observation
-from companies.tests.test_registry_verification import (
-    ACTIVE_ENTRIES,
-    PROVIDER,
-    STORAGES,
-)
+from companies.tests.test_registry_verification import PROVIDER, STORAGES
 from operators.models import Operator
 from users.models import UserProfile
 
@@ -68,19 +65,34 @@ class IssuerIdentityGateTest(TransactionTestCase):
                 self.assertEqual(self.transition(method, **kwargs).status, CompanyStatus.SUBMITTED)
                 self.verify(False)
 
-    def test_every_active_entry_refuses_an_unverified_owner_before_the_registry_is_asked(self):
+    def test_activation_refuses_an_unverified_owner_before_the_registry_is_asked(self):
         self.require(True)
-        for predecessor, method in ACTIVE_ENTRIES:
+        for method in ("activate", "set_active"):
             with self.subTest(method=method):
-                self.set_status(predecessor)
+                self.set_status(CompanyStatus.APPROVED)
                 asked = self.lookup.call_count
                 with self.assertRaises(IssuerIdentityVerificationRequiredException):
                     self.transition(method)
                 self.company.refresh_from_db()
-                self.assertEqual((self.company.status, self.lookup.call_count), (predecessor, asked))
+                self.assertEqual((self.company.status, self.lookup.call_count), (CompanyStatus.APPROVED, asked))
                 self.verify(True)
                 self.assertEqual(self.transition(method).status, CompanyStatus.ACTIVE)
                 self.verify(False)
+
+    def test_an_unverified_owner_does_not_stop_a_warning_resolution_or_a_reinstatement(self):
+        self.require(True)
+        self.set_status(CompanyStatus.APPROVED)
+        with self.assertRaises(IssuerIdentityVerificationRequiredException):
+            self.transition("activate")
+        for predecessor, method in (
+            (CompanyStatus.WARNING, "resolve_warning"),
+            (CompanyStatus.SUSPENDED, "reinstate"),
+            (CompanyStatus.WARNING, "set_active"),
+            (CompanyStatus.SUSPENDED, "set_active"),
+        ):
+            with self.subTest(predecessor=predecessor, method=method):
+                self.set_status(predecessor)
+                self.assertEqual(self.transition(method).status, CompanyStatus.ACTIVE)
 
     def test_verification_withdrawn_during_the_registry_check_still_refuses_activation(self):
         self.require(True)
@@ -123,3 +135,23 @@ class IssuerIdentityGateTest(TransactionTestCase):
         self.assertEqual((response.status_code, response.data["code"]), (400, "issuer_identity_verification_required"))
         self.company.refresh_from_db()
         self.assertEqual(self.company.status, CompanyStatus.DRAFT)
+
+    def test_the_admin_tells_staff_the_owner_must_be_verified_first(self):
+        self.require(True)
+        self.set_status(CompanyStatus.APPROVED)
+        self.client.force_login(self.operator)
+        change = reverse("admin:companies_company_change", args=[self.company.pk])
+        response = self.client.post(
+            reverse("admin:companies_company_transition", args=[self.company.uuid, "activate"]),
+            {"confirm": True, **DECLARATION},
+        )
+        self.assertRedirects(response, change, fetch_redirect_response=False)
+        self.assertEqual(
+            [str(message) for message in self.client.get(change).context["messages"]],
+            [
+                "The company owner's identity must be verified first. The operator requires this before a company "
+                "is submitted for review or activated."
+            ],
+        )
+        self.company.refresh_from_db()
+        self.assertEqual(self.company.status, CompanyStatus.APPROVED)

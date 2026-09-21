@@ -42,11 +42,13 @@ which `companies/identity.py:company_identity` defines as name (NFKC-casefolded,
 whitespace-collapsed), ACN, ABN and `company_type`.
 
 With the operator's `issuer_kyc_required` on, the same service refuses to submit
-or resubmit a company, or to make it active by activation, warning resolution or
-reinstatement, unless the owner's profile is identity-verified (`is_id_verified`).
-The refusal is a 400 with code `issuer_identity_verification_required`. Activation
-checks it before spending a registry check and again at the transition. Every later
-issuer action relies on that gate. With the switch off nothing changes.
+or resubmit a company for review, or to activate an approved one, unless the
+owner's profile is identity-verified (`is_id_verified`). The refusal is a 400 with
+code `issuer_identity_verification_required`. Activation checks it before spending
+a registry check and again at the transition. Every later action relies on that
+gate: resolving a warning and reinstating are not refused, so a company made active
+before the switch was turned on can still be restored. With the switch off nothing
+changes.
 
 Reference: `backend/companies/validators.py`. Gates:
 `backend/companies/tests/test_identifier_checksums.py`, whose fixtures are the

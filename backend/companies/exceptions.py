@@ -13,8 +13,8 @@ class RegistryVerificationRequiredException(APIException):
 class IssuerIdentityVerificationRequiredException(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = (
-        "The operator requires the company owner's identity to be verified before the company is submitted for "
-        "review or made active. Complete identity verification, then try again."
+        "The company owner's identity must be verified first. The operator requires this before a company is "
+        "submitted for review or activated."
     )
     default_code = "issuer_identity_verification_required"
     expose_code = True

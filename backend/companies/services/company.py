@@ -102,9 +102,11 @@ def _attest_officeholder(company, actor, declaration):
     )
 
 
-def _require_verified_owner(company):
-    if Operator.get().issuer_kyc_required and not (
-        UserProfile.objects.filter(user_id=company.owner_id, is_id_verified=True).exists()
+def _require_verified_owner(company, method):
+    if (
+        method in ("submit", "resubmit", "activate")
+        and Operator.get().issuer_kyc_required
+        and not UserProfile.objects.filter(user_id=company.owner_id, is_id_verified=True).exists()
     ):
         raise IssuerIdentityVerificationRequiredException()
 
@@ -142,7 +144,7 @@ def _registry_transition(company, method, actor, declaration):
             if declaration:
                 _attest_officeholder(current, actor, declaration)
             current._require_attestation()
-            _require_verified_owner(current)
+            _require_verified_owner(current, method)
             purpose = RegistryCheckPurpose.ACTIVATION
         check = begin_registry_check(current, purpose, actor)
     check = perform_registry_check(check)
@@ -152,7 +154,7 @@ def _registry_transition(company, method, actor, declaration):
         current = Company.objects.select_for_update().get(pk=company.pk)
         if current.registry_check_id != check.pk:
             raise RegistryVerificationRequiredException()
-        _require_verified_owner(current)
+        _require_verified_owner(current, method)
         getattr(current, method)()
         _notify_transition(current, method)
     return current
@@ -172,8 +174,7 @@ def transition_company(company: Company, method: str, *, actor=None, declaration
             current._require_status([CompanyStatus.REVIEW], CompanyStatus.APPROVED)
             _attest_officeholder(current, actor, declaration or {})
             kwargs["approved_by"] = actor
-        if method in ("submit", "resubmit"):
-            _require_verified_owner(current)
+        _require_verified_owner(current, method)
         getattr(current, method)(**kwargs)
         _notify_transition(current, method, **kwargs)
     return current
