@@ -33,6 +33,7 @@ from .register_correction import (
 from .register_opening import (
     RegisterMemberWallet,
     RegisterOpening,
+    RegisterWalletLink,
 )
 from .share_issuance import ShareIssuance
 from .share_issuance_request import ShareIssuanceRequest
@@ -75,6 +76,7 @@ __all__ = [
     "RegisterMemberWallet",
     "RegisterOpening",
     "RegisterPosition",
+    "RegisterWalletLink",
     "ShareRegister",
     "ShareIssuance",
     "ShareIssuanceExecution",

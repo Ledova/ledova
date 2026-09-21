@@ -1551,6 +1551,54 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/register-links/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_links_list'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_links_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-links/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_links_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-links/{uuid}/file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_links_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/register-openings/': {
     parameters: {
       query?: never;
@@ -3559,6 +3607,12 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['RegisterOpening'][];
     };
+    PaginatedRegisterWalletLinkList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['RegisterWalletLink'][];
+    };
     PaginatedShareIssuanceListList: {
       count: number;
       next?: string | null;
@@ -3955,6 +4009,36 @@ export interface ApiComponents {
       operationId: string;
       reason: string;
       tokenId: string;
+    };
+    RegisterWalletLink: {
+      approvingDirector: string;
+      authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
+      authorityReference: string;
+      company: string;
+      createdAt: string;
+      evidenceFingerprint: string;
+      evidenceSnapshot: unknown;
+      mapping: unknown;
+      reason: string;
+      rejectionReason: string;
+      reviewedAt: string | null;
+      reviewedBy: number | null;
+      sourceDocument: string;
+      status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
+      submittedBy: number;
+      uuid: string;
+    };
+    RegisterWalletLinkCreateRequest: {
+      approvingDirector?: string;
+      authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
+      authorityReference: string;
+      companyId: string;
+      documentId: string;
+      mapping: {
+        [key: string]: string;
+      }[];
+      operationId: string;
+      reason: string;
     };
     ResendVerificationRequest: {
       email?: string;
@@ -8202,6 +8286,95 @@ export interface ApiOperations {
     };
   };
   api_v1_tokens_register_corrections_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_links_list: {
+    parameters: {
+      query?: {
+        ordering?: string;
+        page?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedRegisterWalletLinkList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_links_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterWalletLinkCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterWalletLinkCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterWalletLinkCreateRequest'];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterWalletLink'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_links_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterWalletLink'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_links_file_retrieve: {
     parameters: {
       query?: never;
       header?: never;

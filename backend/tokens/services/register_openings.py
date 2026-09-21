@@ -23,7 +23,10 @@ from integrations.base_chain import get_base_chain_client
 from integrations.blockchain.receipts import normalized_hash
 from shared.constants import BLOCKCHAIN_BASE
 from shared.db import APP_ALIAS, atomic, current_alias
-from tokens.constants import REGISTER_OPENING_REVIEW_MAX_AGE
+from tokens.constants import (
+    REGISTER_LINK_REVIEW_MAX_AGE,
+    REGISTER_OPENING_REVIEW_MAX_AGE,
+)
 from tokens.exceptions import RegisterChangeConflict, RegisterUnavailableException
 from tokens.models import (
     RegisterEntry,
@@ -31,6 +34,7 @@ from tokens.models import (
     RegisterMember,
     RegisterMemberWallet,
     RegisterOpening,
+    RegisterWalletLink,
     ShareRegister,
     ShareToken,
     ShareTokenStatus,
@@ -114,76 +118,97 @@ def submit_opening(
         token = ShareToken.objects.select_for_update().get(pk=token_id)
         if token.company_id != company.pk:
             raise NotFound("Share class not found.")
-        existing = RegisterOpening.objects.filter(pk=operation_id).first()
-        if existing:
-            expected = {
+        existing = _replayed(
+            RegisterOpening,
+            operation_id,
+            {
                 **values,
                 "token_id": token_id,
                 "mapping": normalized,
                 "source_document": document_id,
                 "submitted_by_id": actor.pk,
-            }
-            if any(getattr(existing, key) != value for key, value in expected.items()):
-                raise RegisterChangeConflict()
+            },
+        )
+        if existing:
             return existing
         if token.status not in (ShareTokenStatus.DEPLOYED, ShareTokenStatus.PAUSED):
             raise ValidationError("A register opening requires a deployed share class.")
         register = ShareRegister.objects.filter(token=token).first()
         if register is not None and RegisterEntry.objects.filter(register=register).exists():
             raise ValidationError("This share class already has a stored register.")
-        members = [UUID(link["member"]) for link in normalized]
-        if RegisterMember.objects.filter(uuid__in=members).exclude(company=company).exists():
-            raise ValidationError("Mapped members must belong to this company.")
+        _members_of(company, normalized)
         lowered = {link["address"].lower(): link["member"] for link in normalized}
-        for link in (
-            RegisterMemberWallet.objects.filter(company=company)
-            .annotate(address_lower=Lower("address"))
-            .filter(address_lower__in=lowered)
-        ):
-            if str(link.member_id) != lowered[link.address_lower]:
-                raise ValidationError("A mapped wallet address already belongs to another member of this company.")
-        document = CompanyDocument.objects.select_for_update().filter(pk=document_id, company=company).first()
-        if document is None:
-            raise NotFound("Company authority document not found.")
-        document.company = company
-        raw = private_document_bytes(document.file)
-        snapshot = verified_document_snapshot(document, content=ContentFile(raw))
-        proposal = RegisterOpening(
-            uuid=operation_id,
-            company=company,
-            token=token,
-            mapping=normalized,
-            source_document=document.pk,
-            evidence_fingerprint=document.verified_fingerprint,
-            evidence_snapshot=snapshot,
-            submitted_by=actor,
-            **values,
+        if any(member != lowered[address] for address, member in _existing_links(company, normalized).items()):
+            raise ValidationError("A mapped wallet address already belongs to another member of this company.")
+        return _retain(
+            RegisterOpening(uuid=operation_id, company=company, token=token, mapping=normalized, **values),
+            document_id,
+            actor,
         )
-        proposal.file.save("authority.bin", ContentFile(raw), save=False)
-        try:
-            proposal.save(force_insert=True)
-        except IntegrityError:
-            raise RegisterChangeConflict() from None
-        return proposal
 
 
-def _reviewer(user):
+def _members_of(company, links):
+    if RegisterMember.objects.filter(uuid__in=[link["member"] for link in links]).exclude(company=company).exists():
+        raise ValidationError("Mapped members must belong to this company.")
+
+
+def _existing_links(company, links):
+    return {
+        link.address_lower: str(link.member_id)
+        for link in RegisterMemberWallet.objects.filter(company=company)
+        .annotate(address_lower=Lower("address"))
+        .filter(address_lower__in=[link["address"].lower() for link in links])
+    }
+
+
+def _retain(proposal, document_id, actor):
+    document = CompanyDocument.objects.select_for_update().filter(pk=document_id, company=proposal.company).first()
+    if document is None:
+        raise NotFound("Company authority document not found.")
+    document.company = proposal.company
+    raw = private_document_bytes(document.file)
+    proposal.source_document = document.pk
+    proposal.evidence_fingerprint = document.verified_fingerprint
+    proposal.evidence_snapshot = verified_document_snapshot(document, content=ContentFile(raw))
+    proposal.submitted_by = actor
+    proposal.file.save("authority.bin", ContentFile(raw), save=False)
+    try:
+        proposal.save(force_insert=True)
+    except IntegrityError:
+        raise RegisterChangeConflict() from None
+    return proposal
+
+
+def _replayed(model, operation_id, expected):
+    existing = model.objects.filter(pk=operation_id).first()
+    if existing and any(getattr(existing, key) != value for key, value in expected.items()):
+        raise RegisterChangeConflict()
+    return existing
+
+
+def _reviewer(user, model=RegisterOpening):
+    kind = model._meta.verbose_name.capitalize()
     if current_alias() == APP_ALIAS:
-        raise PermissionDenied("Register opening review requires the operator connection.")
+        raise PermissionDenied(f"{kind} review requires the operator connection.")
     reviewer = get_user_model().objects.get(pk=user.pk)
-    if not reviewer.is_active or not reviewer.is_staff or not reviewer.has_perm("tokens.change_registeropening"):
-        raise PermissionDenied("Register opening review requires an authorised staff reviewer.")
+    if (
+        not reviewer.is_active
+        or not reviewer.is_staff
+        or not reviewer.has_perm(f"tokens.change_{model._meta.model_name}")
+    ):
+        raise PermissionDenied(f"{kind} review requires an authorised staff reviewer.")
     return reviewer
 
 
 def _check_evidence(proposal, company, document):
+    kind = proposal._meta.verbose_name
     if company.owner_id != proposal.submitted_by_id or document is None or document.company_id != company.pk:
-        raise ValidationError("The company or its authority document changed. Submit a fresh opening.")
+        raise ValidationError(f"The company or its authority document changed. Submit a fresh {kind}.")
     document.company = company
     if verified_document_snapshot(document) != proposal.evidence_snapshot or (
         document_fingerprint(document) != proposal.evidence_fingerprint
     ):
-        raise ValidationError("The authority evidence changed. Submit a fresh opening.")
+        raise ValidationError(f"The authority evidence changed. Submit a fresh {kind}.")
     raw = private_document_bytes(proposal.file)
     if (
         hashlib.sha256(raw).hexdigest() != proposal.evidence_snapshot["sha256"]
@@ -281,14 +306,40 @@ def _completed_decision(proposal, reviewer, decision, rejection_reason):
     raise RegisterChangeConflict()
 
 
-def decide_opening(*, proposal_id, reviewer, confirmation, decision, rejection_reason="", client=None):
-    reviewer = _reviewer(reviewer)
+def _check_decision(decision, rejection_reason):
     if (
         decision not in ("apply", "reject")
         or (decision == "reject" and not rejection_reason.strip())
         or len(rejection_reason) > 1000
     ):
         raise ValidationError("Choose application or rejection with a reason.")
+
+
+def _confirm(confirmation, salt, max_age, expected):
+    try:
+        preview = signing.loads(confirmation, salt=salt, max_age=max_age)
+    except signing.BadSignature:
+        raise ValidationError("The review confirmation is invalid or expired. Open a fresh review.") from None
+    if preview != expected:
+        *named, last = expected
+        raise ValidationError(f"The confirmation belongs to another {', '.join(named)} or {last}.")
+
+
+def _link(company, links):
+    for link in links:
+        create_member(company_id=company.pk, member_id=UUID(link["member"]))
+        linked = _existing_links(company, [link])
+        if not linked:
+            RegisterMemberWallet.objects.create(
+                company=company, member_id=UUID(link["member"]), address=link["address"]
+            )
+        elif linked[link["address"].lower()] != link["member"]:
+            raise RegisterChangeConflict()
+
+
+def decide_opening(*, proposal_id, reviewer, confirmation, decision, rejection_reason="", client=None):
+    reviewer = _reviewer(reviewer)
+    _check_decision(decision, rejection_reason)
     initial = RegisterOpening.objects.get(pk=proposal_id)
     if initial.status != "submitted":
         return _completed_decision(initial, reviewer, decision, rejection_reason)
@@ -304,36 +355,21 @@ def decide_opening(*, proposal_id, reviewer, confirmation, decision, rejection_r
         if proposal.status != "submitted":
             return _completed_decision(proposal, reviewer, decision, rejection_reason)
         if decision == "apply":
-            try:
-                preview = signing.loads(
-                    confirmation, salt="tokens.register-opening", max_age=REGISTER_OPENING_REVIEW_MAX_AGE
-                )
-            except signing.BadSignature:
-                raise ValidationError("The review confirmation is invalid or expired. Open a fresh review.") from None
-            if (
-                preview.get("proposal") != str(proposal_id)
-                or preview.get("reviewer") != reviewer.pk
-                or preview.get("evidence") != proposal.evidence_fingerprint
-                or preview.get("boundary") != proposal.boundary["block"]["hash"]
-            ):
-                raise ValidationError("The confirmation belongs to another proposal, reviewer, evidence or boundary.")
+            _confirm(
+                confirmation,
+                "tokens.register-opening",
+                REGISTER_OPENING_REVIEW_MAX_AGE,
+                {
+                    "proposal": str(proposal_id),
+                    "reviewer": reviewer.pk,
+                    "evidence": proposal.evidence_fingerprint,
+                    "boundary": proposal.boundary["block"]["hash"],
+                },
+            )
             _check_evidence(proposal, company, document)
             register = _check_uninitialized(token)
             assert_boundary_represents_completions(token.pk, proposal.boundary)
-            for link in proposal.mapping:
-                create_member(company_id=company.pk, member_id=UUID(link["member"]))
-                wallet = (
-                    RegisterMemberWallet.objects.filter(company=company)
-                    .annotate(address_lower=Lower("address"))
-                    .filter(address_lower=link["address"].lower())
-                    .first()
-                )
-                if wallet is None:
-                    RegisterMemberWallet.objects.create(
-                        company=company, member_id=UUID(link["member"]), address=link["address"]
-                    )
-                elif str(wallet.member_id) != link["member"]:
-                    raise RegisterChangeConflict()
+            _link(company, proposal.mapping)
             proposal.applied_entry = record_entry(
                 register_id=register.pk,
                 operation_id=proposal.pk,
@@ -351,4 +387,101 @@ def decide_opening(*, proposal_id, reviewer, confirmation, decision, rejection_r
         proposal.save(
             update_fields=["status", "reviewed_by", "reviewed_at", "rejection_reason", "applied_entry", "updated_at"]
         )
+        return proposal
+
+
+def _check_unlinked(company, links):
+    _members_of(company, links)
+    if _existing_links(company, links):
+        raise ValidationError("A mapped wallet address is already linked to a member of this company.")
+
+
+def submit_link(
+    *,
+    actor,
+    operation_id,
+    company_id,
+    document_id,
+    mapping,
+    authority,
+    approving_director,
+    authority_reference,
+    reason,
+):
+    if not get_user_model().objects.filter(pk=actor.pk, is_active=True).exists():
+        raise PermissionDenied("An active company owner must submit the wallet links.")
+    try:
+        operation_id, company_id, document_id = (UUID(str(value)) for value in (operation_id, company_id, document_id))
+    except (ValueError, TypeError, AttributeError):
+        raise ValidationError("Wallet link references must be UUIDs.") from None
+    values = _authority_values(authority, approving_director, authority_reference, reason)
+    normalized = _mapping(mapping)
+    if not normalized:
+        raise ValidationError("Name at least one wallet address and its member.")
+    with atomic():
+        company = Company.objects.select_for_update(no_key=True).filter(pk=company_id, owner=actor).first()
+        if company is None:
+            raise NotFound("Company not found.")
+        existing = _replayed(
+            RegisterWalletLink,
+            operation_id,
+            {
+                **values,
+                "company_id": company.pk,
+                "mapping": normalized,
+                "source_document": document_id,
+                "submitted_by_id": actor.pk,
+            },
+        )
+        if existing:
+            return existing
+        _check_unlinked(company, normalized)
+        return _retain(
+            RegisterWalletLink(uuid=operation_id, company=company, mapping=normalized, **values), document_id, actor
+        )
+
+
+def _link_preview(proposal, reviewer):
+    return {"proposal": str(proposal.pk), "reviewer": reviewer.pk, "evidence": proposal.evidence_fingerprint}
+
+
+def prepare_link_review(*, proposal_id, reviewer):
+    reviewer = _reviewer(reviewer, RegisterWalletLink)
+    proposal = RegisterWalletLink.objects.select_related("company").get(pk=proposal_id)
+    if proposal.status != "submitted":
+        raise ValidationError("This wallet link request already has a decision.")
+    _check_evidence(proposal, proposal.company, CompanyDocument.objects.filter(pk=proposal.source_document).first())
+    _check_unlinked(proposal.company, proposal.mapping)
+    return proposal, signing.dumps(_link_preview(proposal, reviewer), salt="tokens.register-wallet-link")
+
+
+def decide_link(*, proposal_id, reviewer, confirmation, decision, rejection_reason=""):
+    reviewer = _reviewer(reviewer, RegisterWalletLink)
+    _check_decision(decision, rejection_reason)
+    initial = RegisterWalletLink.objects.get(pk=proposal_id)
+    if initial.status != "submitted":
+        return _completed_decision(initial, reviewer, decision, rejection_reason)
+    with atomic():
+        company = Company.objects.select_for_update(no_key=True).get(pk=initial.company_id)
+        document = CompanyDocument.objects.select_for_update().filter(pk=initial.source_document).first()
+        proposal = RegisterWalletLink.objects.select_for_update().get(pk=proposal_id)
+        if proposal.status != "submitted":
+            return _completed_decision(proposal, reviewer, decision, rejection_reason)
+        if decision == "apply":
+            _confirm(
+                confirmation,
+                "tokens.register-wallet-link",
+                REGISTER_LINK_REVIEW_MAX_AGE,
+                _link_preview(proposal, reviewer),
+            )
+            _check_evidence(proposal, company, document)
+            _check_unlinked(company, proposal.mapping)
+            _link(company, proposal.mapping)
+            proposal.status = "applied"
+        else:
+            proposal.status = "rejected"
+            proposal.rejection_reason = rejection_reason
+        proposal.reviewed_by = reviewer
+        proposal.reviewed_at = timezone.now()
+        proposal.save(update_fields=["status", "reviewed_by", "reviewed_at", "rejection_reason", "updated_at"])
         return proposal

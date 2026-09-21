@@ -10,9 +10,11 @@ from rest_framework.exceptions import ValidationError
 from shared.utils.admin_actions import admin_action_path
 from shared.utils.admin_files import admin_file_path
 from tokens.exceptions import RegisterChangeConflict, RegisterUnavailableException
-from tokens.models import RegisterOpening
+from tokens.models import RegisterOpening, RegisterWalletLink
 from tokens.services.register_openings import (
+    decide_link,
     decide_opening,
+    prepare_link_review,
     prepare_opening_review,
 )
 
@@ -143,3 +145,104 @@ class RegisterOpeningAdmin(admin.ModelAdmin):
             {"address": link["address"], "shares": shares.get(link["address"].lower(), "0"), "member": link["member"]}
             for link in proposal.mapping
         ]
+
+
+class LinkReviewForm(OpeningReviewForm):
+    reviewed = forms.BooleanField(
+        required=False, label="I verified the named authority and the exact wallet-to-member links it approves."
+    )
+
+
+@admin.register(RegisterWalletLink)
+class RegisterWalletLinkAdmin(admin.ModelAdmin):
+    list_display = ["uuid", "company", "authority", "status", "created_at"]
+    list_filter = ["authority", "status"]
+    readonly_fields = [field.name for field in RegisterWalletLink._meta.fields if field.name != "file"] + [
+        "evidence_link",
+        "review_link",
+    ]
+    exclude = ["file"]
+    actions = None
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @method_decorator(require_http_methods(["GET"]))
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        return super().changeform_view(
+            request,
+            object_id,
+            form_url,
+            {
+                **(extra_context or {}),
+                "show_save": False,
+                "show_save_and_continue": False,
+                "show_save_and_add_another": False,
+            },
+        )
+
+    def get_urls(self):
+        return [
+            admin_action_path(self, "<uuid:uuid>/review/", "tokens_registerwalletlink_review", self.review),
+            admin_file_path(self, "<uuid:uuid>/evidence/", "tokens_registerwalletlink_evidence", self.resolve_evidence),
+        ] + super().get_urls()
+
+    def resolve_evidence(self, request, uuid):
+        proposal = get_object_or_404(self.get_queryset(request), pk=uuid)
+        return proposal, proposal.file, proposal.evidence_snapshot["mime_type"]
+
+    @admin.display(description="Retained authority evidence")
+    def evidence_link(self, obj):
+        return format_html(
+            '<a href="{}">Open retained document</a>',
+            reverse("admin:tokens_registerwalletlink_evidence", args=[obj.pk]),
+        )
+
+    @admin.display(description="Review")
+    def review_link(self, obj):
+        if obj.status != "submitted":
+            return "Decision recorded"
+        return format_html(
+            '<a href="{}">Review wallet links</a>', reverse("admin:tokens_registerwalletlink_review", args=[obj.pk])
+        )
+
+    @method_decorator(require_http_methods(["GET", "POST"]))
+    def review(self, request, proposal):
+        form = LinkReviewForm(request.POST if request.method == "POST" else None)
+        refusal = ""
+        try:
+            if request.method == "GET":
+                proposal, form.initial["confirmation"] = prepare_link_review(
+                    proposal_id=proposal.pk, reviewer=request.user
+                )
+            elif form.is_valid():
+                proposal = decide_link(
+                    proposal_id=proposal.pk,
+                    reviewer=request.user,
+                    confirmation=form.cleaned_data["confirmation"],
+                    decision=form.cleaned_data["decision"],
+                    rejection_reason=form.cleaned_data["rejection_reason"],
+                )
+                self.log_change(request, proposal, f"Register wallet links {proposal.status}.")
+                self.message_user(request, f"Register wallet links {proposal.status}.", messages.SUCCESS)
+                return redirect("admin:tokens_registerwalletlink_change", proposal.pk)
+        except RegisterChangeConflict:
+            refusal = "These links conflict with the current member links or an existing decision."
+        except ValidationError as error:
+            refusal = " ".join(str(item) for item in error.detail)
+        return render(
+            request,
+            "admin/tokens/register_wallet_link_review.html",
+            {
+                **self.admin_site.each_context(request),
+                "opts": self.model._meta,
+                "original": proposal,
+                "title": "Review register wallet links",
+                "form": form,
+                "refusal": refusal,
+                "evidence_link": self.evidence_link(proposal),
+            },
+        )

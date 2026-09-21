@@ -25,6 +25,18 @@ fixed retention horizon, independent of account deletion. The legal basis and
 uncertain clock are in [legal positions](legal/positions.md#3-the-evidence-retention-period); implementation belongs to
 [the register](architecture/register.md) and [file retention](architecture/files-and-retention.md).
 
+## The stored register
+
+Wallets become linked to register members only through documentary authority
+verified by staff: an opening's mapping, or a later reviewed link request. A
+completion to an unlinked wallet waits for that link instead of creating a member,
+because one person holding two wallets would otherwise become two members that
+the register could never merge. Member particulars are kept while the person is
+a member and then for at least the former-member retention floor, so the
+register's seven-year obligation and its purge share one clock. Both were
+chosen on 21 September 2026 in [#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5755636585).
+[The register](architecture/register.md) owns the mechanisms.
+
 ## Payments and settlement
 
 Payment confirmation is stored on the subscription. The initial expected volume

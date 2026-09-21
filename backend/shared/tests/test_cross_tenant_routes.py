@@ -182,6 +182,12 @@ REGISTER_OPENING_ROUTES = {
     "detail": ("get", "/api/v1/tokens/register-openings/{uuid}/"),
     "file": ("get", "/api/v1/tokens/register-openings/{uuid}/file/"),
 }
+REGISTER_LINK_ROUTES = {
+    "create": ("post", "/api/v1/tokens/register-links/"),
+    "list": ("get", "/api/v1/tokens/register-links/"),
+    "detail": ("get", "/api/v1/tokens/register-links/{uuid}/"),
+    "file": ("get", "/api/v1/tokens/register-links/{uuid}/file/"),
+}
 
 ROUTES = (
     Route("get", "/api/user-profiles/{profile}/"),
@@ -889,6 +895,59 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
                         "applied" if expected == 200 else "submitted",
                     )
                 self.client.logout()
+
+    @override_settings(
+        STORAGES={
+            "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+            "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+        }
+    )
+    def test_register_link_routes_keep_evidence_private_and_review_operator_only(self):
+        from tokens.models import RegisterWalletLink
+        from tokens.tests.test_register_links import link_fixture, link_payload
+
+        with self.as_an_operator_would():
+            owner, company, _, _, document = link_fixture()
+        self.client.force_authenticate(owner)
+        payload = link_payload(company, document)
+        response = self.client.post(REGISTER_LINK_ROUTES["create"][1], payload, format="json")
+        self.assertEqual(response.status_code, 201, response.content)
+        proposal_id = response.json()["uuid"]
+        listing = REGISTER_LINK_ROUTES["list"][1]
+        self.assertEqual([row["uuid"] for row in self.rows(self.client.get(listing))], [proposal_id])
+        for name in ("detail", "file"):
+            path = REGISTER_LINK_ROUTES[name][1].format(uuid=proposal_id)
+            self.assertEqual(self.client.get(path).status_code, 200)
+            for actor in self.actors:
+                self.client.force_authenticate(actor.user)
+                denied = self.client.get(path)
+                missing = self.client.get(path.replace(proposal_id, str(uuid4())))
+                self.assertEqual((denied.status_code, denied.content), (missing.status_code, missing.content))
+                self.assertEqual(denied.status_code, 404)
+                self.assertEqual(self.rows(self.client.get(listing)), [])
+            self.client.force_authenticate(None)
+            self.assertEqual(self.client.get(path).status_code, 401)
+            self.assertEqual(self.client.get(listing).status_code, 401)
+            self.client.force_authenticate(owner)
+        self.client.force_authenticate(self.actors[0].user)
+        self.assertEqual(self.client.post(REGISTER_LINK_ROUTES["create"][1], payload, format="json").status_code, 404)
+        self.client.force_authenticate(None)
+        review = reverse("admin:tokens_registerwalletlink_review", args=[proposal_id])
+        evidence = reverse("admin:tokens_registerwalletlink_evidence", args=[proposal_id])
+        for actor, expected in zip(self.actors, (302, 403, 200)):
+            self.client.force_login(actor.user)
+            response = self.client.get(review)
+            self.assertEqual(response.status_code, expected)
+            self.assertEqual(self.client.get(evidence).status_code, expected)
+            confirmation = response.context["form"].initial["confirmation"] if expected == 200 else "forged"
+            response = self.client.post(review, {"confirmation": confirmation, "reviewed": "on", "decision": "apply"})
+            self.assertEqual(response.status_code, 302 if expected == 200 else expected)
+            with self.as_an_operator_would():
+                self.assertEqual(
+                    RegisterWalletLink.objects.get(pk=proposal_id).status,
+                    "applied" if expected == 200 else "submitted",
+                )
+            self.client.logout()
 
     @override_settings(
         STORAGES={
