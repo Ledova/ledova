@@ -510,11 +510,18 @@ def _project(execution, claim, *, finalized=None, refusal=None):
                 if operation.status == OutgoingStatus.CONFIRMED
                 else IssuanceExecutionStatus.FAILED
             )
+            if current.status == IssuanceExecutionStatus.EXECUTED:
+                current.finalized_receipt = {
+                    "block_number": current.transaction.block_number,
+                    "block_hash": current.transaction.block_hash,
+                    "gas_used": current.transaction.gas_used,
+                    "policy": finalized.policy,
+                }
         elif operation.status == OutgoingStatus.FAILED:
             current.status = IssuanceExecutionStatus.FAILED
         else:
             return current
-        current.save(update_fields=["status", "updated_at"])
+        current.save(update_fields=["status", "finalized_receipt", "updated_at"])
         issuance = ShareIssuance.objects.select_for_update().get(pk=current.issuance_id)
         if current.status == IssuanceExecutionStatus.EXECUTED:
             issuance.mark_completed(

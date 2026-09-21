@@ -6,20 +6,26 @@ from uuid import uuid4
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TransactionTestCase, override_settings
+from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
+from blockchain.models import TransactionStatus
 from blockchain.tests.outgoing_fixtures import BLOCK_HASH
 from integrations.blockchain.receipts import normalized_hash
+from shared.tests.schema import migrate_to, restore_every_migration
 from tokens.models import (
+    IssuanceExecutionStatus,
     IssuanceStatus,
     RegisterEntry,
     RegisterOpening,
     ShareIssuance,
+    ShareIssuanceExecution,
     ShareIssuanceRequest,
 )
 from tokens.services import issuance_execution
 from tokens.services.register_inclusions import (
     AFTER_OPENING,
+    ATTRIBUTION,
     OPENING,
     UNOPENED,
     classified_inclusions,
@@ -34,7 +40,7 @@ from tokens.services.register_openings import (
     submit_opening,
 )
 from tokens.services.register_snapshot import ZERO_ADDRESS
-from tokens.tests.issuance_fixtures import IssuanceNode, admit
+from tokens.tests.issuance_fixtures import CHAIN_ID, IssuanceNode, admit
 from tokens.tests.test_register_openings import (
     ALICE,
     BOB,
@@ -101,8 +107,12 @@ class RegisterInclusionTest(TransactionTestCase):
             for number in range(self.target.deployment_block, height + 1)
         }
         self.node.events = [
-            {**transfer(number, sender, recipient, shares), "blockHash": self.node.blocks[number]["hash"]}
-            for number, sender, recipient, shares in transfers
+            {
+                **transfer(number, sender, recipient, shares),
+                "blockHash": self.node.blocks[number]["hash"],
+                **({"transactionHash": transaction} if transaction else {}),
+            }
+            for number, sender, recipient, shares, transaction in transfers
         ]
         self.node.balances = dict(holdings)
         self.node.contract.functions.totalSupply.return_value.call.return_value = sum(holdings.values())
@@ -125,12 +135,12 @@ class RegisterInclusionTest(TransactionTestCase):
             client=self.node.client,
         )
 
-    def open_holding_the_mint(self):
+    def open_holding_the_mint(self, issuance):
         height = self.target.deployment_block
         return self.open_at(
             height,
             holdings={self.recipient: 10},
-            transfers=[(height, ZERO_ADDRESS, self.recipient, 10)],
+            transfers=[(height, ZERO_ADDRESS, self.recipient, 10, issuance.tx_hash)],
             mapping=[{"address": self.recipient, "member": str(uuid4())}],
         )
 
@@ -144,6 +154,7 @@ class RegisterInclusionTest(TransactionTestCase):
                 {
                     "kind": "issue",
                     "source": str(issuance.pk),
+                    "transaction": normalized_hash(issuance.tx_hash),
                     "block_number": MINT_BLOCK,
                     "block_hash": normalized_hash(BLOCK_HASH),
                 }
@@ -156,7 +167,7 @@ class RegisterInclusionTest(TransactionTestCase):
 
     def test_an_inclusion_in_the_boundary_block_is_represented_and_a_later_block_is_not(self):
         issuance = self.mint()
-        applied = self.open_holding_the_mint()
+        applied = self.open_holding_the_mint(issuance)
         boundary = applied.boundary
         self.assertEqual(boundary["block"]["number"], MINT_BLOCK)
         inclusion = completed_inclusions(self.tenant.token.pk)[0]
@@ -165,10 +176,16 @@ class RegisterInclusionTest(TransactionTestCase):
         self.assertEqual(unrepresented_inclusions(self.tenant.token.pk, boundary), [])
         later = {
             **inclusion,
+            "transaction": normalized_hash(block_hash(99)),
             "block_number": MINT_BLOCK + 1,
             "block_hash": normalized_hash(block_hash(MINT_BLOCK + 1)),
         }
         self.assertEqual(classify_inclusion(boundary, later), AFTER_OPENING)
+        self.assertEqual(classify_inclusion({**boundary, "history": []}, inclusion), ATTRIBUTION)
+        self.assertEqual(
+            classify_inclusion({key: value for key, value in boundary.items() if key != "history"}, inclusion),
+            ATTRIBUTION,
+        )
         self.assertEqual(
             classified_inclusions(self.tenant.token.pk)["inclusions"],
             [{**inclusion, "classification": OPENING}],
@@ -180,18 +197,15 @@ class RegisterInclusionTest(TransactionTestCase):
         classifications = [row["classification"] for row in classified_inclusions(self.tenant.token.pk)["inclusions"]]
         self.assertEqual(sorted(classifications), [AFTER_OPENING, OPENING])
 
-    def test_the_boundary_height_reached_through_another_block_is_refused(self):
-        self.mint()
-        applied = self.open_holding_the_mint()
-        reorganised = {
-            "kind": "issue",
-            "source": str(uuid4()),
-            "block_number": MINT_BLOCK,
-            "block_hash": normalized_hash(block_hash(MINT_BLOCK)),
-        }
+    def test_the_boundary_height_reached_through_another_block_is_held_for_attribution(self):
+        issuance = self.mint()
+        applied = self.open_holding_the_mint(issuance)
+        inclusion = completed_inclusions(self.tenant.token.pk)[0]
+        reorganised = {**inclusion, "block_hash": normalized_hash(block_hash(MINT_BLOCK))}
         self.assertNotEqual(reorganised["block_hash"], normalized_hash(applied.boundary["block"]["hash"]))
-        with self.assertRaises(ValidationError):
-            classify_inclusion(applied.boundary, reorganised)
+        self.assertEqual(classify_inclusion(applied.boundary, reorganised), ATTRIBUTION)
+        recorded = {**inclusion, "transaction": normalized_hash(block_hash(98)), "block_number": MINT_BLOCK - 1}
+        self.assertEqual(classify_inclusion(applied.boundary, recorded), ATTRIBUTION)
 
     def test_an_issuance_completed_after_the_captured_boundary_refuses_until_a_fresh_boundary_covers_it(self):
         later = self.target.deployment_block + 8
@@ -220,9 +234,9 @@ class RegisterInclusionTest(TransactionTestCase):
             later + 2,
             holdings={ALICE: 80, BOB: 20, self.recipient: 10},
             transfers=[
-                (self.target.deployment_block + 1, ZERO_ADDRESS, ALICE, 100),
-                (self.target.deployment_block + 2, ALICE, BOB, 20),
-                (later, ZERO_ADDRESS, self.recipient, 10),
+                (self.target.deployment_block + 1, ZERO_ADDRESS, ALICE, 100, None),
+                (self.target.deployment_block + 2, ALICE, BOB, 20, None),
+                (later, ZERO_ADDRESS, self.recipient, 10, issuance.tx_hash),
             ],
             mapping=[
                 {"address": ALICE, "member": str(uuid4())},
@@ -251,13 +265,74 @@ class RegisterInclusionTest(TransactionTestCase):
             prepare_opening_review(proposal_id=proposal.pk, reviewer=self.reviewer, client=self.node.client)
         self.assertFalse(RegisterEntry.objects.exists())
 
+    def test_a_first_receipt_completion_recorded_before_finality_is_refused(self):
+        request = ShareIssuanceRequest.objects.create(
+            token=self.tenant.token, recipient_address=self.recipient, amount=10, reason="Historical allotment"
+        )
+        request.approve(self.actor)
+        command = admit(request, self.actor)
+        self.mint_node.finalized = MINT_BLOCK - 1
+        self.assertEqual(issuance_execution.recover(command.pk)["status"], "executing")
+        command.refresh_from_db()
+        self.assertEqual((command.status, command.transaction.status), ("executing", TransactionStatus.CONFIRMED))
+        self.addCleanup(restore_every_migration)
+        previous = migrate_to([("tokens", "0065_register_opening")])
+        previous.get_model("tokens", "ShareIssuanceExecution").objects.filter(pk=command.pk).update(status="executed")
+        previous.get_model("tokens", "ShareIssuance").objects.filter(pk=command.issuance_id).update(
+            status="completed", completed_at=timezone.now()
+        )
+        restore_every_migration()
+        historical = ShareIssuanceExecution.objects.select_related("transaction").get(pk=command.pk)
+        self.assertEqual(historical.status, IssuanceExecutionStatus.EXECUTED)
+        self.assertIsNone(historical.finalized_receipt)
+        self.assertEqual(
+            (historical.transaction.status, historical.transaction.block_number),
+            (TransactionStatus.CONFIRMED, MINT_BLOCK),
+        )
+        self.assertTrue(historical.transaction.block_hash)
+        with self.assertRaises(ValidationError) as refused:
+            completed_inclusions(self.tenant.token.pk)
+        self.assertIn(str(command.issuance_id), str(refused.exception.detail))
+        proposal = submit_opening(actor=self.owner, **self.payload())
+        with self.assertRaises(ValidationError):
+            prepare_opening_review(proposal_id=proposal.pk, reviewer=self.reviewer, client=self.node.client)
+        self.assertFalse(RegisterEntry.objects.exists())
+
+    def test_an_orphaned_earlier_inclusion_is_held_for_attribution_and_refuses_the_opening(self):
+        self.enterContext(
+            override_settings(WALLET_CHAIN_FINALITY_POLICIES={f"evm:{CHAIN_ID}": {"mode": "depth", "depth": 1}})
+        )
+        issuance = self.mint(block=self.target.deployment_block + 2)
+        boundary_height = self.target.deployment_block + 4
+        self.boundary_at(
+            boundary_height,
+            holdings={ALICE: 100},
+            transfers=[(self.target.deployment_block, ZERO_ADDRESS, ALICE, 100, None)],
+        )
+        self.node.latest = boundary_height
+        self.node.blocks[self.target.deployment_block + 2]["hash"] = block_hash(777)
+        proposal = submit_opening(
+            actor=self.owner, **self.payload(mapping=[{"address": ALICE, "member": str(uuid4())}])
+        )
+        with self.assertRaises(ValidationError) as refused:
+            prepare_opening_review(proposal_id=proposal.pk, reviewer=self.reviewer, client=self.node.client)
+        self.assertIn(str(issuance.pk), str(refused.exception.detail))
+        self.assertEqual(RegisterOpening.objects.get(pk=proposal.pk).status, "submitted")
+        self.assertFalse(RegisterEntry.objects.exists())
+        captured = RegisterOpening.objects.get(pk=proposal.pk).boundary
+        self.assertEqual(captured["block"]["number"], boundary_height)
+        inclusion = completed_inclusions(self.tenant.token.pk)[0]
+        self.assertLess(inclusion["block_number"], boundary_height)
+        self.assertEqual(classify_inclusion(captured, inclusion), ATTRIBUTION)
+        self.assertEqual(unrepresented_inclusions(self.tenant.token.pk, captured), [inclusion])
+
     def test_an_unknown_share_class_is_refused_rather_than_reported_empty(self):
         with self.assertRaises(NotFound):
             classified_inclusions(uuid4())
 
     def test_the_command_reports_the_boundary_and_each_classification(self):
         issuance = self.mint()
-        applied = self.open_holding_the_mint()
+        applied = self.open_holding_the_mint(issuance)
         output = StringIO()
         call_command("register_inclusions", "--token", str(self.tenant.token.pk), stdout=output)
         report = json.loads(output.getvalue())
@@ -268,6 +343,7 @@ class RegisterInclusionTest(TransactionTestCase):
                 {
                     "kind": "issue",
                     "source": str(issuance.pk),
+                    "transaction": normalized_hash(issuance.tx_hash),
                     "block_number": MINT_BLOCK,
                     "block_hash": normalized_hash(BLOCK_HASH),
                     "classification": OPENING,

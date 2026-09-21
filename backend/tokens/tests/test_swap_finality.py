@@ -32,6 +32,7 @@ from tokens.models import (
 from tokens.services import swap_execution
 from tokens.services.register_inclusions import (
     AFTER_OPENING,
+    ATTRIBUTION,
     OPENING,
     UNOPENED,
     classify_inclusion,
@@ -452,6 +453,7 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
             self.node.advance(head=20, finalized=12)
             self.assertEqual(self.settle(), SwapOrderStatus.COMPLETED)
         token_id = self.swap.share_token_id
+        recorded = [{"block": 12, "block_hash": BLOCK_HASH, "transaction": self.swap.tx_hash}]
         with use_operator():
             inclusions = completed_inclusions(token_id)
             self.assertEqual(
@@ -460,6 +462,7 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
                     {
                         "kind": "transfer",
                         "source": str(self.swap.pk),
+                        "transaction": self.swap.tx_hash.removeprefix("0x"),
                         "block_number": 12,
                         "block_hash": BLOCK_HASH.removeprefix("0x"),
                     }
@@ -467,10 +470,20 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
             )
             self.assertIsNone(opening_boundary(token_id))
             self.assertEqual(classify_inclusion(None, inclusions[0]), UNOPENED)
-            self.assertEqual(classify_inclusion({"block": {"number": 12, "hash": BLOCK_HASH}}, inclusions[0]), OPENING)
-            earlier = {"block": {"number": 11, "hash": OTHER_HASH}}
+            represented = {"block": {"number": 12, "hash": BLOCK_HASH}, "history": recorded}
+            self.assertEqual(classify_inclusion(represented, inclusions[0]), OPENING)
+            self.assertEqual(unrepresented_inclusions(token_id, represented), [])
+            earlier = {"block": {"number": 11, "hash": OTHER_HASH}, "history": []}
             self.assertEqual(classify_inclusion(earlier, inclusions[0]), AFTER_OPENING)
             self.assertEqual(unrepresented_inclusions(token_id, earlier), inclusions)
+            orphaned = {"block": {"number": 12, "hash": OTHER_HASH}, "history": []}
+            self.assertEqual(classify_inclusion(orphaned, inclusions[0]), ATTRIBUTION)
+            self.assertEqual(unrepresented_inclusions(token_id, orphaned), inclusions)
+            replaced = {
+                "block": {"number": 12, "hash": BLOCK_HASH},
+                "history": [{**recorded[0], "block_hash": OTHER_HASH}],
+            }
+            self.assertEqual(classify_inclusion(replaced, inclusions[0]), ATTRIBUTION)
 
     def test_the_sweep_settles_a_confirmed_executing_swap_and_then_leaves_it(self):
         self.confirm()

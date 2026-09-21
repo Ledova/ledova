@@ -141,6 +141,7 @@ def _observed_entries(contract, target, boundary):
                 "shares": _number(event["args"]["value"]),
                 "block_number": height,
                 "block_hash": _hash(event["blockHash"]),
+                "transaction": _hash(event["transactionHash"]),
                 "log_index": _number(event["logIndex"], MAX_BLOCK_NUMBER),
             }
         )
@@ -230,6 +231,10 @@ def read_snapshot(target, *, client):
         "authorized_supply": str(authorized),
         "holdings": [
             {"address": address, "shares": str(shares)} for address, shares in sorted(balances.items()) if shares
+        ],
+        "history": [
+            {"block": block, "block_hash": hashes[block], "transaction": transaction}
+            for block, transaction in sorted({(entry["block_number"], entry["transaction"]) for entry in entries})
         ],
     }
 

@@ -13,11 +13,14 @@ initialises it from one verified canonical chain boundary under documentary
 authority, and the integrity verifier replays the whole chain. These HTTP reads
 have not switched to it yet, and issuance and settlement still record no register
 events. Opening review and an operator report classify their completed effects
-against that boundary instead: the verified final inclusion of a completed
-issuance or settlement is either represented by the opening or falls after it,
-and an opening whose captured boundary does not represent a completed effect is
-refused rather than applied over it. Settlement completion takes the same
-share-class lock as issuance completion, so neither can interleave with an
+against that boundary instead, from evidence both sides record: each completion's
+finalized receipt, and the canonical transfer history the boundary retains. A
+completion is represented by the opening only when its transaction is in that
+history; one in a later block falls after it; anything the evidence cannot place,
+including an earlier inclusion that was orphaned, is held for operator
+attribution. An opening whose captured boundary does not represent a completed
+effect is refused rather than applied over it. Settlement completion takes the
+same share-class lock as issuance completion, so neither can interleave with an
 opening. Recording the later events themselves remains open.
 
 Owner-submitted [compensating corrections](../operations/register-foundation.md#reviewed-compensating-corrections)

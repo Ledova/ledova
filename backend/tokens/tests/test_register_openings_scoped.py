@@ -109,6 +109,29 @@ class ScopedRegisterOpeningTest(RunsOnTheScopedConnection, APITransactionTestCas
         with use_operator():
             self.assertEqual(self.apply().status, "applied")
 
+    def test_operator_boundary_guard_refuses_a_missing_or_inconsistent_transfer_history(self):
+        boundary = RegisterOpening.objects.get(pk=self.proposal.pk).boundary
+        self.assertTrue(boundary["history"])
+        entry = boundary["history"][0]
+        absent = {key: value for key, value in boundary.items() if key != "history"}
+        refusals = (
+            absent,
+            {**boundary, "history": {}},
+            {**boundary, "history": [{key: value for key, value in entry.items() if key != "transaction"}]},
+            {**boundary, "history": [{**entry, "transaction": "0xnope"}]},
+            {**boundary, "history": [{**entry, "block": boundary["block"]["number"] + 1}]},
+            {**boundary, "history": [entry, {**entry, "block_hash": "0x" + "ee" * 32}]},
+            {**boundary, "history": [entry, entry]},
+        )
+        for value in refusals:
+            proposal = submit_opening(actor=self.owner, **opening_payload(self.document, self.target))
+            with self.subTest(history=value.get("history")), use_operator():
+                with self.assertRaises(DatabaseError), atomic():
+                    RegisterOpening.objects.filter(pk=proposal.pk).update(boundary=value)
+            self.assertIsNone(RegisterOpening.objects.get(pk=proposal.pk).boundary)
+        with use_operator():
+            self.assertEqual(self.apply().status, "applied")
+
     def test_only_the_operator_connection_classifies_inclusions(self):
         for read in (completed_inclusions, opening_boundary, classified_inclusions):
             with self.subTest(read=read.__name__), self.assertRaises(PermissionDenied):
