@@ -113,6 +113,10 @@ class RegisterInclusionTest(TransactionTestCase):
         confirmation = prepare_opening_review(proposal_id=proposal.pk, reviewer=self.reviewer, client=self.node.client)[
             1
         ]
+        self.applied_confirmation = confirmation
+        return self.decide(proposal, confirmation)
+
+    def decide(self, proposal, confirmation):
         return decide_opening(
             proposal_id=proposal.pk,
             reviewer=self.reviewer,
@@ -169,6 +173,12 @@ class RegisterInclusionTest(TransactionTestCase):
             classified_inclusions(self.tenant.token.pk)["inclusions"],
             [{**inclusion, "classification": OPENING}],
         )
+        self.mint(block=MINT_BLOCK + 4)
+        repeated = self.decide(applied, self.applied_confirmation)
+        self.assertEqual((repeated.pk, repeated.status), (applied.pk, "applied"))
+        self.assertEqual(RegisterEntry.objects.count(), 1)
+        classifications = [row["classification"] for row in classified_inclusions(self.tenant.token.pk)["inclusions"]]
+        self.assertEqual(sorted(classifications), [AFTER_OPENING, OPENING])
 
     def test_the_boundary_height_reached_through_another_block_is_refused(self):
         self.mint()
