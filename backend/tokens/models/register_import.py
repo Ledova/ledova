@@ -44,6 +44,11 @@ class RegisterImport(BaseModel):
 
     class Meta:
         ordering = ["-created_at", "-uuid"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["token"], condition=models.Q(status="applied"), name="one_applied_register_import_per_class"
+            ),
+        ]
 
 
 class RegisterMemberParticulars(BaseModel):

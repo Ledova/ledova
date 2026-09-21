@@ -11,6 +11,8 @@ UUID = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
 DATE = "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
 WHOLE = "^[1-9][0-9]{0,77}$"
 MONEY = "^(0|[1-9][0-9]{0,17})([.][0-9]{1,2})?$"
+MEMBER_KEYS = "ARRAY['amount_paid', 'entered_on', 'member', 'name', 'residential_address', 'shares']"
+FORMER_KEYS = "ARRAY['ceased_on', 'name', 'residential_address', 'shares']"
 
 
 def install_guards(apps, schema_editor):
@@ -59,7 +61,8 @@ BEGIN
             OR jsonb_typeof(NEW.former_members) IS DISTINCT FROM 'array'
             OR EXISTS (SELECT 1 FROM jsonb_array_elements(NEW.members) item
                 WHERE jsonb_typeof(item) IS DISTINCT FROM 'object'
-                OR (SELECT count(*) FROM jsonb_object_keys(item)) <> 6
+                OR (SELECT array_agg(key ORDER BY key COLLATE "C") FROM jsonb_object_keys(item) key)
+                    IS DISTINCT FROM {MEMBER_KEYS}
                 OR jsonb_typeof(item->'member') IS DISTINCT FROM 'string' OR item->>'member' !~ '{UUID}'
                 OR jsonb_typeof(item->'name') IS DISTINCT FROM 'string' OR length(btrim(item->>'name')) = 0
                 OR jsonb_typeof(item->'residential_address') IS DISTINCT FROM 'string'
@@ -67,7 +70,8 @@ BEGIN
                 OR jsonb_typeof(item->'shares') IS DISTINCT FROM 'string' OR item->>'shares' !~ '{WHOLE}'
                 OR jsonb_typeof(item->'entered_on') IS DISTINCT FROM 'string' OR item->>'entered_on' !~ '{DATE}'
                 OR (item->>'entered_on')::date > NEW.as_at
-                OR jsonb_typeof(item->'amount_paid') NOT IN ('string', 'null')
+                OR (jsonb_typeof(item->'amount_paid') IS DISTINCT FROM 'string'
+                    AND jsonb_typeof(item->'amount_paid') IS DISTINCT FROM 'null')
                 OR (jsonb_typeof(item->'amount_paid') = 'string' AND item->>'amount_paid' !~ '{MONEY}')
                 OR NOT EXISTS (SELECT 1 FROM tokens_registermember m WHERE m.uuid::text = item->>'member'
                     AND m.company_id = NEW.company_id))
@@ -75,13 +79,17 @@ BEGIN
                 <> jsonb_array_length(NEW.members)
             OR EXISTS (SELECT 1 FROM jsonb_array_elements(NEW.former_members) item
                 WHERE jsonb_typeof(item) IS DISTINCT FROM 'object'
-                OR (SELECT count(*) FROM jsonb_object_keys(item)) <> 4
+                OR (SELECT array_agg(key ORDER BY key COLLATE "C") FROM jsonb_object_keys(item) key)
+                    IS DISTINCT FROM {FORMER_KEYS}
                 OR jsonb_typeof(item->'name') IS DISTINCT FROM 'string' OR length(btrim(item->>'name')) = 0
                 OR jsonb_typeof(item->'residential_address') IS DISTINCT FROM 'string'
                 OR length(btrim(item->>'residential_address')) = 0
                 OR jsonb_typeof(item->'shares') IS DISTINCT FROM 'string' OR item->>'shares' !~ '{WHOLE}'
                 OR jsonb_typeof(item->'ceased_on') IS DISTINCT FROM 'string' OR item->>'ceased_on' !~ '{DATE}'
-                OR (item->>'ceased_on')::date > NEW.as_at)
+                OR (item->>'ceased_on')::date > NEW.as_at
+                OR ((item->>'ceased_on')::date < (SELECT e.effective_on FROM tokens_shareregister r
+                    JOIN tokens_registerentry e ON e.register_id = r.uuid
+                    WHERE r.token_id = NEW.token_id AND e.kind = 'opening')) IS NOT TRUE)
         THEN
             RAISE EXCEPTION 'Register imports require exact current intent and verified company evidence'
                 USING ERRCODE = '23514';
@@ -107,7 +115,9 @@ BEGIN
             OR NEW.asic_member_count IS DISTINCT FROM member_count
             OR EXISTS (SELECT 1 FROM jsonb_array_elements(NEW.members) item
                 WHERE NOT EXISTS (SELECT 1 FROM tokens_registermemberparticulars p
-                    WHERE p.member_id::text = item->>'member' AND p.source_import_id = NEW.uuid))
+                    JOIN tokens_registerimport source ON source.uuid = p.source_import_id
+                    WHERE p.member_id::text = item->>'member' AND (p.source_import_id = NEW.uuid
+                        OR (source.status = 'applied' AND source.as_at > NEW.as_at))))
         THEN
             RAISE EXCEPTION 'Application must match the ASIC figures and record every member''s particulars'
                 USING ERRCODE = '23514';
@@ -236,6 +246,13 @@ class Migration(migrations.Migration):
             ],
             options={
                 "ordering": ["-created_at", "-uuid"],
+                "constraints": [
+                    models.UniqueConstraint(
+                        condition=models.Q(("status", "applied")),
+                        fields=("token",),
+                        name="one_applied_register_import_per_class",
+                    )
+                ],
             },
         ),
         migrations.CreateModel(
@@ -321,6 +338,24 @@ class Migration(migrations.Migration):
                     )
                 ],
             },
+        ),
+        migrations.AlterField(
+            model_name="formerholder",
+            name="identity_source",
+            field=models.CharField(
+                choices=[
+                    ("profile", "Current profile"),
+                    ("stamped", "Stamped at the time"),
+                    ("recorded", "Name recorded at allotment, identity never resolved"),
+                    ("particulars", "Recorded register particulars"),
+                    ("treasury_label", "Whitelist entry label, no profile exists"),
+                    ("unresolvable", "Not resolvable, two wallets share this address"),
+                    ("none", "Not identified"),
+                    ("unknown", "Never identified while it held shares"),
+                ],
+                default="unknown",
+                max_length=20,
+            ),
         ),
         migrations.RunPython(install_guards, remove_guards),
     ]

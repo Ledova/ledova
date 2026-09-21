@@ -86,6 +86,7 @@ class SwapOrderStatus(models.TextChoices):
 IDENTITY_LIVE = "profile"
 IDENTITY_STAMPED = "stamped"
 IDENTITY_RECORDED = "recorded"
+IDENTITY_PARTICULARS = "particulars"
 IDENTITY_TREASURY_LABEL = "treasury_label"
 IDENTITY_UNRESOLVABLE = "unresolvable"
 IDENTITY_NONE = "none"
@@ -95,6 +96,7 @@ IDENTITY_LABELS = {
     IDENTITY_LIVE: "Current profile",
     IDENTITY_STAMPED: "Stamped at the time",
     IDENTITY_RECORDED: "Name recorded at allotment, identity never resolved",
+    IDENTITY_PARTICULARS: "Recorded register particulars",
     IDENTITY_TREASURY_LABEL: "Whitelist entry label, no profile exists",
     IDENTITY_UNRESOLVABLE: "Not resolvable, two wallets share this address",
     IDENTITY_NONE: "Not identified",

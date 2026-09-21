@@ -6,6 +6,8 @@ from tokens.models.choices import IDENTITY_LABELS, IDENTITY_LIVE
 
 class FormerMemberSerializer(serializers.ModelSerializer):
 
+    wallet_address = serializers.CharField(allow_null=True, read_only=True)
+    ceased_at_block = serializers.IntegerField(allow_null=True, read_only=True)
     identity_source_display = serializers.SerializerMethodField()
     identity_recorded_at = serializers.DateTimeField(source="created_at", read_only=True)
 

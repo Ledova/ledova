@@ -20,11 +20,12 @@
 {% for row in original.members %}<tr><td>{{ row.member }}</td><td>{{ row.name }}</td><td>{{ row.residential_address }}</td><td>{{ row.shares }}</td><td>{{ row.entered_on }}</td><td>{{ row.amount_paid|default:"Not known" }}</td></tr>{% endfor %}
 </tbody>
 </table>
-<h2>Imported against stored holdings</h2>
+<h2>Imported against the stored register and live identity</h2>
+<p>The register shows a member's live verified identity when there is one; imported particulars fill in only for a member with none, and an ambiguous identity stays ambiguous. The imported date entered applies only to a member the opening carried in whose holding has been continuous since, and the imported amount paid only while that holding is also unchanged since the import.</p>
 <table>
-<thead><tr><th>Member ID</th><th>Imported</th><th>Stored</th></tr></thead>
+<thead><tr><th>Member ID</th><th>Imported name</th><th>Live identity</th><th>Linked wallets</th><th>Imported shares</th><th>Stored shares</th><th>Imported date entered</th><th>Stored date entered</th></tr></thead>
 <tbody>
-{% for row in comparison %}<tr><td>{{ row.member }}</td><td>{{ row.imported|default:"Not imported" }}</td><td>{{ row.stored|default:"No holding" }}</td></tr>{% endfor %}
+{% for row in comparison %}<tr><td>{{ row.member }}</td><td>{{ row.name|default:"Not imported" }}</td><td>{{ row.live_name|default:"None" }}{% if row.live_address %}, {{ row.live_address }}{% endif %}</td><td>{{ row.wallets|join:", "|default:"None" }}</td><td>{{ row.imported|default:"Not imported" }}</td><td>{{ row.stored|default:"No holding" }}</td><td>{{ row.imported_entered_on|default:"Not imported" }}</td><td>{{ row.entered_on|date:"Y-m-d"|default:"No holding" }}</td></tr>{% endfor %}
 </tbody>
 </table>
 <h2>Former members before the platform</h2>

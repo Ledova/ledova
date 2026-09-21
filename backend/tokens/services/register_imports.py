@@ -1,5 +1,6 @@
+import re
+from collections import defaultdict
 from datetime import date
-from decimal import Decimal, InvalidOperation
 from uuid import UUID
 
 from django.contrib.auth import get_user_model
@@ -9,17 +10,24 @@ from rest_framework.exceptions import NotFound, PermissionDenied, ValidationErro
 
 from companies.models import Company, CompanyDocument, DocumentType
 from shared.db import atomic
-from tokens.constants import REGISTER_IMPORT_REVIEW_MAX_AGE
+from tokens.constants import (
+    REGISTER_IMPORT_ADDRESS_LENGTH,
+    REGISTER_IMPORT_REVIEW_MAX_AGE,
+)
+from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
     ImportedFormerMember,
     RegisterEntry,
+    RegisterEntryKind,
     RegisterImport,
     RegisterMember,
     RegisterMemberParticulars,
+    RegisterMemberWallet,
     RegisterPosition,
-    ShareRegister,
     ShareToken,
 )
+from tokens.services.former_holders import retention_cutoff
+from tokens.services.register import _member_identity
 from tokens.services.register_openings import (
     _authority_values,
     _check_decision,
@@ -30,20 +38,29 @@ from tokens.services.register_openings import (
     _retain,
     _reviewer,
 )
+from whitelist.services.identity import identities_for
 
 SALT = "tokens.register-import"
 MEMBER_FIELDS = {"member", "name", "residential_address", "shares", "entered_on", "amount_paid"}
 FORMER_FIELDS = {"name", "residential_address", "shares", "ceased_on"}
+TEXT_LIMITS = {
+    "name": RegisterMemberParticulars._meta.get_field("name").max_length,
+    "residential address": REGISTER_IMPORT_ADDRESS_LENGTH,
+}
+SHARE_DIGITS = RegisterPosition._meta.get_field("shares").max_digits
+MONEY = re.compile(r"(0|[1-9][0-9]{0,17})([.][0-9]{1,2})?")
 
 
-def _text(value):
-    if not isinstance(value, str) or not value.strip() or len(value) > 1000:
+def _text(value, label):
+    if not isinstance(value, str) or not value.strip():
         raise ValueError
+    if len(value.strip()) > TEXT_LIMITS[label]:
+        raise ValidationError(f"Each {label} in an import may have at most {TEXT_LIMITS[label]} characters.")
     return value.strip()
 
 
 def _whole(value):
-    if not isinstance(value, str) or not value.isdigit() or int(value) <= 0:
+    if not isinstance(value, str) or not value.isdigit() or int(value) <= 0 or len(str(int(value))) > SHARE_DIGITS:
         raise ValueError
     return str(int(value))
 
@@ -58,10 +75,12 @@ def _day(value, as_at):
 def _money(value):
     if value is None:
         return None
-    amount = Decimal(value)
-    if not isinstance(value, str) or amount < 0 or amount != amount.quantize(Decimal("0.01")):
-        raise ValueError
-    return str(amount)
+    if not isinstance(value, str) or not MONEY.fullmatch(value):
+        raise ValidationError(
+            "Enter each amount paid as a plain amount such as 250.00, with at most two decimal places and eighteen "
+            "whole digits, or null when it is not known."
+        )
+    return value
 
 
 def _rows(members, former_members, as_at):
@@ -75,8 +94,8 @@ def _rows(members, former_members, as_at):
             current.append(
                 {
                     "member": str(UUID(str(row["member"]))),
-                    "name": _text(row["name"]),
-                    "residential_address": _text(row["residential_address"]),
+                    "name": _text(row["name"], "name"),
+                    "residential_address": _text(row["residential_address"], "residential address"),
                     "shares": _whole(row["shares"]),
                     "entered_on": _day(row["entered_on"], as_at),
                     "amount_paid": _money(row["amount_paid"]),
@@ -88,13 +107,13 @@ def _rows(members, former_members, as_at):
                 raise ValueError
             former.append(
                 {
-                    "name": _text(row["name"]),
-                    "residential_address": _text(row["residential_address"]),
+                    "name": _text(row["name"], "name"),
+                    "residential_address": _text(row["residential_address"], "residential address"),
                     "shares": _whole(row["shares"]),
                     "ceased_on": _day(row["ceased_on"], as_at),
                 }
             )
-    except (ValueError, TypeError, AttributeError, InvalidOperation):
+    except (ValueError, TypeError, AttributeError):
         raise ValidationError(
             "Each current member needs a member ID, name, residential address, whole shares, a date entered no later "
             "than the register date and an amount paid or null; each former member needs a name, residential "
@@ -117,11 +136,35 @@ def _asic_document(company, document_id):
     return document
 
 
-def _opened_register(token):
-    register = ShareRegister.objects.filter(token=token).first()
-    if register is None or not RegisterEntry.objects.filter(register=register).exists():
+def _opening(token):
+    opening = (
+        RegisterEntry.objects.select_related("register")
+        .filter(register__token=token, kind=RegisterEntryKind.OPENING)
+        .first()
+    )
+    if opening is None:
         raise ValidationError("An import supplements an opened register; open this share class first.")
-    return register
+    return opening
+
+
+def _check_unapplied(token):
+    if RegisterImport.objects.filter(token=token, status="applied").exists():
+        raise ValidationError("This share class already has an applied import, and a class takes only one.")
+
+
+def _check_former(former, opened_on):
+    cutoff = retention_cutoff()
+    for row in former:
+        ceased_on = date.fromisoformat(row["ceased_on"])
+        if ceased_on >= opened_on:
+            raise ValidationError(
+                f"Import only former members who ceased before the register's opening on {opened_on.isoformat()}."
+            )
+        if ceased_on < cutoff:
+            raise ValidationError(
+                f"Leave out former members who ceased before {cutoff.isoformat()}: the register keeps a former "
+                "member for seven years from the date they ceased."
+            )
 
 
 def submit_import(
@@ -175,7 +218,9 @@ def submit_import(
         )
         if existing:
             return existing
-        _opened_register(token)
+        opening = _opening(token)
+        _check_unapplied(token)
+        _check_former(former, opening.effective_on)
         known = set(
             RegisterMember.objects.filter(company=company, uuid__in=[row["member"] for row in current]).values_list(
                 "uuid", flat=True
@@ -207,7 +252,7 @@ def submit_import(
 
 def _holdings(register):
     return {
-        str(position.member_id): int(position.shares)
+        str(position.member_id): position
         for position in RegisterPosition.objects.filter(register=register, shares__gt=0)
     }
 
@@ -216,9 +261,39 @@ def _comparison(proposal, register):
     stored = _holdings(register)
     imported = {row["member"]: int(row["shares"]) for row in proposal.members}
     return [
-        {"member": member, "imported": imported.get(member), "stored": stored.get(member)}
+        {
+            "member": member,
+            "imported": imported.get(member),
+            "stored": int(stored[member].shares) if member in stored else None,
+            "entered_on": stored[member].entered_on if member in stored else None,
+        }
         for member in sorted(set(stored) | set(imported))
     ]
+
+
+def _review_rows(proposal, comparison):
+    imported = {row["member"]: row for row in proposal.members}
+    wallets = defaultdict(list)
+    for link in RegisterMemberWallet.objects.filter(
+        company_id=proposal.company_id, member_id__in=[row["member"] for row in comparison]
+    ).order_by("address"):
+        wallets[str(link.member_id)].append(link.address)
+    identities = identities_for([address for addresses in wallets.values() for address in addresses])
+    rows = []
+    for row in comparison:
+        _, name, residential_address, _, _ = _member_identity(wallets[row["member"]], identities, {})
+        submitted = imported.get(row["member"], {})
+        rows.append(
+            {
+                **row,
+                "name": submitted.get("name"),
+                "imported_entered_on": submitted.get("entered_on"),
+                "wallets": wallets[row["member"]],
+                "live_name": name,
+                "live_address": residential_address,
+            }
+        )
+    return rows
 
 
 def _check_holdings(comparison):
@@ -248,7 +323,8 @@ def prepare_import_review(*, proposal_id, reviewer):
         raise ValidationError("This register import already has a decision.")
     _check_evidence(proposal, proposal.company, CompanyDocument.objects.filter(pk=proposal.source_document).first())
     _check_asic(proposal, proposal.company)
-    comparison = _comparison(proposal, _opened_register(proposal.token))
+    _check_unapplied(proposal.token)
+    comparison = _review_rows(proposal, _comparison(proposal, _opening(proposal.token).register))
     return proposal, comparison, signing.dumps(_preview(proposal, reviewer), salt=SALT)
 
 
@@ -260,6 +336,12 @@ def _figures(asic_issued_total, asic_member_count):
     if total < 0 or count < 0:
         raise ValidationError("Enter the ASIC extract's issued total and member count for this class.")
     return total, count
+
+
+def _completed_import(proposal, reviewer, decision, rejection_reason, figures):
+    if figures is not None and figures != (proposal.asic_issued_total, proposal.asic_member_count):
+        raise RegisterChangeConflict()
+    return _completed_decision(proposal, reviewer, decision, rejection_reason)
 
 
 def decide_import(
@@ -274,30 +356,40 @@ def decide_import(
 ):
     reviewer = _reviewer(reviewer, RegisterImport)
     _check_decision(decision, rejection_reason)
+    figures = _figures(asic_issued_total, asic_member_count) if decision == "apply" else None
     initial = RegisterImport.objects.get(pk=proposal_id)
     if initial.status != "submitted":
-        return _completed_decision(initial, reviewer, decision, rejection_reason)
+        return _completed_import(initial, reviewer, decision, rejection_reason, figures)
     with atomic():
         company = Company.objects.select_for_update(no_key=True).get(pk=initial.company_id)
         token = ShareToken.objects.select_for_update().get(pk=initial.token_id)
         document = CompanyDocument.objects.select_for_update().filter(pk=initial.source_document).first()
         proposal = RegisterImport.objects.select_for_update().get(pk=proposal_id)
         if proposal.status != "submitted":
-            return _completed_decision(proposal, reviewer, decision, rejection_reason)
+            return _completed_import(proposal, reviewer, decision, rejection_reason, figures)
         if decision == "apply":
             _confirm(confirmation, SALT, REGISTER_IMPORT_REVIEW_MAX_AGE, _preview(proposal, reviewer))
             _check_evidence(proposal, company, document)
             _check_asic(proposal, company)
-            total, count = _figures(asic_issued_total, asic_member_count)
+            _check_unapplied(token)
+            total, count = figures
             imported_total = sum(int(row["shares"]) for row in proposal.members)
             if (total, count) != (imported_total, len(proposal.members)):
                 raise ValidationError(
                     f"The ASIC extract shows {total} shares held by {count} members; the import has "
                     f"{imported_total} shares held by {len(proposal.members)} members."
                 )
-            register = _opened_register(token)
+            register = _opening(token).register
             _check_holdings(_comparison(proposal, register))
+            newer = {
+                str(member)
+                for member in RegisterMemberParticulars.objects.filter(
+                    member_id__in=[row["member"] for row in proposal.members], source_import__as_at__gt=proposal.as_at
+                ).values_list("member_id", flat=True)
+            }
             for row in proposal.members:
+                if row["member"] in newer:
+                    continue
                 RegisterMemberParticulars.objects.update_or_create(
                     member_id=row["member"],
                     defaults={
