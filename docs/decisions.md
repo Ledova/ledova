@@ -25,6 +25,13 @@ fixed retention horizon, independent of account deletion. The legal basis and
 uncertain clock are in [legal positions](legal/positions.md#3-the-evidence-retention-period); implementation belongs to
 [the register](architecture/register.md) and [file retention](architecture/files-and-retention.md).
 
+The operator's issuer KYC switch gates two points only: submitting a company for
+review, and activating it once approved. Every later action relies on that gate
+rather than checking again, including resolving a warning and reinstating a
+suspended company. The owner chose this on 21 September 2026 in
+[#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5766230810);
+[eligibility](architecture/companies-and-eligibility.md) owns the mechanism.
+
 ## The stored register
 
 Wallets become linked to register members only through documentary authority

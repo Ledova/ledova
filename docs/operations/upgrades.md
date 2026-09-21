@@ -91,6 +91,11 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   existing receipt. Completions finalized from then on record the index, and
   register recording uses it to follow chain order inside a block. Reversal
   refuses once any index is recorded.
+- The issuer KYC switch has no migration. Until now `issuer_kyc_required` had no
+  effect. With it on, a company whose owner is not identity-verified can no
+  longer be submitted or resubmitted for review, or activated once approved. A
+  company made active before the upgrade can still have a warning resolved or be
+  reinstated. Check the setting before upgrading.
 - `whitelist/0002_whitelistentry_treasury_addresses` makes
   `WhitelistEntry.wallet` nullable and adds `address` and `label` with a check
   constraint; `whitelist/0003` adds the partial unique constraint on `address`
