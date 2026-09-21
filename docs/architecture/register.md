@@ -56,7 +56,10 @@ account and profile, in bounded address chunks. Holder types are:
 | `ambiguous` | The wallets resolve to different people, live or through their stamps, or one of them to more than one wallet or entry |
 | `unidentified` | No wallet resolves to an identity |
 
-Live identity is preferred. A member with no live identity can fall back to the
+Particulars recorded by an [import](../operations/register-foundation.md#importing-an-existing-register)
+come first: such a member is a `member` named by its recorded name and
+residential address, with the identity source "Recorded register particulars".
+Otherwise live identity is preferred. A member with no live identity can fall back to the
 latest resolved identity stamp among its wallets' completed allotments. Resolved
 stamps that differ in name or residential address make the member `ambiguous`,
 as live identities that differ do. The row names the source and stamp date; a
@@ -81,7 +84,8 @@ holding has been continuous since: the opening carried the member in, no later
 entry took it to no shares, and the fold recorded no cessation of one of its
 wallets from the allotment's date to the opening's. Otherwise a member the
 opening carried in shows the opening's date, as one who held only through
-transfers before the opening does.
+transfers before the opening does. While a holding is unchanged since an applied
+import, the import's date entered and amount paid replace both rules.
 
 A cessation counts in these two rules once the fold has read it; the
 former-member section states how far the fold has read.
@@ -174,7 +178,9 @@ The retention floor and clock are documented in
 [retention settings](../operations/uploads.md#data-retention). Purged former rows
 cannot be recreated by a later full-history fold. Only the company owner and
 operator read them; the application role cannot write them. Pre-platform former
-members cannot be reconstructed from the chain, and no import exists.
+members cannot be reconstructed from the chain; an import records them as
+`ImportedFormerMember` rows, which the CSV lists beside the folded ones and the
+same daily job purges from their date ceased.
 
 ## Deletion protection
 

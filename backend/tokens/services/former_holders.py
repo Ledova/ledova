@@ -4,13 +4,21 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.db.models import Q
+from django.db.models import OuterRef, Q, Subquery
 from django.utils import timezone
 from web3 import Web3
 
 from shared.db import atomic
 from tokens.exceptions import RegisterUnavailableException
-from tokens.models import FormerHolder, RegisterExport, ShareIssuance, ShareToken
+from tokens.models import (
+    FormerHolder,
+    ImportedFormerMember,
+    RegisterExport,
+    RegisterMemberParticulars,
+    RegisterPosition,
+    ShareIssuance,
+    ShareToken,
+)
 from tokens.models.choices import IDENTITY_RECORDED, IDENTITY_STAMPED, IDENTITY_UNKNOWN
 from tokens.services import share_token_service
 from tokens.services.register import IDENTITY_BY_HOLDER_TYPE
@@ -166,6 +174,35 @@ def fold_is_stale(token: ShareToken, now=None) -> bool:
     if token.former_holders_folded_at is None:
         return True
     return (now or timezone.now()) - token.former_holders_folded_at > STALE_AFTER
+
+
+def purge_imported_former_members(now=None) -> int:
+    cutoff = retention_cutoff(now)
+    removed, _ = ImportedFormerMember.objects.filter(ceased_on__lt=cutoff).delete()
+    if removed:
+        logger.info(f"Removed {removed} imported former-member records that passed the seven-year clock")
+    return removed
+
+
+def purge_member_particulars(now=None) -> int:
+    cutoff = retention_cutoff(now)
+    last_held = (
+        RegisterPosition.objects.filter(member_id=OuterRef("member_id"))
+        .order_by("-last_entry__effective_on")
+        .values("last_entry__effective_on")[:1]
+    )
+    expired = list(
+        RegisterMemberParticulars.objects.exclude(
+            member_id__in=RegisterPosition.objects.filter(shares__gt=0).values("member_id")
+        )
+        .annotate(left_on=Subquery(last_held))
+        .filter(left_on__lt=cutoff)
+        .values_list("pk", flat=True)
+    )
+    removed, _ = RegisterMemberParticulars.objects.filter(pk__in=expired).delete()
+    if removed:
+        logger.info(f"Removed {removed} member particulars that passed the seven-year clock after the last holding")
+    return removed
 
 
 def purge_register_exports(now=None) -> int:

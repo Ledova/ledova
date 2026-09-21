@@ -64,9 +64,11 @@ supposed to exist for seven years was never kept.
 reads `Transfer` events, so it sees every movement the chain records. What it
 cannot see is a member who ceased before the class was deployed on this
 platform. A company migrating an existing register onto Ledova brings history
-the fold cannot reconstruct, and nothing imports it. In either operating model
-this import is the first thing to build, because a real company arrives with a
-register and former members already.
+the fold cannot reconstruct. An import now records those former members, and its
+members' particulars, for a class already opened from the chain, checked against
+the ASIC extract's figures. A class not yet on chain cannot be opened from an
+import yet, and in either operating model that remains the first gap, because a
+real company arrives with a register and former members already.
 
 **Status.** Reviewed 2026-09-15; unchanged except the last sentence.
 
@@ -347,8 +349,9 @@ absence of contrary evidence.
 hash-chained event log and the holdings it produces, and the register is read
 from them with the chain unreachable. A correction is a compensating entry that
 those holdings already reflect. A scheduled job reconciles the stored register
-with the chain and retains each result. Former members are stored. No import
-exists.
+with the chain and retains each result. Former members are stored, and an
+import records members' particulars and pre-platform former members for a class
+opened from the chain.
 
 **The position.** The stored database record is the register; anything on a
 chain is at most a mirror of it. Three provisions decide that: s175, because an

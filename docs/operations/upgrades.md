@@ -126,6 +126,11 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   from logs. The daily `purge_former_members_past_the_clock` now also purges
   export records past the 2,557-day floor. Reversal refuses once any record
   exists.
+- `tokens/0072_register_import` adds register imports, recorded member
+  particulars and imported former members, with four owner routes under
+  `/api/v1/tokens/register-imports/`. Nothing is backfilled. Recorded particulars
+  change the name, address and identity source the register prints for the
+  members they cover. Reversal refuses once any import exists.
 - `whitelist/0002_whitelistentry_treasury_addresses` makes
   `WhitelistEntry.wallet` nullable and adds `address` and `label` with a check
   constraint; `whitelist/0003` adds the partial unique constraint on `address`

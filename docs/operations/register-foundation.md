@@ -9,8 +9,10 @@ compensating corrections. It is a foundation for the authoritative register.
 The HTTP and CSV register routes serve it once a share class's opening is
 applied, and issuance and settlement then record each later completed effect in
 it; opening review and the inclusion report classify completed effects against
-the captured boundary, and a scheduled job reconciles it with the chain. Import
-is still missing, so no real company's register may rely on it yet.
+the captured boundary, and a scheduled job reconciles it with the chain. An
+import adds an existing register's particulars and former members to a class
+opened from the chain. A class not yet on chain cannot be opened from an import
+yet, so no real company's register may rely on the foundation yet.
 
 ## Identity and events
 
@@ -282,10 +284,9 @@ The proposal retains a private copy of the authority file.
 
 Walletless members and several wallets per member are supported. One address
 resolves to one member per company; an existing wallet link for a mapped address
-must agree with the mapping, and a mapping may not repeat an address. Member
-personal particulars are still not stored: names and residential addresses
-remain outside these records until the import milestone, which keeps them for
-the former-member retention floor the owner chose on 21 September 2026.
+must agree with the mapping, and a mapping may not repeat an address. An
+opening stores no personal particulars; a later [import](#importing-an-existing-register)
+records names and residential addresses.
 
 An external issuer integration can use these authenticated routes:
 
@@ -526,6 +527,78 @@ attribution procedure. A count of `null`, or `unknown` in the CSV, means the
 completions could not be classified, or the register has no captured boundary to
 classify them against, as with one loaded by the synthetic command above;
 `register_inclusions` prints the refusal or a null boundary.
+
+## Importing an existing register
+
+A company that arrives with a register keeps its members' particulars and its
+pre-platform former members. Imports follow the owner decisions of 21 September
+2026:
+- for a class already opened from the chain, the import adds particulars and
+  former members and leaves holdings to the stored register;
+- for a class not yet on chain, the import will become the opening, which is
+  later work;
+- a staff reviewer enters the ASIC extract's figures.
+
+The owner submits one import per share class. It names a staff-verified
+`SHARE_REGISTER` document (the company's current register, of which the import
+retains a private copy), a staff-verified ASIC extract, documentary authority as
+for an opening, and the register date:
+
+| Method and route | Result |
+| --- | --- |
+| `POST /api/v1/tokens/register-imports/` | Submit the import; return the retained request |
+| `GET /api/v1/tokens/register-imports/` | Paginated imports for companies currently owned by the caller |
+| `GET /api/v1/tokens/register-imports/{uuid}/` | Request, rows, figures and decision |
+| `GET /api/v1/tokens/register-imports/{uuid}/file/` | Authenticated attachment of the retained register document |
+
+```json
+{
+  "operation_id": "10000000-0000-4000-8000-000000000031",
+  "token_id": "10000000-0000-4000-8000-000000000011",
+  "document_id": "10000000-0000-4000-8000-000000000032",
+  "asic_document_id": "10000000-0000-4000-8000-000000000033",
+  "as_at": "2026-09-20",
+  "members": [
+    {"member": "10000000-0000-4000-8000-000000000024", "name": "Synthetic Member",
+     "residential_address": "1 Synthetic Street, Sydney NSW 2000", "shares": "100",
+     "entered_on": "2019-05-01", "amount_paid": "250.00"}
+  ],
+  "former_members": [
+    {"name": "Synthetic Former", "residential_address": "2 Synthetic Road, Hobart TAS 7000",
+     "shares": "40", "ceased_on": "2022-03-01"}
+  ],
+  "authority": "director_resolution",
+  "approving_director": "Synthetic Director",
+  "authority_reference": "SYNTHETIC-RESOLUTION-IMPORT-1",
+  "reason": "Import the company's existing register"
+}
+```
+
+Every current member must already be a member of the company with a stored
+holding, dates may not follow the register date, and `amount_paid` is a
+two-decimal amount or `null` when not known. In **Admin → Tokens → Register
+imports** a staff reviewer with change permission opens the review, which
+compares each imported holding with the stored one. The reviewer reads the ASIC
+extract, enters its issued total and member count for the class, confirms and
+applies. Application refuses:
+- figures that differ from the import's totals;
+- any holding that differs from the stored register, which includes a member
+  the import leaves out;
+- changed evidence or a changed ASIC extract.
+
+It then stores each member's particulars and the imported former members, and
+keeps the figures and the register sequence on the request. Rejection with a
+reason stays available. The database keeps imports immutable and refuses forged
+decisions, an application whose figures differ from the rows, and one that
+leaves a member without particulars.
+
+The [register reads](../architecture/register.md#membership-and-identity) then
+name members from their recorded particulars. They print the imported date
+entered and amount paid while a holding is unchanged since the import, and list
+imported former members beside the chain-derived ones. Particulars are purged
+once the member has held nothing in the company for the 2,557-day floor, and
+imported former members that long after their date ceased, by the daily
+retention job.
 
 ## Reconciling with the chain
 

@@ -35,6 +35,11 @@ from .register_correction import (
     RegisterCorrectionAuthority,
     RegisterCorrectionStatus,
 )
+from .register_import import (
+    ImportedFormerMember,
+    RegisterImport,
+    RegisterMemberParticulars,
+)
 from .register_opening import (
     RegisterMemberWallet,
     RegisterOpening,
@@ -78,6 +83,9 @@ __all__ = [
     "RegisterCorrectionStatus",
     "RegisterEntry",
     "RegisterEntryKind",
+    "ImportedFormerMember",
+    "RegisterImport",
+    "RegisterMemberParticulars",
     "RegisterExport",
     "RegisterExportKind",
     "RegisterMember",

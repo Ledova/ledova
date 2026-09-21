@@ -6279,6 +6279,37 @@
         ],
         "type": "object"
       },
+      "PaginatedRegisterImportList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterImport"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
       "PaginatedRegisterOpeningList": {
         "properties": {
           "count": {
@@ -7980,6 +8011,227 @@
         "required": [
           "deviceType",
           "pushToken"
+        ],
+        "type": "object"
+      },
+      "RegisterImport": {
+        "properties": {
+          "approvingDirector": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "asAt": {
+            "format": "date",
+            "readOnly": true,
+            "type": "string"
+          },
+          "asicDocument": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "asicFingerprint": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "asicIssuedTotal": {
+            "format": "decimal",
+            "nullable": true,
+            "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
+            "readOnly": true,
+            "type": "string"
+          },
+          "asicMemberCount": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
+          },
+          "authority": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterCorrectionAuthorityEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "authorityReference": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "evidenceFingerprint": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "evidenceSnapshot": {
+            "readOnly": true
+          },
+          "formerMembers": {
+            "readOnly": true
+          },
+          "members": {
+            "readOnly": true
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "registerSequence": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
+          },
+          "rejectionReason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "reviewedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "reviewedBy": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
+          },
+          "sourceDocument": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterCorrectionStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "submittedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "token": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "approvingDirector",
+          "asAt",
+          "asicDocument",
+          "asicFingerprint",
+          "asicIssuedTotal",
+          "asicMemberCount",
+          "authority",
+          "authorityReference",
+          "company",
+          "createdAt",
+          "evidenceFingerprint",
+          "evidenceSnapshot",
+          "formerMembers",
+          "members",
+          "reason",
+          "registerSequence",
+          "rejectionReason",
+          "reviewedAt",
+          "reviewedBy",
+          "sourceDocument",
+          "status",
+          "submittedBy",
+          "token",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterImportCreateRequest": {
+        "properties": {
+          "approvingDirector": {
+            "default": "",
+            "maxLength": 255,
+            "type": "string"
+          },
+          "asAt": {
+            "format": "date",
+            "type": "string"
+          },
+          "asicDocumentId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "authority": {
+            "$ref": "#/components/schemas/RegisterCorrectionAuthorityEnum"
+          },
+          "authorityReference": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "documentId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "formerMembers": {
+            "items": {
+              "additionalProperties": {},
+              "type": "object"
+            },
+            "maxItems": 10000,
+            "type": "array"
+          },
+          "members": {
+            "items": {
+              "additionalProperties": {},
+              "type": "object"
+            },
+            "maxItems": 10000,
+            "type": "array"
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "tokenId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "asAt",
+          "asicDocumentId",
+          "authority",
+          "authorityReference",
+          "documentId",
+          "formerMembers",
+          "members",
+          "operationId",
+          "reason",
+          "tokenId"
         ],
         "type": "object"
       },
@@ -19366,6 +19618,183 @@
     "/api/v1/tokens/register-corrections/{uuid}/file/": {
       "get": {
         "operationId": "api_v1_tokens_register_corrections_file_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-imports/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_imports_list",
+        "parameters": [
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedRegisterImportList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_tokens_register_imports_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterImportCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterImportCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterImportCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterImport"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-imports/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_imports_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterImport"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-imports/{uuid}/file/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_imports_file_retrieve",
         "parameters": [
           {
             "in": "path",

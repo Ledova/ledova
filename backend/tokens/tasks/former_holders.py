@@ -7,6 +7,8 @@ from tokens.models import ShareToken, ShareTokenStatus
 from tokens.services.former_holders import (
     fold_former_holders,
     purge_former_holders,
+    purge_imported_former_members,
+    purge_member_particulars,
     purge_register_exports,
 )
 
@@ -40,4 +42,9 @@ def fold_every_share_class(timestamp: int = 0):
 @app.periodic(cron="40 3 * * *")
 @app.task(retry=RetryStrategy(max_attempts=3, wait=600))
 def purge_former_members_past_the_clock(timestamp: int = 0):
-    return {"removed": purge_former_holders(), "exports_removed": purge_register_exports()}
+    return {
+        "removed": purge_former_holders(),
+        "imported_removed": purge_imported_former_members(),
+        "particulars_removed": purge_member_particulars(),
+        "exports_removed": purge_register_exports(),
+    }

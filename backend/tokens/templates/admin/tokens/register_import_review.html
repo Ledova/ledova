@@ -1,0 +1,40 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Review register import</h1>
+<p>Approval records your verification of documentary authority, of the company's current register document and of the ASIC extract, whose figures you enter below. It stores each member's particulars and the pre-platform former members; it records no register entry.</p>
+<dl>
+<dt>Company as submitted</dt><dd>{{ original.evidence_snapshot.company_identity.name }}</dd>
+<dt>Share class</dt><dd>{{ original.token.symbol }}</dd>
+<dt>Register date</dt><dd>{{ original.as_at }}</dd>
+<dt>Authority</dt><dd>{{ original.get_authority_display }}</dd>
+<dt>Approving director</dt><dd>{{ original.approving_director|default:"Not applicable: court order" }}</dd>
+<dt>Authority reference</dt><dd>{{ original.authority_reference }}</dd>
+<dt>Reason</dt><dd>{{ original.reason }}</dd>
+<dt>Retained register document</dt><dd>{{ evidence_link }}</dd>
+<dt>ASIC extract document</dt><dd>{{ original.asic_document }} (fingerprint {{ original.asic_fingerprint }})</dd>
+</dl>
+<h2>Current members</h2>
+<table>
+<thead><tr><th>Member ID</th><th>Name</th><th>Residential address</th><th>Shares</th><th>Date entered</th><th>Amount paid</th></tr></thead>
+<tbody>
+{% for row in original.members %}<tr><td>{{ row.member }}</td><td>{{ row.name }}</td><td>{{ row.residential_address }}</td><td>{{ row.shares }}</td><td>{{ row.entered_on }}</td><td>{{ row.amount_paid|default:"Not known" }}</td></tr>{% endfor %}
+</tbody>
+</table>
+<h2>Imported against stored holdings</h2>
+<table>
+<thead><tr><th>Member ID</th><th>Imported</th><th>Stored</th></tr></thead>
+<tbody>
+{% for row in comparison %}<tr><td>{{ row.member }}</td><td>{{ row.imported|default:"Not imported" }}</td><td>{{ row.stored|default:"No holding" }}</td></tr>{% endfor %}
+</tbody>
+</table>
+<h2>Former members before the platform</h2>
+<table>
+<thead><tr><th>Name</th><th>Residential address</th><th>Shares on ceasing</th><th>Date ceased</th></tr></thead>
+<tbody>
+{% for row in original.former_members %}<tr><td>{{ row.name }}</td><td>{{ row.residential_address }}</td><td>{{ row.shares }}</td><td>{{ row.ceased_on }}</td></tr>{% empty %}<tr><td colspan="4">None</td></tr>{% endfor %}
+</tbody>
+</table>
+{% if refusal %}<p class="errornote">{{ refusal }} Application is unavailable. You may reject this import with a reason.</p>{% endif %}
+<p>Review confirmation expires after fifteen minutes. A changed document or register requires a fresh review or submission.</p>
+<form method="post">{% csrf_token %}{{ form.as_p }}<input type="submit" value="Record decision"></form>
+{% endblock %}

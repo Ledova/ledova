@@ -28,8 +28,10 @@ floor cannot be configured away and `0` is not a valid value. The purge measures
 from the cessation date, and a later full-history fold cannot recreate what it
 removed. It implements the accepted seven-year assumption for s169(3); the legal
 basis is unadvised, and is [legal position 1](../legal/positions.md#1-section-1693-members-who-ceased-in-the-last-seven-years).
-Register export records share this clock, measured from the export; the same
-daily job purges both (owner decision, 21 September 2026).
+Register export records share this clock, measured from the export. So do
+imported former members, from their date ceased, and a member's recorded
+particulars, from the last date the member held shares in the company. The same
+daily job purges them all (owner decision, 21 September 2026).
 
 ## Media storage
 

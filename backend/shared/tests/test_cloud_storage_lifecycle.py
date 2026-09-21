@@ -25,6 +25,7 @@ from shared.storage import private_file_fields
 from shared.tests.tenants import an_account
 from tokens.models import (
     RegisterCorrection,
+    RegisterImport,
     RegisterOpening,
     RegisterWalletLink,
     ShareToken,
@@ -164,10 +165,18 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                         (RegisterCorrection, "file"),
                         (RegisterOpening, "file"),
                         (RegisterWalletLink, "file"),
+                        (RegisterImport, "file"),
                     },
                 )
                 connected = {lookup[0] for lookup, *_rest in post_delete.receivers}
-                for model in (Document, CompanyDocument, RegisterCorrection, RegisterOpening, RegisterWalletLink):
+                for model in (
+                    Document,
+                    CompanyDocument,
+                    RegisterCorrection,
+                    RegisterOpening,
+                    RegisterWalletLink,
+                    RegisterImport,
+                ):
                     self.assertIn(f"shared.storage.sweep:{model._meta.label}.file", connected)
                 self.assertNotIn("shared.storage.sweep:users.InvestorClassification.evidence_file", connected)
                 with self.assertRaises(NotImplementedError):

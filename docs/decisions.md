@@ -45,6 +45,11 @@ chosen on 21 September 2026 in [#647](https://github.com/Ledova/ledova/issues/64
 Register export records, which say who took a copy of the register, follow the
 same floor and purge; the owner chose that the same day in
 [#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5766230810).
+In the same decision, an import of an existing register depends on the class.
+For a class already opened from the chain, it adds particulars and pre-platform
+former members. For a class not yet on chain, it becomes the opening, and later
+tokenising mints mirror it rather than add shares. A staff reviewer enters the
+ASIC extract's issued total and member count, and application refuses a mismatch.
 An entry recorded automatically names the person who authorised its change: the
 staff member who approved an issue, or the transferor whose signed order is a
 transfer's instrument, rather than the company owner or a service account that
