@@ -32,10 +32,16 @@ class KYCAIDCryptoWebhookView(RunsOnTheOperatorConnection, APIView):
             logger.warning("Rejected webhook: invalid signature")
             return Response({"error": "Invalid signature"}, status=status.HTTP_401_UNAUTHORIZED)
 
+        data = request.data
+        if not isinstance(data, dict):
+            logger.warning("Rejected webhook: payload is not a JSON object")
+            return Response({"error": "Invalid payload"}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            data = request.data
             request_id = data.get("request_id")
-            result = data.get("result", {})
+            result = data.get("result")
+            if not isinstance(result, dict):
+                result = {}
 
             if is_stale(data):
                 logger.warning("Rejected webhook: timestamp outside the freshness window")
@@ -51,7 +57,7 @@ class KYCAIDCryptoWebhookView(RunsOnTheOperatorConnection, APIView):
                 return Response({"success": True}, status=status.HTTP_200_OK)
 
             normalized_data = {
-                "riskScore": result.get("risk_score", 0),
+                "riskScore": result.get("risk_score"),
                 "signals": result.get("signals", []),
                 "raw": data,
             }
