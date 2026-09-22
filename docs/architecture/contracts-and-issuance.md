@@ -10,15 +10,15 @@ Every contract is Solidity 0.8.24, OpenZeppelin-based, and operator-key owned.
 
 | Contract | Responsibility |
 | --- | --- |
-| `WhitelistRegistry.sol` | The allowlist. `addToWhitelist`, `batchAddToWhitelist`, `removeFromWhitelist`, `isWhitelisted`, `canReceive`; owner-only writes, pausable |
-| `ShareToken.sol` | One share class. ERC-20 with 0 decimals, burnable, pausable. `authorizedShares` is the cap; `mint` reverts unless the recipient is whitelisted and the cap holds; `_update` blocks any transfer to a non-whitelisted address; `setAuthorizedShares` cannot go below `totalSupply()` |
-| `ShareTokenFactory.sol` | `createShareToken(name, symbol, identifier, authorizedShares, owner)` and `getTokenByIdentifier(identifier)`. The identifier is the deduplication key |
-| `AtomicSwap.sol` | EIP-712 swap settlement between an approved share token and an approved payment token, executed by an authorised relayer |
+| `WhitelistRegistry.sol` | One company's allowlist. `setExpiry(address, uint64)` is the only write and is owner-only; `expiresAt(address)` is the stored expiry; `isWhitelisted(address)` is `expiresAt > block.timestamp`. Zero removes a wallet and `type(uint64).max` never expires. It has no pause: the token pause is the incident lever |
+| `ShareToken.sol` | One share class. ERC-20 with 0 decimals, burnable, pausable, bound at construction to its company's registry. `authorizedShares` is the cap; `mint` reverts unless the cap holds; `_update` refuses any movement to a wallet the registry does not list and any transfer from one, so an expired or removed holder can neither receive nor send, directly or through `transferFrom`. Burning one's own shares is not checked. `setAuthorizedShares` cannot go below `totalSupply()` |
+| `ShareTokenFactory.sol` | `createShareToken(name, symbol, identifier, acn, authorizedShares, owner)`, `getTokenByIdentifier(identifier)` and `registryOf(acn)`. The identifier is the deduplication key. A company's first class creates its `WhitelistRegistry`, owned by the class owner, and emits `WhitelistRegistryCreated(acn, registry)`; its later classes share that registry and must have the same owner |
+| `AtomicSwap.sol` | EIP-712 swap settlement between an approved share token and an approved payment token, executed by an authorised relayer. It holds no registry: the share token's own `_update` checks both parties |
 | `AUDY.sol` | Minter-gated AUD stablecoin, 2 decimals, the payment token. Its `assets.Asset` row plus its `AssetChainDeployment` on the operator's receiving chain are the only representation of a settlement token; `operators/settlement.py` resolves them |
 | `AUSG.sol` | NAV-bearing token with a redemption queue; not part of the issuance flow |
 
-`deploy-all.ts` deploys `WhitelistRegistry`, `ShareTokenFactory`, `AtomicSwap`
-and `AUDY` and writes their addresses to `.deployed-contracts.env` at the
+`deploy-all.ts` deploys `ShareTokenFactory`, `AtomicSwap` and `AUDY` and writes
+their addresses to `.deployed-contracts.env` at the
 repository root. `network-safety.ts` refuses any chain id outside
 `{1337, 31337, 84532}`.
 
@@ -57,10 +57,13 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
    intent. The five-minute sweep recovers admitted work. Deployment mints
    nothing: the contract's `totalSupply()` starts at zero. See
    [deployment persistence](#deployment-persistence).
-5. An investor wallet is verified, then whitelisted. `WhitelistEntry` either
-   points at a `Wallet` or carries a bare `address` plus a `label` for an
-   operator-held treasury address; a database constraint requires one of the two
-   and makes bare addresses unique.
+5. An investor wallet is verified, then approved for the company by staff.
+   `WhitelistEntry` is the one identity row per wallet: it either points at a
+   `Wallet` or carries a bare `address` plus a `label` for an operator-held
+   treasury address; a database constraint requires one of the two and makes
+   bare addresses unique. Each company approval is a `WhitelistApproval` row for
+   that entry and company, mirroring the company registry's expiry. See
+   [whitelist changes](outgoing-signing.md#whitelist-changes).
 6. `POST /api/v1/tokens/{uuid}/issue/` creates a `ShareIssuanceRequest`. It
    is approved only by applying a
    [register instruction](../operations/register-foundation.md#register-instructions-for-issues)

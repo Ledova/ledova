@@ -199,7 +199,7 @@ payments and assets synthetic.
 | Capability | Current boundary |
 | --- | --- |
 | Company onboarding and share classes | Application/review flow, company and token screens exist; operator approval and chain configuration are required |
-| Tokenized shares | Whole-share issuance, authorized caps and recipient whitelist are enforced on chain |
+| Tokenized shares | Whole-share issuance and authorized caps are enforced on chain, and so is each company's whitelist, with its expiry, for both the sender and the recipient of a transfer; approvals are set by staff per company, and classification changes do not yet reach the chain |
 | Investor classification | Claim/evidence submission and review status exist in both clients; staff review is in admin; eligibility scopes discovery and subscriptions |
 | Primary offerings and subscriptions | Investor directory, subscription and payment instructions are available in the dashboard; the mobile investor flow remains unscheduled |
 | AUD and stablecoin payments | Operator records receipt, refunds and allotment in admin; bank-feed and stablecoin-watcher reconciliation is planned |
@@ -221,7 +221,7 @@ safety or regulatory compliance.
   supply. The [issuance reference](architecture/contracts-and-issuance.md)
   explains the historical API names.
 - **Eligibility** concerns whether an investor qualifies for an offering.
-  The on-chain **whitelist** determines which addresses can receive share tokens.
+  Each company's on-chain **whitelist** determines which addresses can receive or send its share tokens.
 - The **directory** advertises share classes offered to eligible investors.
   The secondary **market** concerns trading existing shares. Neither is a list
   of investors.

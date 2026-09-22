@@ -172,22 +172,30 @@ attribution and all-writer cutover requirements above still apply.
 ## Whitelist changes
 
 The staff-only operator API, whitelist-admin actions and subscription-admin
-whitelisting use `whitelist.services.changes`. Each accepted `WhitelistChange`
-freezes its submission UUID, actor, entry-point authority, action, requested wallet
-identity, chain, registry, address and transaction intent. The private command
+whitelisting use `whitelist.services.changes`. Each change names the company
+whose registry it writes: admission reads `registryOf(acn)` from the configured
+factory and refuses a company with no share class on chain. The one write is
+`setExpiry(address, uint64)`: an addition carries the expiry staff chose, or
+`type(uint64).max` when they left it blank, and a removal writes zero. Each
+accepted `WhitelistChange` freezes its submission UUID, actor, entry-point
+authority, action, requested wallet identity, company, expiry, chain, registry,
+address and transaction intent. The private command
 table reuses the outgoing foundation's signed bytes and nonce reservations.
 Application connections cannot read or write it. Admission requires active staff
 and the originating admin model permission; recovery of accepted work is operator
 owned even after the initiating actor loses permission.
 
 Operator scripts calling `POST /api/v1/whitelist/add/` or `remove/` must supply
-`submission_id` with `wallet_address`. Each `batch-add/` member carries its own
-UUID. The API's camel-case transport also accepts `submissionId` and
-`walletAddress`. Retain the UUID across transport retries. The response identifies
-the original command, its status and original transaction hash when signed;
-the nullable nested entry describes current membership and may reflect a later
-command. It is absent when the recorded entry was deleted or no longer belongs
-to the command's address or currently configured registry.
+`submission_id`, `wallet_address` and `company`, the company's UUID; `add/` also
+takes an optional `expires_at`, and a blank or null one never expires. Each
+`batch-add/` member carries its own UUID. The API's camel-case transport also
+accepts `submissionId`, `walletAddress` and `expiresAt`. Retain the UUID across
+transport retries. The response identifies the original command, its company,
+expiry, status and original transaction hash when signed; the nullable nested
+`approval` describes the wallet's current approval in that company and may
+reflect a later command. It is absent when the recorded entry was deleted, no
+longer belongs to the command's address, or the approval has since moved to
+another registry.
 `pending` and `executing` are unresolved, `confirmed` records a successful receipt,
 `unchanged` records that no transaction was needed, and `failed` records a known
 pre-signing failure or revert. Single unresolved submissions return 202 when
@@ -204,12 +212,15 @@ An unresolved command blocks every competing UUID for the same chain, registry
 and address, including an opposite change and a removal with no local entry.
 There is no contradictory-intent queue.
 
-Admission commits before checking membership. That initial check either records
-no change required or commits the decision to send; later membership observations
+Admission commits before checking membership. That initial check reads the
+registry's `expiresAt` and either records no change required, when it already
+equals the requested expiry, or commits the decision to send; later membership observations
 cannot complete a signed command. Network calls run outside transactions and
-target locks. Projection checks the current chain/registry and entry address,
-and locks the wallet against a concurrent identity edit. An old registry's
-receipt or observation cannot rewrite the current registry's membership.
+target locks. Before sending, the change re-reads `registryOf(acn)` and refuses
+if the company's registry has moved. Projection checks the chain, the approval's
+registry and the entry address, and locks the wallet against a concurrent
+identity edit. An old registry's receipt or observation cannot rewrite the
+current registry's approval.
 Terminal outcome, local membership projection and target release
 commit together, and replaying a terminal command cannot overwrite newer membership.
 The generic transaction monitor excludes these projections. Sync remains an
@@ -219,16 +230,29 @@ unresolved. See [whitelist recovery](../operations/recovery.md#whitelist-changes
 
 Migrations `whitelist/0005` and `0006` create the command table, revoke app-role
 access and guard immutable terms, original associations and terminal outcomes.
-They preserve all historical entries and transaction records without adopting
-them. The guard migration refuses reversal after command admission. The optional
-entry reference is an immutable UUID snapshot, so customer wallet deletion can
-still cascade its mutable entry without reading the private command table.
-Accepted work and signed history survive deletion; recovery cannot recreate
-that entry or redirect its result to a replacement.
-Unknown legacy whitelist transactions block new target admission for operator
-attribution. Legacy failed-add reconciliation only observes entries without new
-commands. Neither this adapter nor membership sync establishes legacy attribution,
-receipt finality or complete same-key writer cutover.
+`whitelist/0007` moves approval state from the entry to the per-company
+`WhitelistApproval` table, adds the company and expiry to the command, and
+replaces the guard so the stored calldata must be exactly
+`setExpiry(address, expiry)` for the command's address and expiry. It refuses to
+run while any command written for the retired global registry exists: see the
+[fresh-start redeploy](../operations/chains.md#fresh-start-redeploy). The guard
+refuses reversal after command admission. The optional entry and company
+references are immutable UUID snapshots, so customer wallet deletion can still
+cascade its mutable entry and its approvals without reading the private command
+table. Approvals are staff-only in code, like the entry they belong to, because
+that cascade runs on the customer's connection. Accepted work and signed history
+survive deletion; recovery cannot recreate that entry or redirect its result to
+a replacement. Neither this adapter nor approval sync establishes receipt
+finality or complete same-key writer cutover.
+
+Every read the platform makes before acting asks the share class's own
+registry, through the token's `whitelist()`: issuance execution, transfer
+preparation for both parties and order creation. A stablecoin transfer has no
+company registry to ask. `GET /api/v1/trading/whitelist/<token>/<address>/status/`
+answers the same question for the share class at contract address `<token>`,
+for any signed-in user and any address. Nothing yet refreshes an approval when a
+classification expires or is revoked; that and classification checks at order
+creation and signing are the next part of #648.
 
 
 ## Capital increases

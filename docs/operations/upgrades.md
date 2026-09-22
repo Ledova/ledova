@@ -228,6 +228,12 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   [Register outputs](register-foundation.md#preparing-notice-figures) page gains
   **Prepare notice figures** under the existing **Can change register outputs**
   permission. Reversal refuses once any notice-figures record exists.
+- `whitelist/0007_per_company_approvals` is a fresh start: it refuses to run while
+  any whitelist change exists, because those were written for the retired global
+  registry. Follow the [fresh-start redeploy](chains.md#fresh-start-redeploy).
+  It drops the entry's status, membership, sync and transaction-hash columns,
+  creates `WhitelistApproval`, adds the company and expiry to `WhitelistChange`
+  and replaces its guard. Reversal refuses once any change exists.
 - `whitelist/0002_whitelistentry_treasury_addresses` makes
   `WhitelistEntry.wallet` nullable and adds `address` and `label` with a check
   constraint; `whitelist/0003` adds the partial unique constraint on `address`
