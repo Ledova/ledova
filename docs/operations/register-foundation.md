@@ -2,10 +2,10 @@
 
 [Operations](README.md) · [Register architecture](../architecture/register.md)
 
-The first [#647](https://github.com/Ledova/ledova/issues/647) slices provide
-company-scoped member references with durable wallet links, an append-only
-share-event chain, stored holdings, an approved opening capture and reviewed
-compensating corrections. It is a foundation for the authoritative register.
+[#647](https://github.com/Ledova/ledova/issues/647) built the authoritative
+stored register: company-scoped member references with durable wallet links, an
+append-only share-event chain, stored holdings, an approved opening capture and
+reviewed compensating corrections.
 The HTTP and CSV register routes serve it once a share class's opening is
 applied, and issuance and settlement then record each later completed effect in
 it, each only under an applied register instruction that a named director's
@@ -20,8 +20,9 @@ staff prepare [inspection copies](#preparing-an-inspection-copy) of it,
 [figures for its notices](#preparing-notice-figures) on a company's written
 instruction, and a [due list](#working-the-due-list) shows the certificates and
 figures still due. A class an import opened records no later change until it is
-tokenised, which is later work, so no real company's register may rely on the
-foundation yet.
+tokenised, which is later work. No real company's register may rely on it before
+the decisions reserved for real data are made, among them production retention
+and how to undo a mistaken opening import.
 
 ## Identity and events
 
