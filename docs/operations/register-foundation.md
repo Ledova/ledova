@@ -862,8 +862,9 @@ You need the **Can change register outputs** permission the other outputs use.
 The share class needs an applied opening.
 
 1. Keep the company's written instruction, and note its reference and the first
-   day of the period it asks for, such as the day after the period the company
-   last notified.
+   day of the period it asks for. An entry is dated the UTC day it was made,
+   which on a Sydney morning is the day before, so start the period no later
+   than the date of the first entry the company has not yet notified.
 2. In **Admin → Tokens → Register outputs**, open the share class and choose
    **Prepare notice figures**.
 3. Enter the first day of the period and the instruction's reference, then
@@ -885,16 +886,16 @@ to register entry N, has four sections, each after a heading row:
   and amount paid.
 
 `not recorded` means Ledova cannot establish the amount paid exactly, as for
-shares received by transfer; the company supplies it from its own records.
-Names and addresses are the ones the register gives when you prepare the
-figures, and a member the register cannot name is printed as the register
-prints them rather than refused. A negative change prints as a plain negative
-number; a name, address or instruction that begins with a formula character
-carries a leading apostrophe so that a spreadsheet does not read it as a formula. Check the figures against the instruction and
-give the file to the company unchanged. The page refuses, and records nothing,
-when the share class has no applied opening, when the first day is after today
-in Sydney's calendar, or when a field is blank. A period with no entries is not
-refused: its sections list none.
+shares received by transfer; the company supplies it from its own records. Names
+and addresses are the ones the register gives when you prepare the figures, and
+a member the register cannot name is printed as the register prints them rather
+than refused. A negative change prints as a plain negative number; a name,
+address or instruction that begins with a formula character carries a leading
+apostrophe so that a spreadsheet does not read it as a formula. Check the
+figures against the instruction and give the file to the company unchanged. The
+page refuses, and records nothing, when the share class has no applied opening,
+when the first day is after today in Sydney's calendar, or when a field is
+blank. A period with no entries is not refused: its sections list none.
 
 Each preparation is recorded once in **Admin → Tokens → Register exports** as
 kind **Notice figures**: who prepared it, the register entry the figures run to
