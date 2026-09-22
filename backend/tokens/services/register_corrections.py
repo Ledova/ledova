@@ -66,6 +66,10 @@ def submit_correction(
         raise ValidationError("Correction references must be UUIDs.") from None
     if type(effective_on) is not date:
         raise ValidationError("A correction requires an effective date.")
+    if effective_on > timezone.now().date():
+        raise ValidationError(
+            "A correction cannot take effect after the day it is submitted. Date it today (UTC) or earlier."
+        )
     values = {
         "authority": authority,
         "approving_director": approving_director,

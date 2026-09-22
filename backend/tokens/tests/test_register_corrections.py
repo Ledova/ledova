@@ -1,5 +1,6 @@
 import importlib
-from datetime import timedelta
+from datetime import datetime, timedelta
+from datetime import timezone as utc_zone
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -148,6 +149,17 @@ class RegisterCorrectionTest(TestCase):
         self.apply(proposal)
         with self.assertRaises(ValidationError):
             self.submit(operation_id=uuid4())
+
+    def test_a_correction_cannot_take_effect_after_the_day_it_is_submitted(self):
+        now = datetime(2026, 9, 25, 23, 59, 59, tzinfo=utc_zone.utc)
+        entries = RegisterEntry.objects.count()
+        with patch("django.utils.timezone.now", return_value=now):
+            with self.assertRaisesMessage(ValidationError, "cannot take effect after the day it is submitted"):
+                self.submit(effective_on=now.date() + timedelta(days=1))
+            self.assertFalse(RegisterCorrection.objects.exists())
+            proposal = self.submit(effective_on=now.date())
+        self.assertEqual((proposal.status, proposal.effective_on), ("submitted", now.date()))
+        self.assertEqual(RegisterEntry.objects.count(), entries)
 
     def test_court_authority_is_distinct_and_resolution_requires_director(self):
         with self.assertRaises(ValidationError):

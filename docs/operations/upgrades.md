@@ -172,6 +172,9 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   theirs. The register now refuses an issue or transfer dated before its latest
   entry, so where that entry carries a date after today, such as a correction
   dated in the future, later effects wait as `refused` until that date.
+  Correction submission now refuses an effective date after the day it is
+  submitted (UTC); a pending correction submitted before the upgrade is not
+  rechecked, so reject one dated in the future rather than apply it.
 - `whitelist/0002_whitelistentry_treasury_addresses` makes
   `WhitelistEntry.wallet` nullable and adds `address` and `label` with a check
   constraint; `whitelist/0003` adds the partial unique constraint on `address`

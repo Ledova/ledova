@@ -235,7 +235,10 @@ those from the exercise:
 ```
 
 The service derives the exact inverse share changes and captures the register's
-current sequence/hash. One reviewed uploaded file must include the authority for
+current sequence/hash. The effective date may be today (UTC) or earlier, since a
+rectification can be backdated; submission refuses a later one, which would hold
+back [later issues and transfers](#recording-issues-and-transfers-after-the-opening)
+until that date. One reviewed uploaded file must include the authority for
 this precise correction. A director resolution names the approving director;
 `court_order` instead uses a court reference and an empty `approving_director`.
 An owner account is not proof of director authority. Staff document verification
@@ -619,11 +622,12 @@ completion in progress cannot miss the new link or cover.
 
 The register never dates an issue or transfer before its latest entry.
 Recording makes a share class's entries one at a time under its lock, so their
-dates do not go backwards; only an entry made another way can carry a later
-date, such as a correction submitted with an effective date after the day it is
-applied. While the latest entry is dated after today, the register refuses the
-next issue or transfer, and it waits with the reason `refused` until a recording
-on or after that date.
+dates do not go backwards, and a correction cannot be dated after the day it is
+submitted; only an entry made another way can carry a later date, such as an
+opening whose boundary block's time runs ahead of the platform's clock. While the
+latest entry is dated after today, the register refuses the next issue or
+transfer, and it waits with the reason `refused` until a recording on or after
+that date.
 
 ### The issuer's waiting list
 
