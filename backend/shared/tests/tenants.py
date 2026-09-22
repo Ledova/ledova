@@ -322,6 +322,20 @@ def make_tenant(label, *, staff=False, superuser=False, with_swap=True):
     )
 
 
+def an_eligible_investor(account):
+    UserProfile.objects.filter(pk=account.user_profile_id).update(is_id_verified=True)
+    UserAccount.objects.filter(pk=account.pk).update(account_status=ACCOUNT_STATUS_ACTIVE)
+    return InvestorClassification.objects.create(
+        user_account=account,
+        category=InvestorCategory.PROFESSIONAL_INVESTOR,
+        status=InvestorClassificationStatus.VERIFIED,
+        expires_at=timezone.now() + timedelta(days=365),
+        declaration_accepted=True,
+        declaration_text="Declared",
+        submitted_at=timezone.now(),
+    )
+
+
 def make_eligible(tenant):
     UserProfile.objects.filter(pk=tenant.profile.pk).update(is_id_verified=True)
     UserAccount.objects.filter(pk=tenant.account.pk).update(account_status=ACCOUNT_STATUS_ACTIVE)

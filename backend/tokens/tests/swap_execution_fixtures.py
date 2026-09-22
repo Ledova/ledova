@@ -19,7 +19,7 @@ from blockchain.tests.outgoing_fixtures import (
     chain_client,
     receipt,
 )
-from shared.tests.tenants import make_tenant
+from shared.tests.tenants import make_eligible, make_tenant
 from tokens.models import TransferOrder, TransferOrderStatus, TransferOrderType
 from tokens.services import atomic_swap_service
 from tokens.tests.swap_state_fixtures import BUYER, SELLER
@@ -34,6 +34,8 @@ NEXT_NONCE = 7
 def make_execution(label):
     seller = make_tenant(f"{label}-seller", with_swap=False)
     buyer = make_tenant(f"{label}-buyer", with_swap=False)
+    make_eligible(seller)
+    make_eligible(buyer)
     orders = []
     for tenant, key, kind in ((seller, SELLER, TransferOrderType.SELL), (buyer, BUYER, TransferOrderType.BUY)):
         wallet = Wallet.objects.create(

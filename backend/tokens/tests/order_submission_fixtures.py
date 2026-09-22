@@ -12,7 +12,7 @@ from web3 import Web3
 from feature_flags.models import FeatureFlag
 from operators.models import Operator
 from shared.db import current_alias, use_operator
-from shared.tests.tenants import make_tenant
+from shared.tests.tenants import make_eligible, make_tenant
 from shared.utils.typed_data import signable_message
 from tokens.models import (
     OrderSubmission,
@@ -69,6 +69,7 @@ class SubmissionFixtures:
         with use_operator():
             FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
             self.tenant = make_tenant("submission")
+            make_eligible(self.tenant)
             Operator.get().supported_settlement_assets.set([self.tenant.refs.stablecoin])
             self.wallet = Wallet.objects.create(
                 user_account=self.tenant.account, address=OWNER.address, chain="base", verification_status="VERIFIED"

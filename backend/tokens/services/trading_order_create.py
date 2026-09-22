@@ -27,6 +27,7 @@ from tokens.models import (
 from tokens.services import token_transfer_service
 from tokens.services.signing_challenge import spend
 from tokens.services.trading_order_service import TradingOrderService
+from users.exceptions import InvestorNotEligibleException
 from users.models import UserAccount
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
@@ -38,6 +39,7 @@ BUSINESS_REFUSALS = {
     CreateOrderInsufficientBalanceException: "insufficient_balance",
     InvalidSettlementAmountException: "invalid_settlement_amount",
     SettlementChainDisagreement: "settlement_chain_disagreement",
+    InvestorNotEligibleException: "investor_not_eligible",
 }
 
 

@@ -9,7 +9,7 @@ from web3 import Web3
 from blockchain.models import BlockchainTransaction
 from shared.db import use_operator
 from shared.tests.settlement import save_swap_with_context
-from shared.tests.tenants import make_tenant
+from shared.tests.tenants import make_eligible, make_tenant
 from tokens.models import (
     SwapOrder,
     SwapOrderStatus,
@@ -44,6 +44,7 @@ def make_swap(label, *, ready=False):
 
 def _make_swap(label, *, ready=False):
     tenant = make_tenant(label)
+    make_eligible(tenant)
     orders = []
     for key, order_type in ((SELLER, TransferOrderType.SELL), (BUYER, TransferOrderType.BUY)):
         wallet = Wallet.objects.create(

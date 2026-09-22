@@ -38,6 +38,7 @@ from tokens.models import (
 )
 from tokens.services.trading_locks import lock_orders
 from users.models import UserAccount
+from users.services.eligibility import require_investor_eligibility
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 from wallets.models.wallet import Blockchain
@@ -399,6 +400,8 @@ def create_order_and_match(
 
     if not whitelist.is_whitelisted(token.contract_address, canonical_wallet_address):
         raise CreateOrderNotWhitelistedException(canonical_wallet_address)
+
+    require_investor_eligibility(actor, token.company)
 
     if order_type == TransferOrderType.SELL:
         from tokens.services import share_token_service
