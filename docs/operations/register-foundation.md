@@ -13,7 +13,9 @@ approval supports; opening review and the inclusion report classify completed
 effects against the captured boundary, and a scheduled job reconciles it with the
 chain. An
 import adds an existing register's particulars and former members to a class
-opened from the chain. A class not yet on chain cannot be opened from an import
+opened from the chain, and staff prepare
+[inspection copies](#preparing-an-inspection-copy) of it on a company's written
+instruction. A class not yet on chain cannot be opened from an import
 yet, so no real company's register may rely on the foundation yet.
 
 ## Identity and events
@@ -624,6 +626,49 @@ effect held for attribution waits for the attribution procedure. A count of `nul
 completions could not be classified, or the register has no captured boundary to
 classify them against, as with one loaded by the synthetic command above;
 `register_inclusions` prints the refusal or a null boundary.
+
+## Preparing an inspection copy
+
+Anyone may ask a company for a copy of its register, and the company must give
+it within 7 days after a proper request (s173(3) of the Corporations Act). The
+company decides whether a request is proper. Staff prepare the copy only on the
+company's written instruction, and the company hands it over (owner decision,
+22 September 2026).
+
+You need an active staff account with **Can change register outputs**
+(`tokens.change_registeroutput`). Share token permissions do not include it, and
+it grants nothing else. The share class needs an applied opening.
+
+1. Keep the company's written instruction, and note its reference, the date the
+   request was made and who the copy is for.
+2. In **Admin → Tokens → Register outputs**, open the share class and choose
+   **Prepare an inspection copy**.
+3. Enter the instruction's reference, the request date and the recipient, then
+   choose **Prepare and download**.
+
+The download, `register-SYMBOL-inspection-copy.csv`, is the register CSV with a
+fourth section: the request date, the instruction, the recipient, the date it
+was produced, and whether that is more than 7 days after the request. Give the
+file to the company unchanged. The page refuses, and records nothing, when the
+share class has no applied opening, when the request date is after today in
+Sydney's calendar, or when a field is blank.
+
+Each copy is recorded once in **Admin → Tokens → Register exports** as kind
+**Inspection copy**: who prepared it, the register sequence copied, the row
+counts, the request details, the late flag and the file's SHA-256 digest.
+Search by instruction or recipient. Ledova keeps no copy of the file. To confirm
+that a file is the one prepared, compare the output of
+`sha256sum register-SYMBOL-inspection-copy.csv` with the record's digest.
+Preparing again makes a new copy and a new record, whose digest differs if
+anything in the register or the request has changed, including the date
+produced.
+
+A copy produced more than 7 days after the request is marked late in the file
+and on its record. Days are counted in Sydney's calendar, and a limit that ends
+on a weekend or public holiday is not extended, so the flag errs towards late.
+Tell the company when a copy is late: the obligation is theirs. The records
+cannot be rewritten, are read only by staff, and follow the export records'
+2,557-day floor and daily purge.
 
 ## Importing an existing register
 

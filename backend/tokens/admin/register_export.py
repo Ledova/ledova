@@ -7,7 +7,7 @@ from tokens.models import RegisterExport
 class RegisterExportAdmin(admin.ModelAdmin):
     list_display = ["created_at", "token", "kind", "requested_by_id", "member_rows", "former_rows"]
     list_filter = ["kind", ("created_at", admin.DateFieldListFilter)]
-    search_fields = ["token__symbol", "token__company__name"]
+    search_fields = ["token__symbol", "token__company__name", "instruction", "recipient"]
     list_select_related = ["token"]
     readonly_fields = [field.name for field in RegisterExport._meta.fields]
     actions = None
