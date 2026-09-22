@@ -8435,9 +8435,10 @@
         "type": "object"
       },
       "RegisterInstructionKindEnum": {
-        "description": "* `issue` - Issue",
+        "description": "* `issue` - Issue\n* `transfer` - Transfer",
         "enum": [
-          "issue"
+          "issue",
+          "transfer"
         ],
         "type": "string"
       },

@@ -93,8 +93,8 @@ With it the owner chose that:
 - evidence copies are retained like openings and corrections.
 
 Issue instructions came first, then the issuer's waiting list and the rule that
-a late entry is dated the day it is made; transfer instructions follow. Until
-then a completed settlement is still recorded without an instruction.
+a late entry is dated the day it is made, then transfer instructions, so an
+issue or transfer is now entered only on an applied instruction.
 [The register](architecture/register.md) owns the mechanisms.
 
 The same day the owner chose how the register's outputs are produced:

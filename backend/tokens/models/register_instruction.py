@@ -11,6 +11,7 @@ from tokens.querysets import RegisterInstructionQuerySet
 
 class RegisterInstructionKind(models.TextChoices):
     ISSUE = "issue", "Issue"
+    TRANSFER = "transfer", "Transfer"
 
 
 def instruction_evidence_path(instance, filename):

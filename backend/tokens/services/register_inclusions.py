@@ -243,6 +243,10 @@ def issue_covered(request):
     return RegisterInstruction.objects.covering(*listed).exists()
 
 
+def transfer_covered(swap):
+    return RegisterInstruction.objects.covering({"settlement": str(swap.pk)}).exists()
+
+
 def _effect(inclusion, company_id, classification):
     if inclusion["kind"] == ISSUE:
         issuance = ShareIssuance.objects.get(pk=inclusion["source"])
@@ -278,6 +282,8 @@ def _effect(inclusion, company_id, classification):
     seller, buyer = members[swap.seller_address.lower()], members[swap.buyer_address.lower()]
     if seller == buyer:
         return None, None
+    if not transfer_covered(swap):
+        return {**effect, "reason": UNINSTRUCTED}, None
     changes = sorted(
         [{"member": seller, "shares": str(-shares)}, {"member": buyer, "shares": str(shares)}],
         key=lambda change: change["member"],

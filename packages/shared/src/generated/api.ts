@@ -4176,7 +4176,7 @@ export interface ApiComponents {
       reason: string;
       tokenId: string;
     };
-    RegisterInstructionKindEnum: 'issue';
+    RegisterInstructionKindEnum: 'issue' | 'transfer';
     RegisterOpening: {
       appliedEntry: string | null;
       approvingDirector: string;
