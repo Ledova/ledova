@@ -153,13 +153,19 @@ class ShareTokenCreateSerializer(serializers.ModelSerializer):
         return attrs
 
 
-class ShareRegisterHolderSerializer(serializers.Serializer):
+class ShareRegisterWalletSerializer(serializers.Serializer):
     address = serializers.CharField()
+    whitelist_status = serializers.CharField(allow_blank=True)
+
+
+class ShareRegisterHolderSerializer(serializers.Serializer):
+    member = serializers.UUIDField()
+    wallets = ShareRegisterWalletSerializer(many=True)
     name = serializers.CharField(allow_null=True)
     balance = serializers.CharField()
     percentage = serializers.FloatField()
     source = serializers.CharField()
     holder_type = serializers.ChoiceField(choices=HolderType.choices)
-    entered_on = serializers.DateTimeField(allow_null=True)
+    entered_on = serializers.DateField()
     share_class = serializers.CharField()
     identity_source = serializers.CharField()

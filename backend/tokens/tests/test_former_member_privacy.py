@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from uuid import uuid4
 
 from django.db import DatabaseError
 from rest_framework.test import APITransactionTestCase
@@ -7,7 +7,9 @@ from shared.db import acting_for, atomic, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from tokens.models import FormerHolder, ShareToken
+from tokens.services.register_events import open_register
 from tokens.tests.test_a_register_of_former_members import a_cessation
+from tokens.tests.test_register_events import DAY
 
 
 class ScopedFormerMemberPrivacyTest(RunsOnTheScopedConnection, APITransactionTestCase):
@@ -53,23 +55,27 @@ class ScopedFormerMemberPrivacyTest(RunsOnTheScopedConnection, APITransactionTes
 
     def test_the_owner_can_read_and_export_a_register_with_only_former_members(self):
         self.signed_in_as(self.owner.user)
-        with patch("tokens.services.register.share_token_service") as provider:
-            provider.transfer_participants.return_value = set()
-            provider.share_supply.return_value = (0, 0)
-            provider.deployment_block.return_value = 1
-            response = self.client.get(f"/api/v1/tokens/{self.owner.deployed_token.pk}/holders/")
-            self.assertEqual(response.status_code, 200, response.content)
-            self.assertEqual(response.json()["holders"], [])
-            former = response.json()["formerMembers"]
-            self.assertEqual(len(former), 1)
-            self.assertEqual(former[0]["residentialAddress"], "Private address")
-            self.assertEqual(former[0]["sharesAtCessation"], "1000")
-            self.assertTrue(former[0]["identityRecordedAt"])
-            self.assertTrue(response.json()["formerMembersStale"])
-            exported = self.client.get(f"/api/v1/tokens/{self.owner.deployed_token.pk}/register/export/")
-            self.assertEqual(exported.status_code, 200, exported.content)
-            self.assertIn(b"Private former member", exported.content)
-            self.assertIn(b"Private address", exported.content)
+        with use_operator():
+            open_register(
+                token_id=self.owner.deployed_token.pk,
+                operation_id=uuid4(),
+                changes=[],
+                effective_on=DAY,
+                recorded_by=self.owner.user,
+            )
+        response = self.client.get(f"/api/v1/tokens/{self.owner.deployed_token.pk}/holders/")
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(response.json()["holders"], [])
+        former = response.json()["formerMembers"]
+        self.assertEqual(len(former), 1)
+        self.assertEqual(former[0]["residentialAddress"], "Private address")
+        self.assertEqual(former[0]["sharesAtCessation"], "1000")
+        self.assertTrue(former[0]["identityRecordedAt"])
+        self.assertTrue(response.json()["formerMembersStale"])
+        exported = self.client.get(f"/api/v1/tokens/{self.owner.deployed_token.pk}/register/export/")
+        self.assertEqual(exported.status_code, 200, exported.content)
+        self.assertIn(b"Private former member", exported.content)
+        self.assertIn(b"Private address", exported.content)
         with use_operator():
             self.owner.deployed_token.refresh_from_db()
             self.assertIsNone(self.owner.deployed_token.former_holders_folded_at)

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { UsersThreeIcon, CopyIcon } from 'phosphor-react-native';
 import * as Clipboard from 'expo-clipboard';
+import { REGISTER_COPY } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 
 function shortenAddress(address: string) {
@@ -10,7 +11,8 @@ function shortenAddress(address: string) {
 }
 
 interface Holder {
-  address: string;
+  member: string;
+  wallets: string[];
   name: string | null;
   totalBalance: number;
   tokens: Array<{ name: string; symbol: string; balance: number; percentage: number }>;
@@ -19,9 +21,10 @@ interface Holder {
 interface ShareholdersSectionProps {
   holders: Holder[];
   deployedTokens: Array<{ uuid: string; name: string; symbol: string }>;
+  unopenedTokens: string[];
 }
 
-export function ShareholdersSection({ holders, deployedTokens }: ShareholdersSectionProps) {
+export function ShareholdersSection({ holders, deployedTokens, unopenedTokens }: ShareholdersSectionProps) {
   const theme = useAppTheme();
   const styles = useStyles();
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
@@ -31,6 +34,11 @@ export function ShareholdersSection({ holders, deployedTokens }: ShareholdersSec
     setCopiedAddress(address);
     setTimeout(() => setCopiedAddress(null), 2000);
   };
+
+  const unopened =
+    unopenedTokens.length > 0 ? (
+      <Text style={styles.emptySubtitle}>{REGISTER_COPY.NOT_OPENED_CLASSES(unopenedTokens)}</Text>
+    ) : null;
 
   if (holders.length === 0) {
     return (
@@ -42,26 +50,34 @@ export function ShareholdersSection({ holders, deployedTokens }: ShareholdersSec
             ? 'Deploy a token to start tracking shareholders.'
             : 'No shares have been issued yet.'}
         </Text>
+        {unopened}
       </View>
     );
   }
 
   return (
     <>
+      {unopened}
       {holders.map((holder, index) => (
-        <React.Fragment key={holder.address}>
+        <React.Fragment key={holder.member}>
           <View style={styles.holderRow}>
             <View style={styles.holderInfo}>
               <View style={styles.holderHeader}>
                 {holder.name ? <Text style={styles.holderName}>{holder.name}</Text> : null}
-                <TouchableOpacity style={styles.addressRow} onPress={() => handleCopy(holder.address)}>
-                  <Text style={styles.holderAddress}>{shortenAddress(holder.address)}</Text>
-                  <CopyIcon
-                    size={12}
-                    color={copiedAddress === holder.address ? theme.colors.interactive.active : theme.colors.text.muted}
-                    weight="regular"
-                  />
-                </TouchableOpacity>
+                {holder.wallets.length === 0 ? (
+                  <Text style={styles.holderAddress}>{REGISTER_COPY.NO_WALLET}</Text>
+                ) : (
+                  holder.wallets.map((address) => (
+                    <TouchableOpacity key={address} style={styles.addressRow} onPress={() => handleCopy(address)}>
+                      <Text style={styles.holderAddress}>{shortenAddress(address)}</Text>
+                      <CopyIcon
+                        size={12}
+                        color={copiedAddress === address ? theme.colors.interactive.active : theme.colors.text.muted}
+                        weight="regular"
+                      />
+                    </TouchableOpacity>
+                  ))
+                )}
               </View>
               <View style={styles.tokenBreakdown}>
                 {holder.tokens.map((t) => (

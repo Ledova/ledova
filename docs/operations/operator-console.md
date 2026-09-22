@@ -59,7 +59,7 @@ keeps each active company's register; it does not assign the legal obligation.
 The two register queues count **completed allotment addresses**, using current
 whitelist/profile identity. They can include former holders and miss transfer-only
 holders or identities available only from a retained stamp. They are not a complete
-chain-derived register audit. Both open the unfiltered whitelist changelist because
+register audit. Both open the unfiltered whitelist changelist because
 missing entries cannot be represented by a filter. Use the issuer's register view
 to locate the address, then resolve duplicates or link/add the correct named wallet.
 See [register identity](../architecture/register.md).

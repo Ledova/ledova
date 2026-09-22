@@ -6,11 +6,11 @@ The first [#647](https://github.com/Ledova/ledova/issues/647) slices provide
 company-scoped member references with durable wallet links, an append-only
 share-event chain, stored holdings, an approved opening capture and reviewed
 compensating corrections. It is a foundation for the authoritative register.
-Current HTTP and CSV register routes still use the existing chain reader. Once
-an opening is applied, issuance and settlement record each later completed
-effect in these tables; opening review and the inclusion report classify
-completed effects against the captured boundary. Do not use the foundation as an
-activated company register.
+The HTTP and CSV register routes serve it once a share class's opening is
+applied, and issuance and settlement then record each later completed effect in
+it; opening review and the inclusion report classify completed effects against
+the captured boundary. Import, reconciliation and a durable export audit are
+still missing, so no real company's register may rely on it yet.
 
 ## Identity and events
 
@@ -20,8 +20,9 @@ member can have multiple wallet links. Wallet links are durable insert-only
 identity records created by the approved opening or a reviewed link request
 below: one address resolves to
 one member per company, and an existing link for a mapped address must agree
-with the mapping. Retained personal particulars, allotment consideration and
-the API/client changes belong to later integration work. It never merges members
+with the mapping. Retained personal particulars belong to later integration
+work; the register routes name members from their wallets' identities and
+allotment stamps. It never merges members
 by matching names.
 
 A register belongs to one share class. Its first entry records the opening state,
@@ -97,7 +98,9 @@ issued supply and head hash. Loading the same file twice records one opening.
 Invalid input rolls back newly created member references as well as the opening.
 A successful verification with the chain unavailable proves storage integrity;
 it does not prove chain reconciliation or director approval. No command calls a
-provider, signs a transaction or activates the API reader.
+provider or signs a transaction. A loaded opening initialises the register the
+HTTP routes serve for that share class, so load one only into the development
+database described above.
 
 The migration refuses rollback once member/register records exist. New scoped
 tables are explicitly associated with their creating migration in the grant
@@ -110,7 +113,7 @@ that migration is recorded remains an error.
 Before an opening can be activated, its chain quantities need one recorded
 boundary. The read-only operator command below inspects an attributed deployment
 on the configured local/testnet provider. It does not load an opening, record
-member identities, switch HTTP reads or change issuance completion timing.
+member identities or change issuance completion timing.
 
 ```bash
 python manage.py register_snapshot --token TOKEN_UUID > snapshot.json
@@ -191,8 +194,8 @@ requirements of each approval workflow.
 The synthetic stored register accepts owner-submitted requests to reverse one
 identified entry exactly. This is a compensation, not an editable replacement:
 the original entry and its hash remain, and the new entry names the original.
-It does not update the chain-derived HTTP register or broadcast a chain change.
-Opening/read cutover, replacement transactions and reconciliation remain #647 work.
+Applying it changes the stored holdings the register routes serve; it broadcasts
+no chain change. Replacement transactions and reconciliation remain #647 work.
 
 An external issuer integration can use these authenticated routes:
 
@@ -344,8 +347,8 @@ retained authority copies and the captured boundary are retained without
 automatic expiry during the synthetic-only experiment; ordinary deletion is
 blocked, the retained copy survives source-document deletion and deleting the
 source prevents a pending application. Production retention needs its own
-decision before real data. This activates no HTTP register read: holders and
-CSV routes remain chain-derived until the stored-reader cutover.
+decision before real data. Applying an opening initialises the register the
+holders and CSV routes serve; until then they report it as not initialised.
 
 ## Reviewed wallet links after the opening
 
@@ -505,8 +508,24 @@ reviewed wallet link records whatever was waiting for it; it takes each share
 class's lock first, so a completion in progress cannot miss the new link.
 `register_inclusions` reports `recorded` for each effect.
 
-Attribution procedures, the scheduled reconciliation job and the stored-register
-reads are still [#647](https://github.com/Ledova/ledova/issues/647) work.
+## Reading the register
+
+The holders route and the CSV export serve the stored holdings with the chain
+unreachable; the [register architecture](../architecture/register.md#api-and-export)
+describes both. Before a share class's opening is applied, holders report
+`initialized: false` and the export is refused with 409
+`register_not_initialized`: submit and review an opening to start it. A positive
+`waitingEffects` count, or the CSV's "Completed effects waiting to be recorded"
+row, means completions are not yet in the holdings. Run `register_inclusions`
+for that share class to find the first unrecorded effect: an unlinked wallet
+needs a reviewed link request, and an effect held for attribution waits for the
+attribution procedure. A count of `null`, or `unknown` in the CSV, means the
+completions could not be classified, or the register has no captured boundary to
+classify them against, as with one loaded by the synthetic command above;
+`register_inclusions` prints the refusal or a null boundary.
+
+Attribution procedures and the scheduled reconciliation job are still
+[#647](https://github.com/Ledova/ledova/issues/647) work.
 
 Next: [the remaining register work](https://github.com/Ledova/ledova/issues/647)
 and [register architecture](../architecture/register.md).

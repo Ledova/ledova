@@ -9598,9 +9598,6 @@
       },
       "ShareRegister": {
         "properties": {
-          "discrepancy": {
-            "type": "string"
-          },
           "formerMembers": {
             "items": {
               "$ref": "#/components/schemas/FormerMember"
@@ -9625,10 +9622,11 @@
             },
             "type": "array"
           },
-          "issuedSupply": {
-            "type": "string"
+          "initialized": {
+            "type": "boolean"
           },
-          "listedTotal": {
+          "issuedSupply": {
+            "nullable": true,
             "type": "string"
           },
           "token": {
@@ -9636,39 +9634,43 @@
           },
           "totalHolders": {
             "type": "integer"
+          },
+          "waitingEffects": {
+            "nullable": true,
+            "type": "integer"
           }
         },
         "required": [
-          "discrepancy",
           "formerMembers",
           "formerMembersAsAt",
           "formerMembersBlock",
           "formerMembersStale",
           "holders",
+          "initialized",
           "issuedSupply",
-          "listedTotal",
           "token",
-          "totalHolders"
+          "totalHolders",
+          "waitingEffects"
         ],
         "type": "object"
       },
       "ShareRegisterHolder": {
         "properties": {
-          "address": {
-            "type": "string"
-          },
           "balance": {
             "type": "string"
           },
           "enteredOn": {
-            "format": "date-time",
-            "nullable": true,
+            "format": "date",
             "type": "string"
           },
           "holderType": {
             "$ref": "#/components/schemas/HolderTypeEnum"
           },
           "identitySource": {
+            "type": "string"
+          },
+          "member": {
+            "format": "uuid",
             "type": "string"
           },
           "name": {
@@ -9684,18 +9686,25 @@
           },
           "source": {
             "type": "string"
+          },
+          "wallets": {
+            "items": {
+              "$ref": "#/components/schemas/ShareRegisterWallet"
+            },
+            "type": "array"
           }
         },
         "required": [
-          "address",
           "balance",
           "enteredOn",
           "holderType",
           "identitySource",
+          "member",
           "name",
           "percentage",
           "shareClass",
-          "source"
+          "source",
+          "wallets"
         ],
         "type": "object"
       },
@@ -9724,6 +9733,21 @@
           "symbol",
           "totalSupply",
           "uuid"
+        ],
+        "type": "object"
+      },
+      "ShareRegisterWallet": {
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "whitelistStatus": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "address",
+          "whitelistStatus"
         ],
         "type": "object"
       },

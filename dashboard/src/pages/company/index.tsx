@@ -62,7 +62,7 @@ const HOLDER_TYPE_BADGES: Record<HolderType, string> = {
 
 const HOLDER_TYPE_NOTES: Record<HolderType, string> = {
   member: 'Named on the register through a whitelisted wallet.',
-  treasury: 'An operator treasury or custodian address, named by its whitelist label.',
+  treasury: "An operator treasury or custodian member, named by its wallet's whitelist label.",
   ambiguous: REGISTER_COPY.AMBIGUOUS_NOTE,
   unidentified: REGISTER_COPY.UNIDENTIFIED_NOTE,
 };
@@ -474,6 +474,8 @@ export function TokenDetailModal({
     isLoading,
     holders,
     totalHolders,
+    registerOpened,
+    waitingEffects,
     isLoadingHolders,
     issuances,
     issuanceCount,
@@ -900,7 +902,7 @@ export function TokenDetailModal({
             </h3>
             <button
               onClick={() => downloadRegister().catch(() => undefined)}
-              disabled={isDownloadingRegister}
+              disabled={isDownloadingRegister || registerOpened === false}
               className="inline-flex items-center gap-1.5 rounded-lg bg-brand-mid hover:bg-brand disabled:bg-surface-disabled px-3 py-1.5 text-xs font-semibold text-white transition-colors"
             >
               <DownloadSimpleIcon size={ICON_SM} />
@@ -908,8 +910,11 @@ export function TokenDetailModal({
             </button>
           </div>
           <p className="text-xs text-text-muted mb-2">{REGISTER_COPY.PRIVACY_NOTE}</p>
-          {holders.some((h: TokenHolder) => h.source !== 'blockchain') && (
-            <p className="text-xs text-warning-light mb-2">{REGISTER_COPY.NOT_CONFIRMED_NOTE}</p>
+          {registerOpened && waitingEffects === null && (
+            <p className="text-xs text-warning-light mb-2">{REGISTER_COPY.WAITING_UNKNOWN_NOTE}</p>
+          )}
+          {!!waitingEffects && (
+            <p className="text-xs text-warning-light mb-2">{REGISTER_COPY.WAITING_NOTE(waitingEffects)}</p>
           )}
           {registerError && <p className="text-xs text-error-light mb-2">{REGISTER_COPY.DOWNLOAD_FAILED}</p>}
           {isLoadingHolders ? (
@@ -929,23 +934,33 @@ export function TokenDetailModal({
                 </thead>
                 <tbody className="divide-y divide-border-subtle">
                   {holders.map((h: TokenHolder) => (
-                    <tr key={h.address}>
+                    <tr key={h.member}>
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-1.5">
                           {h.name && <span className="text-sm text-text-primary">{h.name}</span>}
-                          <code className={`text-xs font-mono ${h.name ? 'text-text-muted' : 'text-text-primary'}`}>
-                            {h.address.slice(0, 6)}...{h.address.slice(-4)}
-                          </code>
-                          <button
-                            onClick={() => copyToClipboard(h.address, h.address)}
-                            className="text-text-muted hover:text-text-primary transition-colors"
-                          >
-                            {copiedField === h.address ? (
-                              <CheckCircleIcon size={ICON_SM} className="text-success-light" />
-                            ) : (
-                              <CopyIcon size={ICON_SM} />
-                            )}
-                          </button>
+                          {h.wallets.length === 0 ? (
+                            <span className="text-xs text-text-muted">{REGISTER_COPY.NO_WALLET}</span>
+                          ) : (
+                            h.wallets.map(({ address }) => (
+                              <span key={address} className="inline-flex items-center gap-1">
+                                <code
+                                  className={`text-xs font-mono ${h.name ? 'text-text-muted' : 'text-text-primary'}`}
+                                >
+                                  {address.slice(0, 6)}...{address.slice(-4)}
+                                </code>
+                                <button
+                                  onClick={() => copyToClipboard(address, address)}
+                                  className="text-text-muted hover:text-text-primary transition-colors"
+                                >
+                                  {copiedField === address ? (
+                                    <CheckCircleIcon size={ICON_SM} className="text-success-light" />
+                                  ) : (
+                                    <CopyIcon size={ICON_SM} />
+                                  )}
+                                </button>
+                              </span>
+                            ))
+                          )}
                         </div>
                       </td>
                       <td className="px-3 py-2">
@@ -969,9 +984,11 @@ export function TokenDetailModal({
             <div className="bg-surface-tertiary/30 rounded-lg border border-border-subtle py-6 text-center">
               <UsersThreeIcon size={ICON_LG} className="text-text-muted mx-auto mb-2" />
               <p className="text-sm text-text-muted">
-                {isDeployed
-                  ? 'No shareholders yet. Issue shares to get started.'
-                  : 'Deploy the token to track holders.'}
+                {registerOpened === false && (isDeployed || isPaused)
+                  ? REGISTER_COPY.NOT_OPENED_NOTE
+                  : isDeployed
+                    ? 'No shareholders yet. Issue shares to get started.'
+                    : 'Deploy the token to track holders.'}
               </p>
             </div>
           )}

@@ -16,14 +16,25 @@ export const REGISTER_COPY = {
   PRIVACY_NOTE:
     'Names, holder types and holdings are shown here. Residential addresses are in the CSV only, and every ' +
     'download is logged.',
-  NOT_CONFIRMED_NOTE:
-    'These holdings could not be confirmed on chain, so they are the allotment record instead. The CSV says so ' +
-    'on every row. Try again once the chain is reachable before relying on this register.',
+  NOT_OPENED_NOTE:
+    'The register for this share class has not been opened yet, so no members are listed and the CSV cannot be ' +
+    'downloaded. An approved register opening starts it.',
+  WAITING_NOTE: (count: number) =>
+    `${count} completed ${count === 1 ? 'issue or transfer waits' : 'issues or transfers wait'} to be recorded, ` +
+    'so these holdings leave them out. Recording stops at the first one that cannot be recorded yet, such as one ' +
+    'whose wallet has no reviewed link to a member, and every later one waits behind it.',
+  WAITING_UNKNOWN_NOTE:
+    'Whether any completed issue or transfer waits to be recorded could not be checked. Try again before relying ' +
+    'on these holdings.',
+  NO_WALLET: 'No linked wallet',
+  NOT_OPENED_CLASSES: (symbols: string[]) =>
+    `Not opened yet, so their members are not listed: ${symbols.join(', ')}. An approved register opening starts ` +
+    'each one.',
   AMBIGUOUS_NOTE:
-    'Two wallets share this address, so the holder cannot be named. Resolve the duplicate wallet before relying ' +
-    'on the register.',
+    "This member's wallets point to more than one person, so no name is shown. Resolve the wallet records before " +
+    'relying on the register.',
   UNIDENTIFIED_NOTE:
-    'This address has no whitelist entry, so no holder can be named against it. Ask the operator to add one.',
+    'No wallet linked to this member resolves to a person through its whitelist entry. Ask the operator to add one.',
   SUBSCRIPTIONS_TITLE: 'Subscriptions',
   SUBSCRIPTIONS_EMPTY: 'No subscription has been made to this offering yet.',
   SUBSCRIPTIONS_NOTE:

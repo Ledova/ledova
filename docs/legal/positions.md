@@ -169,7 +169,7 @@ a processing task the customer could have done themselves is not arranging,
 while a "special direct link" without which the transaction would not occur
 probably is.
 
-**What the code does.** Today the register is derived from chain transfers, and
+**What the code does.** Today the register is a stored record, and
 the platform also hosts offerings, subscriptions, payment recording, investor
 classification and trading enabled by default for synthetic/testnet use — none of
 which a registry service would run.
@@ -343,10 +343,11 @@ register corrected. Section 176 makes the register proof of its contents in the
 absence of contrary evidence.
 
 **What the code does.** The current-members register is
-[derived at read time](../architecture/register.md) from chain transfers; a
-missing balance, transfer history, deployment block or chain response makes the
-entire read unavailable. Former members are stored. No hash-chained audit log
-exists, and no import.
+[stored](../architecture/register.md): each share class keeps an append-only,
+hash-chained event log and the holdings it produces, and the register is read
+from them with the chain unreachable. A correction is a compensating entry that
+those holdings already reflect. Former members are stored. No import exists,
+and nothing yet reconciles the stored register with the chain.
 
 **The position.** The stored database record is the register; anything on a
 chain is at most a mirror of it. Three provisions decide that: s175, because an

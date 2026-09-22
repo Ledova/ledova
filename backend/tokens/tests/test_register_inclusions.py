@@ -41,6 +41,7 @@ from tokens.services.register_inclusions import (
     opening_boundary,
     record_completed_effects,
     unrepresented_inclusions,
+    waiting_effects,
 )
 from tokens.services.register_openings import (
     decide_opening,
@@ -370,6 +371,18 @@ class RegisterInclusionTest(InclusionFixtures, TransactionTestCase):
         with self.assertRaises(ValidationError):
             prepare_opening_review(proposal_id=proposal.pk, reviewer=self.reviewer, client=self.node.client)
         self.assertFalse(RegisterEntry.objects.exists())
+
+    def test_a_completion_without_verified_inclusion_makes_the_waiting_count_unknown(self):
+        self.open_holding_the_mint(self.mint())
+        self.assertEqual(waiting_effects(self.tenant.token.pk), 0)
+        ShareIssuance.objects.create(
+            token=self.tenant.token,
+            recipient_address=self.recipient,
+            amount="10",
+            status=IssuanceStatus.COMPLETED,
+            block_number=MINT_BLOCK + 2,
+        )
+        self.assertIsNone(waiting_effects(self.tenant.token.pk))
 
     def test_a_first_receipt_completion_recorded_before_finality_is_refused(self):
         request = ShareIssuanceRequest.objects.create(

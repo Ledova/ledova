@@ -211,7 +211,11 @@ export function CompanyScreen() {
             />
           )}
           {activeTab === 'shareholders' && (
-            <ShareholdersSection holders={shareholdersHook.holders} deployedTokens={shareholdersHook.deployedTokens} />
+            <ShareholdersSection
+              holders={shareholdersHook.holders}
+              deployedTokens={shareholdersHook.deployedTokens}
+              unopenedTokens={shareholdersHook.unopenedTokens}
+            />
           )}
           {activeTab === 'pending' && (
             <View style={styles.pendingEmpty}>

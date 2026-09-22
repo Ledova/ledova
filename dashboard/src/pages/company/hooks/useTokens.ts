@@ -163,6 +163,8 @@ export function useTokenDetail(uuid: string) {
     registerError: registerMutation.error,
     holders: holders?.holders || [],
     totalHolders: holders?.totalHolders || 0,
+    registerOpened: holders?.initialized,
+    waitingEffects: holders?.waitingEffects,
     isLoadingHolders,
     issuances: issuances?.results || [],
     issuanceCount: issuances?.count || 0,

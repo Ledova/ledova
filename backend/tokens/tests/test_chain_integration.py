@@ -93,11 +93,9 @@ from tokens.services import (
 )
 from tokens.services.former_holders import fold_former_holders
 from tokens.services.register import (
-    IDENTITY_LABELS,
-    IDENTITY_LIVE,
     REGISTER_HEADERS,
-    SOURCE_CHAIN,
     SOURCE_LABELS,
+    SOURCE_STORED,
 )
 from tokens.services.register_events import verify_register
 from tokens.services.register_inclusions import (
@@ -953,6 +951,25 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         )
         self.assertEqual(verify_register(applied.applied_entry.register_id)["issued_supply"], "25")
         self.assertEqual(self._contract().functions.totalSupply().call(), 25)
+        self.client.force_authenticate(owner)
+        holders = self.client.get(f"/api/v1/tokens/{self.token.uuid}/holders/")
+        export = self.client.get(f"/api/v1/tokens/{self.token.uuid}/register/export/")
+        self.assertEqual((holders.status_code, export.status_code), (200, 200))
+        (holder,) = holders.json()["holders"]
+        self.assertEqual(
+            [holder[key] for key in ("member", "balance", "percentage", "source")],
+            [str(member), "25", 100.0, SOURCE_STORED],
+        )
+        self.assertEqual([wallet["address"] for wallet in holder["wallets"]], [self.investor])
+        self.assertEqual(
+            [holders.json()[key] for key in ("initialized", "issuedSupply", "waitingEffects")], [True, "25", 0]
+        )
+        rows = list(csv.reader(io.StringIO(export.content.decode())))
+        row = dict(zip(REGISTER_HEADERS, rows[1]))
+        self.assertEqual(
+            [row[header] for header in ("Member ID", "Wallet addresses", "Shares held", "Balance source")],
+            [str(member), self.investor, "25", SOURCE_LABELS[SOURCE_STORED]],
+        )
 
     @override_settings(WALLET_CHAIN_FINALITY_POLICIES={"evm:31337": {"mode": "depth", "depth": 2}})
     def test_real_issuance_waits_for_finality_then_completes_without_another_mint(self):
@@ -1177,38 +1194,13 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self.client.force_authenticate(self.tenant.user)
         holders = self.client.get(f"/api/v1/tokens/{self.token.uuid}/holders/")
         self.assertEqual(holders.status_code, 200)
-        self.assertEqual(holders.json()["totalHolders"], 1)
-        holder = holders.json()["holders"][0]
         self.assertEqual(
-            {key: holder[key] for key in ("address", "name", "balance", "source", "percentage")},
-            {
-                "address": self.investor,
-                "name": self.tenant.profile.full_name,
-                "balance": "10",
-                "source": "blockchain",
-                "percentage": 100.0,
-            },
+            [holders.json()[key] for key in ("initialized", "holders", "totalHolders", "issuedSupply")],
+            [False, [], 0, None],
         )
-        self.assertEqual(holder["holderType"], "member")
-        self.assertEqual(holder["shareClass"], self.token.symbol)
-        self.assertIsNotNone(holder["enteredOn"])
-
-        register = self.client.get(f"/api/v1/tokens/{self.token.uuid}/register/export/")
-        self.assertEqual(register.status_code, 200)
-        rows = list(csv.reader(io.StringIO(register.content.decode())))
-        self.assertEqual(rows[0], REGISTER_HEADERS)
-        row = dict(zip(REGISTER_HEADERS, rows[1]))
-        self.assertEqual(row["Name"], self.tenant.profile.full_name)
-        self.assertEqual(row["Residential address"], "")
-        self.assertEqual(row["Wallet address"], self.investor)
-        self.assertEqual(row["Holder type"], "Member")
-        self.assertEqual(row["Class"], "DRF")
-        self.assertEqual(row["Shares held"], "10")
-        self.assertEqual(row["Balance source"], SOURCE_LABELS[SOURCE_CHAIN])
-        self.assertEqual(row["Identity source"], IDENTITY_LABELS[IDENTITY_LIVE])
-        self.assertEqual(row["Whitelist status"], "Active")
-        self.assertEqual(row["Amount paid"], "")
         self.assertEqual(holders.json()["token"]["totalSupply"], str(CAP))
+        register = self.client.get(f"/api/v1/tokens/{self.token.uuid}/register/export/")
+        self.assertEqual((register.status_code, register.json()["code"]), (409, "register_not_initialized"))
 
         increase = CapitalIncreaseRequest.objects.create(
             token=self.token,

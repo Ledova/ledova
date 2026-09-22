@@ -2,9 +2,10 @@
 
 [Architecture](README.md) · [Issuance](contracts-and-issuance.md)
 
-The current-members register is derived at read time for one share class.
-[register.py](../../backend/tokens/services/register.py) combines chain membership
-with identity and allotment records. Former members are stored separately.
+The current-members register of one share class is its stored register.
+[register.py](../../backend/tokens/services/register.py) serves the stored
+holdings with each member's linked wallets and the identity and allotment
+records, and reads no chain. Former members are stored separately.
 
 The [stored register foundation](../operations/register-foundation.md) adds member
 references with durable wallet links, immutable events and a holdings projection
@@ -13,7 +14,7 @@ initialises it from one verified canonical chain boundary under documentary
 authority, and the integrity verifier replays the whole chain. A wallet the
 opening did not map is linked to a member only by a
 [reviewed link request](../operations/register-foundation.md#reviewed-wallet-links-after-the-opening)
-carrying the same authority. These HTTP reads have not switched to it yet.
+carrying the same authority.
 Opening review and an operator report classify completed effects against that
 boundary from evidence both sides record: each completion's
 finalized receipt, and the canonical transfer history the boundary retains. A
@@ -33,60 +34,92 @@ needs attribution.
 Owner-submitted [compensating corrections](../operations/register-foundation.md#reviewed-compensating-corrections)
 now bind documentary authority to an exact reversal and register revision.
 Permitted staff review and application commit together, retaining the original
-entry and private evidence. This applies to the stored foundation; it does not
-change these chain-derived HTTP reads or perform chain reconciliation.
+entry and private evidence. An applied correction changes the stored holdings
+the reads below serve; it performs no chain reconciliation.
 
 ## Membership and identity
 
-The holder set unions completed issuance recipients with every non-zero
-participant in `Transfer` history from deployment to the provider head. A
-transfer-only holder is included even without an allotment. Every balance is
-confirmed on chain. A missing balance, transfer history, deployment block,
-issued supply or chain response makes the entire read unavailable with 503;
-there is no partial register or fallback to allotment quantities.
+A row is one member with a positive stored holding. Its balance is that holding
+and its percentage divides it by the register's issued supply, both maintained
+by the stored events, so a read needs the database and no chain. A share class
+whose register has no opening has no rows and reports `initialized: false`; an
+opened register with no holdings reports `initialized: true` and no rows.
 
-Identity follows the whitelist entry through wallet, account and profile, in
-bounded address chunks. Holder types are:
+A row lists every wallet linked to the member in the company, and a member can
+have none. Identity follows each wallet's whitelist entry through wallet,
+account and profile, in bounded address chunks. Holder types are:
 
 | Type | Meaning |
 | --- | --- |
-| `member` | A resolved profile, or a resolved identity stamp from allotment |
-| `treasury` | A bare whitelisted treasury address with a label |
-| `ambiguous` | More than one wallet/entry can identify the address |
-| `unidentified` | No resolved identity |
+| `member` | The wallets resolve to one profile, or through resolved identity stamps from allotment to one person |
+| `treasury` | The wallets resolve to one bare whitelisted treasury address with a label |
+| `ambiguous` | The wallets resolve to different people, live or through their stamps, or one of them to more than one wallet or entry |
+| `unidentified` | No wallet resolves to an identity |
 
-Live identity is preferred. An unidentified address can fall back to its latest
-completed allotment's resolved identity stamp. The row names the source and
-stamp date; a name without a resolved stamp remains unidentified. Old unstamped
-issuances are not backfilled by guessing identity.
+Live identity is preferred. A member with no live identity can fall back to the
+latest resolved identity stamp among its wallets' completed allotments. Resolved
+stamps that differ in name or residential address make the member `ambiguous`,
+as live identities that differ do. The row names the source and stamp date; a
+name without a resolved stamp remains unidentified. Old unstamped issuances are
+not backfilled by guessing identity.
 
-Allotments provide the earliest completion date and consideration, not membership.
-A transfer-only holder therefore has a chain-confirmed quantity and blank
-allotment particulars. Amount paid is blank unless every share is subscribed,
-subscribed quantity equals the confirmed balance, and the subscription's
-`money_backing_shares` supports the shares printed. Unallotted subscriptions,
-unsubscribed holdings and quantity mismatches leave it blank. A pending refund
-must not inflate consideration; zero must not stand in for an unknown value.
+Allotments to the member's wallets provide consideration, not membership. Amount
+paid is shown only for a holding that transfers have not touched and that is
+still its paid allotments: every share is subscribed, subscribed quantity equals
+the stored balance, and the subscription's `money_backing_shares` supports the
+shares printed. A recorded transfer naming the member touches it, and so does a
+folded cessation of one of its wallets from its first allotment to the opening.
+A transfer before the opening that emptied none of its wallets and left its
+quantity unchanged cannot be seen. Unallotted subscriptions, unsubscribed
+holdings and quantity mismatches also leave it blank. A pending refund must not
+inflate consideration; zero must not stand in for an unknown value.
+
+Date entered is the stored holding's: the effective date of the event that took
+the member from no shares to some. The earliest completed allotment to one of
+the member's wallets replaces it only when that allotment is earlier and the
+holding has been continuous since: the opening carried the member in, no later
+entry took it to no shares, and the fold recorded no cessation of one of its
+wallets from the allotment's date to the opening's. Otherwise a member the
+opening carried in shows the opening's date, as one who held only through
+transfers before the opening does.
+
+A cessation counts in these two rules once the fold has read it; the
+former-member section states how far the fold has read.
 
 ## API and export
 
-`GET /api/v1/tokens/{uuid}/holders/` returns current holders, issued/listed supply,
-discrepancy and former-member freshness. Both this route and
-`GET /api/v1/tokens/{uuid}/register/export/` are issuer-scoped. The current-member
-API omits residential addresses, but former-member rows include them.
+`GET /api/v1/tokens/{uuid}/holders/` returns whether the register is
+initialised, current members with their wallets, the stored issued supply, the
+number of completed effects still waiting to be recorded, and former members
+with their fold freshness. Both this route and
+`GET /api/v1/tokens/{uuid}/register/export/` are issuer-scoped, and the export of
+a register with no opening is refused with 409 `register_not_initialized`. The
+current-member API omits residential addresses, but former-member rows include
+them. Each read of an opened register takes its head, issued supply, holdings,
+waiting count and former members from one database snapshot, so an entry
+recorded during the read cannot make them disagree.
+
+A completed issue or transfer after the opening waits while its wallet has no
+link or an earlier effect waits; see
+[recording](../operations/register-foundation.md#recording-issues-and-transfers-after-the-opening).
+A waiting effect is counted, not included in any holding, so a register with
+waiting effects is behind the chain until they are recorded. A count that cannot
+be computed is `null` in the API and `unknown` in the CSV.
 
 The CSV has three sections with different widths:
 
-1. Current members: Name, Residential address, Wallet address, Holder type,
-   Class, Shares held, Percentage of issued supply, Balance source, Identity
-   source, Date entered, Whitelist status and Amount paid.
-2. Supply summary: issued supply, held by listed holders and any discrepancy.
+1. Current members: Member ID, Name, Residential address, Wallet addresses,
+   Holder type, Class, Shares held, Percentage of issued supply, Balance source,
+   Identity source, Date entered, Whitelist status and Amount paid. A member's
+   wallets, and each wallet's whitelist status, are joined with `; `.
+2. Supply summary: issued supply, the total held by listed members and, when
+   there are any, the completed effects waiting to be recorded.
 3. Former members: retained particulars, cessation and fold freshness.
 
 Read sections by their headers rather than assuming one width or column index.
 `csv_cell` neutralizes formula-opening user values. An export logs requesting
 user ID and row count; there is no durable, queryable export audit model yet.
-A discrepancy also logs a warning. See the [stored-register work](https://github.com/Ledova/ledova/issues/647).
+See the [stored-register work](https://github.com/Ledova/ledova/issues/647).
 
 The company shareholder tile counts distinct completed allotment addresses and
 does no chain read. Operator identity queues also use allotment addresses and
@@ -99,6 +132,17 @@ transfer-only holders; neither is a substitute for the register.
 block and records cessations in `FormerHolder`. Particulars are frozen at first
 recorded cessation: current profile at recording, otherwise an allotment stamp
 no later than cessation, otherwise unknown. Refolding does not rewrite them.
+
+The fold sees wallets, not members. A cessation of a wallet linked to a member
+who currently holds shares of the class is left out of the former members, in
+the API and the CSV, only when it falls on or after that member's date entered:
+the member held throughout, and emptying one linked wallet into another records
+nothing in the stored register even though the fold sees that wallet cease. A
+cessation before the member's date entered stays listed, because the member
+ceased and holds again, and s169(3) keeps that cessation on the register. Before
+the opening the fold cannot tell a wallet rotation from a cessation, so such a
+rotation stays listed as well, the recoverable direction. The rows left out are
+kept, and still count against that member's date entered and amount paid.
 
 Each class fold is all-or-nothing. Failure leaves its last successful timestamp
 and block unchanged and does not stop processing other classes. The register

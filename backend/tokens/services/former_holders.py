@@ -9,20 +9,39 @@ from django.utils import timezone
 from web3 import Web3
 
 from shared.db import atomic
+from tokens.exceptions import RegisterUnavailableException
 from tokens.models import FormerHolder, ShareIssuance, ShareToken
 from tokens.models.choices import IDENTITY_RECORDED, IDENTITY_STAMPED, IDENTITY_UNKNOWN
 from tokens.services import share_token_service
-from tokens.services.register import (
-    IDENTITY_BY_HOLDER_TYPE,
-    ZERO_ADDRESS,
-    _deployment_block,
-)
+from tokens.services.register import IDENTITY_BY_HOLDER_TYPE
+from tokens.services.register_snapshot import ZERO_ADDRESS
 from whitelist.models import HolderType
 from whitelist.services.identity import UNIDENTIFIED, identities_for
 
 logger = logging.getLogger(__name__)
 
 STALE_AFTER = timedelta(hours=24)
+
+
+def _deployment_block(token, reader) -> int:
+    transaction = token.deployment_transaction
+    if transaction is not None and transaction.block_number is not None:
+        return transaction.block_number
+    if token.deployment_tx_hash:
+        try:
+            return reader.deployment_block(token.deployment_tx_hash)
+        except Exception as exc:
+            logger.error(f"Register could not read the deployment block of {token.symbol}: {exc}")
+            raise RegisterUnavailableException(
+                f"{RegisterUnavailableException.default_detail} The deployment block of {token.symbol} could not "
+                f"be read from transaction {token.deployment_tx_hash}."
+            ) from exc
+    raise RegisterUnavailableException(
+        f"{RegisterUnavailableException.default_detail} {token.symbol} records no deployment block and no "
+        f"deployment transaction, so the transfer history has no start and the holder set cannot be built."
+    )
+
+
 MINIMUM_RETENTION_DAYS = 2557
 
 

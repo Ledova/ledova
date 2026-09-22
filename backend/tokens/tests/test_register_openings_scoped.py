@@ -85,6 +85,19 @@ class ScopedRegisterOpeningTest(RunsOnTheScopedConnection, APITransactionTestCas
         self.assertEqual(RegisterMemberWallet.objects.count(), 2)
         self.assertEqual(RegisterEntry.objects.filter(kind="opening").count(), 1)
 
+    def test_the_owner_reads_the_applied_register_and_its_waiting_count_on_the_app_connection(self):
+        with use_operator():
+            self.apply()
+        self.client.force_authenticate(self.owner)
+        path = f"/api/v1/tokens/{self.tenant.token.uuid}/"
+        holders = self.client.get(f"{path}holders/")
+        export = self.client.get(f"{path}register/export/")
+        self.assertEqual((holders.status_code, export.status_code), (200, 200))
+        self.assertEqual(
+            [holders.json()[key] for key in ("initialized", "issuedSupply", "waitingEffects")], [True, "100", 0]
+        )
+        self.assertEqual(sorted(row["balance"] for row in holders.json()["holders"]), ["20", "80"])
+
     def test_app_role_cannot_capture_boundaries_or_write_wallet_links(self):
         with self.assertRaises(PermissionDenied):
             prepare_opening_review(proposal_id=self.proposal.pk, reviewer=self.reviewer, client=self.node.client)

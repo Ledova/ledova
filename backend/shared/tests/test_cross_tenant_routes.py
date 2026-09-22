@@ -44,8 +44,10 @@ from tokens.models import (
     ShareIssuanceRequest,
     TransferOrder,
 )
+from tokens.services.register_events import open_register
 from tokens.tests.order_action_fixtures import ActionFixtures
 from tokens.tests.order_submission_fixtures import pending_submission
+from tokens.tests.test_register_events import DAY
 from tokens.tests.test_register_openings import SETTINGS
 from users.models.investor_classification import InvestorClassification
 
@@ -554,11 +556,6 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         }
         balances_need_a_readable_chain = self._service("tokens.views.trading_wallet.share_token_service")
         balances_need_a_readable_chain.get_wallet_token_balances.return_value = {"balances": []}
-        register_chain = self._service("tokens.services.register.share_token_service")
-        register_chain.deployment_block.return_value = 1
-        register_chain.transfer_participants.return_value = set()
-        register_chain.get_token_balance.return_value = 0
-        register_chain.share_supply.return_value = (0, 0)
         self._service("tokens.views.trading_order.execute_order_submission")
         self._service("tokens.views.trading_order.issue_order_submission")
         self._service("tokens.views.trading_order.submission_snapshot").return_value = {}
@@ -583,6 +580,14 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         self.other = make_tenant("bob")
         for tenant in (*self.actors, self.other):
             tenant.issuance_request = _an_issuance_request(tenant)
+            with self.as_an_operator_would():
+                open_register(
+                    token_id=tenant.deployed_token.pk,
+                    operation_id=uuid4(),
+                    changes=[],
+                    effective_on=DAY,
+                    recorded_by=tenant.user,
+                )
 
     def _patch(self, target, **kwargs):
         patcher = patch(target, **kwargs)

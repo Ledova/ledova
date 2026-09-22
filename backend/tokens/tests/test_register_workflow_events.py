@@ -29,6 +29,7 @@ from tokens.services.register_inclusions import (
     AFTER_OPENING,
     classified_inclusions,
     record_completed_effects,
+    waiting_effects,
 )
 from tokens.services.register_openings import (
     decide_link,
@@ -85,6 +86,7 @@ class RecordedIssueTest(InclusionFixtures, TransactionTestCase):
         waiting = self.mint(block=MINT_BLOCK + 4, recipient=NEWCOMER)
         behind = self.mint(block=MINT_BLOCK + 6)
         self.assertEqual([entry[0] for entry in self.entries()], ["opening"])
+        self.assertEqual(waiting_effects(self.tenant.token.pk), 2)
         rows = {row["source"]: row for row in classified_inclusions(self.tenant.token.pk)["inclusions"]}
         self.assertEqual(
             {
@@ -105,6 +107,7 @@ class RecordedIssueTest(InclusionFixtures, TransactionTestCase):
             ],
         )
         self.assertEqual(verify_register(RegisterEntry.objects.first().register_id)["members"], 2)
+        self.assertEqual(waiting_effects(self.tenant.token.pk), 0)
 
     def test_a_link_approved_during_a_completion_waits_for_it_and_records_its_issue_once(self):
         command = self.admitted(block=MINT_BLOCK + 4, recipient=NEWCOMER)
@@ -265,6 +268,7 @@ class RecordedTransferTest(test_swap_finality.SwapFinalityFixtures, TransactionT
             self.assertEqual(record_completed_effects(self.swap.share_token_id), [])
         with use_operator():
             self.assertEqual(verify_register(self.register_opening.register_id)["members"], 1)
+            self.assertEqual(waiting_effects(self.swap.share_token_id), 0)
 
     def test_a_settlement_to_an_unlinked_buyer_waits_for_its_link(self):
         self.open_register(link_buyer=False)
@@ -274,8 +278,10 @@ class RecordedTransferTest(test_swap_finality.SwapFinalityFixtures, TransactionT
             self.assertEqual(record_completed_effects(self.swap.share_token_id), [])
         self.assertIn(f"waits at transfer {self.swap.pk}", waiting.output[0])
         with use_operator():
+            self.assertEqual(waiting_effects(self.swap.share_token_id), 1)
             RegisterMemberWallet.objects.create(
                 company_id=self.swap.share_token.company_id, member=self.buyer_member, address=self.swap.buyer_address
             )
             recorded = record_completed_effects(self.swap.share_token_id)
+            self.assertEqual(waiting_effects(self.swap.share_token_id), 0)
         self.assertEqual([entry.operation_id for entry in recorded], [self.swap.pk])

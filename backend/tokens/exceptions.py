@@ -309,6 +309,16 @@ class RegisterUnavailableException(APIException):
     )
 
 
+class RegisterNotInitialized(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = (
+        "The stored register for this share class has not been opened yet. An operator must apply its opening "
+        "before holders can be listed or exported."
+    )
+    default_code = "register_not_initialized"
+    expose_code = True
+
+
 class RegisterChangeConflict(APIException):
     status_code = status.HTTP_409_CONFLICT
     default_detail = "The register operation conflicts with its recorded identity or holdings."

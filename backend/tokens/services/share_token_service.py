@@ -174,10 +174,6 @@ def deployment_block(tx_hash: str) -> int:
     return get_base_chain_client().w3.eth.get_transaction_receipt(tx_hash)["blockNumber"]
 
 
-def head_block() -> int:
-    return get_base_chain_client().w3.eth.block_number
-
-
 def finalized_block() -> int:
     number = get_base_chain_client().w3.eth.get_block("finalized")["number"]
     if not isinstance(number, int) or isinstance(number, bool) or number < 0:
@@ -210,14 +206,6 @@ def transfer_entries(contract_address: str, from_block: int, to_block: int, wind
 def block_date(block_number: int):
     stamp = get_base_chain_client().w3.eth.get_block(block_number)["timestamp"]
     return datetime.fromtimestamp(int(stamp), tz=dt_timezone.utc).date()
-
-
-def transfer_participants(contract_address: str, from_block: int, window: int = LOG_WINDOW) -> set:
-    return {
-        address
-        for entry in transfer_logs(load_share_token(contract_address), from_block, head_block(), window)
-        for address in (entry["args"]["from"], entry["args"]["to"])
-    }
 
 
 def share_supply(contract_address: str) -> tuple[int, int]:
