@@ -1,0 +1,2 @@
+{% extends "admin/change_list.html" %}
+{% block object-tools-items %}<li><a href="{% url 'admin:tokens_registeroutput_due' %}">Register outputs due</a></li>{{ block.super }}{% endblock %}
