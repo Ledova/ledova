@@ -8,13 +8,13 @@ import type { Wallet } from '@ledova/shared';
 
 const whitelisted = `0x${'1'.repeat(40)}`;
 const notWhitelisted = `0x${'2'.repeat(40)}`;
+const SHARE_TOKEN_ADDRESS = `0x${'3'.repeat(40)}`;
 
-const getWhitelistStatus = vi.fn((_client: unknown, address: string) =>
+const getWhitelistStatus = vi.fn((_client: unknown, _token: string, address: string) =>
   Promise.resolve({
     data: {
       address,
       isWhitelisted: address === whitelisted,
-      canReceive: address === whitelisted,
       status: address === whitelisted ? 'whitelisted' : 'not_whitelisted',
     },
   }),
@@ -155,7 +155,9 @@ describe('the Send form and the recipient allowlist', () => {
 
     await chooseTheShareTokenAndType(notWhitelisted);
 
-    await waitFor(() => expect(getWhitelistStatus).toHaveBeenCalledWith(expect.anything(), notWhitelisted));
+    await waitFor(() =>
+      expect(getWhitelistStatus).toHaveBeenCalledWith(expect.anything(), SHARE_TOKEN_ADDRESS, notWhitelisted),
+    );
   });
 
   it('refuses an unwhitelisted sender, which read the same way and was never reached either', async () => {

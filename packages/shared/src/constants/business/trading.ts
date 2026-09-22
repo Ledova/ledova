@@ -81,7 +81,8 @@ export const TRADING_ENDPOINTS = {
     PREPARE: '/api/v1/trading/transfers/prepare/',
   },
   WHITELIST: {
-    STATUS: (address: string) => `/api/v1/trading/whitelist/${address}/status/` as const,
+    STATUS: (tokenAddress: string, address: string) =>
+      `/api/v1/trading/whitelist/${tokenAddress}/${address}/status/` as const,
   },
   EVENTS: {
     STREAM: '/api/v1/trading/events/stream/',

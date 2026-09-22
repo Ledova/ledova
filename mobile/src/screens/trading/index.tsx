@@ -80,7 +80,6 @@ export function TradingScreen() {
   const currentWallets = useRef(wallets);
   currentWallets.current = wallets;
   settlements.active?.isCurrent();
-  const whitelistStatus = useWalletsWhitelistStatus(walletAddresses);
   const tokenBalances = useAllWalletTokenBalances(walletAddresses);
   const userOrders = useAllUserOrders(walletAddresses);
   const swapOrders = useSwapOrdersMulti(walletAddresses);
@@ -93,6 +92,7 @@ export function TradingScreen() {
     if (!tokens || !effectiveTokenUuid) return null;
     return tokens.find((t: ShareToken) => t.uuid === effectiveTokenUuid) || null;
   }, [tokens, effectiveTokenUuid]);
+  const whitelistStatus = useWalletsWhitelistStatus(selectedToken?.contractAddress ?? undefined, walletAddresses);
 
   const { data: orderBookData, isLoading: isLoadingOrderBook } = useOrderBook(effectiveTokenUuid || undefined);
 

@@ -29,7 +29,8 @@ export const tradingQueryKeys = {
   userOrders: (walletAddress: string) => ['trading', 'userOrders', walletAddress] as const,
   walletBalances: (walletAddress: string) => ['trading', 'walletBalances', walletAddress] as const,
   allUserOrders: (walletAddresses: string[]) => ['trading', 'allUserOrders', walletAddresses] as const,
-  whitelistStatus: (walletAddress: string) => ['trading', 'whitelistStatus', walletAddress] as const,
+  whitelistStatus: (tokenAddress: string, walletAddress: string) =>
+    ['trading', 'whitelistStatus', tokenAddress, walletAddress] as const,
   orderModifications: (orderUuid: string) => ['trading', 'orderModifications', orderUuid] as const,
 };
 
@@ -64,12 +65,12 @@ export function useUserTradingWallets() {
   };
 }
 
-export function useWalletsWhitelistStatus(walletAddresses: string[]) {
+export function useWalletsWhitelistStatus(tokenAddress: string | undefined, walletAddresses: string[]) {
   const queries = useQueries({
     queries: walletAddresses.map((address) => ({
-      queryKey: tradingQueryKeys.whitelistStatus(address),
-      queryFn: () => getWhitelistStatus(apiClient, address).then((res) => res.data),
-      enabled: !!address,
+      queryKey: tradingQueryKeys.whitelistStatus(tokenAddress ?? '', address),
+      queryFn: () => getWhitelistStatus(apiClient, tokenAddress!, address).then((res) => res.data),
+      enabled: !!tokenAddress && !!address,
       staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
       gcTime: CACHE_TIMING.DEFAULT_GC_TIME,
       retry: false,

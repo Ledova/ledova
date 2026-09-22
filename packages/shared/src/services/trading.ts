@@ -143,8 +143,8 @@ export const getWalletBalances = (apiClient: AxiosInstance, walletAddress: strin
     params: { wallet_address: walletAddress },
   });
 
-export const getWhitelistStatus = (apiClient: AxiosInstance, walletAddress: string) =>
-  apiClient.get<WhitelistStatus>(TRADING_ENDPOINTS.WHITELIST.STATUS(walletAddress));
+export const getWhitelistStatus = (apiClient: AxiosInstance, tokenAddress: string, walletAddress: string) =>
+  apiClient.get<WhitelistStatus>(TRADING_ENDPOINTS.WHITELIST.STATUS(tokenAddress, walletAddress));
 
 export const getSwapOrders = (apiClient: AxiosInstance, walletAddress: string) =>
   apiClient.get<ApiResponse<'api_v1_trading_swaps_list'>>(TRADING_ENDPOINTS.SWAPS.LIST, {

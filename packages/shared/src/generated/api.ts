@@ -2175,7 +2175,7 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/trading/whitelist/{address}/status/': {
+  '/api/v1/trading/whitelist/{token}/{address}/status/': {
     parameters: {
       query?: never;
       header?: never;
@@ -5059,9 +5059,22 @@ export interface ApiComponents {
     };
     WalletVerificationStatusEnum: 'PENDING' | 'VERIFIED';
     WhitelistAddRequest: {
+      company: string;
+      expiresAt?: string | null;
       submissionId: string;
       walletAddress: string;
     };
+    WhitelistApproval: {
+      company: string;
+      companyName: string;
+      expiresAt: string | null;
+      lastSyncedAt: string | null;
+      registryAddress: string;
+      status: ApiComponents['schemas']['WhitelistApprovalStatusEnum'];
+      statusDisplay: string;
+      uuid: string;
+    };
+    WhitelistApprovalStatusEnum: 'pending' | 'active' | 'removed' | 'failed';
     WhitelistBatchAddRequest: {
       entries: ApiComponents['schemas']['WhitelistAddRequest'][];
     };
@@ -5078,7 +5091,9 @@ export interface ApiComponents {
     };
     WhitelistChange: {
       action: ApiComponents['schemas']['ActionEnum'];
-      entry: ApiComponents['schemas']['WhitelistEntry'] | null;
+      approval: ApiComponents['schemas']['WhitelistApproval'] | null;
+      company: string;
+      expiresAt: string | null;
       message: string;
       status?: ApiComponents['schemas']['WhitelistChangeStatusEnum'];
       submissionId: string;
@@ -5088,27 +5103,20 @@ export interface ApiComponents {
     };
     WhitelistChangeStatusEnum: 'pending' | 'executing' | 'confirmed' | 'unchanged' | 'failed';
     WhitelistEntry: {
-      addTxHash: string | null;
+      approvals: ApiComponents['schemas']['WhitelistApproval'][];
       createdAt: string;
-      isWhitelisted: boolean;
       label: string;
-      lastSyncedAt: string | null;
-      onChainTimestamp: string | null;
-      removeTxHash: string | null;
-      status: ApiComponents['schemas']['WhitelistEntryStatusEnum'];
-      statusDisplay: string;
       updatedAt: string;
       uuid: string;
       walletAddress: string;
     };
-    WhitelistEntryStatusEnum: 'pending' | 'active' | 'removed' | 'failed';
     WhitelistRemoveRequest: {
+      company: string;
       submissionId: string;
       walletAddress: string;
     };
     WhitelistStatus: {
       address: string;
-      canReceive: boolean;
       isWhitelisted: boolean;
       status: ApiComponents['schemas']['WhitelistStatusStatusEnum'];
     };
@@ -10121,6 +10129,7 @@ export interface ApiOperations {
       header?: never;
       path: {
         address: string;
+        token: string;
       };
       cookie?: never;
     };
@@ -10139,9 +10148,9 @@ export interface ApiOperations {
   api_v1_whitelist_list: {
     parameters: {
       query?: {
+        company?: string;
         date_from?: string;
         date_to?: string;
-        is_whitelisted?: boolean;
         ordering?: string;
         page?: number;
         status?: string;
