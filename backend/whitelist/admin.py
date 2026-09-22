@@ -13,6 +13,7 @@ from wallets.models import Wallet
 from whitelist.admin_actions import confirm_changes
 from whitelist.models import (
     WhitelistAction,
+    WhitelistApproval,
     WhitelistAuthority,
     WhitelistChange,
     WhitelistEntry,
@@ -89,6 +90,17 @@ class WhitelistEntryAddForm(forms.ModelForm):
         return instance
 
 
+class WhitelistApprovalInline(admin.TabularInline):
+    model = WhitelistApproval
+    fields = ["company", "registry_address", "status", "expires_at", "last_synced_at"]
+    readonly_fields = fields
+    extra = 0
+    can_delete = False
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(WhitelistEntry)
 class WhitelistEntryAdmin(admin.ModelAdmin):
     list_display = [
@@ -96,14 +108,10 @@ class WhitelistEntryAdmin(admin.ModelAdmin):
         "wallet_owner",
         "investor_eligibility",
         "label",
-        "status",
-        "is_whitelisted",
+        "approvals_summary",
         "created_at",
     ]
-    list_filter = [
-        "status",
-        "is_whitelisted",
-    ]
+    list_filter = ["approvals__status"]
     search_fields = [
         "wallet__address",
         "address",
@@ -112,23 +120,21 @@ class WhitelistEntryAdmin(admin.ModelAdmin):
     ]
     readonly_fields = [
         "uuid",
-        "status",
-        "is_whitelisted",
         "created_at",
         "updated_at",
-        "add_tx_hash",
-        "remove_tx_hash",
-        "on_chain_timestamp",
-        "last_synced_at",
         "status_actions",
     ]
     ordering = ["-created_at"]
     actions = ["add_to_blockchain", "remove_from_blockchain", "sync_with_blockchain"]
+    inlines = [WhitelistApprovalInline]
 
     def get_form(self, request, obj=None, **kwargs):
         if obj is None:
             kwargs["form"] = WhitelistEntryAddForm
         return super().get_form(request, obj, **kwargs)
+
+    def get_inlines(self, request, obj):
+        return self.inlines if obj else []
 
     def get_fieldsets(self, request, obj=None):
         if obj is None:
@@ -146,14 +152,7 @@ class WhitelistEntryAdmin(admin.ModelAdmin):
 
     _change_fieldsets = [
         ("Wallet Information", {"fields": ["uuid", "wallet", "address", "label"]}),
-        ("Status & Actions", {"fields": ["status", "is_whitelisted", "status_actions"]}),
-        (
-            "Blockchain",
-            {
-                "fields": ["add_tx_hash", "remove_tx_hash", "on_chain_timestamp", "last_synced_at"],
-                "classes": ["collapse"],
-            },
-        ),
+        ("Company Approvals", {"fields": ["status_actions"]}),
         ("Notes", {"fields": ["notes"], "classes": ["collapse"]}),
         ("Timestamps", {"fields": ["created_at", "updated_at"], "classes": ["collapse"]}),
     ]
@@ -169,7 +168,14 @@ class WhitelistEntryAdmin(admin.ModelAdmin):
     short_address.short_description = "Wallet Address"
 
     def get_queryset(self, request):
-        return super().get_queryset(request).with_holder_identity()
+        return super().get_queryset(request).with_holder_identity().prefetch_related("approvals__company")
+
+    @admin.display(description="Company approvals")
+    def approvals_summary(self, obj):
+        approvals = obj.approvals.all()
+        if not approvals:
+            return "-"
+        return "; ".join(f"{approval.company.name}: {approval.status_display()}" for approval in approvals)
 
     def wallet_owner(self, obj):
         identity = entry_identity(obj)
@@ -222,18 +228,16 @@ class WhitelistEntryAdmin(admin.ModelAdmin):
             "display: inline-block; padding: 6px 12px; margin: 2px; "
             "text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: bold;"
         )
-
-        action = "remove_from" if obj.is_whitelisted else "add_to"
-        url = reverse(f"admin:whitelist_whitelistentry_{action}_blockchain", args=[obj.uuid])
         return format_html(
-            '<a href="{}" style="{} background-color: {}; color: white;">{}</a>',
-            url,
+            '<a href="{}" style="{} background-color: #28a745; color: white;">Approve for a company</a>'
+            '<a href="{}" style="{} background-color: #dc3545; color: white;">Remove for a company</a>',
+            reverse("admin:whitelist_whitelistentry_add_to_blockchain", args=[obj.uuid]),
             base_style,
-            "#dc3545" if obj.is_whitelisted else "#28a745",
-            "Remove from Blockchain" if obj.is_whitelisted else "Add to Blockchain",
+            reverse("admin:whitelist_whitelistentry_remove_from_blockchain", args=[obj.uuid]),
+            base_style,
         )
 
-    status_actions.short_description = "Quick Actions"
+    status_actions.short_description = "Actions"
 
     def add_to_blockchain_view(self, request, entry):
         response = confirm_changes(
@@ -257,26 +261,26 @@ class WhitelistEntryAdmin(admin.ModelAdmin):
         )
         return response or HttpResponseRedirect(reverse("admin:whitelist_whitelistentry_change", args=[entry.pk]))
 
-    @admin.action(description="Add selected entries to blockchain whitelist", permissions=["change"])
+    @admin.action(description="Approve selected entries for a company on chain", permissions=["change"])
     def add_to_blockchain(self, request, queryset):
         return confirm_changes(
             self, request, queryset, list(queryset), WhitelistAction.ADD, WhitelistAuthority.WHITELIST_ADMIN
         )
 
-    @admin.action(description="Remove selected entries from blockchain whitelist", permissions=["change"])
+    @admin.action(description="Remove selected entries from a company's whitelist on chain", permissions=["change"])
     def remove_from_blockchain(self, request, queryset):
         return confirm_changes(
             self, request, queryset, list(queryset), WhitelistAction.REMOVE, WhitelistAuthority.WHITELIST_ADMIN
         )
 
-    @admin.action(description="Sync selected entries with blockchain")
+    @admin.action(description="Sync selected entries' company approvals with the chain")
     def sync_with_blockchain(self, request, queryset):
         from whitelist.services import whitelist
 
-        service = whitelist
-        result = service.sync_entries(list(queryset))
+        approvals = WhitelistApproval.objects.filter(entry__in=queryset).select_related("entry__wallet")
+        result = whitelist.sync_approvals(list(approvals))
 
         if result["synced"]:
-            self.message_user(request, f"Synced {result['synced']} address(es) with blockchain.", messages.SUCCESS)
+            self.message_user(request, f"Synced {result['synced']} approval(s) with the chain.", messages.SUCCESS)
         for error in result["errors"]:
             self.message_user(request, error, messages.ERROR)

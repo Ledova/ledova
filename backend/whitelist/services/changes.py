@@ -20,13 +20,15 @@ from blockchain.models import (
     TransactionType,
 )
 from blockchain.services import outgoing
+from companies.models import Company
 from integrations.base_chain import get_base_chain_client
 from shared.db import APP_ALIAS, atomic, current_alias
-from whitelist.constants import WHITELIST_RECOVERY_LIMIT
+from whitelist.constants import WHITELIST_NO_EXPIRY, WHITELIST_RECOVERY_LIMIT
 from whitelist.exceptions import (
     WalletNotRegisteredException,
     WhitelistChangeConflict,
     WhitelistChangeUnresolved,
+    WhitelistRegistryMissing,
 )
 from whitelist.models import (
     WhitelistAction,
@@ -36,10 +38,18 @@ from whitelist.models import (
     WhitelistEntry,
     WhitelistStatus,
 )
-from whitelist.services.whitelist import project_membership, with_current_entry
+from whitelist.services.whitelist import (
+    approval_values,
+    open_approval,
+    project_membership,
+    registry_contract,
+    registry_for,
+    with_current_approval,
+)
 
 logger = logging.getLogger(__name__)
-FUNCTIONS = {WhitelistAction.ADD: "addToWhitelist", WhitelistAction.REMOVE: "removeFromWhitelist"}
+FUNCTION = "setExpiry"
+SELECTOR = Web3.keccak(text=f"{FUNCTION}(address,uint64)")[:4]
 PERMISSIONS = {
     WhitelistAuthority.OPERATOR_API: None,
     WhitelistAuthority.WHITELIST_ADMIN: "whitelist.change_whitelistentry",
@@ -66,24 +76,48 @@ def _authorize(user, authority):
     return actor
 
 
-def _identity(action, address):
-    if action not in FUNCTIONS or not Web3.is_address(address):
+def on_chain_expiry(action, expires_at):
+    if action == WhitelistAction.REMOVE:
+        return 0
+    return WHITELIST_NO_EXPIRY if expires_at is None else int(expires_at.timestamp())
+
+
+def _expiry(action, expires_at):
+    if action not in (WhitelistAction.ADD, WhitelistAction.REMOVE):
+        raise WhitelistChangeConflict("The whitelist action is invalid.")
+    if expires_at is None:
+        return None
+    if action == WhitelistAction.REMOVE:
+        raise WhitelistChangeConflict("A whitelist removal takes no expiry.")
+    if timezone.is_naive(expires_at):
+        raise WhitelistChangeConflict("A whitelist expiry needs a time zone.")
+    expires_at = expires_at.replace(microsecond=0)
+    if expires_at <= timezone.now():
+        raise WhitelistChangeConflict("A whitelist expiry must be in the future.")
+    if int(expires_at.timestamp()) >= WHITELIST_NO_EXPIRY:
+        raise WhitelistChangeConflict("Leave the expiry blank for an approval that never expires.")
+    return expires_at
+
+
+def _intent(action, address, registry_address, expires_at):
+    if action not in (WhitelistAction.ADD, WhitelistAction.REMOVE) or not Web3.is_address(address):
         raise WhitelistChangeConflict("The whitelist action or address is invalid.")
     address = Web3.to_checksum_address(address).lower()
     try:
         sender = Account.from_key(settings.BLOCKCHAIN_OPERATOR_KEY).address
-        data = Web3.keccak(text=f"{FUNCTIONS[action]}(address)")[:4] + encode(["address"], [address])
-        intent = outgoing.transaction_intent(
+        data = SELECTOR + encode(["address", "uint64"], [address, on_chain_expiry(action, expires_at)])
+        return outgoing.transaction_intent(
             chain_id=settings.BLOCKCHAIN_CHAIN_ID,
             sender=sender,
-            to=settings.WHITELIST_CONTRACT_ADDRESS,
+            to=registry_address,
             data=data,
         )
     except (TypeError, ValueError, AttributeError):
-        raise WhitelistChangeConflict("The whitelist registry or signing identity is not configured.") from None
-    if intent["to"] is None:
-        raise WhitelistChangeConflict("The whitelist registry is not configured.")
-    return address, intent
+        raise WhitelistChangeConflict("The whitelist signing identity is not configured.") from None
+
+
+def _change_intent(change):
+    return _intent(change.action, change.address, change.registry_address, change.expires_at)
 
 
 @contextmanager
@@ -111,18 +145,20 @@ def _resolve_entry(action, address, wallet_uuid):
     return entries[0] if entries else None
 
 
-def _same_submission(change, action, address, actor, authority, wallet_uuid):
+def _same_submission(change, action, address, actor, authority, wallet_uuid, company, expires_at):
     if (
         change.action != action
         or change.address != address
         or change.initiated_by_id != actor.pk
         or change.authority != authority
         or change.requested_wallet_id != wallet_uuid
+        or change.company_id != company.pk
+        or change.expires_at != expires_at
     ):
         raise WhitelistChangeConflict("This submission already identifies different whitelist terms or authority.")
 
 
-def _admit(submission_id, action, address, user, authority, wallet_uuid):
+def _admit(submission_id, action, address, user, authority, wallet_uuid, company, expires_at):
     actor = _authorize(user, authority)
     try:
         submission_id = UUID(str(submission_id))
@@ -131,33 +167,26 @@ def _admit(submission_id, action, address, user, authority, wallet_uuid):
         raise WhitelistChangeConflict("A whitelist submission requires a valid UUID.") from None
     if not Web3.is_address(address):
         raise WhitelistChangeConflict("The whitelist address is invalid.")
+    if not isinstance(company, Company):
+        raise WhitelistChangeConflict("A whitelist change names the company it approves the wallet for.")
     address = Web3.to_checksum_address(address).lower()
     previous = WhitelistChange.objects.filter(pk=submission_id).first()
     if previous is not None:
-        _same_submission(previous, action, address, actor, authority, wallet_uuid)
+        requested = expires_at.replace(microsecond=0) if expires_at is not None else None
+        _same_submission(previous, action, address, actor, authority, wallet_uuid, company, requested)
         return previous
-    address, intent = _identity(action, address)
+    expires_at = _expiry(action, expires_at)
+    intent = _intent(action, address, registry_for(company, get_base_chain_client()), expires_at)
     with target_transaction(intent["chain_id"], intent["to"], address):
         actor = _authorize(user, authority)
         previous = WhitelistChange.objects.select_for_update().filter(pk=submission_id).first()
         if previous is not None:
-            _same_submission(previous, action, address, actor, authority, wallet_uuid)
+            _same_submission(previous, action, address, actor, authority, wallet_uuid, company, expires_at)
             return previous
         if WhitelistChange.objects.for_target(intent["chain_id"], intent["to"], address).unresolved().exists():
             raise WhitelistChangeConflict(
                 "An earlier whitelist change for this address is unresolved. Recover it first."
             )
-        if (
-            BlockchainTransaction.objects.filter(
-                tx_type__in=[TransactionType.WHITELIST_ADD, TransactionType.WHITELIST_REMOVE],
-                to_address__iexact=intent["to"],
-                function_args__investor__iexact=address,
-            )
-            .exclude(related_model="whitelist.WhitelistChange")
-            .exclude(status__in=[TransactionStatus.CONFIRMED, TransactionStatus.REVERTED])
-            .exists()
-        ):
-            raise WhitelistChangeConflict("Historical whitelist work for this address requires operator attribution.")
         entry = _resolve_entry(action, address, wallet_uuid)
         change, _ = WhitelistChange.objects.get_or_create(
             pk=submission_id,
@@ -166,6 +195,8 @@ def _admit(submission_id, action, address, user, authority, wallet_uuid):
                 "address": address,
                 "chain_id": intent["chain_id"],
                 "registry_address": intent["to"],
+                "company_id": company.pk,
+                "expires_at": expires_at,
                 "intent": intent,
                 "initiated_by": actor,
                 "authority": authority,
@@ -173,44 +204,50 @@ def _admit(submission_id, action, address, user, authority, wallet_uuid):
                 "entry_id": entry.pk if entry else None,
             },
         )
-        _same_submission(change, action, address, actor, authority, wallet_uuid)
+        _same_submission(change, action, address, actor, authority, wallet_uuid, company, expires_at)
         if entry:
-            WhitelistEntry.objects.filter(pk=entry.pk).update(status=WhitelistStatus.PENDING, updated_at=timezone.now())
+            open_approval(entry, company, intent["to"])
         return change
 
 
 def _observe_membership(change, client):
-    if _identity(change.action, change.address)[1] != change.intent:
+    if _change_intent(change) != change.intent:
         raise WhitelistChangeConflict("The whitelist configuration changed after admission.")
     if client.assert_expected_chain() != change.chain_id:
         raise WhitelistChangeConflict("The whitelist provider is on another chain.")
-    contract = client.load_contract("WhitelistRegistry", Web3.to_checksum_address(change.registry_address))
-    return contract.functions.isWhitelisted(Web3.to_checksum_address(change.address)).call()
+    try:
+        registry = registry_for(Company.objects.get(pk=change.company_id), client)
+    except WhitelistRegistryMissing:
+        registry = None
+    if registry != change.registry_address:
+        raise WhitelistChangeConflict("The company's whitelist registry changed after admission.")
+    contract = registry_contract(change.registry_address, client)
+    return contract.functions.expiresAt(Web3.to_checksum_address(change.address)).call()
 
 
-def _record_membership_decision(change, member):
-    if type(member) is not bool:
+def _project_observation(change, expiry, moment):
+    if change.entry_id:
+        project_membership(
+            change.entry_id,
+            change.address,
+            change.chain_id,
+            change.registry_address,
+            change.company_id,
+            approval_values(expiry) | {"last_synced_at": moment, "updated_at": moment},
+        )
+
+
+def _record_membership_decision(change, expiry):
+    if type(expiry) is not int:
         raise WhitelistChangeUnresolved()
     with _target(change):
         current = WhitelistChange.objects.select_for_update().get(pk=change.pk)
         if current.status != WhitelistChangeStatus.PENDING:
             return current
-        if member == (change.action == WhitelistAction.ADD):
+        if expiry == on_chain_expiry(current.action, current.expires_at):
             current.status = WhitelistChangeStatus.UNCHANGED
             current.completed_at = timezone.now()
-            if current.entry_id:
-                project_membership(
-                    current.entry_id,
-                    current.address,
-                    current.chain_id,
-                    current.registry_address,
-                    {
-                        "status": WhitelistStatus.ACTIVE if member else WhitelistStatus.REMOVED,
-                        "is_whitelisted": member,
-                        "last_synced_at": current.completed_at,
-                        "updated_at": current.completed_at,
-                    },
-                )
+            _project_observation(current, expiry, current.completed_at)
         else:
             current.status = WhitelistChangeStatus.EXECUTING
         current.save(update_fields=["status", "completed_at", "updated_at"])
@@ -249,8 +286,11 @@ def _project(change, claim):
                 ),
                 "from_address": change.intent["sender"],
                 "to_address": change.registry_address,
-                "function_name": FUNCTIONS[change.action],
-                "function_args": {"investor": change.address},
+                "function_name": FUNCTION,
+                "function_args": {
+                    "investor": change.address,
+                    "expiry": str(on_chain_expiry(change.action, change.expires_at)),
+                },
                 "related_model": "whitelist.WhitelistChange",
                 "related_uuid": change.pk,
             }
@@ -290,18 +330,16 @@ def _project(change, claim):
         current.failure_code = operation.status if current.status == WhitelistChangeStatus.FAILED else ""
         if current.status in TERMINAL:
             current.completed_at = timezone.now()
-            if current.entry_id:
-                values = {"status": WhitelistStatus.FAILED, "updated_at": current.completed_at}
-                if current.status == WhitelistChangeStatus.CONFIRMED:
-                    member = current.action == WhitelistAction.ADD
-                    values |= {
-                        "status": WhitelistStatus.ACTIVE if member else WhitelistStatus.REMOVED,
-                        "is_whitelisted": member,
-                        "last_synced_at": current.completed_at,
-                        "add_tx_hash" if member else "remove_tx_hash": attempt.tx_hash,
-                    }
+            if current.status == WhitelistChangeStatus.CONFIRMED:
+                _project_observation(current, on_chain_expiry(current.action, current.expires_at), current.completed_at)
+            elif current.entry_id:
                 project_membership(
-                    current.entry_id, current.address, current.chain_id, current.registry_address, values
+                    current.entry_id,
+                    current.address,
+                    current.chain_id,
+                    current.registry_address,
+                    current.company_id,
+                    {"status": WhitelistStatus.FAILED, "updated_at": current.completed_at},
                 )
         current.save(update_fields=["status", "transaction", "failure_code", "completed_at", "updated_at"])
         return current
@@ -312,8 +350,8 @@ def _process(change):
         return change
     client = get_base_chain_client()
     if change.status == WhitelistChangeStatus.PENDING:
-        member = _observe_membership(change, client)
-        change = _record_membership_decision(change, member)
+        expiry = _observe_membership(change, client)
+        change = _record_membership_decision(change, expiry)
         if change.status in TERMINAL:
             return change
     claim = _claim(change)
@@ -322,10 +360,10 @@ def _process(change):
         return _project(change, claim)
     if operation.status == OutgoingStatus.PREPARING:
         try:
-            if _identity(change.action, change.address)[1] != change.intent:
+            if _change_intent(change) != change.intent:
                 raise WhitelistChangeConflict("The whitelist signing configuration changed after admission.")
             prepared = outgoing.prepare_operation(claim, client)
-            if _identity(change.action, change.address)[1] != change.intent:
+            if _change_intent(change) != change.intent:
                 raise WhitelistChangeConflict("The whitelist signing configuration changed during preparation.")
         except Exception:
             outgoing.fail_preparing(claim)
@@ -342,11 +380,21 @@ def _process(change):
     return _project(change, claim)
 
 
-def submit(submission_id, action, address, user, *, authority=WhitelistAuthority.OPERATOR_API, wallet_uuid=None):
+def submit(
+    submission_id,
+    action,
+    address,
+    user,
+    *,
+    company,
+    expires_at=None,
+    authority=WhitelistAuthority.OPERATOR_API,
+    wallet_uuid=None,
+):
     _boundary()
-    change = _admit(submission_id, action, address, user, authority, wallet_uuid)
+    change = _admit(submission_id, action, address, user, authority, wallet_uuid, company, expires_at)
     try:
-        return with_current_entry(_process(change))
+        return with_current_approval(_process(change))
     except (PermissionDenied, WhitelistChangeConflict):
         raise
     except Exception:
@@ -357,7 +405,7 @@ def submit(submission_id, action, address, user, *, authority=WhitelistAuthority
 def recover(submission_id):
     _boundary()
     change = WhitelistChange.objects.get(pk=submission_id)
-    return with_current_entry(_process(change))
+    return with_current_approval(_process(change))
 
 
 def recover_changes():

@@ -212,7 +212,7 @@ class CompanyLiveAuthorizationTest(APITestCase):
             chain="ethereum",
             verification_status="VERIFIED",
         )
-        WhitelistEntry.objects.create(wallet=foreign_wallet, is_whitelisted=True)
+        WhitelistEntry.objects.create(wallet=foreign_wallet)
 
         for actor, company in actor_cases:
             self.client.force_authenticate(actor)

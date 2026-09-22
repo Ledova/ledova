@@ -21,6 +21,6 @@ router.register(r"transfers", TradingTransferViewSet, basename="transfers")
 router.register(r"swaps", SwapOrderViewSet, basename="swaps")
 
 urlpatterns = router.urls + [
-    path("whitelist/<str:address>/status/", WhitelistStatusView.as_view(), name="whitelist-status"),
+    path("whitelist/<str:token>/<str:address>/status/", WhitelistStatusView.as_view(), name="whitelist-status"),
     path("events/stream/", trading_events_stream, name="trading-events-stream"),
 ]

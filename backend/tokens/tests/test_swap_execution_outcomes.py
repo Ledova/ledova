@@ -119,9 +119,9 @@ class SwapExecutionRecordsItsOutcomeTest(TransactionTestCase):
         self.assertEqual(self.swap.error_message, "Swap execution could not be prepared")
 
     def test_a_recognised_revert_reason_remains_actionable_without_provider_details(self):
-        self.node.client.estimate_gas.side_effect = GasEstimationError("execution reverted: 0xdf17e316 at " + RPC_URL)
+        self.node.client.estimate_gas.side_effect = GasEstimationError("execution reverted: 0xbf3f9389 at " + RPC_URL)
         self.assertEqual(self.recover(), "failed")
-        self.assertEqual(self.swap.error_message, "Account is not whitelisted")
+        self.assertEqual(self.swap.error_message, "Sender is not whitelisted for transfers")
         self.assertNotIn("private-provider-token", self.record.error_message)
         self.node.client.send_raw_transaction.assert_not_called()
 

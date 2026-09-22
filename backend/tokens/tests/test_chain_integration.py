@@ -140,7 +140,6 @@ from whitelist.services import changes, whitelist
 
 CHAIN_ENV = (
     "CHAIN_TEST_RPC_URL",
-    "WHITELIST_CONTRACT_ADDRESS",
     "SHARE_TOKEN_FACTORY_ADDRESS",
     "STABLECOIN_CONTRACT_ADDRESS",
     "ATOMIC_SWAP_ADDRESS",
@@ -255,14 +254,18 @@ class ChainTestMixin:
         self.assertIn(result.status, ("confirmed", "observed"))
         return result
 
-    def _whitelist(self, address):
+    def _whitelist(self, address, **options):
         sender = Account.from_key(settings.BLOCKCHAIN_OPERATOR_KEY).address.lower()
         SigningAccount.objects.get_or_create(
             chain_id=31337, address=sender, defaults={"admission_state": "admitted", "admission_generation": 1}
         )
-        change = changes.submit(uuid4(), "add", address, self.staff)
+        change = changes.submit(uuid4(), "add", address, self.staff, company=self.token.company, **options)
         self.assertEqual(change.status, "confirmed")
         return change
+
+    def _listed(self, address):
+        self.token.refresh_from_db()
+        return whitelist.is_whitelisted(self.token.contract_address, address)
 
     def _whitelisted_request(self, amount):
         self._whitelist(self.investor)
@@ -1381,10 +1384,13 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertNotIn("Refused", not_whitelisted.review_notes)
 
         change = self._whitelist(self.investor)
-        tx_hash, entry = change.transaction.tx_hash, change.entry
+        tx_hash, approval = change.transaction.tx_hash, change.approval
         self.assertTrue(tx_hash)
-        self.assertTrue(whitelist.is_whitelisted(self.investor))
-        self.assertTrue(entry.is_whitelisted)
+        self.assertTrue(self._listed(self.investor))
+        self.assertEqual((approval.status, approval.company_id), ("active", self.token.company_id))
+        registry = self.service.factory_contract().functions.registryOf(self.token.company.acn).call()
+        self.assertEqual(self._contract().functions.whitelist().call(), registry)
+        self.assertEqual(change.registry_address, registry.lower())
 
         too_many = self._issuance_request(amount=CAP + 1)
         blocks_before = self.w3.eth.block_number
@@ -2150,18 +2156,35 @@ class MintRequestChainTest(APITransactionTestCase):
 @chain_available
 @override_settings(**CHAIN_SETTINGS)
 class WhitelistChangeChainTest(ChainTestMixin, APITransactionTestCase):
+    def setUp(self):
+        super().setUp()
+        self._deployed()
+
     def test_old_submission_replay_preserves_later_chain_membership(self):
+        company = self.token.company
         original = self._whitelist(self.investor)
-        removed = changes.submit(uuid4(), "remove", self.investor, self.staff)
+        removed = changes.submit(uuid4(), "remove", self.investor, self.staff, company=company)
         self.assertEqual(removed.status, "confirmed")
         nonce = self._signer_nonce()
-        repeated = changes.submit(original.pk, "add", self.investor, self.staff)
+        repeated = changes.submit(original.pk, "add", self.investor, self.staff, company=company)
         self.assertEqual(repeated.transaction_id, original.transaction_id)
-        self.assertFalse(whitelist.is_whitelisted(self.investor))
+        self.assertFalse(self._listed(self.investor))
         self.assertEqual(self._signer_nonce(), nonce)
         self._whitelist(self.investor)
-        self.assertTrue(whitelist.is_whitelisted(self.investor))
+        self.assertTrue(self._listed(self.investor))
         self.assertEqual(self._signer_nonce(), nonce + 1)
+
+    def test_a_real_expiry_is_written_to_the_company_registry_and_lapses_on_chain(self):
+        head = self.w3.eth.get_block("latest")["timestamp"]
+        expires_at = datetime.fromtimestamp(head, tz=dt_timezone.utc) + timedelta(hours=1)
+        change = self._whitelist(self.investor, expires_at=expires_at)
+        registry = self.chain.load_contract("WhitelistRegistry", Web3.to_checksum_address(change.registry_address))
+        self.assertEqual(registry.functions.expiresAt(self.investor).call(), int(change.expires_at.timestamp()))
+        self.assertEqual(change.approval.expires_at, change.expires_at)
+        self.assertTrue(self._listed(self.investor))
+        self.w3.provider.make_request("evm_setNextBlockTimestamp", [int(change.expires_at.timestamp())])
+        self.w3.provider.make_request("evm_mine", [])
+        self.assertFalse(self._listed(self.investor))
 
     def test_process_death_after_real_node_acceptance_recovers_exact_original_transaction(self):
         import json
@@ -2175,8 +2198,8 @@ class WhitelistChangeChainTest(ChainTestMixin, APITransactionTestCase):
         from whitelist.models import WhitelistChange
 
         sender = Account.from_key(settings.BLOCKCHAIN_OPERATOR_KEY).address.lower()
-        SigningAccount.objects.create(
-            chain_id=31337, address=sender, admission_state="admitted", admission_generation=1
+        SigningAccount.objects.get_or_create(
+            chain_id=31337, address=sender, defaults={"admission_state": "admitted", "admission_generation": 1}
         )
         database = connections[current_alias()].settings_dict
         fields = ("ENGINE", "NAME", "USER", "PASSWORD", "HOST", "PORT", "OPTIONS")
@@ -2192,6 +2215,7 @@ class WhitelistChangeChainTest(ChainTestMixin, APITransactionTestCase):
                 "whitelist.tests.change_chain_worker",
                 str(submission_id),
                 str(self.staff.pk),
+                str(self.token.company_id),
                 self.investor,
             ],
             env=env,
@@ -2201,14 +2225,15 @@ class WhitelistChangeChainTest(ChainTestMixin, APITransactionTestCase):
         )
         code, out, err = finish(process)
         self.assertEqual(code, -signal.SIGKILL, out + err)
-        original = SignedAttempt.objects.get()
+        attempts = SignedAttempt.objects.filter(operation__operation_key=f"whitelist-change:{submission_id}")
+        original = attempts.get()
         self.assertEqual(original.nonce, nonce)
         self.assertEqual(WhitelistChange.objects.get().status, "executing")
-        self.assertTrue(whitelist.is_whitelisted(self.investor))
+        self.assertTrue(self._listed(self.investor))
         recovered = changes.recover(submission_id)
         self.assertEqual(recovered.status, "confirmed")
         self.assertEqual(recovered.transaction.tx_hash, original.tx_hash)
-        self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.assertEqual(attempts.count(), 1)
         self.assertEqual(self._signer_nonce(), nonce + 1)
         observed = self.w3.eth.get_transaction(original.tx_hash)
         self.assertEqual(bytes(observed["input"]), bytes.fromhex(recovered.intent["data"][2:]))
@@ -2486,11 +2511,15 @@ class NAVUpdateChainTest(APITransactionTestCase):
         self.addCleanup(self.w3.provider.make_request, "evm_revert", [snapshot])
         self.actor = get_user_model().objects.create_superuser(email="chain-nav@example.test", password="synthetic")
         self.signer = Account.from_key(CHAIN_SETTINGS["BLOCKCHAIN_OPERATOR_KEY"]).address
-        artifact = json.loads(
-            (Path(settings.BASE_DIR).parent / "contracts/artifacts/contracts/AUSG.sol/AUSG.json").read_text()
+        artifacts = Path(settings.BASE_DIR).parent / "contracts/artifacts/contracts"
+        registry = json.loads((artifacts / "WhitelistRegistry.sol/WhitelistRegistry.json").read_text())
+        _, registry_receipt = self.chain.send_transaction(
+            self.w3.eth.contract(abi=registry["abi"], bytecode=registry["bytecode"]).constructor(self.signer),
+            CHAIN_SETTINGS["BLOCKCHAIN_OPERATOR_KEY"],
         )
+        artifact = json.loads((artifacts / "AUSG.sol/AUSG.json").read_text())
         constructor = self.w3.eth.contract(abi=artifact["abi"], bytecode=artifact["bytecode"]).constructor(
-            CHAIN_SETTINGS["WHITELIST_CONTRACT_ADDRESS"], self.signer
+            registry_receipt["contractAddress"], self.signer
         )
         _, deployment_receipt = self.chain.send_transaction(constructor, CHAIN_SETTINGS["BLOCKCHAIN_OPERATOR_KEY"])
         address = deployment_receipt["contractAddress"]

@@ -80,11 +80,8 @@ SYSTEM_WIDE = {
     "balance reconciliation across all accounts.",
     "wallets.tasks.confirmation.cleanup_stale_pending_transactions": "Reports overdue pending rows across all "
     "accounts for queued legacy jobs without changing status or balances.",
-    "whitelist.tasks.sync.sync_all_entries": "Reconciles the on-chain whitelist, which is one list for the "
-    "whole deployment and is staff-only in the API for the same reason.",
-    "whitelist.tasks.sync.reconcile_failed_adds": "Asks the chain about every entry recorded failed with a hash "
-    "it sent, which is a question about the deployment's one whitelist rather than about whoever owns any "
-    "wallet on it.",
+    "whitelist.tasks.sync.sync_all_entries": "Mirrors each company's on-chain whitelist registry into the "
+    "staff-only approval rows. It reads chain state for every company and acts for no principal.",
     "procrastinate.builtin_tasks.remove_old_jobs": "Procrastinate's own queue maintenance.",
     "builtin:procrastinate.builtin_tasks.remove_old_jobs": "The same task under its builtin alias.",
 }

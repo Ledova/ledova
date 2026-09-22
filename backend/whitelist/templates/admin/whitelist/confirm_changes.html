@@ -2,14 +2,32 @@
 {% block content %}
 <div class="admin-custom-form">
     <h2>{{ title }}</h2>
-    <p>Confirm {{ change_action }} for the following addresses. An unresolved change must finish before another change can be submitted for that address.</p>
-    <ul>{% for entry in entries %}<li class="monospace">{{ entry.address }} — {{ entry.status }}{% if entry.label %} — {{ entry.label }}{% endif %}</li>{% endfor %}</ul>
+    <p>Confirm {{ change_action }} for the following addresses. Each company has its own whitelist registry, so the change applies to one company only. An unresolved change must finish before another change can be submitted for that address in that company.</p>
+    <ul>{% for entry in entries %}<li class="monospace">{{ entry.address }}{% if entry.label %} — {{ entry.label }}{% endif %}</li>{% endfor %}</ul>
     <form method="post">
         {% csrf_token %}
         <input type="hidden" name="whitelist_confirmation" value="{{ whitelist_confirmation }}">
         <input type="hidden" name="confirm_whitelist" value="1">
         <input type="hidden" name="action" value="{{ admin_action }}">
         {% for pk in selected %}<input type="hidden" name="{{ checkbox_name }}" value="{{ pk }}">{% endfor %}
+        {% if fixed_company %}
+        <p>Company: {{ fixed_company }}</p>
+        {% else %}
+        <p>
+            <label for="whitelist_company">Company</label>
+            <select name="whitelist_company" id="whitelist_company" required>
+                <option value="">Choose a company</option>
+                {% for company in companies %}<option value="{{ company.pk }}">{{ company }}</option>{% endfor %}
+            </select>
+        </p>
+        {% endif %}
+        {% if asks_for_expiry %}
+        <p>
+            <label for="whitelist_expires_at">Expires at</label>
+            <input type="datetime-local" name="whitelist_expires_at" id="whitelist_expires_at">
+            <span class="help">Leave blank for an approval that never expires.</span>
+        </p>
+        {% endif %}
         <button type="submit" class="btn btn-primary">Confirm {{ change_action }}</button>
     </form>
 </div>

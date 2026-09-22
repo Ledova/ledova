@@ -17,19 +17,21 @@ from shared.db import current_alias
 from whitelist.models import WhitelistChange
 from whitelist.tests.change_fixtures import (
     CHAIN_ID,
+    FACTORY,
     KEY,
-    REGISTRY,
     admitted_signer,
     change_actor,
+    change_company,
     change_entry,
 )
 
 
-@override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, WHITELIST_CONTRACT_ADDRESS=REGISTRY)
+@override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, SHARE_TOKEN_FACTORY_ADDRESS=FACTORY)
 class WhitelistChangeProcessTest(TransactionTestCase):
     def setUp(self):
         self.actor = change_actor()
         self.entry = change_entry()
+        self.company = change_company()
         self.submission_id = uuid4()
         admitted_signer()
 
@@ -45,6 +47,7 @@ class WhitelistChangeProcessTest(TransactionTestCase):
             str(directory),
             phase,
             str(self.actor.pk),
+            str(self.company.pk),
             str(submission_id or self.submission_id),
             action,
         ]

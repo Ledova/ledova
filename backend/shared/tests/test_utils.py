@@ -50,7 +50,7 @@ class DecodeRevertReasonTests(SimpleTestCase):
 
     def test_the_closed_set_still_answers_with_its_own_sentence(self):
         for selector, expected in (
-            ("0xdf17e316", "Account is not whitelisted"),
+            ("0xbf3f9389", "Sender is not whitelisted for transfers"),
             ("0xc56873ba", "Swap order has expired"),
         ):
             with self.subTest(selector=selector):

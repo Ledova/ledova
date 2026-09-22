@@ -85,7 +85,8 @@ class ShareIssuanceRequestAdmin(ReviewWorkflowAdmin):
 
     def execution_steps(self, obj):
         return [
-            "isWhitelisted(recipient) and authorizedShares() - totalSupply() >= amount - Checked before sending",
+            "whitelist().isWhitelisted(recipient) in the company registry and authorizedShares() - totalSupply() "
+            ">= amount - Checked before sending",
             f"mint({obj.recipient_address}, {obj.amount}) - Mint shares to recipient",
         ]
 

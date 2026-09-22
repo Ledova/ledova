@@ -21,17 +21,19 @@ from shared.db import (
 )
 from shared.tests.scoped import RunsOnTheScopedConnection
 from wallets.models import Wallet
-from whitelist.models import WhitelistChange, WhitelistEntry
+from whitelist.models import WhitelistApproval, WhitelistChange, WhitelistEntry
 from whitelist.services import changes
 from whitelist.tasks.recovery import recover_whitelist_changes
 from whitelist.tests.change_fixtures import (
     ADDRESS,
     CHAIN_ID,
+    FACTORY,
     KEY,
     REGISTRY,
     WhitelistNode,
     admitted_signer,
     change_actor,
+    change_company,
     change_entry,
 )
 from whitelist.tests.test_admin_blockchain_views import TEST_STORAGES
@@ -40,7 +42,7 @@ from whitelist.tests.test_admin_blockchain_views import TEST_STORAGES
 @override_settings(
     BLOCKCHAIN_OPERATOR_KEY=KEY,
     BLOCKCHAIN_CHAIN_ID=CHAIN_ID,
-    WHITELIST_CONTRACT_ADDRESS=REGISTRY,
+    SHARE_TOKEN_FACTORY_ADDRESS=FACTORY,
     STORAGES=TEST_STORAGES,
 )
 class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCase):
@@ -49,6 +51,7 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
         with use_operator():
             self.actor = change_actor()
             self.entry = change_entry()
+            self.company = change_company()
             admitted_signer()
         self.node = WhitelistNode()
         patcher = patch.object(changes, "get_base_chain_client", return_value=self.node.client)
@@ -57,10 +60,11 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
 
     def test_app_alias_cannot_admit_recover_or_read_private_commands(self):
         with use_operator():
-            change = changes._admit(uuid4(), "add", ADDRESS, self.actor, "operator_api", None)
+            change = changes._admit(uuid4(), "add", ADDRESS, self.actor, "operator_api", None, self.company, None)
+        self.node.client.load_contract.reset_mock()
         with acting_for(self.actor.pk):
             for invoke in (
-                lambda: changes.submit(uuid4(), "add", ADDRESS, self.actor),
+                lambda: changes.submit(uuid4(), "add", ADDRESS, self.actor, company=self.company),
                 lambda: changes.recover(change.pk),
             ):
                 with self.assertRaises(PermissionDenied):
@@ -74,7 +78,7 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
 
     def test_recovery_job_selects_operator_then_restores_app_principal(self):
         with use_operator():
-            changes._admit(uuid4(), "add", ADDRESS, self.actor, "operator_api", None)
+            changes._admit(uuid4(), "add", ADDRESS, self.actor, "operator_api", None, self.company, None)
         send = self.node.send
         seen = []
 
@@ -95,7 +99,7 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
 
     def test_operator_api_commits_and_recovers_original_identity(self):
         self.client.force_authenticate(self.actor)
-        incoming = {"submissionId": str(uuid4()), "walletAddress": ADDRESS}
+        incoming = {"submissionId": str(uuid4()), "walletAddress": ADDRESS, "company": str(self.company.pk)}
         response = self.client.post("/api/v1/whitelist/add/", incoming, format="json")
         self.assertEqual(response.status_code, 201, response.data)
         repeated = self.client.post("/api/v1/whitelist/add/", incoming, format="json")
@@ -112,7 +116,11 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
         page = self.client.get(url)
         self.assertEqual(page.status_code, 200)
         self.node.client.send_raw_transaction.assert_not_called()
-        incoming = {"confirm_whitelist": "1", "whitelist_confirmation": page.context["whitelist_confirmation"]}
+        incoming = {
+            "confirm_whitelist": "1",
+            "whitelist_confirmation": page.context["whitelist_confirmation"],
+            "whitelist_company": str(self.company.pk),
+        }
         response = self.client.post(url, incoming)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(self.client.post(url, incoming).status_code, 302)
@@ -120,6 +128,20 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
         with use_operator():
             self.assertEqual(WhitelistChange.objects.get().authority, "whitelist_admin")
             self.assertEqual(WhitelistChange.objects.get().status, "confirmed")
+            self.assertEqual(WhitelistApproval.objects.get().status, "active")
+
+    def test_customer_can_delete_a_wallet_with_a_company_approval(self):
+        with use_operator():
+            wallet = self.entry.wallet
+            customer = wallet.user_account.user_profile.user
+            WhitelistApproval.objects.create(entry=self.entry, company=self.company, registry_address=REGISTRY)
+        self.signed_in_as(customer)
+        response = self.client.delete(f"/api/wallets/{wallet.pk}/")
+        self.assertEqual(response.status_code, 204, response.data)
+        with use_operator():
+            self.assertFalse(Wallet.objects.filter(pk=wallet.pk).exists())
+            self.assertFalse(WhitelistEntry.objects.filter(pk=self.entry.pk).exists())
+            self.assertFalse(WhitelistApproval.objects.exists())
 
     def test_customer_can_delete_a_wallet_with_an_unadmitted_whitelist_entry(self):
         with use_operator():
@@ -137,7 +159,7 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
         with use_operator():
             wallet = self.entry.wallet
             customer = wallet.user_account.user_profile.user
-            original = changes.submit(uuid4(), "add", ADDRESS, self.actor)
+            original = changes.submit(uuid4(), "add", ADDRESS, self.actor, company=self.company)
             attempt = SignedAttempt.objects.get()
         self.signed_in_as(customer)
         response = self.client.delete(f"/api/wallets/{wallet.pk}/")
@@ -152,12 +174,11 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
             recovered = changes.recover(original.pk)
             self.assertEqual(recovered.status, "confirmed")
             self.assertEqual(recovered.entry_id, self.entry.pk)
-            self.assertIsNone(recovered.entry)
+            self.assertIsNone(recovered.approval)
             self.assertEqual(recovered.transaction.tx_hash, attempt.tx_hash)
             self.assertEqual(SignedAttempt.objects.count(), 1)
             self.assertFalse(WhitelistEntry.objects.filter(pk=self.entry.pk).exists())
-            replacement.refresh_from_db()
-            self.assertFalse(replacement.is_whitelisted)
+            self.assertFalse(WhitelistApproval.objects.filter(entry=replacement).exists())
         self.assertEqual(len(self.node.broadcasts), 1)
 
     def test_customer_wallet_address_edit_cannot_receive_the_original_address_receipt(self):
@@ -165,7 +186,7 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
         with use_operator():
             wallet = self.entry.wallet
             customer = wallet.user_account.user_profile.user
-            original = changes.submit(uuid4(), "add", ADDRESS, self.actor)
+            original = changes.submit(uuid4(), "add", ADDRESS, self.actor, company=self.company)
             attempt = SignedAttempt.objects.get()
         self.signed_in_as(customer)
         response = self.client.patch(f"/api/wallets/{wallet.pk}/", {"address": "0x" + "b" * 40}, format="json")
@@ -174,8 +195,6 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
             self.node.receipts[attempt.tx_hash] = receipt(attempt)
             recovered = changes.recover(original.pk)
             self.assertEqual(recovered.status, "confirmed")
-            self.assertIsNone(recovered.entry)
-            self.entry.refresh_from_db()
-            self.assertFalse(self.entry.is_whitelisted)
-            self.assertIsNone(self.entry.add_tx_hash)
+            self.assertIsNone(recovered.approval)
+            self.assertEqual(WhitelistApproval.objects.get(entry=self.entry).status, "pending")
         self.assertEqual(len(self.node.broadcasts), 1)

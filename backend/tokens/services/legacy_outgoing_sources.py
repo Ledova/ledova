@@ -183,7 +183,7 @@ def read_legacy_outgoing_sources():
         "tx_hash",
         "transaction_id",
     )
-    whitelist = _rows(WhitelistEntry, "address", "wallet__address", "status", "add_tx_hash", "remove_tx_hash")
+    whitelist = _rows(WhitelistEntry, "address", "wallet__address")
     registry = {
         ShareToken._meta.label: tokens,
         ShareIssuanceRequest._meta.label: requests,

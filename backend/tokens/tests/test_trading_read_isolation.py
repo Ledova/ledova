@@ -304,33 +304,36 @@ class TradingReadIsolationTest(APITransactionTestCase):
 
     @staticmethod
     def _whitelist_status_of(service, address):
-        service.investor_status.return_value = {
+        service.return_value = {
             "address": address,
             "is_whitelisted": True,
-            "can_receive": True,
             "status": "whitelisted",
         }
 
-    @patch("whitelist.views.status.whitelist")
+    @patch("whitelist.services.whitelist.investor_status")
     def test_whitelist_status_allows_bounded_recipient_eligibility_check(self, service):
         self._whitelist_status_of(service, Web3.to_checksum_address(self.alice_wallet.address))
         self.client.force_authenticate(self.bob)
-        response = self.client.get(f"/api/v1/trading/whitelist/{self.alice_wallet.address}/status/")
+        response = self.client.get(
+            f"/api/v1/trading/whitelist/{self.share_token.contract_address}/{self.alice_wallet.address}/status/"
+        )
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["isWhitelisted"])
-        service.investor_status.assert_called_once_with(self.alice_wallet.address)
+        service.assert_called_once_with(self.share_token, self.alice_wallet.address)
 
-    @patch("whitelist.views.status.whitelist")
+    @patch("whitelist.services.whitelist.investor_status")
     def test_whitelist_status_uses_canonical_owned_address(self, service):
         self._whitelist_status_of(service, Web3.to_checksum_address(self.bob_wallet.address))
         self.client.force_authenticate(self.bob)
 
-        response = self.client.get(f"/api/v1/trading/whitelist/{self.bob_case_variant}/status/")
+        response = self.client.get(
+            f"/api/v1/trading/whitelist/{self.share_token.contract_address}/{self.bob_case_variant}/status/"
+        )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["address"], Web3.to_checksum_address(self.bob_wallet.address))
-        service.investor_status.assert_called_once_with(self.bob_case_variant)
+        service.assert_called_once_with(self.share_token, self.bob_case_variant)
 
     @patch("tokens.views.trading_order.atomic_swap_service")
     def test_order_swap_role_is_derived_from_exact_transfer_order(self, service_module):

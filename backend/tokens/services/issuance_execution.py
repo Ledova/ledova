@@ -311,7 +311,7 @@ def _preflight(execution, client):
     contract = client.load_contract("ShareToken", execution.intent["to"])
     if token.status == ShareTokenStatus.PAUSED or contract.functions.paused().call():
         raise IssuanceRefusedException(share_token_service.TOKEN_PAUSED)
-    if not share_token_service.is_recipient_whitelisted(execution.intent["recipient"]):
+    if not share_token_service.is_recipient_whitelisted(execution.intent["to"], execution.intent["recipient"]):
         raise IssuanceRefusedException(share_token_service.NOT_WHITELISTED)
     authorized = contract.functions.authorizedShares().call()
     issued = contract.functions.totalSupply().call()

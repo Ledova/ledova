@@ -20,11 +20,16 @@ class WalletNotRegisteredException(APIException):
     default_code = "wallet_not_registered"
 
 
-class WhitelistContractNotConfiguredException(APIException):
+class WhitelistRegistryMissing(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = "This company has no share class on chain yet, so it has no whitelist registry."
+    default_code = "whitelist_registry_missing"
 
+
+class WhitelistRegistryUnreadable(APIException):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-    default_detail = "Whitelist contract is not configured."
-    default_code = "whitelist_contract_not_configured"
+    default_detail = "The company's whitelist registry could not be read. Try again."
+    default_code = "whitelist_registry_unreadable"
 
 
 class BatchEntriesRequiredException(APIException):

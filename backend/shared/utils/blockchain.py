@@ -10,7 +10,7 @@ ERROR_SELECTORS = {
     "0xe602df05": ("ERC20InvalidApprover", "Invalid token approver address"),
     "0x32da96a3": ("TokenNotApproved", "Share token is not approved for trading"),
     "0xa4b885b3": ("PaymentTokenNotApproved", "Payment token is not approved"),
-    "0xdf17e316": ("NotWhitelisted", "Account is not whitelisted"),
+    "0xbf3f9389": ("SenderNotWhitelisted", "Sender is not whitelisted for transfers"),
     "0xc56873ba": ("OrderExpired", "Swap order has expired"),
     "0xe90aded4": ("NonceAlreadyUsed", "Swap nonce has already been used"),
     "0x42d750dc": ("InvalidSignature", "Invalid signature provided"),

@@ -40,8 +40,8 @@ class RevertMessagesTest(SimpleTestCase):
         for value in (
             "execution reverted: 0xdeadbeef",
             f"connection failed at {RPC_URL}",
-            "https://node.example.test/v2/reverted:0xdf17e316",
-            "https://node.example.test/v2/0xdf17e316",
+            "https://node.example.test/v2/reverted:0xbf3f9389",
+            "https://node.example.test/v2/0xbf3f9389",
             "execution reverted: 0x" + "ab" * 5000,
             "0xnothexadecimal",
         ):

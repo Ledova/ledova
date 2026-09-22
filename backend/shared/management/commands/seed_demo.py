@@ -42,7 +42,7 @@ from users.services.setup import ensure_defaults
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 from wallets.models.wallet import Blockchain
-from whitelist.models import WhitelistEntry, WhitelistStatus
+from whitelist.models import WhitelistEntry
 
 User = get_user_model()
 
@@ -50,7 +50,7 @@ User = get_user_model()
 class Command(BaseCommand):
     help = (
         "Seed a browser-ready local demo: the operator row, a superuser, an active company with a draft "
-        "share class and a verified issuer wallet, and an eligible investor with a whitelisted wallet. "
+        "share class and a verified issuer wallet, and an eligible investor whose wallet has a whitelist entry. "
         "Writes no transactions to any chain."
     )
 
@@ -221,17 +221,9 @@ class Command(BaseCommand):
     def _seed_whitelist_entry(self, wallet):
         entry, created = WhitelistEntry.objects.get_or_create(
             wallet=wallet,
-            defaults={
-                "status": WhitelistStatus.ACTIVE,
-                "is_whitelisted": True,
-                "notes": "Seeded demo entry. The database row only; nothing was written to a chain.",
-            },
+            defaults={"notes": "Seeded demo entry. The database row only; nothing was written to a chain."},
         )
         self._track(created)
-        if not created:
-            entry.status = WhitelistStatus.ACTIVE
-            entry.is_whitelisted = True
-            entry.save(update_fields=["status", "is_whitelisted"])
         return entry
 
     def _report(self, password, company, token):
@@ -242,14 +234,14 @@ class Command(BaseCommand):
             "",
             f"  superuser   {DEMO_ADMIN_EMAIL}",
             f"  company     {DEMO_OWNER_EMAIL}    owns {company.name} ({company.get_status_display()})",
-            f"  investor    {DEMO_INVESTOR_EMAIL}  verified wholesale, whitelisted",
+            f"  investor    {DEMO_INVESTOR_EMAIL}  verified wholesale, with a whitelist entry",
             f"  password    {password}",
             "",
             f"  issuer wallet    {DEMO_ISSUER_ADDRESS}  (Hardhat account #0)",
             f"  investor wallet  {DEMO_INVESTOR_ADDRESS}  (Hardhat account #1)",
             "",
-            f"  Share class {token.symbol} is {token.get_status_display().lower()}; the whitelist entry is a",
-            "  database row only, so the investor is not whitelisted on any chain.",
-            "  Deploying the token and minting to them write real transactions.",
+            f"  Share class {token.symbol} is {token.get_status_display().lower()}. Deploying it creates the",
+            "  company's whitelist registry; approve the investor's entry for the company in the admin",
+            "  before minting to them. Each of those steps writes a real transaction.",
         ]
         self.stdout.write("\n".join(lines))

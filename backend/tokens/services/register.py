@@ -336,7 +336,9 @@ def _identity_sources(token, member_ids):
         "address"
     ):
         wallets[link.member_id].append(link.address)
-    identities = identities_for([address for addresses in wallets.values() for address in addresses])
+    identities = identities_for(
+        [address for addresses in wallets.values() for address in addresses], company_id=token.company_id
+    )
     stamps = ShareIssuance.objects.filter_by_token(token).latest_identity_stamps()
     return particulars, wallets, identities, stamps
 

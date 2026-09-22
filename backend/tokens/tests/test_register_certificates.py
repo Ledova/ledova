@@ -24,7 +24,7 @@ from tokens.services.register_events import create_member, open_register, record
 from tokens.tests.test_register_events import DAY
 from users.models import UserAccount, UserProfile
 from wallets.models import Wallet
-from whitelist.models import WhitelistEntry, WhitelistStatus
+from whitelist.models import WhitelistEntry
 
 User = get_user_model()
 
@@ -57,7 +57,6 @@ def wallet_of(name, residence):
     account = UserAccount.objects.create(user_profile=profile)
     WhitelistEntry.objects.create(
         wallet=Wallet.objects.create(user_account=account, address=address, chain="base"),
-        status=WhitelistStatus.ACTIVE,
     )
     return address
 

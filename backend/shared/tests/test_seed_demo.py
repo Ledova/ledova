@@ -25,7 +25,7 @@ from tokens.services import deployment
 from users.services.eligibility import investor_eligibility
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
-from whitelist.models import WhitelistEntry, WhitelistStatus
+from whitelist.models import WhitelistApproval, WhitelistEntry
 
 User = get_user_model()
 
@@ -97,12 +97,11 @@ class SeedDemoCommandTest(APITestCase):
         investor = User.objects.get(email=DEMO_INVESTOR_EMAIL)
         self.assertTrue(investor_eligibility(investor).is_eligible)
 
-    def test_the_investor_wallet_has_a_whitelist_row_with_no_chain_write(self):
+    def test_the_investor_wallet_has_a_whitelist_entry_and_no_company_approval(self):
         entry = WhitelistEntry.objects.get(wallet__address=DEMO_INVESTOR_ADDRESS)
 
-        self.assertEqual(entry.status, WhitelistStatus.ACTIVE)
-        self.assertTrue(entry.is_whitelisted)
-        self.assertIsNone(entry.add_tx_hash)
+        self.assertIn("nothing was written to a chain", entry.notes)
+        self.assertFalse(WhitelistApproval.objects.exists())
 
     def test_a_second_run_applies_the_password_it_prints(self):
         run(password="second-password-123")

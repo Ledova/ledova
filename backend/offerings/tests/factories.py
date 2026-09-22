@@ -94,5 +94,5 @@ def extra_wallet(tenant, suffix):
         verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
         verified_at=timezone.now(),
     )
-    WhitelistEntry.objects.create(wallet=wallet, is_whitelisted=True)
+    WhitelistEntry.objects.create(wallet=wallet)
     return wallet
