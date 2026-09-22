@@ -1,10 +1,10 @@
 import { ethers } from "hardhat";
 
 const FACTORY_ADDRESS = process.env.FACTORY_ADDRESS || "";
-const WHITELIST_ADDRESS = process.env.WHITELIST_ADDRESS || "";
 const TOKEN_NAME = process.env.TOKEN_NAME || "Example Share Token";
 const TOKEN_SYMBOL = process.env.TOKEN_SYMBOL || "DEMO";
-const COMPANY_IDENTIFIER = process.env.COMPANY_IDENTIFIER || "TEST-COMPANY";
+const COMPANY_ACN = process.env.COMPANY_ACN || "TEST-COMPANY";
+const COMPANY_IDENTIFIER = `${COMPANY_ACN}:${TOKEN_SYMBOL}`;
 const AUTHORIZED_SHARES = BigInt(process.env.AUTHORIZED_SHARES || "1000000");
 const INITIAL_MINT = BigInt(process.env.INITIAL_MINT || "1000000");
 
@@ -29,17 +29,9 @@ async function main() {
   }
 
   const factoryAddress = requireAddress("FACTORY_ADDRESS", FACTORY_ADDRESS);
-  const whitelistAddress = requireAddress(
-    "WHITELIST_ADDRESS",
-    WHITELIST_ADDRESS,
-  );
   const factory = await ethers.getContractAt(
     "ShareTokenFactory",
     factoryAddress,
-  );
-  const whitelist = await ethers.getContractAt(
-    "WhitelistRegistry",
-    whitelistAddress,
   );
 
   const existing = await factory.getTokenByIdentifier(COMPANY_IDENTIFIER);
@@ -48,17 +40,11 @@ async function main() {
     return;
   }
 
-  if (!(await whitelist.isWhitelisted(deployer.address))) {
-    const whitelistTransaction = await whitelist.addToWhitelist(
-      deployer.address,
-    );
-    await whitelistTransaction.wait();
-  }
-
   const transaction = await factory.createShareToken(
     TOKEN_NAME,
     TOKEN_SYMBOL,
     COMPANY_IDENTIFIER,
+    COMPANY_ACN,
     AUTHORIZED_SHARES,
     deployer.address,
   );
@@ -77,6 +63,17 @@ async function main() {
   const parsedEvent = factory.interface.parseLog(event);
   const tokenAddress = parsedEvent?.args.tokenAddress;
   if (INITIAL_MINT > 0n) {
+    const whitelist = await ethers.getContractAt(
+      "WhitelistRegistry",
+      await factory.registryOf(COMPANY_ACN),
+    );
+    if (!(await whitelist.isWhitelisted(deployer.address))) {
+      const approval = await whitelist.setExpiry(
+        deployer.address,
+        2n ** 64n - 1n,
+      );
+      await approval.wait();
+    }
     const token = await ethers.getContractAt("ShareToken", tokenAddress);
     const mintTransaction = await token.mint(deployer.address, INITIAL_MINT);
     await mintTransaction.wait();

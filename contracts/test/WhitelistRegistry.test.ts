@@ -1,19 +1,19 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { WhitelistRegistry } from "../typechain-types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+
+const NO_EXPIRY = 2n ** 64n - 1n;
 
 describe("WhitelistRegistry", function () {
   let whitelist: WhitelistRegistry;
   let owner: SignerWithAddress;
-  let investor1: SignerWithAddress;
-  let investor2: SignerWithAddress;
-  let investor3: SignerWithAddress;
+  let investor: SignerWithAddress;
   let nonOwner: SignerWithAddress;
 
   beforeEach(async function () {
-    [owner, investor1, investor2, investor3, nonOwner] =
-      await ethers.getSigners();
+    [owner, investor, nonOwner] = await ethers.getSigners();
 
     const WhitelistRegistry =
       await ethers.getContractFactory("WhitelistRegistry");
@@ -26,192 +26,83 @@ describe("WhitelistRegistry", function () {
       expect(await whitelist.owner()).to.equal(owner.address);
     });
 
-    it("Should start with zero whitelisted addresses", async function () {
-      expect(await whitelist.whitelistCount()).to.equal(0);
-    });
-
-    it("Should not be paused initially", async function () {
-      expect(await whitelist.paused()).to.equal(false);
+    it("Should list nobody initially", async function () {
+      expect(await whitelist.expiresAt(investor.address)).to.equal(0);
+      expect(await whitelist.isWhitelisted(investor.address)).to.equal(false);
     });
   });
 
-  describe("Adding to Whitelist", function () {
-    it("Should add an address to whitelist", async function () {
-      const tx = await whitelist.addToWhitelist(investor1.address);
+  describe("Setting an expiry", function () {
+    it("Should list an address until its expiry and emit the expiry", async function () {
+      const expiry = BigInt(await time.latest()) + 3600n;
 
-      await expect(tx).to.emit(whitelist, "AddedToWhitelist");
+      await expect(whitelist.setExpiry(investor.address, expiry))
+        .to.emit(whitelist, "ExpirySet")
+        .withArgs(investor.address, expiry);
 
-      expect(await whitelist.isWhitelisted(investor1.address)).to.equal(true);
-      expect(await whitelist.whitelistCount()).to.equal(1);
+      expect(await whitelist.expiresAt(investor.address)).to.equal(expiry);
+      expect(await whitelist.isWhitelisted(investor.address)).to.equal(true);
     });
 
-    it("Should record KYC timestamp", async function () {
-      await whitelist.addToWhitelist(investor1.address);
+    it("Should remove an address when the expiry is set to zero", async function () {
+      await whitelist.setExpiry(investor.address, NO_EXPIRY);
 
-      const kycTime = await whitelist.kycTimestamp(investor1.address);
-      expect(kycTime).to.be.greaterThan(0);
+      await expect(whitelist.setExpiry(investor.address, 0))
+        .to.emit(whitelist, "ExpirySet")
+        .withArgs(investor.address, 0);
+
+      expect(await whitelist.isWhitelisted(investor.address)).to.equal(false);
     });
 
-    it("Should revert if address is already whitelisted", async function () {
-      await whitelist.addToWhitelist(investor1.address);
+    it("Should keep an unlimited approval listed far into the future", async function () {
+      await whitelist.setExpiry(investor.address, NO_EXPIRY);
 
+      await time.increaseTo(32503680000n);
+
+      expect(await whitelist.isWhitelisted(investor.address)).to.equal(true);
+    });
+
+    it("Should stop listing an address once its expiry has passed", async function () {
+      const expiry = BigInt(await time.latest()) + 60n;
+      await whitelist.setExpiry(investor.address, expiry);
+
+      await time.increaseTo(expiry + 1n);
+
+      expect(await whitelist.isWhitelisted(investor.address)).to.equal(false);
+    });
+
+    it("Should refuse the zero address", async function () {
       await expect(
-        whitelist.addToWhitelist(investor1.address),
-      ).to.be.revertedWithCustomError(whitelist, "AlreadyWhitelisted");
-    });
-
-    it("Should revert if address is zero", async function () {
-      await expect(
-        whitelist.addToWhitelist(ethers.ZeroAddress),
+        whitelist.setExpiry(ethers.ZeroAddress, NO_EXPIRY),
       ).to.be.revertedWithCustomError(whitelist, "InvalidAddress");
     });
+  });
 
-    it("Should revert if caller is not owner", async function () {
+  describe("Owner-only writes", function () {
+    it("Should refuse a write from anyone but the owner", async function () {
       await expect(
-        whitelist.connect(nonOwner).addToWhitelist(investor1.address),
+        whitelist.connect(nonOwner).setExpiry(investor.address, NO_EXPIRY),
       ).to.be.revertedWithCustomError(whitelist, "OwnableUnauthorizedAccount");
-    });
-  });
-
-  describe("Batch Adding to Whitelist", function () {
-    it("Should add multiple addresses in batch", async function () {
-      const investors = [
-        investor1.address,
-        investor2.address,
-        investor3.address,
-      ];
-
-      await whitelist.batchAddToWhitelist(investors);
-
-      expect(await whitelist.isWhitelisted(investor1.address)).to.equal(true);
-      expect(await whitelist.isWhitelisted(investor2.address)).to.equal(true);
-      expect(await whitelist.isWhitelisted(investor3.address)).to.equal(true);
-      expect(await whitelist.whitelistCount()).to.equal(3);
+      expect(await whitelist.isWhitelisted(investor.address)).to.equal(false);
     });
 
-    it("Should skip zero address entries in batch", async function () {
-      const investors = [
-        investor1.address,
-        ethers.ZeroAddress,
-        investor2.address,
-      ];
-
-      await whitelist.batchAddToWhitelist(investors);
-
-      expect(await whitelist.isWhitelisted(investor1.address)).to.equal(true);
-      expect(await whitelist.isWhitelisted(investor2.address)).to.equal(true);
-      expect(await whitelist.whitelistCount()).to.equal(2);
-    });
-
-    it("Should skip already whitelisted addresses in batch", async function () {
-      await whitelist.addToWhitelist(investor1.address);
-
-      const investors = [investor1.address, investor2.address];
-
-      await whitelist.batchAddToWhitelist(investors);
-
-      expect(await whitelist.isWhitelisted(investor1.address)).to.equal(true);
-      expect(await whitelist.isWhitelisted(investor2.address)).to.equal(true);
-      expect(await whitelist.whitelistCount()).to.equal(2);
-    });
-  });
-
-  describe("Removing from Whitelist", function () {
-    beforeEach(async function () {
-      await whitelist.addToWhitelist(investor1.address);
-    });
-
-    it("Should remove an address from whitelist", async function () {
-      const tx = await whitelist.removeFromWhitelist(investor1.address);
-
-      await expect(tx).to.emit(whitelist, "RemovedFromWhitelist");
-
-      expect(await whitelist.isWhitelisted(investor1.address)).to.equal(false);
-      expect(await whitelist.whitelistCount()).to.equal(0);
-    });
-
-    it("Should reset KYC timestamp when removed", async function () {
-      await whitelist.removeFromWhitelist(investor1.address);
-
-      expect(await whitelist.kycTimestamp(investor1.address)).to.equal(0);
-    });
-
-    it("Should revert if address is not whitelisted", async function () {
-      await expect(
-        whitelist.removeFromWhitelist(investor2.address),
-      ).to.be.revertedWithCustomError(whitelist, "NotWhitelisted");
-    });
-  });
-
-  describe("Pause/Unpause", function () {
-    it("Should pause the contract", async function () {
-      await whitelist.pause();
-      expect(await whitelist.paused()).to.equal(true);
-    });
-
-    it("Should unpause the contract", async function () {
-      await whitelist.pause();
-      await whitelist.unpause();
-      expect(await whitelist.paused()).to.equal(false);
-    });
-
-    it("Should prevent adding to whitelist when paused", async function () {
-      await whitelist.pause();
+    it("Should refuse a removal from anyone but the owner", async function () {
+      await whitelist.setExpiry(investor.address, NO_EXPIRY);
 
       await expect(
-        whitelist.addToWhitelist(investor1.address),
-      ).to.be.revertedWithCustomError(whitelist, "EnforcedPause");
+        whitelist.connect(nonOwner).setExpiry(investor.address, 0),
+      ).to.be.revertedWithCustomError(whitelist, "OwnableUnauthorizedAccount");
+      expect(await whitelist.isWhitelisted(investor.address)).to.equal(true);
     });
 
-    it("Should prevent removing from whitelist when paused", async function () {
-      await whitelist.addToWhitelist(investor1.address);
-      await whitelist.pause();
+    it("Should move write authority with ownership", async function () {
+      await whitelist.transferOwnership(nonOwner.address);
 
       await expect(
-        whitelist.removeFromWhitelist(investor1.address),
-      ).to.be.revertedWithCustomError(whitelist, "EnforcedPause");
-    });
-
-    it("Should prevent batch adding when paused", async function () {
-      await whitelist.pause();
-
-      await expect(
-        whitelist.batchAddToWhitelist([investor1.address]),
-      ).to.be.revertedWithCustomError(whitelist, "EnforcedPause");
-    });
-  });
-
-  describe("View Functions", function () {
-    beforeEach(async function () {
-      await whitelist.addToWhitelist(investor1.address);
-    });
-
-    it("Should return correct investor info", async function () {
-      const [whitelisted, kycTimestamp] = await whitelist.getInvestorInfo(
-        investor1.address,
-      );
-
-      expect(whitelisted).to.equal(true);
-      expect(kycTimestamp).to.be.greaterThan(0);
-    });
-
-    it("Should return false for non-whitelisted address info", async function () {
-      const [whitelisted, kycTimestamp] = await whitelist.getInvestorInfo(
-        investor2.address,
-      );
-
-      expect(whitelisted).to.equal(false);
-      expect(kycTimestamp).to.equal(0);
-    });
-
-    it("Should return canReceive correctly", async function () {
-      expect(await whitelist.canReceive(investor1.address)).to.equal(true);
-      expect(await whitelist.canReceive(investor2.address)).to.equal(false);
-    });
-
-    it("Should return isWhitelisted correctly", async function () {
-      expect(await whitelist.isWhitelisted(investor1.address)).to.equal(true);
-      expect(await whitelist.isWhitelisted(investor2.address)).to.equal(false);
+        whitelist.setExpiry(investor.address, NO_EXPIRY),
+      ).to.be.revertedWithCustomError(whitelist, "OwnableUnauthorizedAccount");
+      await whitelist.connect(nonOwner).setExpiry(investor.address, NO_EXPIRY);
+      expect(await whitelist.isWhitelisted(investor.address)).to.equal(true);
     });
   });
 });

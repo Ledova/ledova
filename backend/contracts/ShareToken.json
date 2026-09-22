@@ -182,6 +182,17 @@
       "type": "error"
     },
     {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        }
+      ],
+      "name": "SenderNotWhitelisted",
+      "type": "error"
+    },
+    {
       "anonymous": false,
       "inputs": [
         {

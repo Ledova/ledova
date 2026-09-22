@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "./WhitelistRegistry.sol";
 
 contract AtomicSwap is EIP712, ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
@@ -16,8 +15,6 @@ contract AtomicSwap is EIP712, ReentrancyGuard, Ownable {
     bytes32 public constant SWAP_ORDER_TYPEHASH = keccak256(
         "SwapOrder(address seller,address buyer,address shareToken,address paymentToken,uint256 shareAmount,uint256 paymentAmount,uint256 nonce,uint256 deadline)"
     );
-
-    WhitelistRegistry public immutable whitelist;
 
     mapping(address => mapping(uint256 => bool)) public usedNonces;
 
@@ -42,7 +39,6 @@ contract AtomicSwap is EIP712, ReentrancyGuard, Ownable {
 
     error TokenNotApproved();
     error PaymentTokenNotApproved();
-    error NotWhitelisted(address account);
     error InvalidSignature(address expected, address recovered);
     error OrderExpired();
     error NonceAlreadyUsed(address account, uint256 nonce);
@@ -50,8 +46,7 @@ contract AtomicSwap is EIP712, ReentrancyGuard, Ownable {
     error NotRelayer();
     error SameParty();
 
-    constructor(address _whitelist, address _owner) EIP712("LedovaAtomicSwap", "1") Ownable(_owner) {
-        whitelist = WhitelistRegistry(_whitelist);
+    constructor(address _owner) EIP712("LedovaAtomicSwap", "1") Ownable(_owner) {
         relayers[_owner] = true;
     }
 
@@ -92,8 +87,6 @@ contract AtomicSwap is EIP712, ReentrancyGuard, Ownable {
         if (block.timestamp > deadline) revert OrderExpired();
         if (!approvedShareTokens[shareToken]) revert TokenNotApproved();
         if (!approvedPaymentTokens[paymentToken]) revert PaymentTokenNotApproved();
-        if (!whitelist.isWhitelisted(seller)) revert NotWhitelisted(seller);
-        if (!whitelist.isWhitelisted(buyer)) revert NotWhitelisted(buyer);
 
         if (usedNonces[seller][nonce]) revert NonceAlreadyUsed(seller, nonce);
         if (usedNonces[buyer][nonce]) revert NonceAlreadyUsed(buyer, nonce);

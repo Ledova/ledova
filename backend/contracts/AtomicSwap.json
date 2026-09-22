@@ -1,13 +1,7 @@
 {
-  "contractName": "AtomicSwap",
   "abi": [
     {
       "inputs": [
-        {
-          "internalType": "address",
-          "name": "_whitelist",
-          "type": "address"
-        },
         {
           "internalType": "address",
           "name": "_owner",
@@ -89,17 +83,6 @@
     {
       "inputs": [],
       "name": "NotRelayer",
-      "type": "error"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "account",
-          "type": "address"
-        }
-      ],
-      "name": "NotWhitelisted",
       "type": "error"
     },
     {
@@ -747,19 +730,7 @@
       ],
       "stateMutability": "view",
       "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "whitelist",
-      "outputs": [
-        {
-          "internalType": "contract WhitelistRegistry",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
     }
-  ]
+  ],
+  "contractName": "AtomicSwap"
 }

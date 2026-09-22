@@ -74,8 +74,8 @@ describe("AtomicSwap", function () {
     whitelist = await WhitelistRegistry.deploy(owner.address);
     await whitelist.waitForDeployment();
 
-    await whitelist.addToWhitelist(seller.address);
-    await whitelist.addToWhitelist(buyer.address);
+    await whitelist.setExpiry(seller.address, 2n ** 64n - 1n);
+    await whitelist.setExpiry(buyer.address, 2n ** 64n - 1n);
 
     const ShareToken = await ethers.getContractFactory("ShareToken");
     shareToken = await ShareToken.deploy(
@@ -92,10 +92,7 @@ describe("AtomicSwap", function () {
     await stablecoin.waitForDeployment();
 
     const AtomicSwap = await ethers.getContractFactory("AtomicSwap");
-    atomicSwap = await AtomicSwap.deploy(
-      await whitelist.getAddress(),
-      owner.address,
-    );
+    atomicSwap = await AtomicSwap.deploy(owner.address);
     await atomicSwap.waitForDeployment();
 
     await atomicSwap.setShareTokenApproval(await shareToken.getAddress(), true);
@@ -121,12 +118,6 @@ describe("AtomicSwap", function () {
   describe("Deployment", function () {
     it("Should set the correct owner", async function () {
       expect(await atomicSwap.owner()).to.equal(owner.address);
-    });
-
-    it("Should set the correct whitelist", async function () {
-      expect(await atomicSwap.whitelist()).to.equal(
-        await whitelist.getAddress(),
-      );
     });
 
     it("Should set owner as relayer", async function () {
@@ -751,7 +742,7 @@ describe("AtomicSwap", function () {
     });
   });
 
-  describe("Whitelist Validation", function () {
+  describe("Whitelist validation by the share token", function () {
     it("Should revert if seller not whitelisted", async function () {
       const deadline = BigInt((await time.latest()) + 86400);
       const [, , , , nonWhitelisted] = await ethers.getSigners();
@@ -769,6 +760,9 @@ describe("AtomicSwap", function () {
 
       const sellerSignature = await signSwapOrder(nonWhitelisted, order);
       const buyerSignature = await signSwapOrder(buyer, order);
+      await shareToken
+        .connect(nonWhitelisted)
+        .approve(await atomicSwap.getAddress(), ethers.MaxUint256);
 
       await expect(
         atomicSwap
@@ -785,7 +779,54 @@ describe("AtomicSwap", function () {
             sellerSignature,
             buyerSignature,
           ),
-      ).to.be.revertedWithCustomError(atomicSwap, "NotWhitelisted");
+      )
+        .to.be.revertedWithCustomError(shareToken, "SenderNotWhitelisted")
+        .withArgs(nonWhitelisted.address);
+    });
+
+    it("Should revert and keep both nonces if the seller's approval expired", async function () {
+      const deadline = BigInt((await time.latest()) + 86400);
+      await whitelist.setExpiry(
+        seller.address,
+        BigInt(await time.latest()) + 10n,
+      );
+      await time.increase(20);
+
+      const order = {
+        seller: seller.address,
+        buyer: buyer.address,
+        shareToken: await shareToken.getAddress(),
+        paymentToken: await stablecoin.getAddress(),
+        shareAmount: SHARE_AMOUNT,
+        paymentAmount: PAYMENT_AMOUNT,
+        nonce: NONCE,
+        deadline: deadline,
+      };
+
+      await expect(
+        atomicSwap
+          .connect(relayer)
+          .executeSwap(
+            seller.address,
+            buyer.address,
+            await shareToken.getAddress(),
+            await stablecoin.getAddress(),
+            SHARE_AMOUNT,
+            PAYMENT_AMOUNT,
+            NONCE,
+            deadline,
+            await signSwapOrder(seller, order),
+            await signSwapOrder(buyer, order),
+          ),
+      )
+        .to.be.revertedWithCustomError(shareToken, "SenderNotWhitelisted")
+        .withArgs(seller.address);
+      expect(await atomicSwap.isNonceUsed(seller.address, NONCE)).to.equal(
+        false,
+      );
+      expect(await atomicSwap.isNonceUsed(buyer.address, NONCE)).to.equal(
+        false,
+      );
     });
 
     it("Should revert if buyer not whitelisted", async function () {
@@ -821,7 +862,9 @@ describe("AtomicSwap", function () {
             sellerSignature,
             buyerSignature,
           ),
-      ).to.be.revertedWithCustomError(atomicSwap, "NotWhitelisted");
+      )
+        .to.be.revertedWithCustomError(shareToken, "RecipientNotWhitelisted")
+        .withArgs(nonWhitelisted.address);
     });
   });
 

@@ -1,7 +1,10 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { ShareToken, WhitelistRegistry } from "../typechain-types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+
+const NO_EXPIRY = 2n ** 64n - 1n;
 
 describe("ShareToken", function () {
   let whitelist: WhitelistRegistry;
@@ -25,8 +28,8 @@ describe("ShareToken", function () {
     whitelist = await WhitelistRegistry.deploy(owner.address);
     await whitelist.waitForDeployment();
 
-    await whitelist.addToWhitelist(investor1.address);
-    await whitelist.addToWhitelist(investor2.address);
+    await whitelist.setExpiry(investor1.address, NO_EXPIRY);
+    await whitelist.setExpiry(investor2.address, NO_EXPIRY);
 
     const ShareToken = await ethers.getContractFactory("ShareToken");
     shareToken = await ShareToken.deploy(
@@ -182,6 +185,130 @@ describe("ShareToken", function () {
     });
   });
 
+  describe("Sender checks", function () {
+    beforeEach(async function () {
+      await shareToken.connect(company).mint(investor1.address, 10000n);
+    });
+
+    it("Should refuse a direct transfer from a removed sender", async function () {
+      await whitelist.setExpiry(investor1.address, 0);
+
+      await expect(
+        shareToken.connect(investor1).transfer(investor2.address, 1000n),
+      )
+        .to.be.revertedWithCustomError(shareToken, "SenderNotWhitelisted")
+        .withArgs(investor1.address);
+    });
+
+    it("Should refuse a direct transfer from an expired sender", async function () {
+      const expiry = BigInt(await time.latest()) + 60n;
+      await whitelist.setExpiry(investor1.address, expiry);
+      await time.increaseTo(expiry);
+
+      await expect(
+        shareToken.connect(investor1).transfer(investor2.address, 1000n),
+      )
+        .to.be.revertedWithCustomError(shareToken, "SenderNotWhitelisted")
+        .withArgs(investor1.address);
+    });
+
+    it("Should refuse a delegated transferFrom out of a removed holder", async function () {
+      await shareToken.connect(investor1).approve(investor2.address, 1000n);
+      await whitelist.setExpiry(investor1.address, 0);
+
+      await expect(
+        shareToken
+          .connect(investor2)
+          .transferFrom(investor1.address, investor2.address, 1000n),
+      )
+        .to.be.revertedWithCustomError(shareToken, "SenderNotWhitelisted")
+        .withArgs(investor1.address);
+    });
+
+    it("Should refuse a delegated transferFrom out of an expired holder", async function () {
+      await shareToken.connect(investor1).approve(investor2.address, 1000n);
+      const expiry = BigInt(await time.latest()) + 60n;
+      await whitelist.setExpiry(investor1.address, expiry);
+      await time.increaseTo(expiry);
+
+      await expect(
+        shareToken
+          .connect(investor2)
+          .transferFrom(investor1.address, investor2.address, 1000n),
+      )
+        .to.be.revertedWithCustomError(shareToken, "SenderNotWhitelisted")
+        .withArgs(investor1.address);
+    });
+
+    it("Should let a removed holder transfer again once renewed", async function () {
+      await whitelist.setExpiry(investor1.address, 0);
+      await whitelist.setExpiry(investor1.address, NO_EXPIRY);
+
+      await shareToken.connect(investor1).transfer(investor2.address, 1000n);
+      expect(await shareToken.balanceOf(investor2.address)).to.equal(1000n);
+    });
+
+    it("Should still let a removed holder burn their own shares", async function () {
+      await whitelist.setExpiry(investor1.address, 0);
+
+      await shareToken.connect(investor1).burn(1000n);
+
+      expect(await shareToken.balanceOf(investor1.address)).to.equal(9000n);
+    });
+  });
+
+  describe("Expiry at the exact second", function () {
+    let expiry: bigint;
+
+    beforeEach(async function () {
+      await shareToken.connect(company).mint(investor1.address, 10000n);
+      expiry = BigInt(await time.latest()) + 100n;
+    });
+
+    it("Should let a sender transfer in the last listed second", async function () {
+      await whitelist.setExpiry(investor1.address, expiry);
+      await time.setNextBlockTimestamp(expiry - 1n);
+
+      await shareToken.connect(investor1).transfer(investor2.address, 1n);
+      expect(await shareToken.balanceOf(investor2.address)).to.equal(1n);
+    });
+
+    it("Should refuse a sender in the second its expiry names", async function () {
+      await whitelist.setExpiry(investor1.address, expiry);
+      await time.setNextBlockTimestamp(expiry);
+
+      await expect(
+        shareToken.connect(investor1).transfer(investor2.address, 1n),
+      ).to.be.revertedWithCustomError(shareToken, "SenderNotWhitelisted");
+    });
+
+    it("Should let a recipient receive in the last listed second", async function () {
+      await whitelist.setExpiry(investor2.address, expiry);
+      await time.setNextBlockTimestamp(expiry - 1n);
+
+      await shareToken.connect(investor1).transfer(investor2.address, 1n);
+      expect(await shareToken.balanceOf(investor2.address)).to.equal(1n);
+    });
+
+    it("Should refuse a recipient in the second its expiry names", async function () {
+      await whitelist.setExpiry(investor2.address, expiry);
+      await time.setNextBlockTimestamp(expiry);
+
+      await expect(
+        shareToken.connect(investor1).transfer(investor2.address, 1n),
+      ).to.be.revertedWithCustomError(shareToken, "RecipientNotWhitelisted");
+    });
+
+    it("Should refuse a mint in the second the recipient's expiry names", async function () {
+      await whitelist.setExpiry(investor2.address, expiry);
+      await time.setNextBlockTimestamp(expiry);
+
+      await expect(
+        shareToken.connect(company).mint(investor2.address, 1n),
+      ).to.be.revertedWithCustomError(shareToken, "RecipientNotWhitelisted");
+    });
+  });
+
   describe("Pause/Unpause", function () {
     beforeEach(async function () {
       await shareToken.connect(company).mint(investor1.address, 10000n);
@@ -200,6 +327,25 @@ describe("ShareToken", function () {
 
       await expect(
         shareToken.connect(company).mint(investor1.address, 1000n),
+      ).to.be.revertedWithCustomError(shareToken, "EnforcedPause");
+    });
+
+    it("Should pause delegated transfers", async function () {
+      await shareToken.connect(investor1).approve(investor2.address, 1000n);
+      await shareToken.connect(company).pause();
+
+      await expect(
+        shareToken
+          .connect(investor2)
+          .transferFrom(investor1.address, investor2.address, 1000n),
+      ).to.be.revertedWithCustomError(shareToken, "EnforcedPause");
+    });
+
+    it("Should pause burning", async function () {
+      await shareToken.connect(company).pause();
+
+      await expect(
+        shareToken.connect(investor1).burn(1000n),
       ).to.be.revertedWithCustomError(shareToken, "EnforcedPause");
     });
 

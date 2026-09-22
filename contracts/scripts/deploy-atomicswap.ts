@@ -3,14 +3,9 @@ import { assertTestDeploymentNetwork } from "./network-safety";
 
 async function main() {
   await assertTestDeploymentNetwork();
-  const whitelistAddress = process.env.WHITELIST_ADDRESS;
   const stablecoinAddress = process.env.STABLECOIN_ADDRESS;
   const shareTokenAddress = process.env.SHARE_TOKEN_ADDRESS;
   const relayerAddress = process.env.RELAYER_ADDRESS;
-
-  if (!whitelistAddress) {
-    throw new Error("WHITELIST_ADDRESS environment variable not set");
-  }
 
   const [deployer] = await ethers.getSigners();
 
@@ -22,10 +17,7 @@ async function main() {
 
   console.log("\n1. Deploying AtomicSwap...");
   const AtomicSwap = await ethers.getContractFactory("AtomicSwap");
-  const atomicSwap = await AtomicSwap.deploy(
-    whitelistAddress,
-    deployer.address,
-  );
+  const atomicSwap = await AtomicSwap.deploy(deployer.address);
   await atomicSwap.waitForDeployment();
   const atomicSwapAddress = await atomicSwap.getAddress();
   console.log("   AtomicSwap deployed to:", atomicSwapAddress);
@@ -66,7 +58,6 @@ async function main() {
   console.log("AtomicSwap Deployment Summary");
   console.log("========================================");
   console.log(`AtomicSwap Address: ${atomicSwapAddress}`);
-  console.log(`Whitelist Address: ${whitelistAddress}`);
   console.log(`Owner: ${deployer.address}`);
   console.log(`Domain Separator: ${domainSeparator}`);
   console.log(`Chain ID: ${chainId.toString()}`);
