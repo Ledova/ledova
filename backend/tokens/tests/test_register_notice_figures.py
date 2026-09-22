@@ -244,13 +244,13 @@ class NoticeFiguresTest(TestCase):
                 ["4", "Issue", "2026-09-03", "", unidentified, "", "5", "not recorded"],
                 *sorted(
                     [
-                        ["5", "Transfer", "2026-09-04", "", seller, SELLER_NAME, "'-30", ""],
+                        ["5", "Transfer", "2026-09-04", "", seller, SELLER_NAME, "-30", ""],
                         ["5", "Transfer", "2026-09-04", "", buyer, f"'{BUYER_NAME}", "30", ""],
                     ],
                     key=lambda row: row[4],
                 ),
                 ["6", "Issue", "2026-09-04", "", str(self.ambiguous.pk), MEMBER_AMBIGUOUS_NAME, "3", "not recorded"],
-                ["7", "Compensating correction", "2026-09-05", "4", unidentified, "", "'-5", ""],
+                ["7", "Compensating correction", "2026-09-05", "4", unidentified, "", "-5", ""],
                 [],
                 [CLASS_HEADING],
                 ["Issued supply", "153"],

@@ -311,9 +311,10 @@ never zero, and so does the class total unless every current member's amount
 paid is established. A transfer or correction carries none. Names and addresses
 are the ones the register gives when the figures are prepared; a member whose
 wallets resolve to different people, or who is unidentified, is printed as the
-register prints them rather than refused. Every value goes through `csv_cell`,
-so a negative change, like any other value that opens with a minus sign, prints
-with a leading apostrophe.
+register prints them rather than refused. Counts, entry numbers and changes are
+written as plain numbers, so a negative change reads as one; every other value
+goes through `csv_cell`, which puts a leading apostrophe before text that opens
+with a formula character.
 
 Days are counted in Sydney's calendar, as for inspection copies. A register with
 no opening and a period starting after today are refused, and a refusal records

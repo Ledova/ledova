@@ -888,9 +888,9 @@ to register entry N, has four sections, each after a heading row:
 shares received by transfer; the company supplies it from its own records.
 Names and addresses are the ones the register gives when you prepare the
 figures, and a member the register cannot name is printed as the register
-prints them rather than refused. A negative change, like any value that begins
-with a formula character, carries a leading apostrophe so that a spreadsheet
-does not read it as a formula. Check the figures against the instruction and
+prints them rather than refused. A negative change prints as a plain negative
+number; a name, address or instruction that begins with a formula character
+carries a leading apostrophe so that a spreadsheet does not read it as a formula. Check the figures against the instruction and
 give the file to the company unchanged. The page refuses, and records nothing,
 when the share class has no applied opening, when the first day is after today
 in Sydney's calendar, or when a field is blank. A period with no entries is not

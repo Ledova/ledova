@@ -688,7 +688,7 @@ def prepare_notice_figures(token, requested_by, *, period_from, instruction) -> 
             *(_changed_member_row(member, people[member], current.get(member)) for member in changed),
         ]
     sheet = io.StringIO()
-    csv.writer(sheet).writerows([csv_cell(value) for value in row] for row in rows)
+    csv.writer(sheet).writerows([value if isinstance(value, int) else csv_cell(value) for value in row] for row in rows)
     content = sheet.getvalue().encode()
     RegisterExport.objects.create(
         token=token,
