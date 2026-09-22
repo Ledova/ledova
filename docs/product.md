@@ -203,7 +203,7 @@ payments and assets synthetic.
 | Investor classification | Claim/evidence submission and review status exist in both clients; staff review is in admin; eligibility scopes discovery and subscriptions |
 | Primary offerings and subscriptions | Investor directory, subscription and payment instructions are available in the dashboard; the mobile investor flow remains unscheduled |
 | AUD and stablecoin payments | Operator records receipt, refunds and allotment in admin; bank-feed and stablecoin-watcher reconciliation is planned |
-| Register | Current members are read from the stored register once a share class's opening is applied, with the chain unreachable; former members are retained records; import, chain reconciliation and a durable export audit remain future work |
+| Register | Current members are read from the stored register once a share class's opening is applied, with the chain unreachable; former members are retained records; a scheduled job reconciles them with the chain; import and a durable export audit remain future work |
 | Portfolios and crypto wallets | Holdings, valuations, history, verified-address flows and supported test-network transfers exist; unpriced shares do not imply a market valuation |
 | Secondary trading | Order, matching and settlement are enabled by default on the experimental deployment; releases still require the human checks in [#624](https://github.com/Ledova/ledova/issues/624) |
 | Mobile | Wallets, portfolio, company/token screens, eligibility and supporting-document flows exist; native security needs a Ledova build, with separate device acceptance checks |

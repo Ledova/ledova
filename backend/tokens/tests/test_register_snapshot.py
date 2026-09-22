@@ -166,6 +166,17 @@ class RegisterSnapshotReadTest(SimpleTestCase):
         with self.assertRaisesMessage(RegisterUnavailableException, "repeats"):
             self.node.capture()
 
+    def test_a_transaction_that_moves_no_shares_is_folded_but_not_listed(self):
+        listed = self.node.capture()["history"]
+        self.node.events.append(transfer(4, BOB, ZERO_ADDRESS, 0))
+        self.assertEqual(self.node.capture()["history"], listed)
+        self.node.events.append(transfer(4, ALICE, BOB, 5, index=1))
+        self.node.balances = {ALICE: 75, BOB: 25}
+        self.assertEqual(
+            self.node.capture()["history"],
+            listed + [{"block": 4, "block_hash": block_hash(4), "transaction": block_hash(104)}],
+        )
+
     def test_state_neutral_log_gaps_cannot_be_presented_as_a_complete_event_history(self):
         for neutral in (
             [transfer(4, ALICE, ALICE, 10)],

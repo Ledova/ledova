@@ -12,6 +12,7 @@ SCOPED_TEST_LABELS = (
     "tokens.tests.test_register_corrections_scoped.ScopedRegisterCorrectionTest",
     "tokens.tests.test_register_openings_scoped.ScopedRegisterOpeningTest",
     "tokens.tests.test_register_openings_scoped.ScopedRegisterWalletLinkTest",
+    "tokens.tests.test_register_reconciliation.ScopedRegisterReconciliationTest",
     "tokens.tests.test_register_snapshot_scoped.ScopedRegisterSnapshotTest",
     "tokens.tests.test_register_events_scoped.ScopedRegisterFoundationTest",
     "tokens.tests.test_nav_scoped.ScopedNAVRecoveryTest",

@@ -46,6 +46,12 @@ An entry recorded automatically names the person who authorised its change: the
 staff member who approved an issue, or the transferor whose signed order is a
 transfer's instrument, rather than the company owner or a service account that
 took no action ([#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5756732848)).
+A reconciliation divergence that staff have investigated and accepted is
+acknowledged, one discrepancy at a time with a reason, in an append-only record
+only the operator writes, and later runs treat it as explained, so a share class
+can return to `matched`. Transfers of zero shares are ignored, because anyone
+can emit one. Both were chosen on 22 September 2026 in
+[#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5767606273).
 [The register](architecture/register.md) owns the mechanisms.
 
 ## Payments and settlement

@@ -9,6 +9,7 @@ from .former_holders import fold_every_share_class, purge_former_members_past_th
 from .mint_request import recover_mint_requests
 from .nav import check_pending_nav_updates, recover_nav_update
 from .pause import check_pending_pause_changes, recover_pause_change
+from .register_reconciliation import reconcile_every_register
 from .review_request import (
     check_executing_issuance_requests,
     execute_review_request_task,
@@ -32,6 +33,7 @@ __all__ = [
     "fold_every_share_class",
     "purge_former_members_past_the_clock",
     "purge_signing_challenges",
+    "reconcile_every_register",
     "recover_swap_execution",
     "resolve_executing_swaps",
     "recover_mint_requests",

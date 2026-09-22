@@ -9,8 +9,9 @@ compensating corrections. It is a foundation for the authoritative register.
 The HTTP and CSV register routes serve it once a share class's opening is
 applied, and issuance and settlement then record each later completed effect in
 it; opening review and the inclusion report classify completed effects against
-the captured boundary. Import, reconciliation and a durable export audit are
-still missing, so no real company's register may rely on it yet.
+the captured boundary, and a scheduled job reconciles it with the chain. Import
+and a durable export audit are still missing, so no real company's register may
+rely on it yet.
 
 ## Identity and events
 
@@ -130,7 +131,9 @@ reads are refused rather than replaced by current balances.
 The JSON records the company, class, deployment transaction, network, contract,
 block number/hash/date, finality policy, issued/authorized supply, positive
 holdings and the canonical transfer history it folded: one entry per observed
-transaction with its block number and block hash. All share quantities are exact
+transaction that moved shares, with its block number and block hash. A
+transaction whose transfers all carry zero shares is folded but not listed,
+since anyone can emit one with `burn(0)`. All share quantities are exact
 integer strings; names and residential addresses are absent. The observed
 transfer fold must agree with each observed participant's balance, including zero
 balances, and total supply at that same hash. Duplicate or noncanonical logs,
@@ -524,8 +527,107 @@ completions could not be classified, or the register has no captured boundary to
 classify them against, as with one loaded by the synthetic command above;
 `register_inclusions` prints the refusal or a null boundary.
 
-Attribution procedures and the scheduled reconciliation job are still
+## Reconciling with the chain
+
+Every six hours, at :50 UTC, `reconcile_every_register` reconciles each share
+class that has an applied opening. It reads the chain; it writes only
+reconciliation records, never a register entry. It captures a fresh canonical
+snapshot at the finality boundary, as an opening's review does, and compares it
+with the stored register under the share-class lock that completions take:
+
+- every chain transfer after the opening boundary must be a recorded effect, a
+  completed effect still waiting to be recorded, or an issuance or settlement
+  still executing whose current signed transaction is the one on chain and whose
+  receipt, if one is recorded yet, succeeded. A completed, failed or cancelled
+  operation explains nothing, and nor does a superseded attempt or one whose
+  recorded revert the chain contradicts, which is held for operator attribution;
+- every completed effect after the opening must be on chain in the block, number
+  and hash, that its receipt names;
+- each member's linked wallets must hold its stored shares plus those pending
+  movements, an unlinked address only what pending movements give it, and the
+  issued supply must equal the stored supply plus pending issues. An effect
+  recorded beyond the snapshot block is left out of the comparison. A completion
+  held for attribution accounts for its own transfer but moves nothing, since
+  its place relative to the opening is what is unknown.
+
+A transfer of zero shares is ignored, and a discrepancy staff have
+[acknowledged](#acknowledging-a-discrepancy) is treated as explained.
+
+The stored register row is locked for the comparison, so a correction cannot
+land between reading the supply and reading the holdings. A snapshot below the
+opening's boundary block, from a lagging provider or a deeper finality policy,
+is never compared: the stored holdings are as at the opening, and an older chain
+state would report differences that do not exist.
+
+Each run is retained in `RegisterReconciliation`: `matched`, `discrepant` with
+its discrepancies, or `failed` with the reason it could not compare: the chain
+could not be read, or its snapshot is below the opening boundary. The record
+also keeps the block and the register sequence compared. A chain failure is a
+failed reconciliation; the register reads are unaffected. Discrepancies are
+logged at error level, which is the alert, and the CSV summary states the
+latest result. The job tries every share class, then fails if any could not be
+reconciled. A class whose run raised rather than recording `failed` keeps its
+previous result in the CSV, so the failed job is the signal to look at.
+
+| Discrepancy | Meaning and next step |
+| --- | --- |
+| `unrecognised_transfer` | A chain transfer after the opening that no recorded, waiting or executing platform operation accounts for, such as a direct token transfer between whitelisted wallets. A transfer of zero shares is never reported. Investigate it; if it is accepted, [acknowledge](#acknowledging-a-discrepancy) it and the rows it causes, otherwise dispute it with the holders |
+| `missing_transfer` | A completed effect whose transaction is not on chain in its block. Treat it as a reorganisation: stop, and attribute it before relying on the register. It cannot be acknowledged |
+| `member`, `unlinked`, `supply` | Holdings or supply that differ from the stored register plus pending movements and earlier acknowledgements. They accompany one of the others, or follow an applied correction, which changes the stored register and not the chain. Acknowledge them once their cause is understood |
+| `attribution` | A completion the evidence cannot place, as in [classification](#classifying-completed-inclusions). It cannot be acknowledged |
+
+To reconcile one share class on demand, from `backend/`:
+
+```bash
+python manage.py register_reconcile --token TOKEN_UUID
+```
+
+It prints the retained record. The database refuses to rewrite or delete a
+reconciliation, or to record one inconsistent with its status. Only the
+operator records them, and the issuer reads its own. Downgrading `tokens/0070`
+refuses while any exist.
+
+### Acknowledging a discrepancy
+
+The register itself cannot follow a divergence it did not cause: no reviewed
+entry records an outside transfer, and a correction only compensates an
+existing entry. Once staff have investigated a divergence and accepted it, they
+acknowledge it, one row at a time, from the share class's latest
+reconciliation, from `backend/`:
+
+```bash
+python manage.py register_acknowledge --reconciliation RECONCILIATION_UUID \
+    --discrepancy POSITION --reason "WHY IT IS ACCEPTED" --actor STAFF_USER_ID
+```
+
+`POSITION` counts from zero through the record's `discrepancies`, in the order
+`register_reconcile` prints them. Later runs treat the row as explained:
+
+- an acknowledged `unrecognised_transfer` is not reported again for that
+  transaction hash;
+- an acknowledged `member`, `unlinked` or `supply` row keeps its difference,
+  chain minus expected, and later runs add it to the expected side for that
+  member, address or the supply. A further change for the same key is reported
+  as a new difference.
+
+Accepting an outside transfer therefore takes its `unrecognised_transfer` row
+and the `member` or `unlinked` rows it caused. An applied correction's effect is
+acknowledged the same way, through the `member` and `supply` rows it leaves.
+Once every row is acknowledged, the next run is `matched`. An acknowledgement
+explains a divergence; it records nothing in the register, whose holdings stay
+as recorded. `attribution` and `missing_transfer` cannot be acknowledged: they
+need the attribution procedure, which is still
 [#647](https://github.com/Ledova/ledova/issues/647) work.
+
+Each acknowledgement is retained with the reconciliation, the exact row, the
+reason, the staff member and the time, and the command prints it. The command
+takes rows of the latest reconciliation only, under the share-class lock a run
+holds, so no divergence is counted twice; for a row of an older record,
+reconcile again and use the new one. The database refuses to change or delete
+an acknowledgement, a row that is not verbatim in the class's reconciliation, a
+second acknowledgement of the same row, a blank reason, a user who is not
+active staff, and any insert from the app role. Only the operator reads them;
+the issuer sees the reconciliation result they produce.
 
 Next: [the remaining register work](https://github.com/Ledova/ledova/issues/647)
 and [register architecture](../architecture/register.md).

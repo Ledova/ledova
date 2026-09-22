@@ -22,6 +22,7 @@ one.
 | hourly, on the hour | `sync_all_wallets`, `run_batch_monitoring` |
 | hourly, at :15 | `purge_signing_challenges` |
 | every 6 hours, at :20 | `fold_every_share_class` |
+| every 6 hours, at :50 | `reconcile_every_register` |
 | daily 03:00 | `expire_unpaid_subscriptions`, `purge_classification_evidence` |
 | daily 03:15 | `purge_document_evidence` |
 | daily 03:30 | `sweep_private_uploads` |

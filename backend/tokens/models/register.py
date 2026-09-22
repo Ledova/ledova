@@ -56,3 +56,38 @@ class RegisterPosition(BaseModel):
             models.UniqueConstraint(fields=["register", "member"], name="register_member_position"),
             models.CheckConstraint(condition=models.Q(shares__gte=0), name="register_position_nonnegative"),
         ]
+
+
+class RegisterReconciliationStatus(models.TextChoices):
+    MATCHED = "matched", "Matched"
+    DISCREPANT = "discrepant", "Discrepant"
+    FAILED = "failed", "Failed"
+
+
+class RegisterReconciliation(BaseModel):
+    token = models.ForeignKey("tokens.ShareToken", on_delete=models.PROTECT, related_name="register_reconciliations")
+    status = models.CharField(max_length=12, choices=RegisterReconciliationStatus.choices, editable=False)
+    block_number = models.PositiveBigIntegerField(null=True, editable=False)
+    block_hash = models.CharField(max_length=66, blank=True, editable=False)
+    register_sequence = models.PositiveBigIntegerField(null=True, editable=False)
+    discrepancies = models.JSONField(default=list, editable=False)
+    failure = models.CharField(max_length=500, blank=True, editable=False)
+
+    class Meta:
+        ordering = ["-created_at", "-uuid"]
+
+
+class RegisterAcknowledgement(BaseModel):
+    token_id = models.UUIDField(editable=False)
+    reconciliation = models.ForeignKey(
+        RegisterReconciliation, on_delete=models.PROTECT, related_name="acknowledgements", editable=False
+    )
+    discrepancy = models.JSONField(editable=False)
+    reason = models.CharField(max_length=1000, editable=False)
+    acknowledged_by_id = models.PositiveBigIntegerField(editable=False)
+
+    class Meta:
+        ordering = ["created_at", "uuid"]
+        constraints = [
+            models.UniqueConstraint(fields=["reconciliation", "discrepancy"], name="register_acknowledged_once"),
+        ]

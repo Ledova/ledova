@@ -19,10 +19,13 @@ from .order_modification_log import OrderModificationLog
 from .order_submission import OrderSubmission, OrderSubmissionStatus
 from .pause_change import PauseAuthority, PauseChange, PauseChangeStatus
 from .register import (
+    RegisterAcknowledgement,
     RegisterEntry,
     RegisterEntryKind,
     RegisterMember,
     RegisterPosition,
+    RegisterReconciliation,
+    RegisterReconciliationStatus,
     ShareRegister,
 )
 from .register_correction import (
@@ -67,6 +70,7 @@ __all__ = [
     "OrderSubmission",
     "OrderSubmissionStatus",
     "RequestStatus",
+    "RegisterAcknowledgement",
     "RegisterCorrection",
     "RegisterCorrectionAuthority",
     "RegisterCorrectionStatus",
@@ -76,6 +80,8 @@ __all__ = [
     "RegisterMemberWallet",
     "RegisterOpening",
     "RegisterPosition",
+    "RegisterReconciliation",
+    "RegisterReconciliationStatus",
     "RegisterWalletLink",
     "ShareRegister",
     "ShareIssuance",

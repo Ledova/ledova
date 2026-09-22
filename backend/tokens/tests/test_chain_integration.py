@@ -111,6 +111,7 @@ from tokens.services.register_openings import (
     prepare_opening_review,
     submit_opening,
 )
+from tokens.services.register_reconciliation import reconcile_register
 from tokens.services.share_token_service import (
     EXCEEDS_AUTHORIZED,
     NOT_WHITELISTED,
@@ -869,6 +870,9 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
     def test_completed_issuance_is_classified_against_the_captured_opening_boundary(self):
         from django.contrib.auth import get_user_model
 
+        investor = Account.create()
+        Wallet.objects.filter(address=self.investor).update(address=investor.address)
+        self.investor = investor.address
         self._deployed()
         first = self._whitelisted_request(10)
         self.assertEqual(self._execute(first)["status"], "executing")
@@ -970,6 +974,56 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
             [row[header] for header in ("Member ID", "Wallet addresses", "Shares held", "Balance source")],
             [str(member), self.investor, "25", SOURCE_LABELS[SOURCE_STORED]],
         )
+        self.w3.provider.make_request("evm_mine", [])
+        self.w3.provider.make_request("evm_mine", [])
+        matched = reconcile_register(self.token.pk)
+        self.assertEqual((matched.status, matched.discrepancies), ("matched", []))
+        self.assertEqual(matched.register_sequence, 2)
+        outsider = self.w3.eth.accounts[1]
+        burned = self._contract().functions.burn(0).transact({"from": outsider})
+        burn = self.w3.eth.wait_for_transaction_receipt(burned)
+        self.assertEqual(burn["status"], 1)
+        self.assertEqual(
+            [
+                (event["args"]["from"], event["args"]["value"])
+                for event in self._contract().events.Transfer().process_receipt(burn)
+            ],
+            [(outsider, 0)],
+        )
+        self.w3.provider.make_request("evm_mine", [])
+        self.w3.provider.make_request("evm_mine", [])
+        self.assertEqual(reconcile_register(self.token.pk).status, "matched")
+        outsider_tenant = make_tenant("reconciliation-outsider")
+        Wallet.objects.filter(pk=outsider_tenant.wallet.pk).update(
+            address=outsider, verification_status=WALLET_VERIFICATION_STATUS_VERIFIED
+        )
+        self._whitelist(outsider)
+        self.w3.eth.wait_for_transaction_receipt(
+            self.w3.eth.send_transaction(
+                {"from": self.w3.eth.accounts[0], "to": investor.address, "value": self.w3.to_wei(1, "ether")}
+            )
+        )
+        moved = (
+            self._contract()
+            .functions.transfer(outsider, 3)
+            .build_transaction(
+                {
+                    "from": investor.address,
+                    "nonce": self.w3.eth.get_transaction_count(investor.address),
+                    "chainId": 31337,
+                }
+            )
+        )
+        sent = self.w3.eth.send_raw_transaction(investor.sign_transaction(moved).raw_transaction)
+        self.assertEqual(self.w3.eth.wait_for_transaction_receipt(sent)["status"], 1)
+        self.w3.provider.make_request("evm_mine", [])
+        self.w3.provider.make_request("evm_mine", [])
+        discrepant = reconcile_register(self.token.pk)
+        by_kind = {item["kind"]: item for item in discrepant.discrepancies}
+        self.assertEqual(sorted(by_kind), ["member", "unlinked", "unrecognised_transfer"])
+        self.assertEqual(by_kind["unrecognised_transfer"]["transaction"], "0x" + sent.hex().removeprefix("0x"))
+        self.assertEqual((by_kind["member"]["chain"], by_kind["member"]["expected"]), ("22", "25"))
+        self.assertEqual((by_kind["unlinked"]["address"], by_kind["unlinked"]["chain"]), (outsider.lower(), "3"))
 
     @override_settings(WALLET_CHAIN_FINALITY_POLICIES={"evm:31337": {"mode": "depth", "depth": 2}})
     def test_real_issuance_waits_for_finality_then_completes_without_another_mint(self):

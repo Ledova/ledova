@@ -218,6 +218,7 @@ POLICIES = {
     "tokens_shareregister": (_company("company_id", VISIBLE_COMPANIES), "false"),
     "tokens_registerentry": ("register_id IN (SELECT uuid FROM tokens_shareregister)", "false"),
     "tokens_registerposition": ("register_id IN (SELECT uuid FROM tokens_shareregister)", "false"),
+    "tokens_registerreconciliation": ("token_id IN (SELECT token_id FROM tokens_shareregister)", "false"),
     "blockchain_outgoingoperation": ("false", "false"),
     "blockchain_signingaccount": ("false", "false"),
     "blockchain_signedattempt": ("false", "false"),
@@ -414,6 +415,9 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
+    "tokens_registeracknowledgement": "Staff acknowledgements of register reconciliation discrepancies, recorded "
+    "by an operator command and read only by reconciliation on the operator connection. The issuer reads the "
+    "reconciliation result, which already reflects them.",
     "tokens_pausechange": "Immutable issuer or staff pause submissions and their original outgoing outcomes. "
     "Bounded operator admission retains exact authority and job; issuer token projection uses the scoped connection.",
     "tokens_shareissuanceexecution": "Immutable operator-authorized share issuance intent, queued cancellation, "

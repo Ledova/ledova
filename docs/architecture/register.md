@@ -112,8 +112,9 @@ The CSV has three sections with different widths:
    Holder type, Class, Shares held, Percentage of issued supply, Balance source,
    Identity source, Date entered, Whitelist status and Amount paid. A member's
    wallets, and each wallet's whitelist status, are joined with `; `.
-2. Supply summary: issued supply, the total held by listed members and, when
-   there are any, the completed effects waiting to be recorded.
+2. Supply summary: issued supply, the total held by listed members, the
+   completed effects waiting to be recorded when there are any, and the latest
+   reconciliation with the chain.
 3. Former members: retained particulars, cessation and fold freshness.
 
 Read sections by their headers rather than assuming one width or column index.
@@ -125,6 +126,20 @@ The company shareholder tile counts distinct completed allotment addresses and
 does no chain read. Operator identity queues also use allotment addresses and
 apply no identity-stamp fallback. They can include former holders and miss
 transfer-only holders; neither is a substitute for the register.
+
+## Reconciliation
+
+[register_reconciliation.py](../../backend/tokens/services/register_reconciliation.py)
+compares the stored register with a fresh canonical chain snapshot every six
+hours. Every chain transfer after the opening must be accounted for by a recorded
+effect, a waiting effect or an in-flight platform operation. Holdings and supply
+must equal the stored ones plus those pending movements. Each run is retained as
+`matched`, `discrepant` or `failed`; a chain failure fails the reconciliation,
+never the register. A transfer of zero shares is ignored. Staff can acknowledge
+an investigated divergence, one row at a time with a reason, in an append-only
+record only the operator writes; later runs treat it as explained. The
+[runbook](../operations/register-foundation.md#reconciling-with-the-chain) lists
+the discrepancies and what each asks of an operator.
 
 ## Former members
 
