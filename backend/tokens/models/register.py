@@ -91,3 +91,19 @@ class RegisterAcknowledgement(BaseModel):
         constraints = [
             models.UniqueConstraint(fields=["reconciliation", "discrepancy"], name="register_acknowledged_once"),
         ]
+
+
+class RegisterExportKind(models.TextChoices):
+    REGISTER_CSV = "register_csv", "Register CSV"
+
+
+class RegisterExport(BaseModel):
+    token = models.ForeignKey("tokens.ShareToken", on_delete=models.DO_NOTHING, related_name="register_exports")
+    requested_by_id = models.PositiveBigIntegerField(editable=False)
+    kind = models.CharField(max_length=24, choices=RegisterExportKind.choices, editable=False)
+    register_sequence = models.PositiveBigIntegerField(editable=False)
+    member_rows = models.PositiveIntegerField(editable=False)
+    former_rows = models.PositiveIntegerField(editable=False)
+
+    class Meta:
+        ordering = ["-created_at", "-uuid"]

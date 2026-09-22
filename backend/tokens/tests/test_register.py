@@ -28,6 +28,7 @@ from tokens.models import (
     FormerHolder,
     IssuanceStatus,
     RegisterEntryKind,
+    RegisterExport,
     RegisterMemberWallet,
     RequestStatus,
     ShareIssuance,
@@ -425,15 +426,41 @@ class RegisterExportTest(RegisterTestBase):
         self.assertNotIn(RESIDENCE, api.content.decode())
         self.assertIn(RESIDENCE, export.content.decode())
 
-    @patch("tokens.services.register.logger")
-    def test_every_export_writes_one_log_line_with_who_ran_it_and_how_many_rows(self, log):
-        self._stored({MEMBER: 100})
+    def test_every_export_is_recorded_with_who_ran_it_what_it_covered_and_how_many_rows(self):
+        self._stored({MEMBER: 100, TREASURY: 40})
+        FormerHolder.objects.create(
+            token=self.token, wallet_address=STRANGER, ceased_on=DAY, ceased_at_block=5, shares_at_cessation=3
+        )
 
         self._export()
+        self._export()
 
-        message = log.info.call_args[0][0]
-        self.assertIn("1 rows", message)
-        self.assertIn(f"requested by user {self.owner.pk}", message)
+        exports = list(RegisterExport.objects.order_by("created_at"))
+        self.assertEqual(len(exports), 2)
+        self.assertEqual(
+            [(record.token_id, record.requested_by_id, record.kind, record.register_sequence) for record in exports],
+            [(self.token.pk, self.owner.pk, "register_csv", 1)] * 2,
+        )
+        self.assertEqual([(record.member_rows, record.former_rows) for record in exports], [(2, 1)] * 2)
+
+    def test_a_refused_export_records_nothing(self):
+        response, _ = self._export()
+        self.assertEqual(response.status_code, 409)
+        self.assertFalse(RegisterExport.objects.exists())
+
+    def test_an_export_that_fails_while_its_rows_are_built_records_nothing(self):
+        self._stored({MEMBER: 100})
+        self.client.raise_request_exception = False
+        with patch.object(register_reader, "_summary_rows", side_effect=RuntimeError("summary failed")):
+            response, _ = self._export()
+        self.assertEqual(response.status_code, 500)
+        self.assertFalse(RegisterExport.objects.exists())
+
+    def test_a_head_request_is_refused_and_records_nothing(self):
+        self._stored({MEMBER: 100})
+        response = self.client.head(f"/api/v1/tokens/{self.token.uuid}/register/export/")
+        self.assertEqual(response.status_code, 405)
+        self.assertFalse(RegisterExport.objects.exists())
 
     def test_effects_waiting_to_be_recorded_are_stated_in_the_export_and_the_api(self):
         self._stored({MEMBER: 100})

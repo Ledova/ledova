@@ -121,6 +121,11 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   `reconcile_every_register` task. Nothing is backfilled; the CSV summary says
   `never` until the first run. Reversal refuses once any reconciliation exists,
   and an acknowledgement cannot exist without one.
+- `tokens/0071_register_export_audit` adds `RegisterExport` and replaces the
+  single log line an export used to write. Earlier exports are not backfilled
+  from logs. The daily `purge_former_members_past_the_clock` now also purges
+  export records past the 2,557-day floor. Reversal refuses once any record
+  exists.
 - `whitelist/0002_whitelistentry_treasury_addresses` makes
   `WhitelistEntry.wallet` nullable and adds `address` and `label` with a check
   constraint; `whitelist/0003` adds the partial unique constraint on `address`

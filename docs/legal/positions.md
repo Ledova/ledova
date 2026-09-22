@@ -94,12 +94,12 @@ naming the company's authorised officers, requiring instructions in writing,
 fixing where the data is kept, promising an export on exit, disclaiming advice,
 and capping liability.
 
-**The export trail is the other gap.** Each register export writes one
-application log line naming the requesting user's primary key and the row count.
-There is no export audit model, nothing queryable, and no retention beyond
-whatever the deployment keeps its logs for — while every download is a full
-sheet of members' residential addresses. If the operator carries any
-record-keeping obligation over the register, this is where it is thinnest.
+**The export trail.** Each register export is recorded durably: the
+requester, share class, register sequence, row counts and time. The records are
+kept for staff: the operator can query them in admin, and no company-facing
+route exposes them. They are kept for the seven-year floor the owner chose on
+21 September 2026. The record says who took a copy, not what they did with it:
+every download is still a full sheet of members' residential addresses.
 
 **Status.** Reviewed 2026-09-15; the note pointing s168 to s1306 and the
 agreement's contents added. The company-hosted-instance sentence was drafted

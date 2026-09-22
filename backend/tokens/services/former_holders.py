@@ -10,7 +10,7 @@ from web3 import Web3
 
 from shared.db import atomic
 from tokens.exceptions import RegisterUnavailableException
-from tokens.models import FormerHolder, ShareIssuance, ShareToken
+from tokens.models import FormerHolder, RegisterExport, ShareIssuance, ShareToken
 from tokens.models.choices import IDENTITY_RECORDED, IDENTITY_STAMPED, IDENTITY_UNKNOWN
 from tokens.services import share_token_service
 from tokens.services.register import IDENTITY_BY_HOLDER_TYPE
@@ -166,6 +166,14 @@ def fold_is_stale(token: ShareToken, now=None) -> bool:
     if token.former_holders_folded_at is None:
         return True
     return (now or timezone.now()) - token.former_holders_folded_at > STALE_AFTER
+
+
+def purge_register_exports(now=None) -> int:
+    cutoff = retention_cutoff(now)
+    removed, _ = RegisterExport.objects.filter(created_at__date__lt=cutoff).delete()
+    if removed:
+        logger.info(f"Removed {removed} register export records that passed the seven-year clock")
+    return removed
 
 
 def purge_former_holders(now=None) -> int:

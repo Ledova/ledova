@@ -1,4 +1,3 @@
-import logging
 from collections import defaultdict
 from contextlib import contextmanager
 from datetime import timezone as utc_zone
@@ -12,6 +11,8 @@ from tokens.exceptions import RegisterNotInitialized
 from tokens.models import (
     RegisterEntry,
     RegisterEntryKind,
+    RegisterExport,
+    RegisterExportKind,
     RegisterMemberWallet,
     RegisterPosition,
     RegisterReconciliation,
@@ -30,8 +31,6 @@ from tokens.models.choices import (
 from tokens.services.register_inclusions import waiting_effects
 from whitelist.models import HolderType
 from whitelist.services.identity import UNIDENTIFIED, identities_for
-
-logger = logging.getLogger(__name__)
 
 ZERO = Decimal("0.00")
 
@@ -351,16 +350,19 @@ def export_rows(token, requested_by) -> list[list]:
     register = stored_register(token)
     if register is None:
         raise RegisterNotInitialized()
-    logger.info(
-        f"Register export of {token.symbol} for company {token.company_id}: "
-        f"{len(register['rows'])} rows, requested by user {getattr(requested_by, 'pk', None)}"
+    former = register["former_members"]
+    rows = (
+        [_csv_row(row) for row in register["rows"]] + [[]] + _summary_rows(register) + former_member_rows(token, former)
     )
-    return (
-        [_csv_row(row) for row in register["rows"]]
-        + [[]]
-        + _summary_rows(register)
-        + former_member_rows(token, register["former_members"])
+    RegisterExport.objects.create(
+        token=token,
+        requested_by_id=requested_by.pk,
+        kind=RegisterExportKind.REGISTER_CSV,
+        register_sequence=register["sequence"],
+        member_rows=len(register["rows"]),
+        former_rows=len(former),
     )
+    return rows
 
 
 def former_member_rows(token, members) -> list[list]:

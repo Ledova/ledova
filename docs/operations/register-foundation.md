@@ -10,8 +10,7 @@ The HTTP and CSV register routes serve it once a share class's opening is
 applied, and issuance and settlement then record each later completed effect in
 it; opening review and the inclusion report classify completed effects against
 the captured boundary, and a scheduled job reconciles it with the chain. Import
-and a durable export audit are still missing, so no real company's register may
-rely on it yet.
+is still missing, so no real company's register may rely on it yet.
 
 ## Identity and events
 
@@ -265,8 +264,9 @@ applied. Committed copies are protected by their retained row; copies left by a
 rolled-back or interrupted submission fall under the existing 24-hour orphan
 sweep. Account/company deletion still respects protected register relations.
 Production retention needs its own decision before real data is admitted.
-Classification evidence, former-member retention and future export records have
-independent policies; this choice does not change them.
+Classification evidence, former-member retention and export records have
+independent policies; this choice does not change them. Export records follow
+the 2,557-day floor, purged by the daily retention job.
 
 ## Approved opening capture and wallet links
 
