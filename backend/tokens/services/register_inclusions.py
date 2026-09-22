@@ -17,6 +17,7 @@ from tokens.models import (
     RegisterCorrectionStatus,
     RegisterEntry,
     RegisterEntryKind,
+    RegisterImport,
     RegisterInstruction,
     RegisterMemberWallet,
     RegisterOpening,
@@ -87,6 +88,16 @@ def opening_boundary(token_id):
         .first()
     )
     return opening.boundary if opening is not None else None
+
+
+def opened_by_import(token_id):
+    return RegisterEntry.objects.filter(
+        register__token_id=token_id,
+        kind=RegisterEntryKind.OPENING,
+        operation_id__in=RegisterImport.objects.filter(
+            token_id=token_id, status=RegisterCorrectionStatus.APPLIED
+        ).values("pk"),
+    ).exists()
 
 
 def completed_inclusions(token_id):
@@ -295,6 +306,8 @@ def _effect(inclusion, company_id, classification):
 def _unrecorded(token_id):
     boundary = opening_boundary(token_id)
     register = ShareRegister.objects.filter(token_id=token_id).select_related("token").first()
+    if boundary is None and register is not None and opened_by_import(token_id) and not completed_inclusions(token_id):
+        return register, ()
     if boundary is None or register is None:
         return None, ()
     inclusions = completed_inclusions(token_id)

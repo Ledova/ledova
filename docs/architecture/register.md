@@ -11,7 +11,13 @@ The [stored register foundation](../operations/register-foundation.md) adds memb
 references with durable wallet links, immutable events and a holdings projection
 for #647. An [approved opening capture](../operations/register-foundation.md#approved-opening-capture-and-wallet-links)
 initialises it from one verified canonical chain boundary under documentary
-authority, and the integrity verifier replays the whole chain. A wallet the
+authority, and the integrity verifier replays the whole chain. For a class not
+yet on chain, an applied
+[import](../operations/register-foundation.md#importing-an-existing-register)
+is the opening instead: it records the company's existing register as the
+opening entry, checked against the ASIC extract's figures, and captures no chain
+boundary, so nothing is recorded, waiting or reconciled for that class until it
+is on chain. A wallet the
 opening did not map is linked to a member only by a
 [reviewed link request](../operations/register-foundation.md#reviewed-wallet-links-after-the-opening)
 carrying the same authority.
@@ -42,7 +48,9 @@ authority, and staff review it. Applying it approves each listed request with th
 reviewer, who becomes the issue entry's recorder, and allotment refuses a
 subscription no applied instruction lists on its current terms. PostgreSQL keeps
 instructions immutable, and keeps an issuance request's review decision and
-reviewer out of the company's own connection.
+reviewer out of the company's own connection. A class an import opened takes no
+instruction until it is on chain, because nothing would record its issue or
+transfer.
 
 A settled transfer is entered only under a
 [transfer instruction](../operations/register-foundation.md#register-instructions-for-transfers).
@@ -143,7 +151,9 @@ effect waits; see
 A waiting effect is counted, not included in any holding, so a register with
 waiting effects is behind the chain until they are recorded. A count that cannot
 be computed is `null` in the API and `unknown` in the CSV, and the waiting list
-is `null` with it. The count, the
+is `null` with it. A register an import opened has no boundary to classify
+against: its count is 0 and its list empty while nothing has completed on chain
+for the class, and both are `null` once something has. The count, the
 [waiting list](../operations/register-foundation.md#the-issuers-waiting-list)
 and recording walk the same classification, so the count is the list's length.
 
@@ -155,8 +165,10 @@ The CSV has three sections with different widths:
    wallets, and each wallet's whitelist status, are joined with `; `.
 2. Supply summary: issued supply, the total held by listed members, the
    completed effects waiting to be recorded when there are any, and the latest
-   reconciliation with the chain.
-3. Former members: retained particulars, cessation and fold freshness.
+   reconciliation with the chain, which for a class an import opened is
+   `not on chain`.
+3. Former members: retained particulars, cessation and fold freshness, which for
+   a class an import opened is `not on chain` until the fold first reads it.
 
 Read sections by their headers rather than assuming one width or column index.
 `csv_cell` neutralizes formula-opening user values. Each export is recorded in
@@ -262,7 +274,8 @@ export records' update guard, operator-only table and daily purge after the
 
 [register_reconciliation.py](../../backend/tokens/services/register_reconciliation.py)
 compares the stored register with a fresh canonical chain snapshot every six
-hours. Every chain transfer after the opening must be accounted for by a recorded
+hours, for each class with an applied opening; a class an import opened has none.
+Every chain transfer after the opening must be accounted for by a recorded
 effect, a waiting effect or an in-flight platform operation. Holdings and supply
 must equal the stored ones plus those pending movements. Each run is retained as
 `matched`, `discrepant` or `failed`; a chain failure fails the reconciliation,
@@ -304,7 +317,8 @@ The retention floor and clock are documented in
 cannot be recreated by a later full-history fold. Only the company owner and
 operator read them; the application role cannot write them. Pre-platform former
 members cannot be reconstructed from the chain; an import records them as
-`ImportedFormerMember` rows. Each ceased before the opening. The holders API and
+`ImportedFormerMember` rows. Each ceased before a chain opening, or by the
+register date of an import that is the opening. The holders API and
 the CSV list them beside the folded ones, from the same snapshot, with no wallet
 address or block, and the same daily job purges them from their date ceased.
 

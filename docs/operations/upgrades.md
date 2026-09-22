@@ -200,6 +200,25 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   each settlement the directors approve. Run the new code with the migration: an
   older binary still records settlements without an instruction. Reversal
   refuses once any transfer instruction exists.
+- `tokens/0077_import_opening` (#647) lets a
+  [register import](register-foundation.md#importing-an-existing-register) open
+  a share class not yet on chain: one with no register entries, no issuance
+  request ever approved and no applied register instruction. It changes no
+  schema and rewrites no row; it replaces the import guard function `0072`
+  installed and the instruction guard function `0076` installed, without editing
+  either migration. The import guard now admits an import for such a class that
+  names new members or the company's own, never another company's, and admits
+  its application only when the register's only entry is exactly the opening
+  that import records, with still nothing approved. An import for an opened
+  class keeps its rules, and its application now also refuses a former member
+  who ceased on or after the opening. The instruction guard refuses to apply any
+  instruction for a class an import opened. Apply it with the new code: the
+  earlier guard refuses to store an import for an unopened class, so submitting
+  one fails until it runs. Such a class reads a waiting count of 0 while nothing
+  has completed on chain, and its CSV says `not on chain` for the reconciliation
+  and the fold. Reversal restores the earlier functions exactly, and refuses
+  once an import has opened a register, because the earlier instruction guard
+  would admit an instruction for it.
 - `whitelist/0002_whitelistentry_treasury_addresses` makes
   `WhitelistEntry.wallet` nullable and adds `address` and `label` with a check
   constraint; `whitelist/0003` adds the partial unique constraint on `address`

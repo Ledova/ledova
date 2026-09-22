@@ -46,7 +46,11 @@ from tokens.models.choices import (
     IDENTITY_TREASURY_LABEL,
     IDENTITY_UNRESOLVABLE,
 )
-from tokens.services.register_inclusions import waiting_effects, waiting_list
+from tokens.services.register_inclusions import (
+    opened_by_import,
+    waiting_effects,
+    waiting_list,
+)
 from whitelist.models import HolderType
 from whitelist.services.identity import UNIDENTIFIED, identities_for
 
@@ -84,6 +88,7 @@ WAITING_ROW = "Completed effects waiting to be recorded"
 WAITING_UNKNOWN = "unknown"
 RECONCILED_ROW = "Reconciled with the chain"
 NEVER_RECONCILED = "never"
+NOT_ON_CHAIN = "not on chain"
 FORMER_MEMBERS_HEADING = "Former members (retained under s169(3) of the Corporations Act)"
 FORMER_MEMBER_HEADERS = [
     "Name",
@@ -374,6 +379,7 @@ def _stored_register(token):
         "waiting_effects": waiting_effects(token.pk),
         "former_members": former,
         "reconciliation": RegisterReconciliation.objects.filter(token=token).first(),
+        "on_chain": not opened_by_import(token.pk),
     }
 
 
@@ -400,12 +406,12 @@ def _summary_rows(register) -> list[list]:
         summary.append([WAITING_ROW, WAITING_UNKNOWN])
     elif register["waiting_effects"]:
         summary.append([WAITING_ROW, str(register["waiting_effects"])])
-    return summary + [_reconciliation_row(register["reconciliation"])]
+    return summary + [_reconciliation_row(register["reconciliation"], register["on_chain"])]
 
 
-def _reconciliation_row(record):
+def _reconciliation_row(record, on_chain):
     if record is None:
-        return [RECONCILED_ROW, NEVER_RECONCILED]
+        return [RECONCILED_ROW, NEVER_RECONCILED if on_chain else NOT_ON_CHAIN]
     count = len(record.discrepancies)
     outcome = f"{count} {'discrepancy' if count == 1 else 'discrepancies'}" if count else record.status
     reached = "" if record.block_number is None else f"block {record.block_number}"
@@ -424,7 +430,7 @@ def _sheet(token, register) -> list[list]:
         [_csv_row(row) for row in register["rows"]]
         + [[]]
         + _summary_rows(register)
-        + former_member_rows(token, register["former_members"])
+        + former_member_rows(token, register["former_members"], register["on_chain"])
     )
 
 
@@ -573,7 +579,7 @@ def prepare_certificate(token, requested_by, *, sequence, instruction) -> bytes:
     return content
 
 
-def former_member_rows(token, members) -> list[list]:
+def former_member_rows(token, members, on_chain) -> list[list]:
     from tokens.services.former_holders import fold_is_stale
 
     rows = [
@@ -592,12 +598,18 @@ def former_member_rows(token, members) -> list[list]:
         ]
         for row in members
     ]
-    return [[], [FORMER_MEMBERS_HEADING], FORMER_MEMBER_HEADERS, *rows, _as_at_row(token, fold_is_stale(token))]
+    return [
+        [],
+        [FORMER_MEMBERS_HEADING],
+        FORMER_MEMBER_HEADERS,
+        *rows,
+        _as_at_row(token, fold_is_stale(token), on_chain),
+    ]
 
 
-def _as_at_row(token, stale: bool) -> list:
+def _as_at_row(token, stale: bool, on_chain: bool) -> list:
     if token.former_holders_folded_at is None:
-        return [AS_AT_ROW, NEVER_FOLDED, STALE]
+        return [AS_AT_ROW, NEVER_FOLDED, STALE] if on_chain else [AS_AT_ROW, NOT_ON_CHAIN]
     reached = "" if token.former_holders_block is None else f"block {token.former_holders_block}"
     read_at = token.former_holders_folded_at.isoformat()
     return [AS_AT_ROW, read_at, reached, STALE] if stale else [AS_AT_ROW, read_at, reached]

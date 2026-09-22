@@ -14,11 +14,12 @@ opening review and the inclusion report classify completed
 effects against the captured boundary, and a scheduled job reconciles it with the
 chain. An
 import adds an existing register's particulars and former members to a class
-opened from the chain, and staff prepare
-[inspection copies](#preparing-an-inspection-copy) of it and
+opened from the chain, or opens a class not yet on chain from that register, and
+staff prepare [inspection copies](#preparing-an-inspection-copy) of it and
 [certificates](#preparing-a-certificate) for its issues and transfers on a
-company's written instruction. A class not yet on chain cannot be opened from
-an import yet, so no real company's register may rely on the foundation yet.
+company's written instruction. A class an import opened records no later change
+until it is tokenised, which is later work, so no real company's register may
+rely on the foundation yet.
 
 ## Identity and events
 
@@ -471,7 +472,9 @@ application all refuse:
   another instruction approved;
 - a director who is the recipient an item identifies, by the request's
   recipient name or the profile name of the account holding the recipient
-  wallet.
+  wallet;
+- any instruction for a share class an [import opened](#importing-an-existing-register),
+  which records no issue until it is on chain.
 
 Rejection with a reason stays available. Application rechecks the reviewer-bound,
 expiring confirmation, the retained evidence and every item under the company and
@@ -494,7 +497,8 @@ Repeated identical submissions and decisions are idempotent, and conflicting UUI
 reuse is refused. The database keeps instructions immutable and undeletable,
 refuses an item outside the instruction's company and share class, and refuses
 customer-role or forged decisions. It also refuses an application that leaves a
-listed request unapproved. `tokens/0073` also guards issuance requests: the
+listed request unapproved and, since `tokens/0077`, any application for a class
+an import opened. `tokens/0073` also guards issuance requests: the
 company's own connection can no longer approve, reject or start review of one, or
 change its reviewer, review time, notes or rejection reason, and no connection
 can approve one without an active staff reviewer. Retention follows openings and
@@ -739,7 +743,11 @@ row, means completions are not yet in the holdings. The
 A count of `null`, or `unknown` in the CSV, means the
 completions could not be classified, or the register has no captured boundary to
 classify them against, as with one loaded by the synthetic command above;
-`register_inclusions` prints the refusal or a null boundary.
+`register_inclusions` prints the refusal or a null boundary. A register an
+[import opened](#importing-an-existing-register) has no boundary either: its
+count is 0 while nothing has completed on chain for the class, and its CSV says
+`not on chain` where another would say `never` for the reconciliation or
+`never read, stale` for the fold.
 
 ## Preparing an inspection copy
 
@@ -847,14 +855,20 @@ pre-platform former members. Imports follow the owner decisions of
 21 September 2026:
 - for a class already opened from the chain, the import adds particulars and
   former members and leaves holdings to the stored register;
-- for a class not yet on chain, the import will become the opening, which is
-  later work;
+- for a class not yet on chain, the import is the opening;
 - a staff reviewer enters the ASIC extract's figures.
 
 The owner decided on 22 September 2026 that:
 - the applied import's reviewed copy and uploaded file are evidence, kept like
   opening and correction evidence;
-- a member's live verified identity wins over imported particulars.
+- a member's live verified identity wins over imported particulars;
+- a class an import opened records no issue, transfer or cessation until it is
+  anchored on chain, because entries come only from chain completions;
+  tokenising it is later work;
+- a mistaken opening import strands its class until partial corrections exist:
+  a correction can reverse only its whole opening entry, and the class takes no
+  second import. This is accepted during the synthetic experiment and settled
+  before any real data.
 
 A share class takes one applied import. Submission, review and application each
 refuse another once one is applied, and a partial unique index backs them. The
@@ -892,42 +906,71 @@ extract, documentary authority as for an opening, and the register date:
 }
 ```
 
+A class is not yet on chain while its register has no entries, no issuance
+request for it has ever been approved and no register instruction for it has
+been applied: an undeployed class, or a deployed one never minted. Its import
+names each current member by a new member ID the company chooses or by an
+existing member of the company, and a former member may have ceased on the
+register date itself. Submission, review and application refuse such a class
+once an issue has been approved or an instruction applied for it: open it from
+the chain instead, then import its particulars.
+
 Submission refuses rows that do not fit the stored columns, with a message
 naming the problem:
-- every current member must already be a member of the company with a stored
-  holding;
+- for an opened class, every current member must already be a member of the
+  company with a stored holding, and for any class no member may belong to
+  another company;
 - a name has at most 255 characters and a residential address at most 1,000;
 - `shares` is a whole number of at most 78 digits;
 - `amount_paid` is a plain amount such as `250.00`, with at most two decimal
   places and eighteen whole digits, or `null` when not known;
 - dates may not follow the register date;
-- a former member must have ceased before the register's opening, because the
-  stored register and the fold record later cessations, and within the
-  former-member retention period (`FORMER_MEMBER_RETENTION_DAYS`, 2,557 days by
-  default), because the retention job would purge an older one.
+- for an opened class, a former member must have ceased before the register's
+  opening, because the stored register and the fold record later cessations;
+- a former member must have ceased within the former-member retention period
+  (`FORMER_MEMBER_RETENTION_DAYS`, 2,557 days by default), because the retention
+  job would purge an older one.
 
 In **Admin → Tokens → Register imports** a staff reviewer with change permission
 opens the review. For each member it shows the imported name beside the
 member's linked wallets and current live identity, so names swapped between
 equal holdings show, and the stored date entered beside the imported one. It
-compares each imported holding with the stored one. The reviewer reads the ASIC
-extract, enters its issued total and member count for the class, confirms and
-applies. Application refuses:
+compares each imported holding with the stored one. A class not yet on chain has
+nothing stored or on chain to compare, so the ASIC figures and the names beside
+the holdings are the only check. The reviewer reads the ASIC extract, enters its
+issued total and member count for the class, confirms and applies. Application
+refuses:
 - figures that differ from the import's totals;
-- any holding that differs from the stored register, which includes a member
-  the import leaves out;
+- for an opened class, any holding that differs from the stored register, which
+  includes a member the import leaves out, and a former member who ceased on or
+  after the opening;
+- for a class not yet on chain, an approved issue or an applied instruction;
 - changed evidence or a changed ASIC extract;
 - a class that already has an applied import.
 
-It then stores each member's particulars, except where the member already has
-particulars from an import with a later register date, and the imported former
-members. It keeps the figures and the register sequence on the request.
-Repeating an application with the same figures returns it; different figures
-conflict. Rejection with a reason stays available. The database keeps imports
-immutable and refuses:
+For a class not yet on chain, application first opens the register in the same
+transaction. It creates the new members and records the opening entry: its
+operation ID is the import's UUID, it is dated the register date, it holds each
+member's shares, and the applying reviewer records it, so the register's
+sequence is 1. It links no wallets: a
+[reviewed link request](#reviewed-wallet-links-after-the-opening) links them. A
+class opened another way after submission takes the import by the opened
+class's rules. Application then stores each member's particulars, except where
+the member already has particulars from an import with a later register date,
+and the imported former members. It keeps the figures and the register sequence
+on the request. Repeating an application with the same figures returns it;
+different figures conflict. Rejection with a reason stays available. The
+database keeps imports immutable and refuses:
 - forged decisions;
 - rows whose keys or types differ from what submission accepts;
-- a former member who ceased on or after the opening;
+- a member of another company or, for an opened class, anyone not already a
+  member of this company;
+- a former member who ceased on or after an opening the import did not record;
+- an import for a class not yet on chain that has an approved issue or an
+  applied instruction;
+- an application that opens a register unless the register's only entry is
+  exactly that opening, with sequence 1, the import's UUID, members and shares,
+  register date and reviewer, and still nothing approved;
 - an application whose figures differ from the rows;
 - an application that leaves a member without particulars from it or from a
   later-dated import;
@@ -943,7 +986,10 @@ holding is also unchanged since the import. A member who entered on the
 platform keeps the date and amount the platform recorded. The holders API and
 the CSV list imported former members beside the chain-derived ones. A folded
 former member whose wallet resolves to no profile and no resolved stamp takes
-the particulars of the member the wallet is linked to.
+the particulars of the member the wallet is linked to. A class an import opened
+reads as not on chain, as [reading the register](#reading-the-register)
+describes, and takes no [register instruction](#register-instructions-for-issues)
+until it is.
 
 The daily retention job purges particulars once the member has held nothing in
 the company for the 2,557-day floor, and imported former members that long after
@@ -956,7 +1002,8 @@ decided before any real data (owner decision, 22 September 2026).
 ## Reconciling with the chain
 
 Every six hours, at :50 UTC, `reconcile_every_register` reconciles each share
-class that has an applied opening. It reads the chain; it writes only
+class that has an applied opening; a class an import opened has none and is not
+reconciled. It reads the chain; it writes only
 reconciliation records, never a register entry. It captures a fresh canonical
 snapshot at the finality boundary, as an opening's review does, and compares it
 with the stored register under the share-class lock that completions take:
