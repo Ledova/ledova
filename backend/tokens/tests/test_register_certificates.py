@@ -236,14 +236,15 @@ class CertificateTest(TestCase):
         nameless = member_of(self.company, stamped_wallet(self.token, "", "5 Synthetic Street"))
         entered(self.register, "issue", (unidentified, 5))
         entered(self.register, "issue", (ambiguous, 5))
-        unaddressed = entered(self.register, "issue", (homeless, 5))
+        entered(self.register, "issue", (homeless, 5))
         entered(self.register, "issue", (nameless, 5))
         entered(self.register, "transfer", (unidentified, -2), (self.buyer, 2))
-        entered(self.register, "correction", (homeless, -5), corrects_id=unaddressed.pk)
+        mistaken = entered(self.register, "issue", (self.buyer, 1))
+        entered(self.register, "correction", (self.buyer, -1), corrects_id=mistaken.pk)
         for sequence, instruction, refusal in (
             (1, INSTRUCTION, "Entry 1 is not an issue or a transfer, so it has no certificate."),
-            (10, INSTRUCTION, "Entry 10 is not an issue or a transfer, so it has no certificate."),
-            (11, INSTRUCTION, "This share class&#x27;s register has no entry 11."),
+            (11, INSTRUCTION, "Entry 11 is not an issue or a transfer, so it has no certificate."),
+            (12, INSTRUCTION, "This share class&#x27;s register has no entry 12."),
             (5, INSTRUCTION, f"Certificate 5-1 cannot be prepared: member {unidentified.pk} is not identified"),
             (6, INSTRUCTION, f"Certificate 6-1 cannot be prepared: member {ambiguous.pk}&#x27;s wallets resolve"),
             (7, INSTRUCTION, f"Certificate 7-1 cannot be prepared: member {homeless.pk} is not identified"),
@@ -261,6 +262,18 @@ class CertificateTest(TestCase):
         accepted = self.prepare(2)
 
         self.assertEqual((accepted.status_code, accepted["Content-Type"]), (200, "application/pdf"))
+        self.assertEqual(list(RegisterExport.objects.values_list("kind", "register_sequence")), [("certificate", 2)])
+
+    def test_an_entry_is_refused_once_a_correction_has_reversed_it(self):
+        accepted = self.prepare(2)
+
+        self.assertEqual((accepted.status_code, accepted["Content-Type"]), (200, "application/pdf"))
+        self.assertEqual(list(RegisterExport.objects.values_list("kind", "register_sequence")), [("certificate", 2)])
+
+        entered(self.register, "correction", (self.allottee, -25), corrects_id=self.entry(2).pk)
+        refused = self.prepare(2)
+
+        self.assertContains(refused, "Entry 2 was reversed by correction entry 5, so it has no certificate.")
         self.assertEqual(list(RegisterExport.objects.values_list("kind", "register_sequence")), [("certificate", 2)])
 
     def test_an_entry_is_certified_only_from_its_own_share_class(self):

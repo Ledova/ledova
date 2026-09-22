@@ -553,6 +553,11 @@ def prepare_certificate(token, requested_by, *, sequence, instruction) -> bytes:
             raise ValidationError(f"This share class's register has no entry {sequence}.")
         if entry.kind not in (RegisterEntryKind.ISSUE, RegisterEntryKind.TRANSFER):
             raise ValidationError(f"Entry {sequence} is not an issue or a transfer, so it has no certificate.")
+        reversed_by = RegisterEntry.objects.filter(corrects=entry).values_list("sequence", flat=True).first()
+        if reversed_by is not None:
+            raise ValidationError(
+                f"Entry {sequence} was reversed by correction entry {reversed_by}, so it has no certificate."
+            )
         pages = _certificate_pages(token, entry)
         content = _certificate_pdf(token, entry, pages)
     RegisterExport.objects.create(

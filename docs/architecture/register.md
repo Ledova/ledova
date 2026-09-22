@@ -226,9 +226,9 @@ certificate is prepared, resolved as in [membership and identity](#membership-an
 not the ones current when the entry was made. A member whose wallets resolve to
 different people, or who has no name or residential address on record, stops
 the whole certificate, as do an entry that is not an issue or a transfer and a
-number the class's register does not have. A refusal records nothing. A later
-correction of the entry does not stop its certificate, which states the entry
-and the holding after it.
+number the class's register does not have. So does an entry a correction has
+since reversed, and the refusal names the correction, so a certificate never
+certifies shares the register has taken back. A refusal records nothing.
 
 PyMuPDF renders each page from an HTML template in which every value is escaped,
 so markup in a name prints as written, and it embeds the glyphs non-Latin names

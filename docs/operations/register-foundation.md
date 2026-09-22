@@ -754,13 +754,13 @@ balance a transferor still holds after it. Each page shows the holding after
 that entry, whatever has happened since, and the names and addresses the
 register gives when you prepare it. Check the pages against the instruction and
 give the file to the company unchanged to execute. The page refuses, and records
-nothing, an entry that is not an issue or a transfer, a number the share class's
-register does not have, and a member whose wallets resolve to different people
-or who has no name or residential address on record. The refusal names the
-member: the register must be able to name them, as
+nothing, an entry that is not an issue or a transfer, an entry a correction has
+reversed, a number the share class's register does not have, and a member whose
+wallets resolve to different people or who has no name or residential address
+on record. A refused reversed entry names the correction that reversed it. A
+refused member is named too: the register must be able to name them, as
 [membership and identity](../architecture/register.md#membership-and-identity)
-describes, before their certificate can be prepared. A correction that reversed
-the entry does not stop its certificate, so check for one first.
+describes, before their certificate can be prepared.
 
 Each certificate is recorded once in **Admin → Tokens → Register exports** as
 kind **Certificate**: who prepared it, the entry's number as the register
