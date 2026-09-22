@@ -1,18 +1,23 @@
 from collections import defaultdict
 from contextlib import contextmanager
+from datetime import date
 from datetime import timezone as utc_zone
 from decimal import Decimal
 
 from django.db import connections
+from django.db.models import BigIntegerField, CharField, Value
 
 from shared.db import atomic, current_alias
 from shared.utils import csv_cell
 from tokens.exceptions import RegisterNotInitialized
 from tokens.models import (
+    ImportedFormerMember,
     RegisterEntry,
     RegisterEntryKind,
     RegisterExport,
     RegisterExportKind,
+    RegisterImport,
+    RegisterMemberParticulars,
     RegisterMemberWallet,
     RegisterPosition,
     RegisterReconciliation,
@@ -23,6 +28,7 @@ from tokens.models.choices import (
     IDENTITY_LABELS,
     IDENTITY_LIVE,
     IDENTITY_NONE,
+    IDENTITY_PARTICULARS,
     IDENTITY_RECORDED,
     IDENTITY_STAMPED,
     IDENTITY_TREASURY_LABEL,
@@ -171,7 +177,7 @@ def _merged(allotments):
     return merged
 
 
-def _member_identity(addresses, identities, stamps):
+def _member_identity(addresses, identities, stamps, recorded=None):
     people = {
         (identity.holder_type, identity.name, identity.residential_address)
         for identity in (identities.get(address.lower(), UNIDENTIFIED) for address in addresses)
@@ -195,6 +201,8 @@ def _member_identity(addresses, identities, stamps):
             IDENTITY_STAMPED,
             stamp["stamped_at"],
         )
+    if recorded is not None:
+        return HolderType.MEMBER.value, recorded.name, recorded.residential_address, IDENTITY_PARTICULARS, None
     named = next((stamp["name"] for stamp in found if stamp["name"]), "")
     return HolderType.UNIDENTIFIED.value, named, "", IDENTITY_RECORDED if named else IDENTITY_NONE, None
 
@@ -251,12 +259,30 @@ def _cessations(token, member_of):
     return ceased, former
 
 
+def _imported(token):
+    applied = RegisterImport.objects.filter(token=token, status="applied").first()
+    if applied is None:
+        return -1, {}
+    return applied.register_sequence, {row["member"]: row for row in applied.members}
+
+
 def _stored_register(token):
     register = ShareRegister.objects.filter(token=token).first()
     if register is None or register.sequence == 0:
         return None
     opened_on, held, transferred = _history(register)
-    positions = list(RegisterPosition.objects.filter(register=register, shares__gt=0).order_by("-shares", "member_id"))
+    positions = list(
+        RegisterPosition.objects.filter(register=register, shares__gt=0)
+        .select_related("last_entry")
+        .order_by("-shares", "member_id")
+    )
+    particulars = {
+        record.member_id: record
+        for record in RegisterMemberParticulars.objects.filter(
+            member_id__in=[position.member_id for position in positions]
+        )
+    }
+    imported_at, imported = _imported(token)
     wallets = defaultdict(list)
     for link in RegisterMemberWallet.objects.filter(
         company_id=token.company_id, member_id__in=[position.member_id for position in positions]
@@ -273,7 +299,9 @@ def _stored_register(token):
     for position in positions:
         member = str(position.member_id)
         addresses = wallets[position.member_id]
-        holder_type, name, residential_address, source, stamped_at = _member_identity(addresses, identities, stamps)
+        holder_type, name, residential_address, source, stamped_at = _member_identity(
+            addresses, identities, stamps, particulars.get(position.member_id)
+        )
         allotment = _merged(allotments[address.lower()] for address in addresses if address.lower() in allotments)
         allotted_on, interrupted = _allotted(
             allotment, opened_on, [row.ceased_on for row in ceased[position.member_id]]
@@ -281,6 +309,12 @@ def _stored_register(token):
         entered_on = _entered_on(position, member in held and not interrupted, allotted_on)
         former.extend(row for row in ceased[position.member_id] if row.ceased_on < entered_on)
         shares = int(position.shares)
+        amount_paid = _amount_paid(allotment, shares, member in transferred or interrupted)
+        continuing = imported.get(member) if member in held else None
+        if continuing is not None:
+            entered_on = date.fromisoformat(continuing["entered_on"])
+            if position.last_entry.sequence <= imported_at:
+                amount_paid = None if continuing["amount_paid"] is None else Decimal(continuing["amount_paid"])
         rows.append(
             {
                 "member": member,
@@ -301,10 +335,17 @@ def _stored_register(token):
                 "entered_on": entered_on,
                 "share_class": token.symbol,
                 "residential_address": residential_address,
-                "amount_paid": _amount_paid(allotment, shares, member in transferred or interrupted),
+                "amount_paid": amount_paid,
             }
         )
-    former.sort(key=lambda row: row.wallet_address)
+    former.extend(
+        ImportedFormerMember.objects.filter(token=token).annotate(
+            wallet_address=Value(None, output_field=CharField()),
+            ceased_at_block=Value(None, output_field=BigIntegerField()),
+            identity_source=Value(IDENTITY_PARTICULARS),
+        )
+    )
+    former.sort(key=lambda row: row.wallet_address or "")
     former.sort(key=lambda row: row.ceased_on, reverse=True)
     return {
         "rows": rows,

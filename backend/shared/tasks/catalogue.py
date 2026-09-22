@@ -52,9 +52,11 @@ SYSTEM_WIDE = {
     "stored register with a fresh canonical chain snapshot and records the result. It is the deployment's "
     "statutory register rather than any owner's data; it writes only reconciliation records.",
     "tokens.tasks.former_holders.purge_former_members_past_the_clock": "Deletes former-member records "
-    "seven years after the date they ceased, and register export records seven years after the export, "
-    "which are the only deletions anyone may perform on those tables - the app role's policy refuses all "
-    "three write commands on former members, and the app role has no grant on export records at all.",
+    "seven years after the date they ceased, imported former members seven years after their date ceased, "
+    "member particulars seven years after the member last held shares, and register export records seven "
+    "years after the export. These are the only deletions anyone may perform on those tables - the app "
+    "role's policy refuses all three write commands on the former-member and particulars tables, and the "
+    "app role has no grant on export records at all.",
     "tokens.tasks.signing_challenge.purge_signing_challenges": "Deletes expired challenges regardless of whose.",
     "tokens.tasks.swap_expiry.expire_unclaimed_matches": "Releases eligible unclaimed expired matches across both "
     "parties, retaining every swap with a transaction claim or uncertain history.",

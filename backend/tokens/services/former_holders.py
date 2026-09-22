@@ -4,14 +4,29 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.db.models import Q
+from django.db.models import OuterRef, Q, Subquery
+from django.db.models.functions import Lower
 from django.utils import timezone
 from web3 import Web3
 
 from shared.db import atomic
 from tokens.exceptions import RegisterUnavailableException
-from tokens.models import FormerHolder, RegisterExport, ShareIssuance, ShareToken
-from tokens.models.choices import IDENTITY_RECORDED, IDENTITY_STAMPED, IDENTITY_UNKNOWN
+from tokens.models import (
+    FormerHolder,
+    ImportedFormerMember,
+    RegisterExport,
+    RegisterMemberParticulars,
+    RegisterMemberWallet,
+    RegisterPosition,
+    ShareIssuance,
+    ShareToken,
+)
+from tokens.models.choices import (
+    IDENTITY_PARTICULARS,
+    IDENTITY_RECORDED,
+    IDENTITY_STAMPED,
+    IDENTITY_UNKNOWN,
+)
 from tokens.services import share_token_service
 from tokens.services.register import IDENTITY_BY_HOLDER_TYPE
 from tokens.services.register_snapshot import ZERO_ADDRESS
@@ -84,10 +99,17 @@ def _is_an_account(address) -> bool:
     return bool(address) and address.lower() != ZERO_ADDRESS
 
 
-def _particulars(address, identities, stamps) -> dict:
+def _particulars(address, identities, stamps, recorded) -> dict:
     identity = identities.get(address.lower(), UNIDENTIFIED)
     if identity.holder_type == HolderType.UNIDENTIFIED.value:
         stamp = stamps.get(address.lower())
+        particulars = recorded.get(address.lower())
+        if particulars is not None and not (stamp and stamp["stamped_at"]):
+            return {
+                "name": particulars.name,
+                "residential_address": particulars.residential_address,
+                "identity_source": IDENTITY_PARTICULARS,
+            }
         if stamp:
             return {
                 "name": stamp["name"],
@@ -99,6 +121,16 @@ def _particulars(address, identities, stamps) -> dict:
         "name": identity.name,
         "residential_address": identity.residential_address,
         "identity_source": IDENTITY_BY_HOLDER_TYPE.get(identity.holder_type, IDENTITY_STAMPED),
+    }
+
+
+def _recorded_particulars(token, addresses) -> dict:
+    return {
+        link.address.lower(): link.member.particulars
+        for link in RegisterMemberWallet.objects.filter(company_id=token.company_id, member__particulars__isnull=False)
+        .annotate(address_lower=Lower("address"))
+        .filter(address_lower__in=[address.lower() for address in addresses])
+        .select_related("member__particulars")
     }
 
 
@@ -127,6 +159,7 @@ def fold_former_holders(token: ShareToken, reader=None) -> dict:
     existing = set(FormerHolder.objects.filter(token=token).values_list("wallet_address", "ceased_at_block"))
     missing = {key: value for key, value in retained.items() if key not in existing}
     identities = identities_for([address for address, _block in missing])
+    recorded = _recorded_particulars(token, [address for address, _block in missing])
     stamps = {
         block: ShareIssuance.objects.filter_by_token(token)
         .filter(
@@ -151,7 +184,7 @@ def fold_former_holders(token: ShareToken, reader=None) -> dict:
                 defaults={
                     "ceased_on": dates[block],
                     "shares_at_cessation": cessation["shares"],
-                    **_particulars(address, identities, stamps[block]),
+                    **_particulars(address, identities, stamps[block], recorded),
                 },
             )
             written += int(created)
@@ -166,6 +199,35 @@ def fold_is_stale(token: ShareToken, now=None) -> bool:
     if token.former_holders_folded_at is None:
         return True
     return (now or timezone.now()) - token.former_holders_folded_at > STALE_AFTER
+
+
+def purge_imported_former_members(now=None) -> int:
+    cutoff = retention_cutoff(now)
+    removed, _ = ImportedFormerMember.objects.filter(ceased_on__lt=cutoff).delete()
+    if removed:
+        logger.info(f"Removed {removed} imported former-member records that passed the seven-year clock")
+    return removed
+
+
+def purge_member_particulars(now=None) -> int:
+    cutoff = retention_cutoff(now)
+    last_held = (
+        RegisterPosition.objects.filter(member_id=OuterRef("member_id"))
+        .order_by("-last_entry__effective_on")
+        .values("last_entry__effective_on")[:1]
+    )
+    expired = list(
+        RegisterMemberParticulars.objects.exclude(
+            member_id__in=RegisterPosition.objects.filter(shares__gt=0).values("member_id")
+        )
+        .annotate(left_on=Subquery(last_held))
+        .filter(left_on__lt=cutoff)
+        .values_list("pk", flat=True)
+    )
+    removed, _ = RegisterMemberParticulars.objects.filter(pk__in=expired).delete()
+    if removed:
+        logger.info(f"Removed {removed} member particulars that passed the seven-year clock after the last holding")
+    return removed
 
 
 def purge_register_exports(now=None) -> int:

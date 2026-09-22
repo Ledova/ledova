@@ -1551,6 +1551,54 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/register-imports/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_imports_list'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_imports_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-imports/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_imports_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-imports/{uuid}/file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_imports_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/register-links/': {
     parameters: {
       query?: never;
@@ -3072,7 +3120,7 @@ export interface ApiComponents {
       sourceOfFundsOtherText?: string | null;
     };
     FormerMember: {
-      ceasedAtBlock: number;
+      ceasedAtBlock: number | null;
       ceasedOn: string;
       identityRecordedAt: string;
       identitySource: ApiComponents['schemas']['IdentitySourceEnum'];
@@ -3081,7 +3129,7 @@ export interface ApiComponents {
       residentialAddress: string;
       sharesAtCessation: string;
       uuid: string;
-      walletAddress: string;
+      walletAddress: string | null;
     };
     HolderTypeEnum: 'member' | 'treasury' | 'ambiguous' | 'unidentified';
     Holding: {
@@ -3101,7 +3149,8 @@ export interface ApiComponents {
       walletUuid: string;
     };
     HttpStatusEnum: 400 | 409;
-    IdentitySourceEnum: 'profile' | 'stamped' | 'recorded' | 'treasury_label' | 'unresolvable' | 'none' | 'unknown';
+    IdentitySourceEnum:
+      'profile' | 'stamped' | 'recorded' | 'particulars' | 'treasury_label' | 'unresolvable' | 'none' | 'unknown';
     IdentityVerificationSession: {
       accessToken: string | null;
       applicantId: string | null;
@@ -3601,6 +3650,12 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['RegisterCorrection'][];
     };
+    PaginatedRegisterImportList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['RegisterImport'][];
+    };
     PaginatedRegisterOpeningList: {
       count: number;
       next?: string | null;
@@ -3976,6 +4031,49 @@ export interface ApiComponents {
     RegisterDeviceTokenRequest: {
       deviceType: ApiComponents['schemas']['DeviceTypeEnum'];
       pushToken: string;
+    };
+    RegisterImport: {
+      approvingDirector: string;
+      asAt: string;
+      asicDocument: string;
+      asicFingerprint: string;
+      asicIssuedTotal: string | null;
+      asicMemberCount: number | null;
+      authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
+      authorityReference: string;
+      company: string;
+      createdAt: string;
+      evidenceFingerprint: string;
+      evidenceSnapshot: unknown;
+      formerMembers: unknown;
+      members: unknown;
+      reason: string;
+      registerSequence: number | null;
+      rejectionReason: string;
+      reviewedAt: string | null;
+      reviewedBy: number | null;
+      sourceDocument: string;
+      status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
+      submittedBy: number;
+      token: string;
+      uuid: string;
+    };
+    RegisterImportCreateRequest: {
+      approvingDirector?: string;
+      asAt: string;
+      asicDocumentId: string;
+      authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
+      authorityReference: string;
+      documentId: string;
+      formerMembers: {
+        [key: string]: unknown;
+      }[];
+      members: {
+        [key: string]: unknown;
+      }[];
+      operationId: string;
+      reason: string;
+      tokenId: string;
     };
     RegisterOpening: {
       appliedEntry: string | null;
@@ -8291,6 +8389,95 @@ export interface ApiOperations {
     };
   };
   api_v1_tokens_register_corrections_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_imports_list: {
+    parameters: {
+      query?: {
+        ordering?: string;
+        page?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedRegisterImportList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_imports_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterImportCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterImportCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterImportCreateRequest'];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterImport'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_imports_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterImport'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_imports_file_retrieve: {
     parameters: {
       query?: never;
       header?: never;

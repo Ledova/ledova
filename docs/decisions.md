@@ -45,6 +45,11 @@ chosen on 21 September 2026 in [#647](https://github.com/Ledova/ledova/issues/64
 Register export records, which say who took a copy of the register, follow the
 same floor and purge; the owner chose that the same day in
 [#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5766230810).
+In the same decision, an import of an existing register depends on the class.
+For a class already opened from the chain, it adds particulars and pre-platform
+former members. For a class not yet on chain, it becomes the opening, and later
+tokenising mints mirror it rather than add shares. A staff reviewer enters the
+ASIC extract's issued total and member count, and application refuses a mismatch.
 An entry recorded automatically names the person who authorised its change: the
 staff member who approved an issue, or the transferor whose signed order is a
 transfer's instrument, rather than the company owner or a service account that
@@ -55,6 +60,16 @@ only the operator writes, and later runs treat it as explained, so a share class
 can return to `matched`. Transfers of zero shares are ignored, because anyone
 can emit one. Both were chosen on 22 September 2026 in
 [#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5767606273).
+The same decision settled two import questions. An applied import's reviewed
+copy and uploaded register file are evidence, kept like opening and correction
+evidence: nothing expires them automatically during the synthetic experiment,
+and production retention is decided before any real data. The retention purge
+removes only the particulars the register reads and the imported former members.
+A linked member's live verified identity is shown when it is present and
+unambiguous; imported particulars fill in only for a member with no live
+identity, and an ambiguous identity stays ambiguous, so a later profile change
+reaches the register and particulars never hide a conflict
+([#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5767606273)).
 [The register](architecture/register.md) owns the mechanisms.
 
 ## Payments and settlement
