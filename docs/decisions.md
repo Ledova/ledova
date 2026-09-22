@@ -92,10 +92,9 @@ With it the owner chose that:
 - the clients stay API-only, plus the issuer's list of waiting entries;
 - evidence copies are retained like openings and corrections.
 
-Issue instructions came first; the issuer's waiting list and transfer
-instructions follow. Until then a completed settlement is still recorded without
-an instruction, and every entry takes its completion date rather than the date
-it is made.
+Issue instructions came first, then the issuer's waiting list and the rule that
+a late entry is dated the day it is made; transfer instructions follow. Until
+then a completed settlement is still recorded without an instruction.
 [The register](architecture/register.md) owns the mechanisms.
 
 The same day the owner chose how the register's outputs are produced:

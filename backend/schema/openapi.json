@@ -10194,6 +10194,83 @@
         ],
         "type": "object"
       },
+      "ShareRegisterWaiting": {
+        "properties": {
+          "effects": {
+            "items": {
+              "$ref": "#/components/schemas/ShareRegisterWaitingEffect"
+            },
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "required": [
+          "effects"
+        ],
+        "type": "object"
+      },
+      "ShareRegisterWaitingEffect": {
+        "properties": {
+          "block": {
+            "type": "integer"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ShareRegisterWaitingEffectKindEnum"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/ShareRegisterWaitingReasonEnum"
+          },
+          "shares": {
+            "type": "string"
+          },
+          "source": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "unlinkedWallets": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "wallets": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "block",
+          "kind",
+          "reason",
+          "shares",
+          "source",
+          "unlinkedWallets",
+          "wallets"
+        ],
+        "type": "object"
+      },
+      "ShareRegisterWaitingEffectKindEnum": {
+        "description": "* `issue` - issue\n* `transfer` - transfer",
+        "enum": [
+          "issue",
+          "transfer"
+        ],
+        "type": "string"
+      },
+      "ShareRegisterWaitingReasonEnum": {
+        "description": "* `attribution` - attribution\n* `unlinked` - unlinked\n* `unreviewed` - unreviewed\n* `uninstructed` - uninstructed\n* `refused` - refused\n* `behind` - behind",
+        "enum": [
+          "attribution",
+          "unlinked",
+          "unreviewed",
+          "uninstructed",
+          "refused",
+          "behind"
+        ],
+        "type": "string"
+      },
       "ShareRegisterWallet": {
         "properties": {
           "address": {
@@ -21075,6 +21152,46 @@
               "text/csv": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/{uuid}/register/waiting/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_waiting_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareRegisterWaiting"
                 }
               }
             },

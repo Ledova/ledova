@@ -3,6 +3,7 @@ from rest_framework import serializers
 from companies.models import Company
 from tokens.models import ShareToken
 from tokens.services.market_data_service import market_summaries
+from tokens.services.register_inclusions import ISSUE, TRANSFER, WAITING_REASONS
 from whitelist.models import HolderType
 
 SHARES_ARE_WHOLE = (
@@ -169,3 +170,13 @@ class ShareRegisterHolderSerializer(serializers.Serializer):
     entered_on = serializers.DateField()
     share_class = serializers.CharField()
     identity_source = serializers.CharField()
+
+
+class ShareRegisterWaitingEffectSerializer(serializers.Serializer):
+    kind = serializers.ChoiceField(choices=[ISSUE, TRANSFER])
+    source = serializers.UUIDField()
+    block = serializers.IntegerField()
+    wallets = serializers.ListField(child=serializers.CharField())
+    shares = serializers.CharField()
+    reason = serializers.ChoiceField(choices=WAITING_REASONS)
+    unlinked_wallets = serializers.ListField(child=serializers.CharField())

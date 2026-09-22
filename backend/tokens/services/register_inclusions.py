@@ -1,9 +1,9 @@
 import logging
-from datetime import timezone as utc_zone
 from uuid import UUID
 
 from django.db import DatabaseError
 from django.db.models.functions import Lower
+from django.utils import timezone
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 
 from blockchain.models import TransactionStatus
@@ -40,6 +40,12 @@ AFTER_OPENING = "after_opening"
 ATTRIBUTION = "attribution"
 ISSUE = "issue"
 TRANSFER = "transfer"
+UNLINKED = "unlinked"
+UNREVIEWED = "unreviewed"
+UNINSTRUCTED = "uninstructed"
+REFUSED = "refused"
+BEHIND = "behind"
+WAITING_REASONS = (ATTRIBUTION, UNLINKED, UNREVIEWED, UNINSTRUCTED, REFUSED, BEHIND)
 
 
 def _operator():
@@ -237,104 +243,122 @@ def issue_covered(request):
     return RegisterInstruction.objects.covering(*listed).exists()
 
 
-def _effect(inclusion, company_id):
+def _effect(inclusion, company_id, classification):
     if inclusion["kind"] == ISSUE:
         issuance = ShareIssuance.objects.get(pk=inclusion["source"])
-        request = ShareIssuanceRequest.objects.filter(executed_issuance=issuance).select_related("reviewed_by").first()
-        member = _members(company_id, [issuance.recipient_address]).get(issuance.recipient_address.lower())
-        if member is None or request is None or request.reviewed_by is None or not issue_covered(request):
-            return None
-        return {
-            "kind": RegisterEntryKind.ISSUE,
-            "changes": [{"member": member, "shares": str(int(issuance.amount))}],
-            "effective_on": issuance.completed_at.astimezone(utc_zone.utc).date(),
-            "recorded_by": request.reviewed_by,
-        }
-    swap = SwapOrder.objects.select_related("seller_wallet__user_account__user_profile__user").get(
-        pk=inclusion["source"]
-    )
-    members = _members(company_id, [swap.seller_address, swap.buyer_address])
-    seller, buyer = members.get(swap.seller_address.lower()), members.get(swap.buyer_address.lower())
-    if seller is None or buyer is None:
-        return None
-    if seller == buyer:
-        return {}
-    return {
-        "kind": RegisterEntryKind.TRANSFER,
-        "changes": sorted(
-            [
-                {"member": seller, "shares": str(-swap.share_amount)},
-                {"member": buyer, "shares": str(swap.share_amount)},
-            ],
-            key=lambda change: change["member"],
-        ),
-        "effective_on": swap.completed_at.astimezone(utc_zone.utc).date(),
-        "recorded_by": swap.seller_wallet.user_account.user_profile.user,
+        wallets, shares = [issuance.recipient_address], int(issuance.amount)
+    else:
+        swap = SwapOrder.objects.select_related("seller_wallet__user_account__user_profile__user").get(
+            pk=inclusion["source"]
+        )
+        wallets, shares = [swap.seller_address, swap.buyer_address], swap.share_amount
+    effect = {
+        "kind": inclusion["kind"],
+        "source": inclusion["source"],
+        "block": inclusion["block_number"],
+        "wallets": wallets,
+        "shares": str(shares),
+        "unlinked_wallets": [],
+        "reason": None,
     }
+    if classification != AFTER_OPENING:
+        return {**effect, "reason": ATTRIBUTION}, None
+    members = _members(company_id, wallets)
+    unlinked = [wallet for wallet in wallets if wallet.lower() not in members]
+    if unlinked:
+        return {**effect, "reason": UNLINKED, "unlinked_wallets": unlinked}, None
+    if inclusion["kind"] == ISSUE:
+        request = ShareIssuanceRequest.objects.filter(executed_issuance=issuance).select_related("reviewed_by").first()
+        if request is None or request.reviewed_by is None:
+            return {**effect, "reason": UNREVIEWED}, None
+        if not issue_covered(request):
+            return {**effect, "reason": UNINSTRUCTED}, None
+        changes = [{"member": members[issuance.recipient_address.lower()], "shares": str(shares)}]
+        return effect, {"kind": RegisterEntryKind.ISSUE, "changes": changes, "recorded_by": request.reviewed_by}
+    seller, buyer = members[swap.seller_address.lower()], members[swap.buyer_address.lower()]
+    if seller == buyer:
+        return None, None
+    changes = sorted(
+        [{"member": seller, "shares": str(-shares)}, {"member": buyer, "shares": str(shares)}],
+        key=lambda change: change["member"],
+    )
+    recorded_by = swap.seller_wallet.user_account.user_profile.user
+    return effect, {"kind": RegisterEntryKind.TRANSFER, "changes": changes, "recorded_by": recorded_by}
+
+
+def _unrecorded(token_id):
+    boundary = opening_boundary(token_id)
+    register = ShareRegister.objects.filter(token_id=token_id).select_related("token").first()
+    if boundary is None or register is None:
+        return None, ()
+    inclusions = completed_inclusions(token_id)
+    classify = classifier(boundary)
+    recorded = _recorded(token_id)
+
+    def effects():
+        for inclusion in inclusions:
+            classification = classify(inclusion)
+            if classification != OPENING and inclusion["source"] not in recorded:
+                effect, entry = _effect(inclusion, register.token.company_id, classification)
+                if effect is not None:
+                    yield effect, entry
+
+    return register, effects()
 
 
 def record_completed_effects(token_id):
     _operator()
-    boundary = opening_boundary(token_id)
-    register = ShareRegister.objects.filter(token_id=token_id).select_related("token").first()
-    if boundary is None or register is None:
-        return []
     try:
-        inclusions = completed_inclusions(token_id)
+        register, effects = _unrecorded(token_id)
     except ValidationError:
         logger.warning("Register recording for share class %s waits for attribution of a completed effect", token_id)
         return []
-    classify = classifier(boundary)
-    recorded = _recorded(token_id)
     appended = []
-    for inclusion in inclusions:
-        classification = classify(inclusion)
-        if classification == OPENING or inclusion["source"] in recorded:
-            continue
-        effect = _effect(inclusion, register.token.company_id) if classification == AFTER_OPENING else None
-        if effect == {}:
-            continue
-        if effect is None:
+    for effect, entry in effects:
+        if entry is None:
             logger.info(
                 "Register recording for share class %s waits at %s %s (%s)",
                 token_id,
-                inclusion["kind"],
-                inclusion["source"],
-                classification,
+                effect["kind"],
+                effect["source"],
+                effect["reason"],
             )
             return appended
         try:
             with atomic():
-                appended.append(record_entry(register_id=register.pk, operation_id=UUID(inclusion["source"]), **effect))
+                appended.append(
+                    record_entry(
+                        register_id=register.pk,
+                        operation_id=UUID(effect["source"]),
+                        effective_on=timezone.now().date(),
+                        **entry,
+                    )
+                )
         except (ValidationError, RegisterChangeConflict, DatabaseError):
             logger.warning(
                 "The register refused %s %s for share class %s; later effects wait",
-                inclusion["kind"],
-                inclusion["source"],
+                effect["kind"],
+                effect["source"],
                 token_id,
             )
             return appended
     return appended
 
 
-def waiting_effects(token_id):
+def waiting_list(token_id):
     _operator()
-    boundary = opening_boundary(token_id)
-    register = ShareRegister.objects.filter(token_id=token_id).select_related("token").first()
-    if boundary is None or register is None:
-        return None
     try:
-        inclusions = completed_inclusions(token_id)
+        register, effects = _unrecorded(token_id)
     except ValidationError:
         return None
-    classify = classifier(boundary)
-    recorded = _recorded(token_id)
-    waiting = 0
-    for inclusion in inclusions:
-        classification = classify(inclusion)
-        if classification == OPENING or inclusion["source"] in recorded:
-            continue
-        if classification == AFTER_OPENING and _effect(inclusion, register.token.company_id) == {}:
-            continue
-        waiting += 1
-    return waiting
+    if register is None:
+        return None
+    rows = []
+    for effect, _ in effects:
+        rows.append({**effect, "reason": effect["reason"] or (BEHIND if rows else REFUSED)})
+    return rows
+
+
+def waiting_effects(token_id):
+    waiting = waiting_list(token_id)
+    return None if waiting is None else len(waiting)

@@ -98,6 +98,16 @@ class ScopedRegisterOpeningTest(RunsOnTheScopedConnection, APITransactionTestCas
         )
         self.assertEqual(sorted(row["balance"] for row in holders.json()["holders"]), ["20", "80"])
 
+    def test_the_owner_reads_what_waits_to_be_entered_and_another_issuer_does_not(self):
+        with use_operator():
+            self.apply()
+        path = f"/api/v1/tokens/{self.tenant.token.uuid}/register/waiting/"
+        self.client.force_authenticate(self.owner)
+        waiting = self.client.get(path)
+        self.assertEqual((waiting.status_code, waiting.json()), (200, {"effects": []}))
+        self.client.force_authenticate(self.stranger)
+        self.assertEqual(self.client.get(path).status_code, 404)
+
     def test_app_role_cannot_capture_boundaries_or_write_wallet_links(self):
         with self.assertRaises(PermissionDenied):
             prepare_opening_review(proposal_id=self.proposal.pk, reviewer=self.reviewer, client=self.node.client)

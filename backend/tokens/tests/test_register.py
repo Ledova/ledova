@@ -621,6 +621,9 @@ class StoredRegisterReadTest(RegisterTestBase):
             (body["initialized"], body["holders"], body["issuedSupply"], body["waitingEffects"]),
             (False, [], None, None),
         )
+        self.assertEqual(
+            self.client.get(f"/api/v1/tokens/{self.token.uuid}/register/waiting/").json(), {"effects": None}
+        )
         export, _ = self._export()
         self.assertEqual(export.status_code, 409)
         self.assertEqual(export.json()["code"], "register_not_initialized")
@@ -739,7 +742,7 @@ class RegisterIsolationTest(RegisterTestBase):
         self._stored({MEMBER: 100})
         self.client.force_authenticate(stranger)
 
-        for path in ("holders", "register/export"):
+        for path in ("holders", "register/export", "register/waiting"):
             with self.subTest(path=path):
                 response = self.client.get(f"/api/v1/tokens/{self.token.uuid}/{path}/")
                 self.assertEqual(response.status_code, 404)

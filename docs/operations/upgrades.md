@@ -162,6 +162,16 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   page, opened only by the new **Can change register outputs** permission: grant
   it to the staff who prepare inspection copies. Reversal refuses once any
   inspection copy exists.
+- The issuer's waiting list and late-entry dating have no migration.
+  `GET /api/v1/tokens/{uuid}/register/waiting/` lists, for the owner of a share
+  class's company, each completed effect not yet recorded with the reason it
+  waits; see [the waiting list](register-foundation.md#the-issuers-waiting-list).
+  A register entry recorded after its effect waited is now dated the day it is
+  made (UTC) rather than its completion date; one recorded as its effect
+  completes still carries the completion date, and entries already recorded keep
+  theirs. The register now refuses an issue or transfer dated before its latest
+  entry, so where that entry carries a date after today, such as a correction
+  dated in the future, later effects wait as `refused` until that date.
 - `whitelist/0002_whitelistentry_treasury_addresses` makes
   `WhitelistEntry.wallet` nullable and adds `address` and `label` with a check
   constraint; `whitelist/0003` adds the partial unique constraint on `address`

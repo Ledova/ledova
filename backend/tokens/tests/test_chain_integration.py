@@ -106,6 +106,7 @@ from tokens.services.register_inclusions import (
     completed_inclusions,
     unrepresented_inclusions,
     waiting_effects,
+    waiting_list,
 )
 from tokens.services.register_instructions import (
     decide_instruction,
@@ -962,6 +963,10 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
 
         self.assertEqual(recorded_classifications(), [(AFTER_OPENING, False), (OPENING, False), (OPENING, False)])
         self.assertEqual(waiting_effects(self.token.pk), 1)
+        self.assertEqual(
+            [(row["block"], row["wallets"], row["shares"], row["reason"]) for row in waiting_list(self.token.pk)],
+            [(after[0]["block_number"], [self.investor], "5", "uninstructed")],
+        )
         self.assertFalse(RegisterEntry.objects.filter(kind="issue").exists())
         instruction = submit_instruction(
             actor=owner,

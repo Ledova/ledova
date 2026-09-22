@@ -89,6 +89,13 @@ def record_entry(*, register_id, operation_id, kind, changes, effective_on, reco
                 if any(getattr(previous, key) != value for key, value in values.items()):
                     raise RegisterChangeConflict()
                 return previous
+            if (
+                kind in (RegisterEntryKind.ISSUE, RegisterEntryKind.TRANSFER)
+                and RegisterEntry.objects.filter(
+                    register=register, sequence=register.sequence, effective_on__gt=effective_on
+                ).exists()
+            ):
+                raise ValidationError("An issue or transfer cannot be dated before the register's latest entry.")
             entry = RegisterEntry.objects.create(register=register, operation_id=operation_id, **values)
             entry.refresh_from_db()
             return entry

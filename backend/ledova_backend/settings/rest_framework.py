@@ -58,6 +58,7 @@ SPECTACULAR_SETTINGS = {
         "RegisterCorrectionStatusEnum": "tokens.models.register_correction.RegisterCorrectionStatus",
         "RegisterCorrectionAuthorityEnum": "tokens.models.register_correction.RegisterCorrectionAuthority",
         "RegisterInstructionKindEnum": "tokens.models.register_instruction.RegisterInstructionKind",
+        "ShareRegisterWaitingReasonEnum": "tokens.services.register_inclusions.WAITING_REASONS",
     },
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",

@@ -35,8 +35,7 @@ Phase 0 verification and the bounded cross-account matcher are recorded in
 
 - [Phase 1](https://github.com/Ledova/ledova/issues/647): the rest of the
   authoritative stored register — opening a class from an import, transfer
-  instructions and the issuer's list of waiting entries, certificates and notice
-  figures.
+  instructions, certificates and notice figures.
 - [Phase 2](https://github.com/Ledova/ledova/issues/648): company-scoped
   on-chain approvals with expiry ([product §5](product.md#5-verification-and-transaction-controls)).
 - [Phase 3](https://github.com/Ledova/ledova/issues/649): shareholder

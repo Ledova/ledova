@@ -9,7 +9,8 @@ compensating corrections. It is a foundation for the authoritative register.
 The HTTP and CSV register routes serve it once a share class's opening is
 applied, and issuance and settlement then record each later completed effect in
 it, an issue only under an applied register instruction that a named director's
-approval supports; opening review and the inclusion report classify completed
+approval supports, and the issuer can list the effects still waiting and why;
+opening review and the inclusion report classify completed
 effects against the captured boundary, and a scheduled job reconciles it with the
 chain. An
 import adds an existing register's particulars and former members to a class
@@ -576,8 +577,14 @@ transaction that completes it:
 
 | Effect | Entry | Recorded by | Effective date |
 | --- | --- | --- | --- |
-| Issuance | `issue` of the minted shares to the recipient's linked member | The staff member who approved the issuance request: who applied the [register instruction](#register-instructions-for-issues) listing it, allotted the subscription one lists, or approved it before `tokens/0073` | The completion date (UTC) |
-| Settlement | `transfer` from the seller's linked member to the buyer's | The transferor, whose signed order is the instrument | The completion date (UTC) |
+| Issuance | `issue` of the minted shares to the recipient's linked member | The staff member who approved the issuance request: who applied the [register instruction](#register-instructions-for-issues) listing it, allotted the subscription one lists, or approved it before `tokens/0073` | The date the entry is made (UTC) |
+| Settlement | `transfer` from the seller's linked member to the buyer's | The transferor, whose signed order is the instrument | The date the entry is made (UTC) |
+
+An entry recorded as its effect completes is made in the completion's own
+transaction, so it carries the completion date. One recorded after its effect
+waited carries the later date on which it is made, whatever it waited for, a
+wallet link included (owner decision, 22 September 2026). Entries recorded
+before this rule keep their completion dates.
 
 The entry's operation ID is the completed issuance or settlement, so recording is
 idempotent. Only an issue or transfer entry counts: a correction or opening that
@@ -610,6 +617,43 @@ whatever was waiting for it; each takes the share class's lock first, so a
 completion in progress cannot miss the new link or cover.
 `register_inclusions` reports `recorded` for each effect.
 
+The register never dates an issue or transfer before its latest entry.
+Recording makes a share class's entries one at a time under its lock, so their
+dates do not go backwards; only an entry made another way can carry a later
+date, such as a correction submitted with an effective date after the day it is
+applied. While the latest entry is dated after today, the register refuses the
+next issue or transfer, and it waits with the reason `refused` until a recording
+on or after that date.
+
+### The issuer's waiting list
+
+The company owner can list the completed effects of a share class that are not
+yet in the register, in the order recording will take them:
+
+| Method and route | Result |
+| --- | --- |
+| `GET /api/v1/tokens/{uuid}/register/waiting/` | `effects`: each completed effect after the opening not yet recorded, in chain order, or `null` where `waitingEffects` is `null` |
+
+Each effect carries its `kind` (`issue` or `transfer`), its `source` (the
+issuance or settlement ID, which becomes the entry's operation ID), the `block`
+that finally included it, its `wallets` (the recipient's for an issue, the
+seller's then the buyer's for a transfer), its `shares`, its `reason` and
+`unlinkedWallets`:
+
+| Reason | Why it waits | What resolves it |
+| --- | --- | --- |
+| `attribution` | The opening's captured boundary cannot place its completion | The attribution procedure, not yet specified |
+| `unlinked` | A wallet it names has no reviewed link to a member; `unlinkedWallets` lists which | A [reviewed link request](#reviewed-wallet-links-after-the-opening) |
+| `unreviewed` | The issue's request records no approving reviewer, as when the reviewer's account was deleted | Nothing yet: recording does not invent a recorder |
+| `uninstructed` | No applied register instruction covers the issue | A [register instruction](#register-instructions-for-issues) that lists it |
+| `refused` | Nothing of its own: recording last tried it and the register refused the entry | The logged refusal's cause, such as a seller's stored holding that does not cover the transfer or a latest entry dated after today; recording tries again at its next run |
+| `behind` | Nothing of its own: an earlier effect in the class waits | Resolving the earlier effect |
+
+The list, the `waitingEffects` count and recording walk the same classification
+in the same order, so the count is always the list's length and the first effect
+listed is the one recording stops at. The route answers the owner of the share
+class's company, and 404 for anyone else, from one database snapshot.
+
 ## Reading the register
 
 The holders route and the CSV export serve the stored holdings with the chain
@@ -618,11 +662,9 @@ describes both. Before a share class's opening is applied, holders report
 `initialized: false` and the export is refused with 409
 `register_not_initialized`: submit and review an opening to start it. A positive
 `waitingEffects` count, or the CSV's "Completed effects waiting to be recorded"
-row, means completions are not yet in the holdings. Run `register_inclusions`
-for that share class to find the first unrecorded effect: an unlinked wallet
-needs a reviewed link request, an issue approved before `tokens/0073` needs a
-[register instruction](#register-instructions-for-issues) that lists it, and an
-effect held for attribution waits for the attribution procedure. A count of `null`, or `unknown` in the CSV, means the
+row, means completions are not yet in the holdings. The
+[waiting list](#the-issuers-waiting-list) names each of them and why it waits.
+A count of `null`, or `unknown` in the CSV, means the
 completions could not be classified, or the register has no captured boundary to
 classify them against, as with one loaded by the synthetic command above;
 `register_inclusions` prints the refusal or a null boundary.
