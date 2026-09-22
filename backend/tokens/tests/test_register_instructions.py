@@ -28,8 +28,16 @@ from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from tokens.exceptions import RegisterChangeConflict
-from tokens.models import RegisterInstruction, RequestStatus, ShareIssuanceRequest
+from tokens.models import (
+    RegisterEntry,
+    RegisterInstruction,
+    RequestStatus,
+    ShareIssuanceRequest,
+    ShareToken,
+    SwapOrder,
+)
 from tokens.services.register_instructions import (
+    SETTLED,
     decide_instruction,
     prepare_instruction_review,
     submit_instruction,
@@ -41,6 +49,10 @@ from tokens.tests.instruction_fixtures import (
     instruction_reviewer,
     verified_authority,
 )
+from tokens.tests.test_register_workflow_events import (
+    SETTLEMENT,
+    SettledTransferFixtures,
+)
 
 
 def instruction_fixture(label="instruction"):
@@ -50,6 +62,28 @@ def instruction_fixture(label="instruction"):
     document = verified_authority(tenant.company, reviewer)
     request = issuance_request(tenant)
     return tenant, reviewer, document, request
+
+
+def forged(proposal, model=RegisterInstruction, **changes):
+    forged_id = uuid4()
+    return model.objects.create(
+        **{
+            "uuid": forged_id,
+            "company_id": proposal.company_id,
+            "token_id": proposal.token_id,
+            "kind": proposal.kind,
+            "items": proposal.items,
+            "approving_director": proposal.approving_director,
+            "authority_reference": proposal.authority_reference,
+            "reason": proposal.reason,
+            "source_document": proposal.source_document,
+            "evidence_fingerprint": proposal.evidence_fingerprint,
+            "evidence_snapshot": proposal.evidence_snapshot,
+            "file": f"companies/{proposal.company_id}/register-instructions/{forged_id}/{uuid4()}.bin",
+            "submitted_by_id": proposal.submitted_by_id,
+            **changes,
+        }
+    )
 
 
 def issuance_request(tenant, **fields):
@@ -85,27 +119,6 @@ class RegisterInstructionTest(TransactionTestCase):
             confirmation=self.review(proposal) if confirmation is None and decision == "apply" else confirmation or "",
             decision=decision,
             rejection_reason=rejection_reason,
-        )
-
-    def forged(self, proposal, **changes):
-        forged_id = uuid4()
-        return RegisterInstruction.objects.create(
-            **{
-                "uuid": forged_id,
-                "company": self.tenant.company,
-                "token": self.token,
-                "kind": proposal.kind,
-                "items": proposal.items,
-                "approving_director": proposal.approving_director,
-                "authority_reference": proposal.authority_reference,
-                "reason": proposal.reason,
-                "source_document": proposal.source_document,
-                "evidence_fingerprint": proposal.evidence_fingerprint,
-                "evidence_snapshot": proposal.evidence_snapshot,
-                "file": f"companies/{self.tenant.company.pk}/register-instructions/{forged_id}/{uuid4()}.bin",
-                "submitted_by": self.tenant.user,
-                **changes,
-            }
         )
 
     def test_submission_binds_the_exact_items_verified_evidence_and_a_retained_copy(self):
@@ -314,11 +327,11 @@ class RegisterInstructionTest(TransactionTestCase):
             [item, item],
         ):
             with self.subTest(items=items), self.assertRaises(DatabaseError), atomic():
-                self.forged(proposal, items=items)
+                forged(proposal, items=items)
         with self.assertRaises(DatabaseError), atomic():
-            self.forged(proposal, approving_director=" ")
+            forged(proposal, approving_director=" ")
         with self.assertRaises(RuntimeError), atomic():
-            self.forged(proposal)
+            forged(proposal)
             raise RuntimeError("rollback")
         self.decide(proposal)
         with self.assertRaises(DatabaseError), atomic():
@@ -561,6 +574,338 @@ class ScopedRegisterInstructionTest(RunsOnTheScopedConnection, APITransactionTes
         self.assertEqual((request.status, request.reviewed_by_id), (RequestStatus.APPROVED, self.reviewer.pk))
 
 
+@override_settings(**SETTLEMENT)
+class TransferInstructionTest(SettledTransferFixtures, TransactionTestCase):
+    def setUp(self):
+        super().setUp()
+        self.open_register()
+        self.token = ShareToken.objects.get(pk=self.swap.share_token_id)
+        self.payload = instruction_payload(self.token, self.document, [self.swap])
+
+    def submit(self, **changes):
+        return submit_instruction(actor=self.owner, **{**self.payload, **changes})
+
+    def decide(self, proposal, decision="apply", confirmation="", rejection_reason=""):
+        return decide_instruction(
+            proposal_id=proposal.pk,
+            reviewer=self.reviewer,
+            confirmation=confirmation,
+            decision=decision,
+            rejection_reason=rejection_reason,
+        )
+
+    def as_the_app_role(self):
+        self.addCleanup(self.restore_role)
+        with connection.cursor() as cursor:
+            cursor.execute(f'SET ROLE "{settings.RLS_ROLES["app"]}"')
+            cursor.execute("SELECT set_config(%s, %s, false)", [PRINCIPAL_SETTING, str(self.owner.pk)])
+
+    def restore_role(self):
+        with connection.cursor() as cursor:
+            cursor.execute("RESET ROLE")
+            cursor.execute("SELECT set_config(%s, NULL, false)", [PRINCIPAL_SETTING])
+
+    def apply_by_sql(self, instruction):
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "UPDATE tokens_registerinstruction SET status = 'applied', reviewed_by_id = %s, reviewed_at = now() "
+                "WHERE uuid = %s",
+                [self.reviewer.pk, instruction.pk],
+            )
+
+    def test_submission_binds_the_exact_settlement_terms_verified_evidence_and_a_retained_copy(self):
+        self.complete()
+        item = instruction_item(self.swap)
+        proposal = self.submit(items=[{**item, "seller": item["seller"].lower(), "buyer": item["buyer"].lower()}])
+        self.assertEqual((proposal.status, proposal.kind, proposal.token_id), ("submitted", "transfer", self.token.pk))
+        self.assertEqual(
+            proposal.items,
+            [
+                {
+                    "settlement": str(self.swap.pk),
+                    "seller": Web3.to_checksum_address(self.swap.seller_address),
+                    "buyer": Web3.to_checksum_address(self.swap.buyer_address),
+                    "amount": "10",
+                }
+            ],
+        )
+        document = CompanyDocument.objects.get(pk=self.document.pk)
+        self.assertEqual(proposal.evidence_fingerprint, document.verified_fingerprint)
+        with proposal.file.open("rb") as retained, document.file.open("rb") as source:
+            self.assertEqual(retained.read(), source.read())
+        self.assertEqual(self.submit(operation_id=proposal.pk).pk, proposal.pk)
+        for changes in ({"reason": "Another reason"}, {"items": [{**item, "amount": "9"}]}):
+            with self.subTest(changes=changes), self.assertRaises(RegisterChangeConflict):
+                self.submit(operation_id=proposal.pk, **changes)
+        self.assertEqual(RegisterInstruction.objects.count(), 1)
+        self.assertEqual(self.transfers(), [])
+
+    def test_submission_lists_only_completed_settlements_of_the_class_on_their_terms(self):
+        with self.assertRaisesMessage(ValidationError, "is not a completed settlement of this share class"):
+            self.submit()
+        self.complete()
+        stranger = make_tenant("transfer-stranger")
+        with self.assertRaises(NotFound):
+            submit_instruction(actor=stranger.user, **self.payload)
+        item = instruction_item(self.swap)
+        request = {"request": str(uuid4()), "recipient": item["seller"], "amount": "1"}
+        for items, refusal in (
+            ([], "List each settlement"),
+            ([{**item, "buyer": "not-an-address"}], "List each settlement"),
+            ([{**item, "amount": "0"}], "List each settlement"),
+            ([{**item, "amount": 10}], "List each settlement"),
+            ([{key: value for key, value in item.items() if key != "buyer"}], "List each settlement"),
+            ([{**item, "request": item["settlement"]}], "List each settlement"),
+            ([item, request], "List each settlement"),
+            ([item, {**item, "seller": item["seller"].lower()}], "lists a settlement more than once"),
+            ([{**item, "amount": "11"}], "differs from the instruction"),
+            ([{**item, "seller": item["buyer"], "buyer": item["seller"]}], "differs from the instruction"),
+            ([instruction_item(stranger.swap)], "is not a completed settlement of this share class"),
+            ([{**item, "settlement": str(uuid4())}], "is not a completed settlement of this share class"),
+        ):
+            with self.subTest(items=items), self.assertRaisesMessage(ValidationError, refusal):
+                self.submit(operation_id=uuid4(), items=items)
+        for changes, refusal in (
+            ({"kind": "issue"}, "List each issuance request or subscription"),
+            ({"kind": "transfer", "items": [request]}, "List each settlement"),
+            ({"kind": "refusal"}, "approves issues or transfers"),
+        ):
+            with self.subTest(changes=changes), self.assertRaisesMessage(ValidationError, refusal):
+                self.submit(operation_id=uuid4(), **changes)
+        self.assertFalse(RegisterInstruction.objects.exists())
+
+    def test_the_approving_director_cannot_be_a_party_to_a_listed_settlement(self):
+        self.complete()
+        for party in (self.fixture.seller, self.fixture.buyer):
+            with self.subTest(party=party.label), self.assertRaisesMessage(ValidationError, "is a party to settlement"):
+                self.submit(operation_id=uuid4(), approving_director=f" {party.profile.full_name.upper()} ")
+        self.assertEqual(self.submit(operation_id=uuid4()).approving_director, DIRECTOR)
+
+    def test_application_covers_each_listed_settlement_once_and_records_its_transfer(self):
+        self.complete()
+        proposal, duplicate = self.submit(), self.submit(operation_id=uuid4(), reason="A second approval")
+        _, rows, confirmation = prepare_instruction_review(proposal_id=proposal.pk, reviewer=self.reviewer)
+        self.assertEqual(
+            [
+                (row["settlement"], row["seller_member"], row["seller_name"], row["buyer_member"], row["buyer_name"])
+                for row in rows
+            ],
+            [
+                (
+                    str(self.swap.pk),
+                    str(self.seller_member.pk),
+                    self.fixture.seller.profile.full_name,
+                    str(self.buyer_member.pk),
+                    self.fixture.buyer.profile.full_name,
+                )
+            ],
+        )
+        self.assertEqual([(row["completed_at"], row["state"]) for row in rows], [(self.swap.completed_at, SETTLED)])
+        applied = self.decide(proposal, confirmation=confirmation)
+        self.assertEqual((applied.status, applied.reviewed_by_id), ("applied", self.reviewer.pk))
+        entry = RegisterEntry.objects.get(operation_id=self.swap.pk)
+        self.assertEqual((entry.kind, entry.recorded_by_id), ("transfer", self.fixture.seller.user.pk))
+        with patch("django.core.signing.time.time", return_value=timezone.now().timestamp() + 901):
+            self.assertEqual(self.decide(proposal, confirmation=confirmation).status, "applied")
+        with self.assertRaises(RegisterChangeConflict):
+            self.decide(proposal, "reject", rejection_reason="Too late")
+        with self.assertRaisesMessage(ValidationError, "is already covered by an applied instruction"):
+            prepare_instruction_review(proposal_id=duplicate.pk, reviewer=self.reviewer)
+        with self.assertRaisesMessage(ValidationError, "is already covered by an applied instruction"):
+            self.submit(operation_id=uuid4())
+        self.assertEqual(self.decide(duplicate, "reject", rejection_reason="Already covered").status, "rejected")
+        self.assertEqual(RegisterEntry.objects.filter(operation_id=self.swap.pk).count(), 1)
+
+    def test_a_second_instruction_for_a_settlement_cannot_be_applied_once_the_first_covers_it(self):
+        self.complete()
+        proposal, duplicate = self.submit(), self.submit(operation_id=uuid4(), reason="A second approval")
+        confirmation = prepare_instruction_review(proposal_id=duplicate.pk, reviewer=self.reviewer)[2]
+        self.decide(
+            proposal, confirmation=prepare_instruction_review(proposal_id=proposal.pk, reviewer=self.reviewer)[2]
+        )
+        with self.assertRaisesMessage(ValidationError, "is already covered by an applied instruction"):
+            self.decide(duplicate, confirmation=confirmation)
+        self.assertEqual(RegisterInstruction.objects.get(pk=duplicate.pk).status, "submitted")
+
+    def test_the_database_refuses_malformed_settlements_and_app_role_decisions(self):
+        self.complete()
+        evidence = self.submit()
+        item = evidence.items[0]
+        self.as_the_app_role()
+        for items in (
+            [],
+            [{**item, "amount": "010"}],
+            [{**item, "seller": None}],
+            [{**item, "buyer": "0x" + "zz" * 20}],
+            [{**item, "settlement": "not-a-uuid"}],
+            [{key: value for key, value in item.items() if key != "buyer"}],
+            [{**item, "request": item["settlement"]}],
+            [{"request": item["settlement"], "recipient": item["seller"], "amount": "1"}],
+            [item, item],
+        ):
+            with self.subTest(items=items), self.assertRaisesMessage(
+                DatabaseError, "require exact current intent"
+            ), atomic():
+                forged(evidence, items=items)
+        for kind in ("issue", "refusal"):
+            with self.subTest(kind=kind), self.assertRaisesMessage(
+                DatabaseError, "require exact current intent"
+            ), atomic():
+                forged(evidence, kind=kind)
+        unseen = forged(evidence, items=[{**item, "settlement": str(uuid4())}])
+        with self.assertRaisesMessage(DatabaseError, "Only operator review may decide"), atomic():
+            self.apply_by_sql(unseen)
+        self.restore_role()
+        self.assertEqual(RegisterInstruction.objects.get(pk=unseen.pk).status, "submitted")
+
+    def test_the_database_applies_only_completed_settlements_of_the_class_on_their_terms_once(self):
+        request = ShareIssuanceRequest.objects.create(
+            token=self.token, recipient_address=self.swap.buyer_address, amount=1, reason="Allotment"
+        )
+        evidence = submit_instruction(actor=self.owner, **instruction_payload(self.token, self.document, [request]))
+        item = instruction_item(self.swap)
+        settling = forged(evidence, kind="transfer", items=[item])
+        with self.assertRaisesMessage(DatabaseError, "Application must cover completed settlements"), atomic():
+            self.apply_by_sql(settling)
+        self.complete()
+        for changes in (
+            {"items": [{**item, "amount": "9"}]},
+            {"items": [{**item, "seller": item["buyer"], "buyer": item["seller"]}]},
+            {"items": [{**item, "settlement": str(uuid4())}]},
+            {"token_id": self.fixture.seller.token.pk},
+        ):
+            with self.subTest(changes=changes), self.assertRaisesMessage(
+                DatabaseError, "Application must cover completed settlements"
+            ), atomic():
+                self.apply_by_sql(forged(evidence, **{"kind": "transfer", "items": [item], **changes}))
+        duplicate = forged(evidence, kind="transfer", items=[item])
+        self.apply_by_sql(settling)
+        self.assertEqual(RegisterInstruction.objects.get(pk=settling.pk).status, "applied")
+        with self.assertRaisesMessage(DatabaseError, "Application must cover completed settlements"), atomic():
+            self.apply_by_sql(duplicate)
+        self.assertEqual(RegisterInstruction.objects.get(pk=duplicate.pk).status, "submitted")
+
+    @override_settings(STORAGES=ADMIN_STORAGES)
+    def test_admin_reviews_each_settlements_parties_members_shares_and_completion_before_applying(self):
+        self.complete()
+        proposal = self.submit()
+        self.client.force_login(self.reviewer)
+        url = reverse("admin:tokens_registerinstruction_review", args=[proposal.pk])
+        response = self.client.get(url)
+        for shown in (
+            DIRECTOR,
+            str(self.swap.pk),
+            Web3.to_checksum_address(self.swap.seller_address),
+            Web3.to_checksum_address(self.swap.buyer_address),
+            f"{self.seller_member.pk}; {self.fixture.seller.profile.full_name}",
+            f"{self.buyer_member.pk}; {self.fixture.buyer.profile.full_name}",
+            self.token.symbol,
+            self.swap.completed_at.isoformat(),
+            SETTLED,
+            "neither their seller nor their buyer",
+        ):
+            self.assertContains(response, shown)
+        self.assertContains(response, "<td>10</td>", html=True)
+        token = response.context["form"].initial["confirmation"]
+        response = self.client.post(url, {"confirmation": token, "decision": "apply", "reviewed": True})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(RegisterInstruction.objects.get(pk=proposal.pk).status, "applied")
+        self.assertEqual([operation for operation, _ in self.transfers()], [self.swap.pk])
+
+
+@override_settings(**SETTLEMENT)
+class TransferInstructionApiTest(SettledTransferFixtures, APITransactionTestCase):
+    def test_the_owner_names_a_settlement_it_is_no_party_to_from_the_waiting_list(self):
+        self.open_register()
+        self.complete()
+        token = ShareToken.objects.get(pk=self.swap.share_token_id)
+        waiting = f"/api/v1/tokens/{token.uuid}/register/waiting/"
+        self.client.force_authenticate(self.owner)
+        (effect,) = self.client.get(waiting).json()["effects"]
+        self.assertEqual((effect["kind"], effect["reason"]), ("transfer", "uninstructed"))
+        seller, buyer = effect["wallets"]
+        payload = {
+            "operation_id": str(uuid4()),
+            "token_id": str(token.pk),
+            "document_id": str(self.document.pk),
+            "kind": "transfer",
+            "items": [{"settlement": effect["source"], "seller": seller, "buyer": buyer, "amount": effect["shares"]}],
+            "approving_director": DIRECTOR,
+            "authority_reference": "SYNTHETIC-RESOLUTION-TRANSFER-1",
+            "reason": "Register the settled transfer",
+        }
+        url = reverse("tokens:register-instructions-list")
+        response = self.client.post(url, payload, format="json")
+        self.assertEqual(response.status_code, 201, response.content)
+        row = response.json()
+        self.assertEqual((row["status"], row["kind"], row["items"]), ("submitted", "transfer", payload["items"]))
+        self.assertEqual(self.client.post(url, payload, format="json").json()["uuid"], row["uuid"])
+        self.assertEqual(self.client.post(url, {**payload, "reason": "other"}, format="json").status_code, 409)
+        for changes in ({"kind": "issue"}, {"items": [{**payload["items"][0], "amount": "9"}]}):
+            with self.subTest(changes=changes):
+                self.assertEqual(
+                    self.client.post(
+                        url, {**payload, "operation_id": str(uuid4()), **changes}, format="json"
+                    ).status_code,
+                    400,
+                )
+        stranger = make_tenant("transfer-api-stranger")
+        self.client.force_authenticate(stranger.user)
+        self.assertEqual(self.client.get(waiting).status_code, 404)
+        self.assertEqual(
+            self.client.post(url, {**payload, "operation_id": str(uuid4())}, format="json").status_code, 404
+        )
+
+
+@override_settings(**SETTLEMENT)
+class ScopedTransferInstructionTest(RunsOnTheScopedConnection, SettledTransferFixtures, APITransactionTestCase):
+    def test_the_owner_instructs_a_settlement_it_cannot_see_and_only_the_operator_applies_it(self):
+        self.open_register()
+        self.complete()
+        with use_operator():
+            token = ShareToken.objects.get(pk=self.swap.share_token_id)
+        self.signed_in_as(self.owner)
+        self.assertFalse(SwapOrder.objects.filter(pk=self.swap.pk).exists())
+        (effect,) = self.client.get(f"/api/v1/tokens/{token.uuid}/register/waiting/").json()["effects"]
+        seller, buyer = effect["wallets"]
+        response = self.client.post(
+            reverse("tokens:register-instructions-list"),
+            {
+                "operation_id": str(uuid4()),
+                "token_id": str(token.pk),
+                "document_id": str(self.document.pk),
+                "kind": "transfer",
+                "items": [
+                    {"settlement": effect["source"], "seller": seller, "buyer": buyer, "amount": effect["shares"]}
+                ],
+                "approving_director": DIRECTOR,
+                "authority_reference": "SYNTHETIC-RESOLUTION-TRANSFER-1",
+                "reason": "Register the settled transfer",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201, response.content)
+        self.the_principal_the_middleware_would_set(self.owner)
+        proposal = RegisterInstruction.objects.get(pk=response.json()["uuid"])
+        with self.assertRaises(PermissionDenied):
+            prepare_instruction_review(proposal_id=proposal.pk, reviewer=self.reviewer)
+        with self.assertRaises(PermissionDenied):
+            decide_instruction(proposal_id=proposal.pk, reviewer=self.reviewer, confirmation="", decision="apply")
+        with self.assertRaises(DatabaseError), atomic():
+            RegisterInstruction.objects.filter(pk=proposal.pk).update(
+                status="applied", reviewed_by=self.reviewer, reviewed_at=timezone.now()
+            )
+        with use_operator():
+            _, _, confirmation = prepare_instruction_review(proposal_id=proposal.pk, reviewer=self.reviewer)
+            applied = decide_instruction(
+                proposal_id=proposal.pk, reviewer=self.reviewer, confirmation=confirmation, decision="apply"
+            )
+            entry = RegisterEntry.objects.get(operation_id=self.swap.pk)
+        self.assertEqual(
+            (applied.status, entry.kind, entry.recorded_by_id), ("applied", "transfer", self.fixture.seller.user.pk)
+        )
+
+
 class RegisterInstructionMigrationTest(TransactionTestCase):
     def test_the_migration_reverses_and_reapplies_on_an_empty_table(self):
         self.addCleanup(restore_every_migration)
@@ -595,6 +940,30 @@ class RegisterInstructionMigrationTest(TransactionTestCase):
             reviewed_by=staff,
         )
         self.assertEqual(ShareIssuanceRequest.objects.get(pk=approved.pk).reviewed_by_id, staff.pk)
+
+    def test_transfer_instructions_are_refused_before_their_migration_and_kept_through_a_refused_downgrade(self):
+        self.addCleanup(restore_every_migration)
+        tenant, _, document, request = instruction_fixture("transfer-migration")
+        issue = submit_instruction(actor=tenant.user, **instruction_payload(tenant.deployed_token, document, [request]))
+        settlement = {
+            "settlement": str(uuid4()),
+            "seller": Web3.to_checksum_address("0x" + "5a" * 20),
+            "buyer": Web3.to_checksum_address("0x" + "5b" * 20),
+            "amount": "3",
+        }
+        before = migrate_to([("tokens", "0075_register_certificates")])
+        with self.assertRaisesMessage(DatabaseError, "require exact current intent"), atomic():
+            forged(issue, before.get_model("tokens", "RegisterInstruction"), kind="transfer", items=[settlement])
+        after = migrate_to([("tokens", "0076_transfer_instructions")])
+        transfer = forged(issue, after.get_model("tokens", "RegisterInstruction"), kind="transfer", items=[settlement])
+        migration = importlib.import_module("tokens.migrations.0076_transfer_instructions")
+        with self.assertRaisesRegex(RuntimeError, "Retain transfer instructions"), atomic():
+            with connections[current_alias()].schema_editor() as editor:
+                migration.restore_guard(None, editor)
+        restore_every_migration()
+        self.assertEqual(RegisterInstruction.objects.get(pk=transfer.pk).kind, "transfer")
+        with self.assertRaisesMessage(DatabaseError, "require exact current intent"), atomic():
+            forged(issue, kind="transfer", items=[{**settlement, "amount": "03"}])
 
     def test_downgrade_refuses_to_discard_instructions(self):
         tenant, _, document, request = instruction_fixture("instruction-downgrade")

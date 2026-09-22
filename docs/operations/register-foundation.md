@@ -8,7 +8,7 @@ share-event chain, stored holdings, an approved opening capture and reviewed
 compensating corrections. It is a foundation for the authoritative register.
 The HTTP and CSV register routes serve it once a share class's opening is
 applied, and issuance and settlement then record each later completed effect in
-it, an issue only under an applied register instruction that a named director's
+it, each only under an applied register instruction that a named director's
 approval supports, and the issuer can list the effects still waiting and why;
 opening review and the inclusion report classify completed
 effects against the captured boundary, and a scheduled job reconciles it with the
@@ -423,7 +423,8 @@ it approves, each with its recipient wallet and whole number of shares: a direct
 issue by its issuance request, and an offering allotment by its subscription. It
 names the approving director and carries the same verified company document an
 opening does, and it retains a private copy of the authority file. Its kind is
-`issue`; transfer instructions are later work.
+`issue`; a [transfer instruction](#register-instructions-for-transfers) has its
+own kind.
 
 | Method and route | Result |
 | --- | --- |
@@ -498,6 +499,63 @@ company's own connection can no longer approve, reject or start review of one, o
 change its reviewer, review time, notes or rejection reason, and no connection
 can approve one without an active staff reviewer. Retention follows openings and
 corrections.
+
+## Register instructions for transfers
+
+Directors decide whether to register a transfer, and they decide on a settlement
+after it completes, while its entry waits (owner decision 2, 22 September 2026).
+The signed order both parties signed, which the settlement retains, is the
+instrument of transfer; whether it is a proper instrument under s1071B is left
+open. The company owner submits the directors' approval through the same route as
+an [issue instruction](#register-instructions-for-issues), with kind `transfer`,
+listing the exact completed settlements a named director approved, each with its
+seller and buyer wallets and whole number of shares. The instruction's share class
+is the class of every settlement it lists.
+
+```json
+{
+  "operation_id": "10000000-0000-4000-8000-000000000051",
+  "token_id": "10000000-0000-4000-8000-000000000011",
+  "document_id": "10000000-0000-4000-8000-000000000013",
+  "kind": "transfer",
+  "items": [
+    {"settlement": "10000000-0000-4000-8000-000000000052", "seller": "0x3333333333333333333333333333333333333333", "buyer": "0x4444444444444444444444444444444444444444", "amount": "25"}
+  ],
+  "approving_director": "Synthetic Director",
+  "authority_reference": "SYNTHETIC-RESOLUTION-TRANSFER-1",
+  "reason": "Register the transfer the board approved"
+}
+```
+
+A settlement is visible only to its two parties, so the owner takes each item
+from the [waiting list](#the-issuers-waiting-list): a waiting `transfer`'s
+`source` is the settlement, its `wallets` are the seller's then the buyer's, and
+its `shares` are the amount. Submission reads the settlement on the operator
+connection. Each item must be a completed settlement of the share class, on
+exactly its seller, buyer and shares, that no applied instruction covers and the
+register has not entered. A settlement between two wallets of one member records
+nothing and needs no instruction.
+
+Staff review it on the same admin page. For each settlement it shows the seller's
+and buyer's wallets, the member each wallet is linked to and the name it
+identifies, the shares, the class and the completion time. Submission, review and
+application refuse a director who is either party, by the profile name of the
+account holding that wallet. Application rechecks every settlement under the
+company and share-class locks, then records whatever waited for the instruction,
+in chain order, each transfer still recorded by the transferor. Rejection with a
+reason stays available, and idempotency, conflicts, immutability and retention
+are as for issue instructions.
+
+The database checks each item's shape when an instruction is inserted, and
+refuses one that mixes issue and transfer items. It cannot check the settlement
+then, because the company's own connection cannot read a settlement it is not a
+party to. At application it refuses a listed settlement that is not completed in
+the instruction's share class on its listed terms, or that another applied
+instruction already covers.
+
+A transfer the directors decline is not modelled yet. The owner submits no
+instruction for it, and its settlement keeps waiting as `uninstructed`, stays on
+the waiting list and holds later issues and transfers in its class behind it.
 
 ## Classifying completed inclusions
 
@@ -576,13 +634,16 @@ procedure, and none exists yet.
 ## Recording issues and transfers after the opening
 
 Once a share class has an applied opening, each completed issuance and settlement
-that classifies `after_opening` is recorded as a register event in the same
-transaction that completes it:
+that classifies `after_opening` is recorded as a register event: in the
+transaction that completes it when nothing holds it back, otherwise in the one that
+resolves what it waited for. A settlement's transfer waits for its
+[transfer instruction](#register-instructions-for-transfers), because directors
+decide on it after it completes.
 
 | Effect | Entry | Recorded by | Effective date |
 | --- | --- | --- | --- |
 | Issuance | `issue` of the minted shares to the recipient's linked member | The staff member who approved the issuance request: who applied the [register instruction](#register-instructions-for-issues) listing it, allotted the subscription one lists, or approved it before `tokens/0073` | The date the entry is made (UTC) |
-| Settlement | `transfer` from the seller's linked member to the buyer's | The transferor, whose signed order is the instrument | The date the entry is made (UTC) |
+| Settlement | `transfer` from the seller's linked member to the buyer's | The transferor, whose signed order is the instrument, once an applied [transfer instruction](#register-instructions-for-transfers) lists the settlement | The date the entry is made (UTC) |
 
 An entry recorded as its effect completes is made in the completion's own
 transaction, so it carries the completion date. One recorded after its effect
@@ -602,13 +663,16 @@ one; an issue approved before it waits until an instruction lists it. The
 recorder is the request's reviewer, which the company's own connection cannot
 change since `tokens/0073`. A request with no recorded reviewer waits rather than
 recording someone else. Entries recorded before `tokens/0073` stay as they are, and no
-approval is invented for them.
+approval is invented for them. A transfer is recorded only once an applied
+transfer instruction lists its settlement. Transfer entries recorded before
+`tokens/0076` stay as they are; a settlement completed but not yet recorded before
+it waits for an instruction like any later one.
 
 Recording follows chain order: by block, then by the transaction index the
 completion's finalized receipt records. A completion finalized before
 `tokens/0068` has no index; within its block it follows the kind and ID.
 Recording stops at the first effect it cannot record:
-a wallet with no link, an issue no applied instruction covers, a completion held
+a wallet with no link, an issue or transfer no applied instruction covers, a completion held
 for attribution, or an entry the register refuses, such as a transfer whose
 seller's stored holding does not cover it after a move outside settlement. Nothing is recorded past that effect, so the
 stored holdings never skip ahead of the chain. The completion itself still
@@ -650,9 +714,12 @@ seller's then the buyer's for a transfer), its `shares`, its `reason` and
 | `attribution` | The opening's captured boundary cannot place its completion | The attribution procedure, not yet specified |
 | `unlinked` | A wallet it names has no reviewed link to a member; `unlinkedWallets` lists which | A [reviewed link request](#reviewed-wallet-links-after-the-opening) |
 | `unreviewed` | The issue's request records no approving reviewer, as when the reviewer's account was deleted | Nothing yet: recording does not invent a recorder |
-| `uninstructed` | No applied register instruction covers the issue | A [register instruction](#register-instructions-for-issues) that lists it |
+| `uninstructed` | No applied register instruction covers the issue or transfer | A register instruction that lists it: [for an issue](#register-instructions-for-issues) or [for a transfer](#register-instructions-for-transfers) |
 | `refused` | Nothing of its own: recording last tried it and the register refused the entry | The logged refusal's cause, such as a seller's stored holding that does not cover the transfer or a latest entry dated after today; recording tries again at its next run |
 | `behind` | Nothing of its own: an earlier effect in the class waits | Resolving the earlier effect |
+
+A waiting transfer's row carries what a transfer instruction names: its `source`,
+its two `wallets` and its `shares`.
 
 The list, the `waitingEffects` count and recording walk the same classification
 in the same order, so the count is always the list's length and the first effect

@@ -616,6 +616,136 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual([(order.status, order.filled_quantity) for order in parents], [("completed", 10)] * 2)
         self.assertEqual(self.balances(), (before[0] - 10, before[1] + 10, before[2] + 1500, before[3] - 1500))
 
+    @override_settings(WALLET_CHAIN_FINALITY_POLICIES={"evm:31337": {"mode": "depth", "depth": 2}})
+    def test_a_real_settlement_is_entered_only_once_its_transfer_instruction_applies(self):
+        from django.contrib.auth import get_user_model
+
+        bought = ShareIssuanceRequest.objects.create(
+            token=self.token,
+            recipient_address=self.buyer.address,
+            recipient_name="Buyer",
+            amount=5,
+            reason="Allotment",
+            status=RequestStatus.APPROVED,
+            submitted_by=self.tenant.user,
+            reviewed_by=self.staff,
+        )
+        self.assertEqual(self._execute(bought)["status"], "executing")
+        self.w3.provider.make_request("evm_mine", [])
+        self.assertTrue(self._execute(bought)["success"])
+        owner = self.tenant.user
+        reviewer = get_user_model().objects.create_user(
+            email=f"transfer-chain-{uuid4()}@example.test", is_active=True, is_staff=True
+        )
+        reviewer.user_permissions.add(
+            *Permission.objects.filter(
+                codename__in=[
+                    "change_companydocument",
+                    "change_registeropening",
+                    "view_registeropening",
+                    "change_registerinstruction",
+                ]
+            )
+        )
+        document = attach_file(make_document(self.tenant.company))
+        _, review = prepare_document_review(document_id=document.pk, reviewer=reviewer)
+        verify_document(document_id=document.pk, reviewer=reviewer, confirmation=review)
+        seller_member, buyer_member = str(uuid4()), str(uuid4())
+        opening = submit_opening(
+            actor=owner,
+            operation_id=uuid4(),
+            token_id=self.token.pk,
+            document_id=document.pk,
+            mapping=[
+                {"address": self.seller.address, "member": seller_member},
+                {"address": self.buyer.address, "member": buyer_member},
+            ],
+            authority="director_resolution",
+            approving_director="Synthetic Director",
+            authority_reference="SYNTHETIC-RESOLUTION-OPENING-1",
+            reason="Establish the register from the real local chain boundary",
+        )
+        self.w3.provider.make_request("evm_mine", [])
+        _, confirmation = prepare_opening_review(proposal_id=opening.pk, reviewer=reviewer)
+        applied = decide_opening(proposal_id=opening.pk, reviewer=reviewer, confirmation=confirmation, decision="apply")
+        self.assertEqual(
+            applied.applied_entry.changes,
+            sorted(
+                [{"member": seller_member, "shares": "20"}, {"member": buyer_member, "shares": "5"}],
+                key=lambda change: change["member"],
+            ),
+        )
+        swap = self.admit_swap()
+        self.assertEqual(swap_execution.recover(swap.transaction_id), "confirmed")
+        self.w3.provider.make_request("evm_mine", [])
+        self.assertEqual(swap_execution.settle(swap.transaction_id), "completed")
+        swap.refresh_from_db()
+        self.assertFalse(RegisterEntry.objects.filter(kind="transfer").exists())
+        self.client.force_authenticate(owner)
+        (effect,) = self.client.get(f"/api/v1/tokens/{self.token.uuid}/register/waiting/").json()["effects"]
+        self.assertEqual(
+            [effect[key] for key in ("kind", "source", "wallets", "shares", "reason")],
+            ["transfer", str(swap.pk), [swap.seller_address, swap.buyer_address], "3", "uninstructed"],
+        )
+        self.w3.provider.make_request("evm_mine", [])
+        self.w3.provider.make_request("evm_mine", [])
+        waiting = reconcile_register(self.token.pk)
+        self.assertEqual((waiting.status, waiting.discrepancies, waiting.register_sequence), ("matched", [], 1))
+        seller, buyer = effect["wallets"]
+        instruction = self.client.post(
+            "/api/v1/tokens/register-instructions/",
+            {
+                "operation_id": str(uuid4()),
+                "token_id": str(self.token.pk),
+                "document_id": str(document.pk),
+                "kind": "transfer",
+                "items": [
+                    {"settlement": effect["source"], "seller": seller, "buyer": buyer, "amount": effect["shares"]}
+                ],
+                "approving_director": "Synthetic Director",
+                "authority_reference": "SYNTHETIC-RESOLUTION-TRANSFER-1",
+                "reason": "Register the transfer the directors approved after settlement",
+            },
+            format="json",
+        )
+        self.assertEqual(instruction.status_code, 201, instruction.content)
+        self.assertFalse(RegisterEntry.objects.filter(kind="transfer").exists())
+        _, _, instruction_review = prepare_instruction_review(proposal_id=instruction.json()["uuid"], reviewer=reviewer)
+        decide_instruction(
+            proposal_id=instruction.json()["uuid"], reviewer=reviewer, confirmation=instruction_review, decision="apply"
+        )
+        entry = RegisterEntry.objects.get(operation_id=swap.pk)
+        self.assertEqual(
+            (entry.kind, entry.changes, entry.recorded_by_id),
+            (
+                "transfer",
+                sorted(
+                    [{"member": seller_member, "shares": "-3"}, {"member": buyer_member, "shares": "3"}],
+                    key=lambda change: change["member"],
+                ),
+                self.party_accounts[self.seller.address].user_profile.user_id,
+            ),
+        )
+        self.assertEqual(waiting_effects(self.token.pk), 0)
+        self.assertEqual(verify_register(entry.register_id)["issued_supply"], "25")
+        share = self._contract()
+        self.assertEqual(
+            (
+                share.functions.balanceOf(self.seller.address).call(),
+                share.functions.balanceOf(self.buyer.address).call(),
+            ),
+            (17, 8),
+        )
+        holders = self.client.get(f"/api/v1/tokens/{self.token.uuid}/holders/").json()["holders"]
+        self.assertEqual(
+            sorted((holder["member"], holder["balance"]) for holder in holders),
+            sorted([(seller_member, "17"), (buyer_member, "8")]),
+        )
+        self.w3.provider.make_request("evm_mine", [])
+        self.w3.provider.make_request("evm_mine", [])
+        matched = reconcile_register(self.token.pk)
+        self.assertEqual((matched.status, matched.discrepancies, matched.register_sequence), ("matched", [], 2))
+
     def test_worker_killed_after_real_approval_acceptance_replays_nothing_and_records_the_receipt(self):
         swap, orders = self.matched_swap()
         raw = self.signed_approval(swap, orders[0], self.seller)

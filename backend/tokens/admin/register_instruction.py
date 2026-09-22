@@ -22,8 +22,8 @@ class InstructionReviewForm(OpeningReviewForm):
     reviewed = forms.BooleanField(
         required=False,
         label=(
-            "I verified the named director's authority for exactly the issues below, and that the director is not "
-            "their recipient."
+            "I verified the named director's authority for exactly the issues or transfers below, and that the "
+            "director is not an issue's recipient or a party to a transfer."
         ),
     )
 

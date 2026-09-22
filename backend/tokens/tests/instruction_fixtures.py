@@ -6,6 +6,7 @@ from django.contrib.auth.models import Permission
 from companies.services.document_review import prepare_document_review, verify_document
 from companies.tests.test_document_file_access import attach_file, make_document
 from offerings.models import Subscription
+from tokens.models import SwapOrder
 from tokens.services.register_instructions import (
     decide_instruction,
     prepare_instruction_review,
@@ -34,6 +35,13 @@ def verified_authority(company, reviewer):
 
 
 def instruction_item(row):
+    if isinstance(row, SwapOrder):
+        return {
+            "settlement": str(row.pk),
+            "seller": row.seller_address,
+            "buyer": row.buyer_address,
+            "amount": str(row.share_amount),
+        }
     if isinstance(row, Subscription):
         request = row.issuance_request
         recipient, amount = (
@@ -48,7 +56,7 @@ def instruction_payload(token, document, rows, **changes):
         "operation_id": uuid4(),
         "token_id": token.pk,
         "document_id": document.pk,
-        "kind": "issue",
+        "kind": "transfer" if any(isinstance(row, SwapOrder) for row in rows) else "issue",
         "items": [instruction_item(row) for row in rows],
         "approving_director": DIRECTOR,
         "authority_reference": "SYNTHETIC-RESOLUTION-ISSUE-1",

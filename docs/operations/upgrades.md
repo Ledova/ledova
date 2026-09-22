@@ -184,6 +184,22 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   outputs** permission. Preparing one imports PyMuPDF, already a runtime
   dependency, in the web process that serves admin. Reversal refuses once any
   certificate record exists.
+- `tokens/0076_transfer_instructions` adds the `transfer` kind of
+  [register instruction](register-foundation.md#register-instructions-for-transfers)
+  and replaces the `0073` instruction guard's function in place. It now checks a
+  transfer instruction's items when one is inserted, and at application that each
+  listed settlement is completed in the class on its listed terms and that no
+  other applied instruction covers it. It rewrites no existing row. From then on
+  a settlement's transfer entry is recorded only once an applied transfer
+  instruction lists it; transfer entries already recorded stay as they are. A
+  settlement that completed after its class's opening but is not yet recorded
+  when the upgrade lands, such as one waiting for a wallet link or behind an
+  earlier effect, now also waits for an instruction, and holds later issues and
+  transfers in its class behind it. Find each on the waiting list, where it shows
+  as `uninstructed` once nothing else holds it, and submit an instruction for
+  each settlement the directors approve. Run the new code with the migration: an
+  older binary still records settlements without an instruction. Reversal
+  refuses once any transfer instruction exists.
 - `whitelist/0002_whitelistentry_treasury_addresses` makes
   `WhitelistEntry.wallet` nullable and adds `address` and `label` with a check
   constraint; `whitelist/0003` adds the partial unique constraint on `address`

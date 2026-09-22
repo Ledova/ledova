@@ -1,8 +1,9 @@
 {% extends "admin/base_site.html" %}
 {% block content %}
 <h1>Review register instruction</h1>
-<p>Approval records your verification that the named director's documentary authority approves exactly the issues below, and that the director is not their recipient. Applying approves each issuance request still awaiting approval with you as its reviewer, so the issue's register entry names you as its recorder. It lets staff allot each listed subscription on exactly these terms, and records any listed issue approved before register instructions that has completed and is waiting. Document verification alone does not establish director authority.</p>
-<dl>
+{% if original.kind == "transfer" %}<p>Approval records your verification that the named director's documentary authority approves registering exactly the settled transfers below, and that the director is neither their seller nor their buyer. Applying lets the register record each listed transfer, and records whatever was waiting for it; each entry names the seller, whose signed order is the instrument, as its recorder. Document verification alone does not establish director authority.</p>
+{% else %}<p>Approval records your verification that the named director's documentary authority approves exactly the issues below, and that the director is not their recipient. Applying approves each issuance request still awaiting approval with you as its reviewer, so the issue's register entry names you as its recorder. It lets staff allot each listed subscription on exactly these terms, and records any listed issue approved before register instructions that has completed and is waiting. Document verification alone does not establish director authority.</p>
+{% endif %}<dl>
 <dt>Company as submitted</dt><dd>{{ original.evidence_snapshot.company_identity.name }}</dd>
 <dt>Company identifiers</dt><dd>ACN {{ original.evidence_snapshot.company_identity.acn }}; ABN {{ original.evidence_snapshot.company_identity.abn }}</dd>
 <dt>Share class</dt><dd>{{ original.token.symbol }}</dd>
@@ -14,10 +15,13 @@
 <dt>Verified evidence fingerprint</dt><dd>{{ original.evidence_fingerprint }}</dd>
 </dl>
 <table>
-<thead><tr><th>Item</th><th>ID</th><th>Recipient wallet</th><th>Recipient as identified</th><th>Shares</th><th>Class</th><th>State</th></tr></thead>
+{% if original.kind == "transfer" %}<thead><tr><th>Settlement</th><th>Seller wallet</th><th>Seller as identified</th><th>Buyer wallet</th><th>Buyer as identified</th><th>Shares</th><th>Class</th><th>Completed</th><th>State</th></tr></thead>
+<tbody>
+{% for row in rows|default:original.items %}<tr><td>{{ row.settlement }}</td><td>{{ row.seller }}</td><td>{% if row.state %}{{ row.seller_member|default:"No linked member" }}; {{ row.seller_name|default:"Not identified" }}{% else %}Not checked{% endif %}</td><td>{{ row.buyer }}</td><td>{% if row.state %}{{ row.buyer_member|default:"No linked member" }}; {{ row.buyer_name|default:"Not identified" }}{% else %}Not checked{% endif %}</td><td>{{ row.amount }}</td><td>{{ original.token.symbol }}</td><td>{% if row.state %}{{ row.completed_at|date:"c" }}{% else %}Not checked{% endif %}</td><td>{{ row.state|default:"Not checked" }}</td></tr>{% endfor %}
+{% else %}<thead><tr><th>Item</th><th>ID</th><th>Recipient wallet</th><th>Recipient as identified</th><th>Shares</th><th>Class</th><th>State</th></tr></thead>
 <tbody>
 {% for row in rows|default:original.items %}<tr>{% if row.request %}<td>Issuance request</td><td>{{ row.request }}</td>{% else %}<td>Subscription</td><td>{{ row.subscription }}</td>{% endif %}<td>{{ row.recipient }}</td><td>{% if row.state %}{{ row.names|join:"; "|default:"Not identified" }}{% else %}Not checked{% endif %}</td><td>{{ row.amount }}</td><td>{{ original.token.symbol }}</td><td>{{ row.state|default:"Not checked" }}</td></tr>{% endfor %}
-</tbody>
+{% endif %}</tbody>
 </table>
 {% if refusal %}<p class="errornote">{{ refusal }} Application is unavailable. You may reject this instruction with a reason.</p>{% endif %}
 <p>Review confirmation expires after fifteen minutes. A changed item or evidence requires a fresh review or submission.</p>

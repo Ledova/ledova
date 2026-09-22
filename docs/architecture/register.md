@@ -27,9 +27,10 @@ represent a completed effect is refused rather than applied over it. Settlement
 completion takes the same share-class lock as issuance completion, so neither can
 interleave with an opening. Each completion after the opening is
 [recorded as an issue or transfer](../operations/register-foundation.md#recording-issues-and-transfers-after-the-opening)
-in its own completion transaction, in chain order; recording waits, without
-stalling the completion, at the first effect whose wallet has no link, which
-needs attribution, or which is an issue no applied register instruction covers.
+in chain order, in its own completion transaction unless something holds it back;
+recording waits, without stalling the completion, at the first effect whose wallet
+has no link, which needs attribution, or which no applied register instruction
+covers.
 An issue or transfer entry is dated the day it is made, so one that waited
 carries the later date; the register refuses one dated before its latest entry.
 
@@ -41,7 +42,17 @@ authority, and staff review it. Applying it approves each listed request with th
 reviewer, who becomes the issue entry's recorder, and allotment refuses a
 subscription no applied instruction lists on its current terms. PostgreSQL keeps
 instructions immutable, and keeps an issuance request's review decision and
-reviewer out of the company's own connection. Transfers are not yet instructed.
+reviewer out of the company's own connection.
+
+A settled transfer is entered only under a
+[transfer instruction](../operations/register-foundation.md#register-instructions-for-transfers).
+Directors decide after the settlement, so its entry waits for one: the
+company owner lists the exact completed settlements a named director approved,
+each with its seller, buyer and shares, under the same authority and review, and
+staff refuse a director who is either party. Applying it records the transfers
+that waited, still recorded by the transferor, whose signed order is the
+instrument. A transfer the directors decline is not modelled: its settlement
+keeps waiting and stays on the waiting list.
 
 Owner-submitted [compensating corrections](../operations/register-foundation.md#reviewed-compensating-corrections)
 now bind documentary authority to an exact reversal and register revision.
@@ -126,7 +137,7 @@ waiting count and former members from one database snapshot, so an entry
 recorded during the read cannot make them disagree.
 
 A completed issue or transfer after the opening waits while its wallet has no
-link, while an issue has no applied register instruction, or while an earlier
+link, while no applied register instruction covers it, or while an earlier
 effect waits; see
 [recording](../operations/register-foundation.md#recording-issues-and-transfers-after-the-opening).
 A waiting effect is counted, not included in any holding, so a register with

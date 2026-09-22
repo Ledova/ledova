@@ -7,6 +7,7 @@ from threading import Event
 from unittest.mock import patch
 from uuid import uuid4
 
+from django.contrib.auth import get_user_model
 from django.db import connections
 from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
@@ -15,6 +16,7 @@ from rest_framework.test import APIClient
 from web3 import Web3
 
 from blockchain.tests.outgoing_fixtures import BLOCK_HASH
+from companies.models import Company
 from shared.db import use_operator
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
@@ -22,6 +24,7 @@ from tokens.models import (
     RegisterEntryKind,
     RegisterMemberWallet,
     ShareIssuanceRequest,
+    ShareToken,
     SwapOrderStatus,
 )
 from tokens.services import issuance_execution, register_inclusions
@@ -53,11 +56,14 @@ from tokens.tests.instruction_fixtures import (
     apply_instruction,
     instruction_payload,
     instruction_reviewer,
+    verified_authority,
 )
+from tokens.tests.issuance_fixtures import IssuanceNode, admit
 from tokens.tests.test_register_events import DAY, register_fixture
 from tokens.tests.test_register_inclusions import MINT_BLOCK, InclusionFixtures
 from tokens.tests.test_register_links import link_payload
 from tokens.tests.test_register_openings import SETTINGS
+from tokens.tests.test_register_snapshot import block_hash
 
 NEWCOMER = Web3.to_checksum_address("0x" + "5e" * 20)
 
@@ -419,12 +425,24 @@ class RecordedIssueTest(InclusionFixtures, TransactionTestCase):
         self.assertEqual(waiting_effects(self.tenant.token.pk), 0)
 
 
-@override_settings(
+SETTLEMENT = dict(
     BLOCKCHAIN_OPERATOR_KEY=test_swap_finality.KEY,
     BLOCKCHAIN_CHAIN_ID=test_swap_finality.CHAIN_ID,
     ATOMIC_SWAP_ADDRESS=test_swap_finality.CONTRACT,
 )
-class RecordedTransferTest(test_swap_finality.SwapFinalityFixtures, TransactionTestCase):
+
+
+class SettledTransferFixtures(test_swap_finality.SwapFinalityFixtures):
+    def setUp(self):
+        super().setUp()
+        with use_operator():
+            self.owner = get_user_model().objects.create_user(
+                email=f"settled-issuer-{uuid4()}@example.test", is_active=True
+            )
+            Company.objects.filter(pk=self.swap.share_token.company_id).update(owner=self.owner)
+            self.reviewer = instruction_reviewer()
+            self.document = verified_authority(Company.objects.get(pk=self.swap.share_token.company_id), self.reviewer)
+
     def open_register(self, *, one_member=False, link_buyer=True, held=None):
         with use_operator():
             company_id = self.swap.share_token.company_id
@@ -458,9 +476,49 @@ class RecordedTransferTest(test_swap_finality.SwapFinalityFixtures, TransactionT
             self.node.advance(head=20, finalized=12)
             self.assertEqual(self.settle(), SwapOrderStatus.COMPLETED)
 
+    def instruct(self):
+        with use_operator():
+            token = ShareToken.objects.get(pk=self.swap.share_token_id)
+            return apply_instruction(token, self.swap, reviewer=self.reviewer, document=self.document)
+
+    def admitted(self, *, block=14):
+        node = IssuanceNode()
+        node.head = node.finalized = block
+        sent = node.send
+
+        def send(raw):
+            tx_hash = sent(raw)
+            node.receipts[tx_hash] = {**node.receipts[tx_hash], "blockNumber": block, "blockHash": block_hash(block)}
+            return tx_hash
+
+        node.client.send_raw_transaction.side_effect = send
+        for target, value in (
+            ("tokens.services.issuance_execution.get_base_chain_client", node.client),
+            ("tokens.services.share_token_service.is_recipient_whitelisted", True),
+        ):
+            self.enterContext(patch(target, return_value=value))
+        self.enterContext(patch("tokens.services.share_token_service.seed_recipient_holding"))
+        self.enterContext(override_settings(WALLET_CHAIN_FINALITY_POLICIES=test_swap_finality.FINALIZED))
+        with use_operator():
+            token = ShareToken.objects.get(pk=self.swap.share_token_id)
+            request = ShareIssuanceRequest.objects.create(
+                token=token, recipient_address=self.swap.buyer_address, amount=5, reason="Allotment"
+            )
+            apply_instruction(token, request, reviewer=self.reviewer, document=self.document)
+            actor = get_user_model().objects.create_superuser(
+                email=f"settled-operator-{uuid4()}@example.test", password="synthetic"
+            )
+            return admit(ShareIssuanceRequest.objects.get(pk=request.pk), actor)
+
     def transfers(self):
         with use_operator():
             return list(RegisterEntry.objects.filter(kind="transfer").values_list("operation_id", "changes"))
+
+    def entries(self):
+        with use_operator():
+            return list(
+                RegisterEntry.objects.exclude(kind="opening").order_by("sequence").values_list("kind", "operation_id")
+            )
 
     def waiting(self, reason, unlinked=()):
         return {
@@ -473,15 +531,26 @@ class RecordedTransferTest(test_swap_finality.SwapFinalityFixtures, TransactionT
             "reason": reason,
         }
 
-    def test_a_settlement_after_the_opening_is_recorded_as_a_transfer_by_the_transferor(self):
+
+@override_settings(**SETTLEMENT)
+class RecordedTransferTest(SettledTransferFixtures, TransactionTestCase):
+    def test_a_settlement_after_the_opening_waits_for_its_instruction_and_is_recorded_by_the_transferor(self):
         self.open_register()
         self.complete()
+        self.assertEqual(self.transfers(), [])
+        with use_operator():
+            self.assertEqual(waiting_list(self.swap.share_token_id), [self.waiting("uninstructed")])
+            self.assertEqual(record_completed_effects(self.swap.share_token_id), [])
+        instructed_on = self.swap.completed_at + timedelta(days=2)
+        with patch("django.utils.timezone.now", return_value=instructed_on):
+            self.assertEqual(self.instruct().status, "applied")
         with use_operator():
             entry = RegisterEntry.objects.get(operation_id=self.swap.pk)
             report = verify_register(entry.register_id)
+            self.assertEqual(waiting_list(self.swap.share_token_id), [])
         amount = self.swap.share_amount
         self.assertEqual(
-            (entry.kind, entry.changes, entry.recorded_by_id),
+            (entry.kind, entry.changes, entry.recorded_by_id, entry.effective_on),
             (
                 "transfer",
                 sorted(
@@ -492,13 +561,14 @@ class RecordedTransferTest(test_swap_finality.SwapFinalityFixtures, TransactionT
                     key=lambda change: change["member"],
                 ),
                 self.fixture.seller.user.pk,
+                instructed_on.date(),
             ),
         )
-        self.assertEqual(entry.effective_on, self.swap.completed_at.astimezone(utc_zone.utc).date())
+        self.assertNotEqual(entry.recorded_by_id, self.owner.pk)
         self.assertEqual((report["members"], report["issued_supply"]), (2, str(amount * 2)))
         self.assertEqual(self.swap.finalized_receipt["block_hash"], BLOCK_HASH)
 
-    def test_a_settlement_between_one_members_wallets_records_nothing(self):
+    def test_a_settlement_between_one_members_wallets_records_nothing_and_needs_no_instruction(self):
         self.open_register(one_member=True)
         self.complete()
         self.assertEqual(self.transfers(), [])
@@ -511,6 +581,7 @@ class RecordedTransferTest(test_swap_finality.SwapFinalityFixtures, TransactionT
     def test_a_settlement_to_an_unlinked_buyer_waits_for_its_link(self):
         self.open_register(link_buyer=False)
         self.complete()
+        self.assertEqual(self.instruct().status, "applied")
         self.assertEqual(self.transfers(), [])
         with use_operator(), self.assertLogs(register_inclusions.logger, "INFO") as waiting:
             self.assertEqual(record_completed_effects(self.swap.share_token_id), [])
@@ -533,10 +604,107 @@ class RecordedTransferTest(test_swap_finality.SwapFinalityFixtures, TransactionT
 
     def test_a_transfer_the_register_refuses_is_listed_as_refused(self):
         self.open_register(held=self.swap.share_amount // 2)
+        self.complete()
+        with use_operator():
+            self.assertEqual(waiting_list(self.swap.share_token_id), [self.waiting("uninstructed")])
         with self.assertLogs(register_inclusions.logger, "WARNING") as refused:
-            self.complete()
+            self.assertEqual(self.instruct().status, "applied")
         self.assertIn(f"The register refused transfer {self.swap.pk}", refused.output[0])
         self.assertEqual(self.transfers(), [])
         with use_operator():
             self.assertEqual(waiting_list(self.swap.share_token_id), [self.waiting("refused")])
             self.assertEqual(waiting_effects(self.swap.share_token_id), 1)
+
+    def test_a_settlement_waiting_for_its_instruction_holds_a_later_issue_and_both_record_in_chain_order(self):
+        self.open_register()
+        self.complete()
+        command = self.admitted()
+        with use_operator():
+            self.assertEqual(issuance_execution.recover(command.pk)["status"], "executed")
+            command.refresh_from_db()
+            self.assertEqual(
+                [(row["kind"], row["source"], row["reason"]) for row in waiting_list(self.swap.share_token_id)],
+                [("transfer", str(self.swap.pk), "uninstructed"), ("issue", str(command.issuance_id), "behind")],
+            )
+        self.assertEqual(self.entries(), [])
+        self.assertEqual(self.instruct().status, "applied")
+        self.assertEqual(self.entries(), [("transfer", self.swap.pk), ("issue", command.issuance_id)])
+        with use_operator():
+            self.assertEqual(waiting_effects(self.swap.share_token_id), 0)
+
+    def test_a_transfer_recorded_before_instructions_stays_and_needs_no_cover(self):
+        self.open_register()
+        with patch.object(register_inclusions, "transfer_covered", return_value=True):
+            self.complete()
+        with use_operator():
+            entry = RegisterEntry.objects.get(operation_id=self.swap.pk)
+            self.assertEqual(record_completed_effects(self.swap.share_token_id), [])
+            self.assertEqual(waiting_effects(self.swap.share_token_id), 0)
+            self.assertEqual(RegisterEntry.objects.get(operation_id=self.swap.pk).entry_hash, entry.entry_hash)
+            self.assertFalse(register_inclusions.transfer_covered(self.swap))
+        with self.assertRaisesMessage(ValidationError, "entered in the register"):
+            self.instruct()
+
+    def test_an_instruction_applied_during_a_later_completion_waits_for_it_and_records_both_in_order(self):
+        self.open_register()
+        self.complete()
+        command = self.admitted()
+        with use_operator():
+            token = ShareToken.objects.get(pk=self.swap.share_token_id)
+            proposal = submit_instruction(actor=self.owner, **instruction_payload(token, self.document, [self.swap]))
+            _, _, confirmation = prepare_instruction_review(proposal_id=proposal.pk, reviewer=self.reviewer)
+        held, release, pids, errors = Event(), Event(), Queue(), []
+        recorder = issuance_execution.record_completed_effects
+
+        def paused(token_id):
+            recorded = recorder(token_id)
+            with connections["default"].cursor() as cursor:
+                cursor.execute("SELECT pg_backend_pid()")
+                pids.put(("complete", cursor.fetchone()[0]))
+            held.set()
+            if not release.wait(timeout=10):
+                raise RuntimeError("Test synchronization timed out")
+            return recorded
+
+        def complete():
+            try:
+                with patch.object(issuance_execution, "record_completed_effects", side_effect=paused):
+                    return issuance_execution.recover(command.pk)["status"]
+            except Exception as exc:
+                errors.append((type(exc).__name__, str(exc)))
+            finally:
+                connections.close_all()
+
+        def apply():
+            try:
+                if not held.wait(timeout=10):
+                    raise RuntimeError("Test synchronization timed out")
+                with connections["default"].cursor() as cursor:
+                    cursor.execute("SELECT pg_backend_pid()")
+                    pids.put(("apply", cursor.fetchone()[0]))
+                return decide_instruction(
+                    proposal_id=proposal.pk, reviewer=self.reviewer, confirmation=confirmation, decision="apply"
+                ).status
+            except Exception as exc:
+                errors.append((type(exc).__name__, str(exc)))
+            finally:
+                connections.close_all()
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            completed, applied = pool.submit(complete), pool.submit(apply)
+            workers = dict(pids.get(timeout=10) for _ in range(2))
+            deadline, blocked = time.monotonic() + 8, False
+            while time.monotonic() < deadline and not blocked:
+                with connections["default"].cursor() as cursor:
+                    cursor.execute("SELECT pg_blocking_pids(%s)", [workers["apply"]])
+                    blocked = workers["complete"] in (cursor.fetchone()[0] or [])
+                time.sleep(0.02)
+            release.set()
+            outcomes = (completed.result(timeout=20), applied.result(timeout=20))
+        self.assertTrue(blocked, "The instruction never waited for the completion's share-class lock")
+        self.assertFalse(errors, errors)
+        self.assertEqual(outcomes, ("executed", "applied"))
+        command.refresh_from_db()
+        self.assertEqual(self.entries(), [("transfer", self.swap.pk), ("issue", command.issuance_id)])
+        with use_operator():
+            self.assertEqual(waiting_effects(self.swap.share_token_id), 0)

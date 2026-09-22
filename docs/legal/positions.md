@@ -184,9 +184,12 @@ features that model switches off or defers. An issue is now approved only under
 a [register instruction](../operations/register-foundation.md#register-instructions-for-issues),
 and entered only once an applied one covers it: the company owner lists the
 exact issues a named director approved, staff verify the documentary authority,
-and applying the instruction is the approval. Transfers are not yet entered on
-instruction: a completed settlement is still recorded without a director's
-approval, so that clause of the position is not yet met for them.
+and applying the instruction is the approval. A settled transfer is now entered
+the same way, after the settlement: the company owner lists the exact
+settlements a named director approved, staff verify the authority, and applying
+the instruction lets the register enter them, with the seller's retained signed
+order as the instrument. A transfer the directors decline is not modelled yet:
+its settlement stays unentered and visible.
 
 **The position.** A hosted register-of-members service is not a financial
 service while all of the following hold: entries are made only on written
