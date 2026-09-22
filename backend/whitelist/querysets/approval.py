@@ -1,4 +1,5 @@
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
+from django.utils import timezone
 
 
 class WhitelistApprovalQuerySet(QuerySet):
@@ -6,6 +7,11 @@ class WhitelistApprovalQuerySet(QuerySet):
         from whitelist.models import WhitelistStatus
 
         return self.filter(status=WhitelistStatus.PENDING)
+
+    def live(self):
+        from whitelist.models import WhitelistStatus
+
+        return self.filter(Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now()), status=WhitelistStatus.ACTIVE)
 
     def to_sync(self):
         from whitelist.models import WhitelistStatus

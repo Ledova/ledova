@@ -153,6 +153,12 @@ on 22 September in
 - **Staff approve a wallet for each company.** A wallet with no investor
   classification, such as a treasury, issuer or imported member, gets the expiry
   staff enter; blank means none.
+- **A stablecoin payment asks for an approval with any company.** AUDY has no
+  registry of its own, so a payment the platform sends checks that each party
+  holds a live approval for at least one company, from the stored approvals
+  rather than from a registry. The owner chose this on 22 September 2026 over
+  dropping the check, keeping the rule the single global registry used to carry.
+  The AUDY contract itself has never restricted transfers.
 - **One identity row per wallet.** `WhitelistEntry` stays the wallet's identity
   row, because the register names holders through it and two rows for one
   wallet would make every holder ambiguous. Approval state lives in a separate

@@ -23,6 +23,22 @@
       "type": "error"
     },
     {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "identifier",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "acn",
+          "type": "string"
+        }
+      ],
+      "name": "IdentifierNotOfCompany",
+      "type": "error"
+    },
+    {
       "inputs": [],
       "name": "InvalidParameters",
       "type": "error"

@@ -74,10 +74,12 @@ def validate_transfer(
     if not get_base_chain_client().is_valid_address(to_address):
         raise InvalidRecipientAddressException()
 
-    if isinstance(token, ShareToken):
-        for party in (from_address, to_address):
+    for party in (from_address, to_address):
+        if isinstance(token, ShareToken):
             if not whitelist.is_whitelisted(token_address, party):
                 raise NotWhitelistedException(party)
+        elif not whitelist.approved_for_any_company(party):
+            raise NotWhitelistedException(party)
 
     from tokens.services import share_token_service
 

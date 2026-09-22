@@ -248,7 +248,8 @@ finality or complete same-key writer cutover.
 Every read the platform makes before acting asks the share class's own
 registry, through the token's `whitelist()`: issuance execution, transfer
 preparation for both parties and order creation. A stablecoin transfer has no
-company registry to ask. `GET /api/v1/trading/whitelist/<token>/<address>/status/`
+company registry to ask, so it checks instead that each party holds a live
+stored approval for at least one company. `GET /api/v1/trading/whitelist/<token>/<address>/status/`
 answers the same question for the share class at contract address `<token>`,
 for any signed-in user and any address. Nothing yet refreshes an approval when a
 classification expires or is revoked; that and classification checks at order

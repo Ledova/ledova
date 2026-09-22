@@ -23,9 +23,9 @@
         {% endif %}
         {% if asks_for_expiry %}
         <p>
-            <label for="whitelist_expires_at">Expires at</label>
+            <label for="whitelist_expires_at">Expires at (UTC)</label>
             <input type="datetime-local" name="whitelist_expires_at" id="whitelist_expires_at">
-            <span class="help">Leave blank for an approval that never expires.</span>
+            <span class="help">Read as UTC, not local time. Leave blank for an approval that never expires.</span>
         </p>
         {% endif %}
         <button type="submit" class="btn btn-primary">Confirm {{ change_action }}</button>

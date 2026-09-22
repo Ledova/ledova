@@ -103,9 +103,9 @@ describe("ShareTokenFactory", function () {
           "Another Company",
           "ANOTHER",
           `${ACN_A}:TEST`,
-          ACN_B,
+          ACN_A,
           500000n,
-          company2.address,
+          company1.address,
         ),
       ).to.be.revertedWithCustomError(factory, "CompanyAlreadyExists");
     });
@@ -160,6 +160,40 @@ describe("ShareTokenFactory", function () {
           company1.address,
         ),
       ).to.be.revertedWithCustomError(factory, "InvalidParameters");
+    });
+
+    it("Should revert if the identifier is not the company's own", async function () {
+      await expect(
+        factory.createShareToken(
+          tokenParams.name,
+          tokenParams.symbol,
+          `${ACN_B}:TEST`,
+          ACN_A,
+          tokenParams.authorizedShares,
+          company1.address,
+        ),
+      )
+        .to.be.revertedWithCustomError(factory, "IdentifierNotOfCompany")
+        .withArgs(`${ACN_B}:TEST`, ACN_A);
+
+      for (const identifier of [
+        ACN_A,
+        `${ACN_A}TEST`,
+        `${ACN_A.slice(0, 5)}:TEST`,
+      ]) {
+        await expect(
+          factory.createShareToken(
+            tokenParams.name,
+            tokenParams.symbol,
+            identifier,
+            ACN_A,
+            tokenParams.authorizedShares,
+            company1.address,
+          ),
+        ).to.be.revertedWithCustomError(factory, "IdentifierNotOfCompany");
+      }
+
+      expect(await factory.registryOf(ACN_A)).to.equal(ethers.ZeroAddress);
     });
 
     it("Should revert if caller is not owner", async function () {

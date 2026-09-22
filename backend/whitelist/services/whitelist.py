@@ -63,6 +63,11 @@ def is_whitelisted(token_address, address):
     return registry.functions.isWhitelisted(Web3.to_checksum_address(address)).call()
 
 
+def approved_for_any_company(address):
+    entries = WhitelistEntry.objects.filter_by_address(address)
+    return WhitelistApproval.objects.filter(entry__in=entries).live().exists()
+
+
 def unique_wallet_uuid_for(address):
     wallet_ids = list(
         Wallet.objects.filter_by_address(address, chain=BLOCKCHAIN_BASE)

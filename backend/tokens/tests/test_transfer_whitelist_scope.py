@@ -51,8 +51,23 @@ class TransferWhitelistScopeTest(TestCase):
 
         self.assertIn(RECIPIENT, str(refusal.exception.detail))
 
-    def test_a_stablecoin_transfer_has_no_company_registry_to_ask(self):
+    def test_a_stablecoin_transfer_asks_for_an_approval_with_any_company(self):
+        self.whitelist.approved_for_any_company.return_value = True
+
         self.validate(self.tenant.refs.stablecoin)
 
         self.whitelist.is_whitelisted.assert_not_called()
+        self.assertEqual(
+            [call.args for call in self.whitelist.approved_for_any_company.call_args_list],
+            [(SENDER,), (RECIPIENT,)],
+        )
         self.balances.assert_called_once()
+
+    def test_a_stablecoin_transfer_is_refused_for_a_party_approved_nowhere(self):
+        self.whitelist.approved_for_any_company.side_effect = lambda address: address != RECIPIENT
+
+        with self.assertRaises(NotWhitelistedException) as refusal:
+            self.validate(self.tenant.refs.stablecoin)
+
+        self.assertIn(RECIPIENT, str(refusal.exception.detail))
+        self.whitelist.is_whitelisted.assert_not_called()

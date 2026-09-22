@@ -17,6 +17,7 @@ contract ShareTokenFactory is Ownable {
     error CompanyAlreadyExists(string identifier);
     error InvalidParameters();
     error RegistryOwnerMismatch(address registry, address tokenOwner);
+    error IdentifierNotOfCompany(string identifier, string acn);
 
     constructor(address _owner) Ownable(_owner) {}
 
@@ -29,6 +30,7 @@ contract ShareTokenFactory is Ownable {
         address tokenOwner
     ) external onlyOwner returns (address tokenAddress) {
         if (bytes(identifier).length == 0 || bytes(acn).length == 0) revert InvalidParameters();
+        if (!_identifiesCompany(identifier, acn)) revert IdentifierNotOfCompany(identifier, acn);
         if (tokenByIdentifier[identifier] != address(0)) revert CompanyAlreadyExists(identifier);
         if (tokenOwner == address(0)) revert InvalidParameters();
         if (authorizedShares == 0) revert InvalidParameters();
@@ -60,5 +62,12 @@ contract ShareTokenFactory is Ownable {
 
     function getTokenByIdentifier(string calldata identifier) external view returns (address) {
         return tokenByIdentifier[identifier];
+    }
+
+    function _identifiesCompany(string calldata identifier, string calldata acn) private pure returns (bool) {
+        bytes calldata id = bytes(identifier);
+        bytes calldata company = bytes(acn);
+        if (id.length < company.length + 1 || id[company.length] != ":") return false;
+        return keccak256(id[:company.length]) == keccak256(company);
     }
 }
