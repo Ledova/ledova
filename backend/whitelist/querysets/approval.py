@@ -16,7 +16,7 @@ class WhitelistApprovalQuerySet(QuerySet):
     def to_sync(self):
         from whitelist.models import WhitelistStatus
 
-        return self.filter(status__in=[WhitelistStatus.ACTIVE, WhitelistStatus.PENDING])
+        return self.filter(status__in=[WhitelistStatus.ACTIVE, WhitelistStatus.PENDING, WhitelistStatus.FAILED])
 
     def for_company(self, company_id):
         return self.filter(company_id=company_id)

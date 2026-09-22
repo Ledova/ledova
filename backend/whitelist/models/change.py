@@ -14,6 +14,7 @@ class WhitelistAuthority(models.TextChoices):
     OPERATOR_API = "operator_api", "Operator API"
     WHITELIST_ADMIN = "whitelist_admin", "Whitelist administration"
     SUBSCRIPTION_ADMIN = "subscription_admin", "Subscription administration"
+    CLASSIFICATION_REFRESH = "refresh", "Classification refresh"
 
 
 class WhitelistChangeStatus(models.TextChoices):

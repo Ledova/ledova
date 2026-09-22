@@ -54,6 +54,7 @@ PERMISSIONS = {
     WhitelistAuthority.OPERATOR_API: None,
     WhitelistAuthority.WHITELIST_ADMIN: "whitelist.change_whitelistentry",
     WhitelistAuthority.SUBSCRIPTION_ADMIN: "offerings.change_subscription",
+    WhitelistAuthority.CLASSIFICATION_REFRESH: None,
 }
 TERMINAL = (WhitelistChangeStatus.CONFIRMED, WhitelistChangeStatus.UNCHANGED, WhitelistChangeStatus.FAILED)
 
@@ -66,12 +67,18 @@ def _boundary():
         raise WhitelistChangeConflict("Whitelist changes require autocommit outside every transaction block.")
 
 
-def _authorize(user, authority):
+def _authorize(user, authority, action):
     if authority not in PERMISSIONS:
         raise PermissionDenied("The whitelist entry point is not authorized.")
     actor = get_user_model().objects.get(pk=user.pk)
     permission = PERMISSIONS[authority]
-    if not actor.is_active or not actor.is_staff or (permission and not actor.has_perm(permission)):
+    if not actor.is_active:
+        raise PermissionDenied("You cannot submit this whitelist change.")
+    if authority == WhitelistAuthority.CLASSIFICATION_REFRESH and not actor.is_staff:
+        if action != WhitelistAction.REMOVE:
+            raise PermissionDenied("A refresh by the wallet's own holder can only remove an approval.")
+        return actor
+    if not actor.is_staff or (permission and not actor.has_perm(permission)):
         raise PermissionDenied("You cannot submit this whitelist change.")
     return actor
 
@@ -159,7 +166,7 @@ def _same_submission(change, action, address, actor, authority, wallet_uuid, com
 
 
 def _admit(submission_id, action, address, user, authority, wallet_uuid, company, expires_at):
-    actor = _authorize(user, authority)
+    actor = _authorize(user, authority, action)
     try:
         submission_id = UUID(str(submission_id))
         wallet_uuid = UUID(str(wallet_uuid)) if wallet_uuid is not None else None
@@ -178,7 +185,7 @@ def _admit(submission_id, action, address, user, authority, wallet_uuid, company
     expires_at = _expiry(action, expires_at)
     intent = _intent(action, address, registry_for(company, get_base_chain_client()), expires_at)
     with target_transaction(intent["chain_id"], intent["to"], address):
-        actor = _authorize(user, authority)
+        actor = _authorize(user, authority, action)
         previous = WhitelistChange.objects.select_for_update().filter(pk=submission_id).first()
         if previous is not None:
             _same_submission(previous, action, address, actor, authority, wallet_uuid, company, expires_at)
