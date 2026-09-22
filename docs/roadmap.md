@@ -16,8 +16,12 @@ are the working list. Phase labels are milestones, not dates.
 - The investor directory, offerings, subscriptions, recorded payments and
   allotment, current/former register views, private uploads and the operator
   console ([product boundaries](product.md#current-capability-boundaries)).
-- Eligibility readers, former-member retention and the stored register's event
-  log and holdings, served with the chain unreachable
+- Eligibility readers and the authoritative stored register
+  ([#647](https://github.com/Ledova/ledova/issues/647)): an append-only event log
+  and holdings served with the chain unreachable and reconciled with it; reviewed
+  openings, imports and corrections; issues and transfers entered only on a
+  director's reviewed instruction; retained former members; and staff-prepared
+  inspection copies, certificates and notice figures, with a list of those due
   ([eligibility](architecture/companies-and-eligibility.md),
   [the register](architecture/register.md)).
 - The secondary market: order, matching and settlement code, its recovery
@@ -33,9 +37,8 @@ Phase 0 verification and the bounded cross-account matcher are recorded in
 
 ## Remaining work
 
-- [Phase 1](https://github.com/Ledova/ledova/issues/647): the rest of the
-  authoritative stored register — tokenising an imported class once one needs to
-  go on chain.
+- Phase 1 follow-up: tokenising a share class an import opened,
+  [built when one first needs to go on chain](https://github.com/Ledova/ledova/issues/647#issuecomment-5772293439).
 - [Phase 2](https://github.com/Ledova/ledova/issues/648): company-scoped
   on-chain approvals with expiry ([product §5](product.md#5-verification-and-transaction-controls)).
 - [Phase 3](https://github.com/Ledova/ledova/issues/649): shareholder
