@@ -33,6 +33,13 @@ REQUEST = {
 }
 NO_REQUEST = {"digest": "", "instruction": "", "requested_on": None, "recipient": "", "late": None}
 CERTIFICATE = {**NO_REQUEST, "kind": "certificate", "digest": DIGEST, "instruction": "SYNTHETIC-INSTRUCTION-3"}
+NOTICE_FIGURES = {
+    **NO_REQUEST,
+    "kind": "notice_figures",
+    "digest": DIGEST,
+    "instruction": "SYNTHETIC-INSTRUCTION-5",
+    "period_from": DAY,
+}
 
 
 def recorded(token, owner):
@@ -69,6 +76,17 @@ def certified(token, owner):
     )
 
 
+def noticed(token, owner):
+    return RegisterExport.objects.create(
+        token=token,
+        requested_by_id=owner.pk,
+        register_sequence=1,
+        member_rows=1,
+        former_rows=0,
+        **NOTICE_FIGURES,
+    )
+
+
 class RegisterExportAuditTest(TestCase):
     def setUp(self):
         self.owner, _, self.token, _, _, _ = register_fixture()
@@ -97,16 +115,19 @@ class RegisterExportAuditTest(TestCase):
     def test_a_record_is_retained_as_written(self):
         copy = copied(self.token, self.owner)
         certificate = certified(self.token, self.owner)
+        figures = noticed(self.token, self.owner)
         for record, change in (
             (self.record, {"member_rows": 3}),
             (copy, {"digest": "b" * 64}),
             (certificate, {"digest": "b" * 64}),
+            (figures, {"period_from": DAY - timedelta(days=1)}),
         ):
             with self.subTest(kind=record.kind), self.assertRaises(DatabaseError), atomic():
                 RegisterExport.objects.filter(pk=record.pk).update(**change)
         self.assertEqual(RegisterExport.objects.get(pk=self.record.pk).member_rows, 2)
         self.assertEqual(RegisterExport.objects.get(pk=copy.pk).digest, DIGEST)
         self.assertEqual(RegisterExport.objects.get(pk=certificate.pk).digest, DIGEST)
+        self.assertEqual(RegisterExport.objects.get(pk=figures.pk).period_from, DAY)
 
     def test_the_database_holds_each_kind_to_its_own_request_fields(self):
         self.insert()

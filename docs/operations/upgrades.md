@@ -219,6 +219,15 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   and the fold. Reversal restores the earlier functions exactly, and refuses
   once an import has opened a register, because the earlier instruction guard
   would admit an instruction for it.
+- `tokens/0078_register_notice_figures` adds the `notice_figures` kind of
+  register export, a nullable `period_from` column and two check constraints: a
+  notice-figures record carries a digest, an instruction and a period, and no
+  former rows, request date, recipient or late flag; no other kind carries a
+  period. It rewrites no existing record, which is a CSV export, an inspection
+  copy or a certificate and has no period. The
+  [Register outputs](register-foundation.md#preparing-notice-figures) page gains
+  **Prepare notice figures** under the existing **Can change register outputs**
+  permission. Reversal refuses once any notice-figures record exists.
 - `whitelist/0002_whitelistentry_treasury_addresses` makes
   `WhitelistEntry.wallet` nullable and adds `address` and `label` with a check
   constraint; `whitelist/0003` adds the partial unique constraint on `address`

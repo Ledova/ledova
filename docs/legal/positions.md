@@ -376,6 +376,13 @@ issue or transfer entry: an unsigned PDF with a page for the member the entry
 moved shares to and a balance certificate for a transferor who still holds
 shares, which the company executes. Ledova keeps its SHA-256 and the entry's
 number, not the file. See [certificates](../architecture/register.md#certificates).
+Staff also prepare the figures for the company's notices of share issues and of
+changes to its members and share structure, on its written instruction: the
+issues, transfers and corrections entered from a chosen day, the class at the
+register head and each changed member's holding, with amount paid only where it
+is established. Ledova keeps their SHA-256 and the period, not the file, and the
+company lodges the notices. See
+[notice figures](../architecture/register.md#notice-figures).
 
 **The position.** The stored database record is the register; anything on a
 chain is at most a mirror of it. Three provisions decide that: s175, because an

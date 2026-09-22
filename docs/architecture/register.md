@@ -270,6 +270,64 @@ rows and none of an inspection copy's request fields. The records share the
 export records' update guard, operator-only table and daily purge after the
 2,557-day floor.
 
+## Notice figures
+
+A company notifies ASIC of a share issue within 28 days (s254X), and a
+proprietary company notifies changes to its members and share structure with
+that notice or otherwise within 28 days (s178A, s178C and s178D);
+[legal position 6](../legal/positions.md#6-where-and-in-what-form-the-register-is-kept)
+lists these obligations. Staff prepare the figures for those notices in admin,
+on the company's written instruction, from the share class's **Register
+outputs** page, with the permission the other outputs use; the
+[runbook](../operations/register-foundation.md#preparing-notice-figures) has
+the steps. There is no API route. The company decides which notices the figures
+support and lodges them: Ledova prepares figures, not a notice, and names no
+ASIC form.
+
+`prepare_notice_figures` in [register.py](../../backend/tokens/services/register.py)
+reads, from one snapshot, the class's stored register and every issue, transfer
+and correction entry whose effective date is on or after the first day of the
+period, up to the register head. The opening is never listed. The CSV has four
+sections, each after a heading row:
+
+1. Identification: what the figures are for, the share class, the first day of
+   the period, the register entry the figures run to (the head's sequence), the
+   instruction's reference and the day they were produced.
+2. Entries in the period: a row for each member an entry changed, in entry
+   order, with the entry's number, kind and effective date, the entry a
+   correction reverses, the member's ID and name, the signed change in shares
+   and, for an issue, the amount paid.
+3. The class at the register head: the issued supply, the number of members
+   holding shares and the total amount paid.
+4. The members those entries changed, in member-ID order, at the register head:
+   name, residential address, shares held, 0 for a member who no longer holds
+   any, and amount paid.
+
+An issue's amount paid is the money backing of the issuance the entry recorded,
+established as the register's Amount paid column establishes it; a member's is
+the register's own, as [membership and identity](#membership-and-identity)
+describes. Either reads `not recorded` where it is not established exactly,
+never zero, and so does the class total unless every current member's amount
+paid is established. A transfer or correction carries none. Names and addresses
+are the ones the register gives when the figures are prepared; a member whose
+wallets resolve to different people, or who is unidentified, is printed as the
+register prints them rather than refused. Every value goes through `csv_cell`,
+so a negative change, like any other value that opens with a minus sign, prints
+with a leading apostrophe.
+
+Days are counted in Sydney's calendar, as for inspection copies. A register with
+no opening and a period starting after today are refused, and a refusal records
+nothing. A period with no entries is not refused: its sections list none.
+
+Ledova keeps a fingerprint, not the file. Each preparation is recorded in
+`RegisterExport` as `notice_figures`, whose register sequence is the head's and
+whose member rows count the changed members, with the first day of the period,
+the instruction's reference and the SHA-256 of the exact bytes served. A
+database check constraint requires the digest, the instruction and the period,
+and allows no former rows and none of an inspection copy's request fields; a
+second allows a period on no other kind. The records share the export records'
+update guard, operator-only table and daily purge after the 2,557-day floor.
+
 ## Reconciliation
 
 [register_reconciliation.py](../../backend/tokens/services/register_reconciliation.py)

@@ -11,7 +11,11 @@ from rest_framework.exceptions import ValidationError
 from shared.utils.admin_actions import admin_action_path
 from tokens.exceptions import RegisterNotInitialized
 from tokens.models import RegisterOutput
-from tokens.services.register import prepare_certificate, prepare_inspection_copy
+from tokens.services.register import (
+    prepare_certificate,
+    prepare_inspection_copy,
+    prepare_notice_figures,
+)
 
 
 class InspectionCopyForm(forms.Form):
@@ -22,6 +26,11 @@ class InspectionCopyForm(forms.Form):
 
 class CertificateForm(forms.Form):
     sequence = forms.IntegerField(min_value=1, label="Number of the register entry")
+    instruction = forms.CharField(max_length=255, label="Reference of the company's written instruction")
+
+
+class NoticeFiguresForm(forms.Form):
+    period_from = forms.DateField(label="First day of the period", widget=forms.DateInput(attrs={"type": "date"}))
     instruction = forms.CharField(max_length=255, label="Reference of the company's written instruction")
 
 
@@ -37,10 +46,10 @@ def _download(content, content_type, filename):
 
 @admin.register(RegisterOutput)
 class RegisterOutputAdmin(admin.ModelAdmin):
-    list_display = ["symbol", "name", "company", "inspection_copy_link", "certificate_link"]
+    list_display = ["symbol", "name", "company", "inspection_copy_link", "certificate_link", "notice_figures_link"]
     list_select_related = ["company"]
     search_fields = ["symbol", "name", "company__name"]
-    fields = ["name", "symbol", "company", "inspection_copy_link", "certificate_link"]
+    fields = ["name", "symbol", "company", "inspection_copy_link", "certificate_link", "notice_figures_link"]
     readonly_fields = fields
     actions = None
 
@@ -70,6 +79,9 @@ class RegisterOutputAdmin(admin.ModelAdmin):
                 self, "<uuid:uuid>/inspection-copy/", "tokens_registeroutput_inspection_copy", self.inspection_copy
             ),
             admin_action_path(self, "<uuid:uuid>/certificate/", "tokens_registeroutput_certificate", self.certificate),
+            admin_action_path(
+                self, "<uuid:uuid>/notice-figures/", "tokens_registeroutput_notice_figures", self.notice_figures
+            ),
         ] + super().get_urls()
 
     @admin.display(description="Inspection copy")
@@ -84,6 +96,13 @@ class RegisterOutputAdmin(admin.ModelAdmin):
         return format_html(
             '<a href="{}">Prepare a certificate</a>',
             reverse("admin:tokens_registeroutput_certificate", args=[obj.pk]),
+        )
+
+    @admin.display(description="Notice figures")
+    def notice_figures_link(self, obj):
+        return format_html(
+            '<a href="{}">Prepare notice figures</a>',
+            reverse("admin:tokens_registeroutput_notice_figures", args=[obj.pk]),
         )
 
     def _page(self, request, token, template, form, refusal):
@@ -128,3 +147,19 @@ class RegisterOutputAdmin(admin.ModelAdmin):
                 sequence = form.cleaned_data["sequence"]
                 return _download(content, "application/pdf", f"certificate-{token.symbol}-{sequence}.pdf")
         return self._page(request, token, "admin/tokens/register_certificate.html", form, refusal)
+
+    @method_decorator(require_http_methods(["GET", "POST"]))
+    def notice_figures(self, request, token):
+        form = NoticeFiguresForm(request.POST if request.method == "POST" else None)
+        refusal = ""
+        if form.is_valid():
+            try:
+                content, sequence = prepare_notice_figures(token, request.user, **form.cleaned_data)
+            except RegisterNotInitialized:
+                refusal = "This share class's register has not been opened, so there are no figures to prepare."
+            except ValidationError as error:
+                refusal = _refusal(error)
+            else:
+                period_from = form.cleaned_data["period_from"].isoformat()
+                return _download(content, "text/csv", f"notice-figures-{token.symbol}-{period_from}-to-{sequence}.csv")
+        return self._page(request, token, "admin/tokens/register_notice_figures.html", form, refusal)
