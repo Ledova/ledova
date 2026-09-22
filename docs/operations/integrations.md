@@ -42,6 +42,18 @@ Disabled until configured. With `KYC_PROVIDER` blank the integration answers
 | `CRYPTO_RISK_THRESHOLD_MEDIUM` | `0.25` | No |
 | `CRYPTO_RISK_THRESHOLD_HIGH` | `0.6` | No |
 
+Crypto screening never approves without a score. A provider result counts only
+when it is a JSON object whose risk score (`riskScore`, or `result.risk_score` in
+a `/webhooks/kycaid/crypto/` callback) is a finite, non-negative number. Anything
+else is kept on the screening's raw response for staff and leaves it pending; a
+submission reply that is not an object fails it, and the callback refuses one
+with HTTP 400. A KYCAID submission reply without a score therefore waits,
+pending, for the callback, and alerts follow the thresholds above when it
+arrives. A completed result is final: a repeated or late callback, a retry and a
+provider error after it leave it unchanged. A provider that cannot screen, such
+as Sum&Sub today, fails every screening, and the address rule reports it as
+unverified.
+
 ## Email
 
 | Variable | Default | Required |

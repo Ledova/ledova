@@ -1,4 +1,5 @@
 import logging
+import math
 
 from django.conf import settings
 from django.utils import timezone
@@ -16,10 +17,21 @@ from compliance.constants import (
 )
 from compliance.models import ComplianceAlert, TransactionScreening
 from integrations.kyc import get_kyc_provider
+from shared.db import atomic
 
 logger = logging.getLogger(__name__)
 
 SANCTIONS_KEYWORDS = ("sanctions", "sanctioned", "ofac", "sdn")
+
+
+def _is_risk_score(value) -> bool:
+    if type(value) is int:
+        return value >= 0
+    return type(value) is float and math.isfinite(value) and value >= 0
+
+
+def _locked(screening) -> TransactionScreening:
+    return TransactionScreening.objects.select_for_update().get(pk=screening.pk)
 
 
 class CryptoScreeningService:
@@ -55,18 +67,20 @@ class CryptoScreeningService:
         return self._submit(screening)
 
     def retry_failed_screening(self, screening: TransactionScreening) -> TransactionScreening:
-        if screening.status != SCREENING_STATUS_FAILED or not self.enabled:
-            logger.warning(f"Cannot retry screening {screening.pk}")
-            return screening
-        blocker = self._blocker(screening)
-        if blocker:
-            screening.error_message = blocker
-            screening.retry_count += 1
+        with atomic():
+            screening = _locked(screening)
+            if screening.status != SCREENING_STATUS_FAILED or not self.enabled:
+                logger.warning(f"Cannot retry screening {screening.pk}")
+                return screening
+            blocker = self._blocker(screening)
+            if blocker:
+                screening.error_message = blocker
+                screening.retry_count += 1
+                screening.save()
+                return screening
+            screening.status = SCREENING_STATUS_PENDING
+            screening.error_message = None
             screening.save()
-            return screening
-        screening.status = SCREENING_STATUS_PENDING
-        screening.error_message = None
-        screening.save()
         return self._submit(screening)
 
     def process_webhook_result(self, screening: TransactionScreening, data: dict) -> None:
@@ -97,34 +111,55 @@ class CryptoScreeningService:
                 currency=transaction.asset.symbol if transaction.asset_id else None,
                 blockchain=self._get_blockchain(transaction),
             )
-            self._process_screening_result(screening, response)
+            if not isinstance(response, dict):
+                return self._fail(screening, "Provider response is not a JSON object", response)
+            screening = self._process_screening_result(screening, response)
             logger.info(
                 f"Screened transaction {transaction.pk}: "
-                f"result={screening.result}, risk_score={screening.risk_score}"
+                f"status={screening.status}, result={screening.result}, risk_score={screening.risk_score}"
             )
         except Exception as e:
-            screening.status = SCREENING_STATUS_FAILED
-            screening.error_message = str(e)
-            screening.retry_count += 1
-            screening.save()
+            screening = self._fail(screening, str(e))
             logger.error(f"Failed to screen transaction {transaction.pk}: {e}")
         return screening
 
-    def _process_screening_result(self, screening: TransactionScreening, response: dict) -> None:
-        screening.raw_response = response
-        screening.risk_score = response.get("riskScore", 0)
-        screening.risk_signals = response.get("signals", [])
-        screening.completed_at = timezone.now()
-        screening.status = SCREENING_STATUS_COMPLETED
-        if screening.risk_score >= self.threshold_high:
-            screening.result, screening.risk_level = SCREENING_RESULT_REJECTED, "HIGH"
-            self._create_alert(screening, severity="high")
-        elif screening.risk_score >= self.threshold_medium:
-            screening.result, screening.risk_level = SCREENING_RESULT_REVIEW, "MEDIUM"
-            self._create_alert(screening, severity="medium")
-        else:
-            screening.result, screening.risk_level = SCREENING_RESULT_APPROVED, "LOW"
-        screening.save()
+    def _fail(self, screening, message, response=None) -> TransactionScreening:
+        with atomic():
+            screening = _locked(screening)
+            if screening.status == SCREENING_STATUS_COMPLETED:
+                return screening
+            screening.status = SCREENING_STATUS_FAILED
+            screening.error_message = message
+            screening.retry_count += 1
+            if response is not None:
+                screening.raw_response = response
+            screening.save()
+        return screening
+
+    def _process_screening_result(self, screening: TransactionScreening, response: dict) -> TransactionScreening:
+        with atomic():
+            screening = _locked(screening)
+            if screening.status == SCREENING_STATUS_COMPLETED:
+                return screening
+            screening.raw_response = response
+            if not _is_risk_score(response.get("riskScore")):
+                screening.save()
+                logger.warning(f"Screening {screening.pk} left {screening.status}: no valid risk score")
+                return screening
+            screening.risk_score = response["riskScore"]
+            screening.risk_signals = response.get("signals", [])
+            screening.completed_at = timezone.now()
+            screening.status = SCREENING_STATUS_COMPLETED
+            if screening.risk_score >= self.threshold_high:
+                screening.result, screening.risk_level = SCREENING_RESULT_REJECTED, "HIGH"
+                self._create_alert(screening, severity="high")
+            elif screening.risk_score >= self.threshold_medium:
+                screening.result, screening.risk_level = SCREENING_RESULT_REVIEW, "MEDIUM"
+                self._create_alert(screening, severity="medium")
+            else:
+                screening.result, screening.risk_level = SCREENING_RESULT_APPROVED, "LOW"
+            screening.save()
+        return screening
 
     def _create_alert(self, screening: TransactionScreening, severity: str) -> ComplianceAlert:
         sanctioned = any(
