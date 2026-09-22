@@ -159,6 +159,12 @@ on 22 September in
   rather than from a registry. The owner chose this on 22 September 2026 over
   dropping the check, keeping the rule the single global registry used to carry.
   The AUDY contract itself has never restricted transfers.
+- **The chain follows within fifteen minutes.** The platform refuses at once,
+  and the refresh reaches the registry within one sweep interval plus one
+  recovery interval. There is no lease: an approval does not lapse by itself
+  between classification expiries. A lease would fail closed by construction,
+  but at the cost of a renewal write for every approval on a clock, and the
+  owner chose the documented delay over that on 22 September 2026.
 - **One identity row per wallet.** `WhitelistEntry` stays the wallet's identity
   row, because the register names holders through it and two rows for one
   wallet would make every holder ambiguous. Approval state lives in a separate

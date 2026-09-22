@@ -63,14 +63,16 @@ lower-priority or minimum-incompatible wallets and order rows are not locked.
 The [owner chose this contention behavior](https://github.com/Ledova/ledova/issues/646#issuecomment-5745891659)
 instead of accepting an order while silently skipping a busy counterparty.
 
-A negative whitelist result, insufficient seller share or buyer payment
+A negative whitelist result, an investor classification that is not live for
+the share class's company, insufficient seller share or buyer payment
 balance, failure of every compatible fill's amount check, or a share token whose
 recorded deployment names a chain other than the one in the domain about to be
 signed — including one whose deployment row cannot be read — records a terminal
 business refusal: creation and matching roll back to their savepoint
 while spend and refusal commit together. The chain disagreement records its own
 `settlement_chain_disagreement` code and is token-wide, so matching refuses at the
-first candidate rather than retrying the refusal per candidate; the amount refusal
+first candidate rather than retrying the refusal per candidate; the classification refusal records
+`investor_not_eligible` and is equally token-wide; the amount refusal
 keeps `invalid_settlement_amount`, and matching tries later candidates when a
 proposed fill fails that check, retaining price/time priority among usable fills. It
 neither rounds nor resizes a fill, and leaves skipped resting orders unchanged. The

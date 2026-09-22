@@ -36,6 +36,12 @@ A busy or concurrently changed candidate returns a retryable response, preservin
 submission UUID and rolling back execution effects. Unjournaled orders
 retain their same-account behavior; they gain no cross-account matching authority.
 Both participants still approve and sign the captured settlement before execution.
+Creating an order and signing a swap both require the acting party to hold a
+live investor classification for the share class's company, checked with the
+same predicate the offering paths use, in addition to the wallet, registry and
+balance checks. A party whose classification lapses between the two keeps their
+signature but cannot add another, and the share token itself refuses the
+settlement.
 
 Deliberate new orders receive account-scoped submission UUIDs. Cancel and modify
 actions use separate action UUIDs. Retries retain those identities; equal terms

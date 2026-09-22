@@ -147,13 +147,18 @@ registry.
      factory;
    - a wallet approved only for one company is refused a mint of another
      company's class;
+   - revoking a wallet holder's classification removes it from that company's
+     registry within fifteen minutes, and its approval then reads `removed`;
    - no share class has a deployment whose factory differs from
      `SHARE_TOKEN_FACTORY_ADDRESS`.
 
-Nothing yet refreshes an approval when an investor classification expires or
-is revoked; staff remove or renew the wallet in the admin. Until the removal
-lands on chain, a direct contract call can still move shares, and pausing the
-token is the incident lever.
+An approval refreshes itself when a classification is revoked or renewed, when
+an account is suspended or terminated, and when a wallet is deleted or
+relinked: the platform refuses at once and the chain follows within fifteen
+minutes. [Refreshing an approval](../architecture/outgoing-signing.md#refreshing-an-approval)
+owns the rule, what each status means and what staff must still do by hand.
+Until a removal lands on chain, a direct contract call can still move shares,
+and pausing the token is the incident lever.
 
 ## Reaching the node from Compose
 
