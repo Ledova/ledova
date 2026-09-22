@@ -156,6 +156,41 @@ does no chain read. Operator identity queues also use allotment addresses and
 apply no identity-stamp fallback. They can include former holders and miss
 transfer-only holders; neither is a substitute for the register.
 
+## Inspection copies
+
+Section 173(3) requires a company to give a copy of its register within 7 days
+after a proper request. Staff prepare it in admin, on the company's written
+instruction, from the share class's **Register outputs** page; the
+[runbook](../operations/register-foundation.md#preparing-an-inspection-copy)
+has the steps. The page needs the register outputs change permission
+(`tokens.change_registeroutput`), which opens nothing else: deploying or pausing
+a class still needs share token change permission, and share token permissions
+do not open the page. There is no API route. The company decides whether a
+request is proper and hands the copy over.
+
+[register_output.py](../../backend/tokens/admin/register_output.py) calls
+`prepare_inspection_copy` in [register.py](../../backend/tokens/services/register.py),
+which builds the register CSV above from one snapshot read with the export's own
+code and adds a fourth section: the request date, the instruction's reference,
+the recipient, the date the copy was produced, and whether that is more than 7
+days after the request. `csv_cell` neutralises the entered text too.
+Days are counted in Sydney's calendar. No state or territory capital's date is
+ever ahead of Sydney's, so for a company elsewhere the late flag can err only
+towards late, and a request dated that company's today is never refused as a
+future date.
+The flag counts calendar days and does not extend a limit that ends on a
+weekend or public holiday, which also errs towards late.
+
+Ledova keeps a fingerprint, not the file. Each copy is recorded in
+`RegisterExport` as an `inspection_copy`, beside the fields every export
+records, with the SHA-256 of the exact bytes served, the instruction's
+reference, the request date, the recipient and the late flag, so the file and
+its record agree. Database check constraints require an `inspection_copy` row
+to carry all five and a `register_csv` row to carry none. A register with no
+opening, a request date after today and a blank field are refused, and a
+refusal records nothing. The records share the export records' update guard,
+operator-only table and daily purge after the 2,557-day floor.
+
 ## Reconciliation
 
 [register_reconciliation.py](../../backend/tokens/services/register_reconciliation.py)

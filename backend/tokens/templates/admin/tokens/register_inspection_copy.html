@@ -1,0 +1,12 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Register outputs: {{ original.symbol }}</h1>
+<dl>
+<dt>Company</dt><dd>{{ original.company.name }}</dd>
+<dt>Share class</dt><dd>{{ original.name }} ({{ original.symbol }})</dd>
+</dl>
+<h2>Inspection copy</h2>
+<p>Prepare a copy of the register only on the company's written instruction: the company decides whether a request is proper. The copy is the register CSV with the request details added, due within 7 days after the request (s173(3) of the Corporations Act); a copy prepared later is marked late in the file and on its record. Days are counted in Sydney's calendar. Ledova records the request details and the file's SHA-256, not the file.</p>
+{% if refusal %}<p class="errornote">{{ refusal }} Nothing was recorded.</p>{% endif %}
+<form method="post">{% csrf_token %}{{ form.as_p }}<input type="submit" value="Prepare and download"></form>
+{% endblock %}

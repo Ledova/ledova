@@ -98,6 +98,21 @@ an instruction, and every entry takes its completion date rather than the date
 it is made.
 [The register](architecture/register.md) owns the mechanisms.
 
+The same day the owner chose how the register's outputs are produced:
+certificates, notice figures and inspection copies
+([#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5767606273),
+decision 1). Staff prepare each output in admin on the company's written
+instruction, and each is recorded as a kind of register export. Ledova keeps a
+fingerprint, not the file, and the company signs: a certificate is handed over
+unsigned for the company to execute, and only its SHA-256 and register sequence
+are kept. One certificate covers the shares one entry moved to one member, with a
+balance certificate for a seller who keeps shares, and PyMuPDF renders it. The
+alternatives were certificates generated automatically, stored and served to the
+issuer, and figures without documents. The work lands in four slices:
+inspection copies, certificate PDFs, notice figures, then a list of what is due.
+Inspection copies came first; [the register](architecture/register.md#inspection-copies)
+owns their mechanism.
+
 ## Payments and settlement
 
 Payment confirmation is stored on the subscription. The initial expected volume

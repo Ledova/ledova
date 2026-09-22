@@ -358,7 +358,12 @@ from them with the chain unreachable. A correction is a compensating entry that
 those holdings already reflect. A scheduled job reconciles the stored register
 with the chain and retains each result. Former members are stored, and an
 import records members' particulars and pre-platform former members for a class
-opened from the chain.
+opened from the chain. Staff prepare the s173(3) copy in admin, on the company's
+written instruction: the register as exported, with the request date, the
+instruction's reference and the recipient, marked late when prepared more than
+seven days after the request. Ledova keeps its SHA-256 and the request details,
+not the file; the company decides whether a request is proper and hands the copy
+over. See [inspection copies](../architecture/register.md#inspection-copies).
 
 **The position.** The stored database record is the register; anything on a
 chain is at most a mirror of it. Three provisions decide that: s175, because an

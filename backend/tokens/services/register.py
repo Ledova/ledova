@@ -1,14 +1,20 @@
+import csv
+import hashlib
+import io
 from collections import defaultdict
 from contextlib import contextmanager
-from datetime import date
+from datetime import date, timedelta
 from datetime import timezone as utc_zone
 from decimal import Decimal
 
 from django.db import connections
 from django.db.models import BigIntegerField, CharField, Value
+from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 
 from shared.db import atomic, current_alias
 from shared.utils import csv_cell
+from tokens.constants import INSPECTION_COPY_DAYS, STATUTORY_CALENDAR
 from tokens.exceptions import RegisterNotInitialized
 from tokens.models import (
     ImportedFormerMember,
@@ -85,6 +91,12 @@ FORMER_MEMBER_HEADERS = [
 AS_AT_ROW = "As at"
 NEVER_FOLDED = "never read"
 STALE = "stale"
+INSPECTION_COPY_HEADING = "Inspection copy under s173(3) of the Corporations Act"
+REQUESTED_ON_ROW = "Requested on"
+INSTRUCTION_ROW = "Company's written instruction"
+RECIPIENT_ROW = "Recipient"
+PRODUCED_ON_ROW = "Produced on"
+LATE_ROW = f"Produced more than {INSPECTION_COPY_DAYS} days after the request"
 
 REGISTER_HEADERS = [
     "Member ID",
@@ -387,23 +399,74 @@ def _reconciliation_row(record):
     return [RECONCILED_ROW, outcome, reached, record.created_at.isoformat()]
 
 
-def export_rows(token, requested_by) -> list[list]:
+def _opened_register(token):
     register = stored_register(token)
     if register is None:
         raise RegisterNotInitialized()
-    former = register["former_members"]
-    rows = (
-        [_csv_row(row) for row in register["rows"]] + [[]] + _summary_rows(register) + former_member_rows(token, former)
+    return register
+
+
+def _sheet(token, register) -> list[list]:
+    return (
+        [_csv_row(row) for row in register["rows"]]
+        + [[]]
+        + _summary_rows(register)
+        + former_member_rows(token, register["former_members"])
     )
+
+
+def _record_export(token, requested_by, register, kind, **request):
     RegisterExport.objects.create(
         token=token,
         requested_by_id=requested_by.pk,
-        kind=RegisterExportKind.REGISTER_CSV,
+        kind=kind,
         register_sequence=register["sequence"],
         member_rows=len(register["rows"]),
-        former_rows=len(former),
+        former_rows=len(register["former_members"]),
+        **request,
     )
+
+
+def export_rows(token, requested_by) -> list[list]:
+    register = _opened_register(token)
+    rows = _sheet(token, register)
+    _record_export(token, requested_by, register, RegisterExportKind.REGISTER_CSV)
     return rows
+
+
+def prepare_inspection_copy(token, requested_by, *, instruction, requested_on, recipient) -> bytes:
+    produced_on = timezone.localdate(timezone=STATUTORY_CALENDAR)
+    if requested_on > produced_on:
+        raise ValidationError("The request date cannot be in the future.")
+    register = _opened_register(token)
+    late = produced_on - requested_on > timedelta(days=INSPECTION_COPY_DAYS)
+    sheet = io.StringIO()
+    csv.writer(sheet).writerows(
+        [
+            REGISTER_HEADERS,
+            *_sheet(token, register),
+            [],
+            [INSPECTION_COPY_HEADING],
+            [REQUESTED_ON_ROW, requested_on.isoformat()],
+            [INSTRUCTION_ROW, csv_cell(instruction)],
+            [RECIPIENT_ROW, csv_cell(recipient)],
+            [PRODUCED_ON_ROW, produced_on.isoformat()],
+            [LATE_ROW, "yes" if late else "no"],
+        ]
+    )
+    content = sheet.getvalue().encode()
+    _record_export(
+        token,
+        requested_by,
+        register,
+        RegisterExportKind.INSPECTION_COPY,
+        digest=hashlib.sha256(content).hexdigest(),
+        instruction=instruction,
+        requested_on=requested_on,
+        recipient=recipient,
+        late=late,
+    )
+    return content
 
 
 def former_member_rows(token, members) -> list[list]:

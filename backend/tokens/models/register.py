@@ -3,6 +3,8 @@ from django.db import models
 
 from shared.models import BaseModel
 
+from .share_token import ShareToken
+
 
 class RegisterEntryKind(models.TextChoices):
     OPENING = "opening", "Opening state"
@@ -95,6 +97,7 @@ class RegisterAcknowledgement(BaseModel):
 
 class RegisterExportKind(models.TextChoices):
     REGISTER_CSV = "register_csv", "Register CSV"
+    INSPECTION_COPY = "inspection_copy", "Inspection copy"
 
 
 class RegisterExport(BaseModel):
@@ -104,6 +107,34 @@ class RegisterExport(BaseModel):
     register_sequence = models.PositiveBigIntegerField(editable=False)
     member_rows = models.PositiveIntegerField(editable=False)
     former_rows = models.PositiveIntegerField(editable=False)
+    digest = models.CharField(max_length=64, blank=True, editable=False)
+    instruction = models.CharField(max_length=255, blank=True, editable=False)
+    requested_on = models.DateField(null=True, editable=False)
+    recipient = models.CharField(max_length=255, blank=True, editable=False)
+    late = models.BooleanField(null=True, editable=False)
 
     class Meta:
         ordering = ["-created_at", "-uuid"]
+        constraints = [
+            models.CheckConstraint(
+                condition=~models.Q(kind=RegisterExportKind.INSPECTION_COPY)
+                | (
+                    models.Q(digest__regex="^[0-9a-f]{64}$", requested_on__isnull=False, late__isnull=False)
+                    & ~models.Q(instruction__regex=r"^\s*$")
+                    & ~models.Q(recipient__regex=r"^\s*$")
+                ),
+                name="register_export_inspection_copy_request",
+            ),
+            models.CheckConstraint(
+                condition=~models.Q(kind=RegisterExportKind.REGISTER_CSV)
+                | models.Q(digest="", instruction="", recipient="", requested_on__isnull=True, late__isnull=True),
+                name="register_export_csv_carries_no_request",
+            ),
+        ]
+
+
+class RegisterOutput(ShareToken):
+    class Meta:
+        proxy = True
+        verbose_name = "register outputs"
+        verbose_name_plural = "register outputs"

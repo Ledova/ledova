@@ -153,6 +153,15 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   recorded stay as they are. Run the new code with the migration: an older binary
   still approves from admin and allots without cover, and the issues it approves
   then wait for an instruction. Reversal refuses once any instruction exists.
+- `tokens/0074_register_inspection_copies` adds the `inspection_copy` kind of
+  register export with its `digest`, `instruction`, `requested_on`, `recipient`
+  and `late` columns, and two check constraints: an inspection copy carries all
+  five and a register CSV export none. Existing records are CSV exports, which
+  satisfy them unchanged; nothing is backfilled. It also adds the
+  [Register outputs](register-foundation.md#preparing-an-inspection-copy) admin
+  page, opened only by the new **Can change register outputs** permission: grant
+  it to the staff who prepare inspection copies. Reversal refuses once any
+  inspection copy exists.
 - `whitelist/0002_whitelistentry_treasury_addresses` makes
   `WhitelistEntry.wallet` nullable and adds `address` and `label` with a check
   constraint; `whitelist/0003` adds the partial unique constraint on `address`
