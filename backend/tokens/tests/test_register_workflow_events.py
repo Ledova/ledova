@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from django.db import connections
 from django.test import TransactionTestCase, override_settings
+from rest_framework.exceptions import ValidationError
 from web3 import Web3
 
 from blockchain.tests.outgoing_fixtures import BLOCK_HASH
@@ -31,12 +32,22 @@ from tokens.services.register_inclusions import (
     record_completed_effects,
     waiting_effects,
 )
+from tokens.services.register_instructions import (
+    decide_instruction,
+    prepare_instruction_review,
+    submit_instruction,
+)
 from tokens.services.register_openings import (
     decide_link,
     prepare_link_review,
     submit_link,
 )
 from tokens.tests import test_swap_finality
+from tokens.tests.instruction_fixtures import (
+    apply_instruction,
+    instruction_payload,
+    instruction_reviewer,
+)
 from tokens.tests.test_register_events import DAY
 from tokens.tests.test_register_inclusions import MINT_BLOCK, InclusionFixtures
 from tokens.tests.test_register_links import link_payload
@@ -190,6 +201,119 @@ class RecordedIssueTest(InclusionFixtures, TransactionTestCase):
         ShareIssuanceRequest.objects.filter(executed_issuance=later).update(reviewed_by=None)
         self.assertEqual(record_completed_effects(self.tenant.token.pk), [])
         self.assertEqual([entry[0] for entry in self.entries()], ["opening"])
+
+    def test_the_recorder_is_the_reviewer_who_applied_the_instruction_not_the_admitting_operator(self):
+        reviewer = instruction_reviewer()
+        later = self.mint(block=MINT_BLOCK + 4, reviewer=reviewer)
+        entry = RegisterEntry.objects.get(operation_id=later.pk)
+        self.assertEqual(entry.recorded_by_id, reviewer.pk)
+        self.assertNotEqual(entry.recorded_by_id, self.actor.pk)
+
+    def test_an_approval_from_before_instructions_waits_until_an_instruction_covers_it(self):
+        legacy = self.mint(block=MINT_BLOCK + 4, instructed=False)
+        behind = self.mint(block=MINT_BLOCK + 6)
+        self.assertEqual([entry[0] for entry in self.entries()], ["opening"])
+        self.assertEqual(waiting_effects(self.tenant.token.pk), 2)
+        request = ShareIssuanceRequest.objects.get(executed_issuance=legacy)
+        reviewed = (request.status, request.reviewed_by_id, request.reviewed_at, request.review_notes)
+        covering = instruction_reviewer()
+        self.assertEqual(
+            apply_instruction(self.tenant.token, request, reviewer=covering, document=self.document).status, "applied"
+        )
+        request.refresh_from_db()
+        self.assertEqual((request.status, request.reviewed_by_id, request.reviewed_at, request.review_notes), reviewed)
+        self.assertEqual(
+            self.entries(),
+            [
+                ("opening", self.opening.pk, [{"member": self.member, "shares": "10"}]),
+                ("issue", legacy.pk, [{"member": self.member, "shares": "10"}]),
+                ("issue", behind.pk, [{"member": self.member, "shares": "10"}]),
+            ],
+        )
+        self.assertEqual(RegisterEntry.objects.get(operation_id=legacy.pk).recorded_by_id, self.actor.pk)
+        self.assertEqual(waiting_effects(self.tenant.token.pk), 0)
+        with self.assertRaisesMessage(ValidationError, "neither awaiting approval"):
+            apply_instruction(self.tenant.token, request, reviewer=covering, document=self.document)
+
+    def test_an_issue_recorded_before_instructions_stays_and_needs_no_cover(self):
+        with patch.object(register_inclusions, "issue_covered", return_value=True):
+            recorded = self.mint(block=MINT_BLOCK + 4, instructed=False)
+        entry = RegisterEntry.objects.get(operation_id=recorded.pk)
+        self.assertEqual(record_completed_effects(self.tenant.token.pk), [])
+        self.assertEqual(waiting_effects(self.tenant.token.pk), 0)
+        self.assertEqual(RegisterEntry.objects.get(operation_id=recorded.pk).entry_hash, entry.entry_hash)
+        request = ShareIssuanceRequest.objects.get(executed_issuance=recorded)
+        with self.assertRaisesMessage(ValidationError, "neither awaiting approval"):
+            apply_instruction(self.tenant.token, request, document=self.document)
+        self.assertFalse(register_inclusions.issue_covered(request))
+
+    def test_an_instruction_applied_during_a_later_completion_waits_for_it_and_records_both_in_order(self):
+        legacy = self.mint(block=MINT_BLOCK + 4, instructed=False)
+        request = ShareIssuanceRequest.objects.get(executed_issuance=legacy)
+        command = self.admitted(block=MINT_BLOCK + 6)
+        proposal = submit_instruction(
+            actor=self.owner, **instruction_payload(self.tenant.token, self.document, [request])
+        )
+        _, _, confirmation = prepare_instruction_review(proposal_id=proposal.pk, reviewer=self.reviewer)
+        held, release, pids, errors = Event(), Event(), Queue(), []
+        recorder = issuance_execution.record_completed_effects
+
+        def paused(token_id):
+            recorded = recorder(token_id)
+            with connections["default"].cursor() as cursor:
+                cursor.execute("SELECT pg_backend_pid()")
+                pids.put(("complete", cursor.fetchone()[0]))
+            held.set()
+            if not release.wait(timeout=10):
+                raise RuntimeError("Test synchronization timed out")
+            return recorded
+
+        def complete():
+            try:
+                with patch.object(issuance_execution, "record_completed_effects", side_effect=paused):
+                    return issuance_execution.recover(command.pk)["status"]
+            except Exception as exc:
+                errors.append((type(exc).__name__, str(exc)))
+            finally:
+                connections.close_all()
+
+        def apply():
+            try:
+                if not held.wait(timeout=10):
+                    raise RuntimeError("Test synchronization timed out")
+                with connections["default"].cursor() as cursor:
+                    cursor.execute("SELECT pg_backend_pid()")
+                    pids.put(("apply", cursor.fetchone()[0]))
+                return decide_instruction(
+                    proposal_id=proposal.pk, reviewer=self.reviewer, confirmation=confirmation, decision="apply"
+                ).status
+            except Exception as exc:
+                errors.append((type(exc).__name__, str(exc)))
+            finally:
+                connections.close_all()
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            completed, applied = pool.submit(complete), pool.submit(apply)
+            workers = dict(pids.get(timeout=10) for _ in range(2))
+            deadline, blocked = time.monotonic() + 8, False
+            while time.monotonic() < deadline and not blocked:
+                with connections["default"].cursor() as cursor:
+                    cursor.execute("SELECT pg_blocking_pids(%s)", [workers["apply"]])
+                    blocked = workers["complete"] in (cursor.fetchone()[0] or [])
+                time.sleep(0.02)
+            release.set()
+            outcomes = (completed.result(timeout=20), applied.result(timeout=20))
+        self.assertTrue(blocked, "The instruction never waited for the completion's share-class lock")
+        self.assertFalse(errors, errors)
+        self.assertEqual(outcomes, ("executed", "applied"))
+        command.refresh_from_db()
+        self.assertEqual(
+            list(
+                RegisterEntry.objects.filter(kind="issue").order_by("sequence").values_list("operation_id", flat=True)
+            ),
+            [legacy.pk, command.issuance_id],
+        )
+        self.assertEqual(waiting_effects(self.tenant.token.pk), 0)
 
 
 @override_settings(

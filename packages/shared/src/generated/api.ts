@@ -1599,6 +1599,54 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/register-instructions/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_instructions_list'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_instructions_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-instructions/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_instructions_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-instructions/{uuid}/file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_instructions_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/register-links/': {
     parameters: {
       query?: never;
@@ -3656,6 +3704,12 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['RegisterImport'][];
     };
+    PaginatedRegisterInstructionList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['RegisterInstruction'][];
+    };
     PaginatedRegisterOpeningList: {
       count: number;
       next?: string | null;
@@ -4075,6 +4129,38 @@ export interface ApiComponents {
       reason: string;
       tokenId: string;
     };
+    RegisterInstruction: {
+      approvingDirector: string;
+      authorityReference: string;
+      company: string;
+      createdAt: string;
+      evidenceFingerprint: string;
+      evidenceSnapshot: unknown;
+      items: unknown;
+      kind: ApiComponents['schemas']['RegisterInstructionKindEnum'];
+      reason: string;
+      rejectionReason: string;
+      reviewedAt: string | null;
+      reviewedBy: number | null;
+      sourceDocument: string;
+      status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
+      submittedBy: number;
+      token: string;
+      uuid: string;
+    };
+    RegisterInstructionCreateRequest: {
+      approvingDirector: string;
+      authorityReference: string;
+      documentId: string;
+      items: {
+        [key: string]: string;
+      }[];
+      kind: ApiComponents['schemas']['RegisterInstructionKindEnum'];
+      operationId: string;
+      reason: string;
+      tokenId: string;
+    };
+    RegisterInstructionKindEnum: 'issue';
     RegisterOpening: {
       appliedEntry: string | null;
       approvingDirector: string;
@@ -8478,6 +8564,95 @@ export interface ApiOperations {
     };
   };
   api_v1_tokens_register_imports_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_instructions_list: {
+    parameters: {
+      query?: {
+        ordering?: string;
+        page?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedRegisterInstructionList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_instructions_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterInstructionCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterInstructionCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterInstructionCreateRequest'];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterInstruction'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_instructions_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterInstruction'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_instructions_file_retrieve: {
     parameters: {
       query?: never;
       header?: never;

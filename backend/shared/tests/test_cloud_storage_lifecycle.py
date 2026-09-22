@@ -26,13 +26,17 @@ from shared.tests.tenants import an_account
 from tokens.models import (
     RegisterCorrection,
     RegisterImport,
+    RegisterInstruction,
     RegisterOpening,
     RegisterWalletLink,
+    ShareIssuanceRequest,
     ShareToken,
     ShareTokenStatus,
 )
 from tokens.services.register_corrections import submit_correction
+from tokens.services.register_instructions import submit_instruction
 from tokens.services.register_openings import submit_link, submit_opening
+from tokens.tests.instruction_fixtures import instruction_payload
 from tokens.tests.test_register_corrections import (
     correction_fixture,
     correction_payload,
@@ -166,6 +170,7 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                         (RegisterOpening, "file"),
                         (RegisterWalletLink, "file"),
                         (RegisterImport, "file"),
+                        (RegisterInstruction, "file"),
                     },
                 )
                 connected = {lookup[0] for lookup, *_rest in post_delete.receivers}
@@ -176,6 +181,7 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                     RegisterOpening,
                     RegisterWalletLink,
                     RegisterImport,
+                    RegisterInstruction,
                 ):
                     self.assertIn(f"shared.storage.sweep:{model._meta.label}.file", connected)
                 self.assertNotIn("shared.storage.sweep:users.InvestorClassification.evidence_file", connected)
@@ -196,6 +202,26 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                 self.assertNotIn(orphan, objects.files)
                 self.assertEqual(objects.files[proposal.file.name], original)
                 self.assertTrue(RegisterOpening.objects.filter(pk=proposal.pk).exists())
+
+    def test_retained_instruction_copy_survives_source_deletion_and_orphan_sweep(self):
+        for backend in ("s3", "gcs"):
+            with self.subTest(backend=backend), self.cloud_storage(backend) as (storage, objects):
+                owner, company, _, _, document = link_fixture()
+                token = ShareToken.objects.get(company=company)
+                request = ShareIssuanceRequest.objects.create(
+                    token=token, recipient_address="0x" + "3c" * 20, amount=5, reason="Allotment"
+                )
+                proposal = submit_instruction(actor=owner, **instruction_payload(token, document, [request]))
+                original = objects.files[proposal.file.name]
+                document.delete()
+                orphan = storage.save("companies/interrupted-instruction.bin", ContentFile(PDF))
+                for key in objects.files:
+                    objects.modified[key] = timezone.now() - GRACE - timedelta(seconds=1)
+                result = sweep_orphaned_files(storage=storage)
+                self.assertEqual(result["deleted"], 1)
+                self.assertNotIn(orphan, objects.files)
+                self.assertEqual(objects.files[proposal.file.name], original)
+                self.assertTrue(RegisterInstruction.objects.filter(pk=proposal.pk).exists())
 
     def test_retained_wallet_link_copy_survives_source_deletion_and_orphan_sweep(self):
         for backend in ("s3", "gcs"):

@@ -1,0 +1,25 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Review register instruction</h1>
+<p>Approval records your verification that the named director's documentary authority approves exactly the issues below, and that the director is not their recipient. Applying approves each issuance request still awaiting approval with you as its reviewer, so the issue's register entry names you as its recorder. It lets staff allot each listed subscription on exactly these terms, and records any listed issue approved before register instructions that has completed and is waiting. Document verification alone does not establish director authority.</p>
+<dl>
+<dt>Company as submitted</dt><dd>{{ original.evidence_snapshot.company_identity.name }}</dd>
+<dt>Company identifiers</dt><dd>ACN {{ original.evidence_snapshot.company_identity.acn }}; ABN {{ original.evidence_snapshot.company_identity.abn }}</dd>
+<dt>Share class</dt><dd>{{ original.token.symbol }}</dd>
+<dt>Instruction</dt><dd>{{ original.get_kind_display }}</dd>
+<dt>Approving director</dt><dd>{{ original.approving_director }}</dd>
+<dt>Authority reference</dt><dd>{{ original.authority_reference }}</dd>
+<dt>Reason</dt><dd>{{ original.reason }}</dd>
+<dt>Retained evidence</dt><dd>{{ evidence_link }}</dd>
+<dt>Verified evidence fingerprint</dt><dd>{{ original.evidence_fingerprint }}</dd>
+</dl>
+<table>
+<thead><tr><th>Item</th><th>ID</th><th>Recipient wallet</th><th>Recipient as identified</th><th>Shares</th><th>Class</th><th>State</th></tr></thead>
+<tbody>
+{% for row in rows|default:original.items %}<tr>{% if row.request %}<td>Issuance request</td><td>{{ row.request }}</td>{% else %}<td>Subscription</td><td>{{ row.subscription }}</td>{% endif %}<td>{{ row.recipient }}</td><td>{% if row.state %}{{ row.names|join:"; "|default:"Not identified" }}{% else %}Not checked{% endif %}</td><td>{{ row.amount }}</td><td>{{ original.token.symbol }}</td><td>{{ row.state|default:"Not checked" }}</td></tr>{% endfor %}
+</tbody>
+</table>
+{% if refusal %}<p class="errornote">{{ refusal }} Application is unavailable. You may reject this instruction with a reason.</p>{% endif %}
+<p>Review confirmation expires after fifteen minutes. A changed item or evidence requires a fresh review or submission.</p>
+<form method="post">{% csrf_token %}{{ form.as_p }}<input type="submit" value="Record decision"></form>
+{% endblock %}

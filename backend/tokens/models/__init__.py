@@ -40,6 +40,7 @@ from .register_import import (
     RegisterImport,
     RegisterMemberParticulars,
 )
+from .register_instruction import RegisterInstruction, RegisterInstructionKind
 from .register_opening import (
     RegisterMemberWallet,
     RegisterOpening,
@@ -85,6 +86,8 @@ __all__ = [
     "RegisterEntryKind",
     "ImportedFormerMember",
     "RegisterImport",
+    "RegisterInstruction",
+    "RegisterInstructionKind",
     "RegisterMemberParticulars",
     "RegisterExport",
     "RegisterExportKind",

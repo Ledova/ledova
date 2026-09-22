@@ -3,6 +3,7 @@ from .mint_request import MintRequestAdmin
 from .register_correction import RegisterCorrectionAdmin
 from .register_export import RegisterExportAdmin
 from .register_import import RegisterImportAdmin
+from .register_instruction import RegisterInstructionAdmin
 from .register_opening import RegisterOpeningAdmin, RegisterWalletLinkAdmin
 from .share_issuance_request import ShareIssuanceRequestAdmin
 from .share_token import ShareTokenAdmin
@@ -12,6 +13,7 @@ __all__ = [
     "RegisterCorrectionAdmin",
     "RegisterExportAdmin",
     "RegisterImportAdmin",
+    "RegisterInstructionAdmin",
     "RegisterOpeningAdmin",
     "RegisterWalletLinkAdmin",
     "CapitalIncreaseAdmin",

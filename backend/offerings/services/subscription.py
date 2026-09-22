@@ -4,6 +4,7 @@ from decimal import ROUND_DOWN, Decimal
 
 from django.db import IntegrityError
 from django.utils import timezone
+from web3 import Web3
 
 from offerings.exceptions import (
     InvalidSubscriptionTransitionException,
@@ -26,6 +27,7 @@ from operators.models import Operator
 from shared.db import atomic
 from tokens.models import (
     IssuanceType,
+    RegisterInstruction,
     RequestStatus,
     ShareIssuanceRequest,
 )
@@ -75,6 +77,10 @@ NOTHING_COVERED = (
 ALREADY_ALLOTTED = "This subscription already has issuance request {uuid}; it cannot be allotted twice."
 NOT_PAID = "Only a paid subscription can be allotted; this one is {status}."
 NOTHING_TO_ALLOT = "This subscription has been scaled back to zero shares; refund it instead."
+NOT_INSTRUCTED = (
+    "No applied register instruction approves allotting {amount} shares to {recipient} for subscription "
+    "{reference}. The company submits one naming its approving director, and staff review it, before allotment."
+)
 ALLOTMENT_ABOVE_HEADROOM = (
     "Allotting {amount} shares of {symbol} would exceed the {room} still available "
     "({cap_room} left under the offering cap, {chain_room} left of the authorized supply)."
@@ -511,6 +517,14 @@ def _not_allottable(subscription: Subscription):
         return NOT_PAID.format(status=subscription.get_status_display().lower())
     if subscription.allotment_quantity < 1:
         return NOTHING_TO_ALLOT
+    recipient = Web3.to_checksum_address(subscription.wallet.address)
+    amount = str(subscription.allotment_quantity)
+    if not RegisterInstruction.objects.covering(
+        {"subscription": str(subscription.pk), "recipient": recipient, "amount": amount}
+    ).exists():
+        return NOT_INSTRUCTED.format(
+            amount=amount, recipient=recipient, reference=subscription.reference or subscription.uuid
+        )
     return None
 
 

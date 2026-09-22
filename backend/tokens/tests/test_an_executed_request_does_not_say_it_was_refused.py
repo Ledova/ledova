@@ -1,9 +1,11 @@
 from importlib import import_module
 from types import SimpleNamespace
 from unittest import skipUnless
+from uuid import uuid4
 
 from django.apps import apps
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.test import TestCase, TransactionTestCase
 
 from shared.tests.schema import migrate_to, restore_every_migration
@@ -16,6 +18,10 @@ REVERSE = _MIGRATION.remove_legacy_context
 
 REVIEWER_WROTE = "Checked the shareholder agreement; the allocation matches clause 4."
 NOT_WHITELISTED = "Recipient wallet is not whitelisted. Whitelist it before executing."
+
+
+def staff_reviewer():
+    return get_user_model().objects.create_user(email=f"reviewer-{uuid4()}@example.test", is_staff=True, is_active=True)
 
 
 class AnExecutedRequestDoesNotSayItWasRefusedTest(TestCase):
@@ -33,7 +39,7 @@ class AnExecutedRequestDoesNotSayItWasRefusedTest(TestCase):
         )
 
     def _approved(self, notes=REVIEWER_WROTE):
-        self.request.approve(self.tenant.user, notes=notes)
+        self.request.approve(staff_reviewer(), notes=notes)
         self.request.refresh_from_db()
         return self.request
 
@@ -120,9 +126,8 @@ class AnExecutedRequestDoesNotSayItWasRefusedTest(TestCase):
         self.assertIn(NOT_WHITELISTED, self.request.execution_notes)
         self.assertTrue(self.request.execution_notes.endswith("Executed"))
 
-    def test_a_request_nobody_reviewed_still_records_its_attempt(self):
-        self.request.status = RequestStatus.APPROVED
-        self.request.save(update_fields=["status"])
+    def test_a_request_approved_without_notes_still_records_its_attempt(self):
+        self._approved(notes="")
 
         self.request.mark_refused(NOT_WHITELISTED)
 
@@ -135,6 +140,7 @@ class TheMigrationPreservesUnattributedNotesTest(TestCase):
 
     def setUp(self):
         self.tenant = make_tenant("issuer")
+        self.reviewer = staff_reviewer()
 
     def a_request(self, review_notes, status=RequestStatus.EXECUTED):
         return ShareIssuanceRequest.objects.create(
@@ -188,7 +194,7 @@ class TheMigrationPreservesUnattributedNotesTest(TestCase):
             with self.subTest(prefix=prefix):
                 notes = f"{prefix}during the earlier proposal; this allocation is now approved."
                 request = self.a_request("", status=RequestStatus.SUBMITTED)
-                request.approve(self.tenant.user, notes=notes)
+                request.approve(self.reviewer, notes=notes)
 
                 self.run_the_annotation()
 

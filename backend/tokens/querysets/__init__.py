@@ -1,4 +1,5 @@
 from .capital_increase import CapitalIncreaseRequestQuerySet
+from .register_instruction import RegisterInstructionQuerySet
 from .share_issuance import ShareIssuanceQuerySet
 from .share_issuance_request import ShareIssuanceRequestQuerySet
 from .share_token import ShareTokenQuerySet
@@ -8,6 +9,7 @@ from .transfer_order import TransferOrderQuerySet
 
 __all__ = [
     "CapitalIncreaseRequestQuerySet",
+    "RegisterInstructionQuerySet",
     "ShareIssuanceQuerySet",
     "ShareIssuanceRequestQuerySet",
     "ShareTokenQuerySet",

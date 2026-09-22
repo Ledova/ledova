@@ -186,7 +186,7 @@ class TheIssuancePathStampsWhatItAllotsTest(TransactionTestCase):
             amount=5,
             submitted_by=self.tenant.user,
         )
-        ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.APPROVED)
+        ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.APPROVED, reviewed_by=self.actor)
         request.refresh_from_db()
         result = issuance_execution.recover(admit(request, self.actor).pk)
         self.assertEqual(result["status"], "executed")

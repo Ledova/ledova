@@ -6313,6 +6313,37 @@
         ],
         "type": "object"
       },
+      "PaginatedRegisterInstructionList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterInstruction"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
       "PaginatedRegisterOpeningList": {
         "properties": {
           "count": {
@@ -8237,6 +8268,178 @@
           "tokenId"
         ],
         "type": "object"
+      },
+      "RegisterInstruction": {
+        "properties": {
+          "approvingDirector": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "authorityReference": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "evidenceFingerprint": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "evidenceSnapshot": {
+            "readOnly": true
+          },
+          "items": {
+            "readOnly": true
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterInstructionKindEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "rejectionReason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "reviewedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "reviewedBy": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
+          },
+          "sourceDocument": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterCorrectionStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "submittedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "token": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "approvingDirector",
+          "authorityReference",
+          "company",
+          "createdAt",
+          "evidenceFingerprint",
+          "evidenceSnapshot",
+          "items",
+          "kind",
+          "reason",
+          "rejectionReason",
+          "reviewedAt",
+          "reviewedBy",
+          "sourceDocument",
+          "status",
+          "submittedBy",
+          "token",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterInstructionCreateRequest": {
+        "properties": {
+          "approvingDirector": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "authorityReference": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "documentId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "maxItems": 10000,
+            "type": "array"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RegisterInstructionKindEnum"
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "tokenId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "approvingDirector",
+          "authorityReference",
+          "documentId",
+          "items",
+          "kind",
+          "operationId",
+          "reason",
+          "tokenId"
+        ],
+        "type": "object"
+      },
+      "RegisterInstructionKindEnum": {
+        "description": "* `issue` - Issue",
+        "enum": [
+          "issue"
+        ],
+        "type": "string"
       },
       "RegisterOpening": {
         "properties": {
@@ -19798,6 +20001,183 @@
     "/api/v1/tokens/register-imports/{uuid}/file/": {
       "get": {
         "operationId": "api_v1_tokens_register_imports_file_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-instructions/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_instructions_list",
+        "parameters": [
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedRegisterInstructionList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_tokens_register_instructions_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterInstructionCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterInstructionCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterInstructionCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterInstruction"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-instructions/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_instructions_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterInstruction"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-instructions/{uuid}/file/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_instructions_file_retrieve",
         "parameters": [
           {
             "in": "path",

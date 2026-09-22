@@ -7,6 +7,7 @@ from offerings.models import Offering, OfferingStatus, Subscription, Subscriptio
 from offerings.services.subscription import create_draft
 from operators.models import Operator
 from shared.tests.tenants import make_eligible
+from tokens.tests.instruction_fixtures import apply_instruction
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 from whitelist.models import WhitelistEntry
@@ -70,6 +71,18 @@ def paid_subscription(tenant, quantity=10, allotted=None, wallet=None):
         reference=f"PAY{str(subscription.uuid).replace('-', '')[:8].upper()}",
     )
     subscription.refresh_from_db()
+    return subscription
+
+
+def instruct(*subscriptions):
+    for subscription in subscriptions:
+        subscription.refresh_from_db()
+    return apply_instruction(subscriptions[0].offering.token, *subscriptions)
+
+
+def allottable_subscription(tenant, quantity=10, allotted=None, wallet=None):
+    subscription = paid_subscription(tenant, quantity=quantity, allotted=allotted, wallet=wallet)
+    instruct(subscription)
     return subscription
 
 

@@ -24,10 +24,12 @@ from offerings.services.subscription import (
     TX_HASH_ALREADY_USED,
 )
 from offerings.tests.factories import (
+    allottable_subscription,
     configure_operator,
     draft_subscription,
     eligible_subscriber,
     extra_wallet,
+    instruct,
     open_offering,
     paid_subscription,
 )
@@ -124,7 +126,7 @@ class SubscriptionAdminTestCase(TransactionTestCase):
 
 class SubscriptionAdminTest(SubscriptionAdminTestCase):
     def test_allotment_and_retry_require_staff_with_change_permission(self):
-        subscription = paid_subscription(self.tenant)
+        subscription = allottable_subscription(self.tenant)
         staff = User.objects.create_user(email="allot-staff@example.test", password="pw", is_staff=True, is_active=True)
         staff.user_permissions.add(Permission.objects.get(codename="view_subscription"))
         changelist = reverse("admin:offerings_subscription_changelist")
@@ -252,7 +254,7 @@ class SubscriptionAdminTest(SubscriptionAdminTestCase):
         self.assertEqual(subscription.status, SubscriptionStatus.REJECTED)
 
     def test_retry_defers_the_task_again(self):
-        subscription = paid_subscription(self.tenant)
+        subscription = allottable_subscription(self.tenant)
         with patch(SUPPLY, return_value=(1000, 0)):
             self._allot([subscription])
         subscription.refresh_from_db()
@@ -263,7 +265,7 @@ class SubscriptionAdminTest(SubscriptionAdminTestCase):
         self.assertIn("Allotment recovery checked; the recorded status is shown below.", self._messages(response))
 
     def test_a_retry_form_retained_before_refund_reports_the_cancelled_outcome_without_another_job(self):
-        subscription = paid_subscription(self.tenant)
+        subscription = allottable_subscription(self.tenant)
         with patch(SUPPLY, return_value=(1000, 0)):
             self._allot([subscription])
         self.defer.assert_called_once()
@@ -293,7 +295,7 @@ class SubscriptionAdminTest(SubscriptionAdminTestCase):
         self.assertIn("subscription status is Refunded", log)
 
     def test_the_bulk_action_allots_a_batch_inside_the_headroom(self):
-        rows = [paid_subscription(self.tenant, quantity=40, wallet=extra_wallet(self.tenant, n)) for n in "12"]
+        rows = [allottable_subscription(self.tenant, quantity=40, wallet=extra_wallet(self.tenant, n)) for n in "12"]
         with patch(SUPPLY, return_value=(1000, 0)):
             response = self._allot(rows)
 
@@ -302,7 +304,7 @@ class SubscriptionAdminTest(SubscriptionAdminTestCase):
         self.assertEqual(self.defer.call_count, 2)
 
     def test_the_bulk_action_refuses_the_whole_batch_over_the_cap_and_allots_nothing(self):
-        rows = [paid_subscription(self.tenant, quantity=40, wallet=extra_wallet(self.tenant, n)) for n in "123"]
+        rows = [allottable_subscription(self.tenant, quantity=40, wallet=extra_wallet(self.tenant, n)) for n in "123"]
         Offering.objects.filter(pk=self.offering.pk).update(minimum_shares=1, target_shares=100, cap_shares=100)
 
         with patch(SUPPLY, return_value=(1000, 0)):
@@ -379,7 +381,7 @@ class SubscriptionAdminTest(SubscriptionAdminTestCase):
         self.assertNotIn(self._url(subscription, "reject"), response.content.decode())
 
     def test_the_allot_action_refuses_a_row_that_already_has_a_request(self):
-        subscription = paid_subscription(self.tenant)
+        subscription = allottable_subscription(self.tenant)
         with patch(SUPPLY, return_value=(1000, 0)):
             self._allot([subscription])
             subscription.refresh_from_db()
@@ -517,6 +519,7 @@ class SubscriptionAdminMoneyTest(SubscriptionAdminTestCase):
             {"action": "scale_back_selected", "_selected_action": [str(row.pk) for row in rows]},
             follow=True,
         )
+        instruct(*rows)
         with patch(SUPPLY, return_value=(1000, 0)):
             self._allot(rows)
 
@@ -532,6 +535,7 @@ class SubscriptionAdminMoneyTest(SubscriptionAdminTestCase):
             {"action": "scale_back_selected", "_selected_action": [str(subscription.pk)]},
             follow=True,
         )
+        instruct(subscription)
         with patch(SUPPLY, return_value=(1000, 0)):
             self._allot([subscription])
         subscription.refresh_from_db()

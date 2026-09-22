@@ -61,10 +61,10 @@ class ScopedIssuanceExecutionTest(RunsOnTheScopedConnection, TransactionTestCase
                 {"dispatch_id": None},
                 {"status": "executed"},
                 {"executed_at": timezone.now()},
+                {"review_notes": "Public operator notes"},
             ):
                 with self.assertRaises(DatabaseError), atomic():
                     ShareIssuanceRequest.objects.filter(pk=self.request.pk).update(**changes)
-            ShareIssuanceRequest.objects.filter(pk=self.request.pk).update(review_notes="Public operator notes")
             self.assertEqual(ShareIssuanceRequest.objects.get(pk=self.request.pk).amount, 10)
         with use_operator():
             self.assertEqual(issuance_execution.recover(command.pk)["status"], "executed")
@@ -150,10 +150,10 @@ class ScopedIssuanceExecutionTest(RunsOnTheScopedConnection, TransactionTestCase
         from offerings.models import Subscription
         from offerings.services.subscription import allot, record_refund
         from offerings.tests.factories import (
+            allottable_subscription,
             configure_operator,
             eligible_subscriber,
             open_offering,
-            paid_subscription,
         )
         from shared.tests.tenants import make_tenant, open_to_investors
 
@@ -163,7 +163,7 @@ class ScopedIssuanceExecutionTest(RunsOnTheScopedConnection, TransactionTestCase
             open_to_investors(self.tenant)
             subscriber.offering = open_offering(self.tenant)
             eligible_subscriber(subscriber)
-            subscription = paid_subscription(subscriber, quantity=10)
+            subscription = allottable_subscription(subscriber, quantity=10)
         with acting_for(subscriber.user.pk):
             Subscription.objects.filter(pk=subscription.pk).update(payment_notes="Investor payment note")
             self.assertEqual(Subscription.objects.get(pk=subscription.pk).payment_notes, "Investor payment note")

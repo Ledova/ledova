@@ -23,6 +23,7 @@ from tokens.models import (
 from tokens.services import capital_execution, issuance_execution, share_token_service
 from tokens.services.capital_increase import submit_capital_increase
 from tokens.tests.capital_fixtures import CHAIN_ID, KEY, CapitalNode
+from tokens.tests.instruction_fixtures import apply_instruction
 from tokens.tests.issuance_fixtures import FINALITY_POLICIES, IssuanceNode
 
 User = get_user_model()
@@ -112,9 +113,14 @@ class ReviewRequestAdminTest(TransactionTestCase):
                 change = self.client.get(url(obj, "change"))
                 self.assertEqual(change.status_code, 200)
                 self.assertContains(change, url(obj, "start_review"))
-                self.assertContains(change, url(obj, "approve"))
                 self.assertContains(change, url(obj, "reject"))
                 self.assertNotContains(change, url(obj, "execute"))
+        self.assertContains(
+            self.client.get(url(self.capital_increase, "change")), url(self.capital_increase, "approve")
+        )
+        self.assertContains(self.client.get(url(self.issuance, "change")), "Awaiting a register instruction")
+        with self.assertRaises(NoReverseMatch):
+            url(self.issuance, "approve")
 
     def test_legacy_recovery_renders_the_hash_form_without_a_release_action(self):
         self.issuance = ShareIssuanceRequest.objects.create(
@@ -168,15 +174,22 @@ class ReviewRequestAdminTest(TransactionTestCase):
                 self.assertEqual((obj.status, obj.reviewed_by), (RequestStatus.UNDER_REVIEW, self.admin))
                 self.assertContains(self.client.get(url(obj, "change")), "Review started for")
 
-                page = self.client.get(url(obj, "approve"))
-                self.assertContains(page, "Approve Request")
-                self.assertContains(page, obj.token.symbol)
-                approved = self.client.post(url(obj, "approve"), {"notes": "Looks fine"})
-                self.assertRedirects(approved, url(obj, "change"), fetch_redirect_response=False)
+                if isinstance(obj, CapitalIncreaseRequest):
+                    page = self.client.get(url(obj, "approve"))
+                    self.assertContains(page, "Approve Request")
+                    self.assertContains(page, obj.token.symbol)
+                    approved = self.client.post(url(obj, "approve"), {"notes": "Looks fine"})
+                    self.assertRedirects(approved, url(obj, "change"), fetch_redirect_response=False)
+                    notes, shown = "Looks fine", "Ready for execution"
+                else:
+                    instruction = apply_instruction(obj.token, obj, reviewer=self.admin)
+                    notes, shown = f"Approved by register instruction {instruction.pk}.", "Approved"
                 obj.refresh_from_db()
-                self.assertEqual((obj.status, obj.review_notes), (RequestStatus.APPROVED, "Looks fine"))
+                self.assertEqual(
+                    (obj.status, obj.reviewed_by, obj.review_notes), (RequestStatus.APPROVED, self.admin, notes)
+                )
                 change = self.client.get(url(obj, "change"))
-                self.assertContains(change, "Ready for execution")
+                self.assertContains(change, shown)
                 self.assertContains(change, url(obj, "execute"))
 
                 self.assertContains(self.client.get(url(obj, "execute")), step)
@@ -205,10 +218,11 @@ class ReviewRequestAdminTest(TransactionTestCase):
                 self.assertEqual((obj.status, obj.rejection_reason), (RequestStatus.REJECTED, "Not this quarter"))
                 self.assertContains(self.client.get(url(obj, "change")), "Request Rejected")
 
-                self.client.get(url(obj, "approve"))
-                self.assertContains(
-                    self.client.get(url(obj, "change")), "Cannot approve: request status is &#x27;Rejected&#x27;"
-                )
+        self.client.get(url(self.capital_increase, "approve"))
+        self.assertContains(
+            self.client.get(url(self.capital_increase, "change")),
+            "Cannot approve: request status is &#x27;Rejected&#x27;",
+        )
 
     def test_state_guards_redirect_and_failed_requests_offer_a_retry(self):
         draft = CapitalIncreaseRequest.objects.create(

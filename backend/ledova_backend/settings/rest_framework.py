@@ -57,6 +57,7 @@ SPECTACULAR_SETTINGS = {
         "WalletSigningPreferenceEnum": "wallets.models.wallet.WalletSigningPreference.choices",
         "RegisterCorrectionStatusEnum": "tokens.models.register_correction.RegisterCorrectionStatus",
         "RegisterCorrectionAuthorityEnum": "tokens.models.register_correction.RegisterCorrectionAuthority",
+        "RegisterInstructionKindEnum": "tokens.models.register_instruction.RegisterInstructionKind",
     },
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",

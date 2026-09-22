@@ -61,8 +61,10 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
    points at a `Wallet` or carries a bare `address` plus a `label` for an
    operator-held treasury address; a database constraint requires one of the two
    and makes bare addresses unique.
-6. `POST /api/v1/tokens/{uuid}/issue/` creates a `ShareIssuanceRequest`.
-   Staff approval and execution admission are separate. Admission retains the
+6. `POST /api/v1/tokens/{uuid}/issue/` creates a `ShareIssuanceRequest`. It
+   is approved only by applying a
+   [register instruction](../operations/register-foundation.md#register-instructions-for-issues)
+   that lists it, and execution admission is separate. Admission retains the
    approved terms and matching job in a private command. Before signing,
    execution checks whitelist membership, the cap and pause state. A known
    refusal becomes a definite unsigned failure with a safe explanation.

@@ -30,6 +30,7 @@ TABLE_CREATION_AFTER_INITIAL_GRANTS = {
     "tokens_registerimport": ("tokens", "0072_register_import"),
     "tokens_registermemberparticulars": ("tokens", "0072_register_import"),
     "tokens_importedformermember": ("tokens", "0072_register_import"),
+    "tokens_registerinstruction": ("tokens", "0073_register_instructions"),
 }
 
 NOT_YET_CREATED = (

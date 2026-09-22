@@ -132,7 +132,7 @@ class IssuanceSeedsTheHoldingTest(TransactionTestCase):
         request = ShareIssuanceRequest.objects.create(
             token=self.token, recipient_address=recipient, amount=25, reason="Allotment"
         )
-        ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.APPROVED)
+        ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.APPROVED, reviewed_by=self.actor)
         request.refresh_from_db()
         return request
 
