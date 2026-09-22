@@ -1,5 +1,6 @@
 import time
 from concurrent.futures import ThreadPoolExecutor
+from datetime import timedelta
 from datetime import timezone as utc_zone
 from queue import Queue
 from threading import Event
@@ -8,7 +9,9 @@ from uuid import uuid4
 
 from django.db import connections
 from django.test import TransactionTestCase, override_settings
+from django.utils import timezone
 from rest_framework.exceptions import ValidationError
+from rest_framework.test import APIClient
 from web3 import Web3
 
 from blockchain.tests.outgoing_fixtures import BLOCK_HASH
@@ -16,6 +19,7 @@ from shared.db import use_operator
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
     RegisterEntry,
+    RegisterEntryKind,
     RegisterMemberWallet,
     ShareIssuanceRequest,
     SwapOrderStatus,
@@ -24,6 +28,7 @@ from tokens.services import issuance_execution, register_inclusions
 from tokens.services.register_events import (
     create_member,
     open_register,
+    record_entry,
     verify_register,
 )
 from tokens.services.register_inclusions import (
@@ -31,6 +36,7 @@ from tokens.services.register_inclusions import (
     classified_inclusions,
     record_completed_effects,
     waiting_effects,
+    waiting_list,
 )
 from tokens.services.register_instructions import (
     decide_instruction,
@@ -48,7 +54,7 @@ from tokens.tests.instruction_fixtures import (
     instruction_payload,
     instruction_reviewer,
 )
-from tokens.tests.test_register_events import DAY
+from tokens.tests.test_register_events import DAY, register_fixture
 from tokens.tests.test_register_inclusions import MINT_BLOCK, InclusionFixtures
 from tokens.tests.test_register_links import link_payload
 from tokens.tests.test_register_openings import SETTINGS
@@ -66,6 +72,17 @@ class RecordedIssueTest(InclusionFixtures, TransactionTestCase):
 
     def entries(self):
         return list(RegisterEntry.objects.order_by("sequence").values_list("kind", "operation_id", "changes"))
+
+    def waiting(self, issuance, block, reason, unlinked=()):
+        return {
+            "kind": "issue",
+            "source": str(issuance.pk),
+            "block": block,
+            "wallets": [issuance.recipient_address],
+            "shares": "10",
+            "unlinked_wallets": list(unlinked),
+            "reason": reason,
+        }
 
     def link(self, address, member):
         proposal = submit_link(
@@ -195,7 +212,7 @@ class RecordedIssueTest(InclusionFixtures, TransactionTestCase):
         self.assertEqual(verify_register(recorded[0].register_id)["issued_supply"], "20")
 
     def test_an_unapproved_request_waits_rather_than_inventing_a_recorder(self):
-        with patch.object(register_inclusions, "_effect", return_value=None):
+        with patch.object(issuance_execution, "record_completed_effects"):
             later = self.mint(block=MINT_BLOCK + 4)
         self.assertFalse(RegisterEntry.objects.filter(operation_id=later.pk).exists())
         ShareIssuanceRequest.objects.filter(executed_issuance=later).update(reviewed_by=None)
@@ -246,6 +263,92 @@ class RecordedIssueTest(InclusionFixtures, TransactionTestCase):
         with self.assertRaisesMessage(ValidationError, "neither awaiting approval"):
             apply_instruction(self.tenant.token, request, document=self.document)
         self.assertFalse(register_inclusions.issue_covered(request))
+
+    def test_each_waiting_effect_is_listed_in_chain_order_with_the_reason_it_waits(self):
+        departed = instruction_reviewer()
+        held = self.mint()
+        unlinked = self.mint(block=MINT_BLOCK + 4, recipient=NEWCOMER)
+        unreviewed = self.mint(block=MINT_BLOCK + 6, instructed=False, reviewer=departed)
+        uninstructed = self.mint(block=MINT_BLOCK + 8, instructed=False)
+        behind = self.mint(block=MINT_BLOCK + 10)
+        departed.delete()
+        expected = [
+            self.waiting(held, MINT_BLOCK, "attribution"),
+            self.waiting(unlinked, MINT_BLOCK + 4, "unlinked", [unlinked.recipient_address]),
+            self.waiting(unreviewed, MINT_BLOCK + 6, "unreviewed"),
+            self.waiting(uninstructed, MINT_BLOCK + 8, "uninstructed"),
+            self.waiting(behind, MINT_BLOCK + 10, "behind"),
+        ]
+        self.assertEqual(waiting_list(self.tenant.token.pk), expected)
+        self.assertEqual(waiting_effects(self.tenant.token.pk), len(expected))
+        self.assertEqual([entry[0] for entry in self.entries()], ["opening"])
+        client = APIClient()
+        client.force_authenticate(self.owner)
+        path = f"/api/v1/tokens/{self.tenant.token.uuid}/"
+        response = client.get(f"{path}register/waiting/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {
+                "effects": [
+                    {("unlinkedWallets" if key == "unlinked_wallets" else key): value for key, value in row.items()}
+                    for row in expected
+                ]
+            },
+        )
+        self.assertEqual(client.get(f"{path}holders/").json()["waitingEffects"], len(expected))
+        client.force_authenticate(register_fixture()[0])
+        self.assertEqual(client.get(f"{path}register/waiting/").status_code, 404)
+
+    def test_an_entry_that_waited_is_dated_the_day_it_is_made_and_one_on_time_its_completion_date(self):
+        on_time = self.mint(block=MINT_BLOCK + 2)
+        unlinked = self.mint(block=MINT_BLOCK + 4, recipient=NEWCOMER)
+        uninstructed = self.mint(block=MINT_BLOCK + 6, instructed=False)
+        linked_on = unlinked.completed_at + timedelta(days=2)
+        covered_on = unlinked.completed_at + timedelta(days=5)
+        with patch("django.utils.timezone.now", return_value=linked_on):
+            self.assertEqual(self.link(NEWCOMER, str(uuid4())).status, "applied")
+        request = ShareIssuanceRequest.objects.get(executed_issuance=uninstructed)
+        with patch("django.utils.timezone.now", return_value=covered_on):
+            self.assertEqual(apply_instruction(self.tenant.token, request, document=self.document).status, "applied")
+        self.assertEqual(
+            dict(RegisterEntry.objects.filter(kind="issue").values_list("operation_id", "effective_on")),
+            {
+                on_time.pk: on_time.completed_at.astimezone(utc_zone.utc).date(),
+                unlinked.pk: linked_on.date(),
+                uninstructed.pk: covered_on.date(),
+            },
+        )
+        self.assertEqual(waiting_list(self.tenant.token.pk), [])
+
+    def test_an_entry_dated_before_the_register_head_is_refused_and_listed_until_its_day_comes(self):
+        register_id = self.opening.applied_entry.register_id
+        earlier = record_entry(
+            register_id=register_id,
+            operation_id=uuid4(),
+            kind=RegisterEntryKind.ISSUE,
+            changes=[{"member": self.member, "shares": "5"}],
+            effective_on=self.opening.applied_entry.effective_on,
+            recorded_by=self.reviewer,
+        )
+        ahead = timezone.now() + timedelta(days=10)
+        record_entry(
+            register_id=register_id,
+            operation_id=uuid4(),
+            kind=RegisterEntryKind.CORRECTION,
+            changes=[{"member": self.member, "shares": "-5"}],
+            effective_on=ahead.date(),
+            recorded_by=self.reviewer,
+            corrects_id=earlier.pk,
+        )
+        with self.assertLogs(register_inclusions.logger, "WARNING"):
+            refused = self.mint(block=MINT_BLOCK + 4)
+        self.assertFalse(RegisterEntry.objects.filter(operation_id=refused.pk).exists())
+        self.assertEqual(waiting_list(self.tenant.token.pk), [self.waiting(refused, MINT_BLOCK + 4, "refused")])
+        with patch("django.utils.timezone.now", return_value=ahead):
+            (recorded,) = record_completed_effects(self.tenant.token.pk)
+        self.assertEqual((recorded.operation_id, recorded.effective_on), (refused.pk, ahead.date()))
+        self.assertEqual(waiting_list(self.tenant.token.pk), [])
 
     def test_an_instruction_applied_during_a_later_completion_waits_for_it_and_records_both_in_order(self):
         legacy = self.mint(block=MINT_BLOCK + 4, instructed=False)
@@ -322,7 +425,7 @@ class RecordedIssueTest(InclusionFixtures, TransactionTestCase):
     ATOMIC_SWAP_ADDRESS=test_swap_finality.CONTRACT,
 )
 class RecordedTransferTest(test_swap_finality.SwapFinalityFixtures, TransactionTestCase):
-    def open_register(self, *, one_member=False, link_buyer=True):
+    def open_register(self, *, one_member=False, link_buyer=True, held=None):
         with use_operator():
             company_id = self.swap.share_token.company_id
             self.seller_member = create_member(company_id=company_id, member_id=uuid4())
@@ -337,7 +440,7 @@ class RecordedTransferTest(test_swap_finality.SwapFinalityFixtures, TransactionT
             self.register_opening = open_register(
                 token_id=self.swap.share_token_id,
                 operation_id=uuid4(),
-                changes=[{"member": str(self.seller_member.pk), "shares": str(self.swap.share_amount * 2)}],
+                changes=[{"member": str(self.seller_member.pk), "shares": str(held or self.swap.share_amount * 2)}],
                 effective_on=DAY,
                 recorded_by=self.fixture.seller.user,
             )
@@ -358,6 +461,17 @@ class RecordedTransferTest(test_swap_finality.SwapFinalityFixtures, TransactionT
     def transfers(self):
         with use_operator():
             return list(RegisterEntry.objects.filter(kind="transfer").values_list("operation_id", "changes"))
+
+    def waiting(self, reason, unlinked=()):
+        return {
+            "kind": "transfer",
+            "source": str(self.swap.pk),
+            "block": self.swap.finalized_receipt["block_number"],
+            "wallets": [self.swap.seller_address, self.swap.buyer_address],
+            "shares": str(self.swap.share_amount),
+            "unlinked_wallets": list(unlinked),
+            "reason": reason,
+        }
 
     def test_a_settlement_after_the_opening_is_recorded_as_a_transfer_by_the_transferor(self):
         self.open_register()
@@ -403,9 +517,26 @@ class RecordedTransferTest(test_swap_finality.SwapFinalityFixtures, TransactionT
         self.assertIn(f"waits at transfer {self.swap.pk}", waiting.output[0])
         with use_operator():
             self.assertEqual(waiting_effects(self.swap.share_token_id), 1)
+            self.assertEqual(
+                waiting_list(self.swap.share_token_id), [self.waiting("unlinked", [self.swap.buyer_address])]
+            )
             RegisterMemberWallet.objects.create(
                 company_id=self.swap.share_token.company_id, member=self.buyer_member, address=self.swap.buyer_address
             )
-            recorded = record_completed_effects(self.swap.share_token_id)
+            linked_on = self.swap.completed_at + timedelta(days=3)
+            with patch("django.utils.timezone.now", return_value=linked_on):
+                recorded = record_completed_effects(self.swap.share_token_id)
             self.assertEqual(waiting_effects(self.swap.share_token_id), 0)
-        self.assertEqual([entry.operation_id for entry in recorded], [self.swap.pk])
+        self.assertEqual(
+            [(entry.operation_id, entry.effective_on) for entry in recorded], [(self.swap.pk, linked_on.date())]
+        )
+
+    def test_a_transfer_the_register_refuses_is_listed_as_refused(self):
+        self.open_register(held=self.swap.share_amount // 2)
+        with self.assertLogs(register_inclusions.logger, "WARNING") as refused:
+            self.complete()
+        self.assertIn(f"The register refused transfer {self.swap.pk}", refused.output[0])
+        self.assertEqual(self.transfers(), [])
+        with use_operator():
+            self.assertEqual(waiting_list(self.swap.share_token_id), [self.waiting("refused")])
+            self.assertEqual(waiting_effects(self.swap.share_token_id), 1)

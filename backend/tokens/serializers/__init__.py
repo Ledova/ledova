@@ -12,6 +12,7 @@ from .share_issuance_request import (
 )
 from .share_token import (
     ShareRegisterHolderSerializer,
+    ShareRegisterWaitingEffectSerializer,
     ShareTokenCreateSerializer,
     ShareTokenDetailSerializer,
     ShareTokenListSerializer,
@@ -41,6 +42,7 @@ __all__ = [
     "ShareIssuanceRequestSerializer",
     "ShareTokenCreateSerializer",
     "ShareRegisterHolderSerializer",
+    "ShareRegisterWaitingEffectSerializer",
     "ShareTokenDetailSerializer",
     "ShareTokenListSerializer",
     "SwapOrderDetailSerializer",

@@ -30,6 +30,8 @@ interleave with an opening. Each completion after the opening is
 in its own completion transaction, in chain order; recording waits, without
 stalling the completion, at the first effect whose wallet has no link, which
 needs attribution, or which is an issue no applied register instruction covers.
+An issue or transfer entry is dated the day it is made, so one that waited
+carries the later date; the register refuses one dated before its latest entry.
 
 An issue is approved only under a
 [register instruction](../operations/register-foundation.md#register-instructions-for-issues):
@@ -113,7 +115,9 @@ former-member section states how far the fold has read.
 `GET /api/v1/tokens/{uuid}/holders/` returns whether the register is
 initialised, current members with their wallets, the stored issued supply, the
 number of completed effects still waiting to be recorded, and former members
-with their fold freshness. Both this route and
+with their fold freshness. `GET /api/v1/tokens/{uuid}/register/waiting/` lists
+those waiting effects in chain order, each with its wallets, shares and the
+reason it waits. These routes and
 `GET /api/v1/tokens/{uuid}/register/export/` are issuer-scoped, and the export of
 a register with no opening is refused with 409 `register_not_initialized`. The
 current-member API omits residential addresses, but former-member rows include
@@ -127,7 +131,10 @@ effect waits; see
 [recording](../operations/register-foundation.md#recording-issues-and-transfers-after-the-opening).
 A waiting effect is counted, not included in any holding, so a register with
 waiting effects is behind the chain until they are recorded. A count that cannot
-be computed is `null` in the API and `unknown` in the CSV.
+be computed is `null` in the API and `unknown` in the CSV, and the waiting list
+is `null` with it. The count, the
+[waiting list](../operations/register-foundation.md#the-issuers-waiting-list)
+and recording walk the same classification, so the count is the list's length.
 
 The CSV has three sections with different widths:
 

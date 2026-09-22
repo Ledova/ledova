@@ -1407,6 +1407,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/{uuid}/register/waiting/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_waiting_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/{uuid}/unpause/': {
     parameters: {
       query?: never;
@@ -4511,6 +4527,20 @@ export interface ApiComponents {
       totalSupply: string;
       uuid: string;
     };
+    ShareRegisterWaiting: {
+      effects: ApiComponents['schemas']['ShareRegisterWaitingEffect'][] | null;
+    };
+    ShareRegisterWaitingEffect: {
+      block: number;
+      kind: ApiComponents['schemas']['ShareRegisterWaitingEffectKindEnum'];
+      reason: ApiComponents['schemas']['ShareRegisterWaitingReasonEnum'];
+      shares: string;
+      source: string;
+      unlinkedWallets: string[];
+      wallets: string[];
+    };
+    ShareRegisterWaitingEffectKindEnum: 'issue' | 'transfer';
+    ShareRegisterWaitingReasonEnum: 'attribution' | 'unlinked' | 'unreviewed' | 'uninstructed' | 'refused' | 'behind';
     ShareRegisterWallet: {
       address: string;
       whitelistStatus: string;
@@ -8155,6 +8185,27 @@ export interface ApiOperations {
         };
         content: {
           'text/csv': string;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_waiting_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['ShareRegisterWaiting'];
         };
       };
     };

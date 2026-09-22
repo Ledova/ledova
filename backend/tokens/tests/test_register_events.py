@@ -1,6 +1,6 @@
 import importlib
 import json
-from datetime import date
+from datetime import date, timedelta
 from io import StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -220,6 +220,22 @@ class RegisterEventsTest(TestCase):
         self.record(effective_on=date(2026, 9, 21))
         self.assertEqual(RegisterPosition.objects.get(member=self.member).entered_on, date(2026, 9, 21))
         self.assertEqual(verify_register(self.register.pk)["members"], 1)
+
+    def test_an_issue_or_transfer_is_never_dated_before_the_latest_entry(self):
+        operation = uuid4()
+        first = self.record(operation_id=operation)
+        later = DAY + timedelta(days=1)
+        issue = self.record(effective_on=later)
+        transfer = [{"member": str(self.member.pk), "shares": "-5"}, {"member": str(self.other.pk), "shares": "5"}]
+        for kind, changes in (("issue", None), ("transfer", transfer)):
+            with self.subTest(kind=kind), self.assertRaisesMessage(ValidationError, "cannot be dated before"):
+                self.record(kind, changes, effective_on=DAY)
+        self.assertEqual(self.record(operation_id=operation).pk, first.pk)
+        self.record("transfer", transfer, effective_on=later)
+        self.record(
+            "correction", [{"member": str(self.member.pk), "shares": "-5"}], corrects_id=issue.pk, effective_on=DAY
+        )
+        self.assertEqual(verify_register(self.register.pk)["entries"], 5)
 
     def test_outer_rollback_removes_event_projection_and_head_together(self):
         with self.assertRaisesRegex(RuntimeError, "rollback"), atomic():

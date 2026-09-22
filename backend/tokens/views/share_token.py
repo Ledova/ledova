@@ -18,6 +18,7 @@ from tokens.serializers import (
     ShareIssuanceListSerializer,
     ShareIssuanceRequestSerializer,
     ShareRegisterHolderSerializer,
+    ShareRegisterWaitingEffectSerializer,
     ShareTokenCreateSerializer,
     ShareTokenDetailSerializer,
     ShareTokenListSerializer,
@@ -33,6 +34,7 @@ from tokens.services.register import (
     api_holders,
     export_rows,
     stored_register,
+    stored_waiting_list,
 )
 from tokens.services.share_token_service import delete_share_token
 
@@ -43,12 +45,15 @@ class ShareTokenViewSet(AuthenticatedModelViewSet):
     ordering_fields = ["created_at", "name", "symbol", "status", "token_type"]
 
     scoped_model = ShareToken
-    operator_actions = frozenset({"holders", "register_export"})
+    operator_actions = frozenset({"holders", "register_export", "register_waiting"})
     operator_actions_because = (
         "a members' register has to carry each holder's name and residential address, and those "
         "belong to the issuer's investors rather than to the issuer, so no policy admits them to the "
         "principal reading it. Without the operator connection the register does not fail - it prints "
         "'unidentified' and blank addresses, which is a legally wrong document produced confidently. "
+        "The list of effects waiting to be entered classifies completions as recording does, and a "
+        "settlement is visible only to its parties, so it reads what no policy admits to the issuer and "
+        "the classification refuses any other connection. "
         "The reader stays IsAuthenticated: an issuer is entitled to this and is not an administrator."
     )
 
@@ -240,6 +245,16 @@ class ShareTokenViewSet(AuthenticatedModelViewSet):
                 "former_members_stale": fold_is_stale(token),
             }
         )
+
+    @extend_schema(
+        responses=inline_serializer(
+            name="ShareRegisterWaiting",
+            fields={"effects": ShareRegisterWaitingEffectSerializer(many=True, allow_null=True)},
+        )
+    )
+    @action(detail=True, methods=["get"], url_path="register/waiting")
+    def register_waiting(self, request, uuid=None):
+        return Response({"effects": stored_waiting_list(self.get_object())})
 
     @extend_schema(responses={(200, "text/csv"): OpenApiTypes.STR})
     @action(detail=True, methods=["get"], url_path="register/export", http_method_names=["get", "options"])

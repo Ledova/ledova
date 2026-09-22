@@ -40,7 +40,7 @@ from tokens.models.choices import (
     IDENTITY_TREASURY_LABEL,
     IDENTITY_UNRESOLVABLE,
 )
-from tokens.services.register_inclusions import waiting_effects
+from tokens.services.register_inclusions import waiting_effects, waiting_list
 from whitelist.models import HolderType
 from whitelist.services.identity import UNIDENTIFIED, identities_for
 
@@ -372,6 +372,11 @@ def _stored_register(token):
 def stored_register(token):
     with _snapshot():
         return _stored_register(token)
+
+
+def stored_waiting_list(token):
+    with _snapshot():
+        return waiting_list(token.pk)
 
 
 def api_holders(rows) -> list[dict]:
