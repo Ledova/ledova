@@ -78,7 +78,7 @@ def restore_guard(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("tokens", "0074_register_inspection_copies"),
+        ("tokens", "0075_register_certificates"),
     ]
 
     operations = [

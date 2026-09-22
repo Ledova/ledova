@@ -951,12 +951,12 @@ class RegisterInstructionMigrationTest(TransactionTestCase):
             "buyer": Web3.to_checksum_address("0x" + "5b" * 20),
             "amount": "3",
         }
-        before = migrate_to([("tokens", "0074_register_inspection_copies")])
+        before = migrate_to([("tokens", "0075_register_certificates")])
         with self.assertRaisesMessage(DatabaseError, "require exact current intent"), atomic():
             forged(issue, before.get_model("tokens", "RegisterInstruction"), kind="transfer", items=[settlement])
-        after = migrate_to([("tokens", "0075_transfer_instructions")])
+        after = migrate_to([("tokens", "0076_transfer_instructions")])
         transfer = forged(issue, after.get_model("tokens", "RegisterInstruction"), kind="transfer", items=[settlement])
-        migration = importlib.import_module("tokens.migrations.0075_transfer_instructions")
+        migration = importlib.import_module("tokens.migrations.0076_transfer_instructions")
         with self.assertRaisesRegex(RuntimeError, "Retain transfer instructions"), atomic():
             with connections[current_alias()].schema_editor() as editor:
                 migration.restore_guard(None, editor)

@@ -665,7 +665,7 @@ change since `tokens/0073`. A request with no recorded reviewer waits rather tha
 recording someone else. Entries recorded before `tokens/0073` stay as they are, and no
 approval is invented for them. A transfer is recorded only once an applied
 transfer instruction lists its settlement. Transfer entries recorded before
-`tokens/0075` stay as they are; a settlement completed but not yet recorded before
+`tokens/0076` stay as they are; a settlement completed but not yet recorded before
 it waits for an instruction like any later one.
 
 Recording follows chain order: by block, then by the transaction index the

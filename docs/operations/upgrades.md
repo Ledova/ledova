@@ -184,7 +184,7 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   outputs** permission. Preparing one imports PyMuPDF, already a runtime
   dependency, in the web process that serves admin. Reversal refuses once any
   certificate record exists.
-- `tokens/0075_transfer_instructions` adds the `transfer` kind of
+- `tokens/0076_transfer_instructions` adds the `transfer` kind of
   [register instruction](register-foundation.md#register-instructions-for-transfers)
   and replaces the `0073` instruction guard's function in place. It now checks a
   transfer instruction's items when one is inserted, and at application that each
