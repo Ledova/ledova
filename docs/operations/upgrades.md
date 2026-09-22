@@ -110,6 +110,12 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   and the clients together: an older dashboard or mobile build reads `address`
   from each row and fails on the new ones. Update anything that parses the CSV
   by its old headers.
+- `tokens/0069_opening_mapping_values` adds an insert check that every value in
+  an opening proposal's mapping is a JSON string. It closes a gap in
+  `tokens/0065`: an insert that bypassed `submit_opening` could record a `null`
+  member, and applying that proposal then failed with a server error, so it
+  could only be rejected. It rewrites and rechecks no existing proposal.
+  Reversal drops the check.
 - `whitelist/0002_whitelistentry_treasury_addresses` makes
   `WhitelistEntry.wallet` nullable and adds `address` and `label` with a check
   constraint; `whitelist/0003` adds the partial unique constraint on `address`

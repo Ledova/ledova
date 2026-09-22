@@ -149,6 +149,27 @@ class RegisterOpeningTest(TransactionTestCase):
     def review(self, proposal):
         return prepare_opening_review(proposal_id=proposal.pk, reviewer=self.reviewer, client=self.node.client)[1]
 
+    def forged(self, proposal, **changes):
+        forged_id = uuid4()
+        return RegisterOpening.objects.create(
+            **{
+                "uuid": forged_id,
+                "company": proposal.company,
+                "token": proposal.token,
+                "mapping": proposal.mapping,
+                "authority": proposal.authority,
+                "approving_director": proposal.approving_director,
+                "authority_reference": proposal.authority_reference,
+                "reason": proposal.reason,
+                "source_document": proposal.source_document,
+                "evidence_fingerprint": proposal.evidence_fingerprint,
+                "evidence_snapshot": proposal.evidence_snapshot,
+                "file": f"companies/{proposal.company_id}/register-openings/{forged_id}/{uuid4()}.bin",
+                "submitted_by": self.owner,
+                **changes,
+            }
+        )
+
     def apply(self, proposal, **changes):
         return decide_opening(
             **{
@@ -815,6 +836,17 @@ class RegisterOpeningTest(TransactionTestCase):
         with self.assertRaises(DatabaseError), atomic():
             RegisterMemberWallet.objects.create(company=self.tenant.company, member=member, address="not-an-address")
         self.assertEqual(applied.status, "applied")
+
+    def test_a_mapping_value_that_is_not_a_json_string_is_refused_at_insert(self):
+        proposal = self.submit()
+        member = proposal.mapping[0]["member"]
+        for item in ({"address": ALICE, "member": None}, {"address": None, "member": member}):
+            with self.subTest(item=item), self.assertRaises(DatabaseError), atomic():
+                self.forged(proposal, mapping=[item])
+        with self.assertRaises(RuntimeError), atomic():
+            self.forged(proposal)
+            raise RuntimeError("rollback")
+        self.assertEqual(RegisterOpening.objects.count(), 1)
 
     def test_disabled_guards_admit_forged_decisions_and_duplicate_wallet_links(self):
         proposal = self.submit()

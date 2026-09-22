@@ -331,8 +331,8 @@ links, the OPENING entry (the register's first entry) and the decision
 atomically; a failure rolls them all back. Repeated identical submission and
 decision is idempotent, including after the confirmation expires, while
 conflicting UUID reuse is refused. The database prevents rewriting or deleting
-the request and the wallet links, and prevents the customer role from deciding
-or capturing anything.
+the request and the wallet links, refuses a mapping value that is not a JSON
+string, and prevents the customer role from deciding or capturing anything.
 
 An explicitly empty boundary produces an explicit empty opening, distinct from
 an uninitialized register. An already-initialised register refuses a further
