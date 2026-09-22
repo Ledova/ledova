@@ -15,11 +15,12 @@ effects against the captured boundary, and a scheduled job reconciles it with th
 chain. An
 import adds an existing register's particulars and former members to a class
 opened from the chain, or opens a class not yet on chain from that register, and
-staff prepare [inspection copies](#preparing-an-inspection-copy) of it and
-[certificates](#preparing-a-certificate) for its issues and transfers on a
-company's written instruction. A class an import opened records no later change
-until it is tokenised, which is later work, so no real company's register may
-rely on the foundation yet.
+staff prepare [inspection copies](#preparing-an-inspection-copy) of it,
+[certificates](#preparing-a-certificate) for its issues and transfers and the
+[figures for its notices](#preparing-notice-figures) on a company's written
+instruction. A class an import opened records no later change until it is
+tokenised, which is later work, so no real company's register may rely on the
+foundation yet.
 
 ## Identity and events
 
@@ -847,6 +848,66 @@ same entry again makes a new record, and the same file while the register, the
 members' particulars and the PyMuPDF version are unchanged. The records cannot
 be rewritten, are read only by staff, and follow the export records' 2,557-day
 floor and daily purge.
+
+## Preparing notice figures
+
+A company notifies ASIC of each share issue within 28 days (s254X of the
+Corporations Act), and a proprietary company also notifies changes to its
+members and share structure (s178A, s178C and s178D). Staff prepare the figures
+for those notices only on the company's written instruction. The company, or the
+accountant who lodges its notices, decides which notices they support and lodges
+them (owner decision, 22 September 2026).
+
+You need the **Can change register outputs** permission the other outputs use.
+The share class needs an applied opening.
+
+1. Keep the company's written instruction, and note its reference and the first
+   day of the period it asks for. An entry is dated the UTC day it was made,
+   which on a Sydney morning is the day before, so start the period no later
+   than the date of the first entry the company has not yet notified.
+2. In **Admin → Tokens → Register outputs**, open the share class and choose
+   **Prepare notice figures**.
+3. Enter the first day of the period and the instruction's reference, then
+   choose **Prepare and download**.
+
+The download, `notice-figures-SYMBOL-DATE-to-N.csv` for the figures from DATE
+to register entry N, has four sections, each after a heading row:
+
+- the share class, the first day of the period, the register entry the figures
+  run to, the instruction and the day they were produced;
+- **Entries in the period**: a row for each member changed by each issue,
+  transfer or correction dated on or after that day, in entry order, with the
+  change in shares, negative for shares the member gave up, and an issue's amount
+  paid. A correction names the entry it reverses. The opening is never listed.
+- **Class at the register head**: the issued supply, the number of members
+  holding shares and the total amount paid;
+- **Members changed in the period, at the register head**: each changed
+  member's name, residential address, shares held, 0 for one who holds none,
+  and amount paid.
+
+`not recorded` means Ledova cannot establish the amount paid exactly, as for
+shares received by transfer; the company supplies it from its own records. Names
+and addresses are the ones the register gives when you prepare the figures, and
+a member the register cannot name is printed as the register prints them rather
+than refused. A negative change prints as a plain negative number; a name,
+address or instruction that begins with a formula character carries a leading
+apostrophe so that a spreadsheet does not read it as a formula. Check the
+figures against the instruction and give the file to the company unchanged. The
+page refuses, and records nothing, when the share class has no applied opening,
+when the first day is after today in Sydney's calendar, or when a field is
+blank. A period with no entries is not refused: its sections list none.
+
+Each preparation is recorded once in **Admin → Tokens → Register exports** as
+kind **Notice figures**: who prepared it, the register entry the figures run to
+as the register sequence, the number of changed members as member rows, the
+first day of the period, the instruction and the file's SHA-256 digest. Search
+by instruction. Ledova keeps no copy of the file. To confirm that a file is the
+one prepared, compare the output of `sha256sum notice-figures-SYMBOL-DATE-to-N.csv`
+with the record's digest. Preparing the same period on the same instruction
+again makes a new record, and the same file while the register, the members'
+particulars and the day produced are unchanged. The records cannot be rewritten,
+are read only by staff, and follow the export records' 2,557-day floor and daily
+purge.
 
 ## Importing an existing register
 

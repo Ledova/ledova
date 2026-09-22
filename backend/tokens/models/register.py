@@ -99,6 +99,7 @@ class RegisterExportKind(models.TextChoices):
     REGISTER_CSV = "register_csv", "Register CSV"
     INSPECTION_COPY = "inspection_copy", "Inspection copy"
     CERTIFICATE = "certificate", "Certificate"
+    NOTICE_FIGURES = "notice_figures", "Notice figures"
 
 
 class RegisterExport(BaseModel):
@@ -113,6 +114,7 @@ class RegisterExport(BaseModel):
     requested_on = models.DateField(null=True, editable=False)
     recipient = models.CharField(max_length=255, blank=True, editable=False)
     late = models.BooleanField(null=True, editable=False)
+    period_from = models.DateField(null=True, editable=False)
 
     class Meta:
         ordering = ["-created_at", "-uuid"]
@@ -146,6 +148,25 @@ class RegisterExport(BaseModel):
                     & ~models.Q(instruction__regex=r"^\s*$")
                 ),
                 name="register_export_certificate_shape",
+            ),
+            models.CheckConstraint(
+                condition=~models.Q(kind=RegisterExportKind.NOTICE_FIGURES)
+                | (
+                    models.Q(
+                        digest__regex="^[0-9a-f]{64}$",
+                        period_from__isnull=False,
+                        former_rows=0,
+                        recipient="",
+                        requested_on__isnull=True,
+                        late__isnull=True,
+                    )
+                    & ~models.Q(instruction__regex=r"^\s*$")
+                ),
+                name="register_export_notice_figures_shape",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(kind=RegisterExportKind.NOTICE_FIGURES) | models.Q(period_from__isnull=True),
+                name="register_export_period_only_for_notice_figures",
             ),
         ]
 

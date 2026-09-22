@@ -109,9 +109,11 @@ balance certificate for a seller who keeps shares, and PyMuPDF renders it. The
 alternatives were certificates generated automatically, stored and served to the
 issuer, and figures without documents. The work lands in four slices:
 inspection copies, certificate PDFs, notice figures, then a list of what is due.
-Inspection copies came first, then certificates; the register owns the
-mechanisms of [inspection copies](architecture/register.md#inspection-copies)
-and [certificates](architecture/register.md#certificates).
+Inspection copies came first, then certificates, then notice figures, which
+leaves the list of what is due; the register owns the mechanisms of
+[inspection copies](architecture/register.md#inspection-copies),
+[certificates](architecture/register.md#certificates) and
+[notice figures](architecture/register.md#notice-figures).
 
 PyMuPDF, which checks uploaded PDFs and renders certificates, is licensed under
 the AGPL-3.0 or commercially by Artifex. The same day the owner chose to record

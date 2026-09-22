@@ -108,6 +108,30 @@ INSTRUCTION_ROW = "Company's written instruction"
 RECIPIENT_ROW = "Recipient"
 PRODUCED_ON_ROW = "Produced on"
 LATE_ROW = f"Produced more than {INSPECTION_COPY_DAYS} days after the request"
+NOTICE_FIGURES_HEADING = (
+    "Figures for the company's notices of share issues and of changes to members and share structure"
+)
+SHARE_CLASS_ROW = "Share class"
+PERIOD_FROM_ROW = "Period from"
+HEAD_ROW = "To register entry"
+PERIOD_ENTRIES_HEADING = "Entries in the period"
+PERIOD_ENTRY_HEADERS = [
+    "Entry",
+    "Kind",
+    "Effective date",
+    "Corrects entry",
+    "Member ID",
+    "Name",
+    "Shares",
+    "Amount paid",
+]
+CLASS_HEADING = "Class at the register head"
+MEMBERS_HOLDING_ROW = "Members holding shares"
+TOTAL_PAID_ROW = "Total amount paid"
+CHANGED_MEMBERS_HEADING = "Members changed in the period, at the register head"
+CHANGED_MEMBER_HEADERS = ["Member ID", "Name", "Residential address", "Shares held", "Amount paid"]
+NOT_RECORDED = "not recorded"
+NOTICE_ENTRY_KINDS = (RegisterEntryKind.ISSUE, RegisterEntryKind.TRANSFER, RegisterEntryKind.CORRECTION)
 
 REGISTER_HEADERS = [
     "Member ID",
@@ -577,6 +601,107 @@ def prepare_certificate(token, requested_by, *, sequence, instruction) -> bytes:
         instruction=instruction,
     )
     return content
+
+
+def _paid_or_not_recorded(amount) -> str:
+    return NOT_RECORDED if amount is None else f"{amount:.2f}"
+
+
+def _period_entry_rows(entry, people, issuances) -> list[list]:
+    corrects = "" if entry.corrects_id is None else entry.corrects.sequence
+    rows = []
+    for change in entry.changes:
+        member, shares = UUID(change["member"]), int(change["shares"])
+        paid = ""
+        if entry.kind == RegisterEntryKind.ISSUE:
+            issuance = issuances.get(entry.operation_id)
+            paid = _paid_or_not_recorded(None if issuance is None else _backing(issuance, shares))
+        rows.append(
+            [
+                entry.sequence,
+                entry.get_kind_display(),
+                entry.effective_on.isoformat(),
+                corrects,
+                member,
+                people[member][1],
+                shares,
+                paid,
+            ]
+        )
+    return rows
+
+
+def _changed_member_row(member, person, current) -> list:
+    _, name, residential_address, _, _ = person
+    if current is None:
+        return [member, name, residential_address, 0, NOT_RECORDED]
+    return [member, name, residential_address, current["balance"], _paid_or_not_recorded(current["amount_paid"])]
+
+
+def prepare_notice_figures(token, requested_by, *, period_from, instruction) -> tuple[bytes, int]:
+    produced_on = timezone.localdate(timezone=STATUTORY_CALENDAR)
+    if period_from > produced_on:
+        raise ValidationError("The period cannot start in the future.")
+    with _snapshot():
+        register = _stored_register(token)
+        if register is None:
+            raise RegisterNotInitialized()
+        entries = list(
+            RegisterEntry.objects.filter(
+                register__token=token, kind__in=NOTICE_ENTRY_KINDS, effective_on__gte=period_from
+            )
+            .select_related("corrects")
+            .order_by("sequence")
+        )
+        changed = sorted({UUID(change["member"]) for entry in entries for change in entry.changes})
+        particulars, wallets, identities, stamps = _identity_sources(token, changed)
+        people = {
+            member: _member_identity(wallets[member], identities, stamps, particulars.get(member)) for member in changed
+        }
+        issuances = (
+            ShareIssuance.objects.filter_by_token(token)
+            .completed()
+            .with_subscription()
+            .in_bulk([entry.operation_id for entry in entries if entry.kind == RegisterEntryKind.ISSUE])
+        )
+        current = {UUID(row["member"]): row for row in register["rows"]}
+        paid = [row["amount_paid"] for row in register["rows"]]
+        rows = [
+            [NOTICE_FIGURES_HEADING],
+            [SHARE_CLASS_ROW, f"{token.name} ({token.symbol})"],
+            [PERIOD_FROM_ROW, period_from.isoformat()],
+            [HEAD_ROW, register["sequence"]],
+            [INSTRUCTION_ROW, instruction],
+            [PRODUCED_ON_ROW, produced_on.isoformat()],
+            [],
+            [PERIOD_ENTRIES_HEADING],
+            PERIOD_ENTRY_HEADERS,
+            *(row for entry in entries for row in _period_entry_rows(entry, people, issuances)),
+            [],
+            [CLASS_HEADING],
+            [ISSUED_SUPPLY_ROW, register["issued_supply"]],
+            [MEMBERS_HOLDING_ROW, len(register["rows"])],
+            [TOTAL_PAID_ROW, _paid_or_not_recorded(None if None in paid else sum(paid, ZERO))],
+            [],
+            [CHANGED_MEMBERS_HEADING],
+            CHANGED_MEMBER_HEADERS,
+            *(_changed_member_row(member, people[member], current.get(member)) for member in changed),
+        ]
+    sheet = io.StringIO()
+    csv.writer(sheet).writerows([value if isinstance(value, int) else csv_cell(value) for value in row] for row in rows)
+    content = sheet.getvalue().encode()
+    RegisterExport.objects.create(
+        token=token,
+        requested_by_id=requested_by.pk,
+        kind=RegisterExportKind.NOTICE_FIGURES,
+        register_sequence=register["sequence"],
+        member_rows=len(changed),
+        former_rows=0,
+        digest=hashlib.sha256(content).hexdigest(),
+        instruction=instruction,
+        period_from=period_from,
+    )
+    return content, register["sequence"]
 
 
 def former_member_rows(token, members, on_chain) -> list[list]:

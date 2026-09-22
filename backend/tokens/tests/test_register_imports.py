@@ -67,6 +67,7 @@ from tokens.services.register import (
     STALE,
     WAITING_ROW,
     WAITING_UNKNOWN,
+    prepare_notice_figures,
 )
 from tokens.services.register_events import (
     create_member,
@@ -986,6 +987,17 @@ class RegisterImportTest(TransactionTestCase):
         )
         self.assertIn([WAITING_ROW, WAITING_UNKNOWN], self.export(token))
         self.assertEqual(client.get(f"/api/v1/tokens/{token.uuid}/register/waiting/").json(), {"effects": None})
+
+    def test_notice_figures_name_a_member_from_the_imported_particulars_when_nothing_else_resolves(self):
+        self.apply(self.submit())
+        buyer = create_member(company_id=self.company.pk, member_id=uuid4())
+        self.move(self.member, buyer, 30)
+        content, _ = prepare_notice_figures(
+            self.token, self.reviewer, period_from=DAY, instruction="SYNTHETIC-NOTICE-IMPORTED"
+        )
+        rows = list(csv.reader(io.StringIO(content.decode())))
+        self.assertIn(["2", "Transfer", DAY.isoformat(), "", str(self.member.pk), "Mia Member", "-30", ""], rows)
+        self.assertIn([str(self.member.pk), "Mia Member", RESIDENCE, "70", "not recorded"], rows)
 
 
 class ImportOpenedInstructionTest(TransactionTestCase):
