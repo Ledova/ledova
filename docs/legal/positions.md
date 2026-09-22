@@ -2,7 +2,7 @@
 
 [Legal and regulatory](README.md) · [Regulatory pathway](../regulatory-pathway.md)
 
-Eleven questions the project depends on. Nobody qualified has been asked any of
+The questions the project depends on. Nobody qualified has been asked any of
 them. Each position records what the source says, what the code does, the
 reading the project acts on, what would show it wrong, which way to be wrong,
 and the trigger that must happen before it matters. Read the provision before
@@ -13,6 +13,8 @@ reviewed on 2026-09-15; position 4 was rewritten because a registry that only
 records changes its shape. Position 5 records the owner-directed licence change
 of 2026-09-20. Positions 6 to 11 were drafted on 2026-09-15 by the
 assistant from primary sources and are **not yet confirmed by the owner**.
+Position 12 was drafted on 2026-09-22, when the owner chose to record
+PyMuPDF's licence, and is not yet confirmed either.
 
 The positions serve two operating models, the
 [company-hosted instance](company-hosted-instance.md) (A) and the
@@ -33,6 +35,7 @@ position says so.
 | 9 | Digital assets and custody | Any wallet whose keys Ledova holds for a member | A and B | Drafted |
 | 10 | Privacy | The first real member's personal information | A and B | Drafted |
 | 11 | The company's own fundraising and scheme obligations | The first issue recorded for a real company | A and B | Drafted |
+| 12 | PyMuPDF's licence, AGPL-3.0 or commercial | Any commercial or public deployment | A, B and third-party users | Drafted |
 
 Position 4 is the one where being wrong is an offence rather than a defect, and
 its second half keeps the original stance: do not reach the trigger without a
@@ -364,6 +367,11 @@ instruction's reference and the recipient, marked late when prepared more than
 seven days after the request. Ledova keeps its SHA-256 and the request details,
 not the file; the company decides whether a request is proper and hands the copy
 over. See [inspection copies](../architecture/register.md#inspection-copies).
+Staff also prepare certificates, on the company's written instruction, for an
+issue or transfer entry: an unsigned PDF with a page for the member the entry
+moved shares to and a balance certificate for a transferor who still holds
+shares, which the company executes. Ledova keeps its SHA-256 and the entry's
+number, not the file. See [certificates](../architecture/register.md#certificates).
 
 **The position.** The stored database record is the register; anything on a
 chain is at most a mirror of it. Three provisions decide that: s175, because an
@@ -634,6 +642,60 @@ documents.
 **Trigger.** The first issue recorded for a real company.
 
 **Status.** Drafted 2026-09-15, awaiting the owner's sign-off.
+
+## 12. PyMuPDF, an AGPL runtime dependency
+
+**What the sources say.** PyMuPDF's package declares its licence as "Dual
+Licensed - GNU AFFERO GPL 3.0 or Artifex Commercial License", and its
+description offers the GNU AGPL v3 for open-source projects and separate
+commercial licences from Artifex for proprietary applications. Artifex's
+commercial terms were not read. The AGPL-3.0 affirms unlimited permission to
+run the unmodified program, and lets a licensee make, run and propagate covered
+works it does not convey without conditions (s2). Conveying a copy brings
+conditions (ss4–6): a work based on the program that is conveyed in source form
+must be licensed as a whole under the AGPL-3.0 to anyone who comes into
+possession of a copy (s5(c)). Section 13 adds that a modified version must offer
+everyone interacting with it remotely through a computer network the
+corresponding source of that version. A work is "based on" another when it
+copies from or adapts it in a fashion requiring copyright permission, and
+interacting with a user through a network, with no copy transferred, is not
+conveying (s0).
+
+**What the code does.** [requirements.txt](../../backend/requirements.txt) makes
+PyMuPDF a runtime dependency, installed into the backend image when that image
+is built. The upload checker imports it in a resource-limited child process to
+check uploaded PDFs and render their first page for extraction, and
+[certificates](../architecture/register.md#certificates) import it when one is
+rendered. Tests use it to build and read PDFs. The project modifies none of it
+and publishes no image or other copy of it: the repository only names it as a
+requirement.
+
+**The position.** For the current use, noncommercial and on test networks with
+synthetic data, the project relies on the AGPL-3.0: it runs PyMuPDF unmodified,
+which s2 permits without conditions, and conveys no copy of it. Whether Ledova,
+which imports PyMuPDF, is a work based on it is a question of copyright law that
+this position does not settle, and it decides what s5(c) and s13 would ask of a
+deployment. So before any commercial or public deployment the operator chooses
+one of three: a commercial licence from Artifex, a deployment that meets the
+AGPL-3.0, or a renderer under another licence.
+
+**What would show this wrong.** A reading under which Ledova, or an image that
+installs PyMuPDF with it, is a work based on PyMuPDF. A public deployment would
+then have to offer its users the corresponding source of the whole service under
+the AGPL-3.0, which the [Ledova Noncommercial License](../../LICENSE) does not
+grant, and publishing such an image would convey it. Artifex terms that differ
+from the package's declaration would also show it wrong.
+
+**Which way to be wrong.** A commercial licence or a replacement renderer that
+proves unnecessary costs money or work. Relying on the AGPL-3.0 where its
+conditions are not met infringes Artifex's copyright. Decide before the trigger,
+not after it.
+
+**Trigger.** Before any commercial or public deployment.
+
+**Status.** Drafted 2026-09-22 on the owner's decision to record PyMuPDF's
+licence ([#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5767606273),
+decision 6); the reading awaits the owner's sign-off.
 
 ## Related documents
 
