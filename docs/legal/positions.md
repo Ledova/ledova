@@ -383,6 +383,10 @@ register head and each changed member's holding, with amount paid only where it
 is established. Ledova keeps their SHA-256 and the period, not the file, and the
 company lodges the notices. See
 [notice figures](../architecture/register.md#notice-figures).
+A list in admin shows staff which certificates and notice figures are still due
+and when, from the register and those records; it records nothing, and does not
+know what the company lodged or delivered. See
+[outputs due](../architecture/register.md#outputs-due).
 
 **The position.** The stored database record is the register; anything on a
 chain is at most a mirror of it. Three provisions decide that: s175, because an

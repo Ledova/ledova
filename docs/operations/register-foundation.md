@@ -18,7 +18,8 @@ opened from the chain, or opens a class not yet on chain from that register, and
 staff prepare [inspection copies](#preparing-an-inspection-copy) of it,
 [certificates](#preparing-a-certificate) for its issues and transfers and the
 [figures for its notices](#preparing-notice-figures) on a company's written
-instruction. A class an import opened records no later change until it is
+instruction, and a [due list](#working-the-due-list) shows the certificates and
+figures still due. A class an import opened records no later change until it is
 tokenised, which is later work, so no real company's register may rely on the
 foundation yet.
 
@@ -806,9 +807,11 @@ use. The share class needs an applied opening.
 
 1. Keep the company's written instruction, and note its reference and the issue
    or transfer it names.
-2. Find that entry's number, its sequence in the share class's register. Admin
-   has no list of entries: from `backend/`, run `python manage.py shell`, which
-   uses the operator connection, and list the class's entries:
+2. Find that entry's number, its sequence in the share class's register. An
+   entry still without a certificate is on the [due list](#working-the-due-list)
+   with its number. Admin has no list of every entry: from `backend/`, run
+   `python manage.py shell`, which uses the operator connection, and list the
+   class's entries:
 
    ```python
    from tokens.models import RegisterEntry
@@ -864,7 +867,8 @@ The share class needs an applied opening.
 1. Keep the company's written instruction, and note its reference and the first
    day of the period it asks for. An entry is dated the UTC day it was made,
    which on a Sydney morning is the day before, so start the period no later
-   than the date of the first entry the company has not yet notified.
+   than the date of the first entry the company has not yet notified. The
+   [due list](#working-the-due-list) shows every entry no figures cover yet.
 2. In **Admin → Tokens → Register outputs**, open the share class and choose
    **Prepare notice figures**.
 3. Enter the first day of the period and the instruction's reference, then
@@ -908,6 +912,35 @@ again makes a new record, and the same file while the register, the members'
 particulars and the day produced are unchanged. The records cannot be rewritten,
 are read only by staff, and follow the export records' 2,557-day floor and daily
 purge.
+
+## Working the due list
+
+The **Register outputs due** page lists every certificate and set of notice
+figures still due across all companies and share classes, earliest due first. A
+certificate is due two months after an issue and one month after a transfer's
+settlement order was created; notice figures are due 28 days after an issue, or
+after a proprietary company's transfer.
+[Outputs due](../architecture/register.md#outputs-due) has the exact rules. You
+need the **Can change register outputs** permission the outputs use. The page
+records nothing.
+
+1. In **Admin → Tokens → Register outputs**, choose **Register outputs due**.
+2. Read each row: the company, share class, entry number, kind and effective
+   date, what is due, the due date, and whether it is overdue, meaning the due
+   date is before today in Sydney's calendar.
+3. Tell the company what is due and when. The obligations are the company's, and
+   the company lodges its notices and delivers its certificates.
+4. On the company's written instruction, follow the row's link to the page that
+   prepares the output, then [prepare the certificate](#preparing-a-certificate)
+   for the row's entry number or [prepare the notice figures](#preparing-notice-figures).
+
+A certificate row leaves the list once a certificate is prepared for its entry.
+A notice figures row leaves it once figures are prepared whose period starts on
+or before the entry's date and runs to its number or later. Issue and transfer
+entries are dated the day they are made, so a later one never carries an earlier
+date, and figures starting on the date of the earliest notice figures row still
+listed cover every such row. The page knows only what Ledova prepared: a row
+stays when the company produced the output elsewhere or needs none.
 
 ## Importing an existing register
 

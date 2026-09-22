@@ -26,6 +26,8 @@ PASSWORD = "pw-12345678"
 
 
 def arguments_for(entry):
+    if "uuid" not in entry.pattern.regex.groupindex:
+        return []
     actions = ACTION_GROUP.search(str(entry.pattern))
     if actions is None:
         return [uuid.uuid4()]
@@ -41,6 +43,10 @@ def custom_routes():
                 continue
             found.append((entry, model_admin))
     return found
+
+
+def past_the_guard(arguments):
+    return 404 if arguments else 200
 
 
 def row_action_routes():
@@ -117,14 +123,14 @@ class AdminRowActionAuthorizationTest(TestCase):
                 user = grant(staff_user(f"row-action-editor-{index}"), model_admin, "change")
                 self.client.force_login(user)
 
-                self.assertEqual(self.client.get(self.url(name, arguments)).status_code, 404)
+                self.assertEqual(self.client.get(self.url(name, arguments)).status_code, past_the_guard(arguments))
 
     def test_a_superuser_reaches_every_row_action(self):
         self.client.force_login(User.objects.create_superuser(email="row-action-super@example.test", password=PASSWORD))
 
         for name, _, arguments in self.routes:
             with self.subTest(route=name):
-                self.assertEqual(self.client.get(self.url(name, arguments)).status_code, 404)
+                self.assertEqual(self.client.get(self.url(name, arguments)).status_code, past_the_guard(arguments))
 
     def test_an_anonymous_caller_is_redirected_to_the_admin_login(self):
         for name, _, arguments in self.routes:

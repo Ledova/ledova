@@ -59,7 +59,9 @@ must be removed. Do not add an exception merely to make a check green.
 
 Custom admin row mutations use `admin_action_path`/`admin_action_re_path`;
 file reads use `admin_file_path`. They check model and object permission and
-resolve through the admin's queryset. `is_staff` alone is insufficient.
+resolve through the admin's queryset. A page over no single row uses
+`admin_page_path`, which checks model change permission. `is_staff` alone is
+insufficient.
 See [admin actions](../architecture/backend.md#admin-row-actions).
 
 The operator API is a deliberate external consumer: `IsAdminUser`-gated

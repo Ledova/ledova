@@ -1,0 +1,12 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Register outputs due</h1>
+<p>Certificates and notice figures not yet prepared, earliest due first. A certificate is due two months after an issue and one month after a transfer's order was created; notice figures are due 28 days after an issue or a proprietary company's transfer. Days are counted in Sydney's calendar. The list records nothing: prepare each output only on the company's written instruction, and the company, not Ledova, lodges its notices and delivers its certificates.</p>
+{% if due %}<table>
+<thead><tr><th>Company</th><th>Class</th><th>Entry</th><th>Kind</th><th>Effective date</th><th>Due</th><th>Due date</th><th>Overdue</th></tr></thead>
+<tbody>
+{% for item in due %}<tr><td>{{ item.token.company.name }}</td><td>{{ item.token.symbol }}</td><td>{{ item.sequence }}</td><td>{{ item.kind.label }}</td><td>{{ item.effective_on|date:"Y-m-d" }}</td><td><a href="{{ item.url }}">{{ item.output.label }}</a></td><td>{{ item.due_on|date:"Y-m-d" }}</td><td>{{ item.overdue|yesno:"yes,no" }}</td></tr>
+{% endfor %}</tbody>
+</table>
+{% else %}<p>No certificates or notice figures are due.</p>
+{% endif %}{% endblock %}

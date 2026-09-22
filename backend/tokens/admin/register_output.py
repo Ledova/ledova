@@ -8,14 +8,20 @@ from django.utils.html import format_html
 from django.views.decorators.http import require_http_methods
 from rest_framework.exceptions import ValidationError
 
-from shared.utils.admin_actions import admin_action_path
+from shared.utils.admin_actions import admin_action_path, admin_page_path
 from tokens.exceptions import RegisterNotInitialized
-from tokens.models import RegisterOutput
+from tokens.models import RegisterExportKind, RegisterOutput
 from tokens.services.register import (
+    outputs_due,
     prepare_certificate,
     prepare_inspection_copy,
     prepare_notice_figures,
 )
+
+PREPARE_PAGES = {
+    RegisterExportKind.CERTIFICATE: "admin:tokens_registeroutput_certificate",
+    RegisterExportKind.NOTICE_FIGURES: "admin:tokens_registeroutput_notice_figures",
+}
 
 
 class InspectionCopyForm(forms.Form):
@@ -75,6 +81,7 @@ class RegisterOutputAdmin(admin.ModelAdmin):
 
     def get_urls(self):
         return [
+            admin_page_path(self, "due/", "tokens_registeroutput_due", self.due),
             admin_action_path(
                 self, "<uuid:uuid>/inspection-copy/", "tokens_registeroutput_inspection_copy", self.inspection_copy
             ),
@@ -116,6 +123,22 @@ class RegisterOutputAdmin(admin.ModelAdmin):
                 "title": f"Register outputs: {token.symbol}",
                 "form": form,
                 "refusal": refusal,
+            },
+        )
+
+    @method_decorator(require_http_methods(["GET"]))
+    def due(self, request):
+        return render(
+            request,
+            "admin/tokens/register_outputs_due.html",
+            {
+                **self.admin_site.each_context(request),
+                "opts": self.model._meta,
+                "title": "Register outputs due",
+                "due": [
+                    {**item, "url": reverse(PREPARE_PAGES[item["output"]], args=[item["token"].pk])}
+                    for item in outputs_due()
+                ],
             },
         )
 

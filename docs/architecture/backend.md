@@ -75,8 +75,10 @@ Register row mutations with `admin_action_path` / `admin_action_re_path` from
 [admin_actions.py](../../backend/shared/utils/admin_actions.py). The helper checks
 model change permission, resolves the row through the admin's queryset, checks
 object change permission, and passes the instance to the view. A callable `rows`
-can widen related fetching without discarding an empty queryset. Routes currently
-capture `uuid`. File reads use `admin_file_path` and view permission instead.
+can widen related fetching without discarding an empty queryset. Row routes
+capture `uuid`. A page over no single row, such as the register outputs due,
+uses `admin_page_path`, which checks model change permission and resolves no
+row. File reads use `admin_file_path` and view permission instead.
 
 These named-staff actions follow admin's 403 permission behavior. Mint actions
 check change permission on the parent; `MintRequestAdmin` deliberately provides

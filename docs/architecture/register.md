@@ -329,6 +329,40 @@ and allows no former rows and none of an inspection copy's request fields; a
 second allows a period on no other kind. The records share the export records'
 update guard, operator-only table and daily purge after the 2,557-day floor.
 
+## Outputs due
+
+The **Register outputs due** page shows staff every certificate and set of notice
+figures still due across all share classes, with a link to the page that
+prepares each for its class; the
+[runbook](../operations/register-foundation.md#working-the-due-list) has the
+steps. It is linked from the **Register outputs** list and needs the same
+permission. `outputs_due` in [register.py](../../backend/tokens/services/register.py)
+derives the list from one snapshot of the register entries, their settlement
+orders and the export records, ordered by due date, then company, class and
+entry number:
+
+- **Certificates.** Each issue or transfer entry that no correction has reversed
+  is listed until a `certificate` record of its class names its number. An issue
+  is due two calendar months after its effective date. A transfer is due one
+  calendar month after its settlement order, the swap order the entry records,
+  was created, by Sydney's date; the order precedes the transfer's lodgement, so
+  the date errs early.
+- **Notice figures.** Each issue entry, and each transfer entry of a proprietary
+  company, that no correction has reversed is listed until a `notice_figures`
+  record of its class covers it: one whose period starts on or before the
+  entry's effective date and that runs to the entry's number or later. It is due
+  28 days after the effective date.
+
+A calendar month ends on the same day number, or on the month's last day when
+that month is shorter, so 31 January plus one month is 28 or 29 February. An
+item is overdue once its due date is before today in Sydney's calendar. Openings
+and corrections are never listed.
+
+The list stores and records nothing, and knows what Ledova prepared, not what the
+company lodged or delivered. An output the company produced elsewhere, or a
+certificate it does not need, stays listed, and an entry whose record the daily
+purge has removed after the 2,557-day floor is listed again.
+
 ## Reconciliation
 
 [register_reconciliation.py](../../backend/tokens/services/register_reconciliation.py)

@@ -1,6 +1,7 @@
 import csv
 import hashlib
 import io
+from calendar import monthrange
 from collections import defaultdict
 from contextlib import contextmanager
 from datetime import date, timedelta
@@ -9,17 +10,28 @@ from decimal import Decimal
 from uuid import UUID
 
 from django.db import connections
-from django.db.models import BigIntegerField, CharField, Value
+from django.db.models import (
+    BigIntegerField,
+    CharField,
+    Exists,
+    OuterRef,
+    Subquery,
+    Value,
+)
 from django.template.loader import render_to_string
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from companies.models import CompanyType
 from shared.db import atomic, current_alias
 from shared.utils import csv_cell
 from tokens.constants import (
     CERTIFICATE_MARGIN,
     INSPECTION_COPY_DAYS,
+    ISSUE_CERTIFICATE_MONTHS,
+    NOTICE_FIGURES_DAYS,
     STATUTORY_CALENDAR,
+    TRANSFER_CERTIFICATE_MONTHS,
 )
 from tokens.exceptions import RegisterNotInitialized
 from tokens.models import (
@@ -35,6 +47,7 @@ from tokens.models import (
     RegisterReconciliation,
     ShareIssuance,
     ShareRegister,
+    SwapOrder,
 )
 from tokens.models.choices import (
     IDENTITY_LABELS,
@@ -132,6 +145,7 @@ CHANGED_MEMBERS_HEADING = "Members changed in the period, at the register head"
 CHANGED_MEMBER_HEADERS = ["Member ID", "Name", "Residential address", "Shares held", "Amount paid"]
 NOT_RECORDED = "not recorded"
 NOTICE_ENTRY_KINDS = (RegisterEntryKind.ISSUE, RegisterEntryKind.TRANSFER, RegisterEntryKind.CORRECTION)
+CERTIFICATE_ENTRY_KINDS = (RegisterEntryKind.ISSUE, RegisterEntryKind.TRANSFER)
 
 REGISTER_HEADERS = [
     "Member ID",
@@ -581,7 +595,7 @@ def prepare_certificate(token, requested_by, *, sequence, instruction) -> bytes:
         entry = RegisterEntry.objects.filter(register__token=token, sequence=sequence).first()
         if entry is None:
             raise ValidationError(f"This share class's register has no entry {sequence}.")
-        if entry.kind not in (RegisterEntryKind.ISSUE, RegisterEntryKind.TRANSFER):
+        if entry.kind not in CERTIFICATE_ENTRY_KINDS:
             raise ValidationError(f"Entry {sequence} is not an issue or a transfer, so it has no certificate.")
         reversed_by = RegisterEntry.objects.filter(corrects=entry).values_list("sequence", flat=True).first()
         if reversed_by is not None:
@@ -702,6 +716,68 @@ def prepare_notice_figures(token, requested_by, *, period_from, instruction) -> 
         period_from=period_from,
     )
     return content, register["sequence"]
+
+
+def months_after(day, months) -> date:
+    year, month = divmod(day.year * 12 + day.month - 1 + months, 12)
+    return date(year, month + 1, min(day.day, monthrange(year, month + 1)[1]))
+
+
+def _certificate_due_on(entry) -> date:
+    if entry.kind == RegisterEntryKind.ISSUE:
+        return months_after(entry.effective_on, ISSUE_CERTIFICATE_MONTHS)
+    return months_after(entry.ordered_at.astimezone(STATUTORY_CALENDAR).date(), TRANSFER_CERTIFICATE_MONTHS)
+
+
+def _outputs_of(entry) -> list[tuple]:
+    outputs = []
+    if not entry.certified:
+        outputs.append((RegisterExportKind.CERTIFICATE, _certificate_due_on(entry)))
+    if not entry.noticed and (
+        entry.kind == RegisterEntryKind.ISSUE or entry.register.token.company.company_type == CompanyType.PROPRIETARY
+    ):
+        outputs.append((RegisterExportKind.NOTICE_FIGURES, entry.effective_on + timedelta(days=NOTICE_FIGURES_DAYS)))
+    return outputs
+
+
+def outputs_due() -> list[dict]:
+    today = timezone.localdate(timezone=STATUTORY_CALENDAR)
+    exports = RegisterExport.objects.filter(token_id=OuterRef("register__token_id"))
+    with _snapshot():
+        entries = list(
+            RegisterEntry.objects.filter(kind__in=CERTIFICATE_ENTRY_KINDS, correction__isnull=True)
+            .annotate(
+                certified=Exists(
+                    exports.filter(kind=RegisterExportKind.CERTIFICATE, register_sequence=OuterRef("sequence"))
+                ),
+                noticed=Exists(
+                    exports.filter(
+                        kind=RegisterExportKind.NOTICE_FIGURES,
+                        period_from__lte=OuterRef("effective_on"),
+                        register_sequence__gte=OuterRef("sequence"),
+                    )
+                ),
+                ordered_at=Subquery(SwapOrder.objects.filter(pk=OuterRef("operation_id")).values("created_at")),
+            )
+            .exclude(certified=True, noticed=True)
+            .select_related("register__token__company")
+        )
+    due = [
+        {
+            "token": entry.register.token,
+            "sequence": entry.sequence,
+            "kind": RegisterEntryKind(entry.kind),
+            "effective_on": entry.effective_on,
+            "output": output,
+            "due_on": due_on,
+            "overdue": due_on < today,
+        }
+        for entry in entries
+        for output, due_on in _outputs_of(entry)
+    ]
+    return sorted(
+        due, key=lambda item: (item["due_on"], item["token"].company.name, item["token"].symbol, item["sequence"])
+    )
 
 
 def former_member_rows(token, members, on_chain) -> list[list]:
