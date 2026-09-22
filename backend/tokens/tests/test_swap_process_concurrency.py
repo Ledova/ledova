@@ -50,7 +50,9 @@ class SwapProcess:
         )
         test.addCleanup(self.close)
         loaded = self.receive("loaded")
-        test.assertNotEqual(loaded["pid"], os.getpid())
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT pg_backend_pid()")
+            test.assertNotEqual(loaded["pid"], cursor.fetchone()[0])
         self.database_pid = loaded["pid"]
 
     def error_output(self):
