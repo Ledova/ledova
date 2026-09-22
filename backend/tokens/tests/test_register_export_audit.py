@@ -168,7 +168,7 @@ class RegisterExportAuditTest(TestCase):
         self.assertEqual(RegisterExport.objects.count(), 4)
 
     def test_downgrade_refuses_to_discard_certificate_records(self):
-        migration = importlib.import_module("tokens.migrations.0076_register_certificates")
+        migration = importlib.import_module("tokens.migrations.0075_register_certificates")
         copied(self.token, self.owner)
         with atomic(), connections[current_alias()].schema_editor() as editor:
             migration.refuse_reversal(None, editor)
