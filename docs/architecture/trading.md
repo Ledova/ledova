@@ -7,7 +7,7 @@ enabled by default. `trading_enabled`
 middleware refuses every method under `/api/v1/trading/orders/`, `wallets/`,
 `transfers/`, `swaps/` and `events/` when the flag is off, and an operator can
 disable it per deployment in Django admin. The read-only token market and
-whitelist status sit outside those prefixes. The flag does not establish
+the per-share-class whitelist status sit outside those prefixes. The flag does not establish
 safety: releases require the human checks in
 [#624](https://github.com/Ledova/ledova/issues/624), and operation with real
 participants follows the [regulatory pathway](../regulatory-pathway.md).

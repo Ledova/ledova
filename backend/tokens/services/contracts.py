@@ -4,7 +4,6 @@ from assets.models import AssetChainDeployment, AssetType
 from tokens.models import ShareToken
 
 CONTRACT_SETTINGS = (
-    "WHITELIST_CONTRACT_ADDRESS",
     "SHARE_TOKEN_FACTORY_ADDRESS",
     "ATOMIC_SWAP_ADDRESS",
     "STABLECOIN_CONTRACT_ADDRESS",

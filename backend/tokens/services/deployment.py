@@ -115,9 +115,9 @@ def _intent(token):
         sender = Account.from_key(settings.BLOCKCHAIN_OPERATOR_KEY).address
         authorized = int(token.total_supply)
         identifier = share_token_service.token_identifier(token)
-        data = Web3.keccak(text="createShareToken(string,string,string,uint256,address)")[:4] + encode(
-            ["string", "string", "string", "uint256", "address"],
-            [token.name, token.symbol, identifier, authorized, sender],
+        data = Web3.keccak(text="createShareToken(string,string,string,string,uint256,address)")[:4] + encode(
+            ["string", "string", "string", "string", "uint256", "address"],
+            [token.name, token.symbol, identifier, token.company.acn, authorized, sender],
         )
         intent = outgoing.transaction_intent(
             chain_id=settings.BLOCKCHAIN_CHAIN_ID, sender=sender, to=settings.SHARE_TOKEN_FACTORY_ADDRESS, data=data

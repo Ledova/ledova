@@ -14,6 +14,7 @@ contract ShareToken is ERC20, ERC20Burnable, ERC20Pausable, Ownable {
     event SharesIssued(address indexed to, uint256 amount);
     event AuthorizedSharesUpdated(uint256 oldAmount, uint256 newAmount);
 
+    error SenderNotWhitelisted(address sender);
     error RecipientNotWhitelisted(address recipient);
     error ExceedsAuthorizedShares(uint256 requested, uint256 available);
     error InvalidWhitelistRegistry();
@@ -31,7 +32,6 @@ contract ShareToken is ERC20, ERC20Burnable, ERC20Pausable, Ownable {
     }
 
     function mint(address to, uint256 amount) external onlyOwner whenNotPaused {
-        if (!whitelist.isWhitelisted(to)) revert RecipientNotWhitelisted(to);
         if (totalSupply() + amount > authorizedShares)
             revert ExceedsAuthorizedShares(amount, authorizedShares - totalSupply());
 
@@ -59,6 +59,7 @@ contract ShareToken is ERC20, ERC20Burnable, ERC20Pausable, Ownable {
 
     function _update(address from, address to, uint256 value) internal override(ERC20, ERC20Pausable) {
         if (to != address(0)) {
+            if (from != address(0) && !whitelist.isWhitelisted(from)) revert SenderNotWhitelisted(from);
             if (!whitelist.isWhitelisted(to)) revert RecipientNotWhitelisted(to);
         }
         super._update(from, to, value);

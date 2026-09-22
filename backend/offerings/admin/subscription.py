@@ -504,7 +504,16 @@ class SubscriptionAdmin(admin.ModelAdmin):
         from whitelist.admin_actions import confirm_changes
         from whitelist.models import WhitelistAction, WhitelistAuthority, WhitelistEntry
 
-        wallet_ids = {subscription.wallet_id for subscription in queryset}
+        subscriptions = list(queryset.select_related("offering__company"))
+        companies = {subscription.offering.company for subscription in subscriptions}
+        if len(companies) != 1:
+            self.message_user(
+                request,
+                "Select subscriptions to one company's offerings; each company has its own whitelist.",
+                messages.ERROR,
+            )
+            return None
+        wallet_ids = {subscription.wallet_id for subscription in subscriptions}
         entries = list(WhitelistEntry.objects.filter(wallet_id__in=wallet_ids))
         missing = wallet_ids - {entry.wallet_id for entry in entries}
         if missing:
@@ -513,7 +522,13 @@ class SubscriptionAdmin(admin.ModelAdmin):
             )
         if entries:
             return confirm_changes(
-                self, request, queryset, entries, WhitelistAction.ADD, WhitelistAuthority.SUBSCRIPTION_ADMIN
+                self,
+                request,
+                queryset,
+                entries,
+                WhitelistAction.ADD,
+                WhitelistAuthority.SUBSCRIPTION_ADMIN,
+                company=companies.pop(),
             )
         return None
 

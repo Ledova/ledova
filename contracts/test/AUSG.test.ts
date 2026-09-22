@@ -18,8 +18,8 @@ describe("AUSG", function () {
     await ausg.addMinter(minter.address);
     await ausg.addNavUpdater(navUpdater.address);
 
-    await whitelist.addToWhitelist(investor1.address);
-    await whitelist.addToWhitelist(investor2.address);
+    await whitelist.setExpiry(investor1.address, 2n ** 64n - 1n);
+    await whitelist.setExpiry(investor2.address, 2n ** 64n - 1n);
 
     return {
       ausg,

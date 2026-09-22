@@ -51,7 +51,7 @@ docker compose exec backend python manage.py seed_demo
 The command prints generated credentials and creates a synthetic operator,
 superuser, issuer, investor, wallets, classification and draft share class.
 It is idempotent; rerunning resolves and applies a password again. It writes
-nothing to a chain. A seeded whitelist row does not whitelist a wallet on chain.
+nothing to a chain. The seeded whitelist entry has no company approval, so the wallet is on no registry.
 See [demo details](operations/operator-console.md#demo-data).
 
 For issuance, continue with [local chain setup](operations/chains.md). Then open

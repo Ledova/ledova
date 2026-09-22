@@ -6,35 +6,45 @@ import "./ShareToken.sol";
 import "./WhitelistRegistry.sol";
 
 contract ShareTokenFactory is Ownable {
-    WhitelistRegistry public immutable whitelist;
-
     address[] public deployedTokens;
     mapping(string => address) public tokenByIdentifier;
     mapping(address => bool) public isDeployedToken;
+    mapping(string => address) public registryOf;
 
     event ShareTokenCreated(address indexed tokenAddress, string identifier, string symbol, uint256 authorizedShares);
+    event WhitelistRegistryCreated(string acn, address indexed registry);
 
     error CompanyAlreadyExists(string identifier);
     error InvalidParameters();
+    error RegistryOwnerMismatch(address registry, address tokenOwner);
+    error IdentifierNotOfCompany(string identifier, string acn);
 
-    constructor(address _whitelist, address _owner) Ownable(_owner) {
-        if (_whitelist == address(0)) revert InvalidParameters();
-        whitelist = WhitelistRegistry(_whitelist);
-    }
+    constructor(address _owner) Ownable(_owner) {}
 
     function createShareToken(
         string calldata name,
         string calldata symbol,
         string calldata identifier,
+        string calldata acn,
         uint256 authorizedShares,
         address tokenOwner
     ) external onlyOwner returns (address tokenAddress) {
-        if (bytes(identifier).length == 0) revert InvalidParameters();
+        if (bytes(identifier).length == 0 || bytes(acn).length == 0) revert InvalidParameters();
+        if (!_identifiesCompany(identifier, acn)) revert IdentifierNotOfCompany(identifier, acn);
         if (tokenByIdentifier[identifier] != address(0)) revert CompanyAlreadyExists(identifier);
         if (tokenOwner == address(0)) revert InvalidParameters();
         if (authorizedShares == 0) revert InvalidParameters();
 
-        ShareToken token = new ShareToken(name, symbol, address(whitelist), authorizedShares, tokenOwner);
+        address registry = registryOf[acn];
+        if (registry == address(0)) {
+            registry = address(new WhitelistRegistry(tokenOwner));
+            registryOf[acn] = registry;
+            emit WhitelistRegistryCreated(acn, registry);
+        } else if (WhitelistRegistry(registry).owner() != tokenOwner) {
+            revert RegistryOwnerMismatch(registry, tokenOwner);
+        }
+
+        ShareToken token = new ShareToken(name, symbol, registry, authorizedShares, tokenOwner);
 
         tokenAddress = address(token);
         deployedTokens.push(tokenAddress);
@@ -52,5 +62,12 @@ contract ShareTokenFactory is Ownable {
 
     function getTokenByIdentifier(string calldata identifier) external view returns (address) {
         return tokenByIdentifier[identifier];
+    }
+
+    function _identifiesCompany(string calldata identifier, string calldata acn) private pure returns (bool) {
+        bytes calldata id = bytes(identifier);
+        bytes calldata company = bytes(acn);
+        if (id.length < company.length + 1 || id[company.length] != ":") return false;
+        return keccak256(id[:company.length]) == keccak256(company);
     }
 }

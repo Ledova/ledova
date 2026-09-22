@@ -57,19 +57,20 @@ export function useTransferFlow(selectedWallet: Wallet | null) {
     select: (data) => data.data,
   });
 
+  const shareTokenAddress = selectedAsset?.type === 'share_token' ? selectedAsset.tokenAddress : undefined;
   const senderWhitelistQuery = useQuery({
-    queryKey: ['whitelistStatus', selectedWallet?.address],
-    queryFn: () => getWhitelistStatus(apiClient, selectedWallet!.address),
-    enabled: !!selectedWallet?.address && isEvmWallet,
+    queryKey: ['whitelistStatus', shareTokenAddress, selectedWallet?.address],
+    queryFn: () => getWhitelistStatus(apiClient, shareTokenAddress!, selectedWallet!.address),
+    enabled: !!shareTokenAddress && !!selectedWallet?.address && isEvmWallet,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     select: (data) => data.data,
   });
 
   const isValidEthAddress = toAddress.length === 42 && toAddress.startsWith('0x');
   const recipientWhitelistQuery = useQuery({
-    queryKey: ['whitelistStatus', toAddress],
-    queryFn: () => getWhitelistStatus(apiClient, toAddress),
-    enabled: selectedAsset?.type === 'share_token' && isValidEthAddress,
+    queryKey: ['whitelistStatus', shareTokenAddress, toAddress],
+    queryFn: () => getWhitelistStatus(apiClient, shareTokenAddress!, toAddress),
+    enabled: !!shareTokenAddress && isValidEthAddress,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     select: (data) => data.data,
   });

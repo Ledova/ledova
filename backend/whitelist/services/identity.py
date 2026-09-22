@@ -1,10 +1,11 @@
 from collections import defaultdict
 from typing import NamedTuple
 
-from whitelist.models import HolderType, WhitelistEntry
+from whitelist.models import HolderType, WhitelistApproval, WhitelistEntry
 
 TREASURY_FALLBACK = "Operator (treasury/custodian)"
 AMBIGUOUS_NAME = "Two wallets share this address"
+NOT_APPROVED = "Not approved for this company"
 ADDRESS_CHUNK = 500
 
 
@@ -35,26 +36,24 @@ def profile_name(profile) -> str:
     return (profile.full_name or "").strip() or profile.user.email
 
 
-def entry_identity(entry: WhitelistEntry) -> HolderIdentity:
+def entry_identity(entry: WhitelistEntry, whitelist_status: str = "") -> HolderIdentity:
     if entry.wallet_id is None:
-        return HolderIdentity(
-            HolderType.TREASURY.value, entry.label or TREASURY_FALLBACK, "", entry.get_status_display()
-        )
+        return HolderIdentity(HolderType.TREASURY.value, entry.label or TREASURY_FALLBACK, "", whitelist_status)
     holder = _holder(entry)
     name = profile_name(holder) if holder else ""
     if not name:
-        return HolderIdentity(HolderType.UNIDENTIFIED.value, "", "", entry.get_status_display())
+        return HolderIdentity(HolderType.UNIDENTIFIED.value, "", "", whitelist_status)
     return HolderIdentity(
         HolderType.MEMBER.value,
         name,
         (holder.residential_address or "").strip(),
-        entry.get_status_display(),
+        whitelist_status,
     )
 
 
-def _ambiguous(entries: list) -> HolderIdentity:
+def _ambiguous(entries: list, status_of) -> HolderIdentity:
     oldest = min(entries, key=lambda entry: entry.created_at)
-    return HolderIdentity(HolderType.AMBIGUOUS.value, AMBIGUOUS_NAME, "", oldest.get_status_display())
+    return HolderIdentity(HolderType.AMBIGUOUS.value, AMBIGUOUS_NAME, "", status_of(oldest))
 
 
 def _distinct_addresses(addresses) -> list:
@@ -72,12 +71,25 @@ def _entries(keys):
         yield from WhitelistEntry.objects.for_addresses(chunk).with_holder_identity()
 
 
-def identities_for(addresses) -> dict:
+def _approval_statuses(entries, company_id):
+    if company_id is None:
+        return lambda entry: ""
+    approvals = {
+        approval.entry_id: approval
+        for approval in WhitelistApproval.objects.filter(
+            entry_id__in=[entry.pk for entry in entries], company_id=company_id
+        )
+    }
+    return lambda entry: approvals[entry.pk].status_display() if entry.pk in approvals else NOT_APPROVED
+
+
+def identities_for(addresses, company_id=None) -> dict:
     grouped = defaultdict(list)
     for entry in _entries(_distinct_addresses(addresses)):
         grouped[entry.wallet_address.lower()].append(entry)
+    status_of = _approval_statuses([entry for entries in grouped.values() for entry in entries], company_id)
     return {
-        key: (_ambiguous(entries) if len(entries) > 1 else entry_identity(entries[0]))
+        key: (_ambiguous(entries, status_of) if len(entries) > 1 else entry_identity(entries[0], status_of(entries[0])))
         for key, entries in grouped.items()
     }
 

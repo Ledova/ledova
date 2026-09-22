@@ -29,6 +29,8 @@ class WhitelistChange(BaseModel):
     address = models.CharField(max_length=42, editable=False)
     chain_id = models.PositiveBigIntegerField(editable=False)
     registry_address = models.CharField(max_length=42, editable=False)
+    company_id = models.UUIDField(editable=False)
+    expires_at = models.DateTimeField(null=True, editable=False)
     intent = models.JSONField(editable=False)
     initiated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
     authority = models.CharField(max_length=20, choices=WhitelistAuthority.choices, editable=False)
@@ -63,6 +65,10 @@ class WhitelistChange(BaseModel):
             ),
             models.CheckConstraint(
                 condition=models.Q(action__in=WhitelistAction.values), name="whitelist_change_action"
+            ),
+            models.CheckConstraint(
+                condition=models.Q(action=WhitelistAction.ADD) | models.Q(expires_at__isnull=True),
+                name="whitelist_change_removal_has_no_expiry",
             ),
             models.CheckConstraint(
                 condition=models.Q(authority__in=WhitelistAuthority.values), name="whitelist_change_authority"

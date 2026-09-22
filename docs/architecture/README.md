@@ -5,7 +5,7 @@
 The dashboard and mobile client call one Django API. Django stores application
 records in PostgreSQL and queues background work through Procrastinate. Workers
 and operator actions communicate with the chain and configured providers.
-Smart contracts enforce the share cap and recipient whitelist. Django admin is
+Smart contracts enforce the share cap and each company's whitelist, with expiry, on both sides of a transfer. Django admin is
 the operator interface.
 
 ```mermaid

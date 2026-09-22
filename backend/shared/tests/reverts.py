@@ -13,7 +13,10 @@ def revert_payload(signature, types=(), values=()):
 
 def actionable_reverts():
     return (
-        (revert_payload("NotWhitelisted(address)", ["address"], [ADDRESS]), "Account is not whitelisted"),
+        (
+            revert_payload("SenderNotWhitelisted(address)", ["address"], [ADDRESS]),
+            "Sender is not whitelisted for transfers",
+        ),
         (
             revert_payload("RecipientNotWhitelisted(address)", ["address"], [ADDRESS]),
             "Recipient is not whitelisted for transfers",

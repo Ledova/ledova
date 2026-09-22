@@ -6,43 +6,66 @@ from django.conf import settings
 from django.utils import timezone
 from web3 import Web3
 
-from blockchain.models import BlockchainTransaction, TransactionType
 from integrations.base_chain import get_base_chain_client
 from shared.constants import BLOCKCHAIN_BASE
 from wallets.models import Wallet
 from whitelist.constants import (
+    WHITELIST_NO_EXPIRY,
     WHITELIST_STATUS_NOT_WHITELISTED,
     WHITELIST_STATUS_UNKNOWN,
     WHITELIST_STATUS_WHITELISTED,
 )
 from whitelist.exceptions import (
     WalletNotRegisteredException,
-    WhitelistContractNotConfiguredException,
+    WhitelistRegistryMissing,
+    WhitelistRegistryUnreadable,
 )
-from whitelist.models import WhitelistChange, WhitelistEntry, WhitelistStatus
+from whitelist.models import (
+    WhitelistApproval,
+    WhitelistChange,
+    WhitelistEntry,
+    WhitelistStatus,
+)
 
 logger = logging.getLogger(__name__)
-WHITELIST_ENTRY_LABEL = "whitelist.WhitelistEntry"
 
 
-def contract(address=None):
-    address = address or getattr(settings, "WHITELIST_CONTRACT_ADDRESS", None)
-    if not address:
-        raise WhitelistContractNotConfiguredException()
-    return get_base_chain_client().load_contract("WhitelistRegistry", address)
+def registry_contract(registry_address, client=None):
+    client = client or get_base_chain_client()
+    return client.load_contract("WhitelistRegistry", Web3.to_checksum_address(registry_address))
 
 
-def is_whitelisted(address):
-    return contract().functions.isWhitelisted(Web3.to_checksum_address(address)).call()
+def registry_for(company, client=None):
+    factory = settings.SHARE_TOKEN_FACTORY_ADDRESS
+    if not factory or not company.acn:
+        raise WhitelistRegistryMissing()
+    client = client or get_base_chain_client()
+    try:
+        contract = client.load_contract("ShareTokenFactory", Web3.to_checksum_address(factory))
+        address = contract.functions.registryOf(company.acn).call()
+    except Exception:
+        logger.warning("The whitelist registry could not be read: company=%s", company.pk)
+        raise WhitelistRegistryUnreadable() from None
+    if not isinstance(address, str) or not Web3.is_address(address) or int(address, 16) == 0:
+        raise WhitelistRegistryMissing()
+    return address.lower()
 
 
-def get_investor_info(address, registry_address=None):
-    result = contract(registry_address).functions.getInvestorInfo(Web3.to_checksum_address(address)).call()
-    return {"whitelisted": result[0], "kyc_timestamp": result[1]}
+def token_registry(token_address, client=None):
+    client = client or get_base_chain_client()
+    token = client.load_contract("ShareToken", Web3.to_checksum_address(token_address))
+    return token.functions.whitelist().call()
 
 
-def can_receive(address):
-    return contract().functions.canReceive(Web3.to_checksum_address(address)).call()
+def is_whitelisted(token_address, address):
+    client = get_base_chain_client()
+    registry = registry_contract(token_registry(token_address, client), client)
+    return registry.functions.isWhitelisted(Web3.to_checksum_address(address)).call()
+
+
+def approved_for_any_company(address):
+    entries = WhitelistEntry.objects.filter_by_address(address)
+    return WhitelistApproval.objects.filter(entry__in=entries).live().exists()
 
 
 def unique_wallet_uuid_for(address):
@@ -69,33 +92,62 @@ def resolve_entry(address, wallet_uuid=None):
         wallet = matches[0] if len(matches) == 1 else None
     if wallet is None:
         raise WalletNotRegisteredException()
-    entry, _ = WhitelistEntry.objects.get_or_create(wallet=wallet, defaults={"status": WhitelistStatus.PENDING})
+    entry, _ = WhitelistEntry.objects.get_or_create(wallet=wallet)
     return entry
 
 
-def investor_status(address):
+def share_class_at(token_address):
+    from tokens.models import ShareToken
+
+    return ShareToken.objects.on_chain().filter(contract_address__iexact=token_address).first()
+
+
+def investor_status(token, address):
     try:
-        info = get_investor_info(address)
+        listed = is_whitelisted(token.contract_address, address)
+        if type(listed) is not bool:
+            raise ValueError("The registry did not answer with a boolean.")
         return {
             "address": Web3.to_checksum_address(address),
-            "is_whitelisted": info["whitelisted"],
-            "can_receive": can_receive(address),
-            "status": WHITELIST_STATUS_WHITELISTED if info["whitelisted"] else WHITELIST_STATUS_NOT_WHITELISTED,
+            "is_whitelisted": listed,
+            "status": WHITELIST_STATUS_WHITELISTED if listed else WHITELIST_STATUS_NOT_WHITELISTED,
         }
     except Exception:
-        logger.warning("Whitelist membership could not be read")
-        return {"address": address, "is_whitelisted": False, "can_receive": False, "status": WHITELIST_STATUS_UNKNOWN}
+        logger.warning("Whitelist membership could not be read: token=%s", token.pk)
+        return {"address": address, "is_whitelisted": False, "status": WHITELIST_STATUS_UNKNOWN}
 
 
-def current_registry(chain_id, registry_address):
-    return (
-        settings.BLOCKCHAIN_CHAIN_ID == chain_id
-        and str(settings.WHITELIST_CONTRACT_ADDRESS).lower() == registry_address.lower()
+def expiry_datetime(expiry):
+    if expiry in (0, WHITELIST_NO_EXPIRY):
+        return None
+    return datetime.fromtimestamp(expiry, tz=dt_timezone.utc)
+
+
+def approval_values(expiry):
+    if type(expiry) is not int or not 0 <= expiry <= WHITELIST_NO_EXPIRY:
+        raise ValueError("The registry did not answer with a uint64 expiry.")
+    status = WhitelistStatus.REMOVED if expiry == 0 else WhitelistStatus.ACTIVE
+    return {"status": status, "expires_at": expiry_datetime(expiry)}
+
+
+def open_approval(entry, company, registry_address):
+    approval, created = WhitelistApproval.objects.select_for_update().get_or_create(
+        entry=entry, company=company, defaults={"registry_address": registry_address}
     )
+    values = {"status": WhitelistStatus.PENDING, "updated_at": timezone.now()}
+    if not created and approval.registry_address != registry_address:
+        values |= {"registry_address": registry_address, "expires_at": None, "last_synced_at": None}
+    WhitelistApproval.objects.filter(pk=approval.pk).update(**values)
 
 
-def project_membership(entry_id, address, chain_id, registry_address, values, *, version=None):
-    if not current_registry(chain_id, registry_address):
+def _current_approval(entry_id, company_id, chain_id, registry_address):
+    if settings.BLOCKCHAIN_CHAIN_ID != chain_id:
+        return None
+    return WhitelistApproval.objects.filter(entry_id=entry_id, company_id=company_id, registry_address=registry_address)
+
+
+def project_membership(entry_id, address, chain_id, registry_address, company_id, values, *, version=None):
+    if _current_approval(entry_id, company_id, chain_id, registry_address) is None:
         return False
     identity = WhitelistEntry.objects.filter(pk=entry_id).values("wallet_id").first()
     if identity is None:
@@ -105,104 +157,58 @@ def project_membership(entry_id, address, chain_id, registry_address, values, *,
     entry = WhitelistEntry.objects.matching_identity(entry_id, address).select_for_update(of=("self",)).first()
     if entry is None or entry.wallet_id != identity["wallet_id"]:
         return False
-    if (version is not None and entry.updated_at != version) or not current_registry(chain_id, registry_address):
+    approval = _current_approval(entry_id, company_id, chain_id, registry_address).select_for_update().first()
+    if approval is None or (version is not None and approval.updated_at != version):
         return False
-    WhitelistEntry.objects.filter(pk=entry.pk).update(**values)
+    WhitelistApproval.objects.filter(pk=approval.pk).update(**values)
     return True
 
 
-def with_current_entry(change):
-    change.entry = (
-        WhitelistEntry.objects.matching_identity(change.entry_id, change.address).first()
-        if current_registry(change.chain_id, change.registry_address)
-        else None
-    )
+def with_current_approval(change):
+    approvals = _current_approval(change.entry_id, change.company_id, change.chain_id, change.registry_address)
+    entry = WhitelistEntry.objects.matching_identity(change.entry_id, change.address).first()
+    change.approval = approvals.select_related("company").first() if approvals is not None and entry else None
     return change
 
 
-def sync_entry(address, wallet_uuid=None):
+def sync_approval(approval):
     from whitelist.services.changes import target_transaction
 
-    address = Web3.to_checksum_address(address)
-    entry = resolve_entry(address, wallet_uuid=wallet_uuid)
-    version = entry.updated_at
+    address = Web3.to_checksum_address(approval.entry.wallet_address)
     chain_id = settings.BLOCKCHAIN_CHAIN_ID
-    registry = settings.WHITELIST_CONTRACT_ADDRESS
-    info = get_investor_info(address, registry_address=registry)
+    registry = approval.registry_address
+    version = approval.updated_at
+    observed = approval_values(registry_contract(registry).functions.expiresAt(address).call())
     with target_transaction(chain_id, registry, address):
         moment = timezone.now()
-        values = {
-            "is_whitelisted": info["whitelisted"],
-            "on_chain_timestamp": (
-                datetime.fromtimestamp(info["kyc_timestamp"], tz=dt_timezone.utc) if info["kyc_timestamp"] else None
-            ),
-            "last_synced_at": moment,
-            "updated_at": moment,
-        }
+        values = {"last_synced_at": moment, "updated_at": moment}
         if not WhitelistChange.objects.for_target(chain_id, registry, address).unresolved().exists():
-            values["status"] = WhitelistStatus.ACTIVE if info["whitelisted"] else WhitelistStatus.REMOVED
-        project_membership(entry.pk, address, chain_id, registry, values, version=version)
-        current = WhitelistEntry.objects.filter(pk=entry.pk).first()
-        if current is None:
-            raise WalletNotRegisteredException()
-        return current
+            values |= observed
+        project_membership(approval.entry_id, address, chain_id, registry, approval.company_id, values, version=version)
 
 
-def sync_entries(entries):
+def sync_approvals(approvals):
     result = {"synced": 0, "errors": []}
-    for entry in entries:
+    for approval in approvals:
         try:
-            sync_entry(entry.wallet_address, wallet_uuid=entry.wallet_id)
+            sync_approval(approval)
             result["synced"] += 1
         except Exception:
-            result["errors"].append(f"Could not sync whitelist entry {entry.pk}.")
-            logger.warning("Whitelist sync failed: entry=%s", entry.pk)
+            result["errors"].append(f"Could not sync whitelist approval {approval.pk}.")
+            logger.warning("Whitelist sync failed: approval=%s", approval.pk)
     return result
+
+
+def sync_entry(address, wallet_uuid=None):
+    entry = resolve_entry(Web3.to_checksum_address(address), wallet_uuid=wallet_uuid)
+    for approval in WhitelistApproval.objects.filter(entry=entry).select_related("entry__wallet"):
+        sync_approval(approval)
+    current = WhitelistEntry.objects.filter(pk=entry.pk).first()
+    if current is None:
+        raise WalletNotRegisteredException()
+    return current
 
 
 def sync_all_entries():
-    entries = list(WhitelistEntry.objects.active() | WhitelistEntry.objects.pending())
-    return sync_entries(entries)["synced"]
-
-
-def _the_write_that_failed_was_an_add(entry):
-    latest = (
-        BlockchainTransaction.objects.filter(related_model=WHITELIST_ENTRY_LABEL, related_uuid=entry.pk)
-        .order_by("-created_at")
-        .values_list("tx_type", flat=True)
-        .first()
-    )
-    return latest == TransactionType.WHITELIST_ADD
-
-
-def reconcile_failed_adds():
-    result = {"checked": 0, "activated": 0, "left_failed": 0, "removals_the_chain_kept": 0, "errors": []}
-    for entry in WhitelistEntry.objects.failed_with_a_sent_add().without_commands():
-        result["checked"] += 1
-        try:
-            member = is_whitelisted(entry.wallet_address)
-        except Exception:
-            result["errors"].append(f"Could not read whitelist entry {entry.pk}.")
-            logger.warning("Legacy whitelist observation failed: entry=%s", entry.pk)
-            continue
-        if not member:
-            result["left_failed"] += 1
-            continue
-        if not _the_write_that_failed_was_an_add(entry):
-            result["left_failed"] += 1
-            if entry.record_the_chain_still_lists_it():
-                result["removals_the_chain_kept"] += 1
-                logger.warning("A failed whitelist removal is still listed: entry=%s", entry.pk)
-            continue
-        changed = (
-            WhitelistEntry.objects.without_commands()
-            .filter(pk=entry.pk, status=WhitelistStatus.FAILED, updated_at=entry.updated_at)
-            .update(
-                status=WhitelistStatus.ACTIVE,
-                is_whitelisted=True,
-                last_synced_at=timezone.now(),
-                updated_at=timezone.now(),
-            )
-        )
-        result["activated"] += changed
-    return result
+    approvals = WhitelistApproval.objects.to_sync().select_related("entry__wallet")
+    return sync_approvals(list(approvals))["synced"]

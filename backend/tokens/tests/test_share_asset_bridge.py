@@ -19,7 +19,7 @@ from tokens.services import issuance_execution, share_token_service
 from tokens.services.share_token_service import SHARE_ASSET_CHAIN
 from tokens.tests.issuance_fixtures import CHAIN_ID, KEY, admit, install_issuance
 from wallets.models import Holding
-from whitelist.models import WhitelistEntry, WhitelistStatus
+from whitelist.models import WhitelistEntry
 
 CHAIN_CLIENT = "tokens.services.share_token_service.get_base_chain_client"
 WHITELISTED = "tokens.services.share_token_service.is_recipient_whitelisted"
@@ -140,7 +140,7 @@ class IssuanceSeedsTheHoldingTest(TransactionTestCase):
         return patch.object(share_token_service, "get_token_balance", return_value=value)
 
     def test_an_allotment_to_a_whitelisted_investor_wallet_writes_the_holding(self):
-        WhitelistEntry.objects.create(wallet=self.wallet, status=WhitelistStatus.ACTIVE, is_whitelisted=True)
+        WhitelistEntry.objects.create(wallet=self.wallet)
         request = self._request(self.wallet.address)
 
         with self._balance(25):
@@ -155,9 +155,7 @@ class IssuanceSeedsTheHoldingTest(TransactionTestCase):
 
     def test_a_treasury_entry_with_no_wallet_is_skipped_and_raises_nothing(self):
         treasury = Web3.to_checksum_address("0x" + "7" * 40)
-        WhitelistEntry.objects.create(
-            address=treasury, label="Treasury", status=WhitelistStatus.ACTIVE, is_whitelisted=True
-        )
+        WhitelistEntry.objects.create(address=treasury, label="Treasury")
         request = self._request(treasury)
 
         with self._balance(25):
@@ -169,7 +167,7 @@ class IssuanceSeedsTheHoldingTest(TransactionTestCase):
         self.assertEqual(ShareIssuance.objects.get(token=self.token).status, IssuanceStatus.COMPLETED)
 
     def test_a_bookkeeping_failure_never_fails_an_issuance_whose_mint_already_mined(self):
-        WhitelistEntry.objects.create(wallet=self.wallet, status=WhitelistStatus.ACTIVE, is_whitelisted=True)
+        WhitelistEntry.objects.create(wallet=self.wallet)
         request = self._request(self.wallet.address)
 
         with patch("wallets.services.holdings.sync_holding", side_effect=RuntimeError("database gone")) as sync:
@@ -186,7 +184,7 @@ class IssuanceSeedsTheHoldingTest(TransactionTestCase):
 
     def test_a_missing_bridged_asset_is_logged_and_leaves_the_issuance_executed(self):
         AssetChainDeployment.objects.filter(asset=self.asset).delete()
-        WhitelistEntry.objects.create(wallet=self.wallet, status=WhitelistStatus.ACTIVE, is_whitelisted=True)
+        WhitelistEntry.objects.create(wallet=self.wallet)
         request = self._request(self.wallet.address)
 
         with self.assertLogs("tokens.services.share_token_service", level="WARNING") as logs:

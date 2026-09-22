@@ -16,29 +16,19 @@ async function main() {
     (await ethers.provider.getBalance(deployer.address)).toString(),
   );
 
-  console.log("\n1. Deploying WhitelistRegistry...");
-  const WhitelistRegistry =
-    await ethers.getContractFactory("WhitelistRegistry");
-  const whitelist = await WhitelistRegistry.deploy(deployer.address);
-  await whitelist.waitForDeployment();
-  const whitelistAddress = await whitelist.getAddress();
-  console.log("   WhitelistRegistry deployed to:", whitelistAddress);
-
-  console.log("\n2. Deploying ShareTokenFactory...");
+  console.log("\n1. Deploying ShareTokenFactory...");
   const ShareTokenFactory =
     await ethers.getContractFactory("ShareTokenFactory");
-  const factory = await ShareTokenFactory.deploy(
-    whitelistAddress,
-    deployer.address,
-  );
+  const factory = await ShareTokenFactory.deploy(deployer.address);
   await factory.waitForDeployment();
   const factoryAddress = await factory.getAddress();
   console.log("   ShareTokenFactory deployed to:", factoryAddress);
 
-  console.log("\n3. Creating sample ShareToken...");
+  console.log("\n2. Creating sample ShareToken and its company registry...");
   const tx = await factory.createShareToken(
     "Example Company Shares",
     "DEMO",
+    "TEST-COMPANY:DEMO",
     "TEST-COMPANY",
     10000000n,
     deployer.address,
@@ -61,8 +51,14 @@ async function main() {
 
   const shareTokenAddress = parsedEvent?.args.tokenAddress;
   console.log("   Ledova ShareToken deployed to:", shareTokenAddress);
+  const whitelistAddress = await factory.registryOf("TEST-COMPANY");
+  const whitelist = await ethers.getContractAt(
+    "WhitelistRegistry",
+    whitelistAddress,
+  );
+  console.log("   Company WhitelistRegistry:", whitelistAddress);
 
-  console.log("\n4. Adding test accounts to whitelist...");
+  console.log("\n3. Adding test accounts to the company whitelist...");
 
   const testAccounts = [
     ethers.getAddress("0xfe3b557e8fb62b89f4916b721be55ceb828dbd73"),
@@ -70,11 +66,13 @@ async function main() {
     ethers.getAddress("0xf17f52151EbEF6C7334FAD080c5704D77216b732"),
   ];
 
-  const batchTx = await whitelist.batchAddToWhitelist(testAccounts);
-  await batchTx.wait();
+  for (const account of testAccounts) {
+    const approval = await whitelist.setExpiry(account, 2n ** 64n - 1n);
+    await approval.wait();
+  }
   console.log("   Added 3 test accounts to whitelist");
 
-  console.log("\n5. Minting initial shares...");
+  console.log("\n4. Minting initial shares...");
   const shareToken = await ethers.getContractAt(
     "ShareToken",
     shareTokenAddress,

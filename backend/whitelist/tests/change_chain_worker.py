@@ -7,7 +7,7 @@ from unittest.mock import patch
 import django
 
 
-def run(submission_id, actor_id, address):
+def run(submission_id, actor_id, company_id, address):
     os.environ["DJANGO_SETTINGS_MODULE"] = "ledova_backend.settings.test"
     from django.conf import settings
 
@@ -24,6 +24,7 @@ def run(submission_id, actor_id, address):
 
     from django.contrib.auth import get_user_model
 
+    from companies.models import Company
     from integrations.base_chain.client import BaseChainClient
     from whitelist.services.changes import submit
 
@@ -35,7 +36,7 @@ def run(submission_id, actor_id, address):
 
     actor = get_user_model().objects.get(pk=actor_id)
     with patch.object(BaseChainClient, "send_raw_transaction", accept_then_die):
-        submit(submission_id, "add", address, actor)
+        submit(submission_id, "add", address, actor, company=Company.objects.get(pk=company_id))
 
 
 if __name__ == "__main__":

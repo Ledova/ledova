@@ -14,7 +14,6 @@ Configure the local chain or Base Sepolia and align deployment ownership with th
 | `BITCOIN_NETWORK` | `test` | No; `test` or `regtest` only |
 | `EVM_ASSET_TRANSFER_HISTORY_ENABLED` | `false` | No; enables provider-backed EVM asset transfer history |
 | `BLOCKCHAIN_OPERATOR_KEY` | empty | Yes to deploy, mint, whitelist, pause |
-| `WHITELIST_CONTRACT_ADDRESS` | empty | Yes for issuance |
 | `SHARE_TOKEN_FACTORY_ADDRESS` | empty | Yes for issuance |
 | `ATOMIC_SWAP_ADDRESS` | empty | Only for settlement |
 | `STABLECOIN_CONTRACT_ADDRESS` | empty | Only for stablecoin payment; seeds the `AUDY` deployment on `base` |
@@ -30,8 +29,8 @@ order-challenge lifetime remains 300 seconds.
 
 ## Key management
 
-- One key, `BLOCKCHAIN_OPERATOR_KEY`, owns the factory, the whitelist registry,
-  the AtomicSwap contract and every share token, and signs every deployment,
+- One key, `BLOCKCHAIN_OPERATOR_KEY`, owns the factory, every company's
+  whitelist registry, the AtomicSwap contract and every share token, and signs every deployment,
   mint, cap change, whitelist write and pause. There is no key rotation path in
   the code: a new key means redeploying or transferring ownership of each
   contract.
@@ -47,10 +46,12 @@ order-challenge lifetime remains 300 seconds.
   back to the node's own accounts.
 - **It is not a second, independent key.**
   `contracts/scripts/deploy-all.ts` passes `deployer.address` as the owner of
-  WhitelistRegistry, ShareTokenFactory, AUDY and AtomicSwap, and it is also the
-  address added as the AUDY minter. The backend signs every `onlyOwner` call
-  with `BLOCKCHAIN_OPERATOR_KEY`. The two keys must therefore resolve to the
-  **same address**, or ownership of all four contracts must be transferred to
+  ShareTokenFactory, AUDY and AtomicSwap, and it is also the address added as
+  the AUDY minter. The factory makes each share class's owner, which the backend
+  passes as the `BLOCKCHAIN_OPERATOR_KEY` address, the owner of that company's
+  registry. The backend signs every `onlyOwner` call with
+  `BLOCKCHAIN_OPERATOR_KEY`. The two keys must therefore resolve to the
+  **same address**, or ownership of all three contracts must be transferred to
   the `BLOCKCHAIN_OPERATOR_KEY` address after deployment. Deploy with one key
   and operate with another, without transferring ownership, and every mint, cap
   change, whitelist write and pause reverts.
@@ -71,9 +72,10 @@ cd contracts && npx hardhat node          # chain id 31337, port 8545
 npm --prefix contracts run deploy:local:core
 ```
 
-The deployment writes `WHITELIST_CONTRACT_ADDRESS`,
-`SHARE_TOKEN_FACTORY_ADDRESS`, `ATOMIC_SWAP_ADDRESS` and
-`STABLECOIN_CONTRACT_ADDRESS` to `.deployed-contracts.env`. Copy them into
+The deployment writes `SHARE_TOKEN_FACTORY_ADDRESS`, `ATOMIC_SWAP_ADDRESS` and
+`STABLECOIN_CONTRACT_ADDRESS` to `.deployed-contracts.env`. There is no
+deployment-wide whitelist: the factory creates each company's
+`WhitelistRegistry` with the company's first share class. Copy them into
 `backend/.env` with `BLOCKCHAIN_RPC_URL`, `BLOCKCHAIN_CHAIN_ID=31337` and the
 Hardhat account #0 key as `BLOCKCHAIN_OPERATOR_KEY`.
 
@@ -89,11 +91,11 @@ the approved ones in `backend/ledova_backend/chain_safety.py`.
 Base Sepolia (chain id 84532) is the supported public testnet:
 `npm --prefix contracts run deploy:testnet`, with `DEPLOYER_PRIVATE_KEY` and
 `BASE_SEPOLIA_RPC_URL` exported in that shell. The `DEPLOYER_PRIVATE_KEY`
-address becomes the owner of all four contracts, so it must be the same signer
+address becomes the owner of all three contracts, so it must be the same signer
 as the `BLOCKCHAIN_OPERATOR_KEY` you put in `backend/.env`, or you must transfer
-ownership of WhitelistRegistry, ShareTokenFactory, AUDY and AtomicSwap to the
-operator address immediately after deploying. Otherwise the backend's
-`onlyOwner` calls revert against the freshly deployed contracts.
+ownership of ShareTokenFactory, AUDY and AtomicSwap to the operator address
+immediately after deploying. Otherwise the backend's `onlyOwner` calls revert
+against the freshly deployed contracts.
 
 `make chain-test` does the local sequence unattended: it compiles, starts a
 node, waits for `eth_chainId`, deploys the core contracts, sources
@@ -107,6 +109,51 @@ target refuses to start when that port is already taken, naming the port rather
 than failing later with Hardhat's `HH108`.
 The chain test uses PostgreSQL. Set `POSTGRES_*` for an isolated database; the
 two-worker capital-increase case requires its real row locks.
+
+## Fresh-start redeploy
+
+The per-company registries of [#648](https://github.com/Ledova/ledova/issues/648)
+changed the bytecode of every contract, and a deployed share token can never be
+rebound to another registry. Moving a deployment onto the new contracts is
+therefore a fresh start, [the owner's decision](../decisions.md#company-scoped-approvals):
+new contracts and a new database, with nothing carried over and no register
+re-anchored. Migration `whitelist/0007_per_company_approvals` refuses to run on
+a database that still holds whitelist changes written for the retired global
+registry.
+
+1. Stop the backend and the workers, so nothing signs against the old
+   contracts.
+2. Deploy the core contracts with `deploy-all.ts`: `npm --prefix contracts run
+   deploy:local:core` against a local node, or `npm --prefix contracts run
+   deploy:testnet` for Base Sepolia with `DEPLOYER_PRIVATE_KEY` and
+   `BASE_SEPOLIA_RPC_URL` exported. The deploying key must be the operator key
+   ([key management](#key-management)).
+3. Reset the database: drop it, create it empty and run `python manage.py
+   migrate`, then `check_rls_roles` and `check_rls_catalogue`.
+4. Set the three addresses from `.deployed-contracts.env`
+   (`SHARE_TOKEN_FACTORY_ADDRESS`, `ATOMIC_SWAP_ADDRESS`,
+   `STABLECOIN_CONTRACT_ADDRESS`) in `backend/.env`, and remove any
+   `WHITELIST_CONTRACT_ADDRESS` line. Start the backend and the workers.
+5. Recreate companies and users through the browser. `createsuperuser` and
+   admin wallet verification are the only steps outside it.
+6. Deploy each share class. A company's first class creates its registry; its
+   later classes share it.
+7. Approve wallets for each company in the whitelist admin or through the
+   operator API, choosing the company and, for a wallet with no investor
+   classification, the expiry to set. A blank expiry means none.
+8. Verify:
+   - `BLOCKCHAIN_CHAIN_ID` matches the node's `eth_chainId`;
+   - for each class, `whitelist()` on its token equals `registryOf(acn)` on the
+     factory;
+   - a wallet approved only for one company is refused a mint of another
+     company's class;
+   - no share class has a deployment whose factory differs from
+     `SHARE_TOKEN_FACTORY_ADDRESS`.
+
+Nothing yet refreshes an approval when an investor classification expires or
+is revoked; staff remove or renew the wallet in the admin. Until the removal
+lands on chain, a direct contract call can still move shares, and pausing the
+token is the incident lever.
 
 ## Reaching the node from Compose
 

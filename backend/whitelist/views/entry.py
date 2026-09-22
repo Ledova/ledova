@@ -43,10 +43,13 @@ class WhitelistEntryViewSet(
     permission_classes = [IsAdminUser]
     filterset_class = WhitelistEntryFilter
     ordering = ["-created_at"]
-    ordering_fields = ["created_at", "status"]
+    ordering_fields = ["created_at"]
     lookup_field = "uuid"
 
     scoped_model = WhitelistEntry
+
+    def narrow(self, queryset):
+        return queryset.prefetch_related("approvals__company")
 
     @action(detail=False, methods=["get"], url_path="entry/(?P<address>[^/.]+)")
     def by_address(self, request, address=None):
@@ -72,6 +75,8 @@ class WhitelistEntryViewSet(
             WhitelistAction.ADD,
             serializer.validated_data["wallet_address"],
             request.user,
+            company=serializer.validated_data["company"],
+            expires_at=serializer.validated_data["expires_at"],
         )
         response_status = (
             status.HTTP_202_ACCEPTED
@@ -92,6 +97,7 @@ class WhitelistEntryViewSet(
             WhitelistAction.REMOVE,
             serializer.validated_data["wallet_address"],
             request.user,
+            company=serializer.validated_data["company"],
         )
         response_status = (
             status.HTTP_202_ACCEPTED
@@ -109,7 +115,7 @@ class WhitelistEntryViewSet(
 
         response_data = {
             "success": True,
-            "entry": WhitelistEntrySerializer(entry).data,
+            "entry": entry,
             "message": f"Successfully synced {address} with on-chain data",
         }
 
@@ -130,23 +136,26 @@ class WhitelistEntryViewSet(
         writer.writerow(
             [
                 "Wallet Address",
+                "Company",
                 "Status",
-                "Is Whitelisted",
+                "Expires At",
                 "Created At",
                 "Updated At",
             ]
         )
 
         for entry in queryset:
-            writer.writerow(
-                [
-                    csv_cell(entry.wallet_address),
-                    csv_cell(entry.get_status_display()),
-                    "Yes" if entry.is_whitelisted else "No",
-                    csv_cell(entry.created_at.isoformat() if entry.created_at else ""),
-                    csv_cell(entry.updated_at.isoformat() if entry.updated_at else ""),
-                ]
-            )
+            for approval in entry.approvals.all() or [None]:
+                writer.writerow(
+                    [
+                        csv_cell(entry.wallet_address),
+                        csv_cell(approval.company.name if approval else ""),
+                        csv_cell(approval.status_display() if approval else "No approval"),
+                        csv_cell(approval.expires_at.isoformat() if approval and approval.expires_at else ""),
+                        csv_cell(entry.created_at.isoformat() if entry.created_at else ""),
+                        csv_cell(entry.updated_at.isoformat() if entry.updated_at else ""),
+                    ]
+                )
 
         return response
 
@@ -167,7 +176,10 @@ class WhitelistEntryViewSet(
             if not serializer.is_valid():
                 result["failed"] += 1
                 result["errors"].append(
-                    {"wallet_address": address, "error": "A valid address and submission UUID are required."}
+                    {
+                        "wallet_address": address,
+                        "error": "A valid address, company and submission UUID are required.",
+                    }
                 )
                 continue
             try:
@@ -176,6 +188,8 @@ class WhitelistEntryViewSet(
                     WhitelistAction.ADD,
                     serializer.validated_data["wallet_address"],
                     request.user,
+                    company=serializer.validated_data["company"],
+                    expires_at=serializer.validated_data["expires_at"],
                 )
                 result["results"].append(change)
                 if change.status in (WhitelistChangeStatus.CONFIRMED, WhitelistChangeStatus.UNCHANGED):

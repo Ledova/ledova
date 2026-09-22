@@ -162,7 +162,10 @@ The CSV has three sections with different widths:
 1. Current members: Member ID, Name, Residential address, Wallet addresses,
    Holder type, Class, Shares held, Percentage of issued supply, Balance source,
    Identity source, Date entered, Whitelist status and Amount paid. A member's
-   wallets, and each wallet's whitelist status, are joined with `; `.
+   wallets, and each wallet's whitelist status, are joined with `; `. A wallet's
+   status is its approval for the class's company: Active, Expired once a
+   recorded expiry has passed, Pending, Removed or Failed, or "Not approved for
+   this company" when the wallet has an entry and no approval there.
 2. Supply summary: issued supply, the total held by listed members, the
    completed effects waiting to be recorded when there are any, and the latest
    reconciliation with the chain, which for a class an import opened is
@@ -431,7 +434,7 @@ protected relations.
 
 Company documents and registry-check history are application evidence rather
 than register membership rows. Wallet deletion still cascades its whitelist
-entry; durable [whitelist commands](outgoing-signing.md#whitelist-changes)
+entry and that entry's company approvals, and leaves the approval on chain; durable [whitelist commands](outgoing-signing.md#whitelist-changes)
 retain their original identity independently. Allotment identity stamps preserve
 the member identity where one was resolved when shares were issued. Treasury relabeling or current profile guesses
 must not replace that historical source.

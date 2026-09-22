@@ -12,7 +12,7 @@ import django
 from blockchain.tests.outgoing_worker import await_file
 
 
-def run(directory, phase, actor_id, submission_id, action="add"):
+def run(directory, phase, actor_id, company_id, submission_id, action="add"):
     os.environ["DJANGO_SETTINGS_MODULE"] = "ledova_backend.settings.test"
     from django.conf import settings
 
@@ -22,7 +22,7 @@ def run(directory, phase, actor_id, submission_id, action="add"):
     settings.DATABASES = {"default": database}
     settings.BLOCKCHAIN_OPERATOR_KEY = "0x" + "11" * 32
     settings.BLOCKCHAIN_CHAIN_ID = 31337
-    settings.WHITELIST_CONTRACT_ADDRESS = "0x" + "d" * 40
+    settings.SHARE_TOKEN_FACTORY_ADDRESS = "0x" + "c" * 40
     django.setup()
 
     from django.contrib.auth import get_user_model
@@ -31,11 +31,13 @@ def run(directory, phase, actor_id, submission_id, action="add"):
     from blockchain.models import OutgoingOperation, SignedAttempt
     from blockchain.services import outgoing
     from blockchain.tests.outgoing_fixtures import receipt
+    from companies.models import Company
     from whitelist.exceptions import WhitelistChangeConflict
     from whitelist.services import changes
     from whitelist.tests.change_fixtures import ADDRESS, WhitelistNode
 
     actor = get_user_model().objects.get(pk=actor_id)
+    company = Company.objects.get(pk=company_id)
     node = WhitelistNode()
 
     def send(raw):
@@ -112,7 +114,7 @@ def run(directory, phase, actor_id, submission_id, action="add"):
             result = (
                 changes.recover(submission_id)
                 if phase == "recover"
-                else changes.submit(submission_id, action, ADDRESS, actor)
+                else changes.submit(submission_id, action, ADDRESS, actor, company=company)
             )
             outcome = result.status
         except WhitelistChangeConflict:

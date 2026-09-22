@@ -52,7 +52,10 @@ STAFF_UNSCOPED = (
     "for its administrative actions, so an operator reaches every company by design."
 )
 STAFF_WHITELIST = "Staff-only whitelist administration: the operator acts across every tenant by design."
-CHAIN_ADDRESS_READ = "Reads the chain for a bare address, which belongs to no tenant row."
+CHAIN_ADDRESS_READ = (
+    "Reads the chain for a bare wallet address in the registry of the share class at a contract address; the class "
+    "resolves through its own policy and the answer belongs to no tenant row."
+)
 
 EXEMPT = {
     ("post", "/api/signin/"): UNAUTHENTICATED_AUTH,
@@ -108,7 +111,7 @@ EXEMPT = {
     ("post", "/api/v1/whitelist/batch-add/"): STAFF_WHITELIST,
     ("post", "/api/v1/whitelist/remove/"): STAFF_WHITELIST,
     ("post", "/api/v1/whitelist/sync/{}/"): STAFF_WHITELIST,
-    ("get", "/api/v1/trading/whitelist/{}/status/"): CHAIN_ADDRESS_READ,
+    ("get", "/api/v1/trading/whitelist/{}/{}/status/"): CHAIN_ADDRESS_READ,
 }
 
 

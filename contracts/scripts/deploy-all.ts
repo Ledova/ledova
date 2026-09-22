@@ -12,50 +12,39 @@ async function main() {
     (await ethers.provider.getBalance(deployer.address)).toString(),
   );
 
-  console.log("\n1. Deploying WhitelistRegistry...");
-  const WhitelistRegistry =
-    await ethers.getContractFactory("WhitelistRegistry");
-  const whitelist = await WhitelistRegistry.deploy(deployer.address);
-  await whitelist.waitForDeployment();
-  const whitelistAddress = await whitelist.getAddress();
-  console.log("   WhitelistRegistry deployed to:", whitelistAddress);
-
-  console.log("\n2. Deploying ShareTokenFactory...");
+  console.log("\n1. Deploying ShareTokenFactory...");
   const ShareTokenFactory =
     await ethers.getContractFactory("ShareTokenFactory");
-  const factory = await ShareTokenFactory.deploy(
-    whitelistAddress,
-    deployer.address,
-  );
+  const factory = await ShareTokenFactory.deploy(deployer.address);
   await factory.waitForDeployment();
   const factoryAddress = await factory.getAddress();
   console.log("   ShareTokenFactory deployed to:", factoryAddress);
+  console.log(
+    "   Each company's WhitelistRegistry is created with its first share class.",
+  );
 
-  console.log("\n3. Deploying AUDY...");
+  console.log("\n2. Deploying AUDY...");
   const AUDY = await ethers.getContractFactory("AUDY");
   const stablecoin = await AUDY.deploy(deployer.address);
   await stablecoin.waitForDeployment();
   const stablecoinAddress = await stablecoin.getAddress();
   console.log("   AUDY deployed to:", stablecoinAddress);
 
-  console.log("\n4. Setting up AUDY...");
+  console.log("\n3. Setting up AUDY...");
   const addMinterTx = await stablecoin.addMinter(deployer.address);
   await addMinterTx.wait();
   console.log("   Deployer added as minter");
 
-  console.log("\n5. Deploying AtomicSwap...");
+  console.log("\n4. Deploying AtomicSwap...");
   const AtomicSwap = await ethers.getContractFactory("AtomicSwap");
-  const atomicSwap = await AtomicSwap.deploy(
-    whitelistAddress,
-    deployer.address,
-  );
+  const atomicSwap = await AtomicSwap.deploy(deployer.address);
   await atomicSwap.waitForDeployment();
   const atomicSwapAddress = await atomicSwap.getAddress();
   console.log("   AtomicSwap deployed to:", atomicSwapAddress);
 
   const chainId = await atomicSwap.getChainId();
 
-  console.log("\n6. Configuring AtomicSwap...");
+  console.log("\n5. Configuring AtomicSwap...");
   const approveStableTx = await atomicSwap.setPaymentTokenApproval(
     stablecoinAddress,
     true,
@@ -66,7 +55,6 @@ async function main() {
   console.log("\n========================================");
   console.log("Deployment Summary");
   console.log("========================================");
-  console.log(`WhitelistRegistry:    ${whitelistAddress}`);
   console.log(`ShareTokenFactory:    ${factoryAddress}`);
   console.log(`AUDY:                 ${stablecoinAddress}`);
   console.log(`AtomicSwap:           ${atomicSwapAddress}`);
@@ -78,7 +66,6 @@ async function main() {
 
   const envContent = `# Contract addresses deployed by deploy-all.ts
 # Generated at: ${new Date().toISOString()}
-WHITELIST_CONTRACT_ADDRESS=${whitelistAddress}
 SHARE_TOKEN_FACTORY_ADDRESS=${factoryAddress}
 ATOMIC_SWAP_ADDRESS=${atomicSwapAddress}
 STABLECOIN_CONTRACT_ADDRESS=${stablecoinAddress}
@@ -90,7 +77,6 @@ STABLECOIN_CONTRACT_ADDRESS=${stablecoinAddress}
   console.log("\nDeployment complete!");
 
   return {
-    whitelist: whitelistAddress,
     factory: factoryAddress,
     stablecoin: stablecoinAddress,
     atomicSwap: atomicSwapAddress,

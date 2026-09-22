@@ -467,6 +467,10 @@ NOT_TENANCY = {
     "assets_asset": "A global catalogue shared by every tenant; product filters select supported assets.",
     "feature_flags": "Global kill switches; enabled() selects the active flags for every tenant.",
     "whitelist_whitelistentry": "Staff-only, which is authorisation rather than tenancy, and stays in code.",
+    "whitelist_whitelistapproval": "Each whitelist entry's approval in one company's registry: staff-only like the "
+    "entry it belongs to, so authorisation rather than tenancy, and it stays in code. A customer deleting their own "
+    "wallet cascades through the entry into these rows on the app connection, so a policy that hid them from the "
+    "app role would make that deletion fail rather than keep them private.",
     "signing_challenges": "Reached by address through a service rather than by any queryset; #256 deleted "
     "the two methods that looked like scoping. #305 gave it a wallet column, and it is nullable, so a "
     "policy on it would hide exactly the rows consumable() already refuses - no-policy and policy agree on "

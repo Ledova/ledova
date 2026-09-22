@@ -54,7 +54,9 @@ from tokens.services.register_events import create_member, open_register, record
 from tokens.tests.test_register_events import DAY
 from users.models import UserAccount, UserProfile
 from wallets.models import Wallet
-from whitelist.models import WhitelistEntry, WhitelistStatus
+from whitelist.models import WhitelistApproval, WhitelistEntry
+from whitelist.services.identity import NOT_APPROVED
+from whitelist.tests.change_fixtures import REGISTRY, change_company
 
 User = get_user_model()
 
@@ -242,12 +244,12 @@ class HolderTypeTest(RegisterTestBase):
     def test_the_four_holder_types_come_out_of_one_stored_read(self):
         member_account = _account("member@example.test", "Mary Member", RESIDENCE)
         member_wallet = self._wallet(member_account, MEMBER)
-        WhitelistEntry.objects.create(wallet=member_wallet, status=WhitelistStatus.ACTIVE, is_whitelisted=True)
-        WhitelistEntry.objects.create(address=TREASURY, label="Company treasury", status=WhitelistStatus.ACTIVE)
+        WhitelistEntry.objects.create(wallet=member_wallet)
+        WhitelistEntry.objects.create(address=TREASURY, label="Company treasury")
         first = self._wallet(_account("one@example.test", "Ann One"), SHARED)
         second = self._wallet(_account("two@example.test", "Bob Two"), SHARED)
-        WhitelistEntry.objects.create(wallet=first, status=WhitelistStatus.ACTIVE)
-        WhitelistEntry.objects.create(wallet=second, status=WhitelistStatus.ACTIVE)
+        WhitelistEntry.objects.create(wallet=first)
+        WhitelistEntry.objects.create(wallet=second)
         self._allot(STRANGER, 10, name="Stranger from a spreadsheet")
         members = self._stored({MEMBER: 100, TREASURY: 50, SHARED: 25, STRANGER: 10})
 
@@ -299,8 +301,16 @@ class HolderTypeTest(RegisterTestBase):
 
     def test_one_member_holding_through_two_wallets_is_one_row_listing_both(self):
         account = _account("pair@example.test", "Pat Pair", RESIDENCE)
-        for address in (MEMBER, SHARED):
-            WhitelistEntry.objects.create(wallet=self._wallet(account, address), status=WhitelistStatus.ACTIVE)
+        entries = {
+            address: WhitelistEntry.objects.create(wallet=self._wallet(account, address))
+            for address in (MEMBER, SHARED)
+        }
+        WhitelistApproval.objects.create(
+            entry=entries[MEMBER], company=self.company, registry_address=REGISTRY, status="active"
+        )
+        WhitelistApproval.objects.create(
+            entry=entries[SHARED], company=change_company("elsewhere"), registry_address=REGISTRY, status="active"
+        )
         member = uuid4()
         self._stored({MEMBER: 30, SHARED: 20}, member_of={MEMBER: member, SHARED: member})
 
@@ -313,18 +323,17 @@ class HolderTypeTest(RegisterTestBase):
         self.assertEqual(
             holders[0]["wallets"],
             sorted(
-                [{"address": MEMBER, "whitelistStatus": "Active"}, {"address": SHARED, "whitelistStatus": "Active"}],
+                [
+                    {"address": MEMBER, "whitelistStatus": "Active"},
+                    {"address": SHARED, "whitelistStatus": NOT_APPROVED},
+                ],
                 key=lambda wallet: wallet["address"],
             ),
         )
 
     def test_wallets_that_resolve_to_different_people_make_the_member_ambiguous(self):
-        WhitelistEntry.objects.create(
-            wallet=self._wallet(_account("ann@example.test", "Ann One"), MEMBER), status=WhitelistStatus.ACTIVE
-        )
-        WhitelistEntry.objects.create(
-            wallet=self._wallet(_account("bob@example.test", "Bob Two"), SHARED), status=WhitelistStatus.ACTIVE
-        )
+        WhitelistEntry.objects.create(wallet=self._wallet(_account("ann@example.test", "Ann One"), MEMBER))
+        WhitelistEntry.objects.create(wallet=self._wallet(_account("bob@example.test", "Bob Two"), SHARED))
         member = uuid4()
         self._stored({MEMBER: 30, SHARED: 20}, member_of={MEMBER: member, SHARED: member})
 
@@ -383,9 +392,15 @@ class RegisterExportTest(RegisterTestBase):
     def test_the_csv_carries_the_member_header_the_residential_address_and_a_blank_unknown_amount(self):
         member_account = _account("member@example.test", "Mary Member", RESIDENCE)
         member_wallet = self._wallet(member_account, MEMBER)
-        WhitelistEntry.objects.create(wallet=member_wallet, status=WhitelistStatus.ACTIVE, is_whitelisted=True)
+        WhitelistApproval.objects.create(
+            entry=WhitelistEntry.objects.create(wallet=member_wallet),
+            company=self.company,
+            registry_address=REGISTRY,
+            status="active",
+            expires_at=timezone.now() - timedelta(days=1),
+        )
         self._paid_allotment(member_account, member_wallet, MEMBER, 100, Decimal("250.00"))
-        WhitelistEntry.objects.create(address=TREASURY, label="Company treasury", status=WhitelistStatus.ACTIVE)
+        WhitelistEntry.objects.create(address=TREASURY, label="Company treasury")
         self._allot(TREASURY, 50)
         members = self._stored({MEMBER: 100, TREASURY: 50})
 
@@ -404,7 +419,7 @@ class RegisterExportTest(RegisterTestBase):
             ["Member", "REG", "100", SOURCE_LABELS[SOURCE_STORED], DAY.isoformat()],
         )
         self.assertEqual(member["Identity source"], IDENTITY_LABELS[IDENTITY_LIVE])
-        self.assertEqual([member["Whitelist status"], member["Amount paid"]], [f"{MEMBER}: Active", "250.00"])
+        self.assertEqual([member["Whitelist status"], member["Amount paid"]], [f"{MEMBER}: Expired", "250.00"])
         self.assertEqual(member["Percentage of issued supply"], "66.67%")
         treasury = body["Company treasury"]
         self.assertEqual(
@@ -417,7 +432,7 @@ class RegisterExportTest(RegisterTestBase):
     def test_the_residential_address_never_reaches_the_api(self):
         member_account = _account("member@example.test", "Mary Member", RESIDENCE)
         member_wallet = self._wallet(member_account, MEMBER)
-        WhitelistEntry.objects.create(wallet=member_wallet, status=WhitelistStatus.ACTIVE)
+        WhitelistEntry.objects.create(wallet=member_wallet)
         self._stored({MEMBER: 100})
 
         api = self.client.get(f"/api/v1/tokens/{self.token.uuid}/holders/")
@@ -536,7 +551,7 @@ class StoredRegisterReadTest(RegisterTestBase):
         for address, ceased_on, block in ((MEMBER, date(2026, 5, 1), 1), (SHARED, date(2026, 2, 1), 2)):
             account = _account(f"{block}@example.test", f"Holder {block}", RESIDENCE)
             wallet = self._wallet(account, address)
-            WhitelistEntry.objects.create(wallet=wallet, status=WhitelistStatus.ACTIVE, is_whitelisted=True)
+            WhitelistEntry.objects.create(wallet=wallet)
             self._paid_allotment(account, wallet, address, 40, Decimal("100.00"), completed_at=MARCH)
             self._cessation(address, ceased_on, block)
         members = self._stored({MEMBER: 40, SHARED: 40})
@@ -551,7 +566,7 @@ class StoredRegisterReadTest(RegisterTestBase):
     def test_a_paid_holding_that_recorded_transfers_touched_prints_no_amount_paid(self):
         account = _account("tom@example.test", "Tom Traded", RESIDENCE)
         wallet = self._wallet(account, MEMBER)
-        WhitelistEntry.objects.create(wallet=wallet, status=WhitelistStatus.ACTIVE, is_whitelisted=True)
+        WhitelistEntry.objects.create(wallet=wallet)
         self._paid_allotment(account, wallet, MEMBER, 100, Decimal("250.00"))
         members = self._stored({MEMBER: 100}, member_of={STRANGER: uuid4()})
         self._transfer(members[MEMBER], members[STRANGER], 50)
@@ -636,7 +651,7 @@ class StoredRegisterReadTest(RegisterTestBase):
     def test_a_holding_only_part_of_which_was_subscribed_prints_no_amount_paid(self):
         account = _account("mia@example.test", "Mia Mixed", RESIDENCE)
         wallet = self._wallet(account, MEMBER)
-        WhitelistEntry.objects.create(wallet=wallet, status=WhitelistStatus.ACTIVE, is_whitelisted=True)
+        WhitelistEntry.objects.create(wallet=wallet)
         self._allot(MEMBER, 1000)
         self._paid_allotment(account, wallet, MEMBER, 10, Decimal("20.00"))
         self._stored({MEMBER: 1010})
@@ -648,7 +663,7 @@ class StoredRegisterReadTest(RegisterTestBase):
     def test_a_stored_holding_below_the_allotment_prints_no_amount_paid(self):
         account = _account("cut@example.test", "Cut Down", RESIDENCE)
         wallet = self._wallet(account, MEMBER)
-        WhitelistEntry.objects.create(wallet=wallet, status=WhitelistStatus.ACTIVE, is_whitelisted=True)
+        WhitelistEntry.objects.create(wallet=wallet)
         self._paid_allotment(account, wallet, MEMBER, 100, Decimal("250.00"))
         self._stored({MEMBER: 42})
 
@@ -661,7 +676,7 @@ class StoredRegisterReadTest(RegisterTestBase):
     def test_a_scaled_back_subscription_prints_the_money_backing_the_shares_not_the_money_received(self):
         account = _account("sca@example.test", "Sam Scaled", RESIDENCE)
         wallet = self._wallet(account, MEMBER)
-        WhitelistEntry.objects.create(wallet=wallet, status=WhitelistStatus.ACTIVE, is_whitelisted=True)
+        WhitelistEntry.objects.create(wallet=wallet)
         offering = self._offering(cap_shares=40)
         subscription = self._subscription(offering, account, wallet, 100, Decimal("250.00"))
         scale_back(offering)
@@ -680,7 +695,7 @@ class StoredRegisterReadTest(RegisterTestBase):
     def test_an_allotment_the_money_record_has_not_caught_up_with_prints_no_amount_paid(self):
         account = _account("lag@example.test", "Lagging Mirror", RESIDENCE)
         wallet = self._wallet(account, MEMBER)
-        WhitelistEntry.objects.create(wallet=wallet, status=WhitelistStatus.ACTIVE, is_whitelisted=True)
+        WhitelistEntry.objects.create(wallet=wallet)
         subscription = self._subscription(self._offering(), account, wallet, 40, Decimal("100.00"))
         self._issue_against(subscription, mark_allotted=False)
         self.assertEqual(subscription.status, SubscriptionStatus.PAID)
@@ -693,7 +708,7 @@ class StoredRegisterReadTest(RegisterTestBase):
     def test_a_holding_every_share_of_which_was_subscribed_prints_the_total_paid(self):
         account = _account("sue@example.test", "Sue Subscribed", RESIDENCE)
         wallet = self._wallet(account, MEMBER)
-        WhitelistEntry.objects.create(wallet=wallet, status=WhitelistStatus.ACTIVE, is_whitelisted=True)
+        WhitelistEntry.objects.create(wallet=wallet)
         self._paid_allotment(account, wallet, MEMBER, 40, Decimal("100.00"))
         self._paid_allotment(account, wallet, MEMBER, 10, Decimal("25.00"))
         self._stored({MEMBER: 50})
@@ -706,7 +721,7 @@ class StoredRegisterReadTest(RegisterTestBase):
         account = _account("two@example.test", "Tia Two", RESIDENCE)
         wallets = [self._wallet(account, address) for address in (MEMBER, SHARED)]
         for wallet in wallets:
-            WhitelistEntry.objects.create(wallet=wallet, status=WhitelistStatus.ACTIVE, is_whitelisted=True)
+            WhitelistEntry.objects.create(wallet=wallet)
         self._paid_allotment(account, wallets[0], MEMBER, 40, Decimal("100.00"))
         self._paid_allotment(account, wallets[1], SHARED, 10, Decimal("25.00"))
         member = uuid4()
@@ -720,7 +735,7 @@ class StoredRegisterReadTest(RegisterTestBase):
     def test_a_name_or_address_that_opens_like_a_formula_is_neutralised_in_the_csv(self):
         account = _account("evil@example.test", FORMULA_NAME, FORMULA_ADDRESS)
         wallet = self._wallet(account, MEMBER)
-        WhitelistEntry.objects.create(wallet=wallet, status=WhitelistStatus.ACTIVE, is_whitelisted=True)
+        WhitelistEntry.objects.create(wallet=wallet)
         self._stored({MEMBER: 100})
 
         row = dict(zip(REGISTER_HEADERS, self._export()[1][1]))
@@ -728,7 +743,7 @@ class StoredRegisterReadTest(RegisterTestBase):
         self.assertEqual([row["Name"], row["Residential address"]], [f"'{FORMULA_NAME}", f"'{FORMULA_ADDRESS}"])
 
     def test_a_treasury_label_that_opens_like_a_formula_is_neutralised_in_the_csv(self):
-        WhitelistEntry.objects.create(address=TREASURY, label=FORMULA_LABEL, status=WhitelistStatus.ACTIVE)
+        WhitelistEntry.objects.create(address=TREASURY, label=FORMULA_LABEL)
         self._stored({TREASURY: 50})
 
         row = dict(zip(REGISTER_HEADERS, self._export()[1][1]))

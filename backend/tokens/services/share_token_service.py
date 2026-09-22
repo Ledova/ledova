@@ -213,10 +213,10 @@ def share_supply(contract_address: str) -> tuple[int, int]:
     return token_contract.functions.authorizedShares().call(), token_contract.functions.totalSupply().call()
 
 
-def is_recipient_whitelisted(address: str) -> bool:
+def is_recipient_whitelisted(token_address: str, address: str) -> bool:
     from whitelist.services import whitelist
 
-    return whitelist.is_whitelisted(address)
+    return whitelist.is_whitelisted(token_address, address)
 
 
 def issuance_key(request: ShareIssuanceRequest) -> str:

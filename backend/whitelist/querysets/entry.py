@@ -32,25 +32,3 @@ class WhitelistEntryQuerySet(QuerySet):
             Q(wallet__isnull=True, address__iexact=address)
             | Q(wallet__chain=BLOCKCHAIN_BASE, wallet__address__iexact=address)
         )
-
-    def without_commands(self):
-        from whitelist.models.change import WhitelistChange
-
-        return self.exclude(pk__in=WhitelistChange.objects.exclude(entry_id=None).values("entry_id"))
-
-    def active(self):
-        from whitelist.models import WhitelistStatus
-
-        return self.filter(status=WhitelistStatus.ACTIVE)
-
-    def pending(self):
-        from whitelist.models import WhitelistStatus
-
-        return self.filter(status=WhitelistStatus.PENDING)
-
-    def failed_with_a_sent_add(self):
-        from whitelist.models import WhitelistStatus
-
-        return self.filter(status=WhitelistStatus.FAILED, failure_reconciled_at__isnull=True).exclude(
-            add_tx_hash__isnull=True
-        )

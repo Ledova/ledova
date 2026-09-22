@@ -16,7 +16,7 @@ from tokens.models import (
 )
 from tokens.tasks.deployment import PENDING_DEPLOYMENT_AGE
 from users.models import InvestorClassification
-from whitelist.models import WhitelistEntry
+from whitelist.models import WhitelistApproval
 from whitelist.services.identity import unnameable_addresses
 
 SEVERITY_INFO = "info"
@@ -121,9 +121,9 @@ def worklist() -> list[WorklistRow]:
             SEVERITY_DANGER,
         ),
         WorklistRow(
-            "Whitelist entries pending",
-            WhitelistEntry.objects.pending().count(),
-            _changelist("whitelist", "whitelistentry", "?status__exact=pending"),
+            "Whitelist approvals pending",
+            WhitelistApproval.objects.pending().count(),
+            _changelist("whitelist", "whitelistentry", "?approvals__status__exact=pending"),
             SEVERITY_WARNING,
         ),
         WorklistRow(
@@ -202,7 +202,6 @@ def configuration_health() -> list[HealthCheck]:
     operator = Operator.get()
     return [
         _identity_check(operator),
-        _setting_check("WHITELIST_CONTRACT_ADDRESS"),
         _setting_check("SHARE_TOKEN_FACTORY_ADDRESS"),
         _prefix_check(operator),
         _settlement_check(operator),

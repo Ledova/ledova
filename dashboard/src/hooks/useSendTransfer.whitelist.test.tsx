@@ -8,6 +8,7 @@ import type { Wallet } from '@ledova/shared';
 
 const whitelisted = `0x${'1'.repeat(40)}`;
 const notWhitelisted = `0x${'2'.repeat(40)}`;
+const SHARE_TOKEN_ADDRESS = `0x${'3'.repeat(40)}`;
 
 const wallet = {
   uuid: 'wallet-1',
@@ -17,12 +18,11 @@ const wallet = {
   nativeMarketValue: '1',
 } as unknown as Wallet;
 
-const getWhitelistStatus = vi.fn((_client: unknown, address: string) =>
+const getWhitelistStatus = vi.fn((_client: unknown, _token: string, address: string) =>
   Promise.resolve({
     data: {
       address,
       isWhitelisted: address === whitelisted,
-      canReceive: address === whitelisted,
       status: address === whitelisted ? 'whitelisted' : 'not_whitelisted',
     },
   }),
@@ -113,7 +113,9 @@ describe('the real Send flow, mounted as the app mounts it', () => {
     fireEvent.click(await screen.findByText('QAT'));
     fireEvent.change(screen.getByPlaceholderText('0x...'), { target: { value: notWhitelisted } });
 
-    await waitFor(() => expect(getWhitelistStatus).toHaveBeenCalledWith(expect.anything(), notWhitelisted));
+    await waitFor(() =>
+      expect(getWhitelistStatus).toHaveBeenCalledWith(expect.anything(), SHARE_TOKEN_ADDRESS, notWhitelisted),
+    );
     await waitFor(() => expect(screen.getByText(/Recipient is not whitelisted/i)).toBeDefined());
     expect(screen.getByRole('button', { name: /continue/i }).hasAttribute('disabled')).toBe(true);
   });

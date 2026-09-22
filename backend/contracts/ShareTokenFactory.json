@@ -4,11 +4,6 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "_whitelist",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
           "name": "_owner",
           "type": "address"
         }
@@ -25,6 +20,22 @@
         }
       ],
       "name": "CompanyAlreadyExists",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "identifier",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "acn",
+          "type": "string"
+        }
+      ],
+      "name": "IdentifierNotOfCompany",
       "type": "error"
     },
     {
@@ -52,6 +63,22 @@
         }
       ],
       "name": "OwnableUnauthorizedAccount",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "registry",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "tokenOwner",
+          "type": "address"
+        }
+      ],
+      "name": "RegistryOwnerMismatch",
       "type": "error"
     },
     {
@@ -105,6 +132,25 @@
       "type": "event"
     },
     {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "acn",
+          "type": "string"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "registry",
+          "type": "address"
+        }
+      ],
+      "name": "WhitelistRegistryCreated",
+      "type": "event"
+    },
+    {
       "inputs": [
         {
           "internalType": "string",
@@ -119,6 +165,11 @@
         {
           "internalType": "string",
           "name": "identifier",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "acn",
           "type": "string"
         },
         {
@@ -227,6 +278,25 @@
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "name": "registryOf",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "renounceOwnership",
       "outputs": [],
@@ -263,19 +333,6 @@
       "name": "transferOwnership",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "whitelist",
-      "outputs": [
-        {
-          "internalType": "contract WhitelistRegistry",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "view",
       "type": "function"
     }
   ],

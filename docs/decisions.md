@@ -137,6 +137,37 @@ partial corrections exist; that is accepted during the synthetic experiment and
 settled before any real data. [The register](architecture/register.md) owns the
 mechanism.
 
+## Company-scoped approvals
+
+Each company has its own on-chain whitelist registry with an expiry for every
+approved wallet, decided by the owner on 19 September 2026 and settled in detail
+on 22 September in
+[#648](https://github.com/Ledova/ledova/issues/648#issuecomment-5775711424):
+
+- **Fresh start.** Moving to the new contracts means new contracts and a new
+  database. No testnet data is carried over and no register is re-anchored,
+  because a deployed token can never be rebound to another registry.
+- **An expired or removed holder cannot send.** A transfer checks both sides.
+  No forced transfer is added, so such a holding is frozen until the approval is
+  renewed. A holder can still burn their own shares.
+- **Staff approve a wallet for each company.** A wallet with no investor
+  classification, such as a treasury, issuer or imported member, gets the expiry
+  staff enter; blank means none.
+- **A stablecoin payment asks for an approval with any company.** AUDY has no
+  registry of its own, so a payment the platform sends checks that each party
+  holds a live approval for at least one company, from the stored approvals
+  rather than from a registry. The owner chose this on 22 September 2026 over
+  dropping the check, keeping the rule the single global registry used to carry.
+  The AUDY contract itself has never restricted transfers.
+- **One identity row per wallet.** `WhitelistEntry` stays the wallet's identity
+  row, because the register names holders through it and two rows for one
+  wallet would make every holder ambiguous. Approval state lives in a separate
+  staff-only row for each entry and company.
+
+[Contracts and issuance](architecture/contracts-and-issuance.md#contracts) owns
+the mechanism and [chain setup](operations/chains.md#fresh-start-redeploy) the
+redeploy.
+
 ## Payments and settlement
 
 Payment confirmation is stored on the subscription. The initial expected volume

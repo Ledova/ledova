@@ -44,7 +44,7 @@ from users.models import (
     UserProfile,
 )
 from wallets.models import Wallet
-from whitelist.models import HolderType, WhitelistEntry, WhitelistStatus
+from whitelist.models import HolderType, WhitelistApproval, WhitelistEntry
 from whitelist.querysets.entry import WhitelistEntryQuerySet
 from whitelist.services.identity import ADDRESS_CHUNK
 
@@ -54,10 +54,7 @@ TEST_STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
-CONFIGURED = {
-    "WHITELIST_CONTRACT_ADDRESS": "0x" + "1" * 40,
-    "SHARE_TOKEN_FACTORY_ADDRESS": "0x" + "2" * 40,
-}
+CONFIGURED = {"SHARE_TOKEN_FACTORY_ADDRESS": "0x" + "2" * 40}
 STRANGER = Web3.to_checksum_address("0x" + "d4" * 20)
 SHARED = Web3.to_checksum_address("0x" + "c3" * 20)
 NAMELESS_ADDRESS = Web3.to_checksum_address("0x" + "e1" * 20)
@@ -178,7 +175,14 @@ class WorklistTest(TestCase):
             issuance_request=self._request(broadcasting, RequestStatus.EXECUTING),
         )
 
-        WhitelistEntry.objects.create(address="0x" + "9" * 40, label="Pending", status=WhitelistStatus.PENDING)
+        treasury = WhitelistEntry.objects.create(address="0x" + "9" * 40, label="Pending")
+        WhitelistApproval.objects.create(entry=treasury, company=under_review.company, registry_address="0x" + "d" * 40)
+        WhitelistApproval.objects.create(
+            entry=WhitelistEntry.objects.create(address="0x" + "8" * 40, label="Approved"),
+            company=under_review.company,
+            registry_address="0x" + "d" * 40,
+            status="active",
+        )
         self._request(under_review, RequestStatus.SUBMITTED)
         CapitalIncreaseRequest.objects.create(
             token=under_review,
@@ -206,7 +210,7 @@ class WorklistTest(TestCase):
                 "Subscriptions awaiting payment": 1,
                 "Subscriptions paid and not allotted": 1,
                 "Subscriptions whose mint is broadcast and unresolved": 1,
-                "Whitelist entries pending": 1,
+                "Whitelist approvals pending": 1,
                 "Share issuance requests needing attention": 1,
                 "Capital increase requests needing attention": 1,
                 "Share tokens stuck deploying": 1,
@@ -251,7 +255,7 @@ class WorklistTest(TestCase):
 
     def test_an_allotment_to_a_wallet_the_whitelist_can_name_is_not_flagged(self):
         token = self._token("WLT")
-        WhitelistEntry.objects.create(wallet=self.wallet, status=WhitelistStatus.ACTIVE)
+        WhitelistEntry.objects.create(wallet=self.wallet)
         ShareIssuance.objects.create(
             token=token, recipient_address=self.wallet.address, amount="10", status=IssuanceStatus.COMPLETED
         )
@@ -293,7 +297,7 @@ class WorklistTest(TestCase):
         token = self._token("BTH")
         self._whitelisted_wallet("both-one@example.test", "BOTHONE", "Ann One", SHARED)
         self._whitelisted_wallet("both-two@example.test", "BOTHTWO", "Bob Two", SHARED)
-        WhitelistEntry.objects.create(wallet=self.wallet, status=WhitelistStatus.ACTIVE)
+        WhitelistEntry.objects.create(wallet=self.wallet)
         for address, amount in ((SHARED, "25"), (STRANGER, "10"), (self.wallet.address, "5")):
             ShareIssuance.objects.create(
                 token=token, recipient_address=address, amount=amount, status=IssuanceStatus.COMPLETED
@@ -362,7 +366,7 @@ class WorklistTest(TestCase):
         profile = UserProfile.objects.create(user=user, full_name=name)
         account = UserAccount.objects.create(account_number=number, user_profile=profile)
         wallet = Wallet.objects.create(user_account=account, address=address, chain="base")
-        return WhitelistEntry.objects.create(wallet=wallet, status=WhitelistStatus.ACTIVE)
+        return WhitelistEntry.objects.create(wallet=wallet)
 
 
 @override_settings(STORAGES=TEST_STORAGES, **CONFIGURED)
@@ -421,18 +425,7 @@ class ConfigurationHealthTest(TestCase):
         self.assertIn("contact_email", checks["Operator row"].detail)
         self.assertTrue(all(check.ok for label, check in checks.items() if label != "Operator row"))
 
-    @override_settings(
-        WHITELIST_CONTRACT_ADDRESS="", SHARE_TOKEN_FACTORY_ADDRESS=CONFIGURED["SHARE_TOKEN_FACTORY_ADDRESS"]
-    )
-    def test_a_missing_whitelist_contract_fails_on_its_own(self):
-        checks = _checks()
-
-        self.assertFalse(checks["WHITELIST_CONTRACT_ADDRESS"].ok)
-        self.assertTrue(all(check.ok for label, check in checks.items() if label != "WHITELIST_CONTRACT_ADDRESS"))
-
-    @override_settings(
-        WHITELIST_CONTRACT_ADDRESS=CONFIGURED["WHITELIST_CONTRACT_ADDRESS"], SHARE_TOKEN_FACTORY_ADDRESS=""
-    )
+    @override_settings(SHARE_TOKEN_FACTORY_ADDRESS="")
     def test_a_missing_factory_address_fails_on_its_own(self):
         checks = _checks()
 

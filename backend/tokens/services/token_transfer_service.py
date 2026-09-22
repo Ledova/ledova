@@ -74,11 +74,12 @@ def validate_transfer(
     if not get_base_chain_client().is_valid_address(to_address):
         raise InvalidRecipientAddressException()
 
-    if not whitelist.is_whitelisted(from_address):
-        raise NotWhitelistedException(from_address)
-
-    if not whitelist.is_whitelisted(to_address):
-        raise NotWhitelistedException(to_address)
+    for party in (from_address, to_address):
+        if isinstance(token, ShareToken):
+            if not whitelist.is_whitelisted(token_address, party):
+                raise NotWhitelistedException(party)
+        elif not whitelist.approved_for_any_company(party):
+            raise NotWhitelistedException(party)
 
     from tokens.services import share_token_service
 
@@ -396,7 +397,7 @@ def create_order_and_match(
     if canonical_wallet_address != get_base_chain_client().to_checksum_address(wallet_address):
         raise InvalidRecipientAddressException()
 
-    if not whitelist.is_whitelisted(canonical_wallet_address):
+    if not whitelist.is_whitelisted(token.contract_address, canonical_wallet_address):
         raise CreateOrderNotWhitelistedException(canonical_wallet_address)
 
     if order_type == TransferOrderType.SELL:

@@ -46,12 +46,12 @@ requests receive 401. Configure payment fields and investor eligibility together
 
 ## The operator console
 
-The health strip checks operator identity, whitelist/factory addresses, reference
+The health strip checks operator identity, the factory address, reference
 prefix and settlement deployments before an offering opens. An empty settlement
 asset set is reported; it leaves only bank-transfer payment available.
 
 Worklists cover company and classification reviews, offering review/capacity,
-unpaid/paid/unresolved-mint subscriptions, whitelist work, issuance and capital
+unpaid/paid/unresolved-mint subscriptions, pending company approvals, issuance and capital
 requests, stale deployments and register identity problems. They read the database
 without contacting RPC providers. The page also states deployment mode and who
 keeps each active company's register; it does not assign the legal obligation.
@@ -98,8 +98,9 @@ The password comes from `--password`, `LEDOVA_DEMO_PASSWORD`, or a generated val
 printed by the command. A rerun applies the resolved password. It requires DEBUG;
 `--force` is only for a throwaway database deliberately running without DEBUG.
 
-It writes no chain transactions. The whitelist row is database state only;
-[chain setup](chains.md) and deliberate deployment/whitelisting are still needed.
+It writes no chain transactions. The investor's whitelist entry is an identity
+row with no company approval; [chain setup](chains.md), deploying the class and
+approving the wallet for the company are still needed.
 Its wallet addresses are Hardhat accounts 0 and 1.
 
 ## Company and document review

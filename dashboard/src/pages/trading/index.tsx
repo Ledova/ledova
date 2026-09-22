@@ -147,11 +147,6 @@ export function TradingPage() {
       }),
     [queryClient],
   );
-  const {
-    isWhitelisted,
-    getStatus: getWhitelistStatusFor,
-    isLoading: isLoadingWhitelistStatus,
-  } = useWalletsWhitelistStatus(walletAddresses);
   const { data: swaps, isLoading: isLoadingSwaps } = useSwapOrdersMulti(walletAddresses);
 
   useMemo(() => {
@@ -164,6 +159,11 @@ export function TradingPage() {
     if (!tokens || !selectedTokenUuid) return null;
     return tokens.find((t) => t.uuid === selectedTokenUuid) || null;
   }, [tokens, selectedTokenUuid]);
+  const {
+    isWhitelisted,
+    getStatus: getWhitelistStatusFor,
+    isLoading: isLoadingWhitelistStatus,
+  } = useWalletsWhitelistStatus(selectedToken?.contractAddress ?? undefined, walletAddresses);
 
   const { userOrders, isLoadingUserOrders, getWalletsWithHoldings } = useTrading({
     tokenUuid: selectedTokenUuid || undefined,

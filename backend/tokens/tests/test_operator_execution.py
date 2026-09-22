@@ -67,7 +67,7 @@ class OperatorExecutionFromScopedContextTest(RunsOnTheScopedConnection, Transact
             configure_operator()
             self.investor.offering = open_offering(self.issuer, target_shares=200, cap_shares=500)
             eligible_subscriber(self.investor)
-            WhitelistEntry.objects.create(wallet=self.investor.wallet, is_whitelisted=True)
+            WhitelistEntry.objects.create(wallet=self.investor.wallet)
             self.subscription = allottable_subscription(self.investor)
             allot(self.subscription, self.staff)
             self.request = self.subscription.issuance_request

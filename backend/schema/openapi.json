@@ -13015,6 +13015,17 @@
       },
       "WhitelistAddRequest": {
         "properties": {
+          "company": {
+            "description": "The company whose whitelist registry this change writes.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "expiresAt": {
+            "description": "When the approval lapses on chain. Omit it or send null for an approval that never expires.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
           "submissionId": {
             "description": "Retain this UUID when recovering or retrying the same submission.",
             "format": "uuid",
@@ -13028,10 +13039,80 @@
           }
         },
         "required": [
+          "company",
           "submissionId",
           "walletAddress"
         ],
         "type": "object"
+      },
+      "WhitelistApproval": {
+        "properties": {
+          "company": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "companyName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "expiresAt": {
+            "description": "Blank means the approval never expires.",
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "lastSyncedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "registryAddress": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WhitelistApprovalStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "statusDisplay": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "company",
+          "companyName",
+          "expiresAt",
+          "lastSyncedAt",
+          "registryAddress",
+          "status",
+          "statusDisplay",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "WhitelistApprovalStatusEnum": {
+        "description": "* `pending` - Pending\n* `active` - Active\n* `removed` - Removed\n* `failed` - Failed",
+        "enum": [
+          "pending",
+          "active",
+          "removed",
+          "failed"
+        ],
+        "type": "string"
       },
       "WhitelistBatchAddRequest": {
         "properties": {
@@ -13105,13 +13186,23 @@
             ],
             "readOnly": true
           },
-          "entry": {
+          "approval": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/WhitelistEntry"
+                "$ref": "#/components/schemas/WhitelistApproval"
               }
             ],
             "nullable": true
+          },
+          "company": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
           },
           "message": {
             "readOnly": true,
@@ -13138,7 +13229,9 @@
         },
         "required": [
           "action",
-          "entry",
+          "approval",
+          "company",
+          "expiresAt",
           "message",
           "submissionId",
           "success",
@@ -13159,50 +13252,19 @@
       },
       "WhitelistEntry": {
         "properties": {
-          "addTxHash": {
-            "nullable": true,
+          "approvals": {
+            "items": {
+              "$ref": "#/components/schemas/WhitelistApproval"
+            },
             "readOnly": true,
-            "type": "string"
+            "type": "array"
           },
           "createdAt": {
             "format": "date-time",
             "readOnly": true,
             "type": "string"
           },
-          "isWhitelisted": {
-            "readOnly": true,
-            "type": "boolean"
-          },
           "label": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "lastSyncedAt": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "onChainTimestamp": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "removeTxHash": {
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/WhitelistEntryStatusEnum"
-              }
-            ],
-            "readOnly": true
-          },
-          "statusDisplay": {
             "readOnly": true,
             "type": "string"
           },
@@ -13223,33 +13285,22 @@
           }
         },
         "required": [
-          "addTxHash",
+          "approvals",
           "createdAt",
-          "isWhitelisted",
           "label",
-          "lastSyncedAt",
-          "onChainTimestamp",
-          "removeTxHash",
-          "status",
-          "statusDisplay",
           "updatedAt",
           "uuid",
           "walletAddress"
         ],
         "type": "object"
       },
-      "WhitelistEntryStatusEnum": {
-        "description": "* `pending` - Pending\n* `active` - Active\n* `removed` - Removed\n* `failed` - Failed",
-        "enum": [
-          "pending",
-          "active",
-          "removed",
-          "failed"
-        ],
-        "type": "string"
-      },
       "WhitelistRemoveRequest": {
         "properties": {
+          "company": {
+            "description": "The company whose whitelist registry this change writes.",
+            "format": "uuid",
+            "type": "string"
+          },
           "submissionId": {
             "description": "Retain this UUID when recovering or retrying the same submission.",
             "format": "uuid",
@@ -13263,6 +13314,7 @@
           }
         },
         "required": [
+          "company",
           "submissionId",
           "walletAddress"
         ],
@@ -13273,9 +13325,6 @@
           "address": {
             "type": "string"
           },
-          "canReceive": {
-            "type": "boolean"
-          },
           "isWhitelisted": {
             "type": "boolean"
           },
@@ -13285,7 +13334,6 @@
         },
         "required": [
           "address",
-          "canReceive",
           "isWhitelisted",
           "status"
         ],
@@ -23425,13 +23473,21 @@
         ]
       }
     },
-    "/api/v1/trading/whitelist/{address}/status/": {
+    "/api/v1/trading/whitelist/{token}/{address}/status/": {
       "get": {
         "operationId": "api_v1_trading_whitelist_status_retrieve",
         "parameters": [
           {
             "in": "path",
             "name": "address",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "token",
             "required": true,
             "schema": {
               "type": "string"
@@ -23469,6 +23525,14 @@
         "parameters": [
           {
             "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
             "name": "date_from",
             "schema": {
               "format": "date-time",
@@ -23481,13 +23545,6 @@
             "schema": {
               "format": "date-time",
               "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "is_whitelisted",
-            "schema": {
-              "type": "boolean"
             }
           },
           {

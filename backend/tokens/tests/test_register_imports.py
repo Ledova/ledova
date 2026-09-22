@@ -97,7 +97,7 @@ from tokens.tests.test_the_fold_that_writes_former_members import (
 )
 from users.models import UserAccount, UserProfile
 from wallets.models import Wallet
-from whitelist.models import WhitelistEntry, WhitelistStatus
+from whitelist.models import WhitelistEntry
 
 RESIDENCE = "12 Register Street, Sydney NSW 2000"
 PARTICULARS = IDENTITY_LABELS[IDENTITY_PARTICULARS]
@@ -185,7 +185,7 @@ def live_wallet(company, member, address, name, residence=RESIDENCE):
     profile = UserProfile.objects.create(user=user, full_name=name, residential_address=residence)
     account = UserAccount.objects.create(account_number=str(uuid4())[:20], user_profile=profile)
     wallet = Wallet.objects.create(user_account=account, address=address, chain="base")
-    WhitelistEntry.objects.create(wallet=wallet, status=WhitelistStatus.ACTIVE)
+    WhitelistEntry.objects.create(wallet=wallet)
     RegisterMemberWallet.objects.create(company=company, member=member, address=address)
 
 
