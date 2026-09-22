@@ -1,7 +1,7 @@
 {% extends "admin/base_site.html" %}
 {% block content %}
 <h1>Review register import</h1>
-<p>Approval records your verification of documentary authority, of the company's current register document and of the ASIC extract, whose figures you enter below. It stores each member's particulars and the pre-platform former members; it records no register entry.</p>
+<p>Approval records your verification of documentary authority, of the company's current register document and of the ASIC extract, whose figures you enter below. It stores each member's particulars and the pre-platform former members. For an opened share class it records no register entry, and each imported holding must equal the stored one. For a class not yet on chain, whose register is not open, it opens the register: it records the opening entry, in your name and dated the register date, with the imported holdings, and creates the new members. Nothing is stored or on chain to compare them with, so the ASIC figures and the names beside holdings below are the only check.</p>
 <dl>
 <dt>Company as submitted</dt><dd>{{ original.evidence_snapshot.company_identity.name }}</dd>
 <dt>Share class</dt><dd>{{ original.token.symbol }}</dd>

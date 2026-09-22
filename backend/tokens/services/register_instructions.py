@@ -25,6 +25,7 @@ from tokens.services.holder_identity import identity_at_allotment
 from tokens.services.register_inclusions import (
     _members,
     issue_covered,
+    opened_by_import,
     record_completed_effects,
     transfer_covered,
 )
@@ -121,6 +122,14 @@ def _state(request, source, reference):
         f"The {source} {reference} is neither awaiting approval nor an earlier approval whose issue is still to be "
         "recorded."
     )
+
+
+def _check_on_chain(token):
+    if opened_by_import(token.pk):
+        raise ValidationError(
+            "This share class was opened from an imported register and is not yet on chain, so it records no issue "
+            "and takes no register instruction."
+        )
 
 
 def _check_settlements(items, token, director):
@@ -256,6 +265,7 @@ def submit_instruction(
         )
         if existing:
             return existing
+        _check_on_chain(token)
         _check_items(kind, normalized, token, values["approving_director"])
         return _retain(
             RegisterInstruction(uuid=operation_id, company=company, token=token, kind=kind, items=normalized, **values),
@@ -274,6 +284,7 @@ def prepare_instruction_review(*, proposal_id, reviewer):
     if proposal.status != "submitted":
         raise ValidationError("This register instruction already has a decision.")
     _check_evidence(proposal, proposal.company, CompanyDocument.objects.filter(pk=proposal.source_document).first())
+    _check_on_chain(proposal.token)
     rows = _check_items(proposal.kind, proposal.items, proposal.token, proposal.approving_director)
     return proposal, rows, signing.dumps(_preview(proposal, reviewer), salt=SALT)
 
@@ -294,6 +305,7 @@ def decide_instruction(*, proposal_id, reviewer, confirmation, decision, rejecti
         if decision == "apply":
             _confirm(confirmation, SALT, REGISTER_INSTRUCTION_REVIEW_MAX_AGE, _preview(proposal, reviewer))
             _check_evidence(proposal, company, document)
+            _check_on_chain(token)
             for row in _check_items(proposal.kind, proposal.items, token, proposal.approving_director, lock=True):
                 if row["state"] == APPROVE:
                     row["instance"].approve(reviewer, f"Approved by register instruction {proposal.pk}.")

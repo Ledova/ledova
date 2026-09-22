@@ -121,6 +121,19 @@ deployment, with no code change
 decision 6). [Position 12](legal/positions.md#12-pymupdf-an-agpl-runtime-dependency)
 is that record.
 
+The same day the owner settled how an import opens a share class not yet on
+chain, one with no register entries, no approved issue and no applied register
+instruction ([#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5772293439),
+decisions 1, 3 and 4). Applying the reviewed import records the register's
+opening entry itself, with the same review, evidence and ASIC check, in one
+owner submission; the alternative was an opening built from the import followed
+by a second import for the particulars. A class it opens records no issue,
+transfer or cessation until it is anchored on chain, because entries come only
+from chain completions. A mistaken opening import strands its class until
+partial corrections exist; that is accepted during the synthetic experiment and
+settled before any real data. [The register](architecture/register.md) owns the
+mechanism.
+
 ## Payments and settlement
 
 Payment confirmation is stored on the subscription. The initial expected volume

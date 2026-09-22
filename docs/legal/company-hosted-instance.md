@@ -105,9 +105,10 @@ operating model on the positions as drafted.
    lodges the notice of where the computer record is kept (s1301, Form 991).
 2. **Load the existing register**, including anyone who ceased to be a member in
    the last seven years, and reconcile it against the share structure ASIC
-    holds. Fix any discrepancy with ASIC before relying on the instance. This is
-    the import listed as remaining work in the
-    [stored-register issue](https://github.com/Ledova/ledova/issues/647).
+    holds. Fix any discrepancy with ASIC before relying on the instance. The
+    [register import](../operations/register-foundation.md#importing-an-existing-register)
+    does this: it opens a class not yet on chain from the register, and staff
+    check its totals against the ASIC extract.
 3. **Name who may make entries and who approves.** An officer instructs, a
    director approves, and the record shows both. Where the administrator is also
    a recipient of shares, someone else approves that entry.

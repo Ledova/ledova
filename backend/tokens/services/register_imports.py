@@ -20,20 +20,27 @@ from tokens.models import (
     RegisterEntry,
     RegisterEntryKind,
     RegisterImport,
+    RegisterInstruction,
     RegisterMember,
     RegisterMemberParticulars,
     RegisterMemberWallet,
     RegisterPosition,
+    ShareIssuanceRequest,
+    ShareRegister,
     ShareToken,
 )
 from tokens.services.former_holders import retention_cutoff
 from tokens.services.register import _member_identity
+from tokens.services.register_events import create_member, record_entry
+from tokens.services.register_instructions import APPROVED
 from tokens.services.register_openings import (
     _authority_values,
     _check_decision,
     _check_evidence,
+    _check_uninitialized,
     _completed_decision,
     _confirm,
+    _members_of,
     _replayed,
     _retain,
     _reviewer,
@@ -137,14 +144,18 @@ def _asic_document(company, document_id):
 
 
 def _opening(token):
-    opening = (
-        RegisterEntry.objects.select_related("register")
-        .filter(register__token=token, kind=RegisterEntryKind.OPENING)
-        .first()
-    )
-    if opening is None:
-        raise ValidationError("An import supplements an opened register; open this share class first.")
-    return opening
+    return RegisterEntry.objects.filter(register__token=token, kind=RegisterEntryKind.OPENING).first()
+
+
+def _check_openable(token):
+    if (
+        ShareIssuanceRequest.objects.filter(token=token, status__in=APPROVED).exists()
+        or RegisterInstruction.objects.filter(token=token, status="applied").exists()
+    ):
+        raise ValidationError(
+            "An import opens only a share class not yet on chain, and this one has an approved issue or an applied "
+            "register instruction. Open its register from the chain, then import its particulars."
+        )
 
 
 def _check_unapplied(token):
@@ -152,13 +163,14 @@ def _check_unapplied(token):
         raise ValidationError("This share class already has an applied import, and a class takes only one.")
 
 
-def _check_former(former, opened_on):
+def _check_former(former, opening):
     cutoff = retention_cutoff()
     for row in former:
         ceased_on = date.fromisoformat(row["ceased_on"])
-        if ceased_on >= opened_on:
+        if opening is not None and ceased_on >= opening.effective_on:
             raise ValidationError(
-                f"Import only former members who ceased before the register's opening on {opened_on.isoformat()}."
+                "Import only former members who ceased before the register's opening on "
+                f"{opening.effective_on.isoformat()}."
             )
         if ceased_on < cutoff:
             raise ValidationError(
@@ -220,14 +232,18 @@ def submit_import(
             return existing
         opening = _opening(token)
         _check_unapplied(token)
-        _check_former(former, opening.effective_on)
-        known = set(
-            RegisterMember.objects.filter(company=company, uuid__in=[row["member"] for row in current]).values_list(
-                "uuid", flat=True
+        _check_former(former, opening)
+        if opening is None:
+            _check_openable(token)
+            _members_of(company, current)
+        else:
+            known = set(
+                RegisterMember.objects.filter(company=company, uuid__in=[row["member"] for row in current]).values_list(
+                    "uuid", flat=True
+                )
             )
-        )
-        if {row["member"] for row in current} != {str(member) for member in known}:
-            raise ValidationError("Every imported member must already be a member of this company.")
+            if {row["member"] for row in current} != {str(member) for member in known}:
+                raise ValidationError("Every imported member must already be a member of this company.")
         if not CompanyDocument.objects.filter(
             pk=document_id, company=company, document_type=DocumentType.SHARE_REGISTER
         ).exists():
@@ -250,15 +266,15 @@ def submit_import(
         )
 
 
-def _holdings(register):
+def _holdings(token_id):
     return {
         str(position.member_id): position
-        for position in RegisterPosition.objects.filter(register=register, shares__gt=0)
+        for position in RegisterPosition.objects.filter(register__token_id=token_id, shares__gt=0)
     }
 
 
-def _comparison(proposal, register):
-    stored = _holdings(register)
+def _comparison(proposal):
+    stored = _holdings(proposal.token_id)
     imported = {row["member"]: int(row["shares"]) for row in proposal.members}
     return [
         {
@@ -324,7 +340,9 @@ def prepare_import_review(*, proposal_id, reviewer):
     _check_evidence(proposal, proposal.company, CompanyDocument.objects.filter(pk=proposal.source_document).first())
     _check_asic(proposal, proposal.company)
     _check_unapplied(proposal.token)
-    comparison = _review_rows(proposal, _comparison(proposal, _opening(proposal.token).register))
+    if _opening(proposal.token) is None:
+        _check_openable(proposal.token)
+    comparison = _review_rows(proposal, _comparison(proposal))
     return proposal, comparison, signing.dumps(_preview(proposal, reviewer), salt=SALT)
 
 
@@ -336,6 +354,21 @@ def _figures(asic_issued_total, asic_member_count):
     if total < 0 or count < 0:
         raise ValidationError("Enter the ASIC extract's issued total and member count for this class.")
     return total, count
+
+
+def _open(proposal, token, reviewer):
+    _check_openable(token)
+    register = _check_uninitialized(token)
+    for row in proposal.members:
+        create_member(company_id=token.company_id, member_id=row["member"])
+    record_entry(
+        register_id=register.pk,
+        operation_id=proposal.pk,
+        kind=RegisterEntryKind.OPENING,
+        changes=[{"member": row["member"], "shares": row["shares"]} for row in proposal.members],
+        effective_on=proposal.as_at,
+        recorded_by=reviewer,
+    )
 
 
 def _completed_import(proposal, reviewer, decision, rejection_reason, figures):
@@ -379,8 +412,12 @@ def decide_import(
                     f"The ASIC extract shows {total} shares held by {count} members; the import has "
                     f"{imported_total} shares held by {len(proposal.members)} members."
                 )
-            register = _opening(token).register
-            _check_holdings(_comparison(proposal, register))
+            opening = _opening(token)
+            _check_former(proposal.former_members, opening)
+            if opening is None:
+                _open(proposal, token, reviewer)
+            else:
+                _check_holdings(_comparison(proposal))
             newer = {
                 str(member)
                 for member in RegisterMemberParticulars.objects.filter(
@@ -412,7 +449,7 @@ def decide_import(
             proposal.status = "applied"
             proposal.asic_issued_total = total
             proposal.asic_member_count = count
-            proposal.register_sequence = register.sequence
+            proposal.register_sequence = ShareRegister.objects.get(token=token).sequence
         else:
             proposal.status = "rejected"
             proposal.rejection_reason = rejection_reason

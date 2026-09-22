@@ -68,10 +68,10 @@ reads `Transfer` events, so it sees every movement the chain records. What it
 cannot see is a member who ceased before the class was deployed on this
 platform. A company migrating an existing register onto Ledova brings history
 the fold cannot reconstruct. An import now records those former members, and its
-members' particulars, for a class already opened from the chain, checked against
-the ASIC extract's figures. A class not yet on chain cannot be opened from an
-import yet, and in either operating model that remains the first gap, because a
-real company arrives with a register and former members already.
+members' particulars, checked against the ASIC extract's figures: it adds them to
+a class already opened from the chain, and for a class not yet on chain it is the
+opening itself. Completeness then rests on the register the company brings,
+which the ASIC extract checks only for current holdings.
 
 **Status.** Reviewed 2026-09-15; unchanged except the last three sentences, which
 now describe the import.
@@ -363,8 +363,9 @@ hash-chained event log and the holdings it produces, and the register is read
 from them with the chain unreachable. A correction is a compensating entry that
 those holdings already reflect. A scheduled job reconciles the stored register
 with the chain and retains each result. Former members are stored, and an
-import records members' particulars and pre-platform former members for a class
-opened from the chain. Staff prepare the s173(3) copy in admin, on the company's
+import records members' particulars and pre-platform former members, and opens a
+class not yet on chain from the company's register. Staff prepare the s173(3)
+copy in admin, on the company's
 written instruction: the register as exported, with the request date, the
 instruction's reference and the recipient, marked late when prepared more than
 seven days after the request. Ledova keeps its SHA-256 and the request details,
