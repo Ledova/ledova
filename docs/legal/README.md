@@ -151,6 +151,14 @@ Read the provision before relying on a summary of it.
   for who is covered despite the exemption.
 - [ATO: employee share scheme start-up concession](https://www.ato.gov.au/businesses-and-organisations/corporate-tax-measures-and-assurance/employee-share-schemes/employers/types-of-ess/concessional-ess/start-up-concession-interests-acquired-after-30-june-2015).
 
+**Licences**
+
+- [GNU Affero General Public License, version 3](https://www.gnu.org/licenses/agpl-3.0.html),
+  sections 0, 2, 4 to 6 and 13, behind position 12.
+- PyMuPDF's package metadata and project description, which declare its dual
+  licence, and [Artifex's licensing page](https://artifex.com/licensing) for the
+  commercial terms, which were not read.
+
 What does not exist, and is worth knowing rather than searching for: community
 legal centres and legal aid do not take commercial financial-services work.
 Fixed-fee opinions are affordable only on questions already made precise, which

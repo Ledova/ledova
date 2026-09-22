@@ -98,6 +98,7 @@ class RegisterAcknowledgement(BaseModel):
 class RegisterExportKind(models.TextChoices):
     REGISTER_CSV = "register_csv", "Register CSV"
     INSPECTION_COPY = "inspection_copy", "Inspection copy"
+    CERTIFICATE = "certificate", "Certificate"
 
 
 class RegisterExport(BaseModel):
@@ -129,6 +130,22 @@ class RegisterExport(BaseModel):
                 condition=~models.Q(kind=RegisterExportKind.REGISTER_CSV)
                 | models.Q(digest="", instruction="", recipient="", requested_on__isnull=True, late__isnull=True),
                 name="register_export_csv_carries_no_request",
+            ),
+            models.CheckConstraint(
+                condition=~models.Q(kind=RegisterExportKind.CERTIFICATE)
+                | (
+                    models.Q(
+                        digest__regex="^[0-9a-f]{64}$",
+                        member_rows__gte=1,
+                        member_rows__lte=2,
+                        former_rows=0,
+                        recipient="",
+                        requested_on__isnull=True,
+                        late__isnull=True,
+                    )
+                    & ~models.Q(instruction__regex=r"^\s*$")
+                ),
+                name="register_export_certificate_shape",
             ),
         ]
 

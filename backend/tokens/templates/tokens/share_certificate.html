@@ -1,0 +1,16 @@
+<h1>Share certificate</h1>
+<p>Certificate number: {{ number }}</p>
+<p>Company: {{ company.name }}</p>
+<p>ACN: {{ company.acn }}</p>
+<p>Share class: {{ token.name }} ({{ token.symbol }})</p>
+<p>Member: {{ name }}</p>
+<p>Residential address: {{ residential_address|linebreaksbr }}</p>
+<p>Shares: {{ shares }}, {% if balance %}the balance the member holds after the transfer in entry {{ entry.sequence }}{% elif entry.kind == "issue" %}issued to the member by entry {{ entry.sequence }}{% else %}transferred to the member by entry {{ entry.sequence }}{% endif %}</p>
+<p>Holding in the class after entry {{ entry.sequence }}: {{ holding }}</p>
+<p>Register entry: {{ entry.sequence }}, dated {{ entry.effective_on|date:"Y-m-d" }}</p>
+<p>Entry hash: {{ entry.entry_hash }}</p>
+<h2>Execution</h2>
+<p>Prepared unsigned on the company's written instruction, for the company to execute.</p>
+<p>Signature ______________________ Name ______________________ Office held ______________________</p>
+<p>Signature ______________________ Name ______________________ Office held ______________________</p>
+<p>Date ______________________</p>

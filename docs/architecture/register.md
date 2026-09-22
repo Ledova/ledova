@@ -198,6 +198,55 @@ opening, a request date after today and a blank field are refused, and a
 refusal records nothing. The records share the export records' update guard,
 operator-only table and daily purge after the 2,557-day floor.
 
+## Certificates
+
+Section 1071H requires a company to have a certificate ready within 2 months
+after an issue and within 1 month after a transfer is lodged. Staff prepare it
+in admin, on the company's written instruction, from the share class's
+**Register outputs** page, with the permission inspection copies use; the
+[runbook](../operations/register-foundation.md#preparing-a-certificate) has the
+steps. There is no API route. Ledova prepares the certificate unsigned and the
+company executes it (owner decision, 22 September 2026).
+
+`prepare_certificate` in [register.py](../../backend/tokens/services/register.py)
+reads one entry of the class's own register, by its number, from one snapshot.
+Only an issue or a transfer has a certificate. The PDF has a page for the member
+the entry moved shares to, the allottee of an issue or the transferee of a
+transfer, and for a transfer a balance certificate for the transferor when they
+still hold shares after it. Pages are numbered from the entry, the moved shares
+first, as 12-1 and 12-2, so no counter is kept. Each page shows the company, its
+ACN, the share class, the member's name and residential address, the shares it
+certifies, the member's holding in the class after the entry, and the entry's
+number, date and hash, then an unsigned execution block. Holdings are replayed
+from the entries up to and including the certified one, so a later entry does
+not change them, and a balance certificate certifies that holding.
+
+Names and addresses are the ones the register gives the member when the
+certificate is prepared, resolved as in [membership and identity](#membership-and-identity),
+not the ones current when the entry was made. A member whose wallets resolve to
+different people, or who has no name or residential address on record, stops
+the whole certificate, as do an entry that is not an issue or a transfer and a
+number the class's register does not have. A refusal records nothing. A later
+correction of the entry does not stop its certificate, which states the entry
+and the holding after it.
+
+PyMuPDF renders each page from an HTML template in which every value is escaped,
+so markup in a name prints as written, and it embeds the glyphs non-Latin names
+need. It is imported only when a certificate is rendered;
+[legal position 12](../legal/positions.md#12-pymupdf-an-agpl-runtime-dependency)
+records its licence. The file carries no creation date or random identifier, so
+preparing the same entry again gives the same bytes while the register, the
+particulars and the PyMuPDF version stay the same.
+
+Ledova keeps a fingerprint, not the file. Each certificate is recorded in
+`RegisterExport` as a `certificate`, whose register sequence is the certified
+entry's and whose member rows count its pages, with the SHA-256 of the exact
+bytes served and the instruction's reference. A database check constraint
+requires the digest, the instruction and one or two pages, and allows no former
+rows and none of an inspection copy's request fields. The records share the
+export records' update guard, operator-only table and daily purge after the
+2,557-day floor.
+
 ## Reconciliation
 
 [register_reconciliation.py](../../backend/tokens/services/register_reconciliation.py)

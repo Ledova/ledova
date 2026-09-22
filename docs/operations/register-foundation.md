@@ -15,9 +15,10 @@ effects against the captured boundary, and a scheduled job reconciles it with th
 chain. An
 import adds an existing register's particulars and former members to a class
 opened from the chain, and staff prepare
-[inspection copies](#preparing-an-inspection-copy) of it on a company's written
-instruction. A class not yet on chain cannot be opened from an import
-yet, so no real company's register may rely on the foundation yet.
+[inspection copies](#preparing-an-inspection-copy) of it and
+[certificates](#preparing-a-certificate) for its issues and transfers on a
+company's written instruction. A class not yet on chain cannot be opened from
+an import yet, so no real company's register may rely on the foundation yet.
 
 ## Identity and events
 
@@ -715,6 +716,62 @@ on a weekend or public holiday is not extended, so the flag errs towards late.
 Tell the company when a copy is late: the obligation is theirs. The records
 cannot be rewritten, are read only by staff, and follow the export records'
 2,557-day floor and daily purge.
+
+## Preparing a certificate
+
+A company must have a certificate ready within 2 months after an issue and 1
+month after a transfer is lodged (s1071H of the Corporations Act). Staff prepare
+it only on the company's written instruction. Ledova hands it over unsigned, and
+the company executes it and gives it to the member (owner decision,
+22 September 2026).
+
+You need the **Can change register outputs** permission that inspection copies
+use. The share class needs an applied opening.
+
+1. Keep the company's written instruction, and note its reference and the issue
+   or transfer it names.
+2. Find that entry's number, its sequence in the share class's register. Admin
+   has no list of entries: from `backend/`, run `python manage.py shell`, which
+   uses the operator connection, and list the class's entries:
+
+   ```python
+   from tokens.models import RegisterEntry
+   RegisterEntry.objects.filter(register__token_id="TOKEN_UUID").values_list(
+       "sequence", "kind", "effective_on", "operation_id", "corrects__sequence"
+   )
+   ```
+
+   An issue's operation is its share issuance and a transfer's is its swap
+   order. A correction's last value is the number of the entry it reverses.
+3. In **Admin → Tokens → Register outputs**, open the share class and choose
+   **Prepare a certificate**.
+4. Enter the entry's number and the instruction's reference, then choose
+   **Prepare and download**.
+
+The download, `certificate-SYMBOL-N.pdf` for entry N, has a page N-1 for the
+member the entry moved shares to and, for a transfer, a page N-2 certifying the
+balance a transferor still holds after it. Each page shows the holding after
+that entry, whatever has happened since, and the names and addresses the
+register gives when you prepare it. Check the pages against the instruction and
+give the file to the company unchanged to execute. The page refuses, and records
+nothing, an entry that is not an issue or a transfer, a number the share class's
+register does not have, and a member whose wallets resolve to different people
+or who has no name or residential address on record. The refusal names the
+member: the register must be able to name them, as
+[membership and identity](../architecture/register.md#membership-and-identity)
+describes, before their certificate can be prepared. A correction that reversed
+the entry does not stop its certificate, so check for one first.
+
+Each certificate is recorded once in **Admin → Tokens → Register exports** as
+kind **Certificate**: who prepared it, the entry's number as the register
+sequence, the number of pages as member rows, the instruction and the file's
+SHA-256 digest. Search by instruction. Ledova keeps no copy of the file. To
+confirm that a file is the one prepared, compare the output of
+`sha256sum certificate-SYMBOL-N.pdf` with the record's digest. Preparing the
+same entry again makes a new record, and the same file while the register, the
+members' particulars and the PyMuPDF version are unchanged. The records cannot
+be rewritten, are read only by staff, and follow the export records' 2,557-day
+floor and daily purge.
 
 ## Importing an existing register
 

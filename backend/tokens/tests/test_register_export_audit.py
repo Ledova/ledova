@@ -1,4 +1,5 @@
 import hashlib
+import importlib
 from datetime import timedelta
 from uuid import uuid4
 
@@ -17,6 +18,7 @@ from tokens.constants import STATUTORY_CALENDAR
 from tokens.models import RegisterExport, RegisterOutput
 from tokens.services.former_holders import purge_register_exports
 from tokens.tasks.former_holders import purge_former_members_past_the_clock
+from tokens.tests.test_register_certificates import entered, member_of, wallet_of
 from tokens.tests.test_register_events import DAY, register_fixture
 
 User = get_user_model()
@@ -30,6 +32,7 @@ REQUEST = {
     "late": False,
 }
 NO_REQUEST = {"digest": "", "instruction": "", "requested_on": None, "recipient": "", "late": None}
+CERTIFICATE = {**NO_REQUEST, "kind": "certificate", "digest": DIGEST, "instruction": "SYNTHETIC-INSTRUCTION-3"}
 
 
 def recorded(token, owner):
@@ -52,6 +55,17 @@ def copied(token, owner):
         member_rows=1,
         former_rows=0,
         **REQUEST,
+    )
+
+
+def certified(token, owner):
+    return RegisterExport.objects.create(
+        token=token,
+        requested_by_id=owner.pk,
+        register_sequence=2,
+        member_rows=2,
+        former_rows=0,
+        **CERTIFICATE,
     )
 
 
@@ -82,11 +96,17 @@ class RegisterExportAuditTest(TestCase):
 
     def test_a_record_is_retained_as_written(self):
         copy = copied(self.token, self.owner)
-        for record, change in ((self.record, {"member_rows": 3}), (copy, {"digest": "b" * 64})):
+        certificate = certified(self.token, self.owner)
+        for record, change in (
+            (self.record, {"member_rows": 3}),
+            (copy, {"digest": "b" * 64}),
+            (certificate, {"digest": "b" * 64}),
+        ):
             with self.subTest(kind=record.kind), self.assertRaises(DatabaseError), atomic():
                 RegisterExport.objects.filter(pk=record.pk).update(**change)
         self.assertEqual(RegisterExport.objects.get(pk=self.record.pk).member_rows, 2)
         self.assertEqual(RegisterExport.objects.get(pk=copy.pk).digest, DIGEST)
+        self.assertEqual(RegisterExport.objects.get(pk=certificate.pk).digest, DIGEST)
 
     def test_the_database_holds_each_kind_to_its_own_request_fields(self):
         self.insert()
@@ -118,6 +138,46 @@ class RegisterExportAuditTest(TestCase):
                 self.insert(**columns)
         self.assertEqual(RegisterExport.objects.count(), 3)
 
+    def test_the_database_holds_a_certificate_to_its_digest_instruction_and_one_or_two_pages(self):
+        self.insert(**CERTIFICATE)
+        self.insert(**CERTIFICATE, member_rows=2)
+        self.insert(**{**NO_REQUEST, "kind": "register_csv", "member_rows": 3, "former_rows": 1})
+        self.assertEqual(
+            sorted(RegisterExport.objects.values_list("kind", "member_rows", "former_rows")),
+            [("certificate", 1, 0), ("certificate", 2, 0), ("register_csv", 2, 0), ("register_csv", 3, 1)],
+        )
+        for field, value in (
+            ("digest", ""),
+            ("digest", "A" * 64),
+            ("digest", "a" * 63),
+            ("instruction", ""),
+            ("instruction", " \t"),
+            ("member_rows", 0),
+            ("member_rows", 3),
+            ("former_rows", 1),
+            ("recipient", "Synthetic Requester"),
+            ("requested_on", DAY),
+            ("late", False),
+        ):
+            with (
+                self.subTest(field=field, value=value),
+                self.assertRaisesMessage(IntegrityError, "register_export_certificate_shape"),
+                atomic(),
+            ):
+                self.insert(**{**CERTIFICATE, field: value})
+        self.assertEqual(RegisterExport.objects.count(), 4)
+
+    def test_downgrade_refuses_to_discard_certificate_records(self):
+        migration = importlib.import_module("tokens.migrations.0076_register_certificates")
+        copied(self.token, self.owner)
+        with atomic(), connections[current_alias()].schema_editor() as editor:
+            migration.refuse_reversal(None, editor)
+        certificate = certified(self.token, self.owner)
+        with self.assertRaisesRegex(RuntimeError, "Retain certificate records"), atomic():
+            with connections[current_alias()].schema_editor() as editor:
+                migration.refuse_reversal(None, editor)
+        self.assertTrue(RegisterExport.objects.filter(pk=certificate.pk).exists())
+
     def test_the_purge_keeps_records_until_the_seven_year_clock_then_removes_them(self):
         exported_at = self.record.created_at
         self.assertEqual(purge_register_exports(now=exported_at + timedelta(days=2557)), 0)
@@ -131,6 +191,13 @@ class RegisterExportAuditTest(TestCase):
         self.assertTrue(RegisterExport.objects.filter(pk=copy.pk).exists())
         purge_register_exports(now=copy.created_at + timedelta(days=2558))
         self.assertFalse(RegisterExport.objects.filter(pk=copy.pk).exists())
+
+    def test_the_purge_keeps_a_certificate_record_until_the_seven_year_clock_then_removes_it(self):
+        certificate = certified(self.token, self.owner)
+        purge_register_exports(now=certificate.created_at + timedelta(days=2557))
+        self.assertTrue(RegisterExport.objects.filter(pk=certificate.pk).exists())
+        purge_register_exports(now=certificate.created_at + timedelta(days=2558))
+        self.assertFalse(RegisterExport.objects.filter(pk=certificate.pk).exists())
 
     def test_the_daily_retention_job_purges_exports_with_former_members(self):
         self.assertEqual(
@@ -157,7 +224,7 @@ class RegisterExportAuditTest(TestCase):
 class ScopedRegisterExportAuditTest(RunsOnTheScopedConnection, APITransactionTestCase):
     def setUp(self):
         with use_operator():
-            self.owner, _, self.token, _, _, _ = register_fixture()
+            self.owner, self.company, self.token, _, _, self.opening = register_fixture()
             recorded(self.token, self.owner)
 
     def test_only_the_operator_reads_or_writes_export_records_and_the_issuer_is_refused_both(self):
@@ -201,4 +268,34 @@ class ScopedRegisterExportAuditTest(RunsOnTheScopedConnection, APITransactionTes
         self.assertEqual(
             (record.requested_by_id, record.digest, record.requested_on),
             (staff.pk, hashlib.sha256(response.content).hexdigest(), requested_on),
+        )
+
+    def test_the_issuer_can_neither_read_nor_write_a_certificate_record(self):
+        with use_operator():
+            certificate = certified(self.token, self.owner)
+        self.the_principal_the_middleware_would_set(self.owner)
+        with self.assertRaisesRegex(DatabaseError, "permission denied for table tokens_registerexport"), atomic():
+            RegisterExport.objects.filter(pk=certificate.pk).exists()
+        with self.assertRaisesRegex(DatabaseError, "permission denied for table tokens_registerexport"), atomic():
+            certified(self.token, self.owner)
+        with use_operator():
+            self.assertEqual(list(RegisterExport.objects.filter(kind="certificate")), [certificate])
+
+    @override_settings(STORAGES=ADMIN_STORAGES)
+    def test_the_register_outputs_page_records_its_certificate_on_the_operator_connection(self):
+        with use_operator():
+            member = member_of(self.company, wallet_of("Synthetic Scoped Member", "4 Synthetic Street"))
+            entered(self.opening.register, "issue", (member, 5))
+            staff = grant(staff_user("scoped-certificates"), admin.site._registry[RegisterOutput], "change")
+            self.client.force_login(staff)
+        response = self.client.post(
+            reverse("admin:tokens_registeroutput_certificate", args=[self.token.pk]),
+            {"sequence": 2, "instruction": "SYNTHETIC-INSTRUCTION-4"},
+        )
+        self.assertEqual((response.status_code, response["Content-Type"]), (200, "application/pdf"))
+        with use_operator():
+            record = RegisterExport.objects.get(kind="certificate")
+        self.assertEqual(
+            (record.requested_by_id, record.digest, record.register_sequence, record.member_rows),
+            (staff.pk, hashlib.sha256(response.content).hexdigest(), 2, 1),
         )

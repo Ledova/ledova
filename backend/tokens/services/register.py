@@ -6,15 +6,21 @@ from contextlib import contextmanager
 from datetime import date, timedelta
 from datetime import timezone as utc_zone
 from decimal import Decimal
+from uuid import UUID
 
 from django.db import connections
 from django.db.models import BigIntegerField, CharField, Value
+from django.template.loader import render_to_string
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from shared.db import atomic, current_alias
 from shared.utils import csv_cell
-from tokens.constants import INSPECTION_COPY_DAYS, STATUTORY_CALENDAR
+from tokens.constants import (
+    CERTIFICATE_MARGIN,
+    INSPECTION_COPY_DAYS,
+    STATUTORY_CALENDAR,
+)
 from tokens.exceptions import RegisterNotInitialized
 from tokens.models import (
     ImportedFormerMember,
@@ -278,6 +284,20 @@ def _imported(token):
     return applied.register_sequence, {row["member"]: row for row in applied.members}
 
 
+def _identity_sources(token, member_ids):
+    particulars = {
+        record.member_id: record for record in RegisterMemberParticulars.objects.filter(member_id__in=member_ids)
+    }
+    wallets = defaultdict(list)
+    for link in RegisterMemberWallet.objects.filter(company_id=token.company_id, member_id__in=member_ids).order_by(
+        "address"
+    ):
+        wallets[link.member_id].append(link.address)
+    identities = identities_for([address for addresses in wallets.values() for address in addresses])
+    stamps = ShareIssuance.objects.filter_by_token(token).latest_identity_stamps()
+    return particulars, wallets, identities, stamps
+
+
 def _stored_register(token):
     register = ShareRegister.objects.filter(token=token).first()
     if register is None or register.sequence == 0:
@@ -288,23 +308,11 @@ def _stored_register(token):
         .select_related("last_entry")
         .order_by("-shares", "member_id")
     )
-    particulars = {
-        record.member_id: record
-        for record in RegisterMemberParticulars.objects.filter(
-            member_id__in=[position.member_id for position in positions]
-        )
-    }
+    particulars, wallets, identities, stamps = _identity_sources(token, [position.member_id for position in positions])
     imported_at, imported = _imported(token)
-    wallets = defaultdict(list)
-    for link in RegisterMemberWallet.objects.filter(
-        company_id=token.company_id, member_id__in=[position.member_id for position in positions]
-    ).order_by("address"):
-        wallets[link.member_id].append(link.address)
     ceased, former = _cessations(
         token, {address.lower(): member for member, addresses in wallets.items() for address in addresses}
     )
-    identities = identities_for([address for addresses in wallets.values() for address in addresses])
-    stamps = ShareIssuance.objects.filter_by_token(token).latest_identity_stamps()
     allotments = {address.lower(): allotment for address, allotment in _allotments(token).items()}
     issued = int(register.issued_supply)
     rows = []
@@ -470,6 +478,92 @@ def prepare_inspection_copy(token, requested_by, *, instruction, requested_on, r
         requested_on=requested_on,
         recipient=recipient,
         late=late,
+    )
+    return content
+
+
+def _holdings_after(entry, members) -> dict:
+    held = dict.fromkeys(members, 0)
+    for changes in RegisterEntry.objects.filter(
+        register_id=entry.register_id, sequence__lte=entry.sequence
+    ).values_list("changes", flat=True):
+        for change in changes:
+            member = UUID(change["member"])
+            if member in held:
+                held[member] += int(change["shares"])
+    return held
+
+
+def _certificate_pages(token, entry) -> list[dict]:
+    moved = {UUID(change["member"]): int(change["shares"]) for change in entry.changes}
+    held = _holdings_after(entry, moved)
+    parties = [(member, shares, False) for member, shares in moved.items() if shares > 0]
+    parties += [(member, held[member], True) for member, shares in moved.items() if shares < 0 and held[member]]
+    particulars, wallets, identities, stamps = _identity_sources(token, [member for member, _, _ in parties])
+    pages = []
+    for index, (member, shares, balance) in enumerate(parties, 1):
+        number = f"{entry.sequence}-{index}"
+        holder_type, name, residential_address, _, _ = _member_identity(
+            wallets[member], identities, stamps, particulars.get(member)
+        )
+        if holder_type == HolderType.AMBIGUOUS.value:
+            raise ValidationError(
+                f"Certificate {number} cannot be prepared: member {member}'s wallets resolve to different people."
+            )
+        if not name.strip() or not residential_address.strip():
+            raise ValidationError(
+                f"Certificate {number} cannot be prepared: member {member} is not identified by a name and "
+                "residential address."
+            )
+        pages.append(
+            {
+                "number": number,
+                "name": name,
+                "residential_address": residential_address,
+                "shares": shares,
+                "holding": held[member],
+                "balance": balance,
+            }
+        )
+    return pages
+
+
+def _certificate_pdf(token, entry, pages) -> bytes:
+    import pymupdf
+
+    with pymupdf.open() as document:
+        for page in pages:
+            sheet = document.new_page()
+            sheet.insert_htmlbox(
+                sheet.rect + (CERTIFICATE_MARGIN, CERTIFICATE_MARGIN, -CERTIFICATE_MARGIN, -CERTIFICATE_MARGIN),
+                render_to_string(
+                    "tokens/share_certificate.html",
+                    {"company": token.company, "token": token, "entry": entry, **page},
+                ),
+            )
+        document.subset_fonts()
+        document.set_metadata({})
+        return document.tobytes(garbage=3, deflate=True, no_new_id=True)
+
+
+def prepare_certificate(token, requested_by, *, sequence, instruction) -> bytes:
+    with _snapshot():
+        entry = RegisterEntry.objects.filter(register__token=token, sequence=sequence).first()
+        if entry is None:
+            raise ValidationError(f"This share class's register has no entry {sequence}.")
+        if entry.kind not in (RegisterEntryKind.ISSUE, RegisterEntryKind.TRANSFER):
+            raise ValidationError(f"Entry {sequence} is not an issue or a transfer, so it has no certificate.")
+        pages = _certificate_pages(token, entry)
+        content = _certificate_pdf(token, entry, pages)
+    RegisterExport.objects.create(
+        token=token,
+        requested_by_id=requested_by.pk,
+        kind=RegisterExportKind.CERTIFICATE,
+        register_sequence=entry.sequence,
+        member_rows=len(pages),
+        former_rows=0,
+        digest=hashlib.sha256(content).hexdigest(),
+        instruction=instruction,
     )
     return content
 

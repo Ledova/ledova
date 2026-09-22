@@ -175,6 +175,15 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   Correction submission now refuses an effective date after the day it is
   submitted (UTC); a pending correction submitted before the upgrade is not
   rechecked, so reject one dated in the future rather than apply it.
+- `tokens/0076_register_certificates` adds the `certificate` kind of register
+  export and a check constraint: a certificate record carries a digest, an
+  instruction and one or two pages, and no former rows, request date, recipient
+  or late flag. It rewrites no existing record, which is a CSV export or an
+  inspection copy. The [Register outputs](register-foundation.md#preparing-a-certificate)
+  page gains **Prepare a certificate** under the existing **Can change register
+  outputs** permission. Preparing one imports PyMuPDF, already a runtime
+  dependency, in the web process that serves admin. Reversal refuses once any
+  certificate record exists.
 - `whitelist/0002_whitelistentry_treasury_addresses` makes
   `WhitelistEntry.wallet` nullable and adds `address` and `label` with a check
   constraint; `whitelist/0003` adds the partial unique constraint on `address`
