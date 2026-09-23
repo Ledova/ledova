@@ -65,6 +65,11 @@ SYSTEM_WIDE = {
     "on the operator connection, and it is the only deletion anyone may perform on those tables, because the "
     "app role's policy refuses all three write commands on both of them and has no grant on the read records "
     "at all.",
+    "shareholders.tasks.publications.tell_the_members": "Announces one publication to every member of the frozen "
+    "roll who has an account, by deferring one ordinary notification each. It belongs to no tenant: it reads a "
+    "whole company's roll on the operator connection, which no member and no issuer may do, and the members it "
+    "writes to are the company's rather than its own. It carries no holding and no document: the notice names "
+    "the publication, and the member's own route re-resolves and audits the read before anything is served.",
     "tokens.tasks.former_holders.purge_former_members_past_the_clock": "Deletes former-member records "
     "seven years after the date they ceased, imported former members seven years after their date ceased, "
     "member particulars seven years after the member last held shares, and register export records seven "
