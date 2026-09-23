@@ -5,7 +5,7 @@ from django.db.models.expressions import RawSQL
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 
-from shared.db import APP_ALIAS, atomic, current_alias, use_operator
+from shared.db import APP_ALIAS, atomic, current_alias, principal_of, use_operator
 from shareholders.constants import SPECIAL_RESOLUTION_MAJORITY
 from shareholders.exceptions import NO_PUBLICATION, PublicationIntegrityError
 from shareholders.models import (
@@ -81,6 +81,8 @@ def _record_ballot(publication, recipient, choice, *, actor_id, authority=""):
 
 
 def cast_ballot(user, publication_id, choice):
+    if current_alias() == APP_ALIAS and principal_of() != str(user.pk):
+        raise NotFound(NO_PUBLICATION)
     publication = Publication.objects.filter(pk=publication_id, kind=PublicationKind.RESOLUTION).first()
     recipient = (
         None

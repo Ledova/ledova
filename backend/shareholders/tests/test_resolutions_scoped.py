@@ -158,6 +158,20 @@ class ScopedResolutionTest(RunsOnTheScopedConnection, StubUploadDependencies, Tr
         with use_operator():
             self.assertFalse(PublicationEvent.objects.exists())
 
+    def test_the_company_owner_cannot_cast_in_a_member_s_name_though_it_reads_the_whole_roll(self):
+        holder = self.here.members[0]
+        self.the_principal_the_middleware_would_set(self.here.owner)
+        with atomic():
+            self.assertEqual(
+                PublicationRecipient.objects.filter(publication=self.resolution, user_id=holder.user.pk).count(), 1
+            )
+
+        with self.assertRaises(NotFound):
+            cast_ballot(holder.user, self.resolution.pk, BallotChoice.FOR)
+
+        with use_operator():
+            self.assertFalse(PublicationEvent.objects.exists())
+
     def test_a_member_of_another_company_cannot_cast_on_this_company_s_resolution(self):
         stranger = self.there.members[0]
         self.the_principal_the_middleware_would_set(stranger.user)

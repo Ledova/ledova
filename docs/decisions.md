@@ -239,7 +239,10 @@ proxies the issue's non-goals exclude.
   does, and only the insert runs on the operator connection. The guarantee that
   a member casts only their own ballot stays in the database: the trigger
   refuses a ballot that is not staff-entered unless its actor is the account the
-  roll row names. Members, staff and the closing job then share one write path
+  roll row names. On the application connection `cast_ballot` also refuses
+  unless the connection's principal is the user it casts for, because a
+  company owner's policy admits the whole roll and could otherwise find a
+  member's row. Members, staff and the closing job then share one write path
   and one lock.
 
 Dividends rounded down per holder with the remainder recorded as unpaid was
