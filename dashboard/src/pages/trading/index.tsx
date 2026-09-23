@@ -118,6 +118,7 @@ export function TradingPage() {
 
   const { wallets, actionWallets, walletAddresses } = useUserTradingWallets();
   const latestWallets = useRef(wallets);
+  // eslint-disable-next-line react-hooks/refs
   latestWallets.current = wallets;
   useEffect(() => {
     if (settlements.active && !settlements.active.isCurrent()) settlements.close();

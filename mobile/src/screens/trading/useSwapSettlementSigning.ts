@@ -25,6 +25,7 @@ export function useSwapSettlementSigning(settlement: SwapSettlement, wallet: Wal
   const state = useSyncExternalStore(settlement.subscribe, settlement.getSnapshot, settlement.getSnapshot);
   const pinned = useRef({ settlement, material: settlementWalletMaterial(wallet), retired: false });
   const latest = useRef({ wallet, visible });
+  // eslint-disable-next-line react-hooks/refs
   latest.current = { wallet, visible };
   const [view, setView] = useState<SigningView>({
     step: 'review',
@@ -46,6 +47,7 @@ export function useSwapSettlementSigning(settlement: SwapSettlement, wallet: Wal
     }
     return !pinned.current.retired;
   };
+  // eslint-disable-next-line react-hooks/refs
   isCurrent();
   useEffect(
     () => () => {

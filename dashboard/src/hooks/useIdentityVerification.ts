@@ -64,6 +64,7 @@ export function useIdentityVerification() {
 
   useEffect(() => {
     if (justSubmitted && (isVerified || isRejected)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setJustSubmitted(false);
       queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
     }

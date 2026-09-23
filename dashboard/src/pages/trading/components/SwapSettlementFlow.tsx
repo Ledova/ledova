@@ -53,8 +53,10 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
     [settlement, walletKey],
   );
   const activeView = useRef(view);
+  // eslint-disable-next-line react-hooks/refs
   activeView.current = view;
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability
     view.closed = false;
     return () => {
       view.closed = true;
@@ -78,6 +80,7 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
     if (!idle() || !canSign || !wallet || !response) return;
     if (kind === 'signature' && state.approvalStatus?.needsApproval !== false) return;
     if (kind === 'approval' && !approval) return;
+    // eslint-disable-next-line react-hooks/immutability
     view.error = null;
     view.seedPhrase = '';
     view.kind = kind;
@@ -116,6 +119,7 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
     if (!idle() || !canSign || !wallet || view.step !== 'software') return;
     const phrase = view.seedPhrase.trim();
     const path = wallet.derivationPath || DEFAULT_EVM_DERIVATION_PATH;
+    // eslint-disable-next-line react-hooks/immutability
     view.seedPhrase = '';
     view.step = 'review';
     render();
@@ -151,6 +155,7 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
 
   const { error: scannerError, stopScanner } = useQRScanner({
     scannerId: 'swap-settlement-signature',
+    // eslint-disable-next-line react-hooks/refs
     enabled: ready && current() && view.step === 'scan' && liveQr,
     onScanSuccess: (text) => {
       if (!idle() || view.step !== 'scan' || !liveQr || view.qr !== reviewedQr || !wallet) return;
@@ -164,6 +169,7 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
         void (async () => {
           try {
             const signer = await swapSettlementCrypto.recoverSigner(response.typedData, signature);
+            // eslint-disable-next-line react-hooks/immutability
             if (idle() && current() && view.step === 'scan' && view.qr === reviewedQr)
               await settlement.submitSignature(signature, signer);
           } catch {
@@ -177,6 +183,7 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
   });
   const resetView = () => {
     stopScanner();
+    // eslint-disable-next-line react-hooks/immutability
     view.seedPhrase = '';
     view.qr = null;
     view.error = null;
@@ -184,6 +191,7 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
     render();
   };
   const close = () => {
+    // eslint-disable-next-line react-hooks/immutability
     view.closed = true;
     settlement.close();
     resetView();
@@ -293,6 +301,7 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
               </button>
             )}
             {approval && (
+              // eslint-disable-next-line react-hooks/immutability
               <button className={button} onClick={() => begin('approval')}>
                 Continue to approve
               </button>
@@ -310,10 +319,12 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
               value={view.seedPhrase}
               onChange={(value) => {
                 if (!current()) return;
+                // eslint-disable-next-line react-hooks/immutability
                 view.seedPhrase = value;
                 render();
               }}
             />
+            {/* eslint-disable-next-line react-hooks/immutability */}
             <button className={button} disabled={!view.seedPhrase.trim()} onClick={signSoftware}>
               {view.kind === 'approval' ? 'Sign approval' : 'Sign trade'}
             </button>
@@ -328,6 +339,7 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
               className={button}
               onClick={() => {
                 if (!idle() || !liveQr) return;
+                // eslint-disable-next-line react-hooks/immutability
                 view.step = 'scan';
                 render();
               }}

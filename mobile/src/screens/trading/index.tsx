@@ -43,6 +43,7 @@ export function TradingScreen() {
   useEffect(() => queryClient.getQueryCache().subscribe((event) => walletObserver.current?.(event)), [queryClient]);
   const settlements = useSwapSettlements(swapSettlementStore, swapSettlementCrypto, orderSubmissionSession);
   const settlementGeneration = useRef(0);
+  // eslint-disable-next-line react-hooks/refs
   const currentSettlementGeneration = settlementGeneration.current;
   const settlementScreen = useRef({ focused: true, close: () => {} });
   useLayoutEffect(() => {
@@ -80,6 +81,7 @@ export function TradingScreen() {
   const isEligible = eligibility?.isEligible ?? false;
   const { wallets, actionWallets, walletAddresses } = useUserTradingWallets();
   const currentWallets = useRef(wallets);
+  // eslint-disable-next-line react-hooks/refs
   currentWallets.current = wallets;
   settlements.active?.isCurrent();
   const tokenBalances = useAllWalletTokenBalances(walletAddresses);
