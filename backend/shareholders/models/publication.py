@@ -4,6 +4,7 @@ from django.db import models
 
 from shared.models import BaseModel
 from shared.storage import private_storage
+from shareholders.querysets.publication import PublicationQuerySet
 
 
 class PublicationKind(models.TextChoices):
@@ -20,7 +21,10 @@ def publication_file_path(instance, filename):
 
 class Publication(BaseModel):
     company = models.ForeignKey("companies.Company", on_delete=models.PROTECT, related_name="publications")
+    company_name = models.CharField(max_length=255, editable=False)
     token = models.ForeignKey("tokens.ShareToken", on_delete=models.PROTECT, related_name="publications")
+    token_name = models.CharField(max_length=100, editable=False)
+    token_symbol = models.CharField(max_length=10, editable=False)
     kind = models.CharField(max_length=32, choices=PublicationKind.choices, editable=False)
     title = models.CharField(max_length=255, editable=False)
     record_date = models.DateField(editable=False)
@@ -35,6 +39,8 @@ class Publication(BaseModel):
     member_rows = models.PositiveIntegerField(editable=False)
     audience_digest = models.CharField(max_length=64, editable=False)
     prepared_by_id = models.PositiveBigIntegerField(editable=False)
+
+    objects = PublicationQuerySet.as_manager()
 
     class Meta:
         ordering = ["-created_at", "-uuid"]
@@ -57,5 +63,11 @@ class Publication(BaseModel):
                 )
                 & ~models.Q(instruction__regex=r"^\s*$"),
                 name="publication_records_its_authority_and_snapshot",
+            ),
+            models.CheckConstraint(
+                condition=~models.Q(company_name__regex=r"^\s*$")
+                & ~models.Q(token_name__regex=r"^\s*$")
+                & ~models.Q(token_symbol__regex=r"^\s*$"),
+                name="publication_names_the_company_and_the_class",
             ),
         ]

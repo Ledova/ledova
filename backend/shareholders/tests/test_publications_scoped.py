@@ -1,15 +1,27 @@
+from unittest.mock import patch
+from uuid import uuid4
+
 from django.db import DatabaseError
+from django.test import override_settings
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.test import APITransactionTestCase
 
 from shared.db import atomic, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
+from shared.tests.test_admin_row_actions import ADMIN_STORAGES
 from shared.tests.upload_fixtures import StubUploadDependencies
 from shareholders.models import Publication, PublicationRead, PublicationRecipient
 from shareholders.services.publications import read_publication
-from shareholders.tests.fixtures import a_company_with_members, published
+from shareholders.tests.fixtures import (
+    PUBLICATION_BYTES,
+    a_company_with_members,
+    published,
+)
+
+LISTING = "/api/v1/publications/"
 
 
+@override_settings(STORAGES=ADMIN_STORAGES)
 class ScopedPublicationTest(RunsOnTheScopedConnection, StubUploadDependencies, APITransactionTestCase):
     def setUp(self):
         with use_operator():
@@ -106,3 +118,49 @@ class ScopedPublicationTest(RunsOnTheScopedConnection, StubUploadDependencies, A
 
         with self.assertRaises(PermissionDenied), atomic():
             published(self.here)
+
+    def test_the_route_lists_only_what_the_policies_admit_on_the_real_app_connection(self):
+        holder = self.here.members[0]
+        self.client.force_authenticate(holder.user)
+
+        listed = self.client.get(LISTING)
+
+        self.assertEqual(listed.status_code, 200)
+        self.assertEqual([row["uuid"] for row in listed.json()["results"]], [str(self.mine.pk)])
+        self.assertEqual(listed.json()["results"][0]["shares"], str(holder.shares))
+
+    def test_the_route_refuses_a_publication_addressed_to_a_member_of_another_company(self):
+        self.client.force_authenticate(self.here.members[0].user)
+
+        refused = self.client.get(f"{LISTING}{self.theirs.pk}/file/")
+        absent = self.client.get(f"{LISTING}{uuid4()}/file/")
+
+        self.assertEqual((refused.status_code, refused.content), (absent.status_code, absent.content))
+        self.assertEqual(refused.status_code, 404)
+        with use_operator():
+            self.assertEqual(PublicationRead.objects.count(), 0)
+
+    def test_the_route_serves_the_document_and_records_the_read_on_the_operator_connection(self):
+        holder = self.here.members[0]
+        self.client.force_authenticate(holder.user)
+
+        served = self.client.get(f"{LISTING}{self.mine.pk}/file/")
+
+        self.assertEqual(served.status_code, 200)
+        self.assertEqual(b"".join(served.streaming_content), PUBLICATION_BYTES)
+        with use_operator():
+            self.assertEqual(
+                list(PublicationRead.objects.values_list("actor_id", "publication_uuid", "kind")),
+                [(holder.user.pk, self.mine.pk, "member")],
+            )
+
+    def test_a_read_the_operator_connection_cannot_record_serves_nothing(self):
+        self.client.force_authenticate(self.here.members[0].user)
+
+        with patch.object(PublicationRead.objects, "create", side_effect=DatabaseError("no audit")):
+            refused = self.client.get(f"{LISTING}{self.mine.pk}/file/")
+
+        self.assertEqual(refused.status_code, 503)
+        self.assertNotIn(PUBLICATION_BYTES, refused.content)
+        with use_operator():
+            self.assertEqual(PublicationRead.objects.count(), 0)

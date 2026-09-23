@@ -196,6 +196,10 @@ REGISTER_IMPORT_ROUTES = {
     "detail": ("get", "/api/v1/tokens/register-imports/{uuid}/"),
     "file": ("get", "/api/v1/tokens/register-imports/{uuid}/file/"),
 }
+PUBLICATION_ROUTES = {
+    "list": ("get", "/api/v1/publications/"),
+    "file": ("get", "/api/v1/publications/{uuid}/file/"),
+}
 REGISTER_INSTRUCTION_ROUTES = {
     "create": ("post", "/api/v1/tokens/register-instructions/"),
     "list": ("get", "/api/v1/tokens/register-instructions/"),
@@ -1092,6 +1096,35 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
                     RequestStatus.APPROVED if expected == 200 else RequestStatus.SUBMITTED,
                 )
             self.client.logout()
+
+    @override_settings(
+        STORAGES={
+            "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+            "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+        }
+    )
+    def test_publication_routes_reach_the_member_and_the_company_and_nobody_else(self):
+        from shareholders.tests.fixtures import a_company_with_members, published
+
+        with self.committed_where_a_request_on_another_connection_can_read_it():
+            world = a_company_with_members("matrix-publications")
+            publication = published(world)
+        listing = PUBLICATION_ROUTES["list"][1]
+        path = PUBLICATION_ROUTES["file"][1].format(uuid=publication.pk)
+        for entitled in (world.members[0].user, world.owner):
+            self.client.force_authenticate(entitled)
+            self.assertEqual([row["uuid"] for row in self.rows(self.client.get(listing))], [str(publication.pk)])
+            self.assertEqual(self.client.get(path).status_code, 200)
+        for actor in self.actors:
+            self.client.force_authenticate(actor.user)
+            denied = self.client.get(path)
+            missing = self.client.get(path.replace(str(publication.pk), str(uuid4())))
+            self.assertEqual((denied.status_code, denied.content), (missing.status_code, missing.content))
+            self.assertEqual(denied.status_code, 404)
+            self.assertEqual(self.rows(self.client.get(listing)), [])
+        self.client.force_authenticate(None)
+        self.assertEqual(self.client.get(path).status_code, 401)
+        self.assertEqual(self.client.get(listing).status_code, 401)
 
     @override_settings(
         STORAGES={

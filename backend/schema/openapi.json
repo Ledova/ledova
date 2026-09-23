@@ -6251,6 +6251,37 @@
         ],
         "type": "object"
       },
+      "PaginatedPublicationList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/Publication"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
       "PaginatedRegisterCorrectionList": {
         "properties": {
           "count": {
@@ -7819,6 +7850,77 @@
           1
         ],
         "type": "integer"
+      },
+      "Publication": {
+        "properties": {
+          "companyName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicationKindEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "recordDate": {
+            "format": "date",
+            "readOnly": true,
+            "type": "string"
+          },
+          "shares": {
+            "format": "decimal",
+            "nullable": true,
+            "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
+            "readOnly": true,
+            "type": "string"
+          },
+          "title": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "tokenName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "tokenSymbol": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "companyName",
+          "createdAt",
+          "kind",
+          "recordDate",
+          "shares",
+          "title",
+          "tokenName",
+          "tokenSymbol",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "PublicationKindEnum": {
+        "description": "* `holding_statement` - Annual holding statement\n* `meeting_notice` - Meeting notice",
+        "enum": [
+          "holding_statement",
+          "meeting_notice"
+        ],
+        "type": "string"
       },
       "RegisterCorrection": {
         "properties": {
@@ -18962,6 +19064,95 @@
             "cookieAuth": [],
             "csrfCookie": [],
             "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/publications/": {
+      "get": {
+        "operationId": "api_v1_publications_list",
+        "parameters": [
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPublicationList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/publications/{uuid}/file/": {
+      "get": {
+        "operationId": "api_v1_publications_file_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": [

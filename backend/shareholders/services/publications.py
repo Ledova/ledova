@@ -89,7 +89,10 @@ def publish_to_members(token, prepared_by, *, kind, title, record_date, instruct
             raise ValidationError(NO_MEMBERS)
         publication = Publication.objects.create(
             company_id=token.company_id,
+            company_name=token.company.name,
             token=token,
+            token_name=token.name,
+            token_symbol=token.symbol,
             kind=kind,
             title=title.strip(),
             record_date=record_date,
