@@ -28,9 +28,6 @@ export const useUserProfile = () => {
   const [selectedCountry, setSelectedCountry] = useState<CountryData>(COUNTRIES[0]);
 
   const loadUserProfile = useCallback(async () => {
-    setIsLoading(true);
-    setGeneralError('');
-
     try {
       const profileResponse = await getUserProfiles(apiClient);
       const profileData = profileResponse.data;
@@ -48,7 +45,7 @@ export const useUserProfile = () => {
 
         let formattedPhoneNumber = existingProfile.phoneNumber || '';
         if (existingProfile.phoneNumber && existingProfile.phoneCountryCode) {
-          const country = COUNTRIES.find((c) => c.phoneCode === existingProfile.phoneCountryCode) || selectedCountry;
+          const country = COUNTRIES.find((c) => c.phoneCode === existingProfile.phoneCountryCode) || COUNTRIES[0];
           formattedPhoneNumber = formatPhoneForDisplay(existingProfile.phoneNumber, country);
         }
 
@@ -65,7 +62,7 @@ export const useUserProfile = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedCountry]);
+  }, []);
 
   useEffect(() => {
     loadUserProfile();
@@ -187,6 +184,8 @@ export const useUserProfile = () => {
   };
 
   const retryLoad = () => {
+    setIsLoading(true);
+    setGeneralError('');
     loadUserProfile();
   };
 
