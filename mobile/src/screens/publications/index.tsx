@@ -6,6 +6,7 @@ import type { Publication } from '@ledova/shared';
 import { GradientBackground } from '../../components/GradientBackground';
 import { Panel } from '../../components/panel';
 import { useAppTheme, useThemedStyles } from '../../contexts';
+import { Resolution } from './Resolution';
 import { usePublications } from './usePublications';
 
 export function PublicationsScreen() {
@@ -62,8 +63,21 @@ export function PublicationsScreen() {
     help: { fontSize: theme.fontSize.xs, color: theme.colors.text.muted, marginTop: theme.spacing.md },
   }));
 
-  const { publications, isLoading, listFailed, retry, hasMore, isLoadingMore, loadMore, open, openingUuid, openError } =
-    usePublications();
+  const {
+    publications,
+    isLoading,
+    listFailed,
+    retry,
+    hasMore,
+    isLoadingMore,
+    loadMore,
+    open,
+    openingUuid,
+    openError,
+    cast,
+    castingUuid,
+    castError,
+  } = usePublications();
 
   const renderRow = (publication: Publication) => (
     <View key={publication.uuid} style={styles.row}>
@@ -77,9 +91,18 @@ export function PublicationsScreen() {
       </Text>
       {publication.shares !== null && publication.shares !== undefined && (
         <Text style={styles.holding}>
-          {Number(publication.shares).toLocaleString()} · {PUBLICATION_COPY.HOLDING_LABEL}
+          {Number(publication.shares).toLocaleString()} ·{' '}
+          {publication.kind === 'resolution' ? PUBLICATION_COPY.VOTING_WEIGHT_LABEL : PUBLICATION_COPY.HOLDING_LABEL}
         </Text>
       )}
+      <Resolution
+        publication={publication}
+        onCast={(uuid, choice) => {
+          void cast(uuid, choice);
+        }}
+        isCasting={castingUuid === publication.uuid}
+        castError={castError?.uuid === publication.uuid ? castError.message : undefined}
+      />
       <TouchableOpacity
         style={styles.openButton}
         onPress={() => {

@@ -1,14 +1,17 @@
 import { useState } from 'react';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
 import {
   CACHE_TIMING,
   PUBLICATION_COPY,
+  apiErrorSentence,
+  castBallot,
   downloadPublication,
   getPublications,
   getPublicationsNextPage,
   publicationFilename,
 } from '@ledova/shared';
+import type { BallotChoice } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { shareDocumentCopy } from '../../services/documentCopies';
 import { getSessionEpoch } from '../../services/sessionScope';
@@ -21,17 +24,22 @@ const UTI_BY_MIME_TYPE: Record<string, string> = {
 
 const SHARING_UNAVAILABLE = 'Sharing is not available on this device.';
 
+const PUBLICATIONS_KEY = ['publications'];
+
 function whyItCouldNotBeOpened(error: unknown): string {
   const status = (error as { response?: { status?: number } })?.response?.status;
   return status === 503 ? PUBLICATION_COPY.UNDELIVERABLE : PUBLICATION_COPY.FAILED;
 }
 
 export function usePublications() {
+  const queryClient = useQueryClient();
   const [openingUuid, setOpeningUuid] = useState<string | undefined>(undefined);
   const [openError, setOpenError] = useState<string | undefined>(undefined);
+  const [castingUuid, setCastingUuid] = useState<string | undefined>(undefined);
+  const [castError, setCastError] = useState<{ uuid: string; message: string } | undefined>(undefined);
 
   const listing = useInfiniteQuery({
-    queryKey: ['publications'],
+    queryKey: PUBLICATIONS_KEY,
     queryFn: ({ pageParam }) => getPublications(apiClient, pageParam),
     getNextPageParam: getPublicationsNextPage,
     initialPageParam: 1,
@@ -64,6 +72,22 @@ export function usePublications() {
     }
   };
 
+  const cast = async (uuid: string, choice: BallotChoice) => {
+    if (castingUuid) return;
+    const sessionEpoch = getSessionEpoch();
+    setCastingUuid(uuid);
+    setCastError(undefined);
+    try {
+      await castBallot(apiClient, uuid, choice, { ledovaSessionEpoch: sessionEpoch });
+    } catch (error) {
+      if (sessionEpoch === getSessionEpoch())
+        setCastError({ uuid, message: apiErrorSentence(error, PUBLICATION_COPY.BALLOT_FAILED) });
+    } finally {
+      if (sessionEpoch === getSessionEpoch()) await queryClient.invalidateQueries({ queryKey: PUBLICATIONS_KEY });
+      setCastingUuid(undefined);
+    }
+  };
+
   return {
     publications: listing.data?.pages.flatMap((page) => page.data?.results ?? []) ?? [],
     isLoading: listing.isLoading,
@@ -75,5 +99,8 @@ export function usePublications() {
     open,
     openingUuid,
     openError,
+    cast,
+    castingUuid,
+    castError,
   };
 }
