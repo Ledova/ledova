@@ -13,6 +13,7 @@ import type {
 } from '../../src/types';
 
 type Has<T, K extends PropertyKey> = K extends keyof T ? true : false;
+type HasEvery<T, K extends PropertyKey> = [K] extends [keyof T] ? true : false;
 
 describe('shared-types exports', () => {
   it('should export type definitions module', () => {
@@ -43,7 +44,21 @@ describe('shared-types exports', () => {
     const profileKeys: Has<NonNullable<AccountExportData['profile']>, 'fullName' | 'isIdVerified'> = true;
     const walletKeys: Has<AccountExportData['wallets'][number], 'nativeBalance' | 'marketValue'> = true;
     const legacyWalletKey: Has<AccountExportData['wallets'][number], 'balance'> = false;
-    expect([profileKeys, walletKeys, legacyWalletKey]).toEqual([true, true, false]);
+    const evidenceKeys: HasEvery<
+      AccountExportData['transactions'][number],
+      'blockNumber' | 'blockHash' | 'nonce' | 'importedFromHistory' | 'chainObservation'
+    > = true;
+    const observationKeys: HasEvery<
+      NonNullable<AccountExportData['transactions'][number]['chainObservation']>,
+      'network' | 'result' | 'finality' | 'policy'
+    > = true;
+    expect([profileKeys, walletKeys, legacyWalletKey, evidenceKeys, observationKeys]).toEqual([
+      true,
+      true,
+      false,
+      true,
+      true,
+    ]);
   });
 
   it('keeps the EVM and Bitcoin prepare-transfer contracts apart', () => {

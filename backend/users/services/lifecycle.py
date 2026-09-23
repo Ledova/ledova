@@ -119,28 +119,47 @@ def export_account_data(user):
     ]
     transactions = (
         Transaction.objects.filter(wallet__user_account=account)
-        .select_related("asset")
-        .order_by("-block_timestamp")[:1000]
+        .select_related("asset", "chain_watch__latest_observation")
+        .order_by("-block_timestamp")
     )
-    data["transactions"] = [
-        {
-            "uuid": tx.uuid,
-            "tx_hash": tx.tx_hash,
-            "chain": tx.chain,
-            "status": tx.status,
-            "asset": tx.asset.symbol if tx.asset else None,
-            "amount": str(tx.amount or 0),
-            "transaction_fee": str(tx.transaction_fee) if tx.transaction_fee else None,
-            "from_address": tx.from_address,
-            "to_address": tx.to_address,
-            "block_timestamp": tx.block_timestamp,
-            "created_at": tx.created_at,
-        }
-        for tx in transactions
-    ]
+    data["transactions"] = [_exported_transaction(tx) for tx in transactions.iterator()]
     data["portfolios"] = list(
         Portfolio.objects.filter(user_account=account).values("uuid", "name", "is_active", "created_at")
     )
 
     logger.info("Data export completed")
     return data
+
+
+def _exported_transaction(tx):
+    return {
+        "uuid": tx.uuid,
+        "tx_hash": tx.tx_hash,
+        "chain": tx.chain,
+        "status": tx.status,
+        "asset": tx.asset.symbol if tx.asset else None,
+        "amount": str(tx.amount or 0),
+        "transaction_fee": None if tx.transaction_fee is None else str(tx.transaction_fee),
+        "from_address": tx.from_address,
+        "to_address": tx.to_address,
+        "block_timestamp": tx.block_timestamp,
+        "block_number": tx.block_number,
+        "block_hash": tx.block_hash,
+        "nonce": tx.nonce,
+        "imported_from_history": tx.imported_from_history,
+        "chain_observation": _latest_chain_observation(tx),
+        "created_at": tx.created_at,
+    }
+
+
+def _latest_chain_observation(tx):
+    watch = getattr(tx, "chain_watch", None)
+    observation = watch.latest_observation if watch is not None else None
+    if observation is None:
+        return None
+    return {
+        "network": watch.network,
+        "result": observation.result,
+        "finality": observation.finality,
+        "policy": observation.policy,
+    }

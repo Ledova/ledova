@@ -53,6 +53,13 @@ class ExportedWalletSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField()
 
 
+class ExportedChainObservationSerializer(serializers.Serializer):
+    network = serializers.CharField()
+    result = serializers.CharField()
+    finality = serializers.CharField()
+    policy = serializers.DictField()
+
+
 class ExportedTransactionSerializer(serializers.Serializer):
     uuid = serializers.UUIDField()
     tx_hash = serializers.CharField()
@@ -64,6 +71,11 @@ class ExportedTransactionSerializer(serializers.Serializer):
     from_address = serializers.CharField()
     to_address = serializers.CharField(allow_null=True, allow_blank=True)
     block_timestamp = serializers.DateTimeField(allow_null=True)
+    block_number = serializers.IntegerField(allow_null=True)
+    block_hash = serializers.CharField(allow_null=True)
+    nonce = serializers.IntegerField(allow_null=True)
+    imported_from_history = serializers.BooleanField()
+    chain_observation = ExportedChainObservationSerializer(allow_null=True)
     created_at = serializers.DateTimeField()
 
 
