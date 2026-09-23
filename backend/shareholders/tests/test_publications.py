@@ -1,4 +1,5 @@
 import hashlib
+import importlib
 from datetime import timedelta
 from uuid import uuid4
 
@@ -261,6 +262,18 @@ class PublishingToMembersTest(StubUploadDependencies, TestCase):
 
         self.assertEqual(Publication.objects.get(pk=publication.pk).title, TITLE)
         self.assertEqual(int(PublicationRecipient.objects.get(pk=row.pk).shares), int(row.shares))
+
+    def test_downgrade_refuses_to_discard_publications(self):
+        migration = importlib.import_module("shareholders.migrations.0001_publications")
+        with atomic(), connections[current_alias()].schema_editor() as editor:
+            migration.remove_guards(None, editor)
+        publication = published(self.world)
+
+        with self.assertRaisesRegex(RuntimeError, "Retain publications"), atomic():
+            with connections[current_alias()].schema_editor() as editor:
+                migration.remove_guards(None, editor)
+
+        self.assertTrue(Publication.objects.filter(pk=publication.pk).exists())
 
     def test_the_roll_digest_reports_a_roll_that_no_longer_matches_what_was_published(self):
         publication = published(self.world)
