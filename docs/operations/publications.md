@@ -3,7 +3,8 @@
 [Operations](README.md) · [Shareholder publications](../architecture/shareholder-publications.md)
 
 A company publishes documents to the members of one share class: today the
-annual holding statement and the meeting notice. Ledova staff publish on the
+annual holding statement, the meeting notice and the resolution put to members
+for a vote. Ledova staff publish on the
 company's written instruction, as
 [inspection copies](register-foundation.md#preparing-an-inspection-copy),
 certificates and notice figures are prepared today (owner decision,
@@ -35,6 +36,79 @@ no member held shares on that record date, when the instruction or the title is
 blank, or when the authority document is not a current verification of a
 document of that company. An attachment is size-bounded, scanned and decoded
 before it is stored, exactly as every other upload is.
+
+## Publishing a resolution
+
+A resolution is published the same way, on the company's written instruction,
+with the resolution and its explanatory statement as the document. On
+**Publish to members** choose **Resolution** as what is being published, and
+also fill in:
+
+- the question put to members, exactly as the company worded it;
+- whether it is an **ordinary** or a **special** resolution;
+- when voting opens and when it closes, both in UTC.
+
+Leave those fields blank for anything that is not a resolution: a document with
+a question or a voting window is refused. The page also refuses a resolution
+with no question, an unknown kind, a window that closes before it opens, or a
+window that has already closed. Every member has one vote per share held on the
+record date, and the roll frozen at publication is the list of who may vote.
+Members with an account are told a resolution has been put to them; they cannot
+yet cast a ballot online, because the ballot page is the next slice of
+[#649](https://github.com/Ledova/ledova/issues/649).
+
+A resolution's page in **Admin → Shareholder publications → Publications**
+shows its question, kind and window, the tally once it has closed, and its event
+chain — every ballot and the close, in sequence, with their hashes — above the
+roll. Seeing the chain needs **Can view publication event**
+(`shareholders.view_publicationevent`).
+
+## Entering a ballot for a member
+
+Enter a ballot only for a member who cannot cast one themselves, and only on
+something in writing you can name:
+
+- a member the register could not name, a treasury holding, or a member with no
+  account, on the company's or the member's written instruction;
+- a member who appointed a proxy the company accepted, on the proxy form.
+
+Ledova does not manage proxies. The member and the company settle the
+appointment between them, and the vote it carries is entered here, marked as
+entered by staff (owner decision, 23 September 2026).
+
+1. Open the resolution and choose **Enter a ballot**. You need **Can change
+   publication** (`shareholders.change_publication`).
+2. Choose the member on the roll. Members who already have a ballot, whether
+   they cast it or staff entered it, are not offered.
+3. Choose for, against or abstain, and record what you relied on, such as the
+   reference of the signed proxy form. Choose **Record the ballot**.
+
+The ballot is chained with your account as its actor and the authority you
+recorded. It cannot be changed or withdrawn, by you or by the member: a member
+with a ballot entered for them cannot cast another. The page refuses, and
+records nothing, when voting has not opened or has closed, when the member
+already has a ballot, or when the authority is blank.
+
+## Closing a resolution and reading the tally
+
+Nothing needs doing. `close_resolutions_past_their_window` runs every five
+minutes ([background jobs](jobs.md#schedule)) and closes each resolution whose
+voting window has passed. The database writes the tally into the close from the
+ballots on the chain: the shares and members for, against and abstaining, the
+shares and members on the roll, and whether it was carried.
+
+- An **ordinary** resolution is carried when the shares voted for exceed the
+  shares voted against. A tie is not carried.
+- A **special** resolution is carried when the shares voted for are at least 75%
+  of the votes cast (Corporations Act, section 9).
+- Abstentions are shown but are not votes cast, and a resolution on which no
+  votes were cast is not carried.
+
+The tally appears on the resolution's page once it has closed. If the worker is
+not running nothing closes, but nothing can be cast either: the database refuses
+every ballot once the window has passed, so a late close changes only when the
+tally appears, never what it says. Start the worker as
+[background jobs](jobs.md) describes.
 
 ## What a publication records
 
@@ -94,7 +168,7 @@ and carry no name, holding or document content. To confirm that a file is the
 one published, compare the output of `sha256sum` on it with the publication's
 digest.
 
-## Checking a frozen roll
+## Checking a frozen roll and verifying a resolution
 
 The roll is frozen when the publication is made, and the publication records how
 many rows it held and a digest of them. From `backend/`:
@@ -111,10 +185,23 @@ not that the register itself is sound, which
 `register_foundation verify` answers ([the synthetic operator
 exercise](register-foundation.md#synthetic-operator-exercise)).
 
+### Verifying a resolution
+
+For a resolution the same command also replays its event chain and prints, beside
+the roll's row count and digest, the number of events, the chain's head hash,
+the number of ballots and the tally — `null` until it has closed. It fails,
+naming the publication, when a sequence number is missing, when an event's
+stored hash or its link to the one before does not recompute, when a ballot's
+member or shares differ from the roll, when one member has two ballots, when an
+event follows the close, or when the tally in the close differs from the tally
+recomputed from the ballots. Nothing the application does can cause any of
+these: they mean someone with the schema owner's rights rewrote the chain.
+
 ## Retention
 
-Publications, their rolls and their read records are kept for seven years from
-the publication and purged together by `purge_publications_past_the_clock`,
+Publications, their rolls, their read records and a resolution's ballots and
+close are kept for seven years from the publication and purged together by
+`purge_publications_past_the_clock`,
 daily at 03:50. They share `FORMER_MEMBER_RETENTION_DAYS` with the register's
 own outputs, so one clock governs both and a value below 2,557 days refuses the
 purge rather than shortening it; see
