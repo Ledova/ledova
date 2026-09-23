@@ -9,7 +9,7 @@ from rest_framework.exceptions import NotFound
 from shared.tests.test_admin_row_actions import ADMIN_STORAGES, grant, staff_user
 from shared.tests.upload_fixtures import StubUploadDependencies
 from shareholders.constants import READ_AS_COMPANY, READ_AS_MEMBER, READ_AS_STAFF
-from shareholders.exceptions import PublicationNotDelivered
+from shareholders.exceptions import PublicationNotDelivered, PublicationUnopened
 from shareholders.models import Publication, PublicationRead, PublicationRecipient
 from shareholders.services.publications import read_publication
 from shareholders.tests.fixtures import (
@@ -106,6 +106,14 @@ class ThePublicationsAdminTest(StubUploadDependencies, TestCase):
         with patch.object(PublicationRead.objects, "create", side_effect=DatabaseError("no audit")):
             with self.assertRaises(PublicationNotDelivered):
                 self.client.get(reverse("admin:shareholders_publication_file", args=[self.publication.pk]))
+
+        self.assertEqual(PublicationRead.objects.count(), 0)
+
+    def test_a_staff_download_whose_document_cannot_be_opened_serves_nothing_and_records_no_read(self):
+        self.publication.file.storage.delete(self.publication.file.name)
+
+        with self.assertRaises(PublicationUnopened):
+            self.client.get(reverse("admin:shareholders_publication_file", args=[self.publication.pk]))
 
         self.assertEqual(PublicationRead.objects.count(), 0)
 

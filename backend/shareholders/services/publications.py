@@ -18,6 +18,7 @@ from shareholders.exceptions import (
     NO_PUBLICATION,
     PublicationIntegrityError,
     PublicationNotDelivered,
+    PublicationUnopened,
 )
 from shareholders.models import (
     Publication,
@@ -168,6 +169,19 @@ def record_publication_read(user, publication, recipient, kind) -> None:
         raise PublicationNotDelivered() from None
 
 
+def deliver_publication(user, publication, recipient, kind) -> None:
+    try:
+        publication.file.open("rb")
+    except (ValueError, OSError) as error:
+        logger.error("A publication's stored document could not be opened: %s", type(error).__name__)
+        raise PublicationUnopened() from None
+    try:
+        record_publication_read(user, publication, recipient, kind)
+    except BaseException:
+        publication.file.close()
+        raise
+
+
 def _reader(user, publication, recipient):
     if recipient is not None:
         return READ_AS_MEMBER
@@ -183,7 +197,7 @@ def read_publication(user, publication_id):
     if publication is None:
         raise NotFound(NO_PUBLICATION)
     recipient = PublicationRecipient.objects.filter(publication=publication, user_id=user.pk).first()
-    record_publication_read(user, publication, recipient, _reader(user, publication, recipient))
+    deliver_publication(user, publication, recipient, _reader(user, publication, recipient))
     return publication, recipient
 
 

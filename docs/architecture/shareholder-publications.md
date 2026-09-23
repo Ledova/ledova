@@ -122,6 +122,9 @@ operator-only, has no admin mutation path, and carries no name, holding or file
 content. **A read that cannot be recorded refuses the delivery** rather than
 serving the file, which is the rule
 [document reads](files-and-retention.md#deletion-and-retention) already follow.
+The stored document is opened first and the read recorded second, so a record
+always names a file that could be served: a document that cannot be opened
+refuses with 503 `publication_unopened` and records nothing.
 
 ## Retention
 
@@ -155,14 +158,17 @@ null instead of losing them.
 
 The file route calls `read_publication` rather than the base's `get_object`,
 because resolving the row and writing the audit are one act: the service reads
-through the policy-scoped connection, records the `PublicationRead` on the
-operator connection, and refuses with 503 `publication_read_unrecorded` if it
-cannot. A foreign or non-existent uuid answers the same 404 with the same body.
+through the policy-scoped connection, opens the stored document, records the
+`PublicationRead` on the operator connection, and refuses with 503
+`publication_read_unrecorded` if it cannot. A foreign or non-existent uuid answers the same 404 with the same body.
 
 Both clients read it through `@ledova/shared`: `getPublications` for the
-listing, `openPublication` for a browser blob and `downloadPublication` for the
-bytes the mobile app writes to one private cache copy and hands to the system
-share sheet, the way a company document is opened today.
+listing, a page at a time, `openPublication` for the blob the dashboard saves
+through a download link and `downloadPublication` for the bytes the mobile app
+writes to one private cache copy and hands to the system share sheet, the way a
+company document is opened today. The stored object is named `.bin`, so each
+client names its copy with `publicationFilename` from the type served. A download
+link, unlike a new tab opened after the response, needs no popup permission.
 
 ## Every publication is announced
 

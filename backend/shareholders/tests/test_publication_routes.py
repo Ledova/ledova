@@ -139,6 +139,16 @@ class ThePublicationsRouteTest(StubUploadDependencies, TestCase):
         self.assertNotIn(PUBLICATION_BYTES, response.content)
         self.assertEqual(PublicationRead.objects.count(), 0)
 
+    def test_a_document_that_cannot_be_opened_serves_nothing_and_records_no_read(self):
+        self.client.force_authenticate(self.holder.user)
+        self.publication.file.storage.delete(self.publication.file.name)
+
+        response = self.client.get(file_route(self.publication))
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["code"], "publication_unopened")
+        self.assertEqual(PublicationRead.objects.count(), 0)
+
     def test_the_route_reads_and_nothing_else(self):
         self.client.force_authenticate(self.holder.user)
 

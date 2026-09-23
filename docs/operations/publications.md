@@ -69,8 +69,8 @@ reaches any member it cannot address online.
 The notification opens **Publications** in the dashboard and in the app. There
 the member sees, for each publication addressed to them: what was published, its
 title, the company and share class, the record date, and their own holding as it
-was frozen on that date — not their holding today. **Open the document** hands
-them the stored document itself. A company owner sees its own company's
+was frozen on that date — not their holding today. **Open the document** saves
+a copy of the stored document itself. Older publications appear a page at a time. A company owner sees its own company's
 publications on the same page, with no holding of its own.
 
 Nothing on that page names another member, and no holding but the reader's own
@@ -84,7 +84,8 @@ rather than rendering. Each read — a member's, the company's, or yours — is
 recorded once in **Admin → Shareholder publications → Publication reads**: who
 read it, which publication, which roll row where there is one, and in which
 capacity. A read that cannot be recorded refuses the download rather than
-serving it, so an empty record means nothing was served. A member whose read
+serving it, and a stored document that cannot be opened is refused before any
+read is recorded, so every record is of a document that was served. A member whose read
 cannot be recorded is told that nothing was served and to try again shortly; the
 document is not shown.
 

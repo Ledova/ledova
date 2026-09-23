@@ -14,5 +14,13 @@ class PublicationNotDelivered(APIException):
     expose_code = True
 
 
+class PublicationUnopened(PublicationNotDelivered):
+    default_detail = (
+        "This publication could not be delivered because its stored document could not be opened. "
+        "Nothing was served and no read was recorded."
+    )
+    default_code = "publication_unopened"
+
+
 class PublicationIntegrityError(Exception):
     pass

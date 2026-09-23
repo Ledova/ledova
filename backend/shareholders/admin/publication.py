@@ -13,8 +13,8 @@ from shared.utils.admin_files import admin_file_path
 from shareholders.constants import READ_AS_STAFF
 from shareholders.models import Publication, PublicationKind, PublicationRecipient
 from shareholders.services.publications import (
+    deliver_publication,
     publish_to_members,
-    record_publication_read,
 )
 from tokens.models import ShareRegister, ShareToken
 
@@ -110,7 +110,7 @@ class PublicationAdmin(admin.ModelAdmin):
 
     def resolve_file(self, request, uuid):
         publication = get_object_or_404(self.get_queryset(request), pk=uuid)
-        record_publication_read(request.user, publication, None, READ_AS_STAFF)
+        deliver_publication(request.user, publication, None, READ_AS_STAFF)
         return publication, publication.file, publication.mime_type, f"{publication.kind}-{publication.pk}"
 
     @admin.display(description="Published document")
