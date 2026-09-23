@@ -59,12 +59,12 @@ class WalletAdmin(admin.ModelAdmin):
             enqueue_for_wallet(obj.pk, request.user)
 
     def delete_model(self, request, obj):
-        enqueue_for_wallet(obj.pk, request.user, WALLET_REFRESH_DELAY_SECONDS)
+        enqueue_for_wallet(obj.pk, request.user, WALLET_REFRESH_DELAY_SECONDS, remove_only=True)
         super().delete_model(request, obj)
 
     def delete_queryset(self, request, queryset):
         for wallet in queryset:
-            enqueue_for_wallet(wallet.pk, request.user, WALLET_REFRESH_DELAY_SECONDS)
+            enqueue_for_wallet(wallet.pk, request.user, WALLET_REFRESH_DELAY_SECONDS, remove_only=True)
         super().delete_queryset(request, queryset)
 
     def get_queryset(self, request):

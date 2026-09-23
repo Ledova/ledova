@@ -98,6 +98,35 @@ class AcceptanceRequiresALiveClassificationTest(TransactionTestCase):
         self.assertIn("no_live_classification", str(refusal.exception.detail))
         self.assertEqual(self.stored(), before)
 
+    def test_a_relayed_signature_is_judged_by_whose_signature_it_is(self):
+        self.revoke(self.fixture.seller)
+        before = self.stored()
+
+        with self.assertRaises(InvestorNotEligibleException) as refusal:
+            swap_execution.submit_signature(
+                self.fixture.swap,
+                self.fixture.signatures["seller"],
+                SELLER.address,
+                user=self.fixture.buyer.user,
+                participant="buyer",
+            )
+
+        self.assertIn("no_live_classification", str(refusal.exception.detail))
+        self.assertEqual(self.stored(), before)
+
+    def test_a_buyer_may_still_relay_a_live_sellers_signature(self):
+        swap_execution.submit_signature(
+            self.fixture.swap,
+            self.fixture.signatures["seller"],
+            SELLER.address,
+            user=self.fixture.buyer.user,
+            participant="buyer",
+        )
+
+        status, seller_signature, _ = self.stored()
+        self.assertEqual(status, SwapOrderStatus.SELLER_SIGNED)
+        self.assertNotEqual(seller_signature, "")
+
     def test_the_counterparty_with_a_live_classification_still_signs(self):
         self.revoke(self.fixture.seller)
 

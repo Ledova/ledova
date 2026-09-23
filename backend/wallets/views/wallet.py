@@ -66,7 +66,7 @@ class WalletViewSet(AuthenticatedModelViewSet):
 
     def perform_destroy(self, instance):
         with use_operator():
-            enqueue_for_wallet(instance.pk, self.request.user, WALLET_REFRESH_DELAY_SECONDS)
+            enqueue_for_wallet(instance.pk, self.request.user, WALLET_REFRESH_DELAY_SECONDS, remove_only=True)
         instance.delete()
 
     def perform_create(self, serializer):

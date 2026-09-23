@@ -184,12 +184,12 @@ def _remove_target(target, actor):
     return _submit(target["address"], Company.objects.get(pk=target["company"]), None, 0, actor)
 
 
-def refresh_targets(targets, actor):
+def refresh_targets(targets, actor, remove_only=False):
     result = {"checked": 0, "submitted": 0, "errors": 0}
     for target in targets:
         result["checked"] += 1
         try:
-            approval = _target_approval(target)
+            approval = None if remove_only else _target_approval(target)
             change = refresh_approval(approval, actor) if approval else _remove_target(target, actor)
             result["submitted"] += 1 if change else 0
         except Exception:
@@ -198,13 +198,13 @@ def refresh_targets(targets, actor):
     return result
 
 
-def _enqueue(targets, actor, delay):
+def _enqueue(targets, actor, delay, remove_only=False):
     from whitelist.tasks import refresh_whitelist_targets
 
     if not targets or actor is None:
         return targets
     task = refresh_whitelist_targets.configure(schedule_in={"seconds": delay}) if delay else refresh_whitelist_targets
-    task.defer(targets=targets, actor_id=str(actor.pk))
+    task.defer(targets=targets, actor_id=str(actor.pk), remove_only=remove_only)
     return targets
 
 
@@ -212,8 +212,8 @@ def enqueue_for_account(account_id, actor, delay=0):
     return _enqueue(targets_for_account(account_id), actor, delay)
 
 
-def enqueue_for_wallet(wallet_id, actor, delay=0):
-    return _enqueue(targets_for_wallet(wallet_id), actor, delay)
+def enqueue_for_wallet(wallet_id, actor, delay=0, remove_only=False):
+    return _enqueue(targets_for_wallet(wallet_id), actor, delay, remove_only)
 
 
 def sweep():

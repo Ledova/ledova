@@ -51,7 +51,7 @@ from tokens.services.settlement_context import (
 )
 from tokens.services.trading_locks import lock_orders, swap_terms
 from users.models import UserAccount, UserProfile
-from users.services.eligibility import require_investor_eligibility
+from users.services.eligibility import require_account_eligibility
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import ChainObservationFinality, ChainObservationResult, Wallet
 from wallets.services.chain_evidence import collect_chain_evidence
@@ -179,6 +179,11 @@ def _share_class_company(swap):
     return share_class.company if share_class else None
 
 
+def _signing_account(swap, is_seller):
+    party = recorded_settlement_context(swap)["seller" if is_seller else "buyer"]
+    return UserAccount.objects.filter(pk=party["owner_account_uuid"]).first()
+
+
 def submit_signature(swap_order, signature, signer_address, *, user, participant):
     from tokens.tasks.swap_reconciler import recover_swap_execution
 
@@ -219,7 +224,7 @@ def submit_signature(swap_order, signature, signer_address, *, user, participant
         if swap.deadline_passed:
             raise SwapExpiredException()
         if not stored:
-            require_investor_eligibility(user, _share_class_company(snapshot))
+            require_account_eligibility(_signing_account(snapshot, is_seller), _share_class_company(snapshot))
             allowed = (
                 (SwapOrderStatus.CREATED, SwapOrderStatus.BUYER_SIGNED)
                 if is_seller

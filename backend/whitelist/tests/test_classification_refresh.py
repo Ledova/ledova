@@ -227,6 +227,19 @@ class ClassificationRefreshTest(TransactionTestCase):
         self.assertEqual(self.node.expiries[ADDRESS], 0)
         self.assertEqual(refresh.refresh_targets(targets, holder)["submitted"], 0)
 
+    def test_a_wallet_deletion_removes_even_while_its_approval_still_stands(self):
+        self.claim()
+        self.approve()
+        holder = self.account.user_profile.user
+        targets = refresh.targets_for_wallet(self.entry.wallet_id)
+
+        self.assertEqual(
+            refresh.refresh_targets(targets, holder, remove_only=True),
+            {"checked": 1, "submitted": 1, "errors": 0},
+        )
+
+        self.assertEqual(self.node.expiries[ADDRESS], 0)
+
     def test_revoking_a_claim_enqueues_the_refresh_for_the_reviewer(self):
         self.claim()
         self.approve()
@@ -243,4 +256,5 @@ class ClassificationRefreshTest(TransactionTestCase):
                 }
             ],
             actor_id=str(self.actor.pk),
+            remove_only=False,
         )

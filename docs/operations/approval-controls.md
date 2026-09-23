@@ -22,7 +22,7 @@ the three [backend suites](../development/testing.md#backend-verification).
 
 | §5 behaviour | Where it is enforced | Merged | Test on `main` |
 | --- | --- | --- | --- |
-| Apply checks at relevant stages, including listing, acceptance and transfer | Order creation and swap signing check the account's live classification for the class's company; `ShareToken._update` checks the registry on every movement | [#702](https://github.com/Ledova/ledova/pull/702), [#701](https://github.com/Ledova/ledova/pull/701) | `tokens.tests.test_marketplace_stage_checks.ListingRequiresALiveClassificationTest.test_a_revoked_classification_records_the_eligibility_refusal`; `...AcceptanceRequiresALiveClassificationTest.test_a_party_whose_classification_was_revoked_cannot_accept`; `ShareToken` → `Sender checks` → "Should refuse a direct transfer from a removed sender" |
+| Apply checks at relevant stages, including listing, acceptance and transfer | Order creation and swap signing check the account's live classification for the class's company; `ShareToken._update` checks the registry on every movement | [#702](https://github.com/Ledova/ledova/pull/702), [#701](https://github.com/Ledova/ledova/pull/701) | `tokens.tests.test_marketplace_stage_checks.ListingRequiresALiveClassificationTest.test_a_revoked_classification_records_the_eligibility_refusal`; `...AcceptanceRequiresALiveClassificationTest.test_a_party_whose_classification_was_revoked_cannot_accept`; `...test_a_relayed_signature_is_judged_by_whose_signature_it_is`; `ShareToken` → `Sender checks` → "Should refuse a direct transfer from a removed sender" |
 | Bind approvals to the correct participant, company, wallet and action; enforce expiry, revocation and protection against reuse | The factory keys one registry per ACN; a change carries its company, address, action and expiry, bound into the exact `setExpiry` calldata by a database trigger; `isWhitelisted` is `expiresAt > block.timestamp` | [#701](https://github.com/Ledova/ledova/pull/701) | `ShareTokenFactory` → `Cross-company isolation` → "Should grant nothing on company B's token for an approval in company A's registry"; `WhitelistRegistry` → "Should stop listing an address once its expiry has passed"; `whitelist.tests.test_change_recovery.WhitelistChangeRecoveryTest.test_each_company_keeps_its_own_approval_row_and_registry`; `whitelist.tests.test_change_migration.WhitelistChangeMigrationTest.test_the_guard_binds_the_expiry_into_the_registry_call`; `whitelist.tests.test_entry_scoping.WhitelistEntryScopingTest.test_operator_pending_retry_preserves_identity_and_refuses_opposite_command` |
 | Enforce rules on direct contract calls and delegated transfers; check administrative and recovery paths for bypasses | `_update` is the single enforcement point, so a direct call, a delegated transfer and a swap settlement all meet it; the backend's four write authorities each check their own actor | [#701](https://github.com/Ledova/ledova/pull/701), this slice | `ShareToken` → `Sender checks` (four cases); `Approval bypasses` (whole file); `whitelist.tests.test_bypass_paths` (whole file) — see [the bypass review](#the-bypass-review) |
 | Refresh affected permissions when evidence or restrictions change, with documented update delays | Revocation, renewal, suspension and wallet deletion each enqueue a refresh under the staff member whose review decided it; a sweep every five minutes is the safety net, and the promise is fifteen minutes | [#702](https://github.com/Ledova/ledova/pull/702) | `whitelist.tests.test_classification_refresh.ClassificationRefreshTest.test_a_revoked_claim_removes_the_approval_and_a_second_refresh_submits_nothing`; `...test_the_sweep_submits_under_the_staff_member_whose_review_decided_it`; `...test_revoking_a_claim_enqueues_the_refresh_for_the_reviewer` |
@@ -38,16 +38,10 @@ flag rather than approve it, which is what replaceability has to preserve:
 
 ## What these controls do not do
 
-- **The acceptance check follows the caller, not the signature.**
-  `submit_signature` checks the classification of the account making the
-  request. The signature's own party is derived from the address it recovers
-  to, and the two are not bound together, so a buyer can carry a seller's
-  signature past the platform check. The chain still refuses the settlement
-  once the seller's approval is removed; between revocation and removal the
-  chain does not.
-- **A removal is not instant.** The platform refuses at once and the chain
-  follows within fifteen minutes. A direct contract call can move shares in
-  that window, and pausing the token is the incident lever.
+- **A removal reaches the chain in minutes, not at once.** Between a revocation
+  and its removal landing, a direct contract call can still move shares. Every
+  platform path refuses in that window; the chain does not. Pausing the token
+  is the incident lever.
 - **Owner power is trusted, not checked.** The operator key owns every registry
   and token. Renouncing either ownership freezes it for good, and the swap
   moves any token its owner approves, whether or not the factory created it.

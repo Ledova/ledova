@@ -123,5 +123,9 @@ def require_investor_eligibility(user, company=None) -> InvestorEligibility:
     return _require(investor_eligibility(user, company))
 
 
+def require_account_eligibility(account, company=None) -> InvestorEligibility:
+    return _require(account_eligibility(account, company))
+
+
 def require_subscription_eligibility(account, company, amount_aud: Decimal) -> InvestorEligibility:
     return _require(account_eligibility(account, company, amount_aud))
