@@ -4,6 +4,7 @@ import type { PropsWithChildren } from 'react';
 import { act, renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { TRADING_CONFIG } from '@ledova/shared';
 import { useTradingEvents } from './useTradingEvents';
 
 class FakeEventSource {
@@ -138,6 +139,36 @@ describe('useTradingEvents', () => {
     });
 
     expect(FakeEventSource.instances).toHaveLength(2);
+    queryClient.clear();
+  });
+
+  it('reconnects the same stream after a failure, doubling the delay until one opens', () => {
+    const queryClient = new QueryClient();
+    const delay = TRADING_CONFIG.SSE_RECONNECT_DELAY;
+    const { unmount } = renderHook(() => useTradingEvents('123e4567-e89b-12d3-a456-426614174000'), {
+      wrapper: createWrapper(queryClient),
+    });
+    const first = FakeEventSource.instances[0];
+
+    act(() => first.fail());
+    act(() => vi.advanceTimersByTime(delay - 1));
+    expect(FakeEventSource.instances).toHaveLength(1);
+    act(() => vi.advanceTimersByTime(1));
+    expect(FakeEventSource.instances).toHaveLength(2);
+    expect(FakeEventSource.instances[1].url).toBe(first.url);
+
+    act(() => FakeEventSource.instances[1].fail());
+    act(() => vi.advanceTimersByTime(2 * delay - 1));
+    expect(FakeEventSource.instances).toHaveLength(2);
+    act(() => vi.advanceTimersByTime(1));
+    expect(FakeEventSource.instances).toHaveLength(3);
+
+    act(() => FakeEventSource.instances[2].onopen?.());
+    act(() => FakeEventSource.instances[2].fail());
+    act(() => vi.advanceTimersByTime(delay));
+    expect(FakeEventSource.instances).toHaveLength(4);
+
+    unmount();
     queryClient.clear();
   });
 

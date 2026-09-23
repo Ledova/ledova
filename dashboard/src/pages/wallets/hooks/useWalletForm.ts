@@ -110,6 +110,21 @@ export function useWalletForm({ onSubmit, onBatchSubmit, preselectedChain }: Use
     [selectedChain, errors.address],
   );
 
+  const stopCamera = useCallback(() => {
+    if (html5QrCodeRef.current) {
+      html5QrCodeRef.current.stop().catch(() => {});
+      html5QrCodeRef.current = null;
+    }
+    urDecoderRef.current = null;
+    processedPartsRef.current.clear();
+  }, []);
+
+  const stopScanner = useCallback(() => {
+    stopCamera();
+    setScanProgress(null);
+    setScannerError(null);
+  }, [stopCamera]);
+
   const handleQRScanResult = useCallback(
     (data: string) => {
       const dataLower = data.toLowerCase();
@@ -170,17 +185,6 @@ export function useWalletForm({ onSubmit, onBatchSubmit, preselectedChain }: Use
     [errors.address, selectedChain],
   );
 
-  const stopScanner = useCallback(() => {
-    if (html5QrCodeRef.current) {
-      html5QrCodeRef.current.stop().catch(() => {});
-      html5QrCodeRef.current = null;
-    }
-    urDecoderRef.current = null;
-    processedPartsRef.current.clear();
-    setScanProgress(null);
-    setScannerError(null);
-  }, []);
-
   const startScanner = useCallback(() => {
     if (html5QrCodeRef.current) return;
 
@@ -212,15 +216,15 @@ export function useWalletForm({ onSubmit, onBatchSubmit, preselectedChain }: Use
       const timer = setTimeout(startScanner, 100);
       return () => clearTimeout(timer);
     } else {
-      stopScanner();
+      stopCamera();
     }
-  }, [showScanner, startScanner, stopScanner]);
+  }, [showScanner, startScanner, stopCamera]);
 
   useEffect(() => {
     return () => {
-      stopScanner();
+      stopCamera();
     };
-  }, [stopScanner]);
+  }, [stopCamera]);
 
   const handleAddressSelection = useCallback(
     (addresses: DerivedAddress[], importData: HardwareWalletImport) => {

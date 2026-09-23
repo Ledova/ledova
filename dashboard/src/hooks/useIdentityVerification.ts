@@ -69,6 +69,11 @@ export function useIdentityVerification() {
     }
   }, [justSubmitted, isVerified, isRejected, queryClient]);
 
+  const handleFormComplete = useCallback(() => {
+    setFormUrl(null);
+    setJustSubmitted(true);
+  }, []);
+
   useEffect(() => {
     if (!formUrl) return;
     const handler = (event: MessageEvent) => {
@@ -140,11 +145,6 @@ export function useIdentityVerification() {
     },
     [tokenMutation],
   );
-
-  const handleFormComplete = useCallback(() => {
-    setFormUrl(null);
-    setJustSubmitted(true);
-  }, []);
 
   const resetState = useCallback(() => {
     setSdkError(null);
