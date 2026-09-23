@@ -62,7 +62,7 @@ describe('publication services', () => {
   });
 
   it('labels every kind the backend can publish', () => {
-    expect(Object.keys(PUBLICATION_KIND_LABELS).sort()).toEqual(['holding_statement', 'meeting_notice']);
+    expect(Object.keys(PUBLICATION_KIND_LABELS).sort()).toEqual(['holding_statement', 'meeting_notice', 'resolution']);
   });
 
   it('names the notice type the backend sends, so a deep link can be recognised', () => {
