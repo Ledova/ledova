@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from datetime import date, timedelta
 from datetime import timezone as utc_zone
 from decimal import Decimal
+from typing import NamedTuple
 from uuid import UUID
 
 from django.db import connections
@@ -266,6 +267,45 @@ def _member_identity(addresses, identities, stamps, recorded=None):
         return HolderType.MEMBER.value, recorded.name, recorded.residential_address, IDENTITY_PARTICULARS, None
     named = next((stamp["name"] for stamp in found if stamp["name"]), "")
     return HolderType.UNIDENTIFIED.value, named, "", IDENTITY_RECORDED if named else IDENTITY_NONE, None
+
+
+class MemberIdentity(NamedTuple):
+
+    holder_type: str
+    name: str
+    residential_address: str
+    source: str
+    stamped_at: object
+    user_id: int | None
+
+
+def _member_user(addresses, identities, holder_type, source):
+    if holder_type != HolderType.MEMBER.value or source != IDENTITY_LIVE:
+        return None
+    found = {
+        identity.user_id
+        for identity in (identities.get(address.lower(), UNIDENTIFIED) for address in addresses)
+        if identity.user_id
+    }
+    return found.pop() if len(found) == 1 else None
+
+
+def member_identities(token, member_ids) -> dict:
+    particulars, wallets, identities, stamps = _identity_sources(token, member_ids)
+    resolved = {}
+    for member in member_ids:
+        holder_type, name, residential_address, source, stamped_at = _member_identity(
+            wallets[member], identities, stamps, particulars.get(member)
+        )
+        resolved[member] = MemberIdentity(
+            holder_type,
+            name,
+            residential_address,
+            source,
+            stamped_at,
+            _member_user(wallets[member], identities, holder_type, source),
+        )
+    return resolved
 
 
 def _allotted(allotment, opened_on, ceased):

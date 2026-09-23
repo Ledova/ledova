@@ -439,5 +439,13 @@ retain their original identity independently. Allotment identity stamps preserve
 the member identity where one was resolved when shares were issued. Treasury relabeling or current profile guesses
 must not replace that historical source.
 
+## Publications to members
+
+A [shareholder publication](shareholder-publications.md) is the first
+member-readable projection of the register: its roll is resolved once from the
+stored register at a record date and frozen, carrying the same four holder types
+and the same refusal to name a member the register cannot name. It reads the
+register and never writes to it.
+
 Next: [legal positions](../legal/positions.md), [scheduled folds](../operations/jobs.md)
 and [operator recovery](../operations/recovery.md).

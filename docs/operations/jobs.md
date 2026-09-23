@@ -27,6 +27,7 @@ one.
 | daily 03:15 | `purge_document_evidence` |
 | daily 03:30 | `sweep_private_uploads` |
 | daily 03:40 | `purge_former_members_past_the_clock` |
+| daily 03:50 | `purge_publications_past_the_clock` |
 | daily 04:00 | `check_periodic_reviews` |
 
 For interrupted work, use [recovery and reconciliation](recovery.md).

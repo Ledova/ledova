@@ -119,6 +119,12 @@ THROUGH_ITS_TOKEN = (
 )
 
 
+ADDRESSED_TO_ME = (
+    "EXISTS (SELECT 1 FROM shareholders_publicationrecipient addressed "
+    f"WHERE addressed.publication_id = shareholders_publication.uuid AND addressed.user_id = {PRINCIPAL})"
+)
+
+
 A_PARTY_TO_THE_SWAP = (
     "EXISTS (SELECT 1 FROM wallets party "
     "WHERE party.uuid IN (tokens_swaporder.seller_wallet_id, tokens_swaporder.buyer_wallet_id) "
@@ -229,6 +235,14 @@ POLICIES = {
     ),
     "tokens_registermemberparticulars": ("member_id IN (SELECT uuid FROM tokens_registermember)", "false"),
     "tokens_importedformermember": ("token_id IN (SELECT token_id FROM tokens_shareregister)", "false"),
+    "shareholders_publication": (
+        f"{_company('company_id', VISIBLE_COMPANIES)} OR {ADDRESSED_TO_ME}",
+        "false",
+    ),
+    "shareholders_publicationrecipient": (
+        f"user_id = {PRINCIPAL} OR {_company('company_id', VISIBLE_COMPANIES)}",
+        "false",
+    ),
     "blockchain_outgoingoperation": ("false", "false"),
     "blockchain_signingaccount": ("false", "false"),
     "blockchain_signedattempt": ("false", "false"),
@@ -394,6 +408,21 @@ PUBLIC_TERM = {
     "exact dual of the market term the token policy will carry: a company is visible because a token of its is "
     "on the market, and that token is visible because it is on the market. Removing either one leaves a row "
     "whose parent or child is hidden, which is the R13 failure.",
+    "shareholders_publication": "A publication is the first investor-readable projection of the register, so its "
+    "read term has to reach past the company that made it: without the recipient term a member could never open "
+    "the statement or notice addressed to them, which is the whole point of the table. The term is a member's own "
+    "roll row and nothing else - it never reads a wallet address, because Wallet is unique per (account, chain, "
+    "address) and two accounts may hold one address, so an address join would hand one member's statement to "
+    "another. Identity is resolved once in Python when the roll is frozen and stored as user_id, exactly the shape "
+    "the notifications policy already uses. No cycle: shareholders_publicationrecipient's own policy reads only "
+    "its own columns and companies_company through the visible-companies helper, and never reads publications "
+    "back. Both tables are read-only to the app role; only the operator writes them.",
+    "shareholders_publicationrecipient": "A roll row is readable by the member it names and by the company that "
+    "published it, the same two-sided shape offerings_subscription carries. The company term is the row's own "
+    "company_id rather than a join through the publication, because the publication's read term reads this table "
+    "and a term reading it back would be an infinite recursion in the policy. company_id is copied from the "
+    "publication at insert and the guard trigger refuses a row whose company differs from its publication's; "
+    "both rows are frozen at insert, so it cannot go stale.",
     "offerings_offering": "open_now() deliberately admits investors - the subscription serializer and "
     "services/subscription.py re-read the offering under select_for_update, and an owner-only policy turns "
     "that into DoesNotExist on the subscribe path rather than a refusal.",
@@ -448,6 +477,10 @@ OPERATOR_ONLY = {
     "certificate or notice figures from it, written on the operator connection by the export route and the "
     "register outputs admin, and queried by staff in admin. No issuer or customer path reads them, and only the "
     "retention purge deletes them.",
+    "shareholders_publicationread": "Append-only records of who opened a publication a company made to its "
+    "members, written on the operator connection by the delivery service and the publications admin, and read "
+    "only by permitted staff. They carry UUIDs and reader IDs, not names, holdings or file contents, and a "
+    "delivery whose read cannot be recorded is refused rather than served.",
     "compliance_compliancealert": "Raised and worked by compliance staff on the operator connection. It "
     "carries user_account_id but no queryset scopes it, so a policy would be a new rule rather than a "
     "translation of one.",
