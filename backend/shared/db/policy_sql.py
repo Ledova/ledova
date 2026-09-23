@@ -13,26 +13,33 @@ from shared.db.policies import (
 
 SUFFIXES = ("read", "insert", "update", "delete")
 
-TABLE_CREATION_AFTER_INITIAL_GRANTS = {
-    table: ("tokens", "0062_register_foundation")
-    for table in (
-        "tokens_registermember",
-        "tokens_shareregister",
-        "tokens_registerentry",
-        "tokens_registerposition",
-    )
-} | {
-    "tokens_registercorrection": ("tokens", "0064_reviewed_register_corrections"),
-    "tokens_registermemberwallet": ("tokens", "0065_register_opening"),
-    "tokens_registeropening": ("tokens", "0065_register_opening"),
-    "tokens_registerwalletlink": ("tokens", "0067_register_wallet_links"),
-    "tokens_registerreconciliation": ("tokens", "0070_register_reconciliation"),
-    "tokens_registerimport": ("tokens", "0072_register_import"),
-    "tokens_registermemberparticulars": ("tokens", "0072_register_import"),
-    "tokens_importedformermember": ("tokens", "0072_register_import"),
-    "tokens_registerinstruction": ("tokens", "0073_register_instructions"),
-    "whitelist_whitelistapproval": ("whitelist", "0007_per_company_approvals"),
-}
+TABLE_CREATION_AFTER_INITIAL_GRANTS = (
+    {
+        table: ("tokens", "0062_register_foundation")
+        for table in (
+            "tokens_registermember",
+            "tokens_shareregister",
+            "tokens_registerentry",
+            "tokens_registerposition",
+        )
+    }
+    | {
+        "tokens_registercorrection": ("tokens", "0064_reviewed_register_corrections"),
+        "tokens_registermemberwallet": ("tokens", "0065_register_opening"),
+        "tokens_registeropening": ("tokens", "0065_register_opening"),
+        "tokens_registerwalletlink": ("tokens", "0067_register_wallet_links"),
+        "tokens_registerreconciliation": ("tokens", "0070_register_reconciliation"),
+        "tokens_registerimport": ("tokens", "0072_register_import"),
+        "tokens_registermemberparticulars": ("tokens", "0072_register_import"),
+        "tokens_importedformermember": ("tokens", "0072_register_import"),
+        "tokens_registerinstruction": ("tokens", "0073_register_instructions"),
+        "whitelist_whitelistapproval": ("whitelist", "0007_per_company_approvals"),
+    }
+    | {
+        table: ("shareholders", "0001_publications")
+        for table in ("shareholders_publication", "shareholders_publicationrecipient")
+    }
+)
 
 NOT_YET_CREATED = (
     "The catalogue says the app role reaches {tables}, and the grant ran before they existed. "

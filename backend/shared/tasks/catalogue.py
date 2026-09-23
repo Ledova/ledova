@@ -59,6 +59,12 @@ SYSTEM_WIDE = {
     "tokens.tasks.register_reconciliation.reconcile_every_register": "Compares every opened share class's "
     "stored register with a fresh canonical chain snapshot and records the result. It is the deployment's "
     "statutory register rather than any owner's data; it writes only reconciliation records.",
+    "shareholders.tasks.publications.purge_publications_past_the_clock": "Deletes publications, their frozen "
+    "rolls and their read records seven years after the publication, on the same clock and the same settings "
+    "constant the register's own outputs use. It belongs to no tenant: it sweeps every company's publications "
+    "on the operator connection, and it is the only deletion anyone may perform on those tables, because the "
+    "app role's policy refuses all three write commands on both of them and has no grant on the read records "
+    "at all.",
     "tokens.tasks.former_holders.purge_former_members_past_the_clock": "Deletes former-member records "
     "seven years after the date they ceased, imported former members seven years after their date ceased, "
     "member particulars seven years after the member last held shares, and register export records seven "

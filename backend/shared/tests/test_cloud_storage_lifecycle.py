@@ -23,6 +23,7 @@ from documents.models import Document, DocumentType
 from shared.services.orphaned_files import GRACE, sweep_orphaned_files
 from shared.storage import private_file_fields
 from shared.tests.tenants import an_account
+from shareholders.models import Publication
 from tokens.models import (
     RegisterCorrection,
     RegisterImport,
@@ -171,6 +172,7 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                         (RegisterWalletLink, "file"),
                         (RegisterImport, "file"),
                         (RegisterInstruction, "file"),
+                        (Publication, "file"),
                     },
                 )
                 connected = {lookup[0] for lookup, *_rest in post_delete.receivers}
@@ -182,6 +184,7 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                     RegisterWalletLink,
                     RegisterImport,
                     RegisterInstruction,
+                    Publication,
                 ):
                     self.assertIn(f"shared.storage.sweep:{model._meta.label}.file", connected)
                 self.assertNotIn("shared.storage.sweep:users.InvestorClassification.evidence_file", connected)

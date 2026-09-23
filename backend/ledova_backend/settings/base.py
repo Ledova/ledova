@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "blockchain",
     "companies",
     "tokens",
+    "shareholders",
     "offerings",
     "whitelist",
     "feature_flags",

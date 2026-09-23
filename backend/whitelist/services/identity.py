@@ -15,6 +15,7 @@ class HolderIdentity(NamedTuple):
     name: str
     residential_address: str
     whitelist_status: str
+    user_id: int | None = None
 
 
 UNIDENTIFIED = HolderIdentity(HolderType.UNIDENTIFIED.value, "", "", "")
@@ -48,6 +49,7 @@ def entry_identity(entry: WhitelistEntry, whitelist_status: str = "") -> HolderI
         name,
         (holder.residential_address or "").strip(),
         whitelist_status,
+        holder.user_id,
     )
 
 

@@ -20,6 +20,7 @@ SCOPED_TEST_LABELS = (
     "tokens.tests.test_register_instructions.ScopedTransferInstructionTest",
     "tokens.tests.test_register_snapshot_scoped.ScopedRegisterSnapshotTest",
     "tokens.tests.test_register_events_scoped.ScopedRegisterFoundationTest",
+    "shareholders.tests.test_publications_scoped.ScopedPublicationTest",
     "tokens.tests.test_nav_scoped.ScopedNAVRecoveryTest",
     "tokens.tests.test_pause_scoped.ScopedPauseRecoveryTest",
     "whitelist.tests.test_change_scoped.ScopedWhitelistChangeTest",
