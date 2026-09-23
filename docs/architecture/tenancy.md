@@ -53,6 +53,11 @@ Important invariants:
   offerings. Personal API surfaces still select the caller's own records.
   A company's nullable operator-wallet link does not expose its owner's profile
   to an ordinary viewer of that company.
+- A member reads a company's row only through an account resolved once and
+  stored, never through a live join. `Wallet` is unique per (account, chain,
+  address), so two accounts can hold one address and an address join would cross
+  tenants. [Shareholder publications](shareholder-publications.md) is the first
+  table to carry such a term.
 - RLS visibility does not decide investor eligibility. Directory and market
   selectors apply the [eligibility rules](companies-and-eligibility.md).
 - A catalogue change needs a migration to reinstall policies for existing

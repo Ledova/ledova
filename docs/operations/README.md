@@ -13,6 +13,7 @@ assume the API, worker and database run compatible code.
 | Deploy local/testnet contracts and align signer ownership | [Chains and keys](chains.md) |
 | Read the evidence for company-scoped approvals and their bypass review | [Approval controls](approval-controls.md) |
 | Seed data, configure the operator and work review queues | [Operator console](operator-console.md) |
+| Publish a document to a share class's members | [Publishing to members](publications.md) |
 | Configure private storage, scanning and retention | [Uploads](uploads.md) |
 | Start workers and inspect schedules | [Background jobs](jobs.md) |
 | Recover unresolved work | [Recovery](recovery.md) |

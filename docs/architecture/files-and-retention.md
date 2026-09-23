@@ -17,6 +17,7 @@ account and classification UUIDs in prefixes remain pseudonymous identifiers.
 | Upload | Storage prefix and lifecycle |
 | --- | --- |
 | Register correction authority | `companies/`; retained request prevents ordinary deletion; interrupted-copy orphans are swept |
+| Publication to members | `companies/`; kept with its row on the register's seven-year clock, then purged with it |
 | Company document | `companies/`; swept after becoming an orphan |
 | Unattached payslip | `documents/`; ordinary deletion and orphan cleanup |
 | Classification evidence | `users/`; retained by the classification clock |
@@ -63,6 +64,12 @@ Every operations page/file/extraction/changelist read records `DocumentRead`;
 an audit write failure refuses delivery. Audit rows survive content purge and
 have no admin mutation path. Single-issuer mode disables supporting payslips;
 conversion is refused while unpurged content remains.
+
+A [publication to members](shareholder-publications.md) follows the same rule
+for a document a member reads rather than a reviewer: every member, company and
+staff read records a `PublicationRead`, and a read that cannot be recorded
+refuses the delivery. Unlike the register's own outputs, the bytes are kept,
+because the member has to be able to reopen the same document later.
 
 Correction requests retain a private copy of the reviewed authority document,
 with its content and company binding. During the synthetic experiment those

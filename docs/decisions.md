@@ -174,6 +174,43 @@ on 22 September in
 the mechanism and [chain setup](operations/chains.md#fresh-start-redeploy) the
 redeploy.
 
+## Shareholder publications
+
+The owner chose on 23 September 2026, in
+[the design note](https://github.com/Ledova/ledova/issues/649#issuecomment-5789320596),
+that documents, resolutions and distributions share **one publication spine**
+rather than three models. The argument is the roll: freezing who the members
+were at a record date is the hardest part of
+[#649](https://github.com/Ledova/ledova/issues/649), and one spine builds it
+once. Separate models would have built it three times and brought meetings and
+proxies the issue's non-goals exclude.
+
+- **The first documents are the annual holding statement and the meeting
+  notice.** The distribution statement is the artefact a dividend produces and
+  arrives with that work, rather than being built twice.
+- **Ledova staff publish on the company's written instruction**, as inspection
+  copies, certificates and notice figures are prepared today. Company
+  self-service can be added later without changing anything a member sees.
+- **The roll is frozen once, at the record date.** A publication is evidence
+  that a company communicated with the members it had then, so resolving the
+  audience again later would answer a different question. Nothing on a
+  publication or its roll can be changed afterwards.
+- **A member's identity is resolved once, in Python, and never by a wallet
+  address.** `Wallet` is unique per (account, chain, address), so two accounts
+  can hold one address and an address join in a policy would hand one member's
+  statement to another. A member the register cannot name stays on the roll with
+  no account and no online surface, the same refusal a certificate makes.
+- **A read that cannot be recorded refuses the delivery.** Publication reads
+  follow document reads: append-only, operator-only, no admin mutation path.
+- **Publications share the register's retention clock**, measured from the
+  publication, on the same seven-year floor that cannot be configured away.
+
+One vote per share counted at the record date, dividends rounded down per holder
+with the remainder recorded as unpaid, and no proxy machinery were decided in the
+same session and belong to the slices that build them.
+[Shareholder publications](architecture/shareholder-publications.md) owns the
+mechanism and [publishing to members](operations/publications.md) the procedure.
+
 ## Splits and consolidations
 
 The design for share splits and consolidations is written in
