@@ -62,7 +62,8 @@ export function PublicationsScreen() {
     help: { fontSize: theme.fontSize.xs, color: theme.colors.text.muted, marginTop: theme.spacing.md },
   }));
 
-  const { publications, isLoading, open, openingUuid, openError } = usePublications();
+  const { publications, isLoading, listFailed, retry, hasMore, isLoadingMore, loadMore, open, openingUuid, openError } =
+    usePublications();
 
   const renderRow = (publication: Publication) => (
     <View key={publication.uuid} style={styles.row}>
@@ -111,6 +112,13 @@ export function PublicationsScreen() {
                 <ActivityIndicator size="large" color={theme.colors.interactive.active} />
                 <Text style={styles.muted}>Loading...</Text>
               </View>
+            ) : listFailed ? (
+              <View style={styles.centred} accessibilityRole="alert">
+                <Text style={styles.emptyTitle}>{PUBLICATION_COPY.LIST_FAILED}</Text>
+                <TouchableOpacity style={styles.openButton} onPress={retry} accessibilityRole="button">
+                  <Text style={styles.openLabel}>{PUBLICATION_COPY.RETRY}</Text>
+                </TouchableOpacity>
+              </View>
             ) : publications.length === 0 ? (
               <View style={styles.centred}>
                 <EnvelopeSimpleIcon size={theme.icon.sizes.xl} color={theme.colors.text.subtle} weight="duotone" />
@@ -120,6 +128,18 @@ export function PublicationsScreen() {
             ) : (
               <ScrollView>
                 {publications.map(renderRow)}
+                {hasMore && (
+                  <TouchableOpacity
+                    style={styles.openButton}
+                    onPress={loadMore}
+                    disabled={isLoadingMore}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.openLabel}>
+                      {isLoadingMore ? PUBLICATION_COPY.LOADING_MORE : PUBLICATION_COPY.LOAD_MORE}
+                    </Text>
+                  </TouchableOpacity>
+                )}
                 <Text style={styles.help}>{PUBLICATION_COPY.FROZEN_HELP}</Text>
               </ScrollView>
             )}

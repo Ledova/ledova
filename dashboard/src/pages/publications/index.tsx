@@ -58,7 +58,8 @@ function PublicationRow({
 }
 
 export default function PublicationsPage() {
-  const { publications, isLoading, open, openingUuid, openError } = usePublications();
+  const { publications, isLoading, listFailed, retry, hasMore, isLoadingMore, loadMore, open, openingUuid, openError } =
+    usePublications();
 
   if (isLoading) {
     return (
@@ -76,7 +77,18 @@ export default function PublicationsPage() {
             {openError}
           </div>
         )}
-        {publications.length === 0 ? (
+        {listFailed ? (
+          <div role="alert" className="px-4 py-12 text-center">
+            <p className="text-text-primary mb-4">{PUBLICATION_COPY.LIST_FAILED}</p>
+            <button
+              type="button"
+              onClick={retry}
+              className="rounded-lg bg-brand-mid hover:bg-brand px-4 py-2 text-sm font-semibold text-white transition-colors"
+            >
+              {PUBLICATION_COPY.RETRY}
+            </button>
+          </div>
+        ) : publications.length === 0 ? (
           <div className="px-4 py-12 text-center">
             <EnvelopeSimpleIcon size={48} className="text-text-muted mx-auto mb-4" weight="duotone" />
             <h3 className="text-lg font-semibold text-text-primary mb-2">{PUBLICATION_COPY.EMPTY_TITLE}</h3>
@@ -94,6 +106,18 @@ export default function PublicationsPage() {
                 />
               ))}
             </div>
+            {hasMore && (
+              <div className="px-4 pt-4 text-center">
+                <button
+                  type="button"
+                  onClick={loadMore}
+                  disabled={isLoadingMore}
+                  className="text-sm text-brand-mid hover:text-brand-light transition-colors disabled:opacity-50"
+                >
+                  {isLoadingMore ? PUBLICATION_COPY.LOADING_MORE : PUBLICATION_COPY.LOAD_MORE}
+                </button>
+              </div>
+            )}
             <p className="px-4 pt-4 text-xs text-text-muted">{PUBLICATION_COPY.FROZEN_HELP}</p>
           </>
         )}

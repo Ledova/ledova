@@ -1,3 +1,4 @@
+import type { AxiosRequestConfig } from 'axios';
 import React from 'react';
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -32,6 +33,7 @@ const statement = {
 let client: QueryClient;
 let rows: unknown[];
 let served: () => Promise<unknown>;
+let listing: (page: number) => Promise<unknown>;
 
 function wrapper({ children }: { children: React.ReactNode }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
@@ -40,13 +42,16 @@ function wrapper({ children }: { children: React.ReactNode }) {
 beforeEach(() => {
   resetFiles();
   rows = [statement];
+  listing = async (page) => ({
+    data: { count: rows.length, next: null, previous: null, results: page === 1 ? rows : [] },
+  });
   const bytes = Uint8Array.from('%PDF', (character) => character.charCodeAt(0));
   served = async () => ({ data: bytes.buffer, headers: { 'content-type': 'application/pdf; charset=binary' } });
   client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   jest
     .mocked(apiClient.get)
-    .mockImplementation(async (url: string) =>
-      url === LISTING ? { data: { count: rows.length, results: rows } } : served(),
+    .mockImplementation(async (url: string, config?: AxiosRequestConfig) =>
+      url === LISTING ? listing(config?.params?.page ?? 1) : served(),
     );
   jest.mocked(Sharing.isAvailableAsync).mockResolvedValue(true);
   jest.mocked(Sharing.shareAsync).mockResolvedValue(undefined);
@@ -102,4 +107,34 @@ it('writes no copy and says nothing was served when the read could not be record
   expect(await view.findByText(PUBLICATION_COPY.UNDELIVERABLE)).toBeTruthy();
   expect(Sharing.shareAsync).not.toHaveBeenCalled();
   expect(files.has(copy)).toBe(false);
+});
+
+it('shows earlier publications a page at a time', async () => {
+  const earlier = { ...statement, uuid: 'publication-b', title: 'Meeting notice 2025' };
+  listing = async (page) =>
+    page === 1
+      ? { data: { count: 2, next: 'https://api.example/api/v1/publications/?page=2', previous: null, results: rows } }
+      : { data: { count: 2, next: null, previous: null, results: [earlier] } };
+  const view = await render(<PublicationsScreen />, { wrapper });
+
+  await fireEvent.press(await view.findByText(PUBLICATION_COPY.LOAD_MORE));
+
+  expect(await view.findByText('Meeting notice 2025')).toBeTruthy();
+  expect(view.getByText('Annual holding statement 2026')).toBeTruthy();
+  await waitFor(() => expect(view.queryByText(PUBLICATION_COPY.LOAD_MORE)).toBeNull());
+});
+
+it('says the listing failed rather than that nothing was published, and offers to try again', async () => {
+  let failing = true;
+  listing = async () => {
+    if (failing) throw { response: { status: 500 } };
+    return { data: { count: 1, next: null, previous: null, results: rows } };
+  };
+  const view = await render(<PublicationsScreen />, { wrapper });
+
+  expect(await view.findByText(PUBLICATION_COPY.LIST_FAILED)).toBeTruthy();
+  expect(view.queryByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeNull();
+  failing = false;
+  await fireEvent.press(view.getByText(PUBLICATION_COPY.RETRY));
+  expect(await view.findByText('Annual holding statement 2026')).toBeTruthy();
 });

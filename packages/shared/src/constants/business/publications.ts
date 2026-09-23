@@ -9,6 +9,15 @@ export const PUBLICATION_ENDPOINTS = {
 
 export const PUBLICATION_NOTICE = 'publication';
 
+const PUBLICATION_EXTENSIONS: Record<string, string> = {
+  'application/pdf': '.pdf',
+  'image/png': '.png',
+  'image/jpeg': '.jpg',
+};
+
+export const publicationFilename = (uuid: string, mimeType: string) =>
+  `${uuid}${PUBLICATION_EXTENSIONS[(mimeType.split(';')[0] ?? '').trim()] ?? ''}`;
+
 export const PUBLICATION_KIND_LABELS: Record<PublicationKind, string> = {
   holding_statement: 'Annual holding statement',
   meeting_notice: 'Meeting notice',
@@ -27,8 +36,10 @@ export const PUBLICATION_COPY = {
   FROZEN_HELP:
     'The holding shown is the one frozen when the publication was made, not your holding today. The document is ' +
     'the one that was published: it is stored, never regenerated.',
-  UNDELIVERABLE:
-    'This document could not be delivered, because the record of your opening it could not be written. Nothing ' +
-    'was served. Try again shortly.',
+  UNDELIVERABLE: 'This document could not be delivered, and nothing was served. Try again shortly.',
   FAILED: 'The document could not be opened.',
+  LIST_FAILED: 'What has been published to you could not be loaded.',
+  RETRY: 'Try again',
+  LOAD_MORE: 'Show earlier publications',
+  LOADING_MORE: 'Loading...',
 } as const;

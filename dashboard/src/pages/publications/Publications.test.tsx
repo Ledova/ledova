@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import type { AxiosRequestConfig } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -23,22 +24,32 @@ const statement = {
 let client: QueryClient;
 let rows: unknown[];
 let file: () => Promise<{ data: Blob }>;
+let listing: (page: number) => Promise<unknown>;
+let saved: { href: string | null; download: string }[];
 
 beforeEach(() => {
   vi.clearAllMocks();
   rows = [statement];
   file = async () => ({ data: new Blob(['stored bytes'], { type: 'application/pdf' }) });
   client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-  vi.mocked(apiClient.get).mockImplementation(async (url: string) => {
-    if (url === '/api/v1/publications/') return { data: { count: rows.length, results: rows } };
+  listing = async (page) => ({
+    data: { count: rows.length, next: null, previous: null, results: page === 1 ? rows : [] },
+  });
+  vi.mocked(apiClient.get).mockImplementation(async (url: string, config?: AxiosRequestConfig) => {
+    if (url === '/api/v1/publications/') return listing(config?.params?.page ?? 1);
     return file();
   });
   window.open = vi.fn();
   URL.createObjectURL = vi.fn(() => 'blob:a-private-copy');
   URL.revokeObjectURL = vi.fn();
+  saved = [];
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+    saved.push({ href: this.getAttribute('href'), download: this.download });
+  });
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   cleanup();
   client.clear();
 });
@@ -83,9 +94,39 @@ describe('the publications a shareholder has been sent', () => {
         responseType: 'blob',
       }),
     );
-    await waitFor(() =>
-      expect(window.open).toHaveBeenCalledWith('blob:a-private-copy', '_blank', 'noopener,noreferrer'),
-    );
+    await waitFor(() => expect(saved).toEqual([{ href: 'blob:a-private-copy', download: `${statement.uuid}.pdf` }]));
+    expect(window.open).not.toHaveBeenCalled();
+  });
+
+  it('shows earlier publications a page at a time', async () => {
+    const earlier = { ...statement, uuid: 'a1b2c3d4-0000-4000-8000-000000000002', title: 'Meeting notice 2025' };
+    listing = async (page) =>
+      page === 1
+        ? { data: { count: 2, next: 'https://api.example/api/v1/publications/?page=2', previous: null, results: rows } }
+        : { data: { count: 2, next: null, previous: null, results: [earlier] } };
+
+    showPage();
+    fireEvent.click(await screen.findByText(PUBLICATION_COPY.LOAD_MORE));
+
+    expect(await screen.findByText('Meeting notice 2025')).toBeTruthy();
+    expect(screen.getByText('Annual holding statement 2026')).toBeTruthy();
+    expect(screen.queryByText(PUBLICATION_COPY.LOAD_MORE)).toBeNull();
+  });
+
+  it('says the listing failed rather than that nothing was published, and offers to try again', async () => {
+    let failing = true;
+    listing = async () => {
+      if (failing) throw { response: { status: 500 } };
+      return { data: { count: 1, next: null, previous: null, results: rows } };
+    };
+
+    showPage();
+
+    expect((await screen.findByRole('alert')).textContent).toContain(PUBLICATION_COPY.LIST_FAILED);
+    expect(screen.queryByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeNull();
+    failing = false;
+    fireEvent.click(screen.getByText(PUBLICATION_COPY.RETRY));
+    expect(await screen.findByText('Annual holding statement 2026')).toBeTruthy();
   });
 
   it('says nothing was served when the read could not be recorded', async () => {

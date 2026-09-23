@@ -1,16 +1,17 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
-import { CACHE_TIMING, PUBLICATION_COPY, downloadPublication, getPublications } from '@ledova/shared';
+import {
+  CACHE_TIMING,
+  PUBLICATION_COPY,
+  downloadPublication,
+  getPublications,
+  getPublicationsNextPage,
+  publicationFilename,
+} from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { shareDocumentCopy } from '../../services/documentCopies';
 import { getSessionEpoch } from '../../services/sessionScope';
-
-const EXTENSION_BY_MIME_TYPE: Record<string, string> = {
-  'application/pdf': '.pdf',
-  'image/png': '.png',
-  'image/jpeg': '.jpg',
-};
 
 const UTI_BY_MIME_TYPE: Record<string, string> = {
   'application/pdf': 'com.adobe.pdf',
@@ -29,9 +30,11 @@ export function usePublications() {
   const [openingUuid, setOpeningUuid] = useState<string | undefined>(undefined);
   const [openError, setOpenError] = useState<string | undefined>(undefined);
 
-  const listing = useQuery({
+  const listing = useInfiniteQuery({
     queryKey: ['publications'],
-    queryFn: () => getPublications(apiClient),
+    queryFn: ({ pageParam }) => getPublications(apiClient, pageParam),
+    getNextPageParam: getPublicationsNextPage,
+    initialPageParam: 1,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
 
@@ -50,7 +53,7 @@ export function usePublications() {
         async () => {
           const response = await downloadPublication(apiClient, uuid, { ledovaSessionEpoch: sessionEpoch });
           const type = String(response.headers['content-type'] || 'application/octet-stream').split(';')[0];
-          return { name: `${uuid}${EXTENSION_BY_MIME_TYPE[type] || ''}`, type, bytes: new Uint8Array(response.data) };
+          return { name: publicationFilename(uuid, type), type, bytes: new Uint8Array(response.data) };
         },
         (uri, type) => Sharing.shareAsync(uri, { mimeType: type, UTI: UTI_BY_MIME_TYPE[type] }),
       );
@@ -62,8 +65,13 @@ export function usePublications() {
   };
 
   return {
-    publications: listing.data?.data?.results ?? [],
+    publications: listing.data?.pages.flatMap((page) => page.data?.results ?? []) ?? [],
     isLoading: listing.isLoading,
+    listFailed: listing.isError && !listing.data,
+    retry: () => void listing.refetch(),
+    hasMore: listing.hasNextPage,
+    isLoadingMore: listing.isFetchingNextPage,
+    loadMore: () => void listing.fetchNextPage(),
     open,
     openingUuid,
     openError,
