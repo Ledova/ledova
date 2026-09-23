@@ -18,6 +18,7 @@ import {
   FileTextIcon,
   ShieldCheckIcon,
   MegaphoneIcon,
+  NewspaperIcon,
   StorefrontIcon,
   HandCoinsIcon,
 } from '@phosphor-icons/react';
@@ -99,6 +100,8 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
         { label: 'Offering', path: '/company/offering', icon: MegaphoneIcon },
       );
     }
+
+    items.push({ label: 'Publications', path: '/publications', icon: NewspaperIcon });
 
     return items;
   }, [tradingEnabled, isCompany]);

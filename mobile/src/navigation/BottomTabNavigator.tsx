@@ -23,6 +23,7 @@ import { CompanyStackNavigator } from './CompanyStackNavigator';
 import type { CompanyStackParamList } from './CompanyStackNavigator';
 import { ListingScreen } from '../screens/listing';
 import { InvestorEligibilityScreen } from '../screens/investor-eligibility';
+import { PublicationsScreen } from '../screens/publications';
 import { getMainHeaderStyle, MainHeader } from './headers';
 import type { WalletsStackParamList } from './WalletsStackNavigator';
 import type { BuyStackParamList } from './BuyStackNavigator';
@@ -44,6 +45,7 @@ export type BottomTabParamList = {
   Company: NavigatorScreenParams<CompanyStackParamList>;
   Listing: undefined;
   InvestorEligibility: undefined;
+  Publications: undefined;
 };
 
 const Tab = createBottomTabNavigator<BottomTabParamList>();
@@ -204,6 +206,15 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
         component={AssetPricesScreen}
         options={{
           title: 'Market',
+          tabBarItemStyle: { display: 'none' },
+        }}
+      />
+
+      <Tab.Screen
+        name="Publications"
+        component={PublicationsScreen}
+        options={{
+          title: 'Publications',
           tabBarItemStyle: { display: 'none' },
         }}
       />

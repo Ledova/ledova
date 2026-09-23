@@ -17,6 +17,7 @@ import {
   PaperPlaneTiltIcon,
   BuildingsIcon,
   FileTextIcon,
+  NewspaperIcon,
   ShieldCheckIcon,
 } from 'phosphor-react-native';
 import { signout, describeFailure } from '@ledova/shared';
@@ -61,12 +62,14 @@ const INVESTOR_MENU_ITEMS: MenuItem[] = [
   { label: 'Transactions', icon: LinkIcon, action: 'tab', target: 'Transactions' },
   { label: 'Market', icon: ChartBarIcon, action: 'tab', target: 'Market' },
   { label: 'Eligibility', icon: ShieldCheckIcon, action: 'tab', target: 'InvestorEligibility' },
+  { label: 'Publications', icon: NewspaperIcon, action: 'tab', target: 'Publications' },
 ];
 
 const COMPANY_MENU_ITEMS: MenuItem[] = [
   { label: 'Company', icon: BuildingsIcon, action: 'tab', target: 'Company' },
   { label: 'Listing', icon: FileTextIcon, action: 'tab', target: 'Listing' },
   { label: 'Wallets', icon: WalletIcon, action: 'tab', target: 'Wallets' },
+  { label: 'Publications', icon: NewspaperIcon, action: 'tab', target: 'Publications' },
 ];
 
 const SECONDARY_ITEMS: MenuItem[] = [

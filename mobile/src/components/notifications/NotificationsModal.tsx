@@ -1,25 +1,37 @@
 import React, { useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NavigationProp } from '@react-navigation/native';
 import { XIcon } from 'phosphor-react-native';
-import { formatDateTime } from '@ledova/shared';
+import { formatDateTime, PUBLICATION_NOTICE } from '@ledova/shared';
 import type { Notification } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { CustomModal } from '../modal';
 import { useNotifications } from '@ledova/shared';
+import type { RootStackParamList } from '../../navigation/AppNavigator';
 
 interface NotificationsModalProps {
   visible: boolean;
   onClose: () => void;
 }
 
+const DESTINATIONS: Record<string, string> = { [PUBLICATION_NOTICE]: 'Publications' };
+
+export function destinationOf(notification: Notification): string | undefined {
+  const type = (notification.data as { type?: unknown } | null | undefined)?.type;
+  return typeof type === 'string' ? DESTINATIONS[type] : undefined;
+}
+
 function NotificationItem({
   notification,
   onRead,
   onArchive,
+  onFollow,
 }: {
   notification: Notification;
   onRead: (uuid: string) => void;
   onArchive: (uuid: string) => void;
+  onFollow: (notification: Notification) => void;
 }) {
   const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
@@ -74,6 +86,7 @@ function NotificationItem({
       style={styles.notificationItem}
       onPress={() => {
         if (!notification.isRead) onRead(notification.uuid);
+        onFollow(notification);
       }}
       activeOpacity={0.7}
     >
@@ -191,6 +204,7 @@ export function NotificationsModal({ visible, onClose }: NotificationsModalProps
       marginLeft: theme.spacing.xs,
     },
   }));
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const {
     unreadCount,
     notifications,
@@ -207,6 +221,13 @@ export function NotificationsModal({ visible, onClose }: NotificationsModalProps
       fetchNotifications();
     }
   }, [visible, fetchNotifications]);
+
+  const follow = (notification: Notification) => {
+    const destination = destinationOf(notification);
+    if (!destination) return;
+    onClose();
+    navigation.navigate('MainApp', { screen: 'Main', params: { screen: destination } } as never);
+  };
 
   return (
     <CustomModal visible={visible} onClose={onClose} showFooter={false}>
@@ -236,6 +257,7 @@ export function NotificationsModal({ visible, onClose }: NotificationsModalProps
                 notification={notification}
                 onRead={markAsRead}
                 onArchive={archive}
+                onFollow={follow}
               />
             ))}
           </ScrollView>

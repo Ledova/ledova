@@ -6,4 +6,5 @@ export * from './trading';
 export * from './transactions';
 export * from './directory';
 export * from './subscriptions';
+export * from './publications';
 export * from './register';

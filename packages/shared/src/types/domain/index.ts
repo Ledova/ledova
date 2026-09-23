@@ -23,5 +23,6 @@ export * from './feature-flag';
 export * from './operator';
 export * from './offering';
 export * from './subscription';
+export * from './publication';
 export * from './order-action';
 export * from './swap-settlement';
