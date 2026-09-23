@@ -117,6 +117,10 @@ CREATE TRIGGER shareholders_publication_event_chain
 """
 
 DROP_CHAIN = """
+DROP POLICY shareholders_publicationevent_read ON shareholders_publicationevent;
+DROP POLICY shareholders_publicationevent_insert ON shareholders_publicationevent;
+DROP POLICY shareholders_publicationevent_update ON shareholders_publicationevent;
+DROP POLICY shareholders_publicationevent_delete ON shareholders_publicationevent;
 DROP TRIGGER shareholders_publication_event_chain ON shareholders_publicationevent;
 DROP FUNCTION shareholders_guard_publication_event();
 DROP FUNCTION shareholders_publication_event_hash(shareholders_publicationevent);

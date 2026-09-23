@@ -1,3 +1,4 @@
+import importlib
 from datetime import timedelta
 from uuid import uuid4
 
@@ -150,6 +151,40 @@ class PublishingAResolutionTest(StubUploadDependencies, TestCase):
                             f"UPDATE shareholders_publication SET {column} = %s WHERE uuid = %s",
                             [value, publication.pk],
                         )
+
+
+class DowngradingTheChainTest(StubUploadDependencies, TestCase):
+    def setUp(self):
+        self.world = a_company_with_members("downgrade")
+        self.migration = importlib.import_module("shareholders.migrations.0003_resolutions")
+
+    def remove_the_chain(self):
+        with atomic(), connections[current_alias()].schema_editor() as editor:
+            self.migration.remove_chain(None, editor)
+
+    def the_chain_is_installed(self):
+        with connections[current_alias()].cursor() as cursor:
+            cursor.execute(
+                "SELECT count(*) FROM pg_trigger WHERE tgname = 'shareholders_publication_event_chain' "
+                "UNION ALL SELECT count(*) FROM pg_policy WHERE polname LIKE 'shareholders_publicationevent_%'"
+            )
+            return [row[0] for row in cursor.fetchall()]
+
+    def test_downgrade_refuses_while_a_resolution_exists(self):
+        resolution = a_resolution(self.world)
+
+        with self.assertRaisesRegex(RuntimeError, "Retain resolutions"):
+            self.remove_the_chain()
+
+        self.assertEqual(self.the_chain_is_installed(), [1, 4])
+        self.assertTrue(Publication.objects.filter(pk=resolution.pk).exists())
+
+    def test_downgrade_with_no_resolution_removes_the_trigger_and_the_policies_that_hold_its_columns(self):
+        published(self.world)
+
+        self.remove_the_chain()
+
+        self.assertEqual(self.the_chain_is_installed(), [0, 0])
 
 
 class CastingABallotTest(StubUploadDependencies, TestCase):
