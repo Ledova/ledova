@@ -82,7 +82,11 @@ reconciliation remains available after admission closes.
 An opposite change is refused until the earlier operation resolves. Current
 membership, a missing receipt or elapsed time does not release that operation.
 A completed failure requires a deliberate new submission to try again. A stale
-confirmation cannot authorize that retry. A change whose company registry has
+confirmation cannot authorize that retry. For a change the classification
+refresh asked for, the five-minute `refresh_whitelist_approvals` sweep makes
+that new submission itself, and lists at error level any row whose change no
+actor explains rather than writing it. Its rule and the approval statuses are in
+[refreshing an approval](../architecture/outgoing-signing.md#refreshing-an-approval). A change whose company registry has
 moved since admission stays unresolved with a conflict rather than sending to
 either registry. The [whitelist contract](../architecture/outgoing-signing.md#whitelist-changes)
 describes API outcomes, durable boundaries and historical limits.

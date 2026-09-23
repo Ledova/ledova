@@ -51,6 +51,7 @@ from tokens.services.settlement_context import (
 )
 from tokens.services.trading_locks import lock_orders, swap_terms
 from users.models import UserAccount, UserProfile
+from users.services.eligibility import require_investor_eligibility
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import ChainObservationFinality, ChainObservationResult, Wallet
 from wallets.services.chain_evidence import collect_chain_evidence
@@ -173,6 +174,11 @@ def _lock_command(transaction, *, authority=False):
     return swap, current
 
 
+def _share_class_company(swap):
+    share_class = ShareToken.objects.select_related("company").filter(pk=swap.share_token_id).first()
+    return share_class.company if share_class else None
+
+
 def submit_signature(swap_order, signature, signer_address, *, user, participant):
     from tokens.tasks.swap_reconciler import recover_swap_execution
 
@@ -213,6 +219,7 @@ def submit_signature(swap_order, signature, signer_address, *, user, participant
         if swap.deadline_passed:
             raise SwapExpiredException()
         if not stored:
+            require_investor_eligibility(user, _share_class_company(snapshot))
             allowed = (
                 (SwapOrderStatus.CREATED, SwapOrderStatus.BUYER_SIGNED)
                 if is_seller

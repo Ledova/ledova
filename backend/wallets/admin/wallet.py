@@ -4,6 +4,8 @@ from django.utils import timezone
 
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
+from whitelist.constants import WALLET_REFRESH_DELAY_SECONDS
+from whitelist.services.refresh import enqueue_for_wallet
 
 
 @admin.register(Wallet)
@@ -50,6 +52,20 @@ class WalletAdmin(admin.ModelAdmin):
         if obj is not None and obj.verification_status == WALLET_VERIFICATION_STATUS_VERIFIED:
             readonly.append("user_account")
         return readonly
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if change and "user_account" in form.changed_data:
+            enqueue_for_wallet(obj.pk, request.user)
+
+    def delete_model(self, request, obj):
+        enqueue_for_wallet(obj.pk, request.user, WALLET_REFRESH_DELAY_SECONDS)
+        super().delete_model(request, obj)
+
+    def delete_queryset(self, request, queryset):
+        for wallet in queryset:
+            enqueue_for_wallet(wallet.pk, request.user, WALLET_REFRESH_DELAY_SECONDS)
+        super().delete_queryset(request, queryset)
 
     def get_queryset(self, request):
 

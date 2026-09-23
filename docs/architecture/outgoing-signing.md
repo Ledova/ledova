@@ -251,10 +251,66 @@ preparation for both parties and order creation. A stablecoin transfer has no
 company registry to ask, so it checks instead that each party holds a live
 stored approval for at least one company. `GET /api/v1/trading/whitelist/<token>/<address>/status/`
 answers the same question for the share class at contract address `<token>`,
-for any signed-in user and any address. Nothing yet refreshes an approval when a
-classification expires or is revoked; that and classification checks at order
-creation and signing are the next part of #648.
+for any signed-in user and any address. Creating an order and signing a swap
+also require a live investor classification for the share class's company, from
+the same predicate the offering paths use; order creation records the refusal as
+`investor_not_eligible` and signing answers 403.
 
+
+## Refreshing an approval
+
+`whitelist.services.refresh` works out what a company's registry should allow
+for one approval row, and submits a change through `whitelist.services.changes`
+only when that differs from what the registry already holds:
+
+- the account is not in good standing, or has no live classification covering
+  that company: zero, which removes the wallet;
+- otherwise the latest `expires_at` among its live classifications for that
+  company, and never expires when one of them carries no expiry;
+- an entry with no investor account - a treasury, issuer, founder or imported
+  member wallet - keeps the expiry staff entered, and the refresh never
+  overwrites it.
+
+The comparison is by effect rather than by value, because an expiry already in
+the past and a removal are the same thing to the registry. So an ordinary
+classification expiry needs no write at all: the chain holds the classification's
+own expiry and lapses by itself. Running the refresh twice over one row submits
+nothing the second time, and a row whose own change is still unresolved is left
+to recovery.
+
+Four actions trigger it, each attributed to the actor behind it under the
+`refresh` authority: revoking or verifying a classification, which attributes to
+the reviewing staff member; changing an account's status in the admin; and
+deleting or relinking a wallet, which attributes to its holder through the API
+or to the staff member in the admin. A holder is not staff, so that entry point
+accepts only a removal from them, and an addition still requires staff. Deleting
+a wallet cascades its entry and its approvals, so the removals are enqueued
+before the row disappears and the job runs a minute later, once the deletion has
+either committed or rolled back.
+
+`refresh_whitelist_approvals` sweeps every approval every five minutes as the
+safety net. It submits under the staff member whose review decided the outcome,
+and where no actor explains the change - an account status edited outside the
+admin, for instance - it lists the row at error level for staff instead of
+writing. So the platform refuses at once and the chain follows within fifteen
+minutes in normal operation: one sweep interval plus one
+`recover_whitelist_changes` interval. There is no lease, so an approval does not
+lapse by itself between classification expiries.
+
+What a reader may conclude from an approval's status:
+
+| Status | What it says |
+| --- | --- |
+| `pending` | A change for this wallet and company is admitted and unresolved. What the registry holds is unknown, and every platform read treats the wallet as not approved |
+| `active` | The last observation found the registry listing the wallet with this expiry. `is_listed` and the `live` queryset still apply the clock to it |
+| `removed` | The last observation found the registry holding zero for it. A removed row is not re-observed by `sync_all_entries` |
+| `failed` | The last change failed or reverted, and is logged at error level. What the registry holds is unknown and every platform read treats the wallet as not approved. `failed` is terminal for that command, so the refresh submits a new one; the thirty-minute sync re-observes the row and replaces the status with what the registry actually holds |
+
+That is what failing closed means here, and its limits are worth stating. The
+platform refuses at once, both on the registry read and on the classification
+checks at order creation and signing. The registry itself cannot be forced
+closed while the write is failing, so until a removal lands a direct contract
+call can still move shares, and pausing the token is the operator's lever.
 
 ## Capital increases
 

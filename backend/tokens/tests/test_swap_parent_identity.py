@@ -17,7 +17,7 @@ from operators.settlement import require_deployment
 from shared.db import atomic, current_alias, reset_principal, use_operator
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
-from shared.tests.tenants import a_profile, make_tenant
+from shared.tests.tenants import a_profile, make_eligible, make_tenant
 from tokens.exceptions import SwapNotReadyException
 from tokens.models import (
     SwapOrder,
@@ -267,6 +267,8 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
                 "seller": make_tenant("private-seller", with_swap=False),
                 "buyer": make_tenant("private-buyer", with_swap=False),
             }
+            for party in self.parties.values():
+                make_eligible(party)
             self.orders = {}
             for role, key, kind in (
                 ("seller", SELLER, TransferOrderType.SELL),

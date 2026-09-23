@@ -16,6 +16,14 @@ from blockchain.tests.outgoing_fixtures import (
 )
 from companies.models import Company, CompanyType
 from shared.tests.tenants import a_profile, an_account, an_acn
+from users.constants import ACCOUNT_STATUS_ACTIVE
+from users.models import (
+    InvestorCategory,
+    InvestorClassification,
+    InvestorClassificationStatus,
+    UserAccount,
+)
+from users.models.user_account import AccountRole
 from wallets.models import Wallet
 from whitelist.constants import WHITELIST_NO_EXPIRY
 from whitelist.models import WhitelistEntry
@@ -31,9 +39,37 @@ def change_actor():
     return get_user_model().objects.create_superuser(email="whitelist-operator@example.test", password="synthetic")
 
 
-def change_entry():
-    wallet = Wallet.objects.create(user_account=an_account("whitelist-change"), address=ADDRESS, chain="base")
+def change_entry(account=None):
+    wallet = Wallet.objects.create(
+        user_account=account or an_account("whitelist-change"), address=ADDRESS, chain="base"
+    )
     return WhitelistEntry.objects.create(wallet=wallet)
+
+
+def change_investor(label="whitelist-refresh"):
+    profile = a_profile(label)
+    profile.is_id_verified = True
+    profile.save(update_fields=["is_id_verified"])
+    profile.user.is_active = True
+    profile.user.save(update_fields=["is_active"])
+    return UserAccount.objects.create(
+        user_profile=profile, role=AccountRole.INVESTOR, account_status=ACCOUNT_STATUS_ACTIVE
+    )
+
+
+def a_verified_claim(account, expires_at, *, company=None, reviewed_by=None):
+    return InvestorClassification.objects.create(
+        user_account=account,
+        company=company,
+        category=InvestorCategory.ASSOCIATED_PERSON if company else InvestorCategory.PROFESSIONAL_INVESTOR,
+        status=InvestorClassificationStatus.VERIFIED,
+        expires_at=expires_at,
+        reviewed_by=reviewed_by,
+        reviewed_at=timezone.now(),
+        declaration_accepted=True,
+        declaration_text="Declared",
+        submitted_at=timezone.now(),
+    )
 
 
 def change_company(label="whitelist-change"):
@@ -97,5 +133,7 @@ __all__ = [
     "change_actor",
     "change_company",
     "change_entry",
+    "change_investor",
+    "a_verified_claim",
     "WhitelistNode",
 ]

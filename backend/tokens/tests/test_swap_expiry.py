@@ -14,7 +14,7 @@ from ledova_backend.procrastinate_app import app
 from shared.db import atomic, use_operator
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
-from shared.tests.tenants import make_tenant
+from shared.tests.tenants import make_eligible, make_tenant
 from tokens.events import publish_trading_event
 from tokens.exceptions import SwapNotReadyException
 from tokens.models import (
@@ -56,6 +56,7 @@ class ExpiryFixtures:
         with use_operator():
             self.counter += 1
             tenant = make_tenant(f"expiry-{self.counter}", with_swap=False)
+            make_eligible(tenant)
             orders = []
             for key, order_type in ((SELLER, TransferOrderType.SELL), (BUYER, TransferOrderType.BUY)):
                 wallet = Wallet.objects.create(

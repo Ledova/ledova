@@ -9,6 +9,14 @@ SYSTEM_WIDE = {
     "on the operator connection, retaining its original target and signed transaction.",
     "tokens.tasks.deployment.check_pending_swap_approvals": "Recovers admitted swap approvals across issuers "
     "without reopening terminal outcomes or adopting historical deployments.",
+    "whitelist.tasks.refresh.refresh_whitelist_approvals": "Sweeps every company approval on the deployment, "
+    "comparing the expiry the recorded classifications call for with the one the registry holds. It belongs to "
+    "no tenant: it reads staff approvals and staff-reviewed classifications and submits under the staff member "
+    "whose review decided the outcome, listing for staff any row no actor can be attributed to.",
+    "whitelist.tasks.refresh.refresh_whitelist_targets": "Refreshes the named company approvals after the staff "
+    "or holder action that changed them, under operator authority and attributed to that actor. The actor is an "
+    "audit actor rather than a tenant principal: a holder can only reach it by removing their own wallet, and "
+    "the entry point refuses any addition they did not already hold a staff approval for.",
     "whitelist.tasks.recovery.recover_whitelist_changes": "Recovers admitted whitelist changes through their "
     "original outgoing operations. Uses operator authority, never admits or reopens a command, and never "
     "substitutes current membership for a signed transaction outcome.",

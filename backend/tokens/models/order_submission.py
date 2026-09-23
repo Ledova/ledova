@@ -89,6 +89,7 @@ class OrderSubmission(BaseModel):
                                 "insufficient_balance",
                                 "invalid_settlement_amount",
                                 "settlement_chain_disagreement",
+                                "investor_not_eligible",
                             ],
                             initial_counter_order__isnull=True,
                             initial_swap__isnull=True,

@@ -46,7 +46,7 @@ from integrations.base_chain.exceptions import BaseChainTransactionError
 from integrations.blockchain import BlockchainClientFactory
 from operators.models import Operator
 from shared.db import current_alias
-from shared.tests.tenants import make_tenant
+from shared.tests.tenants import make_eligible, make_tenant
 from shared.utils.typed_data import signable_message
 from tokens.constants import MAX_UINT256
 from tokens.exceptions import (
@@ -324,6 +324,8 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
         self.buyer = BUYER
         self.investor = self.seller.address
         self.buyer_tenant = make_tenant("chain-buyer", with_swap=False)
+        make_eligible(self.tenant)
+        make_eligible(self.buyer_tenant)
         self.party_accounts = {self.seller.address: self.tenant.account, self.buyer.address: self.buyer_tenant.account}
         self.party_wallets = {
             party.address: Wallet.objects.create(

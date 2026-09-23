@@ -9,7 +9,7 @@ from web3 import Web3
 
 from companies.models import Company
 from feature_flags.models import FeatureFlag
-from shared.tests.tenants import a_profile, reference_data
+from shared.tests.tenants import a_profile, an_eligible_investor, reference_data
 from shared.tests.under_the_policies import what_the_policies_admit_to
 from tokens.exceptions import InvalidRecipientAddressException
 from tokens.models import ShareToken, TransferOrder
@@ -155,6 +155,7 @@ class TransferOrderOwnershipBindingTest(APITestCase):
         self.user = User.objects.create_user(email="owner@example.test", password="pw-12345678", is_active=True)
         self.profile = UserProfile.objects.create(user=self.user)
         self.account = UserAccount.objects.create(user_profile=self.profile)
+        an_eligible_investor(self.account)
         self.wallet = Wallet.objects.create(
             user_account=self.account,
             address="0x" + "a" * 40,

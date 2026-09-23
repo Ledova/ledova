@@ -8,7 +8,7 @@ from eth_account import Account
 
 from feature_flags.models import FeatureFlag
 from shared.db import acting_for, current_alias, use_operator
-from shared.tests.tenants import make_tenant
+from shared.tests.tenants import make_eligible, make_tenant
 from shared.utils.typed_data import signable_message
 from tokens.models import OrderActionSubmission, SigningChallenge, TransferOrder
 from wallets.models import Wallet
@@ -26,6 +26,7 @@ class ActionFixtures:
         with use_operator():
             FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
             self.tenant = make_tenant("order-action")
+            make_eligible(self.tenant)
             self.wallet = Wallet.objects.create(user_account=self.tenant.account, address=OWNER.address, chain="base")
             self.order = TransferOrder.objects.create(
                 token=self.tenant.deployed_token,
