@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useQueryClient, type QueryCacheNotifyEvent } from '@tanstack/react-query';
@@ -45,7 +45,9 @@ export function TradingScreen() {
   const settlementGeneration = useRef(0);
   const currentSettlementGeneration = settlementGeneration.current;
   const settlementScreen = useRef({ focused: true, close: () => {} });
-  settlementScreen.current.close = settlements.close;
+  useLayoutEffect(() => {
+    settlementScreen.current.close = settlements.close;
+  }, [settlements.close]);
   useFocusEffect(
     useCallback(() => {
       settlementScreen.current.focused = true;

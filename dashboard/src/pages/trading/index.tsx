@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { CheckCircleIcon } from '@phosphor-icons/react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { TransferOrder, CreateOrderRequest, Wallet, SwapOrder } from '@ledova/shared';
@@ -92,7 +92,9 @@ export function TradingPage() {
   const actions = useOrderActions(orderActionStore);
   const settlements = useSwapSettlements(swapSettlementStore, swapSettlementCrypto);
   const closeSettlement = useRef(settlements.close);
-  closeSettlement.current = settlements.close;
+  useLayoutEffect(() => {
+    closeSettlement.current = settlements.close;
+  }, [settlements.close]);
   const settlementWalletGuard = useRef<{
     walletUuid: string;
     ownerAccountUuid: string;
