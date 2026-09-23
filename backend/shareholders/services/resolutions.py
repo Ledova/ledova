@@ -34,6 +34,7 @@ CHAIN_BROKEN = "Publication {publication}'s event chain does not verify at seque
 BALLOT_OFF_THE_ROLL = "Publication {publication} records a ballot whose member or shares differ from its roll."
 BALLOT_TWICE = "Publication {publication} records more than one ballot for one member."
 EVENT_AFTER_CLOSE = "Publication {publication} records an event after its close."
+EVENT_ELSEWHERE = "Publication {publication} records an event under another company."
 TALLY_DIFFERS = "Publication {publication} records a tally that differs from its ballots."
 
 
@@ -196,6 +197,8 @@ def verify_publication(publication_id) -> dict:
             ):
                 raise PublicationIntegrityError(CHAIN_BROKEN.format(publication=publication.pk, sequence=sequence))
             previous_hash = event.entry_hash
+            if event.company_id != publication.company_id:
+                raise PublicationIntegrityError(EVENT_ELSEWHERE.format(publication=publication.pk))
             if close is not None:
                 raise PublicationIntegrityError(EVENT_AFTER_CLOSE.format(publication=publication.pk))
             if event.kind == PublicationEventKind.CLOSE:

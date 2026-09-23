@@ -287,10 +287,10 @@ row's own copied company; the roll's policy reads nothing back.
 
 `verify_publication` replays the chain on the operator connection and refuses
 with `PublicationIntegrityError` on a sequence gap, a broken previous-hash link,
-a stored hash that differs from the one recomputed in SQL, a ballot whose member
-or shares differ from the roll, two ballots for one member, an event after the
-close, or a close whose tally differs from the tally recomputed in Python from
-the ballots. The cross-checks are what catch a forger who rewrote a row and
+a stored hash that differs from the one recomputed in SQL, an event under
+another company, a ballot whose member or shares differ from the roll, two
+ballots for one member, an event after the close, or a close whose tally differs
+from the tally recomputed in Python from the ballots. The cross-checks are what catch a forger who rewrote a row and
 recomputed its hash. The [runbook](../operations/publications.md#verifying-a-resolution)
 runs it for every resolution.
 

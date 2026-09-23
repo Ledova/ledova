@@ -17,6 +17,7 @@ from shareholders.services.resolutions import (
     BALLOT_TWICE,
     CHAIN_BROKEN,
     EVENT_AFTER_CLOSE,
+    EVENT_ELSEWHERE,
     TALLY_DIFFERS,
     cast_ballot,
     close_resolution,
@@ -117,6 +118,18 @@ class VerifyingAResolutionTest(StubUploadDependencies, TestCase):
         )
 
         self.refused(BALLOT_OFF_THE_ROLL)
+
+    def test_a_rehashed_event_moved_to_another_company_is_refused(self):
+        stranger = a_company_with_members("verify-chain-stranger")
+        the_chain_is_rewritten(
+            (
+                "UPDATE shareholders_publicationevent SET company_id = %s WHERE uuid = %s",
+                [stranger.company.pk, self.third.pk],
+            ),
+            (REHASH, [self.third.pk]),
+        )
+
+        self.refused(EVENT_ELSEWHERE)
 
     def test_two_ballots_for_one_member_are_refused_even_when_chained(self):
         row = PublicationRecipient.objects.get(pk=self.first.recipient_id)

@@ -191,8 +191,9 @@ For a resolution the same command also replays its event chain and prints, besid
 the roll's row count and digest, the number of events, the chain's head hash,
 the number of ballots and the tally — `null` until it has closed. It fails,
 naming the publication, when a sequence number is missing, when an event's
-stored hash or its link to the one before does not recompute, when a ballot's
-member or shares differ from the roll, when one member has two ballots, when an
+stored hash or its link to the one before does not recompute, when an event
+names another company, when a ballot's member or shares differ from the roll,
+when one member has two ballots, when an
 event follows the close, or when the tally in the close differs from the tally
 recomputed from the ballots. Nothing the application does can cause any of
 these: they mean someone with the schema owner's rights rewrote the chain.
