@@ -22,9 +22,12 @@ from shareholders.exceptions import (
 )
 from shareholders.models import (
     Publication,
+    PublicationEvent,
     PublicationKind,
     PublicationRead,
     PublicationRecipient,
+    ResolutionKind,
+    VoteBasis,
 )
 from shareholders.services.roll import frozen_rows, roll_digest
 from tokens.constants import STATUTORY_CALENDAR
@@ -42,6 +45,12 @@ NO_AUTHORITY = (
 )
 REGISTER_NOT_OPENED = "This share class's stored register has not been opened, so it has no members to publish to."
 NO_MEMBERS = "The stored register lists no member holding shares on that record date."
+ONLY_A_RESOLUTION_VOTES = "Only a resolution carries a question and a voting window."
+NO_QUESTION = "State the question the members are asked to resolve."
+UNKNOWN_RESOLUTION_KIND = "Choose whether this is an ordinary or a special resolution."
+NO_WINDOW = "Give the resolution the moment voting opens and the moment it closes."
+WINDOW_BACKWARDS = "Voting must close after it opens."
+CLOSES_IN_THE_PAST = "Voting must close in the future."
 
 ANNOUNCEMENTS = {
     PublicationKind.HOLDING_STATEMENT: (
@@ -51,6 +60,10 @@ ANNOUNCEMENTS = {
     PublicationKind.MEETING_NOTICE: (
         "A meeting notice for your shares",
         "{company} has published a meeting notice to the members of its {token}.",
+    ),
+    PublicationKind.RESOLUTION: (
+        "A resolution has been put to members",
+        "{company} has put a resolution to the members of its {token}.",
     ),
 }
 
@@ -84,7 +97,45 @@ def _bytes(upload):
     return raw, mime_type
 
 
-def publish_to_members(token, prepared_by, *, kind, title, record_date, instruction, authority_document, upload):
+def _resolution(kind, question, resolution_kind, opens_at, closes_at) -> dict:
+    if kind != PublicationKind.RESOLUTION:
+        if question.strip() or resolution_kind or opens_at is not None or closes_at is not None:
+            raise ValidationError(ONLY_A_RESOLUTION_VOTES)
+        return {}
+    if not question.strip():
+        raise ValidationError(NO_QUESTION)
+    if resolution_kind not in ResolutionKind.values:
+        raise ValidationError(UNKNOWN_RESOLUTION_KIND)
+    if opens_at is None or closes_at is None:
+        raise ValidationError(NO_WINDOW)
+    if closes_at <= opens_at:
+        raise ValidationError(WINDOW_BACKWARDS)
+    if closes_at <= timezone.now():
+        raise ValidationError(CLOSES_IN_THE_PAST)
+    return {
+        "question": question.strip(),
+        "resolution_kind": resolution_kind,
+        "vote_basis": VoteBasis.PER_SHARE,
+        "opens_at": opens_at,
+        "closes_at": closes_at,
+    }
+
+
+def publish_to_members(
+    token,
+    prepared_by,
+    *,
+    kind,
+    title,
+    record_date,
+    instruction,
+    authority_document,
+    upload,
+    question="",
+    resolution_kind="",
+    opens_at=None,
+    closes_at=None,
+):
     from shareholders.tasks.publications import tell_the_members
 
     _operator()
@@ -96,6 +147,7 @@ def publish_to_members(token, prepared_by, *, kind, title, record_date, instruct
         raise ValidationError(NO_INSTRUCTION)
     if record_date > timezone.localdate(timezone=STATUTORY_CALENDAR):
         raise ValidationError(FUTURE_RECORD_DATE)
+    resolution = _resolution(kind, question, resolution_kind, opens_at, closes_at)
     fingerprint = _authority(token, authority_document)
     raw, mime_type = _bytes(upload)
 
@@ -126,6 +178,7 @@ def publish_to_members(token, prepared_by, *, kind, title, record_date, instruct
             member_rows=len(rows),
             audience_digest=roll_digest(rows),
             prepared_by_id=prepared_by.pk,
+            **resolution,
         )
         PublicationRecipient.objects.bulk_create(
             PublicationRecipient(publication=publication, company_id=publication.company_id, **row) for row in rows
@@ -239,6 +292,7 @@ def purge_publications(now=None) -> int:
         return 0
     with atomic():
         PublicationRead.objects.filter(publication_uuid__in=expired).delete()
+        PublicationEvent.objects.filter(publication_id__in=expired).delete()
         PublicationRecipient.objects.filter(publication_id__in=expired).delete()
         Publication.objects.filter(pk__in=expired).delete()
     logger.info(f"Removed {len(expired)} publications that passed the seven-year clock")

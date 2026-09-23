@@ -11,6 +11,7 @@ from shareholders.tests.fixtures import (
     DAY,
     a_company_with_members,
     a_member,
+    a_resolution,
     a_treasury_address,
     published,
 )
@@ -87,8 +88,18 @@ class AnnouncingAPublicationTest(StubUploadDependencies, TestCase):
         self.assertEqual(told, len(self.world.members))
         self.assertEqual(len(notices), len(self.world.members))
 
-    def test_every_kind_a_document_is_published_as_has_words_to_announce_it(self):
-        self.assertEqual(sorted(ANNOUNCEMENTS), sorted(DOCUMENT_KINDS))
+    def test_a_resolution_is_announced_as_one_put_to_the_members(self):
+        resolution = a_resolution(self.world)
+
+        told, notices = self.deferred(resolution.pk)
+
+        self.assertEqual(told, 2)
+        self.assertEqual(notices[0]["title"], ANNOUNCEMENTS[PublicationKind.RESOLUTION][0])
+        self.assertEqual(notices[0]["data"]["kind"], PublicationKind.RESOLUTION.value)
+
+    def test_every_kind_a_publication_is_made_as_has_words_to_announce_it(self):
+        self.assertEqual(sorted(ANNOUNCEMENTS), sorted(PublicationKind.values))
+        self.assertEqual(sorted(DOCUMENT_KINDS), sorted(PublicationKind.values))
 
     def test_a_publication_that_no_longer_exists_announces_nothing(self):
         told, notices = self.deferred(uuid4())
