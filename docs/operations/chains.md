@@ -117,19 +117,40 @@ changed the bytecode of every contract, and a deployed share token can never be
 rebound to another registry. Moving a deployment onto the new contracts is
 therefore a fresh start, [the owner's decision](../decisions.md#company-scoped-approvals):
 new contracts and a new database, with nothing carried over and no register
-re-anchored. Migration `whitelist/0007_per_company_approvals` refuses to run on
-a database that still holds whitelist changes written for the retired global
-registry.
+re-anchored. The database must be a new, empty one: migration
+`whitelist/0007_per_company_approvals` refuses to run where whitelist changes
+written for the retired global registry remain, but a database carrying share
+classes deployed by a retired factory and no such rows would pass it, and step
+8's last check is what catches that.
+
+Steps 6 and 7 both sign, so both need an admitted outgoing signer for the
+operator key. Admission is closed for every signer and there is no activation
+command or admin surface
+([outgoing signing](../architecture/outgoing-signing.md)); opening it is the
+owner's direction, not an operator step. Until it is open, a fresh database
+reaches step 5 and stops. The real-chain suite performs steps 6 and 7 against a
+local node with an admitted test signer: see `make chain-test` and
+[the §5 evidence](approval-controls.md#the-fresh-start-redeploy-rehearsal).
 
 1. Stop the backend and the workers, so nothing signs against the old
    contracts.
-2. Deploy the core contracts with `deploy-all.ts`: `npm --prefix contracts run
-   deploy:local:core` against a local node, or `npm --prefix contracts run
-   deploy:testnet` for Base Sepolia with `DEPLOYER_PRIVATE_KEY` and
-   `BASE_SEPOLIA_RPC_URL` exported. The deploying key must be the operator key
-   ([key management](#key-management)).
-3. Reset the database: drop it, create it empty and run `python manage.py
-   migrate`, then `check_rls_roles` and `check_rls_catalogue`.
+2. Start the node the deployment targets. Locally that is
+   `npx hardhat node --port 8545` from `contracts/`; for Base Sepolia it is the
+   provider `BASE_SEPOLIA_RPC_URL` names. Then deploy the core contracts with
+   `deploy-all.ts`: `LOCALHOST_RPC_URL=http://127.0.0.1:8545 npm --prefix
+   contracts run deploy:local:core` against the local node, or `npm --prefix
+   contracts run deploy:testnet` for Base Sepolia with `DEPLOYER_PRIVATE_KEY`
+   and `BASE_SEPOLIA_RPC_URL` exported. The deploying key must be the operator
+   key ([key management](#key-management)). It writes the addresses to
+   `.deployed-contracts.env` at the repository root.
+3. Reset the database: drop it, create it empty, and from `backend/` run
+   `python manage.py migrate`, then `python manage.py check_rls_roles` and
+   `python manage.py check_rls_catalogue`. A cluster initialised without
+   `POSTGRES_HOST_AUTH_METHOD=trust` refuses the passwordless roles the
+   migration creates; `check_rls_roles` prints the two `ALTER ROLE` statements
+   that fix it, and
+   [row-level security roles](configuration.md#row-level-security-roles) owns
+   the rule.
 4. Set the three addresses from `.deployed-contracts.env`
    (`SHARE_TOKEN_FACTORY_ADDRESS`, `ATOMIC_SWAP_ADDRESS`,
    `STABLECOIN_CONTRACT_ADDRESS`) in `backend/.env`, and remove any
@@ -141,16 +162,75 @@ registry.
 7. Approve wallets for each company in the whitelist admin or through the
    operator API, choosing the company and, for a wallet with no investor
    classification, the expiry to set. A blank expiry means none.
-8. Verify:
-   - `BLOCKCHAIN_CHAIN_ID` matches the node's `eth_chainId`;
-   - for each class, `whitelist()` on its token equals `registryOf(acn)` on the
-     factory;
-   - a wallet approved only for one company is refused a mint of another
-     company's class;
-   - revoking a wallet holder's classification removes it from that company's
-     registry within fifteen minutes, and its approval then reads `removed`;
-   - no share class has a deployment whose factory differs from
-     `SHARE_TOKEN_FACTORY_ADDRESS`.
+8. Verify, from `backend/`. Each command prints its own answer; the expected
+   answer follows it.
+
+   ```bash
+   python manage.py shell -c "from integrations.base_chain import get_base_chain_client; print(get_base_chain_client().assert_expected_chain())"
+   ```
+
+   Prints the chain id, and raises `BaseChainConnectionError` when the node
+   disagrees with `BLOCKCHAIN_CHAIN_ID`.
+
+   ```bash
+   python manage.py shell -c "
+   from tokens.models import ShareToken
+   from whitelist.services.whitelist import registry_for, token_registry
+   for token in ShareToken.objects.on_chain().select_related('company'):
+       print(token.symbol, token_registry(token.contract_address).lower() == registry_for(token.company))
+   "
+   ```
+
+   One line per class, every one `True`: the token's own registry is the one
+   the factory holds for its company's ACN.
+
+   ```bash
+   python manage.py shell -c "
+   from tokens.models import ShareToken
+   from whitelist.models import WhitelistApproval
+   from whitelist.services.whitelist import is_whitelisted
+   for approval in WhitelistApproval.objects.live().select_related('entry__wallet', 'company'):
+       for token in ShareToken.objects.on_chain().exclude(company_id=approval.company_id):
+           print(approval.entry.wallet_address, token.symbol, is_whitelisted(token.contract_address, approval.entry.wallet_address))
+   "
+   ```
+
+   One line per approval and other company's class, every one `False`: an
+   approval grants nothing outside its own company.
+
+   ```bash
+   python manage.py shell -c "
+   from shared.db import use_operator
+   from whitelist.services import refresh
+   with use_operator():
+       print(refresh.sweep())
+   "
+   python manage.py shell -c "
+   from whitelist.models import WhitelistApproval
+   for approval in WhitelistApproval.objects.select_related('entry__wallet', 'company'):
+       print(approval.company.acn, approval.entry.wallet_address, approval.status, approval.expires_at)
+   "
+   ```
+
+   The sweep runs itself every five minutes; running it by hand is how to see
+   a revocation land without waiting. `submitted` counts the changes it wrote
+   and `unattributed` the rows no staff actor explains, which the log names.
+   A revoked holder's approval then reads `removed`.
+
+   ```bash
+   python manage.py shell -c "
+   from django.conf import settings
+   from shared.db import use_operator
+   from tokens.models import TokenDeployment
+   with use_operator():
+       print([str(d.pk) for d in TokenDeployment.objects.exclude(contract_address='') if d.intent['to'] != settings.SHARE_TOKEN_FACTORY_ADDRESS.lower()])
+   "
+   ```
+
+   Prints `[]`: no share class carries a deployment made by another factory.
+
+[The §5 evidence](approval-controls.md) records the rehearsal of this runbook,
+what each check answered, and the place for the authorised Base Sepolia result.
 
 An approval refreshes itself when a classification is revoked or renewed, when
 an account is suspended or terminated, and when a wallet is deleted or

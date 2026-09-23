@@ -11,6 +11,7 @@ assume the API, worker and database run compatible code.
 | Set environment variables and database roles | [Configuration](configuration.md) |
 | Configure email, KYC, market data or extraction | [Integrations](integrations.md) |
 | Deploy local/testnet contracts and align signer ownership | [Chains and keys](chains.md) |
+| Read the evidence for company-scoped approvals and their bypass review | [Approval controls](approval-controls.md) |
 | Seed data, configure the operator and work review queues | [Operator console](operator-console.md) |
 | Configure private storage, scanning and retention | [Uploads](uploads.md) |
 | Start workers and inspect schedules | [Background jobs](jobs.md) |
@@ -36,4 +37,7 @@ Before a native release, run the [native and physical-device checks](../developm
 The [legal positions](../legal/positions.md) describe unresolved assumptions before any real use.
 
 The [stored register foundation](register-foundation.md) documents the staged
-#647 operator exercise and integrity checks.
+#647 operator exercise and integrity checks. The
+[approval controls](approval-controls.md) record which test proves each of
+product §5's required behaviours, what the bypass review asked and answered,
+and the fresh-start redeploy rehearsal.

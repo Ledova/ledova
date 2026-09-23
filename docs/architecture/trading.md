@@ -39,9 +39,11 @@ Both participants still approve and sign the captured settlement before executio
 Creating an order and signing a swap both require the acting party to hold a
 live investor classification for the share class's company, checked with the
 same predicate the offering paths use, in addition to the wallet, registry and
-balance checks. A party whose classification lapses between the two keeps their
-signature but cannot add another, and the share token itself refuses the
-settlement.
+balance checks. Either party may relay the other's captured signature, so the
+check follows the signature rather than the caller: the account that signed must
+hold the live classification, not whoever submits it. A party whose
+classification lapses between the two keeps their signature but cannot add
+another, and the share token itself refuses the settlement.
 
 Deliberate new orders receive account-scoped submission UUIDs. Cancel and modify
 actions use separate action UUIDs. Retries retain those identities; equal terms
