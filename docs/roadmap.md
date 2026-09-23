@@ -42,7 +42,10 @@ Phase 0 verification and the bounded cross-account matcher are recorded in
 - [Phase 2](https://github.com/Ledova/ledova/issues/648): company-scoped
   on-chain approvals with expiry ([product §5](product.md#5-verification-and-transaction-controls)).
 - [Phase 3](https://github.com/Ledova/ledova/issues/649): shareholder
-  administration — documents, voting, corporate actions.
+  administration — documents, voting, corporate actions. Splits and
+  consolidations are
+  [designed but not built](architecture/splits-and-consolidations.md); their
+  implementation is a later issue.
 - [Phase 4](https://github.com/Ledova/ledova/issues/650): reporting and the
   portability pack.
 - Payment-provider selection and settlement automation when scheduled

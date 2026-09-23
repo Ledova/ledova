@@ -174,6 +174,19 @@ on 22 September in
 the mechanism and [chain setup](operations/chains.md#fresh-start-redeploy) the
 redeploy.
 
+## Splits and consolidations
+
+The design for share splits and consolidations is written in
+[#649](https://github.com/Ledova/ledova/issues/649) and any implementation
+belongs to a later issue, which the owner chose on 23 September 2026 in
+[the design note](https://github.com/Ledova/ledova/issues/649#issuecomment-5789320596).
+The issue's own acceptance asks for the design to be written and reviewed before
+implementation, and the work is larger than a design: a deployed share class has
+no function that could perform either action, and a consolidation cannot be
+executed at all, because nothing but the holder can destroy shares.
+[Splits and consolidations](architecture/splits-and-consolidations.md) owns the
+reasoning and lists what an implementation issue must still decide.
+
 ## Payments and settlement
 
 Payment confirmation is stored on the subscription. The initial expected volume
