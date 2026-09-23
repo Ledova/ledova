@@ -109,6 +109,17 @@ class ClassificationRefreshTest(TransactionTestCase):
         self.assertEqual(self.sent(), sent)
         self.assertEqual(WhitelistChange.objects.filter(authority=WhitelistAuthority.CLASSIFICATION_REFRESH).count(), 0)
 
+    def test_an_expiry_that_lapsed_while_the_refresh_ran_removes_instead_of_setting_a_past_expiry(self):
+        self.claim(days=30)
+        self.approve(expires_at=timezone.now() + timedelta(days=90))
+        lapsed = int((timezone.now() - timedelta(seconds=1)).timestamp())
+
+        with patch.object(refresh, "wanted_expiry", return_value=lapsed):
+            change = refresh.refresh_approval(self.approval(), self.actor)
+
+        self.assertEqual((change.action, change.status), ("remove", WhitelistChangeStatus.CONFIRMED))
+        self.assertEqual(self.node.expiries[ADDRESS], 0)
+
     def test_an_entry_with_no_investor_account_keeps_the_expiry_staff_entered(self):
         chosen = timezone.now() + timedelta(days=900)
         self.approve(expires_at=chosen)

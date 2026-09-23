@@ -90,7 +90,8 @@ def needed_expiry(approval, client=None):
     if _unresolved(approval.registry_address, approval.entry.wallet_address):
         return None
     moment = int(timezone.now().timestamp())
-    if _effective(wanted, moment) == _effective(recorded_expiry(approval, client), moment):
+    wanted = _effective(wanted, moment)
+    if wanted == _effective(recorded_expiry(approval, client), moment):
         return None
     return wanted
 
