@@ -115,15 +115,39 @@ export function TransferSigningFlow({
   onBroadcast,
   onSuccess,
 }: TransferSigningFlowProps) {
-  const [signingStep, setSigningStep] = useState<SigningStep>('loading');
+  const [recordedStep, setSigningStep] = useState<SigningStep>('loading');
   const [qrData, setQrData] = useState<{ cborHex: string; type: string } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [recordedError, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [unsignedTx, setUnsignedTx] = useState<TransactionForQr | null>(null);
   const [signedTransaction, setSignedTransaction] = useState('');
+  const [wasOpen, setWasOpen] = useState(isOpen);
 
   const isBitcoin = wallet.chain === BLOCKCHAIN.BITCOIN;
   const nativeSymbol = getNativeAssetSymbol(wallet.chain);
+
+  if (wasOpen !== isOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) {
+      setSigningStep('loading');
+      setQrData(null);
+      setError(null);
+      setTxHash(null);
+      setUnsignedTx(null);
+      setSignedTransaction('');
+    }
+  }
+
+  const awaitingPreparation = isOpen && recordedStep === 'loading';
+  const signingStep: SigningStep =
+    awaitingPreparation && prepareError
+      ? 'error'
+      : awaitingPreparation && preparedTransaction
+        ? isBitcoin
+          ? 'sign-manual'
+          : 'instructions'
+        : recordedStep;
+  const error = awaitingPreparation && prepareError ? prepareError : recordedError;
 
   const hasPreparedRef = useRef(false);
   const onPrepareRef = useRef(onPrepare);
@@ -147,13 +171,6 @@ export function TransferSigningFlow({
 
   useEffect(() => {
     if (isOpen) {
-      setSigningStep('loading');
-      setQrData(null);
-      setError(null);
-      setTxHash(null);
-      setUnsignedTx(null);
-      setSignedTransaction('');
-
       if (!hasPreparedRef.current && onPrepareRef.current) {
         hasPreparedRef.current = true;
         onPrepareRef.current();
@@ -162,19 +179,6 @@ export function TransferSigningFlow({
       hasPreparedRef.current = false;
     }
   }, [isOpen]);
-
-  useEffect(() => {
-    if (isOpen && preparedTransaction && signingStep === 'loading') {
-      setSigningStep(isBitcoin ? 'sign-manual' : 'instructions');
-    }
-  }, [isOpen, preparedTransaction, signingStep, isBitcoin]);
-
-  useEffect(() => {
-    if (isOpen && prepareError && signingStep === 'loading') {
-      setError(prepareError);
-      setSigningStep('error');
-    }
-  }, [isOpen, prepareError, signingStep]);
 
   const generateQrCode = useCallback(() => {
     if (!preparedTransaction || !wallet) {

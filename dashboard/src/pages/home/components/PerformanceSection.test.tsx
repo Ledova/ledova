@@ -83,6 +83,25 @@ describe('the historical network breakdown', () => {
     expect(view.getByText('Unpriced')).toBeTruthy();
   });
 
+  it('returns to the latest point when new data replaces the selected history', () => {
+    const view = show([point(0, '1'), point(1, '3')]);
+    expect(view.getByText('ETH: $500.00')).toBeTruthy();
+    fireEvent.click(view.getByText('Earlier date'));
+    expect(view.getByText('ETH: $300.00')).toBeTruthy();
+    view.rerender(
+      <PerformanceSection
+        snapshotData={[point(0, '2'), point(1, '4')]}
+        timeRanges={[]}
+        selectedTimeRange="3M"
+        onTimeRangeChange={() => {}}
+        isLoading={false}
+        error={null}
+      />,
+    );
+    expect(view.getByText('ETH: $600.00')).toBeTruthy();
+    expect(view.queryByText('ETH: $400.00')).toBeNull();
+  });
+
   it.each([undefined, [point(0, '1').assetHoldings.ETH.perChain![0]]])(
     'does not invent a split for older or single-network data',
     (perChain) => {

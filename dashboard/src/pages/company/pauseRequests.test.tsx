@@ -261,3 +261,22 @@ it('recovers a permanent unpause refusal and permits a later deliberate opposite
   expect(id).not.toBe(refusedId!);
   expect(listSavedPauses(owner, tokenUuid)).toHaveLength(2);
 });
+
+it('blocks sending while saved requests are unreadable on mount and lists them after a storage event', async () => {
+  const saved = { ...owner, tokenUuid, submissionId: '66666666-6666-4666-8666-666666666666', paused: true };
+  const prefix = `ledova.pause-submissions.v1.${owner.userUuid}.${owner.ownerAccountUuid}.${tokenUuid}.`;
+  const unreadable = `${prefix}77777777-7777-4777-8777-777777777777`;
+  localStorage.setItem(`${prefix}${saved.submissionId}`, JSON.stringify(saved));
+  localStorage.setItem(unreadable, JSON.stringify({}));
+  show();
+  expect(screen.getByRole('alert').textContent).toContain('Saved pause requests could not be read.');
+  expect(screen.queryByText(`Pause request ${saved.submissionId}`)).toBeNull();
+  expect((screen.getByRole('button', { name: 'Pause' }) as HTMLButtonElement).disabled).toBe(true);
+  localStorage.removeItem(unreadable);
+  act(() => {
+    window.dispatchEvent(new StorageEvent('storage'));
+  });
+  expect(screen.getByText(`Pause request ${saved.submissionId}`)).toBeTruthy();
+  await waitFor(() => expect(api.get).toHaveBeenCalledOnce());
+  expect(api.post).not.toHaveBeenCalled();
+});

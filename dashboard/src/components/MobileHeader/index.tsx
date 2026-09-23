@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { ListIcon, XIcon } from '@phosphor-icons/react';
 import { usePageTitle } from '@hooks/usePageTitle';
@@ -12,10 +12,12 @@ export function MobileHeader() {
   const [isOpen, setIsOpen] = useState(false);
   const { title: pageTitle } = usePageTitle();
   const location = useLocation();
+  const [shownPath, setShownPath] = useState(location.pathname);
 
-  useEffect(() => {
+  if (shownPath !== location.pathname) {
+    setShownPath(location.pathname);
     setIsOpen(false);
-  }, [location.pathname]);
+  }
 
   const handleClose = useCallback(() => setIsOpen(false), []);
 

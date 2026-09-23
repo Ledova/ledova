@@ -195,6 +195,19 @@ it('retains a current discovery error and does not start a camera', async () => 
   expect(camera.start).not.toHaveBeenCalled();
 });
 
+it('keeps a failed run error while disabled and clears it when a new run is enabled', async () => {
+  camera.discover.mockResolvedValueOnce([]);
+  const view = render(<Scanner />);
+  await tick();
+  expect(screen.getByRole('alert').textContent).toBe('No cameras found');
+  view.rerender(<Scanner enabled={false} />);
+  expect(screen.getByRole('alert').textContent).toBe('No cameras found');
+  view.rerender(<Scanner />);
+  expect(screen.queryByRole('alert')).toBeNull();
+  await tick();
+  expect(screen.getByRole('status').textContent).toBe('scanning');
+});
+
 it('keeps the replacement fence when its predecessor cleanup finishes', async () => {
   const firstStop = deferred<void>();
   const secondStop = deferred<void>();

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useColors } from '@hooks/useColors';
 import { useCurrency } from '@hooks/useCurrency';
 import { Panel } from '@components/Panel';
@@ -29,14 +29,16 @@ export function PerformanceSection({
   const { formatDisplayCurrency } = useCurrency();
   const colors = useColors();
   const [viewMode, setViewMode] = useState<ViewMode>('total');
-  const [activePointIndex, setActivePointIndex] = useState<number | null>(null);
+  const [activePointIndex, setActivePointIndex] = useState<number | null>(() =>
+    snapshotData && snapshotData.length > 0 ? snapshotData.length - 1 : null,
+  );
+  const [indexedData, setIndexedData] = useState(snapshotData);
   const [expandedAsset, setExpandedAsset] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (snapshotData && snapshotData.length > 0) {
-      setActivePointIndex(snapshotData.length - 1);
-    }
-  }, [snapshotData]);
+  if (indexedData !== snapshotData) {
+    setIndexedData(snapshotData);
+    if (snapshotData && snapshotData.length > 0) setActivePointIndex(snapshotData.length - 1);
+  }
 
   const handleActivePointChange = useCallback((index: number | null) => {
     if (index !== null) setActivePointIndex(index);

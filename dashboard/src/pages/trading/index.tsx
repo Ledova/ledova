@@ -149,11 +149,9 @@ export function TradingPage() {
   );
   const { data: swaps, isLoading: isLoadingSwaps } = useSwapOrdersMulti(walletAddresses);
 
-  useMemo(() => {
-    if (tokens && tokens.length > 0 && !selectedTokenUuid) {
-      setSelectedTokenUuid(tokens[0].uuid);
-    }
-  }, [tokens, selectedTokenUuid]);
+  if (tokens && tokens.length > 0 && !selectedTokenUuid) {
+    setSelectedTokenUuid(tokens[0].uuid);
+  }
 
   const selectedToken = useMemo(() => {
     if (!tokens || !selectedTokenUuid) return null;
