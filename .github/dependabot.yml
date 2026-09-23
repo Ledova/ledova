@@ -43,11 +43,6 @@ updates:
       # (#672). Drop this when the runtime moves past 22.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
-      # eslint-plugin-react-hooks 7 enables the React Compiler rules, and the
-      # dashboard has 46 errors under them (#672). Only 7 is proven to block, so
-      # 6.x can still be proposed. Drop this when #673 is done.
-      - dependency-name: eslint-plugin-react-hooks
-        versions: [">=7.0.0"]
     groups:
       root-and-workspaces:
         patterns: ["*"]
@@ -120,10 +115,6 @@ updates:
         versions: [">=27.0.0"]
       - dependency-name: "@types/jsdom"
         versions: [">=27.0.0"]
-      # eslint-plugin-react-hooks 7.1 tightens the React Compiler rules: 28 new
-      # errors against 7.0.1 (#668). Drop this when #673 is done.
-      - dependency-name: eslint-plugin-react-hooks
-        versions: [">=7.1.0"]
     groups:
       all:
         patterns: ["*"]
