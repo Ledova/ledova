@@ -49,3 +49,23 @@ it.each<{ funds: JsonValue; choices: string[] }>([
   });
   expect(saved).toHaveBeenCalledOnce();
 });
+
+it('retries a failed load from a fresh loading state', async () => {
+  const failure = vi.spyOn(console, 'error').mockImplementation(() => {});
+  api.get.mockRejectedValueOnce(new Error('offline'));
+  api.get.mockResolvedValueOnce({ data: { count: 1, results: [{ uuid: 'profile-1' }] } });
+  api.get.mockResolvedValueOnce({
+    data: { count: 1, results: [{ uuid: 'financial-1', occupation: 'Engineer', sourceOfFunds: [], intendedUse: '' }] },
+  });
+  const { result } = renderHook(() => useSignupFinancialProfile());
+  await waitFor(() => expect(result.current.generalError).toBe('Failed to load profile. Please try again.'));
+  expect(result.current.isLoading).toBe(false);
+
+  act(() => result.current.retryLoad());
+  expect(result.current.isLoading).toBe(true);
+  expect(result.current.generalError).toBe('');
+  await waitFor(() => expect(result.current.isLoading).toBe(false));
+  expect(result.current.existingProfileUuid).toBe('financial-1');
+  expect(result.current.form.occupation).toBe('Engineer');
+  failure.mockRestore();
+});
