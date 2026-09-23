@@ -59,6 +59,7 @@ urlpatterns = [
     path("api/v1/whitelist/", include("whitelist.urls", namespace="whitelist")),
     path("api/v1/trading/", include("tokens.urls_trading", namespace="trading")),
     path("api/v1/documents/", include("documents.urls", namespace="documents")),
+    path("api/v1/publications/", include("shareholders.urls", namespace="publications")),
     path("api/", include(router.urls)),
     path("admin/", admin.site.urls),
     path("api-auth/", include("rest_framework.urls", namespace="rest_framework")),

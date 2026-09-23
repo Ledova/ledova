@@ -1199,6 +1199,38 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/publications/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_publications_list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/publications/{uuid}/file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_publications_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/subscriptions/': {
     parameters: {
       query?: never;
@@ -3708,6 +3740,12 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['Portfolio'][];
     };
+    PaginatedPublicationList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['Publication'][];
+    };
     PaginatedRegisterCorrectionList: {
       count: number;
       next?: string | null;
@@ -4062,6 +4100,18 @@ export interface ApiComponents {
     PriceCurrencyEnum: 'AUD' | 'USD' | 'EUR' | 'GBP' | 'CAD' | 'JPY' | 'NZD' | 'SGD';
     PrimaryTypeEnum: 'SwapOrder';
     ProtocolVersionEnum: 1;
+    Publication: {
+      companyName: string;
+      createdAt: string;
+      kind: ApiComponents['schemas']['PublicationKindEnum'];
+      recordDate: string;
+      shares: string | null;
+      title: string;
+      tokenName: string;
+      tokenSymbol: string;
+      uuid: string;
+    };
+    PublicationKindEnum: 'holding_statement' | 'meeting_notice';
     RegisterCorrection: {
       appliedEntry: string | null;
       approvingDirector: string;
@@ -7764,6 +7814,49 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['OfferingDetail'];
+        };
+      };
+    };
+  };
+  api_v1_publications_list: {
+    parameters: {
+      query?: {
+        ordering?: string;
+        page?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedPublicationList'];
+        };
+      };
+    };
+  };
+  api_v1_publications_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
         };
       };
     };

@@ -6,13 +6,19 @@ from django.utils import timezone
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 
 from companies.models import Company, CompanyDocument
-from shared.db import APP_ALIAS, atomic, current_alias, use_operator
+from shared.db import APP_ALIAS, atomic, current_alias, on_commit, use_operator
 from shared.uploads import read_bounded, validate_upload
-from shareholders.constants import READ_AS_COMPANY, READ_AS_MEMBER, READ_AS_STAFF
+from shareholders.constants import (
+    PUBLICATION_NOTICE,
+    READ_AS_COMPANY,
+    READ_AS_MEMBER,
+    READ_AS_STAFF,
+)
 from shareholders.exceptions import (
     NO_PUBLICATION,
     PublicationIntegrityError,
     PublicationNotDelivered,
+    PublicationUnopened,
 )
 from shareholders.models import (
     Publication,
@@ -36,6 +42,17 @@ NO_AUTHORITY = (
 )
 REGISTER_NOT_OPENED = "This share class's stored register has not been opened, so it has no members to publish to."
 NO_MEMBERS = "The stored register lists no member holding shares on that record date."
+
+ANNOUNCEMENTS = {
+    PublicationKind.HOLDING_STATEMENT: (
+        "Your holding statement is ready",
+        "{company} has published a holding statement for your {token}.",
+    ),
+    PublicationKind.MEETING_NOTICE: (
+        "A meeting notice for your shares",
+        "{company} has published a meeting notice to the members of its {token}.",
+    ),
+}
 
 
 def _operator():
@@ -68,6 +85,8 @@ def _bytes(upload):
 
 
 def publish_to_members(token, prepared_by, *, kind, title, record_date, instruction, authority_document, upload):
+    from shareholders.tasks.publications import tell_the_members
+
     _operator()
     if kind not in PublicationKind.values:
         raise ValidationError(UNKNOWN_KIND)
@@ -89,7 +108,10 @@ def publish_to_members(token, prepared_by, *, kind, title, record_date, instruct
             raise ValidationError(NO_MEMBERS)
         publication = Publication.objects.create(
             company_id=token.company_id,
+            company_name=token.company.name,
             token=token,
+            token_name=token.name,
+            token_symbol=token.symbol,
             kind=kind,
             title=title.strip(),
             record_date=record_date,
@@ -108,6 +130,7 @@ def publish_to_members(token, prepared_by, *, kind, title, record_date, instruct
         PublicationRecipient.objects.bulk_create(
             PublicationRecipient(publication=publication, company_id=publication.company_id, **row) for row in rows
         )
+        on_commit(lambda: tell_the_members.defer(publication_id=str(publication.pk)))
     return publication
 
 
@@ -146,6 +169,19 @@ def record_publication_read(user, publication, recipient, kind) -> None:
         raise PublicationNotDelivered() from None
 
 
+def deliver_publication(user, publication, recipient, kind) -> None:
+    try:
+        publication.file.open("rb")
+    except (ValueError, OSError) as error:
+        logger.error("A publication's stored document could not be opened: %s", type(error).__name__)
+        raise PublicationUnopened() from None
+    try:
+        record_publication_read(user, publication, recipient, kind)
+    except BaseException:
+        publication.file.close()
+        raise
+
+
 def _reader(user, publication, recipient):
     if recipient is not None:
         return READ_AS_MEMBER
@@ -161,8 +197,39 @@ def read_publication(user, publication_id):
     if publication is None:
         raise NotFound(NO_PUBLICATION)
     recipient = PublicationRecipient.objects.filter(publication=publication, user_id=user.pk).first()
-    record_publication_read(user, publication, recipient, _reader(user, publication, recipient))
+    deliver_publication(user, publication, recipient, _reader(user, publication, recipient))
     return publication, recipient
+
+
+def notify_the_roll(publication_id) -> int:
+    from users.tasks.notifications import send_push_notification
+
+    with use_operator():
+        publication = Publication.objects.filter(pk=publication_id).first()
+        if publication is None:
+            logger.error("A publication to announce no longer exists: %s", publication_id)
+            return 0
+        readers = list(
+            PublicationRecipient.objects.filter(publication_id=publication.pk, user_id__isnull=False)
+            .order_by("member_id")
+            .values_list("user_id", flat=True)
+        )
+    title, body = ANNOUNCEMENTS[publication.kind]
+    for user_id in readers:
+        send_push_notification.defer(
+            user_id=str(user_id),
+            title=title,
+            body=body.format(company=publication.company_name, token=publication.token_name),
+            data={
+                "type": PUBLICATION_NOTICE,
+                "event": "published",
+                "publication_id": str(publication.pk),
+                "kind": publication.kind,
+            },
+            notification_type="general",
+        )
+    logger.info(f"Announced publication {publication.pk} to {len(readers)} members with an account")
+    return len(readers)
 
 
 def purge_publications(now=None) -> int:

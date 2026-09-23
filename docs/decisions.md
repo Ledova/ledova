@@ -204,6 +204,10 @@ proxies the issue's non-goals exclude.
   follow document reads: append-only, operator-only, no admin mutation path.
 - **Publications share the register's retention clock**, measured from the
   publication, on the same seven-year floor that cannot be configured away.
+- **A publication is announced as an ordinary notification**, with no new
+  preference switch until someone asks to turn these off. The notice names the
+  publication and nothing else; the holding and the document are reached only
+  through the member's own audited read.
 
 One vote per share counted at the record date, dividends rounded down per holder
 with the remainder recorded as unpaid, and no proxy machinery were decided in the

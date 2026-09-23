@@ -42,6 +42,7 @@ from shareholders.tests.fixtures import (
     published,
     unused_address,
 )
+from tokens.constants import STATUTORY_CALENDAR
 from tokens.models import RegisterEntryKind, ShareToken
 from tokens.services.register_events import record_entry
 from whitelist.models import HolderType
@@ -234,7 +235,7 @@ class PublishingToMembersTest(StubUploadDependencies, TestCase):
             (NO_INSTRUCTION, {"instruction": "\t"}, self.world.token),
             (
                 FUTURE_RECORD_DATE,
-                {"record_date": timezone.localdate() + timedelta(days=1)},
+                {"record_date": timezone.localdate(timezone=STATUTORY_CALENDAR) + timedelta(days=1)},
                 self.world.token,
             ),
             (NO_AUTHORITY, {"authority_document": uuid4()}, self.world.token),
@@ -311,7 +312,10 @@ class PublishingToMembersTest(StubUploadDependencies, TestCase):
             "created_at": timezone.now(),
             "updated_at": timezone.now(),
             "company_id": publication.company_id,
+            "company_name": publication.company_name,
             "token_id": publication.token_id,
+            "token_name": publication.token_name,
+            "token_symbol": publication.token_symbol,
             "kind": publication.kind,
             "title": publication.title,
             "record_date": publication.record_date,

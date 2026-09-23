@@ -15,6 +15,7 @@ from shareholders.tests.fixtures import (
     a_company_with_members,
     an_upload,
 )
+from tokens.constants import STATUTORY_CALENDAR
 
 
 @override_settings(STORAGES=ADMIN_STORAGES)
@@ -59,7 +60,7 @@ class PublishingFromTheAdminTest(StubUploadDependencies, TestCase):
         self.assertEqual(PublicationRecipient.objects.filter(publication=publication).count(), 2)
 
     def test_a_refused_publication_says_why_and_records_nothing(self):
-        tomorrow = (timezone.localdate() + timedelta(days=1)).isoformat()
+        tomorrow = (timezone.localdate(timezone=STATUTORY_CALENDAR) + timedelta(days=1)).isoformat()
 
         response = self.client.post(self.url, self.form(record_date=tomorrow))
 

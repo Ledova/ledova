@@ -1,10 +1,18 @@
+import { useNavigate } from 'react-router-dom';
 import { BellIcon, XIcon } from '@phosphor-icons/react';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react';
-import { formatDateTime, DESIGN_TOKENS } from '@ledova/shared';
+import { formatDateTime, DESIGN_TOKENS, PUBLICATION_NOTICE } from '@ledova/shared';
 import { useNotifications } from '@ledova/shared';
 import type { Notification } from '@ledova/shared';
 
 const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
+
+const DESTINATIONS: Record<string, string> = { [PUBLICATION_NOTICE]: '/publications' };
+
+function destinationOf(notification: Notification): string | undefined {
+  const type = (notification.data as { type?: unknown } | null | undefined)?.type;
+  return typeof type === 'string' ? DESTINATIONS[type] : undefined;
+}
 
 interface NotificationBellProps {
   iconSize?: number;
@@ -15,16 +23,19 @@ function NotificationItem({
   notification,
   onRead,
   onArchive,
+  onFollow,
 }: {
   notification: Notification;
   onRead: (uuid: string) => void;
   onArchive: (uuid: string) => void;
+  onFollow: (notification: Notification) => void;
 }) {
   return (
     <div className="group relative flex items-start gap-3 px-4 py-3 hover:bg-surface-raised/50 transition-colors border-b border-border-subtle/30 last:border-b-0">
       <button
         onClick={() => {
           if (!notification.isRead) onRead(notification.uuid);
+          onFollow(notification);
         }}
         className="flex-1 min-w-0 text-left flex items-start gap-3"
       >
@@ -50,6 +61,7 @@ function NotificationItem({
 }
 
 export function NotificationBell({ iconSize = 20, className }: NotificationBellProps) {
+  const navigate = useNavigate();
   const {
     unreadCount,
     notifications,
@@ -62,6 +74,11 @@ export function NotificationBell({ iconSize = 20, className }: NotificationBellP
   } = useNotifications();
 
   const badgeText = unreadCount > 99 ? '99+' : String(unreadCount);
+
+  const follow = (notification: Notification) => {
+    const destination = destinationOf(notification);
+    if (destination) navigate(destination);
+  };
 
   return (
     <Popover className={`relative ${className ?? ''}`}>
@@ -106,6 +123,7 @@ export function NotificationBell({ iconSize = 20, className }: NotificationBellP
                 notification={notification}
                 onRead={markAsRead}
                 onArchive={archive}
+                onFollow={follow}
               />
             ))
           )}
