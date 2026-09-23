@@ -178,7 +178,5 @@ it('asks for nothing when the device cannot share a file', async () => {
 
   expect(apiClient.get).not.toHaveBeenCalled();
   expect(files.size).toBe(0);
-  expect(jest.mocked(Alert.alert).mock.calls).toEqual([
-    ['Export Failed', 'Sharing is not available on this device.'],
-  ]);
+  expect(jest.mocked(Alert.alert).mock.calls).toEqual([['Export Failed', 'Sharing is not available on this device.']]);
 });
