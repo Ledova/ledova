@@ -69,33 +69,35 @@ export function SendFormModal({
   onAssetChange,
 }: SendFormModalProps) {
   const { formatDisplayCurrency } = useCurrency();
-  const [selectedAsset, setSelectedAsset] = useState<UnifiedAsset | null>(null);
+  const [chosenAsset, setChosenAsset] = useState<UnifiedAsset | null>(null);
   const [toAddress, setToAddress] = useState('');
   const [amount, setAmount] = useState('');
   const [showAddressScanner, setShowAddressScanner] = useState(false);
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  const selectedAsset = chosenAsset ?? (isLoadingAssets ? null : (assets[0] ?? null));
 
   const chainShortCode = getChainShortCode(wallet.chain);
   const isBitcoin = wallet.chain === BLOCKCHAIN.BITCOIN;
   const ChainIcon = isBitcoin ? CurrencyBtcIcon : CurrencyEthIcon;
   const displayAddress = formatWalletAddressShort(wallet.address);
 
-  useEffect(() => {
-    if (assets.length > 0 && !selectedAsset) {
-      setSelectedAsset(assets[0]);
-      onAssetChange?.(assets[0]);
-    }
-  }, [assets, selectedAsset, onAssetChange]);
-
-  useEffect(() => {
+  if (wasOpen !== isOpen) {
+    setWasOpen(isOpen);
     if (isOpen) {
-      setSelectedAsset(null);
+      setChosenAsset(null);
       setToAddress('');
       setAmount('');
       setShowAddressScanner(false);
-      onAddressChange?.('');
-      onAssetChange?.(null);
     }
-  }, [isOpen, onAddressChange, onAssetChange]);
+  }
+
+  useEffect(() => {
+    if (isOpen) onAddressChange?.('');
+  }, [isOpen, onAddressChange]);
+
+  useEffect(() => {
+    if (isOpen) onAssetChange?.(selectedAsset);
+  }, [isOpen, selectedAsset, onAssetChange]);
 
   const handleAddressChange = (address: string) => {
     setToAddress(address);
@@ -234,7 +236,7 @@ export function SendFormModal({
                   key={asset.id}
                   type="button"
                   onClick={() => {
-                    setSelectedAsset(asset);
+                    setChosenAsset(asset);
                     onAssetChange?.(asset);
                     setAmount('');
                   }}
