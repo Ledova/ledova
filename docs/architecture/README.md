@@ -48,5 +48,9 @@ shows the main relationships, not every synchronous provider call.
 | Scanners, provider views and temporary files | [Mobile lifecycles](mobile-lifecycles.md) |
 | Future operator signing integration | [Outgoing signing foundation](outgoing-signing.md) |
 
+Corporate actions are not built. [Splits and consolidations](splits-and-consolidations.md)
+is the written design for them: what the deployed contracts and the stored
+register allow, what they refuse, and what an implementation would have to add.
+
 For commands and recovery procedures, continue to [operations](../operations/README.md).
 For exact transaction protocols, use the [reference index](../reference/README.md).
