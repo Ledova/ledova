@@ -1,21 +1,42 @@
 import type { AxiosInstance } from 'axios';
 import type { AxiosResponse } from 'axios';
 import {
+  BALLOT_CHOICES,
+  PUBLICATION_COPY,
   PUBLICATION_ENDPOINTS,
   PUBLICATION_KIND_LABELS,
   PUBLICATION_NOTICE,
+  RESOLUTION_KIND_LABELS,
+  describeCount,
+  describeTurnout,
   publicationFilename,
+  resolutionStatus,
 } from '../../src/constants';
 import {
+  castBallot,
   downloadPublication,
   getPublications,
   getPublicationsNextPage,
   openPublication,
 } from '../../src/services/publications';
+import type { PublicationResult } from '../../src/types';
+
+const OPENS = '2026-09-24T00:00:00Z';
+const CLOSES = '2026-10-01T00:00:00Z';
+
+const tally = (overrides: Partial<PublicationResult> = {}): PublicationResult => ({
+  for: { shares: '100', members: 1 },
+  against: { shares: '40', members: 1 },
+  abstain: { shares: '0', members: 0 },
+  eligible: { shares: '150', members: 3 },
+  carried: true,
+  ...overrides,
+});
 
 describe('publication services', () => {
   const get = jest.fn();
-  const apiClient = { get } as unknown as AxiosInstance;
+  const post = jest.fn();
+  const apiClient = { get, post } as unknown as AxiosInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -57,8 +78,25 @@ describe('publication services', () => {
     });
   });
 
-  it('builds the file route from the listing route, so one prefix moves both', () => {
+  it('builds the file and ballot routes from the listing route, so one prefix moves all three', () => {
     expect(PUBLICATION_ENDPOINTS.FILE('publication-a')).toBe(`${PUBLICATION_ENDPOINTS.BASE}publication-a/file/`);
+    expect(PUBLICATION_ENDPOINTS.BALLOT('publication-a')).toBe(`${PUBLICATION_ENDPOINTS.BASE}publication-a/ballot/`);
+  });
+
+  it('casts a ballot with the choice alone, carrying the caller config', () => {
+    castBallot(apiClient, 'publication-a', 'against');
+    castBallot(apiClient, 'publication-b', 'abstain', { timeout: 1000 });
+
+    expect(post).toHaveBeenNthCalledWith(1, '/api/v1/publications/publication-a/ballot/', { choice: 'against' }, {});
+    expect(post).toHaveBeenNthCalledWith(
+      2,
+      '/api/v1/publications/publication-b/ballot/',
+      { choice: 'abstain' },
+      {
+        timeout: 1000,
+      },
+    );
+    expect(get).not.toHaveBeenCalled();
   });
 
   it('labels every kind the backend can publish', () => {
@@ -67,5 +105,57 @@ describe('publication services', () => {
 
   it('names the notice type the backend sends, so a deep link can be recognised', () => {
     expect(PUBLICATION_NOTICE).toBe('publication');
+  });
+});
+
+describe('a resolution in the listing', () => {
+  const window = { opensAt: OPENS, closesAt: CLOSES, result: null };
+
+  it('is not open yet before its window, open inside it and closed from the moment it ends', () => {
+    expect(resolutionStatus(window, new Date('2026-09-23T23:59:59Z'))).toBe('upcoming');
+    expect(resolutionStatus(window, new Date(OPENS))).toBe('open');
+    expect(resolutionStatus(window, new Date('2026-09-30T23:59:59Z'))).toBe('open');
+    expect(resolutionStatus(window, new Date(CLOSES))).toBe('closed');
+  });
+
+  it('is closed once it has a result, whatever the clock on this device says', () => {
+    expect(resolutionStatus({ ...window, result: tally() }, new Date('2026-09-25T00:00:00Z'))).toBe('closed');
+  });
+
+  it('has no status when the publication has no voting window', () => {
+    expect(resolutionStatus({ opensAt: null, closesAt: null, result: null }, new Date(OPENS))).toBeNull();
+  });
+
+  it('labels every choice, every ballot and every kind of resolution the backend can send', () => {
+    expect([...BALLOT_CHOICES].sort()).toEqual(['abstain', 'against', 'for']);
+    expect(Object.keys(PUBLICATION_COPY.CHOICES).sort()).toEqual([...BALLOT_CHOICES].sort());
+    expect(Object.keys(PUBLICATION_COPY.YOU_VOTED).sort()).toEqual([...BALLOT_CHOICES].sort());
+    expect(Object.keys(RESOLUTION_KIND_LABELS).sort()).toEqual(['ordinary', 'special']);
+    expect(PUBLICATION_COPY.BASIS).toBe('One vote per share');
+  });
+
+  it('describes a count in shares and members, with one member said once', () => {
+    expect(describeCount({ shares: '1250', members: 2 })).toBe('1,250 shares · 2 members');
+    expect(describeCount({ shares: '40', members: 1 })).toBe('40 shares · 1 member');
+    expect(describeCount({ shares: '0', members: 0 })).toBe('0 shares · 0 members');
+  });
+
+  it('counts turnout as every share and member that voted, abstentions included, against those eligible', () => {
+    expect(describeTurnout(tally({ abstain: { shares: '5', members: 1 } }))).toBe('145 of 150 shares · 3 of 3 members');
+    expect(describeTurnout(tally())).toBe('140 of 150 shares · 2 of 3 members');
+  });
+
+  it('adds and groups share counts exactly beyond the range a number can hold', () => {
+    const large = '12345678901234567890';
+
+    expect(
+      describeTurnout(
+        tally({
+          for: { shares: large, members: 1 },
+          abstain: { shares: '10', members: 1 },
+          eligible: { shares: '99999999999999999999', members: 4 },
+        }),
+      ),
+    ).toBe('12,345,678,901,234,567,940 of 99,999,999,999,999,999,999 shares · 3 of 4 members');
   });
 });
