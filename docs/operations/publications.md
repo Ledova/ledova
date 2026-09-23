@@ -71,6 +71,23 @@ and carry no name, holding or document content. To confirm that a file is the
 one published, compare the output of `sha256sum` on it with the publication's
 digest.
 
+## Checking a frozen roll
+
+The roll is frozen when the publication is made, and the publication records how
+many rows it held and a digest of them. From `backend/`:
+
+```bash
+python manage.py publications verify --publication PUBLICATION_UUID
+```
+
+Leaving `--publication` out checks every publication. The command prints the row
+count and digest it recomputed for each, and fails naming the publication whose
+roll no longer matches what it recorded. It reads the stored roll only: it
+proves that the audience a publication was addressed to has not changed since,
+not that the register itself is sound, which
+`register_foundation verify` answers ([the synthetic operator
+exercise](register-foundation.md#synthetic-operator-exercise)).
+
 ## Retention
 
 Publications, their rolls and their read records are kept for seven years from

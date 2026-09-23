@@ -1,8 +1,12 @@
 import hashlib
 import importlib
+import json
 from datetime import timedelta
+from io import StringIO
 from uuid import uuid4
 
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.db import DatabaseError, IntegrityError, connections
 from django.test import TestCase
 from django.utils import timezone
@@ -375,3 +379,38 @@ class PublishingToMembersTest(StubUploadDependencies, TestCase):
                 identity_source="profile",
                 shares=1,
             )
+
+
+class PublicationVerifyCommandTest(StubUploadDependencies, TestCase):
+    def setUp(self):
+        self.world = a_company_with_members("verify-command")
+
+    def verify(self, **options):
+        output = StringIO()
+        call_command("publications", "verify", stdout=output, **options)
+        return json.loads(output.getvalue())
+
+    def test_the_command_reports_the_roll_it_recomputed(self):
+        publication = published(self.world)
+
+        self.assertEqual(self.verify(publication=publication.pk)[str(publication.pk)], verify_roll(publication))
+
+    def test_the_command_names_a_publication_whose_roll_a_schema_owner_changed(self):
+        publication = published(self.world)
+
+        with self.assertRaises(CommandError) as refusal, atomic():
+            with connections[current_alias()].cursor() as cursor:
+                cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
+                cursor.execute("ALTER TABLE shareholders_publicationrecipient DISABLE TRIGGER USER")
+                cursor.execute(
+                    "UPDATE shareholders_publicationrecipient SET shares = 1 WHERE publication_id = %s",
+                    [publication.pk],
+                )
+            self.verify()
+
+        self.assertIn(str(publication.pk), str(refusal.exception))
+        self.assertEqual(self.verify(publication=publication.pk)[str(publication.pk)], verify_roll(publication))
+
+    def test_the_command_refuses_a_publication_that_does_not_exist(self):
+        with self.assertRaises(CommandError):
+            self.verify(publication=uuid4())
