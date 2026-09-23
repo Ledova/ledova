@@ -844,6 +844,26 @@
         ],
         "type": "object"
       },
+      "BallotChoiceEnum": {
+        "description": "* `for` - For\n* `against` - Against\n* `abstain` - Abstain",
+        "enum": [
+          "for",
+          "against",
+          "abstain"
+        ],
+        "type": "string"
+      },
+      "BallotRequest": {
+        "properties": {
+          "choice": {
+            "$ref": "#/components/schemas/BallotChoiceEnum"
+          }
+        },
+        "required": [
+          "choice"
+        ],
+        "type": "object"
+      },
       "BatchBalanceRequestRequest": {
         "properties": {
           "addresses": {
@@ -7905,6 +7925,13 @@
       },
       "Publication": {
         "properties": {
+          "closesAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "title": "Voting closes",
+            "type": "string"
+          },
           "companyName": {
             "readOnly": true,
             "type": "string"
@@ -7922,10 +7949,52 @@
             ],
             "readOnly": true
           },
+          "myBallot": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicationBallot"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
+          "opensAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "title": "Voting opens",
+            "type": "string"
+          },
+          "question": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "recordDate": {
             "format": "date",
             "readOnly": true,
             "type": "string"
+          },
+          "resolutionKind": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ResolutionKindEnum"
+              },
+              {
+                "$ref": "#/components/schemas/NullEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "result": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicationResult"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
           },
           "shares": {
             "format": "decimal",
@@ -7954,15 +8023,58 @@
           }
         },
         "required": [
+          "closesAt",
           "companyName",
           "createdAt",
           "kind",
+          "myBallot",
+          "opensAt",
+          "question",
           "recordDate",
+          "resolutionKind",
+          "result",
           "shares",
           "title",
           "tokenName",
           "tokenSymbol",
           "uuid"
+        ],
+        "type": "object"
+      },
+      "PublicationBallot": {
+        "properties": {
+          "castAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "choice": {
+            "$ref": "#/components/schemas/BallotChoiceEnum"
+          },
+          "staffEntered": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "castAt",
+          "choice",
+          "staffEntered"
+        ],
+        "type": "object"
+      },
+      "PublicationCount": {
+        "properties": {
+          "members": {
+            "type": "integer"
+          },
+          "shares": {
+            "format": "decimal",
+            "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "members",
+          "shares"
         ],
         "type": "object"
       },
@@ -7974,6 +8086,33 @@
           "resolution"
         ],
         "type": "string"
+      },
+      "PublicationResult": {
+        "properties": {
+          "abstain": {
+            "$ref": "#/components/schemas/PublicationCount"
+          },
+          "against": {
+            "$ref": "#/components/schemas/PublicationCount"
+          },
+          "carried": {
+            "type": "boolean"
+          },
+          "eligible": {
+            "$ref": "#/components/schemas/PublicationCount"
+          },
+          "for": {
+            "$ref": "#/components/schemas/PublicationCount"
+          }
+        },
+        "required": [
+          "abstain",
+          "against",
+          "carried",
+          "eligible",
+          "for"
+        ],
+        "type": "object"
       },
       "RegisterCorrection": {
         "properties": {
@@ -8940,6 +9079,14 @@
           }
         },
         "type": "object"
+      },
+      "ResolutionKindEnum": {
+        "description": "* `ordinary` - Ordinary resolution\n* `special` - Special resolution",
+        "enum": [
+          "ordinary",
+          "special"
+        ],
+        "type": "string"
       },
       "ReviewResultEnum": {
         "description": "* `GREEN` - Approved\n* `RED` - Rejected\n* `YELLOW` - Retry",
@@ -19165,6 +19312,68 @@
           },
           {
             "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/publications/{uuid}/ballot/": {
+      "post": {
+        "operationId": "api_v1_publications_ballot_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BallotRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/BallotRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/BallotRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
           }
         ],
         "tags": [

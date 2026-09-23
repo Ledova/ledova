@@ -10,12 +10,20 @@ from shared.db import atomic, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.test_admin_row_actions import ADMIN_STORAGES
 from shared.tests.upload_fixtures import StubUploadDependencies
-from shareholders.models import Publication, PublicationRead, PublicationRecipient
+from shareholders.models import (
+    Publication,
+    PublicationEvent,
+    PublicationRead,
+    PublicationRecipient,
+)
 from shareholders.services.publications import read_publication
+from shareholders.services.resolutions import close_resolution
 from shareholders.tests.fixtures import (
     PUBLICATION_BYTES,
     a_company_with_members,
+    a_resolution,
     published,
+    voting_has_closed,
 )
 
 LISTING = "/api/v1/publications/"
@@ -164,3 +172,71 @@ class ScopedPublicationTest(RunsOnTheScopedConnection, StubUploadDependencies, A
         self.assertNotIn(PUBLICATION_BYTES, refused.content)
         with use_operator():
             self.assertEqual(PublicationRead.objects.count(), 0)
+
+    def a_resolution_here(self):
+        with use_operator():
+            return a_resolution(self.here)
+
+    def cast(self, user, resolution, choice="for"):
+        self.client.force_authenticate(user)
+        return self.client.post(f"{LISTING}{resolution.pk}/ballot/", {"choice": choice}, format="json")
+
+    def ballots(self):
+        with use_operator():
+            return list(PublicationEvent.objects.values_list("publication_id", "actor_id", "choice"))
+
+    def test_the_route_casts_a_members_ballot_through_the_app_and_operator_split(self):
+        resolution = self.a_resolution_here()
+        holder = self.here.members[0]
+
+        cast = self.cast(holder.user, resolution)
+
+        self.assertEqual(cast.status_code, 200, cast.content)
+        self.assertEqual((cast.json()["myBallot"]["choice"], cast.json()["shares"]), ("for", str(holder.shares)))
+        self.assertEqual(self.ballots(), [(resolution.pk, holder.user.pk, "for")])
+        self.as_principal(holder.user)
+        with atomic():
+            self.assertEqual(PublicationEvent.objects.count(), 1)
+
+    def test_a_member_of_another_company_is_refused_the_ballot_like_a_missing_one_and_nothing_is_written(self):
+        resolution = self.a_resolution_here()
+        stranger = self.there.members[0].user
+
+        refused = self.cast(stranger, resolution)
+        missing = self.client.post(f"{LISTING}{uuid4()}/ballot/", {"choice": "for"}, format="json")
+
+        self.assertEqual((refused.status_code, refused.content), (missing.status_code, missing.content))
+        self.assertEqual(refused.status_code, 404)
+        self.assertEqual(self.ballots(), [])
+
+    def test_the_company_owner_cannot_cast_through_the_route_and_nothing_is_written(self):
+        resolution = self.a_resolution_here()
+
+        refused = self.cast(self.here.owner, resolution)
+
+        self.assertEqual(refused.status_code, 404)
+        self.assertEqual(self.ballots(), [])
+
+    def test_the_listing_shows_each_reader_their_own_ballot_and_the_tally_and_never_another_members_ballot(self):
+        resolution = self.a_resolution_here()
+        holder, other = self.here.members
+        self.assertEqual(self.cast(holder.user, resolution, "for").status_code, 200)
+        self.assertEqual(self.cast(other.user, resolution, "against").status_code, 200)
+        voting_has_closed(resolution)
+        with use_operator():
+            close_resolution(resolution)
+
+        def shown_to(user):
+            self.client.force_authenticate(user)
+            rows = self.client.get(LISTING).json()["results"]
+            return next(row for row in rows if row["uuid"] == str(resolution.pk))
+
+        mine, theirs, company = shown_to(holder.user), shown_to(other.user), shown_to(self.here.owner)
+        self.assertEqual((mine["myBallot"]["choice"], theirs["myBallot"]["choice"]), ("for", "against"))
+        self.assertIsNone(company["myBallot"])
+        self.assertEqual(mine["result"], theirs["result"])
+        self.assertEqual(company["result"], mine["result"])
+        self.assertEqual(
+            (mine["result"]["for"], mine["result"]["against"], mine["result"]["carried"]),
+            ({"shares": str(holder.shares), "members": 1}, {"shares": str(other.shares), "members": 1}, True),
+        )

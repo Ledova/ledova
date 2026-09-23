@@ -149,7 +149,7 @@ class ThePublicationsRouteTest(StubUploadDependencies, TestCase):
         self.assertEqual(response.json()["code"], "publication_unopened")
         self.assertEqual(PublicationRead.objects.count(), 0)
 
-    def test_the_route_reads_and_nothing_else(self):
+    def test_the_listing_and_the_file_take_no_writes(self):
         self.client.force_authenticate(self.holder.user)
 
         for method, path in (("post", LISTING), ("post", file_route(self.publication))):
