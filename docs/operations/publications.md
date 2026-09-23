@@ -39,12 +39,13 @@ before it is stored, exactly as every other upload is.
 ## What a publication records
 
 Each publication is one row in **Admin → Shareholder publications →
-Publications**: the company and share class, what was published, the record
-date, the instruction's reference, the authority document and its fingerprint,
-the SHA-256 of the stored document, the register sequence and head hash the roll
-was taken from, the number of members it was addressed to, the roll's own digest
-and the staff member who prepared it. Unlike an inspection copy, Ledova keeps
-the document itself: a member must be able to reopen it later.
+Publications**: the company and share class and the names they carried when it
+was made, what was published, the record date, the instruction's reference, the
+authority document and its fingerprint, the SHA-256 of the stored document, the
+register sequence and head hash the roll was taken from, the number of members
+it was addressed to, the roll's own digest and the staff member who prepared it.
+Unlike an inspection copy, Ledova keeps the document itself: a member must be
+able to reopen it later.
 
 Below it is the roll, one row for each member holding shares on the record date:
 the register member, the account it resolved to, the name as at that moment, the
@@ -57,6 +58,25 @@ company reaches them the way it reaches any member it cannot address online.
 Nothing on a publication or its roll can be changed afterwards. The database
 refuses every update, and there is no admin path to add, change or delete one.
 
+## What the member sees, and when
+
+Publishing is what reaches the member: there is nothing else for you to send.
+Once the roll commits, every member on it who has an account is sent an ordinary
+notification naming the publication. A member the register could not name is on
+the roll, has no account, and is told nothing — reach them the way the company
+reaches any member it cannot address online.
+
+The notification opens **Publications** in the dashboard and in the app. There
+the member sees, for each publication addressed to them: what was published, its
+title, the company and share class, the record date, and their own holding as it
+was frozen on that date — not their holding today. **Open the document** hands
+them the stored document itself. A company owner sees its own company's
+publications on the same page, with no holding of its own.
+
+Nothing on that page names another member, and no holding but the reader's own
+is served: the roll row behind each line is the reader's, chosen by the database
+rather than by the page.
+
 ## Opening a published document
 
 Open a publication and choose **Open the published document**. It downloads
@@ -64,7 +84,9 @@ rather than rendering. Each read — a member's, the company's, or yours — is
 recorded once in **Admin → Shareholder publications → Publication reads**: who
 read it, which publication, which roll row where there is one, and in which
 capacity. A read that cannot be recorded refuses the download rather than
-serving it, so an empty record means nothing was served.
+serving it, so an empty record means nothing was served. A member whose read
+cannot be recorded is told that nothing was served and to try again shortly; the
+document is not shown.
 
 Those records cannot be rewritten or deleted in admin, are read only by staff,
 and carry no name, holding or document content. To confirm that a file is the
