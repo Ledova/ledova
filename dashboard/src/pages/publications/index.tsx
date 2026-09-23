@@ -1,7 +1,8 @@
 import { ArrowSquareOutIcon, EnvelopeSimpleIcon, NewspaperIcon } from '@phosphor-icons/react';
 import { Panel } from '@components/Panel';
 import { PUBLICATION_COPY, PUBLICATION_KIND_LABELS, formatDate } from '@ledova/shared';
-import type { Publication } from '@ledova/shared';
+import type { BallotChoice, Publication } from '@ledova/shared';
+import { Resolution } from './Resolution';
 import { usePublications } from './usePublications';
 
 function PageWrapper({ children }: { children: React.ReactNode }) {
@@ -16,10 +17,16 @@ function PublicationRow({
   publication,
   onOpen,
   isOpening,
+  onCast,
+  isCasting,
+  castError,
 }: {
   publication: Publication;
   onOpen: (uuid: string) => void;
   isOpening: boolean;
+  onCast: (uuid: string, choice: BallotChoice) => void;
+  isCasting: boolean;
+  castError: string | undefined;
 }) {
   return (
     <div className="px-4 py-4 border-b border-border-subtle/40 last:border-b-0">
@@ -39,7 +46,11 @@ function PublicationRow({
           {publication.shares !== null && publication.shares !== undefined && (
             <>
               <p className="text-sm font-mono text-text-primary">{Number(publication.shares).toLocaleString()}</p>
-              <p className="text-xs text-text-muted">{PUBLICATION_COPY.HOLDING_LABEL}</p>
+              <p className="text-xs text-text-muted">
+                {publication.kind === 'resolution'
+                  ? PUBLICATION_COPY.VOTING_WEIGHT_LABEL
+                  : PUBLICATION_COPY.HOLDING_LABEL}
+              </p>
             </>
           )}
           <button
@@ -53,13 +64,27 @@ function PublicationRow({
           </button>
         </div>
       </div>
+      <Resolution publication={publication} onCast={onCast} isCasting={isCasting} castError={castError} />
     </div>
   );
 }
 
 export default function PublicationsPage() {
-  const { publications, isLoading, listFailed, retry, hasMore, isLoadingMore, loadMore, open, openingUuid, openError } =
-    usePublications();
+  const {
+    publications,
+    isLoading,
+    listFailed,
+    retry,
+    hasMore,
+    isLoadingMore,
+    loadMore,
+    open,
+    openingUuid,
+    openError,
+    cast,
+    castingUuid,
+    castError,
+  } = usePublications();
 
   if (isLoading) {
     return (
@@ -103,6 +128,9 @@ export default function PublicationsPage() {
                   publication={publication}
                   onOpen={open}
                   isOpening={openingUuid === publication.uuid}
+                  onCast={cast}
+                  isCasting={castingUuid === publication.uuid}
+                  castError={castError?.uuid === publication.uuid ? castError.message : undefined}
                 />
               ))}
             </div>

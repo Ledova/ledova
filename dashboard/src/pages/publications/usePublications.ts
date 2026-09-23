@@ -1,12 +1,15 @@
-import { useInfiniteQuery, useMutation } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
   PUBLICATION_COPY,
+  apiErrorSentence,
+  castBallot,
   getPublications,
   getPublicationsNextPage,
   openPublication,
   publicationFilename,
 } from '@ledova/shared';
+import type { BallotChoice } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 
 const PUBLICATIONS_KEY = ['publications'];
@@ -28,6 +31,8 @@ function whyItCouldNotBeOpened(error: unknown): string {
 }
 
 export function usePublications() {
+  const queryClient = useQueryClient();
+
   const listing = useInfiniteQuery({
     queryKey: PUBLICATIONS_KEY,
     queryFn: ({ pageParam }) => getPublications(apiClient, pageParam),
@@ -43,6 +48,11 @@ export function usePublications() {
     },
   });
 
+  const casting = useMutation({
+    mutationFn: ({ uuid, choice }: { uuid: string; choice: BallotChoice }) => castBallot(apiClient, uuid, choice),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: PUBLICATIONS_KEY }),
+  });
+
   return {
     publications: listing.data?.pages.flatMap((page) => page.data?.results ?? []) ?? [],
     isLoading: listing.isLoading,
@@ -54,5 +64,11 @@ export function usePublications() {
     open: opening.mutate,
     openingUuid: opening.isPending ? opening.variables : undefined,
     openError: opening.isError ? whyItCouldNotBeOpened(opening.error) : undefined,
+    cast: (uuid: string, choice: BallotChoice) => casting.mutate({ uuid, choice }),
+    castingUuid: casting.isPending ? casting.variables?.uuid : undefined,
+    castError:
+      casting.isError && casting.variables
+        ? { uuid: casting.variables.uuid, message: apiErrorSentence(casting.error, PUBLICATION_COPY.BALLOT_FAILED) }
+        : undefined,
   };
 }
