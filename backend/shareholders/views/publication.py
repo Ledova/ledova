@@ -3,15 +3,22 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from shared.views import AuthenticatedListViewSet, stream_stored_file
+from shareholders.filters import PublicationFilter
 from shareholders.models import Publication
-from shareholders.serializers import BallotSerializer, PublicationSerializer
+from shareholders.serializers import (
+    BallotSerializer,
+    PublicationSerializer,
+    PublicationSummarySerializer,
+)
 from shareholders.services.publications import read_publication
 from shareholders.services.resolutions import cast_ballot
+from shareholders.services.summary import summarise_for
 
 
 class PublicationViewSet(AuthenticatedListViewSet):
     serializer_class = PublicationSerializer
     scoped_model = Publication
+    filterset_class = PublicationFilter
     lookup_field = "uuid"
     ordering = ["-created_at", "-uuid"]
     http_method_names = ["get", "post", "head", "options"]
@@ -36,3 +43,8 @@ class PublicationViewSet(AuthenticatedListViewSet):
         ballot.is_valid(raise_exception=True)
         cast_ballot(request.user, uuid, ballot.validated_data["choice"])
         return Response(self.get_serializer(self.get_object()).data)
+
+    @extend_schema(responses=PublicationSummarySerializer)
+    @action(detail=False, methods=["get"])
+    def summary(self, request):
+        return Response(PublicationSummarySerializer(summarise_for(request.user)).data)

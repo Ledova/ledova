@@ -200,6 +200,7 @@ PUBLICATION_ROUTES = {
     "list": ("get", "/api/v1/publications/"),
     "file": ("get", "/api/v1/publications/{uuid}/file/"),
     "ballot": ("post", "/api/v1/publications/{uuid}/ballot/"),
+    "summary": ("get", "/api/v1/publications/summary/"),
 }
 REGISTER_INSTRUCTION_ROUTES = {
     "create": ("post", "/api/v1/tokens/register-instructions/"),
@@ -1156,6 +1157,42 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
                 list(PublicationEvent.objects.filter(publication=resolution).values_list("actor_id", "choice")),
                 [(member.pk, "for")],
             )
+
+    def test_the_publication_summary_counts_what_was_published_to_the_caller_and_nothing_of_another_company(self):
+        from shareholders.tests.fixtures import (
+            a_company_with_members,
+            a_distribution,
+            a_resolution,
+            published,
+        )
+
+        with self.committed_where_a_request_on_another_connection_can_read_it():
+            here = a_company_with_members("matrix-summary-here")
+            there = a_company_with_members("matrix-summary-there")
+            published(here)
+            a_resolution(here)
+            a_distribution(here)
+            published(there)
+        path = PUBLICATION_ROUTES["summary"][1]
+        nothing = {"openResolutions": 0, "nextClosesAt": None, "publishedSince": 0, "dividendsWithoutRecord": 0}
+        counted = {}
+        for member in (here.members[0].user, there.members[0].user):
+            self.client.force_authenticate(member)
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200, response.content)
+            counted[member.pk] = {key: value for key, value in response.json().items() if key != "nextClosesAt"}
+        self.assertEqual(
+            counted,
+            {
+                here.members[0].user.pk: {"openResolutions": 1, "publishedSince": 3, "dividendsWithoutRecord": 1},
+                there.members[0].user.pk: {"openResolutions": 0, "publishedSince": 1, "dividendsWithoutRecord": 0},
+            },
+        )
+        for actor in (here.owner, there.owner, *(tenant.user for tenant in self.actors)):
+            self.client.force_authenticate(actor)
+            self.assertEqual(self.client.get(path).json(), nothing)
+        self.client.force_authenticate(None)
+        self.assertEqual(self.client.get(path).status_code, 401)
 
     @override_settings(
         STORAGES={

@@ -11,7 +11,7 @@ from rest_framework.test import APIClient
 from shared.db import current_alias
 from shared.tests.upload_fixtures import StubUploadDependencies
 from shareholders.models import Publication
-from shareholders.serializers import PublicationSerializer
+from shareholders.serializers import PublicationSerializer, PublicationSummarySerializer
 from shareholders.serializers.publication import PublicationPaymentRecordSerializer
 from shareholders.services.distributions import withdraw_payment
 from shareholders.tests.fixtures import (
@@ -202,7 +202,11 @@ class PaymentWordingTest(TestCase):
         return list(camelize({name: None for name in serializer.fields}))
 
     def test_no_field_a_member_is_served_about_a_payment_says_paid_without_saying_recorded(self):
-        served = self.names(PublicationSerializer()) + self.names(PublicationPaymentRecordSerializer())
+        served = (
+            self.names(PublicationSerializer())
+            + self.names(PublicationPaymentRecordSerializer())
+            + self.names(PublicationSummarySerializer())
+        )
         claims = [name for name in served if re.search("paid", name, re.IGNORECASE)]
 
         self.assertIn("recordedPaidOn", claims)

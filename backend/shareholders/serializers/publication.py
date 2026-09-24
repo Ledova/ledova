@@ -36,6 +36,13 @@ class PublicationPaymentRecordSerializer(serializers.Serializer):
     recorded_at = serializers.DateTimeField(source="payment_recorded_at")
 
 
+class PublicationSummarySerializer(serializers.Serializer):
+    open_resolutions = serializers.IntegerField()
+    next_closes_at = serializers.DateTimeField(allow_null=True)
+    published_since = serializers.IntegerField()
+    dividends_without_record = serializers.IntegerField()
+
+
 class PublicationSerializer(serializers.ModelSerializer):
     shares = serializers.DecimalField(
         source="holding", max_digits=78, decimal_places=0, read_only=True, allow_null=True

@@ -8,12 +8,14 @@ from rest_framework.test import APIClient
 from shared.tests.test_admin_row_actions import ADMIN_STORAGES
 from shared.tests.upload_fixtures import StubUploadDependencies
 from shareholders.constants import READ_AS_COMPANY, READ_AS_MEMBER
-from shareholders.models import PublicationRead
+from shareholders.models import PublicationKind, PublicationRead
 from shareholders.tests.fixtures import (
     PUBLICATION_BYTES,
     TITLE,
     a_company_with_members,
+    a_distribution,
     a_person,
+    a_resolution,
     published,
 )
 from tokens.models import ShareTokenStatus
@@ -96,6 +98,36 @@ class ThePublicationsRouteTest(StubUploadDependencies, TestCase):
                 self.assertEqual((refused.status_code, refused.content), (absent.status_code, absent.content))
                 self.assertEqual(refused.status_code, 404)
         self.assertEqual(PublicationRead.objects.count(), 0)
+
+    def test_the_listing_narrows_to_one_kind_and_stays_within_what_was_published_to_the_caller(self):
+        resolution = a_resolution(self.world)
+        distribution = a_distribution(self.world)
+        a_distribution(self.elsewhere)
+        self.client.force_authenticate(self.holder.user)
+
+        listed = {
+            kind: [row["uuid"] for row in self.rows(self.client.get(LISTING, {"kind": kind}))]
+            for kind in PublicationKind.values
+        }
+
+        self.assertEqual(
+            listed,
+            {
+                PublicationKind.HOLDING_STATEMENT: [str(self.publication.pk)],
+                PublicationKind.MEETING_NOTICE: [],
+                PublicationKind.RESOLUTION: [str(resolution.pk)],
+                PublicationKind.DISTRIBUTION: [str(distribution.pk)],
+            },
+        )
+        self.assertEqual(len(self.rows(self.client.get(LISTING))), 3)
+
+    def test_a_kind_the_platform_does_not_publish_is_refused_and_the_refusal_names_the_filter(self):
+        self.client.force_authenticate(self.holder.user)
+
+        response = self.client.get(LISTING, {"kind": "dividend"})
+
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertEqual(list(response.json()), ["kind"])
 
     def test_an_unauthenticated_caller_reaches_neither_the_listing_nor_the_file(self):
         self.client.force_authenticate(None)
