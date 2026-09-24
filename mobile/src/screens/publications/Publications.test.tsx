@@ -427,6 +427,7 @@ it('offers the ballot the moment the window opens and withdraws it the moment it
   expect(view.getByText(PUBLICATION_COPY.CLOSED)).toBeTruthy();
   expect(view.getByText(PUBLICATION_COPY.RESULT_PENDING)).toBeTruthy();
   expect(listingCalls()).toBe(1);
+});
 
 it('shows a dividend with its rate, the frozen holding, the entitlement and the payment date, nothing recorded yet', async () => {
   rows = [dividend];
