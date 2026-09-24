@@ -6,6 +6,7 @@ import type { Publication } from '@ledova/shared';
 import { GradientBackground } from '../../components/GradientBackground';
 import { Panel } from '../../components/panel';
 import { useAppTheme, useThemedStyles } from '../../contexts';
+import { Distribution } from './Distribution';
 import { Resolution } from './Resolution';
 import { usePublications } from './usePublications';
 
@@ -103,6 +104,7 @@ export function PublicationsScreen() {
         isCasting={castingUuid === publication.uuid}
         castError={castError?.uuid === publication.uuid ? castError.message : undefined}
       />
+      <Distribution publication={publication} />
       <TouchableOpacity
         style={styles.openButton}
         onPress={() => {
