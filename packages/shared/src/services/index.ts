@@ -126,6 +126,7 @@ export {
 } from './swap-settlement';
 export {
   getPublications,
+  getPublicationSummary,
   getPublicationsNextPage,
   openPublication,
   downloadPublication,

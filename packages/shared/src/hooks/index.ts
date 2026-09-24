@@ -8,6 +8,8 @@ export { useOrderSubmissionSigning } from './useOrderSubmissionSigning';
 export { useCurrency } from './useCurrency';
 export { useFinancialProfile } from './useFinancialProfile';
 export { useNotifications } from './useNotifications';
+export { PUBLICATION_SUMMARY_QUERY_KEY, usePublicationSummary } from './usePublicationSummary';
+export { DIVIDENDS_QUERY_KEY, useDividends } from './useDividends';
 export { useOrderActions } from './useOrderActions';
 export { useOrderActionSigning } from './useOrderActionSigning';
 export { useSwapSettlements } from './useSwapSettlements';

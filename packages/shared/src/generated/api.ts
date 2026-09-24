@@ -1247,6 +1247,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/publications/summary/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_publications_summary_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/subscriptions/': {
     parameters: {
       query?: never;
@@ -4179,6 +4195,12 @@ export interface ApiComponents {
       carried: boolean;
       eligible: ApiComponents['schemas']['PublicationCount'];
       for: ApiComponents['schemas']['PublicationCount'];
+    };
+    PublicationSummary: {
+      dividendsWithoutRecord: number;
+      nextClosesAt: string | null;
+      openResolutions: number;
+      publishedSince: number;
     };
     RegisterCorrection: {
       appliedEntry: string | null;
@@ -7890,6 +7912,8 @@ export interface ApiOperations {
   api_v1_publications_list: {
     parameters: {
       query?: {
+        addressed?: 'me';
+        kind?: 'distribution' | 'holding_statement' | 'meeting_notice' | 'resolution';
         ordering?: string;
         page?: number;
       };
@@ -7953,6 +7977,25 @@ export interface ApiOperations {
         };
         content: {
           '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_publications_summary_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PublicationSummary'];
         };
       };
     };

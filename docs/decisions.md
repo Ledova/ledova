@@ -273,6 +273,16 @@ proxies the issue's non-goals exclude.
   generated per-holder document was deliberately not built, and waits until a
   company asks for one.
 
+- **Dividends sit beside transaction history, not in it.** A transaction is
+  read from a chain and a dividend is what a company records, so the design
+  note's §6.2 keeps them in two lists with a link between them rather than
+  synthesising rows into the chain-derived history.
+- **The home page's count is about the caller as a member.** A company owner
+  reads its whole roll under the policies, but the summary counts only the roll
+  rows naming the caller, so the owner of a company is not told its members'
+  votes and dividends are waiting on it. A person holding through two register
+  members is counted as waiting while either holding is.
+
 [Shareholder publications](architecture/shareholder-publications.md) owns the
 mechanism and [publishing to members](operations/publications.md) the procedure.
 

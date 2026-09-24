@@ -5,6 +5,7 @@ import { AssetAllocationCard } from './components/AssetAllocationCard';
 import { WalletAllocationCard } from './components/WalletAllocationCard';
 import { MarketCard } from './components/MarketCard';
 import { TransactionsCard } from './components/TransactionsCard';
+import { PublishedCard } from './components/PublishedCard';
 import { AssetDetailModal } from '../asset-prices/components/AssetDetailModal';
 import { useHome } from './useHome';
 
@@ -47,6 +48,8 @@ export function HomePage() {
     <main className="text-text-primary">
       <div className="w-full max-w-6xl mx-auto px-4 pt-6 pb-16 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 sm:gap-5 md:gap-6">
+          <PublishedCard />
+
           <PerformanceSection
             snapshotData={performanceChartData}
             timeRanges={timeRanges}

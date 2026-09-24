@@ -279,8 +279,9 @@ def notify_the_roll(publication_id) -> int:
             return 0
         readers = list(
             PublicationRecipient.objects.filter(publication_id=publication.pk, user_id__isnull=False)
-            .order_by("member_id")
+            .order_by("user_id")
             .values_list("user_id", flat=True)
+            .distinct()
         )
     title, body = ANNOUNCEMENTS[publication.kind]
     for user_id in readers:

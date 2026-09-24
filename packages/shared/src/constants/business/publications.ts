@@ -1,5 +1,11 @@
 import type { ApiComponents } from '../../generated/api';
-import type { Publication, PublicationCount, PublicationResult, ResolutionStatus } from '../../types';
+import type {
+  Publication,
+  PublicationCount,
+  PublicationFilters,
+  PublicationResult,
+  ResolutionStatus,
+} from '../../types';
 
 export type PublicationKind = ApiComponents['schemas']['PublicationKindEnum'];
 
@@ -11,6 +17,7 @@ export const PUBLICATION_ENDPOINTS = {
   BASE: '/api/v1/publications/',
   FILE: (uuid: string) => `/api/v1/publications/${uuid}/file/` as const,
   BALLOT: (uuid: string) => `/api/v1/publications/${uuid}/ballot/` as const,
+  SUMMARY: '/api/v1/publications/summary/',
 } as const;
 
 export const PUBLICATION_NOTICE = 'publication';
@@ -98,6 +105,24 @@ export const PUBLICATION_COPY = {
   NOTHING_PAYABLE: 'At this rate your holding comes to less than a cent, so there is nothing to pay.',
   RECORDS_ONLY:
     'Ledova shows what the company has recorded. It does not move the money and cannot see the transfer itself.',
+  SUMMARY_PUBLISHED_ONE: 'thing published to you in the last 30 days',
+  SUMMARY_PUBLISHED_MANY: 'things published to you in the last 30 days',
+  SUMMARY_RESOLUTION_ONE: 'resolution awaiting your vote, closing',
+  SUMMARY_RESOLUTION_MANY: 'resolutions awaiting your vote, the first closing',
+  SUMMARY_DIVIDEND_ONE: 'dividend awaiting a payment record',
+  SUMMARY_DIVIDEND_MANY: 'dividends awaiting a payment record',
+  SUMMARY_OPEN: 'See what was published to you',
+  DIVIDENDS_TITLE: 'Dividends',
+  DIVIDENDS_OPEN: 'See your dividends',
+  DIVIDENDS_APART:
+    'Dividends are listed apart from your transactions. The company records them; they are not read from the ' +
+    'blockchain.',
+  DIVIDENDS_EMPTY_TITLE: 'No dividend has been declared to you yet',
+  DIVIDENDS_EMPTY_BODY:
+    'When a company declares a dividend on shares you held on its record date, it appears here with your ' +
+    'entitlement and what the company records about paying it.',
+  DIVIDENDS_LIST_FAILED: 'Your dividends could not be loaded.',
+  DIVIDENDS_LOAD_MORE: 'Show earlier dividends',
 } as const;
 
 export function resolutionStatus(
@@ -110,6 +135,10 @@ export function resolutionStatus(
 }
 
 export const LONGEST_TIMER_DELAY = 2 ** 31 - 1;
+
+export const PUBLICATION_SUMMARY_REFRESH_INTERVAL = 5 * 60 * 1000;
+
+export const DIVIDEND_FILTERS = { kind: 'distribution', addressed: 'me' } as const satisfies PublicationFilters;
 
 export function nextResolutionBoundary(
   publication: Pick<Publication, 'opensAt' | 'closesAt' | 'result'>,

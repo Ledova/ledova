@@ -154,6 +154,26 @@ class TheBallotRouteTest(StubUploadDependencies, TestCase):
             [("against", 40, True), ("for", 100, False)],
         )
 
+    def test_a_listing_filter_on_the_ballot_route_is_ignored_and_the_ballot_is_answered_with_its_row(self):
+        self.client.force_authenticate(self.holder.user)
+
+        for query in ("kind=bogus", "kind=distribution", "addressed=nobody"):
+            with self.subTest(query=query):
+                resolution = a_resolution(self.world)
+
+                response = self.client.post(
+                    f"{ballot_route(resolution)}?{query}", {"choice": BallotChoice.FOR}, format="json"
+                )
+
+                self.assertEqual(response.status_code, 200, response.content)
+                self.assertEqual(
+                    (response.json()["uuid"], response.json()["myBallot"]["choice"]), (str(resolution.pk), "for")
+                )
+                self.assertEqual(
+                    list(PublicationEvent.objects.filter(publication=resolution).values_list("actor_id", "choice")),
+                    [(self.holder.user.pk, "for")],
+                )
+
     def test_a_ballot_is_cast_once_and_a_second_cast_neither_changes_nor_adds_one(self):
         self.assertEqual(self.cast(self.holder.user, BallotChoice.FOR).status_code, 200)
 

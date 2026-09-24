@@ -5,6 +5,13 @@ from django.db.models.functions import Coalesce
 
 
 class PublicationQuerySet(models.QuerySet):
+    def addressed_to(self, user_id):
+        from shareholders.models.recipient import PublicationRecipient
+
+        return self.filter(
+            models.Exists(PublicationRecipient.objects.filter(publication_id=models.OuterRef("pk"), user_id=user_id))
+        )
+
     def seen_by(self, user_id):
         from shareholders.models.event import (
             PAYMENT_RECORDS,

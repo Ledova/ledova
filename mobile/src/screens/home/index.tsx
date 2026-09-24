@@ -7,6 +7,7 @@ import { AssetAllocationCard } from './components/AssetAllocationCard';
 import { MarketCard } from './components/MarketCard';
 import { WalletsCard } from './components/WalletsCard';
 import { TransactionsCard } from './components/TransactionsCard';
+import { PublishedCard } from './components/PublishedCard';
 import { AssetDetailModal } from '../asset-prices/components/AssetDetailModal';
 import { useHome } from './useHome';
 import { useAppTheme, useThemedStyles } from '../../contexts';
@@ -107,6 +108,8 @@ export function HomeScreen() {
               Last updated: {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </Text>
           )}
+
+          <PublishedCard />
 
           <Panel>
             <View style={styles.panelContent}>

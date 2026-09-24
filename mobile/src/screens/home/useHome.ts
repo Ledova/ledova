@@ -10,6 +10,7 @@ import {
   getAssets,
   getFavouriteAssets,
   CACHE_TIMING,
+  PUBLICATION_SUMMARY_QUERY_KEY,
   TimeRange,
   TIME_RANGES,
   BLOCKCHAIN,
@@ -117,6 +118,7 @@ export const useHome = () => {
       queryClient.invalidateQueries({ queryKey: ['home-market-assets'] }),
       queryClient.invalidateQueries({ queryKey: ['favouriteAssets'] }),
       queryClient.invalidateQueries({ queryKey: ['holdings'] }),
+      queryClient.invalidateQueries({ queryKey: PUBLICATION_SUMMARY_QUERY_KEY }),
     ]);
   }, [queryClient]);
 

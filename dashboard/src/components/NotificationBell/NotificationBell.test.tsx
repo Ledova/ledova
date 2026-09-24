@@ -69,6 +69,19 @@ describe('following a notification to what it is about', () => {
     expect(await screen.findByText('The publications page')).toBeTruthy();
   });
 
+  it.each([
+    ['distribution', 'A dividend has been declared'],
+    ['resolution', 'A resolution has been put to members'],
+  ])('opens the publications page from the notice of a new %s', async (kind, title) => {
+    rows = [{ ...published, title, data: { type: PUBLICATION_NOTICE, event: 'published', publicationId: 'b', kind } }];
+
+    showBell();
+    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(await screen.findByText(title));
+
+    expect(await screen.findByText('The publications page')).toBeTruthy();
+  });
+
   it('leaves a notice about something else where it is', async () => {
     rows = [unrelated];
 

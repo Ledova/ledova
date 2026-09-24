@@ -8196,6 +8196,31 @@
         ],
         "type": "object"
       },
+      "PublicationSummary": {
+        "properties": {
+          "dividendsWithoutRecord": {
+            "type": "integer"
+          },
+          "nextClosesAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "openResolutions": {
+            "type": "integer"
+          },
+          "publishedSince": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "dividendsWithoutRecord",
+          "nextClosesAt",
+          "openResolutions",
+          "publishedSince"
+        ],
+        "type": "object"
+      },
       "RegisterCorrection": {
         "properties": {
           "appliedEntry": {
@@ -19358,6 +19383,31 @@
         "operationId": "api_v1_publications_list",
         "parameters": [
           {
+            "description": "* `me` - Addressed to the caller",
+            "in": "query",
+            "name": "addressed",
+            "schema": {
+              "enum": [
+                "me"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "* `holding_statement` - Annual holding statement\n* `meeting_notice` - Meeting notice\n* `resolution` - Resolution\n* `distribution` - Dividend",
+            "in": "query",
+            "name": "kind",
+            "schema": {
+              "enum": [
+                "distribution",
+                "holding_statement",
+                "meeting_notice",
+                "resolution"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "description": "Which field to use when ordering the results.",
             "in": "query",
             "name": "ordering",
@@ -19382,6 +19432,34 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PaginatedPublicationList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/publications/summary/": {
+      "get": {
+        "operationId": "api_v1_publications_summary_retrieve",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicationSummary"
                 }
               }
             },
