@@ -75,9 +75,12 @@ allocated nonces stop one below its maximum so the next counter still fits.
 Transaction value and gas price accept unsigned 256-bit values. PostgreSQL
 enforces immutable attempts, monotonic signer counters and guarded operation
 transitions. All three tables deny application-role access, even with a user
-principal; operator access is required. They have no admin or serializer surface.
-Signed payloads are broadcast capabilities and belong in protected backups;
-errors retain a category rather than provider or database exception text.
+principal; operator access is required. They have no admin or serializer surface;
+the [company pack](company-pack.md#chain-evidence) carries each operation's
+intent, status and receipt and each attempt's hash, nonce, signer and chain id,
+and never the signed payload. Signed payloads are broadcast capabilities and
+belong in protected backups; errors retain a category rather than provider or
+database exception text.
 
 For existing databases, read [outgoing history and cutover constraints](../reference/outgoing-history.md).
 

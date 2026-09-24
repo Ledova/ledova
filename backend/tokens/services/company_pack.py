@@ -5,8 +5,10 @@ import json
 import logging
 import zipfile
 from datetime import timezone as utc_zone
+from decimal import Decimal
 from pathlib import Path
 from tempfile import SpooledTemporaryFile
+from uuid import UUID
 
 from django.conf import settings
 from django.db.models.expressions import RawSQL
@@ -26,8 +28,8 @@ from tokens.models import (
     ShareRegister,
     ShareToken,
     ShareTokenStatus,
-    TokenDeployment,
 )
+from tokens.services import company_pack_chain as chain
 from tokens.services import company_pack_history as history
 from tokens.services.register import (
     REGISTER_HEADERS,
@@ -56,6 +58,23 @@ COMPILER = {
     "via_ir": True,
     "openzeppelin": "5.4.0",
 }
+UNRESOLVED = {
+    "deployment": ("deploying",),
+    "issuance": ("queued", "executing"),
+    "capital_increase": ("executing",),
+    "pause": ("pending", "executing"),
+    "swap_approval": ("pending", "executing"),
+    "settlement": ("executing",),
+    "approval_change": ("pending", "executing"),
+}
+
+
+def _plain(item):
+    if hasattr(item, "isoformat"):
+        return item.isoformat()
+    if isinstance(item, (UUID, Decimal)):
+        return str(item)
+    raise TypeError(f"A {type(item).__name__} value is not written into a company pack.")
 
 
 def _json(value) -> bytes:
@@ -65,7 +84,7 @@ def _json(value) -> bytes:
             indent=2,
             sort_keys=True,
             ensure_ascii=False,
-            default=lambda item: item.isoformat() if hasattr(item, "isoformat") else str(item),
+            default=_plain,
         )
         + "\n"
     ).encode()
@@ -164,6 +183,10 @@ def _share_class(company, token, outputs) -> dict:
     waiting = history.waiting(token)
     former = history.former_members(stored)
     due = history.due(outputs, token)
+    cap_increases = history.cap_increases(company, token)
+    pauses = history.pauses(company, token)
+    deployment = chain.deployment(company, token)
+    settlements = chain.settlements(company, token)
     files = {
         f"{folder}/class.json": _json(
             {
@@ -188,11 +211,13 @@ def _share_class(company, token, outputs) -> dict:
                         "issued_supply": str(int(register.issued_supply)),
                     }
                 ),
-                "cap_increases": history.cap_increases(company, token),
-                "pauses": history.pauses(company, token),
+                "cap_increases": cap_increases,
+                "pauses": pauses,
             }
         ),
         f"{folder}/entries.json": _json(entries),
+        f"{folder}/chain.json": _json({"deployment": deployment, "operations": chain.operations(company, token)}),
+        f"{folder}/settlements.json": _json(settlements),
         f"{folder}/authority.json": _json(history.authority(company, token)),
         f"{folder}/issues.json": _json(issues),
         f"{folder}/former_members.json": _json(former),
@@ -215,7 +240,30 @@ def _share_class(company, token, outputs) -> dict:
         "awaiting_allotment": issues["awaiting_allotment"],
         "former": former,
         "due": due,
+        "deployment": deployment,
+        "unresolved": _unresolved(token, deployment, issues, cap_increases, pauses, settlements),
     }
+
+
+def _unresolved(token, deployment, issues, cap_increases, pauses, settlements):
+    records = [
+        ("deployment", None if deployment is None else deployment["uuid"], token.status),
+        *(
+            ("issuance", issue["execution"]["uuid"], issue["execution"]["status"])
+            for issue in issues["issues"]
+            if issue["execution"] is not None
+        ),
+        *(("capital_increase", increase["uuid"], increase["status"]) for increase in cap_increases),
+        *(("pause", pause["uuid"], pause["status"]) for pause in pauses),
+        *(("settlement", settlement["uuid"], settlement["status"]) for settlement in settlements),
+    ]
+    if deployment is not None:
+        records.append(("swap_approval", deployment["uuid"], deployment["swap_approval"]["outcome"]))
+    return [
+        {"symbol": token.symbol, "purpose": purpose, "record": record, "status": status}
+        for purpose, record, status in records
+        if status in UNRESOLVED[purpose]
+    ]
 
 
 def _swap_domain():
@@ -225,12 +273,46 @@ def _swap_domain():
         return None
 
 
-def _contracts(tokens, registries) -> dict:
-    chain_id = settings.BLOCKCHAIN_CHAIN_ID
-    owners = {
-        deployment.token_id: deployment.intent.get("sender")
-        for deployment in TokenDeployment.objects.filter(token_id__in=[token.pk for token in tokens])
+def _owner(deployment):
+    return None if deployment is None else deployment["intent"].get("sender")
+
+
+def _approved_on(deployment):
+    intent = None if deployment is None else deployment["swap_approval"]["intent"]
+    return None if intent is None else intent.get("to")
+
+
+def _class_contract(share_class, chain_id) -> dict:
+    token, deployment = share_class["token"], share_class["deployment"]
+    return {
+        "class": token.pk,
+        "symbol": token.symbol,
+        "address": token.contract_address,
+        "owner_at_deployment": _owner(deployment),
+        "approved_on": _approved_on(deployment),
+        "interface": "contracts/ShareToken.json",
+        "domain": (
+            None
+            if not token.contract_address
+            else {
+                "name": DOMAIN_NAME,
+                "version": DOMAIN_VERSION,
+                "chainId": chain_id,
+                "verifyingContract": token.contract_address,
+            }
+        ),
     }
+
+
+def _registry_owner(classes):
+    owners = {_owner(share_class["deployment"]) for share_class in classes if share_class["token"].contract_address}
+    owners.discard(None)
+    return owners.pop() if len(owners) == 1 else None
+
+
+def _contracts(classes, registries) -> dict:
+    chain_id = settings.BLOCKCHAIN_CHAIN_ID
+    owner = _registry_owner(classes)
     return {
         "chain_id": chain_id,
         "compiler": COMPILER,
@@ -243,27 +325,15 @@ def _contracts(tokens, registries) -> dict:
             "interface": "contracts/AtomicSwap.json",
             "domain": _swap_domain(),
         },
-        "registries": [{"address": address, "interface": "contracts/WhitelistRegistry.json"} for address in registries],
-        "classes": [
+        "registries": [
             {
-                "class": token.pk,
-                "symbol": token.symbol,
-                "address": token.contract_address,
-                "owner_at_deployment": owners.get(token.pk),
-                "interface": "contracts/ShareToken.json",
-                "domain": (
-                    None
-                    if not token.contract_address
-                    else {
-                        "name": DOMAIN_NAME,
-                        "version": DOMAIN_VERSION,
-                        "chainId": chain_id,
-                        "verifyingContract": token.contract_address,
-                    }
-                ),
+                "address": address,
+                "interface": "contracts/WhitelistRegistry.json",
+                "owner": owner,
             }
-            for token in tokens
+            for address in registries
         ],
+        "classes": [_class_contract(share_class, chain_id) for share_class in classes],
     }
 
 
@@ -309,7 +379,7 @@ def produce_company_pack(company, requested_by, *, instruction, recipient):
         record = _company(company)
         approvals = history.approvals(company, as_at)
         links = history.wallet_links(company)
-        contracts = _contracts(tokens, approvals["registries"])
+        contracts = _contracts(classes, approvals["registries"])
     files = {
         "company.json": _json(record),
         "approvals.json": _json(approvals),
@@ -333,6 +403,14 @@ def produce_company_pack(company, requested_by, *, instruction, recipient):
             "paused": any(share_class["token"].status == ShareTokenStatus.PAUSED for share_class in classes),
             "former": any(share_class["former"] for share_class in classes),
             "due": any(share_class["due"] for share_class in classes),
+            "unresolved": [
+                *(row for share_class in classes for row in share_class["unresolved"]),
+                *(
+                    {"symbol": None, "purpose": "approval_change", "record": change["uuid"], "status": change["status"]}
+                    for change in approvals["changes"]
+                    if change["status"] in UNRESOLVED["approval_change"]
+                ),
+            ],
         },
     ).encode()
     manifest = _json(

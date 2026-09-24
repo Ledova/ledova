@@ -12,6 +12,8 @@ RECIPE = "ledova-register-v1"
 EMPTY_HEAD = "0" * 64
 PREIMAGE_LENGTH = 12
 RECORDED_BY = 9
+HEXADECIMAL = set("0123456789abcdef")
+UNSIGNED = ("preparing", "failed")
 
 
 class Refused(Exception):
@@ -102,6 +104,34 @@ def check_chain(path, entries, register):
         )
 
 
+def hexadecimal(value, digits):
+    return (
+        isinstance(value, str) and len(value) == digits + 2 and value.startswith("0x") and set(value[2:]) <= HEXADECIMAL
+    )
+
+
+def whole(value, least):
+    return isinstance(value, int) and not isinstance(value, bool) and value >= least
+
+
+def check_opening(where, record, entry):
+    boundary = record["boundary"]
+    if boundary is None:
+        raise Refused(f"{where}: an applied opening carries the boundary it was reviewed against")
+    member_of = {link["address"].lower(): link["member"] for link in record["mapping"]}
+    held = {}
+    for holding in boundary["holdings"]:
+        member = member_of.get(holding["address"].lower())
+        if member is None:
+            raise Refused(
+                f"{where}: wallet {holding['address']} holds shares at the boundary and is mapped to no member"
+            )
+        held[member] = held.get(member, 0) + int(holding["shares"])
+    changes = sorted((change["member"], int(change["shares"])) for change in entry["changes"])
+    if changes != sorted(held.items()) or entry["effective_on"] != boundary["block"]["date"]:
+        raise Refused(f"{where}: entry {entry['uuid']} is not the boundary's holdings on the boundary's date")
+
+
 def check_authority(path, authority, entries):
     by_uuid = {entry["uuid"]: entry for entry in entries}
     for section, kind in (("openings", "opening"), ("corrections", "correction")):
@@ -118,6 +148,76 @@ def check_authority(path, authority, entries):
                 or (kind == "correction" and entry["corrects"] != record["corrects"])
             ):
                 raise Refused(f"{where}: entry {record['entry']} is not its {kind} in entries.json")
+            if kind == "opening":
+                check_opening(where, record, entry)
+
+
+def check_operations(path, chain):
+    operations = {}
+    for number, operation in enumerate(chain["operations"], 1):
+        where = f"{path} operation {number}"
+        hashes = []
+        for attempt in operation["attempts"]:
+            if not (
+                hexadecimal(attempt["tx_hash"], 64)
+                and hexadecimal(attempt["signer"], 40)
+                and whole(attempt["nonce"], 0)
+                and whole(attempt["chain_id"], 1)
+            ):
+                raise Refused(f"{where}: attempt {attempt['tx_hash']} has no well-formed hash, signer, nonce and chain")
+            hashes.append(attempt["tx_hash"])
+        current = operation["current_attempt"]
+        if (current is None) != (operation["status"] in UNSIGNED) or (current is not None and current not in hashes):
+            raise Refused(f"{where}: its current attempt {current} is not one of its attempts")
+        receipt = operation["receipt"]
+        if receipt is not None and not hexadecimal(receipt["block_hash"], 64):
+            raise Refused(f"{where}: its receipt has no well-formed block hash")
+        operations[operation["key"]] = (operation["purpose"], operation["record"])
+    return operations
+
+
+def records_naming_operations(share_class, chain, issues, settlements):
+    named = [("pause", pause["uuid"], pause["operation"]) for pause in share_class["pauses"]]
+    named += [
+        ("capital_increase", increase["execution"]["uuid"], increase["execution"]["operation"])
+        for increase in share_class["cap_increases"]
+        if increase["execution"] is not None
+    ]
+    named += [
+        ("issuance", issue["execution"]["uuid"], issue["execution"]["operation"])
+        for issue in issues["issues"]
+        if issue["execution"] is not None
+    ]
+    named += [("settlement", settlement["uuid"], settlement["operation"]) for settlement in settlements]
+    deployment = chain["deployment"]
+    if deployment is not None:
+        named += [
+            ("deployment", deployment["uuid"], deployment["operation"]),
+            ("swap_approval", deployment["uuid"], deployment["swap_approval"]["operation"]),
+        ]
+    return [(purpose, record, key) for purpose, record, key in named if key is not None]
+
+
+def check_links(path, operations, named):
+    for purpose, record, key in named:
+        if operations.get(key) != (purpose, record):
+            raise Refused(f"{path}: the {purpose} {record} names operation {key}, which is not listed for it")
+    unnamed = sorted(set(operations) - {key for _, _, key in named})
+    if unnamed:
+        raise Refused(f"{path}: operation {unnamed[0]} is named by no record")
+
+
+def check_settlements(path, settlements, entries):
+    by_uuid = {entry["uuid"]: entry for entry in entries}
+    for number, settlement in enumerate(settlements, 1):
+        where = f"{path} settlement {number}"
+        if not hexadecimal(settlement["transaction"], 64):
+            raise Refused(f"{where}: its transaction is not a well-formed hash")
+        if settlement["entry"] is None:
+            continue
+        entry = by_uuid.get(settlement["entry"])
+        if entry is None or (entry["kind"], entry["operation_id"]) != ("transfer", settlement["uuid"]):
+            raise Refused(f"{where}: entry {settlement['entry']} is not its transfer in entries.json")
 
 
 def replay(entries):
@@ -153,6 +253,17 @@ def check(path):
         check_chain(entries_path, entries, register)
         authority_path = f"{folder}/authority.json"
         check_authority(authority_path, json.loads(listed_file(files, authority_path)), entries)
+        chain_path, settlements_path = f"{folder}/chain.json", f"{folder}/settlements.json"
+        chain = json.loads(listed_file(files, chain_path))
+        settlements = json.loads(listed_file(files, settlements_path))
+        check_settlements(settlements_path, settlements, entries)
+        named = records_naming_operations(
+            json.loads(listed_file(files, f"{folder}/class.json")),
+            chain,
+            json.loads(listed_file(files, f"{folder}/issues.json")),
+            settlements,
+        )
+        check_links(chain_path, check_operations(chain_path, chain), named)
         holdings = replay(entries)
         if register["sequence"]:
             csv_path = f"{folder}/register.csv"
