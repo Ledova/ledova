@@ -300,6 +300,19 @@ class OutputsDueTest(TestCase):
             ],
         )
 
+    def test_given_a_company_only_that_companys_entries_are_listed(self):
+        beta = Company.objects.create(owner=self.owner, name="Beta Synthetic Pty Ltd", acn="223456789")
+        token = ShareToken.objects.create(company=beta, name="Beta shares", symbol="BET", total_supply="1000")
+        member = member_of(beta)
+        dated(opened_on(token, date(2026, 8, 1), member), date(2026, 9, 1), "issue", (member, 1))
+        dated(opened_on(self.token, date(2026, 8, 1), self.founder), date(2026, 9, 1), "issue", (self.allottee, 1))
+
+        with patch("tokens.services.register.timezone.now", return_value=SYDNEY_ONE_AM_ON_THE_22ND):
+            scoped = [(item["token"].symbol, item["output"]) for item in outputs_due(company=beta)]
+
+        self.assertEqual(scoped, [("BET", NOTICE), ("BET", CERTIFICATE)])
+        self.assertEqual({symbol for symbol, *_ in due()}, {"BET", "DUE"})
+
 
 @override_settings(STORAGES=ADMIN_STORAGES)
 class OutputsDuePageTest(TestCase):

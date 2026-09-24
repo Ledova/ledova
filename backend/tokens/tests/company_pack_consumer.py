@@ -102,6 +102,24 @@ def check_chain(path, entries, register):
         )
 
 
+def check_authority(path, authority, entries):
+    by_uuid = {entry["uuid"]: entry for entry in entries}
+    for section, kind in (("openings", "opening"), ("corrections", "correction")):
+        for number, record in enumerate(authority[section], 1):
+            where = f"{path} {section} {number}"
+            if (record["status"] == "applied") != (record["entry"] is not None):
+                raise Refused(f"{where}: an applied record names its entry, and no other record does")
+            if record["entry"] is None:
+                continue
+            entry = by_uuid.get(record["entry"])
+            if (
+                entry is None
+                or (entry["kind"], entry["operation_id"]) != (kind, record["uuid"])
+                or (kind == "correction" and entry["corrects"] != record["corrects"])
+            ):
+                raise Refused(f"{where}: entry {record['entry']} is not its {kind} in entries.json")
+
+
 def replay(entries):
     holdings = {}
     for entry in entries:
@@ -133,6 +151,8 @@ def check(path):
         entries_path = f"{folder}/entries.json"
         entries = json.loads(listed_file(files, entries_path))
         check_chain(entries_path, entries, register)
+        authority_path = f"{folder}/authority.json"
+        check_authority(authority_path, json.loads(listed_file(files, authority_path)), entries)
         holdings = replay(entries)
         if register["sequence"]:
             csv_path = f"{folder}/register.csv"

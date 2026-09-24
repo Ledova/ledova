@@ -6,7 +6,7 @@ This archive holds the records Ledova kept for {{ company.name|md }} as at {{ as
 
 The stored register in this pack is the company's register of members. Where a share class is also on a blockchain, the chain is a mirror of the register and not the register itself.
 
-The pack carries the company, its share classes, each class's register of members with the history of entries behind it, and the contract information needed to continue on chain. It does not carry members' email addresses, phone numbers, dates of birth, identity-verification evidence or platform account ids: those are what members gave Ledova, not what the register records.
+The pack carries the company, its share classes, each class's register of members with the history of entries behind it, the approvals and authority behind those entries, and the contract information needed to continue on chain. It does not carry members' email addresses, phone numbers, dates of birth, citizenship, financial details, account numbers, identity-verification evidence or platform account ids: those are what members gave Ledova, not what the register records. Nor does it carry investors' classification claims and evidence, their payslips, orders that have not settled, or Ledova's own records of who took copies of the register.
 
 ## 2. How to read it
 
@@ -15,9 +15,17 @@ The pack carries the company, its share classes, each class's register of member
 | `README.md` | This document |
 | `manifest.json` | The format name and version, the company, the as-at time, the instruction and recipient, each share class's register sequence and head hash, and every other file's path, size in bytes and SHA-256 |
 | `company.json` | The company as Ledova holds it, the name of the account that instructs for it, and its business-register checks |
-| `classes/<class id>/class.json` | One share class: its terms, authorised shares, status, contract address and register head |
+| `approvals.json` | The company's registry addresses; each wallet approval with its status, its expiry and whether it was listed at the as-at time; and each change to an approval, with its action, expiry, authority, status and transaction |
+| `wallet_links.json` | Each request to link a wallet to a member of the company: its authority, terms, evidence and decision |
+| `classes/<class id>/class.json` | One share class: its terms, authorised shares, status, contract address and register head, with each capital increase and each pause |
 | `classes/<class id>/register.csv` | The class's register of members, present once its register has been opened |
 | `classes/<class id>/entries.json` | Every entry in the class's register, in order, each with the exact text its hash was computed over |
+| `classes/<class id>/authority.json` | The class's register openings, imports, corrections and register instructions: each one's authority, terms, evidence and decision |
+| `classes/<class id>/issues.json` | Each issuance request, with the issuance it produced and the subscription it allotted, with that subscription's payment as recorded |
+| `classes/<class id>/former_members.json` | The former members in `register.csv`, each with the date until which it must be kept |
+| `classes/<class id>/reconciliations.json` | Each comparison of the register with the chain, with its discrepancies and their acknowledgements |
+| `classes/<class id>/waiting.json` | Completed issues and settled transfers not yet entered in the register |
+| `classes/<class id>/due.json` | Share certificates and notice figures still owed for the register's entries |
 | `contracts/contracts.json` | The chain, each contract's address, the owner each share class was deployed with, the two signing domains and the compiler settings |
 | `contracts/<Name>.json` | The interface (ABI) of each contract: `ShareToken`, `WhitelistRegistry`, `ShareTokenFactory` and `AtomicSwap` |
 
@@ -52,21 +60,56 @@ Each entry in `entries.json` carries `preimage`, the exact text Ledova's databas
 4. The number of entries is the class's `sequence` in `manifest.json`, and the last entry's `entry_hash` is its `head_hash`. A class with no entries has sequence 0 and a head of sixty-four zeros.
 5. Start every member at zero and add each change's `shares`, in entry order. The members left with a positive total, and their totals, are exactly the current members in `register.csv`, matched by Member ID and Shares held.
 
+### Reading the authority records
+
+Each record in `authority.json` and `wallet_links.json` carries its `authority` (`director_resolution` or `court_order`), the `approving_director` for a resolution, the `authority_reference` and `reason` the company gave, and its terms. Its `status` is the decision: `submitted` while it waits, `applied` or `rejected` once a Ledova reviewer decided it, with the reviewer's name, the time and any reason for rejection. `evidence` names the company document the record relies on, and the SHA-256 and size in bytes of the copy Ledova kept when it was submitted.
+
+An applied opening or correction names its `entry`: the entry in the class's `entries.json` whose `operation_id` is the record's `uuid`, of kind `opening` or `correction`. A correction's `corrects` is that entry's `corrects`.
+
+### Reading `issues.json`
+
+Each issuance request carries its recipient, shares, status and reviewer, the `issuance` it produced once executed, and the `subscription` it allotted where it came from an offering. A subscription's `payment` has the `basis` `recorded`: Ledova staff entered the amount, date and reference from the evidence the company or the bank gave. It is not proof that the money moved.
+
 ## 3. What the evidence proves and does not
 
 | Record | Proves | Does not prove |
 | --- | --- | --- |
 | A register entry's hash and its link to the previous entry | The entry is unchanged since the database wrote it, and its place in the order | That the entry is right or authorised. The authority is the linked instruction and its document |
+| Payment received on a subscription | Who entered what amount, and when | That money moved |
 
-The instructions and documents behind each entry are not in this pack.
+Each authority record names its evidence document by SHA-256 and size. The documents themselves are not in this pack.
 
 ## 4. Restrictions in force
 
-- **Who may hold and transfer.** Each share class's contract moves shares only between wallets that the company's registry lists with an approval that has not expired. A holder whose approval expired or was removed can neither send nor receive until it is renewed, so their holding is frozen. The registry holds each wallet's expiry: read it with `expiresAt(address)`.
-- **Paused classes.** A share class with status `paused` in the table above is paused on chain, and no transfer of it settles until it is unpaused.
-- **Completed effects waiting to be recorded.** A "Completed effects waiting to be recorded" row in a class's `register.csv` counts issues or settled transfers that completed on chain and are not yet in the register. Each is entered only once its wallets are linked to members and the directors' written instruction covers it.
-- **Former members.** Each former member in a class's `register.csv` must stay on the register for seven years after the date they ceased (s169(3) of the Corporations Act). That obligation passes to whoever keeps the register next.
+### Who may hold and transfer
 
+Each share class's contract moves shares only between wallets that the company's registry lists with an approval that has not expired. A holder whose approval expired or was removed can neither send nor receive until it is renewed, so their holding is frozen. The registry holds each wallet's expiry: read it with `expiresAt(address)`. At the as-at time `approvals.json` recorded:
+
+{% if approvals %}| Wallet | Registry | Status | Expires (UTC) | Listed |
+| --- | --- | --- | --- | --- |
+{% for approval in approvals %}| `{{ approval.wallet }}` | `{{ approval.registry }}` | {{ approval.status }} | {% if approval.expires_at %}{{ approval.expires_at|date:"c" }}{% else %}never{% endif %} | {% if approval.listed %}yes{% else %}no: frozen while it holds shares{% endif %} |
+{% endfor %}{% else %}No wallet approval is recorded for this company.
+{% endif %}
+### Paused classes
+
+{% for share_class in classes %}{% if share_class.token.status == "paused" %}- {{ share_class.token.symbol }} is paused on chain, and no transfer of it settles until it is unpaused. Its `class.json` lists each pause and unpause.
+{% endif %}{% endfor %}{% if not paused %}No share class is paused.
+{% endif %}
+### Completed effects waiting to be recorded
+
+A completed issue or settled transfer is entered in the register only once its wallets are linked to members and the directors' written instruction covers it. Each class's `waiting.json` lists those still waiting under `effects`, in the order they will be recorded, with the reason each waits.
+
+{% for share_class in classes %}- {{ share_class.token.symbol }}: {% if share_class.waiting is None %}not established, so `effects` is `null`: the register has no opening Ledova can place completed effects against, or one of them needs attribution{% elif share_class.waiting %}{{ share_class.waiting|length }} waiting{% else %}none waiting{% endif %}.
+{% endfor %}
+### Former members
+
+Each former member must stay on the register for seven years after the date they ceased (s169(3) of the Corporations Act). That obligation passes to whoever keeps the register next. Each class's `former_members.json` gives the date until which each must be kept.
+
+{% if former %}| Class | Name | Ceased on | Keep until |
+| --- | --- | --- | --- |
+{% for share_class in classes %}{% for row in share_class.former %}| {{ share_class.token.symbol }} | {{ row.name }} | {{ row.ceased_on|date:"Y-m-d" }} | {{ row.retain_until|date:"Y-m-d" }} |
+{% endfor %}{% endfor %}{% else %}No former member is recorded.
+{% endif %}
 ## 5. Authority on chain
 
 The contracts are on chain id {{ contracts.chain_id }}.
@@ -98,8 +141,13 @@ The contracts were compiled with Solidity 0.8.24, EVM version `paris`, the optim
 
 - Moving the register to a place other than the company's registered office or principal place of business needs notice to ASIC of where it is kept, within 7 days (s172(2)).
 - Where the register is stored on a computer at a place other than where it is inspected, a change of either place needs notice to ASIC within 14 days (s1301(4)).
-- Certificates and notices of share issues and member changes that are still due remain the company's obligations, whoever keeps the register.
+- Certificates and notices of share issues and member changes that are still due remain the company's obligations, whoever keeps the register. Each class's `due.json` lists those Ledova had not prepared at the as-at time.
 
+{% if due %}| Class | Entry | Kind | Owed | Due on | Overdue |
+| --- | --- | --- | --- | --- | --- |
+{% for share_class in classes %}{% for row in share_class.due %}| {{ share_class.token.symbol }} | {{ row.sequence }} | {{ row.kind }} | {{ row.output }} | {{ row.due_on|date:"Y-m-d" }} | {% if row.overdue %}yes{% else %}no{% endif %} |
+{% endfor %}{% endfor %}{% else %}Nothing is owed.
+{% endif %}
 ## 7. What this pack grants
 
 The company, and a provider it names in writing, may use the records and the contract interface files in this pack to operate and move the company's own register and contracts.
