@@ -211,6 +211,7 @@ class WorklistTest(TestCase):
                 "Subscriptions paid and not allotted": 1,
                 "Subscriptions whose mint is broadcast and unresolved": 1,
                 "Whitelist approvals pending": 1,
+                "Whitelist entries needing holder standing review": 0,
                 "Share issuance requests needing attention": 1,
                 "Capital increase requests needing attention": 1,
                 "Share tokens stuck deploying": 1,

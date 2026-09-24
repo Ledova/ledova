@@ -101,17 +101,31 @@ class WhitelistApprovalInline(admin.TabularInline):
         return False
 
 
+class HolderStandingReviewFilter(admin.SimpleListFilter):
+    title = "holder standing review"
+    parameter_name = "holder_standing_review"
+
+    def lookups(self, request, model_admin):
+        return [("yes", "Needs review")]
+
+    def queryset(self, request, queryset):
+        if self.value() == "yes":
+            return queryset.needing_standing_review()
+        return queryset
+
+
 @admin.register(WhitelistEntry)
 class WhitelistEntryAdmin(admin.ModelAdmin):
     list_display = [
         "short_address",
         "wallet_owner",
         "investor_eligibility",
+        "holder_standing",
         "label",
         "approvals_summary",
         "created_at",
     ]
-    list_filter = ["approvals__status"]
+    list_filter = ["approvals__status", HolderStandingReviewFilter]
     search_fields = [
         "wallet__address",
         "address",
@@ -123,6 +137,7 @@ class WhitelistEntryAdmin(admin.ModelAdmin):
         "created_at",
         "updated_at",
         "status_actions",
+        "holder_standing",
     ]
     ordering = ["-created_at"]
     actions = ["add_to_blockchain", "remove_from_blockchain", "sync_with_blockchain"]
@@ -151,7 +166,7 @@ class WhitelistEntryAdmin(admin.ModelAdmin):
         return readonly
 
     _change_fieldsets = [
-        ("Wallet Information", {"fields": ["uuid", "wallet", "address", "label"]}),
+        ("Wallet Information", {"fields": ["uuid", "wallet", "address", "label", "holder_standing"]}),
         ("Company Approvals", {"fields": ["status_actions"]}),
         ("Notes", {"fields": ["notes"], "classes": ["collapse"]}),
         ("Timestamps", {"fields": ["created_at", "updated_at"], "classes": ["collapse"]}),
@@ -194,6 +209,19 @@ class WhitelistEntryAdmin(admin.ModelAdmin):
         if outcome.is_eligible:
             return mark_safe('<span style="color: #28a745;">Eligible</span>')
         return format_html('<span style="color: #dc3545;">{}</span>', ", ".join(outcome.reasons))
+
+    @admin.display(description="Holder standing")
+    def holder_standing(self, obj):
+        if not obj.wallet_id:
+            return "-"
+        account = obj.wallet.user_account
+        login = "Active login" if account.user_profile.user.is_active else "Inactive login"
+        return format_html(
+            '{}; investment account: <a href="{}">{}</a>',
+            login,
+            reverse("admin:users_useraccount_change", args=[account.pk]),
+            account.get_account_status_display(),
+        )
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)

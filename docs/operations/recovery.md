@@ -91,6 +91,31 @@ moved since admission stays unresolved with a conflict rather than sending to
 either registry. The [whitelist contract](../architecture/outgoing-signing.md#whitelist-changes)
 describes API outcomes, durable boundaries and historical limits.
 
+### Holder standing review
+
+The operator console's **Whitelist entries needing holder standing review** links
+to the matching whitelist admin filter. It derives its count from investor
+accounts with an inactive holder login or rejected, suspended or terminated
+investment standing, and existing company approvals that are live in the last
+observation or have an uncertain pending/failed status. Each entry counts once,
+even if several companies have approved it. The approval inline retains the
+last observed company status and expiry; this worklist does not query the chain.
+
+An inactive holder's removed or expired approval also stays visible while a live,
+company-applicable classification remains and investment standing is not refused.
+That is a conservative review case: identity checks or other eligibility rules
+may still prevent renewal. Staff must inspect the specific company and current
+eligibility before deciding. The worklist never authorizes a change.
+
+Self-deletion disables login and retains classification evidence; it does not
+terminate the investment account or revoke an approval. Review the linked user
+account and classifications, record the appropriate staff decision, then use the
+existing attributed refresh or company removal process. Removal alone can be
+reversed by the sweep while classification and investment standing still permit
+approval. Once standing/classification is resolved and no live or uncertain
+approval remains, the entry leaves the worklist. Treasury and company-only
+accounts are outside this investor review queue.
+
 ## Wallet transfers and stale rows
 
 Use the recorded journal and the matching [EVM](../reference/evm-transfers.md) or

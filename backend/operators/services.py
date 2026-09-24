@@ -16,7 +16,7 @@ from tokens.models import (
 )
 from tokens.tasks.deployment import PENDING_DEPLOYMENT_AGE
 from users.models import InvestorClassification
-from whitelist.models import WhitelistApproval
+from whitelist.models import WhitelistApproval, WhitelistEntry
 from whitelist.services.identity import unnameable_addresses
 
 SEVERITY_INFO = "info"
@@ -125,6 +125,12 @@ def worklist() -> list[WorklistRow]:
             WhitelistApproval.objects.pending().count(),
             _changelist("whitelist", "whitelistentry", "?approvals__status__exact=pending"),
             SEVERITY_WARNING,
+        ),
+        WorklistRow(
+            "Whitelist entries needing holder standing review",
+            WhitelistEntry.objects.needing_standing_review().count(),
+            _changelist("whitelist", "whitelistentry", "?holder_standing_review=yes"),
+            SEVERITY_DANGER,
         ),
         WorklistRow(
             "Share issuance requests needing attention",
