@@ -4134,6 +4134,7 @@ export interface ApiComponents {
     PrimaryTypeEnum: 'SwapOrder';
     ProtocolVersionEnum: 1;
     Publication: {
+      ballotOutstanding: boolean;
       closesAt: string | null;
       companyName: string;
       createdAt: string;

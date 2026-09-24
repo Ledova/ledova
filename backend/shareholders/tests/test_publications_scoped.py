@@ -8,7 +8,7 @@ from rest_framework.test import APITransactionTestCase
 
 from shared.db import atomic, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
-from shared.tests.test_admin_row_actions import ADMIN_STORAGES
+from shared.tests.test_admin_row_actions import ADMIN_STORAGES, staff_user
 from shared.tests.upload_fixtures import StubUploadDependencies
 from shareholders.models import (
     Publication,
@@ -17,7 +17,7 @@ from shareholders.models import (
     PublicationRecipient,
 )
 from shareholders.services.publications import read_publication
-from shareholders.services.resolutions import close_resolution
+from shareholders.services.resolutions import close_resolution, enter_ballot
 from shareholders.tests.fixtures import (
     PUBLICATION_BYTES,
     a_company_with_members,
@@ -240,3 +240,29 @@ class ScopedPublicationTest(RunsOnTheScopedConnection, StubUploadDependencies, A
             (mine["result"]["for"], mine["result"]["against"], mine["result"]["carried"]),
             ({"shares": str(holder.shares), "members": 1}, {"shares": str(other.shares), "members": 1}, True),
         )
+
+    def test_a_person_on_the_roll_twice_with_one_holding_voted_by_staff_casts_the_rest_through_the_route(self):
+        with use_operator():
+            world = a_company_with_members("scoped-partial", holdings=(100, 40), first_person_holds_twice=True)
+            resolution = a_resolution(world)
+            person = world.members[0].user
+            proxied = PublicationRecipient.objects.get(publication=resolution, user_id=person.pk, shares=40)
+            proxy = staff_user("scoped-partial-proxy")
+            enter_ballot(proxy, resolution, proxied, "against", "Proxy form SYN-3")
+
+        self.client.force_authenticate(person)
+        partly = next(row for row in self.client.get(LISTING).json()["results"] if row["uuid"] == str(resolution.pk))
+        cast = self.cast(person, resolution)
+
+        self.assertEqual(
+            (partly["ballotOutstanding"], partly["shares"], partly["myBallot"]["staffEntered"]), (True, "140", True)
+        )
+        self.assertEqual(cast.status_code, 200, cast.content)
+        self.assertFalse(cast.json()["ballotOutstanding"])
+        with use_operator():
+            self.assertEqual(
+                sorted(
+                    PublicationEvent.objects.filter(publication=resolution).values_list("actor_id", "choice", "shares")
+                ),
+                sorted([(proxy.pk, "against", 40), (person.pk, "for", 100)]),
+            )

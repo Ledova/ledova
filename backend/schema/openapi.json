@@ -7925,6 +7925,10 @@
       },
       "Publication": {
         "properties": {
+          "ballotOutstanding": {
+            "readOnly": true,
+            "type": "boolean"
+          },
           "closesAt": {
             "format": "date-time",
             "nullable": true,
@@ -8023,6 +8027,7 @@
           }
         },
         "required": [
+          "ballotOutstanding",
           "closesAt",
           "companyName",
           "createdAt",

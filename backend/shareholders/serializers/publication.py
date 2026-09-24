@@ -37,6 +37,7 @@ class PublicationSerializer(serializers.ModelSerializer):
     question = serializers.SerializerMethodField()
     resolution_kind = serializers.SerializerMethodField()
     my_ballot = serializers.SerializerMethodField()
+    ballot_outstanding = serializers.BooleanField(read_only=True)
     result = PublicationResultSerializer(read_only=True, allow_null=True)
 
     class Meta:
@@ -56,6 +57,7 @@ class PublicationSerializer(serializers.ModelSerializer):
             "opens_at",
             "closes_at",
             "my_ballot",
+            "ballot_outstanding",
             "result",
         ]
         read_only_fields = fields

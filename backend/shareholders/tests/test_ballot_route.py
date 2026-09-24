@@ -117,6 +117,43 @@ class TheBallotRouteTest(StubUploadDependencies, TestCase):
         )
         self.assertEqual(response.json()["myBallot"]["choice"], "against")
 
+    def test_a_ballot_is_outstanding_for_a_member_until_they_cast_and_never_for_the_company_or_a_document(self):
+        statement = published(self.world)
+        before = self.listed_for(self.holder.user)
+
+        self.assertEqual(self.cast(self.holder.user).json()["ballotOutstanding"], False)
+
+        self.assertEqual(
+            (before[str(self.resolution.pk)]["ballotOutstanding"], before[str(statement.pk)]["ballotOutstanding"]),
+            (True, False),
+        )
+        self.assertFalse(self.row_for(self.holder.user)["ballotOutstanding"])
+        self.assertTrue(self.row_for(self.silent.user)["ballotOutstanding"])
+        self.assertFalse(self.row_for(self.world.owner)["ballotOutstanding"])
+
+    def test_a_person_on_the_roll_twice_with_one_holding_voted_by_staff_may_still_cast_the_rest(self):
+        world = a_company_with_members("ballot-partial", holdings=(100, 40, 10), first_person_holds_twice=True)
+        resolution = a_resolution(world)
+        person = world.members[0].user
+        proxied = PublicationRecipient.objects.get(publication=resolution, user_id=person.pk, shares=40)
+        enter_ballot(staff_user("ballot-partial-proxy"), resolution, proxied, BallotChoice.AGAINST, "Proxy form SYN-2")
+
+        partly = self.row_for(person, resolution)
+        cast = self.cast(person, BallotChoice.FOR, resolution)
+
+        self.assertEqual(
+            (partly["ballotOutstanding"], partly["myBallot"]["choice"], partly["myBallot"]["staffEntered"]),
+            (True, "against", True),
+        )
+        self.assertEqual(cast.status_code, 200, cast.content)
+        self.assertFalse(cast.json()["ballotOutstanding"])
+        self.assertEqual(
+            sorted(
+                PublicationEvent.objects.filter(publication=resolution).values_list("choice", "shares", "staff_entered")
+            ),
+            [("against", 40, True), ("for", 100, False)],
+        )
+
     def test_a_ballot_is_cast_once_and_a_second_cast_neither_changes_nor_adds_one(self):
         self.assertEqual(self.cast(self.holder.user, BallotChoice.FOR).status_code, 200)
 
