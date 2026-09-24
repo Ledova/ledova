@@ -68,9 +68,6 @@ export const useSignupUserProfile = () => {
   }, [form]);
 
   const loadUserProfile = useCallback(async () => {
-    setIsLoading(true);
-    setGeneralError('');
-
     try {
       const response = await getUserProfiles(apiClient);
       const profileData = response.data;
@@ -88,7 +85,7 @@ export const useSignupUserProfile = () => {
 
         let formattedPhoneNumber = existingProfile.phoneNumber || '';
         if (existingProfile.phoneNumber && existingProfile.phoneCountryCode) {
-          const country = COUNTRIES.find((c) => c.phoneCode === existingProfile.phoneCountryCode) || selectedCountry;
+          const country = COUNTRIES.find((c) => c.phoneCode === existingProfile.phoneCountryCode) || COUNTRIES[0];
           formattedPhoneNumber = formatPhoneForDisplay(existingProfile.phoneNumber, country);
         }
 
@@ -106,9 +103,10 @@ export const useSignupUserProfile = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedCountry]);
+  }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadUserProfile();
   }, [loadUserProfile]);
 
@@ -229,6 +227,8 @@ export const useSignupUserProfile = () => {
   };
 
   const retryLoad = () => {
+    setIsLoading(true);
+    setGeneralError('');
     loadUserProfile();
   };
 

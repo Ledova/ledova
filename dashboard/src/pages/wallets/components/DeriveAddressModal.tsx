@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { getBlockchainDisplayName, getChainShortCode } from '@ledova/shared';
 import type { Wallet, DerivedAddress } from '@ledova/shared';
 import { Modal } from '@components/Modal';
@@ -19,28 +19,22 @@ export function DeriveAddressModal({
   onClose,
   isCreating = false,
 }: DeriveAddressModalProps) {
-  const [derivedAddress, setDerivedAddress] = useState<DerivedAddress | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isOpen && wallet?.parentPublicKey && wallet?.parentChainCode && wallet?.parentDerivationPath) {
-      try {
-        const nextIndex = (wallet.addressIndex ?? 0) + 1;
-        const newAddress = deriveAddressFromParentKey(
+  const { derivedAddress, error } = useMemo((): { derivedAddress: DerivedAddress | null; error: string | null } => {
+    if (!isOpen || !wallet?.parentPublicKey || !wallet?.parentChainCode || !wallet?.parentDerivationPath)
+      return { derivedAddress: null, error: null };
+    try {
+      const nextIndex = (wallet.addressIndex ?? 0) + 1;
+      return {
+        derivedAddress: deriveAddressFromParentKey(
           wallet.parentPublicKey,
           wallet.parentChainCode,
           wallet.parentDerivationPath,
           nextIndex,
-        );
-        setDerivedAddress(newAddress);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to derive address');
-        setDerivedAddress(null);
-      }
-    } else {
-      setDerivedAddress(null);
-      setError(null);
+        ),
+        error: null,
+      };
+    } catch (err) {
+      return { derivedAddress: null, error: err instanceof Error ? err.message : 'Failed to derive address' };
     }
   }, [isOpen, wallet]);
 

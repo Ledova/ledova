@@ -40,6 +40,15 @@ function checked(record: SavedPause, response: PauseSubmissionResponse) {
   return response;
 }
 
+function readSavedPauses(guard: () => void, owner: OrderSubmissionOwner, tokenUuid: string) {
+  try {
+    guard();
+    return { saved: listSavedPauses(owner, tokenUuid), error: null };
+  } catch (failure) {
+    return { saved: null, error: getErrorMessage(failure, 'Saved pause requests could not be read.') };
+  }
+}
+
 function PauseRequests({
   token,
   owner,
@@ -50,30 +59,29 @@ function PauseRequests({
   currentOwner: () => OrderSubmissionOwner | null;
 }) {
   const queryClient = useQueryClient();
-  const [records, setRecords] = useState<SavedPause[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [ready, setReady] = useState(false);
-  const [sending, setSending] = useState(false);
-  const inFlight = useRef(false);
   const guard = useCallback(() => {
     if (currentOwner() !== owner) throw new Error('The issuer session changed. Reopen the token to continue.');
   }, [currentOwner, owner]);
+  const [initial] = useState(() => readSavedPauses(guard, owner, token.uuid));
+  const [records, setRecords] = useState<SavedPause[]>(initial.saved ?? []);
+  const [error, setError] = useState<string | null>(initial.error);
+  const [ready, setReady] = useState(initial.saved !== null);
+  const [sending, setSending] = useState(false);
+  const inFlight = useRef(false);
   const load = useCallback(() => {
-    try {
-      guard();
-      const saved = listSavedPauses(owner, token.uuid);
+    const { saved, error: failure } = readSavedPauses(guard, owner, token.uuid);
+    if (saved) {
       setRecords((previous) => [
         ...previous,
         ...saved.filter((record) => !previous.some((existing) => existing.submissionId === record.submissionId)),
       ]);
       setReady(true);
-    } catch (failure) {
+    } else {
       setReady(false);
-      setError(getErrorMessage(failure, 'Saved pause requests could not be read.'));
+      setError(failure);
     }
   }, [guard, owner, token.uuid]);
   useEffect(() => {
-    load();
     window.addEventListener('storage', load);
     return () => window.removeEventListener('storage', load);
   }, [load]);

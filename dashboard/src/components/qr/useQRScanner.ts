@@ -26,8 +26,19 @@ export function useQRScanner({
 }: UseQRScannerOptions): UseQRScannerReturn {
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorRun, setErrorRun] = useState({ enabled, scannerId, fps, qrboxSize });
   const activeRun = useRef<{ stop: () => void } | null>(null);
   const onScanSuccessRef = useRef(onScanSuccess);
+
+  if (
+    errorRun.enabled !== enabled ||
+    errorRun.scannerId !== scannerId ||
+    errorRun.fps !== fps ||
+    errorRun.qrboxSize !== qrboxSize
+  ) {
+    setErrorRun({ enabled, scannerId, fps, qrboxSize });
+    if (enabled) setError(null);
+  }
 
   useEffect(() => {
     onScanSuccessRef.current = onScanSuccess;
@@ -43,7 +54,6 @@ export function useQRScanner({
       return;
     }
 
-    setError(null);
     const previous = scannerTeardowns.get(scannerId) ?? Promise.resolve();
     let release!: () => void;
     let fail!: (reason: Error) => void;

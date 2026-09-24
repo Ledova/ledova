@@ -25,6 +25,7 @@ export function useDocumentUpload(owner?: string | null) {
     [owner, epoch],
   );
   const active = useRef(scope);
+  // eslint-disable-next-line react-hooks/refs
   active.current = scope;
 
   const isCurrent = useCallback(
@@ -33,6 +34,7 @@ export function useDocumentUpload(owner?: string | null) {
   );
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability
     scope.disposed = false;
     const retire = () => {
       scope.disposed = true;
@@ -48,6 +50,7 @@ export function useDocumentUpload(owner?: string | null) {
   }, [scope]);
 
   const clear = useCallback(() => {
+    // eslint-disable-next-line react-hooks/immutability
     scope.generation++;
     scope.copy?.retire();
     scope.copy = null;
@@ -56,6 +59,7 @@ export function useDocumentUpload(owner?: string | null) {
 
   const pick = async (): Promise<boolean> => {
     if (!owner || !isCurrent() || scope.picking) return false;
+    // eslint-disable-next-line react-hooks/immutability
     scope.picking = true;
     const generation = ++scope.generation;
     const currentPick = () => isCurrent() && scope.generation === generation;
@@ -88,6 +92,7 @@ export function useDocumentUpload(owner?: string | null) {
     if (!owner || !copy || !isCurrent() || scope.submitting) return false;
     const generation = scope.generation;
     const release = copy.acquire();
+    // eslint-disable-next-line react-hooks/immutability
     scope.submitting = true;
     render();
     try {

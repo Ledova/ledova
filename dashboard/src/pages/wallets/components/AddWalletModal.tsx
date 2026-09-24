@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { QrCodeIcon, CheckIcon, WalletIcon, HardDrivesIcon } from '@phosphor-icons/react';
 import {
   getBlockchainDisplayName,
@@ -171,43 +171,75 @@ interface AccountSelectorProps {
   isLoading: boolean;
 }
 
-export function AccountSelector({
-  urString,
+function decodeImport(urString: string, evmNetwork: 'ETH' | 'BASE') {
+  try {
+    const decoded = extractFromKeystoneQR(urString);
+    return decoded ? importOnEvmNetwork(decoded, evmNetwork) : null;
+  } catch (error) {
+    console.error(`Failed to extract QR data: ${describeFailure(error)}`);
+    return null;
+  }
+}
+
+export function AccountSelector({ urString, onSelectAccounts, onCancel, isLoading }: AccountSelectorProps) {
+  const [evmNetwork, setEvmNetwork] = useState<'ETH' | 'BASE'>('ETH');
+  const importData = useMemo(() => decodeImport(urString, evmNetwork), [urString, evmNetwork]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col items-center gap-2 pt-2 pb-4">
+        <HardDrivesIcon size={ICON_XXL} weight="light" className="text-info-light" />
+        <p className="text-sm text-text-muted text-center">Review the accounts to import</p>
+      </div>
+
+      {importData?.addresses.some((item) => item.networkType !== 'BTC') && (
+        <label className="block space-y-1 text-sm text-text-muted">
+          <span>EVM network</span>
+          <select
+            aria-label="Import EVM network"
+            value={evmNetwork}
+            onChange={(event) => setEvmNetwork(event.target.value as 'ETH' | 'BASE')}
+            className="w-full rounded-lg border border-border bg-surface-tertiary p-2 text-text-primary"
+          >
+            <option value="ETH">Ethereum</option>
+            <option value="BASE">Base</option>
+          </select>
+        </label>
+      )}
+      <ImportAccounts
+        key={`${evmNetwork}/${urString}`}
+        importData={importData}
+        onSelectAccounts={onSelectAccounts}
+        onCancel={onCancel}
+        isImporting={isLoading}
+      />
+    </div>
+  );
+}
+
+function ImportAccounts({
+  importData,
   onSelectAccounts,
   onCancel,
-  isLoading: isImporting,
-}: AccountSelectorProps) {
-  const [evmNetwork, setEvmNetwork] = useState<'ETH' | 'BASE'>('ETH');
-  const [selectedAddresses, setSelectedAddresses] = useState<Set<string>>(new Set());
-  const [addresses, setAddresses] = useState<DerivedAddress[]>([]);
-  const [importData, setImportData] = useState<HardwareWalletImport | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  isImporting,
+}: Omit<AccountSelectorProps, 'urString' | 'isLoading'> & {
+  importData: HardwareWalletImport | null;
+  isImporting: boolean;
+}) {
+  const addresses = importData?.addresses ?? [];
+  const [selectedAddresses, setSelectedAddresses] = useState(() => new Set(addresses.map(importAddressKey)));
   const [balances, setBalances] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
+    if (!importData) return;
     let active = true;
-    setIsLoading(true);
-    setBalances(new Map());
-    try {
-      const decoded = extractFromKeystoneQR(urString);
-      if (decoded) {
-        const result = importOnEvmNetwork(decoded, evmNetwork);
-        setAddresses(result.addresses);
-        setImportData(result);
-        setSelectedAddresses(new Set(result.addresses.map(importAddressKey)));
-        void fetchImportBalances(apiClient, result.addresses).then((next) => {
-          if (active) setBalances(next);
-        });
-      }
-    } catch (error) {
-      console.error(`Failed to extract QR data: ${describeFailure(error)}`);
-    } finally {
-      setIsLoading(false);
-    }
+    void fetchImportBalances(apiClient, importData.addresses).then((next) => {
+      if (active) setBalances(next);
+    });
     return () => {
       active = false;
     };
-  }, [urString, evmNetwork]);
+  }, [importData]);
 
   const toggleSelection = (address: string) => {
     const newSelected = new Set(selectedAddresses);
@@ -225,36 +257,8 @@ export function AccountSelector({
     onSelectAccounts(selected, importData);
   };
 
-  if (isLoading) {
-    return (
-      <div className="py-12 flex flex-col items-center justify-center gap-3">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-mid"></div>
-        <p className="text-sm text-text-muted">Loading accounts...</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col items-center gap-2 pt-2 pb-4">
-        <HardDrivesIcon size={ICON_XXL} weight="light" className="text-info-light" />
-        <p className="text-sm text-text-muted text-center">Review the accounts to import</p>
-      </div>
-
-      {addresses.some((item) => item.networkType !== 'BTC') && (
-        <label className="block space-y-1 text-sm text-text-muted">
-          <span>EVM network</span>
-          <select
-            aria-label="Import EVM network"
-            value={evmNetwork}
-            onChange={(event) => setEvmNetwork(event.target.value as 'ETH' | 'BASE')}
-            className="w-full rounded-lg border border-border bg-surface-tertiary p-2 text-text-primary"
-          >
-            <option value="ETH">Ethereum</option>
-            <option value="BASE">Base</option>
-          </select>
-        </label>
-      )}
+    <>
       <div className="space-y-2 max-h-[300px] overflow-y-auto">
         {addresses.map((derivedAddress) => {
           const isSelected = selectedAddresses.has(importAddressKey(derivedAddress));
@@ -313,6 +317,6 @@ export function AccountSelector({
             : `Import ${selectedAddresses.size} Wallet${selectedAddresses.size !== 1 ? 's' : ''}`}
         </button>
       </div>
-    </div>
+    </>
   );
 }

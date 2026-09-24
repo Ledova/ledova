@@ -29,14 +29,7 @@ export const useSignupFinancialProfile = () => {
   const [existingProfileUuid, setExistingProfileUuid] = useState<string | null>(null);
   const [userProfileId, setUserProfileId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
   const loadData = async () => {
-    setIsLoading(true);
-    setGeneralError('');
-
     try {
       const profileResponse = await getUserProfiles(apiClient);
       const profileData = profileResponse.data;
@@ -73,6 +66,11 @@ export const useSignupFinancialProfile = () => {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadData();
+  }, []);
 
   const setFieldValue = <Field extends keyof FinancialProfileFormState>(
     field: Field,
@@ -177,6 +175,8 @@ export const useSignupFinancialProfile = () => {
   };
 
   const retryLoad = () => {
+    setIsLoading(true);
+    setGeneralError('');
     loadData();
   };
 

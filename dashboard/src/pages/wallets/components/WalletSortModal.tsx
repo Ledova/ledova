@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   FunnelIcon,
   ListBulletsIcon,
@@ -64,12 +64,12 @@ const sortOptions: Array<{ id: WalletSortOption; label: string; icon: React.Reac
 
 export function WalletSortModal({ isOpen, selectedSort, onClose, onApply }: WalletSortModalProps) {
   const [localSort, setLocalSort] = useState<WalletSortOption>(selectedSort);
+  const [shownFor, setShownFor] = useState({ isOpen, selectedSort });
 
-  useEffect(() => {
-    if (isOpen) {
-      setLocalSort(selectedSort);
-    }
-  }, [isOpen, selectedSort]);
+  if (shownFor.isOpen !== isOpen || shownFor.selectedSort !== selectedSort) {
+    setShownFor({ isOpen, selectedSort });
+    if (isOpen) setLocalSort(selectedSort);
+  }
 
   const handleApply = () => {
     onApply(localSort);

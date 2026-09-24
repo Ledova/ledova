@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { CheckCircleIcon } from '@phosphor-icons/react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { TransferOrder, CreateOrderRequest, Wallet, SwapOrder } from '@ledova/shared';
@@ -92,7 +92,9 @@ export function TradingPage() {
   const actions = useOrderActions(orderActionStore);
   const settlements = useSwapSettlements(swapSettlementStore, swapSettlementCrypto);
   const closeSettlement = useRef(settlements.close);
-  closeSettlement.current = settlements.close;
+  useLayoutEffect(() => {
+    closeSettlement.current = settlements.close;
+  }, [settlements.close]);
   const settlementWalletGuard = useRef<{
     walletUuid: string;
     ownerAccountUuid: string;
@@ -116,6 +118,7 @@ export function TradingPage() {
 
   const { wallets, actionWallets, walletAddresses } = useUserTradingWallets();
   const latestWallets = useRef(wallets);
+  // eslint-disable-next-line react-hooks/refs
   latestWallets.current = wallets;
   useEffect(() => {
     if (settlements.active && !settlements.active.isCurrent()) settlements.close();
@@ -149,11 +152,9 @@ export function TradingPage() {
   );
   const { data: swaps, isLoading: isLoadingSwaps } = useSwapOrdersMulti(walletAddresses);
 
-  useMemo(() => {
-    if (tokens && tokens.length > 0 && !selectedTokenUuid) {
-      setSelectedTokenUuid(tokens[0].uuid);
-    }
-  }, [tokens, selectedTokenUuid]);
+  if (tokens && tokens.length > 0 && !selectedTokenUuid) {
+    setSelectedTokenUuid(tokens[0].uuid);
+  }
 
   const selectedToken = useMemo(() => {
     if (!tokens || !selectedTokenUuid) return null;

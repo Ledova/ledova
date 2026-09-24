@@ -64,10 +64,16 @@ export function useIdentityVerification() {
 
   useEffect(() => {
     if (justSubmitted && (isVerified || isRejected)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setJustSubmitted(false);
       queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
     }
   }, [justSubmitted, isVerified, isRejected, queryClient]);
+
+  const handleFormComplete = useCallback(() => {
+    setFormUrl(null);
+    setJustSubmitted(true);
+  }, []);
 
   useEffect(() => {
     if (!formUrl) return;
@@ -140,11 +146,6 @@ export function useIdentityVerification() {
     },
     [tokenMutation],
   );
-
-  const handleFormComplete = useCallback(() => {
-    setFormUrl(null);
-    setJustSubmitted(true);
-  }, []);
 
   const resetState = useCallback(() => {
     setSdkError(null);

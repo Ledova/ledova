@@ -26,10 +26,6 @@ export const useFinancialProfile = () => {
   const [existingProfileUuid, setExistingProfileUuid] = useState<string | null>(null);
   const [userProfileId, setUserProfileId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
   const loadData = async () => {
     setIsLoading(true);
     setGeneralError('');
@@ -69,6 +65,10 @@ export const useFinancialProfile = () => {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const setFieldValue = <Field extends keyof FinancialProfileFormState>(
     field: Field,

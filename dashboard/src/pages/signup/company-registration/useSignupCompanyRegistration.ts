@@ -83,11 +83,14 @@ export function useSignupCompanyRegistration() {
   const detail = selectedUuid && detailQuery.data?.data.uuid === selectedUuid ? detailQuery.data.data : null;
   const owner = useMemo(() => ({ uuid: selectedUuid }), [selectedUuid]);
   const currentOwner = useRef(owner);
-  currentOwner.current = owner;
   const mounted = useRef(true);
   const submission = useRef<Submission | null>(null);
-  const pending = submission.current;
-  if (pending && pending.owners[pending.owners.length - 1] !== owner) pending.owners.push(owner);
+
+  useLayoutEffect(() => {
+    currentOwner.current = owner;
+    const pending = submission.current;
+    if (pending && pending.owners[pending.owners.length - 1] !== owner) pending.owners.push(owner);
+  }, [owner]);
 
   useLayoutEffect(() => {
     mounted.current = true;

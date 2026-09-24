@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   verifyEmail,
   resendVerificationCode,
@@ -11,20 +11,13 @@ import {
 import apiClient from '@services/apiClient';
 
 export const useSignupEmailConfirmation = () => {
-  const [email, setEmail] = useState('');
+  const [email] = useState(() => localStorage.getItem('signup_email') || '');
   const [verificationCode, setVerificationCode] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
   const [generalError, setGeneralError] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
-
-  useEffect(() => {
-    const storedEmail = localStorage.getItem('signup_email');
-    if (storedEmail) {
-      setEmail(storedEmail);
-    }
-  }, []);
 
   const handleVerify = async (onSuccess: () => void) => {
     const validation = validateEmailConfirmation(verificationCode, EMAIL_CONFIRMATION_VALIDATION.TOKEN_LENGTH);

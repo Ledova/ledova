@@ -17,9 +17,6 @@ export const useSignupPreScreening = () => {
   const [existingProfileUuid, setExistingProfileUuid] = useState<string | null>(null);
 
   const loadUserProfile = useCallback(async () => {
-    setIsLoading(true);
-    setGeneralError('');
-
     try {
       const response = await getUserProfiles(apiClient);
       const profileData = response.data;
@@ -43,6 +40,7 @@ export const useSignupPreScreening = () => {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadUserProfile();
   }, [loadUserProfile]);
 
@@ -105,6 +103,8 @@ export const useSignupPreScreening = () => {
   };
 
   const retryLoad = () => {
+    setIsLoading(true);
+    setGeneralError('');
     loadUserProfile();
   };
 

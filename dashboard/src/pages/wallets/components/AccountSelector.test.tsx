@@ -49,6 +49,20 @@ it('queries and imports the selected Base network', async () => {
   });
 });
 
+it('selects every account again when the network changes', async () => {
+  api.post.mockImplementation(async (_url, body) => ({ data: { chain: body.chain, balances: { [address]: '1' } } }));
+  const view = render(
+    <AccountSelector urString="synthetic-qr" onSelectAccounts={vi.fn()} onCancel={vi.fn()} isLoading={false} />,
+  );
+  await view.findByText('1 ETH');
+  fireEvent.click(view.getByText(`${address.slice(0, 10)}...${address.slice(-8)}`));
+  expect((view.getByRole('button', { name: 'Import 0 Wallets' }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.change(view.getByLabelText('Import EVM network'), { target: { value: 'BASE' } });
+  expect(view.getByRole('button', { name: 'Import 1 Wallet' })).toBeTruthy();
+  expect(view.getByText('Loading...')).toBeTruthy();
+  await view.findByText('1 ETH');
+});
+
 it('does not display a zero when the provider fails', async () => {
   api.post.mockRejectedValue(new Error('offline'));
   const view = render(

@@ -55,17 +55,9 @@ export function BuyCryptoModal({
   initialAsset,
 }: BuyCryptoModalProps) {
   const { formatDisplayCurrency } = useCurrency();
-  const [selectedAsset, setSelectedAsset] = useState<BuyableAssetConfig | null>(null);
-  const [showWalletStep, setShowWalletStep] = useState(false);
-
-  useEffect(() => {
-    if (isOpen && initialAsset && !selectedAsset) {
-      const asset = BUYABLE_ASSETS.find((a) => a.symbol === initialAsset);
-      if (asset) {
-        setSelectedAsset(asset);
-      }
-    }
-  }, [isOpen, initialAsset, selectedAsset]);
+  const [chosenAsset, setChosenAsset] = useState<BuyableAssetConfig | null>(null);
+  const selectedAsset =
+    chosenAsset ?? (isOpen && initialAsset ? (BUYABLE_ASSETS.find((a) => a.symbol === initialAsset) ?? null) : null);
 
   const walletsQuery = useQuery({
     queryKey: [
@@ -84,6 +76,7 @@ export function BuyCryptoModal({
 
   const matchingWallets = walletsQuery.data?.data.results || [];
   const isLoadingWallets = walletsQuery.isLoading;
+  const showWalletStep = !!selectedAsset && !isLoadingWallets && matchingWallets.length !== 1;
 
   const widgetMutation = useMutation({
     mutationFn: (wallet: Wallet) =>
@@ -102,14 +95,11 @@ export function BuyCryptoModal({
 
     if (matchingWallets.length === 1 && widgetMutation.isIdle) {
       widgetMutation.mutate(matchingWallets[0]);
-    } else if (matchingWallets.length !== 1) {
-      setShowWalletStep(true);
     }
   }, [selectedAsset, isLoadingWallets, matchingWallets, widgetMutation]);
 
   const resetAndClose = useCallback(() => {
-    setSelectedAsset(null);
-    setShowWalletStep(false);
+    setChosenAsset(null);
     widgetMutation.reset();
   }, [widgetMutation]);
 
@@ -127,7 +117,7 @@ export function BuyCryptoModal({
   }, [initialAsset, handleClose, resetAndClose]);
 
   const handleSelectAsset = (asset: BuyableAssetConfig) => {
-    setSelectedAsset(asset);
+    setChosenAsset(asset);
   };
 
   const handleSelectWallet = (wallet: Wallet) => {

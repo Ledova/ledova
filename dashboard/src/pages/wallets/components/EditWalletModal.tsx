@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   ShieldCheckIcon,
   ShieldIcon,
@@ -34,13 +34,7 @@ interface EditWalletModalProps {
 
 export function EditWalletModal({ wallet, isOpen, onClose, onSave, isUpdating }: EditWalletModalProps) {
   const { formatDisplayCurrency } = useCurrency();
-  const [name, setName] = useState('');
-
-  useEffect(() => {
-    if (wallet) {
-      setName(wallet.name || '');
-    }
-  }, [wallet]);
+  const [name, setName] = useState(wallet?.name || '');
 
   if (!wallet) return null;
 

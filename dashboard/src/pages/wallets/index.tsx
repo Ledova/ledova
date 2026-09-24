@@ -205,6 +205,7 @@ export function WalletsPage() {
       />
 
       <EditWalletModal
+        key={editingWallet?.uuid}
         wallet={editingWallet}
         isOpen={!!editingWallet}
         onClose={() => setEditingWallet(null)}
