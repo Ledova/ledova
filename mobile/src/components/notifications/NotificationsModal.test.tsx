@@ -17,6 +17,12 @@ it('sends a publication notice to the publications screen', () => {
   expect(destinationOf(notice({ type: PUBLICATION_NOTICE, publicationId: 'publication-a' }))).toBe('Publications');
 });
 
+it.each(['distribution', 'resolution'])('sends the notice of a new %s to the publications screen', (kind) => {
+  expect(destinationOf(notice({ type: PUBLICATION_NOTICE, event: 'published', publicationId: 'b', kind }))).toBe(
+    'Publications',
+  );
+});
+
 it('sends a notice about something else nowhere', () => {
   expect(destinationOf(notice({ type: 'transaction', transactionId: 'transaction-a' }))).toBeUndefined();
   expect(destinationOf(notice({}))).toBeUndefined();
