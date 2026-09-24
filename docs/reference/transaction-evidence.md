@@ -50,6 +50,8 @@ an account's owner can read their own evidence under RLS. PostgreSQL binds every
 watch to its journal, protects claim generations and observation links, and
 refuses evidence rewrites, deletion or migration rollback with retained watches.
 Preserve this history when investigating reorgs or recovering a stopped worker.
+Each transaction's latest observation also travels in its owner's
+[account-data export](account-data-export.md).
 
 ## Receipt attribution
 

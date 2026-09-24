@@ -31,6 +31,7 @@ SCOPED_TEST_LABELS = (
     "shared.tests.test_scoped_harness.TheScopedHarnessIsActuallyScopedTest",
     "shared.tests.test_scoped_harness.ADecoratedServiceRollsBackOnTheConnectionItRanOnTest",
     "users.tests.test_account_type_under_the_app_role.ChoosingAnAccountTypeUnderTheAppRoleTest",
+    "users.tests.test_account_export.ScopedAccountExportEvidenceTest",
     "shared.tests.test_cross_tenant_routes_under_rls.TheMatrixRunsOnTheConnectionTheRouterChoosesTest",
     "shared.tests.test_scoped_requests.AuthRequestsUseTheAppRoleTest",
     "shared.tests.test_scoped_requests.RequestTransactionsUseTheAppRoleTest",

@@ -258,7 +258,9 @@ platform says when a receiver has finished reading: Android's chooser result doe
 not wait for the receiver, and the pinned iOS sharing module never settles a
 share whose follow-up dialog the user cancels. The guard therefore ends before
 the share opens, so one unsettled share cannot block later views. Copies that
-earlier builds wrote to the cache root are not found.
+earlier builds wrote to the cache root are not found. Settings shares the
+[account-data export](../reference/account-data-export.md) the same way, as one
+JSON copy in that directory.
 
 Component tests control native picker, file and sharing boundaries while
 retaining the actual upload hooks and React Query mutation lifecycle. The native
