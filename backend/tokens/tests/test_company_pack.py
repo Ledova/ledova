@@ -830,6 +830,7 @@ class CompanyPackTest(ProducesPacks, TestCase):
                     {"class": ordinary, "symbol": "DEP", "sequence": 4, "head_hash": heads[self.a.ordinary.pk]},
                     {"class": preference, "symbol": "DRF", "sequence": 2, "head_hash": heads[self.a.preference.pk]},
                 ],
+                "publications": [],
             },
         )
         self.assertEqual(
@@ -1877,6 +1878,7 @@ class CompanyPackSnapshotTest(TransactionTestCase):
             "  - REG: none.",
             "No former member is recorded.",
             "None was outstanding in Ledova's records.",
+            "The company published nothing to its members through Ledova.",
         ):
             with self.subTest(line=line):
                 self.assertIn(line, readme)

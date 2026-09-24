@@ -338,7 +338,8 @@ for reporting and portability, recorded in
 The pack is built in slices: the registers, company and contracts first, then
 the approvals and history behind them, then each class's chain evidence and
 settlements, then the company's documents and the evidence copies behind its
-approvals, under the ceiling on stored files.
+approvals, under the ceiling on stored files, and last its publications, with
+each ballot withheld and read counts in place of readers.
 [The company pack](architecture/company-pack.md) owns the mechanism and
 [producing a company pack](operations/register-foundation.md#producing-a-company-pack)
 the procedure.

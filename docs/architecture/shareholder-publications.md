@@ -420,6 +420,12 @@ from the tally recomputed in Python from the ballots. The cross-checks are what 
 recomputed its hash. The [runbook](../operations/publications.md#verifying-a-resolution)
 runs it for every resolution.
 
+`shareholders_publication_event_preimage` returns the exact text the hash
+function digests for an event, under either version tag. The
+[company pack](company-pack.md#publications) carries it beside every event
+except a ballot, whose preimage would reveal the choice, so a reader without
+the platform can check the close and every payment record against its hash.
+
 ## Distributions
 
 A distribution is a publication whose members are owed a dividend. Staff

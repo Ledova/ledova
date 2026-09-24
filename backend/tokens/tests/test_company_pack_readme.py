@@ -16,6 +16,8 @@ from django.utils.safestring import SafeString
 
 from companies.models import Company, CompanyDocument
 from shared.tests.test_admin_row_actions import ADMIN_STORAGES
+from shared.tests.upload_fixtures import StubUploadDependencies
+from shareholders.tests.fixtures import published
 from tokens.models import FormerHolder, ShareToken
 from tokens.templatetags.company_pack_text import md
 from tokens.tests.test_company_pack import (
@@ -24,6 +26,7 @@ from tokens.tests.test_company_pack import (
     pack_company,
     pack_staff,
 )
+from tokens.tests.test_company_pack_publications import publishing_company, upload
 
 README = "tokens/company_pack_readme.md"
 OURS = {
@@ -59,6 +62,11 @@ OURS = {
     "documents[].type",
     "copies",
     "copies|pluralize",
+    "publications[].publication.pk",
+    "publications[].publication.kind",
+    "publications[].publication.record_date|date",
+    "publications[].events",
+    "publications[].head_hash",
 }
 HOSTILE = "<script>x</script> a|b\n# heading [link](http://x) **bold** &lt;"
 INERT = r"\<script\>x\</script\> a\|b \# heading \[link\](http://x) \*\*bold\*\* \&lt;"
@@ -125,6 +133,10 @@ def tables(readme):
             found.append(table)
             table = []
     return found
+
+
+def ragged(readme):
+    return [table for table in tables(readme) if len({unescaped(row).count("|") for row in table}) != 1]
 
 
 class CompanyPackReadmeTemplateTest(SimpleTestCase):
@@ -196,9 +208,7 @@ class CompanyPackReadmeTest(ProducesPacks, TestCase):
         self.assertEqual(headings(hostile)[1:], headings(plain)[1:])
         self.assertEqual(headings(hostile)[0], f"# Company pack: Synthetic {INERT} Pty Ltd (ACN {self.a.company.acn})")
         self.assertEqual(len(tables(hostile)), len(tables(plain)))
-        for table in tables(hostile):
-            with self.subTest(table=table[0]):
-                self.assertEqual({unescaped(row).count("|") for row in table}, {unescaped(table[0]).count("|")})
+        self.assertEqual(ragged(hostile), [])
         for inert in (
             f"records Ledova kept for Synthetic {INERT} Pty Ltd as at",
             f'referenced as "REF {INERT}", for Recipient {INERT}.',
@@ -210,3 +220,26 @@ class CompanyPackReadmeTest(ProducesPacks, TestCase):
         ):
             with self.subTest(inert=inert):
                 self.assertIn(inert, hostile)
+
+
+@override_settings(STORAGES=ADMIN_STORAGES)
+class CompanyPackPublicationReadmeTest(ProducesPacks, StubUploadDependencies, TestCase):
+    def setUp(self):
+        self.a = publishing_company("pub-r", 861_000_900, 700)
+        self.client.force_login(pack_staff("pack-readme-publications-staff"))
+
+    def test_a_publication_title_and_the_class_symbol_it_names_read_as_text(self):
+        ShareToken.objects.filter(pk=self.a.token.pk).update(symbol=HOSTILE_SYMBOL)
+        self.a.token.refresh_from_db()
+        publication = published(
+            self.a, title=f"Synthetic {HOSTILE} statement", upload=upload(self.a, "statement.pdf", 1)
+        )
+
+        readme = files_of(self.pack(self.a.company))["README.md"].decode()
+
+        self.assertNotIn("<script", unescaped(readme))
+        self.assertEqual([line for line in headings(readme) if "heading" in line], [])
+        self.assertEqual(ragged(readme), [])
+        self.assertIn(
+            f"| `{publication.pk}` | holding_statement | Synthetic {INERT} statement | {INERT_SYMBOL} | ", readme
+        )

@@ -32,6 +32,7 @@ from tokens.models import (
 from tokens.services import company_pack_chain as chain
 from tokens.services import company_pack_documents as documents
 from tokens.services import company_pack_history as history
+from tokens.services import company_pack_publications as publications
 from tokens.services.register import (
     REGISTER_HEADERS,
     _sheet,
@@ -399,7 +400,8 @@ def produce_company_pack(company, requested_by, *, instruction, recipient):
         listed, held = documents.held(company)
         copies = documents.evidence([*links, *(item for share_class in classes for item in share_class["evidence"])])
         contracts = _contracts(classes, approvals["registries"])
-    stored = {**held, **copies}
+        published = publications.section(company)
+    stored = {**held, **copies, **published["stored"]}
     documents.within_ceiling(company, stored)
     files = {
         "company.json": _json(record),
@@ -412,6 +414,7 @@ def produce_company_pack(company, requested_by, *, instruction, recipient):
         files[f"contracts/{name}.json"] = (Path(settings.BASE_DIR) / "contracts" / f"{name}.json").read_bytes()
     for share_class in classes:
         files.update(share_class["files"])
+    files.update({path: _json(record) for path, record in published["files"].items()})
     files[README] = render_to_string(
         "tokens/company_pack_readme.md",
         {
@@ -424,6 +427,7 @@ def produce_company_pack(company, requested_by, *, instruction, recipient):
             "approvals": approvals["approvals"],
             "documents": listed,
             "copies": len(copies),
+            "publications": published["listed"],
             "paused": any(share_class["token"].status == ShareTokenStatus.PAUSED for share_class in classes),
             "former": any(share_class["former"] for share_class in classes),
             "due": any(share_class["due"] for share_class in classes),
@@ -456,6 +460,7 @@ def produce_company_pack(company, requested_by, *, instruction, recipient):
                 }
                 for share_class in classes
             ],
+            "publications": publications.heads(published["listed"]),
         },
     )
     digest = _digest(manifest)

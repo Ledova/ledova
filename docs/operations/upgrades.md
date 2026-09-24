@@ -235,6 +235,12 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   function, which is unchanged. It rewrites no existing record, none of which is
   a company pack. Reversal refuses once any company-pack record exists, and
   otherwise drops the function.
+- `shareholders/0005_publication_event_preimage` (#650) installs
+  `shareholders_publication_event_preimage(shareholders_publicationevent)`
+  beside the publication event hash function, which is unchanged. It returns
+  the text the hash function digests, under either version tag, for the
+  [company pack](../architecture/company-pack.md#publications). It changes no
+  table or row. Reversal drops the function.
 - `companies/0010_company_pack` (#650) adds the `CompanyPack` proxy of `Company`,
   which creates no table, only the **Can change company pack** permission and
   the proxy's other defaults. Grant it, with **Can view company document**, to
