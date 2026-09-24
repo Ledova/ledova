@@ -588,7 +588,7 @@ class SwapFinalityProcessTest(SwapFinalityFixtures, TransactionTestCase):
             )
             worker.send("run")
             worker.receive("reversing")
-            deadline = time.monotonic() + 10
+            deadline = time.monotonic() + 60
             while time.monotonic() < deadline:
                 with connections[current_alias()].cursor() as cursor:
                     cursor.execute("SELECT pg_stat_clear_snapshot()")

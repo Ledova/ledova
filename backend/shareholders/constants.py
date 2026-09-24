@@ -1,3 +1,5 @@
+from fractions import Fraction
+
 PUBLICATION_FILE_SUFFIX = ".bin"
 
 PUBLICATION_NOTICE = "publication"
@@ -11,3 +13,5 @@ PUBLICATION_READ_KINDS = [
     (READ_AS_COMPANY, "Company"),
     (READ_AS_STAFF, "Staff"),
 ]
+
+SPECIAL_RESOLUTION_MAJORITY = Fraction(3, 4)

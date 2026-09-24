@@ -39,6 +39,7 @@ TABLE_CREATION_AFTER_INITIAL_GRANTS = (
         table: ("shareholders", "0001_publications")
         for table in ("shareholders_publication", "shareholders_publicationrecipient")
     }
+    | {"shareholders_publicationevent": ("shareholders", "0003_resolutions")}
 )
 
 NOT_YET_CREATED = (

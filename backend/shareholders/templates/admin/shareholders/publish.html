@@ -3,6 +3,7 @@
 <h1>Publish to members</h1>
 <p>Publish a document to a share class's members only on the company's written instruction, as inspection copies, certificates and notice figures are prepared today. Record the instruction's reference and choose the verified company document that carries the authority for it.</p>
 <p>The roll is resolved once, when the publication is made: every member the stored register shows holding shares on the record date gets a row carrying the name, holder type and holding as at that moment. A member the register cannot name stays on the roll and has no online surface, exactly as a certificate is refused for a member who cannot be named. Nothing on a publication or its roll can be changed afterwards.</p>
+<p>A resolution also states the question put to members, whether it is ordinary or special, and when voting opens and closes. The attached document is the resolution and its explanatory statement. Each member has one vote per share held on the record date, and the tally is written once when voting closes. Leave these fields blank for anything else.</p>
 {% if refusal %}<p class="errornote">{{ refusal }} Nothing was published.</p>{% endif %}
 <form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<input type="submit" value="Publish"></form>
 {% endblock %}

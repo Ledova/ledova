@@ -16,7 +16,7 @@ package of per-concern modules re-exported by `settings/__init__.py`.
 | `users` | Profiles, accounts, preferences, financial profiles, device tokens, notifications, favourite assets, `InvestorClassification` and the investor-eligibility predicate |
 | `companies` | `Company`, its application lifecycle, and company `Document` records |
 | `tokens` | `ShareToken`, `ShareIssuanceRequest`, `ShareIssuance`, `CapitalIncreaseRequest`, `MintRequest`, `YieldToken`, and the trading models |
-| `shareholders` | `Publication`, the `PublicationRecipient` roll frozen at a record date, and the `PublicationRead` audit |
+| `shareholders` | `Publication`, the `PublicationRecipient` roll frozen at a record date, the `PublicationRead` audit, and the `PublicationEvent` chain of a resolution's ballots and close |
 | `offerings` | `Offering`, `Subscription`, their review and payment lifecycles, allotment, and the eligibility-gated investor directory at `/api/v1/directory/` |
 | `whitelist` | `WhitelistEntry`, the per-company `WhitelistApproval` mirror, `WhitelistChange` commands and the sync from each company's registry |
 | `wallets` | `Wallet`, `Holding`, `HoldingSnapshot`, `Transaction`, balance sync and transfer confirmation |

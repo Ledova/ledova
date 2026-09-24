@@ -209,9 +209,47 @@ proxies the issue's non-goals exclude.
   publication and nothing else; the holding and the document are reached only
   through the member's own audited read.
 
-One vote per share counted at the record date, dividends rounded down per holder
-with the remainder recorded as unpaid, and no proxy machinery were decided in the
-same session and belong to the slices that build them.
+- **One vote per share, counted at the record date**, with the member counts
+  recorded beside the shares so a head-count reading needs no rebuild. Each
+  resolution stores its basis, so the basis it was counted on is part of the
+  record.
+- **The tally follows section 9 of the Corporations Act.** An ordinary
+  resolution is carried when the shares voted for exceed the shares voted
+  against, so a tie is not carried. A special resolution is carried when the
+  shares voted for are at least 75% of the votes cast, which is the Act's
+  definition of a special resolution. Abstentions are counted and shown, but are
+  not votes cast, and a resolution on which no votes were cast is not carried.
+  The database writes the tally into the close and the verifier recomputes it,
+  so the rule lives in two places that are checked against each other.
+- **No proxy machinery, and no online surface for a member the register cannot
+  name.** A proxy is settled between the member and the company, and the vote it
+  carries is entered by staff, marked staff-entered and signed with the authority
+  relied on. A treasury holding, an unidentified member and an ambiguous one vote
+  the same way, on the company's written instruction: the roll gives them no
+  account, and the database refuses a member's ballot that names none.
+- **A member's ballot is resolved under the policies and inserted by the
+  operator.** The design note proposed an insert policy for the application role
+  (its option (b)); slice 3 chose not to give the application role any write to
+  a hash-chained table. A trigger runs with its caller's rights, so under the
+  application role the trigger's own reads of the chain would be narrowed by the
+  member's policy — a member sees their own ballot and a close, not the latest
+  event — and allocating the sequence would need a security-definer function to
+  see past it. Instead `cast_ballot` finds the resolution and the caller's own
+  roll row on the calling connection, under the policies, exactly as a read
+  does, and only the insert runs on the operator connection. The guarantee that
+  a member casts only their own ballot stays in the database: the trigger
+  refuses a ballot that is not staff-entered unless its actor is the account the
+  roll row names. On the application connection `cast_ballot` also refuses
+  unless the connection's principal is the user it casts for, because a
+  company owner's policy admits the whole roll and could otherwise find a
+  member's row. A person the roll names more than once, because two register
+  members resolve to one account, casts once for every holding they have not
+  already voted, and the verifier refuses a member's ballot whose actor is not
+  the account its roll row names. Members, staff and the closing job then share
+  one write path and one lock.
+
+Dividends rounded down per holder with the remainder recorded as unpaid was
+decided in the same session and belongs to the slice that builds distributions.
 [Shareholder publications](architecture/shareholder-publications.md) owns the
 mechanism and [publishing to members](operations/publications.md) the procedure.
 

@@ -7915,10 +7915,11 @@
         "type": "object"
       },
       "PublicationKindEnum": {
-        "description": "* `holding_statement` - Annual holding statement\n* `meeting_notice` - Meeting notice",
+        "description": "* `holding_statement` - Annual holding statement\n* `meeting_notice` - Meeting notice\n* `resolution` - Resolution",
         "enum": [
           "holding_statement",
-          "meeting_notice"
+          "meeting_notice",
+          "resolution"
         ],
         "type": "string"
       },

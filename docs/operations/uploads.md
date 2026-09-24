@@ -37,8 +37,9 @@ uploaded register file are evidence, kept like opening and correction evidence
 with no automatic expiry during the synthetic experiment, and their production
 retention is decided before any real data (owner decision, 22 September 2026).
 
-[Publications to members](publications.md), their frozen rolls and their read
-records share the same floor and setting, measured from the publication, and a
+[Publications to members](publications.md), their frozen rolls, their read
+records and a resolution's ballots and close share the same floor and setting,
+measured from the publication, and a
 [second daily job](jobs.md#schedule) purges them together with the stored
 document. Nothing else removes a publication.
 

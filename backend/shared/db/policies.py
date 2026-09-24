@@ -123,6 +123,16 @@ ADDRESSED_TO_ME = (
     "EXISTS (SELECT 1 FROM shareholders_publicationrecipient addressed "
     f"WHERE addressed.publication_id = shareholders_publication.uuid AND addressed.user_id = {PRINCIPAL})"
 )
+MY_OWN_BALLOT = (
+    "kind = 'ballot' AND EXISTS (SELECT 1 FROM shareholders_publicationrecipient casting "
+    f"WHERE casting.uuid = shareholders_publicationevent.recipient_id AND casting.user_id = {PRINCIPAL})"
+)
+A_CLOSE_ON_MY_ROLL = (
+    "kind = 'close' AND EXISTS (SELECT 1 FROM shareholders_publicationrecipient addressed "
+    "WHERE addressed.publication_id = shareholders_publicationevent.publication_id "
+    f"AND addressed.user_id = {PRINCIPAL})"
+)
+A_CLOSE_OF_MY_COMPANY = f"kind = 'close' AND {_company('company_id', VISIBLE_COMPANIES)}"
 
 
 A_PARTY_TO_THE_SWAP = (
@@ -241,6 +251,10 @@ POLICIES = {
     ),
     "shareholders_publicationrecipient": (
         f"user_id = {PRINCIPAL} OR {_company('company_id', VISIBLE_COMPANIES)}",
+        "false",
+    ),
+    "shareholders_publicationevent": (
+        f"({MY_OWN_BALLOT}) OR ({A_CLOSE_ON_MY_ROLL}) OR ({A_CLOSE_OF_MY_COMPANY})",
         "false",
     ),
     "blockchain_outgoingoperation": ("false", "false"),
@@ -423,6 +437,16 @@ PUBLIC_TERM = {
     "and a term reading it back would be an infinite recursion in the policy. company_id is copied from the "
     "publication at insert and the guard trigger refuses a row whose company differs from its publication's; "
     "both rows are frozen at insert, so it cannot go stale.",
+    "shareholders_publicationevent": "A resolution's record is read by three parties, and each term is narrower than "
+    "the publication's own. A member reads their own ballot, found through the roll row it names, so a ballot a "
+    "staff member entered for them is theirs too; a member reads the close of any resolution they are on the roll "
+    "of, because the tally is the outcome every member was asked about; and the company that published reads the "
+    "close alone, on the row's own company_id, which is copied from the publication at insert and checked by the "
+    "trigger. No one but staff reads another member's ballot, and the company reads no ballot at all. The write "
+    "term is false for all three commands: a member's ballot is resolved under this principal's policies and "
+    "inserted on the operator connection, where the trigger requires the actor to be the account the roll row "
+    "names. No cycle: both terms read shareholders_publicationrecipient, whose own policy reads only its own "
+    "columns and companies_company through the visible-companies helper, and nothing reads this table back.",
     "offerings_offering": "open_now() deliberately admits investors - the subscription serializer and "
     "services/subscription.py re-read the offering under select_for_update, and an owner-only policy turns "
     "that into DoesNotExist on the subscribe path rather than a refusal.",

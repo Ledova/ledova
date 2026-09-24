@@ -1,0 +1,10 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Enter a ballot</h1>
+<p><strong>{{ publication.title }}</strong>, {{ publication.get_resolution_kind_display|lower }} of {{ publication.company_name }} ({{ publication.token_symbol }}).</p>
+<p>{{ publication.question|linebreaksbr }}</p>
+<p>Voting opens {{ publication.opens_at|date:"j F Y, H:i e" }} and closes {{ publication.closes_at|date:"j F Y, H:i e" }}. {{ publication.get_vote_basis_display }}, counted on the holding frozen on the record date.</p>
+<p>Enter a ballot only on a member's written instruction or on a proxy the company has accepted: a member the register cannot name, a treasury holding, or a member voting through a proxy. Record what you relied on. The ballot is marked as entered by staff, names you, and cannot be changed or withdrawn afterwards. A member who already has a ballot, whether cast by them or entered by staff, is not offered.</p>
+{% if refusal %}<p class="errornote">{{ refusal }} Nothing was recorded.</p>{% endif %}
+<form method="post">{% csrf_token %}{{ form.as_p }}<input type="submit" value="Record the ballot"></form>
+{% endblock %}

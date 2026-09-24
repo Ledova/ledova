@@ -4111,7 +4111,7 @@ export interface ApiComponents {
       tokenSymbol: string;
       uuid: string;
     };
-    PublicationKindEnum: 'holding_statement' | 'meeting_notice';
+    PublicationKindEnum: 'holding_statement' | 'meeting_notice' | 'resolution';
     RegisterCorrection: {
       appliedEntry: string | null;
       approvingDirector: string;

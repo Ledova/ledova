@@ -7,13 +7,25 @@ from django.test import TestCase, override_settings
 
 from shared.tests.upload_fixtures import StubUploadDependencies
 from shareholders.constants import READ_AS_STAFF
-from shareholders.models import Publication, PublicationRead, PublicationRecipient
+from shareholders.models import (
+    BallotChoice,
+    Publication,
+    PublicationEvent,
+    PublicationRead,
+    PublicationRecipient,
+)
 from shareholders.services.publications import (
     purge_publications,
     record_publication_read,
 )
+from shareholders.services.resolutions import cast_ballot, close_resolution
 from shareholders.tasks.publications import purge_publications_past_the_clock
-from shareholders.tests.fixtures import a_company_with_members, published
+from shareholders.tests.fixtures import (
+    a_company_with_members,
+    a_resolution,
+    published,
+    voting_has_closed,
+)
 
 FLOOR = 2557
 
@@ -41,6 +53,21 @@ class PublicationRetentionTest(StubUploadDependencies, TestCase):
         self.assertFalse(PublicationRecipient.objects.exists())
         self.assertFalse(PublicationRead.objects.exists())
         self.assertFalse(self.stored())
+
+    def test_the_purge_removes_a_resolution_s_ballots_and_close_before_its_roll(self):
+        resolution = a_resolution(self.world)
+        cast_ballot(self.world.members[0].user, resolution.pk, BallotChoice.FOR)
+        voting_has_closed(resolution)
+        close_resolution(resolution)
+        self.assertEqual(PublicationEvent.objects.count(), 2)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            removed = purge_publications(now=resolution.created_at + timedelta(days=FLOOR + 1))
+
+        self.assertEqual(removed, 2)
+        self.assertFalse(PublicationEvent.objects.exists())
+        self.assertFalse(PublicationRecipient.objects.exists())
+        self.assertFalse(Publication.objects.exists())
 
     def test_the_daily_job_reports_what_it_removed(self):
         self.assertEqual(purge_publications_past_the_clock(), {"publications_removed": 0})

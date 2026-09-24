@@ -21,6 +21,7 @@ export const publicationFilename = (uuid: string, mimeType: string) =>
 export const PUBLICATION_KIND_LABELS: Record<PublicationKind, string> = {
   holding_statement: 'Annual holding statement',
   meeting_notice: 'Meeting notice',
+  resolution: 'Resolution',
 };
 
 export const PUBLICATION_COPY = {

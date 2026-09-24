@@ -1,15 +1,18 @@
-from datetime import date
+from datetime import date, timedelta
 from types import SimpleNamespace
 from uuid import uuid4
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import connections
+from django.utils import timezone
 from web3 import Web3
 
 from companies.models import Company, CompanyType
 from shared.constants import BLOCKCHAIN_BASE
+from shared.db import atomic, current_alias, use_migrate
 from shared.tests.upload_fixtures import pdf_bytes
-from shareholders.models import PublicationKind
+from shareholders.models import PublicationKind, ResolutionKind
 from shareholders.services.publications import publish_to_members
 from tokens.models import RegisterMemberWallet, ShareToken, ShareTokenStatus
 from tokens.services.register_events import create_member, open_register
@@ -25,6 +28,11 @@ PASSWORD = "pw-12345678"
 PUBLICATION_BYTES = pdf_bytes()
 INSTRUCTION = "SYNTHETIC-PUBLICATION-INSTRUCTION-1"
 TITLE = "Annual holding statement 2026"
+QUESTION = "That the company adopt the synthetic constitution tabled with this notice."
+REHASH = (
+    "UPDATE shareholders_publicationevent "
+    "SET entry_hash = shareholders_publication_event_hash(shareholders_publicationevent) WHERE uuid = %s"
+)
 
 
 def an_upload(name="statement.pdf", payload=PUBLICATION_BYTES):
@@ -80,7 +88,7 @@ def a_member(company, *addresses):
     return member
 
 
-def a_company_with_members(label, holdings=(100, 40)):
+def a_company_with_members(label, holdings=(100, 40), first_person_holds_twice=False):
     owner = User.objects.create_user(email=f"{label}-owner-{uuid4().hex[:8]}@example.test", password=PASSWORD)
     company, token = a_share_class(label, owner)
     staff = instruction_reviewer()
@@ -88,7 +96,10 @@ def a_company_with_members(label, holdings=(100, 40)):
     members = []
     changes = []
     for index, shares in enumerate(holdings, 1):
-        user, account = a_person(f"{label}-member{index}", f"{label.title()} Member {index}")
+        if first_person_holds_twice and index == 2:
+            user, account = members[0].user, members[0].account
+        else:
+            user, account = a_person(f"{label}-member{index}", f"{label.title()} Member {index}")
         address = a_listed_wallet(account)
         member = a_member(company, address)
         members.append(SimpleNamespace(member=member, user=user, account=account, address=address, shares=shares))
@@ -119,3 +130,56 @@ def published(world, **changes):
         **changes,
     }
     return publish_to_members(world.token, world.staff, **fields)
+
+
+def a_resolution(world, resolution_kind=ResolutionKind.ORDINARY, **changes):
+    now = timezone.now()
+    fields = {
+        "kind": PublicationKind.RESOLUTION,
+        "title": "Resolution to adopt a constitution",
+        "question": QUESTION,
+        "resolution_kind": resolution_kind,
+        "opens_at": now - timedelta(hours=1),
+        "closes_at": now + timedelta(days=7),
+        "upload": an_upload("resolution.pdf"),
+        **changes,
+    }
+    return published(world, **fields)
+
+
+def as_the_schema_owner(table, trigger, *statements):
+    with use_migrate():
+        with atomic(), connections[current_alias()].cursor() as cursor:
+            cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
+            cursor.execute(f"ALTER TABLE {table} DISABLE TRIGGER {trigger}")
+            for statement, parameters in statements:
+                cursor.execute(statement, parameters)
+            cursor.execute(f"ALTER TABLE {table} ENABLE TRIGGER {trigger}")
+
+
+def the_window_moves(publication, opens_at, closes_at):
+    as_the_schema_owner(
+        "shareholders_publication",
+        "shareholders_publication_is_frozen",
+        (
+            "UPDATE shareholders_publication SET opens_at = %s, closes_at = %s WHERE uuid = %s",
+            [opens_at, closes_at, publication.pk],
+        ),
+    )
+    with use_migrate():
+        publication.refresh_from_db()
+    return publication
+
+
+def voting_has_closed(publication):
+    now = timezone.now()
+    return the_window_moves(publication, now - timedelta(days=2), now - timedelta(days=1))
+
+
+def voting_has_not_opened(publication):
+    now = timezone.now()
+    return the_window_moves(publication, now + timedelta(days=1), now + timedelta(days=2))
+
+
+def the_chain_is_rewritten(*statements):
+    as_the_schema_owner("shareholders_publicationevent", "shareholders_publication_event_chain", *statements)
