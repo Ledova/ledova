@@ -88,7 +88,7 @@ def a_member(company, *addresses):
     return member
 
 
-def a_company_with_members(label, holdings=(100, 40)):
+def a_company_with_members(label, holdings=(100, 40), first_person_holds_twice=False):
     owner = User.objects.create_user(email=f"{label}-owner-{uuid4().hex[:8]}@example.test", password=PASSWORD)
     company, token = a_share_class(label, owner)
     staff = instruction_reviewer()
@@ -96,7 +96,10 @@ def a_company_with_members(label, holdings=(100, 40)):
     members = []
     changes = []
     for index, shares in enumerate(holdings, 1):
-        user, account = a_person(f"{label}-member{index}", f"{label.title()} Member {index}")
+        if first_person_holds_twice and index == 2:
+            user, account = members[0].user, members[0].account
+        else:
+            user, account = a_person(f"{label}-member{index}", f"{label.title()} Member {index}")
         address = a_listed_wallet(account)
         member = a_member(company, address)
         members.append(SimpleNamespace(member=member, user=user, account=account, address=address, shares=shares))

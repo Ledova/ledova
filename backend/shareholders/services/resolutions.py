@@ -32,6 +32,7 @@ BALLOT_REFUSED = "This ballot could not be recorded."
 STILL_OPEN = "A resolution cannot be closed before its voting window has passed."
 CHAIN_BROKEN = "Publication {publication}'s event chain does not verify at sequence {sequence}."
 BALLOT_OFF_THE_ROLL = "Publication {publication} records a ballot whose member or shares differ from its roll."
+BALLOT_NOT_THE_MEMBERS = "Publication {publication} records a member's ballot cast by another account."
 BALLOT_TWICE = "Publication {publication} records more than one ballot for one member."
 EVENT_AFTER_CLOSE = "Publication {publication} records an event after its close."
 EVENT_ELSEWHERE = "Publication {publication} records an event under another company."
@@ -47,51 +48,65 @@ def _is_closed(publication):
     return PublicationEvent.objects.filter(publication_id=publication.pk, kind=PublicationEventKind.CLOSE).exists()
 
 
-def _why_no_ballot(publication, recipient):
+def _why_no_ballot(publication, recipients):
     now = timezone.now()
     with use_operator():
         if now >= publication.closes_at or _is_closed(publication):
             return VOTING_CLOSED
         if now < publication.opens_at:
             return NOT_OPEN_YET
-        if PublicationEvent.objects.filter(recipient_id=recipient.pk, kind=PublicationEventKind.BALLOT).exists():
+        if PublicationEvent.objects.filter(
+            recipient_id__in=[recipient.pk for recipient in recipients], kind=PublicationEventKind.BALLOT
+        ).exists():
             return ALREADY_CAST
     return BALLOT_REFUSED
 
 
-def _record_ballot(publication, recipient, choice, *, actor_id, authority=""):
+def _record_ballots(publication, recipients, choice, *, actor_id, authority=""):
     if choice not in BallotChoice.values:
         raise ValidationError(UNKNOWN_CHOICE)
     try:
         with use_operator(), atomic():
-            ballot = PublicationEvent.objects.create(
-                publication_id=publication.pk,
-                company_id=publication.company_id,
-                kind=PublicationEventKind.BALLOT,
-                recipient_id=recipient.pk,
-                choice=choice,
-                actor_id=actor_id,
-                staff_entered=bool(authority),
-                authority=authority,
+            voted = set(
+                PublicationEvent.objects.filter(
+                    recipient_id__in=[recipient.pk for recipient in recipients], kind=PublicationEventKind.BALLOT
+                ).values_list("recipient_id", flat=True)
             )
-            ballot.refresh_from_db()
+            if len(voted) == len(recipients):
+                raise ValidationError(_why_no_ballot(publication, recipients))
+            ballots = []
+            for recipient in recipients:
+                if recipient.pk in voted:
+                    continue
+                ballot = PublicationEvent.objects.create(
+                    publication_id=publication.pk,
+                    company_id=publication.company_id,
+                    kind=PublicationEventKind.BALLOT,
+                    recipient_id=recipient.pk,
+                    choice=choice,
+                    actor_id=actor_id,
+                    staff_entered=bool(authority),
+                    authority=authority,
+                )
+                ballot.refresh_from_db()
+                ballots.append(ballot)
     except IntegrityError:
-        raise ValidationError(_why_no_ballot(publication, recipient)) from None
-    return ballot
+        raise ValidationError(_why_no_ballot(publication, recipients)) from None
+    return ballots
 
 
 def cast_ballot(user, publication_id, choice):
     if current_alias() == APP_ALIAS and principal_of() != str(user.pk):
         raise NotFound(NO_PUBLICATION)
     publication = Publication.objects.filter(pk=publication_id, kind=PublicationKind.RESOLUTION).first()
-    recipient = (
-        None
+    recipients = (
+        []
         if publication is None
-        else PublicationRecipient.objects.filter(publication=publication, user_id=user.pk).first()
+        else list(PublicationRecipient.objects.filter(publication=publication, user_id=user.pk).order_by("member_id"))
     )
-    if recipient is None:
+    if not recipients:
         raise NotFound(NO_PUBLICATION)
-    return _record_ballot(publication, recipient, choice, actor_id=user.pk)
+    return _record_ballots(publication, recipients, choice, actor_id=user.pk)
 
 
 def enter_ballot(staff_user, publication, recipient, choice, authority):
@@ -104,7 +119,7 @@ def enter_ballot(staff_user, publication, recipient, choice, authority):
         raise ValidationError(NOT_ON_THE_ROLL)
     if not authority.strip():
         raise ValidationError(NO_BALLOT_AUTHORITY)
-    return _record_ballot(publication, recipient, choice, actor_id=staff_user.pk, authority=authority.strip())
+    return _record_ballots(publication, [recipient], choice, actor_id=staff_user.pk, authority=authority.strip())[0]
 
 
 def close_resolution(publication):
@@ -209,6 +224,8 @@ def verify_publication(publication_id) -> dict:
             member = roll.get(event.recipient_id)
             if member is None or event.shares != member.shares:
                 raise PublicationIntegrityError(BALLOT_OFF_THE_ROLL.format(publication=publication.pk))
+            if not event.staff_entered and (member.user_id is None or event.actor_id != member.user_id):
+                raise PublicationIntegrityError(BALLOT_NOT_THE_MEMBERS.format(publication=publication.pk))
             if event.recipient_id in ballots:
                 raise PublicationIntegrityError(BALLOT_TWICE.format(publication=publication.pk))
             ballots[event.recipient_id] = event

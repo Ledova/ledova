@@ -53,11 +53,11 @@ class ScopedResolutionTest(RunsOnTheScopedConnection, StubUploadDependencies, Tr
         first, second = self.here.members
         with use_operator():
             self.ballots = {
-                first.user.pk: cast_ballot(first.user, self.resolution.pk, BallotChoice.FOR),
-                second.user.pk: cast_ballot(second.user, self.resolution.pk, BallotChoice.AGAINST),
+                first.user.pk: cast_ballot(first.user, self.resolution.pk, BallotChoice.FOR)[0],
+                second.user.pk: cast_ballot(second.user, self.resolution.pk, BallotChoice.AGAINST)[0],
                 self.there.members[0].user.pk: cast_ballot(
                     self.there.members[0].user, self.theirs.pk, BallotChoice.ABSTAIN
-                ),
+                )[0],
             }
         voting_has_closed(self.resolution)
         voting_has_closed(self.theirs)
@@ -101,7 +101,7 @@ class ScopedResolutionTest(RunsOnTheScopedConnection, StubUploadDependencies, Tr
     def a_member_casting(self, holder, choice):
         def cast():
             set_principal(holder.user.pk, APP_ALIAS)
-            return cast_ballot(holder.user, self.resolution.pk, choice).pk
+            return cast_ballot(holder.user, self.resolution.pk, choice)[0].pk
 
         return cast
 
@@ -142,7 +142,7 @@ class ScopedResolutionTest(RunsOnTheScopedConnection, StubUploadDependencies, Tr
         holder = self.here.members[0]
         self.the_principal_the_middleware_would_set(holder.user)
 
-        ballot = cast_ballot(holder.user, self.resolution.pk, BallotChoice.FOR)
+        ballot = cast_ballot(holder.user, self.resolution.pk, BallotChoice.FOR)[0]
 
         self.assertEqual(ballot._state.db, "operator")
         with atomic():

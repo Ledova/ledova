@@ -242,8 +242,11 @@ proxies the issue's non-goals exclude.
   roll row names. On the application connection `cast_ballot` also refuses
   unless the connection's principal is the user it casts for, because a
   company owner's policy admits the whole roll and could otherwise find a
-  member's row. Members, staff and the closing job then share one write path
-  and one lock.
+  member's row. A person the roll names more than once, because two register
+  members resolve to one account, casts once for every holding they have not
+  already voted, and the verifier refuses a member's ballot whose actor is not
+  the account its roll row names. Members, staff and the closing job then share
+  one write path and one lock.
 
 Dividends rounded down per holder with the remainder recorded as unpaid was
 decided in the same session and belongs to the slice that builds distributions.

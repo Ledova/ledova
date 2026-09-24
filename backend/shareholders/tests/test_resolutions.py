@@ -197,7 +197,7 @@ class CastingABallotTest(StubUploadDependencies, TestCase):
         return PublicationRecipient.objects.get(publication=self.resolution, user_id=holder.user.pk)
 
     def test_a_member_casts_their_own_ballot_and_the_database_chains_it(self):
-        ballot = cast_ballot(self.first.user, self.resolution.pk, BallotChoice.FOR)
+        ballot = cast_ballot(self.first.user, self.resolution.pk, BallotChoice.FOR)[0]
 
         self.assertEqual(
             (ballot.sequence, ballot.kind, ballot.recipient_id, ballot.choice, ballot.actor_id, ballot.staff_entered),
@@ -209,8 +209,8 @@ class CastingABallotTest(StubUploadDependencies, TestCase):
         self.assertIsNone(ballot.payload)
 
     def test_each_ballot_chains_to_the_one_before(self):
-        first = cast_ballot(self.first.user, self.resolution.pk, BallotChoice.FOR)
-        second = cast_ballot(self.second.user, self.resolution.pk, BallotChoice.AGAINST)
+        first = cast_ballot(self.first.user, self.resolution.pk, BallotChoice.FOR)[0]
+        second = cast_ballot(self.second.user, self.resolution.pk, BallotChoice.AGAINST)[0]
 
         self.assertEqual((second.sequence, second.previous_hash), (2, first.entry_hash))
         self.assertEqual(int(second.shares), 40)
@@ -232,6 +232,34 @@ class CastingABallotTest(StubUploadDependencies, TestCase):
                     cast_ballot(self.first.user, self.resolution.pk, BallotChoice.FOR)
         self.assertFalse(PublicationEvent.objects.exists())
 
+    def test_a_person_on_the_roll_twice_casts_once_for_every_holding(self):
+        world = a_company_with_members("cast-twice", holdings=(100, 40, 10), first_person_holds_twice=True)
+        resolution = a_resolution(world)
+        person = world.members[0].user
+        rows = PublicationRecipient.objects.filter(publication=resolution, user_id=person.pk)
+        self.assertEqual(rows.count(), 2)
+
+        ballots = cast_ballot(person, resolution.pk, BallotChoice.AGAINST)
+
+        self.assertEqual(sorted(ballot.recipient_id for ballot in ballots), sorted(row.pk for row in rows))
+        self.assertEqual({(ballot.choice, ballot.actor_id) for ballot in ballots}, {("against", person.pk)})
+        self.assertEqual(sorted(int(ballot.shares) for ballot in ballots), [40, 100])
+        with self.assertRaisesMessage(ValidationError, ALREADY_CAST):
+            cast_ballot(person, resolution.pk, BallotChoice.FOR)
+
+    def test_a_person_on_the_roll_twice_casts_the_holding_staff_have_not_already_voted(self):
+        world = a_company_with_members("cast-twice-proxy", holdings=(100, 40, 10), first_person_holds_twice=True)
+        resolution = a_resolution(world)
+        person = world.members[0].user
+        proxied, remaining = PublicationRecipient.objects.filter(publication=resolution, user_id=person.pk).order_by(
+            "member_id"
+        )
+        enter_ballot(world.staff, resolution, proxied, BallotChoice.FOR, "Proxy form PF-2")
+
+        ballots = cast_ballot(person, resolution.pk, BallotChoice.AGAINST)
+
+        self.assertEqual([(ballot.recipient_id, ballot.choice) for ballot in ballots], [(remaining.pk, "against")])
+
     def test_a_choice_the_ballot_does_not_offer_is_refused(self):
         with self.assertRaisesMessage(ValidationError, UNKNOWN_CHOICE):
             cast_ballot(self.first.user, self.resolution.pk, "yes")
@@ -252,7 +280,7 @@ class CastingABallotTest(StubUploadDependencies, TestCase):
             (self.first.user, uuid4()),
         ):
             with self.subTest(user=user.pk, publication=publication_id), self.assertRaises(NotFound) as refused:
-                cast_ballot(user, publication_id, BallotChoice.FOR)
+                cast_ballot(user, publication_id, BallotChoice.FOR)[0]
             refusals.append(refused.exception.detail)
 
         self.assertEqual(len(set(refusals)), 1)
@@ -268,7 +296,7 @@ class CastingABallotTest(StubUploadDependencies, TestCase):
             recorded_by=self.world.owner,
         )
 
-        ballot = cast_ballot(self.first.user, self.resolution.pk, BallotChoice.FOR)
+        ballot = cast_ballot(self.first.user, self.resolution.pk, BallotChoice.FOR)[0]
 
         self.assertEqual(int(ballot.shares), 100)
 
@@ -448,7 +476,7 @@ class ClosingAResolutionTest(StubUploadDependencies, TestCase):
         self.assertFalse(PublicationEvent.objects.exists())
 
     def test_the_close_is_chained_after_the_ballots_and_carries_the_tally_the_database_computed(self):
-        first = cast_ballot(self.world.members[0].user, self.resolution.pk, BallotChoice.FOR)
+        first = cast_ballot(self.world.members[0].user, self.resolution.pk, BallotChoice.FOR)[0]
         voting_has_closed(self.resolution)
 
         close = close_resolution(self.resolution)
@@ -546,8 +574,8 @@ class WhoReadsTheChainTest(StubUploadDependencies, TestCase):
         self.resolution = a_resolution(self.world)
         self.theirs = a_resolution(self.elsewhere)
         self.holder, self.other = self.world.members
-        self.own = cast_ballot(self.holder.user, self.resolution.pk, BallotChoice.FOR)
-        self.others = cast_ballot(self.other.user, self.resolution.pk, BallotChoice.AGAINST)
+        self.own = cast_ballot(self.holder.user, self.resolution.pk, BallotChoice.FOR)[0]
+        self.others = cast_ballot(self.other.user, self.resolution.pk, BallotChoice.AGAINST)[0]
         cast_ballot(self.elsewhere.members[0].user, self.theirs.pk, BallotChoice.FOR)
         voting_has_closed(self.resolution)
         voting_has_closed(self.theirs)

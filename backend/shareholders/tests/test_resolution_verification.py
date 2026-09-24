@@ -13,6 +13,7 @@ from shareholders.exceptions import PublicationIntegrityError
 from shareholders.models import BallotChoice, PublicationEvent, PublicationRecipient
 from shareholders.services.publications import verify_roll
 from shareholders.services.resolutions import (
+    BALLOT_NOT_THE_MEMBERS,
     BALLOT_OFF_THE_ROLL,
     BALLOT_TWICE,
     CHAIN_BROKEN,
@@ -42,7 +43,7 @@ class VerifyingAResolutionTest(StubUploadDependencies, TestCase):
         self.world = a_company_with_members("verify-chain", holdings=(100, 40, 10, 5))
         self.resolution = a_resolution(self.world)
         self.first, self.second, self.third = (
-            cast_ballot(holder.user, self.resolution.pk, choice)
+            cast_ballot(holder.user, self.resolution.pk, choice)[0]
             for holder, choice in zip(self.world.members, (BallotChoice.FOR, BallotChoice.AGAINST, BallotChoice.FOR))
         )
 
@@ -131,6 +132,17 @@ class VerifyingAResolutionTest(StubUploadDependencies, TestCase):
 
         self.refused(EVENT_ELSEWHERE)
 
+    def test_a_rehashed_member_ballot_whose_actor_is_another_account_is_refused(self):
+        the_chain_is_rewritten(
+            (
+                "UPDATE shareholders_publicationevent SET actor_id = %s WHERE uuid = %s",
+                [self.world.members[1].user.pk, self.first.pk],
+            ),
+            (REHASH, [self.first.pk]),
+        )
+
+        self.refused(BALLOT_NOT_THE_MEMBERS)
+
     def test_two_ballots_for_one_member_are_refused_even_when_chained(self):
         row = PublicationRecipient.objects.get(pk=self.first.recipient_id)
         with atomic(), connections[current_alias()].cursor() as cursor:
@@ -199,7 +211,7 @@ class VerifyCommandReportsTheTallyTest(StubUploadDependencies, TestCase):
 
     def test_the_command_names_a_resolution_whose_chain_was_rewritten(self):
         resolution = a_resolution(self.world)
-        ballot = cast_ballot(self.world.members[0].user, resolution.pk, BallotChoice.FOR)
+        ballot = cast_ballot(self.world.members[0].user, resolution.pk, BallotChoice.FOR)[0]
         the_chain_is_rewritten(
             ("UPDATE shareholders_publicationevent SET choice = 'abstain' WHERE uuid = %s", [ballot.pk])
         )
