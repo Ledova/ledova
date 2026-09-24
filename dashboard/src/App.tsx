@@ -30,6 +30,7 @@ import DirectoryTokenPage from '@pages/directory/detail';
 import SubscriptionsPage from '@pages/subscriptions';
 import SubscriptionDetailPage from '@pages/subscriptions/detail';
 import PublicationsPage from '@pages/publications';
+import DividendsPage from '@pages/dividends';
 import { SignupAccountType } from '@pages/signup/account-type';
 import { SignupCompanyRegistration } from '@pages/signup/company-registration';
 import Layout from '@components/Layout';
@@ -232,6 +233,14 @@ function App() {
           element={
             <ProtectedRoute>
               <PublicationsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dividends"
+          element={
+            <ProtectedRoute>
+              <DividendsPage />
             </ProtectedRoute>
           }
         />

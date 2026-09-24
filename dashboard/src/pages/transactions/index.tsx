@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { FunnelIcon, PackageIcon } from '@phosphor-icons/react';
-import { getBlockExplorerTxUrl, DESIGN_TOKENS } from '@ledova/shared';
+import { getBlockExplorerTxUrl, DESIGN_TOKENS, PUBLICATION_COPY } from '@ledova/shared';
 
 const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
@@ -87,7 +88,15 @@ export const TransactionsPage = () => {
   return (
     <main className="text-text-primary">
       <div className="w-full max-w-6xl mx-auto px-4 pt-6 pb-16 sm:px-6 lg:px-8">
-        <Panel title="Transactions" icon={<PackageIcon size={ICON_MD} />}>
+        <Panel
+          title="Transactions"
+          icon={<PackageIcon size={ICON_MD} />}
+          actions={
+            <Link to="/dividends" className="text-sm text-brand-mid hover:text-brand-light transition-colors">
+              {PUBLICATION_COPY.DIVIDENDS_OPEN}
+            </Link>
+          }
+        >
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-mid"></div>
