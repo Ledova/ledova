@@ -17,6 +17,7 @@ from shareholders.constants import (
     RATE_STEP,
 )
 from shareholders.models import (
+    PAYMENT_RECORDS,
     PublicationEvent,
     PublicationEventKind,
     PublicationKind,
@@ -143,10 +144,7 @@ def _evidence(upload):
 
 def _latest_record(recipient):
     return (
-        PublicationEvent.objects.filter(
-            recipient_id=recipient.pk,
-            kind__in=[PublicationEventKind.PAYMENT, PublicationEventKind.PAYMENT_VOID],
-        )
+        PublicationEvent.objects.filter(recipient_id=recipient.pk, kind__in=PAYMENT_RECORDS)
         .order_by("-sequence")
         .values_list("kind", flat=True)
         .first()
