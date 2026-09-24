@@ -30,6 +30,7 @@ from tokens.models import (
     ShareTokenStatus,
 )
 from tokens.services import company_pack_chain as chain
+from tokens.services import company_pack_documents as documents
 from tokens.services import company_pack_history as history
 from tokens.services.register import (
     REGISTER_HEADERS,
@@ -179,6 +180,7 @@ def _share_class(company, token, outputs) -> dict:
         ]
     )
     folder = f"classes/{token.pk}"
+    authority = history.authority_records(company, token)
     issues = history.issues(company, token)
     waiting = history.waiting(token)
     former = history.former_members(stored)
@@ -218,7 +220,7 @@ def _share_class(company, token, outputs) -> dict:
         f"{folder}/entries.json": _json(entries),
         f"{folder}/chain.json": _json({"deployment": deployment, "operations": chain.operations(company, token)}),
         f"{folder}/settlements.json": _json(settlements),
-        f"{folder}/authority.json": _json(history.authority(company, token)),
+        f"{folder}/authority.json": _json(history.authority(authority)),
         f"{folder}/issues.json": _json(issues),
         f"{folder}/former_members.json": _json(former),
         f"{folder}/reconciliations.json": _json(history.reconciliations(token)),
@@ -242,6 +244,7 @@ def _share_class(company, token, outputs) -> dict:
         "due": due,
         "deployment": deployment,
         "unresolved": _unresolved(token, deployment, issues, cap_increases, pauses, settlements),
+        "evidence": [record for records in authority.values() for record in records],
     }
 
 
@@ -337,16 +340,29 @@ def _contracts(classes, registries) -> dict:
     }
 
 
-def _archive(files):
+def _member(path):
+    member = zipfile.ZipInfo(path, date_time=ARCHIVE_EPOCH)
+    member.compress_type = zipfile.ZIP_DEFLATED
+    member.external_attr = 0o644 << 16
+    return member
+
+
+def _archive(files, stored, manifest):
     archive = SpooledTemporaryFile(max_size=COMPANY_PACK_SPOOL_BYTES)
+    listed = []
     with zipfile.ZipFile(archive, "w") as bundle:
-        for path, content in sorted(files.items()):
-            member = zipfile.ZipInfo(path, date_time=ARCHIVE_EPOCH)
-            member.compress_type = zipfile.ZIP_DEFLATED
-            member.external_attr = 0o644 << 16
-            bundle.writestr(member, content)
+        for path in sorted({*files, *stored}):
+            if path in files:
+                bundle.writestr(_member(path), files[path])
+                size, digest = len(files[path]), _digest(files[path])
+            else:
+                with bundle.open(_member(path), "w") as target:
+                    size, digest = documents.carry(stored[path], target)
+            listed.append({"path": path, "size": size, "sha256": digest})
+        manifest = _json({**manifest, "files": listed})
+        bundle.writestr(_member(MANIFEST), manifest)
     archive.seek(0)
-    return archive
+    return archive, manifest
 
 
 def _record(classes, requested_by, digest, instruction, recipient):
@@ -378,12 +394,18 @@ def produce_company_pack(company, requested_by, *, instruction, recipient):
         classes = [_share_class(company, token, outputs) for token in tokens]
         record = _company(company)
         approvals = history.approvals(company, as_at)
-        links = history.wallet_links(company)
+        links = history.link_records(company)
+        wallet_links = history.wallet_links(links)
+        listed, held = documents.held(company)
+        copies = documents.evidence([*links, *(item for share_class in classes for item in share_class["evidence"])])
         contracts = _contracts(classes, approvals["registries"])
+    stored = {**held, **copies}
+    documents.within_ceiling(company, stored)
     files = {
         "company.json": _json(record),
         "approvals.json": _json(approvals),
-        "wallet_links.json": _json(links),
+        "wallet_links.json": _json(wallet_links),
+        "documents.json": _json(listed),
         "contracts/contracts.json": _json(contracts),
     }
     for name in INTERFACES:
@@ -400,6 +422,8 @@ def produce_company_pack(company, requested_by, *, instruction, recipient):
             "classes": classes,
             "contracts": contracts,
             "approvals": approvals["approvals"],
+            "documents": listed,
+            "copies": len(copies),
             "paused": any(share_class["token"].status == ShareTokenStatus.PAUSED for share_class in classes),
             "former": any(share_class["former"] for share_class in classes),
             "due": any(share_class["due"] for share_class in classes),
@@ -413,7 +437,9 @@ def produce_company_pack(company, requested_by, *, instruction, recipient):
             ],
         },
     ).encode()
-    manifest = _json(
+    archive, manifest = _archive(
+        files,
+        stored,
         {
             "format": PACK_FORMAT,
             "version": PACK_VERSION,
@@ -430,13 +456,8 @@ def produce_company_pack(company, requested_by, *, instruction, recipient):
                 }
                 for share_class in classes
             ],
-            "files": [
-                {"path": path, "size": len(content), "sha256": _digest(content)}
-                for path, content in sorted(files.items())
-            ],
-        }
+        },
     )
-    archive = _archive({**files, MANIFEST: manifest})
     digest = _digest(manifest)
     _record(classes, requested_by, digest, instruction, recipient)
     return archive, f"company-pack-{company.acn}-{as_at:%Y%m%dT%H%M%SZ}.zip"

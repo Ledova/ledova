@@ -953,7 +953,8 @@ register of members and the history of entries behind it, the approvals behind
 those entries, the issues and the subscriptions still to be allotted or
 refunded, with their payments as recorded, the wallet approvals, what is still
 waiting to be entered or owed, the transactions Ledova sent for each class and
-the settlements it executed, the company, and the contract
+the settlements it executed, the company, its documents with the evidence copy
+behind each approval, and the contract
 information a successor needs, with a README that explains each file and how to
 check it. Staff produce it only on the company's written instruction
 naming who it is for, or on a document that legally compels disclosure, such as
@@ -974,14 +975,25 @@ first, and it grants nothing else. The company needs at least one share class.
 
 The download, `company-pack-ACN-YYYYMMDDTHHMMSSZ.zip`, is named for the moment
 the records were read, in UTC, and carries every current and former member's
-name and residential address, and the names of the staff who reviewed the
-company's register changes. Give it unchanged to the recipient the instruction names. The page
+name and residential address, the names of the staff who reviewed the
+company's register changes, and the company's documents. Give it unchanged to the recipient the instruction names. The page
 refuses, and records nothing, when the company has no share classes, when a
 field is blank, or when an entry in a share class's register no longer matches
-its stored hash. That last refusal names the class and the entry: run
+its stored hash. That refusal names the class and the entry: run
 `python manage.py register_foundation verify --token TOKEN_UUID` from
 `backend/` for that class, and do not produce a pack until the register
-verifies.
+verifies. It also refuses, and records nothing:
+
+- when the stored files it would carry come to more than 256 MiB. The refusal
+  names the total. A pack that size needs background production, which is not
+  built: ask engineering, because the owner decided it is built the first time
+  a real pack goes over the ceiling.
+- when a company document's or an evidence copy's file is missing from private
+  storage. The refusal names the document or record: restore the file to
+  private storage, then produce the pack again.
+- when an evidence copy's stored bytes no longer match the SHA-256 recorded
+  when its record was submitted. The refusal names the record. Restore the copy
+  that was submitted, and find out how it changed, before producing a pack.
 
 Each pack is recorded in **Admin → Tokens → Register exports** as kind
 **Company pack**, once for each share class it carries: who produced it, the

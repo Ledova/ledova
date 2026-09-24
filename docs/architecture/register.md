@@ -453,7 +453,8 @@ A [company pack](company-pack.md) carries every share class's register: the CSV
 above, built by the export's own code, and every entry with the exact text its
 hash was computed over, so a reader without the platform can check the chain and
 replay the holdings. Beside them are the openings, imports, corrections,
-instructions and wallet links behind the entries, the former members with the
+instructions and wallet links behind the entries, each with the evidence copy it
+retained, the former members with the
 date each must be kept until, the reconciliations, the waiting list and the
 outputs due, and each settlement that transferred shares: the order both
 parties signed, with its domain and signatures, and its finalized receipt.

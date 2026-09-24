@@ -6,7 +6,7 @@ This archive holds the records Ledova kept for {{ company.name|md }} as at {{ as
 
 The stored register in this pack is the company's register of members. Where a share class is also on a blockchain, the chain is a mirror of the register and not the register itself.
 
-The pack carries the company, its share classes, each class's register of members with the history of entries behind it, the approvals and authority behind those entries, the transactions Ledova sent for each class and the settlements it executed, and the contract information needed to continue on chain. It does not carry members' email addresses, phone numbers, dates of birth, citizenship, financial details, account numbers, identity-verification evidence or platform account ids: those are what members gave Ledova, not what the register records. Nor does it carry investors' classification claims and evidence, their payslips, orders that have not settled, Ledova's own records of who took copies of the register, or the signed bytes of any transaction.
+The pack carries the company, its share classes, each class's register of members with the history of entries behind it, the approvals and authority behind those entries, the transactions Ledova sent for each class and the settlements it executed, the company's documents with the copy Ledova kept of the evidence behind each approval, and the contract information needed to continue on chain. It does not carry members' email addresses, phone numbers, dates of birth, citizenship, financial details, account numbers, identity-verification evidence or platform account ids: those are what members gave Ledova, not what the register records. Nor does it carry investors' classification claims and evidence, their payslips, orders that have not settled, Ledova's own records of who took copies of the register, or the signed bytes of any transaction.
 
 ## 2. How to read it
 
@@ -17,6 +17,9 @@ The pack carries the company, its share classes, each class's register of member
 | `company.json` | The company as Ledova holds it, the name of the account that instructs for it, and its business-register checks |
 | `approvals.json` | The company's registry addresses; each wallet approval with its status, its expiry and whether it was listed at the as-at time; and each change to an approval, with its action, expiry, authority, status and transaction |
 | `wallet_links.json` | Each request to link a wallet to a member of the company: its authority, terms, evidence and decision |
+| `documents.json` | Each document the company gave Ledova: its type, name, media type, validity, whether Ledova verified it, and the file that holds it or the address the company gave instead |
+| `documents/<document id>` | The bytes of each company document Ledova holds, as uploaded, named by the document's id with the extension of its media type |
+| `documents/evidence/<record id>` | The copy Ledova kept of the document an authority record relied on, as it was when the record was submitted, named by the record's id with the extension of its media type |
 | `classes/<class id>/class.json` | One share class: its terms, authorised shares, status, contract address and register head, with each capital increase and its execution, and each pause with the transaction it was for or the state it found |
 | `classes/<class id>/register.csv` | The class's register of members, present once its register has been opened |
 | `classes/<class id>/entries.json` | Every entry in the class's register, in order, each with the exact text its hash was computed over |
@@ -64,7 +67,7 @@ Each entry in `entries.json` carries `preimage`, the exact text Ledova's databas
 
 ### Reading the authority records
 
-Each record in `authority.json` and `wallet_links.json` carries its `authority` (`director_resolution` or `court_order`), the `approving_director` for a resolution, the `authority_reference` and `reason` the company gave, and its terms. Its `status` is the decision: `submitted` while it waits, `applied` or `rejected` once a Ledova reviewer decided it, with the reviewer's name, the time and any reason for rejection. `evidence` names the company document the record relies on, and the SHA-256 and size in bytes of the copy Ledova kept when it was submitted.
+Each record in `authority.json` and `wallet_links.json` carries its `authority` (`director_resolution` or `court_order`), the `approving_director` for a resolution, the `authority_reference` and `reason` the company gave, and its terms. Its `status` is the decision: `submitted` while it waits, `applied` or `rejected` once a Ledova reviewer decided it, with the reviewer's name, the time and any reason for rejection. `evidence` names the company document the record relies on, the SHA-256 and size in bytes of the copy Ledova kept when it was submitted, and `path`, where that copy is in this pack.
 
 An applied opening or correction names its `entry`: the entry in the class's `entries.json` whose `operation_id` is the record's `uuid`, of kind `opening` or `correction`. A correction's `corrects` is that entry's `corrects`.
 
@@ -92,6 +95,21 @@ The signed bytes of an attempt are not in this pack. A mined transaction's bytes
 
 Each settlement is the instrument of a transfer. `typed_data` is the order both parties signed, in the form EIP-712 signs: `domain` names the settlement contract, its chain id, name and version, and `message` the seller, buyer, share and payment tokens, amounts, nonce and deadline. `digest` is what each party signed and `order_hash` the order's hash without the domain. `seller_signature` and `buyer_signature` are the two signatures. `transaction` is the settlement's transaction, `operation` the operation in `chain.json` that sent it, and `finalized_receipt` the block at which the approved finality `policy` was satisfied. A settlement recorded in the register names its `entry`, the transfer in `entries.json` whose `operation_id` is the settlement's `uuid`; one still waiting names none.
 
+### Reading the documents
+
+`documents.json` lists every document the company gave Ledova, oldest first: its `uuid`, `type`, `name` and `mime_type`, the dates it is `valid_from` and `valid_until`, whether Ledova `verified` it and when (`verified_at`), when it was uploaded (`uploaded_at`), its `external_url` if the company gave one, and `path`, the file under `documents/` that holds its bytes as uploaded. A document the company gave only as an address has `path` `null`: Ledova did not fetch it, so this pack does not carry it.
+
+`documents/evidence/` holds the copy Ledova kept of the document each authority record relied on, one for each record in `authority.json` and `wallet_links.json`, named by the record's id. The record's `evidence` names the copy by `path`. Check that the copy's size in bytes and SHA-256 are the ones `evidence` records: Ledova checked them when it produced this pack. The document the copy was taken from may have changed or gone since, so a copy can differ from the file of the same document under `documents/`.
+
+{% if documents %}| Document | Type | Name | Verified |
+| --- | --- | --- | --- |
+{% for document in documents %}| {% if document.path %}`{{ document.path }}`{% else %}not carried: {{ document.external_url|default:"no address given" }}{% endif %} | {{ document.type }} | {{ document.name }} | {% if document.verified %}yes{% else %}no{% endif %} |
+{% endfor %}{% else %}The company gave Ledova no documents.
+{% endif %}
+This pack carries {{ copies }} evidence cop{{ copies|pluralize:"y,ies" }}.
+
+Verification evidence Ledova holds for members is not in this pack: identity checks, investor classification claims and their evidence, and payslips. Each person gave it to Ledova to be verified, and it is not a record of the company. It runs on its own retention clock, and a verification does not carry over to another company or provider, which verifies members itself.
+
 ## 3. What the evidence proves and does not
 
 | Record | Proves | Does not prove |
@@ -104,7 +122,7 @@ Each settlement is the instrument of a transfer. `typed_data` is the order both 
 | A pause or settlement approval observed already in place | The contract was read in that state at that block | Which transaction put it there. The record is an observation, never transaction attribution |
 | Payment received on a subscription | Who entered what amount, and when | That money moved |
 
-Each authority record names its evidence document by SHA-256 and size. The documents themselves are not in this pack.
+Each authority record names its evidence by SHA-256 and size, and `documents/evidence/` carries the copy with those digests. That shows the copy is the one Ledova kept when the record was submitted, not that the document is genuine.
 
 ## 4. Restrictions in force
 
