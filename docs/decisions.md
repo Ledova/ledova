@@ -326,8 +326,8 @@ for reporting and portability, recorded in
 - **The pack explains how control of the contracts would be handed over and
   does not hand it over.** The README names each contract, its current owner
   and the exact calls.
-- **The account-data export loses its 1,000-transaction cap**, a zero fee stays
-  zero, and mobile shares a file rather than a message.
+- **The account-data export loses its 1,000-transaction cap**; that choice and
+  its reasons are under [the account-data export](#the-account-data-export).
 - **The pack is delivered immediately**, and refused above 256 MiB of stored
   files. Background production is built the first time a real pack exceeds that.
 - **The README states what the pack grants**, in the owner's words: "The
