@@ -8,6 +8,9 @@ import zipfile
 FORMAT = "ledova-company-pack"
 VERSION = 1
 MANIFEST = "manifest.json"
+DOCUMENTS = "documents.json"
+LINKS = "wallet_links.json"
+DOCUMENT_FOLDER = "documents/"
 RECIPE = "ledova-register-v1"
 EMPTY_HEAD = "0" * 64
 PREIMAGE_LENGTH = 12
@@ -245,6 +248,38 @@ def current_members(path, content):
     return listed
 
 
+def check_documents(files, manifest):
+    named = set()
+    documents = json.loads(listed_file(files, DOCUMENTS))
+    for document in documents:
+        if document["path"] is not None:
+            listed_file(files, document["path"])
+            named.add(document["path"])
+    sources = [(LINKS, {"links": json.loads(listed_file(files, LINKS))})]
+    for register in manifest["registers"]:
+        authority_path = f"classes/{register['class']}/authority.json"
+        sources.append((authority_path, json.loads(listed_file(files, authority_path))))
+    for source, sections in sources:
+        for section, records in sections.items():
+            for number, record in enumerate(records, 1):
+                evidence = record["evidence"]
+                content = listed_file(files, evidence["path"])
+                if (len(content), sha256(content)) != (evidence["size"], evidence["sha256"]):
+                    raise Refused(
+                        f"{evidence['path']}: its size and SHA-256 are not the evidence {source} {section} {number} "
+                        "records"
+                    )
+                named.add(evidence["path"])
+    unnamed = sorted(path for path in files if path.startswith(DOCUMENT_FOLDER) and path not in named)
+    if unnamed:
+        raise Refused(f"{unnamed[0]}: named by no document or authority record")
+    held = sum(1 for document in documents if document["path"] is not None)
+    return (
+        f"documents: {held} carried, {len(documents) - held} listed only, "
+        f"{len(named) - held} evidence copies match their records"
+    )
+
+
 def check(path):
     refuse_the_platform()
     with zipfile.ZipFile(path) as bundle:
@@ -275,6 +310,7 @@ def check(path):
             if listed != holdings:
                 raise Refused(f"{csv_path}: the current members are not what {entries_path} replays to")
         lines.append(f"{register['symbol']}: {len(entries)} entries verified, {len(holdings)} current members")
+    lines.append(check_documents(files, manifest))
     return lines, sha256(raw)
 
 

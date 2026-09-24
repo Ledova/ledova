@@ -20,6 +20,7 @@ from tokens.models import (
     ShareIssuanceRequest,
 )
 from tokens.services.company_pack_chain import key, transaction_hash
+from tokens.services.company_pack_documents import evidence_path
 from tokens.services.register import former_identity_label, months_after
 from tokens.services.register_inclusions import waiting_list
 from whitelist.models import WhitelistApproval, WhitelistChange
@@ -52,6 +53,7 @@ def _evidence(record):
         "mime_type": snapshot.get("mime_type"),
         "size": snapshot.get("file_size"),
         "sha256": snapshot.get("sha256"),
+        "path": evidence_path(record),
     }
 
 
@@ -72,7 +74,16 @@ def _decided(record, authority, **terms):
     }
 
 
-def authority(company, token) -> dict:
+def authority_records(company, token) -> dict:
+    return {
+        "openings": list(_ordered(RegisterOpening.objects.filter(company=company, token=token))),
+        "imports": list(_ordered(RegisterImport.objects.filter(company=company, token=token))),
+        "corrections": list(_ordered(RegisterCorrection.objects.filter(company=company, register__token=token))),
+        "instructions": list(_ordered(RegisterInstruction.objects.filter(company=company, token=token))),
+    }
+
+
+def authority(records) -> dict:
     return {
         "openings": [
             _decided(
@@ -82,7 +93,7 @@ def authority(company, token) -> dict:
                 boundary=opening.boundary,
                 entry=opening.applied_entry_id,
             )
-            for opening in _ordered(RegisterOpening.objects.filter(company=company, token=token))
+            for opening in records["openings"]
         ],
         "imports": [
             _decided(
@@ -98,7 +109,7 @@ def authority(company, token) -> dict:
                 },
                 register_sequence=record.register_sequence,
             )
-            for record in _ordered(RegisterImport.objects.filter(company=company, token=token))
+            for record in records["imports"]
         ],
         "corrections": [
             _decided(
@@ -111,7 +122,7 @@ def authority(company, token) -> dict:
                 base_hash=correction.base_hash,
                 entry=correction.applied_entry_id,
             )
-            for correction in _ordered(RegisterCorrection.objects.filter(company=company, register__token=token))
+            for correction in records["corrections"]
         ],
         "instructions": [
             _decided(
@@ -120,16 +131,17 @@ def authority(company, token) -> dict:
                 kind=instruction.kind,
                 items=instruction.items,
             )
-            for instruction in _ordered(RegisterInstruction.objects.filter(company=company, token=token))
+            for instruction in records["instructions"]
         ],
     }
 
 
-def wallet_links(company) -> list:
-    return [
-        _decided(link, link.authority, mapping=link.mapping)
-        for link in _ordered(RegisterWalletLink.objects.filter(company=company))
-    ]
+def link_records(company) -> list:
+    return list(_ordered(RegisterWalletLink.objects.filter(company=company)))
+
+
+def wallet_links(records) -> list:
+    return [_decided(link, link.authority, mapping=link.mapping) for link in records]
 
 
 def _payment(subscription):

@@ -12,9 +12,10 @@ run with different flags; the [decision](../decisions.md#the-company-pack)
 records the choices behind it. The pack is built in slices under
 [#650](https://github.com/Ledova/ledova/issues/650). This page describes what it
 carries today: the company, its share classes, each register, the approvals and
-history behind them, each class's chain evidence and settlements, and the
-contract information. Documents and publications follow in a later slice, and
-the format takes them without a change.
+history behind them, each class's chain evidence and settlements, the company's
+documents with the evidence copies behind its approvals, and the contract
+information. Publications follow in a later slice, and the format takes them
+without a change.
 
 ## Producing and recording
 
@@ -25,7 +26,7 @@ has the steps. The page is a row action on **Company packs**, a proxy of
 `Company` that creates only permissions. It needs the proxy's change
 permission, **Can change company pack** (`companies.change_companypack`), which
 opens nothing else, and **Can view company document**
-(`companies.view_companydocument`), because the pack will carry the company's
+(`companies.view_companydocument`), because the pack carries the company's
 documents. There is no API route and no company self-service.
 
 [company_pack.py](../../backend/tokens/services/company_pack.py) builds the pack
@@ -33,8 +34,12 @@ within the request, on the operator connection. It reads every record, the
 company row included, in one repeatable-read snapshot, the one the register's
 outputs use, so an entry recorded while the pack is read cannot make two files
 disagree: a test commits an entry from another connection partway through a
-read and finds it in no file of that pack. It reads no chain. It writes the archive into a spooled temporary file that stays in memory
-up to 8 MiB, records it, then serves it.
+read and finds it in no file of that pack. It reads no chain. Once the snapshot
+closes, it adds up the stored files the pack would carry and refuses above the
+ceiling, then writes the archive into a spooled temporary file that stays in
+memory up to 8 MiB, streaming each stored file into it from private storage,
+records it, then serves it. [Documents](#documents) describes the ceiling and
+the files.
 
 Ledova keeps a fingerprint, not the file. A pack is recorded in
 `RegisterExport` as one `company_pack` row for each share class it carries, with
@@ -48,17 +53,21 @@ table and daily purge after the 2,557-day floor, as
 [legal position 2](../legal/positions.md#2-section-168-who-is-obliged-to-keep-the-register)
 describes.
 
-A refusal records nothing: a company with no share classes, a blank field, and
-a register entry that no longer matches its stored hash, which names the class
-and the entry. A failure while the archive is written records nothing either,
-because the records are written only once the archive is complete.
+A refusal records nothing: a company with no share classes, a blank field, a
+register entry that no longer matches its stored hash, which names the class
+and the entry, stored files over the ceiling, a stored file missing from private
+storage, and an evidence copy that no longer matches its recorded digest; the
+last three name the size and ceiling or the file. A failure while the archive
+is written records nothing either, because the records are written only once
+the archive is complete.
 
 ## Format
 
 The pack is a zip written by Python's standard `zipfile`. Entries are in path
-order, deflated, with the timestamp 1980-01-01 00:00 and mode 0644, so the same
-records, request and time give the same bytes, just as a certificate carries no
-creation date.
+order, with `manifest.json` last because its digests are known only once every
+stored file has been streamed, deflated, with the timestamp 1980-01-01 00:00 and
+mode 0644, so the same records, files, request and time give the same bytes,
+just as a certificate carries no creation date.
 
 `manifest.json` names the format, `ledova-company-pack`, and its version, `1`;
 the company's id, name and ACN; the as-at time, which is when the snapshot was
@@ -78,6 +87,9 @@ in UTC, and share quantities and supplies are strings of whole numbers.
 | `company.json` | The company row, the full name on the owner account's profile, and its business-register checks |
 | `approvals.json` | The registry addresses the company's approvals and approval changes recorded; each approval's wallet, registry, status, expiry and whether it was listed at the as-at time; each approval change's action, wallet, expiry, authority kind, status, times and transaction hash |
 | `wallet_links.json` | Every reviewed wallet link request of the company, as an [authority record](#approvals-and-history) |
+| `documents.json` | Every company document, oldest first: see [documents](#documents) |
+| `documents/<document id>.<extension>` | Each company document Ledova holds a file for, as uploaded |
+| `documents/evidence/<record id>.<extension>` | The evidence copy each authority record retained when it was submitted |
 | `classes/<class id>/class.json` | The share class, its authorised shares, status and contract address, its register's id, sequence, head hash and issued supply, and each capital increase request with its execution and each pause change with its [chain side](#chain-evidence) |
 | `classes/<class id>/register.csv` | The [register CSV's](register.md#api-and-export) three sections, from the export's own code, without its record. Absent while the class's register has no opening |
 | `classes/<class id>/entries.json` | Every register entry in sequence, with its fields, previous and entry hashes, and the hash preimage |
@@ -247,11 +259,11 @@ entry. Wallet link requests belong to the company rather than a class, so they
 have a file of their own, `wallet_links.json`, rather than a copy in each class's
 `authority.json`.
 
-- **Evidence is listed, not carried.** Each record names the company document it
+- **Evidence is named and carried.** Each record names the company document it
   relies on, and the name, type, media type, size and SHA-256 of the copy Ledova
-  retained, all from the snapshot taken when it was submitted. The bytes arrive
-  with the documents slice; the snapshot's company identity, storage path and
-  owner id stay behind.
+  retained, all from the snapshot taken when it was submitted, and `path`, where
+  the copy's bytes are under `documents/evidence/` (see [documents](#documents)).
+  The snapshot's company identity, storage path and owner id stay behind.
 - **Reviewers are named, not numbered.** A reviewer is the full name on the
   staff member's profile, blank when there is none. No user id, submitter or
   staff email leaves: user ids appear only inside each entry's preimage.
@@ -297,6 +309,62 @@ each former member with the date it must be kept until, each certificate and
 set of notice figures still due, and each class's count of subscriptions
 awaiting allotment or refund.
 
+## Documents
+
+[company_pack_documents.py](../../backend/tokens/services/company_pack_documents.py)
+builds `documents.json` and chooses the stored files the pack carries. It reads
+two sources, each through the company: the company's `CompanyDocument` rows,
+and the evidence copies of the openings, imports, corrections, register
+instructions and wallet links that `authority.json` and `wallet_links.json`
+list, taken from the same record objects rather than a second query. Every one
+of those files is stored under `companies/<company id>/`
+([files and retention](files-and-retention.md)).
+
+- **Company documents.** `documents.json` lists every document of the company,
+  oldest first: its id, type, name, media type, validity dates, whether it was
+  verified and when, when it was uploaded, its `external_url`, and `path`. A
+  document with a stored file is carried at `documents/<document id>` with the
+  extension of its media type (`.pdf`, `.png` or `.jpeg`, from the upload
+  rules; none for another type), its bytes as uploaded. A document held only as
+  an `external_url` has `path` `null`: it is listed, not fetched. Staff notes,
+  the rejection reason, the verifier's account and the verification fingerprint
+  stay behind; the company's own API shows none of them.
+- **Evidence copies.** Each authority record's retained copy is carried at
+  `documents/evidence/<record id>`, with the extension of the media type its
+  snapshot recorded, and the record's `evidence.path` names it. A copy is
+  carried even where its company document is also carried: the document may have
+  changed or gone since the record was submitted, and the copy is what was
+  reviewed.
+- **The digest tie.** While streaming an evidence copy, the builder computes its
+  size and SHA-256 and refuses the pack, naming the record, unless they are the
+  size and SHA-256 its snapshot recorded when it was submitted. The consumer
+  checks the same tie offline, from `evidence` and the bytes carried. A company
+  document has no recorded digest to tie to; the manifest fixes its bytes, as it
+  fixes every file's.
+- **The ceiling.** Before writing the archive, the builder adds up the stored
+  files it would carry: a company document by its recorded `file_size`, and an
+  evidence copy, which records no size of its own, by the size storage reports.
+  Above `COMPANY_PACK_MAX_STORED_BYTES`, 256 MiB in
+  [tokens/constants.py](../../backend/tokens/constants.py), it refuses, naming
+  the total, the ceiling and the next step: background production, which the
+  owner decided is built the first time a real pack exceeds the ceiling. At or
+  below it the pack is produced.
+- **A missing file** refuses the pack, naming the document or record whose file
+  is gone: an evidence copy is found missing when its size is read for the
+  ceiling, and a company document when it is opened to be streamed. The same
+  named refusal covers each storage backend's own failure (local file errors,
+  Google Cloud Storage's API errors and S3's client errors) whether it comes
+  when the size is read, when the file is opened, or part-way through reading
+  it, so a missing or unreadable object never surfaces as a server error.
+
+The README lists every document with its file or address, type, name and
+whether it was verified, counts the evidence copies, and states that the
+verification evidence Ledova holds for members (identity checks, investor
+classification claims and their evidence, and payslips) is not in the pack:
+each person gave it to be verified, it is not a record of the company, it runs
+on its own retention clock, and a verification does not carry over to another
+company or provider.
+
 ## What does not leave, and why
 
 | Excluded | Why | Source |
@@ -308,6 +376,7 @@ awaiting allotment or refund.
 | Export records | No company-facing route exposes them | [Position 2](../legal/positions.md#2-section-168-who-is-obliged-to-keep-the-register) |
 | Signed transaction bytes | They can still be broadcast | [Outgoing signing](outgoing-signing.md) |
 | The company's API key and its owner's email | Credentials and contact details of a platform account, not company records | This page |
+| A company document's staff notes, rejection reason, verifier and verification fingerprint | Ledova's own review of the document, which the company's API does not show | [Documents](#documents) |
 | Ledova's source code | The software licence is noncommercial; the pack carries interface files and the owner's statement of what they may be used for | [Position 5](../legal/positions.md#5-software-licensing-and-commercial-permission) |
 
 No file in the pack is built from these areas, apart from the register's own
@@ -326,6 +395,17 @@ the positive control that the company's name does. Signed transaction bytes
 have their own test, described under [chain evidence](#chain-evidence). Ballots
 and publication reads have no absence test yet, because nothing the pack reads
 today comes near them.
+
+Stored files have a test of their own in
+[test_company_pack_documents.py](../../backend/tokens/tests/test_company_pack_documents.py).
+It adds classification evidence and payslips, unattached and attached, so that
+files are stored under both `users/` and `documents/`, and records every name
+private storage is asked to open or size while the pack is produced. Those
+names are exactly the company's own document and evidence files, all under
+`companies/<company id>/`, and none of the bytes stored outside the company is
+in the archive or any file in it. As its positive control it copies one
+member's classification evidence into a new company document, sees the search
+name that file, deletes the document and sees it gone again.
 
 The README ends with the owner's statement, verbatim: "The company, and a
 provider it names in writing, may use the records and the contract interface
@@ -379,12 +459,35 @@ The consumer:
    settlement;
 9. replays each class's entries and compares the holdings with the current
    members in `register.csv`, read by header;
-10. prints each class's result and the manifest's SHA-256, which the test
-    compares with the recorded rows.
+10. checks that every document `documents.json` gives a `path` is carried, that
+    every authority record's evidence copy is carried at its `path` with the
+    size and SHA-256 its `evidence` records, and that every file under
+    `documents/` is named by a document or a record;
+11. prints each class's result, a count of the documents and evidence copies,
+    and the manifest's SHA-256, which the test compares with the recorded rows.
 
 None of these is an on-chain fact. The consumer cannot check a signature or a
 receipt, because `hashlib`'s SHA3 is not Ethereum's Keccak and it has no
 secp256k1: it checks that the pack is internally consistent and well-formed.
+
+[test_company_pack_documents.py](../../backend/tokens/tests/test_company_pack_documents.py)
+adds an opening, submitted on a third, unopened class, and an import, each
+through its submit service with a verified document, so that every kind of
+authority record retains a copy. Its tests find every document and evidence
+copy carried with the bytes storage holds and listed in the manifest, each
+record naming its copy, and the documents and the members' evidence statement
+in the README. The builder refuses an evidence copy whose stored bytes changed
+by one byte, and a company document or evidence copy missing from storage, and
+records nothing; restored, the pack is produced. With the ceiling patched down
+to the fixture's own total less one byte it refuses and records nothing, and at
+the total and one byte above it it produces the pack. The tenant fixture's ASIC
+extract records a size of one byte, smaller than its file, so the same test
+shows that a document is counted by its recorded size. The consumer names a byte
+flipped in a document, a byte flipped in an evidence copy with the manifest
+rewritten to match, a document or copy removed with its listing, and a listed
+file no record names. A second company's pack carries none of the first's
+document files, ids or bytes, with the positive control that the first's own
+pack carries all of them.
 
 A second test parses the consumer and holds its imports to `zipfile`, `json`,
 `csv`, `hashlib`, `io` and `sys`, with one dynamic import, of `django`, for the
@@ -444,17 +547,19 @@ holding, a changed date, an unmapped holder and a missing boundary.
   block and no operation.
 - What the README lists as unresolved, and a registry's owner, are what
   Ledova's records say at the as-at time, not chain reads.
-- An authority record's evidence is listed by digest; until the documents slice,
-  a reader cannot check that digest against anything in the pack.
 - The owner a class was deployed with is what Ledova recorded, not a chain read.
   Ownership moved outside Ledova would not show.
-- An authority record's evidence is listed by digest; until the documents slice,
-  a reader cannot check that digest against anything in the pack.
-- The owner a class was deployed with is what Ledova recorded, not a chain read.
-  Ownership moved outside Ledova would not show.
-- The pack carries no stored files yet, so the 256 MiB ceiling on stored files
-  the owner chose arrives with documents. A proxy in front of the backend could
-  still time out a large download; that has not been measured.
+- The ceiling counts a company document by its recorded size, which staff can
+  edit in admin, so a wrong record is counted as recorded. Uploads are bounded
+  at 10 MiB each, so the error is bounded by the number of documents.
+- A company document has no digest recorded apart from the manifest's, so the
+  consumer can check an evidence copy against its record but a document only
+  against the manifest.
+- A document held as an `external_url` is not fetched, so the pack cannot show
+  what that address served.
+- No test produces a pack near the ceiling: the ceiling tests patch the constant
+  down to the fixture's size. A proxy in front of the backend could still time
+  out a large download; that has not been measured.
 
 Next: [the register of members](register.md), the
 [runbook](../operations/register-foundation.md#producing-a-company-pack) and

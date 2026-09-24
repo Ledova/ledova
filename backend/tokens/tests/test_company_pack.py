@@ -421,6 +421,14 @@ def pack_company(label):
     members = {role: member_of(company, address) for role, address in addresses.items()}
     reviewer = pack_reviewer(label)
     document = authority_document(company, label, reviewer)
+    CompanyDocument.objects.create(
+        company=company,
+        document_type=DocumentType.CONSTITUTION,
+        name=f"Synthetic {label} constitution",
+        external_url=f"https://docs.example.test/{label}/constitution",
+        file_size=2048,
+        mime_type="application/pdf",
+    )
     registry = "0x" + sha256(label.encode())[:40]
     for role, expires_at in (("founder", None), ("holder", LAPSED_AT)):
         WhitelistApproval.objects.create(
@@ -650,7 +658,12 @@ class CompanyPackConsumerTest(ProducesPacks, TestCase):
         self.assertEqual((result.returncode, result.stderr), (0, ""))
         self.assertEqual(
             result.stdout.splitlines(),
-            ["DEP: 4 entries verified, 3 current members", "DRF: 2 entries verified, 2 current members", digest],
+            [
+                "DEP: 4 entries verified, 3 current members",
+                "DRF: 2 entries verified, 2 current members",
+                "documents: 2 carried, 1 listed only, 3 evidence copies match their records",
+                digest,
+            ],
         )
         self.assertEqual(
             sorted(RegisterExport.objects.filter(kind="company_pack").values_list("digest", flat=True)),
@@ -783,6 +796,16 @@ class CompanyPackTest(ProducesPacks, TestCase):
             "company.json",
             "approvals.json",
             "wallet_links.json",
+            "documents.json",
+            *(
+                f"documents/{document.pk}.pdf"
+                for document in CompanyDocument.objects.filter(company=self.a.company)
+                if document.file
+            ),
+            *(
+                f"documents/evidence/{record.pk}.pdf"
+                for record in (self.a.allotment.instruction, self.a.correction, self.a.link)
+            ),
             "contracts/contracts.json",
             *(f"contracts/{name}.json" for name in INTERFACES),
             *(f"classes/{token}/{name}" for token in (ordinary, preference) for name in CLASS_FILES),
@@ -974,7 +997,8 @@ class CompanyPackTest(ProducesPacks, TestCase):
         self.assertNotEqual(sha256(files_of(other)["manifest.json"]), sha256(files_of(first)["manifest.json"]))
         with zipfile.ZipFile(io.BytesIO(first)) as bundle:
             members = bundle.infolist()
-        self.assertEqual([member.filename for member in members], sorted(member.filename for member in members))
+        names = [member.filename for member in members]
+        self.assertEqual((names[:-1], names[-1]), (sorted(names[:-1]), "manifest.json"))
         self.assertEqual({member.date_time for member in members}, {(1980, 1, 1, 0, 0, 0)})
 
     def test_a_pack_is_recorded_once_for_each_share_class_with_the_manifest_digest_and_the_request(self):
@@ -1250,6 +1274,7 @@ class CompanyPackHistoryTest(ProducesPacks, TestCase):
                 "mime_type": "application/pdf",
                 "size": len(content),
                 "sha256": sha256(content),
+                "path": f"documents/evidence/{record.pk}.pdf",
             },
             "status": "applied",
             "reviewer": "Synthetic pack-a reviewer",
@@ -1880,13 +1905,23 @@ class ScopedCompanyPackTest(RunsOnTheScopedConnection, APITransactionTestCase):
         with use_operator():
             member = member_of(self.company, wallet_of("Synthetic Scoped Pack Member", "6 Synthetic Street"))
             entered(self.opening.register, "issue", (member, 5))
+            document = CompanyDocument.objects.create(
+                company=self.company,
+                document_type=DocumentType.CONSTITUTION,
+                name="Synthetic scoped constitution",
+                file_size=len(b"Synthetic scoped constitution"),
+                mime_type="application/pdf",
+            )
+            document.file.save("constitution.pdf", ContentFile(b"Synthetic scoped constitution"), save=True)
             staff = pack_staff("scoped-company-pack")
             self.client.force_login(staff)
 
         response = self.client.post(page(self.company), {"instruction": INSTRUCTION, "recipient": RECIPIENT})
 
         self.assertEqual((response.status_code, response["Content-Type"]), (200, "application/zip"))
-        digest = sha256(files_of(b"".join(response.streaming_content))["manifest.json"])
+        files = files_of(b"".join(response.streaming_content))
+        self.assertEqual(files[f"documents/{document.pk}.pdf"], b"Synthetic scoped constitution")
+        digest = sha256(files["manifest.json"])
         with use_operator():
             record = RegisterExport.objects.get(kind="company_pack")
         self.assertEqual(
