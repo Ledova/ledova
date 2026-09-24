@@ -98,6 +98,25 @@ class TheBallotRouteTest(StubUploadDependencies, TestCase):
             (self.holder.user.pk, self.holder.user.pk, self.holder.shares, BallotChoice.FOR, False),
         )
 
+    def test_a_person_on_the_roll_twice_is_shown_and_casts_their_whole_holding(self):
+        world = a_company_with_members("ballot-twice", holdings=(100, 40, 10), first_person_holds_twice=True)
+        resolution = a_resolution(world)
+        person = world.members[0].user
+
+        self.assertEqual(self.row_for(person, resolution)["shares"], "140")
+        response = self.cast(person, BallotChoice.AGAINST, resolution)
+
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(
+            sorted(
+                PublicationEvent.objects.filter(publication=resolution, actor_id=person.pk).values_list(
+                    "choice", "shares"
+                )
+            ),
+            [("against", 40), ("against", 100)],
+        )
+        self.assertEqual(response.json()["myBallot"]["choice"], "against")
+
     def test_a_ballot_is_cast_once_and_a_second_cast_neither_changes_nor_adds_one(self):
         self.assertEqual(self.cast(self.holder.user, BallotChoice.FOR).status_code, 200)
 

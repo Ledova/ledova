@@ -12,7 +12,9 @@ class PublicationQuerySet(models.QuerySet):
         )
         close = PublicationEvent.objects.filter(publication_id=models.OuterRef("pk"), kind=PublicationEventKind.CLOSE)
         return self.annotate(
-            holding=models.Subquery(mine.values("shares")[:1]),
+            holding=models.Subquery(
+                mine.order_by().values("publication_id").annotate(total=models.Sum("shares")).values("total")
+            ),
             ballot_choice=models.Subquery(my_ballot.values("choice")[:1]),
             ballot_cast_at=models.Subquery(my_ballot.values("created_at")[:1]),
             ballot_staff_entered=models.Subquery(my_ballot.values("staff_entered")[:1]),
