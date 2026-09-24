@@ -151,12 +151,18 @@ whole investor surface, mounted at `/api/v1/publications/`:
 
 | Route | Answers |
 | --- | --- |
-| `GET /api/v1/publications/` | What was published to this principal, newest first, with the caller's own holding, ballot, entitlement and recorded payment |
+| `GET /api/v1/publications/` | What was published to this principal, newest first, with the caller's own holding, ballot, entitlement and recorded payment; `?kind=` narrows it to one kind |
+| `GET /api/v1/publications/summary/` | [Four counts](#the-summary) about the caller as a member, for the home page |
 | `GET /api/v1/publications/{uuid}/file/` | The stored document, as an attachment |
 | `POST /api/v1/publications/{uuid}/ballot/` | Casts the caller's ballot on a resolution, and answers with its updated row |
 
 There is no retrieve route: the listing carries everything a member is shown,
 and a route with no client would be a surface nobody asked for.
+
+`kind` is one of the four kinds, and any other value is refused with a 400 that
+names the parameter rather than answered with an empty page. It narrows what the
+policies already admit and widens nothing: the dividends list below is the
+listing with `?kind=distribution`.
 
 The listing is scoped by the database alone — the view names `Publication` as
 its `scoped_model` and adds no owner filter, so the same two-sided policy that
@@ -215,6 +221,56 @@ writes to one private cache copy and hands to the system share sheet, the way a
 company document is opened today. The stored object is named `.bin`, so each
 client names its copy with `publicationFilename` from the type served. A download
 link, unlike a new tab opened after the response, needs no popup permission.
+
+### The summary
+
+The home page asks one question the listing cannot answer from a page of it:
+how much is waiting for this member. `summarise_for` answers it in one query,
+an aggregate over the publications the policies admit, and every count reads
+the caller's own roll rows by their account, so it is about the caller as a
+member:
+
+| Count | What it counts |
+| --- | --- |
+| `openResolutions` | Resolutions whose window is open now and on which at least one of the caller's holdings has no ballot |
+| `nextClosesAt` | The soonest close among those, or null |
+| `publishedSince` | Publications of any kind addressed to the caller in the last 30 days |
+| `dividendsWithoutRecord` | Distributions on which at least one of the caller's holdings is owed a cent or more and has no standing payment record |
+
+A person on a roll twice, because two register members resolve to one account,
+is counted until each holding is settled: a resolution waits while either holding has no ballot, as it does after staff
+enter a ballot for one of them, and a dividend waits while either holding owed
+something has no standing record. A withdrawn record leaves the holding
+waiting again. A holding whose entitlement rounds down to nothing never waits,
+because the chain admits no record for it.
+
+The company owner reads its whole roll under the policies, and none of it
+counts: the summary counts the roll rows naming the caller, so an owner who is
+not a member of its own company counts nothing, and a member of another
+company counts nothing of this one. The policies are a second wall under that
+filter rather than the only one, as they are for `myBallot`. The number of
+queries does not grow with what was published, and a test holds that.
+
+## In the member's everyday views
+
+What a company publishes reaches three places a member already looks, in the
+dashboard and in the mobile app alike, through `@ledova/shared`:
+
+- **A card on the home page** reads the summary through
+  `usePublicationSummary` and says, for example, "2 things published to you in
+  the last 30 days", "1 resolution awaiting your vote, closing" with the time
+  formatted by the shared helper, and "1 dividend awaiting a payment record". It
+  opens the publications page and is not shown at all when every count is zero.
+- **A dividends list beside transaction history**, not inside it. A
+  transaction is read from a chain and a dividend is what a company records, so
+  one list could not say what it shows, and the transaction filters of wallet,
+  chain and direction do not apply to a dividend. `useDividends` reads the
+  listing with `?kind=distribution` a page at a time, and each row shows the
+  company, the class, the rate, the holding, the entitlement, the payment date
+  and the line the publications page shows about what the company recorded. The
+  transactions page links to it.
+- **A notification** of a new publication of any kind opens the publications
+  page in both clients, from its `type` alone.
 
 ## Every publication is announced
 
@@ -471,11 +527,6 @@ slice the member's own row is that statement: the rate, their frozen holding,
 their entitlement, the payment date and what the company recorded, read through
 the listing. A generated per-holder document is left until a company asks for
 one ([decisions](../decisions.md#shareholder-publications)).
-
-## Not built yet
-
-Entitlements in the holdings and history views, and a count on the home page,
-are the next slice of [#649](https://github.com/Ledova/ledova/issues/649).
 
 Next: [publishing to members](../operations/publications.md),
 [scheduled jobs](../operations/jobs.md) and
