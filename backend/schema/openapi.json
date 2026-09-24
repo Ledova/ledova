@@ -2879,6 +2879,30 @@
         ],
         "type": "object"
       },
+      "ExportedChainObservation": {
+        "properties": {
+          "finality": {
+            "type": "string"
+          },
+          "network": {
+            "type": "string"
+          },
+          "policy": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "result": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "finality",
+          "network",
+          "policy",
+          "result"
+        ],
+        "type": "object"
+      },
       "ExportedFinancialProfile": {
         "properties": {
           "intendedUse": {
@@ -3004,6 +3028,14 @@
             "nullable": true,
             "type": "string"
           },
+          "blockHash": {
+            "nullable": true,
+            "type": "string"
+          },
+          "blockNumber": {
+            "nullable": true,
+            "type": "string"
+          },
           "blockTimestamp": {
             "format": "date-time",
             "nullable": true,
@@ -3012,11 +3044,26 @@
           "chain": {
             "type": "string"
           },
+          "chainObservation": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExportedChainObservation"
+              }
+            ],
+            "nullable": true
+          },
           "createdAt": {
             "format": "date-time",
             "type": "string"
           },
           "fromAddress": {
+            "type": "string"
+          },
+          "importedFromHistory": {
+            "type": "boolean"
+          },
+          "nonce": {
+            "nullable": true,
             "type": "string"
           },
           "status": {
@@ -3041,10 +3088,15 @@
         "required": [
           "amount",
           "asset",
+          "blockHash",
+          "blockNumber",
           "blockTimestamp",
           "chain",
+          "chainObservation",
           "createdAt",
           "fromAddress",
+          "importedFromHistory",
+          "nonce",
           "status",
           "toAddress",
           "transactionFee",

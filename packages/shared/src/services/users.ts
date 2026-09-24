@@ -1,4 +1,4 @@
-import { AxiosInstance } from 'axios';
+import { AxiosInstance, type AxiosRequestConfig } from 'axios';
 import { USER_PROFILE_ENDPOINTS } from '../constants';
 import type {
   ApiResponse,
@@ -21,5 +21,5 @@ export const getUserProfiles = (apiClient: AxiosInstance) =>
 export const deleteAccount = (apiClient: AxiosInstance) =>
   apiClient.post<ApiResponse<'api_user_profiles_delete_account_create'>>(USER_PROFILE_ENDPOINTS.DELETE_ACCOUNT);
 
-export const exportAccountData = (apiClient: AxiosInstance) =>
-  apiClient.get<AccountExportData>(USER_PROFILE_ENDPOINTS.EXPORT_DATA);
+export const exportAccountData = (apiClient: AxiosInstance, config: AxiosRequestConfig = {}) =>
+  apiClient.get<AccountExportData>(USER_PROFILE_ENDPOINTS.EXPORT_DATA, config);
