@@ -22,6 +22,7 @@ SCOPED_TEST_LABELS = (
     "tokens.tests.test_register_events_scoped.ScopedRegisterFoundationTest",
     "shareholders.tests.test_publications_scoped.ScopedPublicationTest",
     "shareholders.tests.test_resolutions_scoped.ScopedResolutionTest",
+    "shareholders.tests.test_distributions_scoped.ScopedDistributionTest",
     "tokens.tests.test_nav_scoped.ScopedNAVRecoveryTest",
     "tokens.tests.test_pause_scoped.ScopedPauseRecoveryTest",
     "whitelist.tests.test_change_scoped.ScopedWhitelistChangeTest",
