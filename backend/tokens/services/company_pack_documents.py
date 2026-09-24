@@ -23,7 +23,7 @@ def _path(folder, uuid, mime_type):
 
 
 def evidence_path(record):
-    return _path(EVIDENCE_FOLDER, record.pk, record.evidence_snapshot.get("mime_type"))
+    return _path(f"{EVIDENCE_FOLDER}/{record._meta.model_name}", record.pk, record.evidence_snapshot.get("mime_type"))
 
 
 def held(company):

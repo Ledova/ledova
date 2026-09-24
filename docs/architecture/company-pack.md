@@ -93,7 +93,7 @@ in UTC, and share quantities and supplies are strings of whole numbers.
 | `wallet_links.json` | Every reviewed wallet link request of the company, as an [authority record](#approvals-and-history) |
 | `documents.json` | Every company document, oldest first: see [documents](#documents) |
 | `documents/<document id>.<extension>` | Each company document Ledova holds a file for, as uploaded |
-| `documents/evidence/<record id>.<extension>` | The evidence copy each authority record retained when it was submitted |
+| `documents/evidence/<record kind>/<record id>.<extension>` | The evidence copy each authority record retained when it was submitted |
 | `classes/<class id>/class.json` | The share class, its authorised shares, status and contract address, its register's id, sequence, head hash and issued supply, and each capital increase request with its execution and each pause change with its [chain side](#chain-evidence) |
 | `classes/<class id>/register.csv` | The [register CSV's](register.md#api-and-export) three sections, from the export's own code, without its record. Absent while the class's register has no opening |
 | `classes/<class id>/entries.json` | Every register entry in sequence, with its fields, previous and entry hashes, and the hash preimage |
@@ -348,9 +348,10 @@ of those files is stored under `companies/<company id>/`
   the rejection reason, the verifier's account and the verification fingerprint
   stay behind; the company's own API shows none of them.
 - **Evidence copies.** Each authority record's retained copy is carried at
-  `documents/evidence/<record id>`, with the extension of the media type its
-  snapshot recorded, and the record's `evidence.path` names it. A copy is
-  carried even where its company document is also carried: the document may have
+  `documents/evidence/<record kind>/<record id>`, with the extension of the media
+  type its snapshot recorded, and the record's `evidence.path` names it. The record
+  kind keeps records with the same operation id from replacing each other's copy.
+  A copy is carried even where its company document is also carried: the document may have
   changed or gone since the record was submitted, and the copy is what was
   reviewed.
 - **The digest tie.** While streaming an evidence copy, the builder computes its
