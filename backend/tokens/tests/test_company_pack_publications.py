@@ -660,6 +660,18 @@ class CompanyPackPublicationsTest(ProducesPacks, StubUploadDependencies, TestCas
             ],
         )
 
+    def test_the_consumer_verifies_a_pack_from_before_publications_were_carried(self):
+        files = files_of(self.pack())
+        earlier = {path: content for path, content in files.items() if not path.startswith("publications/")}
+        manifest = json.loads(earlier["manifest.json"])
+        del manifest["publications"]
+        earlier["manifest.json"] = json.dumps(manifest).encode()
+
+        result = consume(zipped(remanifested(earlier)), *ISOLATED)
+
+        self.assertEqual((result.returncode, result.stderr), (0, ""))
+        self.assertFalse([line for line in result.stdout.splitlines() if "events linked" in line])
+
     def test_the_consumer_names_a_broken_link_a_tampered_close_and_a_removed_event(self):
         files = files_of(self.pack())
         resolution, distribution = folder(self.scene.resolution), folder(self.scene.distribution)

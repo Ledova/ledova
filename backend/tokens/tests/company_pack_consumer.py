@@ -396,7 +396,7 @@ def check_events(path, events, stated, publication, company, roll):
 
 def check_publications(files, manifest):
     lines, named = [], set()
-    for stated in manifest["publications"]:
+    for stated in manifest.get("publications", []):
         folder = f"publications/{stated['publication']}"
         record_path, roll_path, events_path = (
             f"{folder}/{name}" for name in ("publication.json", "roll.json", "events.json")
