@@ -8,6 +8,8 @@ export type PublicationCount = ApiSchema<'PublicationCount'>;
 
 export type PublicationResult = ApiSchema<'PublicationResult'>;
 
+export type PublicationPaymentRecord = ApiSchema<'PublicationPaymentRecord'>;
+
 export type CastBallotRequest = ApiRequest<'api_v1_publications_ballot_create'>;
 
 export type ResolutionStatus = 'upcoming' | 'open' | 'closed';

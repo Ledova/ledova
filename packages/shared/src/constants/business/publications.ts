@@ -28,6 +28,7 @@ export const PUBLICATION_KIND_LABELS: Record<PublicationKind, string> = {
   holding_statement: 'Annual holding statement',
   meeting_notice: 'Meeting notice',
   resolution: 'Resolution',
+  distribution: 'Dividend',
 };
 
 export const RESOLUTION_KIND_LABELS: Record<ResolutionKind, string> = {
@@ -83,6 +84,17 @@ export const PUBLICATION_COPY = {
   CARRIED: 'Carried',
   NOT_CARRIED: 'Not carried',
   TURNOUT_LABEL: 'Turnout',
+  RATE_LABEL: 'Declared rate',
+  PER_SHARE: 'per share',
+  PAYMENT_DATE_LABEL: 'Payment date',
+  ENTITLEMENT_LABEL: 'Your entitlement',
+  ENTITLEMENT_HELP: 'Your holding on the record date times the declared rate, rounded down to the cent.',
+  RECORDED_AS_PAID: 'The company recorded this as paid on',
+  REFERENCE: 'reference',
+  NO_PAYMENT_RECORDED: 'No payment has been recorded yet.',
+  NOTHING_PAYABLE: 'At this rate your holding comes to less than a cent, so there is nothing to pay.',
+  RECORDS_ONLY:
+    'Ledova shows what the company has recorded. It does not move the money and cannot see the transfer itself.',
 } as const;
 
 export function resolutionStatus(
@@ -107,7 +119,7 @@ export function nextResolutionBoundary(
   return now.getTime() < closes ? closes : null;
 }
 
-const formatShareCount = (shares: string) => shares.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+export const formatShareCount = (shares: string) => shares.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
 const memberCount = (members: number) => `${members.toLocaleString('en-AU')} ${members === 1 ? 'member' : 'members'}`;
 
