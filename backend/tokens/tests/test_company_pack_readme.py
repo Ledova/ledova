@@ -14,7 +14,7 @@ from django.template.loader import get_template
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.utils.safestring import SafeString
 
-from companies.models import Company
+from companies.models import Company, CompanyDocument
 from shared.tests.test_admin_row_actions import ADMIN_STORAGES
 from tokens.models import FormerHolder, ShareToken
 from tokens.templatetags.company_pack_text import md
@@ -55,6 +55,10 @@ OURS = {
     "unresolved[].purpose",
     "unresolved[].record",
     "unresolved[].status",
+    "documents[].path",
+    "documents[].type",
+    "copies",
+    "copies|pluralize",
 }
 HOSTILE = "<script>x</script> a|b\n# heading [link](http://x) **bold** &lt;"
 INERT = r"\<script\>x\</script\> a\|b \# heading \[link\](http://x) \*\*bold\*\* \&lt;"
@@ -180,6 +184,9 @@ class CompanyPackReadmeTest(ProducesPacks, TestCase):
             name=f"Synthetic {HOSTILE} shares", symbol=HOSTILE_SYMBOL
         )
         FormerHolder.objects.filter(token=self.a.ordinary).update(name=f"Synthetic {HOSTILE} former member")
+        CompanyDocument.objects.filter(company=self.a.company, name=f"Synthetic {self.a.label} constitution").update(
+            name=f"Synthetic {HOSTILE} constitution", external_url=f"https://docs.example.test/{HOSTILE}"
+        )
 
         hostile = self.readme(instruction=f"REF {HOSTILE}", recipient=f"Recipient {HOSTILE}")
 
@@ -199,6 +206,7 @@ class CompanyPackReadmeTest(ProducesPacks, TestCase):
             f"| Share class {INERT_SYMBOL} |",
             f"| {INERT_SYMBOL} | Synthetic {INERT} former member |",
             f"- {INERT_SYMBOL}: ",
+            f"| not carried: https://docs.example.test/{INERT} | constitution | Synthetic {INERT} constitution |",
         ):
             with self.subTest(inert=inert):
                 self.assertIn(inert, hostile)

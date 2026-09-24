@@ -103,7 +103,7 @@ Each settlement is the instrument of a transfer. `typed_data` is the order both 
 
 {% if documents %}| Document | Type | Name | Verified |
 | --- | --- | --- | --- |
-{% for document in documents %}| {% if document.path %}`{{ document.path }}`{% else %}not carried: {{ document.external_url|default:"no address given" }}{% endif %} | {{ document.type }} | {{ document.name }} | {% if document.verified %}yes{% else %}no{% endif %} |
+{% for document in documents %}| {% if document.path %}`{{ document.path }}`{% else %}not carried: {{ document.external_url|default:"no address given"|md }}{% endif %} | {{ document.type }} | {{ document.name|md }} | {% if document.verified %}yes{% else %}no{% endif %} |
 {% endfor %}{% else %}The company gave Ledova no documents.
 {% endif %}
 This pack carries {{ copies }} evidence cop{{ copies|pluralize:"y,ies" }}.
