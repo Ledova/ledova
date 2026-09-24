@@ -299,6 +299,47 @@ executed at all, because nothing but the holder can destroy shares.
 [Splits and consolidations](architecture/splits-and-consolidations.md) owns the
 reasoning and lists what an implementation issue must still decide.
 
+## The company pack
+
+On 23 September 2026 the owner took every recommendation of
+[the design note](https://github.com/Ledova/ledova/issues/650#issuecomment-5803509874)
+for reporting and portability, recorded in
+[#650](https://github.com/Ledova/ledova/issues/650#issuecomment-5803651807).
+
+- **One archive.** The company data export is the portability pack, and the
+  company's transaction evidence goes inside it. Product §6 names the company's
+  records and the authority and instructions to continue elsewhere in the same
+  sentence, and a company export plus a pack that wraps it with a README and
+  contract files would be one generator run twice with a flag. One archive means
+  one generator, one record kind and one consumer test.
+- **Staff produce it in admin, within the request**, on the company's written
+  instruction naming the recipient, or on the document that compels disclosure
+  for a lawful request, and it is recorded as a `company_pack` kind of register
+  export, once for each share class. That is Shape A: no new table and no
+  customer route. A copy of one person's data for a third party is not built
+  until real member data is held.
+- **Only what the register holds leaves** of a member: name, residential
+  address, holding, linked wallets and identity source. Email, phone, date of
+  birth, verification evidence and platform account ids stay.
+- **The company sees resolution tallies and read counts**, never how a member
+  voted or who opened what, while every vote's record still verifies.
+- **The pack explains how control of the contracts would be handed over and
+  does not hand it over.** The README names each contract, its current owner
+  and the exact calls.
+- **The account-data export loses its 1,000-transaction cap**, a zero fee stays
+  zero, and mobile shares a file rather than a message.
+- **The pack is delivered immediately**, and refused above 256 MiB of stored
+  files. Background production is built the first time a real pack exceeds that.
+- **The README states what the pack grants**, in the owner's words: "The
+  company, and a provider it names in writing, may use the records and the
+  contract interface files in this pack to operate and move the company's own
+  register and contracts."
+
+The pack is built in slices, the registers, company and contracts first.
+[The company pack](architecture/company-pack.md) owns the mechanism and
+[producing a company pack](operations/register-foundation.md#producing-a-company-pack)
+the procedure.
+
 ## Payments and settlement
 
 Payment confirmation is stored on the subscription. The initial expected volume

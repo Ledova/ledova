@@ -228,6 +228,17 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   [Register outputs](register-foundation.md#preparing-notice-figures) page gains
   **Prepare notice figures** under the existing **Can change register outputs**
   permission. Reversal refuses once any notice-figures record exists.
+- `tokens/0080_company_pack` (#650) adds the `company_pack` kind of register
+  export and its check constraint: a company-pack record carries a digest, an
+  instruction and a recipient, and no request date or late flag. It installs
+  `tokens_register_entry_preimage(tokens_registerentry)` beside the entry hash
+  function, which is unchanged. It rewrites no existing record, none of which is
+  a company pack. Reversal refuses once any company-pack record exists, and
+  otherwise drops the function.
+- `companies/0010_company_pack` (#650) adds the `CompanyPack` proxy of `Company`,
+  which creates no table, only the **Can change company pack** permission and
+  the proxy's other defaults. Grant it, with **Can view company document**, to
+  the staff who [produce company packs](register-foundation.md#producing-a-company-pack).
 - `whitelist/0007_per_company_approvals` is a fresh start: it refuses to run while
   any whitelist change exists, because those were written for the retired global
   registry. Follow the [fresh-start redeploy](chains.md#fresh-start-redeploy).
