@@ -50,6 +50,11 @@ OURS = {
     "classes[].due[].due_on|date",
     "classes[].awaiting_allotment|length",
     "classes[].awaiting_allotment|length|pluralize",
+    "contracts.registries[].owner",
+    "contracts.classes[].approved_on",
+    "unresolved[].purpose",
+    "unresolved[].record",
+    "unresolved[].status",
 }
 HOSTILE = "<script>x</script> a|b\n# heading [link](http://x) **bold** &lt;"
 INERT = r"\<script\>x\</script\> a\|b \# heading \[link\](http://x) \*\*bold\*\* \&lt;"

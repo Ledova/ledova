@@ -160,17 +160,17 @@ To continue with another provider, the company instructs Ledova's operator in wr
 
    | Class | What | Record | Status |
    | --- | --- | --- | --- |
-{% for row in unresolved %}   | {% if row.symbol %}{{ row.symbol }}{% else %}all{% endif %} | {{ row.purpose }} | {% if row.record %}`{{ row.record }}`{% else %}not recorded{% endif %} | {{ row.status }} |
+{% for row in unresolved %}   | {% if row.symbol %}{{ row.symbol|md }}{% else %}all{% endif %} | {{ row.purpose }} | {% if row.record %}`{{ row.record }}`{% else %}not recorded{% endif %} | {{ row.status }} |
 {% endfor %}
 {% else %}Nothing was unresolved at the as-at time.
 {% endif %}2. Withdraw each deployed share class from the settlement contract, so its relayer can no longer settle trades in it:
-{% for share_class in contracts.classes %}{% if share_class.address %}{% if share_class.approved_on %}   - {{ share_class.symbol }}: on `{{ share_class.approved_on }}`, call `setShareTokenApproval({{ share_class.address }}, false)`.
-{% else %}   - {{ share_class.symbol }}: Ledova recorded no approval of it on a settlement contract. If `approvedShareTokens({{ share_class.address }})` is true on {% if contracts.swap.address %}`{{ contracts.swap.address }}`{% else %}a settlement contract{% endif %}, call `setShareTokenApproval({{ share_class.address }}, false)` there.
+{% for share_class in contracts.classes %}{% if share_class.address %}{% if share_class.approved_on %}   - {{ share_class.symbol|md }}: on `{{ share_class.approved_on }}`, call `setShareTokenApproval({{ share_class.address }}, false)`.
+{% else %}   - {{ share_class.symbol|md }}: Ledova recorded no approval of it on a settlement contract. If `approvedShareTokens({{ share_class.address }})` is true on {% if contracts.swap.address %}`{{ contracts.swap.address }}`{% else %}a settlement contract{% endif %}, call `setShareTokenApproval({{ share_class.address }}, false)` there.
 {% endif %}{% endif %}{% endfor %}3. Transfer each deployed share class:
-{% for share_class in contracts.classes %}{% if share_class.address %}   - {{ share_class.symbol }}: on `{{ share_class.address }}`, call `transferOwnership(newOwner)`.
+{% for share_class in contracts.classes %}{% if share_class.address %}   - {{ share_class.symbol|md }}: on `{{ share_class.address }}`, call `transferOwnership(newOwner)`.
 {% endif %}{% endfor %}4. Transfer the company's registry:
 {% for registry in contracts.registries %}   - on `{{ registry.address }}`, call `transferOwnership(newOwner)`.
-{% empty %}   - read its address with `registryOf("{{ company.acn }}")` on the share class factory, and call `transferOwnership(newOwner)` on it.
+{% empty %}   - read its address with `registryOf("{{ company.acn|md }}")` on the share class factory, and call `transferOwnership(newOwner)` on it.
 {% endfor %}
 Whoever owns the registry then decides who may hold and transfer the company's shares.
 
