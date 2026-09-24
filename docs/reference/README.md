@@ -10,6 +10,7 @@ you need context. These documents describe the contracts behind a particular flo
 | Native/ERC-20 signed identity and durable recovery | [EVM transfers](evm-transfers.md) |
 | Bitcoin signed bytes, input ownership and recovery | [Bitcoin transfers](bitcoin-transfers.md) |
 | Receipt attribution, chain observations and nonce evidence | [Transaction evidence](transaction-evidence.md) |
+| A person's own data export and the evidence it carries | [Account-data export](account-data-export.md) |
 | Create/cancel/modify intent and replay | [Order protocols](order-submissions.md) |
 | Captured settlement context and execution | [Swap settlement](swap-settlement.md) |
 | The immutable reviewed intent and its freeze map | [Reviewed intent](reviewed-intent.md) |
