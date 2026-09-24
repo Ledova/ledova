@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { FunnelIcon, SortAscendingIcon, CubeIcon } from 'phosphor-react-native';
+import { PUBLICATION_COPY } from '@ledova/shared';
 import { GradientBackground } from '../../components/GradientBackground';
 import { Panel } from '../../components/panel';
 import { useAppTheme, useThemedStyles } from '../../contexts';
@@ -98,6 +99,10 @@ export function TransactionsScreen() {
       paddingTop: theme.spacing.md,
       paddingHorizontal: theme.spacing.sm,
       paddingBottom: theme.spacing.sm,
+    },
+    dividendsLink: {
+      fontSize: theme.fontSize.sm,
+      color: theme.colors.interactive.active,
     },
     lastUpdatedText: {
       fontSize: theme.fontSize.xs,
@@ -280,7 +285,16 @@ export function TransactionsScreen() {
     <GradientBackground>
       <View style={styles.container}>
         <View style={styles.content}>
-          <Panel title={titleContent} icon={<CubeIcon />} fullHeight={true}>
+          <Panel
+            title={titleContent}
+            icon={<CubeIcon />}
+            actions={
+              <TouchableOpacity accessibilityRole="link" onPress={() => navigation.navigate('Dividends' as never)}>
+                <Text style={styles.dividendsLink}>{PUBLICATION_COPY.DIVIDENDS_OPEN}</Text>
+              </TouchableOpacity>
+            }
+            fullHeight={true}
+          >
             <View style={styles.panelContent}>
               {isLoading ? (
                 <View style={styles.loadingContainer}>
