@@ -1,8 +1,8 @@
-{% autoescape off %}# Company pack: {{ company.name }} (ACN {{ company.acn }})
+{% load company_pack_text %}{% autoescape off %}# Company pack: {{ company.name|md }} (ACN {{ company.acn|md }})
 
 ## 1. What this is
 
-This archive holds the records Ledova kept for {{ company.name }} as at {{ as_at }} (UTC). It was produced on the written instruction or compelling document referenced as "{{ instruction }}", for {{ recipient }}.
+This archive holds the records Ledova kept for {{ company.name|md }} as at {{ as_at }} (UTC). It was produced on the written instruction or compelling document referenced as "{{ instruction|md }}", for {{ recipient|md }}.
 
 The stored register in this pack is the company's register of members. Where a share class is also on a blockchain, the chain is a mirror of the register and not the register itself.
 
@@ -25,7 +25,7 @@ The share classes:
 
 | Class id | Symbol | Name | Status | Register entries | Head hash |
 | --- | --- | --- | --- | --- | --- |
-{% for share_class in classes %}| `{{ share_class.token.pk }}` | {{ share_class.token.symbol }} | {{ share_class.token.name }} | {{ share_class.token.status }} | {{ share_class.sequence }} | `{{ share_class.head_hash }}` |
+{% for share_class in classes %}| `{{ share_class.token.pk }}` | {{ share_class.token.symbol|md }} | {{ share_class.token.name|md }} | {{ share_class.token.status }} | {{ share_class.sequence }} | `{{ share_class.head_hash }}` |
 {% endfor %}
 ### Checking the files
 
@@ -73,12 +73,12 @@ The contracts are on chain id {{ contracts.chain_id }}.
 
 | Contract | Address | Owner it was deployed with |
 | --- | --- | --- |
-{% for share_class in contracts.classes %}| Share class {{ share_class.symbol }} | {% if share_class.address %}`{{ share_class.address }}`{% else %}not deployed{% endif %} | {% if share_class.owner_at_deployment %}`{{ share_class.owner_at_deployment }}`{% else %}not recorded{% endif %} |
+{% for share_class in contracts.classes %}| Share class {{ share_class.symbol|md }} | {% if share_class.address %}`{{ share_class.address }}`{% else %}not deployed{% endif %} | {% if share_class.owner_at_deployment %}`{{ share_class.owner_at_deployment }}`{% else %}not recorded{% endif %} |
 {% endfor %}{% for registry in contracts.registries %}| The company's registry | `{{ registry.address }}` | The owner of its share classes |
 {% endfor %}| Share class factory | {% if contracts.factory.address %}`{{ contracts.factory.address }}`{% else %}not configured{% endif %} | Ledova's operator |
 | Settlement (swap) contract | {% if contracts.swap.address %}`{{ contracts.swap.address }}`{% else %}not configured{% endif %} | Ledova's operator |
 {% if not contracts.registries %}
-No registry address is recorded for this company. Read it from the share class factory with `registryOf("{{ company.acn }}")`.
+No registry address is recorded for this company. Read it from the share class factory with `registryOf("{{ company.acn|md }}")`.
 {% endif %}
 Ledova's operator key deploys every share class and owns it. The factory created the company's registry with the same owner as its first share class, and every later class must share that owner and that registry. No Ledova code transfers that ownership. A share class is bound to its registry permanently.
 

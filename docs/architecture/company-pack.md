@@ -86,6 +86,18 @@ within a company only as written, so two could differ only in case, and admin
 can set any text; the README's class table and `manifest.json` map each id to its
 symbol.
 
+The README is Markdown, and text the company or staff supplied, such as names,
+symbols, the instruction and the recipient, passes through the `md` filter in
+[company_pack_text.py](../../backend/tokens/templatetags/company_pack_text.py).
+It turns control characters and line breaks into spaces, trims the ends, and
+backslash-escapes the characters Markdown or HTML would read as structure, so a
+value cannot add a heading, a table column, a link or a tag. Values Ledova
+produces itself (ids, hashes, addresses, counts, times and status codes) are left
+as they are. [test_company_pack_readme.py](../../backend/tokens/tests/test_company_pack_readme.py)
+parses the template and fails on any interpolation that is neither filtered nor
+on its list of Ledova's own values. The JSON files and `register.csv` carry every
+value as stored.
+
 ### Hash preimages
 
 A register entry's hash is the SHA-256 of PostgreSQL's text rendering of a JSONB
