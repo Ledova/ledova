@@ -68,7 +68,7 @@ An applied opening or correction names its `entry`: the entry in the class's `en
 
 ### Reading `issues.json`
 
-Each issuance request carries its recipient, shares, status and reviewer, the `issuance` it produced once executed, and the `subscription` it allotted where it came from an offering. A subscription's `payment` has the `basis` `recorded`: Ledova staff entered the amount, date and reference from the evidence the company or the bank gave. It is not proof that the money moved.
+Each issuance request carries its recipient, shares, status and reviewer, the `issuance` it produced once executed, and the `subscription` it allotted where it came from an offering. A subscription's `payment` has the `basis` `recorded`: Ledova staff entered the amount, the date received and the reference they saw on the statement, or the transfer hash for a stablecoin payment. It is not proof that the money moved.
 
 ## 3. What the evidence proves and does not
 
