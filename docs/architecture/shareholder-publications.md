@@ -151,7 +151,7 @@ whole investor surface, mounted at `/api/v1/publications/`:
 
 | Route | Answers |
 | --- | --- |
-| `GET /api/v1/publications/` | What was published to this principal, newest first, with the caller's own holding, ballot, entitlement and recorded payment; `?kind=` narrows it to one kind |
+| `GET /api/v1/publications/` | What was published to this principal, newest first, with the caller's own holding, ballot, entitlement and recorded payment; `?kind=` narrows it to one kind and `?addressed=me` to the publications whose roll names the caller |
 | `GET /api/v1/publications/summary/` | [Four counts](#the-summary) about the caller as a member, for the home page |
 | `GET /api/v1/publications/{uuid}/file/` | The stored document, as an attachment |
 | `POST /api/v1/publications/{uuid}/ballot/` | Casts the caller's ballot on a resolution, and answers with its updated row |
@@ -160,9 +160,18 @@ There is no retrieve route: the listing carries everything a member is shown,
 and a route with no client would be a surface nobody asked for.
 
 `kind` is one of the four kinds, and any other value is refused with a 400 that
-names the parameter rather than answered with an empty page. It narrows what the
-policies already admit and widens nothing: the dividends list below is the
-listing with `?kind=distribution`.
+names the parameter rather than answered with an empty page. `addressed` takes
+one value, `me`, and keeps the publications whose roll has a row naming the
+caller, which leaves out what a company owner reads only as the issuer. Both
+narrow what the policies already admit and widen nothing: the dividends list
+below is the listing with `?kind=distribution&addressed=me`.
+
+The two filters belong to the listing alone. The view applies its filter
+backends only to the `list` action, so a query string on the file route or the
+ballot route is ignored. Without that, DRF would apply the filters in
+`get_object`, which the ballot route reaches only after the ballot is recorded:
+a cast on a resolution with `?kind=distribution` would record an irrevocable
+ballot and then answer 404.
 
 The listing is scoped by the database alone — the view names `Publication` as
 its `scoped_model` and adds no owner filter, so the same two-sided policy that
@@ -261,14 +270,19 @@ dashboard and in the mobile app alike, through `@ledova/shared`:
   the last 30 days", "1 resolution awaiting your vote, closing" with the time
   formatted by the shared helper, and "1 dividend awaiting a payment record". It
   opens the publications page and is not shown at all when every count is zero.
+  While the page stays open, the hook asks again at `nextClosesAt`, so a vote
+  leaves the card when it closes, and every five minutes, for what was
+  published or recorded since. The close timer waits no longer than a browser
+  timer can hold, and both stop when the page goes.
 - **A dividends list beside transaction history**, not inside it. A
   transaction is read from a chain and a dividend is what a company records, so
   one list could not say what it shows, and the transaction filters of wallet,
   chain and direction do not apply to a dividend. `useDividends` reads the
-  listing with `?kind=distribution` a page at a time, and each row shows the
-  company, the class, the rate, the holding, the entitlement, the payment date
-  and the line the publications page shows about what the company recorded. The
-  transactions page links to it.
+  listing with `?kind=distribution&addressed=me` a page at a time, so a company
+  owner sees the dividends it is owed and not every dividend its company
+  declared. Each row shows the company, the class, the rate, the holding, the
+  entitlement, the payment date and the line the publications page shows about
+  what the company recorded. The transactions page links to it.
 - **A notification** of a new publication of any kind opens the publications
   page in both clients, from its `type` alone.
 
