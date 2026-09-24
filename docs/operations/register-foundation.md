@@ -950,8 +950,9 @@ stays when the company produced the output elsewhere or needs none.
 
 A company pack is one zip of a company's records: every share class with its
 register of members and the history of entries behind it, the approvals behind
-those entries, the issues with their payments as recorded, the wallet approvals,
-what is still waiting to be entered or owed, the company, and the contract
+those entries, the issues and the subscriptions still to be allotted or
+refunded, with their payments as recorded, the wallet approvals, what is still
+waiting to be entered or owed, the company, and the contract
 information a successor needs, with a README that explains each file and how to
 check it. Staff produce it only on the company's written instruction
 naming who it is for, or on a document that legally compels disclosure, such as

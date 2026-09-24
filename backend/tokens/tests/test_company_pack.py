@@ -109,6 +109,7 @@ ISOLATED = ("-I", "-S")
 PRODUCED_AT = datetime(2026, 9, 24, 1, 2, 3, 456789, tzinfo=utc_zone.utc)
 RECORDED_AT = datetime(2026, 9, 21, 4, 5, 6, tzinfo=utc_zone.utc)
 LAPSED_AT = datetime(2026, 9, 1, tzinfo=utc_zone.utc)
+PAYMENT_DUE_AT = datetime(2026, 9, 30, 6, 0, tzinfo=utc_zone.utc)
 RENEWED_UNTIL = datetime(2027, 3, 1, tzinfo=utc_zone.utc)
 INSTRUCTION = "SYNTHETIC-PACK-INSTRUCTION-1"
 RECIPIENT = "Synthetic Successor Registry Pty Ltd"
@@ -269,6 +270,35 @@ def allotted_subscription(tenant, reviewer, document, allottee, label):
         issuance=issuance,
         request=request,
     )
+
+
+def awaiting_subscriptions(tenant, addresses, reviewer, label):
+    terms = (
+        ("buyer", 8, "20.00", "20.00", SubscriptionStatus.PAID, date(2026, 9, 19)),
+        ("holder", 4, "10.00", "5.00", SubscriptionStatus.AWAITING_PAYMENT, date(2026, 9, 20)),
+    )
+    subscriptions = []
+    for role, quantity, due, received, status, received_on in terms:
+        wallet = Wallet.objects.get(address=addresses[role])
+        subscriptions.append(
+            Subscription.objects.create(
+                offering=tenant.offering,
+                user_account_id=wallet.user_account_id,
+                wallet=wallet,
+                quantity=quantity,
+                price_per_share=Decimal("2.50"),
+                amount_due=Decimal(due),
+                status=status,
+                reference=f"PAY-{label.upper()}-{role.upper()}",
+                payment_due_at=PAYMENT_DUE_AT,
+                amount_received=Decimal(received),
+                payment_received_on=received_on,
+                payment_reference_seen=f"PAY-{label.upper()}-{role.upper()} deposit",
+                payment_confirmed_by=reviewer,
+                payment_confirmed_at=RECORDED_AT,
+            )
+        )
+    return subscriptions
 
 
 def corrected(register, issue, reviewer, document, label):
@@ -469,6 +499,7 @@ def pack_company(label):
         reviewer=reviewer,
         document=document,
         allotment=allotment,
+        awaiting=awaiting_subscriptions(tenant, addresses, reviewer, label),
         correction=correction,
         link=link,
         increase=CapitalIncreaseRequest.objects.get(pk=increase.pk),
@@ -512,6 +543,8 @@ def records_of(fixture):
             fixture.allotment.issuance.pk,
             fixture.allotment.subscription.pk,
             fixture.allotment.subscription.reference,
+            *(subscription.pk for subscription in fixture.awaiting),
+            *(subscription.reference for subscription in fixture.awaiting),
             fixture.increase.pk,
             fixture.increase.board_resolution_reference,
             fixture.pause.pk,
@@ -1013,7 +1046,7 @@ class CompanyPackTest(ProducesPacks, TestCase):
             {name: json.loads(files[f"{folder}/{name}"]) for name in CLASS_FILES[2:]},
             {
                 "authority.json": {"openings": [], "imports": [], "corrections": [], "instructions": []},
-                "issues.json": [],
+                "issues.json": {"issues": [], "awaiting_allotment": []},
                 "former_members.json": [],
                 "reconciliations.json": [],
                 "waiting.json": {"effects": None},
@@ -1277,7 +1310,7 @@ class CompanyPackHistoryTest(ProducesPacks, TestCase):
         allotment = self.a.allotment
         recorded = RECORDED_AT.isoformat()
 
-        issues = self.read("issues.json", self.a.ordinary)
+        issues = self.read("issues.json", self.a.ordinary)["issues"]
 
         self.assertEqual(
             issues,
@@ -1305,10 +1338,13 @@ class CompanyPackHistoryTest(ProducesPacks, TestCase):
                         "uuid": str(allotment.subscription.pk),
                         "offering": str(self.a.tenant.offering.pk),
                         "status": "allotted",
+                        "subscribed_at": allotment.subscription.created_at.isoformat(),
                         "shares_requested": "25",
-                        "shares_allotted": "25",
+                        "allotment": "25",
+                        "currency": "AUD",
                         "price_per_share": "2.50",
                         "amount_due": "62.50",
+                        "payment_due_at": None,
                         "reference": "PAY-PACK-A",
                         "rail": "bank_transfer",
                         "payment": {
@@ -1327,7 +1363,70 @@ class CompanyPackHistoryTest(ProducesPacks, TestCase):
             ],
         )
         self.assertEqual(self.read("entries.json", self.a.ordinary)[1]["operation_id"], issues[0]["issuance"]["uuid"])
-        self.assertEqual(self.read("issues.json", self.a.preference), [])
+        self.assertEqual(self.read("issues.json", self.a.preference), {"issues": [], "awaiting_allotment": []})
+
+    def test_the_issues_file_lists_each_subscription_paid_or_part_paid_and_not_yet_allotted(self):
+        buyer, holder = self.a.awaiting
+
+        def awaiting(subscription, role, **terms):
+            return {
+                "uuid": str(subscription.pk),
+                "offering": str(self.a.tenant.offering.pk),
+                "subscribed_at": subscription.created_at.isoformat(),
+                "currency": "AUD",
+                "price_per_share": "2.50",
+                "payment_due_at": PAYMENT_DUE_AT.isoformat(),
+                "reference": f"PAY-PACK-A-{role.upper()}",
+                "rail": "bank_transfer",
+                "subscriber": f"Synthetic pack-a {role}",
+                "wallet": self.a.addresses[role],
+                **terms,
+            }
+
+        def payment(received, received_on, role):
+            return {
+                "basis": "recorded",
+                "amount_received": received,
+                "received_on": received_on,
+                "reference_seen": f"PAY-PACK-A-{role.upper()} deposit",
+                "transaction": None,
+                "recorded_at": RECORDED_AT.isoformat(),
+                "refund_amount": None,
+                "refunded_at": None,
+                "refund_reference": "",
+            }
+
+        self.assertEqual(
+            self.read("issues.json", self.a.ordinary)["awaiting_allotment"],
+            [
+                awaiting(
+                    buyer,
+                    "buyer",
+                    status="paid",
+                    shares_requested="8",
+                    allotment="8",
+                    amount_due="20.00",
+                    payment=payment("20.00", "2026-09-19", "buyer"),
+                ),
+                awaiting(
+                    holder,
+                    "holder",
+                    status="awaiting_payment",
+                    shares_requested="4",
+                    allotment="4",
+                    amount_due="10.00",
+                    payment=payment("5.00", "2026-09-20", "holder"),
+                ),
+            ],
+        )
+        unpaid = Subscription.objects.get(pk=self.a.tenant.subscription.pk)
+        self.assertEqual(
+            (unpaid.offering_id, unpaid.issuance_request_id, unpaid.status, unpaid.amount_received),
+            (self.a.tenant.offering.pk, None, "draft", None),
+        )
+        readme = self.files["README.md"].decode()
+        self.assertIn("  - DEP: 2 subscriptions awaiting allotment or refund.", readme)
+        self.assertIn("  - DRF: none.", readme)
 
     def test_the_class_file_carries_each_capital_increase_and_pause(self):
         increase, pause = self.a.increase, self.a.pause
@@ -1637,6 +1736,11 @@ class CompanyPackAbsenceTest(ProducesPacks, TestCase):
         self.assertEqual(self.leaked(values), [])
 
     def test_members_account_details_and_platform_ids_do_not_leave(self):
+        text = text_of(self.pack())
+        for subscription in self.a.awaiting:
+            with self.subTest(subscription=subscription.reference):
+                self.assertIn(str(subscription.pk), text)
+
         self.assert_none_leave(account_details(self.a))
 
     def test_classification_claims_their_evidence_and_payslips_do_not_leave(self):
@@ -1726,6 +1830,7 @@ class CompanyPackSnapshotTest(TransactionTestCase):
             "No wallet approval is recorded for this company.",
             "No share class is paused.",
             "- REG: not established, so `effects` is `null`",
+            "  - REG: none.",
             "No former member is recorded.",
             "None was outstanding in Ledova's records.",
         ):

@@ -82,7 +82,7 @@ in UTC, and share quantities and supplies are strings of whole numbers.
 | `classes/<class id>/register.csv` | The [register CSV's](register.md#api-and-export) three sections, from the export's own code, without its record. Absent while the class's register has no opening |
 | `classes/<class id>/entries.json` | Every register entry in sequence, with its fields, previous and entry hashes, and the hash preimage |
 | `classes/<class id>/authority.json` | The class's register openings, imports, corrections and register instructions, as authority records |
-| `classes/<class id>/issues.json` | Every issuance request of the class, with the issuance it executed and the subscription it allotted, and that subscription's payment labelled as recorded |
+| `classes/<class id>/issues.json` | `issues`: every issuance request of the class, with the issuance it executed and the subscription it allotted. `awaiting_allotment`: every subscription with a payment recorded and no issuance request. Each subscription's payment is labelled as recorded |
 | `classes/<class id>/former_members.json` | The former-member section of `register.csv`, from the same rows, each with the date until which s169(3) keeps it |
 | `classes/<class id>/reconciliations.json` | Every reconciliation of the register with the chain, its discrepancies, and each acknowledgement's discrepancy, reason and time |
 | `classes/<class id>/waiting.json` | `effects`: the [waiting list](register.md#api-and-export), or `null` where the API's is |
@@ -170,12 +170,17 @@ have a file of their own, `wallet_links.json`, rather than a copy in each class'
 - **Reviewers are named, not numbered.** A reviewer is the full name on the
   staff member's profile, blank when there is none. No user id, submitter or
   staff email leaves: user ids appear only inside each entry's preimage.
-- **Payment is recorded, not proved.** Each issuance request carries the
-  subscription it allotted, and that subscription's payment has the `basis`
-  `recorded`: staff entered the amount, date, reference and any payment
-  transaction hash. The README's evidence table says it does not prove that
-  money moved. A subscription that has no issuance request yet is not in the
-  pack.
+- **Payment is recorded, not proved.** Under `issues`, each issuance request
+  carries the subscription it allotted. Under `awaiting_allotment` is each
+  subscription to the class with a payment recorded and no issuance request
+  yet: `paid`, which is what allotment waits for, or `awaiting_payment` with an
+  amount received, because part of the money is already held. Either way the
+  company inherits an obligation to allot or refund it. Each carries the
+  subscriber's name, from their profile and never their email, and the wallet
+  the shares would go to; no account or profile id leaves. Every subscription's
+  payment has the `basis` `recorded`: staff entered the amount, date, reference
+  and any payment transaction hash. The README's evidence table says it does not
+  prove that money moved.
 - **Capital increases and pauses are in `class.json`**, beside the authorised
   shares and status they change, rather than in files of their own. Each capital
   increase request carries its terms, board and shareholder references, status,
@@ -203,8 +208,9 @@ have a file of their own, `wallet_links.json`, rather than a copy in each class'
 The README's sections on restrictions in force and on filings are filled in
 from these files: each approval with its expiry and whether it is listed, the
 paused classes, each class's waiting count or that it could not be established,
-each former member with the date it must be kept until, and each certificate
-and set of notice figures still due.
+each former member with the date it must be kept until, each certificate and
+set of notice figures still due, and each class's count of subscriptions
+awaiting allotment or refund.
 
 ## What does not leave, and why
 
@@ -225,7 +231,9 @@ fixture's values in one area: each member's email, phone, date of birth,
 citizenship, occupation, source of funds, account number and account, profile,
 wallet and whitelist entry ids; a member's and the owner's classification
 claims, their bases and evidence, and payslips; an unmatched listing and order;
-and an inspection copy's export record. Each then plants those values in a
+and an inspection copy's export record. The members' test first finds the
+subscriptions awaiting allotment in the pack, so the details stay out while
+those members' subscriptions are carried. Each then plants those values in a
 member's residential address, which the pack does carry, sees the same search
 find every one, and removes them again. Another test fails if the company's API
 key, its owner's email or the owner's account number appears in the pack, with
@@ -242,7 +250,8 @@ contracts."
 
 [test_company_pack.py](../../backend/tokens/tests/test_company_pack.py) builds a
 synthetic company with two share classes: an opening; an issue of a paid
-subscription under an applied register instruction; a transfer whose operation
+subscription under an applied register instruction; one subscription paid and
+one part-paid, neither allotted, beside a draft that must stay out; a transfer whose operation
 is a settlement order; a correction reversing the issue, reviewed and applied
 through the correction service; a reviewed wallet link; a former member; an
 approved capital increase; a pause; one listed and one lapsed wallet approval and

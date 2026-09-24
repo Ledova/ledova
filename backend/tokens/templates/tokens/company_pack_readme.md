@@ -21,7 +21,7 @@ The pack carries the company, its share classes, each class's register of member
 | `classes/<class id>/register.csv` | The class's register of members, present once its register has been opened |
 | `classes/<class id>/entries.json` | Every entry in the class's register, in order, each with the exact text its hash was computed over |
 | `classes/<class id>/authority.json` | The class's register openings, imports, corrections and register instructions: each one's authority, terms, evidence and decision |
-| `classes/<class id>/issues.json` | Each issuance request, with the issuance it produced and the subscription it allotted, with that subscription's payment as recorded |
+| `classes/<class id>/issues.json` | Under `issues`, each issuance request with the issuance it produced and the subscription it allotted; under `awaiting_allotment`, each subscription with a payment recorded and no shares allotted. Each subscription carries its payment as recorded |
 | `classes/<class id>/former_members.json` | The former members in `register.csv`, each with the date until which it must be kept |
 | `classes/<class id>/reconciliations.json` | Each comparison of the register with the chain, with its discrepancies and their acknowledgements |
 | `classes/<class id>/waiting.json` | Completed issues and settled transfers not yet entered in the register |
@@ -68,7 +68,11 @@ An applied opening or correction names its `entry`: the entry in the class's `en
 
 ### Reading `issues.json`
 
-Each issuance request carries its recipient, shares, status and reviewer, the `issuance` it produced once executed, and the `subscription` it allotted where it came from an offering. A subscription's `payment` has the `basis` `recorded`: Ledova staff entered the amount, the date received and the reference they saw on the statement, or the transfer hash for a stablecoin payment. It is not proof that the money moved.
+Under `issues`, each issuance request carries its recipient, shares, status and reviewer, the `issuance` it produced once executed, and the `subscription` it allotted where it came from an offering.
+
+Under `awaiting_allotment` is each subscription to the class with a payment recorded against it and no issuance request yet: `paid` in full and awaiting allotment, or `awaiting_payment` with part of the money received. Each carries the subscriber's name and the wallet the shares would go to, the shares asked for and the `allotment` still to be made, the price, the amount due, the dates and the payment. The company must allot or refund each one.
+
+A subscription's `payment` has the `basis` `recorded`: Ledova staff entered the amount, the date received and the reference they saw on the statement, or the transfer hash for a stablecoin payment. It is not proof that the money moved.
 
 ## 3. What the evidence proves and does not
 
@@ -148,6 +152,10 @@ The contracts were compiled with Solidity 0.8.24, EVM version `paris`, the optim
 {% for share_class in classes %}{% for row in share_class.due %}| {{ share_class.token.symbol }} | {{ row.sequence }} | {{ row.kind }} | {{ row.output }} | {{ row.due_on|date:"Y-m-d" }} | {% if row.overdue %}yes{% else %}no{% endif %} |
 {% endfor %}{% endfor %}{% else %}None was outstanding in Ledova's records.
 {% endif %}
+- Money received for shares not yet allotted is the company's to allot against or refund, whoever keeps the register. Each class's `issues.json` lists those subscriptions under `awaiting_allotment`:
+
+{% for share_class in classes %}  - {{ share_class.token.symbol }}: {% with count=share_class.awaiting_allotment|length %}{% if count %}{{ count }} subscription{{ count|pluralize }} awaiting allotment or refund{% else %}none{% endif %}{% endwith %}.
+{% endfor %}
 ## 7. What this pack grants
 
 The company, and a provider it names in writing, may use the records and the contract interface files in this pack to operate and move the company's own register and contracts.

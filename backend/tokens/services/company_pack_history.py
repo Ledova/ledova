@@ -1,6 +1,8 @@
 from collections import defaultdict
 
-from offerings.models import Subscription
+from django.db.models import Q
+
+from offerings.models import Subscription, SubscriptionStatus
 from tokens.constants import FORMER_MEMBER_RETENTION_MONTHS
 from tokens.models import (
     CapitalIncreaseRequest,
@@ -142,13 +144,24 @@ def _subscription(subscription):
         "uuid": subscription.pk,
         "offering": subscription.offering_id,
         "status": subscription.status,
+        "subscribed_at": subscription.created_at,
         "shares_requested": str(subscription.quantity),
-        "shares_allotted": str(subscription.allotment_quantity),
+        "allotment": str(subscription.allotment_quantity),
+        "currency": subscription.offering.price_currency,
         "price_per_share": subscription.price_per_share,
         "amount_due": subscription.amount_due,
+        "payment_due_at": subscription.payment_due_at,
         "reference": subscription.reference,
         "rail": subscription.settlement_rail,
         "payment": _payment(subscription),
+    }
+
+
+def _awaiting(subscription):
+    return {
+        **_subscription(subscription),
+        "subscriber": (subscription.user_account.user_profile.full_name or "").strip(),
+        "wallet": subscription.wallet.address,
     }
 
 
@@ -163,33 +176,48 @@ def _issuance(issuance):
     }
 
 
-def issues(company, token) -> list:
+def issues(company, token) -> dict:
     requests = list(
         _ordered(ShareIssuanceRequest.objects.filter(company=company, token=token)).select_related("executed_issuance")
     )
     subscriptions = {
         subscription.issuance_request_id: subscription
-        for subscription in Subscription.objects.filter(company=company, issuance_request__in=requests)
+        for subscription in Subscription.objects.filter(company=company, issuance_request__in=requests).select_related(
+            "offering"
+        )
     }
-    return [
-        {
-            "request": request.pk,
-            "type": request.issuance_type,
-            "recipient_address": request.recipient_address,
-            "recipient_name": request.recipient_name,
-            "shares": str(request.amount),
-            "reason": request.reason,
-            "status": request.status,
-            "submitted_at": request.submitted_at,
-            "reviewer": _name(request.reviewed_by),
-            "reviewed_at": request.reviewed_at,
-            "rejection_reason": request.rejection_reason,
-            "executed_at": request.executed_at,
-            "issuance": _issuance(request.executed_issuance),
-            "subscription": _subscription(subscriptions.get(request.pk)),
-        }
-        for request in requests
-    ]
+    awaiting = (
+        Subscription.objects.filter(company=company, offering__token=token, issuance_request__isnull=True)
+        .filter(
+            Q(status=SubscriptionStatus.PAID)
+            | Q(status=SubscriptionStatus.AWAITING_PAYMENT, amount_received__isnull=False)
+        )
+        .select_related("offering", "wallet", "user_account__user_profile")
+        .order_by("created_at", "uuid")
+    )
+    return {
+        "issues": [_issue(request, subscriptions.get(request.pk)) for request in requests],
+        "awaiting_allotment": [_awaiting(subscription) for subscription in awaiting],
+    }
+
+
+def _issue(request, subscription):
+    return {
+        "request": request.pk,
+        "type": request.issuance_type,
+        "recipient_address": request.recipient_address,
+        "recipient_name": request.recipient_name,
+        "shares": str(request.amount),
+        "reason": request.reason,
+        "status": request.status,
+        "submitted_at": request.submitted_at,
+        "reviewer": _name(request.reviewed_by),
+        "reviewed_at": request.reviewed_at,
+        "rejection_reason": request.rejection_reason,
+        "executed_at": request.executed_at,
+        "issuance": _issuance(request.executed_issuance),
+        "subscription": _subscription(subscription),
+    }
 
 
 def cap_increases(company, token) -> list:

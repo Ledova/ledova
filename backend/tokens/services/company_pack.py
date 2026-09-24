@@ -160,6 +160,7 @@ def _share_class(company, token, outputs) -> dict:
         ]
     )
     folder = f"classes/{token.pk}"
+    issues = history.issues(company, token)
     waiting = history.waiting(token)
     former = history.former_members(stored)
     due = history.due(outputs, token)
@@ -193,7 +194,7 @@ def _share_class(company, token, outputs) -> dict:
         ),
         f"{folder}/entries.json": _json(entries),
         f"{folder}/authority.json": _json(history.authority(company, token)),
-        f"{folder}/issues.json": _json(history.issues(company, token)),
+        f"{folder}/issues.json": _json(issues),
         f"{folder}/former_members.json": _json(former),
         f"{folder}/reconciliations.json": _json(history.reconciliations(token)),
         f"{folder}/waiting.json": _json(waiting),
@@ -211,6 +212,7 @@ def _share_class(company, token, outputs) -> dict:
         "member_rows": 0 if stored is None else len(stored["rows"]),
         "former_rows": 0 if stored is None else len(stored["former_members"]),
         "waiting": waiting["effects"],
+        "awaiting_allotment": issues["awaiting_allotment"],
         "former": former,
         "due": due,
     }
