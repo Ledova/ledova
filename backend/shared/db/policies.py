@@ -510,9 +510,9 @@ OPERATOR_ONLY = {
     "connection and visible only to permitted platform reviewers. They contain UUIDs and reader IDs, not "
     "file names, extraction values or file contents, and outlive document content purges.",
     "tokens_registerexport": "Immutable records of who exported a share class's register or prepared a copy, a "
-    "certificate or notice figures from it, written on the operator connection by the export route and the "
-    "register outputs admin, and queried by staff in admin. No issuer or customer path reads them, and only the "
-    "retention purge deletes them.",
+    "certificate, notice figures or a company pack from it, written on the operator connection by the export route, "
+    "the register outputs admin and the company pack admin, and queried by staff in admin. No issuer or customer "
+    "path reads them, and only the retention purge deletes them.",
     "shareholders_publicationread": "Append-only records of who opened a publication a company made to its "
     "members, or the remittance evidence of one of its payment records, written on the operator connection by "
     "the delivery service and the publications admin, and read "

@@ -4,6 +4,7 @@ from companies.models.document import (
     CompanyDocument,
     DocumentType,
 )
+from companies.models.pack import CompanyPack
 from companies.models.registry_check import (
     CompanyRegistryCheck,
     RegistryCheckPurpose,
@@ -15,6 +16,7 @@ __all__ = [
     "CompanyStatus",
     "CompanyType",
     "CompanyDocument",
+    "CompanyPack",
     "DocumentType",
     "LISTING_REQUIRED_DOCUMENTS",
     "CompanyRegistryCheck",

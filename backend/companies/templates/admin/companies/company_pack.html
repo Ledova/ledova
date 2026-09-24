@@ -1,0 +1,11 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Company pack: {{ original.name }}</h1>
+<dl>
+<dt>Company</dt><dd>{{ original.name }}</dd>
+<dt>ACN</dt><dd>{{ original.acn }}</dd>
+</dl>
+<p>Produce a company pack only on the company's written instruction, naming who it is for, or on a document that legally compels disclosure, referenced in its place. The pack is a zip of the company's records as they stand now: the company, every share class with its register of members and the history of entries behind it, and the contract information a successor needs, with a README explaining each file. It carries every member's name and residential address. Ledova records the instruction, the recipient and the SHA-256 of the pack's manifest against each share class, not the file.</p>
+{% if refusal %}<p class="errornote">{{ refusal }} Nothing was recorded.</p>{% endif %}
+<form method="post">{% csrf_token %}{{ form.as_p }}<input type="submit" value="Produce and download"></form>
+{% endblock %}
