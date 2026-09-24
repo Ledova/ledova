@@ -31,6 +31,7 @@ const statement = {
   declaredOn: null,
   paymentDate: null,
   myEntitlement: null,
+  myRecordedEntitlement: null,
   myPaymentRecord: null,
 };
 
@@ -70,6 +71,7 @@ const dividend = {
   declaredOn: '2026-09-13',
   paymentDate: '2026-10-03',
   myEntitlement: '2.50',
+  myRecordedEntitlement: '0.00',
   myPaymentRecord: null,
 };
 
@@ -450,7 +452,7 @@ describe('a dividend declared to the members', () => {
   });
 
   it('says the company recorded the payment, when and under what reference, and never that it was paid', async () => {
-    rows = [{ ...dividend, myPaymentRecord: recorded }];
+    rows = [{ ...dividend, myRecordedEntitlement: '2.50', myPaymentRecord: recorded }];
 
     showPage();
 
@@ -458,6 +460,23 @@ describe('a dividend declared to the members', () => {
       await screen.findByText('The company recorded this as paid on 3 October 2026, reference LDV-4412.'),
     ).toBeTruthy();
     expect(screen.queryByText(PUBLICATION_COPY.NO_PAYMENT_RECORDED)).toBeNull();
+  });
+
+  it('says what part of a two-holding entitlement is recorded, and never that all of it was', async () => {
+    rows = [
+      { ...dividend, shares: '140', myEntitlement: '3.50', myRecordedEntitlement: '1.00', myPaymentRecord: recorded },
+    ];
+
+    showPage();
+
+    expect(
+      await screen.findByText(
+        'The company has recorded AUD 1.00 of your AUD 3.50 as paid, most recently on 3 October 2' +
+          '026, reference LDV-4412. The rest has no payment record yet.',
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText('AUD 3.50')).toBeTruthy();
+    expect(screen.queryByText('The company recorded this as paid on 3 October 2026, reference LDV-4412.')).toBeNull();
   });
 
   it('says there is nothing to pay when the holding comes to less than a cent', async () => {

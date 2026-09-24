@@ -1,14 +1,8 @@
 import React from 'react';
 import { View, Text } from 'react-native';
-import { PUBLICATION_COPY, describePaymentRecord, describeRate, formatDate, formatMoney } from '@ledova/shared';
+import { PUBLICATION_COPY, describePaymentStanding, describeRate, formatDate, formatMoney } from '@ledova/shared';
 import type { Publication } from '@ledova/shared';
 import { useThemedStyles } from '../../contexts';
-
-function paymentLine(publication: Publication) {
-  if (publication.myPaymentRecord) return describePaymentRecord(publication.myPaymentRecord);
-  if (Number(publication.myEntitlement) === 0) return PUBLICATION_COPY.NOTHING_PAYABLE;
-  return PUBLICATION_COPY.NO_PAYMENT_RECORDED;
-}
 
 export function Distribution({ publication }: { publication: Publication }) {
   const styles = useThemedStyles((theme) => ({
@@ -42,7 +36,7 @@ export function Distribution({ publication }: { publication: Publication }) {
             {`${PUBLICATION_COPY.ENTITLEMENT_LABEL}: ${formatMoney(publication.myEntitlement ?? '0', publication.currency ?? '')}`}
           </Text>
           <Text style={styles.detail}>{PUBLICATION_COPY.ENTITLEMENT_HELP}</Text>
-          <Text style={styles.record}>{paymentLine(publication)}</Text>
+          <Text style={styles.record}>{describePaymentStanding(publication)}</Text>
           <Text style={styles.detail}>{PUBLICATION_COPY.RECORDS_ONLY}</Text>
         </>
       )}

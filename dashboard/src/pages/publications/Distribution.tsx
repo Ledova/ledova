@@ -1,11 +1,5 @@
-import { PUBLICATION_COPY, describePaymentRecord, describeRate, formatDate, formatMoney } from '@ledova/shared';
+import { PUBLICATION_COPY, describePaymentStanding, describeRate, formatDate, formatMoney } from '@ledova/shared';
 import type { Publication } from '@ledova/shared';
-
-function paymentLine(publication: Publication) {
-  if (publication.myPaymentRecord) return describePaymentRecord(publication.myPaymentRecord);
-  if (Number(publication.myEntitlement) === 0) return PUBLICATION_COPY.NOTHING_PAYABLE;
-  return PUBLICATION_COPY.NO_PAYMENT_RECORDED;
-}
 
 export function Distribution({ publication }: { publication: Publication }) {
   if (publication.kind !== 'distribution') return null;
@@ -30,7 +24,7 @@ export function Distribution({ publication }: { publication: Publication }) {
       {entitled && (
         <>
           <p className="text-xs text-text-muted mt-1">{PUBLICATION_COPY.ENTITLEMENT_HELP}</p>
-          <p className="text-sm text-text-primary mt-3">{paymentLine(publication)}</p>
+          <p className="text-sm text-text-primary mt-3">{describePaymentStanding(publication)}</p>
           <p className="text-xs text-text-muted mt-1">{PUBLICATION_COPY.RECORDS_ONLY}</p>
         </>
       )}

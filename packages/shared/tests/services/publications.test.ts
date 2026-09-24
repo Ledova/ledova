@@ -22,7 +22,13 @@ import {
   openPublication,
 } from '../../src/services/publications';
 import type { PublicationResult } from '../../src/types';
-import { describePaymentRecord, describeRate, formatMoney } from '../../src/utils';
+import {
+  describePaymentRecord,
+  describePaymentStanding,
+  describeRate,
+  formatMoney,
+  paymentRecordState,
+} from '../../src/utils';
 
 const OPENS = '2026-09-24T00:00:00Z';
 const CLOSES = '2026-10-01T00:00:00Z';
@@ -203,6 +209,44 @@ describe('a distribution in the listing', () => {
     });
 
     expect(line).toBe('The company recorded this as paid on 3 October 2026, reference LDV-4412.');
+  });
+
+  const record = { recordedPaidOn: '2026-10-03', reference: 'LDV-4412', recordedAt: '2026-10-03T04:00:00Z' };
+  const standing = (
+    myRecordedEntitlement: string,
+    myEntitlement = '3.50',
+    myPaymentRecord: typeof record | null = record,
+  ) => ({
+    myEntitlement,
+    myRecordedEntitlement,
+    myPaymentRecord,
+    currency: 'AUD',
+  });
+
+  it('tells a whole record, a part record and no record apart by the amounts, exactly to the cent', () => {
+    expect(paymentRecordState(standing('3.50'))).toBe('recorded');
+    expect(paymentRecordState(standing('1.00'))).toBe('partly_recorded');
+    expect(paymentRecordState(standing('3.49'))).toBe('partly_recorded');
+    expect(paymentRecordState(standing('0.00', '3.50', null))).toBe('unrecorded');
+    expect(paymentRecordState(standing('12345678901234567.89', '12345678901234567.90'))).toBe('partly_recorded');
+  });
+
+  it('says the whole entitlement is recorded only when the recorded amount is all of it', () => {
+    expect(describePaymentStanding(standing('3.50'))).toBe(
+      'The company recorded this as paid on 3 October 2026, reference LDV-4412.',
+    );
+  });
+
+  it('says what part of the entitlement is recorded, and that the rest has no record, never that it was all paid', () => {
+    expect(describePaymentStanding(standing('1.00'))).toBe(
+      'The company has recorded AUD 1.00 of your AUD 3.50 as paid, most recently on 3 October 2026, ' +
+        'reference LDV-4412. The rest has no payment record yet.',
+    );
+  });
+
+  it('says no payment is recorded, or that nothing is payable, when nothing stands', () => {
+    expect(describePaymentStanding(standing('0.00', '3.50', null))).toBe(PUBLICATION_COPY.NO_PAYMENT_RECORDED);
+    expect(describePaymentStanding(standing('0.00', '0.00', null))).toBe(PUBLICATION_COPY.NOTHING_PAYABLE);
   });
 
   it('has no member-facing copy that says paid without saying recorded', () => {

@@ -90,6 +90,9 @@ export const PUBLICATION_COPY = {
   ENTITLEMENT_LABEL: 'Your entitlement',
   ENTITLEMENT_HELP: 'Your holding on the record date times the declared rate, rounded down to the cent.',
   RECORDED_AS_PAID: 'The company recorded this as paid on',
+  PART_RECORDED:
+    'The company has recorded {recorded} of your {entitlement} as paid, most recently on {date}, reference ' +
+    '{reference}. The rest has no payment record yet.',
   REFERENCE: 'reference',
   NO_PAYMENT_RECORDED: 'No payment has been recorded yet.',
   NOTHING_PAYABLE: 'At this rate your holding comes to less than a cent, so there is nothing to pay.',

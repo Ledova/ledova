@@ -58,7 +58,14 @@ export { calculateWalletTotals, filterWalletsByChain } from './wallet';
 export { parseFiatValue } from './valuation';
 export { portfolioSnapshotPoints } from './portfolio-snapshots';
 export { readFeatureFlags, type FeatureFlagInputs } from './feature-flags';
-export { formatMoney, describeRate, describePaymentRecord } from './distributions';
+export {
+  formatMoney,
+  describeRate,
+  describePaymentRecord,
+  describePaymentStanding,
+  paymentRecordState,
+  type PaymentRecordState,
+} from './distributions';
 export { createOrderSubmissionStore } from './order-submission-storage';
 export type {
   OrderSubmissionOwner,
