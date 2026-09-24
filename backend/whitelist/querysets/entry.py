@@ -1,4 +1,4 @@
-from django.db.models import Q, QuerySet
+from django.db.models import Exists, OuterRef, Q, QuerySet
 from django.db.models.functions import Lower
 
 from shared.constants import BLOCKCHAIN_BASE
@@ -32,3 +32,31 @@ class WhitelistEntryQuerySet(QuerySet):
             Q(wallet__isnull=True, address__iexact=address)
             | Q(wallet__chain=BLOCKCHAIN_BASE, wallet__address__iexact=address)
         )
+
+    def needing_standing_review(self):
+        from users.models import InvestorClassification, UserAccount
+        from users.services.eligibility import REFUSED_ACCOUNT_STATUSES
+        from whitelist.models import WhitelistApproval, WhitelistStatus
+
+        live_classifications = (
+            InvestorClassification.objects.filter(user_account_id=OuterRef("entry__wallet__user_account_id"))
+            .live()
+            .for_company(OuterRef("company_id"))
+        )
+        approvals = (
+            WhitelistApproval.objects.filter(entry_id=OuterRef("pk"))
+            .alias(has_live_classification=Exists(live_classifications))
+            .filter(
+                Q(pk__in=WhitelistApproval.objects.live().values("pk"))
+                | Q(status__in=[WhitelistStatus.PENDING, WhitelistStatus.FAILED])
+                | (
+                    Q(entry__wallet__user_account__user_profile__user__is_active=False, has_live_classification=True)
+                    & ~Q(entry__wallet__user_account__account_status__in=REFUSED_ACCOUNT_STATUSES)
+                )
+            )
+        )
+        return self.filter(
+            Q(wallet__user_account__user_profile__user__is_active=False)
+            | Q(wallet__user_account__account_status__in=REFUSED_ACCOUNT_STATUSES),
+            wallet__user_account__in=UserAccount.objects.investing(),
+        ).filter(Exists(approvals))
