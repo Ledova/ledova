@@ -91,6 +91,23 @@ moved since admission stays unresolved with a conflict rather than sending to
 either registry. The [whitelist contract](../architecture/outgoing-signing.md#whitelist-changes)
 describes API outcomes, durable boundaries and historical limits.
 
+Wallet deletion retains a `refresh_whitelist_targets` job with `remove_only=true`
+after the approval rows disappear. It retries incomplete removals every five
+minutes with no attempt ceiling, including provider failures before a change
+can be admitted. Keep that job: the approval sweep cannot rediscover its targets.
+An earlier unresolved add or removal must finish through
+`recover_whitelist_changes`; a confirmed failure allows the retained job to
+submit another removal under the original actor.
+
+Inspect repeatedly pending jobs and their error logs alongside the named
+company's whitelist changes. Restore provider availability or the original
+actor's valid standing where appropriate. If the actor no longer exists, do
+not edit the job to impersonate another actor: staff must review the retained
+targets and explicitly authorize their own removal through the operator API.
+Verify absence before retiring that blocked job. The job never invents authority
+or grants an approval. A missing worker or unresolved chain outcome can exceed
+the normal update window; use the token pause procedure when necessary.
+
 ### Holder standing review
 
 The operator console's **Whitelist entries needing holder standing review** links

@@ -15,6 +15,7 @@ from users.models import (
 )
 from users.services.eligibility import NO_LIVE_CLASSIFICATION, account_eligibility
 from whitelist.constants import WHITELIST_NO_EXPIRY, WHITELIST_REFRESH_LIMIT
+from whitelist.exceptions import WhitelistRemovalPending
 from whitelist.models import (
     WhitelistAction,
     WhitelistApproval,
@@ -177,24 +178,33 @@ def _target_approval(target):
 
 def _remove_target(target, actor):
     if _unresolved(target["registry"], target["address"]):
-        return None
+        raise WhitelistRemovalPending("An earlier whitelist change is unresolved.")
     moment = int(timezone.now().timestamp())
     if _effective(observed_expiry(target["registry"], target["address"]), moment) == 0:
         return None
-    return _submit(target["address"], Company.objects.get(pk=target["company"]), None, 0, actor)
+    change = _submit(target["address"], Company.objects.get(pk=target["company"]), None, 0, actor)
+    if change.status not in (WhitelistChangeStatus.CONFIRMED, WhitelistChangeStatus.UNCHANGED):
+        raise WhitelistRemovalPending("The whitelist removal is not confirmed.")
+    return change
 
 
 def refresh_targets(targets, actor, remove_only=False):
     result = {"checked": 0, "submitted": 0, "errors": 0}
+    removals_pending = False
     for target in targets:
         result["checked"] += 1
+        removing = remove_only
         try:
             approval = None if remove_only else _target_approval(target)
+            removing = approval is None
             change = refresh_approval(approval, actor) if approval else _remove_target(target, actor)
             result["submitted"] += 1 if change else 0
         except Exception:
             result["errors"] += 1
+            removals_pending = removals_pending or removing
             logger.error("Whitelist refresh failed: company=%s registry=%s", target["company"], target["registry"])
+    if removals_pending:
+        raise WhitelistRemovalPending("One or more whitelist removals still require recovery.")
     return result
 
 
