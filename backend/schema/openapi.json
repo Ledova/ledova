@@ -19383,6 +19383,17 @@
         "operationId": "api_v1_publications_list",
         "parameters": [
           {
+            "description": "* `me` - Addressed to the caller",
+            "in": "query",
+            "name": "addressed",
+            "schema": {
+              "enum": [
+                "me"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "description": "* `holding_statement` - Annual holding statement\n* `meeting_notice` - Meeting notice\n* `resolution` - Resolution\n* `distribution` - Dividend",
             "in": "query",
             "name": "kind",

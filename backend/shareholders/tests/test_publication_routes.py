@@ -129,6 +129,43 @@ class ThePublicationsRouteTest(StubUploadDependencies, TestCase):
         self.assertEqual(response.status_code, 400, response.content)
         self.assertEqual(list(response.json()), ["kind"])
 
+    def test_the_listing_addressed_to_the_caller_leaves_out_what_the_caller_reads_only_as_the_issuer(self):
+        dividend = a_distribution(self.world)
+        investor = self.elsewhere.members[0]
+        own_company = a_company_with_members("route-owner-invests", owner=investor.user)
+        issued = a_distribution(own_company)
+        owed = a_distribution(self.elsewhere)
+        dividends = {"kind": PublicationKind.DISTRIBUTION}
+
+        def listed(user, **query):
+            self.client.force_authenticate(user)
+            return {row["uuid"] for row in self.rows(self.client.get(LISTING, query))}
+
+        self.assertEqual(listed(self.world.owner, **dividends), {str(dividend.pk)})
+        self.assertEqual(listed(self.world.owner, **dividends, addressed="me"), set())
+        self.assertEqual(listed(investor.user, **dividends), {str(issued.pk), str(owed.pk)})
+        self.assertEqual(listed(investor.user, **dividends, addressed="me"), {str(owed.pk)})
+        self.assertEqual(listed(self.holder.user, **dividends, addressed="me"), {str(dividend.pk)})
+        self.assertEqual(listed(self.holder.user, addressed="me"), {str(dividend.pk), str(self.publication.pk)})
+
+    def test_an_addressee_the_platform_does_not_know_is_refused_and_the_refusal_names_the_filter(self):
+        self.client.force_authenticate(self.holder.user)
+
+        response = self.client.get(LISTING, {"addressed": "company"})
+
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertEqual(list(response.json()), ["addressed"])
+
+    def test_a_listing_filter_on_the_file_route_is_ignored(self):
+        self.client.force_authenticate(self.holder.user)
+
+        for query in ("kind=distribution", "kind=bogus", "addressed=nobody"):
+            with self.subTest(query=query):
+                response = self.client.get(f"{file_route(self.publication)}?{query}")
+
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(b"".join(response.streaming_content), PUBLICATION_BYTES)
+
     def test_an_unauthenticated_caller_reaches_neither_the_listing_nor_the_file(self):
         self.client.force_authenticate(None)
 

@@ -7912,6 +7912,7 @@ export interface ApiOperations {
   api_v1_publications_list: {
     parameters: {
       query?: {
+        addressed?: 'me';
         kind?: 'distribution' | 'holding_statement' | 'meeting_notice' | 'resolution';
         ordering?: string;
         page?: number;

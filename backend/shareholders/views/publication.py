@@ -30,6 +30,11 @@ class PublicationViewSet(AuthenticatedListViewSet):
     def narrow(self, queryset):
         return queryset.seen_by(self.request.user.pk)
 
+    def filter_queryset(self, queryset):
+        if self.action != "list":
+            return queryset
+        return super().filter_queryset(queryset)
+
     @extend_schema(responses={(200, "*/*"): OpenApiTypes.BINARY})
     @action(detail=True, methods=["get"])
     def file(self, request, uuid=None):
@@ -39,7 +44,6 @@ class PublicationViewSet(AuthenticatedListViewSet):
     @extend_schema(request=BallotSerializer, responses={200: PublicationSerializer})
     @action(detail=True, methods=["post"])
     def ballot(self, request, uuid=None):
-        self.filter_queryset(self.get_queryset())
         ballot = BallotSerializer(data=request.data)
         ballot.is_valid(raise_exception=True)
         cast_ballot(request.user, uuid, ballot.validated_data["choice"])

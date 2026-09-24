@@ -1194,6 +1194,27 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         self.client.force_authenticate(None)
         self.assertEqual(self.client.get(path).status_code, 401)
 
+    def test_the_listing_addressed_to_the_caller_reaches_the_member_and_neither_the_issuer_nor_anyone_else(self):
+        from shareholders.tests.fixtures import a_company_with_members, a_distribution
+
+        with self.committed_where_a_request_on_another_connection_can_read_it():
+            world = a_company_with_members("matrix-addressed")
+            dividend = a_distribution(world)
+        listing = PUBLICATION_ROUTES["list"][1]
+        addressed = {"kind": "distribution", "addressed": "me"}
+        self.client.force_authenticate(world.owner)
+        self.assertEqual(
+            [row["uuid"] for row in self.rows(self.client.get(listing, {"kind": "distribution"}))], [str(dividend.pk)]
+        )
+        self.assertEqual(self.rows(self.client.get(listing, addressed)), [])
+        self.client.force_authenticate(world.members[0].user)
+        self.assertEqual([row["uuid"] for row in self.rows(self.client.get(listing, addressed))], [str(dividend.pk)])
+        for actor in self.actors:
+            self.client.force_authenticate(actor.user)
+            self.assertEqual(self.rows(self.client.get(listing, addressed)), [])
+        self.client.force_authenticate(None)
+        self.assertEqual(self.client.get(listing, addressed).status_code, 401)
+
     @override_settings(
         STORAGES={
             "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},

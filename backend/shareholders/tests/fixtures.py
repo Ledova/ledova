@@ -93,8 +93,8 @@ def a_member(company, *addresses):
     return member
 
 
-def a_company_with_members(label, holdings=(100, 40), first_person_holds_twice=False):
-    owner = User.objects.create_user(email=f"{label}-owner-{uuid4().hex[:8]}@example.test", password=PASSWORD)
+def a_company_with_members(label, holdings=(100, 40), first_person_holds_twice=False, owner=None):
+    owner = owner or User.objects.create_user(email=f"{label}-owner-{uuid4().hex[:8]}@example.test", password=PASSWORD)
     company, token = a_share_class(label, owner)
     staff = instruction_reviewer()
     authority = verified_authority(company, staff)
