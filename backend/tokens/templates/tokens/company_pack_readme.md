@@ -141,12 +141,12 @@ The contracts were compiled with Solidity 0.8.24, EVM version `paris`, the optim
 
 - Moving the register to a place other than the company's registered office or principal place of business needs notice to ASIC of where it is kept, within 7 days (s172(2)).
 - Where the register is stored on a computer at a place other than where it is inspected, a change of either place needs notice to ASIC within 14 days (s1301(4)).
-- Certificates and notices of share issues and member changes that are still due remain the company's obligations, whoever keeps the register. Each class's `due.json` lists those Ledova had not prepared at the as-at time.
+- Certificates and notices of share issues and member changes that are still due remain the company's obligations, whoever keeps the register. Each class's `due.json` lists those Ledova had not prepared at the as-at time; one the company prepared elsewhere is still listed.
 
 {% if due %}| Class | Entry | Kind | Owed | Due on | Overdue |
 | --- | --- | --- | --- | --- | --- |
 {% for share_class in classes %}{% for row in share_class.due %}| {{ share_class.token.symbol }} | {{ row.sequence }} | {{ row.kind }} | {{ row.output }} | {{ row.due_on|date:"Y-m-d" }} | {% if row.overdue %}yes{% else %}no{% endif %} |
-{% endfor %}{% endfor %}{% else %}Nothing is owed.
+{% endfor %}{% endfor %}{% else %}None was outstanding in Ledova's records.
 {% endif %}
 ## 7. What this pack grants
 

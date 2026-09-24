@@ -1727,7 +1727,7 @@ class CompanyPackSnapshotTest(TransactionTestCase):
             "No share class is paused.",
             "- REG: not established, so `effects` is `null`",
             "No former member is recorded.",
-            "Nothing is owed.",
+            "None was outstanding in Ledova's records.",
         ):
             with self.subTest(line=line):
                 self.assertIn(line, readme)

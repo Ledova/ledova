@@ -160,7 +160,6 @@ def _share_class(company, token, outputs) -> dict:
         ]
     )
     folder = f"classes/{token.pk}"
-    pauses = history.pauses(company, token)
     waiting = history.waiting(token)
     former = history.former_members(stored)
     due = history.due(outputs, token)
@@ -189,7 +188,7 @@ def _share_class(company, token, outputs) -> dict:
                     }
                 ),
                 "cap_increases": history.cap_increases(company, token),
-                "pauses": pauses,
+                "pauses": history.pauses(company, token),
             }
         ),
         f"{folder}/entries.json": _json(entries),
@@ -211,7 +210,6 @@ def _share_class(company, token, outputs) -> dict:
         "head_hash": EMPTY_HEAD if register is None else register.head_hash,
         "member_rows": 0 if stored is None else len(stored["rows"]),
         "former_rows": 0 if stored is None else len(stored["former_members"]),
-        "pauses": pauses,
         "waiting": waiting["effects"],
         "former": former,
         "due": due,
