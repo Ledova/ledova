@@ -11,11 +11,11 @@ portability pack that wraps them, because the three would be the same generator
 run with different flags; the [decision](../decisions.md#the-company-pack)
 records the choices behind it. The pack is built in slices under
 [#650](https://github.com/Ledova/ledova/issues/650). This page describes what it
-carries today: the company, its share classes, each register, the approvals and
+carries: the company, its share classes, each register, the approvals and
 history behind them, each class's chain evidence and settlements, the company's
-documents with the evidence copies behind its approvals, and the contract
-information. Publications follow in a later slice, and the format takes them
-without a change.
+documents with the evidence copies behind its approvals, what the company
+published to its members with each resolution's result and each dividend's
+payment records, and the contract information.
 
 ## Producing and recording
 
@@ -55,9 +55,12 @@ describes.
 
 A refusal records nothing: a company with no share classes, a blank field, a
 register entry that no longer matches its stored hash, which names the class
-and the entry, stored files over the ceiling, a stored file missing from private
-storage, and an evidence copy that no longer matches its recorded digest; the
-last three name the size and ceiling or the file. A failure while the archive
+and the entry, a publication event that no longer matches its stored hash or a
+roll that no longer matches its recorded digest, which name the publication,
+stored files over the ceiling, a stored file missing from private storage, and
+an evidence copy, publication document or remittance evidence that no longer
+matches its recorded digest; the last three name the size and ceiling or the
+file. A failure while the archive
 is written records nothing either, because the records are written only once
 the archive is complete.
 
@@ -72,7 +75,8 @@ just as a certificate carries no creation date.
 `manifest.json` names the format, `ledova-company-pack`, and its version, `1`;
 the company's id, name and ACN; the as-at time, which is when the snapshot was
 read; the instruction and recipient; each share class's register sequence and
-head hash; and every other file's path, size in bytes and SHA-256. The recorded
+head hash; each publication's id, kind, number of events and head hash; and
+every other file's path, size in bytes and SHA-256. The recorded
 digest is the SHA-256 of `manifest.json`, so it fixes every file even when the
 files are zipped again. The file list is open: a later slice adds files without
 changing the version, and a change to what an existing file means changes it.
@@ -103,6 +107,11 @@ in UTC, and share quantities and supplies are strings of whole numbers.
 | `classes/<class id>/due.json` | The class's rows of the [certificates and notice figures still due](register.md#outputs-due) |
 | `contracts/contracts.json` | The chain id, the compiler settings, the factory, settlement and registry addresses, each class's address, the owner it was deployed with and the settlement contract its approval targeted, each registry's owner, and both signing domains |
 | `contracts/<Name>.json` | The committed interfaces of `ShareToken`, `WhitelistRegistry`, `ShareTokenFactory` and `AtomicSwap` |
+| `publications/<publication id>/publication.json` | One publication, its terms, its document's path and digest, and its read counts: see [publications](#publications) |
+| `publications/<publication id>/roll.json` | Its frozen roll, without account ids |
+| `publications/<publication id>/events.json` | Its event chain: ballots withheld, every other event in full with its preimage |
+| `publications/<publication id>/document.<extension>` | Its document's bytes as stored |
+| `publications/<publication id>/payments/<record id>.<extension>` | Each payment record's remittance evidence as stored |
 
 Class folders are named by the class's id, not its symbol. Symbols are unique
 within a company only as written, so two could differ only in case, and admin
@@ -136,6 +145,15 @@ entry before it, and the last hash against the manifest's head, and to replay th
 entries into the current members. The number of the platform account that
 recorded an entry is inside each preimage, because the chain cannot be checked
 without it, and appears nowhere else in the pack.
+
+A publication's event chain uses the same recipe under two version tags, `v1`
+for ballots and the close and `v2` for payment records and their withdrawals.
+`shareholders_publication_event_preimage(event)`, installed beside
+`shareholders_publication_event_hash` by `shareholders/0005_publication_event_preimage`,
+returns the text either version digests, and a test holds the SHA-256 of that
+text to the hash function's result for every kind of event. The builder refuses
+a publication if any event's preimage does not digest to its stored hash. A
+ballot's preimage never leaves: see [publications](#publications).
 
 ### Contract information
 
@@ -337,7 +355,9 @@ of those files is stored under `companies/<company id>/`
   reviewed.
 - **The digest tie.** While streaming an evidence copy, the builder computes its
   size and SHA-256 and refuses the pack, naming the record, unless they are the
-  size and SHA-256 its snapshot recorded when it was submitted. The consumer
+  size and SHA-256 its snapshot recorded when it was submitted. A publication's
+  document and a payment record's remittance evidence are tied the same way, to
+  the SHA-256 recorded when each was stored. The consumer
   checks the same tie offline, from `evidence` and the bytes carried. A company
   document has no recorded digest to tie to; the manifest fixes its bytes, as it
   fixes every file's.
@@ -364,6 +384,60 @@ classification claims and their evidence, and payslips) is not in the pack:
 each person gave it to be verified, it is not a record of the company, it runs
 on its own retention clock, and a verification does not carry over to another
 company or provider.
+
+## Publications
+
+[company_pack_publications.py](../../backend/tokens/services/company_pack_publications.py)
+builds a folder for each [publication](shareholder-publications.md) of the
+company, oldest first, reading `Publication` by the company and everything else
+through the publication it read: the roll and the event chain by their
+publication, and the read records by publication id. Every publication kind has
+a folder; a holding statement or meeting notice has no events.
+
+- **The publication.** `publication.json` carries its kind, title and class as
+  frozen, record date, publication time, instruction, the authority document's
+  id, the register sequence and head hash its roll was frozen at, the roll's row
+  count and audience digest, and the document's path, media type and SHA-256. A
+  resolution adds its question, kind, basis and window; a dividend its rate,
+  currency, declaration and payment dates, declared total and undistributed
+  remainder. The authority's verification fingerprint and the preparing staff
+  member's id stay behind, as a document's verification does in
+  `documents.json`.
+- **The document** is carried at `document.<extension>`, streamed from private
+  storage with the same digest tie as an evidence copy: the builder refuses the
+  pack, naming the publication, unless its SHA-256 is the `digest` recorded when
+  it was stored.
+- **The roll** carries each row's id, register member, name, holder type,
+  identity source, shares and entitlement, and never the account id it
+  resolved to, so no platform id leaves (owner decision 4). Before carrying it,
+  the builder runs the roll check `publications verify` runs, and refuses the
+  pack, naming the publication and that command, if the roll no longer has the
+  row count and digest it recorded. A reader cannot recompute the digest,
+  because it covers the account ids.
+- **The events.** A close, a payment record and a withdrawal are carried in
+  full with their preimage: the close's tally payload, and a payment record's
+  roll row, recorded date, reference, authority and remittance evidence's path,
+  SHA-256 and media type. The company is the payer and already knows whom it
+  paid, so these are its records. A ballot carries its sequence, kind,
+  `previous_hash`, `entry_hash` and `withheld: true`, and nothing else: not its
+  roll row, choice, shares, actor, staff flag, authority, time or preimage,
+  because the preimage holds the choice (owner decision 3). Each remittance
+  evidence file is carried at `payments/<record id>.<extension>` with the same
+  digest tie as the document, against `evidence_digest`.
+- **Read counts, not readers.** `reads` counts document reads by members, by the
+  company and by staff, the distinct roll rows whose member opened it, and staff
+  reads of remittance evidence, in one grouped query over `PublicationRead`. No
+  reader, read time or read record id leaves.
+- **The ceiling** counts each publication document and remittance evidence file
+  by the size storage reports, since neither records a size of its own.
+
+The README lists every publication with its kind, title, class, record date,
+number of events and head hash; explains how to check the event chains and a
+close's tally; and says what is withheld and why: how a member voted, and who
+opened what. It also says that a tally can still show how members voted,
+because the shares counted each way, set against the roll's holdings, may fit
+only one set of members, and that the company already sees the same tally and
+roll through Ledova.
 
 ## What does not leave, and why
 
@@ -392,9 +466,9 @@ member's residential address, which the pack does carry, sees the same search
 find every one, and removes them again. Another test fails if the company's API
 key, its owner's email or the owner's account number appears in the pack, with
 the positive control that the company's name does. Signed transaction bytes
-have their own test, described under [chain evidence](#chain-evidence). Ballots
-and publication reads have no absence test yet, because nothing the pack reads
-today comes near them.
+have their own test, described under [chain evidence](#chain-evidence).
+Ballots, roll account ids and publication readers have theirs, described under
+[the consumer test](#the-consumer-test).
 
 Stored files have a test of their own in
 [test_company_pack_documents.py](../../backend/tokens/tests/test_company_pack_documents.py).
@@ -463,8 +537,25 @@ The consumer:
     every authority record's evidence copy is carried at its `path` with the
     size and SHA-256 its `evidence` records, and that every file under
     `documents/` is named by a document or a record;
-11. prints each class's result, a count of the documents and evidence copies,
-    and the manifest's SHA-256, which the test compares with the recorded rows.
+11. checks each publication's event chain: numbering from 1, each
+    `previous_hash` the hash of the event before, and the last hash and count
+    the manifest's head; for every event but a withheld ballot, that the SHA-256
+    of its preimage is its hash, that the preimage's values are the event's
+    fields, the publication's id and the company's id, apart from the opaque
+    account number and storage name, and that a payment record names a row on
+    the roll; that only a ballot is withheld, and nothing follows a close;
+12. checks a close's tally against what it can see: its basis, kind and
+    eligible shares and members against the resolution and its roll, the
+    members it counts against the number of ballots on the chain, the shares it
+    counts against the roll's, and `carried` against the shares for and against
+    under the resolution's kind. It cannot recount the tally, because the
+    ballots are withheld;
+13. checks each publication's roll count, that its document and each remittance
+    evidence file has the SHA-256 its records state, and that every file under
+    `publications/` is named by a publication;
+14. prints each class's result, a count of the documents and evidence copies,
+    each publication's count of events linked, recomputed and withheld, and the
+    manifest's SHA-256, which the test compares with the recorded rows.
 
 None of these is an on-chain fact. The consumer cannot check a signature or a
 receipt, because `hashlib`'s SHA3 is not Ethereum's Keccak and it has no
@@ -523,6 +614,43 @@ control that each pack carries all of its own. An opening applied against a
 captured boundary is carried with it, and the consumer refuses a changed
 holding, a changed date, an unmapped holder and a missing boundary.
 
+[test_company_pack_publications.py](../../backend/tokens/tests/test_company_pack_publications.py)
+builds a company with three members through the publication services: a
+holding statement; an ordinary resolution with a ballot for, a ballot against
+and a staff-entered abstention, read by two members and the company, then
+closed; and a dividend whose rate leaves a cent undistributed, with a payment
+record, a second that is withdrawn and recorded again, a member's read and a
+staff read of remittance evidence. Its tests hold each publication's files to
+the database's rows, the preimage function to the hash function for all four
+kinds of event, the README to its table and its statements of what is withheld,
+and the consumer to verifying every chain without the platform. The consumer
+names a ballot's link broken, the close's link broken with its preimage and
+hash rewritten to match, the close's tally changed with its hash left
+unchanged, the tally changed outside its preimage, a ballot removed, the last
+payment record removed, a byte flipped in remittance evidence, and an unnamed
+file. With the close's hash and the manifest's head rewritten to match, it
+names a tally counting one ballot too many, eligible shares that are not the
+roll's and a result its shares for and against contradict; it also names a
+ballot marked as carried in full, an event after the close, a ballot on a
+dividend, a payment record whose roll row is gone, a roll row removed and a
+publication that is not the one the manifest lists. The builder refuses a changed or missing document or remittance evidence,
+a ballot rewritten in the database, and a roll row rewritten, and records
+nothing; the ceiling refuses one byte below the fixture's total, which counts
+the six stored publication files.
+
+Three absence tests search the whole archive. Every member, staff and owner
+account in the fixture has a nine-digit id, so a search for each is exact. No
+roll row's account id appears, while the staff id inside each payment record's
+preimage does, which is the search's positive control. No reader's account id
+or read record id appears, with the same control, and the read counts are the
+ones the fixture wrote. For ballots, the search finds each ballot's roll row,
+member and name in the pack and then finds no JSON object holding one of them
+with that ballot's choice, and no ballot's preimage, id or time, even inside a
+JSON string; planting the choice beside the roll row or the name, or the
+preimage, into one ballot is found. A second company's pack carries none of the
+first's publication, roll row, event or evidence ids, names, hashes or file
+bytes, with the positive control that the first's own pack carries all of them.
+
 ## Limits
 
 - The consumer is ours, written from our own README. It proves the recipe works
@@ -557,6 +685,22 @@ holding, a changed date, an unmapped holder and a missing boundary.
   against the manifest.
 - A document held as an `external_url` is not fetched, so the pack cannot show
   what that address served.
+- A withheld ballot's own hash cannot be recomputed from the pack, and a close's
+  tally cannot be recounted: the consumer checks the ballots' links, the
+  close's hash, which covers the last ballot's, and the tally against the roll
+  and the number of ballots. The division of shares between for, against and
+  abstain rests on the close's hash and on Ledova's own verifier.
+- A roll's audience digest covers account ids that do not leave, so only the
+  builder can check it. The consumer checks the row count, not the roll against
+  the register's entries at the publication's sequence and record date, which
+  the pack would allow.
+- A tally can show how members voted. With one vote per share, the shares
+  counted for, against and abstaining, set against the roll's holdings, often
+  fit only one set of members: in the test fixture, holdings of 100, 40 and 1
+  and a tally of 100 for, 40 against and 1 abstaining identify every vote. The
+  company already sees the same tally and roll through Ledova, so the pack adds
+  nothing to what it can infer, but withholding ballots does not make votes
+  secret from the company in a small company.
 - No test produces a pack near the ceiling: the ceiling tests patch the constant
   down to the fixture's size. A proxy in front of the backend could still time
   out a large download; that has not been measured.

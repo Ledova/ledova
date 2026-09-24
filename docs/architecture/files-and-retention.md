@@ -72,9 +72,9 @@ staff read records a `PublicationRead`, and a read that cannot be recorded
 refuses the delivery. Unlike the register's own outputs, the bytes are kept,
 because the member has to be able to reopen the same document later.
 
-A [company pack](company-pack.md#documents) carries a company's documents and
-the evidence copies its register changes retained, all stored under
-`companies/`. No file stored under `users/` or `documents/` leaves in a pack.
+A [company pack](company-pack.md#documents) carries a company's documents,
+the evidence copies its register changes retained, its publications' documents
+and its payment records' remittance evidence, all stored under `companies/`. No file stored under `users/` or `documents/` leaves in a pack.
 
 Correction requests retain a private copy of the reviewed authority document,
 with its content and company binding. During the synthetic experiment those

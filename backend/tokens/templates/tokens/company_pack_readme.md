@@ -6,14 +6,14 @@ This archive holds the records Ledova kept for {{ company.name|md }} as at {{ as
 
 The stored register in this pack is the company's register of members. Where a share class is also on a blockchain, the chain is a mirror of the register and not the register itself.
 
-The pack carries the company, its share classes, each class's register of members with the history of entries behind it, the approvals and authority behind those entries, the transactions Ledova sent for each class and the settlements it executed, the company's documents with the copy Ledova kept of the evidence behind each approval, and the contract information needed to continue on chain. It does not carry members' email addresses, phone numbers, dates of birth, citizenship, financial details, account numbers, identity-verification evidence or platform account ids: those are what members gave Ledova, not what the register records. Nor does it carry investors' classification claims and evidence, their payslips, orders that have not settled, Ledova's own records of who took copies of the register, or the signed bytes of any transaction.
+The pack carries the company, its share classes, each class's register of members with the history of entries behind it, the approvals and authority behind those entries, the transactions Ledova sent for each class and the settlements it executed, the company's documents with the copy Ledova kept of the evidence behind each approval, what the company published to its members with the roll each was addressed to, the record of each resolution's ballots and result and of each dividend's payment records, and the contract information needed to continue on chain. It does not carry members' email addresses, phone numbers, dates of birth, citizenship, financial details, account numbers, identity-verification evidence or platform account ids: those are what members gave Ledova, not what the register records. Nor does it carry investors' classification claims and evidence, their payslips, orders that have not settled, Ledova's own records of who took copies of the register, the signed bytes of any transaction, how any member voted, or which member opened which publication.
 
 ## 2. How to read it
 
 | File | What it holds |
 | --- | --- |
 | `README.md` | This document |
-| `manifest.json` | The format name and version, the company, the as-at time, the instruction and recipient, each share class's register sequence and head hash, and every other file's path, size in bytes and SHA-256 |
+| `manifest.json` | The format name and version, the company, the as-at time, the instruction and recipient, each share class's register sequence and head hash, each publication's number of events and head hash, and every other file's path, size in bytes and SHA-256 |
 | `company.json` | The company as Ledova holds it, the name of the account that instructs for it, and its business-register checks |
 | `approvals.json` | The company's registry addresses; each wallet approval with its status, its expiry and whether it was listed at the as-at time; and each change to an approval, with its action, expiry, authority, status and transaction |
 | `wallet_links.json` | Each request to link a wallet to a member of the company: its authority, terms, evidence and decision |
@@ -33,6 +33,11 @@ The pack carries the company, its share classes, each class's register of member
 | `classes/<class id>/due.json` | Share certificates and notice figures still owed for the register's entries |
 | `contracts/contracts.json` | The chain, each contract's address, the owner each share class was deployed with and the settlement contract it was approved on, the registry's owner, the two signing domains and the compiler settings |
 | `contracts/<Name>.json` | The interface (ABI) of each contract: `ShareToken`, `WhitelistRegistry`, `ShareTokenFactory` and `AtomicSwap` |
+| `publications/<publication id>/publication.json` | One thing the company published to its members: its kind, title and class, the record date, the instruction and the company document that authorised it, the point in the register its roll was taken from, the roll's number of rows and digest, the document's path, media type and SHA-256, a resolution's question, kind, voting basis and window or a dividend's rate, currency, dates, declared total and undistributed remainder, and how many times it was opened |
+| `publications/<publication id>/roll.json` | The members it was addressed to, as at its record date: each row's id, register member, name, holder type, identity source, shares and, for a dividend, entitlement |
+| `publications/<publication id>/events.json` | A resolution's ballots and close, or a dividend's payment records and their withdrawals, in order, each with its hashes. Every event but a ballot is carried in full, with the exact text its hash was computed over |
+| `publications/<publication id>/document.<extension>` | The document as it was published to members |
+| `publications/<publication id>/payments/<record id>.<extension>` | The remittance evidence the company supplied for a payment record |
 
 The share classes:
 
@@ -110,6 +115,47 @@ This pack carries {{ copies }} evidence cop{{ copies|pluralize:"y,ies" }}.
 
 Verification evidence Ledova holds for members is not in this pack: identity checks, investor classification claims and their evidence, and payslips. Each person gave it to Ledova to be verified, and it is not a record of the company. It runs on its own retention clock, and a verification does not carry over to another company or provider, which verifies members itself.
 
+### Reading the publications
+
+{% if publications %}| Publication id | Kind | Title | Class | Record date | Events | Head hash |
+| --- | --- | --- | --- | --- | --- | --- |
+{% for row in publications %}| `{{ row.publication.pk }}` | {{ row.publication.kind }} | {{ row.publication.title }} | {{ row.publication.token_symbol }} | {{ row.publication.record_date|date:"Y-m-d" }} | {{ row.events }} | `{{ row.head_hash }}` |
+{% endfor %}{% else %}The company published nothing to its members through Ledova.
+{% endif %}
+Each publication is something the company published to its members through Ledova on its written instruction: a holding statement, a meeting notice, a resolution put to members, or a dividend. `publication.json` names the company document that authorised it (`authority_document`, listed in `documents.json`) and the point in the class's register its roll was taken from: `register.sequence` and `register.head_hash` are an entry's number and `entry_hash` in the class's `entries.json`. `document` names the file at `document.path` and the SHA-256 Ledova recorded when it stored it. Ledova checked, when it produced this pack, that the file still has that SHA-256.
+
+`roll.json` is the roll frozen when the publication was made: one row for each member holding shares of the class on the record date, largest holding first, with the register member (`member`, as in `register.csv` and `entries.json`), the name, holder type and identity source as at that moment, the shares held and, for a dividend, the `entitlement`, which is the shares times the rate, rounded down to the cent. Rows name no platform account. `member_rows` and `audience_digest` are the row count and digest the publication recorded, and Ledova checked, when it produced this pack, that the roll still has them. The digest also covers the platform account each row resolved to, which is not in this pack, so you can count the rows but cannot recompute the digest.
+
+A dividend's `distribution` carries the rate per share, the currency, the dates it was declared and is payable, the total the company declared, and the `undistributed` amount that rounding each entitlement down left over. The entitlements and the undistributed amount add up to the declared total.
+
+#### Checking a publication's events
+
+A resolution records its ballots and then its close. A dividend records payment records and their withdrawals. For each publication:
+
+1. Events are numbered from 1 without gaps. The first event's `previous_hash` is sixty-four zeros, and every later event's `previous_hash` is the `entry_hash` of the event before it.
+2. The number of events is the publication's `events` in `manifest.json`, and the last event's `entry_hash` is its `head_hash`. A publication with no events has 0 and a head of sixty-four zeros.
+3. Every event except a ballot carries `preimage`, the exact text Ledova's database computed its hash over. Its SHA-256, encoded as UTF-8 and written in lowercase hexadecimal, is its `entry_hash`.
+4. A close's `preimage` is a JSON array of fifteen values: the text `ledova-publication-event-v1`; the event's `uuid`; the publication's `uuid`; the company's `uuid` from `manifest.json`; the event's `sequence`, `kind` and `recipient`, which is `null`; an empty choice and `null` shares; the number of the platform account that recorded it, which is `null` for a close; its `staff_entered`, `authority` and `payload`; and its `previous_hash` and `created_at`.
+5. A payment record's or withdrawal's `preimage` is a JSON array of twenty values: the text `ledova-publication-event-v2`; the same twelve values that follow the text in a close, where the platform account is the Ledova staff member who entered it; its `paid_on` and `reference`; the name Ledova stored the evidence under; the evidence's `sha256` and `mime_type`, both empty for a withdrawal; and its `previous_hash` and `created_at`.
+6. Each value except the account number and the storage name equals the field of that name. Those two are opaque and appear nowhere else.
+7. A payment record's or withdrawal's `recipient` is the `uuid` of a row in `roll.json`. A payment record's `evidence.path` holds the remittance evidence the company supplied, and its SHA-256 is `evidence.sha256`, which is inside the hash.
+
+A payment record is the company's statement that it paid a member, with the date and reference it gave, entered by Ledova staff with what they relied on as its `authority`. A withdrawal withdraws the record standing before it for that row, with the reason as its `authority`, and a new record may follow. Neither shows that money moved.
+
+#### The result of a resolution
+
+A close's `payload` is the tally Ledova's database counted from the ballots when voting closed: the shares and members `for`, `against` and abstaining (`abstain`), the shares and members on the roll (`eligible`), the voting `basis`, the `resolution_kind`, and whether it `carried`. An ordinary resolution is carried when the shares voted for exceed the shares voted against. A special resolution is carried when at least one share was voted for or against and the shares for are at least three quarters of those. Abstentions are counted but are not votes cast.
+
+You can check that `eligible` is the roll's shares and rows, that the members counted for, against and abstaining add up to the ballots on the chain, that the shares counted do not exceed the roll's, and that `carried` follows from the shares for and against. You cannot recount the tally, because the ballots are withheld. How the shares divided rests on the close's hash, which the database wrote when it counted, and on Ledova's own verifier, which recounts the tally from the stored ballots.
+
+#### What is withheld, and why
+
+The company sees the result of each resolution and how many members opened each publication, never how a member voted or who opened what. That is the rule for what a company sees of its members' participation, and this pack keeps it.
+
+- A ballot carries only its `sequence`, `kind`, `previous_hash` and `entry_hash`, with `withheld` set to true. Its member, choice, shares, the account that cast it, whether staff entered it, when it was cast and its preimage are not in this pack, because the preimage holds the choice. You can check its links, to the event before it and from the event after it, but not recompute its hash. The close's preimage covers the last ballot's hash, so a ballot removed or added breaks the numbering, a link, the head in `manifest.json` or the count of ballots in the tally.
+- `reads` in `publication.json` counts how many times the document was opened by members, by the company and by Ledova staff (`document`), how many of the roll's members opened it at least once (`members_who_opened`), and how many times Ledova staff opened a payment record's remittance evidence (`remittance_evidence`). It does not say who.
+- A tally can still show how members voted. Set against the holdings in `roll.json`, the shares counted each way may fit only one set of members, as they often do when few members vote or their holdings differ. The company sees the same tally and the same roll through Ledova already, so this pack shows it nothing more.
+
 ## 3. What the evidence proves and does not
 
 | Record | Proves | Does not prove |
@@ -121,8 +167,11 @@ Verification evidence Ledova holds for members is not in this pack: identity che
 | An opening's boundary | One provider reported those holdings and that supply at that block, with the named finality policy satisfied | Independent consensus |
 | A pause or settlement approval observed already in place | The contract was read in that state at that block | Which transaction put it there. The record is an observation, never transaction attribution |
 | Payment received on a subscription | Who entered what amount, and when | That money moved |
+| A publication event's hash and its link to the event before it | The event is unchanged since the database wrote it, and its place in the order | That the event is right or authorised. A ballot's own hash cannot be recomputed from this pack, because its content is withheld |
+| A resolution's close | The tally the database counted from the ballots when voting closed | How any member voted. The ballots are withheld, so the tally cannot be recounted from this pack |
+| A payment record on a dividend | Who at Ledova entered the company's statement that it paid, when, and the SHA-256 of the remittance evidence the company supplied | That money moved, or that the remittance is genuine |
 
-Each authority record names its evidence by SHA-256 and size, and `documents/evidence/` carries the copy with those digests. That shows the copy is the one Ledova kept when the record was submitted, not that the document is genuine.
+Each authority record names its evidence by SHA-256 and size, and `documents/evidence/` carries the copy with those digests. That shows the copy is the one Ledova kept when the record was submitted, not that the document is genuine. In the same way, each publication's document and each payment record's remittance evidence is carried with the SHA-256 Ledova recorded when it stored the file: that shows the file is the one stored, not that it is genuine.
 
 ## 4. Restrictions in force
 

@@ -49,9 +49,10 @@ Phase 0 verification and the bounded cross-account matcher are recorded in
 - [Phase 4](https://github.com/Ledova/ledova/issues/650): reporting and the
   portability pack. The [company pack](architecture/company-pack.md) carries the
   company, its registers, the approvals and history behind them, each class's
-  chain evidence and settlements, its documents and its contract information,
-  and the [account-data export](reference/account-data-export.md) carries every
-  transaction; publications remain.
+  chain evidence and settlements, its documents, its publications with each
+  resolution's result and each dividend's payment records, and its contract
+  information, and the [account-data export](reference/account-data-export.md)
+  carries every transaction.
 - Payment-provider selection and settlement automation when scheduled
   ([the payment decision](decisions.md#payments-and-settlement)); the mobile
   investor directory and subscription flow.

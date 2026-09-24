@@ -17,6 +17,12 @@ PREIMAGE_LENGTH = 12
 RECORDED_BY = 9
 HEXADECIMAL = set("0123456789abcdef")
 UNSIGNED = ("preparing", "failed")
+PUBLICATION_FOLDER = "publications/"
+EVENTS_OF = {"resolution": ("ballot", "close"), "distribution": ("payment", "payment_void")}
+CLOSE_RECIPE = "ledova-publication-event-v1"
+PAYMENT_RECIPE = "ledova-publication-event-v2"
+CHOICES = ("for", "against", "abstain")
+OPAQUE = object()
 
 
 class Refused(Exception):
@@ -280,6 +286,146 @@ def check_documents(files, manifest):
     )
 
 
+def event_fields(event, publication, company):
+    fields = [
+        event["uuid"],
+        publication,
+        company,
+        event["sequence"],
+        event["kind"],
+        event["recipient"],
+        "",
+        None,
+        OPAQUE,
+        event["staff_entered"],
+        event["authority"],
+        event["payload"],
+    ]
+    if event["kind"] == "close":
+        return [CLOSE_RECIPE, *fields, event["previous_hash"], event["created_at"]]
+    evidence = event["evidence"] or {"sha256": "", "mime_type": ""}
+    return [
+        PAYMENT_RECIPE,
+        *fields,
+        event["paid_on"],
+        event["reference"],
+        OPAQUE,
+        evidence["sha256"],
+        evidence["mime_type"],
+        event["previous_hash"],
+        event["created_at"],
+    ]
+
+
+def matches(fields, expected):
+    return (
+        isinstance(fields, list)
+        and len(fields) == len(expected)
+        and all(value is OPAQUE or field == value for field, value in zip(fields, expected))
+    )
+
+
+def carried_by(resolution_kind, shares_for, shares_against):
+    cast = shares_for + shares_against
+    if resolution_kind == "special":
+        return cast > 0 and shares_for * 4 >= cast * 3
+    return shares_for > shares_against
+
+
+def check_tally(path, tally, ballots, publication, roll):
+    resolution = publication["resolution"]
+    eligible = {"shares": str(sum(int(row["shares"]) for row in roll)), "members": len(roll)}
+    if (tally["basis"], tally["resolution_kind"], tally["eligible"]) != (
+        resolution["vote_basis"],
+        resolution["resolution_kind"],
+        eligible,
+    ):
+        raise Refused(f"{path}: the close's basis, kind or eligible shares and members are not the resolution's")
+    members = sum(tally[choice]["members"] for choice in CHOICES)
+    shares = sum(int(tally[choice]["shares"]) for choice in CHOICES)
+    if members != ballots or shares > int(eligible["shares"]):
+        raise Refused(
+            f"{path}: the close counts {members} ballots of {shares} shares, and the chain holds {ballots} ballots "
+            f"from a roll of {eligible['shares']} shares"
+        )
+    carried = carried_by(resolution["resolution_kind"], int(tally["for"]["shares"]), int(tally["against"]["shares"]))
+    if tally["carried"] is not carried:
+        raise Refused(
+            f"{path}: the close says carried is {tally['carried']}, and its shares for and against say {carried}"
+        )
+
+
+def check_events(path, events, stated, publication, company, roll):
+    rows = {row["uuid"] for row in roll}
+    previous = EMPTY_HEAD
+    withheld = 0
+    close = None
+    for number, event in enumerate(events, 1):
+        where = f"{path} event {number}"
+        if event["sequence"] != number:
+            raise Refused(f"{where}: numbered {event['sequence']}")
+        if event["kind"] not in EVENTS_OF.get(publication["kind"], ()):
+            raise Refused(f"{where}: a {publication['kind']} records no {event['kind']}")
+        if close is not None:
+            raise Refused(f"{where}: follows the close")
+        if event["withheld"] is not (event["kind"] == "ballot"):
+            raise Refused(f"{where}: a ballot is withheld, and nothing else is")
+        if event["withheld"]:
+            withheld += 1
+        else:
+            if sha256(event["preimage"].encode("utf-8")) != event["entry_hash"]:
+                raise Refused(f"{where}: entry_hash is not the SHA-256 of its preimage")
+            if not matches(json.loads(event["preimage"]), event_fields(event, publication["uuid"], company)):
+                raise Refused(f"{where}: the preimage does not match the event's fields")
+            if event["recipient"] is not None and event["recipient"] not in rows:
+                raise Refused(f"{where}: its recipient {event['recipient']} is not on the roll")
+            if event["kind"] == "close":
+                close = event
+        if event["previous_hash"] != previous:
+            raise Refused(f"{where}: previous_hash does not link to event {number - 1}")
+        previous = event["entry_hash"]
+    if (len(events), previous) != (stated["events"], stated["head_hash"]):
+        raise Refused(
+            f"{path}: ends at event {len(events)} with {previous}, and the manifest's head is event "
+            f"{stated['events']} with {stated['head_hash']}"
+        )
+    if close is not None:
+        check_tally(path, close["payload"], withheld, publication, roll)
+    return withheld
+
+
+def check_publications(files, manifest):
+    lines, named = [], set()
+    for stated in manifest["publications"]:
+        folder = f"publications/{stated['publication']}"
+        record_path, roll_path, events_path = (
+            f"{folder}/{name}" for name in ("publication.json", "roll.json", "events.json")
+        )
+        publication = json.loads(listed_file(files, record_path))
+        roll = json.loads(listed_file(files, roll_path))
+        events = json.loads(listed_file(files, events_path))
+        named |= {record_path, roll_path, events_path}
+        if (publication["uuid"], publication["kind"]) != (stated["publication"], stated["kind"]):
+            raise Refused(f"{record_path}: not the publication the manifest lists")
+        if len(roll) != publication["member_rows"]:
+            raise Refused(f"{roll_path}: {len(roll)} rows, and the publication records {publication['member_rows']}")
+        withheld = check_events(events_path, events, stated, publication, manifest["company"]["uuid"], roll)
+        carried = [(publication["document"], record_path)]
+        carried += [(event["evidence"], events_path) for event in events if not event["withheld"] and event["evidence"]]
+        for stored, source in carried:
+            if sha256(listed_file(files, stored["path"])) != stored["sha256"]:
+                raise Refused(f"{stored['path']}: its SHA-256 is not the one {source} records")
+            named.add(stored["path"])
+        lines.append(
+            f"{publication['kind']} {publication['uuid']}: {len(events)} events linked, "
+            f"{len(events) - withheld} recomputed, {withheld} withheld"
+        )
+    unnamed = sorted(path for path in files if path.startswith(PUBLICATION_FOLDER) and path not in named)
+    if unnamed:
+        raise Refused(f"{unnamed[0]}: named by no publication")
+    return lines
+
+
 def check(path):
     refuse_the_platform()
     with zipfile.ZipFile(path) as bundle:
@@ -311,6 +457,7 @@ def check(path):
                 raise Refused(f"{csv_path}: the current members are not what {entries_path} replays to")
         lines.append(f"{register['symbol']}: {len(entries)} entries verified, {len(holdings)} current members")
     lines.append(check_documents(files, manifest))
+    lines += check_publications(files, manifest)
     return lines, sha256(raw)
 
 

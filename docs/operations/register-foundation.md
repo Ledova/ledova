@@ -954,7 +954,8 @@ those entries, the issues and the subscriptions still to be allotted or
 refunded, with their payments as recorded, the wallet approvals, what is still
 waiting to be entered or owed, the transactions Ledova sent for each class and
 the settlements it executed, the company, its documents with the evidence copy
-behind each approval, and the contract
+behind each approval, what the company published to its members with each
+resolution's result and each dividend's payment records, and the contract
 information a successor needs, with a README that explains each file and how to
 check it. Staff produce it only on the company's written instruction
 naming who it is for, or on a document that legally compels disclosure, such as
@@ -976,7 +977,8 @@ first, and it grants nothing else. The company needs at least one share class.
 The download, `company-pack-ACN-YYYYMMDDTHHMMSSZ.zip`, is named for the moment
 the records were read, in UTC, and carries every current and former member's
 name and residential address, the names of the staff who reviewed the
-company's register changes, and the company's documents. Give it unchanged to the recipient the instruction names. The page
+company's register changes, the company's documents, and each publication's
+roll of names and holdings. Give it unchanged to the recipient the instruction names. The page
 refuses, and records nothing, when the company has no share classes, when a
 field is blank, or when an entry in a share class's register no longer matches
 its stored hash. That refusal names the class and the entry: run
@@ -993,7 +995,15 @@ verifies. It also refuses, and records nothing:
   private storage, then produce the pack again.
 - when an evidence copy's stored bytes no longer match the SHA-256 recorded
   when its record was submitted. The refusal names the record. Restore the copy
-  that was submitted, and find out how it changed, before producing a pack.
+  that was submitted, and find out how it changed, before producing a pack. A
+  publication's document or a payment record's remittance evidence is refused
+  the same way, naming the publication or the payment record.
+- when an event in a publication's record no longer matches its stored hash, or
+  a publication's roll no longer has the rows and digest it recorded. The
+  refusal names the publication. Run
+  `python manage.py publications verify --publication PUBLICATION_UUID` from
+  `backend/` ([verifying a resolution](publications.md#verifying-a-resolution)),
+  and do not produce a pack until it verifies.
 
 Each pack is recorded in **Admin → Tokens → Register exports** as kind
 **Company pack**, once for each share class it carries: who produced it, the

@@ -49,7 +49,7 @@ def held(company):
             stored[path] = {
                 "file": document.file,
                 "size": document.file_size,
-                "evidence": None,
+                "recorded": None,
                 "of": f"company document {document.pk}",
             }
     return listed, stored
@@ -60,7 +60,10 @@ def evidence(records) -> dict:
         evidence_path(record): {
             "file": record.file,
             "size": None,
-            "evidence": (record.evidence_snapshot.get("file_size"), record.evidence_snapshot.get("sha256")),
+            "recorded": {
+                "size": record.evidence_snapshot.get("file_size"),
+                "sha256": record.evidence_snapshot.get("sha256"),
+            },
             "of": f"the evidence of {record._meta.verbose_name} {record.pk}",
         }
         for record in records
@@ -109,10 +112,12 @@ def carry(stored, target):
                 target.write(chunk)
     except UNREADABLE:
         raise _missing(stored) from None
-    if stored["evidence"] is not None and stored["evidence"] != (size, digest.hexdigest()):
-        logger.error("The retained evidence copy %s no longer matches its recorded digest", stored["file"].name)
+    carried = {"size": size, "sha256": digest.hexdigest()}
+    recorded = stored["recorded"]
+    if recorded is not None and {key: carried[key] for key in recorded} != recorded:
+        logger.error("The stored file %s no longer matches its recorded digest", stored["file"].name)
         raise RegisterIntegrityError(
             f"The copy Ledova kept of {stored['of']} no longer matches the SHA-256 recorded when it was submitted, "
             "so no pack was produced. Restore the copy that was submitted before producing a pack."
         )
-    return size, digest.hexdigest()
+    return size, carried["sha256"]
