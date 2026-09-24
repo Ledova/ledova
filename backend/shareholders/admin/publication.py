@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib import admin, messages
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.decorators import method_decorator
@@ -146,9 +147,11 @@ class PaymentForm(forms.Form):
 
     def __init__(self, publication, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["recipient"].queryset = PublicationRecipient.objects.filter(
-            publication=publication
-        ).awaiting_a_payment_record()
+        self.fields["recipient"].queryset = (
+            PublicationRecipient.objects.filter(publication=publication, entitlement__gt=0)
+            .with_latest_payment_record()
+            .filter(Q(latest_payment_record__isnull=True) | Q(latest_payment_record=PublicationEventKind.PAYMENT_VOID))
+        )
         self.fields["recipient"].label_from_instance = _entitled_row
 
 
@@ -162,9 +165,11 @@ class WithdrawalForm(forms.Form):
 
     def __init__(self, publication, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["recipient"].queryset = PublicationRecipient.objects.filter(
-            publication=publication
-        ).with_a_payment_recorded()
+        self.fields["recipient"].queryset = (
+            PublicationRecipient.objects.filter(publication=publication)
+            .with_latest_payment_record()
+            .filter(latest_payment_record=PublicationEventKind.PAYMENT)
+        )
         self.fields["recipient"].label_from_instance = _entitled_row
 
 
