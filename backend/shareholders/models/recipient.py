@@ -1,6 +1,7 @@
 from django.db import models
 
 from shared.models import BaseModel
+from shareholders.querysets.recipient import PublicationRecipientQuerySet
 from tokens.models.choices import IDENTITY_SOURCE_CHOICES
 from whitelist.models import HolderType
 
@@ -16,6 +17,9 @@ class PublicationRecipient(BaseModel):
     holder_type = models.CharField(max_length=16, choices=HolderType.choices, editable=False)
     identity_source = models.CharField(max_length=24, choices=IDENTITY_SOURCE_CHOICES, editable=False)
     shares = models.DecimalField(max_digits=78, decimal_places=0, editable=False)
+    entitlement = models.DecimalField(max_digits=18, decimal_places=2, null=True, editable=False)
+
+    objects = PublicationRecipientQuerySet.as_manager()
 
     class Meta:
         ordering = ["-shares", "member_id"]

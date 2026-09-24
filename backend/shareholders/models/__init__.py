@@ -1,4 +1,5 @@
 from shareholders.models.event import (
+    PAYMENT_RECORDS,
     BallotChoice,
     PublicationEvent,
     PublicationEventKind,
@@ -17,6 +18,7 @@ from shareholders.models.recipient import PublicationRecipient
 __all__ = [
     "BallotChoice",
     "DOCUMENT_KINDS",
+    "PAYMENT_RECORDS",
     "Publication",
     "PublicationEvent",
     "PublicationEventKind",

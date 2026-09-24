@@ -10,6 +10,7 @@ from shareholders.services.publications import ANNOUNCEMENTS, notify_the_roll
 from shareholders.tests.fixtures import (
     DAY,
     a_company_with_members,
+    a_distribution,
     a_member,
     a_resolution,
     a_treasury_address,
@@ -96,6 +97,19 @@ class AnnouncingAPublicationTest(StubUploadDependencies, TestCase):
         self.assertEqual(told, 2)
         self.assertEqual(notices[0]["title"], ANNOUNCEMENTS[PublicationKind.RESOLUTION][0])
         self.assertEqual(notices[0]["data"]["kind"], PublicationKind.RESOLUTION.value)
+
+    def test_a_distribution_is_announced_as_a_declared_dividend_without_the_member_s_entitlement(self):
+        distribution = a_distribution(self.world)
+
+        told, notices = self.deferred(distribution.pk)
+
+        self.assertEqual(told, 2)
+        self.assertEqual(notices[0]["title"], "A dividend has been declared")
+        self.assertEqual(
+            notices[0]["body"], f"{self.world.company.name} has declared a dividend on your {self.world.token.name}."
+        )
+        self.assertEqual(notices[0]["data"]["kind"], PublicationKind.DISTRIBUTION.value)
+        self.assertNotIn("entitlement", notices[0]["data"])
 
     def test_every_kind_a_publication_is_made_as_has_words_to_announce_it(self):
         self.assertEqual(sorted(ANNOUNCEMENTS), sorted(PublicationKind.values))

@@ -133,6 +133,11 @@ A_CLOSE_ON_MY_ROLL = (
     f"AND addressed.user_id = {PRINCIPAL})"
 )
 A_CLOSE_OF_MY_COMPANY = f"kind = 'close' AND {_company('company_id', VISIBLE_COMPANIES)}"
+MY_OWN_PAYMENT_RECORDS = (
+    "kind IN ('payment', 'payment_void') AND EXISTS (SELECT 1 FROM shareholders_publicationrecipient owed "
+    f"WHERE owed.uuid = shareholders_publicationevent.recipient_id AND owed.user_id = {PRINCIPAL})"
+)
+PAYMENT_RECORDS_OF_MY_COMPANY = f"kind IN ('payment', 'payment_void') AND {_company('company_id', VISIBLE_COMPANIES)}"
 
 
 A_PARTY_TO_THE_SWAP = (
@@ -254,7 +259,8 @@ POLICIES = {
         "false",
     ),
     "shareholders_publicationevent": (
-        f"({MY_OWN_BALLOT}) OR ({A_CLOSE_ON_MY_ROLL}) OR ({A_CLOSE_OF_MY_COMPANY})",
+        f"({MY_OWN_BALLOT}) OR ({A_CLOSE_ON_MY_ROLL}) OR ({A_CLOSE_OF_MY_COMPANY}) "
+        f"OR ({MY_OWN_PAYMENT_RECORDS}) OR ({PAYMENT_RECORDS_OF_MY_COMPANY})",
         "false",
     ),
     "blockchain_outgoingoperation": ("false", "false"),
@@ -442,11 +448,17 @@ PUBLIC_TERM = {
     "staff member entered for them is theirs too; a member reads the close of any resolution they are on the roll "
     "of, because the tally is the outcome every member was asked about; and the company that published reads the "
     "close alone, on the row's own company_id, which is copied from the publication at insert and checked by the "
-    "trigger. No one but staff reads another member's ballot, and the company reads no ballot at all. The write "
+    "trigger. No one but staff reads another member's ballot, and the company reads no ballot at all. A "
+    "distribution's payment records follow the same two sides: a member reads the records and withdrawals for "
+    "their own roll rows, found through the roll row each names, and never another member's; the company reads "
+    "every payment record of its own distributions on the row's company_id, because it is the payer and staff "
+    "record them on its written instruction. The write "
     "term is false for all three commands: a member's ballot is resolved under this principal's policies and "
     "inserted on the operator connection, where the trigger requires the actor to be the account the roll row "
-    "names. No cycle: both terms read shareholders_publicationrecipient, whose own policy reads only its own "
-    "columns and companies_company through the visible-companies helper, and nothing reads this table back.",
+    "names, and payment records are written by staff on the operator connection alone. No cycle: the member terms "
+    "read shareholders_publicationrecipient, whose own policy reads only its own columns and companies_company "
+    "through the visible-companies helper, the company terms read that helper alone, and nothing reads this table "
+    "back.",
     "offerings_offering": "open_now() deliberately admits investors - the subscription serializer and "
     "services/subscription.py re-read the offering under select_for_update, and an owner-only policy turns "
     "that into DoesNotExist on the subscribe path rather than a refusal.",

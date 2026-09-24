@@ -2,8 +2,10 @@ import uuid
 
 from django.db import models
 
+from shared.constants import CURRENCY_CHOICES
 from shared.models import BaseModel
 from shared.storage import private_storage
+from shareholders.constants import DISTRIBUTION_CURRENCIES
 from shareholders.querysets.publication import PublicationQuerySet
 
 
@@ -11,6 +13,7 @@ class PublicationKind(models.TextChoices):
     HOLDING_STATEMENT = "holding_statement", "Annual holding statement"
     MEETING_NOTICE = "meeting_notice", "Meeting notice"
     RESOLUTION = "resolution", "Resolution"
+    DISTRIBUTION = "distribution", "Dividend"
 
 
 class ResolutionKind(models.TextChoices):
@@ -22,7 +25,12 @@ class VoteBasis(models.TextChoices):
     PER_SHARE = "per_share", "One vote per share"
 
 
-DOCUMENT_KINDS = (PublicationKind.HOLDING_STATEMENT, PublicationKind.MEETING_NOTICE, PublicationKind.RESOLUTION)
+DOCUMENT_KINDS = (
+    PublicationKind.HOLDING_STATEMENT,
+    PublicationKind.MEETING_NOTICE,
+    PublicationKind.RESOLUTION,
+    PublicationKind.DISTRIBUTION,
+)
 
 
 def publication_file_path(instance, filename):
@@ -54,6 +62,12 @@ class Publication(BaseModel):
     vote_basis = models.CharField(max_length=16, choices=VoteBasis.choices, blank=True, editable=False)
     opens_at = models.DateTimeField("voting opens", null=True, blank=True, editable=False)
     closes_at = models.DateTimeField("voting closes", null=True, blank=True, editable=False)
+    rate_per_share = models.DecimalField(max_digits=18, decimal_places=6, null=True, blank=True, editable=False)
+    currency = models.CharField(max_length=16, choices=CURRENCY_CHOICES, blank=True, editable=False)
+    declared_on = models.DateField("dividend declared on", null=True, blank=True, editable=False)
+    payment_date = models.DateField(null=True, blank=True, editable=False)
+    declared_total = models.DecimalField(max_digits=18, decimal_places=2, null=True, blank=True, editable=False)
+    undistributed = models.DecimalField(max_digits=18, decimal_places=2, null=True, blank=True, editable=False)
 
     objects = PublicationQuerySet.as_manager()
 
@@ -108,5 +122,30 @@ class Publication(BaseModel):
                     )
                 ),
                 name="publication_resolution_states_its_question_and_window",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    kind=PublicationKind.DISTRIBUTION,
+                    rate_per_share__isnull=False,
+                    rate_per_share__gt=0,
+                    currency__in=DISTRIBUTION_CURRENCIES,
+                    declared_on__isnull=False,
+                    payment_date__isnull=False,
+                    payment_date__gte=models.F("record_date"),
+                    declared_total__isnull=False,
+                    declared_total__gt=0,
+                    undistributed__isnull=False,
+                    undistributed__gte=0,
+                )
+                | models.Q(
+                    ~models.Q(kind=PublicationKind.DISTRIBUTION),
+                    rate_per_share__isnull=True,
+                    currency="",
+                    declared_on__isnull=True,
+                    payment_date__isnull=True,
+                    declared_total__isnull=True,
+                    undistributed__isnull=True,
+                ),
+                name="publication_distribution_states_its_rate_dates_and_total",
             ),
         ]

@@ -22,6 +22,8 @@ from shareholders.services.resolutions import cast_ballot, close_resolution
 from shareholders.tasks.publications import purge_publications_past_the_clock
 from shareholders.tests.fixtures import (
     a_company_with_members,
+    a_distribution,
+    a_payment,
     a_resolution,
     published,
     voting_has_closed,
@@ -68,6 +70,20 @@ class PublicationRetentionTest(StubUploadDependencies, TestCase):
         self.assertFalse(PublicationEvent.objects.exists())
         self.assertFalse(PublicationRecipient.objects.exists())
         self.assertFalse(Publication.objects.exists())
+
+    def test_the_purge_removes_a_distribution_s_payment_records_and_their_stored_evidence(self):
+        distribution = a_distribution(self.world)
+        record = a_payment(self.world, distribution, self.world.members[0])
+        evidence = os.path.join(settings.PRIVATE_MEDIA_ROOT, record.evidence.name)
+        self.assertTrue(os.path.isfile(evidence))
+
+        with self.captureOnCommitCallbacks(execute=True):
+            removed = purge_publications(now=distribution.created_at + timedelta(days=FLOOR + 1))
+
+        self.assertEqual(removed, 2)
+        self.assertFalse(PublicationEvent.objects.exists())
+        self.assertFalse(Publication.objects.exists())
+        self.assertFalse(os.path.isfile(evidence))
 
     def test_the_daily_job_reports_what_it_removed(self):
         self.assertEqual(purge_publications_past_the_clock(), {"publications_removed": 0})

@@ -12,15 +12,16 @@ from shareholders.services.resolutions import verify_publication
 
 def _verified(publication):
     result = verify_roll(publication)
-    if publication.kind == PublicationKind.RESOLUTION:
+    if publication.kind in (PublicationKind.RESOLUTION, PublicationKind.DISTRIBUTION):
         result.update(verify_publication(publication.pk))
     return result
 
 
 class Command(BaseCommand):
     help = (
-        "Verify that a publication's frozen roll still holds the rows and digest it recorded, and that a "
-        "resolution's event chain and tally still verify."
+        "Verify that a publication's frozen roll still holds the rows and digest it recorded, that a "
+        "resolution's event chain and tally still verify, and that a distribution's entitlements, total and "
+        "payment records still verify."
     )
 
     def add_arguments(self, parser):

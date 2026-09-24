@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from decimal import Decimal
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -12,7 +13,8 @@ from companies.models import Company, CompanyType
 from shared.constants import BLOCKCHAIN_BASE
 from shared.db import atomic, current_alias, use_migrate
 from shared.tests.upload_fixtures import pdf_bytes
-from shareholders.models import PublicationKind, ResolutionKind
+from shareholders.models import PublicationKind, PublicationRecipient, ResolutionKind
+from shareholders.services.distributions import entitlement, record_payment
 from shareholders.services.publications import publish_to_members
 from tokens.models import RegisterMemberWallet, ShareToken, ShareTokenStatus
 from tokens.services.register_events import create_member, open_register
@@ -24,6 +26,9 @@ from whitelist.models import WhitelistEntry
 User = get_user_model()
 
 DAY = date(2026, 9, 20)
+DECLARED_ON = DAY - timedelta(days=7)
+PAYABLE_ON = DAY + timedelta(days=2)
+PAYMENT_REFERENCE = "LDV-4412"
 PASSWORD = "pw-12345678"
 PUBLICATION_BYTES = pdf_bytes()
 INSTRUCTION = "SYNTHETIC-PUBLICATION-INSTRUCTION-1"
@@ -147,6 +152,36 @@ def a_resolution(world, resolution_kind=ResolutionKind.ORDINARY, **changes):
     return published(world, **fields)
 
 
+def a_distribution(world, rate="0.025", **changes):
+    rate = Decimal(rate)
+    fields = {
+        "kind": PublicationKind.DISTRIBUTION,
+        "title": "Final dividend 2026",
+        "rate_per_share": rate,
+        "declared_on": DECLARED_ON,
+        "payment_date": PAYABLE_ON,
+        "declared_total": entitlement(sum(holder.shares for holder in world.members), rate),
+        "upload": an_upload("dividend.pdf"),
+        **changes,
+    }
+    return published(world, **fields)
+
+
+def roll_row(publication, holder):
+    return PublicationRecipient.objects.get(publication=publication, member_id=holder.member.pk)
+
+
+def a_payment(world, distribution, holder, **changes):
+    fields = {
+        "paid_on": PAYABLE_ON,
+        "reference": PAYMENT_REFERENCE,
+        "evidence": an_upload("remittance.pdf"),
+        "authority": "Payment advice PA-1",
+        **changes,
+    }
+    return record_payment(world.staff, distribution, roll_row(distribution, holder), **fields)
+
+
 def as_the_schema_owner(table, trigger, *statements):
     with use_migrate():
         with atomic(), connections[current_alias()].cursor() as cursor:
@@ -155,6 +190,7 @@ def as_the_schema_owner(table, trigger, *statements):
             for statement, parameters in statements:
                 cursor.execute(statement, parameters)
             cursor.execute(f"ALTER TABLE {table} ENABLE TRIGGER {trigger}")
+            cursor.execute("SET CONSTRAINTS ALL DEFERRED")
 
 
 def the_window_moves(publication, opens_at, closes_at):

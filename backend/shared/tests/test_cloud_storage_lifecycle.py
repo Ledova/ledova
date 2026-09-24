@@ -23,7 +23,7 @@ from documents.models import Document, DocumentType
 from shared.services.orphaned_files import GRACE, sweep_orphaned_files
 from shared.storage import private_file_fields
 from shared.tests.tenants import an_account
-from shareholders.models import Publication
+from shareholders.models import Publication, PublicationEvent
 from tokens.models import (
     RegisterCorrection,
     RegisterImport,
@@ -173,6 +173,7 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                         (RegisterImport, "file"),
                         (RegisterInstruction, "file"),
                         (Publication, "file"),
+                        (PublicationEvent, "evidence"),
                     },
                 )
                 connected = {lookup[0] for lookup, *_rest in post_delete.receivers}
@@ -187,6 +188,7 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                     Publication,
                 ):
                     self.assertIn(f"shared.storage.sweep:{model._meta.label}.file", connected)
+                self.assertIn("shared.storage.sweep:shareholders.PublicationEvent.evidence", connected)
                 self.assertNotIn("shared.storage.sweep:users.InvestorClassification.evidence_file", connected)
                 with self.assertRaises(NotImplementedError):
                     storage.path("documents/no-filesystem.pdf")
