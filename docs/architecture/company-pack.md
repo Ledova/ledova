@@ -12,9 +12,9 @@ run with different flags; the [decision](../decisions.md#the-company-pack)
 records the choices behind it. The pack is built in slices under
 [#650](https://github.com/Ledova/ledova/issues/650). This page describes what it
 carries today: the company, its share classes, each register, the approvals and
-history behind them, and the contract information. Chain evidence, documents
-and publications follow in later slices, and the format takes them without a
-change.
+history behind them, each class's chain evidence and settlements, and the
+contract information. Documents and publications follow in a later slice, and
+the format takes them without a change.
 
 ## Producing and recording
 
@@ -78,16 +78,18 @@ in UTC, and share quantities and supplies are strings of whole numbers.
 | `company.json` | The company row, the full name on the owner account's profile, and its business-register checks |
 | `approvals.json` | The registry addresses the company's approvals and approval changes recorded; each approval's wallet, registry, status, expiry and whether it was listed at the as-at time; each approval change's action, wallet, expiry, authority kind, status, times and transaction hash |
 | `wallet_links.json` | Every reviewed wallet link request of the company, as an [authority record](#approvals-and-history) |
-| `classes/<class id>/class.json` | The share class, its authorised shares, status and contract address, its register's id, sequence, head hash and issued supply, and each capital increase request and pause change |
+| `classes/<class id>/class.json` | The share class, its authorised shares, status and contract address, its register's id, sequence, head hash and issued supply, and each capital increase request with its execution and each pause change with its [chain side](#chain-evidence) |
 | `classes/<class id>/register.csv` | The [register CSV's](register.md#api-and-export) three sections, from the export's own code, without its record. Absent while the class's register has no opening |
 | `classes/<class id>/entries.json` | Every register entry in sequence, with its fields, previous and entry hashes, and the hash preimage |
-| `classes/<class id>/authority.json` | The class's register openings, imports, corrections and register instructions, as authority records |
-| `classes/<class id>/issues.json` | `issues`: every issuance request of the class, with the issuance it executed and the subscription it allotted. `awaiting_allotment`: every subscription with a payment recorded and no issuance request. Each subscription's payment is labelled as recorded |
+| `classes/<class id>/authority.json` | The class's register openings, imports, corrections and register instructions, as authority records; an opening also carries the chain boundary it was reviewed against |
+| `classes/<class id>/chain.json` | The class's deployment record and every outgoing operation linked to one of its business records, with each signed attempt's hash, nonce, signer and chain id: see [chain evidence](#chain-evidence) |
+| `classes/<class id>/settlements.json` | Every settlement of the class that was admitted for execution: the signed order with its EIP-712 domain, both signatures, the transaction, its operation, the finalized receipt and the register entry |
+| `classes/<class id>/issues.json` | `issues`: every issuance request of the class, with the issuance it executed and its transaction hash, the execution that sent it, and the subscription it allotted. `awaiting_allotment`: every subscription with a payment recorded and no issuance request. Each subscription's payment is labelled as recorded |
 | `classes/<class id>/former_members.json` | The former-member section of `register.csv`, from the same rows, each with the date until which s169(3) keeps it |
 | `classes/<class id>/reconciliations.json` | Every reconciliation of the register with the chain, its discrepancies, and each acknowledgement's discrepancy, reason and time |
 | `classes/<class id>/waiting.json` | `effects`: the [waiting list](register.md#api-and-export), or `null` where the API's is |
 | `classes/<class id>/due.json` | The class's rows of the [certificates and notice figures still due](register.md#outputs-due) |
-| `contracts/contracts.json` | The chain id, the compiler settings, the factory, settlement and registry addresses, each class's address and the owner it was deployed with, and both signing domains |
+| `contracts/contracts.json` | The chain id, the compiler settings, the factory, settlement and registry addresses, each class's address, the owner it was deployed with and the settlement contract its approval targeted, each registry's owner, and both signing domains |
 | `contracts/<Name>.json` | The committed interfaces of `ShareToken`, `WhitelistRegistry`, `ShareTokenFactory` and `AtomicSwap` |
 
 Class folders are named by the class's id, not its symbol. Symbols are unique
@@ -127,10 +129,15 @@ without it, and appears nowhere else in the pack.
 
 Nothing in `contracts.json` is read from a chain. A class's address is the one
 it stores, and the owner it was deployed with is the sender its deployment
-record froze; a class with no deployment record shows none. The company's
+record froze; a class with no deployment record shows none. `approved_on` is
+the settlement contract its deployment record's swap approval targeted, and is
+empty where that record has no approval terms. The company's
 registry address is not stored on the company, so the pack lists every registry
 address its approvals and approval changes recorded, and the README says to call
-`registryOf(acn)` on the factory when there is none. The factory and settlement
+`registryOf(acn)` on the factory when there is none. A registry's `owner` is the
+one sender every deployed class's record names, because the factory creates the
+registry with its first class's owner and refuses a later class with another; it
+is empty when no deployed class has a record, or when the records disagree. The factory and settlement
 addresses are the configured ones. The share class domain is "Ledova Trading",
 version 1, at the class's address; the settlement domain is whatever
 `configured_domain()` returns, the domain both parties to a settlement sign
@@ -139,10 +146,88 @@ are the files committed under `backend/contracts/`, never a local
 `contracts/artifacts/` build, and a test holds the compiler settings the pack
 states to `contracts/hardhat.config.ts` and `contracts/package.json`.
 
-The README explains how to hand over control of the contracts, calling
-`setShareTokenApproval(shareToken, false)` on the settlement contract and
-`transferOwnership(newOwner)` on each class and the registry, and does not
-perform it (owner decision 5).
+The README explains how to hand over control of the contracts and does not
+perform it (owner decision 5). Its section 5 names every class and registry
+with the owner Ledova's records state, and says to confirm it with `owner()`.
+Its steps, in order, are: wait until nothing Ledova admitted for the company is
+unresolved, listing what was at the as-at time; call
+`setShareTokenApproval(classAddress, false)` for each deployed class on the
+settlement contract its approval targeted, or, where none is recorded, on the
+configured one if `approvedShareTokens` says it is approved there; call
+`transferOwnership(newOwner)` on each deployed class; and last on the registry,
+or on the address `registryOf(acn)` returns when none is recorded. A record is
+unresolved while a class is `deploying`, its swap approval `pending` or
+`executing`, an issue's execution `queued` or `executing`, a capital increase
+`executing`, a pause `pending` or `executing`, a settlement `executing`, or an
+approval change `pending` or `executing`.
+
+## Chain evidence
+
+[company_pack_chain.py](../../backend/tokens/services/company_pack_chain.py)
+builds each class's `chain.json` and `settlements.json`. The outgoing journal
+has no company column, so every operation is reached from the business record
+that owns it, through that record's own one-to-one link, and each business
+query names both the company and the class: the deployment record and its swap
+approval, an issue's execution, a capital increase's execution, a pause, and a
+settlement's transaction. No join goes through an operation key or a wallet
+address.
+
+- **Operations.** Each carries its key, its purpose and the id of the record
+  it was for, the unsigned intent (chain id, sender, target, value and
+  calldata), its status, its last error category, when it was opened and
+  acknowledged, the first receipt of its current attempt, the current attempt's
+  hash, and every signed attempt, oldest first, with its hash, nonce, signer,
+  chain id and signing time. The claim ids that fence workers stay behind.
+- **Records name their operations.** An issue's `execution` in `issues.json`
+  and a capital increase's in `class.json` carry the execution's intent,
+  operation key, transaction hash and, for an issue, its finalized receipt; an
+  issuance carries its transaction hash; a pause carries its chain, contract,
+  intent, observation and operation key. User ids, the initiating actor and
+  retry claim ids stay behind.
+- **The deployment record** is in `chain.json`, in full apart from the
+  deploying principal's user id and the approval's retry claim: its intent,
+  operation, transaction, address, attribution flag and projection time, and
+  its swap approval's intent, outcome, operation, transaction and observation.
+- **Settlements** are every swap of the class with a transaction, which is every
+  one admitted for execution. Each carries the signed order's EIP-712 typed
+  data (domain, types and message), the order hash, the digest, both
+  signatures, the transaction and its operation key, the finalized receipt and
+  its policy, the completion time, and the transfer entry whose operation id is
+  the swap, or none while it waits. The settlement context's order, account and
+  wallet ids stay behind: a test finds the swap's own id in the pack and none of
+  them.
+- **The opening's boundary** travels with the opening in `authority.json`,
+  rather than in `chain.json`. It is a field of the opening record, it is what
+  the opening's mapping was checked against when it was reviewed, and the
+  opening's entry is derived from it: the boundary's holdings summed by the
+  member each wallet is mapped to, effective on the boundary block's date. Kept
+  together, a reader can check that derivation offline, and the consumer does.
+
+**Signed bytes never leave.** A mined transaction can be fetched from any node
+by its hash, but an unmined one could still be broadcast, so the pack carries
+the hash, nonce, signer, chain id and unsigned intent and never the signed
+payload ([outgoing signing](outgoing-signing.md)). The attempts are read with a
+column list that leaves the payload out, so it is never read from the
+database, and the JSON writer refuses any bytes value outright rather than
+writing its text form. A test gathers every stored signed transaction, from
+every model with a `raw_transaction` field (the outgoing journal, the history
+inventory, participant approval submissions, and EVM and Bitcoin wallet
+submissions) and every legacy mint journal, and searches the whole archive and
+every file in it for each one, raw, in hexadecimal of either case and in both
+base64 alphabets. It finds none. As its positive control it writes one
+attempt's payload, in hexadecimal, into the company's trading name, which the
+pack carries, sees the same search name that attempt, and restores the name. A
+second test holds the search itself to finding each of those forms in a stored
+or deflated zip, and the set of models it reads to the five that exist today, so
+a new one fails it until it is added.
+
+What a record proves is in the README's section 3: the design note's evidence
+table, word for word for the rows it has, with two rows added for records it did
+not cover. An opening's boundary proves that one provider reported those
+holdings at that block under the named finality policy, not independent
+consensus; a pause or settlement approval observed already in place proves the
+contract was read in that state at that block, not which transaction put it
+there.
 
 ## Approvals and history
 
@@ -185,8 +270,8 @@ have a file of their own, `wallet_links.json`, rather than a copy in each class'
   shares and status they change, rather than in files of their own. Each capital
   increase request carries its terms, board and shareholder references, status,
   reviewer and times; each pause change carries whether it paused, its authority
-  kind, status and times. Their outgoing operations, receipts and observations
-  arrive with the chain-evidence slice.
+  kind, status and times. Their executions, intents, observations and
+  operations are described under [chain evidence](#chain-evidence).
 - **Approvals.** `approvals.json` lists every approval of the company, with
   `listed` computed at the as-at time as the registry would, so an active
   approval past its expiry is not listed. Each approval change carries its
@@ -237,9 +322,10 @@ those members' subscriptions are carried. Each then plants those values in a
 member's residential address, which the pack does carry, sees the same search
 find every one, and removes them again. Another test fails if the company's API
 key, its owner's email or the owner's account number appears in the pack, with
-the positive control that the company's name does. Ballots, publication reads
-and signed bytes have no absence test yet, because nothing the pack reads today
-comes near them.
+the positive control that the company's name does. Signed transaction bytes
+have their own test, described under [chain evidence](#chain-evidence). Ballots
+and publication reads have no absence test yet, because nothing the pack reads
+today comes near them.
 
 The README ends with the owner's statement, verbatim: "The company, and a
 provider it names in writing, may use the records and the contract interface
@@ -276,10 +362,29 @@ The consumer:
 4. checks that each applied opening and correction in `authority.json` names
    the entry whose operation is that record, of the matching kind, and for a
    correction the same corrected entry, and that no other record names one;
-5. replays each class's entries and compares the holdings with the current
+5. checks that an applied opening carries its boundary, and that its entry is
+   the boundary's holdings summed by the member each wallet is mapped to,
+   effective on the boundary block's date;
+6. checks, in `chain.json`, that every attempt has a well-formed hash and
+   signer, a whole nonce and a positive chain id, that an operation has a
+   current attempt exactly when its status is not `preparing` or `failed` and
+   that it is one of its attempts, and that a receipt's block hash is
+   well-formed;
+7. checks that every operation key a record names (a pause, an issue's or
+   capital increase's execution, the deployment and its swap approval, or a
+   settlement) is listed in `chain.json` for that purpose and record, and that
+   every operation listed is named by a record;
+8. checks that each settlement's transaction hash is well-formed and that a
+   settlement naming an entry names the transfer whose operation is that
+   settlement;
+9. replays each class's entries and compares the holdings with the current
    members in `register.csv`, read by header;
-6. prints each class's result and the manifest's SHA-256, which the test compares
-   with the recorded rows.
+10. prints each class's result and the manifest's SHA-256, which the test
+    compares with the recorded rows.
+
+None of these is an on-chain fact. The consumer cannot check a signature or a
+receipt, because `hashlib`'s SHA3 is not Ethereum's Keccak and it has no
+secp256k1: it checks that the pack is internally consistent and well-formed.
 
 A second test parses the consumer and holds its imports to `zipfile`, `json`,
 `csv`, `hashlib`, `io` and `sys`, with one dynamic import, of `django`, for the
@@ -299,6 +404,22 @@ node, leaves it uninstructed, and finds it in `waiting.json` with its reason and
 counted in the README; the synthetic company above has no opening boundary, so
 its lists are `null`.
 
+[test_company_pack_chain.py](../../backend/tokens/tests/test_company_pack_chain.py)
+builds the chain evidence through the real services against the fake nodes the
+services' own tests use: a settlement executed and finalized, an issue executed
+and finalized, a capital increase whose first attempt reverted and whose retry
+confirmed, a second class deployed with its swap approval still pending, a
+confirmed pause, and an unpause signed with no receipt. Its tests hold each
+section to the journal's own rows, the README's evidence table and handover
+steps to their exact text, and the consumer to naming a current attempt left
+out, a malformed attempt hash, an operation left out, a record's link dropped, a
+settlement pointed at the wrong entry and a malformed settlement hash. A second
+company with a pause and a capital increase of its own shares none of its
+operation keys, attempt hashes or record ids with the first, with the positive
+control that each pack carries all of its own. An opening applied against a
+captured boundary is carried with it, and the consumer refuses a changed
+holding, a changed date, an unmapped holder and a missing boundary.
+
 ## Limits
 
 - The consumer is ours, written from our own README. It proves the recipe works
@@ -308,12 +429,25 @@ its lists are `null`.
 - The consumer checks the current members against the entries. It does not
   recompute the supply summary or the former members, which come from records
   the entries do not carry.
-- The transfer in the fixture is recorded against a settlement order that never
-  settled on a chain: settlement evidence arrives with the chain-evidence slice.
-- The fixture's issue, pause and approval change have no chain behind them: the
-  issuance request is a legacy one with no execution record, the pause was
-  observed already in place, and the approval change needed no transaction. A
-  confirmed approval change's transaction hash is therefore not exercised.
+- The chain evidence is built against fake nodes, not a real chain. Nothing in
+  the pack could be populated only from a real chain, because the pack reads
+  none, but no test here shows a pack produced after a real deployment,
+  settlement or pause; the [real-chain suite](../development/testing.md#commands)
+  does not produce one.
+- An approval change's outgoing operation is not carried: `approvals.json` has
+  each change's status and, once confirmed, its transaction hash, but not the
+  attempts of one still `executing`. The README counts such a change as
+  unresolved.
+- A swap approval observed already in place, a legacy settlement with no
+  transaction record and a legacy mint journal are not exercised. A pause
+  observed already in place is, by the first fixture above, carried with its
+  block and no operation.
+- What the README lists as unresolved, and a registry's owner, are what
+  Ledova's records say at the as-at time, not chain reads.
+- An authority record's evidence is listed by digest; until the documents slice,
+  a reader cannot check that digest against anything in the pack.
+- The owner a class was deployed with is what Ledova recorded, not a chain read.
+  Ownership moved outside Ledova would not show.
 - An authority record's evidence is listed by digest; until the documents slice,
   a reader cannot check that digest against anything in the pack.
 - The owner a class was deployed with is what Ledova recorded, not a chain read.

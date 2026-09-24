@@ -952,7 +952,8 @@ A company pack is one zip of a company's records: every share class with its
 register of members and the history of entries behind it, the approvals behind
 those entries, the issues and the subscriptions still to be allotted or
 refunded, with their payments as recorded, the wallet approvals, what is still
-waiting to be entered or owed, the company, and the contract
+waiting to be entered or owed, the transactions Ledova sent for each class and
+the settlements it executed, the company, and the contract
 information a successor needs, with a README that explains each file and how to
 check it. Staff produce it only on the company's written instruction
 naming who it is for, or on a document that legally compels disclosure, such as
@@ -995,9 +996,13 @@ the time. The records cannot be rewritten, are read only by staff, and follow th
 export records' 2,557-day floor and daily purge.
 
 The pack explains how control of the share class contracts and the company's
-registry would be handed to another provider, and does not hand it over. That
-handover is a separate operation, not built, for when a real company first
-leaves.
+registry would be handed to another provider, and does not hand it over: its
+README names each contract with the owner Ledova's records state, lists what
+was still unresolved when it was produced, and gives the exact
+`setShareTokenApproval` and `transferOwnership` calls in the order to make
+them. That handover is a separate operation, not built, for when a real
+company first leaves. The pack never carries a signed transaction's bytes,
+only each attempt's hash, nonce, signer and chain id.
 
 ## Importing an existing register
 

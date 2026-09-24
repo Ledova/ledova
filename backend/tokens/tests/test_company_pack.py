@@ -126,6 +126,8 @@ CLASS_FILES = (
     "reconciliations.json",
     "waiting.json",
     "due.json",
+    "chain.json",
+    "settlements.json",
 )
 SUBJECTS = ("allotment", "correction", "link")
 REVIEW_PERMISSIONS = (
@@ -893,7 +895,8 @@ class CompanyPackTest(ProducesPacks, TestCase):
                 )
         contracts = json.loads(files["contracts/contracts.json"])
         self.assertEqual(
-            contracts["registries"], [{"address": self.a.registry, "interface": "contracts/WhitelistRegistry.json"}]
+            contracts["registries"],
+            [{"address": self.a.registry, "interface": "contracts/WhitelistRegistry.json", "owner": OPERATOR}],
         )
         self.assertEqual(
             contracts["classes"],
@@ -903,6 +906,7 @@ class CompanyPackTest(ProducesPacks, TestCase):
                     "symbol": "DEP",
                     "address": self.a.ordinary.contract_address,
                     "owner_at_deployment": OPERATOR,
+                    "approved_on": None,
                     "interface": "contracts/ShareToken.json",
                     "domain": {
                         "name": "Ledova Trading",
@@ -916,6 +920,7 @@ class CompanyPackTest(ProducesPacks, TestCase):
                     "symbol": "DRF",
                     "address": None,
                     "owner_at_deployment": None,
+                    "approved_on": None,
                     "interface": "contracts/ShareToken.json",
                     "domain": None,
                 },
@@ -1051,6 +1056,8 @@ class CompanyPackTest(ProducesPacks, TestCase):
                 "reconciliations.json": [],
                 "waiting.json": {"effects": None},
                 "due.json": [],
+                "chain.json": {"deployment": None, "operations": []},
+                "settlements.json": [],
             },
         )
         self.assertIn(
@@ -1332,8 +1339,10 @@ class CompanyPackHistoryTest(ProducesPacks, TestCase):
                         "uuid": str(allotment.issuance.pk),
                         "status": "completed",
                         "shares": "25",
+                        "transaction": None,
                         "completed_at": recorded,
                     },
+                    "execution": None,
                     "subscription": {
                         "uuid": str(allotment.subscription.pk),
                         "offering": str(self.a.tenant.offering.pk),
@@ -1451,6 +1460,7 @@ class CompanyPackHistoryTest(ProducesPacks, TestCase):
                         "reviewed_at": increase.reviewed_at.isoformat(),
                         "rejection_reason": "",
                         "executed_at": None,
+                        "execution": None,
                     }
                 ],
                 [
@@ -1461,6 +1471,15 @@ class CompanyPackHistoryTest(ProducesPacks, TestCase):
                         "status": "observed",
                         "requested_at": pause.created_at.isoformat(),
                         "completed_at": RECORDED_AT.isoformat(),
+                        "chain_id": settings.BLOCKCHAIN_CHAIN_ID,
+                        "contract_address": pause.contract_address,
+                        "intent": pause.intent,
+                        "observation": {
+                            "block_number": 90,
+                            "block_hash": "0x" + "ab" * 32,
+                            "observed_at": RECORDED_AT.isoformat(),
+                        },
+                        "operation": None,
                     }
                 ],
             ),

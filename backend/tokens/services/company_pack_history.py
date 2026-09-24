@@ -5,6 +5,7 @@ from django.db.models import Q
 from offerings.models import Subscription, SubscriptionStatus
 from tokens.constants import FORMER_MEMBER_RETENTION_MONTHS
 from tokens.models import (
+    CapitalIncreaseExecution,
     CapitalIncreaseRequest,
     PauseChange,
     RegisterAcknowledgement,
@@ -15,8 +16,10 @@ from tokens.models import (
     RegisterOpening,
     RegisterReconciliation,
     RegisterWalletLink,
+    ShareIssuanceExecution,
     ShareIssuanceRequest,
 )
+from tokens.services.company_pack_chain import key, transaction_hash
 from tokens.services.register import former_identity_label, months_after
 from tokens.services.register_inclusions import waiting_list
 from whitelist.models import WhitelistApproval, WhitelistChange
@@ -72,7 +75,13 @@ def _decided(record, authority, **terms):
 def authority(company, token) -> dict:
     return {
         "openings": [
-            _decided(opening, opening.authority, mapping=opening.mapping, entry=opening.applied_entry_id)
+            _decided(
+                opening,
+                opening.authority,
+                mapping=opening.mapping,
+                boundary=opening.boundary,
+                entry=opening.applied_entry_id,
+            )
             for opening in _ordered(RegisterOpening.objects.filter(company=company, token=token))
         ],
         "imports": [
@@ -172,7 +181,31 @@ def _issuance(issuance):
         "uuid": issuance.pk,
         "status": issuance.status,
         "shares": issuance.amount,
+        "transaction": issuance.tx_hash or None,
         "completed_at": issuance.completed_at,
+    }
+
+
+def _issue_execution(execution):
+    if execution is None:
+        return None
+    return {
+        "uuid": execution.pk,
+        "status": execution.status,
+        "authority": execution.authority,
+        "intent": execution.intent,
+        "operation": key(execution.operation),
+        "transaction": transaction_hash(execution.transaction),
+        "finalized_receipt": execution.finalized_receipt,
+    }
+
+
+def _executions(model, company, token):
+    return {
+        execution.request_id: execution
+        for execution in model.objects.filter(company_id=company.pk, token_id=token.pk).select_related(
+            "operation", "transaction"
+        )
     }
 
 
@@ -195,13 +228,14 @@ def issues(company, token) -> dict:
         .select_related("offering", "wallet", "user_account__user_profile")
         .order_by("created_at", "uuid")
     )
+    executions = _executions(ShareIssuanceExecution, company, token)
     return {
-        "issues": [_issue(request, subscriptions.get(request.pk)) for request in requests],
+        "issues": [_issue(request, subscriptions.get(request.pk), executions.get(request.pk)) for request in requests],
         "awaiting_allotment": [_awaiting(subscription) for subscription in awaiting],
     }
 
 
-def _issue(request, subscription):
+def _issue(request, subscription, execution):
     return {
         "request": request.pk,
         "type": request.issuance_type,
@@ -216,11 +250,26 @@ def _issue(request, subscription):
         "rejection_reason": request.rejection_reason,
         "executed_at": request.executed_at,
         "issuance": _issuance(request.executed_issuance),
+        "execution": _issue_execution(execution),
         "subscription": _subscription(subscription),
     }
 
 
+def _capital_execution(execution):
+    if execution is None:
+        return None
+    return {
+        "uuid": execution.pk,
+        "intent": execution.intent,
+        "operation": key(execution.operation),
+        "transaction": transaction_hash(execution.transaction),
+        "attribution_evidence": execution.attribution_evidence,
+        "projected_at": execution.projected_at,
+    }
+
+
 def cap_increases(company, token) -> list:
+    executions = _executions(CapitalIncreaseExecution, company, token)
     return [
         {
             "uuid": request.pk,
@@ -235,6 +284,7 @@ def cap_increases(company, token) -> list:
             "reviewed_at": request.reviewed_at,
             "rejection_reason": request.rejection_reason,
             "executed_at": request.executed_at,
+            "execution": _capital_execution(executions.get(request.pk)),
         }
         for request in _ordered(CapitalIncreaseRequest.objects.filter(company=company, token=token))
     ]
@@ -249,10 +299,15 @@ def pauses(company, token) -> list:
             "status": change.status,
             "requested_at": change.created_at,
             "completed_at": change.completed_at,
+            "chain_id": change.chain_id,
+            "contract_address": change.contract_address,
+            "intent": change.intent,
+            "observation": change.observation,
+            "operation": key(change.operation),
         }
-        for change in PauseChange.objects.filter(company_id=company.pk, token_id=token.pk).order_by(
-            "created_at", "uuid"
-        )
+        for change in PauseChange.objects.filter(company_id=company.pk, token_id=token.pk)
+        .select_related("operation")
+        .order_by("created_at", "uuid")
     ]
 
 

@@ -336,7 +336,8 @@ for reporting and portability, recorded in
   register and contracts."
 
 The pack is built in slices: the registers, company and contracts first, then
-the approvals and history behind them.
+the approvals and history behind them, then each class's chain evidence and
+settlements.
 [The company pack](architecture/company-pack.md) owns the mechanism and
 [producing a company pack](operations/register-foundation.md#producing-a-company-pack)
 the procedure.

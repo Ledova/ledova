@@ -6,7 +6,7 @@ This archive holds the records Ledova kept for {{ company.name|md }} as at {{ as
 
 The stored register in this pack is the company's register of members. Where a share class is also on a blockchain, the chain is a mirror of the register and not the register itself.
 
-The pack carries the company, its share classes, each class's register of members with the history of entries behind it, the approvals and authority behind those entries, and the contract information needed to continue on chain. It does not carry members' email addresses, phone numbers, dates of birth, citizenship, financial details, account numbers, identity-verification evidence or platform account ids: those are what members gave Ledova, not what the register records. Nor does it carry investors' classification claims and evidence, their payslips, orders that have not settled, or Ledova's own records of who took copies of the register.
+The pack carries the company, its share classes, each class's register of members with the history of entries behind it, the approvals and authority behind those entries, the transactions Ledova sent for each class and the settlements it executed, and the contract information needed to continue on chain. It does not carry members' email addresses, phone numbers, dates of birth, citizenship, financial details, account numbers, identity-verification evidence or platform account ids: those are what members gave Ledova, not what the register records. Nor does it carry investors' classification claims and evidence, their payslips, orders that have not settled, Ledova's own records of who took copies of the register, or the signed bytes of any transaction.
 
 ## 2. How to read it
 
@@ -17,16 +17,18 @@ The pack carries the company, its share classes, each class's register of member
 | `company.json` | The company as Ledova holds it, the name of the account that instructs for it, and its business-register checks |
 | `approvals.json` | The company's registry addresses; each wallet approval with its status, its expiry and whether it was listed at the as-at time; and each change to an approval, with its action, expiry, authority, status and transaction |
 | `wallet_links.json` | Each request to link a wallet to a member of the company: its authority, terms, evidence and decision |
-| `classes/<class id>/class.json` | One share class: its terms, authorised shares, status, contract address and register head, with each capital increase and each pause |
+| `classes/<class id>/class.json` | One share class: its terms, authorised shares, status, contract address and register head, with each capital increase and its execution, and each pause with the transaction it was for or the state it found |
 | `classes/<class id>/register.csv` | The class's register of members, present once its register has been opened |
 | `classes/<class id>/entries.json` | Every entry in the class's register, in order, each with the exact text its hash was computed over |
-| `classes/<class id>/authority.json` | The class's register openings, imports, corrections and register instructions: each one's authority, terms, evidence and decision |
-| `classes/<class id>/issues.json` | Under `issues`, each issuance request with the issuance it produced and the subscription it allotted; under `awaiting_allotment`, each subscription with a payment recorded and no shares allotted. Each subscription carries its payment as recorded |
+| `classes/<class id>/authority.json` | The class's register openings, imports, corrections and register instructions: each one's authority, terms, evidence and decision, and for an opening the chain boundary it was reviewed against |
+| `classes/<class id>/chain.json` | The class's deployment record, and every transaction Ledova prepared or signed for the class, with its operator key or its settlement relayer's: its purpose, the unsigned transaction, its status and receipt, and each signed attempt's hash, nonce, signer and chain id |
+| `classes/<class id>/settlements.json` | Each settlement of the class that Ledova executed: the order both parties signed with its signing domain, the order hash, both signatures, the transaction and its finalized receipt, and the register entry that recorded it |
+| `classes/<class id>/issues.json` | Under `issues`, each issuance request with the issuance it produced, the execution that sent it and the subscription it allotted; under `awaiting_allotment`, each subscription with a payment recorded and no shares allotted. Each subscription carries its payment as recorded |
 | `classes/<class id>/former_members.json` | The former members in `register.csv`, each with the date until which it must be kept |
 | `classes/<class id>/reconciliations.json` | Each comparison of the register with the chain, with its discrepancies and their acknowledgements |
 | `classes/<class id>/waiting.json` | Completed issues and settled transfers not yet entered in the register |
 | `classes/<class id>/due.json` | Share certificates and notice figures still owed for the register's entries |
-| `contracts/contracts.json` | The chain, each contract's address, the owner each share class was deployed with, the two signing domains and the compiler settings |
+| `contracts/contracts.json` | The chain, each contract's address, the owner each share class was deployed with and the settlement contract it was approved on, the registry's owner, the two signing domains and the compiler settings |
 | `contracts/<Name>.json` | The interface (ABI) of each contract: `ShareToken`, `WhitelistRegistry`, `ShareTokenFactory` and `AtomicSwap` |
 
 The share classes:
@@ -66,6 +68,8 @@ Each record in `authority.json` and `wallet_links.json` carries its `authority` 
 
 An applied opening or correction names its `entry`: the entry in the class's `entries.json` whose `operation_id` is the record's `uuid`, of kind `opening` or `correction`. A correction's `corrects` is that entry's `corrects`.
 
+An opening's `boundary` is the state of the class's contract that Ledova read when the opening was reviewed, or `null` before then: the block (`number`, `hash`, `timestamp` and `date`), the finality `policy` it satisfied, the issued and authorised supply, each wallet's holding, and the transactions behind them. An applied opening's entry holds exactly those holdings, each added to the member its wallet is mapped to in `mapping`, and takes effect on the block's `date`.
+
 ### Reading `issues.json`
 
 Under `issues`, each issuance request carries its recipient, shares, status and reviewer, the `issuance` it produced once executed, and the `subscription` it allotted where it came from an offering.
@@ -74,11 +78,30 @@ Under `awaiting_allotment` is each subscription to the class with a payment reco
 
 A subscription's `payment` has the `basis` `recorded`: Ledova staff entered the amount, the date received and the reference they saw on the statement, or the transfer hash for a stablecoin payment. It is not proof that the money moved.
 
+An issuance carries its `transaction` hash. An issue's `execution` is how Ledova sent it: its status, the unsigned terms (`intent`), the `operation` in `chain.json` that sent it, its transaction, and the `finalized_receipt` once the approved finality policy was satisfied. A capital increase's `execution` in `class.json` carries the same, with any `attribution_evidence` Ledova held when the contract's state did not identify it, and a pause carries its unsigned terms and its `operation`, or, where the contract was already in the state it asked for, the block at which that was `observed`.
+
+### Reading `chain.json`
+
+`deployment` is the class's deployment record, or `null` where Ledova has none: the terms it was deployed with (`intent`), the `operation` that sent it, its transaction and the address it created, and `swap_approval`, the approval of the class on the settlement contract, with its terms, outcome, operation and transaction, or the block at which it was observed already in place.
+
+`operations` lists every transaction Ledova prepared or signed for the class, with its operator key or, for a settlement, its relayer's, oldest first. Each has its `key`, its `purpose` (`deployment`, `swap_approval`, `issuance`, `capital_increase`, `pause` or `settlement`) and the `record` it was for, which names it by that key: the deployment record, an issue's or capital increase's `execution`, a pause, or a settlement. `intent` is the unsigned transaction: chain id, sender, target, value and calldata. `status` is `preparing` or `signed` while its outcome is unresolved, `confirmed` once a successful receipt was observed, `reverted` once a failed one was, and `failed` for a failure before signing. `receipt` is the first receipt seen for the current attempt. `attempts` lists every signed attempt, oldest first, with its transaction hash, nonce, signer and chain id, and `current_attempt` is the hash of the one the status describes; an earlier attempt reverted or failed before the operation was tried again.
+
+The signed bytes of an attempt are not in this pack. A mined transaction's bytes can be fetched from any node by its hash, and an unmined transaction's bytes could still be broadcast.
+
+### Reading `settlements.json`
+
+Each settlement is the instrument of a transfer. `typed_data` is the order both parties signed, in the form EIP-712 signs: `domain` names the settlement contract, its chain id, name and version, and `message` the seller, buyer, share and payment tokens, amounts, nonce and deadline. `digest` is what each party signed and `order_hash` the order's hash without the domain. `seller_signature` and `buyer_signature` are the two signatures. `transaction` is the settlement's transaction, `operation` the operation in `chain.json` that sent it, and `finalized_receipt` the block at which the approved finality `policy` was satisfied. A settlement recorded in the register names its `entry`, the transfer in `entries.json` whose `operation_id` is the settlement's `uuid`; one still waiting names none.
+
 ## 3. What the evidence proves and does not
 
 | Record | Proves | Does not prove |
 | --- | --- | --- |
 | A register entry's hash and its link to the previous entry | The entry is unchanged since the database wrote it, and its place in the order | That the entry is right or authorised. The authority is the linked instruction and its document |
+| The finalized receipt on an issue or settlement | One provider reported the transaction in that block, with the named finality policy satisfied | Independent consensus |
+| An outgoing operation marked `confirmed` | A successful receipt was observed | Confirmation depth, replacement or reorg repair |
+| The two signatures on a settlement | The key for each address signed that order under that domain | Who the person is. Identity is the register's resolution, recorded with its source |
+| An opening's boundary | One provider reported those holdings and that supply at that block, with the named finality policy satisfied | Independent consensus |
+| A pause or settlement approval observed already in place | The contract was read in that state at that block | Which transaction put it there. The record is an observation, never transaction attribution |
 | Payment received on a subscription | Who entered what amount, and when | That money moved |
 
 Each authority record names its evidence document by SHA-256 and size. The documents themselves are not in this pack.
@@ -116,28 +139,42 @@ Each former member must stay on the register for seven years after the date they
 {% endif %}
 ## 5. Authority on chain
 
-The contracts are on chain id {{ contracts.chain_id }}.
+The contracts are on chain id {{ contracts.chain_id }}. Ledova reads no chain to produce this pack, so each owner below is the one Ledova's records state: the key a share class was deployed with. No Ledova code transfers that ownership. Read `owner()` on each contract to confirm it before acting.
 
-| Contract | Address | Owner it was deployed with |
+| Contract | Address | Owner in Ledova's records |
 | --- | --- | --- |
 {% for share_class in contracts.classes %}| Share class {{ share_class.symbol|md }} | {% if share_class.address %}`{{ share_class.address }}`{% else %}not deployed{% endif %} | {% if share_class.owner_at_deployment %}`{{ share_class.owner_at_deployment }}`{% else %}not recorded{% endif %} |
-{% endfor %}{% for registry in contracts.registries %}| The company's registry | `{{ registry.address }}` | The owner of its share classes |
+{% endfor %}{% for registry in contracts.registries %}| The company's registry | `{{ registry.address }}` | {% if registry.owner %}`{{ registry.owner }}`, the owner of its share classes{% else %}the owner of its share classes, which Ledova's records do not establish{% endif %} |
 {% endfor %}| Share class factory | {% if contracts.factory.address %}`{{ contracts.factory.address }}`{% else %}not configured{% endif %} | Ledova's operator |
 | Settlement (swap) contract | {% if contracts.swap.address %}`{{ contracts.swap.address }}`{% else %}not configured{% endif %} | Ledova's operator |
 {% if not contracts.registries %}
 No registry address is recorded for this company. Read it from the share class factory with `registryOf("{{ company.acn|md }}")`.
 {% endif %}
-Ledova's operator key deploys every share class and owns it. The factory created the company's registry with the same owner as its first share class, and every later class must share that owner and that registry. No Ledova code transfers that ownership. A share class is bound to its registry permanently.
+Ledova's operator key deploys every share class and owns it. The factory created the company's registry with the same owner as its first share class, and every later class must share that owner and that registry. A share class is bound to its registry permanently.
 
-To continue with another provider, the company instructs Ledova's operator in writing to:
+### Handing over control
 
-1. wait until every operation Ledova has in flight for the company has finished;
-2. call `setShareTokenApproval(shareToken, false)` on the settlement contract for each share class, so its relayer can no longer settle trades in that class;
-3. call `transferOwnership(newOwner)` on each share class contract and on the company's registry.
+To continue with another provider, the company instructs Ledova's operator in writing to do the following, in this order, from the owner named above. This pack explains the handover and does not perform it.
 
-Whoever owns the registry then decides who may hold and transfer the company's shares. This pack explains the handover and does not perform it.
+1. Wait until nothing Ledova has admitted for the company is unresolved: no class still `deploying`, no settlement approval `pending` or `executing`, no issue's execution `queued` or `executing`, no capital increase `executing`, no pause `pending` or `executing`, no settlement `executing`, and no approval change in `approvals.json` `pending` or `executing`. {% if unresolved %}At the as-at time these were unresolved:
 
-Two signing domains are in use, both version `1`, and `contracts/contracts.json` lists each with its chain id and address. "Ledova Trading" is verified at each share class's own address and covers signed order actions. "LedovaAtomicSwap" is verified at the settlement contract, and both parties to a settlement sign under it: their signed order is the instrument of transfer.
+   | Class | What | Record | Status |
+   | --- | --- | --- | --- |
+{% for row in unresolved %}   | {% if row.symbol %}{{ row.symbol|md }}{% else %}all{% endif %} | {{ row.purpose }} | {% if row.record %}`{{ row.record }}`{% else %}not recorded{% endif %} | {{ row.status }} |
+{% endfor %}
+{% else %}Nothing was unresolved at the as-at time.
+{% endif %}2. Withdraw each deployed share class from the settlement contract, so its relayer can no longer settle trades in it:
+{% for share_class in contracts.classes %}{% if share_class.address %}{% if share_class.approved_on %}   - {{ share_class.symbol|md }}: on `{{ share_class.approved_on }}`, call `setShareTokenApproval({{ share_class.address }}, false)`.
+{% else %}   - {{ share_class.symbol|md }}: Ledova recorded no approval of it on a settlement contract. If `approvedShareTokens({{ share_class.address }})` is true on {% if contracts.swap.address %}`{{ contracts.swap.address }}`{% else %}a settlement contract{% endif %}, call `setShareTokenApproval({{ share_class.address }}, false)` there.
+{% endif %}{% endif %}{% endfor %}3. Transfer each deployed share class:
+{% for share_class in contracts.classes %}{% if share_class.address %}   - {{ share_class.symbol|md }}: on `{{ share_class.address }}`, call `transferOwnership(newOwner)`.
+{% endif %}{% endfor %}4. Transfer the company's registry:
+{% for registry in contracts.registries %}   - on `{{ registry.address }}`, call `transferOwnership(newOwner)`.
+{% empty %}   - read its address with `registryOf("{{ company.acn|md }}")` on the share class factory, and call `transferOwnership(newOwner)` on it.
+{% endfor %}
+Whoever owns the registry then decides who may hold and transfer the company's shares.
+
+Two signing domains are in use, both version `1`, and `contracts/contracts.json` lists each with its chain id and address. "Ledova Trading" is verified at each share class's own address and covers signed order actions. "LedovaAtomicSwap" is verified at the settlement contract, and both parties to a settlement sign under it: their signed order is the instrument of transfer, and each settlement in `settlements.json` carries the domain it was signed under.
 
 The contracts were compiled with Solidity 0.8.24, EVM version `paris`, the optimizer at 200 runs and `viaIR` on, against OpenZeppelin 5.4.0. Those settings are needed to verify the deployed bytecode.
 

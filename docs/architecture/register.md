@@ -455,7 +455,9 @@ hash was computed over, so a reader without the platform can check the chain and
 replay the holdings. Beside them are the openings, imports, corrections,
 instructions and wallet links behind the entries, the former members with the
 date each must be kept until, the reconciliations, the waiting list and the
-outputs due. Staff produce it in admin on the company's written
+outputs due, and each settlement that transferred shares: the order both
+parties signed, with its domain and signatures, and its finalized receipt.
+Staff produce it in admin on the company's written
 instruction, and it is recorded as a `company_pack` kind of register export, once
 for each share class it carries.
 
