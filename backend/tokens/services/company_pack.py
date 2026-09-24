@@ -14,7 +14,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from companies.models import CompanyRegistryCheck
+from companies.models import Company, CompanyRegistryCheck
 from shared.db import atomic
 from shared.utils.typed_data import DOMAIN_NAME, DOMAIN_VERSION
 from tokens.constants import COMPANY_PACK_SPOOL_BYTES
@@ -286,6 +286,7 @@ def _record(classes, requested_by, digest, instruction, recipient):
 def produce_company_pack(company, requested_by, *, instruction, recipient):
     with _snapshot():
         as_at = timezone.now().astimezone(utc_zone.utc)
+        company = Company.objects.get(pk=company.pk)
         tokens = list(ShareToken.objects.filter(company=company).order_by("symbol", "uuid"))
         if not tokens:
             raise ValidationError("This company has no share classes, so there is no register to put in a pack.")

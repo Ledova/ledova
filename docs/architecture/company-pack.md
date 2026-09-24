@@ -28,10 +28,11 @@ opens nothing else, and **Can view company document**
 documents. There is no API route and no company self-service.
 
 [company_pack.py](../../backend/tokens/services/company_pack.py) builds the pack
-within the request, on the operator connection. It reads every record in one
-repeatable-read snapshot, the one the register's outputs use, so an entry
-recorded while the pack is read cannot make two files disagree, and it reads no
-chain. It writes the archive into a spooled temporary file that stays in memory
+within the request, on the operator connection. It reads every record, the
+company row included, in one repeatable-read snapshot, the one the register's
+outputs use, so an entry recorded while the pack is read cannot make two files
+disagree: a test commits an entry from another connection partway through a
+read and finds it in no file of that pack. It reads no chain. It writes the archive into a spooled temporary file that stays in memory
 up to 8 MiB, records it, then serves it.
 
 Ledova keeps a fingerprint, not the file. A pack is recorded in

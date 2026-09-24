@@ -7,19 +7,20 @@ import json
 import subprocess
 import sys
 import zipfile
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime
 from datetime import timezone as utc_zone
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from uuid import uuid4
 
 from django.conf import settings
 from django.contrib import admin
 from django.db import DatabaseError, IntegrityError, connections
 from django.db.models.expressions import RawSQL
-from django.test import TestCase, override_settings
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
@@ -37,7 +38,7 @@ from tokens.models import (
     ShareToken,
     TokenDeployment,
 )
-from tokens.services.company_pack import COMPILER
+from tokens.services.company_pack import COMPILER, produce_company_pack
 from tokens.services.register import REGISTER_HEADERS, export_rows
 from tokens.services.register_events import open_register, record_entry
 from tokens.services.settlement_context import configured_domain
@@ -799,6 +800,65 @@ class CompanyPackTest(ProducesPacks, TestCase):
                 migration.remove_preimage(None, editor)
 
         self.assertEqual(RegisterExport.objects.filter(kind="company_pack").count(), 2)
+
+
+class CompanyPackSnapshotTest(TransactionTestCase):
+    def setUp(self):
+        self.owner, self.company, self.token, self.member, self.newcomer, self.opening = register_fixture()
+
+    def append(self):
+        try:
+            record_entry(
+                register_id=self.opening.register_id,
+                operation_id=uuid4(),
+                kind="issue",
+                changes=changes((self.newcomer, 50)),
+                effective_on=DAY,
+                recorded_by=self.owner,
+            )
+        finally:
+            connections.close_all()
+
+    def produce(self, company=None):
+        archive, _ = produce_company_pack(
+            company or self.company, self.owner, instruction=INSTRUCTION, recipient=RECIPIENT
+        )
+        return archive.read()
+
+    def test_an_entry_committed_while_the_pack_is_read_is_in_none_of_its_files(self):
+        def read_the_head_then_append(**lookup):
+            register = ShareRegister.objects.filter(**lookup).first()
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                pool.submit(self.append).result(timeout=20)
+            return register
+
+        stand_in = Mock()
+        stand_in.objects.filter.side_effect = lambda **lookup: SimpleNamespace(
+            first=lambda: read_the_head_then_append(**lookup)
+        )
+        with patch("tokens.services.company_pack.ShareRegister", stand_in):
+            during = self.produce()
+        after = self.produce()
+
+        folder = f"classes/{self.token.pk}"
+        for content, sequence, members in ((during, 1, 1), (after, 2, 2)):
+            with self.subTest(sequence=sequence):
+                files = files_of(content)
+                self.assertEqual(json.loads(files["manifest.json"])["registers"][0]["sequence"], sequence)
+                self.assertEqual(len(json.loads(files[f"{folder}/entries.json"])), sequence)
+                self.assertEqual(
+                    consume(content, *ISOLATED).stdout.splitlines()[:1],
+                    [f"REG: {sequence} entries verified, {members} current members"],
+                )
+
+    def test_the_company_is_read_with_its_registers_and_not_taken_from_the_callers_copy(self):
+        stale = Company.objects.get(pk=self.company.pk)
+        Company.objects.filter(pk=self.company.pk).update(name="Synthetic Renamed Pty Ltd")
+
+        files = files_of(self.produce(stale))
+
+        self.assertEqual(json.loads(files["company.json"])["name"], "Synthetic Renamed Pty Ltd")
+        self.assertEqual(json.loads(files["manifest.json"])["company"]["name"], "Synthetic Renamed Pty Ltd")
 
 
 class ScopedCompanyPackTest(RunsOnTheScopedConnection, APITransactionTestCase):
