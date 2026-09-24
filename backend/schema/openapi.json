@@ -7945,6 +7945,18 @@
             "readOnly": true,
             "type": "string"
           },
+          "currency": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "declaredOn": {
+            "format": "date",
+            "nullable": true,
+            "readOnly": true,
+            "title": "Dividend declared on",
+            "type": "string"
+          },
           "kind": {
             "allOf": [
               {
@@ -7962,6 +7974,29 @@
             "nullable": true,
             "readOnly": true
           },
+          "myEntitlement": {
+            "format": "decimal",
+            "nullable": true,
+            "pattern": "^-?\\d{0,16}(?:\\.\\d{0,2})?$",
+            "readOnly": true,
+            "type": "string"
+          },
+          "myPaymentRecord": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicationPaymentRecord"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
+          "myRecordedEntitlement": {
+            "format": "decimal",
+            "nullable": true,
+            "pattern": "^-?\\d{0,16}(?:\\.\\d{0,2})?$",
+            "readOnly": true,
+            "type": "string"
+          },
           "opensAt": {
             "format": "date-time",
             "nullable": true,
@@ -7969,8 +8004,21 @@
             "title": "Voting opens",
             "type": "string"
           },
+          "paymentDate": {
+            "format": "date",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "question": {
             "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "ratePerShare": {
+            "format": "decimal",
+            "nullable": true,
+            "pattern": "^-?\\d{0,12}(?:\\.\\d{0,6})?$",
             "readOnly": true,
             "type": "string"
           },
@@ -8031,10 +8079,17 @@
           "closesAt",
           "companyName",
           "createdAt",
+          "currency",
+          "declaredOn",
           "kind",
           "myBallot",
+          "myEntitlement",
+          "myPaymentRecord",
+          "myRecordedEntitlement",
           "opensAt",
+          "paymentDate",
           "question",
+          "ratePerShare",
           "recordDate",
           "resolutionKind",
           "result",
@@ -8084,13 +8139,35 @@
         "type": "object"
       },
       "PublicationKindEnum": {
-        "description": "* `holding_statement` - Annual holding statement\n* `meeting_notice` - Meeting notice\n* `resolution` - Resolution",
+        "description": "* `holding_statement` - Annual holding statement\n* `meeting_notice` - Meeting notice\n* `resolution` - Resolution\n* `distribution` - Dividend",
         "enum": [
           "holding_statement",
           "meeting_notice",
-          "resolution"
+          "resolution",
+          "distribution"
         ],
         "type": "string"
+      },
+      "PublicationPaymentRecord": {
+        "properties": {
+          "recordedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "recordedPaidOn": {
+            "format": "date",
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "recordedAt",
+          "recordedPaidOn",
+          "reference"
+        ],
+        "type": "object"
       },
       "PublicationResult": {
         "properties": {

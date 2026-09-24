@@ -4138,10 +4138,17 @@ export interface ApiComponents {
       closesAt: string | null;
       companyName: string;
       createdAt: string;
+      currency: string | null;
+      declaredOn: string | null;
       kind: ApiComponents['schemas']['PublicationKindEnum'];
       myBallot: ApiComponents['schemas']['PublicationBallot'] | null;
+      myEntitlement: string | null;
+      myPaymentRecord: ApiComponents['schemas']['PublicationPaymentRecord'] | null;
+      myRecordedEntitlement: string | null;
       opensAt: string | null;
+      paymentDate: string | null;
       question: string | null;
+      ratePerShare: string | null;
       recordDate: string;
       resolutionKind: (ApiComponents['schemas']['ResolutionKindEnum'] | ApiComponents['schemas']['NullEnum']) | null;
       result: ApiComponents['schemas']['PublicationResult'] | null;
@@ -4160,7 +4167,12 @@ export interface ApiComponents {
       members: number;
       shares: string;
     };
-    PublicationKindEnum: 'holding_statement' | 'meeting_notice' | 'resolution';
+    PublicationKindEnum: 'holding_statement' | 'meeting_notice' | 'resolution' | 'distribution';
+    PublicationPaymentRecord: {
+      recordedAt: string;
+      recordedPaidOn: string;
+      reference: string;
+    };
     PublicationResult: {
       abstain: ApiComponents['schemas']['PublicationCount'];
       against: ApiComponents['schemas']['PublicationCount'];

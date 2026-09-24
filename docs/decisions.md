@@ -248,8 +248,31 @@ proxies the issue's non-goals exclude.
   the account its roll row names. Members, staff and the closing job then share
   one write path and one lock.
 
-Dividends rounded down per holder with the remainder recorded as unpaid was
-decided in the same session and belongs to the slice that builds distributions.
+- **Dividends round down to the cent for each holder**, and what rounding leaves
+  over is recorded as undistributed rather than given to anyone, so the company
+  can never owe more than it declared and no tie-break is needed. The remainder
+  is always less than a cent for each member on the roll.
+- **The rate per share is the input and the declared total a check figure.** A
+  board resolves a rate, and a total derived from it would move with the issued
+  supply. Publishing is refused unless the declared total is exactly the shares on
+  the roll times the rate, rounded down, which catches a typing error in either.
+- **Entitlements are per holder, on the frozen roll.** Each roll row of a
+  distribution carries its own entitlement, so the roll that says who was a
+  member on the record date also says what each was owed, and the declared total
+  is checked against their sum.
+- **A payment is recorded, never asserted.** Payments are made off the platform.
+  Staff record the company's written advice that it paid a member, with its
+  reference and remittance evidence, on the same append-only chain as a
+  resolution's ballots; a correction is a withdrawal and a new record. Every
+  member-facing word and API field says the company recorded the payment, never
+  that the member was paid, because the platform has no way to check it.
+- **The member's own row is the distribution statement, for now.** Owner
+  decision 4 put the distribution statement with the dividend work. The member's
+  row on the publications page, which shows the rate, their frozen holding, their
+  entitlement, the payment date and what the company recorded, meets it. A
+  generated per-holder document was deliberately not built, and waits until a
+  company asks for one.
+
 [Shareholder publications](architecture/shareholder-publications.md) owns the
 mechanism and [publishing to members](operations/publications.md) the procedure.
 

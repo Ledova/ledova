@@ -37,6 +37,13 @@ const statement = {
   myBallot: null,
   ballotOutstanding: false,
   result: null,
+  ratePerShare: null,
+  currency: null,
+  declaredOn: null,
+  paymentDate: null,
+  myEntitlement: null,
+  myRecordedEntitlement: null,
+  myPaymentRecord: null,
 };
 
 const MINUTE = 60 * 1000;
@@ -70,6 +77,22 @@ const tally = {
 };
 
 const closed = { opensAt: fromNow(-48 * HOUR), closesAt: fromNow(-24 * HOUR) };
+
+const dividend = {
+  ...statement,
+  uuid: 'publication-d',
+  kind: 'distribution',
+  title: 'Final dividend 2026',
+  ratePerShare: '0.025000',
+  currency: 'AUD',
+  declaredOn: '2026-09-13',
+  paymentDate: '2026-10-03',
+  myEntitlement: '2.50',
+  myRecordedEntitlement: '0.00',
+  myPaymentRecord: null,
+};
+
+const recorded = { recordedPaidOn: '2026-10-03', reference: 'LDV-4412', recordedAt: '2026-10-03T04:00:00Z' };
 
 const choiceButton = (choice: string) => `${choice}: ${resolution.title}`;
 
@@ -406,4 +429,74 @@ it('offers the ballot the moment the window opens and withdraws it the moment it
   expect(view.getByText(PUBLICATION_COPY.CLOSED)).toBeTruthy();
   expect(view.getByText(PUBLICATION_COPY.RESULT_PENDING)).toBeTruthy();
   expect(listingCalls()).toBe(1);
+});
+
+it('shows a dividend with its rate, the frozen holding, the entitlement and the payment date, nothing recorded yet', async () => {
+  rows = [dividend];
+
+  const view = await render(<PublicationsScreen />, { wrapper });
+
+  expect(await view.findByText('Final dividend 2026')).toBeTruthy();
+  expect(view.getByText('Dividend')).toBeTruthy();
+  expect(view.getByText(`${PUBLICATION_COPY.RATE_LABEL}: AUD 0.025 per share`)).toBeTruthy();
+  expect(view.getByText(`100 · ${PUBLICATION_COPY.HOLDING_LABEL}`)).toBeTruthy();
+  expect(view.getByText(`${PUBLICATION_COPY.ENTITLEMENT_LABEL}: AUD 2.50`)).toBeTruthy();
+  expect(view.getByText(`${PUBLICATION_COPY.PAYMENT_DATE_LABEL}: 3 October 2026`)).toBeTruthy();
+  expect(view.getByText(PUBLICATION_COPY.NO_PAYMENT_RECORDED)).toBeTruthy();
+  expect(view.getByText(PUBLICATION_COPY.RECORDS_ONLY)).toBeTruthy();
+});
+
+it('says the company recorded a dividend payment, when and under what reference, and never that it was paid', async () => {
+  rows = [{ ...dividend, myRecordedEntitlement: '2.50', myPaymentRecord: recorded }];
+
+  const view = await render(<PublicationsScreen />, { wrapper });
+
+  expect(
+    await view.findByText('The company recorded this as paid on 3 October 2026, reference LDV-4412.'),
+  ).toBeTruthy();
+  expect(view.queryByText(PUBLICATION_COPY.NO_PAYMENT_RECORDED)).toBeNull();
+});
+
+it('says what part of a two-holding dividend entitlement is recorded, and never that all of it was', async () => {
+  rows = [
+    { ...dividend, shares: '140', myEntitlement: '3.50', myRecordedEntitlement: '1.00', myPaymentRecord: recorded },
+  ];
+
+  const view = await render(<PublicationsScreen />, { wrapper });
+
+  expect(
+    await view.findByText(
+      'The company has recorded AUD 1.00 of your AUD 3.50 as paid, most recently on 3 October 2' +
+        '026, reference LDV-4412. The rest has no payment record yet.',
+    ),
+  ).toBeTruthy();
+  expect(view.getByText(`${PUBLICATION_COPY.ENTITLEMENT_LABEL}: AUD 3.50`)).toBeTruthy();
+  expect(view.queryByText('The company recorded this as paid on 3 October 2026, reference LDV-4412.')).toBeNull();
+});
+
+it('says there is nothing to pay when a holding comes to less than a cent', async () => {
+  rows = [{ ...dividend, shares: '1', myEntitlement: '0.00' }];
+
+  const view = await render(<PublicationsScreen />, { wrapper });
+
+  expect(await view.findByText(PUBLICATION_COPY.NOTHING_PAYABLE)).toBeTruthy();
+  expect(view.getByText(`${PUBLICATION_COPY.ENTITLEMENT_LABEL}: AUD 0.00`)).toBeTruthy();
+});
+
+it('shows the company owner a dividend with no entitlement or payment record of its own', async () => {
+  rows = [{ ...dividend, shares: null, myEntitlement: null }];
+
+  const view = await render(<PublicationsScreen />, { wrapper });
+
+  expect(await view.findByText(`${PUBLICATION_COPY.RATE_LABEL}: AUD 0.025 per share`)).toBeTruthy();
+  expect(view.queryByText(new RegExp(PUBLICATION_COPY.ENTITLEMENT_LABEL))).toBeNull();
+  expect(view.queryByText(PUBLICATION_COPY.NO_PAYMENT_RECORDED)).toBeNull();
+});
+
+it('shows none of a dividend on a document', async () => {
+  const view = await render(<PublicationsScreen />, { wrapper });
+
+  expect(await view.findByText('Annual holding statement 2026')).toBeTruthy();
+  expect(view.queryByText(new RegExp(PUBLICATION_COPY.RATE_LABEL))).toBeNull();
+  expect(view.queryByText(PUBLICATION_COPY.NO_PAYMENT_RECORDED)).toBeNull();
 });

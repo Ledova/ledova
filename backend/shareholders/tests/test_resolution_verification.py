@@ -177,8 +177,8 @@ class VerifyingAResolutionTest(StubUploadDependencies, TestCase):
             (
                 "INSERT INTO shareholders_publicationevent (uuid, created_at, updated_at, publication_id, "
                 "company_id, sequence, kind, recipient_id, choice, shares, actor_id, staff_entered, authority, "
-                "previous_hash, entry_hash) VALUES (%s, now(), now(), %s, %s, 5, 'ballot', %s, 'for', %s, %s, "
-                "false, '', %s, '')",
+                "reference, evidence, evidence_digest, evidence_mime_type, previous_hash, entry_hash) VALUES (%s, "
+                "now(), now(), %s, %s, 5, 'ballot', %s, 'for', %s, %s, false, '', '', '', '', '', %s, '')",
                 [late, self.resolution.pk, self.world.company.pk, row.pk, row.shares, row.user_id, close.entry_hash],
             ),
             (REHASH, [late]),

@@ -29,6 +29,7 @@ from shareholders.models import (
     ResolutionKind,
     VoteBasis,
 )
+from shareholders.services.distributions import distribution_terms, entitle
 from shareholders.services.roll import frozen_rows, roll_digest
 from tokens.constants import STATUTORY_CALENDAR
 from tokens.models import ShareRegister
@@ -64,6 +65,10 @@ ANNOUNCEMENTS = {
     PublicationKind.RESOLUTION: (
         "A resolution has been put to members",
         "{company} has put a resolution to the members of its {token}.",
+    ),
+    PublicationKind.DISTRIBUTION: (
+        "A dividend has been declared",
+        "{company} has declared a dividend on your {token}.",
     ),
 }
 
@@ -135,6 +140,10 @@ def publish_to_members(
     resolution_kind="",
     opens_at=None,
     closes_at=None,
+    rate_per_share=None,
+    declared_on=None,
+    payment_date=None,
+    declared_total=None,
 ):
     from shareholders.tasks.publications import tell_the_members
 
@@ -148,6 +157,7 @@ def publish_to_members(
     if record_date > timezone.localdate(timezone=STATUTORY_CALENDAR):
         raise ValidationError(FUTURE_RECORD_DATE)
     resolution = _resolution(kind, question, resolution_kind, opens_at, closes_at)
+    distribution = distribution_terms(kind, record_date, rate_per_share, declared_on, payment_date, declared_total)
     fingerprint = _authority(token, authority_document)
     raw, mime_type = _bytes(upload)
 
@@ -158,6 +168,7 @@ def publish_to_members(
         rows = frozen_rows(token, register, record_date)
         if not rows:
             raise ValidationError(NO_MEMBERS)
+        remainder = entitle(distribution, rows)
         publication = Publication.objects.create(
             company_id=token.company_id,
             company_name=token.company.name,
@@ -179,6 +190,8 @@ def publish_to_members(
             audience_digest=roll_digest(rows),
             prepared_by_id=prepared_by.pk,
             **resolution,
+            **distribution,
+            **remainder,
         )
         PublicationRecipient.objects.bulk_create(
             PublicationRecipient(publication=publication, company_id=publication.company_id, **row) for row in rows
@@ -208,13 +221,14 @@ def verify_roll(publication) -> dict:
     return {"member_rows": len(rows), "audience_digest": digest}
 
 
-def record_publication_read(user, publication, recipient, kind) -> None:
+def record_publication_read(user, publication, recipient, kind, event=None) -> None:
     try:
         with use_operator():
             PublicationRead.objects.create(
                 actor_id=user.pk,
                 publication_uuid=publication.pk,
                 recipient_uuid=None if recipient is None else recipient.pk,
+                event_uuid=None if event is None else event.pk,
                 kind=kind,
             )
     except Exception as error:
@@ -222,16 +236,17 @@ def record_publication_read(user, publication, recipient, kind) -> None:
         raise PublicationNotDelivered() from None
 
 
-def deliver_publication(user, publication, recipient, kind) -> None:
+def deliver_publication(user, publication, recipient, kind, event=None) -> None:
+    stored = publication.file if event is None else event.evidence
     try:
-        publication.file.open("rb")
+        stored.open("rb")
     except (ValueError, OSError) as error:
         logger.error("A publication's stored document could not be opened: %s", type(error).__name__)
         raise PublicationUnopened() from None
     try:
-        record_publication_read(user, publication, recipient, kind)
+        record_publication_read(user, publication, recipient, kind, event)
     except BaseException:
-        publication.file.close()
+        stored.close()
         raise
 
 

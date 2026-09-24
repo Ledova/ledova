@@ -30,6 +30,12 @@ class PublicationResultSerializer(serializers.Serializer):
         return {**counted, **super().get_fields()}
 
 
+class PublicationPaymentRecordSerializer(serializers.Serializer):
+    recorded_paid_on = serializers.DateField(source="payment_paid_on")
+    reference = serializers.CharField(source="payment_reference")
+    recorded_at = serializers.DateTimeField(source="payment_recorded_at")
+
+
 class PublicationSerializer(serializers.ModelSerializer):
     shares = serializers.DecimalField(
         source="holding", max_digits=78, decimal_places=0, read_only=True, allow_null=True
@@ -39,6 +45,14 @@ class PublicationSerializer(serializers.ModelSerializer):
     my_ballot = serializers.SerializerMethodField()
     ballot_outstanding = serializers.BooleanField(read_only=True)
     result = PublicationResultSerializer(read_only=True, allow_null=True)
+    currency = serializers.SerializerMethodField()
+    my_entitlement = serializers.DecimalField(
+        source="entitled", max_digits=18, decimal_places=2, read_only=True, allow_null=True
+    )
+    my_recorded_entitlement = serializers.DecimalField(
+        source="recorded_entitlement", max_digits=18, decimal_places=2, read_only=True, allow_null=True
+    )
+    my_payment_record = serializers.SerializerMethodField()
 
     class Meta:
         model = Publication
@@ -59,6 +73,13 @@ class PublicationSerializer(serializers.ModelSerializer):
             "my_ballot",
             "ballot_outstanding",
             "result",
+            "rate_per_share",
+            "currency",
+            "declared_on",
+            "payment_date",
+            "my_entitlement",
+            "my_recorded_entitlement",
+            "my_payment_record",
         ]
         read_only_fields = fields
 
@@ -75,3 +96,13 @@ class PublicationSerializer(serializers.ModelSerializer):
         if publication.ballot_choice is None:
             return None
         return PublicationBallotSerializer(publication).data
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_currency(self, publication):
+        return publication.currency or None
+
+    @extend_schema_field(PublicationPaymentRecordSerializer(allow_null=True))
+    def get_my_payment_record(self, publication):
+        if publication.payment_recorded_at is None:
+            return None
+        return PublicationPaymentRecordSerializer(publication).data

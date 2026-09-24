@@ -9,6 +9,7 @@ from shared.db import APP_ALIAS, atomic, current_alias, principal_of, use_operat
 from shareholders.constants import SPECIAL_RESOLUTION_MAJORITY
 from shareholders.exceptions import NO_PUBLICATION, PublicationIntegrityError
 from shareholders.models import (
+    PAYMENT_RECORDS,
     BallotChoice,
     Publication,
     PublicationEvent,
@@ -17,8 +18,14 @@ from shareholders.models import (
     PublicationRecipient,
     ResolutionKind,
 )
+from shareholders.services.distributions import entitlement
 
 logger = logging.getLogger(__name__)
+
+EVENTS_OF = {
+    PublicationKind.RESOLUTION: (PublicationEventKind.BALLOT, PublicationEventKind.CLOSE),
+    PublicationKind.DISTRIBUTION: PAYMENT_RECORDS,
+}
 
 NOT_A_RESOLUTION = "Only a resolution takes ballots and is closed."
 UNKNOWN_CHOICE = "Choose for, against or abstain."
@@ -37,6 +44,12 @@ BALLOT_TWICE = "Publication {publication} records more than one ballot for one m
 EVENT_AFTER_CLOSE = "Publication {publication} records an event after its close."
 EVENT_ELSEWHERE = "Publication {publication} records an event under another company."
 TALLY_DIFFERS = "Publication {publication} records a tally that differs from its ballots."
+EVENT_OF_ANOTHER_KIND = "Publication {publication} records an event its kind does not take."
+PAYMENT_NOT_OWED = "Publication {publication} records a payment for a roll row it does not owe one."
+PAYMENT_TWICE = "Publication {publication} records a second payment for a member whose first was not withdrawn."
+WITHDRAWN_UNRECORDED = "Publication {publication} withdraws a payment that was never recorded."
+ENTITLEMENT_DIFFERS = "Publication {publication} records an entitlement that differs from its shares times its rate."
+TOTAL_DIFFERS = "Publication {publication} records a declared total or remainder that differs from its roll."
 
 
 def _operator():
@@ -191,6 +204,47 @@ def tally(publication, recipients, ballots) -> dict:
     }
 
 
+def _integrity(template, publication):
+    return PublicationIntegrityError(template.format(publication=publication.pk))
+
+
+def _count_the_ballot(publication, roll, event, ballots):
+    member = roll.get(event.recipient_id)
+    if member is None or event.shares != member.shares:
+        raise _integrity(BALLOT_OFF_THE_ROLL, publication)
+    if not event.staff_entered and (member.user_id is None or event.actor_id != member.user_id):
+        raise _integrity(BALLOT_NOT_THE_MEMBERS, publication)
+    if event.recipient_id in ballots:
+        raise _integrity(BALLOT_TWICE, publication)
+    ballots[event.recipient_id] = event
+
+
+def _follow_the_payments(publication, roll, event, recorded):
+    member = roll.get(event.recipient_id)
+    if event.kind == PublicationEventKind.PAYMENT:
+        if member is None or not member.entitlement:
+            raise _integrity(PAYMENT_NOT_OWED, publication)
+        if recorded.get(event.recipient_id) is not None:
+            raise _integrity(PAYMENT_TWICE, publication)
+        recorded[event.recipient_id] = event
+        return
+    if member is None or recorded.get(event.recipient_id) is None:
+        raise _integrity(WITHDRAWN_UNRECORDED, publication)
+    recorded[event.recipient_id] = None
+
+
+def _check_the_arithmetic(publication, roll):
+    rate = publication.rate_per_share
+    if any(row.entitlement != entitlement(row.shares, rate) for row in roll):
+        raise _integrity(ENTITLEMENT_DIFFERS, publication)
+    entitled = sum(row.entitlement for row in roll)
+    if (
+        publication.declared_total != entitlement(sum(int(row.shares) for row in roll), rate)
+        or entitled + publication.undistributed != publication.declared_total
+    ):
+        raise _integrity(TOTAL_DIFFERS, publication)
+
+
 def verify_publication(publication_id) -> dict:
     _operator()
     with atomic():
@@ -204,6 +258,7 @@ def verify_publication(publication_id) -> dict:
         previous_hash = "0" * 64
         sequence = 0
         ballots = {}
+        recorded = {}
         close = None
         for event in events.iterator(chunk_size=100):
             sequence += 1
@@ -215,25 +270,26 @@ def verify_publication(publication_id) -> dict:
                 raise PublicationIntegrityError(CHAIN_BROKEN.format(publication=publication.pk, sequence=sequence))
             previous_hash = event.entry_hash
             if event.company_id != publication.company_id:
-                raise PublicationIntegrityError(EVENT_ELSEWHERE.format(publication=publication.pk))
+                raise _integrity(EVENT_ELSEWHERE, publication)
+            if event.kind not in EVENTS_OF.get(publication.kind, ()):
+                raise _integrity(EVENT_OF_ANOTHER_KIND, publication)
+            if publication.kind == PublicationKind.DISTRIBUTION:
+                _follow_the_payments(publication, roll, event, recorded)
+                continue
             if close is not None:
-                raise PublicationIntegrityError(EVENT_AFTER_CLOSE.format(publication=publication.pk))
+                raise _integrity(EVENT_AFTER_CLOSE, publication)
             if event.kind == PublicationEventKind.CLOSE:
                 close = event
                 continue
-            member = roll.get(event.recipient_id)
-            if member is None or event.shares != member.shares:
-                raise PublicationIntegrityError(BALLOT_OFF_THE_ROLL.format(publication=publication.pk))
-            if not event.staff_entered and (member.user_id is None or event.actor_id != member.user_id):
-                raise PublicationIntegrityError(BALLOT_NOT_THE_MEMBERS.format(publication=publication.pk))
-            if event.recipient_id in ballots:
-                raise PublicationIntegrityError(BALLOT_TWICE.format(publication=publication.pk))
-            ballots[event.recipient_id] = event
-        if close is not None and close.payload != tally(publication, roll.values(), ballots.values()):
-            raise PublicationIntegrityError(TALLY_DIFFERS.format(publication=publication.pk))
-    return {
-        "events": sequence,
-        "head_hash": previous_hash,
-        "ballots": len(ballots),
-        "tally": None if close is None else close.payload,
-    }
+            _count_the_ballot(publication, roll, event, ballots)
+        if publication.kind == PublicationKind.DISTRIBUTION:
+            _check_the_arithmetic(publication, roll.values())
+            outcome = {
+                "payments_recorded": sum(record is not None for record in recorded.values()),
+                "undistributed": str(publication.undistributed),
+            }
+        else:
+            if close is not None and close.payload != tally(publication, roll.values(), ballots.values()):
+                raise _integrity(TALLY_DIFFERS, publication)
+            outcome = {"ballots": len(ballots), "tally": None if close is None else close.payload}
+    return {"events": sequence, "head_hash": previous_hash, **outcome}

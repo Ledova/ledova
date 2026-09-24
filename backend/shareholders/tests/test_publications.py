@@ -230,7 +230,7 @@ class PublishingToMembersTest(StubUploadDependencies, TestCase):
             company=self.world.company, name="Draft class", symbol="DRAFT", total_supply="10"
         )
         for refusal, changes, token in (
-            (UNKNOWN_KIND, {"kind": "distribution"}, self.world.token),
+            (UNKNOWN_KIND, {"kind": "share_split"}, self.world.token),
             (NO_TITLE, {"title": "  "}, self.world.token),
             (NO_INSTRUCTION, {"instruction": "\t"}, self.world.token),
             (
@@ -332,6 +332,7 @@ class PublishingToMembersTest(StubUploadDependencies, TestCase):
             "question": publication.question,
             "resolution_kind": publication.resolution_kind,
             "vote_basis": publication.vote_basis,
+            "currency": publication.currency,
             **columns,
         }
         row.setdefault("file", f"companies/{row['company_id']}/publications/{row['uuid']}/{uuid4()}.bin")

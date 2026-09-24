@@ -3,8 +3,8 @@
 [Operations](README.md) · [Shareholder publications](../architecture/shareholder-publications.md)
 
 A company publishes documents to the members of one share class: today the
-annual holding statement, the meeting notice and the resolution put to members
-for a vote. Ledova staff publish on the
+annual holding statement, the meeting notice, the resolution put to members
+for a vote and the dividend. Ledova staff publish on the
 company's written instruction, as
 [inspection copies](register-foundation.md#preparing-an-inspection-copy),
 certificates and notice figures are prepared today (owner decision,
@@ -89,6 +89,72 @@ with a ballot entered for them cannot cast another. The page refuses, and
 records nothing, when voting has not opened or has closed, when the member
 already has a ballot, or when the authority is blank.
 
+## Publishing a dividend
+
+A dividend is published the same way, on the company's written instruction, with
+the company's dividend notice as the document. On **Publish to members** choose
+**Dividend** as what is being published, and also fill in, exactly as the
+company's instruction states them:
+
+- the rate per share in AUD, to at most six decimal places;
+- the date the dividend was declared;
+- the date the company will pay it, which cannot be before the record date;
+- the total the company declared.
+
+The total is a check on the rate. The page refuses the dividend, and records
+nothing, unless the total is exactly the shares on the roll times the rate,
+rounded down to the cent, and the refusal says what the total should have been.
+When that happens, do not change either figure yourself: go back to the company,
+because one of the two figures in its instruction is wrong. The page also
+refuses a rate of zero or less, or to more than six decimal places, a
+declaration dated in the future, a payment date before the record date, a rate
+at which the members between them are owed less than a cent, and any of these
+fields on something that is not a dividend.
+
+Each member on the roll is entitled to their shares on the record date times the
+rate, rounded down to the cent, and whatever rounding leaves over is recorded as
+undistributed rather than given to anyone (owner decision, 23 September 2026).
+It is always less than a cent for each member. The dividend's page in **Admin →
+Shareholder publications → Publications** shows the rate, the dates, the
+declared total and the undistributed amount, each member's entitlement on the
+roll, and its payment records, in sequence with their hashes. Seeing the records
+needs **Can view publication event** (`shareholders.view_publicationevent`).
+
+## Recording a payment
+
+Ledova does not move money and cannot see a bank transfer. Record a payment only
+on the company's written advice that it has paid a member, and attach the
+remittance evidence the company gave you. What you record is the company's
+statement that it paid, and members are shown exactly that.
+
+1. Open the dividend and choose **Record a payment**. You need **Can change
+   publication** (`shareholders.change_publication`).
+2. Choose the member on the roll. Only members owed at least a cent and with no
+   standing record are offered, each with their shares and entitlement.
+3. Enter the date the company says it paid, the company's payment reference, the
+   remittance evidence as a PDF, PNG or JPEG, and what you relied on, such as the
+   reference of the company's payment advice. Choose **Record the payment**.
+
+The record names you and cannot be changed. The page refuses, and records
+nothing, when the date is in the future or before the dividend was declared, the
+reference or what you relied on is blank, the evidence is not an accepted file,
+or the member already has a standing record.
+
+## Withdrawing a payment record
+
+A record is withdrawn, never edited. Withdraw one only on the company's written
+correction: a payment recorded against the wrong member, on the wrong date or
+with the wrong reference, or one the company says did not go through.
+
+1. Open the dividend and choose **Withdraw a payment record**. Only members whose
+   latest record is a payment are offered.
+2. Choose the member, record why, such as the reference of the company's
+   correction, and choose **Withdraw the record**.
+
+The original record stays on the chain with your withdrawal after it. To correct
+a record, withdraw it and then record the correct one; the member sees the new
+record in place of the old.
+
 ## Closing a resolution and reading the tally
 
 Nothing needs doing. `close_resolutions_past_their_window` runs every five
@@ -162,9 +228,23 @@ and its tally, and is never offered a ballot. If a ballot is refused, the page
 shows why, in the words the server used: voting has not opened, has closed, or a
 ballot was already recorded.
 
-Nothing on that page names another member, and no holding or ballot but the
-reader's own is served: the roll row and the ballot behind each line are the
-reader's, chosen by the database rather than by the page.
+A dividend shows the declared rate per share, the member's frozen holding, their
+entitlement and how it was worked out, and the payment date. Below them is what
+the company recorded: "The company recorded this as paid on 3 October 2026,
+reference LDV-4412", or that no payment has been recorded yet, with a line saying
+that Ledova shows what the company recorded and does not move the money. A member
+whose holding comes to less than a cent is told there is nothing to pay. A
+person holding through two register members sees their two entitlements added
+together. If only one holding has a payment record, they are told how much of
+the total the company has recorded, with the most recent record's date and
+reference, and that the rest has no payment record yet. A company owner sees the rate and the payment date, and no entitlement
+or payment of its own. Publishing a dividend notifies members that it has been
+declared; recording a payment sends no notification.
+
+Nothing on that page names another member, and no holding, ballot, entitlement
+or payment record but the reader's own is served: the roll rows and the events
+behind each line are the reader's, chosen by the database rather than by the
+page.
 
 ## Opening a published document
 
@@ -182,6 +262,18 @@ Those records cannot be rewritten or deleted in admin, are read only by staff,
 and carry no name, holding or document content. To confirm that a file is the
 one published, compare the output of `sha256sum` on it with the publication's
 digest.
+
+### Opening a payment's remittance evidence
+
+On a dividend's page, each payment record has **Open the remittance evidence**
+beside it. You need **Can view publication** (`shareholders.view_publication`)
+and **Can view publication event** (`shareholders.view_publicationevent`). The
+evidence downloads as the file type it was found to be when it was recorded. Its
+SHA-256 is on the same row, to compare with `sha256sum` on the copy you
+downloaded. Each opening is recorded in **Publication reads** like any other
+read, with the payment record's identifier in the event column. As with a
+published document, evidence that cannot be opened, or a read that cannot be
+recorded, serves nothing.
 
 ## Checking a frozen roll and verifying a resolution
 
@@ -213,10 +305,24 @@ event follows the close, or when the tally in the close differs from the tally
 recomputed from the ballots. Nothing the application does can cause any of
 these: they mean someone with the schema owner's rights rewrote the chain.
 
+### Verifying a distribution
+
+For a dividend the command replays its payment records and rechecks its
+arithmetic, and prints the number of events, the chain's head hash, the number
+of standing payment records and the undistributed amount. It fails, naming the
+publication, on the same chain faults as a resolution, and when a payment is
+recorded for a member the roll does not entitle to one, when one member has two
+standing records, when a withdrawal has nothing to withdraw, when an event is a
+ballot or a close, when an entitlement is not the member's shares times the rate
+rounded down, or when the declared total or the undistributed amount does not
+agree with the roll. As for a resolution, only a rewrite with the schema owner's
+rights can cause these.
+
 ## Retention
 
-Publications, their rolls, their read records and a resolution's ballots and
-close are kept for seven years from the publication and purged together by
+Publications, their rolls, their read records, a resolution's ballots and
+close, and a dividend's payment records with their stored remittance evidence
+are kept for seven years from the publication and purged together by
 `purge_publications_past_the_clock`,
 daily at 03:50. They share `FORMER_MEMBER_RETENTION_DAYS` with the register's
 own outputs, so one clock governs both and a value below 2,557 days refuses the

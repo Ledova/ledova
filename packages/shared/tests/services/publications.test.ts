@@ -22,6 +22,13 @@ import {
   openPublication,
 } from '../../src/services/publications';
 import type { PublicationResult } from '../../src/types';
+import {
+  describePaymentRecord,
+  describePaymentStanding,
+  describeRate,
+  formatMoney,
+  paymentRecordState,
+} from '../../src/utils';
 
 const OPENS = '2026-09-24T00:00:00Z';
 const CLOSES = '2026-10-01T00:00:00Z';
@@ -102,7 +109,12 @@ describe('publication services', () => {
   });
 
   it('labels every kind the backend can publish', () => {
-    expect(Object.keys(PUBLICATION_KIND_LABELS).sort()).toEqual(['holding_statement', 'meeting_notice', 'resolution']);
+    expect(Object.keys(PUBLICATION_KIND_LABELS).sort()).toEqual([
+      'distribution',
+      'holding_statement',
+      'meeting_notice',
+      'resolution',
+    ]);
   });
 
   it('names the notice type the backend sends, so a deep link can be recognised', () => {
@@ -171,5 +183,81 @@ describe('a resolution in the listing', () => {
         }),
       ),
     ).toBe('12,345,678,901,234,567,940 of 99,999,999,999,999,999,999 shares · 3 of 4 members');
+  });
+});
+
+describe('a distribution in the listing', () => {
+  it('shows an amount of money in cents exactly, grouped, beyond the range a number can hold', () => {
+    expect(formatMoney('2.50', 'AUD')).toBe('AUD 2.50');
+    expect(formatMoney('0.00', 'AUD')).toBe('AUD 0.00');
+    expect(formatMoney('1234567890123456.78', 'AUD')).toBe('AUD 1,234,567,890,123,456.78');
+  });
+
+  it('shows the rate to every decimal place the company declared and no trailing zeros past the cent', () => {
+    expect(describeRate({ ratePerShare: '0.025000', currency: 'AUD' })).toBe('AUD 0.025 per share');
+    expect(describeRate({ ratePerShare: '0.123456', currency: 'AUD' })).toBe('AUD 0.123456 per share');
+    expect(describeRate({ ratePerShare: '1.500000', currency: 'AUD' })).toBe('AUD 1.50 per share');
+    expect(describeRate({ ratePerShare: '1000.000000', currency: 'AUD' })).toBe('AUD 1,000.00 per share');
+    expect(describeRate({ ratePerShare: null, currency: null })).toBeNull();
+  });
+
+  it('says the company recorded the payment, when and under what reference, and never that it was paid', () => {
+    const line = describePaymentRecord({
+      recordedPaidOn: '2026-10-03',
+      reference: 'LDV-4412',
+      recordedAt: '2026-10-03T04:00:00Z',
+    });
+
+    expect(line).toBe('The company recorded this as paid on 3 October 2026, reference LDV-4412.');
+  });
+
+  const record = { recordedPaidOn: '2026-10-03', reference: 'LDV-4412', recordedAt: '2026-10-03T04:00:00Z' };
+  const standing = (
+    myRecordedEntitlement: string,
+    myEntitlement = '3.50',
+    myPaymentRecord: typeof record | null = record,
+  ) => ({
+    myEntitlement,
+    myRecordedEntitlement,
+    myPaymentRecord,
+    currency: 'AUD',
+  });
+
+  it('tells a whole record, a part record and no record apart by the amounts, exactly to the cent', () => {
+    expect(paymentRecordState(standing('3.50'))).toBe('recorded');
+    expect(paymentRecordState(standing('1.00'))).toBe('partly_recorded');
+    expect(paymentRecordState(standing('3.49'))).toBe('partly_recorded');
+    expect(paymentRecordState(standing('0.00', '3.50', null))).toBe('unrecorded');
+    expect(paymentRecordState(standing('12345678901234567.89', '12345678901234567.90'))).toBe('partly_recorded');
+  });
+
+  it('says the whole entitlement is recorded only when the recorded amount is all of it', () => {
+    expect(describePaymentStanding(standing('3.50'))).toBe(
+      'The company recorded this as paid on 3 October 2026, reference LDV-4412.',
+    );
+  });
+
+  it('says what part of the entitlement is recorded, and that the rest has no record, never that it was all paid', () => {
+    expect(describePaymentStanding(standing('1.00'))).toBe(
+      'The company has recorded AUD 1.00 of your AUD 3.50 as paid, most recently on 3 October 2026, ' +
+        'reference LDV-4412. The rest has no payment record yet.',
+    );
+  });
+
+  it('says no payment is recorded, or that nothing is payable, when nothing stands', () => {
+    expect(describePaymentStanding(standing('0.00', '3.50', null))).toBe(PUBLICATION_COPY.NO_PAYMENT_RECORDED);
+    expect(describePaymentStanding(standing('0.00', '0.00', null))).toBe(PUBLICATION_COPY.NOTHING_PAYABLE);
+  });
+
+  it('has no member-facing copy that says paid without saying recorded', () => {
+    const copy = Object.entries(PUBLICATION_COPY).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string',
+    );
+    const claimsPaid = (text: string) => /paid/i.test(text);
+    const saysRecorded = (text: string) => /recorded/i.test(text);
+
+    expect(copy.some(([key, text]) => claimsPaid(key) || claimsPaid(text))).toBe(true);
+    expect(copy.filter(([key]) => claimsPaid(key) && !saysRecorded(key))).toEqual([]);
+    expect(copy.filter(([, text]) => claimsPaid(text) && !saysRecorded(text))).toEqual([]);
   });
 });

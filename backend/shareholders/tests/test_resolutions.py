@@ -458,7 +458,7 @@ class TheDatabaseOwnsTheBallotTest(StubUploadDependencies, TestCase):
     def test_the_chain_cannot_be_rewritten(self):
         ballot = self.insert()
 
-        with self.assertRaisesMessage(DatabaseError, "A resolution's record cannot be rewritten"), atomic():
+        with self.assertRaisesMessage(DatabaseError, "A publication's record of events cannot be rewritten"), atomic():
             PublicationEvent.objects.filter(pk=ballot.pk).update(choice=BallotChoice.AGAINST)
 
         self.assertEqual(PublicationEvent.objects.get(pk=ballot.pk).choice, BallotChoice.FOR)
@@ -530,8 +530,9 @@ class ClosingAResolutionTest(StubUploadDependencies, TestCase):
             the_chain_is_rewritten(
                 (
                     "INSERT INTO shareholders_publicationevent (uuid, created_at, updated_at, publication_id, "
-                    "company_id, sequence, kind, choice, staff_entered, authority, payload, previous_hash, "
-                    "entry_hash) VALUES (%s, now(), now(), %s, %s, 2, 'close', '', false, '', %s, %s, '')",
+                    "company_id, sequence, kind, choice, staff_entered, authority, payload, reference, evidence, "
+                    "evidence_digest, evidence_mime_type, previous_hash, entry_hash) "
+                    "VALUES (%s, now(), now(), %s, %s, 2, 'close', '', false, '', %s, '', '', '', '', %s, '')",
                     [uuid4(), self.resolution.pk, self.world.company.pk, '{"carried": false}', close.entry_hash],
                 )
             )

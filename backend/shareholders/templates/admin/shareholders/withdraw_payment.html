@@ -1,0 +1,9 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Withdraw a payment record</h1>
+<p><strong>{{ publication.title }}</strong>, a dividend of {{ publication.company_name }} ({{ publication.token_symbol }}) at {{ publication.currency }} {{ publication.rate_per_share }} per share, payable {{ publication.payment_date|date:"j F Y" }}.</p>
+<p>Withdraw a record only on the company's written correction: a payment recorded against the wrong member, on the wrong date or with the wrong reference, or one the company says did not go through. Record why. The original record stays on the chain with your withdrawal after it, so the history of what was recorded and when survives. To correct a record, withdraw it here and then record the correct one.</p>
+<p>Only members whose latest record is a payment are offered.</p>
+{% if refusal %}<p class="errornote">{{ refusal }} Nothing was recorded.</p>{% endif %}
+<form method="post">{% csrf_token %}{{ form.as_p }}<input type="submit" value="Withdraw the record"></form>
+{% endblock %}

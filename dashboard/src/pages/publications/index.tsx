@@ -2,6 +2,7 @@ import { ArrowSquareOutIcon, EnvelopeSimpleIcon, NewspaperIcon } from '@phosphor
 import { Panel } from '@components/Panel';
 import { PUBLICATION_COPY, PUBLICATION_KIND_LABELS, formatDate } from '@ledova/shared';
 import type { BallotChoice, Publication } from '@ledova/shared';
+import { Distribution } from './Distribution';
 import { Resolution } from './Resolution';
 import { usePublications } from './usePublications';
 
@@ -65,6 +66,7 @@ function PublicationRow({
         </div>
       </div>
       <Resolution publication={publication} onCast={onCast} isCasting={isCasting} castError={castError} />
+      <Distribution publication={publication} />
     </div>
   );
 }
