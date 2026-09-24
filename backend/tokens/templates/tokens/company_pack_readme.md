@@ -19,7 +19,7 @@ The pack carries the company, its share classes, each class's register of member
 | `wallet_links.json` | Each request to link a wallet to a member of the company: its authority, terms, evidence and decision |
 | `documents.json` | Each document the company gave Ledova: its type, name, media type, validity, whether Ledova verified it, and the file that holds it or the address the company gave instead |
 | `documents/<document id>` | The bytes of each company document Ledova holds, as uploaded, named by the document's id with the extension of its media type |
-| `documents/evidence/<record id>` | The copy Ledova kept of the document an authority record relied on, as it was when the record was submitted, named by the record's id with the extension of its media type |
+| `documents/evidence/<record kind>/<record id>` | The copy Ledova kept of the document an authority record relied on, as it was when the record was submitted, grouped by record kind and named by the record's id with the extension of its media type |
 | `classes/<class id>/class.json` | One share class: its terms, authorised shares, status, contract address and register head, with each capital increase and its execution, and each pause with the transaction it was for or the state it found |
 | `classes/<class id>/register.csv` | The class's register of members, present once its register has been opened |
 | `classes/<class id>/entries.json` | Every entry in the class's register, in order, each with the exact text its hash was computed over |
@@ -104,7 +104,7 @@ Each settlement is the instrument of a transfer. `typed_data` is the order both 
 
 `documents.json` lists every document the company gave Ledova, oldest first: its `uuid`, `type`, `name` and `mime_type`, the dates it is `valid_from` and `valid_until`, whether Ledova `verified` it and when (`verified_at`), when it was uploaded (`uploaded_at`), its `external_url` if the company gave one, and `path`, the file under `documents/` that holds its bytes as uploaded. A document the company gave only as an address has `path` `null`: Ledova did not fetch it, so this pack does not carry it.
 
-`documents/evidence/` holds the copy Ledova kept of the document each authority record relied on, one for each record in `authority.json` and `wallet_links.json`, named by the record's id. The record's `evidence` names the copy by `path`. Check that the copy's size in bytes and SHA-256 are the ones `evidence` records: Ledova checked them when it produced this pack. The document the copy was taken from may have changed or gone since, so a copy can differ from the file of the same document under `documents/`.
+`documents/evidence/` holds the copy Ledova kept of the document each authority record relied on, one for each record in `authority.json` and `wallet_links.json`, grouped by record kind and named by the record's id. Different kinds can use the same id without sharing a file. The record's `evidence` names the copy by `path`. Check that the copy's size in bytes and SHA-256 are the ones `evidence` records: Ledova checked them when it produced this pack. The document the copy was taken from may have changed or gone since, so a copy can differ from the file of the same document under `documents/`.
 
 {% if documents %}| Document | Type | Name | Verified |
 | --- | --- | --- | --- |

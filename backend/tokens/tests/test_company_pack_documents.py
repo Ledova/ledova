@@ -72,7 +72,7 @@ def stored_files(company):
         if document.file
     }
     for record in evidence_records(company):
-        files[f"documents/evidence/{record.pk}.pdf"] = read(record.file.name)
+        files[f"documents/evidence/{record._meta.model_name}/{record.pk}.pdf"] = read(record.file.name)
     return files
 
 
@@ -229,7 +229,7 @@ class CompanyPackDocumentsTest(ProducesPacks, TestCase):
         for kind, record in expected.items():
             with self.subTest(kind=kind):
                 [listed] = records[kind]
-                path = f"documents/evidence/{record.pk}.pdf"
+                path = f"documents/evidence/{record._meta.model_name}/{record.pk}.pdf"
                 self.assertEqual(
                     (listed["uuid"], listed["evidence"]["path"], listed["evidence"]["sha256"]),
                     (str(record.pk), path, sha256(files[path])),
@@ -237,7 +237,36 @@ class CompanyPackDocumentsTest(ProducesPacks, TestCase):
                 self.assertEqual(files[path], read(record.file.name))
                 source = CompanyDocument.objects.get(pk=record.source_document)
                 self.assertEqual(files[path], read(source.file.name))
-        self.assertEqual(files[f"documents/evidence/{self.a.correction.pk}.pdf"], evidence_of("pack-a"))
+        self.assertEqual(
+            files[f"documents/evidence/registercorrection/{self.a.correction.pk}.pdf"], evidence_of("pack-a")
+        )
+
+    def test_operation_id_reused_across_record_kinds_keeps_both_evidence_copies(self):
+        other_document = verified(self.a, DocumentType.OTHER, b"Synthetic different opening evidence")
+        opening = submit_opening(
+            actor=self.a.company.owner,
+            operation_id=self.a.link.pk,
+            token_id=self.unopened.pk,
+            document_id=other_document.pk,
+            mapping=[],
+            authority="director_resolution",
+            **authority_terms(self.a.label, "same-id opening"),
+        )
+        self.assertEqual(opening.pk, self.a.link.pk)
+        self.assertNotEqual(opening.evidence_snapshot["sha256"], self.a.link.evidence_snapshot["sha256"])
+
+        content = self.pack()
+
+        self.assertEqual(RegisterExport.objects.count(), 3)
+        files = files_of(content)
+        link_path = json.loads(files["wallet_links.json"])[0]["evidence"]["path"]
+        authority = json.loads(files[f"classes/{self.unopened.pk}/authority.json"])
+        opening_path = next(row for row in authority["openings"] if row["uuid"] == str(opening.pk))["evidence"]["path"]
+        result = consume(content, *ISOLATED)
+        self.assertEqual((result.returncode, result.stderr), (0, ""))
+        self.assertNotEqual(link_path, opening_path)
+        self.assertEqual(files[link_path], read(self.a.link.file.name))
+        self.assertEqual(files[opening_path], read(opening.file.name))
 
     def test_the_documents_file_and_readme_list_every_document_and_leave_members_evidence_out(self):
         files = files_of(self.pack())
@@ -390,7 +419,7 @@ class CompanyPackDocumentsTest(ProducesPacks, TestCase):
     def test_the_consumer_names_a_tampered_missing_or_unnamed_document(self):
         files = files_of(self.pack())
         document = f"documents/{self.a.document.pk}.pdf"
-        copy = f"documents/evidence/{self.a.correction.pk}.pdf"
+        copy = f"documents/evidence/registercorrection/{self.a.correction.pk}.pdf"
         authority = f"classes/{self.a.ordinary.pk}/authority.json"
 
         def flipped(path):

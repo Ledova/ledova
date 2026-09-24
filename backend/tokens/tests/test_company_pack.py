@@ -803,7 +803,7 @@ class CompanyPackTest(ProducesPacks, TestCase):
                 if document.file
             ),
             *(
-                f"documents/evidence/{record.pk}.pdf"
+                f"documents/evidence/{record._meta.model_name}/{record.pk}.pdf"
                 for record in (self.a.allotment.instruction, self.a.correction, self.a.link)
             ),
             "contracts/contracts.json",
@@ -1275,7 +1275,7 @@ class CompanyPackHistoryTest(ProducesPacks, TestCase):
                 "mime_type": "application/pdf",
                 "size": len(content),
                 "sha256": sha256(content),
-                "path": f"documents/evidence/{record.pk}.pdf",
+                "path": f"documents/evidence/{record._meta.model_name}/{record.pk}.pdf",
             },
             "status": "applied",
             "reviewer": "Synthetic pack-a reviewer",
