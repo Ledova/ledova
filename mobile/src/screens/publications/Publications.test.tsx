@@ -35,10 +35,12 @@ const statement = {
   opensAt: null,
   closesAt: null,
   myBallot: null,
+  ballotOutstanding: false,
   result: null,
 };
 
-const HOUR = 60 * 60 * 1000;
+const MINUTE = 60 * 1000;
+const HOUR = 60 * MINUTE;
 const fromNow = (offset: number) => new Date(Date.now() + offset).toISOString();
 
 const resolution = {
@@ -50,9 +52,14 @@ const resolution = {
   resolutionKind: 'ordinary',
   opensAt: fromNow(-HOUR),
   closesAt: fromNow(7 * 24 * HOUR),
+  ballotOutstanding: true,
 };
 const BALLOT = `/api/v1/publications/${resolution.uuid}/ballot/`;
-const voted = { ...resolution, myBallot: { choice: 'for', castAt: fromNow(0), staffEntered: false } };
+const voted = {
+  ...resolution,
+  myBallot: { choice: 'for', castAt: fromNow(0), staffEntered: false },
+  ballotOutstanding: false,
+};
 
 const tally = {
   for: { shares: '100', members: 1 },
@@ -99,6 +106,7 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+  jest.useRealTimers();
 });
 
 it('lists what was published, the share class it concerns and the holding frozen on the record date', async () => {
@@ -270,7 +278,13 @@ it('lets a cast that outlives its session change nothing on screen, whether it s
 });
 
 it('shows a ballot staff entered for the member as voted for them by staff', async () => {
-  rows = [{ ...resolution, myBallot: { choice: 'against', castAt: fromNow(0), staffEntered: true } }];
+  rows = [
+    {
+      ...resolution,
+      myBallot: { choice: 'against', castAt: fromNow(0), staffEntered: true },
+      ballotOutstanding: false,
+    },
+  ];
 
   const view = await render(<PublicationsScreen />, { wrapper });
 
@@ -324,7 +338,7 @@ it('says a resolution that did not carry did not carry, and that one not yet cou
 });
 
 it('shows the company owner the result and never a ballot control', async () => {
-  rows = [{ ...resolution, shares: null }];
+  rows = [{ ...resolution, shares: null, ballotOutstanding: false }];
   const view = await render(<PublicationsScreen />, { wrapper });
 
   expect(await view.findByText(resolution.question)).toBeTruthy();
@@ -333,9 +347,63 @@ it('shows the company owner the result and never a ballot control', async () => 
   await cleanup();
   client.clear();
 
-  rows = [{ ...resolution, ...closed, shares: null, result: tally }];
+  rows = [{ ...resolution, ...closed, shares: null, ballotOutstanding: false, result: tally }];
   const later = await render(<PublicationsScreen />, { wrapper });
 
   expect(await later.findByText(PUBLICATION_COPY.CARRIED)).toBeTruthy();
   expect(later.queryByLabelText(choiceButton('For'))).toBeNull();
+});
+
+it('offers the rest of a ballot when staff voted part of the holding, beside the part already voted', async () => {
+  const partly = {
+    ...resolution,
+    shares: '140',
+    myBallot: { choice: 'against', castAt: fromNow(0), staffEntered: true },
+    ballotOutstanding: true,
+  };
+  rows = [partly];
+  jest.mocked(apiClient.post).mockImplementation(async () => {
+    rows = [{ ...partly, ballotOutstanding: false }];
+    return { data: rows[0] };
+  });
+  const view = await render(<PublicationsScreen />, { wrapper });
+
+  expect(await view.findByText(PUBLICATION_COPY.YOU_VOTED.against)).toBeTruthy();
+  expect(view.getByText(PUBLICATION_COPY.STAFF_ENTERED)).toBeTruthy();
+  expect(view.getByText(PUBLICATION_COPY.BALLOT_OUTSTANDING)).toBeTruthy();
+  await fireEvent.press(view.getByLabelText(choiceButton('For')));
+  await fireEvent.press(view.getByText(PUBLICATION_COPY.CONFIRM));
+
+  await waitFor(() => expect(view.queryByText(PUBLICATION_COPY.BALLOT_OUTSTANDING)).toBeNull());
+  expect(apiClient.post).toHaveBeenCalledWith(BALLOT, { choice: 'for' }, { ledovaSessionEpoch: getSessionEpoch() });
+  expect(view.queryByLabelText(choiceButton('For'))).toBeNull();
+  expect(view.getByText(PUBLICATION_COPY.YOU_VOTED.against)).toBeTruthy();
+});
+
+it('offers the ballot the moment the window opens and withdraws it the moment it closes, without reloading', async () => {
+  jest.useFakeTimers();
+  const start = Date.now();
+  rows = [
+    {
+      ...resolution,
+      opensAt: new Date(start + MINUTE).toISOString(),
+      closesAt: new Date(start + 2 * MINUTE).toISOString(),
+    },
+  ];
+  const view = await render(<PublicationsScreen />, { wrapper });
+
+  expect(await view.findByText(PUBLICATION_COPY.NOT_OPEN_YET)).toBeTruthy();
+  expect(view.queryByLabelText(choiceButton('For'))).toBeNull();
+  await act(async () => {
+    jest.advanceTimersByTime(MINUTE);
+  });
+  expect(view.getByLabelText(choiceButton('For'))).toBeTruthy();
+  expect(view.queryByText(PUBLICATION_COPY.NOT_OPEN_YET)).toBeNull();
+  await act(async () => {
+    jest.advanceTimersByTime(MINUTE);
+  });
+  expect(view.queryByLabelText(choiceButton('For'))).toBeNull();
+  expect(view.getByText(PUBLICATION_COPY.CLOSED)).toBeTruthy();
+  expect(view.getByText(PUBLICATION_COPY.RESULT_PENDING)).toBeTruthy();
+  expect(listingCalls()).toBe(1);
 });

@@ -7,7 +7,7 @@ import {
   describeCount,
   describeTurnout,
   formatDateTime,
-  resolutionStatus,
+  useResolutionStatus,
 } from '@ledova/shared';
 import type { BallotChoice, Publication, ResolutionStatus } from '@ledova/shared';
 import { useThemedStyles } from '../../contexts';
@@ -92,10 +92,9 @@ export function Resolution({
     result: { marginTop: theme.spacing.sm },
   }));
   const [choosing, setChoosing] = useState<BallotChoice | null>(null);
-  const status = resolutionStatus(publication, new Date());
+  const status = useResolutionStatus(publication);
   if (status === null) return null;
-  const onTheRoll = publication.shares !== null && publication.shares !== undefined;
-  const mayVote = status === 'open' && onTheRoll && !publication.myBallot;
+  const mayVote = status === 'open' && publication.ballotOutstanding;
   const result = publication.result;
 
   return (
@@ -115,6 +114,7 @@ export function Resolution({
         <>
           <Text style={styles.voted}>{PUBLICATION_COPY.YOU_VOTED[publication.myBallot.choice]}</Text>
           {publication.myBallot.staffEntered && <Text style={styles.detail}>{PUBLICATION_COPY.STAFF_ENTERED}</Text>}
+          {mayVote && <Text style={styles.detail}>{PUBLICATION_COPY.BALLOT_OUTSTANDING}</Text>}
         </>
       )}
 
