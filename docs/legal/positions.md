@@ -105,7 +105,11 @@ requester, share class, register sequence, row counts and time. The records are
 kept for staff: the operator can query them in admin, and no company-facing
 route exposes them. They are kept for the seven-year floor the owner chose on
 21 September 2026. The record says who took a copy, not what they did with it:
-every download is still a full sheet of members' residential addresses.
+every download is still a full sheet of members' residential addresses. The
+[company pack](../architecture/company-pack.md), the export on exit that the
+agreement would promise, is recorded the same way, once for each share class it
+carries, with the instruction it was produced under, its recipient and the
+SHA-256 of its manifest.
 
 **Status.** Reviewed 2026-09-15; the note pointing s168 to s1306 and the
 agreement's contents added. The company-hosted-instance sentence was drafted

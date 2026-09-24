@@ -447,5 +447,14 @@ stored register at a record date and frozen, carrying the same four holder types
 and the same refusal to name a member the register cannot name. It reads the
 register and never writes to it.
 
+## The company pack
+
+A [company pack](company-pack.md) carries every share class's register: the CSV
+above, built by the export's own code, and every entry with the exact text its
+hash was computed over, so a reader without the platform can check the chain and
+replay the holdings. Staff produce it in admin on the company's written
+instruction, and it is recorded as a `company_pack` kind of register export, once
+for each share class it carries.
+
 Next: [legal positions](../legal/positions.md), [scheduled folds](../operations/jobs.md)
 and [operator recovery](../operations/recovery.md).

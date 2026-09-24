@@ -14,6 +14,7 @@ assume the API, worker and database run compatible code.
 | Read the evidence for company-scoped approvals and their bypass review | [Approval controls](approval-controls.md) |
 | Seed data, configure the operator and work review queues | [Operator console](operator-console.md) |
 | Publish a document to a share class's members | [Publishing to members](publications.md) |
+| Produce a company's records as one archive for a successor or a lawful request | [Producing a company pack](register-foundation.md#producing-a-company-pack) |
 | Configure private storage, scanning and retention | [Uploads](uploads.md) |
 | Start workers and inspect schedules | [Background jobs](jobs.md) |
 | Recover unresolved work | [Recovery](recovery.md) |

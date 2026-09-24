@@ -100,6 +100,7 @@ class RegisterExportKind(models.TextChoices):
     INSPECTION_COPY = "inspection_copy", "Inspection copy"
     CERTIFICATE = "certificate", "Certificate"
     NOTICE_FIGURES = "notice_figures", "Notice figures"
+    COMPANY_PACK = "company_pack", "Company pack"
 
 
 class RegisterExport(BaseModel):
@@ -167,6 +168,15 @@ class RegisterExport(BaseModel):
             models.CheckConstraint(
                 condition=models.Q(kind=RegisterExportKind.NOTICE_FIGURES) | models.Q(period_from__isnull=True),
                 name="register_export_period_only_for_notice_figures",
+            ),
+            models.CheckConstraint(
+                condition=~models.Q(kind=RegisterExportKind.COMPANY_PACK)
+                | (
+                    models.Q(digest__regex="^[0-9a-f]{64}$", requested_on__isnull=True, late__isnull=True)
+                    & ~models.Q(instruction__regex=r"^\s*$")
+                    & ~models.Q(recipient__regex=r"^\s*$")
+                ),
+                name="register_export_company_pack_shape",
             ),
         ]
 

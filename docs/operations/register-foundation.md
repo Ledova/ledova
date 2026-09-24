@@ -76,7 +76,10 @@ effective date, sorted changes, corrected-entry UUID, actor ID, previous hash an
 creation time in UTC with microseconds. SHA-256 covers its UTF-8 JSONB text. The
 first predecessor is 64 zeroes. Verification checks each digest and link, replays
 positions and entry dates, and compares the resulting head and supply with
-storage. An uninitialized head fails verification.
+storage. An uninitialized head fails verification. `tokens_register_entry_preimage`
+returns the exact text the hash function digests, which the
+[company pack](../architecture/company-pack.md#hash-preimages) carries beside
+each entry.
 
 ## Synthetic operator exercise
 
@@ -942,6 +945,55 @@ entries are dated the day they are made, so a later one never carries an earlier
 date, and figures starting on the date of the earliest notice figures row still
 listed cover every such row. The page knows only what Ledova prepared: a row
 stays when the company produced the output elsewhere or needs none.
+
+## Producing a company pack
+
+A company pack is one zip of a company's records: every share class with its
+register of members and the history of entries behind it, the company, and the
+contract information a successor needs, with a README that explains each file
+and how to check it. Staff produce it only on the company's written instruction
+naming who it is for, or on a document that legally compels disclosure, such as
+a lawful information request, referenced in its place (owner decision,
+23 September 2026). [The company pack](../architecture/company-pack.md) describes
+what it carries and what it leaves out.
+
+You need an active staff account with **Can change company pack**
+(`companies.change_companypack`) and **Can view company document**
+(`companies.view_companydocument`). Company permissions do not include the
+first, and it grants nothing else. The company needs at least one share class.
+
+1. Keep the instruction or the compelling document, and note its reference and
+   who the pack is for.
+2. In **Admin → Companies → Company packs**, find the company and choose
+   **Produce a company pack**.
+3. Enter the reference and the recipient, then choose **Produce and download**.
+
+The download, `company-pack-ACN-YYYYMMDDTHHMMSSZ.zip`, is named for the moment
+the records were read, in UTC, and carries every current member's name and
+residential address. Give it unchanged to the recipient the instruction names. The page
+refuses, and records nothing, when the company has no share classes, when a
+field is blank, or when an entry in a share class's register no longer matches
+its stored hash. That last refusal names the class and the entry: run
+`python manage.py register_foundation verify --token TOKEN_UUID` from
+`backend/` for that class, and do not produce a pack until the register
+verifies.
+
+Each pack is recorded in **Admin → Tokens → Register exports** as kind
+**Company pack**, once for each share class it carries: who produced it, the
+class's register sequence and row counts, the instruction, the recipient, and
+the SHA-256 of the pack's `manifest.json`, the same on every row. Search by
+instruction or recipient. Ledova keeps no copy of the file. To confirm that a
+pack is the one produced, unzip it and compare the output of
+`sha256sum manifest.json` with the records' digest; the manifest lists the
+SHA-256 of every other file. Producing again makes new records, and a digest
+that differs if anything in the records or the request has changed, including
+the time. The records cannot be rewritten, are read only by staff, and follow the
+export records' 2,557-day floor and daily purge.
+
+The pack explains how control of the share class contracts and the company's
+registry would be handed to another provider, and does not hand it over. That
+handover is a separate operation, not built, for when a real company first
+leaves.
 
 ## Importing an existing register
 

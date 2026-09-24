@@ -31,8 +31,9 @@ shows the main relationships, not every synchronous provider call.
 1. [Company approval and investor eligibility](companies-and-eligibility.md).
 2. [Contract deployment and share issuance](contracts-and-issuance.md).
 3. [Offering publication](offerings.md) and [subscriptions/allotment](subscriptions.md).
-4. [Register of members](register.md) and
-   [shareholder publications](shareholder-publications.md).
+4. [Register of members](register.md),
+   [shareholder publications](shareholder-publications.md) and the
+   [company pack](company-pack.md) in which a company's records leave.
 5. [Wallets and valuation](wallets-and-valuations.md), [transfers](transfers.md)
    and [secondary trading](trading.md).
 
