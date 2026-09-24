@@ -130,7 +130,7 @@ class AccountExportTest(APITestCase):
             },
         )
         self.assertEqual(body["transactions"][0]["asset"], "EXP")
-        self.assertEqual(Decimal(body["transactions"][0]["amount"]), Decimal("1.5"))
+        self.assertEqual(body["transactions"][0]["amount"], "1.5")
         self.assertEqual(Decimal(body["transactions"][0]["transactionFee"]), Decimal("1E-18"))
         self.assertEqual(set(body["portfolios"][0]), {"uuid", "name", "isActive", "createdAt"})
         self.assertIsInstance(body["portfolios"][0]["createdAt"], str)
@@ -186,9 +186,9 @@ class AccountExportTest(APITestCase):
         exported = self.exported_transactions()
 
         self.assertIsNotNone(exported["0xfree"]["transactionFee"])
-        self.assertEqual(Decimal(exported["0xfree"]["transactionFee"]), Decimal("0"))
+        self.assertEqual(exported["0xfree"]["transactionFee"], "0")
         self.assertIsNone(exported["0xunknown"]["transactionFee"])
-        self.assertEqual(Decimal(exported["0xexport"]["transactionFee"]), Decimal("1E-18"))
+        self.assertEqual(exported["0xexport"]["transactionFee"], "0.000000000000000001")
 
     def test_block_nonce_and_history_are_exported_as_recorded(self):
         block_hash = "0x" + "c" * 64

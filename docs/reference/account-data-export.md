@@ -53,8 +53,8 @@ query.
 | --- | --- |
 | `txHash`, `chain` | The transaction's hash and Ledova's chain name |
 | `status` | Ledova's recorded outcome: `pending`, `confirmed`, `failed`, `reorged` or `replaced` |
-| `asset`, `amount` | The asset symbol and amount moved |
-| `transactionFee` | The actual native fee, as recorded from the receipt or the imported history, never the estimate. `null` only when it is unknown; a fee of zero is exported as zero |
+| `asset`, `amount` | The asset symbol and amount moved. Amounts and fees are plain decimal strings with no exponent and no trailing zeros, such as `"1.5"` or `"0.000000000000000001"` |
+| `transactionFee` | The actual native fee, as recorded from the receipt or the imported history, never the estimate. `null` only when it is unknown; a fee of zero is exported as `"0"` |
 | `fromAddress`, `toAddress` | The two parties' addresses |
 | `blockTimestamp`, `blockNumber`, `blockHash` | The block the receipt placed it in, where recorded |
 | `nonce` | The sender's nonce, for an EVM transaction submitted through Ledova |

@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from decimal import Decimal
 from uuid import uuid4
 
 from django.utils import timezone
@@ -131,6 +132,10 @@ def export_account_data(user):
     return data
 
 
+def _plain(value):
+    return f"{Decimal(value).normalize():f}"
+
+
 def _exported_transaction(tx):
     return {
         "uuid": tx.uuid,
@@ -138,8 +143,8 @@ def _exported_transaction(tx):
         "chain": tx.chain,
         "status": tx.status,
         "asset": tx.asset.symbol if tx.asset else None,
-        "amount": str(tx.amount or 0),
-        "transaction_fee": None if tx.transaction_fee is None else str(tx.transaction_fee),
+        "amount": _plain(tx.amount or 0),
+        "transaction_fee": None if tx.transaction_fee is None else _plain(tx.transaction_fee),
         "from_address": tx.from_address,
         "to_address": tx.to_address,
         "block_timestamp": tx.block_timestamp,
