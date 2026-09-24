@@ -76,6 +76,7 @@ export const PUBLICATION_COPY = {
     abstain: 'You voted to abstain',
   } satisfies Record<BallotChoice, string>,
   STAFF_ENTERED: 'Voted for you by staff',
+  BALLOT_OUTSTANDING: 'Part of your holding has no ballot yet. A ballot cast now counts for that part.',
   BALLOT_FAILED: 'Your ballot could not be recorded.',
   RESULT_LABEL: 'Result',
   RESULT_PENDING: 'Voting has closed. The result appears here once it is counted.',
@@ -91,6 +92,19 @@ export function resolutionStatus(
   if (!publication.opensAt || !publication.closesAt) return null;
   if (publication.result || now.getTime() >= new Date(publication.closesAt).getTime()) return 'closed';
   return now.getTime() < new Date(publication.opensAt).getTime() ? 'upcoming' : 'open';
+}
+
+export const LONGEST_TIMER_DELAY = 2 ** 31 - 1;
+
+export function nextResolutionBoundary(
+  publication: Pick<Publication, 'opensAt' | 'closesAt' | 'result'>,
+  now: Date,
+): number | null {
+  if (!publication.opensAt || !publication.closesAt || publication.result) return null;
+  const opens = new Date(publication.opensAt).getTime();
+  if (now.getTime() < opens) return opens;
+  const closes = new Date(publication.closesAt).getTime();
+  return now.getTime() < closes ? closes : null;
 }
 
 const formatShareCount = (shares: string) => shares.replace(/\B(?=(\d{3})+(?!\d))/g, ',');

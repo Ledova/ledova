@@ -9,6 +9,8 @@ import {
   RESOLUTION_KIND_LABELS,
   describeCount,
   describeTurnout,
+  LONGEST_TIMER_DELAY,
+  nextResolutionBoundary,
   publicationFilename,
   resolutionStatus,
 } from '../../src/constants';
@@ -120,6 +122,18 @@ describe('a resolution in the listing', () => {
 
   it('is closed once it has a result, whatever the clock on this device says', () => {
     expect(resolutionStatus({ ...window, result: tally() }, new Date('2026-09-25T00:00:00Z'))).toBe('closed');
+  });
+
+  it('names the next moment its status changes, and none once it has closed or been counted', () => {
+    expect(nextResolutionBoundary(window, new Date('2026-09-23T12:00:00Z'))).toBe(Date.parse(OPENS));
+    expect(nextResolutionBoundary(window, new Date(OPENS))).toBe(Date.parse(CLOSES));
+    expect(nextResolutionBoundary(window, new Date(CLOSES))).toBeNull();
+    expect(nextResolutionBoundary({ ...window, result: tally() }, new Date(OPENS))).toBeNull();
+    expect(nextResolutionBoundary({ opensAt: null, closesAt: null, result: null }, new Date(OPENS))).toBeNull();
+  });
+
+  it('caps a timer at the longest delay a timer can hold', () => {
+    expect(LONGEST_TIMER_DELAY).toBe(2147483647);
   });
 
   it('has no status when the publication has no voting window', () => {
