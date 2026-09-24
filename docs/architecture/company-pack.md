@@ -351,7 +351,11 @@ of those files is stored under `companies/<company id>/`
   below it the pack is produced.
 - **A missing file** refuses the pack, naming the document or record whose file
   is gone: an evidence copy is found missing when its size is read for the
-  ceiling, and a company document when it is opened to be streamed.
+  ceiling, and a company document when it is opened to be streamed. The same
+  named refusal covers each storage backend's own failure (local file errors,
+  Google Cloud Storage's API errors and S3's client errors) whether it comes
+  when the size is read, when the file is opened, or part-way through reading
+  it, so a missing or unreadable object never surfaces as a server error.
 
 The README lists every document with its file or address, type, name and
 whether it was verified, counts the evidence copies, and states that the

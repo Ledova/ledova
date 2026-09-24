@@ -1,6 +1,9 @@
 import hashlib
 import logging
 
+from botocore.exceptions import BotoCoreError
+from botocore.exceptions import ClientError as S3ClientError
+from google.api_core.exceptions import GoogleAPIError
 from rest_framework.exceptions import ValidationError
 
 from companies.models import CompanyDocument
@@ -64,6 +67,9 @@ def evidence(records) -> dict:
     }
 
 
+UNREADABLE = (OSError, ValueError, GoogleAPIError, S3ClientError, BotoCoreError)
+
+
 def _missing(stored):
     logger.error("A file for a company pack is missing from private storage: %s", stored["file"].name)
     return ValidationError(
@@ -77,7 +83,7 @@ def _size(stored):
         return stored["size"]
     try:
         return stored["file"].size
-    except (OSError, ValueError):
+    except UNREADABLE:
         raise _missing(stored) from None
 
 
@@ -94,16 +100,15 @@ def within_ceiling(company, stored):
 
 
 def carry(stored, target):
-    try:
-        source = stored["file"].open("rb")
-    except (OSError, ValueError):
-        raise _missing(stored) from None
     digest, size = hashlib.sha256(), 0
-    with source:
-        for chunk in source.chunks():
-            digest.update(chunk)
-            size += len(chunk)
-            target.write(chunk)
+    try:
+        with stored["file"].open("rb") as source:
+            for chunk in source.chunks():
+                digest.update(chunk)
+                size += len(chunk)
+                target.write(chunk)
+    except UNREADABLE:
+        raise _missing(stored) from None
     if stored["evidence"] is not None and stored["evidence"] != (size, digest.hexdigest()):
         logger.error("The retained evidence copy %s no longer matches its recorded digest", stored["file"].name)
         raise RegisterIntegrityError(

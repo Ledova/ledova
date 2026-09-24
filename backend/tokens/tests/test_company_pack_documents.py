@@ -2,8 +2,10 @@ import json
 from unittest.mock import patch
 from uuid import uuid4
 
+from botocore.exceptions import ClientError as S3ClientError
 from django.core.files.base import ContentFile
 from django.test import TestCase, override_settings
+from google.api_core.exceptions import NotFound
 
 from companies.models import CompanyDocument, DocumentType
 from companies.services.document_review import prepare_document_review, verify_document
@@ -159,6 +161,17 @@ def carried(content, stored):
     return sorted(name for name, raw in stored.items() if any(raw in blob for blob in blobs))
 
 
+class UnreadableStream:
+    def __init__(self, stream, failure):
+        self.stream, self.failure = stream, failure
+
+    def read(self, *args):
+        raise self.failure
+
+    def __getattr__(self, name):
+        return getattr(self.stream, name)
+
+
 @override_settings(STORAGES=ADMIN_STORAGES)
 class CompanyPackDocumentsTest(ProducesPacks, TestCase):
     def setUp(self):
@@ -304,6 +317,55 @@ class CompanyPackDocumentsTest(ProducesPacks, TestCase):
                 rewrite(name, original)
         self.assertEqual(self.produce().status_code, 200)
         self.assertEqual(RegisterExport.objects.count(), 3)
+
+    def test_a_cloud_storage_backend_that_cannot_find_or_read_a_file_refuses_the_pack_by_name(self):
+        of = f"the evidence of register wallet link {self.a.link.pk}"
+        refusal = (
+            f"The stored file of {of} is missing, so no pack was produced. Restore it to private storage, "
+            "then produce the pack again."
+        )
+        failures = (
+            ("GCS on open", "open", NotFound("No such object")),
+            ("S3 on open", "open", S3ClientError({"Error": {"Code": "NoSuchKey"}}, "GetObject")),
+            ("GCS on size", "size", NotFound("No such object")),
+            ("a read that fails", "read", NotFound("No such object")),
+        )
+        for label, step, failure in failures:
+            with self.subTest(failure=label):
+                self.refused_by_storage(step, failure, refusal)
+        self.assertEqual(self.produce().status_code, 200)
+
+    def refused_by_storage(self, step, failure, refusal):
+        name = self.a.link.file.name
+        storage = PrivateMediaStorage
+        if step == "size":
+            real = storage.size
+            patched = patch.object(
+                storage,
+                "size",
+                lambda self_, path: (_ for _ in ()).throw(failure) if path == name else real(self_, path),
+            )
+        elif step == "open":
+            real = storage._open
+            patched = patch.object(
+                storage,
+                "_open",
+                lambda self_, path, mode="rb": (
+                    (_ for _ in ()).throw(failure) if path == name else real(self_, path, mode)
+                ),
+            )
+        else:
+            real_open = storage._open
+
+            def failing_open(self_, path, mode="rb"):
+                opened = real_open(self_, path, mode)
+                if path == name:
+                    opened.file = UnreadableStream(opened.file, failure)
+                return opened
+
+            patched = patch.object(storage, "_open", failing_open)
+        with patched:
+            self.refused(refusal)
 
     def test_the_ceiling_counts_recorded_sizes_and_stored_copies_and_refuses_only_above_it(self):
         documents = [document for document in CompanyDocument.objects.filter(company=self.a.company) if document.file]
