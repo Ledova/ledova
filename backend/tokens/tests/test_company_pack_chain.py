@@ -580,6 +580,11 @@ class CompanyPackChainTest(ChainFixtures, TransactionTestCase):
                 f"{settlements_path} settlement 1: entry {issue_entry['uuid']} is not its transfer in entries.json",
             ),
             (
+                "a settlement with a register entry and no transaction",
+                rewritten(files, settlements_path, lambda copy: copy[0].update(transaction=None)),
+                f"{settlements_path} settlement 1: it names a register entry but no transaction",
+            ),
+            (
                 "a settlement's transaction malformed",
                 rewritten(files, settlements_path, lambda copy: copy[0].update(transaction="0x12")),
                 f"{settlements_path} settlement 1: its transaction is not a well-formed hash",
@@ -589,6 +594,15 @@ class CompanyPackChainTest(ChainFixtures, TransactionTestCase):
                 result = consume(tampered, *ISOLATED)
 
                 self.assertEqual((result.returncode, result.stdout, result.stderr), (1, "", f"REFUSED {refused}\n"))
+
+    def test_the_consumer_accepts_a_settlement_admitted_but_not_yet_signed(self):
+        files = files_of(self.pack())
+        settlements_path = f"classes/{self.token.pk}/settlements.json"
+
+        unsigned = rewritten(files, settlements_path, lambda copy: copy[0].update(transaction=None, entry=None))
+        result = consume(unsigned, *ISOLATED)
+
+        self.assertEqual((result.returncode, result.stderr), (0, ""))
 
     def test_another_companys_pack_carries_none_of_this_companys_chain_evidence(self):
         with use_operator():

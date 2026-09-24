@@ -211,6 +211,10 @@ def check_settlements(path, settlements, entries):
     by_uuid = {entry["uuid"]: entry for entry in entries}
     for number, settlement in enumerate(settlements, 1):
         where = f"{path} settlement {number}"
+        if settlement["transaction"] is None:
+            if settlement["entry"] is not None:
+                raise Refused(f"{where}: it names a register entry but no transaction")
+            continue
         if not hexadecimal(settlement["transaction"], 64):
             raise Refused(f"{where}: its transaction is not a well-formed hash")
         if settlement["entry"] is None:
