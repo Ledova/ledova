@@ -183,14 +183,21 @@ number of queries a page takes does not grow with the resolutions on it, and a
 test holds that.
 
 A distribution's row carries its rate per share, currency, declaration date and
-payment date, and two more figures of the caller's own: `myEntitlement`, the
-entitlements of every roll row naming the caller added together, because one
-person can hold through two register members; and `myPaymentRecord`, the latest
-[payment record](#payment-records) for those rows that has not been withdrawn,
-as `recordedPaidOn`, `reference` and `recordedAt`, or null. Both are correlated
-subqueries read through the policies and naming the caller, as `myBallot` is,
-so the company owner, who names no roll row, sees the distribution with no
-entitlement or record of its own. The declared total and the undistributed
+payment date, and three more figures of the caller's own:
+
+- `myEntitlement`: the entitlements of every roll row naming the caller, added
+  together, because one person can hold through two register members.
+- `myRecordedEntitlement`: the entitlements of those rows that have a standing
+  [payment record](#payment-records), added together; 0.00 when none has.
+- `myPaymentRecord`: the latest standing record among those rows, as
+  `recordedPaidOn`, `reference` and `recordedAt`, or null.
+
+A record for one holding is not a record for the other, so both clients say the
+whole entitlement is recorded only when the two amounts are equal. Otherwise
+they say how much of it the company has recorded and that the rest has no
+record. All three are correlated subqueries read through the policies and
+naming the caller, as `myBallot` is, so the company owner, who names no roll
+row, sees the distribution with no entitlement or record of its own. The declared total and the undistributed
 remainder are the company's figures and are not in the listing. No field name
 says a payment was made; see
 [what is recorded and what is claimed](#what-is-recorded-and-what-is-claimed).

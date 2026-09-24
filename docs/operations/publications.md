@@ -235,7 +235,9 @@ reference LDV-4412", or that no payment has been recorded yet, with a line sayin
 that Ledova shows what the company recorded and does not move the money. A member
 whose holding comes to less than a cent is told there is nothing to pay. A
 person holding through two register members sees their two entitlements added
-together. A company owner sees the rate and the payment date, and no entitlement
+together. If only one holding has a payment record, they are told how much of
+the total the company has recorded, with the most recent record's date and
+reference, and that the rest has no payment record yet. A company owner sees the rate and the payment date, and no entitlement
 or payment of its own. Publishing a dividend notifies members that it has been
 declared; recording a payment sends no notification.
 
