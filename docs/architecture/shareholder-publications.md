@@ -168,8 +168,14 @@ never around it, so the database decides what each reader gets: a member their
 own ballot and the tally, the company the tally and no ballot. The subquery for
 `myBallot` also names the caller's account, so the query is right on its own and
 the policy is a second wall rather than the only one. These fields are null for
-every other kind. The number of queries a page takes does not grow with the
-resolutions on it, and a test holds that.
+every other kind. `ballotOutstanding` is a third subquery: true when the caller
+is on the resolution's roll and at least one of their roll rows has no ballot
+yet, and false for every other kind. It is what the clients offer a ballot on,
+rather than `myBallot` being empty, because one account can be on a roll through
+two register members: if staff entered a ballot for one holding, `myBallot` is
+set while the other holding still has none, and `cast_ballot` casts for it. The
+number of queries a page takes does not grow with the resolutions on it, and a
+test holds that.
 
 The file route calls `read_publication` rather than the base's `get_object`,
 because resolving the row and writing the audit are one act: the service reads
@@ -274,7 +280,11 @@ yet, a closed one, a second ballot and an unknown choice are 400s whose body
 says which. The route has its own `ballot` throttle scope, ten a minute for each
 user, so casting cannot eat into any other write's allowance and the listing is
 not throttled by it. Both clients ask the member to confirm that a ballot cannot
-be changed before they send it, then reload the listing.
+be changed before they send it, then reload the listing. Their status comes from
+`useResolutionStatus`, which keeps one timer for the next boundary, the opening or
+the close, capped at the longest delay a timer holds and re-armed until the
+boundary arrives, so a page left open offers the ballot when voting opens and
+withdraws it when voting closes without reloading.
 
 Staff enter a ballot in admin for a member who cannot cast one online — a
 treasury holding, a member the register could not name, or a member whose vote

@@ -152,12 +152,15 @@ voting window and whether it is not open yet, open or closed, with the member's
 frozen holding as their votes. While it is open and they have not voted, the
 member chooses for, against or abstain and confirms, having been told a ballot
 cannot be changed. Once they have voted the page says how, and whether staff
-entered the ballot for them. Once it has closed, it shows the tally: shares and
-members for, against and abstaining, turnout against those eligible, and whether
-it was carried. A company owner sees the same resolution and its tally, and is
-never offered a ballot. If a ballot is refused, the page shows why, in the words
-the server used: voting has not opened, has closed, or a ballot was already
-recorded.
+entered the ballot for them. A member who holds through two register entries,
+one of which you entered a ballot for, is told part of their holding has no
+ballot yet and may cast it for the rest. The page opens and closes voting at
+the window's times even if it was left open. Once it has closed, it shows the
+tally: shares and members for, against and abstaining, turnout against those
+eligible, and whether it was carried. A company owner sees the same resolution
+and its tally, and is never offered a ballot. If a ballot is refused, the page
+shows why, in the words the server used: voting has not opened, has closed, or a
+ballot was already recorded.
 
 Nothing on that page names another member, and no holding or ballot but the
 reader's own is served: the roll row and the ballot behind each line are the
