@@ -335,6 +335,11 @@ class CompanyPackConsumerTest(ProducesPacks, TestCase):
             ),
             ("a file added", {**files, "notes.txt": b"added"}, "notes.txt: present and not listed in the manifest"),
             (
+                "a history removed with its listing",
+                remanifested({path: content for path, content in files.items() if path != entries_path}),
+                f"{entries_path}: not in the manifest",
+            ),
+            (
                 "one entry's shares changed",
                 rewritten_entries(shares_changed),
                 f"{entries_path} entry 2: the preimage does not match the entry's fields",
@@ -683,7 +688,7 @@ class CompanyPackTest(ProducesPacks, TestCase):
 
         response = self.produce()
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual((response.status_code, response["Content-Type"]), (200, "text/html; charset=utf-8"))
         self.assertContains(
             response,
             "Entry 2 of DEP&#x27;s register does not match its hash, so no pack was produced. Run the register "
