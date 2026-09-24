@@ -261,6 +261,18 @@ and carry no name, holding or document content. To confirm that a file is the
 one published, compare the output of `sha256sum` on it with the publication's
 digest.
 
+### Opening a payment's remittance evidence
+
+On a dividend's page, each payment record has **Open the remittance evidence**
+beside it. You need **Can view publication** (`shareholders.view_publication`)
+and **Can view publication event** (`shareholders.view_publicationevent`). The
+evidence downloads as the file type it was found to be when it was recorded. Its
+SHA-256 is on the same row, to compare with `sha256sum` on the copy you
+downloaded. Each opening is recorded in **Publication reads** like any other
+read, with the payment record's identifier in the event column. As with a
+published document, evidence that cannot be opened, or a read that cannot be
+recorded, serves nothing.
+
 ## Checking a frozen roll and verifying a resolution
 
 The roll is frozen when the publication is made, and the publication records how

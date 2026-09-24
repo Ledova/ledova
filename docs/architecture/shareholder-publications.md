@@ -127,7 +127,9 @@ serving the file, which is the rule
 [document reads](files-and-retention.md#deletion-and-retention) already follow.
 The stored document is opened first and the read recorded second, so a record
 always names a file that could be served: a document that cannot be opened
-refuses with 503 `publication_unopened` and records nothing.
+refuses with 503 `publication_unopened` and records nothing. Staff opening a
+distribution's [remittance evidence](#payment-records) are audited the same
+way, on the same table, with the payment record named as well.
 
 ## Retention
 
@@ -389,9 +391,9 @@ publication's own [event chain](#one-append-only-chain-of-events), of one of two
 kinds:
 
 - `payment` names the roll row, the date the company says it paid, the company's
-  payment reference, the SHA-256 of the remittance evidence the company supplied
-  (the file itself is stored privately with the record), the staff member who
-  entered it and what they relied on.
+  payment reference, the remittance evidence the company supplied (stored
+  privately with the record, with its SHA-256 and the type the upload validator
+  found it to be), the staff member who entered it and what they relied on.
 - `payment_void` withdraws the standing record for a roll row, with the reason.
 
 A record is never changed. A correction is a withdrawal followed by a new
@@ -401,8 +403,20 @@ only on a resolution. It admits a `payment` only for a roll row owed at least a
 cent whose latest record is not a standing payment, a `payment_void` only for a
 roll row whose latest record is one, and either only from an active staff
 member. A payment record hashes under its own version tag, covering the date,
-the reference, the stored evidence and its digest, so the ballots already on a
-chain keep the hash they were given.
+the reference, the stored evidence, its digest and its type, so the ballots
+already on a chain keep the hash they were given.
+
+Staff open the evidence from the distribution's page in admin, beside its
+payment record, through the same `admin_file_path` route as the published
+document, as an attachment of the stored type. Opening it needs view permission
+on publications and on their event records. Each read is a `PublicationRead`
+naming the reader, the distribution, the roll row and, in `event_uuid`, the
+payment record. That column is what tells an evidence read apart from a read of
+the dividend notice, and the record shares the publication's operator-only
+table, seven-year clock and purge. The rule is
+[the one every read follows](#every-read-is-audited-and-an-unrecorded-read-is-refused):
+the stored evidence is opened first and the read recorded second, and a read
+that cannot be recorded serves nothing.
 
 ### What is recorded and what is claimed
 

@@ -514,7 +514,8 @@ OPERATOR_ONLY = {
     "register outputs admin, and queried by staff in admin. No issuer or customer path reads them, and only the "
     "retention purge deletes them.",
     "shareholders_publicationread": "Append-only records of who opened a publication a company made to its "
-    "members, written on the operator connection by the delivery service and the publications admin, and read "
+    "members, or the remittance evidence of one of its payment records, written on the operator connection by "
+    "the delivery service and the publications admin, and read "
     "only by permitted staff. They carry UUIDs and reader IDs, not names, holdings or file contents, and a "
     "delivery whose read cannot be recorded is refused rather than served.",
     "compliance_compliancealert": "Raised and worked by compliance staff on the operator connection. It "
