@@ -210,7 +210,9 @@ class WhitelistStandingReviewTest(TestCase):
 
     def test_review_filter_preserves_admin_view_and_mutation_permissions(self):
         lifecycle.delete_account(self.holder)
-        viewer = User.objects.create_user(email="standing-viewer@example.test", password="pw-12345678", is_staff=True)
+        viewer = User.objects.create_user(
+            email="standing-viewer@example.test", password="pw-12345678", is_staff=True, is_active=True
+        )
         self.client.force_login(viewer)
         self.assertEqual(self.client.get(self.queue_url).status_code, 403)
         viewer.user_permissions.add(Permission.objects.get(codename="view_whitelistentry"))
