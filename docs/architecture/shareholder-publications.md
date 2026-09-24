@@ -19,15 +19,16 @@ can be added later without changing anything a member sees.
 
 ## One record for everything a company publishes
 
-The kinds are the annual holding statement, the meeting notice and the
-[resolution](#resolutions). A publication's `kind` is an open list, and the
-columns every kind needs — the company, the share class, the record date, the
-instruction, the authority and the snapshot head — sit on the row itself, so a
-resolution and, later, a distribution join the same table rather than starting
-another one. The per-kind constraint that requires stored bytes and a digest
-names the document kinds it applies to, so a kind that carries no file does not
-have to rewrite it. A resolution carries its document too: the resolution and
-its explanatory statement.
+The kinds are the annual holding statement, the meeting notice, the
+[resolution](#resolutions) and the [distribution](#distributions), which members
+see as a dividend. A publication's `kind` is an open list, and the columns every
+kind needs — the company, the share class, the record date, the instruction, the
+authority and the snapshot head — sit on the row itself, so a resolution and a
+distribution join the same table rather than starting another one. The per-kind
+constraint that requires stored bytes and a digest names the document kinds it
+applies to, so a kind that carries no file does not have to rewrite it. A
+resolution carries its document too, the resolution and its explanatory
+statement, and a distribution carries the company's dividend notice.
 
 A publication is frozen: PostgreSQL refuses every update to it and to its roll,
 and the only deletion anyone may perform is the retention purge.
@@ -130,9 +131,11 @@ refuses with 503 `publication_unopened` and records nothing.
 
 ## Retention
 
-A publication, its roll, its read records and, for a resolution, its event
-chain are kept for the register's own seven-year floor and purged together by a
-daily job, the chain before the roll it points at. They share
+A publication, its roll, its read records and, for a resolution or a
+distribution, its event chain are kept for the register's own seven-year floor
+and purged together by a daily job, the chain before the roll it points at. A
+payment record's stored remittance evidence is deleted with its row, through the
+same private-file lifecycle receiver as the publication's own document. They share
 `FORMER_MEMBER_RETENTION_DAYS` and its `ImproperlyConfigured` refusal below
 2,557 days with the register's outputs, so the floor cannot be configured away
 and one clock governs both. The purge is the only deletion; removing the row
@@ -146,7 +149,7 @@ whole investor surface, mounted at `/api/v1/publications/`:
 
 | Route | Answers |
 | --- | --- |
-| `GET /api/v1/publications/` | What was published to this principal, newest first |
+| `GET /api/v1/publications/` | What was published to this principal, newest first, with the caller's own holding, ballot, entitlement and recorded payment |
 | `GET /api/v1/publications/{uuid}/file/` | The stored document, as an attachment |
 | `POST /api/v1/publications/{uuid}/ballot/` | Casts the caller's ballot on a resolution, and answers with its updated row |
 
@@ -176,6 +179,19 @@ two register members: if staff entered a ballot for one holding, `myBallot` is
 set while the other holding still has none, and `cast_ballot` casts for it. The
 number of queries a page takes does not grow with the resolutions on it, and a
 test holds that.
+
+A distribution's row carries its rate per share, currency, declaration date and
+payment date, and two more figures of the caller's own: `myEntitlement`, the
+entitlements of every roll row naming the caller added together, because one
+person can hold through two register members; and `myPaymentRecord`, the latest
+[payment record](#payment-records) for those rows that has not been withdrawn,
+as `recordedPaidOn`, `reference` and `recordedAt`, or null. Both are correlated
+subqueries read through the policies and naming the caller, as `myBallot` is,
+so the company owner, who names no roll row, sees the distribution with no
+entitlement or record of its own. The declared total and the undistributed
+remainder are the company's figures and are not in the listing. No field name
+says a payment was made; see
+[what is recorded and what is claimed](#what-is-recorded-and-what-is-claimed).
 
 The file route calls `read_publication` rather than the base's `get_object`,
 because resolving the row and writing the audit are one act: the service reads
@@ -325,11 +341,120 @@ from the tally recomputed in Python from the ballots. The cross-checks are what 
 recomputed its hash. The [runbook](../operations/publications.md#verifying-a-resolution)
 runs it for every resolution.
 
+## Distributions
+
+A distribution is a publication whose members are owed a dividend. Staff
+publish it on the company's written instruction, like every other kind, with the
+company's dividend notice as its document. Beside the roll it freezes, under a
+per-kind constraint, the rate per share, the currency (AUD only for now), the
+date the dividend was declared, the date it will be paid, which cannot be before
+the record date, the total the company declared and the amount left
+undistributed.
+
+### The rate is the input and the total is a check figure
+
+A board resolves a rate — "2.5 cents per ordinary share" — so the rate is what
+staff enter, to at most six decimal places. The declared total is entered as
+well, and publishing is refused unless it is exactly the eligible shares on the
+frozen roll times the rate, rounded down to the cent (owner decision 6,
+23 September 2026). A typing error in either figure then shows as a disagreement
+between them, and the refusal says what the total should have been.
+
+### Entitlements live on the roll
+
+Each roll row of a distribution carries its `entitlement`: the row's shares times
+the rate, rounded **down** to the cent (owner decision 3, 23 September 2026).
+There is no entitlement table, because the roll already is the list of who is
+owed what, with the shares they held on the record date. The rule needs no
+tie-break, and the company can never owe more than it declared. What rounding
+leaves over is recorded on the publication as `undistributed` rather than given
+to anyone. It is never negative and always less than one cent for each member on
+the roll. The arithmetic is exact at any size: a holding of 78 digits is
+multiplied without rounding, and a total too large to record is refused.
+
+The database holds this, not only Python. The roll guard trigger refuses a
+distribution's roll row whose entitlement is not its shares times the rate
+rounded down, and any other kind's row that carries one. The publication row is
+inserted before its roll, so the sum cannot be checked when that row is
+inserted; instead a deferred constraint trigger runs at commit and refuses a
+distribution whose declared total is not its roll's shares times its rate
+rounded down, or whose entitlements and remainder do not add up to that total.
+
+### Payment records
+
+Ledova moves no money. A company pays its members through its own bank, and
+what the platform keeps is the company's statement that it has paid, entered by
+staff on the company's written advice. A payment record is an event on the
+publication's own [event chain](#one-append-only-chain-of-events), of one of two
+kinds:
+
+- `payment` names the roll row, the date the company says it paid, the company's
+  payment reference, the SHA-256 of the remittance evidence the company supplied
+  (the file itself is stored privately with the record), the staff member who
+  entered it and what they relied on.
+- `payment_void` withdraws the standing record for a roll row, with the reason.
+
+A record is never changed. A correction is a withdrawal followed by a new
+record, so the history of what the company said, and when, survives. The event
+trigger admits only these two kinds on a distribution, and ballots and closes
+only on a resolution. It admits a `payment` only for a roll row owed at least a
+cent whose latest record is not a standing payment, a `payment_void` only for a
+roll row whose latest record is one, and either only from an active staff
+member. A payment record hashes under its own version tag, covering the date,
+the reference, the stored evidence and its digest, so the ballots already on a
+chain keep the hash they were given.
+
+### What is recorded and what is claimed
+
+| Recorded: the platform can show it | Claimed: the platform cannot show it |
+| --- | --- |
+| The rate, the dates and the total, the company's authority and its dividend notice | That the board resolved it |
+| Each member's frozen holding and entitlement | — |
+| Who entered a payment record, when, and what they relied on | That money left an account |
+| The payment reference the company supplied | That it matches a real transfer |
+| The SHA-256 of the remittance evidence the company supplied | That the remittance is genuine |
+
+The wording follows the table. Every member-facing sentence and every API field
+says that the company **recorded** a payment, never that the member was paid:
+"The company recorded this as paid on 3 October 2026, reference LDV-4412". The
+same discipline governs `Wallet.signing_preference`, which is self-declared and
+attests nothing. One test scans the shared copy, and another the API's field
+names, for "paid" without "recorded".
+
+### Who may read a distribution's records
+
+| Reader | Reads |
+| --- | --- |
+| A member | Their own roll rows' entitlements, and the payment records and withdrawals for those rows |
+| The company that published | The whole roll with every entitlement, and every payment record of its own distributions, because it is the payer |
+| Ledova staff | Everything, in admin on the operator connection |
+
+The resolution terms are unchanged. The member's payment term reads the roll row
+each record names; the company's term reads the record's own copied company.
+
+### Verifying a distribution
+
+`verify_publication` replays a distribution's chain with the same sequence, hash
+and company checks as a resolution's, and also refuses an event of a kind a
+distribution does not take, a payment record for a roll row it does not owe, a
+second standing record for one roll row, a withdrawal with nothing to withdraw,
+an entitlement that is not its shares times the rate rounded down, and a declared
+total or remainder that does not agree with the roll. It reports the number of
+standing records and the remainder. The
+[runbook](../operations/publications.md#verifying-a-distribution) runs it.
+
+### The distribution statement
+
+Owner decision 4 put the distribution statement with the dividend work. In this
+slice the member's own row is that statement: the rate, their frozen holding,
+their entitlement, the payment date and what the company recorded, read through
+the listing. A generated per-holder document is left until a company asks for
+one ([decisions](../decisions.md#shareholder-publications)).
+
 ## Not built yet
 
-Distributions and their entitlements are the next slices of
-[#649](https://github.com/Ledova/ledova/issues/649), adding columns and events to
-this spine rather than new tables for the roll.
+Entitlements in the holdings and history views, and a count on the home page,
+are the next slice of [#649](https://github.com/Ledova/ledova/issues/649).
 
 Next: [publishing to members](../operations/publications.md),
 [scheduled jobs](../operations/jobs.md) and

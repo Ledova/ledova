@@ -18,6 +18,7 @@ account and classification UUIDs in prefixes remain pseudonymous identifiers.
 | --- | --- |
 | Register correction authority | `companies/`; retained request prevents ordinary deletion; interrupted-copy orphans are swept |
 | Publication to members | `companies/`; kept with its row on the register's seven-year clock, then purged with it |
+| Dividend payment evidence | `companies/`; kept with its payment record, which is purged with its distribution |
 | Company document | `companies/`; swept after becoming an orphan |
 | Unattached payslip | `documents/`; ordinary deletion and orphan cleanup |
 | Classification evidence | `users/`; retained by the classification clock |
