@@ -16,7 +16,7 @@ from django.utils.safestring import SafeString
 
 from companies.models import Company
 from shared.tests.test_admin_row_actions import ADMIN_STORAGES
-from tokens.models import ShareToken
+from tokens.models import FormerHolder, ShareToken
 from tokens.templatetags.company_pack_text import md
 from tokens.tests.test_company_pack import (
     ProducesPacks,
@@ -38,6 +38,18 @@ OURS = {
     "contracts.registries[].address",
     "contracts.factory.address",
     "contracts.swap.address",
+    "approvals[].registry",
+    "approvals[].status",
+    "approvals[].expires_at|date",
+    "classes[].waiting|length",
+    "classes[].former[].ceased_on|date",
+    "classes[].former[].retain_until|date",
+    "classes[].due[].sequence",
+    "classes[].due[].kind",
+    "classes[].due[].output",
+    "classes[].due[].due_on|date",
+    "classes[].awaiting_allotment|length",
+    "classes[].awaiting_allotment|length|pluralize",
 }
 HOSTILE = "<script>x</script> a|b\n# heading [link](http://x) **bold** &lt;"
 INERT = r"\<script\>x\</script\> a\|b \# heading \[link\](http://x) \*\*bold\*\* \&lt;"
@@ -150,7 +162,7 @@ class CompanyPackReadmeTemplateTest(SimpleTestCase):
 @override_settings(STORAGES=ADMIN_STORAGES)
 class CompanyPackReadmeTest(ProducesPacks, TestCase):
     def setUp(self):
-        self.a = pack_company("pack-readme")
+        self.a = pack_company("pack-r")
         self.client.force_login(pack_staff("pack-readme-staff"))
 
     def readme(self, **fields):
@@ -162,6 +174,7 @@ class CompanyPackReadmeTest(ProducesPacks, TestCase):
         ShareToken.objects.filter(pk=self.a.ordinary.pk).update(
             name=f"Synthetic {HOSTILE} shares", symbol=HOSTILE_SYMBOL
         )
+        FormerHolder.objects.filter(token=self.a.ordinary).update(name=f"Synthetic {HOSTILE} former member")
 
         hostile = self.readme(instruction=f"REF {HOSTILE}", recipient=f"Recipient {HOSTILE}")
 
@@ -179,6 +192,8 @@ class CompanyPackReadmeTest(ProducesPacks, TestCase):
             f'referenced as "REF {INERT}", for Recipient {INERT}.',
             f"| {INERT_SYMBOL} | Synthetic {INERT} shares |",
             f"| Share class {INERT_SYMBOL} |",
+            f"| {INERT_SYMBOL} | Synthetic {INERT} former member |",
+            f"- {INERT_SYMBOL}: ",
         ):
             with self.subTest(inert=inert):
                 self.assertIn(inert, hostile)

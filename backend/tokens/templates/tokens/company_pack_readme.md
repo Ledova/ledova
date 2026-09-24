@@ -91,19 +91,19 @@ Each share class's contract moves shares only between wallets that the company's
 
 {% if approvals %}| Wallet | Registry | Status | Expires (UTC) | Listed |
 | --- | --- | --- | --- | --- |
-{% for approval in approvals %}| `{{ approval.wallet }}` | `{{ approval.registry }}` | {{ approval.status }} | {% if approval.expires_at %}{{ approval.expires_at|date:"c" }}{% else %}never{% endif %} | {% if approval.listed %}yes{% else %}no: frozen while it holds shares{% endif %} |
+{% for approval in approvals %}| `{{ approval.wallet|md }}` | `{{ approval.registry }}` | {{ approval.status }} | {% if approval.expires_at %}{{ approval.expires_at|date:"c" }}{% else %}never{% endif %} | {% if approval.listed %}yes{% else %}no: frozen while it holds shares{% endif %} |
 {% endfor %}{% else %}No wallet approval is recorded for this company.
 {% endif %}
 ### Paused classes
 
-{% for share_class in classes %}{% if share_class.token.status == "paused" %}- {{ share_class.token.symbol }} is paused on chain, and no transfer of it settles until it is unpaused. Its `class.json` lists each pause and unpause.
+{% for share_class in classes %}{% if share_class.token.status == "paused" %}- {{ share_class.token.symbol|md }} is paused on chain, and no transfer of it settles until it is unpaused. Its `class.json` lists each pause and unpause.
 {% endif %}{% endfor %}{% if not paused %}No share class is paused.
 {% endif %}
 ### Completed effects waiting to be recorded
 
 A completed issue or settled transfer is entered in the register only once its wallets are linked to members and the directors' written instruction covers it. Each class's `waiting.json` lists those still waiting under `effects`, in the order they will be recorded, with the reason each waits.
 
-{% for share_class in classes %}- {{ share_class.token.symbol }}: {% if share_class.waiting is None %}not established, so `effects` is `null`: the register has no opening Ledova can place completed effects against, or one of them needs attribution{% elif share_class.waiting %}{{ share_class.waiting|length }} waiting{% else %}none waiting{% endif %}.
+{% for share_class in classes %}- {{ share_class.token.symbol|md }}: {% if share_class.waiting is None %}not established, so `effects` is `null`: the register has no opening Ledova can place completed effects against, or one of them needs attribution{% elif share_class.waiting %}{{ share_class.waiting|length }} waiting{% else %}none waiting{% endif %}.
 {% endfor %}
 ### Former members
 
@@ -111,7 +111,7 @@ Each former member must stay on the register for seven years after the date they
 
 {% if former %}| Class | Name | Ceased on | Keep until |
 | --- | --- | --- | --- |
-{% for share_class in classes %}{% for row in share_class.former %}| {{ share_class.token.symbol }} | {{ row.name }} | {{ row.ceased_on|date:"Y-m-d" }} | {{ row.retain_until|date:"Y-m-d" }} |
+{% for share_class in classes %}{% for row in share_class.former %}| {{ share_class.token.symbol|md }} | {{ row.name|md }} | {{ row.ceased_on|date:"Y-m-d" }} | {{ row.retain_until|date:"Y-m-d" }} |
 {% endfor %}{% endfor %}{% else %}No former member is recorded.
 {% endif %}
 ## 5. Authority on chain
@@ -149,12 +149,12 @@ The contracts were compiled with Solidity 0.8.24, EVM version `paris`, the optim
 
 {% if due %}| Class | Entry | Kind | Owed | Due on | Overdue |
 | --- | --- | --- | --- | --- | --- |
-{% for share_class in classes %}{% for row in share_class.due %}| {{ share_class.token.symbol }} | {{ row.sequence }} | {{ row.kind }} | {{ row.output }} | {{ row.due_on|date:"Y-m-d" }} | {% if row.overdue %}yes{% else %}no{% endif %} |
+{% for share_class in classes %}{% for row in share_class.due %}| {{ share_class.token.symbol|md }} | {{ row.sequence }} | {{ row.kind }} | {{ row.output }} | {{ row.due_on|date:"Y-m-d" }} | {% if row.overdue %}yes{% else %}no{% endif %} |
 {% endfor %}{% endfor %}{% else %}None was outstanding in Ledova's records.
 {% endif %}
 - Money received for shares not yet allotted is the company's to allot against or refund, whoever keeps the register. Each class's `issues.json` lists those subscriptions under `awaiting_allotment`:
 
-{% for share_class in classes %}  - {{ share_class.token.symbol }}: {% with count=share_class.awaiting_allotment|length %}{% if count %}{{ count }} subscription{{ count|pluralize }} awaiting allotment or refund{% else %}none{% endif %}{% endwith %}.
+{% for share_class in classes %}  - {{ share_class.token.symbol|md }}: {% with count=share_class.awaiting_allotment|length %}{% if count %}{{ count }} subscription{{ count|pluralize }} awaiting allotment or refund{% else %}none{% endif %}{% endwith %}.
 {% endfor %}
 ## 7. What this pack grants
 
