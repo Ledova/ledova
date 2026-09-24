@@ -27,6 +27,7 @@ const dividend = {
   paymentDate: '2026-10-03',
   myEntitlement: '31.25',
   myPaymentRecord: null,
+  myRecordedEntitlement: '0.00',
 };
 
 const earlier = { ...dividend, uuid: 'publication-e', title: 'Interim dividend 2026' };
@@ -87,7 +88,7 @@ it('asks for distributions alone and shows the company, the class, the rate, the
 });
 
 it('says the company recorded the payment, when and under what reference, and never that it was paid', async () => {
-  pages = { 1: [{ ...dividend, myPaymentRecord: recorded }] };
+  pages = { 1: [{ ...dividend, myPaymentRecord: recorded, myRecordedEntitlement: dividend.myEntitlement }] };
 
   const view = await render(<DividendsScreen />, { wrapper });
 

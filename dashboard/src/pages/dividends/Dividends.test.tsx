@@ -31,6 +31,7 @@ const dividend = {
   paymentDate: '2026-10-03',
   myEntitlement: '31.25',
   myPaymentRecord: null,
+  myRecordedEntitlement: '0.00',
 };
 
 const earlier = { ...dividend, uuid: 'a1b2c3d4-0000-4000-8000-000000000012', title: 'Interim dividend 2026' };
@@ -93,7 +94,7 @@ describe('the dividends a member was declared, beside their transactions', () =>
   });
 
   it('says the company recorded the payment, when and under what reference, and never that it was paid', async () => {
-    pages = { 1: [{ ...dividend, myPaymentRecord: recorded }] };
+    pages = { 1: [{ ...dividend, myPaymentRecord: recorded, myRecordedEntitlement: dividend.myEntitlement }] };
 
     showPage();
 
