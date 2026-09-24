@@ -300,6 +300,25 @@ unpriced holdings. This is a display requirement, not a claim that every client
 has completed it; see [B7d](https://github.com/Ledova/ledova/issues/115#issuecomment-5574975348)
 and [valuation presentation work](https://github.com/Ledova/ledova/issues/346).
 
+## The account-data export
+
+A person's own data export carries every transaction of their wallets, with no
+limit. It used to keep only the newest 1,000 and say nothing about the rest, so
+a partial history was presented as the whole. The owner chose on 23 September
+2026 to remove the limit
+([#650](https://github.com/Ledova/ledova/issues/650#issuecomment-5803651807),
+decision 6), over keeping it and marking the export as truncated. The platform
+is built to the Australian Privacy Principles, which include access on request
+([position 10](legal/positions.md#10-privacy)), and a copy that silently drops
+the oldest rows is not access. Marking the truncation would have been honest but
+still not a complete copy, and the volumes are small and the person's own. In
+the same decision a fee of zero stays zero rather than reading as unknown, and
+the mobile app shares the export as a file instead of a message, which a
+complete history would make impractical. The export is not recorded, because it
+carries only the requester's own data.
+[The account-data export](reference/account-data-export.md) owns the contents
+and limits.
+
 ## Tenancy, sessions and deployment
 
 Registry and single-issuer modes share one operator model and tenancy boundary.

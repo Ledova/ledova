@@ -3092,6 +3092,14 @@ export interface ApiComponents {
       createdAt: string;
       uuid: string;
     };
+    ExportedChainObservation: {
+      finality: string;
+      network: string;
+      policy: {
+        [key: string]: unknown;
+      };
+      result: string;
+    };
     ExportedFinancialProfile: {
       intendedUse: string | null;
       intendedUseOtherText: string | null;
@@ -3121,10 +3129,15 @@ export interface ApiComponents {
     ExportedTransaction: {
       amount: string;
       asset: string | null;
+      blockHash: string | null;
+      blockNumber: string | null;
       blockTimestamp: string | null;
       chain: string;
+      chainObservation: ApiComponents['schemas']['ExportedChainObservation'] | null;
       createdAt: string;
       fromAddress: string;
+      importedFromHistory: boolean;
+      nonce: string | null;
       status: string;
       toAddress: string | null;
       transactionFee: string | null;
