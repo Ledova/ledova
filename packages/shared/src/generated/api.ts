@@ -4144,6 +4144,7 @@ export interface ApiComponents {
       myBallot: ApiComponents['schemas']['PublicationBallot'] | null;
       myEntitlement: string | null;
       myPaymentRecord: ApiComponents['schemas']['PublicationPaymentRecord'] | null;
+      myRecordedEntitlement: string | null;
       opensAt: string | null;
       paymentDate: string | null;
       question: string | null;

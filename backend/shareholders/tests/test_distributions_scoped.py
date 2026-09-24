@@ -94,7 +94,33 @@ class ScopedDistributionTest(RunsOnTheScopedConnection, StubUploadDependencies, 
         self.assertEqual(
             (company[str(self.mine.pk)]["myEntitlement"], company[str(self.mine.pk)]["myPaymentRecord"]), (None, None)
         )
+        self.assertEqual(
+            [shown[str(self.mine.pk)]["myRecordedEntitlement"] for shown in (mine, theirs, company)],
+            ["2.50", "1.00", None],
+        )
         self.assertNotIn(str(self.mine.pk), stranger)
+
+    def test_a_person_holding_twice_is_shown_how_much_the_company_has_recorded_on_the_app_connection(self):
+        with use_operator():
+            world = a_company_with_members("scoped-dividend-twice", holdings=(100, 40), first_person_holds_twice=True)
+            distribution = a_distribution(world, rate="0.025")
+        person = world.members[0].user
+        self.client.force_authenticate(person)
+
+        def shown():
+            row = next(row for row in self.client.get(LISTING).json()["results"] if row["uuid"] == str(distribution.pk))
+            return row["myEntitlement"], row["myRecordedEntitlement"]
+
+        self.assertEqual(shown(), ("3.50", "0.00"))
+        with use_operator():
+            a_payment(world, distribution, world.members[1], reference="LDV-SMALLER-HOLDING")
+        self.assertEqual(shown(), ("3.50", "1.00"))
+        with use_operator():
+            a_payment(world, distribution, world.members[0], reference="LDV-LARGER-HOLDING")
+        self.assertEqual(shown(), ("3.50", "3.50"))
+        with use_operator():
+            withdraw_payment(world.staff, distribution, roll_row(distribution, world.members[1]), "Correction C-21")
+        self.assertEqual(shown(), ("3.50", "2.50"))
 
     def test_the_app_role_can_neither_record_rewrite_nor_delete_a_payment_record(self):
         holder = self.here.members[0]

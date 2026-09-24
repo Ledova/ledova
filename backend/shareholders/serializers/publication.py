@@ -49,6 +49,9 @@ class PublicationSerializer(serializers.ModelSerializer):
     my_entitlement = serializers.DecimalField(
         source="entitled", max_digits=18, decimal_places=2, read_only=True, allow_null=True
     )
+    my_recorded_entitlement = serializers.DecimalField(
+        source="recorded_entitlement", max_digits=18, decimal_places=2, read_only=True, allow_null=True
+    )
     my_payment_record = serializers.SerializerMethodField()
 
     class Meta:
@@ -75,6 +78,7 @@ class PublicationSerializer(serializers.ModelSerializer):
             "declared_on",
             "payment_date",
             "my_entitlement",
+            "my_recorded_entitlement",
             "my_payment_record",
         ]
         read_only_fields = fields

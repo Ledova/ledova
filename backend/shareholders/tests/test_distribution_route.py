@@ -1,4 +1,5 @@
 import re
+from decimal import Decimal
 
 from django.db import connections
 from django.test import TestCase
@@ -26,7 +27,15 @@ from shareholders.tests.fixtures import (
 )
 
 LISTING = "/api/v1/publications/"
-DISTRIBUTION_FIELDS = ("ratePerShare", "currency", "declaredOn", "paymentDate", "myEntitlement", "myPaymentRecord")
+DISTRIBUTION_FIELDS = (
+    "ratePerShare",
+    "currency",
+    "declaredOn",
+    "paymentDate",
+    "myEntitlement",
+    "myRecordedEntitlement",
+    "myPaymentRecord",
+)
 
 
 class TheDistributionListingTest(StubUploadDependencies, TestCase):
@@ -65,6 +74,7 @@ class TheDistributionListingTest(StubUploadDependencies, TestCase):
                 "declaredOn": DECLARED_ON.isoformat(),
                 "paymentDate": PAYABLE_ON.isoformat(),
                 "myEntitlement": "2.50",
+                "myRecordedEntitlement": "0.00",
                 "myPaymentRecord": None,
             },
         )
@@ -85,8 +95,14 @@ class TheDistributionListingTest(StubUploadDependencies, TestCase):
 
         mine, theirs = self.row_for(self.holder.user), self.row_for(self.other.user)
 
-        self.assertEqual((mine["myEntitlement"], mine["myPaymentRecord"]["reference"]), ("2.50", "LDV-HOLDER"))
-        self.assertEqual((theirs["myEntitlement"], theirs["myPaymentRecord"]), ("1.00", None))
+        self.assertEqual(
+            (mine["myEntitlement"], mine["myRecordedEntitlement"], mine["myPaymentRecord"]["reference"]),
+            ("2.50", "2.50", "LDV-HOLDER"),
+        )
+        self.assertEqual(
+            (theirs["myEntitlement"], theirs["myRecordedEntitlement"], theirs["myPaymentRecord"]),
+            ("1.00", "0.00", None),
+        )
 
     def test_a_withdrawn_record_is_no_longer_shown_and_the_correction_that_follows_it_is(self):
         a_payment(self.world, self.distribution, self.holder, reference="LDV-WRONG")
@@ -98,16 +114,25 @@ class TheDistributionListingTest(StubUploadDependencies, TestCase):
 
         self.assertEqual(self.row_for(self.holder.user)["myPaymentRecord"]["reference"], "LDV-RIGHT")
 
-    def test_a_person_on_the_roll_twice_is_shown_their_whole_entitlement(self):
+    def test_a_person_on_the_roll_twice_is_shown_how_much_of_their_whole_entitlement_is_recorded(self):
         world = a_company_with_members("route-dividend-twice", holdings=(100, 40, 10), first_person_holds_twice=True)
         distribution = a_distribution(world, rate="0.025")
         person = world.members[0].user
-        a_payment(world, distribution, world.members[1], reference="LDV-SECOND-HOLDING")
+        first, second = world.members[0], world.members[1]
 
-        row = self.row_for(person, distribution)
+        def shown():
+            row = self.row_for(person, distribution)
+            record = row["myPaymentRecord"]
+            return row["myEntitlement"], row["myRecordedEntitlement"], None if record is None else record["reference"]
 
-        self.assertEqual((row["shares"], row["myEntitlement"]), ("140", "3.50"))
-        self.assertEqual(row["myPaymentRecord"]["reference"], "LDV-SECOND-HOLDING")
+        self.assertEqual(self.row_for(person, distribution)["shares"], "140")
+        self.assertEqual(shown(), ("3.50", "0.00", None))
+        a_payment(world, distribution, second, reference="LDV-SECOND-HOLDING")
+        self.assertEqual(shown(), ("3.50", "1.00", "LDV-SECOND-HOLDING"))
+        a_payment(world, distribution, first, reference="LDV-FIRST-HOLDING")
+        self.assertEqual(shown(), ("3.50", "3.50", "LDV-FIRST-HOLDING"))
+        withdraw_payment(world.staff, distribution, roll_row(distribution, first), "C-40")
+        self.assertEqual(shown(), ("3.50", "1.00", "LDV-SECOND-HOLDING"))
 
     def test_the_company_owner_sees_the_distribution_with_no_entitlement_or_record_of_its_own(self):
         a_payment(self.world, self.distribution, self.holder)
@@ -115,7 +140,10 @@ class TheDistributionListingTest(StubUploadDependencies, TestCase):
         row = self.row_for(self.world.owner)
 
         self.assertEqual((row["ratePerShare"], row["paymentDate"]), ("0.025000", PAYABLE_ON.isoformat()))
-        self.assertEqual((row["shares"], row["myEntitlement"], row["myPaymentRecord"]), (None, None, None))
+        self.assertEqual(
+            (row["shares"], row["myEntitlement"], row["myRecordedEntitlement"], row["myPaymentRecord"]),
+            (None, None, None, None),
+        )
 
     def test_a_document_or_a_resolution_carries_none_of_a_distribution_s_fields(self):
         statement = published(self.world)
@@ -135,12 +163,19 @@ class TheDistributionListingTest(StubUploadDependencies, TestCase):
         a_payment(self.world, self.distribution, self.other, reference="LDV-OTHER")
 
         seen = {
-            user.pk: Publication.objects.seen_by(user.pk).get(pk=self.distribution.pk).payment_reference
+            user.pk: Publication.objects.seen_by(user.pk)
+            .values_list("payment_reference", "recorded_entitlement")
+            .get(pk=self.distribution.pk)
             for user in (self.holder.user, self.other.user, self.world.owner)
         }
 
         self.assertEqual(
-            seen, {self.holder.user.pk: "LDV-HOLDER", self.other.user.pk: "LDV-OTHER", self.world.owner.pk: None}
+            seen,
+            {
+                self.holder.user.pk: ("LDV-HOLDER", Decimal("2.50")),
+                self.other.user.pk: ("LDV-OTHER", Decimal("1.00")),
+                self.world.owner.pk: (None, None),
+            },
         )
 
     def test_the_listing_reads_any_number_of_distributions_in_the_same_number_of_queries(self):
@@ -155,6 +190,10 @@ class TheDistributionListingTest(StubUploadDependencies, TestCase):
 
         self.assertEqual((len(one), len(many)), (1, 5))
         self.assertEqual(sum(row["myPaymentRecord"] is not None for row in many), 4)
+        self.assertEqual(
+            [row["myRecordedEntitlement"] for row in many if row["kind"] == "distribution"],
+            [row["myEntitlement"] for row in many if row["kind"] == "distribution"],
+        )
         self.assertEqual(second, first)
 
 

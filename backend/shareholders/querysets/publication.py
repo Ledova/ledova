@@ -1,4 +1,7 @@
+from decimal import Decimal
+
 from django.db import models
+from django.db.models.functions import Coalesce
 
 
 class PublicationQuerySet(models.QuerySet):
@@ -33,6 +36,7 @@ class PublicationQuerySet(models.QuerySet):
             .exclude(models.Exists(superseded))
             .order_by("-sequence")
         )
+        recorded = mine.with_latest_payment_record().filter(latest_payment_record=PublicationEventKind.PAYMENT)
         return self.annotate(
             holding=models.Subquery(
                 mine.order_by().values("publication_id").annotate(total=models.Sum("shares")).values("total")
@@ -52,4 +56,21 @@ class PublicationQuerySet(models.QuerySet):
             payment_paid_on=models.Subquery(my_payment.values("paid_on")[:1]),
             payment_reference=models.Subquery(my_payment.values("reference")[:1]),
             payment_recorded_at=models.Subquery(my_payment.values("created_at")[:1]),
+        ).annotate(
+            recorded_entitlement=models.Case(
+                models.When(
+                    entitled__isnull=False,
+                    then=Coalesce(
+                        models.Subquery(
+                            recorded.order_by()
+                            .values("publication_id")
+                            .annotate(total=models.Sum("entitlement"))
+                            .values("total")
+                        ),
+                        models.Value(Decimal("0.00")),
+                    ),
+                ),
+                default=models.Value(None),
+                output_field=models.DecimalField(max_digits=18, decimal_places=2),
+            )
         )
