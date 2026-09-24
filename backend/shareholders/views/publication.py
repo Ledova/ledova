@@ -39,6 +39,7 @@ class PublicationViewSet(AuthenticatedListViewSet):
     @extend_schema(request=BallotSerializer, responses={200: PublicationSerializer})
     @action(detail=True, methods=["post"])
     def ballot(self, request, uuid=None):
+        self.filter_queryset(self.get_queryset())
         ballot = BallotSerializer(data=request.data)
         ballot.is_valid(raise_exception=True)
         cast_ballot(request.user, uuid, ballot.validated_data["choice"])

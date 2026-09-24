@@ -154,6 +154,17 @@ class TheBallotRouteTest(StubUploadDependencies, TestCase):
             [("against", 40, True), ("for", 100, False)],
         )
 
+    def test_a_listing_filter_the_platform_does_not_know_refuses_the_cast_before_anything_is_recorded(self):
+        self.client.force_authenticate(self.holder.user)
+
+        response = self.client.post(
+            f"{ballot_route(self.resolution)}?kind=bogus", {"choice": BallotChoice.FOR}, format="json"
+        )
+
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertIn("kind", response.json())
+        self.assertFalse(PublicationEvent.objects.exists())
+
     def test_a_ballot_is_cast_once_and_a_second_cast_neither_changes_nor_adds_one(self):
         self.assertEqual(self.cast(self.holder.user, BallotChoice.FOR).status_code, 200)
 

@@ -52,6 +52,18 @@ class AnnouncingAPublicationTest(StubUploadDependencies, TestCase):
         self.assertIn(self.world.company.name, notices[0]["body"])
         self.assertIn(self.world.token.name, notices[0]["body"])
 
+    def test_a_person_on_the_roll_twice_is_told_once(self):
+        world = a_company_with_members("notice-twice", holdings=(100, 40, 10), first_person_holds_twice=True)
+        publication = published(world)
+
+        told, notices = self.deferred(publication.pk)
+
+        self.assertEqual(told, 2)
+        self.assertEqual(
+            sorted(notice["user_id"] for notice in notices),
+            sorted({str(member.user.pk) for member in world.members}),
+        )
+
     def test_the_notice_carries_no_holding_and_no_document(self):
         _, notices = self.deferred()
 
