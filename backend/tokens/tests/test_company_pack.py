@@ -10,6 +10,7 @@ import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime
 from datetime import timezone as utc_zone
+from decimal import Decimal
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -18,6 +19,9 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.contrib import admin
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
+from django.core.files.base import ContentFile
 from django.db import DatabaseError, IntegrityError, connections
 from django.db.models.expressions import RawSQL
 from django.test import TestCase, TransactionTestCase, override_settings
@@ -25,22 +29,59 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
 
-from companies.models import Company, CompanyDocument, CompanyPack, CompanyRegistryCheck
+from companies.models import (
+    Company,
+    CompanyDocument,
+    CompanyPack,
+    CompanyRegistryCheck,
+    DocumentType,
+)
+from companies.services.document_review import prepare_document_review, verify_document
+from documents.models import Document
+from offerings.models import Subscription, SubscriptionStatus
 from shared.db import atomic, current_alias, use_operator
+from shared.models import Country
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from shared.tests.test_admin_row_actions import ADMIN_STORAGES, grant, staff_user
+from tokens.constants import STATUTORY_CALENDAR
 from tokens.models import (
+    CapitalIncreaseRequest,
     FormerHolder,
+    IssuanceStatus,
+    PauseChange,
+    RegisterAcknowledgement,
     RegisterEntry,
     RegisterExport,
+    RegisterInstruction,
+    RegisterReconciliation,
+    RequestStatus,
+    ShareIssuance,
+    ShareIssuanceRequest,
     ShareRegister,
     ShareToken,
     TokenDeployment,
+    TransferOrder,
 )
+from tokens.models.choices import TransferOrderType
 from tokens.services.company_pack import COMPILER, produce_company_pack
-from tokens.services.register import REGISTER_HEADERS, export_rows
+from tokens.services.register import REGISTER_HEADERS, export_rows, months_after
+from tokens.services.register_corrections import (
+    decide_correction,
+    prepare_correction_review,
+    submit_correction,
+)
 from tokens.services.register_events import open_register, record_entry
+from tokens.services.register_instructions import (
+    decide_instruction,
+    prepare_instruction_review,
+    submit_instruction,
+)
+from tokens.services.register_openings import (
+    decide_link,
+    prepare_link_review,
+    submit_link,
+)
 from tokens.services.settlement_context import configured_domain
 from tokens.tests.test_register_certificates import (
     entered,
@@ -49,18 +90,53 @@ from tokens.tests.test_register_certificates import (
     wallet_of,
 )
 from tokens.tests.test_register_events import DAY, register_fixture
+from tokens.tests.test_register_workflow_events import (
+    SETTLEMENT,
+    SettledTransferFixtures,
+)
 from tokens.tests.test_settlement_chain_agreement import factory_intent
-from whitelist.models import WhitelistApproval, WhitelistEntry
+from users.models import (
+    FinancialProfile,
+    InvestorClassification,
+    UserAccount,
+    UserProfile,
+)
+from wallets.models import Wallet
+from whitelist.models import WhitelistApproval, WhitelistChange, WhitelistEntry
 
 CONSUMER = Path(__file__).with_name("company_pack_consumer.py")
 ISOLATED = ("-I", "-S")
 PRODUCED_AT = datetime(2026, 9, 24, 1, 2, 3, 456789, tzinfo=utc_zone.utc)
+RECORDED_AT = datetime(2026, 9, 21, 4, 5, 6, tzinfo=utc_zone.utc)
+LAPSED_AT = datetime(2026, 9, 1, tzinfo=utc_zone.utc)
+PAYMENT_DUE_AT = datetime(2026, 9, 30, 6, 0, tzinfo=utc_zone.utc)
+RENEWED_UNTIL = datetime(2027, 3, 1, tzinfo=utc_zone.utc)
 INSTRUCTION = "SYNTHETIC-PACK-INSTRUCTION-1"
 RECIPIENT = "Synthetic Successor Registry Pty Ltd"
 OPERATOR = "0x" + "0e" * 20
 ROLES = ("founder", "holder", "allottee", "buyer")
 HOLDING_ROLES = ("founder", "holder", "buyer")
 INTERFACES = ("AtomicSwap", "ShareToken", "ShareTokenFactory", "WhitelistRegistry")
+CLASS_FILES = (
+    "class.json",
+    "entries.json",
+    "authority.json",
+    "issues.json",
+    "former_members.json",
+    "reconciliations.json",
+    "waiting.json",
+    "due.json",
+)
+SUBJECTS = ("allotment", "correction", "link")
+REVIEW_PERMISSIONS = (
+    "change_companydocument",
+    "change_registercorrection",
+    "view_registercorrection",
+    "change_registerinstruction",
+    "view_registerinstruction",
+    "change_registerwalletlink",
+    "view_registerwalletlink",
+)
 ALLOWED_IMPORTS = {"zipfile", "json", "csv", "hashlib", "io", "sys"}
 LICENCE = (
     "The company, and a provider it names in writing, may use the records and the contract interface files in "
@@ -81,6 +157,252 @@ def changes(*moves):
     return [{"member": str(member.pk), "shares": str(shares)} for member, shares in moves]
 
 
+def pack_reviewer(label):
+    reviewer = get_user_model().objects.create_user(
+        email=f"{label}-reviewer@staff.example.test", is_active=True, is_staff=True
+    )
+    reviewer.user_permissions.add(*Permission.objects.filter(codename__in=REVIEW_PERMISSIONS))
+    UserProfile.objects.create(user=reviewer, full_name=f"Synthetic {label} reviewer")
+    return reviewer
+
+
+def evidence_of(label):
+    return f"Synthetic {label} board resolution".encode()
+
+
+def authority_document(company, label, reviewer):
+    content = evidence_of(label)
+    document = CompanyDocument.objects.create(
+        company=company,
+        document_type=DocumentType.OTHER,
+        name=f"Synthetic {label} board resolution",
+        file_size=len(content),
+        mime_type="application/pdf",
+    )
+    document.file.save(f"{document.uuid}.pdf", ContentFile(content), save=True)
+    _, confirmation = prepare_document_review(document_id=document.pk, reviewer=reviewer)
+    return verify_document(document_id=document.pk, reviewer=reviewer, confirmation=confirmation)
+
+
+def authority_terms(label, subject):
+    return {
+        "approving_director": f"Synthetic {label} director",
+        "authority_reference": f"SYNTHETIC-{label.upper()}-{subject.upper()}",
+        "reason": f"Synthetic {label} {subject}",
+    }
+
+
+def with_account_details(label, addresses):
+    citizenship = Country.objects.create(code="SYC", name=f"Synthetic {label} citizenship")
+    for index, role in enumerate(ROLES, 1):
+        wallet = Wallet.objects.select_related("user_account__user_profile").get(address=addresses[role])
+        profile = wallet.user_account.user_profile
+        UserProfile.objects.filter(pk=profile.pk).update(
+            phone_country_code="+61",
+            phone_number=f"04915700{index:02d}",
+            date_of_birth=date(1970 + index, index, 10 + index),
+            citizenship_country=citizenship,
+        )
+        UserAccount.objects.filter(pk=wallet.user_account_id).update(account_number=f"MBR-{label}-{index}"[:20])
+        FinancialProfile.objects.create(
+            user_profile=profile,
+            occupation=f"Synthetic {label} {role} occupation",
+            source_of_funds_other_text=f"Synthetic {label} {role} funds",
+        )
+
+
+def allotted_subscription(tenant, reviewer, document, allottee, label):
+    wallet = Wallet.objects.get(address=allottee)
+    subscription = Subscription.objects.create(
+        offering=tenant.offering,
+        user_account_id=wallet.user_account_id,
+        wallet=wallet,
+        quantity=25,
+        price_per_share=Decimal("2.50"),
+        amount_due=Decimal("62.50"),
+        status=SubscriptionStatus.PAID,
+        reference=f"PAY-{label.upper()}",
+        amount_received=Decimal("62.50"),
+        payment_received_on=date(2026, 9, 18),
+        payment_reference_seen=f"PAY-{label.upper()} deposit",
+        payment_confirmed_by=reviewer,
+        payment_confirmed_at=RECORDED_AT,
+    )
+    instruction = submit_instruction(
+        actor=tenant.company.owner,
+        operation_id=uuid4(),
+        token_id=tenant.deployed_token.pk,
+        document_id=document.pk,
+        kind="issue",
+        items=[{"subscription": str(subscription.pk), "recipient": allottee, "amount": "25"}],
+        **authority_terms(label, "allotment"),
+    )
+    _, _, confirmation = prepare_instruction_review(proposal_id=instruction.pk, reviewer=reviewer)
+    decide_instruction(proposal_id=instruction.pk, reviewer=reviewer, confirmation=confirmation, decision="apply")
+    issuance = ShareIssuance.objects.create(
+        token=tenant.deployed_token,
+        recipient_address=allottee,
+        recipient_name=f"Synthetic {label} allottee",
+        amount="25",
+        status=IssuanceStatus.COMPLETED,
+        completed_at=RECORDED_AT,
+        reason=f"Issuance request: Allotment of subscription PAY-{label.upper()}",
+    )
+    request = ShareIssuanceRequest.objects.create(
+        token=tenant.deployed_token,
+        dispatch_id=None,
+        recipient_address=allottee,
+        recipient_name=f"Synthetic {label} allottee",
+        amount=25,
+        reason=f"Allotment of subscription PAY-{label.upper()}",
+        status=RequestStatus.EXECUTED,
+        submitted_by=reviewer,
+        submitted_at=RECORDED_AT,
+        reviewed_by=reviewer,
+        reviewed_at=RECORDED_AT,
+        executed_issuance=issuance,
+        executed_at=RECORDED_AT,
+    )
+    Subscription.objects.filter(pk=subscription.pk).update(issuance_request=request, status=SubscriptionStatus.ALLOTTED)
+    return SimpleNamespace(
+        subscription=Subscription.objects.get(pk=subscription.pk),
+        instruction=RegisterInstruction.objects.get(pk=instruction.pk),
+        issuance=issuance,
+        request=request,
+    )
+
+
+def awaiting_subscriptions(tenant, addresses, reviewer, label):
+    terms = (
+        ("buyer", 8, "20.00", "20.00", SubscriptionStatus.PAID, date(2026, 9, 19)),
+        ("holder", 4, "10.00", "5.00", SubscriptionStatus.AWAITING_PAYMENT, date(2026, 9, 20)),
+    )
+    subscriptions = []
+    for role, quantity, due, received, status, received_on in terms:
+        wallet = Wallet.objects.get(address=addresses[role])
+        subscriptions.append(
+            Subscription.objects.create(
+                offering=tenant.offering,
+                user_account_id=wallet.user_account_id,
+                wallet=wallet,
+                quantity=quantity,
+                price_per_share=Decimal("2.50"),
+                amount_due=Decimal(due),
+                status=status,
+                reference=f"PAY-{label.upper()}-{role.upper()}",
+                payment_due_at=PAYMENT_DUE_AT,
+                amount_received=Decimal(received),
+                payment_received_on=received_on,
+                payment_reference_seen=f"PAY-{label.upper()}-{role.upper()} deposit",
+                payment_confirmed_by=reviewer,
+                payment_confirmed_at=RECORDED_AT,
+            )
+        )
+    return subscriptions
+
+
+def corrected(register, issue, reviewer, document, label):
+    proposal = submit_correction(
+        actor=register.company.owner,
+        operation_id=uuid4(),
+        corrects_id=issue.pk,
+        document_id=document.pk,
+        effective_on=DAY,
+        authority="director_resolution",
+        **authority_terms(label, "correction"),
+    )
+    _, confirmation = prepare_correction_review(proposal_id=proposal.pk, reviewer=reviewer)
+    return decide_correction(proposal_id=proposal.pk, reviewer=reviewer, confirmation=confirmation, decision="apply")
+
+
+def linked(company, member, reviewer, document, label):
+    address = unused_address()
+    proposal = submit_link(
+        actor=company.owner,
+        operation_id=uuid4(),
+        company_id=company.pk,
+        document_id=document.pk,
+        mapping=[{"address": address, "member": str(member.pk)}],
+        authority="director_resolution",
+        **authority_terms(label, "link"),
+    )
+    _, confirmation = prepare_link_review(proposal_id=proposal.pk, reviewer=reviewer)
+    return decide_link(proposal_id=proposal.pk, reviewer=reviewer, confirmation=confirmation, decision="apply")
+
+
+def paused(company, token):
+    contract = token.contract_address.lower()
+    change = PauseChange.objects.create(
+        token_id=token.pk,
+        company_id=company.pk,
+        initiated_by=company.owner,
+        authority="issuer",
+        paused=True,
+        chain_id=settings.BLOCKCHAIN_CHAIN_ID,
+        contract_address=contract,
+        intent={
+            "chain_id": settings.BLOCKCHAIN_CHAIN_ID,
+            "sender": OPERATOR,
+            "to": contract,
+            "value": "0",
+            "data": "0x8456cb59",
+        },
+    )
+    PauseChange.objects.filter(pk=change.pk).update(
+        status="observed",
+        observation={"block_number": 90, "block_hash": "0x" + "ab" * 32, "observed_at": RECORDED_AT.isoformat()},
+        completed_at=RECORDED_AT,
+    )
+    ShareToken.objects.filter(pk=token.pk).update(status="paused")
+    return PauseChange.objects.get(pk=change.pk)
+
+
+def approval_change(company, registry, holder, reviewer):
+    address = holder.lower()
+    expiry = int(RENEWED_UNTIL.timestamp())
+    change = WhitelistChange.objects.create(
+        action="add",
+        address=address,
+        chain_id=settings.BLOCKCHAIN_CHAIN_ID,
+        registry_address=registry,
+        company_id=company.pk,
+        expires_at=RENEWED_UNTIL,
+        intent={
+            "chain_id": settings.BLOCKCHAIN_CHAIN_ID,
+            "sender": OPERATOR,
+            "to": registry,
+            "value": "0",
+            "data": "0xe0468dcd" + "0" * 24 + address[2:] + f"{expiry:064x}",
+        },
+        initiated_by=reviewer,
+        authority="whitelist_admin",
+        requested_wallet_id=Wallet.objects.get(address=holder).pk,
+        entry_id=WhitelistEntry.objects.get(wallet__address=holder).pk,
+    )
+    WhitelistChange.objects.filter(pk=change.pk).update(status="unchanged", completed_at=RECORDED_AT)
+    return WhitelistChange.objects.get(pk=change.pk)
+
+
+def reconciled(token, reviewer, label):
+    discrepancy = {"kind": "supply", "chain": "190", "expected": "175"}
+    record = RegisterReconciliation.objects.create(
+        token=token,
+        status="discrepant",
+        block_number=120,
+        block_hash="0x" + "cd" * 32,
+        register_sequence=4,
+        discrepancies=[discrepancy],
+    )
+    RegisterAcknowledgement.objects.create(
+        token_id=token.pk,
+        reconciliation=record,
+        discrepancy=discrepancy,
+        reason=f"Synthetic {label} supply acknowledged",
+        acknowledged_by_id=reviewer.pk,
+    )
+    return record
+
+
 def pack_company(label):
     tenant = make_tenant(label)
     company, ordinary, preference = tenant.company, tenant.deployed_token, tenant.token
@@ -93,14 +415,19 @@ def pack_company(label):
         role: wallet_of(f"Synthetic {label} {role}", f"{index} Synthetic {label} Street, Sydney NSW 2000")
         for index, role in enumerate(ROLES, 1)
     }
+    with_account_details(label, addresses)
     members = {role: member_of(company, address) for role, address in addresses.items()}
+    reviewer = pack_reviewer(label)
+    document = authority_document(company, label, reviewer)
     registry = "0x" + sha256(label.encode())[:40]
-    WhitelistApproval.objects.create(
-        entry=WhitelistEntry.objects.get(wallet__address=addresses["founder"]),
-        company=company,
-        registry_address=registry,
-        status="active",
-    )
+    for role, expires_at in (("founder", None), ("holder", LAPSED_AT)):
+        WhitelistApproval.objects.create(
+            entry=WhitelistEntry.objects.get(wallet__address=addresses[role]),
+            company=company,
+            registry_address=registry,
+            status="active",
+            expires_at=expires_at,
+        )
     CompanyRegistryCheck.objects.create(
         company=company,
         purpose="review",
@@ -118,7 +445,15 @@ def pack_company(label):
         effective_on=DAY,
         recorded_by=company.owner,
     ).register
-    issue = entered(register, "issue", (members["allottee"], 25))
+    allotment = allotted_subscription(tenant, reviewer, document, addresses["allottee"], label)
+    issue = record_entry(
+        register_id=register.pk,
+        operation_id=allotment.issuance.pk,
+        kind="issue",
+        changes=changes((members["allottee"], 25)),
+        effective_on=DAY,
+        recorded_by=reviewer,
+    )
     record_entry(
         register_id=register.pk,
         operation_id=tenant.swap.pk,
@@ -127,7 +462,8 @@ def pack_company(label):
         effective_on=DAY,
         recorded_by=company.owner,
     )
-    entered(register, "correction", (members["allottee"], -25), corrects_id=issue.pk)
+    correction = corrected(register, issue, reviewer, document, label)
+    link = linked(company, members["holder"], reviewer, document, label)
     former = unused_address()
     FormerHolder.objects.create(
         token=ordinary,
@@ -145,7 +481,10 @@ def pack_company(label):
         effective_on=DAY,
         recorded_by=company.owner,
     ).register
-    entered(second, "transfer", (members["holder"], -4), (members["buyer"], 4))
+    entered(second, "issue", (members["buyer"], 4))
+    increase = CapitalIncreaseRequest.objects.get(pk=tenant.capital_increase.pk)
+    increase.submit(company.owner, Decimal("9.09"))
+    increase.approve(reviewer, "Synthetic approval")
     return SimpleNamespace(
         label=label,
         tenant=tenant,
@@ -157,6 +496,16 @@ def pack_company(label):
         registry=registry,
         former=former,
         issue=issue,
+        reviewer=reviewer,
+        document=document,
+        allotment=allotment,
+        awaiting=awaiting_subscriptions(tenant, addresses, reviewer, label),
+        correction=correction,
+        link=link,
+        increase=CapitalIncreaseRequest.objects.get(pk=increase.pk),
+        pause=paused(company, ordinary),
+        change=approval_change(company, registry, addresses["holder"], reviewer),
+        reconciliation=reconciled(ordinary, reviewer, label),
     )
 
 
@@ -180,6 +529,27 @@ def records_of(fixture):
             *(member.pk for member in fixture.members.values()),
             *(fixture.addresses[role] for role in HOLDING_ROLES),
             *(f"Synthetic {fixture.label} {role}" for role in HOLDING_ROLES),
+            f"Synthetic {fixture.label} reviewer",
+            f"Synthetic {fixture.label} director",
+            f"Synthetic {fixture.label} supply acknowledged",
+            *(authority_terms(fixture.label, subject)["authority_reference"] for subject in SUBJECTS),
+            sha256(evidence_of(fixture.label)),
+            fixture.document.pk,
+            fixture.correction.pk,
+            fixture.link.pk,
+            fixture.link.mapping[0]["address"],
+            fixture.allotment.instruction.pk,
+            fixture.allotment.request.pk,
+            fixture.allotment.issuance.pk,
+            fixture.allotment.subscription.pk,
+            fixture.allotment.subscription.reference,
+            *(subscription.pk for subscription in fixture.awaiting),
+            *(subscription.reference for subscription in fixture.awaiting),
+            fixture.increase.pk,
+            fixture.increase.board_resolution_reference,
+            fixture.pause.pk,
+            fixture.change.pk,
+            fixture.reconciliation.pk,
         )
     ]
 
@@ -317,6 +687,13 @@ class CompanyPackConsumerTest(ProducesPacks, TestCase):
             copy[2]["preimage"] = json.dumps(fields)
             copy[2]["entry_hash"] = sha256(copy[2]["preimage"].encode())
 
+        authority_path = f"{folder}/authority.json"
+
+        def rewritten_authority(**fields):
+            copy = json.loads(files[authority_path])
+            copy["corrections"][0].update(fields)
+            return remanifested({**files, authority_path: json.dumps(copy).encode()})
+
         def holding_changed():
             rows = list(csv.reader(io.StringIO(files[csv_path].decode(), newline="")))
             founder = next(row for row in rows if row and row[0] == str(self.a.members["founder"].pk))
@@ -361,6 +738,21 @@ class CompanyPackConsumerTest(ProducesPacks, TestCase):
                 holding_changed(),
                 f"{csv_path}: the current members are not what {entries_path} replays to",
             ),
+            (
+                "a correction's authority pointed at another entry",
+                rewritten_authority(entry=entries[1]["uuid"]),
+                f"{authority_path} corrections 1: entry {entries[1]['uuid']} is not its correction in entries.json",
+            ),
+            (
+                "a correction's authority pointed at another correction",
+                rewritten_authority(corrects=entries[2]["uuid"]),
+                f"{authority_path} corrections 1: entry {entries[3]['uuid']} is not its correction in entries.json",
+            ),
+            (
+                "an applied correction's entry removed",
+                rewritten_authority(entry=None),
+                f"{authority_path} corrections 1: an applied record names its entry, and no other record does",
+            ),
         ):
             with self.subTest(tampering=tampering):
                 result = consume(zipped(tampered), *ISOLATED)
@@ -387,9 +779,11 @@ class CompanyPackTest(ProducesPacks, TestCase):
         listed = {
             "README.md",
             "company.json",
+            "approvals.json",
+            "wallet_links.json",
             "contracts/contracts.json",
             *(f"contracts/{name}.json" for name in INTERFACES),
-            *(f"classes/{token}/{name}" for token in (ordinary, preference) for name in ("class.json", "entries.json")),
+            *(f"classes/{token}/{name}" for token in (ordinary, preference) for name in CLASS_FILES),
             *(f"classes/{token}/register.csv" for token in (ordinary, preference)),
         }
         self.assertEqual(set(files), listed | {"manifest.json"})
@@ -648,6 +1042,17 @@ class CompanyPackTest(ProducesPacks, TestCase):
         self.assertNotIn(f"{folder}/register.csv", files)
         self.assertEqual(json.loads(files[f"{folder}/entries.json"]), [])
         self.assertIsNone(json.loads(files[f"{folder}/class.json"])["register"])
+        self.assertEqual(
+            {name: json.loads(files[f"{folder}/{name}"]) for name in CLASS_FILES[2:]},
+            {
+                "authority.json": {"openings": [], "imports": [], "corrections": [], "instructions": []},
+                "issues.json": {"issues": [], "awaiting_allotment": []},
+                "former_members.json": [],
+                "reconciliations.json": [],
+                "waiting.json": {"effects": None},
+                "due.json": [],
+            },
+        )
         self.assertIn(
             {"class": str(unopened.pk), "symbol": "NEW", "sequence": 0, "head_hash": "0" * 64},
             json.loads(files["manifest.json"])["registers"],
@@ -802,6 +1207,572 @@ class CompanyPackTest(ProducesPacks, TestCase):
         self.assertEqual(RegisterExport.objects.filter(kind="company_pack").count(), 2)
 
 
+def owed(sequence, kind, output, due_on):
+    return {
+        "sequence": sequence,
+        "kind": kind,
+        "effective_on": DAY.isoformat(),
+        "output": output,
+        "due_on": due_on.isoformat(),
+        "overdue": False,
+    }
+
+
+@override_settings(STORAGES=ADMIN_STORAGES)
+class CompanyPackHistoryTest(ProducesPacks, TestCase):
+    def setUp(self):
+        self.a = pack_company("pack-a")
+        self.client.force_login(pack_staff("pack-history-staff"))
+        self.files = files_of(self.pack())
+
+    def read(self, name, token=None):
+        return json.loads(self.files[name if token is None else f"classes/{token.pk}/{name}"])
+
+    def decided(self, record, subject, **terms):
+        content = evidence_of("pack-a")
+        return {
+            "uuid": str(record.pk),
+            "submitted_at": record.created_at.isoformat(),
+            "authority": "director_resolution",
+            **authority_terms("pack-a", subject),
+            **terms,
+            "evidence": {
+                "document": str(self.a.document.pk),
+                "document_type": "other",
+                "name": "Synthetic pack-a board resolution",
+                "mime_type": "application/pdf",
+                "size": len(content),
+                "sha256": sha256(content),
+            },
+            "status": "applied",
+            "reviewer": "Synthetic pack-a reviewer",
+            "reviewed_at": record.reviewed_at.isoformat(),
+            "rejection_reason": "",
+        }
+
+    def test_the_authority_file_carries_each_decision_with_its_director_reviewer_and_evidence_digest(self):
+        correction, instruction = self.a.correction, self.a.allotment.instruction
+        entries = self.read("entries.json", self.a.ordinary)
+
+        self.assertEqual(
+            self.read("authority.json", self.a.ordinary),
+            {
+                "openings": [],
+                "imports": [],
+                "corrections": [
+                    self.decided(
+                        correction,
+                        "correction",
+                        corrects=str(self.a.issue.pk),
+                        effective_on=DAY.isoformat(),
+                        changes=[{"member": str(self.a.members["allottee"].pk), "shares": "-25"}],
+                        base_sequence=3,
+                        base_hash=entries[2]["entry_hash"],
+                        entry=entries[3]["uuid"],
+                    )
+                ],
+                "instructions": [
+                    self.decided(
+                        instruction,
+                        "allotment",
+                        kind="issue",
+                        items=[
+                            {
+                                "subscription": str(self.a.allotment.subscription.pk),
+                                "recipient": self.a.addresses["allottee"],
+                                "amount": "25",
+                            }
+                        ],
+                    )
+                ],
+            },
+        )
+        self.assertEqual(
+            (entries[3]["kind"], entries[3]["operation_id"], entries[3]["corrects"]),
+            ("correction", str(correction.pk), str(self.a.issue.pk)),
+        )
+        self.assertEqual(
+            self.read("authority.json", self.a.preference),
+            {"openings": [], "imports": [], "corrections": [], "instructions": []},
+        )
+
+    def test_the_wallet_links_file_carries_each_link_with_its_decision_and_evidence(self):
+        holder = self.a.members["holder"]
+        linked_address = self.a.link.mapping[0]["address"]
+
+        self.assertEqual(
+            self.read("wallet_links.json"),
+            [self.decided(self.a.link, "link", mapping=[{"address": linked_address, "member": str(holder.pk)}])],
+        )
+        self.assertIn(linked_address, self.files[f"classes/{self.a.ordinary.pk}/register.csv"].decode())
+
+    def test_the_issues_file_carries_each_issue_with_its_subscription_and_the_payment_as_recorded(self):
+        allotment = self.a.allotment
+        recorded = RECORDED_AT.isoformat()
+
+        issues = self.read("issues.json", self.a.ordinary)["issues"]
+
+        self.assertEqual(
+            issues,
+            [
+                {
+                    "request": str(allotment.request.pk),
+                    "type": "additional",
+                    "recipient_address": self.a.addresses["allottee"],
+                    "recipient_name": "Synthetic pack-a allottee",
+                    "shares": "25",
+                    "reason": "Allotment of subscription PAY-PACK-A",
+                    "status": "executed",
+                    "submitted_at": recorded,
+                    "reviewer": "Synthetic pack-a reviewer",
+                    "reviewed_at": recorded,
+                    "rejection_reason": "",
+                    "executed_at": recorded,
+                    "issuance": {
+                        "uuid": str(allotment.issuance.pk),
+                        "status": "completed",
+                        "shares": "25",
+                        "completed_at": recorded,
+                    },
+                    "subscription": {
+                        "uuid": str(allotment.subscription.pk),
+                        "offering": str(self.a.tenant.offering.pk),
+                        "status": "allotted",
+                        "subscribed_at": allotment.subscription.created_at.isoformat(),
+                        "shares_requested": "25",
+                        "allotment": "25",
+                        "currency": "AUD",
+                        "price_per_share": "2.50",
+                        "amount_due": "62.50",
+                        "payment_due_at": None,
+                        "reference": "PAY-PACK-A",
+                        "rail": "bank_transfer",
+                        "payment": {
+                            "basis": "recorded",
+                            "amount_received": "62.50",
+                            "received_on": "2026-09-18",
+                            "reference_seen": "PAY-PACK-A deposit",
+                            "transaction": None,
+                            "recorded_at": recorded,
+                            "refund_amount": None,
+                            "refunded_at": None,
+                            "refund_reference": "",
+                        },
+                    },
+                }
+            ],
+        )
+        self.assertEqual(self.read("entries.json", self.a.ordinary)[1]["operation_id"], issues[0]["issuance"]["uuid"])
+        self.assertEqual(self.read("issues.json", self.a.preference), {"issues": [], "awaiting_allotment": []})
+
+    def test_the_issues_file_lists_each_subscription_paid_or_part_paid_and_not_yet_allotted(self):
+        buyer, holder = self.a.awaiting
+
+        def awaiting(subscription, role, **terms):
+            return {
+                "uuid": str(subscription.pk),
+                "offering": str(self.a.tenant.offering.pk),
+                "subscribed_at": subscription.created_at.isoformat(),
+                "currency": "AUD",
+                "price_per_share": "2.50",
+                "payment_due_at": PAYMENT_DUE_AT.isoformat(),
+                "reference": f"PAY-PACK-A-{role.upper()}",
+                "rail": "bank_transfer",
+                "subscriber": f"Synthetic pack-a {role}",
+                "wallet": self.a.addresses[role],
+                **terms,
+            }
+
+        def payment(received, received_on, role):
+            return {
+                "basis": "recorded",
+                "amount_received": received,
+                "received_on": received_on,
+                "reference_seen": f"PAY-PACK-A-{role.upper()} deposit",
+                "transaction": None,
+                "recorded_at": RECORDED_AT.isoformat(),
+                "refund_amount": None,
+                "refunded_at": None,
+                "refund_reference": "",
+            }
+
+        self.assertEqual(
+            self.read("issues.json", self.a.ordinary)["awaiting_allotment"],
+            [
+                awaiting(
+                    buyer,
+                    "buyer",
+                    status="paid",
+                    shares_requested="8",
+                    allotment="8",
+                    amount_due="20.00",
+                    payment=payment("20.00", "2026-09-19", "buyer"),
+                ),
+                awaiting(
+                    holder,
+                    "holder",
+                    status="awaiting_payment",
+                    shares_requested="4",
+                    allotment="4",
+                    amount_due="10.00",
+                    payment=payment("5.00", "2026-09-20", "holder"),
+                ),
+            ],
+        )
+        unpaid = Subscription.objects.get(pk=self.a.tenant.subscription.pk)
+        self.assertEqual(
+            (unpaid.offering_id, unpaid.issuance_request_id, unpaid.status, unpaid.amount_received),
+            (self.a.tenant.offering.pk, None, "draft", None),
+        )
+        readme = self.files["README.md"].decode()
+        self.assertIn("  - DEP: 2 subscriptions awaiting allotment or refund.", readme)
+        self.assertIn("  - DRF: none.", readme)
+
+    def test_the_class_file_carries_each_capital_increase_and_pause(self):
+        increase, pause = self.a.increase, self.a.pause
+
+        ordinary = self.read("class.json", self.a.ordinary)
+
+        self.assertEqual(
+            (ordinary["status"], ordinary["cap_increases"], ordinary["pauses"]),
+            (
+                "paused",
+                [
+                    {
+                        "uuid": str(increase.pk),
+                        "status": "approved",
+                        "additional_shares": "100",
+                        "new_authorised_total": "1100",
+                        "purpose": "Growth",
+                        "board_resolution_reference": "BOARD-pack-a",
+                        "shareholder_approval_reference": "",
+                        "submitted_at": increase.submitted_at.isoformat(),
+                        "reviewer": "Synthetic pack-a reviewer",
+                        "reviewed_at": increase.reviewed_at.isoformat(),
+                        "rejection_reason": "",
+                        "executed_at": None,
+                    }
+                ],
+                [
+                    {
+                        "uuid": str(pause.pk),
+                        "paused": True,
+                        "authority": "issuer",
+                        "status": "observed",
+                        "requested_at": pause.created_at.isoformat(),
+                        "completed_at": RECORDED_AT.isoformat(),
+                    }
+                ],
+            ),
+        )
+        preference = self.read("class.json", self.a.preference)
+        self.assertEqual((preference["cap_increases"], preference["pauses"]), ([], []))
+
+    def test_the_approvals_file_carries_the_registry_each_approval_and_each_change(self):
+        change = self.a.change
+
+        self.assertEqual(
+            self.read("approvals.json"),
+            {
+                "registries": [self.a.registry],
+                "approvals": [
+                    {
+                        "wallet": self.a.addresses["founder"],
+                        "registry": self.a.registry,
+                        "status": "active",
+                        "expires_at": None,
+                        "listed": True,
+                    },
+                    {
+                        "wallet": self.a.addresses["holder"],
+                        "registry": self.a.registry,
+                        "status": "active",
+                        "expires_at": LAPSED_AT.isoformat(),
+                        "listed": False,
+                    },
+                ],
+                "changes": [
+                    {
+                        "uuid": str(change.pk),
+                        "action": "add",
+                        "wallet": self.a.addresses["holder"].lower(),
+                        "registry": self.a.registry,
+                        "expires_at": RENEWED_UNTIL.isoformat(),
+                        "authority": "whitelist_admin",
+                        "status": "unchanged",
+                        "requested_at": change.created_at.isoformat(),
+                        "completed_at": RECORDED_AT.isoformat(),
+                        "transaction": None,
+                    }
+                ],
+            },
+        )
+
+    def test_the_former_members_file_gives_each_former_member_the_date_it_must_be_kept_until(self):
+        former = FormerHolder.objects.get(token=self.a.ordinary)
+
+        self.assertEqual(
+            self.read("former_members.json", self.a.ordinary),
+            [
+                {
+                    "name": "Synthetic pack-a former member",
+                    "residential_address": "9 Synthetic pack-a Lane, Hobart TAS 7000",
+                    "wallet": self.a.former,
+                    "shares_at_cessation": "10",
+                    "ceased_on": "2026-03-14",
+                    "retain_until": "2033-03-14",
+                    "identity_source": "Never identified while it held shares",
+                    "recorded_at": former.created_at.isoformat(),
+                }
+            ],
+        )
+        self.assertIn(self.a.former, self.files[f"classes/{self.a.ordinary.pk}/register.csv"].decode())
+        self.assertEqual(self.read("former_members.json", self.a.preference), [])
+
+    def test_the_reconciliations_file_carries_each_comparison_its_discrepancies_and_acknowledgements(self):
+        record = self.a.reconciliation
+        acknowledgement = RegisterAcknowledgement.objects.get(reconciliation=record)
+        discrepancy = {"kind": "supply", "chain": "190", "expected": "175"}
+
+        self.assertEqual(
+            self.read("reconciliations.json", self.a.ordinary),
+            [
+                {
+                    "uuid": str(record.pk),
+                    "reconciled_at": record.created_at.isoformat(),
+                    "status": "discrepant",
+                    "block_number": 120,
+                    "block_hash": "0x" + "cd" * 32,
+                    "register_sequence": 4,
+                    "discrepancies": [discrepancy],
+                    "failure": "",
+                    "acknowledgements": [
+                        {
+                            "discrepancy": discrepancy,
+                            "reason": "Synthetic pack-a supply acknowledged",
+                            "acknowledged_at": acknowledgement.created_at.isoformat(),
+                        }
+                    ],
+                }
+            ],
+        )
+        self.assertEqual(self.read("reconciliations.json", self.a.preference), [])
+
+    def test_the_due_file_lists_the_certificates_and_notice_figures_still_owed_for_each_class(self):
+        ordered_on = self.a.tenant.swap.created_at.astimezone(STATUTORY_CALENDAR).date()
+
+        self.assertEqual(
+            self.read("due.json", self.a.ordinary),
+            [
+                owed(3, "transfer", "notice_figures", date(2026, 10, 18)),
+                owed(3, "transfer", "certificate", months_after(ordered_on, 1)),
+            ],
+        )
+        self.assertEqual(
+            self.read("due.json", self.a.preference),
+            [
+                owed(2, "issue", "notice_figures", date(2026, 10, 18)),
+                owed(2, "issue", "certificate", date(2026, 11, 20)),
+            ],
+        )
+
+    def test_the_waiting_file_is_null_where_the_register_has_no_opening_to_place_completions_against(self):
+        for token in (self.a.ordinary, self.a.preference):
+            with self.subTest(symbol=token.symbol):
+                self.assertEqual(self.read("waiting.json", token), {"effects": None})
+
+    def test_the_readme_states_the_restrictions_in_force_and_the_outputs_still_owed_for_this_company(self):
+        readme = self.files["README.md"].decode()
+
+        for line in (
+            f"| `{self.a.addresses['founder']}` | `{self.a.registry}` | active | never | yes |",
+            f"| `{self.a.addresses['holder']}` | `{self.a.registry}` | active | 2026-09-01T00:00:00+00:00 | no: frozen "
+            "while it holds shares |",
+            "- DEP is paused on chain, and no transfer of it settles until it is unpaused.",
+            "- DEP: not established, so `effects` is `null`",
+            "- DRF: not established, so `effects` is `null`",
+            "| DEP | Synthetic pack-a former member | 2026-03-14 | 2033-03-14 |",
+            "| DEP | 3 | transfer | notice_figures | 2026-10-18 | no |",
+            "| DRF | 2 | issue | notice_figures | 2026-10-18 | no |",
+            "| DRF | 2 | issue | certificate | 2026-11-20 | no |",
+            "A subscription's `payment` has the `basis` `recorded`",
+            "| Payment received on a subscription | Who entered what amount, and when | That money moved |",
+        ):
+            with self.subTest(line=line):
+                self.assertIn(line, readme)
+        for empty in ("No wallet approval is recorded", "No share class is paused", "No former member is recorded"):
+            with self.subTest(empty=empty):
+                self.assertNotIn(empty, readme)
+
+    def test_the_consumer_checks_each_applied_correction_against_the_entry_it_names(self):
+        result = consume(self.pack(), *ISOLATED)
+
+        self.assertEqual((result.returncode, result.stderr), (0, ""))
+        self.assertEqual(
+            self.read("authority.json", self.a.ordinary)["corrections"][0]["entry"],
+            self.read("entries.json", self.a.ordinary)[3]["uuid"],
+        )
+
+
+def account_details(fixture):
+    values = [f"Synthetic {fixture.label} citizenship"]
+    for role in ROLES:
+        wallet = Wallet.objects.select_related(
+            "user_account__user_profile__user", "user_account__user_profile__financial_profile", "whitelist_entry"
+        ).get(address=fixture.addresses[role])
+        account = wallet.user_account
+        profile = account.user_profile
+        values += [
+            profile.user.email,
+            profile.phone_number,
+            profile.date_of_birth.isoformat(),
+            profile.financial_profile.occupation,
+            profile.financial_profile.source_of_funds_other_text,
+            account.account_number,
+            str(account.pk),
+            str(profile.pk),
+            str(wallet.pk),
+            str(wallet.whitelist_entry.pk),
+        ]
+    return values
+
+
+def investor_records(fixture):
+    label, tenant = fixture.label, fixture.tenant
+    account = (
+        Wallet.objects.select_related("user_account__user_profile")
+        .get(address=fixture.addresses["allottee"])
+        .user_account
+    )
+    evidence = f"Synthetic {label} allottee classification evidence".encode()
+    claim = InvestorClassification.objects.create(
+        user_account=account,
+        category="professional_investor",
+        declaration_accepted=True,
+        declaration_text="Declared",
+        declared_basis=f"Synthetic {label} allottee basis",
+        evidence_file_size=len(evidence),
+        evidence_mime_type="application/pdf",
+        submitted_at=RECORDED_AT,
+    )
+    claim.evidence_file.save(f"{label}-allottee-evidence.pdf", ContentFile(evidence), save=True)
+    payslip = Document.objects.create(
+        uploaded_by=account.user_profile.user,
+        document_type="payslip",
+        original_filename=f"Synthetic {label} allottee payslip.pdf",
+        mime_type="application/pdf",
+    )
+    payslip.file.save(f"{label}-allottee-payslip.pdf", ContentFile(f"payslip of {label} allottee".encode()), save=True)
+    return [
+        str(claim.pk),
+        claim.declared_basis,
+        evidence.decode(),
+        str(payslip.pk),
+        payslip.original_filename,
+        f"payslip of {label} allottee",
+        str(tenant.investor_classification.pk),
+        tenant.investor_classification.declared_basis,
+        f"evidence for {label}",
+        str(tenant.document.pk),
+        f"payslip for {label}",
+    ]
+
+
+def unmatched_orders(fixture):
+    tenant = fixture.tenant
+    return [
+        str(
+            TransferOrder.objects.create(
+                order_type=order_type,
+                token=fixture.ordinary,
+                payment_asset=tenant.refs.stablecoin,
+                wallet=tenant.wallet,
+                owner_account=tenant.account,
+                wallet_address=tenant.wallet.address,
+                quantity=7,
+                price_per_share=Decimal("3.75"),
+            ).pk
+        )
+        for order_type in (TransferOrderType.SELL, TransferOrderType.BUY)
+    ]
+
+
+def export_records(fixture):
+    record = RegisterExport.objects.create(
+        token=fixture.ordinary,
+        requested_by_id=fixture.reviewer.pk,
+        kind="inspection_copy",
+        register_sequence=4,
+        member_rows=3,
+        former_rows=1,
+        digest=sha256(f"Synthetic {fixture.label} inspection copy".encode()),
+        instruction=f"SYNTHETIC-{fixture.label.upper()}-INSPECTION-INSTRUCTION",
+        requested_on=DAY,
+        recipient=f"Synthetic {fixture.label} inspector",
+        late=False,
+    )
+    return [str(record.pk), record.digest, record.instruction, record.recipient]
+
+
+@override_settings(STORAGES=ADMIN_STORAGES)
+class CompanyPackAbsenceTest(ProducesPacks, TestCase):
+    def setUp(self):
+        self.a = pack_company("pack-a")
+        self.client.force_login(pack_staff("pack-absence-staff"))
+
+    def leaked(self, values):
+        text = text_of(self.pack())
+        return [value for value in values if value.lower() in text]
+
+    def assert_none_leave(self, values):
+        self.assertTrue(values and all(values))
+        self.assertEqual(self.leaked(values), [])
+        profile = Wallet.objects.get(address=self.a.addresses["founder"]).user_account.user_profile
+        UserProfile.objects.filter(pk=profile.pk).update(residential_address=" ".join(values))
+
+        self.assertEqual(self.leaked(values), values)
+
+        UserProfile.objects.filter(pk=profile.pk).update(residential_address=profile.residential_address)
+        self.assertEqual(self.leaked(values), [])
+
+    def test_members_account_details_and_platform_ids_do_not_leave(self):
+        text = text_of(self.pack())
+        for subscription in self.a.awaiting:
+            with self.subTest(subscription=subscription.reference):
+                self.assertIn(str(subscription.pk), text)
+
+        self.assert_none_leave(account_details(self.a))
+
+    def test_classification_claims_their_evidence_and_payslips_do_not_leave(self):
+        self.assert_none_leave(investor_records(self.a))
+
+    def test_unmatched_listings_and_orders_do_not_leave(self):
+        self.assert_none_leave(unmatched_orders(self.a))
+
+    def test_export_records_do_not_leave(self):
+        self.assert_none_leave(export_records(self.a))
+
+
+@override_settings(**SETTLEMENT)
+class CompanyPackWaitingTest(SettledTransferFixtures, TransactionTestCase):
+    def test_a_settled_transfer_the_directors_have_not_instructed_is_waiting_in_the_pack(self):
+        self.open_register()
+        self.complete()
+
+        with use_operator():
+            token = ShareToken.objects.select_related("company").get(pk=self.swap.share_token_id)
+            archive, _ = produce_company_pack(token.company, self.owner, instruction=INSTRUCTION, recipient=RECIPIENT)
+        content = archive.read()
+
+        files = files_of(content)
+        self.assertEqual(
+            json.loads(files[f"classes/{token.pk}/waiting.json"]), {"effects": [self.waiting("uninstructed")]}
+        )
+        self.assertIn(f"- {token.symbol}: 1 waiting.", files["README.md"].decode())
+        result = consume(content, *ISOLATED)
+        self.assertEqual((result.returncode, result.stderr), (0, ""))
+
+
 class CompanyPackSnapshotTest(TransactionTestCase):
     def setUp(self):
         self.owner, self.company, self.token, self.member, self.newcomer, self.opening = register_fixture()
@@ -850,6 +1821,25 @@ class CompanyPackSnapshotTest(TransactionTestCase):
                     consume(content, *ISOLATED).stdout.splitlines()[:1],
                     [f"REG: {sequence} entries verified, {members} current members"],
                 )
+
+    def test_a_company_with_no_approvals_pauses_former_members_or_outputs_owed_says_so(self):
+        files = files_of(self.produce())
+
+        readme = files["README.md"].decode()
+        for line in (
+            "No wallet approval is recorded for this company.",
+            "No share class is paused.",
+            "- REG: not established, so `effects` is `null`",
+            "  - REG: none.",
+            "No former member is recorded.",
+            "None was outstanding in Ledova's records.",
+        ):
+            with self.subTest(line=line):
+                self.assertIn(line, readme)
+        self.assertEqual(
+            (json.loads(files["approvals.json"]), json.loads(files["wallet_links.json"])),
+            ({"registries": [], "approvals": [], "changes": []}, []),
+        )
 
     def test_the_company_is_read_with_its_registers_and_not_taken_from_the_callers_copy(self):
         stale = Company.objects.get(pk=self.company.pk)

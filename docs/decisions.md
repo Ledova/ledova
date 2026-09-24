@@ -335,7 +335,8 @@ for reporting and portability, recorded in
   contract interface files in this pack to operate and move the company's own
   register and contracts."
 
-The pack is built in slices, the registers, company and contracts first.
+The pack is built in slices: the registers, company and contracts first, then
+the approvals and history behind them.
 [The company pack](architecture/company-pack.md) owns the mechanism and
 [producing a company pack](operations/register-foundation.md#producing-a-company-pack)
 the procedure.

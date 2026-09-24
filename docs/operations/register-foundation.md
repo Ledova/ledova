@@ -949,9 +949,12 @@ stays when the company produced the output elsewhere or needs none.
 ## Producing a company pack
 
 A company pack is one zip of a company's records: every share class with its
-register of members and the history of entries behind it, the company, and the
-contract information a successor needs, with a README that explains each file
-and how to check it. Staff produce it only on the company's written instruction
+register of members and the history of entries behind it, the approvals behind
+those entries, the issues and the subscriptions still to be allotted or
+refunded, with their payments as recorded, the wallet approvals, what is still
+waiting to be entered or owed, the company, and the contract
+information a successor needs, with a README that explains each file and how to
+check it. Staff produce it only on the company's written instruction
 naming who it is for, or on a document that legally compels disclosure, such as
 a lawful information request, referenced in its place (owner decision,
 23 September 2026). [The company pack](../architecture/company-pack.md) describes
@@ -969,8 +972,9 @@ first, and it grants nothing else. The company needs at least one share class.
 3. Enter the reference and the recipient, then choose **Produce and download**.
 
 The download, `company-pack-ACN-YYYYMMDDTHHMMSSZ.zip`, is named for the moment
-the records were read, in UTC, and carries every current member's name and
-residential address. Give it unchanged to the recipient the instruction names. The page
+the records were read, in UTC, and carries every current and former member's
+name and residential address, and the names of the staff who reviewed the
+company's register changes. Give it unchanged to the recipient the instruction names. The page
 refuses, and records nothing, when the company has no share classes, when a
 field is blank, or when an entry in a share class's register no longer matches
 its stored hash. That last refusal names the class and the entry: run

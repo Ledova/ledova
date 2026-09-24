@@ -25,17 +25,19 @@ from tokens.models import (
     RegisterExportKind,
     ShareRegister,
     ShareToken,
+    ShareTokenStatus,
     TokenDeployment,
 )
+from tokens.services import company_pack_history as history
 from tokens.services.register import (
     REGISTER_HEADERS,
     _sheet,
     _snapshot,
     _stored_register,
+    outputs_due,
 )
 from tokens.services.settlement_context import configured_domain
 from users.models import UserProfile
-from whitelist.models import WhitelistApproval, WhitelistChange
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +146,7 @@ def _entry(token, entry) -> dict:
     }
 
 
-def _share_class(token) -> dict:
+def _share_class(company, token, outputs) -> dict:
     register = ShareRegister.objects.filter(token=token).first()
     stored = _stored_register(token)
     entries = (
@@ -158,6 +160,10 @@ def _share_class(token) -> dict:
         ]
     )
     folder = f"classes/{token.pk}"
+    issues = history.issues(company, token)
+    waiting = history.waiting(token)
+    former = history.former_members(stored)
+    due = history.due(outputs, token)
     files = {
         f"{folder}/class.json": _json(
             {
@@ -182,9 +188,17 @@ def _share_class(token) -> dict:
                         "issued_supply": str(int(register.issued_supply)),
                     }
                 ),
+                "cap_increases": history.cap_increases(company, token),
+                "pauses": history.pauses(company, token),
             }
         ),
         f"{folder}/entries.json": _json(entries),
+        f"{folder}/authority.json": _json(history.authority(company, token)),
+        f"{folder}/issues.json": _json(issues),
+        f"{folder}/former_members.json": _json(former),
+        f"{folder}/reconciliations.json": _json(history.reconciliations(token)),
+        f"{folder}/waiting.json": _json(waiting),
+        f"{folder}/due.json": _json(due),
     }
     if stored is not None:
         sheet = io.StringIO()
@@ -197,6 +211,10 @@ def _share_class(token) -> dict:
         "head_hash": EMPTY_HEAD if register is None else register.head_hash,
         "member_rows": 0 if stored is None else len(stored["rows"]),
         "former_rows": 0 if stored is None else len(stored["former_members"]),
+        "waiting": waiting["effects"],
+        "awaiting_allotment": issues["awaiting_allotment"],
+        "former": former,
+        "due": due,
     }
 
 
@@ -207,14 +225,12 @@ def _swap_domain():
         return None
 
 
-def _contracts(company, tokens) -> dict:
+def _contracts(tokens, registries) -> dict:
     chain_id = settings.BLOCKCHAIN_CHAIN_ID
     owners = {
         deployment.token_id: deployment.intent.get("sender")
         for deployment in TokenDeployment.objects.filter(token_id__in=[token.pk for token in tokens])
     }
-    registries = set(WhitelistApproval.objects.filter(company=company).values_list("registry_address", flat=True))
-    registries |= set(WhitelistChange.objects.filter(company_id=company.pk).values_list("registry_address", flat=True))
     return {
         "chain_id": chain_id,
         "compiler": COMPILER,
@@ -227,9 +243,7 @@ def _contracts(company, tokens) -> dict:
             "interface": "contracts/AtomicSwap.json",
             "domain": _swap_domain(),
         },
-        "registries": [
-            {"address": address, "interface": "contracts/WhitelistRegistry.json"} for address in sorted(registries)
-        ],
+        "registries": [{"address": address, "interface": "contracts/WhitelistRegistry.json"} for address in registries],
         "classes": [
             {
                 "class": token.pk,
@@ -290,10 +304,18 @@ def produce_company_pack(company, requested_by, *, instruction, recipient):
         tokens = list(ShareToken.objects.filter(company=company).order_by("symbol", "uuid"))
         if not tokens:
             raise ValidationError("This company has no share classes, so there is no register to put in a pack.")
-        classes = [_share_class(token) for token in tokens]
+        outputs = outputs_due(company=company)
+        classes = [_share_class(company, token, outputs) for token in tokens]
         record = _company(company)
-        contracts = _contracts(company, tokens)
-    files = {"company.json": _json(record), "contracts/contracts.json": _json(contracts)}
+        approvals = history.approvals(company, as_at)
+        links = history.wallet_links(company)
+        contracts = _contracts(tokens, approvals["registries"])
+    files = {
+        "company.json": _json(record),
+        "approvals.json": _json(approvals),
+        "wallet_links.json": _json(links),
+        "contracts/contracts.json": _json(contracts),
+    }
     for name in INTERFACES:
         files[f"contracts/{name}.json"] = (Path(settings.BASE_DIR) / "contracts" / f"{name}.json").read_bytes()
     for share_class in classes:
@@ -307,6 +329,10 @@ def produce_company_pack(company, requested_by, *, instruction, recipient):
             "recipient": recipient,
             "classes": classes,
             "contracts": contracts,
+            "approvals": approvals["approvals"],
+            "paused": any(share_class["token"].status == ShareTokenStatus.PAUSED for share_class in classes),
+            "former": any(share_class["former"] for share_class in classes),
+            "due": any(share_class["due"] for share_class in classes),
         },
     ).encode()
     manifest = _json(

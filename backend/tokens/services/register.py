@@ -782,13 +782,15 @@ def _outputs_of(entry) -> list[tuple]:
     return outputs
 
 
-def outputs_due() -> list[dict]:
+def outputs_due(company=None) -> list[dict]:
     today = timezone.localdate(timezone=STATUTORY_CALENDAR)
     exports = RegisterExport.objects.filter(token_id=OuterRef("register__token_id"))
+    entries = RegisterEntry.objects.filter(kind__in=CERTIFICATE_ENTRY_KINDS, correction__isnull=True)
+    if company is not None:
+        entries = entries.filter(register__company=company)
     with _snapshot():
         entries = list(
-            RegisterEntry.objects.filter(kind__in=CERTIFICATE_ENTRY_KINDS, correction__isnull=True)
-            .annotate(
+            entries.annotate(
                 certified=Exists(
                     exports.filter(kind=RegisterExportKind.CERTIFICATE, register_sequence=OuterRef("sequence"))
                 ),
@@ -822,6 +824,12 @@ def outputs_due() -> list[dict]:
     )
 
 
+def former_identity_label(source) -> str:
+    if source == IDENTITY_LIVE:
+        return "Profile when the cessation was recorded"
+    return IDENTITY_LABELS.get(source, source)
+
+
 def former_member_rows(token, members, on_chain) -> list[list]:
     from tokens.services.former_holders import fold_is_stale
 
@@ -832,11 +840,7 @@ def former_member_rows(token, members, on_chain) -> list[list]:
             csv_cell(row.wallet_address),
             csv_cell(str(row.shares_at_cessation)),
             csv_cell(row.ceased_on.isoformat()),
-            csv_cell(
-                "Profile when the cessation was recorded"
-                if row.identity_source == IDENTITY_LIVE
-                else IDENTITY_LABELS.get(row.identity_source, row.identity_source)
-            ),
+            csv_cell(former_identity_label(row.identity_source)),
             csv_cell(row.created_at.isoformat()),
         ]
         for row in members
