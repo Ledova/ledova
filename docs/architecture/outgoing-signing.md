@@ -291,8 +291,19 @@ a wallet cascades its entry and its approvals, so the removals are enqueued
 before the row disappears and the job runs a minute later, once the deletion has
 either committed or rolled back.
 
-`refresh_whitelist_approvals` sweeps every approval every five minutes as the
-safety net. It submits under the staff member whose review decided the outcome,
+The deletion job retains its company, registry, address and actor after that
+cascade. An unresolved predecessor, unreadable registry or unconfirmed removal
+leaves the same job retrying every five minutes, without an attempt limit. It
+finishes only when the address is absent or expired, or its removal is confirmed.
+A failed removal permits a fresh removal submission; an unresolved one must
+first finish through `recover_whitelist_changes`. Completed targets are safe to
+revisit when another target in the job still needs recovery. The job never adds
+an approval or substitutes another actor. An unavailable actor leaves it pending
+for [operator review](../operations/recovery.md#whitelist-changes).
+
+`refresh_whitelist_approvals` sweeps every surviving approval every five minutes
+as the safety net; deleted approvals rely on their retained removal job. It
+submits under the staff member whose review decided the outcome,
 and where no actor explains the change - an account status edited outside the
 admin, for instance - it lists the row at error level for staff instead of
 writing. So the platform refuses at once and the chain follows within fifteen

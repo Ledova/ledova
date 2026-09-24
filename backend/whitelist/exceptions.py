@@ -2,6 +2,10 @@ from rest_framework import status
 from rest_framework.exceptions import APIException
 
 
+class WhitelistRemovalPending(Exception):
+    pass
+
+
 class WhitelistChangeConflict(APIException):
     status_code = status.HTTP_409_CONFLICT
     default_detail = "This whitelist change conflicts with recorded work."
