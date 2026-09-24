@@ -119,7 +119,7 @@ Verification evidence Ledova holds for members is not in this pack: identity che
 
 {% if publications %}| Publication id | Kind | Title | Class | Record date | Events | Head hash |
 | --- | --- | --- | --- | --- | --- | --- |
-{% for row in publications %}| `{{ row.publication.pk }}` | {{ row.publication.kind }} | {{ row.publication.title }} | {{ row.publication.token_symbol }} | {{ row.publication.record_date|date:"Y-m-d" }} | {{ row.events }} | `{{ row.head_hash }}` |
+{% for row in publications %}| `{{ row.publication.pk }}` | {{ row.publication.kind }} | {{ row.publication.title|md }} | {{ row.publication.token_symbol|md }} | {{ row.publication.record_date|date:"Y-m-d" }} | {{ row.events }} | `{{ row.head_hash }}` |
 {% endfor %}{% else %}The company published nothing to its members through Ledova.
 {% endif %}
 Each publication is something the company published to its members through Ledova on its written instruction: a holding statement, a meeting notice, a resolution put to members, or a dividend. `publication.json` names the company document that authorised it (`authority_document`, listed in `documents.json`) and the point in the class's register its roll was taken from: `register.sequence` and `register.head_hash` are an entry's number and `entry_hash` in the class's `entries.json`. `document` names the file at `document.path` and the SHA-256 Ledova recorded when it stored it. Ledova checked, when it produced this pack, that the file still has that SHA-256.
