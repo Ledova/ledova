@@ -77,7 +77,7 @@ function showPage() {
 }
 
 describe('the dividends a member was declared, beside their transactions', () => {
-  it('asks for distributions alone and shows the company, the class, the rate, the holding and the entitlement', async () => {
+  it('asks for the dividends owed to the member alone and shows the company, the class, the rate, the holding and the entitlement', async () => {
     showPage();
 
     expect(await screen.findByText('Final dividend 2026')).toBeTruthy();
@@ -90,7 +90,9 @@ describe('the dividends a member was declared, beside their transactions', () =>
     expect(screen.getByText('3 October 2026')).toBeTruthy();
     expect(screen.getByText(PUBLICATION_COPY.NO_PAYMENT_RECORDED)).toBeTruthy();
     expect(screen.getByText(PUBLICATION_COPY.DIVIDENDS_APART)).toBeTruthy();
-    expect(get).toHaveBeenCalledWith('/api/v1/publications/', { params: { page: 1, kind: 'distribution' } });
+    expect(get).toHaveBeenCalledWith('/api/v1/publications/', {
+      params: { page: 1, kind: 'distribution', addressed: 'me' },
+    });
   });
 
   it('says the company recorded the payment, when and under what reference, and never that it was paid', async () => {
@@ -112,7 +114,9 @@ describe('the dividends a member was declared, beside their transactions', () =>
     fireEvent.click(await screen.findByText(PUBLICATION_COPY.DIVIDENDS_LOAD_MORE));
 
     expect(await screen.findByText('Interim dividend 2026')).toBeTruthy();
-    expect(get).toHaveBeenLastCalledWith('/api/v1/publications/', { params: { page: 2, kind: 'distribution' } });
+    expect(get).toHaveBeenLastCalledWith('/api/v1/publications/', {
+      params: { page: 2, kind: 'distribution', addressed: 'me' },
+    });
     await waitFor(() => expect(screen.queryByText(PUBLICATION_COPY.DIVIDENDS_LOAD_MORE)).toBeNull());
   });
 

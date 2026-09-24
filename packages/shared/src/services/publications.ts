@@ -1,17 +1,18 @@
 import { AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
-import { PUBLICATION_ENDPOINTS, type BallotChoice, type PublicationKind } from '../constants';
+import { PUBLICATION_ENDPOINTS, type BallotChoice } from '../constants';
 import type {
   CastBallotRequest,
   PaginatedResponse,
   Publication,
+  PublicationFilters,
   PublicationQueryParams,
   PublicationSummary,
 } from '../types';
 import { getNextPageParam } from '../utils';
 
-export const getPublications = (apiClient: AxiosInstance, page = 1, kind?: PublicationKind) =>
+export const getPublications = (apiClient: AxiosInstance, page = 1, filters: PublicationFilters = {}) =>
   apiClient.get<PaginatedResponse<Publication>>(PUBLICATION_ENDPOINTS.BASE, {
-    params: { page, kind } satisfies PublicationQueryParams,
+    params: { page, ...filters } satisfies PublicationQueryParams,
   });
 
 export const getPublicationSummary = (apiClient: AxiosInstance) =>

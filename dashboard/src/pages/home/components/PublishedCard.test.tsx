@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ApiClientProvider, PUBLICATION_COPY, formatDateTime } from '@ledova/shared';
@@ -11,6 +11,8 @@ const get = vi.fn();
 const apiClient = { get } as unknown as AxiosInstance;
 
 const CLOSES = '2026-10-02T07:00:00Z';
+const SECOND = 1000;
+const MINUTE = 60 * SECOND;
 const nothing = { openResolutions: 0, nextClosesAt: null, publishedSince: 0, dividendsWithoutRecord: 0 };
 
 let client: QueryClient;
@@ -26,6 +28,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   client.clear();
+  vi.useRealTimers();
 });
 
 function showHome() {
@@ -67,6 +70,26 @@ describe('the home card of what was published to a member', () => {
     fireEvent.click(await screen.findByText(PUBLICATION_COPY.SUMMARY_OPEN));
 
     expect(await screen.findByText('The publications page')).toBeTruthy();
+  });
+
+  it('updates when the soonest vote closes, while the home page stays open', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const closes = new Date(Date.now() + MINUTE).toISOString();
+    const answers = [{ ...nothing, openResolutions: 1, nextClosesAt: closes }, nothing];
+    get.mockImplementation(async () => ({ data: answers.shift() ?? nothing }));
+
+    showHome();
+    expect(await screen.findByText(`1 resolution awaiting your vote, closing ${formatDateTime(closes)}`)).toBeTruthy();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(Date.parse(closes) - Date.now() - SECOND);
+    });
+    expect(get).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(SECOND);
+    });
+
+    await waitFor(() => expect(screen.queryByText(PUBLICATION_COPY.LIST_TITLE)).toBeNull());
+    expect(get).toHaveBeenCalledTimes(2);
   });
 
   it('is not shown at all when every count is zero', async () => {

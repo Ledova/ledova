@@ -1,5 +1,11 @@
 import type { ApiComponents } from '../../generated/api';
-import type { Publication, PublicationCount, PublicationResult, ResolutionStatus } from '../../types';
+import type {
+  Publication,
+  PublicationCount,
+  PublicationFilters,
+  PublicationResult,
+  ResolutionStatus,
+} from '../../types';
 
 export type PublicationKind = ApiComponents['schemas']['PublicationKindEnum'];
 
@@ -129,6 +135,10 @@ export function resolutionStatus(
 }
 
 export const LONGEST_TIMER_DELAY = 2 ** 31 - 1;
+
+export const PUBLICATION_SUMMARY_REFRESH_INTERVAL = 5 * 60 * 1000;
+
+export const DIVIDEND_FILTERS = { kind: 'distribution', addressed: 'me' } as const satisfies PublicationFilters;
 
 export function nextResolutionBoundary(
   publication: Pick<Publication, 'opensAt' | 'closesAt' | 'result'>,

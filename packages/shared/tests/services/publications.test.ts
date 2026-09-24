@@ -2,6 +2,7 @@ import type { AxiosInstance } from 'axios';
 import type { AxiosResponse } from 'axios';
 import {
   BALLOT_CHOICES,
+  DIVIDEND_FILTERS,
   PUBLICATION_COPY,
   PUBLICATION_ENDPOINTS,
   PUBLICATION_KIND_LABELS,
@@ -62,10 +63,14 @@ describe('publication services', () => {
     expect(get).toHaveBeenNthCalledWith(2, '/api/v1/publications/', { params: { page: 3 } });
   });
 
-  it('lists one kind alone, a page at a time, when the caller names it', () => {
-    getPublications(apiClient, 2, 'distribution');
+  it('narrows the listing by the filters the caller names, a page at a time', () => {
+    getPublications(apiClient, 2, { kind: 'resolution' });
+    getPublications(apiClient, 1, DIVIDEND_FILTERS);
 
-    expect(get).toHaveBeenCalledWith('/api/v1/publications/', { params: { page: 2, kind: 'distribution' } });
+    expect(get).toHaveBeenNthCalledWith(1, '/api/v1/publications/', { params: { page: 2, kind: 'resolution' } });
+    expect(get).toHaveBeenNthCalledWith(2, '/api/v1/publications/', {
+      params: { page: 1, kind: 'distribution', addressed: 'me' },
+    });
   });
 
   it('reads the summary of what was published to the caller from its own route', () => {

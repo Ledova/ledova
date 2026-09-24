@@ -73,7 +73,7 @@ afterEach(async () => {
   client.clear();
 });
 
-it('asks for distributions alone and shows the company, the class, the rate, the holding and the entitlement', async () => {
+it('asks for the dividends owed to the member alone and shows the company, the class, the rate, the holding and the entitlement', async () => {
   const view = await render(<DividendsScreen />, { wrapper });
 
   expect(await view.findByText('Final dividend 2026')).toBeTruthy();
@@ -84,7 +84,9 @@ it('asks for distributions alone and shows the company, the class, the rate, the
   expect(view.getByText(`${PUBLICATION_COPY.PAYMENT_DATE_LABEL}: 3 October 2026`)).toBeTruthy();
   expect(view.getByText(PUBLICATION_COPY.NO_PAYMENT_RECORDED)).toBeTruthy();
   expect(view.getByText(PUBLICATION_COPY.DIVIDENDS_APART)).toBeTruthy();
-  expect(get).toHaveBeenCalledWith('/api/v1/publications/', { params: { page: 1, kind: 'distribution' } });
+  expect(get).toHaveBeenCalledWith('/api/v1/publications/', {
+    params: { page: 1, kind: 'distribution', addressed: 'me' },
+  });
 });
 
 it('says the company recorded the payment, when and under what reference, and never that it was paid', async () => {
@@ -106,7 +108,9 @@ it('reads earlier dividends a page at a time', async () => {
   await fireEvent.press(await view.findByText(PUBLICATION_COPY.DIVIDENDS_LOAD_MORE));
 
   expect(await view.findByText('Interim dividend 2026')).toBeTruthy();
-  expect(get).toHaveBeenLastCalledWith('/api/v1/publications/', { params: { page: 2, kind: 'distribution' } });
+  expect(get).toHaveBeenLastCalledWith('/api/v1/publications/', {
+    params: { page: 2, kind: 'distribution', addressed: 'me' },
+  });
   expect(view.queryByText(PUBLICATION_COPY.DIVIDENDS_LOAD_MORE)).toBeNull();
 });
 
