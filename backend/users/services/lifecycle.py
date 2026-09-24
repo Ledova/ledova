@@ -133,7 +133,12 @@ def export_account_data(user):
 
 
 def _plain(value):
-    return f"{Decimal(value).normalize():f}"
+    text = format(Decimal(value), "f")
+    return text.rstrip("0").rstrip(".") if "." in text else text
+
+
+def _exact_integer(value):
+    return None if value is None else str(value)
 
 
 def _exported_transaction(tx):
@@ -148,9 +153,9 @@ def _exported_transaction(tx):
         "from_address": tx.from_address,
         "to_address": tx.to_address,
         "block_timestamp": tx.block_timestamp,
-        "block_number": tx.block_number,
+        "block_number": _exact_integer(tx.block_number),
         "block_hash": tx.block_hash,
-        "nonce": tx.nonce,
+        "nonce": _exact_integer(tx.nonce),
         "imported_from_history": tx.imported_from_history,
         "chain_observation": _latest_chain_observation(tx),
         "created_at": tx.created_at,

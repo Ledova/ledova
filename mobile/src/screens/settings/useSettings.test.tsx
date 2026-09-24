@@ -22,7 +22,7 @@ const EXPORT = '/api/user-profiles/export-data/';
 const COPY = new RegExp(`^${cacheRoot}ledova-document-views-v1/ledova-data-export-\\d{4}-\\d{2}-\\d{2}\\.json$`);
 const exported = {
   exportedAt: '2026-09-24T00:00:00Z',
-  transactions: [{ txHash: '0xsynthetic', nonce: 3, importedFromHistory: false, chainObservation: null }],
+  transactions: [{ txHash: '0xsynthetic', nonce: '3', importedFromHistory: false, chainObservation: null }],
 };
 
 const account = ['account'];

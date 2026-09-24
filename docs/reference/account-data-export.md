@@ -53,11 +53,11 @@ query.
 | --- | --- |
 | `txHash`, `chain` | The transaction's hash and Ledova's chain name |
 | `status` | Ledova's recorded outcome: `pending`, `confirmed`, `failed`, `reorged` or `replaced` |
-| `asset`, `amount` | The asset symbol and amount moved. Amounts and fees are plain decimal strings with no exponent and no trailing zeros, such as `"1.5"` or `"0.000000000000000001"` |
+| `asset`, `amount` | The asset symbol and amount moved. Amounts and fees are plain decimal strings with every stored digit, no exponent and no trailing zeros, such as `"1.5"` or `"0.000000000000000001"` |
 | `transactionFee` | The actual native fee, as recorded from the receipt or the imported history, never the estimate. `null` only when it is unknown; a fee of zero is exported as `"0"` |
 | `fromAddress`, `toAddress` | The two parties' addresses |
 | `blockTimestamp`, `blockNumber`, `blockHash` | The block the receipt placed it in, where recorded |
-| `nonce` | The sender's nonce, for an EVM transaction submitted through Ledova |
+| `nonce` | The sender's nonce, for an EVM transaction submitted through Ledova. The nonce and the block number are decimal strings, because a JSON number loses digits past 2^53 when a browser or the app reads it |
 | `importedFromHistory` | `true` when the row came from the provider's transfer history rather than a submission through Ledova |
 | `chainObservation` | The latest chain observation, or `null` when there is none |
 | `createdAt` | When Ledova recorded the row |

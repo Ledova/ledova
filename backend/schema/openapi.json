@@ -3034,7 +3034,7 @@
           },
           "blockNumber": {
             "nullable": true,
-            "type": "integer"
+            "type": "string"
           },
           "blockTimestamp": {
             "format": "date-time",
@@ -3064,7 +3064,7 @@
           },
           "nonce": {
             "nullable": true,
-            "type": "integer"
+            "type": "string"
           },
           "status": {
             "type": "string"

@@ -3130,14 +3130,14 @@ export interface ApiComponents {
       amount: string;
       asset: string | null;
       blockHash: string | null;
-      blockNumber: number | null;
+      blockNumber: string | null;
       blockTimestamp: string | null;
       chain: string;
       chainObservation: ApiComponents['schemas']['ExportedChainObservation'] | null;
       createdAt: string;
       fromAddress: string;
       importedFromHistory: boolean;
-      nonce: number | null;
+      nonce: string | null;
       status: string;
       toAddress: string | null;
       transactionFee: string | null;

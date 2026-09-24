@@ -54,9 +54,8 @@ class AccountExportTest(APITestCase):
             from_address=self.wallet.address,
             to_address="0x" + "b" * 40,
             asset=self.asset,
-            amount=Decimal("1.5"),
             wallet=self.wallet,
-            **fields,
+            **{"amount": Decimal("1.5"), **fields},
         )
 
     def exported_transactions(self):
@@ -198,13 +197,25 @@ class AccountExportTest(APITestCase):
 
         self.assertEqual(
             {key: exported["0ximported"][key] for key in ("blockNumber", "blockHash", "nonce", "importedFromHistory")},
-            {"blockNumber": 12345, "blockHash": block_hash, "nonce": 7, "importedFromHistory": True},
+            {"blockNumber": "12345", "blockHash": block_hash, "nonce": "7", "importedFromHistory": True},
         )
         self.assertEqual(
             {key: exported["0xexport"][key] for key in ("blockNumber", "blockHash", "nonce", "importedFromHistory")},
             {"blockNumber": None, "blockHash": None, "nonce": None, "importedFromHistory": False},
         )
         self.assertIsNone(exported["0xexport"]["chainObservation"])
+
+    def test_integers_past_what_a_javascript_number_holds_are_exported_exactly(self):
+        self.a_transaction("0xlarge", block_number=2**62 + 1, nonce=2**53 + 1)
+
+        exported = self.exported_transactions()["0xlarge"]
+
+        self.assertEqual((exported["blockNumber"], exported["nonce"]), (str(2**62 + 1), str(2**53 + 1)))
+
+    def test_amounts_keep_every_stored_digit(self):
+        self.a_transaction("0xprecise", amount=Decimal("123456789012.123456789012345678"))
+
+        self.assertEqual(self.exported_transactions()["0xprecise"]["amount"], "123456789012.123456789012345678")
 
     def test_the_export_writes_nothing_while_deletion_on_the_same_capture_does(self):
         connection = connections[configured(APP_ALIAS)]
@@ -253,7 +264,7 @@ class AccountExportEvidenceChecks(ChainObservationFixture):
             latest[tx_hash]["chainObservation"],
             {"network": network, "result": "unknown", "finality": "unknown", "policy": policy},
         )
-        self.assertEqual((latest[tx_hash]["nonce"], latest[tx_hash]["importedFromHistory"]), (3, False))
+        self.assertEqual((latest[tx_hash]["nonce"], latest[tx_hash]["importedFromHistory"]), ("3", False))
         self.assertIsNone(latest[self.tenant.transaction.tx_hash]["chainObservation"])
 
     def test_observations_come_with_the_transactions_however_many_there_are(self):
