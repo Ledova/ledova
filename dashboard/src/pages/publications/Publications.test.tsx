@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import type { AxiosRequestConfig } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import apiClient from '@services/apiClient';
 import { PUBLICATION_COPY, formatDateTime } from '@ledova/shared';
@@ -24,10 +24,12 @@ const statement = {
   opensAt: null,
   closesAt: null,
   myBallot: null,
+  ballotOutstanding: false,
   result: null,
 };
 
-const HOUR = 60 * 60 * 1000;
+const MINUTE = 60 * 1000;
+const HOUR = 60 * MINUTE;
 const fromNow = (offset: number) => new Date(Date.now() + offset).toISOString();
 
 const resolution = {
@@ -39,6 +41,7 @@ const resolution = {
   resolutionKind: 'special',
   opensAt: fromNow(-HOUR),
   closesAt: fromNow(7 * 24 * HOUR),
+  ballotOutstanding: true,
 };
 
 const tally = {
@@ -79,6 +82,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
   cleanup();
   client.clear();
@@ -228,7 +232,11 @@ describe('a resolution put to the members', () => {
 
   it('casts the confirmed ballot and then shows it from the refreshed listing', async () => {
     rows = [resolution];
-    const voted = { ...resolution, myBallot: { choice: 'for', castAt: fromNow(0), staffEntered: false } };
+    const voted = {
+      ...resolution,
+      myBallot: { choice: 'for', castAt: fromNow(0), staffEntered: false },
+      ballotOutstanding: false,
+    };
     vi.mocked(apiClient.post).mockImplementation(async () => {
       rows = [voted];
       return { data: voted };
@@ -250,7 +258,13 @@ describe('a resolution put to the members', () => {
   });
 
   it('shows a ballot staff entered for the member as voted for them by staff', async () => {
-    rows = [{ ...resolution, myBallot: { choice: 'abstain', castAt: fromNow(0), staffEntered: true } }];
+    rows = [
+      {
+        ...resolution,
+        myBallot: { choice: 'abstain', castAt: fromNow(0), staffEntered: true },
+        ballotOutstanding: false,
+      },
+    ];
 
     showPage();
 
@@ -279,6 +293,7 @@ describe('a resolution put to the members', () => {
         ...resolution,
         ...closed,
         myBallot: { choice: 'for', castAt: fromNow(-30 * HOUR), staffEntered: false },
+        ballotOutstanding: false,
         result: tally,
       },
     ];
@@ -315,7 +330,7 @@ describe('a resolution put to the members', () => {
   });
 
   it('shows the company owner the result and never a ballot control', async () => {
-    rows = [{ ...resolution, shares: null }];
+    rows = [{ ...resolution, shares: null, ballotOutstanding: false }];
 
     showPage();
 
@@ -325,10 +340,71 @@ describe('a resolution put to the members', () => {
 
     cleanup();
     client.clear();
-    rows = [{ ...resolution, ...closed, shares: null, result: tally }];
+    rows = [{ ...resolution, ...closed, shares: null, ballotOutstanding: false, result: tally }];
     showPage();
 
     expect(await screen.findByText(PUBLICATION_COPY.CARRIED)).toBeTruthy();
     expect(ballotButtons().some(Boolean)).toBe(false);
+  });
+
+  it('offers the rest of a ballot when staff voted part of the holding, beside the part already voted', async () => {
+    const partly = {
+      ...resolution,
+      shares: '140',
+      myBallot: { choice: 'against', castAt: fromNow(0), staffEntered: true },
+      ballotOutstanding: true,
+    };
+    rows = [partly];
+    vi.mocked(apiClient.post).mockImplementation(async () => {
+      rows = [{ ...partly, ballotOutstanding: false }];
+      return { data: rows[0] };
+    });
+
+    showPage();
+
+    expect(await screen.findByText(PUBLICATION_COPY.YOU_VOTED.against)).toBeTruthy();
+    expect(screen.getByText(PUBLICATION_COPY.STAFF_ENTERED)).toBeTruthy();
+    expect(screen.getByText(PUBLICATION_COPY.BALLOT_OUTSTANDING)).toBeTruthy();
+    expect(ballotButtons().every(Boolean)).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'For' }));
+    fireEvent.click(screen.getByRole('button', { name: PUBLICATION_COPY.CONFIRM }));
+
+    await waitFor(() => expect(screen.queryByText(PUBLICATION_COPY.BALLOT_OUTSTANDING)).toBeNull());
+    expect(vi.mocked(apiClient.post)).toHaveBeenCalledWith(
+      `/api/v1/publications/${resolution.uuid}/ballot/`,
+      { choice: 'for' },
+      {},
+    );
+    expect(ballotButtons().some(Boolean)).toBe(false);
+    expect(screen.getByText(PUBLICATION_COPY.YOU_VOTED.against)).toBeTruthy();
+  });
+
+  it('offers the ballot the moment the window opens and withdraws it the moment it closes, without reloading', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const start = Date.now();
+    rows = [
+      {
+        ...resolution,
+        opensAt: new Date(start + MINUTE).toISOString(),
+        closesAt: new Date(start + 2 * MINUTE).toISOString(),
+      },
+    ];
+
+    showPage();
+
+    expect(await screen.findByText(PUBLICATION_COPY.NOT_OPEN_YET)).toBeTruthy();
+    expect(ballotButtons().some(Boolean)).toBe(false);
+    await act(async () => {
+      vi.advanceTimersByTime(MINUTE);
+    });
+    expect(ballotButtons().every(Boolean)).toBe(true);
+    expect(screen.queryByText(PUBLICATION_COPY.NOT_OPEN_YET)).toBeNull();
+    await act(async () => {
+      vi.advanceTimersByTime(MINUTE);
+    });
+    expect(ballotButtons().some(Boolean)).toBe(false);
+    expect(screen.getByText(PUBLICATION_COPY.CLOSED)).toBeTruthy();
+    expect(screen.getByText(PUBLICATION_COPY.RESULT_PENDING)).toBeTruthy();
+    expect(vi.mocked(apiClient.get).mock.calls.filter(([url]) => url === '/api/v1/publications/').length).toBe(1);
   });
 });

@@ -6,7 +6,7 @@ import {
   describeCount,
   describeTurnout,
   formatDateTime,
-  resolutionStatus,
+  useResolutionStatus,
 } from '@ledova/shared';
 import type { BallotChoice, Publication, PublicationResult, ResolutionStatus } from '@ledova/shared';
 
@@ -49,10 +49,9 @@ export function Resolution({
   castError: string | undefined;
 }) {
   const [choosing, setChoosing] = useState<BallotChoice | null>(null);
-  const status = resolutionStatus(publication, new Date());
+  const status = useResolutionStatus(publication);
   if (status === null) return null;
-  const onTheRoll = publication.shares !== null && publication.shares !== undefined;
-  const mayVote = status === 'open' && onTheRoll && !publication.myBallot;
+  const mayVote = status === 'open' && publication.ballotOutstanding;
 
   return (
     <div className="mt-3 rounded-lg bg-surface-tertiary/30 px-3 py-3">
@@ -76,6 +75,7 @@ export function Resolution({
           {publication.myBallot.staffEntered && (
             <p className="text-xs text-text-muted mt-0.5">{PUBLICATION_COPY.STAFF_ENTERED}</p>
           )}
+          {mayVote && <p className="text-xs text-text-muted mt-0.5">{PUBLICATION_COPY.BALLOT_OUTSTANDING}</p>}
         </div>
       )}
 
