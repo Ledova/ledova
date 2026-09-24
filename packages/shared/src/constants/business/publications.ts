@@ -1,10 +1,16 @@
 import type { ApiComponents } from '../../generated/api';
+import type { Publication, PublicationCount, PublicationResult, ResolutionStatus } from '../../types';
 
 export type PublicationKind = ApiComponents['schemas']['PublicationKindEnum'];
+
+export type BallotChoice = ApiComponents['schemas']['BallotChoiceEnum'];
+
+export type ResolutionKind = ApiComponents['schemas']['ResolutionKindEnum'];
 
 export const PUBLICATION_ENDPOINTS = {
   BASE: '/api/v1/publications/',
   FILE: (uuid: string) => `/api/v1/publications/${uuid}/file/` as const,
+  BALLOT: (uuid: string) => `/api/v1/publications/${uuid}/ballot/` as const,
 } as const;
 
 export const PUBLICATION_NOTICE = 'publication';
@@ -23,6 +29,13 @@ export const PUBLICATION_KIND_LABELS: Record<PublicationKind, string> = {
   meeting_notice: 'Meeting notice',
   resolution: 'Resolution',
 };
+
+export const RESOLUTION_KIND_LABELS: Record<ResolutionKind, string> = {
+  ordinary: 'Ordinary resolution',
+  special: 'Special resolution',
+};
+
+export const BALLOT_CHOICES: readonly BallotChoice[] = ['for', 'against', 'abstain'];
 
 export const PUBLICATION_COPY = {
   LIST_TITLE: 'Published to you',
@@ -43,4 +56,70 @@ export const PUBLICATION_COPY = {
   RETRY: 'Try again',
   LOAD_MORE: 'Show earlier publications',
   LOADING_MORE: 'Loading...',
+  QUESTION_LABEL: 'The question put to members',
+  WINDOW_LABEL: 'Voting',
+  WINDOW_TO: 'to',
+  NOT_OPEN_YET: 'Not open yet',
+  OPEN_UNTIL: 'Open until',
+  CLOSED: 'Closed',
+  VOTING_WEIGHT_LABEL: 'Your votes, one for each share you held on the record date',
+  BASIS: 'One vote per share',
+  CHOICES: { for: 'For', against: 'Against', abstain: 'Abstain' } satisfies Record<BallotChoice, string>,
+  CONFIRM_TITLE: 'Cast your ballot:',
+  CONFIRM_BODY: 'A ballot cannot be changed or withdrawn once it is cast.',
+  CONFIRM: 'Cast my ballot',
+  CANCEL: 'Cancel',
+  CASTING: 'Casting...',
+  YOU_VOTED: {
+    for: 'You voted for',
+    against: 'You voted against',
+    abstain: 'You voted to abstain',
+  } satisfies Record<BallotChoice, string>,
+  STAFF_ENTERED: 'Voted for you by staff',
+  BALLOT_OUTSTANDING: 'Part of your holding has no ballot yet. A ballot cast now counts for that part.',
+  BALLOT_FAILED: 'Your ballot could not be recorded.',
+  RESULT_LABEL: 'Result',
+  RESULT_PENDING: 'Voting has closed. The result appears here once it is counted.',
+  CARRIED: 'Carried',
+  NOT_CARRIED: 'Not carried',
+  TURNOUT_LABEL: 'Turnout',
 } as const;
+
+export function resolutionStatus(
+  publication: Pick<Publication, 'opensAt' | 'closesAt' | 'result'>,
+  now: Date,
+): ResolutionStatus | null {
+  if (!publication.opensAt || !publication.closesAt) return null;
+  if (publication.result || now.getTime() >= new Date(publication.closesAt).getTime()) return 'closed';
+  return now.getTime() < new Date(publication.opensAt).getTime() ? 'upcoming' : 'open';
+}
+
+export const LONGEST_TIMER_DELAY = 2 ** 31 - 1;
+
+export function nextResolutionBoundary(
+  publication: Pick<Publication, 'opensAt' | 'closesAt' | 'result'>,
+  now: Date,
+): number | null {
+  if (!publication.opensAt || !publication.closesAt || publication.result) return null;
+  const opens = new Date(publication.opensAt).getTime();
+  if (now.getTime() < opens) return opens;
+  const closes = new Date(publication.closesAt).getTime();
+  return now.getTime() < closes ? closes : null;
+}
+
+const formatShareCount = (shares: string) => shares.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+const memberCount = (members: number) => `${members.toLocaleString('en-AU')} ${members === 1 ? 'member' : 'members'}`;
+
+export const describeCount = (count: PublicationCount) =>
+  `${formatShareCount(count.shares)} shares · ${memberCount(count.members)}`;
+
+export function describeTurnout(result: PublicationResult): string {
+  const counted = BALLOT_CHOICES.map((choice) => result[choice]);
+  const shares = counted.reduce((sum, count) => sum + BigInt(count.shares), 0n).toString();
+  const members = counted.reduce((sum, count) => sum + count.members, 0);
+  return (
+    `${formatShareCount(shares)} of ${formatShareCount(result.eligible.shares)} shares · ` +
+    `${members.toLocaleString('en-AU')} of ${memberCount(result.eligible.members)}`
+  );
+}

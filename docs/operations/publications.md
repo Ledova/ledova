@@ -53,9 +53,9 @@ a question or a voting window is refused. The page also refuses a resolution
 with no question, an unknown kind, a window that closes before it opens, or a
 window that has already closed. Every member has one vote per share held on the
 record date, and the roll frozen at publication is the list of who may vote.
-Members with an account are told a resolution has been put to them; they cannot
-yet cast a ballot online, because the ballot page is the next slice of
-[#649](https://github.com/Ledova/ledova/issues/649).
+Members with an account are told a resolution has been put to them and cast
+their own ballot on **Publications** in the dashboard or the app; see
+[what the member sees](#what-the-member-sees-and-when).
 
 A resolution's page in **Admin → Shareholder publications → Publications**
 shows its question, kind and window, the tally once it has closed, and its event
@@ -147,9 +147,24 @@ was frozen on that date — not their holding today. **Open the document** saves
 a copy of the stored document itself. Older publications appear a page at a time. A company owner sees its own company's
 publications on the same page, with no holding of its own.
 
-Nothing on that page names another member, and no holding but the reader's own
-is served: the roll row behind each line is the reader's, chosen by the database
-rather than by the page.
+A resolution also shows its question, whether it is ordinary or special, its
+voting window and whether it is not open yet, open or closed, with the member's
+frozen holding as their votes. While it is open and they have not voted, the
+member chooses for, against or abstain and confirms, having been told a ballot
+cannot be changed. Once they have voted the page says how, and whether staff
+entered the ballot for them. A member who holds through two register entries,
+one of which you entered a ballot for, is told part of their holding has no
+ballot yet and may cast it for the rest. The page opens and closes voting at
+the window's times even if it was left open. Once it has closed, it shows the
+tally: shares and members for, against and abstaining, turnout against those
+eligible, and whether it was carried. A company owner sees the same resolution
+and its tally, and is never offered a ballot. If a ballot is refused, the page
+shows why, in the words the server used: voting has not opened, has closed, or a
+ballot was already recorded.
+
+Nothing on that page names another member, and no holding or ballot but the
+reader's own is served: the roll row and the ballot behind each line are the
+reader's, chosen by the database rather than by the page.
 
 ## Opening a published document
 

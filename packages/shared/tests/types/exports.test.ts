@@ -2,12 +2,16 @@ import type {
   AccountExportData,
   AssetFilters,
   AuthVerificationResponse,
+  CastBallotRequest,
   Portfolio,
   PortfolioSnapshotQueryParams,
   PortfolioSnapshotReason,
   PrepareBitcoinTransferRequest,
   PrepareBitcoinTransferResponse,
   PrepareTransferRequest,
+  Publication,
+  PublicationBallot,
+  PublicationResult,
   UpdateUserProfile,
   UserProfile,
 } from '../../src/types';
@@ -38,6 +42,19 @@ describe('shared-types exports', () => {
     const kycIsResponseOnly: Has<UpdateUserProfile, 'kycProvider' | 'verificationStatus' | 'isIdVerified'> = false;
     const preScreeningIsWritable: Has<UpdateUserProfile, 'confirmedOver18' | 'citizenshipCountry'> = true;
     expect([emitted, dropped, kycIsResponseOnly, preScreeningIsWritable]).toEqual([true, false, false, true]);
+  });
+
+  it('keeps Publication aligned with PublicationSerializer, its ballot and its tally', () => {
+    const resolutionKeys: Has<
+      Publication,
+      'question' | 'resolutionKind' | 'opensAt' | 'closesAt' | 'myBallot' | 'result'
+    > = true;
+    const ballotKeys: Has<PublicationBallot, 'choice' | 'castAt' | 'staffEntered'> = true;
+    const tallyKeys: Has<PublicationResult, 'for' | 'against' | 'abstain' | 'eligible' | 'carried'> = true;
+    const payloadOnlyKeys: Has<PublicationResult, 'basis' | 'resolutionKind'> = false;
+    const request: CastBallotRequest = { choice: 'abstain' };
+    expect([resolutionKeys, ballotKeys, tallyKeys, payloadOnlyKeys]).toEqual([true, true, true, false]);
+    expect(request.choice).toBe('abstain');
   });
 
   it('keeps AccountExportData aligned with export_account_data', () => {

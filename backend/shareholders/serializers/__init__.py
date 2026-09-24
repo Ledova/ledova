@@ -1,3 +1,3 @@
-from shareholders.serializers.publication import PublicationSerializer
+from shareholders.serializers.publication import BallotSerializer, PublicationSerializer
 
-__all__ = ["PublicationSerializer"]
+__all__ = ["BallotSerializer", "PublicationSerializer"]

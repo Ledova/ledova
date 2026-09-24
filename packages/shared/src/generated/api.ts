@@ -1215,6 +1215,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/publications/{uuid}/ballot/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_publications_ballot_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/publications/{uuid}/file/': {
     parameters: {
       query?: never;
@@ -2666,6 +2682,10 @@ export interface ApiComponents {
     AuthVerificationResent: {
       message: string;
     };
+    BallotChoiceEnum: 'for' | 'against' | 'abstain';
+    BallotRequest: {
+      choice: ApiComponents['schemas']['BallotChoiceEnum'];
+    };
     BatchBalanceRequestRequest: {
       addresses: string[];
       chain: ApiComponents['schemas']['SupportedWalletChainEnum'];
@@ -4114,17 +4134,40 @@ export interface ApiComponents {
     PrimaryTypeEnum: 'SwapOrder';
     ProtocolVersionEnum: 1;
     Publication: {
+      ballotOutstanding: boolean;
+      closesAt: string | null;
       companyName: string;
       createdAt: string;
       kind: ApiComponents['schemas']['PublicationKindEnum'];
+      myBallot: ApiComponents['schemas']['PublicationBallot'] | null;
+      opensAt: string | null;
+      question: string | null;
       recordDate: string;
+      resolutionKind: (ApiComponents['schemas']['ResolutionKindEnum'] | ApiComponents['schemas']['NullEnum']) | null;
+      result: ApiComponents['schemas']['PublicationResult'] | null;
       shares: string | null;
       title: string;
       tokenName: string;
       tokenSymbol: string;
       uuid: string;
     };
+    PublicationBallot: {
+      castAt: string;
+      choice: ApiComponents['schemas']['BallotChoiceEnum'];
+      staffEntered: boolean;
+    };
+    PublicationCount: {
+      members: number;
+      shares: string;
+    };
     PublicationKindEnum: 'holding_statement' | 'meeting_notice' | 'resolution';
+    PublicationResult: {
+      abstain: ApiComponents['schemas']['PublicationCount'];
+      against: ApiComponents['schemas']['PublicationCount'];
+      carried: boolean;
+      eligible: ApiComponents['schemas']['PublicationCount'];
+      for: ApiComponents['schemas']['PublicationCount'];
+    };
     RegisterCorrection: {
       appliedEntry: string | null;
       approvingDirector: string;
@@ -4306,6 +4349,7 @@ export interface ApiComponents {
     ResendVerificationRequest: {
       email?: string;
     };
+    ResolutionKindEnum: 'ordinary' | 'special';
     ReviewResultEnum: 'GREEN' | 'RED' | 'YELLOW';
     RoleEnum: 'investor' | 'company' | 'both';
     SelectedPortfolio: {
@@ -7849,6 +7893,33 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['PaginatedPublicationList'];
+        };
+      };
+    };
+  };
+  api_v1_publications_ballot_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['BallotRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['BallotRequest'];
+        'multipart/form-data': ApiComponents['schemas']['BallotRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['Publication'];
         };
       };
     };

@@ -1,6 +1,6 @@
 import { AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
-import { PUBLICATION_ENDPOINTS } from '../constants';
-import type { PaginatedResponse, Publication } from '../types';
+import { PUBLICATION_ENDPOINTS, type BallotChoice } from '../constants';
+import type { CastBallotRequest, PaginatedResponse, Publication } from '../types';
 import { getNextPageParam } from '../utils';
 
 export const getPublications = (apiClient: AxiosInstance, page = 1) =>
@@ -14,3 +14,10 @@ export const openPublication = (apiClient: AxiosInstance, uuid: string) =>
 
 export const downloadPublication = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
   apiClient.get<ArrayBuffer>(PUBLICATION_ENDPOINTS.FILE(uuid), { ...config, responseType: 'arraybuffer' });
+
+export const castBallot = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  choice: BallotChoice,
+  config: AxiosRequestConfig = {},
+) => apiClient.post<Publication>(PUBLICATION_ENDPOINTS.BALLOT(uuid), { choice } satisfies CastBallotRequest, config);

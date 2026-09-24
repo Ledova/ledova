@@ -124,4 +124,10 @@ export {
   getSwapSettlementApprovalData,
   broadcastSwapSettlementApproval,
 } from './swap-settlement';
-export { getPublications, getPublicationsNextPage, openPublication, downloadPublication } from './publications';
+export {
+  getPublications,
+  getPublicationsNextPage,
+  openPublication,
+  downloadPublication,
+  castBallot,
+} from './publications';

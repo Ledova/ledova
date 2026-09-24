@@ -28,6 +28,7 @@ REST_FRAMEWORK = {
         "user": "1000/min",
         "order_write": "30/min",
         "broadcast": "10/min",
+        "ballot": "10/min",
     },
     "EXCEPTION_HANDLER": "shared.api.exceptions.custom_exception_handler",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
@@ -40,6 +41,7 @@ SPECTACULAR_SETTINGS = {
     "COMPONENT_SPLIT_REQUEST": True,
     "ENUM_NAME_OVERRIDES": {
         "ApprovalRequiredEnum": [(True, True)],
+        "BallotChoiceEnum": "shareholders.models.event.BallotChoice",
         "ApprovalSufficientEnum": [(False, False)],
         "ProtocolVersionEnum": [(1, 1)],
         "CapitalRequestStatusEnum": "tokens.models.choices.RequestStatus",

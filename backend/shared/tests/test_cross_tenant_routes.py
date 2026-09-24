@@ -199,6 +199,7 @@ REGISTER_IMPORT_ROUTES = {
 PUBLICATION_ROUTES = {
     "list": ("get", "/api/v1/publications/"),
     "file": ("get", "/api/v1/publications/{uuid}/file/"),
+    "ballot": ("post", "/api/v1/publications/{uuid}/ballot/"),
 }
 REGISTER_INSTRUCTION_ROUTES = {
     "create": ("post", "/api/v1/tokens/register-instructions/"),
@@ -1125,6 +1126,36 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         self.client.force_authenticate(None)
         self.assertEqual(self.client.get(path).status_code, 401)
         self.assertEqual(self.client.get(listing).status_code, 401)
+
+    def test_the_ballot_route_takes_a_ballot_from_a_member_on_the_roll_and_from_nobody_else(self):
+        from shareholders.models import PublicationEvent
+        from shareholders.tests.fixtures import a_company_with_members, a_resolution
+
+        with self.committed_where_a_request_on_another_connection_can_read_it():
+            world = a_company_with_members("matrix-ballot")
+            resolution = a_resolution(world)
+        path = PUBLICATION_ROUTES["ballot"][1].format(uuid=resolution.pk)
+        ballot = {"choice": "for"}
+        for actor in (world.owner, *(tenant.user for tenant in self.actors)):
+            self.client.force_authenticate(actor)
+            denied = self.client.post(path, ballot, format="json")
+            missing = self.client.post(path.replace(str(resolution.pk), str(uuid4())), ballot, format="json")
+            self.assertEqual((denied.status_code, denied.content), (missing.status_code, missing.content))
+            self.assertEqual(denied.status_code, 404)
+        self.client.force_authenticate(None)
+        self.assertEqual(self.client.post(path, ballot, format="json").status_code, 401)
+        with self.as_an_operator_would():
+            self.assertFalse(PublicationEvent.objects.filter(publication=resolution).exists())
+        member = world.members[0].user
+        self.client.force_authenticate(member)
+        cast = self.client.post(path, ballot, format="json")
+        self.assertEqual(cast.status_code, 200, cast.content)
+        self.assertEqual(cast.json()["myBallot"]["choice"], "for")
+        with self.as_an_operator_would():
+            self.assertEqual(
+                list(PublicationEvent.objects.filter(publication=resolution).values_list("actor_id", "choice")),
+                [(member.pk, "for")],
+            )
 
     @override_settings(
         STORAGES={

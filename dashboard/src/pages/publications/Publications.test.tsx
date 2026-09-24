@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 import type { AxiosRequestConfig } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import apiClient from '@services/apiClient';
-import { PUBLICATION_COPY } from '@ledova/shared';
+import { PUBLICATION_COPY, formatDateTime } from '@ledova/shared';
 import PublicationsPage from './index';
 
-vi.mock('@services/apiClient', () => ({ default: { get: vi.fn() } }));
+vi.mock('@services/apiClient', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 
 const statement = {
   uuid: 'a1b2c3d4-0000-4000-8000-000000000001',
@@ -19,7 +19,40 @@ const statement = {
   recordDate: '2026-09-20',
   shares: '100',
   createdAt: '2026-09-21T02:00:00Z',
+  question: null,
+  resolutionKind: null,
+  opensAt: null,
+  closesAt: null,
+  myBallot: null,
+  ballotOutstanding: false,
+  result: null,
 };
+
+const MINUTE = 60 * 1000;
+const HOUR = 60 * MINUTE;
+const fromNow = (offset: number) => new Date(Date.now() + offset).toISOString();
+
+const resolution = {
+  ...statement,
+  uuid: 'a1b2c3d4-0000-4000-8000-000000000009',
+  kind: 'resolution',
+  title: 'Resolution to adopt a constitution',
+  question: 'That the company adopt the synthetic constitution tabled with this notice.',
+  resolutionKind: 'special',
+  opensAt: fromNow(-HOUR),
+  closesAt: fromNow(7 * 24 * HOUR),
+  ballotOutstanding: true,
+};
+
+const tally = {
+  for: { shares: '100', members: 1 },
+  against: { shares: '40', members: 1 },
+  abstain: { shares: '0', members: 0 },
+  eligible: { shares: '150', members: 3 },
+  carried: true,
+};
+
+const closed = { opensAt: fromNow(-48 * HOUR), closesAt: fromNow(-24 * HOUR) };
 
 let client: QueryClient;
 let rows: unknown[];
@@ -49,6 +82,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
   cleanup();
   client.clear();
@@ -147,5 +181,230 @@ describe('the publications a shareholder has been sent', () => {
     expect(await screen.findByText('Annual holding statement 2026')).toBeTruthy();
     expect(screen.queryByText(PUBLICATION_COPY.HOLDING_LABEL)).toBeNull();
     expect(screen.getByText(PUBLICATION_COPY.OPEN)).toBeTruthy();
+  });
+});
+
+describe('a resolution put to the members', () => {
+  const ballotButtons = () => ['For', 'Against', 'Abstain'].map((name) => screen.queryByRole('button', { name }));
+
+  it('shows the question, its kind and basis, its window, that it is open and the frozen holding as the votes', async () => {
+    rows = [resolution];
+
+    showPage();
+
+    expect(await screen.findByText(resolution.question)).toBeTruthy();
+    expect(screen.getByText(PUBLICATION_COPY.QUESTION_LABEL)).toBeTruthy();
+    expect(screen.getByText(`Special resolution · ${PUBLICATION_COPY.BASIS}`)).toBeTruthy();
+    expect(
+      screen.getByText(
+        `${PUBLICATION_COPY.WINDOW_LABEL} ${formatDateTime(resolution.opensAt)} ${PUBLICATION_COPY.WINDOW_TO} ${formatDateTime(resolution.closesAt)}`,
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText(`${PUBLICATION_COPY.OPEN_UNTIL} ${formatDateTime(resolution.closesAt)}`)).toBeTruthy();
+    expect(screen.getByText('100')).toBeTruthy();
+    expect(screen.getByText(PUBLICATION_COPY.VOTING_WEIGHT_LABEL)).toBeTruthy();
+    expect(screen.queryByText(PUBLICATION_COPY.HOLDING_LABEL)).toBeNull();
+    expect(ballotButtons().every(Boolean)).toBe(true);
+  });
+
+  it('says a resolution whose window has not opened is not open yet, and offers no ballot', async () => {
+    rows = [{ ...resolution, opensAt: fromNow(HOUR), closesAt: fromNow(2 * HOUR) }];
+
+    showPage();
+
+    expect(await screen.findByText(PUBLICATION_COPY.NOT_OPEN_YET)).toBeTruthy();
+    expect(ballotButtons().some(Boolean)).toBe(false);
+  });
+
+  it('asks the member to confirm a ballot cannot be changed, and casts nothing when they cancel', async () => {
+    rows = [resolution];
+
+    showPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Against' }));
+
+    expect(screen.getByText(`${PUBLICATION_COPY.CONFIRM_TITLE} Against`)).toBeTruthy();
+    expect(screen.getByText(PUBLICATION_COPY.CONFIRM_BODY)).toBeTruthy();
+    expect(ballotButtons().some(Boolean)).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: PUBLICATION_COPY.CANCEL }));
+    expect(ballotButtons().every(Boolean)).toBe(true);
+    expect(vi.mocked(apiClient.post)).not.toHaveBeenCalled();
+  });
+
+  it('casts the confirmed ballot and then shows it from the refreshed listing', async () => {
+    rows = [resolution];
+    const voted = {
+      ...resolution,
+      myBallot: { choice: 'for', castAt: fromNow(0), staffEntered: false },
+      ballotOutstanding: false,
+    };
+    vi.mocked(apiClient.post).mockImplementation(async () => {
+      rows = [voted];
+      return { data: voted };
+    });
+
+    showPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'For' }));
+    fireEvent.click(screen.getByRole('button', { name: PUBLICATION_COPY.CONFIRM }));
+
+    expect(await screen.findByText(PUBLICATION_COPY.YOU_VOTED.for)).toBeTruthy();
+    expect(vi.mocked(apiClient.post)).toHaveBeenCalledWith(
+      `/api/v1/publications/${resolution.uuid}/ballot/`,
+      { choice: 'for' },
+      {},
+    );
+    expect(vi.mocked(apiClient.get).mock.calls.filter(([url]) => url === '/api/v1/publications/').length).toBe(2);
+    expect(ballotButtons().some(Boolean)).toBe(false);
+    expect(screen.queryByText(PUBLICATION_COPY.STAFF_ENTERED)).toBeNull();
+  });
+
+  it('shows a ballot staff entered for the member as voted for them by staff', async () => {
+    rows = [
+      {
+        ...resolution,
+        myBallot: { choice: 'abstain', castAt: fromNow(0), staffEntered: true },
+        ballotOutstanding: false,
+      },
+    ];
+
+    showPage();
+
+    expect(await screen.findByText(PUBLICATION_COPY.YOU_VOTED.abstain)).toBeTruthy();
+    expect(screen.getByText(PUBLICATION_COPY.STAFF_ENTERED)).toBeTruthy();
+    expect(ballotButtons().some(Boolean)).toBe(false);
+  });
+
+  it('shows the route refusal as its own message and keeps the ballot uncast', async () => {
+    rows = [resolution];
+    vi.mocked(apiClient.post).mockRejectedValue({
+      response: { status: 400, data: ['Voting on this resolution has closed.'] },
+    });
+
+    showPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Abstain' }));
+    fireEvent.click(screen.getByRole('button', { name: PUBLICATION_COPY.CONFIRM }));
+
+    expect((await screen.findByRole('alert')).textContent).toBe('Voting on this resolution has closed.');
+    expect(screen.queryByText(PUBLICATION_COPY.YOU_VOTED.abstain)).toBeNull();
+  });
+
+  it('shows the result once closed: whether it carried, each count, turnout against those eligible', async () => {
+    rows = [
+      {
+        ...resolution,
+        ...closed,
+        myBallot: { choice: 'for', castAt: fromNow(-30 * HOUR), staffEntered: false },
+        ballotOutstanding: false,
+        result: tally,
+      },
+    ];
+
+    showPage();
+
+    expect(await screen.findByText(PUBLICATION_COPY.CARRIED)).toBeTruthy();
+    expect(screen.getByText(PUBLICATION_COPY.CLOSED)).toBeTruthy();
+    expect(screen.getByText(PUBLICATION_COPY.YOU_VOTED.for)).toBeTruthy();
+    expect(screen.getByText('100 shares · 1 member')).toBeTruthy();
+    expect(screen.getByText('40 shares · 1 member')).toBeTruthy();
+    expect(screen.getByText('0 shares · 0 members')).toBeTruthy();
+    expect(screen.getByText('140 of 150 shares · 2 of 3 members')).toBeTruthy();
+    expect(screen.queryByText(PUBLICATION_COPY.NOT_CARRIED)).toBeNull();
+    expect(ballotButtons().some(Boolean)).toBe(false);
+  });
+
+  it('says a resolution that did not carry did not carry', async () => {
+    rows = [{ ...resolution, ...closed, result: { ...tally, carried: false } }];
+
+    showPage();
+
+    expect(await screen.findByText(PUBLICATION_COPY.NOT_CARRIED)).toBeTruthy();
+    expect(screen.queryByText(PUBLICATION_COPY.CARRIED)).toBeNull();
+  });
+
+  it('says the result is still to be counted when the window has passed and no tally has arrived', async () => {
+    rows = [{ ...resolution, ...closed }];
+
+    showPage();
+
+    expect(await screen.findByText(PUBLICATION_COPY.RESULT_PENDING)).toBeTruthy();
+    expect(ballotButtons().some(Boolean)).toBe(false);
+  });
+
+  it('shows the company owner the result and never a ballot control', async () => {
+    rows = [{ ...resolution, shares: null, ballotOutstanding: false }];
+
+    showPage();
+
+    expect(await screen.findByText(resolution.question)).toBeTruthy();
+    expect(ballotButtons().some(Boolean)).toBe(false);
+    expect(screen.queryByText(PUBLICATION_COPY.VOTING_WEIGHT_LABEL)).toBeNull();
+
+    cleanup();
+    client.clear();
+    rows = [{ ...resolution, ...closed, shares: null, ballotOutstanding: false, result: tally }];
+    showPage();
+
+    expect(await screen.findByText(PUBLICATION_COPY.CARRIED)).toBeTruthy();
+    expect(ballotButtons().some(Boolean)).toBe(false);
+  });
+
+  it('offers the rest of a ballot when staff voted part of the holding, beside the part already voted', async () => {
+    const partly = {
+      ...resolution,
+      shares: '140',
+      myBallot: { choice: 'against', castAt: fromNow(0), staffEntered: true },
+      ballotOutstanding: true,
+    };
+    rows = [partly];
+    vi.mocked(apiClient.post).mockImplementation(async () => {
+      rows = [{ ...partly, ballotOutstanding: false }];
+      return { data: rows[0] };
+    });
+
+    showPage();
+
+    expect(await screen.findByText(PUBLICATION_COPY.YOU_VOTED.against)).toBeTruthy();
+    expect(screen.getByText(PUBLICATION_COPY.STAFF_ENTERED)).toBeTruthy();
+    expect(screen.getByText(PUBLICATION_COPY.BALLOT_OUTSTANDING)).toBeTruthy();
+    expect(ballotButtons().every(Boolean)).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'For' }));
+    fireEvent.click(screen.getByRole('button', { name: PUBLICATION_COPY.CONFIRM }));
+
+    await waitFor(() => expect(screen.queryByText(PUBLICATION_COPY.BALLOT_OUTSTANDING)).toBeNull());
+    expect(vi.mocked(apiClient.post)).toHaveBeenCalledWith(
+      `/api/v1/publications/${resolution.uuid}/ballot/`,
+      { choice: 'for' },
+      {},
+    );
+    expect(ballotButtons().some(Boolean)).toBe(false);
+    expect(screen.getByText(PUBLICATION_COPY.YOU_VOTED.against)).toBeTruthy();
+  });
+
+  it('offers the ballot the moment the window opens and withdraws it the moment it closes, without reloading', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const start = Date.now();
+    rows = [
+      {
+        ...resolution,
+        opensAt: new Date(start + MINUTE).toISOString(),
+        closesAt: new Date(start + 2 * MINUTE).toISOString(),
+      },
+    ];
+
+    showPage();
+
+    expect(await screen.findByText(PUBLICATION_COPY.NOT_OPEN_YET)).toBeTruthy();
+    expect(ballotButtons().some(Boolean)).toBe(false);
+    await act(async () => {
+      vi.advanceTimersByTime(MINUTE);
+    });
+    expect(ballotButtons().every(Boolean)).toBe(true);
+    expect(screen.queryByText(PUBLICATION_COPY.NOT_OPEN_YET)).toBeNull();
+    await act(async () => {
+      vi.advanceTimersByTime(MINUTE);
+    });
+    expect(ballotButtons().some(Boolean)).toBe(false);
+    expect(screen.getByText(PUBLICATION_COPY.CLOSED)).toBeTruthy();
+    expect(screen.getByText(PUBLICATION_COPY.RESULT_PENDING)).toBeTruthy();
+    expect(vi.mocked(apiClient.get).mock.calls.filter(([url]) => url === '/api/v1/publications/').length).toBe(1);
   });
 });
