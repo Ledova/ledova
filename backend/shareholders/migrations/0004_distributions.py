@@ -69,7 +69,8 @@ LANGUAGE sql IMMUTABLE AS $$
         'ledova-publication-event-v2', event.uuid, event.publication_id, event.company_id,
         event.sequence, event.kind, event.recipient_id, event.choice, event.shares::text,
         event.actor_id, event.staff_entered, event.authority, event.payload,
-        event.paid_on, event.reference, event.evidence, event.evidence_digest, event.previous_hash,
+        event.paid_on, event.reference, event.evidence, event.evidence_digest, event.evidence_mime_type,
+        event.previous_hash,
         to_char(event.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
     ) ELSE jsonb_build_array(
         'ledova-publication-event-v1', event.uuid, event.publication_id, event.company_id,
@@ -338,6 +339,16 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="publicationevent",
+            name="evidence_mime_type",
+            field=models.CharField(blank=True, max_length=100),
+        ),
+        migrations.AddField(
+            model_name="publicationread",
+            name="event_uuid",
+            field=models.UUIDField(blank=True, null=True),
+        ),
+        migrations.AddField(
+            model_name="publicationevent",
             name="paid_on",
             field=models.DateField(blank=True, null=True, verbose_name="recorded as paid on"),
         ),
@@ -436,6 +447,7 @@ class Migration(migrations.Migration):
                         ("choice__in", ["for", "against", "abstain"]),
                         ("evidence", ""),
                         ("evidence_digest", ""),
+                        ("evidence_mime_type", ""),
                         ("kind", "ballot"),
                         ("paid_on__isnull", True),
                         ("payload__isnull", True),
@@ -448,6 +460,7 @@ class Migration(migrations.Migration):
                         ("choice", ""),
                         ("evidence", ""),
                         ("evidence_digest", ""),
+                        ("evidence_mime_type", ""),
                         ("kind", "close"),
                         ("paid_on__isnull", True),
                         ("payload__isnull", False),
@@ -459,6 +472,7 @@ class Migration(migrations.Migration):
                     models.Q(
                         models.Q(("reference__regex", "^\\s*$"), _negated=True),
                         models.Q(("evidence", ""), _negated=True),
+                        models.Q(("evidence_mime_type__regex", "^\\s*$"), _negated=True),
                         ("actor_id__isnull", False),
                         ("choice", ""),
                         ("evidence_digest__regex", "^[0-9a-f]{64}$"),
@@ -474,6 +488,7 @@ class Migration(migrations.Migration):
                         ("choice", ""),
                         ("evidence", ""),
                         ("evidence_digest", ""),
+                        ("evidence_mime_type", ""),
                         ("kind", "payment_void"),
                         ("paid_on__isnull", True),
                         ("payload__isnull", True),

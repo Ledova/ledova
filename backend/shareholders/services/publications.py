@@ -221,13 +221,14 @@ def verify_roll(publication) -> dict:
     return {"member_rows": len(rows), "audience_digest": digest}
 
 
-def record_publication_read(user, publication, recipient, kind) -> None:
+def record_publication_read(user, publication, recipient, kind, event=None) -> None:
     try:
         with use_operator():
             PublicationRead.objects.create(
                 actor_id=user.pk,
                 publication_uuid=publication.pk,
                 recipient_uuid=None if recipient is None else recipient.pk,
+                event_uuid=None if event is None else event.pk,
                 kind=kind,
             )
     except Exception as error:
@@ -235,16 +236,17 @@ def record_publication_read(user, publication, recipient, kind) -> None:
         raise PublicationNotDelivered() from None
 
 
-def deliver_publication(user, publication, recipient, kind) -> None:
+def deliver_publication(user, publication, recipient, kind, event=None) -> None:
+    stored = publication.file if event is None else event.evidence
     try:
-        publication.file.open("rb")
+        stored.open("rb")
     except (ValueError, OSError) as error:
         logger.error("A publication's stored document could not be opened: %s", type(error).__name__)
         raise PublicationUnopened() from None
     try:
-        record_publication_read(user, publication, recipient, kind)
+        record_publication_read(user, publication, recipient, kind, event)
     except BaseException:
-        publication.file.close()
+        stored.close()
         raise
 
 

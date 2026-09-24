@@ -47,6 +47,7 @@ CHAINED_COLUMNS = (
     "reference",
     "evidence",
     "evidence_digest",
+    "evidence_mime_type",
     "previous_hash",
 )
 CHAINED = (
@@ -88,6 +89,7 @@ class VerifyingADistributionTest(StubUploadDependencies, TestCase):
             "reference": "LDV-FORGED" if kind == "payment" else "",
             "evidence": "companies/forged.bin" if kind == "payment" else "",
             "evidence_digest": "e" * 64 if kind == "payment" else "",
+            "evidence_mime_type": "application/pdf" if kind == "payment" else "",
             **columns,
         }
         the_chain_is_rewritten(

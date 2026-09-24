@@ -135,11 +135,11 @@ def _staff_on_the_roll(staff_user, publication, recipient):
 
 
 def _evidence(upload):
-    validate_upload(upload, field="evidence")
+    _, mime_type = validate_upload(upload, field="evidence")
     upload.seek(0)
     raw = read_bounded(upload)
     upload.seek(0)
-    return raw
+    return raw, mime_type
 
 
 def _latest_record(recipient):
@@ -178,7 +178,7 @@ def record_payment(staff_user, publication, recipient, *, paid_on, reference, ev
         raise ValidationError(RECORDED_BEFORE_DECLARATION)
     if _latest_record(recipient) == PublicationEventKind.PAYMENT:
         raise ValidationError(ALREADY_RECORDED)
-    raw = _evidence(evidence)
+    raw, mime_type = _evidence(evidence)
     try:
         record = _recorded(
             publication,
@@ -190,6 +190,7 @@ def record_payment(staff_user, publication, recipient, *, paid_on, reference, ev
             reference=reference.strip(),
             evidence=ContentFile(raw, name="evidence.bin"),
             evidence_digest=hashlib.sha256(raw).hexdigest(),
+            evidence_mime_type=mime_type,
         )
     except IntegrityError:
         raise ValidationError(

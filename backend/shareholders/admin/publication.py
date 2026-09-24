@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib import admin, messages
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -244,6 +245,7 @@ class PaymentRecordInline(PublicationEventInline):
         "paid_on",
         "reference",
         "evidence_digest",
+        "evidence_link",
         "actor_id",
         "authority",
         "created_at",
@@ -253,6 +255,15 @@ class PaymentRecordInline(PublicationEventInline):
     readonly_fields = fields
     verbose_name = "payment record"
     verbose_name_plural = "payment records"
+
+    @admin.display(description="Remittance evidence")
+    def evidence_link(self, obj):
+        if obj.kind != PublicationEventKind.PAYMENT:
+            return "-"
+        return format_html(
+            '<a href="{}">Open the remittance evidence</a>',
+            reverse("admin:shareholders_publication_evidence", args=[obj.pk]),
+        )
 
 
 @admin.register(Publication)
@@ -315,12 +326,27 @@ class PublicationAdmin(admin.ModelAdmin):
                 self, "<uuid:uuid>/payment/withdraw/", "shareholders_publication_withdrawal", self.withdraw_a_payment
             ),
             admin_file_path(self, "<uuid:uuid>/file/", "shareholders_publication_file", self.resolve_file),
+            admin_file_path(
+                self, "payment/<uuid:uuid>/evidence/", "shareholders_publication_evidence", self.resolve_evidence
+            ),
         ] + super().get_urls()
 
     def resolve_file(self, request, uuid):
         publication = get_object_or_404(self.get_queryset(request), pk=uuid)
         deliver_publication(request.user, publication, None, READ_AS_STAFF)
         return publication, publication.file, publication.mime_type, f"{publication.kind}-{publication.pk}"
+
+    def resolve_evidence(self, request, uuid):
+        if not request.user.has_perm("shareholders.view_publicationevent"):
+            raise PermissionDenied
+        record = get_object_or_404(
+            PublicationEvent.objects.select_related("publication", "recipient").filter(
+                kind=PublicationEventKind.PAYMENT, publication__in=self.get_queryset(request)
+            ),
+            pk=uuid,
+        )
+        deliver_publication(request.user, record.publication, record.recipient, READ_AS_STAFF, record)
+        return record.publication, record.evidence, record.evidence_mime_type, f"payment-evidence-{record.pk}"
 
     @admin.display(description="Published document")
     def file_link(self, obj):

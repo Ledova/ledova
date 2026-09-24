@@ -118,6 +118,7 @@ class RecordingAPaymentTest(StubUploadDependencies, TestCase):
         with record.evidence.open("rb") as stored:
             self.assertEqual(hashlib.sha256(stored.read()).hexdigest(), record.evidence_digest)
         self.assertEqual(record.evidence_digest, hashlib.sha256(PUBLICATION_BYTES).hexdigest())
+        self.assertEqual(record.evidence_mime_type, "application/pdf")
 
     def test_a_second_record_is_refused_until_the_first_is_withdrawn_and_a_correction_is_both(self):
         first = a_payment(self.world, self.distribution, self.first, reference="LDV-WRONG")
@@ -222,6 +223,7 @@ class TheDatabaseOwnsThePaymentRecordsTest(StubUploadDependencies, TestCase):
             "reference": PAYMENT_REFERENCE,
             "evidence": ContentFile(PUBLICATION_BYTES, name="evidence.bin"),
             "evidence_digest": hashlib.sha256(PUBLICATION_BYTES).hexdigest(),
+            "evidence_mime_type": "application/pdf",
             **changes,
         }
         with atomic():
@@ -234,6 +236,7 @@ class TheDatabaseOwnsThePaymentRecordsTest(StubUploadDependencies, TestCase):
             "reference": "",
             "evidence": "",
             "evidence_digest": "",
+            "evidence_mime_type": "",
             "authority": "Correction C-6",
             **changes,
         }
@@ -315,6 +318,7 @@ class TheDatabaseOwnsThePaymentRecordsTest(StubUploadDependencies, TestCase):
                 "reference": "",
                 "evidence": "",
                 "evidence_digest": "",
+                "evidence_mime_type": "",
             },
         ):
             with self.subTest(changes=sorted(changes)), self.assertRaisesMessage(IntegrityError, refusal):
@@ -336,6 +340,7 @@ class TheDatabaseOwnsThePaymentRecordsTest(StubUploadDependencies, TestCase):
             {"reference": "  "},
             {"paid_on": None},
             {"evidence_digest": "not-a-digest"},
+            {"evidence_mime_type": " "},
             {"choice": BallotChoice.FOR},
             {"kind": PublicationEventKind.PAYMENT_VOID, "authority": "Correction C-7"},
         ):
@@ -354,6 +359,7 @@ class TheDatabaseOwnsThePaymentRecordsTest(StubUploadDependencies, TestCase):
             ("reference", "LDV-REWRITTEN"),
             ("evidence_digest", "f" * 64),
             ("evidence", "companies/rewritten.bin"),
+            ("evidence_mime_type", "image/png"),
         ):
             with self.subTest(column=column), self.assertRaises(Undone), atomic():
                 with connections[current_alias()].cursor() as cursor:

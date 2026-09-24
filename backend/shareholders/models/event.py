@@ -50,6 +50,7 @@ class PublicationEvent(BaseModel):
     reference = models.CharField("the company's payment reference", max_length=64, blank=True)
     evidence = models.FileField(upload_to=payment_evidence_path, storage=private_storage, max_length=255, blank=True)
     evidence_digest = models.CharField(max_length=64, blank=True)
+    evidence_mime_type = models.CharField(max_length=100, blank=True)
     previous_hash = models.CharField(max_length=64, blank=True, editable=False)
     entry_hash = models.CharField(max_length=64, blank=True, editable=False)
 
@@ -79,6 +80,7 @@ class PublicationEvent(BaseModel):
                     reference="",
                     evidence="",
                     evidence_digest="",
+                    evidence_mime_type="",
                 )
                 | models.Q(
                     kind=PublicationEventKind.CLOSE,
@@ -92,10 +94,12 @@ class PublicationEvent(BaseModel):
                     reference="",
                     evidence="",
                     evidence_digest="",
+                    evidence_mime_type="",
                 )
                 | models.Q(
                     ~models.Q(reference__regex=r"^\s*$"),
                     ~models.Q(evidence=""),
+                    ~models.Q(evidence_mime_type__regex=r"^\s*$"),
                     kind=PublicationEventKind.PAYMENT,
                     recipient__isnull=False,
                     choice="",
@@ -118,6 +122,7 @@ class PublicationEvent(BaseModel):
                     reference="",
                     evidence="",
                     evidence_digest="",
+                    evidence_mime_type="",
                 ),
                 name="publication_event_has_the_shape_of_its_kind",
             ),
