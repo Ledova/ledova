@@ -346,6 +346,19 @@ the procedure.
 
 ## Payments and settlement
 
+**A secondary buyer funds before placing an offer** (owner decision, 25 September
+2026, on [#645](https://github.com/Ledova/ledova/issues/645)). Buy-order
+admission requires the buyer to hold the settlement stablecoin when the order is
+created, and the second settlement signature queues execution at once, so the
+platform does not accept an unfunded offer and then wait for payment. The
+simulated external payment of product §8 is the buyer's AUD deposit, recorded by
+staff as a mint request with its reference and date, whose mint is the stablecoin
+that pays the seller inside the atomic swap. Acceptance, payment, transfer and the
+register update stay distinct recorded events, and the seller is never exposed to
+an unpaid transfer. Unfunded acceptance with payment-gated execution was declined:
+it would need reserved liquidity, a payment deadline and a path for refusing an
+unpaid offer, none of which a prefunded buyer needs.
+
 Payment confirmation is stored on the subscription. The initial expected volume
 is small and admin history records changes. There is no separate payment-per-tranche
 model: a second payment updates the cumulative total with a note. A future

@@ -37,10 +37,11 @@ Each test starts from the same synthetic company:
 
 `test_the_demonstration_journey_runs_from_discovery_to_a_company_pack_read_without_the_platform`
 calls one step method for each §8 step and each step asserts its own result.
-The steps run in §8's order but one: the payment is recorded before the offer is
-accepted, because the buy order checks the buyer's balance on the node when it
-is created. §3 names acceptance before payment, so this order is the owner's to
-confirm together with the payment reading below.
+The payment is recorded before the offer is accepted. That is the requirement:
+the owner decided on 25 September 2026 that a secondary buyer funds before
+placing an offer ([decision](../decisions.md#payments-and-settlement)), and
+product §8 says so. The buy order checks the buyer's balance on the node when it
+is created, and the remaining steps run in §8's order.
 
 | §8 step | Step | What the test does | What it asserts |
 | --- | --- | --- | --- |
@@ -91,8 +92,8 @@ Simulated:
 - **The payment.** No bank and no stablecoin provider take part. The buyer's
   AUD deposit is a `MintRequest` with a synthetic reference and date, and the
   AUDY it mints is the platform's own test stablecoin, which then pays the
-  seller inside the swap. This reading of "simulated external payment", and
-  the payment coming before acceptance, are for the owner to confirm on
+  seller inside the swap. The owner confirmed this reading of "simulated
+  external payment", and the payment before acceptance, on
   [#645](https://github.com/Ledova/ledova/issues/645).
 - **The worker.** No Procrastinate worker runs. Where the journey itself
   defers a job, the test reads its recorded arguments from the job table and

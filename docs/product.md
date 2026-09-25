@@ -168,6 +168,12 @@ and reconciliation. Verify private-data isolation, revocation, provider
 failure, direct contract calls, duplicate requests and migration to another
 interface. Legal permissions are a separate launch decision.
 
+The buyer funds before placing an offer: the simulated external payment is the
+buyer's deposit, recorded before acceptance, which becomes the stablecoin that
+pays the seller inside the settlement. Acceptance, payment, transfer and register
+updates remain distinct events, and settlement stays an atomic exchange of shares
+for payment ([decision](decisions.md#payments-and-settlement)).
+
 Keep architecture, test and migration detail in the repository. Maintain a
 short decision log for blockchain, provider, authority, payment and fee
 choices, using the regulatory pathway where relevant.
