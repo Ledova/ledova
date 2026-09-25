@@ -16,6 +16,7 @@ from blockchain.tests.outgoing_fixtures import (
     CHAIN_ID,
     KEY,
     admitted_signer,
+    chain_client,
     receipt,
 )
 from shared.db import atomic, current_alias, use_operator
@@ -623,7 +624,9 @@ class SwapFinalityGuardTest(SwapExecutionStorageFixtures, TransactionTestCase):
         journal = self.admit()
         claim = self.open(journal)
         attempt = self.sign(journal, claim)
-        outgoing.record_receipt(claim, attempt.tx_hash, receipt(attempt, status))
+        outgoing.record_receipt(
+            claim, attempt.tx_hash, receipt(attempt, status), client=chain_client(receipt(attempt, status))
+        )
         return journal
 
     def project(self, journal, status):

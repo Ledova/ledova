@@ -47,7 +47,9 @@ class IssuanceNode:
         self.finalized = 12
         self.block_hashes = {12: BLOCK_HASH}
         self.client.w3 = Mock()
+        self.client.w3.eth.chain_id = CHAIN_ID
         self.client.w3.eth.get_block.side_effect = self.block
+        self.client.get_block.side_effect = self.block
         self.contract = Mock()
         self.contract.functions.authorizedShares.return_value.call.return_value = 1000
         self.contract.functions.totalSupply.return_value.call.return_value = 0

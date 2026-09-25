@@ -166,7 +166,7 @@ class SwapExecutionStorageTest(SwapExecutionStorageFixtures, TransactionTestCase
         journal = self.admit()
         claim = self.open(journal)
         attempt = self.sign(journal, claim)
-        outgoing.record_receipt(claim, attempt.tx_hash, receipt(attempt))
+        outgoing.record_receipt(claim, attempt.tx_hash, receipt(attempt), client=chain_client(receipt(attempt)))
         journal.mark_confirmed(12, receipt(attempt)["blockHash"], 21000)
         retained = SwapOrder.objects.get(pk=self.swap.pk)
         self.assertTrue(retained.expiry_release_eligible)
@@ -389,7 +389,7 @@ class SwapExecutionStorageTest(SwapExecutionStorageFixtures, TransactionTestCase
         with self.assertRaises(DatabaseError), atomic():
             journal.mark_failed("not unsigned")
         journal.refresh_from_db()
-        outgoing.record_receipt(claim, attempt.tx_hash, receipt(attempt))
+        outgoing.record_receipt(claim, attempt.tx_hash, receipt(attempt), client=chain_client(receipt(attempt)))
         journal.refresh_from_db()
         self.assertEqual(journal.status, "submitted")
         with self.assertRaisesMessage(DatabaseError, "confirmed original receipt"), atomic():
@@ -421,7 +421,7 @@ class SwapExecutionStorageTest(SwapExecutionStorageFixtures, TransactionTestCase
         self.seller.wallet.verification_status = "PENDING"
         self.seller.wallet.save(update_fields=["verification_status"])
         with override_settings(ATOMIC_SWAP_ADDRESS="0x" + "e" * 40, BLOCKCHAIN_CHAIN_ID=1):
-            outgoing.record_receipt(claim, attempt.tx_hash, receipt(attempt))
+            outgoing.record_receipt(claim, attempt.tx_hash, receipt(attempt), client=chain_client(receipt(attempt)))
             journal.mark_confirmed(12, receipt(attempt)["blockHash"], 21000)
         self.assertEqual(BlockchainTransaction.objects.get(pk=journal.pk).status, "confirmed")
         self.assertEqual(SwapOrder.objects.get(pk=self.swap.pk).status, "executing")
@@ -430,7 +430,7 @@ class SwapExecutionStorageTest(SwapExecutionStorageFixtures, TransactionTestCase
         journal = self.admit()
         claim = self.open(journal)
         attempt = self.sign(journal, claim)
-        outgoing.record_receipt(claim, attempt.tx_hash, receipt(attempt, 0))
+        outgoing.record_receipt(claim, attempt.tx_hash, receipt(attempt, 0), client=chain_client(receipt(attempt, 0)))
         journal.status = "reverted"
         journal.block_number = 12
         journal.block_hash = receipt(attempt)["blockHash"]
@@ -445,7 +445,7 @@ class SwapExecutionStorageTest(SwapExecutionStorageFixtures, TransactionTestCase
         journal = self.admit()
         claim = self.open(journal)
         attempt = self.sign(journal, claim)
-        outgoing.record_receipt(claim, attempt.tx_hash, receipt(attempt, 0))
+        outgoing.record_receipt(claim, attempt.tx_hash, receipt(attempt, 0), client=chain_client(receipt(attempt, 0)))
         with self.assertRaises(DatabaseError) as caught, atomic():
             OutgoingOperation.objects.create(
                 operation_key=f"swap-execution:{journal.pk}", intent=self.abi_intent(journal), claim_id=uuid4()

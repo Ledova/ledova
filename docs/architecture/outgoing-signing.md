@@ -62,12 +62,20 @@ Restarting an unsigned failed attempt changes its claim identifier and fences ou
 delayed workers. Once signed, uncertainty never authorizes another nonce: retries
 validate and broadcast the saved bytes, and missing receipts, provider errors,
 already-known responses and nonce errors leave the operation unresolved. Receipt
-updates require the same claim and hash. A recorded revert permits a new claim
-and nonce while retaining the immutable earlier attempt. Individual adapters may
+updates require the same claim and hash. Before a success or revert becomes
+terminal, the receipt must name a nonzero block hash that matches the canonical
+block read by its number. The service rereads the receipt and that block, and
+checks the endpoint's chain directly before and after those reads. Missing,
+provisional, changed or noncanonical evidence leaves the original signed attempt
+unresolved. All these RPC reads finish before the recording transaction; its
+claim and attempt fences are checked again under the lock.
+
+A recorded revert permits a new claim and nonce while retaining the immutable
+earlier attempt. Individual adapters may
 refuse restart: swap execution retains a single original claim even after revert.
-Here `confirmed` means
-a successful receipt was observed; confirmation depth, replacement detection and
-reorg repair remain part of the separate finality work.
+Here `confirmed` means a successful receipt with canonical inclusion was observed;
+confirmation depth, replacement detection and reorg repair remain part of the
+separate finality work.
 
 This initial API signs EIP-155 legacy gas-price transactions, including contract
 creation. Chain IDs and gas limits fit a positive signed 64-bit database integer;

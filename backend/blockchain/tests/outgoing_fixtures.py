@@ -26,13 +26,15 @@ def admitted_signer(*, chain_id=CHAIN_ID, sender=SENDER, generation=1):
     )
 
 
-def chain_client():
+def chain_client(observed_receipt=None):
     client = Mock(spec=BaseChainClient)
     client.assert_expected_chain.return_value = CHAIN_ID
     client.get_nonce.return_value = 7
     client.gas_price = 10**9
     client.estimate_gas.return_value = 60000
-    client.get_transaction_receipt.return_value = None
+    client.get_transaction_receipt.return_value = observed_receipt
+    client.get_block.return_value = {"number": 12, "hash": BLOCK_HASH}
+    client.w3.eth.chain_id = CHAIN_ID
     return client
 
 

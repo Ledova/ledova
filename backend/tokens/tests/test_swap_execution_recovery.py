@@ -272,7 +272,7 @@ class SwapExecutionRecoveryTest(APITransactionTestCase):
             attempt = self.attempts().get()
             self.assertEqual(self.node.broadcasts, [bytes(attempt.raw_transaction)] * 2)
             self.assertEqual(SigningAccount.objects.get(pk=self.signer.pk).next_nonce, 8)
-            self.node.receipts[attempt.tx_hash] = execution_receipt(attempt, self.record.function_args)
+            self.node.mine(attempt.tx_hash, execution_receipt(attempt, self.record.function_args))
         self.assertEqual(self.recover(), "confirmed")
         self.assertEqual(len(self.node.broadcasts), 2)
         self.assert_held()
@@ -349,7 +349,7 @@ class SwapExecutionRecoveryTest(APITransactionTestCase):
         self.assertEqual(self.recover(), "signed")
         self.assertEqual(len(self.node.broadcasts), 1)
         self.assert_held()
-        self.node.receipts[attempt.tx_hash] = execution_receipt(attempt, self.record.function_args)
+        self.node.mine(attempt.tx_hash, execution_receipt(attempt, self.record.function_args))
         self.assertEqual(self.recover(), "confirmed")
         self.assert_held()
 
@@ -369,7 +369,7 @@ class SwapExecutionRecoveryTest(APITransactionTestCase):
             self.recover()
         self.assertEqual(len(self.node.broadcasts), 1)
         self.assert_held()
-        self.node.receipts[attempt.tx_hash] = execution_receipt(attempt, self.record.function_args)
+        self.node.mine(attempt.tx_hash, execution_receipt(attempt, self.record.function_args))
         with override_settings(ATOMIC_SWAP_ADDRESS="0x" + "be" * 20, BLOCKCHAIN_OPERATOR_KEY=""):
             self.assertEqual(self.recover(), "confirmed")
         self.assert_held()
@@ -402,7 +402,7 @@ class SwapExecutionRecoveryTest(APITransactionTestCase):
                     self.assertEqual(OutgoingOperation.objects.get(pk=attempt.operation_id).status, "signed")
                 self.assert_held()
         self.assertEqual(len(self.node.broadcasts), 1)
-        self.node.receipts[attempt.tx_hash] = original
+        self.node.mine(attempt.tx_hash, original)
         self.assertEqual(self.recover(), "confirmed")
 
     def test_receipt_projection_gap_recovers_without_rpc_or_financial_release(self):

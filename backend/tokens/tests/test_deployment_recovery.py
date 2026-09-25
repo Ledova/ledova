@@ -83,6 +83,25 @@ class DeploymentRecoveryTest(TransactionTestCase):
         self.assertEqual(self.execute()["contract_address"], CREATED)
         self.assertEqual(len(self.node.broadcasts), 1)
 
+    def test_provisional_receipt_cannot_project_a_deployment_or_start_approval(self):
+        def provisional(tx_hash):
+            mined = self.node.receipts.get(tx_hash)
+            return mined | {"blockHash": "0x" + "00" * 32} if mined else None
+
+        with patch.object(self.node.client, "get_transaction_receipt", side_effect=provisional):
+            self.assertIsNone(self.execute()["contract_address"])
+        original = SignedAttempt.objects.get()
+        self.token.refresh_from_db()
+        self.assertEqual(self.token.status, "deploying")
+        self.assertIsNone(self.token.contract_address)
+        self.assertFalse(AssetChainDeployment.objects.filter(contract_address=CREATED).exists())
+        self.assertEqual(TokenDeployment.objects.get().approval_outcome, "")
+        self.assertEqual(OutgoingOperation.objects.get().status, "signed")
+        self.assertEqual(deployment.recover(self.token.deployment_id), CREATED)
+        self.assertEqual(SignedAttempt.objects.get().pk, original.pk)
+        self.assertEqual(SigningAccount.objects.get().next_nonce, original.nonce + 1)
+        self.assertEqual(len(self.node.broadcasts), 1)
+
     def test_existing_contract_without_an_admitted_transaction_stays_pending(self):
         self.node.existing_address = CREATED
         with self.assertRaisesMessage(InvalidTokenStateException, "attribution"):

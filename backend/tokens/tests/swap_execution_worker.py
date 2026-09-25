@@ -82,7 +82,9 @@ def run(directory, phase, transaction_id):
             data = stream.read()
         ledger = json.loads(data) if data else {"hashes": []}
         if tx_hash in ledger["hashes"]:
-            return execution_receipt(SignedAttempt.objects.get(tx_hash=tx_hash), record.function_args)
+            mined = execution_receipt(SignedAttempt.objects.get(tx_hash=tx_hash), record.function_args)
+            node.mine(tx_hash, mined)
+            return mined
         return None
 
     original_get = QuerySet.get
