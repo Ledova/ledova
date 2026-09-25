@@ -225,18 +225,18 @@
     --color-border-strong: #b9b2a3;
     --color-border-focus: #2e6a57;
   
-    --color-success-light: #16a34a;
-    --color-success: #16a34a;
-    --color-success-dark: #166534;
-    --color-error-light: #dc2626;
-    --color-error: #dc2626;
+    --color-success-light: #166534;
+    --color-success: #166534;
+    --color-success-dark: #14532d;
+    --color-error-light: #b91c1c;
+    --color-error: #b91c1c;
     --color-error-dark: #991b1b;
     --color-error-subtle: #fef2f2;
-    --color-error-backgroundSubtle: #dc262614;
-    --color-warning-light: #d97706;
-    --color-warning: #d97706;
-    --color-info-light: #0284c7;
-    --color-info: #0284c7;
+    --color-error-backgroundSubtle: #b91c1c14;
+    --color-warning-light: #92400e;
+    --color-warning: #92400e;
+    --color-info-light: #0369a1;
+    --color-info: #0369a1;
   
     --color-white: #ffffff;
     --color-black: #000000;

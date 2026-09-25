@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 const MARKETING_URL = import.meta.env.VITE_MARKETING_URL || 'http://localhost:5173';
 import { ClipboardTextIcon } from '@phosphor-icons/react';
 import {
-  COUNTRIES,
   formatPhoneForDisplay,
   formatPhoneNumber,
   getAddressDisplayLines,
@@ -20,10 +19,7 @@ const ICON_LG = DESIGN_TOKENS.icon.sizes.lg;
 
 function displayPhone(phoneCountryCode: string | null | undefined, phoneNumber: string | null | undefined) {
   if (!phoneCountryCode) return formatPhoneNumber(phoneNumber ?? '');
-  const country = COUNTRIES.find((candidate) => candidate.phoneCode === phoneCountryCode) ?? {
-    phoneCode: phoneCountryCode,
-  };
-  return `${phoneCountryCode} ${formatPhoneForDisplay(phoneNumber ?? '', country)}`;
+  return `${phoneCountryCode} ${formatPhoneForDisplay(phoneNumber ?? '', { phoneCode: phoneCountryCode })}`;
 }
 
 function displayCompanyType(companyType: string | undefined) {

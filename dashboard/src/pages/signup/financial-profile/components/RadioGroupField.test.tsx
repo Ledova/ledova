@@ -33,3 +33,22 @@ it('names the group by its question and each option by its own label', async () 
 
   expect(onChange).toHaveBeenCalledWith('other');
 });
+
+it('links its error to the group so it is read with the question', () => {
+  render(
+    <RadioGroupField
+      label="What is your intended use of the platform?"
+      value="long_term"
+      options={OPTIONS}
+      error={['Choose how you will use Ledova.']}
+      onChange={vi.fn()}
+    />,
+  );
+
+  expect(
+    screen.getByRole('radiogroup', {
+      name: 'What is your intended use of the platform?',
+      description: 'Choose how you will use Ledova.',
+    }),
+  ).toBeTruthy();
+});

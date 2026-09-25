@@ -4,6 +4,7 @@ import type { CheckboxGroupFieldProps } from '@ledova/shared';
 
 const CheckboxGroupField = ({ label, value, options, error, onChange }: CheckboxGroupFieldProps) => {
   const labelId = useId();
+  const errorId = useId();
 
   const handleCheckboxChange = (optionValue: string, checked: boolean) => {
     if (checked) {
@@ -14,7 +15,7 @@ const CheckboxGroupField = ({ label, value, options, error, onChange }: Checkbox
   };
 
   return (
-    <div role="group" aria-labelledby={labelId} className="space-y-3">
+    <div role="group" aria-labelledby={labelId} aria-describedby={error ? errorId : undefined} className="space-y-3">
       <p id={labelId} className="block text-sm font-medium text-text-body">
         {label} <span className="text-text-subtle">(select all that apply)</span>
       </p>
@@ -43,7 +44,7 @@ const CheckboxGroupField = ({ label, value, options, error, onChange }: Checkbox
         ))}
       </div>
       {error && (
-        <p className="text-error-light text-sm mt-1" role="alert">
+        <p id={errorId} className="text-error-light text-sm mt-1" role="alert">
           {error.join(' ')}
         </p>
       )}

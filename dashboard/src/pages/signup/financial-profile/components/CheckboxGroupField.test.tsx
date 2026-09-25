@@ -51,3 +51,22 @@ it('unticks a source of funds when its label is clicked', async () => {
   expect(onChange).toHaveBeenCalledTimes(1);
   expect(onChange).toHaveBeenCalledWith(['employment']);
 });
+
+it('links its error to the group so it is read with the question', () => {
+  render(
+    <CheckboxGroupField
+      label="What is your primary source of funds?"
+      value={[]}
+      options={OPTIONS}
+      error={['Select at least one source of funds.']}
+      onChange={vi.fn()}
+    />,
+  );
+
+  expect(
+    screen.getByRole('group', {
+      name: /What is your primary source of funds\?/,
+      description: 'Select at least one source of funds.',
+    }),
+  ).toBeTruthy();
+});

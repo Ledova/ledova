@@ -7,7 +7,8 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '../..');
 
-const { DESIGN_TOKENS, LIGHT_COLORS, PAPER_COLORS, PAPER_THEME } = await import('../shared/src/constants/ui/design-tokens.ts');
+const { DESIGN_TOKENS, LIGHT_COLORS, PAPER_COLORS, PAPER_THEME } =
+  await import('../shared/src/constants/ui/design-tokens.ts');
 
 function flattenColors(obj, prefix, lines) {
   for (const [key, value] of Object.entries(obj)) {

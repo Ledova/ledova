@@ -9,6 +9,7 @@ import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { useReview } from './useReview';
 import {
+  formatPhoneForDisplay,
   formatPhoneNumber,
   getAddressDisplayLines,
   parseAddress,
@@ -281,7 +282,11 @@ export function ReviewScreen() {
                   </View>
                   <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>Phone:</Text>
-                    <Text style={styles.infoValue}>{formatPhoneNumber(userProfile.phoneNumber ?? '')}</Text>
+                    <Text style={styles.infoValue}>
+                      {userProfile.phoneCountryCode
+                        ? `${userProfile.phoneCountryCode} ${formatPhoneForDisplay(userProfile.phoneNumber ?? '', { phoneCode: userProfile.phoneCountryCode })}`
+                        : formatPhoneNumber(userProfile.phoneNumber ?? '')}
+                    </Text>
                   </View>
                   {getAddressDisplayLines(parseAddress(userProfile.residentialAddress ?? '')).map((line, index) => (
                     <View key={index} style={styles.infoRow}>

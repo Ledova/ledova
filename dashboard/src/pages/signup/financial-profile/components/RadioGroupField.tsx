@@ -1,4 +1,4 @@
-import { Field, Label, Radio, RadioGroup } from '@headlessui/react';
+import { Description, Field, Label, Radio, RadioGroup } from '@headlessui/react';
 import type { RadioGroupFieldProps } from '@ledova/shared';
 
 const RadioGroupField = <Value extends string>({
@@ -22,12 +22,12 @@ const RadioGroupField = <Value extends string>({
           <Label className="cursor-pointer hover:text-text-primary">{option.label}</Label>
         </Field>
       ))}
+      {error && (
+        <Description as="p" className="text-error-light text-sm mt-1" role="alert">
+          {error.join(' ')}
+        </Description>
+      )}
     </RadioGroup>
-    {error && (
-      <p className="text-error-light text-sm mt-1" role="alert">
-        {error.join(' ')}
-      </p>
-    )}
   </div>
 );
 
