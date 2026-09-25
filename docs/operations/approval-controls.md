@@ -193,14 +193,14 @@ The [rollout checkpoint](https://github.com/Ledova/ledova/issues/648#issuecommen
 and the later public observations below record progress, **not closure of
 #648 or public release acceptance**.
 
-Checkpoint cutoff: **25 September 2026, 17:28:53 UTC**.
+Checkpoint cutoff: **25 September 2026, 18:24:17 UTC**.
 
 | Public acceptance proof | State at this checkpoint |
 | --- | --- |
 | A/B deployment and registry bindings | Both projected; four canonical successful deployment/approval receipts finalized and the complete DB deployment inventory targets only the configured factory. Later finalized control observations also rechecked both factory/registry/token bindings |
 | A-only C/I grants and positive controls | Both normal grants confirmed, both canonical receipts finalized and both finalized positive membership/direct-call baselines retained before revocation |
 | I classification revocation | Normal API denial observed; the periodic-fallback removal finalized, with a canonical block timestamp approximately 534.5 seconds after revocation and before original expiry. Finalized A/B membership and direct-call refusals retained |
-| C natural expiry | The sole remaining #648 control at this cutoff: wait for real chain time beyond 18:00 UTC, then retain finalized after-expiry membership and direct-call refusal observations |
+| C natural expiry | Real chain time passed the original 18:00 UTC expiry. Finalized A/B membership is false and both direct-call simulations refuse C, while A still stores the original nonzero expiry and B stores zero |
 
 | Field | Recorded value |
 | --- | --- |
@@ -375,10 +375,29 @@ both registry expiries are zero, membership is false in A and B, and both
 zero-value self-transfer simulations return `SenderNotWhitelisted(I)`
 (SHA-256 `0efc077aa4ea0a4662c077271f0c77a454cab678a2547da7b566c2f095c456cc`).
 No positive-amount transfer, mined reverting transfer or hardware signature was
-performed. C's real chain-time expiry at 18:00 UTC and its finalized negative
-control remain pending at this checkpoint.
+performed.
 
-Keep #648 open for the remaining public approval-control proof. The local funded
+C's natural-expiry control completed after real public-chain time passed its
+original **18:00 UTC** expiry, timestamp `1790359200`. The first observation,
+`c-expired-latest-01.json`, at 18:01:04 UTC recorded latest block `47295485`, hash
+`0x8751ff7fafd24bb230086a3dce4e9891e8a0eba682fbcd3cecc2830fd1337db5`,
+timestamp `1790359258` (18:00:58 UTC), with evidence SHA-256
+`2a1371f929edf2572519bde02bfee43bdf2fb32173560b72a848fbd402587c80`.
+
+The finalized check, `c-expired-finalized-01.json`, at 18:24:17 UTC recorded
+block `47295622`, hash
+`0x45ef42a51fc2d0adff1467911221010f256dceb55b10081e4fc1e72d71e3d08f`,
+timestamp `1790359532` (18:05:32 UTC), with evidence SHA-256
+`7dcc3f458818f002b169fdc7c0611d18907571ca46b9bc1f58e69ba6e1fef997`.
+Both observations retained A's original nonzero expiry `1790359200` and B's
+zero expiry, while both memberships were false and both zero-value self-transfer
+simulations returned `SenderNotWhitelisted(C)`. The finalized observer also
+rechecked factory/registry/token bindings. This completes the natural-expiry
+control from its earlier finalized positive baseline; no local time advancement
+or expiry-zero removal was used to establish C's negative result.
+
+The #648 public approval-control exercise now has retained completion evidence;
+issue closure remains subject to final evidence review. The local funded
 journey for [#645 is already accepted](https://github.com/Ledova/ledova/issues/645#issuecomment-5827887653).
 Physical Keystone acceptance and release-level public swap proof belong to
 [#624](https://github.com/Ledova/ledova/issues/624), separately from this exercise.
