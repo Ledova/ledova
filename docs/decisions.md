@@ -388,67 +388,50 @@ eligible investor directory, while holders can read their own holdings.
 A share Asset has no current price: nominal issue price is not a market valuation
 of an unlisted security.
 
-The intended portfolio presentation is one line per asset, summed across chains,
-with an expandable per-chain split. Sending and receiving still select a chain.
-A sum must identify its value sources and explicitly identify unpriced holdings.
-This is a display requirement, not a claim that every client has completed it;
-see [B7d](https://github.com/Ledova/ledova/issues/115#issuecomment-5574975348)
+The intended portfolio presentation is one line and allocation slice per asset,
+summed across chains, with an expandable per-chain split. Sending and receiving
+still select a chain. A sum must identify its value sources and explicitly identify
+unpriced holdings. This is a display requirement, not a claim that every client
+has completed it; see [B7d](https://github.com/Ledova/ledova/issues/115#issuecomment-5574975348)
 and [valuation presentation work](https://github.com/Ledova/ledova/issues/346).
-Shares are shown as whole-share counts, never as a price or a share of a
-portfolio's value; [the signed-in app](#the-signed-in-app) retires the
-allocation and performance charts.
 
 ## The signed-in app
 
-The signed-in app is built around the register; crypto is supported but is no
-longer the core (owner decisions, 26 September 2026, on
+The signed-in app is rebuilt around the register; crypto stays supported but is
+no longer the core (owner decisions, 26 September 2026, on
 [#732](https://github.com/Ledova/ledova/issues/732#issuecomment-5839112787)).
+This records the target; the steps on #732 build it.
 
-- **Menus follow what a person is, not what the platform offers.**
-  - Every account gets _Your shares_: Holdings, Notices and Activity. Anyone
-    entered on a register can receive notices and votes, including a company
-    representative who signed up as a company.
-  - Investing accounts also get _Invest_: Directory, Applications, Market (only
-    while `trading_enabled` is on) and Verification. These are modules that a
-    registry-only deployment can switch off, leaving a complete app;
-    [legal positions](legal/positions.md#4a-a-registry-service-acting-only-on-instruction-is-not-a-financial-service)
-    record why that must be by configuration.
-  - A company account gets its company group (Register, Offerings, Company) and
-    lands on Register. An investing account lands on Holdings.
-  - The role stays as chosen at sign-up; staff set "both" in admin, and a
-    customer cannot change it afterwards.
-- **Names follow the product's terms.**
-  - Holdings replaces Home, Notices replaces Publications and Dividends, Activity
-    replaces Transactions, and Applications replaces Subscriptions.
-  - Market means trading existing shares; the coin-price page that held the name
-    is retired.
-  - Verification replaces Eligibility; Register and Share classes replace Share
-    Tokens; "Raise authorised shares" replaces Capital Increase; and the company
-    application sits under Company rather than as Listing.
-  - Directory keeps its name.
-- **Crypto lives inside Wallets.**
-  - Buying crypto and sending are actions on a wallet, never menu items.
-  - The coin-price page and favourites are deleted; the Buy crypto step shows the
-    current price.
-  - Amounts are in AUD everywhere, with no display-currency choice.
-- **One look.** Paper only, with no theme switch, and no development or
+- **Menus.** Every account gets _Your shares_: Holdings, Notices and Activity,
+  because anyone entered on a register can receive notices and votes, including
+  a company representative who signed up as a company. Investing accounts also
+  get _Invest_: Directory, Applications, Market (only while `trading_enabled` is
+  on) and Verification. Company accounts get their company group (Register,
+  Offerings, Company) and land on Register. The role stays as chosen at sign-up;
+  staff set "both" in admin, and a customer cannot change it afterwards.
+- **Names follow the product's terms.** Holdings replaces Home; Notices replaces
+  Publications and Dividends; Activity replaces Transactions; Applications
+  replaces Subscriptions; Market replaces Trading, and the coin-price page that
+  held the name is retired; Verification replaces Eligibility; Register and
+  Share classes replace Share Tokens; "Raise authorised shares" replaces Capital
+  Increase; and the company application sits under Company instead of as
+  Listing. Directory keeps its name.
+- **Crypto lives inside Wallets.** Buying crypto and sending stay, as actions
+  inside Wallets rather than menu items. The coin-price page and favourites are
+  deleted; the Buy crypto step shows the current price. Amounts are in AUD
+  everywhere, with no display-currency choice.
+- **One look.** Paper only, with no theme switch, and no test-network or
   synthetic-data notices in the product.
 - **Mobile follows the web.** The mobile app takes paper and the new structure
   together, after the web.
-- **Staff-prepared outputs are not self-service.** Certificates, inspection
-  copies, publications, the company pack and register instructions stay prepared
-  by staff on written instruction ([the stored register](#the-stored-register),
-  [shareholder publications](#shareholder-publications),
-  [the company pack](#the-company-pack)). The company's pages show their status
-  and how to ask.
 
 Two questions remain open:
 
 - **The Market's presentation:** plain lists over today's automatic matching, or a
   seller's accept and reject built first, as
   [product §7](product.md#7-initial-delivery-scope) describes.
-- **The first deployment the design is tested against:** a single issuer, or a
-  registry of many companies.
+- **The first deployment the design targets:** a single issuer, or a registry of
+  many companies.
 
 ## The account-data export
 
