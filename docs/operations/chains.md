@@ -163,7 +163,8 @@ local node with an admitted test signer: see `make chain-test` and
    operator API, choosing the company and, for a wallet with no investor
    classification, the expiry to set. A blank expiry means none.
 8. Verify, from `backend/`. Each command prints its own answer; the expected
-   answer follows it.
+   answer follows it. The chain and database probes are read-only; the refresh
+   sweep below can sign and broadcast changes.
 
    ```bash
    python manage.py shell -c "from integrations.base_chain import get_base_chain_client; print(get_base_chain_client().assert_expected_chain())"
@@ -174,29 +175,61 @@ local node with an admitted test signer: see `make chain-test` and
 
    ```bash
    python manage.py shell -c "
+   from shared.db import use_operator
    from tokens.models import ShareToken
    from whitelist.services.whitelist import registry_for, token_registry
-   for token in ShareToken.objects.on_chain().select_related('company'):
-       print(token.symbol, token_registry(token.contract_address).lower() == registry_for(token.company))
+   with use_operator():
+       tokens = list(ShareToken.objects.on_chain().select_related('company'))
+   if not tokens:
+       raise SystemExit('No deployed share classes: the binding check has no fixtures.')
+   for token in tokens:
+       matches = token_registry(token.contract_address).lower() == registry_for(token.company)
+       print(token.pk, token.symbol, matches)
+       if not matches:
+           raise SystemExit('The token registry does not match its company registry.')
    "
    ```
 
    One line per class, every one `True`: the token's own registry is the one
    the factory holds for its company's ACN.
 
+   For isolation, prepare two companies with deployed classes and a control
+   wallet approved only for company A. Replace the two class UUIDs and wallet
+   address below with that fixture. Missing classes, the same company or a
+   shared registry must fail; an empty loop is not evidence of isolation.
+
    ```bash
    python manage.py shell -c "
+   from shared.db import use_operator
    from tokens.models import ShareToken
-   from whitelist.models import WhitelistApproval
-   from whitelist.services.whitelist import is_whitelisted
-   for approval in WhitelistApproval.objects.live().select_related('entry__wallet', 'company'):
-       for token in ShareToken.objects.on_chain().exclude(company_id=approval.company_id):
-           print(approval.entry.wallet_address, token.symbol, is_whitelisted(token.contract_address, approval.entry.wallet_address))
+   from whitelist.services.whitelist import is_whitelisted, token_registry
+   with use_operator():
+       classes = ShareToken.objects.on_chain().select_related('company')
+       company_a = classes.get(pk='COMPANY_A_CLASS_UUID')
+       company_b = classes.get(pk='COMPANY_B_CLASS_UUID')
+   if company_a.company_id == company_b.company_id:
+       raise SystemExit('Choose classes belonging to two different companies.')
+   registry_a = token_registry(company_a.contract_address).lower()
+   registry_b = token_registry(company_b.contract_address).lower()
+   if registry_a == registry_b:
+       raise SystemExit('The two companies must have distinct registries.')
+   wallet = 'WALLET_APPROVED_ONLY_FOR_COMPANY_A'
+   observed = (is_whitelisted(company_a.contract_address, wallet), is_whitelisted(company_b.contract_address, wallet))
+   print(company_a.pk, registry_a, company_b.pk, registry_b, wallet, observed)
+   if observed != (True, False):
+       raise SystemExit('The A-only control wallet must be approved in A and refused in B.')
    "
    ```
 
-   One line per approval and other company's class, every one `False`: an
-   approval grants nothing outside its own company.
+   Prints the two class UUIDs, their registries, the wallet and `(True, False)`.
+   A separate valid approval in B would legitimately make B return `True`:
+   that wallet no longer satisfies the A-only fixture. RPC failures must be
+   resolved, not interpreted as a refusal.
+
+   The next command runs the normal refresh sweep immediately. It can sign and
+   broadcast attributable approval changes, so run it only as part of the
+   authorised exercise with signer admission ready. The following query only
+   reads the surviving approval rows.
 
    ```bash
    python manage.py shell -c "
@@ -206,16 +239,24 @@ local node with an admitted test signer: see `make chain-test` and
        print(refresh.sweep())
    "
    python manage.py shell -c "
+   from shared.db import use_operator
    from whitelist.models import WhitelistApproval
-   for approval in WhitelistApproval.objects.select_related('entry__wallet', 'company'):
-       print(approval.company.acn, approval.entry.wallet_address, approval.status, approval.expires_at)
+   with use_operator():
+       for approval in WhitelistApproval.objects.select_related('entry__wallet', 'company'):
+           print(approval.pk, approval.company.acn, approval.entry.wallet_address, approval.status, approval.expires_at)
    "
    ```
 
-   The sweep runs itself every five minutes; running it by hand is how to see
-   a revocation land without waiting. `submitted` counts the changes it wrote
-   and `unattributed` the rows no staff actor explains, which the log names.
-   A revoked holder's approval then reads `removed`.
+   The sweep runs itself every five minutes. `submitted` counts returned
+   change submissions, including unsuccessful outcomes; it does not count
+   confirmed removals. `unattributed` and `errors` require investigation.
+   Inspect the specific change's outcome and transaction, allow pending changes
+   to recover, and verify that `is_whitelisted(token_address, wallet_address)`
+   returns `False` on chain after revocation. A confirmed removal projects
+   `removed`; ordinary expiry can deny membership without changing the stored
+   approval to `removed`. Deleted-wallet approvals can disappear, so inspect
+   their retained removal jobs through [recovery](recovery.md) instead of
+   treating absence from this query as success.
 
    ```bash
    python manage.py shell -c "
@@ -234,8 +275,8 @@ what each check answered, and the place for the authorised Base Sepolia result.
 
 An approval refreshes itself when a classification is revoked or renewed, when
 an account is suspended or terminated, and when a wallet is deleted or
-relinked: the platform refuses at once and the chain follows within fifteen
-minutes. [Refreshing an approval](../architecture/outgoing-signing.md#refreshing-an-approval)
+relinked: the platform refuses at once and, in normal operation, the chain follows
+within fifteen minutes. [Refreshing an approval](../architecture/outgoing-signing.md#refreshing-an-approval)
 owns the rule, what each status means and what staff must still do by hand.
 Until a removal lands on chain, a direct contract call can still move shares,
 and pausing the token is the incident lever.
