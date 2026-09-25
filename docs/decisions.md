@@ -356,8 +356,12 @@ staff as a mint request with its reference and date, whose mint is the stablecoi
 that pays the seller inside the atomic swap. Acceptance, payment, transfer and the
 register update stay distinct recorded events, and the seller is never exposed to
 an unpaid transfer. Unfunded acceptance with payment-gated execution was declined:
-it would need reserved liquidity, a payment deadline and a path for refusing an
-unpaid offer, none of which a prefunded buyer needs.
+it would add reserved liquidity, a payment deadline and a path for refusing an
+unpaid offer. Prefunding does not remove every failure: the balance is checked
+when the order is created and stays in the buyer's own wallet until the swap
+executes, so a swap can still fail if the funds move first. The swap is atomic,
+so a failure moves neither the shares nor the payment, and the settlement's
+failed-execution handling applies.
 
 Payment confirmation is stored on the subscription. The initial expected volume
 is small and admin history records changes. There is no separate payment-per-tranche
