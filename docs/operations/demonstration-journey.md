@@ -35,7 +35,7 @@ Each test starts from the same synthetic company:
 
 ## The journey
 
-`test_the_demonstration_journey_runs_from_discovery_to_a_reconciled_register`
+`test_the_demonstration_journey_runs_from_discovery_to_a_company_pack_read_without_the_platform`
 calls one step method for each §8 step, in order, and each step asserts its own
 result.
 
@@ -52,7 +52,8 @@ result.
 The test then checks that acceptance, payment, transfer and register update are
 distinct records: the executed deposit, the accepted submission, the completed
 swap and the register entry carry four increasing times, and the deposit's
-transaction is not the settlement's.
+transaction is not the settlement's. Its last step, `carry`, takes the
+journey's end state to another interface, below.
 
 ## The verification list
 
@@ -63,7 +64,7 @@ transaction is not the settlement's.
 | Direct contract calls | `test_direct_calls_to_the_share_and_swap_contracts_revert_on_the_node` | A transfer the seller signs to an address with no approval reverts with `RecipientNotWhitelisted`. The buyer's own `executeSwap`, carrying the exact calldata the relayer was admitted to send with both signatures, reverts with `NotRelayer`. No balance moves, and the relayer then settles the same calldata |
 | Provider failure | `test_register_reconciliation_fails_closed_while_the_provider_is_unreachable_and_then_recovers` | With `BLOCKCHAIN_RPC_URL` pointed at a closed local port, the scheduled reconciliation raises and records a failed reconciliation with no block. With the real URL restored, it matches. The client is not patched: the connection is refused |
 | Private-data isolation | `test_another_tenant_reaches_none_of_the_journeys_records` | After the whole journey, another tenant, the owner of another company, gets 404 from each order, swap and register route that the party or owner reads with 200, and the journey's orders are not in their order list, which does list their own. The company pack is a staff admin route: they are redirected to the admin login, no export is recorded, and staff holding the pack permissions reach its page |
-| Migration to another interface | Not yet | A company pack built from the journey's end state and read by the independent consumer is still to be added, on top of [#725](https://github.com/Ledova/ledova/pull/725)'s fix to the pack's evidence paths |
+| Migration to another interface | The journey's `carry` step | Staff produce the [company pack](../architecture/company-pack.md) for the journey's company through the admin pack page, naming an instruction and a recipient, and one `company_pack` export record is written for each of its share classes, each with the manifest's digest. The [independent consumer](../architecture/company-pack.md#the-consumer-test) reads the archive as `python -I -S`, with an empty environment and neither Django nor the database: it replays the class's two entries to its two current members, exits 0 and prints the recorded digest. The pack carries the settlement with the transaction the node mined, its final block and its register entry, and that entry chained to the opening |
 
 ## What is real and what is simulated
 
@@ -78,7 +79,9 @@ Real:
 - the API: each route named above runs through Django's request handling,
   with the DRF test client standing in for the network and for sign-in;
 - the signatures: every order challenge, token approval, settlement signature
-  and raw transaction is signed with the party's own key.
+  and raw transaction is signed with the party's own key;
+- the company pack: produced through the staff admin page, and read by the
+  consumer in a separate Python process that cannot reach the platform.
 
 Simulated:
 
@@ -101,7 +104,5 @@ Simulated:
 
 - **A browser.** No browser drives this journey; Playwright covers sign-in only.
 - **A public testnet.** The journey runs on a local node, never on Base Sepolia.
-- **Portability.** No company pack is yet built from the journey's end state,
-  as above.
 - **Live events.** Trading events are published to Redis, which the test does
   not observe.
