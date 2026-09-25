@@ -1,10 +1,15 @@
 import { ethers } from "hardhat";
 import * as fs from "fs";
+import { prepareFreshSignerDeployment } from "./fresh-signer-manifest";
 import { assertTestDeploymentNetwork } from "./network-safety";
 
 async function main() {
   await assertTestDeploymentNetwork();
   const [deployer] = await ethers.getSigners();
+  const freshDeployment = await prepareFreshSignerDeployment(
+    ethers.provider,
+    deployer.address,
+  );
 
   console.log("Deploying contracts with the account:", deployer.address);
   console.log(
@@ -16,6 +21,7 @@ async function main() {
   const ShareTokenFactory =
     await ethers.getContractFactory("ShareTokenFactory");
   const factory = await ShareTokenFactory.deploy(deployer.address);
+  freshDeployment?.recordTransaction(factory.deploymentTransaction());
   await factory.waitForDeployment();
   const factoryAddress = await factory.getAddress();
   console.log("   ShareTokenFactory deployed to:", factoryAddress);
@@ -26,18 +32,21 @@ async function main() {
   console.log("\n2. Deploying AUDY...");
   const AUDY = await ethers.getContractFactory("AUDY");
   const stablecoin = await AUDY.deploy(deployer.address);
+  freshDeployment?.recordTransaction(stablecoin.deploymentTransaction());
   await stablecoin.waitForDeployment();
   const stablecoinAddress = await stablecoin.getAddress();
   console.log("   AUDY deployed to:", stablecoinAddress);
 
   console.log("\n3. Setting up AUDY...");
   const addMinterTx = await stablecoin.addMinter(deployer.address);
+  freshDeployment?.recordTransaction(addMinterTx);
   await addMinterTx.wait();
   console.log("   Deployer added as minter");
 
   console.log("\n4. Deploying AtomicSwap...");
   const AtomicSwap = await ethers.getContractFactory("AtomicSwap");
   const atomicSwap = await AtomicSwap.deploy(deployer.address);
+  freshDeployment?.recordTransaction(atomicSwap.deploymentTransaction());
   await atomicSwap.waitForDeployment();
   const atomicSwapAddress = await atomicSwap.getAddress();
   console.log("   AtomicSwap deployed to:", atomicSwapAddress);
@@ -49,8 +58,20 @@ async function main() {
     stablecoinAddress,
     true,
   );
+  freshDeployment?.recordTransaction(approveStableTx);
   await approveStableTx.wait();
   console.log("   Approved stablecoin as payment token");
+  if (freshDeployment) {
+    const manifestPath = freshDeployment.complete({
+      share_token_factory: factoryAddress,
+      stablecoin: stablecoinAddress,
+      atomic_swap: atomicSwapAddress,
+    });
+    console.log(
+      "   Fresh signer deployment manifest written to:",
+      manifestPath,
+    );
+  }
 
   console.log("\n========================================");
   console.log("Deployment Summary");

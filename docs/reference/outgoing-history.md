@@ -72,3 +72,9 @@ old signing paths, revalidate provenance and coverage, then perform a separate
 guarded import/activation. Application requests will also need scoped
 authorization before a narrow operator handoff, with transaction-boundary checks
 on the originating connection. Those adapter changes remain future work.
+
+The [fresh Base Sepolia bootstrap](../architecture/outgoing-signing.md#fresh-base-sepolia-admission)
+is a separate first-admission path for a new key and isolated empty environment.
+It refuses historical outgoing sources and imported evidence, and cannot reopen
+an old signer or lift these holds. Empty captures retain their permanent coverage
+limitations; they do not supply authorization for that path.

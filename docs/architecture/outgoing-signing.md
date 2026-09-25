@@ -5,14 +5,14 @@
 Settlement-asset and yield-token `MintRequest` execution, whitelist add/remove
 commands, share-token deployment and its automatic swap approval, capital increases, share issuances, swap execution, pause/unpause and NAV updates use the
 operator signing foundation. Signer
-admission remains closed. The [deployment flow](contracts-and-issuance.md) binds
+admission starts closed. The [deployment flow](contracts-and-issuance.md) binds
 its original receipt to immutable deployment terms; an identifier lookup alone
 leaves the deployment pending for attribution.
 
 The foundation now requires explicit signer admission. Existing and new
 `SigningAccount` rows start `closed`, and a missing row is also closed. A nonce
 counter, successful legacy status or inventory capture never grants admission.
-There is no activation command or admin edit surface; admitted synthetic test
+The [fresh Base Sepolia bootstrap](#fresh-base-sepolia-admission) is the only first-admission command. It cannot reopen a signer or authorize legacy cutover, and there is no admin edit surface. Admitted synthetic test
 fixtures establish a test precondition only. Participant-signed approvals are the
 one settlement writer outside this foundation, because the backend never holds
 the participant's key: their delivery is journaled and replayed as exact bytes
@@ -83,6 +83,67 @@ belong in protected backups; errors retain a category rather than provider or
 database exception text.
 
 For existing databases, read [outgoing history and cutover constraints](../reference/outgoing-history.md).
+
+
+## Fresh Base Sepolia admission
+
+`bootstrap_fresh_signer --manifest PATH` is an operator command for the owner's
+explicitly authorized fresh environment. It reads the chain and commits local
+admission; it never signs or sends a transaction. The [redeploy sequence](../operations/chains.md#fresh-start-redeploy)
+runs it before application processes, workers, companies or outgoing records
+exist. The deploying key must be unused before the five core deployment sends,
+exclusive to this environment, and the configured backend operator key.
+
+The version-1 JSON manifest has exactly `version`, `chain_id`,
+`operator_address`, `environment_id`, `authorization_reference`, `attestations`,
+`contracts` and `transactions`. Version is integer `1`, chain is integer `84532`,
+and the environment and authorization strings are nonempty, limited to 200 and
+500 characters respectively. The three attestations are exactly `fresh_key`,
+`isolated_environment` and `producers_stopped`, all literal `true`. Contracts
+are exactly `share_token_factory`, `stablecoin` and `atomic_swap`, with distinct
+nonzero lowercase or checksummed addresses. Transactions are five distinct
+hashes in deployment order. Unknown or duplicate JSON keys are refused.
+Addresses and hashes are normalized lowercase for the canonical manifest digest.
+
+The verifier compares configuration and the configured key's public address,
+reads the provider chain ID without the client cache, and requires the exact
+zero-value transaction sequence from that sender: nonce 0 creates
+`ShareTokenFactory(sender)`; nonce 1 creates `AUDY(sender)`; nonce 2 calls
+`AUDY.addMinter(sender)`; nonce 3 creates `AtomicSwap(sender)`; nonce 4 calls
+`AtomicSwap.setPaymentTokenApproval(AUDY, true)`. Creation bytes come from the
+local Hardhat artifacts bound to their build-info; creation addresses must also
+match the sender-and-nonce CREATE derivation.
+
+Every receipt must succeed and have complete canonical evidence satisfying the
+configured `evm:84532` **finalized** policy. Depth fallback is refused. Receipt
+identity is fetched again after evidence collection. Runtime bytecode must match
+the same build outside compiler-declared immutable slots; exact constructor bytes
+bind those slots' initialization. Contract owners, AUDY minter, swap relayer and
+payment-token approval must match. Both latest and pending sender nonces must be
+exactly five. Provider uncertainty, missing artifacts or mismatched evidence leaves
+admission closed.
+
+The command refuses legacy source rows, unattributed chain transactions, imported
+outgoing evidence, current outgoing operations or attempts, other signer state,
+and any substantive inventory hold. Empty inventory captures can retain their
+permanent coverage limitations; they confer no authority. This path does not
+resolve the legacy signer cutover work in #624. The stopped-producer attestation
+is necessary: opening an unsigned outgoing operation does not acquire the signer
+lock, and the command cannot prove that another process or offline key holder
+has stopped. Keep those producers stopped throughout verification and commit.
+
+The final transaction takes a deployment-wide admission lock, then locks the
+signer and rechecks database history. Different fresh keys cannot both admit
+against one apparently empty database. Only a
+missing signer or a closed generation-zero, nonce-zero row can enter generation
+one with next nonce five. The unique bootstrap receipt, manifest digest, artifact
+and build identities, and chain evidence commit with admission. The receipt is
+operator-only and PostgreSQL refuses UPDATE or DELETE. Exact manifest replay is
+recognized before fresh-history and nonce checks, and returns unchanged only
+while that same signer remains admitted at generation one; it preserves an
+advanced nonce. Closure, any earlier admission, or a different manifest cannot
+be undone through this command. The existing close and generation fences remain
+in force.
 
 ## Automatic swap approval
 

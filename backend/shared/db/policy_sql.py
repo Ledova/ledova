@@ -24,6 +24,7 @@ TABLE_CREATION_AFTER_INITIAL_GRANTS = (
         )
     }
     | {
+        "blockchain_freshsignerbootstrap": ("blockchain", "0008_fresh_signer_bootstrap"),
         "tokens_registercorrection": ("tokens", "0064_reviewed_register_corrections"),
         "tokens_registermemberwallet": ("tokens", "0065_register_opening"),
         "tokens_registeropening": ("tokens", "0065_register_opening"),

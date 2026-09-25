@@ -125,40 +125,71 @@ written for the retired global registry remain, but a database carrying share
 classes deployed by a retired factory and no such rows would pass it, and step
 8's last check is what catches that.
 
-Steps 6 and 7 both sign, so both need an admitted outgoing signer for the
-operator key. Admission is closed for every signer and there is no activation
-command or admin surface
-([outgoing signing](../architecture/outgoing-signing.md)); opening it is the
-owner's direction, not an operator step. Until it is open, a fresh database
-reaches step 5 and stops. The real-chain suite performs steps 6 and 7 against a
-local node with an admitted test signer: see `make chain-test` and
-[the §5 evidence](approval-controls.md#the-fresh-start-redeploy-rehearsal).
+Steps 6 and 7 both sign, so the owner must explicitly authorize signer
+admission for the fresh environment. The narrow Base Sepolia bootstrap below
+verifies the five core deployment transactions before first admission; it cannot
+reopen an old signer or resolve historical cutover. Local `make chain-test`
+continues to establish admission as a synthetic test precondition.
 
-1. Stop the backend and the workers, so nothing signs against the old
-   contracts.
-2. Start the node the deployment targets. Locally that is
-   `npx hardhat node --port 8545` from `contracts/`; for Base Sepolia it is the
-   provider `BASE_SEPOLIA_RPC_URL` names. Then deploy the core contracts with
-   `deploy-all.ts`: `LOCALHOST_RPC_URL=http://127.0.0.1:8545 npm --prefix
-   contracts run deploy:local:core` against the local node, or `npm --prefix
-   contracts run deploy:testnet` for Base Sepolia with `DEPLOYER_PRIVATE_KEY`
-   and `BASE_SEPOLIA_RPC_URL` exported. The deploying key must be the operator
-   key ([key management](#key-management)). It writes the addresses to
-   `.deployed-contracts.env` at the repository root.
-3. Reset the database: drop it, create it empty, and from `backend/` run
-   `python manage.py migrate`, then `python manage.py check_rls_roles` and
-   `python manage.py check_rls_catalogue`. A cluster initialised without
-   `POSTGRES_HOST_AUTH_METHOD=trust` refuses the passwordless roles the
-   migration creates; `check_rls_roles` prints the two `ALTER ROLE` statements
-   that fix it, and
-   [row-level security roles](configuration.md#row-level-security-roles) owns
-   the rule.
-4. Set the three addresses from `.deployed-contracts.env`
-   (`SHARE_TOKEN_FACTORY_ADDRESS`, `ATOMIC_SWAP_ADDRESS`,
-   `STABLECOIN_CONTRACT_ADDRESS`) in `backend/.env`, and remove any
-   `WHITELIST_CONTRACT_ADDRESS` line. Start the backend and the workers.
-5. Recreate companies and users through the browser. `createsuperuser` and
-   admin wallet verification are the only steps outside it.
+1. Stop the backend, workers and every other producer using the new operator
+   key. Prepare a new key used only for this fresh isolated environment; do not
+   reuse a signer with previous deployments or sends. Preserve existing database
+   volumes and historical evidence separately.
+2. For the authorized Base Sepolia deployment, export `DEPLOYER_PRIVATE_KEY`
+   and `BASE_SEPOLIA_RPC_URL`. The deploying key must be the backend operator
+   key. Also supply all fresh-bootstrap metadata together:
+
+   ```text
+   FRESH_SIGNER_MANIFEST_PATH=/ABSOLUTE/PRIVATE/PATH/fresh-signer.json
+   FRESH_SIGNER_ENVIRONMENT_ID=UNIQUE_FRESH_ENVIRONMENT
+   FRESH_SIGNER_AUTHORIZATION_REFERENCE=OWNER_AUTHORIZATION_REFERENCE
+   FRESH_SIGNER_ATTEST_FRESH_KEY=true
+   FRESH_SIGNER_ATTEST_ISOLATED_ENVIRONMENT=true
+   FRESH_SIGNER_ATTEST_PRODUCERS_STOPPED=true
+   ```
+
+   The environment ID and authorization reference are nonempty, at most 200
+   and 500 characters. Export the values only after establishing the facts they
+   attest. Run `npm --prefix contracts run deploy:testnet`. Fresh mode refuses
+   any chain other than 84532, nonzero latest or pending sender nonce, or an
+   existing manifest or companion `.journal.json`. It records each returned
+   transaction hash before waiting for its receipt, emits the final manifest
+   after the five sends complete, and writes the configured addresses to
+   `.deployed-contracts.env`. Keep the manifest, journal and compiled
+   `contracts/artifacts` directory, including `.dbg.json` and build-info files,
+   with the deployment evidence. A partial journal means deployment is incomplete:
+   retain it and investigate; do not rerun deployment or erase history to make
+   this fresh-only verifier accept the signer. Without fresh metadata, ordinary
+   deployment behavior is unchanged and does not produce admission evidence.
+3. Configure a separate, newly created empty database. From `backend/`, run
+   `python manage.py migrate`, `python manage.py check_rls_roles` and
+   `python manage.py check_rls_catalogue` against it. Do not carry old rows into
+   this database. A cluster initialized without `POSTGRES_HOST_AUTH_METHOD=trust`
+   refuses the passwordless roles the migration creates; `check_rls_roles`
+   prints the two `ALTER ROLE` statements that fix it. [Row-level security roles](configuration.md#row-level-security-roles)
+   owns the rule.
+4. Configure `BLOCKCHAIN_CHAIN_ID=84532`, the authorized provider, the fresh
+   `BLOCKCHAIN_OPERATOR_KEY`, and the three `.deployed-contracts.env` addresses
+   in `backend/.env`. Remove any `WHITELIST_CONTRACT_ADDRESS` line. Keep the
+   backend, workers and all producers stopped. Wait for all five transactions
+   to be canonical and finalized, then run from the checkout's `backend/` with
+   the retained Hardhat artifacts and manifest accessible:
+
+   ```bash
+   python manage.py bootstrap_fresh_signer --manifest /ABSOLUTE/PRIVATE/PATH/fresh-signer.json
+   ```
+
+   Success prints the immutable bootstrap UUID, manifest digest and
+   `unchanged: false`; exact replay prints `unchanged: true` and does not reset
+   an advanced nonce. A verification failure leaves admission closed: resolve
+   the reported configuration or evidence problem while retaining the original
+   manifest. The [admission contract](../architecture/outgoing-signing.md#fresh-base-sepolia-admission)
+   lists the strict transaction, finality, history and replay checks. This
+   command must run before companies, legacy source rows or outgoing operations
+   exist. An inventory report does not authorize admission or clear legacy holds.
+5. After successful admission, start the backend and workers and recreate
+   companies and users through the browser. `createsuperuser` and admin wallet
+   verification are the other steps outside it.
 6. Deploy each share class. A company's first class creates its registry; its
    later classes share it.
 7. Approve wallets for each company in the whitelist admin or through the
