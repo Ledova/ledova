@@ -168,6 +168,12 @@ and reconciliation. Verify private-data isolation, revocation, provider
 failure, direct contract calls, duplicate requests and migration to another
 interface. Legal permissions are a separate launch decision.
 
+The buyer funds before placing an offer: the simulated external payment is the
+buyer's deposit, recorded before acceptance, which becomes the stablecoin that
+pays the seller inside the settlement. Acceptance, payment, transfer and register
+updates remain distinct events, and settlement stays an atomic exchange of shares
+for payment ([decision](decisions.md#payments-and-settlement)).
+
 Keep architecture, test and migration detail in the repository. Maintain a
 short decision log for blockchain, provider, authority, payment and fee
 choices, using the regulatory pathway where relevant.
@@ -199,7 +205,7 @@ payments and assets synthetic.
 | Capability | Current boundary |
 | --- | --- |
 | Company onboarding and share classes | Application/review flow, company and token screens exist; operator approval and chain configuration are required |
-| Tokenized shares | Whole-share issuance and authorized caps are enforced on chain, and so is each company's whitelist, with its expiry, for both the sender and the recipient of a transfer; approvals are set by staff per company, and classification changes do not yet reach the chain |
+| Tokenized shares | Whole-share issuance and authorized caps are enforced on chain, and so is each company's whitelist, with its expiry, for both the sender and the recipient of a transfer; approvals are set by staff per company, and classification and account changes reach the chain through [a refresh](architecture/outgoing-signing.md#refreshing-an-approval), normally within fifteen minutes |
 | Investor classification | Claim/evidence submission and review status exist in both clients; staff review is in admin; eligibility scopes discovery and subscriptions |
 | Primary offerings and subscriptions | Investor directory, subscription and payment instructions are available in the dashboard; the mobile investor flow remains unscheduled |
 | AUD and stablecoin payments | Operator records receipt, refunds and allotment in admin; bank-feed and stablecoin-watcher reconciliation is planned |

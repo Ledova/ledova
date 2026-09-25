@@ -301,7 +301,7 @@ jobs:
       - name: Install contract dependencies
         working-directory: contracts
         run: npm ci
-      - name: Real-chain test (Hardhat node, deploy core contracts, tokens.tests.test_chain_integration)
+      - name: Real-chain tests (Hardhat node, deploy core contracts, the four modules make chain-test runs)
         working-directory: .
         run: make chain-test PYTHON=python
       - name: Bitcoin submission pipeline (isolated regtest and PostgreSQL)

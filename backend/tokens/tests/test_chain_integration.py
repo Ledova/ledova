@@ -17,6 +17,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.db import connection, connections
 from django.test import override_settings
@@ -159,13 +160,17 @@ chain_available = skipUnless(
 )
 
 
+def reset_chain_client():
+    get_base_chain_client.cache_clear()
+    BaseChainClient._instance = None
+    BaseChainClient._web3 = None
+
+
 class ChainTestMixin:
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        get_base_chain_client.cache_clear()
-        BaseChainClient._instance = None
-        BaseChainClient._web3 = None
+        reset_chain_client()
 
     def setUp(self):
         self.tenant = make_tenant("chain")
@@ -313,13 +318,10 @@ class ChainTestMixin:
         )
 
 
-@chain_available
-@override_settings(**CHAIN_SETTINGS)
-class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
-    def setUp(self):
+class SettlementChainMixin(ChainTestMixin):
+    def settlement_parties(self):
         from tokens.tests.swap_state_fixtures import BUYER, SELLER
 
-        super().setUp()
         self.seller = SELLER
         self.buyer = BUYER
         self.investor = self.seller.address
@@ -336,19 +338,14 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
             )
             for party in (self.seller, self.buyer)
         }
-        self._deployed()
-        self.assertEqual(swap_approval.recover(self.token.deployment_id), "confirmed")
-        request = self._whitelisted_request(20)
-        self.assertTrue(self._execute(request)["success"])
-        self._whitelist(self.buyer.address)
+
+    def settlement_payment(self):
         self.payment = self.chain.load_contract("AUDY", settings.STABLECOIN_CONTRACT_ADDRESS)
-        _hash, receipt = self.chain.send_transaction(
-            self.payment.functions.mint(self.buyer.address, 50000), private_key=settings.BLOCKCHAIN_OPERATOR_KEY
-        )
-        self.assertEqual(receipt["status"], 1)
         AssetChainDeployment.objects.filter(asset=self.tenant.refs.stablecoin, chain="base").update(
             contract_address=settings.STABLECOIN_CONTRACT_ADDRESS, decimals=2
         )
+
+    def fund_gas(self):
         for party in (self.seller, self.buyer):
             transaction = self.w3.eth.send_transaction(
                 {"from": self.w3.eth.accounts[0], "to": party.address, "value": 10**18}
@@ -363,6 +360,156 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
             self.payment.functions.balanceOf(self.seller.address).call(),
             self.payment.functions.balanceOf(self.buyer.address).call(),
         )
+
+    def approval_route(self, swap, order):
+        identity = {
+            "swap_uuid": str(swap.pk),
+            "owner_account_uuid": str(order.owner_account_id),
+            "wallet_uuid": str(order.wallet_id),
+            "settlement_digest": swap.settlement_digest,
+        }
+        return f"/api/v1/trading/orders/{order.pk}/swap", identity
+
+    def signed_approval(self, swap, order, party):
+        url, identity = self.approval_route(swap, order)
+        self.client.force_authenticate(self.party_accounts[party.address].user_profile.user)
+        prepared = self.client.get(url + "/approval-data/", identity)
+        self.assertEqual(prepared.status_code, 200, prepared.content)
+        self.assertTrue(prepared.json()["needsApproval"])
+        transaction = {
+            key: int(value, 16) if key in ("value", "gas", "gasPrice", "nonce", "chainId") else value
+            for key, value in prepared.json()["transaction"].items()
+            if key != "from"
+        }
+        return bytes(self.chain.sign_transaction(transaction, party.key))
+
+    def broadcast_approval(self, swap, order, raw):
+        url, identity = self.approval_route(swap, order)
+        return self.client.post(
+            url + "/approval-broadcast/", {**identity, "signed_transaction": Web3.to_hex(raw)}, format="json"
+        )
+
+    def typed_signature(self, swap, order, party):
+        url, identity = self.approval_route(swap, order)
+        self.client.force_authenticate(self.party_accounts[party.address].user_profile.user)
+        message = self.client.get(url + "/", identity)
+        self.assertEqual(message.status_code, 200, message.content)
+        signable = encode_typed_data(full_message=message.json()["typedData"])
+        return party.sign_message(signable).signature.to_0x_hex()
+
+    def post_signature(self, swap, order, party, signature):
+        url, identity = self.approval_route(swap, order)
+        self.client.force_authenticate(self.party_accounts[party.address].user_profile.user)
+        return self.client.post(
+            url + "/sign/", identity | {"signature": signature, "signer_address": party.address}, format="json"
+        )
+
+    def signed_order(self, party, kind):
+        account = self.party_accounts[party.address]
+        wallet = self.party_wallets[party.address]
+        body = {
+            "submission_id": str(uuid4()),
+            "owner_account_uuid": str(account.pk),
+            "token": str(self.token.pk),
+            "wallet_uuid": str(wallet.pk),
+            "wallet_address": wallet.address,
+            "order_type": kind,
+            "quantity": 10,
+            "min_quantity": 0,
+            "price_per_share": "1.50",
+        }
+        self.client.force_authenticate(account.user_profile.user)
+        message = self.client.post("/api/v1/trading/orders/create/message/", body, format="json")
+        self.assertEqual(message.status_code, 200, message.content)
+        challenge = message.json()["challenge"]
+        signature = party.sign_message(
+            signable_message(challenge["domain"], challenge["types"], challenge["message"])
+        ).signature.to_0x_hex()
+        return {**body, "digest": challenge["digest"], "signature": signature}
+
+    def signed_http_order(self, party, kind):
+        created = self.client.post("/api/v1/trading/orders/create/", self.signed_order(party, kind), format="json")
+        self.assertEqual(created.status_code, 201, created.content)
+        return created.json()
+
+    def open_register(self, members):
+        self.reviewer = get_user_model().objects.create_user(
+            email=f"transfer-chain-{uuid4()}@example.test", is_active=True, is_staff=True
+        )
+        self.reviewer.user_permissions.add(
+            *Permission.objects.filter(
+                codename__in=[
+                    "change_companydocument",
+                    "change_registeropening",
+                    "view_registeropening",
+                    "change_registerinstruction",
+                ]
+            )
+        )
+        self.document = attach_file(make_document(self.tenant.company))
+        _, review = prepare_document_review(document_id=self.document.pk, reviewer=self.reviewer)
+        verify_document(document_id=self.document.pk, reviewer=self.reviewer, confirmation=review)
+        opening = submit_opening(
+            actor=self.tenant.user,
+            operation_id=uuid4(),
+            token_id=self.token.pk,
+            document_id=self.document.pk,
+            mapping=[{"address": address, "member": member} for address, member in members.items()],
+            authority="director_resolution",
+            approving_director="Synthetic Director",
+            authority_reference="SYNTHETIC-RESOLUTION-OPENING-1",
+            reason="Establish the register from the real local chain boundary",
+        )
+        self.w3.provider.make_request("evm_mine", [])
+        _, confirmation = prepare_opening_review(proposal_id=opening.pk, reviewer=self.reviewer)
+        return decide_opening(
+            proposal_id=opening.pk, reviewer=self.reviewer, confirmation=confirmation, decision="apply"
+        )
+
+    def instruct_transfer(self, effect, operation_id=None):
+        seller, buyer = effect["wallets"]
+        self.client.force_authenticate(self.tenant.user)
+        return self.client.post(
+            "/api/v1/tokens/register-instructions/",
+            {
+                "operation_id": str(operation_id or uuid4()),
+                "token_id": str(self.token.pk),
+                "document_id": str(self.document.pk),
+                "kind": "transfer",
+                "items": [
+                    {"settlement": effect["source"], "seller": seller, "buyer": buyer, "amount": effect["shares"]}
+                ],
+                "approving_director": "Synthetic Director",
+                "authority_reference": "SYNTHETIC-RESOLUTION-TRANSFER-1",
+                "reason": "Register the transfer the directors approved after settlement",
+            },
+            format="json",
+        )
+
+    def apply_instruction(self, proposal_id):
+        _, _, review = prepare_instruction_review(proposal_id=proposal_id, reviewer=self.reviewer)
+        return decide_instruction(
+            proposal_id=proposal_id, reviewer=self.reviewer, confirmation=review, decision="apply"
+        )
+
+
+@chain_available
+@override_settings(**CHAIN_SETTINGS)
+class SettlementServiceChainTest(SettlementChainMixin, APITransactionTestCase):
+    def setUp(self):
+        super().setUp()
+        self.settlement_parties()
+        self._deployed()
+        self.assertEqual(swap_approval.recover(self.token.deployment_id), "confirmed")
+        request = self._whitelisted_request(20)
+        self.assertTrue(self._execute(request)["success"])
+        self._whitelist(self.buyer.address)
+        self.settlement_payment()
+        _hash, receipt = self.chain.send_transaction(
+            self.payment.functions.mint(self.buyer.address, 50000), private_key=settings.BLOCKCHAIN_OPERATOR_KEY
+        )
+        self.assertEqual(receipt["status"], 1)
+        self.fund_gas()
 
     def test_prepared_and_broadcast_transfer_moves_the_exact_signed_shares(self):
         before = self.balances()
@@ -398,34 +545,6 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
         swap = token_transfer_service.match_orders(orders[1], orders[0], 3)["swap_order"]
         self.assertEqual((swap.share_amount, swap.payment_amount), (3, 450))
         return swap, orders
-
-    def approval_route(self, swap, order):
-        identity = {
-            "swap_uuid": str(swap.pk),
-            "owner_account_uuid": str(order.owner_account_id),
-            "wallet_uuid": str(order.wallet_id),
-            "settlement_digest": swap.settlement_digest,
-        }
-        return f"/api/v1/trading/orders/{order.pk}/swap", identity
-
-    def signed_approval(self, swap, order, party):
-        url, identity = self.approval_route(swap, order)
-        self.client.force_authenticate(self.party_accounts[party.address].user_profile.user)
-        prepared = self.client.get(url + "/approval-data/", identity)
-        self.assertEqual(prepared.status_code, 200, prepared.content)
-        self.assertTrue(prepared.json()["needsApproval"])
-        transaction = {
-            key: int(value, 16) if key in ("value", "gas", "gasPrice", "nonce", "chainId") else value
-            for key, value in prepared.json()["transaction"].items()
-            if key != "from"
-        }
-        return bytes(self.chain.sign_transaction(transaction, party.key))
-
-    def broadcast_approval(self, swap, order, raw):
-        url, identity = self.approval_route(swap, order)
-        return self.client.post(
-            url + "/approval-broadcast/", {**identity, "signed_transaction": Web3.to_hex(raw)}, format="json"
-        )
 
     def admit_swap(self):
         swap, orders = self.matched_swap()
@@ -538,35 +657,6 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual(operation.attempts.count(), 1)
         self.assertEqual(self.balances(), (balances[0] - 3, balances[1] + 3, balances[2] + 450, balances[3] - 450))
 
-    def signed_http_order(self, party, kind):
-        account = self.party_accounts[party.address]
-        wallet = self.party_wallets[party.address]
-        body = {
-            "submission_id": str(uuid4()),
-            "owner_account_uuid": str(account.pk),
-            "token": str(self.token.pk),
-            "wallet_uuid": str(wallet.pk),
-            "wallet_address": wallet.address,
-            "order_type": kind,
-            "quantity": 10,
-            "min_quantity": 0,
-            "price_per_share": "1.50",
-        }
-        self.client.force_authenticate(account.user_profile.user)
-        message = self.client.post("/api/v1/trading/orders/create/message/", body, format="json")
-        self.assertEqual(message.status_code, 200, message.content)
-        challenge = message.json()["challenge"]
-        signature = party.sign_message(
-            signable_message(challenge["domain"], challenge["types"], challenge["message"])
-        ).signature.to_0x_hex()
-        created = self.client.post(
-            "/api/v1/trading/orders/create/",
-            {**body, "digest": challenge["digest"], "signature": signature},
-            format="json",
-        )
-        self.assertEqual(created.status_code, 201, created.content)
-        return created.json()
-
     def test_two_accounts_signed_http_orders_settle_to_completed_under_a_local_depth_policy(self):
         Asset.objects.filter(pk=self.tenant.refs.stablecoin.pk).update(decimals=6)
         FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
@@ -588,19 +678,7 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
             self.assertEqual(response.status_code, 200, response.content)
             recorded = SwapApprovalSubmission.objects.get(tx_hash=response.json()["txHash"])
             self.assertEqual(recorded.outcome, "confirmed")
-            url, identity = self.approval_route(swap, order)
-            message = self.client.get(url + "/", identity)
-            self.assertEqual(message.status_code, 200, message.content)
-            signable = encode_typed_data(full_message=message.json()["typedData"])
-            signed = self.client.post(
-                url + "/sign/",
-                identity
-                | {
-                    "signature": party.sign_message(signable).signature.to_0x_hex(),
-                    "signer_address": party.address,
-                },
-                format="json",
-            )
+            signed = self.post_signature(swap, order, party, self.typed_signature(swap, order, party))
             self.assertEqual(signed.status_code, 200, signed.content)
         swap.refresh_from_db()
         self.assertEqual(swap.status, "executing")
@@ -623,8 +701,6 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
 
     @override_settings(WALLET_CHAIN_FINALITY_POLICIES={"evm:31337": {"mode": "depth", "depth": 2}})
     def test_a_real_settlement_is_entered_only_once_its_transfer_instruction_applies(self):
-        from django.contrib.auth import get_user_model
-
         bought = ShareIssuanceRequest.objects.create(
             token=self.token,
             recipient_address=self.buyer.address,
@@ -639,40 +715,8 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
         self.w3.provider.make_request("evm_mine", [])
         self.assertTrue(self._execute(bought)["success"])
         owner = self.tenant.user
-        reviewer = get_user_model().objects.create_user(
-            email=f"transfer-chain-{uuid4()}@example.test", is_active=True, is_staff=True
-        )
-        reviewer.user_permissions.add(
-            *Permission.objects.filter(
-                codename__in=[
-                    "change_companydocument",
-                    "change_registeropening",
-                    "view_registeropening",
-                    "change_registerinstruction",
-                ]
-            )
-        )
-        document = attach_file(make_document(self.tenant.company))
-        _, review = prepare_document_review(document_id=document.pk, reviewer=reviewer)
-        verify_document(document_id=document.pk, reviewer=reviewer, confirmation=review)
         seller_member, buyer_member = str(uuid4()), str(uuid4())
-        opening = submit_opening(
-            actor=owner,
-            operation_id=uuid4(),
-            token_id=self.token.pk,
-            document_id=document.pk,
-            mapping=[
-                {"address": self.seller.address, "member": seller_member},
-                {"address": self.buyer.address, "member": buyer_member},
-            ],
-            authority="director_resolution",
-            approving_director="Synthetic Director",
-            authority_reference="SYNTHETIC-RESOLUTION-OPENING-1",
-            reason="Establish the register from the real local chain boundary",
-        )
-        self.w3.provider.make_request("evm_mine", [])
-        _, confirmation = prepare_opening_review(proposal_id=opening.pk, reviewer=reviewer)
-        applied = decide_opening(proposal_id=opening.pk, reviewer=reviewer, confirmation=confirmation, decision="apply")
+        applied = self.open_register({self.seller.address: seller_member, self.buyer.address: buyer_member})
         self.assertEqual(
             applied.applied_entry.changes,
             sorted(
@@ -696,29 +740,10 @@ class SettlementServiceChainTest(ChainTestMixin, APITransactionTestCase):
         self.w3.provider.make_request("evm_mine", [])
         waiting = reconcile_register(self.token.pk)
         self.assertEqual((waiting.status, waiting.discrepancies, waiting.register_sequence), ("matched", [], 1))
-        seller, buyer = effect["wallets"]
-        instruction = self.client.post(
-            "/api/v1/tokens/register-instructions/",
-            {
-                "operation_id": str(uuid4()),
-                "token_id": str(self.token.pk),
-                "document_id": str(document.pk),
-                "kind": "transfer",
-                "items": [
-                    {"settlement": effect["source"], "seller": seller, "buyer": buyer, "amount": effect["shares"]}
-                ],
-                "approving_director": "Synthetic Director",
-                "authority_reference": "SYNTHETIC-RESOLUTION-TRANSFER-1",
-                "reason": "Register the transfer the directors approved after settlement",
-            },
-            format="json",
-        )
+        instruction = self.instruct_transfer(effect)
         self.assertEqual(instruction.status_code, 201, instruction.content)
         self.assertFalse(RegisterEntry.objects.filter(kind="transfer").exists())
-        _, _, instruction_review = prepare_instruction_review(proposal_id=instruction.json()["uuid"], reviewer=reviewer)
-        decide_instruction(
-            proposal_id=instruction.json()["uuid"], reviewer=reviewer, confirmation=instruction_review, decision="apply"
-        )
+        self.apply_instruction(instruction.json()["uuid"])
         entry = RegisterEntry.objects.get(operation_id=swap.pk)
         self.assertEqual(
             (entry.kind, entry.changes, entry.recorded_by_id),

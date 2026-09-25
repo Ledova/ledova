@@ -99,8 +99,10 @@ against the freshly deployed contracts.
 
 `make chain-test` does the local sequence unattended: it compiles, starts a
 node, waits for `eth_chainId`, deploys the core contracts, sources
-`.deployed-contracts.env` and runs
-`backend/tokens/tests/test_chain_integration.py`, then stops the node.
+`.deployed-contracts.env` and runs the four real-chain modules,
+`tokens.tests.test_chain_integration`, `offerings.tests.test_chain_allotment`,
+`wallets.tests.test_submission_chain` and `tokens.tests.test_chain_journey`
+(the [demonstration journey](demonstration-journey.md)), then stops the node.
 `CHAIN_TEST_PORT` moves the whole thing — the node, the `localhost` network the
 deploy connects to (through `LOCALHOST_RPC_URL`, which
 `contracts/hardhat.config.ts` reads) and the backend's `BLOCKCHAIN_RPC_URL` — so
