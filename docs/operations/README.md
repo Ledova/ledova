@@ -12,6 +12,7 @@ assume the API, worker and database run compatible code.
 | Configure email, KYC, market data or extraction | [Integrations](integrations.md) |
 | Deploy local/testnet contracts and align signer ownership | [Chains and keys](chains.md) |
 | Read the evidence for company-scoped approvals and their bypass review | [Approval controls](approval-controls.md) |
+| Read which real-chain test proves each step of the product's demonstration journey | [Demonstration journey](demonstration-journey.md) |
 | Seed data, configure the operator and work review queues | [Operator console](operator-console.md) |
 | Publish a document to a share class's members | [Publishing to members](publications.md) |
 | Produce a company's records as one archive for a successor or a lawful request | [Producing a company pack](register-foundation.md#producing-a-company-pack) |
