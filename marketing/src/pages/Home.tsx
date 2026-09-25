@@ -17,7 +17,7 @@ const COMPANY_POINTS = [
   },
   {
     title: 'Take your records with you',
-    body: 'Get a complete pack of your records, which anyone can check without Ledova.',
+    body: 'Get a pack of your records that anyone can check without Ledova.',
   },
 ];
 
@@ -42,12 +42,15 @@ const INVESTOR_POINTS = [
 
 const STEPS = [
   { title: 'Create an account', body: 'Sign up with your email, then verify who you are.' },
-  { title: 'Get approved', body: 'Each company approves who may hold its shares.' },
+  { title: 'Get approved', body: 'Your wallet is verified, then approved for each company whose shares you hold.' },
   {
     title: 'Buy or sell',
-    body: 'Fund your account, then list or make an offer. Shares and payment swap together, or not at all.',
+    body: 'List shares for sale, or fund your wallet and make an offer. Shares and payment swap together, or not at all.',
   },
-  { title: 'On the register', body: "The company's register updates, and it matches the chain." },
+  {
+    title: 'On the register',
+    body: "Once the company's directors approve it, the transfer is entered in the register and checked against the chain.",
+  },
 ];
 
 const EXAMPLE_REGISTER = [
