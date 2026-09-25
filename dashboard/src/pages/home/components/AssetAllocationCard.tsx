@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { CaretDownIcon, CaretRightIcon, WalletIcon } from '@phosphor-icons/react';
-import { DESIGN_TOKENS, formatPercentage, VALUE_SOURCE_LABELS } from '@ledova/shared';
+import { DESIGN_TOKENS, formatPercentage, VALUE_SOURCE_LABELS, PAPER_THEME as colors } from '@ledova/shared';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { useCurrency } from '@hooks/useCurrency';
 import type { AssetAllocationItem, HoldingsSummary } from '@ledova/shared';
 import { Panel } from '@components/Panel';
-import { useColors } from '@hooks/useColors';
 
 const ICON_XL = DESIGN_TOKENS.icon.sizes.xl;
 
@@ -31,7 +30,6 @@ export function AssetAllocationCard({
 }: AssetAllocationCardProps) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const { formatDisplayCurrency } = useCurrency();
-  const colors = useColors();
   const TOOLTIP = colors.chartUI.tooltip;
 
   const formatQuantity = (quantity: number) => {

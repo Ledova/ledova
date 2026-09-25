@@ -4,7 +4,6 @@ import { MobileHeader } from './MobileHeader';
 import Footer from './Footer';
 import { useLocation } from 'react-router-dom';
 import type { LayoutProps } from '@ledova/shared';
-import { gradients } from '../styles/theme';
 import { HeaderActionsProvider } from '@hooks/useHeaderActions';
 import { BuyCryptoProvider } from '@hooks/useBuyCrypto';
 import { SendTransferProvider } from '@hooks/useSendTransfer';
@@ -20,7 +19,7 @@ export default function Layout({ children }: LayoutProps) {
 
   if (isPublicPage) {
     return (
-      <div className="theme-paper relative flex min-h-screen min-w-[390px] flex-col bg-surface-base font-paper text-text-primary">
+      <div className="relative flex min-h-screen min-w-[390px] flex-col bg-surface-base text-text-primary">
         <div className="flex flex-grow flex-col">{children}</div>
         <Footer />
       </div>
@@ -32,10 +31,7 @@ export default function Layout({ children }: LayoutProps) {
       <HeaderActionsProvider>
         <BuyCryptoProvider>
           <SendTransferProvider>
-            <div className="relative flex min-h-screen min-w-[390px]">
-              <div className="fixed inset-0 -z-10" style={{ background: gradients.appBackground }} />
-              <div className="fixed inset-0 -z-10 opacity-10" style={{ background: gradients.accentOverlay }} />
-
+            <div className="relative flex min-h-screen min-w-[390px] bg-surface-base text-text-primary">
               <div className="hidden lg:block">
                 <div className="fixed left-0 top-0 bottom-0 z-40">
                   <Sidebar />

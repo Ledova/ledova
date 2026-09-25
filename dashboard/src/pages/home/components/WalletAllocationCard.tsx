@@ -1,11 +1,10 @@
 import { WalletIcon } from '@phosphor-icons/react';
-import { DESIGN_TOKENS, formatPercentage, formatCryptoBalance } from '@ledova/shared';
+import { DESIGN_TOKENS, formatPercentage, formatCryptoBalance, PAPER_THEME as colors } from '@ledova/shared';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { useCurrency } from '@hooks/useCurrency';
 import type { WalletTotals } from '@ledova/shared';
 import { Panel } from '@components/Panel';
-import { useColors } from '@hooks/useColors';
 
 const ICON_XL = DESIGN_TOKENS.icon.sizes.xl;
 
@@ -27,7 +26,6 @@ export function WalletAllocationCard({
   isLoading,
 }: WalletAllocationCardProps) {
   const { formatDisplayCurrency } = useCurrency();
-  const colors = useColors();
   const ETH_COLOR = colors.chain.ethereum;
   const BTC_COLOR = colors.chain.bitcoin;
   const BASE_COLOR = colors.chain.base;

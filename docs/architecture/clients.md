@@ -31,15 +31,15 @@ The design tokens are the single source of colour, spacing and radius values.
 output and prettier-ignored. Tailwind v4 reads that `@theme` block and derives
 the utility classes (`bg-surface-base`, `text-text-body`,
 `border-border-subtle`). Never edit either file: CI regenerates them after `make
-build` and fails on any drift. `PAPER_COLORS` is a fixed light palette that
-ignores the theme. The marketing site is styled with it (`bg-paper`,
-`text-ink`, `border-rule`, `bg-ledger`), with Newsreader and Instrument Sans
-served from its own bundle. `PAPER_THEME` maps the same palette onto the
-theme tokens as the `.theme-paper` class. The dashboard's public pages, which
-are sign-in and every sign-up step, set that class on their layout, so their
-existing `bg-surface-*`, `text-text-*` and `brand` classes render in paper
-without per-screen colours. The signed-in app keeps its dark and light
-themes.
+build` and fails on any drift. The web clients have one look, paper, and no
+theme switch. `PAPER_COLORS` is the palette. The marketing site uses it
+directly (`bg-paper`, `text-ink`, `border-rule`, `bg-ledger`). `PAPER_THEME`
+maps it onto the theme tokens, which are the generated defaults, so the
+dashboard's `bg-surface-*`, `text-text-*` and `brand` classes, and any code
+that reads `PAPER_THEME` for colours such as charts, render in paper. Both
+clients bundle Newsreader for display text and Instrument Sans for everything
+else. The mobile app still reads the dark and light palettes, and moves to
+paper in its own change.
 
 Mobile resolves the package through its Metro configuration and local workspace
 link. Run `npm --prefix mobile run check:resolution` after dependency/resolution

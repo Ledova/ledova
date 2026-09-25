@@ -7,8 +7,7 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '../..');
 
-const { DESIGN_TOKENS, LIGHT_COLORS, PAPER_COLORS, PAPER_THEME } =
-  await import('../shared/src/constants/ui/design-tokens.ts');
+const { DESIGN_TOKENS, PAPER_COLORS, PAPER_THEME } = await import('../shared/src/constants/ui/design-tokens.ts');
 
 function flattenColors(obj, prefix, lines) {
   for (const [key, value] of Object.entries(obj)) {
@@ -116,27 +115,11 @@ function generateSharedVars() {
   return lines;
 }
 
-const darkColorVars = generateColorVars(DESIGN_TOKENS.colors);
-const lightColorVars = generateColorVars(LIGHT_COLORS);
-const paperThemeVars = generateColorVars(PAPER_THEME);
+const themeColorVars = generateColorVars(PAPER_THEME);
 const paperVars = generatePaperVars();
 const sharedVars = generateSharedVars();
 
-const css = `@theme {${[...darkColorVars, ...paperVars, ...sharedVars].join('\n')}
-}
-
-@media (prefers-color-scheme: light) {
-  :root:not(.theme-dark) {
-${lightColorVars.map((l) => '  ' + l).join('\n')}
-  }
-}
-
-.theme-light {
-${lightColorVars.map((l) => '  ' + l).join('\n')}
-}
-
-.theme-paper {
-${paperThemeVars.map((l) => '  ' + l).join('\n')}
+const css = `@theme {${[...themeColorVars, ...paperVars, ...sharedVars].join('\n')}
 }
 `;
 

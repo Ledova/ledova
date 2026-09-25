@@ -7,7 +7,6 @@ import { PerformanceSection } from './PerformanceSection';
 vi.mock('@hooks/useCurrency', () => ({
   useCurrency: () => ({ formatDisplayCurrency: (value: number) => `$${value.toFixed(2)}` }),
 }));
-vi.mock('@hooks/useColors', () => ({ useColors: () => ({ chart: ['#112233'] }) }));
 vi.mock('./performance/PortfolioValueChart', () => ({ PortfolioValueChart: () => null }));
 vi.mock('./performance/HoldingsChart', () => ({
   HoldingsChart: ({ onActivePointChange }: { onActivePointChange: (index: number) => void }) => (

@@ -69,13 +69,13 @@ function StatusPill({ status }: { status: ExtractionStatus | undefined }) {
   }
   if (status === 'succeeded') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-xs text-emerald-400">
+      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-success/10 text-xs text-success">
         <CheckCircleIcon size={ICON_SM} weight="fill" /> Extracted
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/10 text-xs text-red-400">
+    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-error/10 text-xs text-error-light">
       <XCircleIcon size={ICON_SM} weight="fill" /> Failed
     </span>
   );
@@ -121,7 +121,7 @@ function PayslipResult({ data, durationMs }: { data: object; durationMs: number 
       </div>
 
       {readableWarnings.length > 0 && (
-        <div className="mt-2 flex items-start gap-2 text-xs text-amber-400">
+        <div className="mt-2 flex items-start gap-2 text-xs text-warning">
           <WarningIcon size={ICON_SM} weight="bold" className="mt-0.5 flex-shrink-0" />
           <span>{readableWarnings.join(' · ')}</span>
         </div>
@@ -191,7 +191,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
             onClick={handleDelete}
             disabled={del.isPending}
             title="Delete document"
-            className="p-1.5 text-text-muted hover:text-red-400 transition-colors disabled:opacity-50 flex-shrink-0"
+            className="p-1.5 text-text-muted hover:text-error-light transition-colors disabled:opacity-50 flex-shrink-0"
           >
             <TrashIcon size={ICON_SM} weight="regular" />
           </button>
@@ -226,7 +226,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
         </div>
       )}
       {(attach.error || del.error) && (
-        <p role="alert" className="mt-2 text-sm text-red-400">
+        <p role="alert" className="mt-2 text-sm text-error-light">
           {apiErrorSentence(attach.error || del.error, 'The document could not be updated.')}
         </p>
       )}
@@ -239,7 +239,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
         )}
 
       {extraction?.status === 'failed' && extraction.error && (
-        <div className="mt-3 text-xs text-red-400 bg-red-500/10 rounded p-2">{extraction.error}</div>
+        <div className="mt-3 text-xs text-error-light bg-error/10 rounded p-2">{extraction.error}</div>
       )}
     </div>
   );
@@ -353,7 +353,7 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
         className="hidden"
       />
       {upload.error && (
-        <p role="alert" className="text-sm text-red-400">
+        <p role="alert" className="text-sm text-error-light">
           {apiErrorSentence(upload.error, 'The payslip could not be uploaded.')}
         </p>
       )}

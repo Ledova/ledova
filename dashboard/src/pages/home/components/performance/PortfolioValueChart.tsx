@@ -14,7 +14,7 @@ import {
   type ActiveElement,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import { useColors } from '@hooks/useColors';
+import { PAPER_THEME as colors } from '@ledova/shared';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -31,7 +31,6 @@ interface PortfolioValueChartProps {
 }
 
 export function PortfolioValueChart({ chartData, isLoading, error, onActivePointChange }: PortfolioValueChartProps) {
-  const colors = useColors();
   const CHART_UI = colors.chartUI;
 
   const handleChartHover = useCallback(

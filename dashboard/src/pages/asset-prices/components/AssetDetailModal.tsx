@@ -1,10 +1,9 @@
 import { useState, useCallback, useMemo } from 'react';
 import type { Asset } from '@ledova/shared';
-import { TIME_RANGES } from '@ledova/shared';
+import { TIME_RANGES, PAPER_THEME as colors } from '@ledova/shared';
 import { useCurrency } from '@hooks/useCurrency';
 import { StarIcon } from '@phosphor-icons/react';
 import { AssetTypeIcon } from '@components/AssetTypeIcon';
-import { useColors } from '@hooks/useColors';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -43,7 +42,6 @@ export function AssetDetailModal({
   onToggleFavourite,
 }: AssetDetailModalProps) {
   const { formatDisplayCurrency } = useCurrency();
-  const colors = useColors();
   const CHART_UI = colors.chartUI;
 
   const { chartData, periodChangePercent, selectedTimeRange, setSelectedTimeRange, isLoading, error } =
