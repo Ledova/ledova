@@ -6,6 +6,11 @@ WORKDIR /usr/src/app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . ./
+
+# Vite embeds the app's address at build time, and .env files stay out of the
+# Docker context. Pass the deployment's dashboard origin explicitly.
+ARG VITE_LEDOVA_URL=http://localhost:5174
+ENV VITE_LEDOVA_URL=${VITE_LEDOVA_URL}
 RUN npm run build
 
 FROM nginx:stable-alpine AS production
