@@ -36,8 +36,11 @@ Each test starts from the same synthetic company:
 ## The journey
 
 `test_the_demonstration_journey_runs_from_discovery_to_a_company_pack_read_without_the_platform`
-calls one step method for each §8 step, in order, and each step asserts its own
-result.
+calls one step method for each §8 step and each step asserts its own result.
+The steps run in §8's order but one: the payment is recorded before the offer is
+accepted, because the buy order checks the buyer's balance on the node when it
+is created. §3 names acceptance before payment, so this order is the owner's to
+confirm together with the payment reading below.
 
 | §8 step | Step | What the test does | What it asserts |
 | --- | --- | --- | --- |
@@ -88,11 +91,14 @@ Simulated:
 - **The payment.** No bank and no stablecoin provider take part. The buyer's
   AUD deposit is a `MintRequest` with a synthetic reference and date, and the
   AUDY it mints is the platform's own test stablecoin, which then pays the
-  seller inside the swap. The owner is confirming this reading of "simulated
-  external payment" on [#645](https://github.com/Ledova/ledova/issues/645).
-- **The worker.** No Procrastinate worker runs. The test reads each deferred
-  job's recorded arguments from the job table and calls the task with them,
-  and it calls the scheduled tasks directly.
+  seller inside the swap. This reading of "simulated external payment", and
+  the payment coming before acceptance, are for the owner to confirm on
+  [#645](https://github.com/Ledova/ledova/issues/645).
+- **The worker.** No Procrastinate worker runs. Where the journey itself
+  defers a job, the test reads its recorded arguments from the job table and
+  calls the task with them. The fixture's share-class deployment and issuance
+  patch `.defer` and call the services directly, and the scheduled tasks are
+  called directly.
 - **Staff screens.** The staff actions, from the whitelist changes and the
   deposit record to the revocation and the register decisions, call the
   services the admin pages call, not the pages themselves.
