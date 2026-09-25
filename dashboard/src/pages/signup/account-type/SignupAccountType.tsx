@@ -77,7 +77,7 @@ export function SignupAccountType() {
   return (
     <AuthLayout>
       <div className="text-center mb-6">
-        <h1 className="text-xl font-semibold text-text-primary">Choose Account Type</h1>
+        <h1 className="font-display text-3xl tracking-[-0.01em] text-text-primary">Choose Account Type</h1>
         <p className="text-sm text-text-muted mt-1 px-4">How will you be using Ledova?</p>
       </div>
 

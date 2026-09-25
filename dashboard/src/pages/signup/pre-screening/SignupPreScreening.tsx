@@ -50,7 +50,7 @@ export function SignupPreScreening() {
             <ShieldCheckIcon size={ICON_MD} className="text-text-muted" />
           </div>
         </div>
-        <h1 className="text-xl font-semibold text-text-primary">Eligibility Check</h1>
+        <h1 className="font-display text-3xl tracking-[-0.01em] text-text-primary">Eligibility Check</h1>
         <p className="text-sm text-text-muted mt-1 px-4">
           Before we continue, please confirm the following requirements to comply with Australian regulations.
         </p>

@@ -59,7 +59,7 @@ function SignupUserProfile() {
             <UserIcon size={ICON_MD} className="text-text-muted" />
           </div>
         </div>
-        <h1 className="text-xl font-semibold text-text-primary">Personal Details</h1>
+        <h1 className="font-display text-3xl tracking-[-0.01em] text-text-primary">Personal Details</h1>
       </div>
 
       <UserProfileForm

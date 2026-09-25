@@ -34,7 +34,12 @@ the utility classes (`bg-surface-base`, `text-text-body`,
 build` and fails on any drift. `PAPER_COLORS` is a fixed light palette that
 ignores the theme. The marketing site is styled with it (`bg-paper`,
 `text-ink`, `border-rule`, `bg-ledger`), with Newsreader and Instrument Sans
-served from its own bundle.
+served from its own bundle. `PAPER_THEME` maps the same palette onto the
+theme tokens as the `.theme-paper` class. The dashboard's public pages, which
+are sign-in and every sign-up step, set that class on their layout, so their
+existing `bg-surface-*`, `text-text-*` and `brand` classes render in paper
+without per-screen colours. The signed-in app keeps its dark and light
+themes.
 
 Mobile resolves the package through its Metro configuration and local workspace
 link. Run `npm --prefix mobile run check:resolution` after dependency/resolution
