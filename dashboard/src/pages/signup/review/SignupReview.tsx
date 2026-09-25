@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 const MARKETING_URL = import.meta.env.VITE_MARKETING_URL || 'http://localhost:5173';
 import { ClipboardTextIcon } from '@phosphor-icons/react';
 import {
+  COUNTRIES,
+  formatPhoneForDisplay,
   formatPhoneNumber,
   getAddressDisplayLines,
   parseAddress,
@@ -12,8 +14,21 @@ import {
 } from '@ledova/shared';
 import { useReview } from './useReview';
 import { AuthLayout } from '@components/AuthLayout';
+import { COMPANY_TYPES } from '../company-registration/constants';
 
 const ICON_LG = DESIGN_TOKENS.icon.sizes.lg;
+
+function displayPhone(phoneCountryCode: string | null | undefined, phoneNumber: string | null | undefined) {
+  if (!phoneCountryCode) return formatPhoneNumber(phoneNumber ?? '');
+  const country = COUNTRIES.find((candidate) => candidate.phoneCode === phoneCountryCode) ?? {
+    phoneCode: phoneCountryCode,
+  };
+  return `${phoneCountryCode} ${formatPhoneForDisplay(phoneNumber ?? '', country)}`;
+}
+
+function displayCompanyType(companyType: string | undefined) {
+  return COMPANY_TYPES.find((type) => type.value === companyType)?.label ?? companyType ?? '';
+}
 
 export function SignupReview() {
   const navigate = useNavigate();
@@ -85,7 +100,7 @@ export function SignupReview() {
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-text-muted">Phone:</span>
                   <span className="text-sm text-text-primary font-medium">
-                    {formatPhoneNumber(userProfile.phoneNumber ?? '')}
+                    {displayPhone(userProfile.phoneCountryCode, userProfile.phoneNumber)}
                   </span>
                 </div>
                 {getAddressDisplayLines(parseAddress(userProfile.residentialAddress ?? '')).map((line, index) => (
@@ -125,7 +140,9 @@ export function SignupReview() {
                   )}
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-text-muted">Type:</span>
-                    <span className="text-sm text-text-primary font-medium">{company.companyType}</span>
+                    <span className="text-sm text-text-primary font-medium">
+                      {displayCompanyType(company.companyType)}
+                    </span>
                   </div>
                 </div>
               ) : (
