@@ -293,6 +293,8 @@ has SHA-256 `9b9e771ba446b9ccb12c792ca94280fd23129aeed49f386f26e86aa6ee3fdb0f`.
 Database, API and worker observations rely on retained operator audits; their
 digests identify files whose contents are not committed here. Public chain
 observations can be checked from the addresses, transactions and blocks below.
+The four finalized before/after control snapshots are also committed in the
+[public evidence bundle](evidence/base-sepolia-2026-09-25/README.md), with checksums.
 
 | Control | Public test wallet |
 | --- | --- |
