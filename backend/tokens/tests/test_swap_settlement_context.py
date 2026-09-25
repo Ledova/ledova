@@ -209,7 +209,7 @@ class SwapSettlementExecutionTest(APITransactionTestCase):
         node.confirmed = False
         self.assertEqual(swap_execution.recover(record.pk, client=node.client), "signed")
         attempt = SignedAttempt.objects.get()
-        node.receipts[attempt.tx_hash] = execution_receipt(attempt, record.function_args)
+        node.mine(attempt.tx_hash, execution_receipt(attempt, record.function_args))
         with override_settings(ATOMIC_SWAP_ADDRESS="0x" + "72" * 20):
             self.assertEqual(swap_execution.recover(record.pk, client=node.client), "confirmed")
         node.client.load_contract.assert_called_with("AtomicSwap", context["typed_data"]["domain"]["verifyingContract"])
