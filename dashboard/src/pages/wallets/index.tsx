@@ -18,6 +18,7 @@ import { DeleteWalletModal } from './components/DeleteWalletModal';
 import { WalletVerificationModal } from './components/WalletVerificationModal';
 import { DeriveAddressModal } from './components/DeriveAddressModal';
 import { AddWalletModal } from './components/AddWalletModal';
+import { CryptoActions } from './components/CryptoActions';
 
 export function WalletsPage() {
   const { formatDisplayCurrency } = useCurrency();
@@ -188,6 +189,7 @@ export function WalletsPage() {
     <main className="text-text-primary">
       <div className="w-full max-w-6xl mx-auto px-4 pt-6 pb-16 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 sm:gap-5 md:gap-6">
+          <CryptoActions />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 md:gap-6 items-start">
             {renderChainPanel(BLOCKCHAIN.ETHEREUM, 'Ethereum', <CurrencyEthIcon size={ICON_MD} />, ethWallets)}
             {renderChainPanel(BLOCKCHAIN.BITCOIN, 'Bitcoin', <CurrencyBtcIcon size={ICON_MD} />, btcWallets)}

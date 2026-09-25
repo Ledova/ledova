@@ -13,6 +13,7 @@ vi.mock('@hooks/useHeaderActions', () => ({ useHeaderActions: () => ({ setAction
 vi.mock('@hooks/useCurrency', () => ({
   useCurrency: () => ({ formatDisplayCurrency: (value: number) => `$${value}` }),
 }));
+vi.mock('./components/CryptoActions', () => ({ CryptoActions: () => null }));
 
 import { WalletsPage } from './index';
 

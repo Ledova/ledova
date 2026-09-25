@@ -17,8 +17,6 @@ vi.mock('react-router-dom', async (importOriginal) => ({
 vi.mock('@services/apiClient', () => ({ default: {} }));
 vi.mock('@hooks/useAuth', () => ({ useAuth: () => ({ isAuthenticated: true }) }));
 vi.mock('@hooks/useFeatureFlags', () => ({ useFeatureFlags: () => ({ tradingEnabled: true, isLoading: false }) }));
-vi.mock('@hooks/useBuyCrypto', () => ({ useBuyCrypto: () => ({ openBuyCrypto: vi.fn() }) }));
-vi.mock('@hooks/useSendTransfer', () => ({ useSendTransfer: () => ({ openSendTransfer: vi.fn() }) }));
 vi.mock('@pages/user-profile/useUserProfile', () => ({ useUserProfile: () => ({ userProfile: null }) }));
 
 function offeredTo(role: AccountRole) {
@@ -60,5 +58,10 @@ describe('the pages the sidebar offers', () => {
     ['both', true],
   ] as const)('offers Trading to the %s role: %s', (role, offered) => {
     expect(offeredTo(role).includes(DESTINATIONS.trading.path)).toBe(offered);
+  });
+
+  it.each(['investor', 'company', 'both'] as const)('offers the %s role no Buy or Send', (role) => {
+    offeredTo(role);
+    expect(screen.queryAllByRole('button', { name: /buy|send/i }).map((button) => button.textContent)).toEqual([]);
   });
 });
