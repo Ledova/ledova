@@ -465,8 +465,8 @@ export function SettingsPage() {
           </div>
           <p className="text-text-primary font-medium text-center mb-2">This action cannot be undone</p>
           <p className="text-sm text-text-muted text-center mb-4">
-            This experimental flow deactivates the account and removes profile fields. Review and test the configured
-            retention behavior before using it with any data.
+            This deactivates your account and removes your name, date of birth, phone number and address. Your country
+            of citizenship, financial profile, wallets, verification records and share register entries are kept.
           </p>
           <p className="text-sm text-text-muted text-center">Are you sure you want to delete your account?</p>
           {deleteAccountMutation.isError && (

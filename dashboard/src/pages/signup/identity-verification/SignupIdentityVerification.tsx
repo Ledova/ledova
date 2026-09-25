@@ -61,7 +61,7 @@ export function SignupIdentityVerification() {
             <ShieldCheckIcon size={ICON_MD} className="text-text-muted" />
           </div>
         </div>
-        <h1 className="text-xl font-semibold text-text-primary">Identity Verification</h1>
+        <h1 className="font-display text-3xl tracking-[-0.01em] text-text-primary">Identity Verification</h1>
         <p className="text-sm text-text-muted mt-1 px-4">
           We need to verify your identity to comply with financial regulations and protect your account.
         </p>

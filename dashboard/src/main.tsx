@@ -5,6 +5,8 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ApiClientProvider } from '@ledova/shared';
 import apiClient from '@services/apiClient';
+import '@fontsource-variable/newsreader/opsz.css';
+import '@fontsource-variable/instrument-sans';
 import './styles/index.css';
 
 const queryClient = new QueryClient();

@@ -1,4 +1,4 @@
-import { Field, Label, Description, Radio, RadioGroup } from '@headlessui/react';
+import { Description, Field, Label, Radio, RadioGroup } from '@headlessui/react';
 import type { RadioGroupFieldProps } from '@ledova/shared';
 
 const RadioGroupField = <Value extends string>({
@@ -8,36 +8,27 @@ const RadioGroupField = <Value extends string>({
   error,
   onChange,
 }: RadioGroupFieldProps<Value>) => (
-  <Field className="space-y-3">
-    <Label className="block text-sm font-medium text-text-body">{label}</Label>
+  <div className="space-y-3">
     <RadioGroup value={value} onChange={onChange} className="space-y-2">
+      <Label className="mb-3 block text-sm font-medium text-text-body">{label}</Label>
       {options.map((option) => (
-        <Radio
-          key={option.value}
-          value={option.value}
-          className="flex items-center text-sm text-text-body hover:text-text-primary cursor-pointer"
-        >
-          {({ checked }) => (
-            <>
-              <div
-                className={`h-4 w-4 rounded-full border ${
-                  checked ? 'border-brand bg-brand' : 'border-border bg-surface-tertiary'
-                } mr-3 flex items-center justify-center focus:ring-border-focus focus:ring-offset-surface-base`}
-              >
-                {checked && <div className="h-2 w-2 rounded-full bg-white" />}
-              </div>
-              {option.label}
-            </>
-          )}
-        </Radio>
+        <Field key={option.value} className="flex items-center gap-3 text-sm text-text-body">
+          <Radio
+            value={option.value}
+            className="group flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-tertiary focus:outline-none data-[checked]:border-brand data-[checked]:bg-brand data-[focus]:ring-2 data-[focus]:ring-border-focus data-[focus]:ring-offset-1"
+          >
+            <span className="hidden h-2 w-2 rounded-full bg-white group-data-[checked]:block" />
+          </Radio>
+          <Label className="cursor-pointer hover:text-text-primary">{option.label}</Label>
+        </Field>
       ))}
+      {error && (
+        <Description as="p" className="text-error-light text-sm mt-1" role="alert">
+          {error.join(' ')}
+        </Description>
+      )}
     </RadioGroup>
-    {error && (
-      <Description className="text-error-light text-sm mt-1" role="alert">
-        {error.join(' ')}
-      </Description>
-    )}
-  </Field>
+  </div>
 );
 
 export default RadioGroupField;

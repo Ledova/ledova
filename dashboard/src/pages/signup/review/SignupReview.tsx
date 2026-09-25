@@ -1,9 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 
-const MARKETING_URL = import.meta.env.VITE_MARKETING_URL || 'http://localhost:5173';
 import { ClipboardTextIcon } from '@phosphor-icons/react';
 import {
-  formatPhoneNumber,
+  formatPhoneWithCountryCode,
   getAddressDisplayLines,
   parseAddress,
   formatSourceOfFunds,
@@ -12,8 +11,14 @@ import {
 } from '@ledova/shared';
 import { useReview } from './useReview';
 import { AuthLayout } from '@components/AuthLayout';
+import { COMPANY_TYPES } from '../company-registration/constants';
+import { MARKETING_URL } from '@utils/marketingUrl';
 
 const ICON_LG = DESIGN_TOKENS.icon.sizes.lg;
+
+function displayCompanyType(companyType: string | undefined) {
+  return COMPANY_TYPES.find((type) => type.value === companyType)?.label ?? companyType ?? '';
+}
 
 export function SignupReview() {
   const navigate = useNavigate();
@@ -66,7 +71,7 @@ export function SignupReview() {
             <ClipboardTextIcon size={ICON_LG} className="text-text-muted" />
           </div>
         </div>
-        <h1 className="text-2xl font-semibold text-text-primary mb-2">Review & Confirm</h1>
+        <h1 className="mb-2 font-display text-3xl tracking-[-0.01em] text-text-primary">Review & Confirm</h1>
         <p className="text-sm text-text-muted">Please review your information before completing signup</p>
       </div>
 
@@ -85,7 +90,7 @@ export function SignupReview() {
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-text-muted">Phone:</span>
                   <span className="text-sm text-text-primary font-medium">
-                    {formatPhoneNumber(userProfile.phoneNumber ?? '')}
+                    {formatPhoneWithCountryCode(userProfile.phoneCountryCode, userProfile.phoneNumber)}
                   </span>
                 </div>
                 {getAddressDisplayLines(parseAddress(userProfile.residentialAddress ?? '')).map((line, index) => (
@@ -125,7 +130,9 @@ export function SignupReview() {
                   )}
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-text-muted">Type:</span>
-                    <span className="text-sm text-text-primary font-medium">{company.companyType}</span>
+                    <span className="text-sm text-text-primary font-medium">
+                      {displayCompanyType(company.companyType)}
+                    </span>
                   </div>
                 </div>
               ) : (
@@ -206,8 +213,7 @@ export function SignupReview() {
               >
                 Privacy Policy
               </a>
-              . This experimental flow is for synthetic data in a development environment; it does not create a live
-              customer relationship or perform a regulated verification service.
+              .
             </p>
             {!canCompleteSignup && (
               <p className="text-sm text-error-light text-center mb-4">

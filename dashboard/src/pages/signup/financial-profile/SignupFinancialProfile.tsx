@@ -55,7 +55,7 @@ export function SignupFinancialProfile() {
             <ChartBarIcon size={ICON_MD} className="text-text-muted" />
           </div>
         </div>
-        <h1 className="text-xl font-semibold text-text-primary">Financial Profile</h1>
+        <h1 className="font-display text-3xl tracking-[-0.01em] text-text-primary">Financial Profile</h1>
         <p className="text-sm text-text-muted mt-1">AML/CTF compliance information</p>
       </div>
 

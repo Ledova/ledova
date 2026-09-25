@@ -1,3 +1,5 @@
+import { formatPhoneNumber } from './validation';
+
 interface CountryInfo {
   phoneCode: string;
   code?: string;
@@ -29,4 +31,12 @@ export function formatPhoneForDisplay(phoneNumber: string, country?: CountryInfo
 
 export function cleanPhoneNumber(phoneNumber: string): string {
   return phoneNumber.replace(/\D/g, '');
+}
+
+export function formatPhoneWithCountryCode(
+  phoneCountryCode: string | null | undefined,
+  phoneNumber: string | null | undefined,
+): string {
+  if (!phoneCountryCode) return formatPhoneNumber(phoneNumber ?? '');
+  return `${phoneCountryCode} ${formatPhoneForDisplay(phoneNumber ?? '', { phoneCode: phoneCountryCode })}`;
 }

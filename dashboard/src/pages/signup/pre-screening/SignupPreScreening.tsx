@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { Checkbox, Description, Field, Label } from '@headlessui/react';
 import { ShieldCheckIcon, WarningIcon, CheckCircleIcon } from '@phosphor-icons/react';
 import LoadingState from '@components/signup/LoadingState';
 import ErrorState from '@components/signup/ErrorState';
@@ -34,6 +35,34 @@ export function SignupPreScreening() {
     navigate('/signup/email-confirmation');
   };
 
+  const declarations = [
+    {
+      label: 'I am 18 years or older',
+      description: 'You must be at least 18 to use our platform',
+      checked: form.confirmedOver18,
+      onChange: (checked: boolean) => setFieldValue('confirmedOver18', checked),
+    },
+    {
+      label: 'I am currently an Australian resident',
+      description: 'Our services are currently only available to Australian residents',
+      checked: form.confirmedAustralianResident,
+      onChange: (checked: boolean) => setFieldValue('confirmedAustralianResident', checked),
+    },
+    {
+      label: 'I am acting on my own behalf',
+      description: 'Not for a business, trust, or on behalf of someone else',
+      checked: form.confirmedIndividualAccount,
+      onChange: (checked: boolean) => setFieldValue('confirmedIndividualAccount', checked),
+    },
+    {
+      label: 'I understand share offerings here are wholesale only',
+      description:
+        'Offers are made without a disclosure document to wholesale and sophisticated investors. You will need to evidence that status before you can subscribe.',
+      checked: acknowledgedWholesaleOnly,
+      onChange: () => toggleWholesaleOnly(),
+    },
+  ];
+
   if (isLoading) {
     return <LoadingState message="Loading..." />;
   }
@@ -50,7 +79,7 @@ export function SignupPreScreening() {
             <ShieldCheckIcon size={ICON_MD} className="text-text-muted" />
           </div>
         </div>
-        <h1 className="text-xl font-semibold text-text-primary">Eligibility Check</h1>
+        <h1 className="font-display text-3xl tracking-[-0.01em] text-text-primary">Eligibility Check</h1>
         <p className="text-sm text-text-muted mt-1 px-4">
           Before we continue, please confirm the following requirements to comply with Australian regulations.
         </p>
@@ -74,93 +103,23 @@ export function SignupPreScreening() {
               </div>
             )}
 
-            <label
-              className="flex items-start cursor-pointer"
-              onClick={() => !isSubmitting && setFieldValue('confirmedOver18', !form.confirmedOver18)}
-            >
-              <div className="flex items-center h-6">
-                <div
-                  className={`w-6 h-6 rounded-sm border-2 flex items-center justify-center transition-colors ${
-                    form.confirmedOver18 ? 'bg-brand-mid border-brand-mid' : 'bg-surface-tertiary border-border'
-                  }`}
+            {declarations.map((declaration) => (
+              <Field key={declaration.label} className="flex items-start gap-3" disabled={isSubmitting}>
+                <Checkbox
+                  checked={declaration.checked}
+                  onChange={declaration.onChange}
+                  className="group mt-0.5 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-sm border-2 border-border bg-surface-tertiary transition-colors focus:outline-none data-[checked]:border-brand-mid data-[checked]:bg-brand-mid data-[focus]:ring-2 data-[focus]:ring-border-focus data-[focus]:ring-offset-2"
                 >
-                  {form.confirmedOver18 && <CheckCircleIcon size={ICON_MD} className="text-white" />}
+                  <CheckCircleIcon size={ICON_MD} className="hidden text-white group-data-[checked]:block" />
+                </Checkbox>
+                <div className="flex-1">
+                  <Label className="mb-1 block cursor-pointer text-base font-medium text-text-primary">
+                    {declaration.label}
+                  </Label>
+                  <Description className="text-xs text-text-subtle">{declaration.description}</Description>
                 </div>
-              </div>
-              <div className="ml-3 flex-1">
-                <p className="text-base font-medium text-text-primary mb-1">I am 18 years or older</p>
-                <p className="text-xs text-text-subtle">You must be at least 18 to use our platform</p>
-              </div>
-            </label>
-
-            <label
-              className="flex items-start cursor-pointer"
-              onClick={() =>
-                !isSubmitting && setFieldValue('confirmedAustralianResident', !form.confirmedAustralianResident)
-              }
-            >
-              <div className="flex items-center h-6">
-                <div
-                  className={`w-6 h-6 rounded-sm border-2 flex items-center justify-center transition-colors ${
-                    form.confirmedAustralianResident
-                      ? 'bg-brand-mid border-brand-mid'
-                      : 'bg-surface-tertiary border-border'
-                  }`}
-                >
-                  {form.confirmedAustralianResident && <CheckCircleIcon size={ICON_MD} className="text-white" />}
-                </div>
-              </div>
-              <div className="ml-3 flex-1">
-                <p className="text-base font-medium text-text-primary mb-1">I am currently an Australian resident</p>
-                <p className="text-xs text-text-subtle">
-                  Our services are currently only available to Australian residents
-                </p>
-              </div>
-            </label>
-
-            <label
-              className="flex items-start cursor-pointer"
-              onClick={() =>
-                !isSubmitting && setFieldValue('confirmedIndividualAccount', !form.confirmedIndividualAccount)
-              }
-            >
-              <div className="flex items-center h-6">
-                <div
-                  className={`w-6 h-6 rounded-sm border-2 flex items-center justify-center transition-colors ${
-                    form.confirmedIndividualAccount
-                      ? 'bg-brand-mid border-brand-mid'
-                      : 'bg-surface-tertiary border-border'
-                  }`}
-                >
-                  {form.confirmedIndividualAccount && <CheckCircleIcon size={ICON_MD} className="text-white" />}
-                </div>
-              </div>
-              <div className="ml-3 flex-1">
-                <p className="text-base font-medium text-text-primary mb-1">I am acting on my own behalf</p>
-                <p className="text-xs text-text-subtle">Not for a business, trust, or on behalf of someone else</p>
-              </div>
-            </label>
-
-            <label className="flex items-start cursor-pointer" onClick={() => !isSubmitting && toggleWholesaleOnly()}>
-              <div className="flex items-center h-6">
-                <div
-                  className={`w-6 h-6 rounded-sm border-2 flex items-center justify-center transition-colors ${
-                    acknowledgedWholesaleOnly ? 'bg-brand-mid border-brand-mid' : 'bg-surface-tertiary border-border'
-                  }`}
-                >
-                  {acknowledgedWholesaleOnly && <CheckCircleIcon size={ICON_MD} className="text-white" />}
-                </div>
-              </div>
-              <div className="ml-3 flex-1">
-                <p className="text-base font-medium text-text-primary mb-1">
-                  I understand share offerings here are wholesale only
-                </p>
-                <p className="text-xs text-text-subtle">
-                  Offers are made without a disclosure document to wholesale and sophisticated investors. You will need
-                  to evidence that status before you can subscribe.
-                </p>
-              </div>
-            </label>
+              </Field>
+            ))}
 
             <button
               type="submit"

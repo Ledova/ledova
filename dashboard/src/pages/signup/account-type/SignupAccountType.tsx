@@ -77,7 +77,7 @@ export function SignupAccountType() {
   return (
     <AuthLayout>
       <div className="text-center mb-6">
-        <h1 className="text-xl font-semibold text-text-primary">Choose Account Type</h1>
+        <h1 className="font-display text-3xl tracking-[-0.01em] text-text-primary">Choose Account Type</h1>
         <p className="text-sm text-text-muted mt-1 px-4">How will you be using Ledova?</p>
       </div>
 
@@ -98,11 +98,6 @@ export function SignupAccountType() {
                 <div className="flex-1">
                   <h3 className="text-base font-semibold text-text-primary">{option.title}</h3>
                   <p className="text-sm text-text-muted mt-1">{option.description}</p>
-                  {option.role === 'company' && (
-                    <span className="inline-block mt-1.5 px-1.5 py-0.5 text-[9px] font-medium tracking-wide text-purple-400/70 bg-purple-500/12 rounded">
-                      Early Access
-                    </span>
-                  )}
                 </div>
               </div>
             </button>
