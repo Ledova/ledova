@@ -460,8 +460,8 @@ register; it sunsets on 1 October 2026 and ASIC has consulted (CS 60) on
 remaking it with the value cap raised to $2.5 million.
 
 **What the code does.** Secondary [trading](../architecture/trading.md) exists
-behind a flag that is off by default. The register itself lets nobody post an
-offer.
+behind the `trading_enabled` flag, which a data migration turns on by default and
+an operator can turn off. The register itself lets nobody post an offer.
 
 **The position.** A register of members, with transfers entered on instruction
 after the parties have agreed elsewhere, is not a facility through which offers

@@ -53,6 +53,8 @@ Phase 0 verification and the bounded cross-account matcher are recorded in
   resolution's result and each dividend's payment records, and its contract
   information, and the [account-data export](reference/account-data-export.md)
   carries every transaction.
+- [The signed-in app](https://github.com/Ledova/ledova/issues/732) rebuilt around
+  the register, web first and then mobile, as [decided](decisions.md#the-signed-in-app).
 - Payment-provider selection and settlement automation when scheduled
   ([the payment decision](decisions.md#payments-and-settlement)); the mobile
   investor directory and subscription flow.
