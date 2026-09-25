@@ -385,8 +385,7 @@ export function ReviewScreen() {
                 <Text style={styles.linkText} onPress={handleOpenPrivacyPolicy}>
                   Privacy Policy
                 </Text>
-                . This experimental build does not provide a regulated identity-verification or transaction-monitoring
-                service.
+                .
               </Text>
             </View>
             <View style={styles.buttonContainer}>

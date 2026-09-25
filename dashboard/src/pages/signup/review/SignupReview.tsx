@@ -206,8 +206,7 @@ export function SignupReview() {
               >
                 Privacy Policy
               </a>
-              . This flow is for synthetic data in a development environment; it does not create a live customer
-              relationship or perform a regulated verification service.
+              .
             </p>
             {!canCompleteSignup && (
               <p className="text-sm text-error-light text-center mb-4">
