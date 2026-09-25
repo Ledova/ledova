@@ -5,7 +5,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { getCompanies, updateUserProfileCompletion } from '@ledova/shared';
 import { AUTH_QUERY_KEY } from '@hooks/useAuth';
-import { useAccountRole } from '@hooks/useAccountRole';
+import { useRole } from '@hooks/useRole';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const navigate = vi.fn();
@@ -20,7 +20,7 @@ vi.mock('@ledova/shared', async (importOriginal) => ({
   useFinancialProfile: () => ({ financialProfile: { uuid: 'financial-1' }, isLoading: false }),
 }));
 
-vi.mock('@hooks/useAccountRole', () => ({ useAccountRole: vi.fn(() => ({ role: 'investor' })) }));
+vi.mock('@hooks/useRole', () => ({ useRole: vi.fn(() => ({ role: 'investor' })) }));
 
 import { useReview } from './useReview';
 
@@ -39,7 +39,7 @@ describe('the last click of signup', () => {
   beforeEach(() => {
     navigate.mockClear();
     vi.mocked(updateUserProfileCompletion).mockClear();
-    vi.mocked(useAccountRole).mockReturnValue({
+    vi.mocked(useRole).mockReturnValue({
       role: 'investor',
       isCompany: false,
       isInvestor: true,
@@ -91,7 +91,7 @@ describe('the last click of signup', () => {
     ['investor', '/home'],
     ['company', '/company'],
   ] as const)('sends a %s to %s', async (role, destination) => {
-    vi.mocked(useAccountRole).mockReturnValue({
+    vi.mocked(useRole).mockReturnValue({
       role,
       isCompany: role === 'company',
       isInvestor: role === 'investor',

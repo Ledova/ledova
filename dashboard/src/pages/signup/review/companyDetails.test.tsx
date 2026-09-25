@@ -10,7 +10,7 @@ import { SignupReview } from './SignupReview';
 const scope = vi.hoisted(() => ({ company: true, navigate: vi.fn() }));
 const api = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
-vi.mock('@hooks/useAccountRole', () => ({ useAccountRole: () => ({ role: scope.company ? 'company' : 'investor' }) }));
+vi.mock('@hooks/useRole', () => ({ useRole: () => ({ role: scope.company ? 'company' : 'investor' }) }));
 vi.mock('react-router-dom', () => ({ useNavigate: () => scope.navigate }));
 vi.mock('@components/AuthLayout', () => ({
   AuthLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
