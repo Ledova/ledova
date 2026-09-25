@@ -1,3 +1,4 @@
+import json
 import socket
 from contextlib import suppress
 from datetime import date
@@ -28,6 +29,7 @@ from tokens.models import (
     RegisterEntry,
     RegisterExport,
     RegisterReconciliation,
+    ShareToken,
     SwapApprovalSubmission,
     SwapOrder,
     TransferOrder,
@@ -48,7 +50,16 @@ from tokens.tests.test_chain_integration import (
     chain_available,
     reset_chain_client,
 )
-from tokens.tests.test_company_pack import pack_staff, page
+from tokens.tests.test_company_pack import (
+    INSTRUCTION,
+    ISOLATED,
+    RECIPIENT,
+    consume,
+    files_of,
+    pack_staff,
+    page,
+    sha256,
+)
 from tokens.tests.test_market_summary import TRADING
 from users.models import InvestorClassification
 from users.services import transition_classification
@@ -433,7 +444,63 @@ class DemonstrationJourneyChainTest(SettlementChainMixin, APITransactionTestCase
             link=link,
         )
 
-    def test_the_demonstration_journey_runs_from_discovery_to_a_reconciled_register(self):
+    def carry(self, journey):
+        company = Company.objects.get(pk=self.token.company_id)
+        self.client.force_login(pack_staff("journey-pack-staff"))
+        with override_settings(STORAGES=ADMIN_STORAGES):
+            produced = self.client.post(page(company), {"instruction": INSTRUCTION, "recipient": RECIPIENT})
+        self.assertEqual((produced.status_code, produced["Content-Type"]), (200, "application/zip"))
+        content = b"".join(produced.streaming_content)
+        files = files_of(content)
+        digest = sha256(files["manifest.json"])
+        self.assertEqual(
+            sorted(
+                RegisterExport.objects.filter(kind="company_pack").values_list(
+                    "token_id", "digest", "instruction", "recipient"
+                )
+            ),
+            sorted(
+                (token, digest, INSTRUCTION, RECIPIENT)
+                for token in ShareToken.objects.filter(company=company).values_list("pk", flat=True)
+            ),
+        )
+        consumed = consume(content, *ISOLATED)
+        self.assertEqual((consumed.returncode, consumed.stderr), (0, ""))
+        read = consumed.stdout.splitlines()
+        self.assertIn(f"{self.token.symbol}: 2 entries verified, 2 current members", read)
+        self.assertEqual(read[-1], digest)
+        folder = f"classes/{self.token.pk}"
+        (settled,) = json.loads(files[f"{folder}/settlements.json"])
+        self.assertEqual(
+            (settled["uuid"], settled["status"], settled["transaction"], settled["entry"]),
+            (str(journey.swap.pk), "completed", journey.swap.transaction.tx_hash, str(journey.entry.pk)),
+        )
+        receipt = self.w3.eth.get_transaction_receipt(settled["transaction"])
+        self.assertEqual(
+            (receipt["status"], receipt["to"], receipt["blockNumber"]),
+            (1, Web3.to_checksum_address(settings.ATOMIC_SWAP_ADDRESS), settled["finalized_receipt"]["block_number"]),
+        )
+        opening, transfer = json.loads(files[f"{folder}/entries.json"])
+        self.assertEqual(
+            (
+                opening["kind"],
+                transfer["kind"],
+                transfer["operation_id"],
+                transfer["changes"],
+                transfer["entry_hash"],
+                transfer["previous_hash"],
+            ),
+            (
+                "opening",
+                "transfer",
+                str(journey.swap.pk),
+                journey.entry.changes,
+                journey.entry.entry_hash,
+                opening["entry_hash"],
+            ),
+        )
+
+    def test_the_demonstration_journey_runs_from_discovery_to_a_company_pack_read_without_the_platform(self):
         journey = self.walk()
         journey.swap.refresh_from_db()
         events = [
@@ -445,6 +512,7 @@ class DemonstrationJourneyChainTest(SettlementChainMixin, APITransactionTestCase
         self.assertEqual(sorted(events), events)
         self.assertEqual(len(set(events)), 4)
         self.assertNotEqual(journey.deposit.transaction.tx_hash, journey.swap.tx_hash)
+        self.carry(journey)
 
     def test_a_revoked_buyer_is_removed_from_the_registry_and_can_neither_list_nor_transfer(self):
         self.trade()
