@@ -159,7 +159,7 @@ export function Home() {
           <h2 className={SECTION_HEADING}>How it works</h2>
           <ol className="mt-10 grid gap-8 sm:grid-cols-2 lg:mt-12 lg:grid-cols-4 lg:gap-10">
             {STEPS.map((step, index) => (
-              <li key={step.title} className="flex gap-4 lg:flex-col lg:gap-3">
+              <li key={step.title} className="flex items-baseline gap-4 lg:flex-col lg:items-start lg:gap-3">
                 <span className="w-10 shrink-0 font-display text-[28px] leading-none text-ledger lg:text-[40px]">
                   {String(index + 1).padStart(2, '0')}
                 </span>

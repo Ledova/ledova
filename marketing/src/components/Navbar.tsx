@@ -17,12 +17,12 @@ export function Navbar() {
 
   return (
     <nav className="fixed inset-x-0 top-0 z-50 border-b border-rule bg-paper/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 md:h-20 md:px-8">
-        <Link to="/" onClick={closeMenu}>
+      <div className="mx-auto grid h-16 max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-5 md:h-20 md:px-8">
+        <Link to="/" onClick={closeMenu} className="col-start-1 justify-self-start">
           <Logo />
         </Link>
 
-        <div className="hidden items-center gap-10 text-[15px] md:flex">
+        <div className="col-start-2 hidden items-center gap-10 text-[15px] md:flex">
           {NAV_LINKS.map((link) => (
             <Link key={link.to} to={link.to} className="text-ink-muted transition-colors hover:text-ink">
               {link.label}
@@ -30,7 +30,7 @@ export function Navbar() {
           ))}
         </div>
 
-        <div className="flex items-center gap-1 md:gap-6">
+        <div className="col-start-3 flex items-center gap-1 justify-self-end md:gap-6">
           <a
             href={SIGN_IN_URL}
             className="hidden text-[15px] font-medium text-ink transition-colors hover:text-ledger md:inline"
@@ -46,7 +46,7 @@ export function Navbar() {
           <button
             type="button"
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="flex h-11 w-11 items-center justify-center text-ink md:hidden"
+            className="-mr-3.5 flex h-11 w-11 items-center justify-center text-ink md:hidden"
             aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={mobileOpen}
           >
