@@ -1,15 +1,18 @@
 import { PAPER_COLORS, PAPER_THEME } from '../../../src/constants/ui/design-tokens';
 
+function channel(hex: string, start: number): number {
+  const value = parseInt(hex.slice(start, start + 2), 16) / 255;
+  return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+}
+
 function luminance(hex: string): number {
-  const [r, g, b] = [1, 3, 5]
-    .map((start) => parseInt(hex.slice(start, start + 2), 16) / 255)
-    .map((channel) => (channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4));
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return 0.2126 * channel(hex, 1) + 0.7152 * channel(hex, 3) + 0.0722 * channel(hex, 5);
 }
 
 function contrast(foreground: string, background: string): number {
-  const [lighter, darker] = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
-  return (lighter + 0.05) / (darker + 0.05);
+  const first = luminance(foreground);
+  const second = luminance(background);
+  return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
 }
 
 const TEXT_COLOURS: Record<string, string> = {

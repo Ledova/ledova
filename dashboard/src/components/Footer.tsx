@@ -2,8 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getOperator, CACHE_TIMING } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { useAuth } from '@hooks/useAuth';
-
-const MARKETING_URL = import.meta.env.VITE_MARKETING_URL || '';
+import { MARKETING_URL } from '@utils/marketingUrl';
 
 const FOOTER_LINKS = [
   { label: 'About', path: '/about' },

@@ -1,7 +1,6 @@
 import { ReactNode } from 'react';
 import { Logo } from './Logo';
-
-const MARKETING_URL = import.meta.env.VITE_MARKETING_URL || '/';
+import { MARKETING_URL } from '@utils/marketingUrl';
 
 interface AuthLayoutProps {
   children: ReactNode;
