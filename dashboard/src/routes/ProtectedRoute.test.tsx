@@ -22,6 +22,7 @@ function renderGuard(valid: boolean, stale = true) {
       updatedAt: Date.now() - (stale ? CACHE_TIMING.DEFAULT_STALE_TIME + 1000 : 0),
     },
   );
+  client.setQueryData(['userProfiles'], { data: { results: [{ isSignupCompleted: true }] } });
   render(
     <QueryClientProvider client={client}>
       <ApiClientProvider client={apiClient}>

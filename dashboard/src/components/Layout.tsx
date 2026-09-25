@@ -7,12 +7,17 @@ import type { LayoutProps } from '@ledova/shared';
 import { HeaderActionsProvider } from '@hooks/useHeaderActions';
 import { BuyCryptoProvider } from '@hooks/useBuyCrypto';
 import { SendTransferProvider } from '@hooks/useSendTransfer';
+import { useAuth } from '@hooks/useAuth';
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
+  const { isAuthenticated } = useAuth();
 
   const isPublicPage =
-    location.pathname === '/' || location.pathname === '/signin' || location.pathname.startsWith('/signup');
+    !isAuthenticated ||
+    location.pathname === '/' ||
+    location.pathname === '/signin' ||
+    location.pathname.startsWith('/signup');
 
   if (isPublicPage) {
     return (

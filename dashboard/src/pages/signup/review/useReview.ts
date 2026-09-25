@@ -102,9 +102,11 @@ export const useReview = (): ReviewHookReturn => {
       return profileUpdateResponse;
     },
     onSuccess: async () => {
-      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
       queryClient.invalidateQueries({ queryKey: ['userPreferences'] });
-      await queryClient.refetchQueries({ queryKey: AUTH_QUERY_KEY, exact: true });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['userProfiles'] }),
+        queryClient.refetchQueries({ queryKey: AUTH_QUERY_KEY, exact: true }),
+      ]);
       navigate(landingFor(signupRole));
     },
     onError: (error) => {

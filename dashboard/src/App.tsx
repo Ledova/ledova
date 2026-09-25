@@ -5,6 +5,7 @@ import { useAuth, useFeatureFlags, useRole } from '@hooks';
 import NotFoundPage from '@pages/NotFound';
 import { RootRedirect } from './routes/RootRedirect';
 import { signedInRoutes } from './routes/signedInRoutes';
+import { SignupRoute } from './routes/SignupRoute';
 import HomePage from '@pages/home';
 
 import SignInPage from '@pages/signin';
@@ -116,14 +117,16 @@ function App() {
             </PublicOnlyRoute>
           }
         />
-        <Route path="/signup/email-confirmation" element={<SignupEmailConfirmation />} />
-        <Route path="/signup/account-type" element={<SignupAccountType />} />
-        <Route path="/signup/pre-screening" element={<SignupPreScreening />} />
-        <Route path="/signup/identity-verification" element={<SignupIdentityVerification />} />
-        <Route path="/signup/user-profile" element={<SignupUserProfile />} />
-        <Route path="/signup/financial-profile" element={<SignupFinancialProfile />} />
-        <Route path="/signup/company-registration" element={<SignupCompanyRegistration />} />
-        <Route path="/signup/review" element={<SignupReview />} />
+        <Route element={<SignupRoute />}>
+          <Route path="/signup/email-confirmation" element={<SignupEmailConfirmation />} />
+          <Route path="/signup/account-type" element={<SignupAccountType />} />
+          <Route path="/signup/pre-screening" element={<SignupPreScreening />} />
+          <Route path="/signup/identity-verification" element={<SignupIdentityVerification />} />
+          <Route path="/signup/user-profile" element={<SignupUserProfile />} />
+          <Route path="/signup/financial-profile" element={<SignupFinancialProfile />} />
+          <Route path="/signup/company-registration" element={<SignupCompanyRegistration />} />
+          <Route path="/signup/review" element={<SignupReview />} />
+        </Route>
 
         {SIGNED_IN_ROUTES}
 

@@ -1,10 +1,43 @@
-export const NotFoundPage = () => {
+import { Link } from 'react-router-dom';
+import { DESTINATIONS, landingFor } from '@ledova/shared';
+import { AuthLayout } from '@components/AuthLayout';
+import { useAuth } from '@hooks/useAuth';
+import { useRole } from '@hooks/useRole';
+
+function Missing({ heading: Heading, to, label }: { heading: 'h1' | 'h2'; to: string; label: string }) {
   return (
-    <main className="container mx-auto p-4 text-center">
-      <h1 className="text-3xl font-bold text-text-primary">404 - Page Not Found</h1>
-      <p className="mt-2 text-text-body">Sorry, we couldn&apos;t find the page you&apos;re looking for.</p>
-    </main>
+    <div className="mx-auto w-full max-w-lg px-4 py-16 text-center">
+      <Heading className="font-display text-3xl tracking-[-0.01em] text-text-primary">
+        There is no page at this address
+      </Heading>
+      <p className="mt-2 text-sm text-text-muted">It may be mistyped, or the page may have moved.</p>
+      <Link
+        to={to}
+        className="mt-6 inline-block font-semibold text-brand-light transition-colors hover:text-brand-subtle"
+      >
+        {label}
+      </Link>
+    </div>
   );
+}
+
+export const NotFoundPage = () => {
+  const { isAuthenticated, isLoading } = useAuth();
+  const { role, isLoading: isRoleLoading } = useRole();
+
+  if (isLoading || (isAuthenticated && isRoleLoading)) return null;
+
+  if (!isAuthenticated) {
+    return (
+      <AuthLayout>
+        <Missing heading="h1" to="/signin" label="Sign in" />
+      </AuthLayout>
+    );
+  }
+
+  const landing = landingFor(role);
+  const title = Object.values(DESTINATIONS).find(({ path }) => path === landing)?.title;
+  return <Missing heading="h2" to={landing} label={`Go to ${title}`} />;
 };
 
 export default NotFoundPage;
