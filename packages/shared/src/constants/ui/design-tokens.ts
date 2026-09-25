@@ -88,6 +88,7 @@ function buildColors(p: {
   };
   badge: { successBg: string; infoBg: string };
   interactive: { selectedBg: string };
+  chart?: readonly string[];
 }) {
   const colors = {
     surface: { ...p.surface, transparent: 'transparent' },
@@ -99,7 +100,7 @@ function buildColors(p: {
     warning: p.warning,
     info: p.info,
     utility: { white: PALETTE.white, black: PALETTE.black, transparent: 'transparent' },
-    chart: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'] as readonly string[],
+    chart: p.chart ?? (['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'] as readonly string[]),
 
     status: {
       success: { icon: p.success.light, text: p.success.default },
@@ -312,6 +313,7 @@ const PAPER_THEME = buildColors({
   },
   badge: { successBg: `${PALETTE.green[600]}20`, infoBg: PAPER_COLORS.paper.deep },
   interactive: { selectedBg: PAPER_COLORS.ledger.default + '1A' },
+  chart: ['#1d4ed8', PAPER_COLORS.ledger.default, '#b45309', '#b91c1c', '#6d28d9', '#be185d'],
 });
 
 function shadow(offsetY: number, blurRadius: number, opacity: number, elevation: number) {

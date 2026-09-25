@@ -45,3 +45,13 @@ describe('paper theme text contrast', () => {
     expect(contrast(colour, background)).toBeGreaterThanOrEqual(4.5);
   });
 });
+
+const CHART_CASES = PAPER_THEME.chart.flatMap((colour, index) =>
+  Object.entries(SURFACES).map(([surface, background]) => [index + 1, surface, colour, background] as const),
+);
+
+describe('paper theme chart contrast', () => {
+  it.each(CHART_CASES)('series %i stands out at 3:1 on %s', (_series, _surface, colour, background) => {
+    expect(contrast(colour, background)).toBeGreaterThanOrEqual(3);
+  });
+});
