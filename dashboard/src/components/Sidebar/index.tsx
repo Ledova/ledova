@@ -29,6 +29,7 @@ import { useBuyCrypto } from '@hooks/useBuyCrypto';
 import { useSendTransfer } from '@hooks/useSendTransfer';
 import { useUserProfile } from '@pages/user-profile/useUserProfile';
 import { MARKETING_URL } from '@utils/marketingUrl';
+import { Logo } from '@components/Logo';
 
 const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 
@@ -134,10 +135,7 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
   return (
     <aside className="w-60 bg-surface-base border-r border-border-subtle/30 flex flex-col h-full">
       <div className="h-16 flex items-center px-5 border-b border-border-subtle/30">
-        <div className="flex items-center gap-2.5">
-          <img src="/icons/logo.png" alt="Ledova" className="w-8 h-8 object-contain" />
-          <span className="text-lg font-semibold text-text-primary">Ledova</span>
-        </div>
+        <Logo />
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">

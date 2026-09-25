@@ -1,11 +1,10 @@
 import { useState, useMemo, useCallback } from 'react';
-import { useColors } from '@hooks/useColors';
 import { useCurrency } from '@hooks/useCurrency';
 import { Panel } from '@components/Panel';
 import { PortfolioValueChart } from './performance/PortfolioValueChart';
 import { HoldingsChart } from './performance/HoldingsChart';
 import type { TimeRange, PortfolioSnapshotDataPoint } from '@ledova/shared';
-import { TIME_RANGES, formatCryptoBalance } from '@ledova/shared';
+import { TIME_RANGES, formatCryptoBalance, PAPER_THEME as colors } from '@ledova/shared';
 
 type ViewMode = 'total' | 'by-asset';
 
@@ -27,7 +26,6 @@ export function PerformanceSection({
   error,
 }: PerformanceSectionProps) {
   const { formatDisplayCurrency } = useCurrency();
-  const colors = useColors();
   const [viewMode, setViewMode] = useState<ViewMode>('total');
   const [activePointIndex, setActivePointIndex] = useState<number | null>(() =>
     snapshotData && snapshotData.length > 0 ? snapshotData.length - 1 : null,

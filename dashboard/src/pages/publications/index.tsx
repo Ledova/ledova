@@ -58,7 +58,7 @@ function PublicationRow({
             type="button"
             onClick={() => onOpen(publication.uuid)}
             disabled={isOpening}
-            className="mt-2 inline-flex items-center gap-2 rounded-lg bg-brand-mid hover:bg-brand disabled:opacity-50 px-4 py-2 text-sm font-semibold text-white transition-colors"
+            className="mt-2 inline-flex items-center gap-2 rounded-lg bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary px-4 py-2 text-sm font-semibold text-white transition-colors"
           >
             <ArrowSquareOutIcon size={16} />
             {isOpening ? PUBLICATION_COPY.OPENING : PUBLICATION_COPY.OPEN}

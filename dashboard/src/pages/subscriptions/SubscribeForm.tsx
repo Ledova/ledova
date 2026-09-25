@@ -95,7 +95,7 @@ export function SubscribeForm({ offering, wallets, accountUuid, busy, error, onS
           type="button"
           disabled={busy || !amount || !chosenWallet || !accountUuid}
           onClick={() => onSubscribe({ wallet: chosenWallet, quantity: Number(quantity) })}
-          className="rounded-lg bg-brand-mid hover:bg-brand disabled:opacity-50 px-5 py-2.5 text-sm font-semibold text-white transition-colors"
+          className="rounded-lg bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary px-5 py-2.5 text-sm font-semibold text-white transition-colors"
         >
           Create subscription
         </button>

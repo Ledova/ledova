@@ -1,5 +1,5 @@
 import { calculateAssetAllocation, calculateHoldingsSummary } from '../../src/utils/holdings';
-import { getHoldingAssetTypeLabel, HOLDING_ASSET_TYPE } from '../../src/constants';
+import { DESIGN_TOKENS, getHoldingAssetTypeLabel, HOLDING_ASSET_TYPE } from '../../src/constants';
 import type { Asset, HoldingWithWallet } from '../../src/types';
 
 function asset(overrides: Partial<Asset>): Asset {
@@ -198,5 +198,28 @@ describe('valuation provenance beside the percentage basis', () => {
       totalValue: 0,
       basis: 'quantity',
     });
+  });
+});
+
+describe('allocation colours', () => {
+  const three = [
+    holding({ uuid: 'a', asset: asset({ uuid: 'asset-a' }), marketValue: '30', valueSource: 'market' }),
+    holding({ uuid: 'b', asset: asset({ uuid: 'asset-b' }), marketValue: '20', valueSource: 'market' }),
+    holding({ uuid: 'c', asset: asset({ uuid: 'asset-c' }), marketValue: '10', valueSource: 'market' }),
+  ];
+
+  it('colours each slice from the palette the caller draws with, in order of size', () => {
+    const palette = ['#111111', '#222222'];
+    expect(calculateAssetAllocation(three, 60, palette).map((item) => item.color)).toEqual([
+      '#111111',
+      '#222222',
+      '#111111',
+    ]);
+  });
+
+  it('keeps the shared default palette for callers that do not pass one', () => {
+    expect(calculateAssetAllocation(three, 60).map((item) => item.color)).toEqual(
+      DESIGN_TOKENS.colors.chart.slice(0, 3),
+    );
   });
 });

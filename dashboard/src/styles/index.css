@@ -3,7 +3,16 @@
 
 @theme {
   --font-display: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
-  --font-paper: 'Instrument Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: 'Instrument Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background-color: var(--color-surface-base);
+  color: var(--color-text-primary);
 }
 
 ::-webkit-scrollbar {

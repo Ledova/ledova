@@ -903,7 +903,7 @@ export function TokenDetailModal({
             <button
               onClick={() => downloadRegister().catch(() => undefined)}
               disabled={isDownloadingRegister || registerOpened === false}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-mid hover:bg-brand disabled:bg-surface-disabled px-3 py-1.5 text-xs font-semibold text-white transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary px-3 py-1.5 text-xs font-semibold text-white transition-colors"
             >
               <DownloadSimpleIcon size={ICON_SM} />
               {REGISTER_COPY.DOWNLOAD}
@@ -1205,7 +1205,7 @@ export function TokenDetailModal({
                   )
                 }
                 disabled={!companyIsActive || isDeploying}
-                className="w-full flex items-center justify-center gap-2 rounded-lg bg-brand-mid px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="w-full flex items-center justify-center gap-2 rounded-lg bg-brand-mid px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed transition-colors"
               >
                 {isDeploying ? 'Deploying...' : 'Deploy Token'}
               </button>
@@ -1342,7 +1342,7 @@ function EditForm({
         <button
           onClick={onSave}
           disabled={isSaving}
-          className="rounded-lg bg-brand-mid px-6 py-2 text-sm font-medium text-white hover:bg-brand disabled:opacity-50 transition-colors"
+          className="rounded-lg bg-brand-mid px-6 py-2 text-sm font-medium text-white hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary transition-colors"
         >
           {isSaving ? 'Saving...' : 'Save'}
         </button>

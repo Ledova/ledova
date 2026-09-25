@@ -57,7 +57,8 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
   };
   const review = state.snapshot?.review ?? state.context;
   const replacements = state.snapshot?.intent.modifications;
-  const button = 'rounded-lg bg-brand-mid px-4 py-3 font-medium text-white disabled:opacity-50';
+  const button =
+    'rounded-lg bg-brand-mid px-4 py-3 font-medium text-white disabled:bg-surface-disabled disabled:text-text-secondary';
   return (
     <Modal isOpen onClose={close} title={cancelling ? 'Cancel order' : 'Change order'} size="md">
       <div className="space-y-4">

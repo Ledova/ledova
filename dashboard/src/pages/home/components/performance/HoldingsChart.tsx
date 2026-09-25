@@ -13,7 +13,7 @@ import {
   type ActiveElement,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import { useColors } from '@hooks/useColors';
+import { PAPER_THEME as colors } from '@ledova/shared';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
@@ -28,7 +28,6 @@ interface HoldingsChartProps {
 }
 
 export function HoldingsChart({ instrumentData, isLoading, onActivePointChange }: HoldingsChartProps) {
-  const colors = useColors();
   const CHART_UI = colors.chartUI;
 
   const handleChartHover = useCallback(

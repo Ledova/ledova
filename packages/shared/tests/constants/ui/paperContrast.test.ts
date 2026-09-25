@@ -26,6 +26,7 @@ const TEXT_COLOURS: Record<string, string> = {
   'success.light': PAPER_THEME.success.light,
   'warning.light': PAPER_THEME.warning.light,
   'info.light': PAPER_THEME.info.light,
+  'chartUI.tickColor': PAPER_THEME.chartUI.tickColor,
 };
 
 const SURFACES: Record<string, string> = {
@@ -43,5 +44,29 @@ const CASES = Object.entries(TEXT_COLOURS).flatMap(([name, colour]) =>
 describe('paper theme text contrast', () => {
   it.each(CASES)('%s reads at WCAG AA on %s', (_name, _surface, colour, background) => {
     expect(contrast(colour, background)).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+const GRAPHIC_COLOURS: Record<string, string> = {
+  ...Object.fromEntries(PAPER_THEME.chart.map((colour, index) => [`chart series ${index + 1}`, colour])),
+  'chartUI.portfolioLine': PAPER_THEME.chartUI.portfolioLine,
+  'chain.ethereum': PAPER_THEME.chain.ethereum,
+  'chain.bitcoin': PAPER_THEME.chain.bitcoin,
+  'chain.base': PAPER_THEME.chain.base,
+};
+
+const GRAPHIC_CASES = Object.entries(GRAPHIC_COLOURS).flatMap(([name, colour]) =>
+  Object.entries(SURFACES).map(([surface, background]) => [name, surface, colour, background] as const),
+);
+
+describe('paper theme chart contrast', () => {
+  it.each(GRAPHIC_CASES)('%s stands out at 3:1 on %s', (_name, _surface, colour, background) => {
+    expect(contrast(colour, background)).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('paper theme disabled controls', () => {
+  it('keeps a disabled or busy button label readable on the disabled surface', () => {
+    expect(contrast(PAPER_THEME.text.secondary, PAPER_THEME.surface.disabled)).toBeGreaterThanOrEqual(4.5);
   });
 });

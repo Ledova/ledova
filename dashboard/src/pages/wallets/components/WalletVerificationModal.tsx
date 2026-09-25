@@ -149,7 +149,7 @@ export function WalletVerificationModal({ isOpen, wallet, onClose }: WalletVerif
               type="button"
               onClick={handleStartVerification}
               disabled={isRequestingChallenge}
-              className="w-full py-3 bg-brand-mid text-white text-sm font-medium rounded-lg hover:bg-brand disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full py-3 bg-brand-mid text-white text-sm font-medium rounded-lg hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed transition-colors"
             >
               {isRequestingChallenge ? 'Generating Challenge...' : 'Continue'}
             </button>
@@ -303,7 +303,7 @@ export function WalletVerificationModal({ isOpen, wallet, onClose }: WalletVerif
               type="button"
               onClick={handleSignWithSeedPhrase}
               disabled={!seedPhrase.trim() || isSigningWithSeedPhrase || isVerifying}
-              className="w-full py-3 bg-brand-mid text-white text-sm font-medium rounded-lg hover:bg-brand disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full py-3 bg-brand-mid text-white text-sm font-medium rounded-lg hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed transition-colors"
             >
               {isSigningWithSeedPhrase || isVerifying ? 'Verifying...' : 'Sign and Verify'}
             </button>

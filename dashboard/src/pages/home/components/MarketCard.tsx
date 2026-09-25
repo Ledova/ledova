@@ -1,6 +1,5 @@
 import { ChartBarIcon, StarIcon } from '@phosphor-icons/react';
-import { DESIGN_TOKENS } from '@ledova/shared';
-import { useColors } from '@hooks/useColors';
+import { DESIGN_TOKENS, PAPER_THEME as colors } from '@ledova/shared';
 import { useCurrency } from '@hooks/useCurrency';
 import type { Asset } from '@ledova/shared';
 import { Accordion } from '@components/Accordion';
@@ -15,7 +14,6 @@ interface MarketCardProps {
 
 export function MarketCard({ assets, favouriteAssetUuids, isLoading, onAssetPress }: MarketCardProps) {
   const { formatDisplayCurrency } = useCurrency();
-  const colors = useColors();
   if (isLoading) {
     return (
       <Accordion title="Market" icon={<ChartBarIcon />}>
