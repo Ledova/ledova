@@ -179,7 +179,7 @@ export function SignupUser() {
             >
               {isLoading ? (
                 <div className="flex items-center justify-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
                   <span>Creating account...</span>
                 </div>
               ) : (

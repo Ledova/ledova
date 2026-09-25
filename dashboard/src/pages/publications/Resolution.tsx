@@ -105,7 +105,7 @@ export function Resolution({
               type="button"
               onClick={() => onCast(publication.uuid, choosing)}
               disabled={isCasting}
-              className="rounded-lg bg-brand-mid hover:bg-brand disabled:opacity-50 px-4 py-2 text-sm font-semibold text-white transition-colors"
+              className="rounded-lg bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary px-4 py-2 text-sm font-semibold text-white transition-colors"
             >
               {isCasting ? PUBLICATION_COPY.CASTING : PUBLICATION_COPY.CONFIRM}
             </button>

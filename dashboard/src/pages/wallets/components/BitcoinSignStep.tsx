@@ -102,7 +102,7 @@ export function BitcoinSignStep({
           type="button"
           onClick={handleBroadcast}
           disabled={signedTransaction.trim().length === 0}
-          className="flex-1 py-3 rounded-lg font-medium text-white bg-brand-mid hover:bg-brand disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="flex-1 py-3 rounded-lg font-medium text-white bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed transition-colors"
         >
           Broadcast
         </button>

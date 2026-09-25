@@ -128,7 +128,7 @@ export default function SubscriptionDetailPage() {
               type="button"
               disabled={busy}
               onClick={() => submit.mutate()}
-              className="rounded-lg bg-brand-mid hover:bg-brand disabled:opacity-50 px-5 py-2.5 text-sm font-semibold text-white transition-colors"
+              className="rounded-lg bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary px-5 py-2.5 text-sm font-semibold text-white transition-colors"
             >
               Submit for review
             </button>

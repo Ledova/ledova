@@ -367,7 +367,7 @@ export function TransferSigningFlow({
                 type="button"
                 onClick={generateQrCode}
                 disabled={!preparedTransaction || !wallet}
-                className="flex-1 py-3 rounded-lg font-medium text-white bg-brand-mid hover:bg-brand disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex-1 py-3 rounded-lg font-medium text-white bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed transition-colors"
               >
                 Continue
               </button>

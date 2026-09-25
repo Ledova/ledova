@@ -72,7 +72,8 @@ export function CreateOrderSigningFlow({ submission, wallet, tokens, onClose, on
       return signEthereumTypedData(phrase, wallet.derivationPath, message.domain, message.types, message.message);
     });
   };
-  const button = 'rounded-lg bg-brand-mid px-4 py-3 font-medium text-white disabled:opacity-50';
+  const button =
+    'rounded-lg bg-brand-mid px-4 py-3 font-medium text-white disabled:bg-surface-disabled disabled:text-text-secondary';
   return (
     <Modal isOpen onClose={close} title={state.recovered ? 'Check saved order' : 'Review order'} size="md">
       <div className="space-y-4">

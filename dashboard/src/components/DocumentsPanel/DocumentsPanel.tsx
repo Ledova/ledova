@@ -215,7 +215,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
             type="button"
             disabled={!classification || attach.isPending}
             onClick={() => attach.mutate({ uuid: doc.uuid, classification })}
-            className="px-3 py-2 rounded bg-brand text-white text-sm disabled:opacity-50"
+            className="px-3 py-2 rounded bg-brand text-white text-sm disabled:bg-surface-disabled disabled:text-text-secondary"
           >
             Attach to claim
           </button>
@@ -338,7 +338,7 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
             type="button"
             onClick={handleSubmit}
             disabled={upload.isPending}
-            className="w-full px-4 py-2 rounded bg-brand text-white hover:bg-brand-dark text-sm font-medium disabled:opacity-50"
+            className="w-full px-4 py-2 rounded bg-brand text-white hover:bg-brand-dark text-sm font-medium disabled:bg-surface-disabled disabled:text-text-secondary"
           >
             {upload.isPending ? 'Uploading…' : 'Upload & extract'}
           </button>
