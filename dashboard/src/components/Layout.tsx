@@ -20,10 +20,8 @@ export default function Layout({ children }: LayoutProps) {
 
   if (isPublicPage) {
     return (
-      <div className="relative flex flex-col min-h-screen min-w-[390px]">
-        <div className="fixed inset-0 -z-10" style={{ background: gradients.appBackground }} />
-        <div className="fixed inset-0 -z-10 opacity-10" style={{ background: gradients.accentOverlay }} />
-        <div className="flex-grow">{children}</div>
+      <div className="theme-paper relative flex min-h-screen min-w-[390px] flex-col bg-surface-base font-paper text-text-primary">
+        <div className="flex flex-grow flex-col">{children}</div>
         <Footer />
       </div>
     );

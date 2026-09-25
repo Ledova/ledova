@@ -9,7 +9,7 @@ import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { useReview } from './useReview';
 import {
-  formatPhoneNumber,
+  formatPhoneWithCountryCode,
   getAddressDisplayLines,
   parseAddress,
   formatSourceOfFunds,
@@ -281,7 +281,9 @@ export function ReviewScreen() {
                   </View>
                   <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>Phone:</Text>
-                    <Text style={styles.infoValue}>{formatPhoneNumber(userProfile.phoneNumber ?? '')}</Text>
+                    <Text style={styles.infoValue}>
+                      {formatPhoneWithCountryCode(userProfile.phoneCountryCode, userProfile.phoneNumber)}
+                    </Text>
                   </View>
                   {getAddressDisplayLines(parseAddress(userProfile.residentialAddress ?? '')).map((line, index) => (
                     <View key={index} style={styles.infoRow}>
@@ -385,8 +387,7 @@ export function ReviewScreen() {
                 <Text style={styles.linkText} onPress={handleOpenPrivacyPolicy}>
                   Privacy Policy
                 </Text>
-                . This experimental build does not provide a regulated identity-verification or transaction-monitoring
-                service.
+                .
               </Text>
             </View>
             <View style={styles.buttonContainer}>

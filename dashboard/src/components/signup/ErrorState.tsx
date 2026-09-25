@@ -1,17 +1,16 @@
 import type { ErrorStateProps } from '@ledova/shared';
+import { AuthLayout } from '@components/AuthLayout';
 
 export default function ErrorState({
   title = 'Error Loading Data',
   message = 'We encountered an issue while loading required data.',
   retryLabel = 'Retry',
   onRetry,
-  className = 'min-h-[calc(100vh-8rem)]',
+  className = '',
 }: ErrorStateProps) {
   return (
-    <main
-      className={`py-8 flex flex-col items-center justify-center bg-surface-base text-text-primary px-4 ${className}`}
-    >
-      <div className="w-full max-w-md text-center">
+    <AuthLayout>
+      <div className={`mx-auto w-full max-w-md py-8 text-center ${className}`}>
         <h2 className="text-lg font-light mb-4 text-error-light">{title}</h2>
         <p className="text-text-muted mb-4">{message}</p>
         <button
@@ -21,6 +20,6 @@ export default function ErrorState({
           {retryLabel}
         </button>
       </div>
-    </main>
+    </AuthLayout>
   );
 }

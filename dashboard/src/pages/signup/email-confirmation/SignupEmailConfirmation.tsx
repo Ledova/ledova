@@ -41,7 +41,7 @@ export function SignupEmailConfirmation() {
             <EnvelopeIcon size={ICON_MD} className="text-text-muted" />
           </div>
         </div>
-        <h1 className="text-xl font-semibold text-text-primary">Verify Your Email</h1>
+        <h1 className="font-display text-3xl tracking-[-0.01em] text-text-primary">Verify Your Email</h1>
         {email && <p className="text-sm text-text-muted mt-2">Code sent to {email}</p>}
       </div>
 

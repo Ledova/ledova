@@ -1,4 +1,4 @@
-import { formatPhoneForDisplay, cleanPhoneNumber } from '../../src/utils/phoneFormatting';
+import { formatPhoneForDisplay, formatPhoneWithCountryCode, cleanPhoneNumber } from '../../src/utils/phoneFormatting';
 
 const AU = { phoneCode: '+61', code: 'AU' };
 const US = { phoneCode: '+1', code: 'US' };
@@ -98,5 +98,17 @@ describe('cleanPhoneNumber, which is what is stored', () => {
   it('keeps the digits and nothing else', () => {
     expect(cleanPhoneNumber('416 123 456')).toBe('416123456');
     expect(cleanPhoneNumber('+61 (412) 345-678')).toBe('61412345678');
+  });
+});
+
+describe('a stored number shown with its country code', () => {
+  it('puts the saved country code before the grouped number', () => {
+    expect(formatPhoneWithCountryCode('+61', '491570156')).toBe('+61 491 570 156');
+    expect(formatPhoneWithCountryCode('+1', '4155550123')).toBe('+1 (415) 555-0123');
+  });
+
+  it('falls back to the plain number when no country code was saved', () => {
+    expect(formatPhoneWithCountryCode(null, '491570156')).toBe('491570156');
+    expect(formatPhoneWithCountryCode(undefined, undefined)).toBe('');
   });
 });

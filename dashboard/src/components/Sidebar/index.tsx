@@ -28,8 +28,8 @@ import { useFeatureFlags, useRole } from '@hooks';
 import { useBuyCrypto } from '@hooks/useBuyCrypto';
 import { useSendTransfer } from '@hooks/useSendTransfer';
 import { useUserProfile } from '@pages/user-profile/useUserProfile';
+import { MARKETING_URL } from '@utils/marketingUrl';
 
-const MARKETING_URL = import.meta.env.VITE_MARKETING_URL || 'http://localhost:5173';
 const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 
 interface NavItem {

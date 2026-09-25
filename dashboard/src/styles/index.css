@@ -1,6 +1,11 @@
 @import 'tailwindcss';
 @import './tokens.css';
 
+@theme {
+  --font-display: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
+  --font-paper: 'Instrument Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

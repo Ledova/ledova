@@ -123,7 +123,7 @@ export function useIdentityVerification() {
           })
           .withConf({
             lang: 'en',
-            theme: 'dark',
+            theme: 'light',
           })
           .on('idCheck.onApplicantSubmitted', () => {
             setJustSubmitted(true);

@@ -92,22 +92,6 @@ export function AccountTypeScreen() {
       color: theme.colors.text.primary,
       marginBottom: 4,
     },
-    earlyAccessRow: {
-      alignItems: 'flex-start',
-      marginTop: 6,
-    },
-    earlyAccessBadge: {
-      backgroundColor: theme.colors.brand.default + '1F',
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: 3,
-    },
-    earlyAccessText: {
-      fontSize: 9,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.brand.light + 'B3',
-      letterSpacing: 0.2,
-    },
     optionDescription: {
       fontSize: theme.fontSize.sm,
       color: theme.colors.text.muted,
@@ -196,13 +180,6 @@ export function AccountTypeScreen() {
                   <View style={styles.optionText}>
                     <Text style={styles.optionTitle}>{option.title}</Text>
                     <Text style={styles.optionDescription}>{option.description}</Text>
-                    {option.role === 'company' && (
-                      <View style={styles.earlyAccessRow}>
-                        <View style={styles.earlyAccessBadge}>
-                          <Text style={styles.earlyAccessText}>Early Access</Text>
-                        </View>
-                      </View>
-                    )}
                   </View>
                 </TouchableOpacity>
               );

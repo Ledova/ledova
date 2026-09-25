@@ -262,6 +262,58 @@ const PAPER_COLORS = {
   ledger: { default: '#2e6a57', hover: '#245446', tint: '#e6eeea' },
 } as const;
 
+const PAPER_THEME = buildColors({
+  surface: {
+    base: PAPER_COLORS.paper.default,
+    raised: PAPER_COLORS.paper.card,
+    tertiary: PAPER_COLORS.paper.deep,
+    overlay: PAPER_COLORS.rule.default,
+    disabled: PAPER_COLORS.rule.strong,
+  },
+  text: {
+    primary: PAPER_COLORS.ink.default,
+    secondary: '#2b2e35',
+    body: '#3d4148',
+    muted: PAPER_COLORS.ink.muted,
+    subtle: '#686b72',
+  },
+  brand: {
+    subtle: PAPER_COLORS.ledger.hover,
+    light: PAPER_COLORS.ledger.default,
+    mid: PAPER_COLORS.ledger.default,
+    default: PAPER_COLORS.ledger.default,
+    hover: PAPER_COLORS.ledger.hover,
+  },
+  border: {
+    default: PAPER_COLORS.rule.strong,
+    subtle: PAPER_COLORS.rule.default,
+    strong: '#b9b2a3',
+    focus: PAPER_COLORS.ledger.default,
+  },
+  success: { light: '#166534', default: '#166534', dark: '#14532d' },
+  error: {
+    light: '#b91c1c',
+    default: '#b91c1c',
+    dark: PALETTE.red[800],
+    subtle: '#fef2f2',
+    backgroundSubtle: '#b91c1c14',
+  },
+  warning: { light: '#92400e', default: '#92400e' },
+  info: { light: '#0369a1', default: '#0369a1' },
+  chartUI: {
+    pointerStrip: LIGHT_COLORS.chartUI.pointerStrip,
+    tickColor: LIGHT_COLORS.chartUI.tickColor,
+    gridColor: LIGHT_COLORS.chartUI.gridColor,
+    lineBackground: LIGHT_COLORS.chartUI.lineBackground,
+    tooltipBg: LIGHT_COLORS.chartUI.tooltip.background,
+    tooltipTitle: LIGHT_COLORS.chartUI.tooltip.titleColor,
+    tooltipBody: LIGHT_COLORS.chartUI.tooltip.bodyColor,
+    tooltipBorder: LIGHT_COLORS.chartUI.tooltip.borderColor,
+  },
+  badge: { successBg: `${PALETTE.green[600]}20`, infoBg: PAPER_COLORS.paper.deep },
+  interactive: { selectedBg: PAPER_COLORS.ledger.default + '1A' },
+});
+
 function shadow(offsetY: number, blurRadius: number, opacity: number, elevation: number) {
   return {
     shadowColor: PALETTE.black,
@@ -374,7 +426,7 @@ export const DESIGN_TOKENS = {
   },
 } as const;
 
-export { LIGHT_COLORS, PAPER_COLORS };
+export { LIGHT_COLORS, PAPER_COLORS, PAPER_THEME };
 
 export type Shadow = typeof DESIGN_TOKENS.shadows;
 export type Icon = typeof DESIGN_TOKENS.icon;

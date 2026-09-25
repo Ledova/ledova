@@ -164,3 +164,32 @@ it('renders a separately fetched ABN after retrying the real review error screen
   await waitFor(() => expect(view.getByText(detailA.abn)).toBeTruthy());
   expect(view.queryByText('Detail unavailable')).toBeNull();
 });
+
+it('shows the company type by name and the phone with its country code', async () => {
+  const profileRows = api.get.getMockImplementation();
+  api.get.mockImplementation((url: string) =>
+    url === '/api/user-profiles/'
+      ? Promise.resolve({
+          data: {
+            results: [
+              {
+                uuid: 'profile-a',
+                fullName: 'Olivia Owner',
+                phoneCountryCode: '+61',
+                phoneNumber: '491570156',
+                residentialAddress: null,
+              },
+            ],
+          },
+        })
+      : profileRows!(url),
+  );
+  const view = render(
+    <QueryClientProvider client={client}>
+      <SignupReview />
+    </QueryClientProvider>,
+  );
+  await waitFor(() => expect(view.getByText('Proprietary Limited (Pty Ltd)')).toBeTruthy());
+  expect(view.queryByText('pty')).toBeNull();
+  expect(view.getByText('+61 491 570 156')).toBeTruthy();
+});

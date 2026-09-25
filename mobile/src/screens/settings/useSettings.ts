@@ -130,7 +130,7 @@ export function useSettings() {
   const shareApp = useCallback(async () => {
     try {
       await Share.share({
-        message: `Explore the Ledova experimental reference implementation: ${MARKETING_URL}`,
+        message: `Ledova, the share register for private companies: ${MARKETING_URL}`,
         title: 'Share Ledova',
       });
     } catch {}
