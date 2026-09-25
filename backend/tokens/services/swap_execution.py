@@ -397,7 +397,7 @@ def _observe(transaction, claim, client):
     if receipt is None:
         return
     _verify_receipt(transaction, operation, client, receipt)
-    outgoing.record_receipt(claim, operation.current_attempt.tx_hash, receipt)
+    outgoing.record_receipt(claim, operation.current_attempt.tx_hash, receipt, client=client)
 
 
 def _consumed(transaction, operation, client):

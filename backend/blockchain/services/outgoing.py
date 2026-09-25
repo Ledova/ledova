@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from dataclasses import dataclass
 from uuid import UUID, uuid4
 
@@ -375,15 +376,54 @@ def broadcast_operation(claim, client, *, before_send=None):
     return BroadcastResult(attempt.tx_hash, not error)
 
 
-def record_receipt(claim, tx_hash, receipt):
+def _receipt_values(tx_hash, receipt):
+    if not isinstance(receipt, Mapping):
+        raise OutgoingTransactionError("The transaction receipt is unavailable.")
+    if _hex(receipt.get("transactionHash"), 32) != tx_hash:
+        raise OutgoingTransactionError("The receipt identifies a different transaction.")
+    return (
+        _integer(receipt.get("status"), 1),
+        _integer(receipt.get("blockNumber")),
+        _hex(receipt.get("blockHash"), 32),
+        _integer(receipt.get("gasUsed")),
+    )
+
+
+def _canonical_receipt(client, chain_id, tx_hash, values):
+    _, block_number, block_hash, _ = values
+    if block_hash == "0x" + "00" * 32:
+        return False
+
+    def matching_block():
+        block = client.get_block(block_number)
+        return (_integer(block["number"]), _hex(block["hash"], 32)) == (block_number, block_hash)
+
+    def matching_chain():
+        actual = client.w3.eth.chain_id
+        return type(actual) is int and actual == chain_id
+
+    try:
+        expected = client.assert_expected_chain()
+        if type(expected) is not int or expected != chain_id or not matching_chain() or not matching_block():
+            return False
+        if _receipt_values(tx_hash, client.get_transaction_receipt(tx_hash)) != values:
+            return False
+        return matching_block() and matching_chain()
+    except Exception:
+        return False
+
+
+def record_receipt(claim, tx_hash, receipt, *, client):
     _boundary()
     tx_hash = _hex(tx_hash, 32)
-    if _hex(receipt["transactionHash"], 32) != tx_hash:
-        raise OutgoingTransactionError("The receipt identifies a different transaction.")
-    status = _integer(receipt["status"], 1)
-    block_number = _integer(receipt["blockNumber"])
-    block_hash = _hex(receipt["blockHash"], 32)
-    gas_used = _integer(receipt["gasUsed"])
+    values = _receipt_values(tx_hash, receipt)
+    operation = OutgoingOperation.objects.get(pk=claim.operation_id)
+    if operation.claim_id != claim.claim_id or operation.status != OutgoingStatus.SIGNED:
+        return False
+    attempt, _ = _payload(operation)
+    if attempt.tx_hash != tx_hash or not _canonical_receipt(client, operation.intent["chain_id"], tx_hash, values):
+        return False
+    status, block_number, block_hash, gas_used = values
     with atomic(durable=True):
         operation = OutgoingOperation.objects.select_for_update().get(pk=claim.operation_id)
         if operation.claim_id != claim.claim_id or operation.status != OutgoingStatus.SIGNED:
@@ -414,4 +454,4 @@ def reconcile_operation(claim, client):
         return False
     if receipt is None:
         return False
-    return record_receipt(claim, attempt.tx_hash, receipt)
+    return record_receipt(claim, attempt.tx_hash, receipt, client=client)

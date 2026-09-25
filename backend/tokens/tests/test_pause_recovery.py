@@ -272,12 +272,12 @@ class PauseRecoveryTest(TransactionTestCase):
         self.assertEqual(self.recover(self.submit(True)).status, "confirmed")
 
     def test_transient_provider_failure_keeps_the_unsigned_submission_recoverable(self):
-        self.node.client.get_block.side_effect = ConnectionError("Synthetic temporary provider outage")
-        with self.assertRaises(ConnectionError):
+        with patch.object(
+            self.node.client, "get_block", side_effect=ConnectionError("Synthetic temporary provider outage")
+        ), self.assertRaises(ConnectionError):
             self.recover()
         self.change.refresh_from_db()
         self.assertEqual((self.change.status, self.change.completed_at), ("pending", None))
-        self.node.client.get_block.side_effect = None
         self.assertEqual(self.recover().status, "confirmed")
 
     def test_delayed_unsigned_refusal_cannot_release_a_peer_signing_decision(self):

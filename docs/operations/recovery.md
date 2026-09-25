@@ -6,7 +6,28 @@ Start with the affected record and its durable evidence. Restart a stopped worke
 with current code and use the existing reconciliation path. A timeout or missing
 provider response does not prove a transaction was never submitted.
 
+Base's Flashblocks-enabled RPC can return a provisional transaction receipt with
+an empty block-hash placeholder before the block is sealed. Such a receipt does
+not complete an outgoing operation: recovery retains its signed bytes, claim and
+nonce until the receipt and canonical block agree across rereads. A successful
+canonical receipt is still separate from the network's finalized head. See the
+[Flashblocks RPC specification](https://specs.optimism.io/protocol/flashblocks.html#flashblock-json-rpc-apis).
+
+An older terminal outgoing record with an all-zero block hash cannot be repaired
+by repeating normal recovery, which preserves terminal outcomes. Retain its
+original operation, attempt, transaction and domain journal. An audited metadata
+correction must independently establish the original signed intent, canonical
+receipt and expected events, then update matching inclusion metadata atomically.
+Never reset the status, release the nonce, redeploy a contract or replace that
+signed attempt merely to replace the placeholder.
+
 ## Deployment and issuance
+
+An unsigned share-class deployment failure requires its existing **Retry Deployment**
+admin confirmation. It binds the original class, deployment and failed claim;
+the worker retains the deployment and operation identities while admitting a new
+claim. A queue job marked succeeded can have returned an unresolved result, so
+check the deployment journal and actual class outcome before claiming completion.
 
 Deployment, capital and issuance sweeps recover accepted work; see the
 [issuance flow](../architecture/contracts-and-issuance.md). New share issuances

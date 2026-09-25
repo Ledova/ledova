@@ -248,8 +248,12 @@ class OutgoingOperationTest(TransactionTestCase):
 
     def test_confirmation_is_idempotent_and_late_failure_cannot_undo_it(self):
         attempt = sign_claim(self.claim)
-        self.assertTrue(record_receipt(self.claim, attempt.tx_hash, receipt(attempt)))
-        self.assertFalse(record_receipt(self.claim, attempt.tx_hash, receipt(attempt, 0)))
+        self.assertTrue(
+            record_receipt(self.claim, attempt.tx_hash, receipt(attempt), client=chain_client(receipt(attempt)))
+        )
+        self.assertFalse(
+            record_receipt(self.claim, attempt.tx_hash, receipt(attempt, 0), client=chain_client(receipt(attempt, 0)))
+        )
         self.assertFalse(fail_preparing(self.claim))
         self.assertTrue(broadcast_operation(self.claim, self.chain).acknowledged)
         self.chain.send_raw_transaction.assert_not_called()
@@ -257,10 +261,10 @@ class OutgoingOperationTest(TransactionTestCase):
 
     def test_reverted_attempt_is_retained_and_its_late_receipt_cannot_complete_the_new_claim(self):
         first = sign_claim(self.claim)
-        record_receipt(self.claim, first.tx_hash, receipt(first, 0))
+        record_receipt(self.claim, first.tx_hash, receipt(first, 0), client=chain_client(receipt(first, 0)))
         current = claim_operation()
         self.assertNotEqual(current.claim_id, self.claim.claim_id)
-        self.assertFalse(record_receipt(self.claim, first.tx_hash, receipt(first)))
+        self.assertFalse(record_receipt(self.claim, first.tx_hash, receipt(first), client=chain_client(receipt(first))))
         second = sign_claim(current)
         self.assertEqual([first.nonce, second.nonce], [7, 8])
         self.assertEqual(SignedAttempt.objects.filter(operation_id=current.operation_id).count(), 2)
@@ -270,10 +274,10 @@ class OutgoingOperationTest(TransactionTestCase):
         first = sign_claim(self.claim)
 
         def replaced_during_send(raw):
-            record_receipt(self.claim, first.tx_hash, receipt(first, 0))
+            record_receipt(self.claim, first.tx_hash, receipt(first, 0), client=chain_client(receipt(first, 0)))
             current = claim_operation()
             second = sign_claim(current)
-            record_receipt(current, second.tx_hash, receipt(second))
+            record_receipt(current, second.tx_hash, receipt(second), client=chain_client(receipt(second)))
             raise RuntimeError("late old replay error")
 
         self.chain.send_raw_transaction.side_effect = replaced_during_send
@@ -285,7 +289,7 @@ class OutgoingOperationTest(TransactionTestCase):
         attempt = sign_claim(self.claim)
         bad = receipt(attempt) | {"transactionHash": "0x" + "cc" * 32}
         with self.assertRaisesMessage(OutgoingTransactionError, "different transaction"):
-            record_receipt(self.claim, attempt.tx_hash, bad)
+            record_receipt(self.claim, attempt.tx_hash, bad, client=chain_client(bad))
         self.assertEqual(self.operation().status, OutgoingStatus.SIGNED)
 
     def test_provider_error_details_do_not_escape_into_result_storage_or_traceback(self):

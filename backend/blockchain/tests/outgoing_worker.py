@@ -139,7 +139,7 @@ def run(directory, phase, index):
     client.send_raw_transaction = broadcast
     result = broadcast_operation(claim, client)
     assert result.tx_hash == attempt.tx_hash and result.acknowledged
-    record_receipt(claim, attempt.tx_hash, receipt(attempt))
+    record_receipt(claim, attempt.tx_hash, receipt(attempt), client=chain_client(receipt(attempt)))
     print(json.dumps({"hash": attempt.tx_hash, "nonce": attempt.nonce}))
 
 

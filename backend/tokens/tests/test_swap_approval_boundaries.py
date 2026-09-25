@@ -79,6 +79,7 @@ class SwapApprovalBoundaryTest(TransactionTestCase):
 
     def test_chain_observation_preparation_receipt_and_broadcast_release_locks(self):
         calls = []
+        observed_block = self.approval_node.client.get_block.side_effect
 
         def probe(label):
             connection = connections[current_alias()]
@@ -88,7 +89,7 @@ class SwapApprovalBoundaryTest(TransactionTestCase):
 
         def get_block(*args):
             probe("block")
-            return self.approval_node.client.get_block.return_value
+            return observed_block(*args)
 
         def estimate(*args):
             probe("estimate")

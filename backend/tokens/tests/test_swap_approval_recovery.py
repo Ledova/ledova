@@ -97,6 +97,23 @@ class SwapApprovalRecoveryTest(TransactionTestCase):
         self.assertEqual(self.recover(), "confirmed")
         self.assertEqual(self.approval_attempts().count(), 1)
 
+    def test_provisional_receipt_cannot_confirm_swap_approval(self):
+        def provisional(tx_hash):
+            mined = self.approval_node.receipts.get(tx_hash)
+            return mined | {"blockHash": "0x" + "00" * 32} if mined else None
+
+        with patch.object(self.approval_node.client, "get_transaction_receipt", side_effect=provisional):
+            self.assertEqual(self.recover(), "executing")
+        original = self.approval_attempts().get()
+        self.command.refresh_from_db()
+        self.assertEqual(self.command.approval_outcome, "executing")
+        self.assertEqual(self.command.approval_transaction.status, "submitted")
+        self.assertEqual(self.command.approval_operation.status, "signed")
+        self.assertEqual(self.recover(), "confirmed")
+        self.assertEqual(self.approval_attempts().get().pk, original.pk)
+        self.assertEqual(SigningAccount.objects.get().next_nonce, original.nonce + 1)
+        self.assertEqual(len(self.approval_node.broadcasts), 1)
+
     def test_unsigned_decision_prevents_later_observation_from_adopting_peer_state(self):
         with patch.object(swap_approval, "_claim", side_effect=SystemExit):
             with self.assertRaises(SystemExit):

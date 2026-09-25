@@ -143,6 +143,7 @@ class ExecutionNode:
         self.client.load_contract.side_effect = lambda name, address: execution_contract()
         self.client.send_raw_transaction.side_effect = self.send
         self.client.get_transaction_receipt.side_effect = self.observed
+        self.client.get_block.side_effect = self.block
         self.confirmed = True
         self.status = 1
         self.lose_acknowledgement = False
@@ -160,6 +161,10 @@ class ExecutionNode:
 
     def observed(self, tx_hash):
         return self.value("receipt", self.receipts.get(tx_hash))
+
+    def mine(self, tx_hash, mined):
+        self.receipts[tx_hash] = mined
+        self.blocks[mined["blockNumber"]] = {"number": mined["blockNumber"], "hash": mined["blockHash"]}
 
     def block(self, identifier, full_transactions=False):
         block = self.value("block", self.blocks.get(identifier))
@@ -199,17 +204,20 @@ class ExecutionNode:
                 "transactionIndex": 0,
             }
         )
-        self.receipts[signed.hash.to_0x_hex()] = {
-            "transactionHash": signed.hash,
-            "blockHash": block_hash,
-            "blockNumber": block_number,
-            "transactionIndex": 0,
-            "from": sender,
-            "to": Web3.to_checksum_address(fields["to"]),
-            "status": 1,
-            "gasUsed": 21000,
-            "effectiveGasPrice": fields["gasPrice"],
-        }
+        self.mine(
+            signed.hash.to_0x_hex(),
+            {
+                "transactionHash": signed.hash,
+                "blockHash": block_hash,
+                "blockNumber": block_number,
+                "transactionIndex": 0,
+                "from": sender,
+                "to": Web3.to_checksum_address(fields["to"]),
+                "status": 1,
+                "gasUsed": 21000,
+                "effectiveGasPrice": fields["gasPrice"],
+            },
+        )
         return signed.hash.to_0x_hex()
 
     def advance(self, head, finalized=None):
@@ -226,7 +234,7 @@ class ExecutionNode:
         attempt = SignedAttempt.objects.get(tx_hash=tx_hash)
         self.broadcasts.append(bytes(raw))
         if self.confirmed:
-            self.receipts[tx_hash] = execution_receipt(attempt, self.arguments, status=self.status)
+            self.mine(tx_hash, execution_receipt(attempt, self.arguments, status=self.status))
         if self.lose_acknowledgement:
             raise ConnectionError("Synthetic swap acknowledgement loss")
         return tx_hash

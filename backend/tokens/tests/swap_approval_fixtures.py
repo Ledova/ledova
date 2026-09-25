@@ -19,6 +19,9 @@ class ApprovalNode:
     def __init__(self):
         self.client = chain_client()
         self.client.get_block.return_value = {"number": 11, "hash": BLOCK_HASH}
+        self.client.get_block.side_effect = lambda identifier="latest": (
+            {"number": 12, "hash": BLOCK_HASH} if identifier == 12 else self.client.get_block.return_value
+        )
         self.approved = False
         self.confirmed = True
         self.lose_acknowledgement = False
