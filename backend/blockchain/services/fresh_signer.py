@@ -17,6 +17,7 @@ from blockchain.constants import (
     FRESH_SIGNER_ENVIRONMENT_LENGTH,
     FRESH_SIGNER_MANIFEST_VERSION,
     FRESH_SIGNER_MAX_INTEGER,
+    FRESH_SIGNER_OBSERVATION_ATTEMPTS,
     FRESH_SIGNER_TRANSACTION_COUNT,
     FRESH_SIGNER_VALIDATOR_VERSION,
 )
@@ -63,6 +64,19 @@ CONTRACT_SETTINGS = {
     "atomic_swap": "ATOMIC_SWAP_ADDRESS",
 }
 ATTESTATIONS = {"fresh_key", "isolated_environment", "producers_stopped"}
+OBSERVATION_FAILURE_REASONS = {
+    "network_mismatch",
+    "head_unavailable",
+    "network_changed",
+    "head_changed",
+    "receipt_unavailable",
+    "receipt_block_replaced",
+    "finality_unavailable",
+    "policy_invalid",
+    "policy_unconfigured",
+    "finality_waiting",
+    "provider_unavailable",
+}
 
 
 def require_bootstrap_boundary():
@@ -279,6 +293,25 @@ def _transaction(client, tx_hash, nonce, sender, terms):
     return {"nonce": nonce, "value": "0", "to": terms["to"], "input_keccak": Web3.to_hex(Web3.keccak(hexstr=data))}
 
 
+def _read_observation(client, tx_hash, policy):
+    for _ in range(FRESH_SIGNER_OBSERVATION_ATTEMPTS):
+        evidence = collect_chain_evidence(
+            client,
+            chain=BLOCKCHAIN_BASE,
+            network=f"evm:{FRESH_SIGNER_CHAIN_ID}",
+            tx_hash=tx_hash,
+            previous_block=None,
+            policy=policy,
+        )
+        if (
+            evidence.get("result") != ChainObservationResult.UNKNOWN
+            or evidence.get("finality") != ChainObservationFinality.UNKNOWN
+            or evidence.get("reason") != "head_changed"
+        ):
+            break
+    return evidence
+
+
 def _chain_evidence(client, manifest, artifacts):
     _provider_chain(client)
     policy = finality_policy(f"evm:{FRESH_SIGNER_CHAIN_ID}", BLOCKCHAIN_BASE)
@@ -293,14 +326,7 @@ def _chain_evidence(client, manifest, artifacts):
         _provider_chain(client)
         terms = _transaction(client, tx_hash, nonce, sender, expected[nonce])
         receipt = _receipt_identity(client.get_transaction_receipt(tx_hash), tx_hash, sender, expected[nonce])
-        evidence = collect_chain_evidence(
-            client,
-            chain=BLOCKCHAIN_BASE,
-            network=f"evm:{FRESH_SIGNER_CHAIN_ID}",
-            tx_hash=tx_hash,
-            previous_block=None,
-            policy=policy,
-        )
+        evidence = _read_observation(client, tx_hash, policy)
         details = evidence.get("evidence", {})
         observed = details.get("receipt") or {}
         if (
@@ -313,8 +339,12 @@ def _chain_evidence(client, manifest, artifacts):
             or observed.get("timestamp") is None
             or observed.get("actual_fee") is None
         ):
+            reason = evidence.get("reason")
+            if reason not in OBSERVATION_FAILURE_REASONS:
+                reason = "incomplete_or_unsuccessful"
             raise FreshSignerBootstrapError(
-                "Bootstrap transactions require complete successful canonical finalized evidence."
+                "Bootstrap transactions require complete successful canonical finalized evidence "
+                f"(transaction index {nonce}, reason {reason})."
             )
         if _receipt_identity(client.get_transaction_receipt(tx_hash), tx_hash, sender, expected[nonce]) != receipt:
             raise FreshSignerBootstrapError("A bootstrap receipt changed during verification.")

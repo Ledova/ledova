@@ -25,6 +25,7 @@ from blockchain.tests.fresh_signer_fixtures import (
     FreshSignerFixture,
 )
 from shared.db import atomic
+from wallets.services.chain_evidence import collect_chain_evidence
 from whitelist.models import WhitelistEntry
 
 
@@ -184,6 +185,137 @@ class FreshSignerTest(FreshSignerFixture, TransactionTestCase):
         self.reject()
         self.chain.get_transaction_receipt.side_effect = original
         bootstrap_fresh_signer(self.manifest)
+
+    def changing_heads(self, heights):
+        original = self.chain.w3.eth.get_block.side_effect
+        heights = iter(heights)
+
+        def block(identifier):
+            if identifier == "latest":
+                height = next(heights)
+                return {
+                    "number": height,
+                    "hash": "0x" + format(height + 100, "064x"),
+                    "timestamp": 1700000000 + height,
+                }
+            return original(identifier)
+
+        self.chain.w3.eth.get_block.side_effect = block
+
+    def test_transient_head_change_retries_each_transaction_and_retains_only_the_stable_observation(self):
+        self.changing_heads([height for start in range(10, 15) for height in (start, start + 1, start + 1, start + 1)])
+        with patch("blockchain.services.fresh_signer.collect_chain_evidence", wraps=collect_chain_evidence) as collect:
+            bootstrap_fresh_signer(self.manifest)
+        self.assertEqual(collect.call_count, 10)
+        self.assertEqual(self.chain.get_transaction.call_count, 5)
+        self.assertEqual(self.chain.get_transaction_receipt.call_count, 20)
+        observations = FreshSignerBootstrap.objects.get().chain_evidence["transactions"]
+        for nonce, observation in enumerate(observations):
+            evidence = observation["observation"]
+            self.assertEqual((evidence["result"], evidence["finality"]), ("included", "satisfied"))
+            self.assertIs(evidence["evidence"]["complete"], True)
+            self.assertEqual(evidence["evidence"]["head"]["height"], 11 + nonce)
+            self.assertEqual(evidence["evidence"]["head"], evidence["evidence"]["last_head"])
+        signer = SigningAccount.objects.get()
+        self.assertEqual((signer.admission_state, signer.admission_generation, signer.next_nonce), ("admitted", 1, 5))
+        self.chain.send_raw_transaction.assert_not_called()
+        self.chain.sign_transaction.assert_not_called()
+
+    def test_five_changing_head_attempts_exhaust_and_preserve_closed_signer_without_audit(self):
+        signer = SigningAccount.objects.create(chain_id=CHAIN_ID, address=SENDER.lower())
+        self.changing_heads([10, 10, 10, 10] + [height for start in range(10, 15) for height in (start, start + 1)])
+        with patch("blockchain.services.fresh_signer.collect_chain_evidence", wraps=collect_chain_evidence) as collect:
+            with self.assertRaisesMessage(FreshSignerBootstrapError, "transaction index 2, reason head_changed"):
+                bootstrap_fresh_signer(self.manifest)
+        self.assertEqual(collect.call_count, 7)
+        self.assertEqual(self.chain.get_transaction.call_count, 3)
+        signer.refresh_from_db()
+        self.assertEqual((signer.admission_state, signer.admission_generation, signer.next_nonce), ("closed", 0, 0))
+        self.assertFalse(FreshSignerBootstrap.objects.exists())
+        self.chain.send_raw_transaction.assert_not_called()
+        self.chain.sign_transaction.assert_not_called()
+
+    def test_receipt_change_during_head_retry_still_refuses_admission(self):
+        self.changing_heads([10, 11] + [11] * 10)
+        original = self.chain.get_transaction_receipt.side_effect
+        deliveries = 0
+
+        def changed(tx_hash):
+            nonlocal deliveries
+            deliveries += 1
+            receipt = original(tx_hash)
+            if deliveries >= 3:
+                receipt["transactionIndex"] = 1
+            return receipt
+
+        self.chain.get_transaction_receipt.side_effect = changed
+        with self.assertRaisesMessage(FreshSignerBootstrapError, "receipt changed during verification"):
+            bootstrap_fresh_signer(self.manifest)
+        self.assertEqual(deliveries, 4)
+        self.assertFalse(SigningAccount.objects.exists())
+        self.assertFalse(FreshSignerBootstrap.objects.exists())
+
+    def test_non_head_evidence_failures_are_not_retried_and_report_a_safe_reason(self):
+        original = self.chain.w3.eth.get_block.side_effect
+        tx_hash = self.manifest["transactions"][0]
+
+        def failed_block(identifier):
+            if identifier == "finalized":
+                raise RuntimeError("synthetic provider credentials must not appear")
+            return original(identifier)
+
+        self.chain.w3.eth.get_block.side_effect = failed_block
+        with patch("blockchain.services.fresh_signer.collect_chain_evidence", wraps=collect_chain_evidence) as collect:
+            with self.assertRaisesMessage(
+                FreshSignerBootstrapError, "transaction index 0, reason finality_unavailable"
+            ):
+                bootstrap_fresh_signer(self.manifest)
+        self.assertEqual(collect.call_count, 1)
+        self.chain.w3.eth.get_block.side_effect = original
+        del self.receipts[tx_hash]["effectiveGasPrice"]
+        with patch("blockchain.services.fresh_signer.collect_chain_evidence", wraps=collect_chain_evidence) as collect:
+            with self.assertRaisesMessage(
+                FreshSignerBootstrapError, "transaction index 0, reason incomplete_or_unsuccessful"
+            ):
+                bootstrap_fresh_signer(self.manifest)
+        self.assertEqual(collect.call_count, 1)
+        self.assertFalse(SigningAccount.objects.exists())
+        self.assertFalse(FreshSignerBootstrap.objects.exists())
+
+    def test_head_retry_followed_by_non_head_failure_stops_without_admission(self):
+        self.changing_heads([10, 11, 11, 11])
+        original = self.chain.w3.eth.get_block.side_effect
+        finalized_reads = 0
+
+        def block(identifier):
+            nonlocal finalized_reads
+            if identifier == "finalized":
+                finalized_reads += 1
+                if finalized_reads == 2:
+                    raise RuntimeError("synthetic unavailable finality")
+            return original(identifier)
+
+        self.chain.w3.eth.get_block.side_effect = block
+        with patch("blockchain.services.fresh_signer.collect_chain_evidence", wraps=collect_chain_evidence) as collect:
+            with self.assertRaisesMessage(
+                FreshSignerBootstrapError, "transaction index 0, reason finality_unavailable"
+            ):
+                bootstrap_fresh_signer(self.manifest)
+        self.assertEqual(collect.call_count, 2)
+        self.assertFalse(SigningAccount.objects.exists())
+        self.assertFalse(FreshSignerBootstrap.objects.exists())
+
+    def test_unknown_diagnostic_reason_does_not_expose_provider_payload(self):
+        evidence = {"result": "unknown", "finality": "unknown", "reason": "https://provider.invalid/private-token"}
+        with patch("blockchain.services.fresh_signer.collect_chain_evidence", return_value=evidence) as collect:
+            with self.assertRaises(FreshSignerBootstrapError) as error:
+                bootstrap_fresh_signer(self.manifest)
+        self.assertIn("transaction index 0, reason incomplete_or_unsuccessful", str(error.exception))
+        self.assertNotIn("provider.invalid", str(error.exception))
+        self.assertNotIn("private-token", str(error.exception))
+        collect.assert_called_once()
+        self.assertFalse(SigningAccount.objects.exists())
+        self.assertFalse(FreshSignerBootstrap.objects.exists())
 
     def test_finalized_policy_and_canonical_complete_receipt_evidence_are_required(self):
         with override_settings(WALLET_CHAIN_FINALITY_POLICIES={"evm:84532": {"mode": "depth", "depth": 1}}):

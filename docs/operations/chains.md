@@ -183,7 +183,13 @@ continues to establish admission as a synthetic test precondition.
    `unchanged: false`; exact replay prints `unchanged: true` and does not reset
    an advanced nonce. A verification failure leaves admission closed: resolve
    the reported configuration or evidence problem while retaining the original
-   manifest. The [admission contract](../architecture/outgoing-signing.md#fresh-base-sepolia-admission)
+   manifest. Evidence refusals identify the zero-based manifest transaction
+   index and reason. If the latest head changes during an observation, the
+   command reads that transaction's evidence again, up to five attempts total;
+   every accepted observation must still have a stable head and pass all receipt
+   and finality checks. Other evidence failures are not retried. Exhausted reads
+   leave admission closed and do not create a bootstrap record or send transactions.
+   The [admission contract](../architecture/outgoing-signing.md#fresh-base-sepolia-admission)
    lists the strict transaction, finality, history and replay checks. This
    command must run before companies, legacy source rows or outgoing operations
    exist. An inventory report does not authorize admission or clear legacy holds.
