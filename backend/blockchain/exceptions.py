@@ -1,0 +1,2 @@
+class FreshSignerBootstrapError(ValueError):
+    pass

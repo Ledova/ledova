@@ -10,6 +10,7 @@ from blockchain.models.outgoing_inventory import (
     OutgoingHistoryCapture,
     OutgoingHistoryEvidence,
 )
+from blockchain.models.signer_bootstrap import FreshSignerBootstrap
 from blockchain.models.transaction import (
     BlockchainTransaction,
     TransactionStatus,
@@ -17,6 +18,7 @@ from blockchain.models.transaction import (
 )
 
 __all__ = [
+    "FreshSignerBootstrap",
     "OutgoingCutoverHold",
     "OutgoingHistoryCapture",
     "OutgoingHistoryEvidence",
