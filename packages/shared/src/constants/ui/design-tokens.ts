@@ -255,6 +255,13 @@ const LIGHT_COLORS = buildColors({
   interactive: { selectedBg: PALETTE.indigo[600] + '1A' },
 });
 
+const PAPER_COLORS = {
+  paper: { default: '#f6f3ec', deep: '#ece7dc', card: PALETTE.white },
+  ink: { default: '#17191e', muted: '#5b5f66' },
+  rule: { default: '#e3ded3', soft: '#eeeae1', strong: '#d6d0c3' },
+  ledger: { default: '#2e6a57', hover: '#245446', tint: '#e6eeea' },
+} as const;
+
 function shadow(offsetY: number, blurRadius: number, opacity: number, elevation: number) {
   return {
     shadowColor: PALETTE.black,
@@ -367,7 +374,7 @@ export const DESIGN_TOKENS = {
   },
 } as const;
 
-export { LIGHT_COLORS };
+export { LIGHT_COLORS, PAPER_COLORS };
 
 export type Shadow = typeof DESIGN_TOKENS.shadows;
 export type Icon = typeof DESIGN_TOKENS.icon;

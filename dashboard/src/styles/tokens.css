@@ -40,6 +40,18 @@
   --color-black: #000000;
   --color-transparent: transparent;
 
+  --color-paper: #f6f3ec;
+  --color-paper-deep: #ece7dc;
+  --color-paper-card: #ffffff;
+  --color-ink: #17191e;
+  --color-ink-muted: #5b5f66;
+  --color-rule: #e3ded3;
+  --color-rule-soft: #eeeae1;
+  --color-rule-strong: #d6d0c3;
+  --color-ledger: #2e6a57;
+  --color-ledger-hover: #245446;
+  --color-ledger-tint: #e6eeea;
+
   --spacing-1: 4px;
   --spacing-2: 8px;
   --spacing-4: 16px;

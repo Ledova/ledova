@@ -1,43 +1,36 @@
 @import 'tailwindcss';
 @import './tokens.css';
 
+@theme {
+  --font-display: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Instrument Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
 html {
   scroll-behavior: smooth;
+  color-scheme: light;
 }
 
 body {
-  background-color: var(--color-surface-base);
-  color: var(--color-text-muted);
-  font-family:
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+::selection {
+  background: var(--color-ledger-tint);
+  color: var(--color-ink);
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: var(--border-radius-sm);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-border-strong);
+:focus-visible {
+  outline: 2px solid var(--color-ledger);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-border) transparent;
+  scrollbar-color: var(--color-rule-strong) transparent;
 }
