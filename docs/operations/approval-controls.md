@@ -165,8 +165,15 @@ the other way.
 | The configured chain id matches the node | `31337` | With `BLOCKCHAIN_CHAIN_ID=84532`: `Refusing EVM endpoint on chain 31337; expected chain 84532` |
 | Each class's `whitelist()` equals its company's `registryOf(acn)` | `AORD True`, `APREF True`, `BORD True` | Repointing one class's row at the other company: `AORDX False` |
 | A wallet approved for one company is refused another company's class | `BORD False` | Approving the same wallet in the second registry: `BORD True` |
-| The refresh sweep resolves every approval | `{'checked': 1, 'submitted': 0, 'unattributed': 1, 'errors': 0}`, with the unattributed row logged | Not mutated; the unattributed case is proved by `whitelist.tests.test_classification_refresh.ClassificationRefreshTest.test_the_sweep_lists_a_row_no_actor_explains_rather_than_writing_it` |
+| The refresh sweep reports whether it can attribute and submit a change | `{'checked': 1, 'submitted': 0, 'unattributed': 1, 'errors': 0}`, with the unattributed row logged | Not mutated; the unattributed case is proved by `whitelist.tests.test_classification_refresh.ClassificationRefreshTest.test_the_sweep_lists_a_row_no_actor_explains_rather_than_writing_it` |
 | No class has a deployment whose factory differs | `[]` | Not mutated |
+
+The isolation fixture approved the control wallet only in company A. Adding a
+separate approval in B legitimately changes B's answer to `True`; it does not
+make A's approval apply to B. The current runbook requires those explicit
+fixtures and refuses missing classes or a shared registry. The sweep's
+historical counters above report an unattributed change, not a successful
+removal or an on-chain confirmation.
 
 Steps 6 and 7 are performed against a real node, with an admitted test signer,
 by the real-chain suite: `make chain-test` deploys a class through
@@ -181,15 +188,24 @@ opened.
 
 The owner has authorised exactly one Base Sepolia deployment of these
 contracts, to be run once a funded deployer key is in place. It has not been
-run. When it is, record here: the deployer address, the three contract
-addresses, the block each was created in, and the result of each step-8 check
-against that deployment.
+run. The owner's signer cutover and admission must also be ready for the
+platform deployment and approval steps; admitted local-test fixtures do not
+establish that readiness. When the public-testnet exercise runs, record the
+tested commit, chain id, deployer address, contract addresses and creation
+transactions/blocks, and the result of each step-8 check. Record the two-company
+control fixture and the before/after expiry and revocation observations,
+including direct-call refusals. Keep local rehearsal evidence separate.
 
 | Field | Value |
 | --- | --- |
 | Run on | *not yet run* |
+| Tested commit and chain id | *not yet run* |
 | Deployer | *not yet run* |
 | `ShareTokenFactory` | *not yet run* |
 | `AtomicSwap` | *not yet run* |
 | `AUDY` | *not yet run* |
+| Creation transactions and blocks | *not yet run* |
+| Companies A/B, class addresses and registry addresses | *not yet run* |
+| A-only control wallet and observed A/B membership | *not yet run* |
+| Expiry/revocation observations, transactions where applicable, blocks and direct-call results | *not yet run* |
 | Step-8 checks | *not yet run* |
