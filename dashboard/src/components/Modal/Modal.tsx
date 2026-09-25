@@ -97,10 +97,10 @@ export function Modal({
                     {onConfirm && (
                       <button
                         type="button"
-                        className={`flex-1 px-4 py-3 rounded-lg font-semibold text-white transition-colors ${
+                        className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-colors ${
                           confirmDisabled || confirmLoading
-                            ? 'bg-surface-disabled opacity-50 cursor-not-allowed'
-                            : 'bg-brand-light hover:bg-brand'
+                            ? 'bg-surface-disabled text-text-secondary cursor-not-allowed'
+                            : 'bg-brand-light hover:bg-brand text-white'
                         } ${!showCancelButton ? 'flex-none w-full' : ''}`}
                         onClick={onConfirm}
                         disabled={confirmDisabled || confirmLoading}

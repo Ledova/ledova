@@ -187,7 +187,7 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
             type="button"
             onClick={() => launchVerification('#sumsub-profile-websdk-container')}
             disabled={isLaunching}
-            className="w-full bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-brand-light/40 disabled:shadow-none"
+            className="w-full bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-brand-light/40 disabled:shadow-none"
           >
             {isLaunching ? (
               <div className="flex items-center justify-center space-x-2">
@@ -205,7 +205,7 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
             type="button"
             onClick={() => launchVerification('#sumsub-profile-websdk-container')}
             disabled={isLaunching}
-            className="w-full bg-warning hover:bg-warning disabled:bg-surface-disabled disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+            className="w-full bg-warning hover:bg-warning disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors"
           >
             {isLaunching ? (
               <div className="flex items-center justify-center space-x-2">

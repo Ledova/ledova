@@ -67,7 +67,7 @@ function OfferingRow({
           <button
             onClick={onSubmit}
             disabled={busy}
-            className="rounded-lg bg-brand-mid hover:bg-brand disabled:bg-surface-disabled px-4 py-2 text-sm font-semibold text-white transition-colors"
+            className="rounded-lg bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary px-4 py-2 text-sm font-semibold text-white transition-colors"
           >
             {offering.status === 'rejected' ? 'Submit again' : 'Submit for review'}
           </button>

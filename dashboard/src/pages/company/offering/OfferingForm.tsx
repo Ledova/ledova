@@ -273,7 +273,7 @@ export function OfferingForm({
           <button
             onClick={handleSubmit}
             disabled={!isComplete || busy}
-            className="rounded-lg bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:cursor-not-allowed px-6 py-2.5 text-sm font-semibold text-white transition-colors"
+            className="rounded-lg bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed px-6 py-2.5 text-sm font-semibold text-white transition-colors"
           >
             {editing ? 'Save changes' : 'Create draft offering'}
           </button>

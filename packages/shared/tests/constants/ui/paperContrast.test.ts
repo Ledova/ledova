@@ -64,3 +64,9 @@ describe('paper theme chart contrast', () => {
     expect(contrast(colour, background)).toBeGreaterThanOrEqual(3);
   });
 });
+
+describe('paper theme disabled controls', () => {
+  it('keeps a disabled or busy button label readable on the disabled surface', () => {
+    expect(contrast(PAPER_THEME.text.secondary, PAPER_THEME.surface.disabled)).toBeGreaterThanOrEqual(4.5);
+  });
+});

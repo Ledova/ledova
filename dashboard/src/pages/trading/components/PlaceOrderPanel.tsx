@@ -102,7 +102,7 @@ export function PlaceOrderPanel({
         <button
           onClick={() => handleOpen('buy')}
           disabled={wallets.length === 0}
-          className="flex-1 py-2.5 px-6 rounded-lg font-semibold text-white bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:cursor-not-allowed transition-colors"
+          className="flex-1 py-2.5 px-6 rounded-lg font-semibold text-white bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed transition-colors"
         >
           New buy order — {token.symbol}
         </button>

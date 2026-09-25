@@ -903,7 +903,7 @@ export function TokenDetailModal({
             <button
               onClick={() => downloadRegister().catch(() => undefined)}
               disabled={isDownloadingRegister || registerOpened === false}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-mid hover:bg-brand disabled:bg-surface-disabled px-3 py-1.5 text-xs font-semibold text-white transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary px-3 py-1.5 text-xs font-semibold text-white transition-colors"
             >
               <DownloadSimpleIcon size={ICON_SM} />
               {REGISTER_COPY.DOWNLOAD}

@@ -397,7 +397,7 @@ export default function ListingPage() {
             <button
               onClick={() => resubmitMutation.mutate()}
               disabled={!canResubmit || isActing}
-              className="bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:cursor-not-allowed text-white font-semibold py-2.5 px-6 rounded-lg transition-colors"
+              className="bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed text-white font-semibold py-2.5 px-6 rounded-lg transition-colors"
             >
               {resubmitMutation.isPending ? 'Resubmitting...' : 'Resubmit Application'}
             </button>
@@ -405,7 +405,7 @@ export default function ListingPage() {
             <button
               onClick={() => submitMutation.mutate()}
               disabled={!canSubmit || isActing}
-              className="bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:cursor-not-allowed text-white font-semibold py-2.5 px-6 rounded-lg transition-colors"
+              className="bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed text-white font-semibold py-2.5 px-6 rounded-lg transition-colors"
             >
               {submitMutation.isPending ? 'Submitting...' : 'Submit Application'}
             </button>
