@@ -1,12 +1,16 @@
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
+import { canOpen, landingFor, type Audience } from '@ledova/shared';
 
 import { useAuth } from '@hooks/useAuth';
+import { useRole } from '@hooks/useRole';
 
-export function ProtectedRoute({ children }: { children: ReactNode }) {
+export function ProtectedRoute({ audience, children }: { audience: Audience; children: ReactNode }) {
   const { isAuthenticated, isLoading, isFetching } = useAuth();
+  const { role, isLoading: isRoleLoading } = useRole();
+  const waitingForRole = isAuthenticated && audience !== 'everyone' && isRoleLoading;
 
-  if (isLoading || (!isAuthenticated && isFetching)) {
+  if (isLoading || (!isAuthenticated && isFetching) || waitingForRole) {
     return (
       <div
         role="status"
@@ -19,6 +23,8 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   }
 
   if (!isAuthenticated) return <Navigate to="/signin" replace />;
+
+  if (!canOpen(role, audience)) return <Navigate to={landingFor(role)} replace />;
 
   return <>{children}</>;
 }

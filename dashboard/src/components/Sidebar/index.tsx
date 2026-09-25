@@ -81,7 +81,7 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
   const navItemsAfterActions = useMemo((): NavItem[] => {
     const items: NavItem[] = [];
 
-    if (tradingEnabled) {
+    if (tradingEnabled && isInvestor) {
       items.push({ label: 'Trading', path: '/trading', icon: ArrowsClockwiseIcon });
     }
 
@@ -105,7 +105,7 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
     items.push({ label: 'Publications', path: '/publications', icon: NewspaperIcon });
 
     return items;
-  }, [tradingEnabled, isCompany]);
+  }, [tradingEnabled, isInvestor, isCompany]);
 
   const signoutMutation = useMutation({
     mutationFn: () => signout(apiClient),

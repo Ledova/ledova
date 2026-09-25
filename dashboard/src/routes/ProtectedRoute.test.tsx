@@ -30,7 +30,7 @@ function renderGuard(valid: boolean, stale = true) {
             <Route
               path="/protected"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute audience="everyone">
                   <p>Protected content</p>
                 </ProtectedRoute>
               }
