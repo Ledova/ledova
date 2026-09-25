@@ -64,7 +64,7 @@ describe('the last click of signup', () => {
     act(() => result.current.completeSignup());
 
     await waitFor(() => expect(navigate).toHaveBeenCalled());
-    expect(refetch).toHaveBeenCalledWith({ queryKey: AUTH_QUERY_KEY, exact: true });
+    expect(refetch).toHaveBeenCalledWith({ queryKey: AUTH_QUERY_KEY, exact: true }, { throwOnError: true });
   });
 
   it('does not navigate until that answer is back, so the guard cannot read a stale one', async () => {
@@ -120,6 +120,25 @@ describe('the last click of signup', () => {
     expect(client.getQueryData(['userProfiles'])).toEqual({
       data: { results: [{ uuid: 'profile-1', isSignupCompleted: true }] },
     });
+  });
+
+  it('stays on the review when the refreshed profile cannot be read, so the guard does not read the old one', async () => {
+    vi.mocked(getUserProfiles)
+      .mockClear()
+      .mockResolvedValueOnce({ data: { results: [{ uuid: 'profile-1' }] } } as Awaited<
+        ReturnType<typeof getUserProfiles>
+      >)
+      .mockRejectedValueOnce(new Error('Network unavailable'));
+    const { wrapper } = harness();
+    const { result } = renderHook(() => useReview(), { wrapper });
+    await waitFor(() => expect(result.current.canCompleteSignup).toBe(true));
+
+    act(() => result.current.completeSignup());
+
+    await waitFor(() => expect(result.current.error).toBe('Network unavailable'));
+    await waitFor(() => expect(result.current.isSubmitting).toBe(false));
+    expect(vi.mocked(getUserProfiles)).toHaveBeenCalledTimes(2);
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it.each([

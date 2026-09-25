@@ -5,8 +5,8 @@ import { canOpen, landingFor, type Audience } from '@ledova/shared';
 import { useAuth } from '@hooks/useAuth';
 import { useRole } from '@hooks/useRole';
 import { useUserProfile } from '@pages/user-profile/useUserProfile';
-
-const SIGNUP_RESUMES_AT = '/signup/account-type';
+import { AccountUnavailable } from './AccountUnavailable';
+import { SIGNUP_RESUMES_AT } from './signupRoutes';
 
 function RoleUnavailable({ onRetry }: { onRetry: () => void }) {
   return (
@@ -29,7 +29,7 @@ function RoleUnavailable({ onRetry }: { onRetry: () => void }) {
 export function ProtectedRoute({ audience, children }: { audience: Audience; children: ReactNode }) {
   const { isAuthenticated, isLoading, isFetching } = useAuth();
   const { role, isKnown, isUnavailable, retry } = useRole();
-  const { userProfile, isLoading: isProfileLoading } = useUserProfile();
+  const { userProfile, isLoading: isProfileLoading, refreshProfile } = useUserProfile();
   const needsRole = isAuthenticated && audience !== 'everyone';
   const waitingForAccount = isAuthenticated && (isProfileLoading || (needsRole && !isKnown && !isUnavailable));
 
@@ -47,7 +47,9 @@ export function ProtectedRoute({ audience, children }: { audience: Audience; chi
 
   if (!isAuthenticated) return <Navigate to="/signin" replace />;
 
-  if (!userProfile?.isSignupCompleted) return <Navigate to={SIGNUP_RESUMES_AT} replace />;
+  if (!userProfile) return <AccountUnavailable onRetry={refreshProfile} />;
+
+  if (!userProfile.isSignupCompleted) return <Navigate to={SIGNUP_RESUMES_AT} replace />;
 
   if (needsRole && !isKnown) return <RoleUnavailable onRetry={() => void retry()} />;
 

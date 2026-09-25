@@ -43,11 +43,14 @@ after a completed failure does not restore initial loading; public forms keep
 their nested auth consumers mounted, so another failure cannot create a remount
 loop. The dashboard's protected route keeps protected content hidden while a
 cached negative is rechecked, and redirects after a negative answer or failure.
-Signup completion awaits its explicit auth refresh and a fresh profile before
-navigating, so the guard does not read an unfinished sign-up and send the
-account back into it.
+Email verification issues the session, so it awaits the same explicit auth
+refresh that sign-in does before moving on to the next step. Signup completion
+awaits its explicit auth refresh and a fresh profile before navigating, so the
+guard does not read an unfinished sign-up and send the account back into it; if
+either refresh fails, it stays on the review and shows its error.
 `packages/shared/tests/hooks/useAuth.test.tsx` and the dashboard's
-`ProtectedRoute.test.tsx` cover these policies.
+`ProtectedRoute.test.tsx` and `SignupRoute.session.test.tsx` cover these
+policies.
 
 Both clients use the shared `useUserPreferences` and `useCurrency` hooks.
 Preferences and exchange-rate queries start only after authentication; cached

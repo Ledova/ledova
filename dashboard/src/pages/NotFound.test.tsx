@@ -9,10 +9,12 @@ import type { AccountRole } from '@ledova/shared';
 import Layout from '@components/Layout';
 import { useAuth } from '@hooks/useAuth';
 import { useRole } from '@hooks/useRole';
+import { useUserProfile } from '@pages/user-profile/useUserProfile';
 import NotFoundPage from './NotFound';
 
 vi.mock('@hooks/useAuth', () => ({ useAuth: vi.fn() }));
 vi.mock('@hooks/useRole', () => ({ useRole: vi.fn() }));
+vi.mock('@pages/user-profile/useUserProfile', () => ({ useUserProfile: vi.fn() }));
 vi.mock('@components/Sidebar', () => ({ Sidebar: () => <nav aria-label="Sidebar" /> }));
 vi.mock('@components/DesktopHeader', () => ({ DesktopHeader: () => null }));
 vi.mock('@components/MobileHeader', () => ({ MobileHeader: () => null }));
@@ -26,17 +28,25 @@ vi.mock('@hooks/useSendTransfer', () => ({
 
 function visit({
   signedIn,
+  finished = true,
   role = 'investor',
   isLoading = false,
+  address = '/no-such-page',
 }: {
   signedIn: boolean;
+  finished?: boolean;
   role?: AccountRole;
   isLoading?: boolean;
+  address?: string;
 }) {
   vi.mocked(useAuth).mockReturnValue({ isAuthenticated: signedIn, isLoading } as ReturnType<typeof useAuth>);
   vi.mocked(useRole).mockReturnValue({ role, isLoading: false } as ReturnType<typeof useRole>);
+  vi.mocked(useUserProfile).mockReturnValue({
+    userProfile: signedIn ? { isSignupCompleted: finished } : null,
+    isLoading: false,
+  } as ReturnType<typeof useUserProfile>);
   render(
-    <MemoryRouter initialEntries={['/no-such-page']}>
+    <MemoryRouter initialEntries={[address]}>
       <Layout>
         <Routes>
           <Route path="*" element={<NotFoundPage />} />
@@ -68,6 +78,24 @@ describe('an address that is not a page', () => {
     expect(screen.getByRole('heading', { name: 'There is no page at this address' })).toBeTruthy();
     expect(screen.getByRole('link', { name: label }).getAttribute('href')).toBe(landing);
     expect(screen.getByRole('navigation', { name: 'Sidebar' })).toBeTruthy();
+  });
+
+  it('shows an account that has not finished sign-up the page without the frame, with a way back into sign-up', () => {
+    visit({ signedIn: true, finished: false });
+
+    expect(screen.getByRole('heading', { level: 1, name: 'There is no page at this address' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Continue signing up' }).getAttribute('href')).toBe('/signup/account-type');
+    expect(screen.queryByRole('navigation', { name: 'Sidebar' })).toBeNull();
+  });
+
+  it.each([
+    ['a finished account', true, 2, true],
+    ['an account still signing up', false, 1, false],
+  ] as const)('shows %s the same frame and page at an unknown address under /signup', (_, finished, level, framed) => {
+    visit({ signedIn: true, finished, address: '/signup/typo' });
+
+    expect(screen.getByRole('heading', { level, name: 'There is no page at this address' })).toBeTruthy();
+    expect(screen.queryByRole('navigation', { name: 'Sidebar' }) !== null).toBe(framed);
   });
 
   it('says nothing until it knows whether the visitor is signed in', () => {

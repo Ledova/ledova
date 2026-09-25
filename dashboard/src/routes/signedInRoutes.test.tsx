@@ -38,7 +38,14 @@ const retry = vi.fn();
 function open(
   key: DestinationKey,
   role: AccountRole,
-  { roleLoading = false, roleUnavailable = false, signedIn = true, signupFinished = true, profileLoading = false } = {},
+  {
+    roleLoading = false,
+    roleUnavailable = false,
+    signedIn = true,
+    signupFinished = true,
+    profileLoading = false,
+    profileFailed = false,
+  } = {},
 ) {
   useAuthMock.mockReturnValue({ isAuthenticated: signedIn, isLoading: false, isFetching: false } as ReturnType<
     typeof useAuth
@@ -51,9 +58,11 @@ function open(
     retry,
   } as unknown as ReturnType<typeof useRole>);
   useUserProfileMock.mockReturnValue({
-    userProfile: profileLoading ? null : { isSignupCompleted: signupFinished },
+    userProfile: profileLoading || profileFailed ? null : { isSignupCompleted: signupFinished },
     isLoading: profileLoading,
-  } as ReturnType<typeof useUserProfile>);
+    isError: profileFailed,
+    refreshProfile: vi.fn(),
+  } as unknown as ReturnType<typeof useUserProfile>);
   render(
     <MemoryRouter initialEntries={[addressOf(key)]}>
       <Routes>
@@ -164,6 +173,14 @@ describe('which signed-in pages an account can open', () => {
     open(key, 'both', { signupFinished: false });
     expect(sentTo('signup')).toBe(true);
     expect(screen.queryByText(key)).toBeNull();
+  });
+
+  it('shows an account whose profile could not be read an error, and does not send it into sign-up', () => {
+    open('home', 'investor', { profileFailed: true });
+    expect(screen.getByRole('alert')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
+    expect(screen.queryByText('home')).toBeNull();
+    expect(screen.queryByText('signup')).toBeNull();
   });
 
   it('shows the session check on a page for everyone until the profile says whether sign-up is finished', () => {

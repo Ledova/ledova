@@ -104,8 +104,8 @@ export const useReview = (): ReviewHookReturn => {
     onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['userPreferences'] });
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['userProfiles'] }),
-        queryClient.refetchQueries({ queryKey: AUTH_QUERY_KEY, exact: true }),
+        queryClient.invalidateQueries({ queryKey: ['userProfiles'] }, { throwOnError: true }),
+        queryClient.refetchQueries({ queryKey: AUTH_QUERY_KEY, exact: true }, { throwOnError: true }),
       ]);
       navigate(landingFor(signupRole));
     },

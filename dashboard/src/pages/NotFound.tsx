@@ -3,6 +3,9 @@ import { DESTINATIONS, landingFor } from '@ledova/shared';
 import { AuthLayout } from '@components/AuthLayout';
 import { useAuth } from '@hooks/useAuth';
 import { useRole } from '@hooks/useRole';
+import { useSignupFinished } from '@hooks/useSignupFinished';
+import { useUserProfile } from '@pages/user-profile/useUserProfile';
+import { SIGNUP_RESUMES_AT } from '../routes/signupRoutes';
 
 function Missing({ heading: Heading, to, label }: { heading: 'h1' | 'h2'; to: string; label: string }) {
   return (
@@ -23,14 +26,20 @@ function Missing({ heading: Heading, to, label }: { heading: 'h1' | 'h2'; to: st
 
 export const NotFoundPage = () => {
   const { isAuthenticated, isLoading } = useAuth();
+  const { isLoading: isProfileLoading } = useUserProfile();
   const { role, isLoading: isRoleLoading } = useRole();
+  const framed = useSignupFinished();
 
-  if (isLoading || (isAuthenticated && isRoleLoading)) return null;
+  if (isLoading || isProfileLoading || (framed && isRoleLoading)) return null;
 
-  if (!isAuthenticated) {
+  if (!framed) {
     return (
       <AuthLayout>
-        <Missing heading="h1" to="/signin" label="Sign in" />
+        {isAuthenticated ? (
+          <Missing heading="h1" to={SIGNUP_RESUMES_AT} label="Continue signing up" />
+        ) : (
+          <Missing heading="h1" to="/signin" label="Sign in" />
+        )}
       </AuthLayout>
     );
   }

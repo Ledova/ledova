@@ -2,24 +2,16 @@ import { Sidebar } from './Sidebar';
 import { DesktopHeader } from './DesktopHeader';
 import { MobileHeader } from './MobileHeader';
 import Footer from './Footer';
-import { useLocation } from 'react-router-dom';
 import type { LayoutProps } from '@ledova/shared';
 import { HeaderActionsProvider } from '@hooks/useHeaderActions';
 import { BuyCryptoProvider } from '@hooks/useBuyCrypto';
 import { SendTransferProvider } from '@hooks/useSendTransfer';
-import { useAuth } from '@hooks/useAuth';
+import { useSignupFinished } from '@hooks/useSignupFinished';
 
 export default function Layout({ children }: LayoutProps) {
-  const location = useLocation();
-  const { isAuthenticated } = useAuth();
+  const framed = useSignupFinished();
 
-  const isPublicPage =
-    !isAuthenticated ||
-    location.pathname === '/' ||
-    location.pathname === '/signin' ||
-    location.pathname.startsWith('/signup');
-
-  if (isPublicPage) {
+  if (!framed) {
     return (
       <div className="relative flex min-h-screen min-w-[390px] flex-col bg-surface-base text-text-primary">
         <div className="flex flex-grow flex-col">{children}</div>
