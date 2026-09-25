@@ -1,48 +1,34 @@
-import { Info as InfoIcon } from '@phosphor-icons/react';
+import { PageHeader } from '../components/PageHeader';
+import { GITHUB_URL } from '../appLinks';
+
+const CHANNELS = [
+  { title: 'Questions about Ledova', label: 'hello@ledova.io', href: 'mailto:hello@ledova.io' },
+  { title: 'Bugs and feature requests', label: 'Open an issue on GitHub', href: `${GITHUB_URL}/issues` },
+  { title: 'Code of Conduct reports', label: 'conduct@ledova.io', href: 'mailto:conduct@ledova.io' },
+];
 
 export function Contact() {
   return (
     <>
-      <section className="pb-16 pt-24 lg:pt-32">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="mx-auto max-w-3xl text-center">
-            <h1 className="text-4xl font-bold text-text-primary sm:text-5xl">Contact Us</h1>
-            <p className="mt-4 text-lg text-text-muted">
-              Deployment and support are provided by each environment owner.
-            </p>
-          </div>
-        </div>
-      </section>
+      <PageHeader title="Contact" lead="Tell us about your company's register, or ask us anything about Ledova." />
 
-      <section className="border-t border-border-subtle bg-surface-raised/50 py-24">
-        <div className="mx-auto max-w-2xl px-6">
-          <div>
-            <div className="rounded-2xl border border-border-subtle bg-surface-base/80 p-6 transition-colors hover:border-border">
-              <div className="flex items-start gap-4">
-                <div className="shrink-0 rounded-xl bg-brand/10 p-3">
-                  <InfoIcon size={24} weight="duotone" className="text-brand-light" />
-                </div>
-                <div>
-                  <h2 className="mb-2 text-lg font-semibold text-text-primary">Reference project</h2>
-                  <p className="text-sm text-text-muted">
-                    This source repository does not operate a hosted service, support desk, office, or regulated
-                    business. A deployment owner must publish their own support and contact details.
-                  </p>
-                  <p className="mt-3 text-sm text-text-muted">
-                    Questions about the project itself:{' '}
-                    <a href="mailto:hello@ledova.io" className="text-brand-light hover:underline">
-                      hello@ledova.io
-                    </a>{' '}
-                    &middot; Code of Conduct reports:{' '}
-                    <a href="mailto:conduct@ledova.io" className="text-brand-light hover:underline">
-                      conduct@ledova.io
-                    </a>
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <section className="border-t border-rule">
+        <ul className="mx-auto max-w-3xl px-5 py-12 md:px-8 lg:py-16">
+          {CHANNELS.map((channel) => (
+            <li
+              key={channel.title}
+              className="flex flex-col gap-1.5 border-b border-rule py-5 first:pt-0 sm:flex-row sm:items-baseline sm:justify-between"
+            >
+              <span className="text-base font-semibold text-ink">{channel.title}</span>
+              <a
+                href={channel.href}
+                className="text-base text-ledger underline decoration-transparent underline-offset-4 transition-colors hover:decoration-ledger"
+              >
+                {channel.label}
+              </a>
+            </li>
+          ))}
+        </ul>
       </section>
     </>
   );
