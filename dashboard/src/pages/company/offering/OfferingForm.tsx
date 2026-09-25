@@ -247,7 +247,7 @@ export function OfferingForm({
           )}
 
           {!hasARail && (
-            <p className="text-sm text-status-danger">
+            <p className="text-sm text-error-light">
               Choose at least one way to be paid. An offering nobody can pay for cannot be submitted.
             </p>
           )}

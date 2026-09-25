@@ -9,8 +9,10 @@ interface QRScannerViewProps {
 
 export function QRScannerView({ scannerId, error, className, style }: QRScannerViewProps) {
   return (
-    <div className={className ?? 'relative overflow-hidden rounded-lg bg-black'} style={style}>
-      <div id={scannerId} className="w-full aspect-square" />
+    <div>
+      <div className={className ?? 'relative overflow-hidden rounded-lg bg-black'} style={style}>
+        <div id={scannerId} className="w-full aspect-square" />
+      </div>
       {error && <p className="text-error-light text-xs mt-2">{error}</p>}
     </div>
   );
