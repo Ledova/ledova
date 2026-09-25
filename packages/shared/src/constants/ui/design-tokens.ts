@@ -89,6 +89,7 @@ function buildColors(p: {
   badge: { successBg: string; infoBg: string };
   interactive: { selectedBg: string };
   chart?: readonly string[];
+  chain?: { ethereum: string; bitcoin: string; base: string };
 }) {
   const colors = {
     surface: { ...p.surface, transparent: 'transparent' },
@@ -134,7 +135,6 @@ function buildColors(p: {
       pointerStrip: p.chartUI.pointerStrip,
       tickColor: p.chartUI.tickColor,
       gridColor: p.chartUI.gridColor,
-      lineColor: '#60A5FA',
       lineBackground: p.chartUI.lineBackground,
       tooltip: {
         background: p.chartUI.tooltipBg,
@@ -143,11 +143,7 @@ function buildColors(p: {
         borderColor: p.chartUI.tooltipBorder,
       },
     },
-    chain: {
-      ethereum: '#627eea',
-      bitcoin: '#f7931a',
-      base: '#0052FF',
-    },
+    chain: p.chain ?? { ethereum: '#627eea', bitcoin: '#f7931a', base: '#0052FF' },
   } as const;
   return colors;
 }
@@ -303,7 +299,7 @@ const PAPER_THEME = buildColors({
   info: { light: '#0369a1', default: '#0369a1' },
   chartUI: {
     pointerStrip: LIGHT_COLORS.chartUI.pointerStrip,
-    tickColor: LIGHT_COLORS.chartUI.tickColor,
+    tickColor: PAPER_COLORS.ink.muted,
     gridColor: LIGHT_COLORS.chartUI.gridColor,
     lineBackground: LIGHT_COLORS.chartUI.lineBackground,
     tooltipBg: LIGHT_COLORS.chartUI.tooltip.background,
@@ -314,6 +310,7 @@ const PAPER_THEME = buildColors({
   badge: { successBg: `${PALETTE.green[600]}20`, infoBg: PAPER_COLORS.paper.deep },
   interactive: { selectedBg: PAPER_COLORS.ledger.default + '1A' },
   chart: ['#1d4ed8', PAPER_COLORS.ledger.default, '#b45309', '#b91c1c', '#6d28d9', '#be185d'],
+  chain: { ethereum: '#4c5fd5', bitcoin: '#c2410c', base: '#0052FF' },
 });
 
 function shadow(offsetY: number, blurRadius: number, opacity: number, elevation: number) {

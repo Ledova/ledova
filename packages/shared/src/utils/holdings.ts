@@ -62,7 +62,11 @@ export function calculateHoldingsSummary(holdings: HoldingWithWallet[], walletsC
   };
 }
 
-export function calculateAssetAllocation(holdings: HoldingWithWallet[], totalValue: number): AssetAllocationItem[] {
+export function calculateAssetAllocation(
+  holdings: HoldingWithWallet[],
+  totalValue: number,
+  palette?: readonly string[],
+): AssetAllocationItem[] {
   const assetMap = new Map<
     string,
     {
@@ -130,7 +134,7 @@ export function calculateAssetAllocation(holdings: HoldingWithWallet[], totalVal
       percentage: ((weighByQuantity ? data.totalQuantity : data.totalValue) / basisTotal) * 100,
       basis: (weighByQuantity ? 'quantity' : data.priced ? 'value' : 'unpriced') as AllocationBasis,
       source: data.source,
-      color: getChartColor(index),
+      color: getChartColor(index, palette),
       totalQuantity: data.totalQuantity,
       perChain: foldedByChain(data.chains),
       navPerToken: data.navPerToken,
@@ -138,6 +142,6 @@ export function calculateAssetAllocation(holdings: HoldingWithWallet[], totalVal
     .sort((a, b) => b.percentage - a.percentage)
     .map((item, index) => ({
       ...item,
-      color: getChartColor(index),
+      color: getChartColor(index, palette),
     }));
 }
