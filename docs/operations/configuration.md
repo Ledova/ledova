@@ -122,6 +122,17 @@ bundle and must never hold a secret.
 | `marketing/.env` | `VITE_LEDOVA_URL`, `VITE_MARKETING_URL`, `VITE_HOST`, `VITE_PORT`, `VITE_ALLOWED_HOSTS` |
 | `mobile/.env` | `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_DEV_API_HOST`, `EXPO_PUBLIC_USE_MOCK_DATA`, `EXPO_PUBLIC_MARKETING_URL`, `EXPO_PUBLIC_SUPPORT_EMAIL`, `EXPO_PUBLIC_APP_STORE_URL` |
 
+The production images never read these files: `.dockerignore` keeps every
+`.env` out of the build context. Pass the public origins as build arguments
+instead:
+- `dashboard/.deployment/Dockerfile.prod` takes `VITE_API_URL` and
+  `VITE_MARKETING_URL`.
+- `marketing/.deployment/Dockerfile.prod` takes `VITE_LEDOVA_URL`, the dashboard
+  origin that its Register and Sign in links open.
+
+Each defaults to its local address, so a build without them links to
+`localhost`.
+
 Mobile Release builds require HTTPS. Native Debug accepts loopback, the Android
 emulator host, and one private LAN IPv4 explicitly selected with
 `EXPO_PUBLIC_DEV_API_HOST` before prebuild. Set the API/marketing URLs to that

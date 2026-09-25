@@ -31,7 +31,10 @@ The design tokens are the single source of colour, spacing and radius values.
 output and prettier-ignored. Tailwind v4 reads that `@theme` block and derives
 the utility classes (`bg-surface-base`, `text-text-body`,
 `border-border-subtle`). Never edit either file: CI regenerates them after `make
-build` and fails on any drift.
+build` and fails on any drift. `PAPER_COLORS` is a fixed light palette that
+ignores the theme. The marketing site is styled with it (`bg-paper`,
+`text-ink`, `border-rule`, `bg-ledger`), with Newsreader and Instrument Sans
+served from its own bundle.
 
 Mobile resolves the package through its Metro configuration and local workspace
 link. Run `npm --prefix mobile run check:resolution` after dependency/resolution
