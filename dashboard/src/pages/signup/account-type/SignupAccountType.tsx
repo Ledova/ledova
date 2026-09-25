@@ -98,11 +98,6 @@ export function SignupAccountType() {
                 <div className="flex-1">
                   <h3 className="text-base font-semibold text-text-primary">{option.title}</h3>
                   <p className="text-sm text-text-muted mt-1">{option.description}</p>
-                  {option.role === 'company' && (
-                    <span className="inline-block mt-1.5 px-1.5 py-0.5 text-[9px] font-medium tracking-wide text-purple-400/70 bg-purple-500/12 rounded">
-                      Early Access
-                    </span>
-                  )}
                 </div>
               </div>
             </button>
