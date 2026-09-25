@@ -24,6 +24,18 @@ Every client import is `from '@ledova/shared'`. `packages/shared/src/services`
 holds the API call functions both clients share; each takes the caller's axios
 instance as its first argument, so each client keeps its own interceptors.
 
+The dashboard's signed-in pages are listed once, in `DESTINATIONS`
+(`packages/shared/src/constants/ui/destinations.ts`), each with its address,
+title and subtitle. The dashboard builds its signed-in routes from a map keyed
+by that table, so TypeScript refuses an entry without a page or a page the
+table lacks, and the header takes its title from the same entry, detail pages
+included. `landingFor(role)` decides where a signed-in person lands: an
+investing account on its home, and a company or dual-role account on its
+company. The front door, sign-in, the end of sign-up, the signed-out pages and
+the trading fallback all use it; the front door, the signed-out pages and the
+trading fallback wait for the role before choosing.
+The mobile app does not read the table yet.
+
 The design tokens are the single source of colour, spacing and radius values.
 `make generate-tokens` runs `packages/scripts/generate-css-tokens.mjs` with
 `tsx` over `packages/shared/src/constants/ui/design-tokens.ts` and writes

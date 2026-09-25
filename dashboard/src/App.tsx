@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import type { ReactNode } from 'react';
-import { useAuth, useFeatureFlags } from '@hooks';
+import type { ReactElement, ReactNode } from 'react';
+import { DESTINATIONS, landingFor, type DestinationKey } from '@ledova/shared';
+import { useAuth, useFeatureFlags, useRole } from '@hooks';
 import NotFoundPage from '@pages/NotFound';
 import { RootRedirect } from './routes/RootRedirect';
 import { ProtectedRoute } from './routes/ProtectedRoute';
@@ -49,13 +50,14 @@ interface RouteGuardProps {
 
 function TradingRoute() {
   const { tradingEnabled, isLoading } = useFeatureFlags();
+  const { role, isLoading: isRoleLoading } = useRole();
 
-  if (isLoading) {
+  if (isLoading || isRoleLoading) {
     return <LoadingSpinner />;
   }
 
   if (!tradingEnabled) {
-    return <Navigate to="/home" replace />;
+    return <Navigate to={landingFor(role)} replace />;
   }
 
   return <TradingPage />;
@@ -63,10 +65,35 @@ function TradingRoute() {
 
 function PublicOnlyRoute({ children }: RouteGuardProps) {
   const { isAuthenticated, isLoading } = useAuth();
-  if (isLoading) return <LoadingSpinner />;
-  if (isAuthenticated) return <Navigate to="/home" replace />;
+  const { role, isLoading: isRoleLoading } = useRole();
+  if (isLoading || (isAuthenticated && isRoleLoading)) return <LoadingSpinner />;
+  if (isAuthenticated) return <Navigate to={landingFor(role)} replace />;
   return <>{children}</>;
 }
+
+const PAGES: Record<DestinationKey, ReactElement> = {
+  home: <HomePage />,
+  wallets: <WalletsPage />,
+  transactions: <TransactionsPage />,
+  assetPrices: <AssetPricesPage />,
+  trading: <TradingRoute />,
+  directory: <DirectoryPage />,
+  directoryDetail: <DirectoryTokenPage />,
+  subscriptions: <SubscriptionsPage />,
+  subscriptionDetail: <SubscriptionDetailPage />,
+  investorEligibility: <InvestorEligibilityPage />,
+  publications: <PublicationsPage />,
+  dividends: <DividendsPage />,
+  company: <CompanyPage />,
+  companyListing: <ListingPage />,
+  companyOffering: <OfferingPage />,
+  userProfile: <UserProfilePage />,
+  settings: <SettingsPage />,
+};
+
+const SIGNED_IN_ROUTES = (Object.keys(PAGES) as DestinationKey[]).map((key) => (
+  <Route key={key} path={DESTINATIONS[key].path} element={<ProtectedRoute>{PAGES[key]}</ProtectedRoute>} />
+));
 
 function App() {
   return (
@@ -100,150 +127,7 @@ function App() {
         <Route path="/signup/company-registration" element={<SignupCompanyRegistration />} />
         <Route path="/signup/review" element={<SignupReview />} />
 
-        <Route
-          path="/home"
-          element={
-            <ProtectedRoute>
-              <HomePage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/wallets"
-          element={
-            <ProtectedRoute>
-              <WalletsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/transactions"
-          element={
-            <ProtectedRoute>
-              <TransactionsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/asset-prices"
-          element={
-            <ProtectedRoute>
-              <AssetPricesPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <SettingsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/user-profile"
-          element={
-            <ProtectedRoute>
-              <UserProfilePage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/investor-eligibility"
-          element={
-            <ProtectedRoute>
-              <InvestorEligibilityPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/trading"
-          element={
-            <ProtectedRoute>
-              <TradingRoute />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/company"
-          element={
-            <ProtectedRoute>
-              <CompanyPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/company/tokens" element={<Navigate to="/company" replace />} />
-        <Route path="/company/shareholders" element={<Navigate to="/company" replace />} />
-        <Route path="/company/tokens/:uuid" element={<Navigate to="/company" replace />} />
-        <Route
-          path="/company/listing"
-          element={
-            <ProtectedRoute>
-              <ListingPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/company/offering"
-          element={
-            <ProtectedRoute>
-              <OfferingPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/directory"
-          element={
-            <ProtectedRoute>
-              <DirectoryPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/directory/:uuid"
-          element={
-            <ProtectedRoute>
-              <DirectoryTokenPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/subscriptions"
-          element={
-            <ProtectedRoute>
-              <SubscriptionsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/subscriptions/:uuid"
-          element={
-            <ProtectedRoute>
-              <SubscriptionDetailPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/publications"
-          element={
-            <ProtectedRoute>
-              <PublicationsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/dividends"
-          element={
-            <ProtectedRoute>
-              <DividendsPage />
-            </ProtectedRoute>
-          }
-        />
+        {SIGNED_IN_ROUTES}
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

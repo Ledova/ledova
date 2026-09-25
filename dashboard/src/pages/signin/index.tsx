@@ -3,7 +3,7 @@ import { useSignIn } from './useSignIn';
 import { Field, Label, Input, Description } from '@headlessui/react';
 import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockIcon, WarningIcon } from '@phosphor-icons/react';
 import { AuthLayout } from '@components/AuthLayout';
-import { DESIGN_TOKENS, getUserAccount } from '@ledova/shared';
+import { DESIGN_TOKENS, getUserAccount, landingFor } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 
 const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
@@ -18,9 +18,9 @@ export function SignInPage() {
     await handleSubmit(async () => {
       try {
         const { data: account } = await getUserAccount(apiClient);
-        navigate(account.role === 'company' ? '/company' : '/home');
+        navigate(landingFor(account.role ?? 'investor'));
       } catch {
-        navigate('/home');
+        navigate('/');
       }
     });
   };

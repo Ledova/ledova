@@ -10,8 +10,9 @@ import {
   useFinancialProfile,
   CACHE_TIMING,
   describeFailure,
+  landingFor,
 } from '@ledova/shared';
-import { useAccountRole } from '@hooks/useAccountRole';
+import { useRole } from '@hooks/useRole';
 import { AUTH_QUERY_KEY } from '@hooks/useAuth';
 import apiClient from '@services/apiClient';
 
@@ -32,7 +33,7 @@ export interface ReviewHookReturn {
 export const useReview = (): ReviewHookReturn => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { role: signupRole } = useAccountRole();
+  const { role: signupRole } = useRole();
 
   const userProfileQuery = useQuery({
     queryKey: ['userProfiles'],
@@ -104,7 +105,7 @@ export const useReview = (): ReviewHookReturn => {
       queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
       queryClient.invalidateQueries({ queryKey: ['userPreferences'] });
       await queryClient.refetchQueries({ queryKey: AUTH_QUERY_KEY, exact: true });
-      navigate(signupRole === 'company' ? '/company' : '/home');
+      navigate(landingFor(signupRole));
     },
     onError: (error) => {
       console.error(`Signup completion failed: ${describeFailure(error)}`);

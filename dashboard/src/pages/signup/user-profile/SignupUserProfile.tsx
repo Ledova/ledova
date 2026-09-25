@@ -4,7 +4,7 @@ import LoadingState from '@components/signup/LoadingState';
 import ErrorState from '@components/signup/ErrorState';
 import { UserProfileForm } from './components/UserProfileForm';
 import { useSignupUserProfile } from './useSignupUserProfile';
-import { useAccountRole } from '@hooks/useAccountRole';
+import { useRole } from '@hooks/useRole';
 import { AuthLayout } from '@components/AuthLayout';
 import { DESIGN_TOKENS } from '@ledova/shared';
 
@@ -12,7 +12,7 @@ const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 
 function SignupUserProfile() {
   const navigate = useNavigate();
-  const { isCompany } = useAccountRole();
+  const { isCompany } = useRole();
   const {
     form,
     errors,
