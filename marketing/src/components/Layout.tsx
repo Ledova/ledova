@@ -4,7 +4,7 @@ import { Navbar } from './Navbar';
 import { Footer } from './Footer';
 
 export function Layout() {
-  const { pathname, hash } = useLocation();
+  const { pathname, hash, key } = useLocation();
 
   useEffect(() => {
     if (hash) {
@@ -12,7 +12,7 @@ export function Layout() {
       return;
     }
     window.scrollTo({ top: 0, behavior: 'instant' });
-  }, [pathname, hash]);
+  }, [pathname, hash, key]);
 
   return (
     <div className="flex min-h-screen flex-col bg-paper text-ink">
