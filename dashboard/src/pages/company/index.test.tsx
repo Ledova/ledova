@@ -1,10 +1,16 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const useCompany = vi.fn();
 const useTokensList = vi.fn();
+const navigate = vi.fn();
+
+vi.mock('react-router-dom', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('react-router-dom')>()),
+  useNavigate: () => navigate,
+}));
 
 vi.mock('./hooks/useCompany', () => ({ useCompany: () => useCompany() }));
 vi.mock('./hooks/useTokens', () => ({ useTokensList: () => useTokensList() }));
@@ -72,5 +78,16 @@ describe('the Share Tokens panel', () => {
     render(<CompanyPage />);
 
     expect(screen.getByText('Share Tokens (0)')).toBeDefined();
+  });
+});
+
+describe("the company's application, under Company", () => {
+  it('opens the application from the title row', () => {
+    aCompanyWith([], 0);
+
+    render(<CompanyPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Application' }));
+
+    expect(navigate).toHaveBeenCalledWith('/company/listing');
   });
 });

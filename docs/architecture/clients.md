@@ -44,14 +44,30 @@ address. Every page shows the session check until the profile is known, and an
 investing or company page until the role is known as well, so no page appears
 on the way. If the account cannot be read, it says so and offers Try again
 instead of deciding with a guessed role. Once the role is known, the sidebar
-offers only pages the role can open. Signing in, and verifying an email, which
-also signs a new person in, clear what the tab cached for whoever was signed in
-before, as signing out does, so a new person is never guarded by, or signs up
-against, the previous person's account. Buying crypto and sending are actions on
-Wallets for every account, not menu items, and the dashboard has no coin-price
-page or favourites; Home's market card still lists coin prices until Holdings
-replaces it. Every market value is in AUD: the shared `useCurrency` converts
-the API's US-dollar values at the current rate, including Home's charts, shows
+offers only pages the role can open, in groups:
+- a company's own group first, named after the company, with Offerings and
+  Company. The owner's menu puts Register first in this group, and #748 adds it.
+  The company's application sits under Company, opened from the Company page's
+  title row, rather than as a menu item.
+- _Your shares_ for every account;
+- _Invest_ for an investing account, with Market only while trading is on;
+- then Wallets, Profile, Settings and Help.
+
+Each item takes its name and address from its entry in `DESTINATIONS`, so a
+menu label always matches the page's title. Until a new page exists, its name
+points at today's page: Holdings at the crypto home, Notices at Publications,
+and Activity at Transactions. The mobile app keeps the old names until #750
+gives it the same structure. So, for now, Market means share trading on the
+web but the coin-price screen in the app.
+
+Signing in, and verifying an email, which also signs a new person in, clear
+what the tab cached for whoever was signed in before, as signing out does, so a
+new person is never guarded by, or signs up against, the previous person's
+account. Buying crypto and sending are actions on Wallets for every account,
+not menu items, and the dashboard has no coin-price page or favourites.
+Holdings, today's crypto home, keeps its "Coin prices" card until step 5
+rebuilds it. Every market value is in AUD: the shared `useCurrency` converts
+the API's US-dollar values at the current rate, including Holdings' charts, shows
 a dash and draws no chart while the rate is unknown, and neither client offers
 another currency. An offering's prices and an application's amounts are in the
 offering's own currency, which defaults to AUD. The Buy step shows each

@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   HouseIcon,
   WalletIcon,
@@ -10,14 +10,14 @@ import {
   QuestionIcon,
   SignOutIcon,
   BuildingsIcon,
-  FileTextIcon,
   ShieldCheckIcon,
   MegaphoneIcon,
   NewspaperIcon,
   StorefrontIcon,
   HandCoinsIcon,
 } from '@phosphor-icons/react';
-import { DESIGN_TOKENS } from '@ledova/shared';
+import { DESIGN_TOKENS, DESTINATIONS, getCompanies, type DestinationKey } from '@ledova/shared';
+import apiClient from '@services/apiClient';
 import { useFeatureFlags } from '@hooks/useFeatureFlags';
 import { useRole } from '@hooks/useRole';
 import { useSignOut } from '@hooks/useSignOut';
@@ -28,36 +28,74 @@ import { NotificationBell } from '@components/NotificationBell';
 
 const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 
+type Icon = React.ComponentType<{ size?: number; weight?: 'regular' | 'fill' }>;
+
 interface NavItem {
-  label: string;
-  path: string;
-  icon: React.ComponentType<{ size?: number; weight?: 'regular' | 'fill' }>;
+  destination: DestinationKey;
+  icon: Icon;
 }
 
-const secondaryNavItems: NavItem[] = [
-  { label: 'Profile', path: '/user-profile', icon: UserIcon },
-  { label: 'Settings', path: '/settings', icon: GearIcon },
+interface NavGroup {
+  id: string;
+  label?: string;
+  items: NavItem[];
+}
+
+const COMPANY: NavItem[] = [
+  { destination: 'companyOffering', icon: MegaphoneIcon },
+  { destination: 'company', icon: BuildingsIcon },
+];
+
+const YOUR_SHARES: NavItem[] = [
+  { destination: 'home', icon: HouseIcon },
+  { destination: 'publications', icon: NewspaperIcon },
+  { destination: 'transactions', icon: LinkIcon },
+];
+
+const MARKET: NavItem = { destination: 'trading', icon: ArrowsClockwiseIcon };
+
+const INVEST: NavItem[] = [
+  { destination: 'directory', icon: StorefrontIcon },
+  { destination: 'subscriptions', icon: HandCoinsIcon },
+  MARKET,
+  { destination: 'investorEligibility', icon: ShieldCheckIcon },
+];
+
+const YOURS: NavItem[] = [
+  { destination: 'wallets', icon: WalletIcon },
+  { destination: 'userProfile', icon: UserIcon },
+  { destination: 'settings', icon: GearIcon },
 ];
 
 const ITEM_CLASS = 'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors';
 const IDLE_CLASS = 'text-text-secondary hover:bg-surface-tertiary hover:text-text-primary';
 
 function GroupLabel({ children }: { children: string }) {
-  return <p className="mb-1 px-3 text-xs font-medium uppercase tracking-wider text-text-muted">{children}</p>;
+  return <p className="mb-1 truncate px-3 text-xs font-medium uppercase tracking-wider text-text-muted">{children}</p>;
 }
 
 function NavButton({ item, active, onSelect }: { item: NavItem; active: boolean; onSelect: (path: string) => void }) {
   const Icon = item.icon;
+  const { path, title } = DESTINATIONS[item.destination];
   return (
     <button
-      onClick={() => onSelect(item.path)}
+      onClick={() => onSelect(path)}
       aria-current={active ? 'page' : undefined}
       className={`${ITEM_CLASS} ${active ? 'bg-brand-mid/10 text-brand-light' : IDLE_CLASS}`}
     >
       <Icon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
-      <span>{item.label}</span>
+      <span>{title}</span>
     </button>
   );
+}
+
+function useCompanyName(isCompany: boolean): string | undefined {
+  const companies = useQuery({
+    queryKey: ['companies'],
+    queryFn: () => getCompanies(apiClient),
+    enabled: isCompany,
+  });
+  return companies.data?.data?.results?.[0]?.name || undefined;
 }
 
 interface SidebarProps {
@@ -71,49 +109,17 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
   const { tradingEnabled } = useFeatureFlags();
   const { isInvestor, isCompany } = useRole();
   const { userProfile } = useUserProfile();
-
-  const navItems = useMemo((): NavItem[] => {
-    const items: NavItem[] =
-      isCompany && !isInvestor
-        ? [
-            { label: 'Company', path: '/company', icon: BuildingsIcon },
-            { label: 'Listing', path: '/company/listing', icon: FileTextIcon },
-            { label: 'Offering', path: '/company/offering', icon: MegaphoneIcon },
-            { label: 'Wallets', path: '/wallets', icon: WalletIcon },
-          ]
-        : [
-            { label: 'Home', path: '/home', icon: HouseIcon },
-            { label: 'Wallets', path: '/wallets', icon: WalletIcon },
-          ];
-
-    if (tradingEnabled && isInvestor) {
-      items.push({ label: 'Trading', path: '/trading', icon: ArrowsClockwiseIcon });
-    }
-
-    if (isInvestor) {
-      items.push(
-        { label: 'Transactions', path: '/transactions', icon: LinkIcon },
-        { label: 'Directory', path: '/directory', icon: StorefrontIcon },
-        { label: 'Subscriptions', path: '/subscriptions', icon: HandCoinsIcon },
-        { label: 'Eligibility', path: '/investor-eligibility', icon: ShieldCheckIcon },
-      );
-    }
-
-    if (isCompany && isInvestor) {
-      items.push(
-        { label: 'Company', path: '/company', icon: BuildingsIcon },
-        { label: 'Offering', path: '/company/offering', icon: MegaphoneIcon },
-      );
-    }
-
-    items.push({ label: 'Publications', path: '/publications', icon: NewspaperIcon });
-
-    return items;
-  }, [tradingEnabled, isInvestor, isCompany]);
-
+  const companyName = useCompanyName(isCompany);
   const { signOut, isSigningOut } = useSignOut();
 
-  const isActive = (path: string) => location.pathname === path;
+  const groups: NavGroup[] = [
+    ...(isCompany ? [{ id: 'company', label: companyName ?? DESTINATIONS.company.title, items: COMPANY }] : []),
+    { id: 'shares', label: 'Your shares', items: YOUR_SHARES },
+    ...(isInvestor
+      ? [{ id: 'invest', label: 'Invest', items: INVEST.filter((item) => item !== MARKET || tradingEnabled) }]
+      : []),
+    { id: 'yours', items: YOURS },
+  ];
 
   const handleNav = (path: string) => {
     navigate(path);
@@ -128,29 +134,31 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
       </div>
 
       <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
-        <div className="space-y-1">
-          <GroupLabel>Menu</GroupLabel>
-          {navItems.map((item) => (
-            <NavButton key={item.path} item={item} active={isActive(item.path)} onSelect={handleNav} />
-          ))}
-        </div>
-
-        <div className="space-y-1">
-          <GroupLabel>Account</GroupLabel>
-          {secondaryNavItems.map((item) => (
-            <NavButton key={item.path} item={item} active={isActive(item.path)} onSelect={handleNav} />
-          ))}
-          <a
-            href={`${MARKETING_URL}/contact`}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => onNavigate?.()}
-            className={`${ITEM_CLASS} ${IDLE_CLASS}`}
-          >
-            <QuestionIcon size={ICON_MD} />
-            <span>Help & Support</span>
-          </a>
-        </div>
+        {groups.map((group) => (
+          <div key={group.id} className="space-y-1">
+            {group.label && <GroupLabel>{group.label}</GroupLabel>}
+            {group.items.map((item) => (
+              <NavButton
+                key={item.destination}
+                item={item}
+                active={location.pathname === DESTINATIONS[item.destination].path}
+                onSelect={handleNav}
+              />
+            ))}
+            {group.id === 'yours' && (
+              <a
+                href={`${MARKETING_URL}/contact`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => onNavigate?.()}
+                className={`${ITEM_CLASS} ${IDLE_CLASS}`}
+              >
+                <QuestionIcon size={ICON_MD} />
+                <span>Help & Support</span>
+              </a>
+            )}
+          </div>
+        ))}
       </nav>
 
       <div className="border-t border-border-subtle p-3">
