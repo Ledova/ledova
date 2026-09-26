@@ -37,36 +37,10 @@ export function useNotificationPreferences() {
     [updateMutation],
   );
 
-  const togglePriceAlerts = useCallback(
-    async (value: boolean) => {
-      try {
-        await updateMutation.mutateAsync({ priceAlerts: value });
-      } catch {
-        Alert.alert('Error', 'Failed to update notification settings. Please try again.', [{ text: 'OK' }]);
-      }
-    },
-    [updateMutation],
-  );
-
-  const toggleMarketing = useCallback(
-    async (value: boolean) => {
-      try {
-        await updateMutation.mutateAsync({ marketing: value });
-      } catch {
-        Alert.alert('Error', 'Failed to update notification settings. Please try again.', [{ text: 'OK' }]);
-      }
-    },
-    [updateMutation],
-  );
-
   return {
     transactionAlerts: preferences?.transactionAlerts ?? true,
-    priceAlerts: preferences?.priceAlerts ?? false,
-    marketing: preferences?.marketing ?? false,
 
     toggleTransactionAlerts,
-    togglePriceAlerts,
-    toggleMarketing,
 
     isUpdating: updateMutation.isPending,
   };

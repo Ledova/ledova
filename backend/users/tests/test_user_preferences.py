@@ -30,23 +30,19 @@ class UserPreferencesEndpointTest(APITestCase):
         self.assertEqual(created.status_code, 200, created.content)
 
         body = self.client.get("/api/user-preferences/").json()
-        self.assertEqual(
-            set(body), {"uuid", "userProfile", "userAccount", "selectedPortfolio", "theme", "displayCurrency"}
-        )
+        self.assertEqual(set(body), {"uuid", "userProfile", "userAccount", "selectedPortfolio", "theme"})
         self.assertEqual(set(body["userAccount"]), {"uuid", "accountNumber", "accountType", "activationDate", "role"})
         self.assertEqual(body["userAccount"]["uuid"], str(self.account.uuid))
         self.assertEqual(set(body["selectedPortfolio"]), {"uuid", "userAccount", "name", "isActive"})
         self.assertEqual(body["selectedPortfolio"]["userAccount"], str(self.account.uuid))
         self.assertEqual(body["theme"], "dark")
-        self.assertEqual(body["displayCurrency"], "AUD")
 
     def test_post_upserts_the_single_row(self):
         first = self.post(selectedPortfolio=str(self.portfolio.uuid)).json()
-        second = self.post(displayCurrency="USD", theme="light").json()
+        second = self.post(theme="light").json()
 
         self.assertEqual(first["uuid"], second["uuid"])
         self.assertEqual(UserPreferences.objects.filter(user_profile=self.profile).count(), 1)
-        self.assertEqual(second["displayCurrency"], "USD")
         self.assertEqual(second["theme"], "light")
         self.assertEqual(second["selectedPortfolio"]["uuid"], str(self.portfolio.uuid))
 

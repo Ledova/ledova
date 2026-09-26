@@ -33,28 +33,10 @@ export function useNotificationPreferences() {
     [updateMutation],
   );
 
-  const togglePriceAlerts = useCallback(
-    async (value: boolean) => {
-      await updateMutation.mutateAsync({ priceAlerts: value });
-    },
-    [updateMutation],
-  );
-
-  const toggleMarketing = useCallback(
-    async (value: boolean) => {
-      await updateMutation.mutateAsync({ marketing: value });
-    },
-    [updateMutation],
-  );
-
   return {
     transactionAlerts: preferences?.transactionAlerts ?? true,
-    priceAlerts: preferences?.priceAlerts ?? false,
-    marketing: preferences?.marketing ?? false,
     isLoading: preferencesQuery.isLoading,
     isUpdating: updateMutation.isPending,
     toggleTransactionAlerts,
-    togglePriceAlerts,
-    toggleMarketing,
   };
 }

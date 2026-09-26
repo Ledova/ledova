@@ -12,8 +12,6 @@ class NotificationPreferencesSerializer(serializers.ModelSerializer):
             "uuid",
             "user_profile",
             "transaction_alerts",
-            "price_alerts",
-            "marketing",
             "created_at",
             "updated_at",
         )
