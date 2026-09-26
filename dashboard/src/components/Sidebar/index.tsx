@@ -121,6 +121,12 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
     { id: 'yours', items: YOURS },
   ];
 
+  const activePath = groups
+    .flatMap((group) => group.items)
+    .map((item) => DESTINATIONS[item.destination].path)
+    .filter((path) => location.pathname === path || location.pathname.startsWith(`${path}/`))
+    .sort((a, b) => b.length - a.length)[0];
+
   const handleNav = (path: string) => {
     navigate(path);
     onNavigate?.();
@@ -141,7 +147,7 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
               <NavButton
                 key={item.destination}
                 item={item}
-                active={location.pathname === DESTINATIONS[item.destination].path}
+                active={DESTINATIONS[item.destination].path === activePath}
                 onSelect={handleNav}
               />
             ))}
