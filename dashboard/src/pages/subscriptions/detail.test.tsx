@@ -86,19 +86,21 @@ it('states each figure as a whole-share count or an amount that names its curren
   expect(row('Payment reference')).toBe('PAY1A2B3C4D');
 });
 
-it('lists what has happened in the order it happened, each with its date, and what happens next', async () => {
+it('lists recorded events in workflow step order, each with its date, and what happens next', async () => {
   show();
 
+  const localDate = (instant: string) =>
+    new Intl.DateTimeFormat('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(instant));
   const history = (await screen.findByText('History')).closest('section')!;
   expect(
     within(history)
       .getAllByRole('listitem')
       .map((item) => item.textContent),
   ).toEqual([
-    'Drafted20 September 2026',
-    'Submitted for review20 September 2026',
-    'Accepted by the operator21 September 2026',
-    'Payment instruction issued21 September 2026',
+    `Drafted${localDate(application.createdAt)}`,
+    `Submitted for review${localDate(application.submittedAt)}`,
+    `Accepted by the operator${localDate(application.acceptedAt)}`,
+    `Payment instruction issued${localDate(application.paymentInstructionIssuedAt)}`,
     'Payment received23 September 2026',
   ]);
   expect(within(history).getByText(/^Next: /)).toBeTruthy();
@@ -141,7 +143,7 @@ it.each([
 });
 
 it('offers neither action once money has been received', async () => {
-  show();
+  show({ status: 'awaiting_payment', statusDisplay: 'Awaiting payment', amountReceived: '1800.00' });
 
   await screen.findByText('Kestrel Foods Pty Ltd · Class A preference');
   expect(screen.queryByRole('button', { name: 'Submit for review' })).toBeNull();
