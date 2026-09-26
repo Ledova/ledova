@@ -4,17 +4,40 @@ import { cleanup, fireEvent, render } from '@testing-library/react';
 import type { PortfolioSnapshotDataPoint } from '@ledova/shared';
 import { PerformanceSection } from './PerformanceSection';
 
+const rate = vi.hoisted(() => ({ value: 1 }));
+const drawn = vi.hoisted(() => ({ total: [] as unknown[], byAsset: [] as unknown[] }));
+
 vi.mock('@hooks/useCurrency', () => ({
-  useCurrency: () => ({ formatDisplayCurrency: (value: number) => `$${value.toFixed(2)}` }),
+  useCurrency: () => ({
+    formatDisplayCurrency: (value: number) => `$${(value * rate.value).toFixed(2)}`,
+    exchangeRate: rate.value,
+  }),
 }));
-vi.mock('./performance/PortfolioValueChart', () => ({ PortfolioValueChart: () => null }));
+vi.mock('./performance/PortfolioValueChart', () => ({
+  PortfolioValueChart: ({ chartData }: { chartData: { values: number[] } | null }) => {
+    drawn.total.push(chartData?.values);
+    return null;
+  },
+}));
 vi.mock('./performance/HoldingsChart', () => ({
-  HoldingsChart: ({ onActivePointChange }: { onActivePointChange: (index: number) => void }) => (
-    <button onClick={() => onActivePointChange(0)}>Earlier date</button>
-  ),
+  HoldingsChart: ({
+    instrumentData,
+    onActivePointChange,
+  }: {
+    instrumentData: { data: unknown[] };
+    onActivePointChange: (index: number) => void;
+  }) => {
+    drawn.byAsset.push(instrumentData.data);
+    return <button onClick={() => onActivePointChange(0)}>Earlier date</button>;
+  },
 }));
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  rate.value = 1;
+  drawn.total.length = 0;
+  drawn.byAsset.length = 0;
+});
 
 function point(dayIndex: number, baseQuantity: string): PortfolioSnapshotDataPoint {
   return {
@@ -110,4 +133,39 @@ describe('the historical network breakdown', () => {
       expect(view.queryByLabelText('Show ETH by network')).toBeNull();
     },
   );
+});
+
+describe('the charts, in the same currency as the figures above them', () => {
+  function showChart(snapshotData: PortfolioSnapshotDataPoint[]) {
+    return render(
+      <PerformanceSection
+        snapshotData={snapshotData}
+        timeRanges={[]}
+        selectedTimeRange="3M"
+        onTimeRangeChange={() => {}}
+        isLoading={false}
+        error={null}
+      />,
+    );
+  }
+
+  it('draws both charts in AUD, at the rate the headline uses', () => {
+    rate.value = 1.5;
+    const view = showChart([point(0, '1'), point(1, '2')]);
+
+    expect(view.getByText('$600.00')).toBeTruthy();
+    expect(drawn.total.at(-1)).toEqual([450, 600]);
+    fireEvent.click(view.getByText('Holdings'));
+    expect(drawn.byAsset.at(-1)).toEqual([{ ETH: 450 }, { ETH: 600 }]);
+  });
+
+  it('draws no chart while the exchange rate is unknown', () => {
+    rate.value = 0;
+    const view = showChart([point(0, '1'), point(1, '2')]);
+    fireEvent.click(view.getByText('Holdings'));
+
+    expect(drawn.total).toEqual([]);
+    expect(drawn.byAsset).toEqual([]);
+    expect(view.queryByText('Earlier date')).toBeNull();
+  });
 });
