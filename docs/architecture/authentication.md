@@ -46,8 +46,10 @@ cached negative is rechecked, and redirects after a negative answer or failure.
 Email verification issues the session, so it awaits the same explicit auth
 refresh that sign-in does before moving on to the next step. Signup completion
 awaits its explicit auth refresh and a fresh profile before navigating, so the
-guard does not read an unfinished sign-up and send the account back into it; if
-either refresh fails, it stays on the review and shows its error.
+guard does not read an unfinished sign-up and send the account back into it. If
+either refresh fails it stays on the review: a profile that cannot be read shows
+that error, and any other failure says the sign-up could not be finished, with
+Complete Signup there to retry.
 `packages/shared/tests/hooks/useAuth.test.tsx` and the dashboard's
 `ProtectedRoute.test.tsx` and `SignupRoute.session.test.tsx` cover these
 policies.

@@ -59,8 +59,10 @@ places every one inside `SignupRoute`: an account that has finished sign-up
 goes to `landingFor(role)` instead of reopening one, while an account still
 signing up and a signed-out visitor move through them as before. Email
 verification refreshes the session answer before it moves on, as sign-in does,
-so the steps read the profile once, before any form, and a later recheck of the
-session does not take away a step being filled in.
+so in the in-app flow the steps read the profile once, before any form, and a
+later recheck of the session does not take away a step being filled in. One case
+remains: if the session check itself fails as a step loads and succeeds on a
+later recheck, the step is hidden while the profile loads.
 The signed-in frame (sidebar and headers) appears only for a signed-in account
 that has finished sign-up, which `useSignupFinished` decides; sign-in, sign-up
 and everything else use the public layout. The not-found page reads the same

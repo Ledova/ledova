@@ -24,11 +24,14 @@ export interface ReviewHookReturn {
   signupRole: string;
   isLoading: boolean;
   error: string | null;
+  completionError: string | null;
   completeSignup: () => void;
   isSubmitting: boolean;
   canCompleteSignup: boolean;
   retryLoad: () => Promise<void>;
 }
+
+export const COMPLETION_FAILED = 'Your sign-up could not be finished. Please try again.';
 
 export const useReview = (): ReviewHookReturn => {
   const navigate = useNavigate();
@@ -137,6 +140,7 @@ export const useReview = (): ReviewHookReturn => {
     signupRole,
     isLoading,
     error,
+    completionError: completeSignupMutation.isError ? COMPLETION_FAILED : null,
     completeSignup,
     isSubmitting: completeSignupMutation.isPending,
     canCompleteSignup,

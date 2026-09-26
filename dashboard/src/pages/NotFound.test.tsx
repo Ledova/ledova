@@ -31,19 +31,21 @@ function visit({
   finished = true,
   role = 'investor',
   isLoading = false,
+  profileLoading = false,
   address = '/no-such-page',
 }: {
   signedIn: boolean;
   finished?: boolean;
   role?: AccountRole;
   isLoading?: boolean;
+  profileLoading?: boolean;
   address?: string;
 }) {
   vi.mocked(useAuth).mockReturnValue({ isAuthenticated: signedIn, isLoading } as ReturnType<typeof useAuth>);
   vi.mocked(useRole).mockReturnValue({ role, isLoading: false } as ReturnType<typeof useRole>);
   vi.mocked(useUserProfile).mockReturnValue({
-    userProfile: signedIn ? { isSignupCompleted: finished } : null,
-    isLoading: false,
+    userProfile: signedIn && !profileLoading ? { isSignupCompleted: finished } : null,
+    isLoading: profileLoading,
   } as ReturnType<typeof useUserProfile>);
   render(
     <MemoryRouter initialEntries={[address]}>
@@ -96,6 +98,13 @@ describe('an address that is not a page', () => {
 
     expect(screen.getByRole('heading', { level, name: 'There is no page at this address' })).toBeTruthy();
     expect(screen.queryByRole('navigation', { name: 'Sidebar' }) !== null).toBe(framed);
+  });
+
+  it('says nothing to a signed-in account until its profile says whether sign-up is finished', () => {
+    visit({ signedIn: true, profileLoading: true });
+
+    expect(screen.queryByRole('heading')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Continue signing up' })).toBeNull();
   });
 
   it('says nothing until it knows whether the visitor is signed in', () => {

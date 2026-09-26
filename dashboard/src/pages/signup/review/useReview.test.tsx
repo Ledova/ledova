@@ -22,7 +22,7 @@ vi.mock('@ledova/shared', async (importOriginal) => ({
 
 vi.mock('@hooks/useRole', () => ({ useRole: vi.fn(() => ({ role: 'investor' })) }));
 
-import { useReview } from './useReview';
+import { COMPLETION_FAILED, useReview } from './useReview';
 
 let queryClient: QueryClient | undefined;
 
@@ -138,6 +138,20 @@ describe('the last click of signup', () => {
     await waitFor(() => expect(result.current.error).toBe('Network unavailable'));
     await waitFor(() => expect(result.current.isSubmitting).toBe(false));
     expect(vi.mocked(getUserProfiles)).toHaveBeenCalledTimes(2);
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('says so on the review when the session cannot be checked again, so the person can retry', async () => {
+    const { client, wrapper } = harness();
+    vi.spyOn(client, 'refetchQueries').mockRejectedValue(new Error('Network unavailable'));
+    const { result } = renderHook(() => useReview(), { wrapper });
+    await waitFor(() => expect(result.current.canCompleteSignup).toBe(true));
+
+    act(() => result.current.completeSignup());
+
+    await waitFor(() => expect(result.current.completionError).toBe(COMPLETION_FAILED));
+    expect(result.current.isSubmitting).toBe(false);
+    expect(result.current.canCompleteSignup).toBe(true);
     expect(navigate).not.toHaveBeenCalled();
   });
 
