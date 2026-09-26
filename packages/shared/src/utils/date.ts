@@ -1,6 +1,8 @@
 import type { TimeRange } from '../constants';
 import { TIME_RANGES } from '../constants';
 
+const CALENDAR_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
 export function formatDate(
   dateString: string | null | undefined,
   fallback: string = 'Never',
@@ -12,6 +14,7 @@ export function formatDate(
       year: 'numeric',
       month: 'long',
       day: 'numeric',
+      ...(CALENDAR_DATE.test(dateString) ? { timeZone: 'UTC' } : {}),
     });
   } catch {
     return dateString;

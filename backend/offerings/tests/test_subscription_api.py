@@ -2,6 +2,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from rest_framework.test import APITestCase
 
 from assets.models import AssetChainDeployment
@@ -122,6 +123,19 @@ class SubscriptionApiTest(APITestCase):
         self.assertEqual(instruction["bankBsb"], "062000")
         self.assertEqual(instruction["amountDue"], "25.00")
         self.assertEqual(body["status"], SubscriptionStatus.AWAITING_PAYMENT)
+
+    def test_the_detail_carries_its_currency_and_when_each_step_happened(self):
+        subscription = draft_subscription(self.tenant)
+        submit(subscription, submitted_by=self.tenant.user)
+        accept(subscription)
+        subscription.refresh_from_db()
+
+        body = self.client.get(f"{BASE}{subscription.uuid}/").json()
+
+        self.assertEqual(body["currency"], self.offering.price_currency)
+        self.assertEqual(parse_datetime(body["submittedAt"]), subscription.submitted_at)
+        self.assertEqual(parse_datetime(body["acceptedAt"]), subscription.accepted_at)
+        self.assertEqual((body["allottedAt"], body["closedAt"]), (None, None))
 
     def test_the_detail_nests_the_stablecoin_instruction(self):
         subscription = draft_subscription(self.tenant)

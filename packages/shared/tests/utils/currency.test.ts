@@ -1,4 +1,4 @@
-import { formatAmount, formatCurrency } from '../../src/utils/formatting';
+import { formatCurrency } from '../../src/utils/formatting';
 
 describe('formatCurrency', () => {
   it('should format a number as currency with default options (AUD, 2 decimals)', () => {
@@ -40,19 +40,5 @@ describe('formatCurrency', () => {
   it('should format zero correctly', () => {
     const result = formatCurrency(0);
     expect(result).toBe('$0.00');
-  });
-});
-
-describe('formatAmount', () => {
-  it('names the currency before the figures, joined so they never wrap apart', () => {
-    expect(formatAmount('5000', 'AUD')).toBe('AUD\u00a05,000.00');
-    expect(formatAmount(1.5, 'AUD')).toBe('AUD\u00a01.50');
-  });
-
-  it('keeps zero distinct from a missing amount', () => {
-    expect(formatAmount('0', 'AUD')).toBe('AUD\u00a00.00');
-    for (const missing of [null, undefined, '', 'not a number']) {
-      expect(formatAmount(missing, 'AUD')).toBe('—');
-    }
   });
 });

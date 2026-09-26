@@ -209,16 +209,16 @@ describe('a resolution in the listing', () => {
 
 describe('a distribution in the listing', () => {
   it('shows an amount of money in cents exactly, grouped, beyond the range a number can hold', () => {
-    expect(formatMoney('2.50', 'AUD')).toBe('AUD 2.50');
-    expect(formatMoney('0.00', 'AUD')).toBe('AUD 0.00');
-    expect(formatMoney('1234567890123456.78', 'AUD')).toBe('AUD 1,234,567,890,123,456.78');
+    expect(formatMoney('2.50', 'AUD')).toBe('AUD\u00a02.50');
+    expect(formatMoney('0.00', 'AUD')).toBe('AUD\u00a00.00');
+    expect(formatMoney('1234567890123456.78', 'AUD')).toBe('AUD\u00a01,234,567,890,123,456.78');
   });
 
   it('shows the rate to every decimal place the company declared and no trailing zeros past the cent', () => {
-    expect(describeRate({ ratePerShare: '0.025000', currency: 'AUD' })).toBe('AUD 0.025 per share');
-    expect(describeRate({ ratePerShare: '0.123456', currency: 'AUD' })).toBe('AUD 0.123456 per share');
-    expect(describeRate({ ratePerShare: '1.500000', currency: 'AUD' })).toBe('AUD 1.50 per share');
-    expect(describeRate({ ratePerShare: '1000.000000', currency: 'AUD' })).toBe('AUD 1,000.00 per share');
+    expect(describeRate({ ratePerShare: '0.025000', currency: 'AUD' })).toBe('AUD\u00a00.025 per share');
+    expect(describeRate({ ratePerShare: '0.123456', currency: 'AUD' })).toBe('AUD\u00a00.123456 per share');
+    expect(describeRate({ ratePerShare: '1.500000', currency: 'AUD' })).toBe('AUD\u00a01.50 per share');
+    expect(describeRate({ ratePerShare: '1000.000000', currency: 'AUD' })).toBe('AUD\u00a01,000.00 per share');
     expect(describeRate({ ratePerShare: null, currency: null })).toBeNull();
   });
 
@@ -260,7 +260,7 @@ describe('a distribution in the listing', () => {
 
   it('says what part of the entitlement is recorded, and that the rest has no record, never that it was all paid', () => {
     expect(describePaymentStanding(standing('1.00'))).toBe(
-      'The company has recorded AUD 1.00 of your AUD 3.50 as paid, most recently on 3 October 2026, ' +
+      'The company has recorded AUD\u00a01.00 of your AUD\u00a03.50 as paid, most recently on 3 October 2026, ' +
         'reference LDV-4412. The rest has no payment record yet.',
     );
   });

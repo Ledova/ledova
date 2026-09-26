@@ -23,14 +23,13 @@ export function Row({ label, children }: { label: string; children: ReactNode })
   );
 }
 
-export type Tone = 'waiting' | 'moving' | 'done' | 'closed' | 'failed';
+export type Tone = 'waiting' | 'moving' | 'done' | 'closed';
 
 const MARKS: Record<Tone, string> = {
   waiting: 'border border-text-muted',
   moving: 'bg-brand-mid/50',
   done: 'bg-brand-mid',
   closed: 'bg-text-muted',
-  failed: 'bg-error',
 };
 
 export function Status({ tone, children }: { tone: Tone; children: ReactNode }) {
@@ -51,7 +50,7 @@ export function Timeline({ events }: { events: TimelineEvent[] }) {
   return (
     <ol className="flex flex-col">
       {events.map((event) => (
-        <li key={event.label} className="flex items-baseline gap-3 py-2">
+        <li key={`${event.label}-${event.at}`} className="flex items-baseline gap-3 py-2">
           <span aria-hidden="true" className="h-2 w-2 flex-shrink-0 translate-y-[-1px] rounded-full bg-brand-mid" />
           <span className="flex-1 text-sm text-text-primary">{event.label}</span>
           <time dateTime={event.at} className="text-sm tabular-nums text-text-muted">

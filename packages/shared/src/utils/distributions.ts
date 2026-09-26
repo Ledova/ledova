@@ -4,7 +4,7 @@ import { formatDate } from './date';
 
 function amountIn(currency: string, amount: string, fractionOf: (fraction: string) => string): string {
   const [whole = '0', fraction = ''] = amount.split('.');
-  return `${currency} ${formatShareCount(whole)}.${fractionOf(fraction)}`;
+  return `${currency}\u00a0${formatShareCount(whole)}.${fractionOf(fraction)}`;
 }
 
 export const formatMoney = (amount: string, currency: string) =>
