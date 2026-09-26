@@ -5,7 +5,8 @@ from rest_framework.test import APITestCase
 
 from users.models import UserAccount, UserProfile
 from users.models.user_account import AccountRole
-from users.serializers.user_account import ROLE_IS_SET
+from users.serializers.user_account import BOTH_IS_SET_BY_STAFF, ROLE_IS_SET
+from users.serializers.user_profile import SIGNUP_IS_COMPLETE
 
 User = get_user_model()
 
@@ -18,6 +19,7 @@ class TheRoleIsChosenAtSignUpTest(APITestCase):
         self.account = UserAccount.objects.create(account_number="ACC-ROLE", user_profile=self.profile)
         self.client.force_authenticate(self.user)
         self.url = reverse("user-accounts-detail", args=[self.account.uuid])
+        self.profile_url = reverse("user-profiles-detail", args=[self.profile.uuid])
 
     def complete_sign_up(self):
         self.profile.is_signup_completed = True
@@ -31,6 +33,21 @@ class TheRoleIsChosenAtSignUpTest(APITestCase):
                 self.assertEqual(response.status_code, 200, response.content)
                 self.account.refresh_from_db()
                 self.assertEqual(self.account.role, role)
+
+    def test_the_account_type_step_cannot_choose_both(self):
+        response = self.client.patch(self.url, {"role": AccountRole.BOTH}, format="json")
+
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertEqual(response.json(), {"role": [BOTH_IS_SET_BY_STAFF]})
+        self.account.refresh_from_db()
+        self.assertEqual(self.account.role, AccountRole.INVESTOR)
+
+    def test_the_review_step_completes_sign_up(self):
+        response = self.client.patch(self.profile_url, {"isSignupCompleted": True}, format="json")
+
+        self.assertEqual(response.status_code, 200, response.content)
+        self.profile.refresh_from_db()
+        self.assertTrue(self.profile.is_signup_completed)
 
     def test_a_customer_cannot_change_the_role_once_sign_up_is_complete(self):
         self.complete_sign_up()
@@ -51,6 +68,20 @@ class TheRoleIsChosenAtSignUpTest(APITestCase):
 
         self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual(response.json()["role"], AccountRole.INVESTOR)
+
+    def test_a_customer_cannot_reopen_sign_up_to_change_the_role(self):
+        self.complete_sign_up()
+
+        reopen = self.client.patch(self.profile_url, {"isSignupCompleted": False}, format="json")
+        self.client.patch(self.url, {"role": AccountRole.COMPANY}, format="json")
+        self.client.patch(self.profile_url, {"isSignupCompleted": True}, format="json")
+
+        self.account.refresh_from_db()
+        self.profile.refresh_from_db()
+        self.assertEqual(self.account.role, AccountRole.INVESTOR)
+        self.assertTrue(self.profile.is_signup_completed)
+        self.assertEqual(reopen.status_code, 400, reopen.content)
+        self.assertEqual(reopen.json(), {"isSignupCompleted": [SIGNUP_IS_COMPLETE]})
 
 
 class StaffSetTheRoleInAdminTest(TestCase):

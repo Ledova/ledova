@@ -5,6 +5,8 @@ from shared.models.country import Country
 from users.models.user_profile import UserProfile
 from users.serializers.identity_verification import RejectionLabelsField
 
+SIGNUP_IS_COMPLETE = "Sign-up cannot be reopened once it is complete."
+
 
 class UserProfileSerializer(serializers.ModelSerializer):
     uuid = serializers.CharField(read_only=True)
@@ -87,6 +89,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     def get_residence_country_name(self, obj) -> str | None:
         return obj.residence_country.name if obj.residence_country else None
+
+    def validate_is_signup_completed(self, value):
+        if self.instance is not None and self.instance.is_signup_completed and not value:
+            raise serializers.ValidationError(SIGNUP_IS_COMPLETE)
+        return value
 
     def validate(self, attrs):
         if "email" in self.initial_data:
