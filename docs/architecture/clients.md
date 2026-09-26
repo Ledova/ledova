@@ -126,9 +126,9 @@ Pages rebuilt in the paper layout use the ledger blocks in
 
 - `Section`: a Newsreader heading over a hairline rule, with no card.
 - `Rows`: ruled label and value pairs, with figures right-aligned in tabular
-  numerals. Every amount names its currency (`formatAmount`), and share counts
+  numerals. Every amount names its currency (`formatMoney`), and share counts
   are whole numbers.
-- `Status`: a status in words with a small mark, red only for a failure.
+- `Status`: a status in words with a small mark for waiting, moving, done or closed.
 - `Timeline`: each event with its date.
 
 White cards stay for forms and for things to act on, such as a payment
