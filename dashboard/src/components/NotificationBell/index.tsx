@@ -2,18 +2,24 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BellIcon, XIcon } from '@phosphor-icons/react';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react';
-import { formatDateTime, DESIGN_TOKENS, PUBLICATION_NOTICE } from '@ledova/shared';
-import { useNotifications } from '@ledova/shared';
-import type { Notification } from '@ledova/shared';
+import { formatDateTime, DESIGN_TOKENS, DESTINATIONS, PUBLICATION_NOTICE, useNotifications } from '@ledova/shared';
+import type { DestinationKey, Notification } from '@ledova/shared';
 
 const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
 const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 
-const DESTINATIONS: Record<string, string> = { [PUBLICATION_NOTICE]: '/publications' };
+const NOTICE_PAGES: Record<string, DestinationKey> = {
+  company: 'companyListing',
+  offering: 'companyOffering',
+  [PUBLICATION_NOTICE]: 'publications',
+  transaction: 'transactions',
+  identity: 'userProfile',
+};
 
 function destinationOf(notification: Notification): string | undefined {
   const type = (notification.data as { type?: unknown } | null | undefined)?.type;
-  return typeof type === 'string' ? DESTINATIONS[type] : undefined;
+  const page = typeof type === 'string' ? NOTICE_PAGES[type] : undefined;
+  return page && DESTINATIONS[page].path;
 }
 
 interface NotificationBellProps {
@@ -116,9 +122,11 @@ export function NotificationBell({ align }: NotificationBellProps) {
 
   const badgeText = unreadCount > 99 ? '99+' : String(unreadCount);
 
-  const follow = (notification: Notification) => {
+  const follow = (notification: Notification, close: () => void) => {
     const destination = destinationOf(notification);
-    if (destination) navigate(destination);
+    if (!destination) return;
+    navigate(destination);
+    close();
   };
 
   return (
@@ -143,29 +151,33 @@ export function NotificationBell({ align }: NotificationBellProps) {
         transition
         className="z-50 w-80 overflow-hidden rounded-lg border border-border bg-surface-raised shadow-lg transition [--anchor-gap:8px] data-[closed]:opacity-0 data-[enter]:duration-150 data-[leave]:duration-100"
       >
-        <div className="flex items-center justify-between border-b border-border-subtle px-4 py-3">
-          <span className="text-sm font-medium text-text-primary">Notifications</span>
-          {unreadCount > 0 && (
-            <button
-              onClick={() => markAllAsRead()}
-              disabled={isMarkingAllRead}
-              className="text-xs text-brand-light transition-colors hover:text-brand-subtle disabled:opacity-50"
-            >
-              Mark all as read
-            </button>
-          )}
-        </div>
+        {({ close }) => (
+          <>
+            <div className="flex items-center justify-between border-b border-border-subtle px-4 py-3">
+              <span className="text-sm font-medium text-text-primary">Notifications</span>
+              {unreadCount > 0 && (
+                <button
+                  onClick={() => markAllAsRead()}
+                  disabled={isMarkingAllRead}
+                  className="text-xs text-brand-light transition-colors hover:text-brand-subtle disabled:opacity-50"
+                >
+                  Mark all as read
+                </button>
+              )}
+            </div>
 
-        <div className="max-h-96 overflow-y-auto">
-          <NotificationList
-            load={fetchNotifications}
-            notifications={notifications}
-            isLoading={isLoadingNotifications}
-            onRead={markAsRead}
-            onArchive={archive}
-            onFollow={follow}
-          />
-        </div>
+            <div className="max-h-96 overflow-y-auto">
+              <NotificationList
+                load={fetchNotifications}
+                notifications={notifications}
+                isLoading={isLoadingNotifications}
+                onRead={markAsRead}
+                onArchive={archive}
+                onFollow={(followed) => follow(followed, close)}
+              />
+            </div>
+          </>
+        )}
       </PopoverPanel>
     </Popover>
   );

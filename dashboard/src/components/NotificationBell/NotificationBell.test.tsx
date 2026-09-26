@@ -23,8 +23,8 @@ const published = {
 const unrelated = {
   ...published,
   uuid: 'notification-b',
-  title: 'Transaction Confirmed',
-  data: { type: 'transaction' },
+  title: 'Scheduled maintenance',
+  data: { type: 'system' },
 };
 
 let client: QueryClient;
@@ -49,9 +49,14 @@ function showBell() {
     <MemoryRouter initialEntries={['/home']}>
       <QueryClientProvider client={client}>
         <ApiClientProvider client={apiClient}>
+          <NotificationBell align="end" />
           <Routes>
-            <Route path="/home" element={<NotificationBell align="end" />} />
+            <Route path="/home" element={<p>The home page</p>} />
             <Route path="/publications" element={<p>The publications page</p>} />
+            <Route path="/company/listing" element={<p>The application page</p>} />
+            <Route path="/company/offering" element={<p>The offerings page</p>} />
+            <Route path="/transactions" element={<p>The activity page</p>} />
+            <Route path="/user-profile" element={<p>The profile page</p>} />
           </Routes>
         </ApiClientProvider>
       </QueryClientProvider>
@@ -92,6 +97,24 @@ describe('following a notification to what it is about', () => {
     await waitFor(() => expect(patch).toHaveBeenCalledWith('/api/notifications/notification-b/', { is_read: true }));
     expect(screen.queryByText('The publications page')).toBeNull();
     expect(screen.getByText(unrelated.title)).toBeTruthy();
+  });
+});
+
+describe('every kind of notice opens its own page', () => {
+  it.each([
+    ['a company application', 'company', 'The application page'],
+    ['an offering', 'offering', 'The offerings page'],
+    ['a transaction', 'transaction', 'The activity page'],
+    ['an identity check', 'identity', 'The profile page'],
+  ])('opens the right page from a notice about %s, and closes the panel', async (_, type, page) => {
+    rows = [{ ...published, title: `A ${type} notice`, data: { type, event: 'changed' } }];
+
+    showBell();
+    fireEvent.click(await screen.findByRole('button', { name: 'Notifications, 1 unread' }));
+    fireEvent.click(await screen.findByText(`A ${type} notice`));
+
+    expect(await screen.findByText(page)).toBeTruthy();
+    await waitFor(() => expect(screen.queryByText(`A ${type} notice`)).toBeNull());
   });
 });
 

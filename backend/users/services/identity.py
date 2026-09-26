@@ -172,7 +172,11 @@ class IdentityVerificationService:
 
                 title, body = message
                 send_push_notification.defer(
-                    user_id=str(user_profile.user_id), title=title, body=body, notification_type="general"
+                    user_id=str(user_profile.user_id),
+                    title=title,
+                    body=body,
+                    data={"type": "identity", "event": normalized.review_result},
+                    notification_type="general",
                 )
 
         return user_profile.is_id_verified
