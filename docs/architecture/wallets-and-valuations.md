@@ -127,10 +127,15 @@ deployment. That contract is the only link between the two. So
 `GET /api/wallets/{uuid}/holdings/` resolves each row's `shareClass`
 (`uuid`, `name` and `companyName`) as it reads: from the asset's Base contract
 to the class deployed there, inside the holdings query and under the caller's
-policies (`HoldingQuerySet.with_share_class`). Every other holding has
-`shareClass` null. A holder reads a class only while it is on the market, so
-while a company has paused a class its holders keep the row with `shareClass`
-null, and the asset's name, which carries both, stands in. See
+policies (`HoldingQuerySet.with_share_class`). The class lookups use one SQL
+statement; the route's existing deployment and yield reads remain separate.
+An absent Base deployment, unmatched contract or class hidden by those policies
+leaves `shareClass` null and preserves the holding. An investor reads another
+company's class only while it is on the market, so a paused class keeps its row
+with `shareClass` null and the asset's combined name stands in. A company owner
+can still read the names of its own paused class under the existing owner
+policy. Class and company renames appear on the next read without rewriting
+the asset's combined name. See
 [the decision](../decisions.md#the-signed-in-app).
 
 ## Valuation sources
