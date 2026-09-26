@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AccountRole } from '@ledova/shared';
 
+import { InSignedInFrame } from '@components/InSignedInFrame';
 import Layout from '@components/Layout';
 import { useAuth } from '@hooks/useAuth';
 import { useRole } from '@hooks/useRole';
@@ -126,5 +127,26 @@ describe('an address that is not a page', () => {
 
     expect(screen.queryByRole('heading')).toBeNull();
     expect(screen.queryByRole('link')).toBeNull();
+  });
+
+  it('shows nothing inside the frame while its own read still says sign-up is unfinished', () => {
+    vi.mocked(useAuth).mockReturnValue({ isAuthenticated: true, isLoading: false } as ReturnType<typeof useAuth>);
+    vi.mocked(useRole).mockReturnValue({ role: 'investor', isLoading: false } as ReturnType<typeof useRole>);
+    vi.mocked(useUserProfile).mockReturnValue({
+      userProfile: { isSignupCompleted: false },
+      isLoading: false,
+    } as ReturnType<typeof useUserProfile>);
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <InSignedInFrame.Provider value>
+          <MemoryRouter initialEntries={['/no-such-page']}>
+            <NotFoundPage />
+          </MemoryRouter>
+        </InSignedInFrame.Provider>
+      </QueryClientProvider>,
+    );
+
+    expect(screen.queryByRole('heading')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Continue signing up' })).toBeNull();
   });
 });
