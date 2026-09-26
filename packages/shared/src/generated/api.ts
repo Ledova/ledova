@@ -3286,11 +3286,17 @@ export interface ApiComponents {
       lastSyncedAt: string | null;
       marketValue: string | null;
       quantity: string;
+      shareClass: ApiComponents['schemas']['HoldingShareClass'] | null;
       updatedAt: string;
       uuid: string;
       valueSource: ApiComponents['schemas']['ValueSourceEnum'];
       walletAddress: string;
       walletUuid: string;
+    };
+    HoldingShareClass: {
+      companyName: string;
+      name: string;
+      uuid: string;
     };
     HttpStatusEnum: 400 | 409;
     IdentitySourceEnum:

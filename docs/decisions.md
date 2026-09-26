@@ -430,6 +430,12 @@ This records the target; the steps on #732 build it.
   and in the mobile app's Help. Public pages keep their footer, and no legal
   position needs it on every page." (Owner decisions, 26 September 2026, on
   [#732](https://github.com/Ledova/ledova/issues/732#issuecomment-5845666218).)
+- **Holdings name each class when read.** For how holdings get their class and
+  company names, the owner chose "Look them up on load": "No database change.
+  While a company has paused transfers of a class, its holders see the asset's
+  combined name (e.g. "Kestrel Foods Class A") instead of the separate company
+  and class." (Owner decision, 26 September 2026, on
+  [#732](https://github.com/Ledova/ledova/issues/732#issuecomment-5846254159).)
 - **Mobile follows the web.** The mobile app takes paper and the new structure
   together, after the web.
 

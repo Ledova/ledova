@@ -44,7 +44,8 @@ class HoldingReportsItsWalletsChainTest(TestCase):
         wallet = Wallet.objects.create(
             user_account=an_account("holding-reports-its-chain"), address="0x" + chain[0] * 40, chain=chain
         )
-        return Holding.objects.create(wallet=wallet, asset=self.asset, quantity=Decimal("1"))
+        holding = Holding.objects.create(wallet=wallet, asset=self.asset, quantity=Decimal("1"))
+        return Holding.objects.with_share_class().get(pk=holding.pk)
 
     def test_a_holding_reports_the_chain_of_the_wallet_that_holds_it(self):
         self.assertEqual(HoldingSerializer(self._holding("ethereum")).data["chain"], "ethereum")

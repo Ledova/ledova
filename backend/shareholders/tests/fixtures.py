@@ -48,10 +48,14 @@ def unused_address():
     return Web3.to_checksum_address("0x" + uuid4().hex + uuid4().hex[:8])
 
 
+def an_account_for(user, name, residence="1 Synthetic Street, Sydney NSW 2000"):
+    profile = UserProfile.objects.create(user=user, full_name=name, residential_address=residence)
+    return UserAccount.objects.create(user_profile=profile)
+
+
 def a_person(label, name, residence="1 Synthetic Street, Sydney NSW 2000"):
     user = User.objects.create_user(email=f"{label}-{uuid4().hex[:8]}@example.test", password=PASSWORD)
-    profile = UserProfile.objects.create(user=user, full_name=name, residential_address=residence)
-    return user, UserAccount.objects.create(user_profile=profile)
+    return user, an_account_for(user, name, residence)
 
 
 def a_listed_wallet(account, address=None):
@@ -93,7 +97,9 @@ def a_member(company, *addresses):
     return member
 
 
-def a_company_with_members(label, holdings=(100, 40), first_person_holds_twice=False, owner=None):
+def a_company_with_members(
+    label, holdings=(100, 40), first_person_holds_twice=False, owner=None, owner_holds_first=False
+):
     owner = owner or User.objects.create_user(email=f"{label}-owner-{uuid4().hex[:8]}@example.test", password=PASSWORD)
     company, token = a_share_class(label, owner)
     staff = instruction_reviewer()
@@ -103,6 +109,8 @@ def a_company_with_members(label, holdings=(100, 40), first_person_holds_twice=F
     for index, shares in enumerate(holdings, 1):
         if first_person_holds_twice and index == 2:
             user, account = members[0].user, members[0].account
+        elif owner_holds_first and index == 1:
+            user, account = owner, an_account_for(owner, f"{label.title()} Owner")
         else:
             user, account = a_person(f"{label}-member{index}", f"{label.title()} Member {index}")
         address = a_listed_wallet(account)

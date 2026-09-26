@@ -119,6 +119,20 @@ growing hex prefix of the contract address), compared case-insensitively.
   unverified row. Add a second chain's deployment to a verified row by hand in
   the admin.
 
+## A share holding names its class
+
+A share class becomes an asset when it is deployed (`bridge_share_asset`),
+named after the company and the class, with the class's Base contract as its
+deployment. That contract is the only link between the two. So
+`GET /api/wallets/{uuid}/holdings/` resolves each row's `shareClass`
+(`uuid`, `name` and `companyName`) as it reads: from the asset's Base contract
+to the class deployed there, inside the holdings query and under the caller's
+policies (`HoldingQuerySet.with_share_class`). Every other holding has
+`shareClass` null. A holder reads a class only while it is on the market, so
+while a company has paused a class its holders keep the row with `shareClass`
+null, and the asset's name, which carries both, stands in. See
+[the decision](../decisions.md#the-signed-in-app).
+
 ## Valuation sources
 
 Portfolio values and new asset snapshots use USD. Asset price writes record
