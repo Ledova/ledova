@@ -88,9 +88,9 @@ and "Django checks & tests". They run unless every changed file is under
 `dashboard/`, `docs/`, `marketing/`, `mobile/` or `packages/`. Even then, two kinds
 of change run them:
 
-- A document that any file under `backend/` names, which is the only way the Django
-  jobs read one: `check_rls_catalogue` names `docs/architecture/tenancy.md`, and a
-  test reads that document's heading.
+- A document that any file under `backend/` names, which is today the only way the
+  Django jobs read one: `check_rls_catalogue` names `docs/architecture/tenancy.md`,
+  and a test reads that document's heading.
 - Any `.gitattributes`, which can change how a document is checked out without
   changing the document.
 
