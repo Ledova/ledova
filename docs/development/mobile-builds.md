@@ -65,8 +65,9 @@ change includes one of these inputs:
   and `dashboard/package.json`: the native jobs install the root workspace
   dependency graph before installing mobile dependencies.
 - `.gitattributes`, which can affect checked-out source and assets.
-- `.github/workflows/mobile-native.yml`, `scripts/native-build-scope.py` or
-  `scripts/tests/test_native_build_scope.py`.
+- `.github/workflows/mobile-native.yml`, `scripts/ci-scope.py` or
+  `scripts/tests/test_ci_scope.py`. The script also decides whether a change
+  runs the Django jobs, so a change to either decision builds both platforms.
 
 Other paths, including backend, dashboard application code, marketing and
 documentation, skip both native builds. Ordinary CI still runs. The router

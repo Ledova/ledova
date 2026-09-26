@@ -81,9 +81,21 @@ runs the [ordinary shard gate](gates.md#the-ordinary-shard-gate). It refuses a
 test id defined by more than one test class, and holds the shards' test ids to a
 partition of the unlabelled suite's, so on the same commit their `Ran N tests`
 counts add up to the unsharded run's. The "Django ordinary suite" check needs
-every shard, and fails unless each one succeeded; a failed, cancelled or skipped
-shard fails it. Locally, run the unsharded command. To repeat one shard, run
+every shard, and fails unless each one succeeded or the scope job below skipped
+them all; any other failed, cancelled or skipped shard fails it. Locally, run the
+unsharded command. To repeat one shard, run
 `python ../scripts/check-ordinary-shards.py --run NAME`.
+
+On a pull request, a scope job decides whether the Django jobs run. They run
+unless every changed file is under `dashboard/`, `docs/`, `marketing/`, `mobile/`
+or `packages/`, which no Django job reads, and none of them is a document that a
+file under `backend/` names, as `check_rls_catalogue` names
+`docs/architecture/tenancy.md`. A change it cannot compare completely, including
+a pull request whose base has moved past its branch, runs them. Every push to
+`main` runs them whatever changed, which catches a test that reads a document
+through a path it builds. [`scripts/ci-scope.py`](../../scripts/ci-scope.py) makes
+the decision, and the same kind for the
+[native builds](mobile-builds.md).
 
 `black`, `isort` and `flake8` are development requirements and are not in the
 backend image, so running the source gates inside that image proves nothing

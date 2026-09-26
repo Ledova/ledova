@@ -15,15 +15,16 @@ NATIVE_INPUT_FILES = frozenset(
         "dashboard/package.json",
         ".gitattributes",
         ".github/workflows/mobile-native.yml",
-        "scripts/native-build-scope.py",
-        "scripts/tests/test_native_build_scope.py",
+        "scripts/ci-scope.py",
+        "scripts/tests/test_ci_scope.py",
     )
 )
+UNREAD_BY_DJANGO = ("dashboard/", "docs/", "marketing/", "mobile/", "packages/")
+DOCUMENT = re.compile(r"docs/[\w./-]+\.md")
+JOBS = {"native": ("android", "ios"), "django": ("backend-suite-shard",)}
 
 
-def native_scope(event_name, payload, repository):
-    if event_name not in ("pull_request", "push"):
-        return {"required": True, "reason": "Unconditional native run"}
+def changed_paths(event_name, payload, repository):
     try:
         if event_name == "pull_request":
             request = payload["pull_request"]
@@ -54,6 +55,15 @@ def native_scope(event_name, payload, repository):
         if any(not path or any(part in ("", ".", "..") for part in path.split("/")) for path in paths):
             raise ValueError
     except (KeyError, TypeError, ValueError, OSError, subprocess.SubprocessError):
+        return None
+    return paths
+
+
+def native_scope(event_name, payload, repository):
+    if event_name not in ("pull_request", "push"):
+        return {"required": True, "reason": "Unconditional native run"}
+    paths = changed_paths(event_name, payload, repository)
+    if paths is None:
         return {"required": True, "reason": "Complete ancestor comparison unavailable"}
     required = any(path.startswith(NATIVE_INPUT_PREFIXES) or path in NATIVE_INPUT_FILES for path in paths)
     return {
@@ -63,7 +73,29 @@ def native_scope(event_name, payload, repository):
     }
 
 
-def native_verdict(needs):
+def documents_named_in(backend):
+    return {name for path in backend.rglob("*.py") for name in DOCUMENT.findall(path.read_text(encoding="utf-8"))}
+
+
+def django_scope(event_name, payload, repository):
+    if event_name != "pull_request":
+        return {"required": True, "reason": "Every push and manual run tests Django"}
+    paths = changed_paths(event_name, payload, repository)
+    if paths is None:
+        return {"required": True, "reason": "Complete ancestor comparison unavailable"}
+    named = documents_named_in(repository / "backend")
+    required = any(not path.startswith(UNREAD_BY_DJANGO) or path in named for path in paths)
+    return {
+        "required": required,
+        "reason": "A path the Django jobs read changed" if required else "Only client code and documentation changed",
+        "changed_files": len(paths),
+    }
+
+
+SCOPES = {"native": native_scope, "django": django_scope}
+
+
+def verdict(needs, jobs):
     try:
         routing = needs["scope"]
         if routing["result"] != "success":
@@ -72,7 +104,7 @@ def native_verdict(needs):
         if required not in ("true", "false"):
             return False
         expected = "success" if required == "true" else "skipped"
-        return all(needs[platform]["result"] == expected for platform in ("android", "ios"))
+        return all(needs[job]["result"] == expected for job in jobs)
     except (KeyError, TypeError):
         return False
 
@@ -80,23 +112,24 @@ def native_verdict(needs):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("command", choices=("route", "verdict"))
+    parser.add_argument("scope", choices=sorted(SCOPES))
     parser.add_argument("--event", default=os.environ.get("GITHUB_EVENT_NAME"))
     parser.add_argument("--event-file", default=os.environ.get("GITHUB_EVENT_PATH"))
     parser.add_argument("--repository", type=Path, default=Path(__file__).resolve().parent.parent)
     args = parser.parse_args()
     if args.command == "verdict":
         try:
-            needs = json.loads(os.environ.get("NATIVE_JOB_RESULTS", "null"))
+            needs = json.loads(os.environ.get("JOB_RESULTS", "null"))
         except ValueError:
             needs = None
-        passed = native_verdict(needs)
-        print("Native CI requirements satisfied" if passed else "Native CI routing or required builds did not succeed")
+        passed = verdict(needs, JOBS[args.scope])
+        print(f"{args.scope} CI {'requirements satisfied' if passed else 'routing or jobs did not succeed'}")
         return 0 if passed else 1
     try:
         payload = json.loads(Path(args.event_file).read_text())
     except (TypeError, ValueError, OSError):
         payload = None
-    decision = native_scope(args.event, payload, args.repository)
+    decision = SCOPES[args.scope](args.event, payload, args.repository)
     print(json.dumps(decision))
     output = os.environ.get("GITHUB_OUTPUT")
     if output:
