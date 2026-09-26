@@ -25,7 +25,7 @@ export function PerformanceSection({
   isLoading,
   error,
 }: PerformanceSectionProps) {
-  const { formatDisplayCurrency } = useCurrency();
+  const { formatDisplayCurrency, exchangeRate } = useCurrency();
   const [viewMode, setViewMode] = useState<ViewMode>('total');
   const [activePointIndex, setActivePointIndex] = useState<number | null>(() =>
     snapshotData && snapshotData.length > 0 ? snapshotData.length - 1 : null,
@@ -48,7 +48,7 @@ export function PerformanceSection({
           const date = new Date(snapshot.date);
           return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         }),
-        values: snapshotData.map((snapshot) => snapshot.totalMarketValue),
+        values: snapshotData.map((snapshot) => snapshot.totalMarketValue * exchangeRate),
       }
     : null;
 
@@ -66,7 +66,7 @@ export function PerformanceSection({
     const data = snapshotData.map((snapshot) => {
       const point: Record<string, number> = {};
       yKeys.forEach((symbol) => {
-        point[symbol] = snapshot.assetValues[symbol] || 0;
+        point[symbol] = (snapshot.assetValues[symbol] || 0) * exchangeRate;
       });
       return point;
     });
@@ -77,7 +77,7 @@ export function PerformanceSection({
     });
 
     return { data, labels, yKeys };
-  }, [snapshotData]);
+  }, [snapshotData, exchangeRate]);
 
   const activeSnapshot = activePointIndex != null && snapshotData ? snapshotData[activePointIndex] : null;
   const isScrubbing = activeSnapshot != null;
@@ -215,7 +215,7 @@ export function PerformanceSection({
       )}
 
       <div className="min-h-[280px]">
-        {viewMode === 'total' && (
+        {exchangeRate > 0 && viewMode === 'total' && (
           <PortfolioValueChart
             chartData={chartData}
             isLoading={isLoading}
@@ -223,7 +223,7 @@ export function PerformanceSection({
             onActivePointChange={handleActivePointChange}
           />
         )}
-        {viewMode === 'by-asset' && (
+        {exchangeRate > 0 && viewMode === 'by-asset' && (
           <HoldingsChart
             instrumentData={instrumentData}
             isLoading={isLoading}

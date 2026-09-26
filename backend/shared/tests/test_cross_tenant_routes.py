@@ -232,7 +232,7 @@ ROUTES = (
     Route("get", "/api/investor-classifications/{investor_classification}/"),
     Route("get", "/api/investor-classifications/{investor_classification}/evidence/"),
     Route("delete", "/api/investor-classifications/{investor_classification}/"),
-    Route("patch", "/api/notification-preferences/{notification_preferences}/", {"marketing": True}),
+    Route("patch", "/api/notification-preferences/{notification_preferences}/", {"transactionAlerts": False}),
     Route("get", "/api/wallets/{wallet}/"),
     Route(
         "put",

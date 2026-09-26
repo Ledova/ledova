@@ -11,17 +11,12 @@ import {
   SunIcon,
   MoonIcon,
 } from 'phosphor-react-native';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { upsertCurrentUserPreferences } from '@ledova/shared';
-import type { DisplayCurrency } from '@ledova/shared';
 import { GradientBackground } from '../../components/GradientBackground';
 import { Panel } from '../../components/panel';
 import { CustomModal } from '../../components/modal';
 import { useAppLock, useAppTheme, useThemedStyles, useThemeMode } from '../../contexts';
-import { useUserPreferences } from '../../hooks/useUserPreferences';
 import { useNotificationPreferences } from './useNotificationPreferences';
 import { useSettings } from './useSettings';
-import { apiClient } from '../../services/apiClient';
 
 interface ToggleRowProps {
   label: string;
@@ -131,72 +126,6 @@ function NavRow({ label, onPress, danger = false, isLast = false }: NavRowProps)
   );
 }
 
-interface CurrencyRowProps {
-  value: DisplayCurrency;
-  onSelect: (currency: DisplayCurrency) => void;
-  disabled?: boolean;
-}
-
-function CurrencyRow({ value, onSelect, disabled = false }: CurrencyRowProps) {
-  const theme = useAppTheme();
-  const styles = useThemedStyles((theme) => ({
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: theme.spacing.md,
-      paddingVertical: theme.spacing.md,
-    },
-    rowLabel: {
-      fontSize: theme.fontSize.base,
-      color: theme.colors.text.primary,
-    },
-    segmentContainer: {
-      flexDirection: 'row',
-      borderRadius: theme.borderRadius.lg,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      overflow: 'hidden',
-    },
-    segment: {
-      paddingVertical: theme.spacing.xs,
-      paddingHorizontal: theme.spacing.md,
-    },
-    segmentActive: {
-      backgroundColor: theme.colors.interactive.default,
-    },
-    segmentText: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.muted,
-    },
-    segmentTextActive: {
-      color: theme.colors.utility.white,
-    },
-  }));
-
-  const options: DisplayCurrency[] = ['AUD', 'USD'];
-
-  return (
-    <View style={styles.row}>
-      <Text style={styles.rowLabel}>Display Currency</Text>
-      <View style={styles.segmentContainer}>
-        {options.map((currency) => (
-          <TouchableOpacity
-            key={currency}
-            style={[styles.segment, value === currency && styles.segmentActive]}
-            onPress={() => !disabled && onSelect(currency)}
-            activeOpacity={disabled ? 1 : 0.7}
-            disabled={disabled}
-          >
-            <Text style={[styles.segmentText, value === currency && styles.segmentTextActive]}>{currency}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
-}
-
 export function SettingsScreen() {
   const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
@@ -300,18 +229,6 @@ export function SettingsScreen() {
   }));
 
   const { themeMode, toggleTheme } = useThemeMode();
-  const { preferences } = useUserPreferences();
-  const queryClient = useQueryClient();
-  const displayCurrency: DisplayCurrency = preferences?.displayCurrency ?? 'AUD';
-
-  const currencyMutation = useMutation({
-    mutationFn: (currency: DisplayCurrency) => upsertCurrentUserPreferences(apiClient, { displayCurrency: currency }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userPreferences'] });
-      queryClient.invalidateQueries({ queryKey: ['exchangeRate'] });
-    },
-  });
-
   const {
     isEnabled: appLockEnabled,
     setEnabled: setAppLockEnabled,
@@ -322,15 +239,7 @@ export function SettingsScreen() {
     biometricType,
   } = useAppLock();
 
-  const {
-    transactionAlerts,
-    priceAlerts,
-    marketing,
-    toggleTransactionAlerts,
-    togglePriceAlerts,
-    toggleMarketing,
-    isUpdating,
-  } = useNotificationPreferences();
+  const { transactionAlerts, toggleTransactionAlerts, isUpdating } = useNotificationPreferences();
 
   const {
     changeUserPassword,
@@ -460,20 +369,6 @@ export function SettingsScreen() {
                 value={transactionAlerts}
                 onValueChange={toggleTransactionAlerts}
                 disabled={isUpdating}
-              />
-              <ToggleRow
-                label="Price Alerts"
-                description="Notifications for price threshold alerts"
-                value={priceAlerts}
-                onValueChange={togglePriceAlerts}
-                disabled={isUpdating}
-              />
-              <ToggleRow
-                label="Marketing"
-                description="Marketing and promotional notifications"
-                value={marketing}
-                onValueChange={toggleMarketing}
-                disabled={isUpdating}
                 isLast
               />
             </Panel>
@@ -490,11 +385,7 @@ export function SettingsScreen() {
                 description={themeMode === 'dark' ? 'Currently using dark theme' : 'Currently using light theme'}
                 value={themeMode === 'light'}
                 onValueChange={() => toggleTheme()}
-              />
-              <CurrencyRow
-                value={displayCurrency}
-                onSelect={(currency) => currencyMutation.mutate(currency)}
-                disabled={currencyMutation.isPending}
+                isLast
               />
             </Panel>
 
