@@ -19,7 +19,6 @@ import { SignupReview } from '@pages/signup/review';
 import UserProfilePage from '@pages/user-profile';
 import WalletsPage from '@pages/wallets';
 import TransactionsPage from '@pages/transactions';
-import AssetPricesPage from '@pages/asset-prices';
 import SettingsPage from '@pages/settings';
 import TradingPage from '@pages/trading';
 import CompanyPage from '@pages/company';
@@ -76,7 +75,6 @@ const PAGES: Record<DestinationKey, ReactElement> = {
   home: <HomePage />,
   wallets: <WalletsPage />,
   transactions: <TransactionsPage />,
-  assetPrices: <AssetPricesPage />,
   trading: <TradingRoute />,
   directory: <DirectoryPage />,
   directoryDetail: <DirectoryTokenPage />,

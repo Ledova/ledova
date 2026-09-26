@@ -1,5 +1,4 @@
-import { ChartBarIcon, StarIcon } from '@phosphor-icons/react';
-import { DESIGN_TOKENS, PAPER_THEME as colors } from '@ledova/shared';
+import { ChartBarIcon } from '@phosphor-icons/react';
 import { useCurrency } from '@hooks/useCurrency';
 import type { Asset } from '@ledova/shared';
 import { Accordion } from '@components/Accordion';
@@ -7,12 +6,11 @@ import { AssetTypeIcon } from '@components/AssetTypeIcon';
 
 interface MarketCardProps {
   assets: Asset[];
-  favouriteAssetUuids: Set<string>;
   isLoading: boolean;
   onAssetPress: (asset: Asset) => void;
 }
 
-export function MarketCard({ assets, favouriteAssetUuids, isLoading, onAssetPress }: MarketCardProps) {
+export function MarketCard({ assets, isLoading, onAssetPress }: MarketCardProps) {
   const { formatDisplayCurrency } = useCurrency();
   if (isLoading) {
     return (
@@ -40,7 +38,6 @@ export function MarketCard({ assets, favouriteAssetUuids, isLoading, onAssetPres
       <div className="flex flex-col gap-1 px-2">
         {assets.map((asset) => {
           const currentPrice = asset.currentPrice ? parseFloat(asset.currentPrice) : null;
-          const isFavourite = favouriteAssetUuids.has(asset.uuid);
 
           return (
             <button
@@ -50,11 +47,6 @@ export function MarketCard({ assets, favouriteAssetUuids, isLoading, onAssetPres
               onClick={() => onAssetPress(asset)}
             >
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <StarIcon
-                  size={DESIGN_TOKENS.icon.sizes.sm}
-                  color={isFavourite ? colors.status.warning.icon : colors.text.subtle}
-                  weight={isFavourite ? 'fill' : 'regular'}
-                />
                 <AssetTypeIcon assetType={asset.assetType} symbol={asset.symbol} />
                 <span className="text-sm font-semibold text-text-secondary">{asset.symbol}</span>
                 <span className="text-xs text-text-subtle">•</span>

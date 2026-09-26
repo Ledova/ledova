@@ -5,7 +5,7 @@ import { BuyCryptoModal } from '@pages/wallets/components/BuyCryptoModal';
 import { BuyCryptoWidgetModal } from '@pages/wallets/components/BuyCryptoWidgetModal';
 
 interface BuyCryptoContextValue {
-  openBuyCrypto: (initialAsset?: string) => void;
+  openBuyCrypto: () => void;
 }
 
 const BuyCryptoContext = createContext<BuyCryptoContextValue | null>(null);
@@ -16,18 +16,15 @@ export function BuyCryptoProvider({ children }: { children: ReactNode }) {
   const userAccountUuid = userAccount?.uuid;
 
   const [buyModalOpen, setBuyModalOpen] = useState(false);
-  const [buyInitialAsset, setBuyInitialAsset] = useState<string | undefined>();
   const [widgetModalOpen, setWidgetModalOpen] = useState(false);
   const [widgetUrl, setWidgetUrl] = useState<string | null>(null);
 
-  const openBuyCrypto = useCallback((initialAsset?: string) => {
-    setBuyInitialAsset(initialAsset);
+  const openBuyCrypto = useCallback(() => {
     setBuyModalOpen(true);
   }, []);
 
   const handleBuyModalClose = useCallback(() => {
     setBuyModalOpen(false);
-    setBuyInitialAsset(undefined);
   }, []);
 
   const handleNavigateToWidget = useCallback((url: string) => {
@@ -54,7 +51,6 @@ export function BuyCryptoProvider({ children }: { children: ReactNode }) {
         onClose={handleBuyModalClose}
         onNavigateToWidget={handleNavigateToWidget}
         userAccountUuid={userAccountUuid}
-        initialAsset={buyInitialAsset}
       />
 
       <BuyCryptoWidgetModal

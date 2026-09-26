@@ -51,7 +51,6 @@ describe("the owner's menus of 26 September, applied to today's pages", () => {
     dividends: 'everyone',
     userProfile: 'everyone',
     settings: 'everyone',
-    assetPrices: 'investing',
     trading: 'investing',
     directory: 'investing',
     directoryDetail: 'investing',

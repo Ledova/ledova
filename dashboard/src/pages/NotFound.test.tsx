@@ -23,6 +23,9 @@ vi.mock('@components/Footer', () => ({ default: () => null }));
 vi.mock('@hooks/useBuyCrypto', () => ({
   BuyCryptoProvider: ({ children }: PropsWithChildren) => children,
 }));
+vi.mock('@hooks/useSendTransfer', () => ({
+  SendTransferProvider: ({ children }: PropsWithChildren) => children,
+}));
 
 function visit({
   signedIn,

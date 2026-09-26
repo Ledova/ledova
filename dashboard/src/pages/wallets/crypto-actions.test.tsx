@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 
+import type { PropsWithChildren } from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { createMemoryRouter, Route, RouterProvider, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WALLET_ENDPOINTS, type AccountRole } from '@ledova/shared';
 
@@ -11,13 +13,21 @@ vi.mock('@hooks/useAuth', () => ({ useAuth: () => ({ isAuthenticated: true }) })
 vi.mock('@hooks/useSelectedPortfolio', () => ({
   useSelectedPortfolio: () => ({ portfolio: { userAccount: 'owner' }, userAccount: { uuid: 'owner' } }),
 }));
-vi.mock('@hooks/useHeaderActions', () => ({ useHeaderActions: () => ({ setActions: api.setActions }) }));
+vi.mock('@hooks/useHeaderActions', () => ({
+  useHeaderActions: () => ({ setActions: api.setActions }),
+  HeaderActionsProvider: ({ children }: PropsWithChildren) => children,
+}));
+vi.mock('@hooks/useSignupFinished', () => ({ useSignupFinished: () => true }));
+vi.mock('@components/Sidebar', () => ({ Sidebar: () => null }));
+vi.mock('@components/DesktopHeader', () => ({ DesktopHeader: () => null }));
+vi.mock('@components/MobileHeader', () => ({ MobileHeader: () => null }));
+vi.mock('@components/Footer', () => ({ default: () => null }));
 vi.mock('@hooks/useCurrency', () => ({
   useCurrency: () => ({ formatDisplayCurrency: (value: number) => `$${value}` }),
 }));
 vi.mock('@keystonehq/animated-qr', () => ({ AnimatedQRCode: () => null }));
 
-import { BuyCryptoProvider } from '@hooks/useBuyCrypto';
+import Layout from '@components/Layout';
 import { WalletsPage } from './index';
 
 const walletList = {
@@ -40,6 +50,31 @@ const walletList = {
   },
 };
 let queryClient: QueryClient;
+let router: ReturnType<typeof createMemoryRouter>;
+
+function renderWalletsInTheFrame() {
+  router = createMemoryRouter(
+    [
+      {
+        path: '*',
+        element: (
+          <Layout>
+            <Routes>
+              <Route path="/wallets" element={<WalletsPage />} />
+              <Route path="/elsewhere" element={<p>Another page</p>} />
+            </Routes>
+          </Layout>
+        ),
+      },
+    ],
+    { initialEntries: ['/wallets'] },
+  );
+  render(
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
+}
 
 beforeEach(() => {
   queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
@@ -54,13 +89,7 @@ afterEach(() => {
 
 async function openWallets(role?: AccountRole) {
   if (role) queryClient.setQueryData(['userAccount'], { data: { role } });
-  render(
-    <QueryClientProvider client={queryClient}>
-      <BuyCryptoProvider>
-        <WalletsPage />
-      </BuyCryptoProvider>
-    </QueryClientProvider>,
-  );
+  renderWalletsInTheFrame();
   await screen.findByText('Base wallet');
 }
 
@@ -91,13 +120,7 @@ describe('crypto on the Wallets page', () => {
       url === WALLET_ENDPOINTS.BASE ? Promise.reject(new Error('Network unavailable')) : Promise.resolve(walletList),
     );
     queryClient.setQueryData(['userAccount'], { data: { role: 'investor' } });
-    render(
-      <QueryClientProvider client={queryClient}>
-        <BuyCryptoProvider>
-          <WalletsPage />
-        </BuyCryptoProvider>
-      </QueryClientProvider>,
-    );
+    renderWalletsInTheFrame();
     fireEvent.click(await screen.findByRole('button', { name: 'Send' }));
     expect(await screen.findByText('Select your wallet')).toBeTruthy();
 
@@ -117,5 +140,22 @@ describe('crypto on the Wallets page', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));
 
     expect(await screen.findByText('Select your wallet')).toBeTruthy();
+  });
+
+  it.each([
+    ['Send', 'Select your wallet'],
+    ['Buy crypto', 'Select an asset to purchase'],
+  ])('keeps an open %s flow when the person leaves Wallets, since the frame holds it', async (action, firstStep) => {
+    await openWallets('investor');
+    fireEvent.click(screen.getByRole('button', { name: action }));
+    expect(await screen.findByText(firstStep)).toBeTruthy();
+
+    await act(async () => {
+      await router.navigate('/elsewhere');
+    });
+
+    expect(await screen.findByText('Another page')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Buy crypto', hidden: true })).toBeNull();
+    expect(screen.getByText(firstStep)).toBeTruthy();
   });
 });

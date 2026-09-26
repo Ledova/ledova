@@ -2,7 +2,6 @@ import { useState, useCallback, useMemo } from 'react';
 import type { Asset } from '@ledova/shared';
 import { TIME_RANGES, PAPER_THEME as colors } from '@ledova/shared';
 import { useCurrency } from '@hooks/useCurrency';
-import { StarIcon } from '@phosphor-icons/react';
 import { AssetTypeIcon } from '@components/AssetTypeIcon';
 import {
   Chart as ChartJS,
@@ -20,7 +19,7 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { Modal } from '@components/Modal';
-import { useAssetPriceHistory } from '../useAssetPrices';
+import { useAssetPriceHistory } from '../useAssetPriceHistory';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -28,19 +27,9 @@ interface AssetDetailModalProps {
   isOpen: boolean;
   asset: Asset | null;
   onClose: () => void;
-  onBuy?: () => void;
-  isFavourite?: boolean;
-  onToggleFavourite?: (assetUuid: string) => void;
 }
 
-export function AssetDetailModal({
-  isOpen,
-  asset,
-  onClose,
-  onBuy,
-  isFavourite = false,
-  onToggleFavourite,
-}: AssetDetailModalProps) {
+export function AssetDetailModal({ isOpen, asset, onClose }: AssetDetailModalProps) {
   const { formatDisplayCurrency } = useCurrency();
   const CHART_UI = colors.chartUI;
 
@@ -163,34 +152,12 @@ export function AssetDetailModal({
     : null;
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      showFooter={!!onBuy}
-      showCancelButton
-      cancelLabel="Close"
-      confirmLabel="Buy"
-      onCancel={onClose}
-      onConfirm={onBuy}
-    >
-      <div className="relative flex items-center justify-center mb-4">
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <div className="flex items-center justify-center mb-4">
         <div className="flex flex-col items-center gap-1">
           <AssetTypeIcon assetType={asset.assetType} symbol={asset.symbol} size={32} />
           <h3 className="text-sm font-medium text-text-muted">{asset.name}</h3>
         </div>
-        {onToggleFavourite && (
-          <button
-            type="button"
-            onClick={() => onToggleFavourite(asset.uuid)}
-            className="absolute right-0 top-0 p-1 transition-colors"
-          >
-            <StarIcon
-              size={20}
-              color={isFavourite ? colors.status.warning.icon : colors.text.subtle}
-              weight={isFavourite ? 'fill' : 'regular'}
-            />
-          </button>
-        )}
       </div>
 
       <div className="flex flex-col items-center mb-4">
