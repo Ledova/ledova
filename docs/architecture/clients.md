@@ -44,9 +44,10 @@ address. Every page shows the session check until the profile is known, and an
 investing or company page until the role is known as well, so no page appears
 on the way. If the account cannot be read, it says so and offers Try again
 instead of deciding with a guessed role. Once the role is known, the sidebar
-offers only pages the role can open. Signing in clears what the tab cached for
-whoever was signed in before, as signing out does, so a new person is never
-guarded by the previous person's role. The guard decides pages, not data: the
+offers only pages the role can open. Signing in, and verifying an email, which
+also signs a new person in, clear what the tab cached for whoever was signed in
+before, as signing out does, so a new person is never guarded by, or signs up
+against, the previous person's account. The guard decides pages, not data: the
 API still decides which rows a person sees, and answers 404 for one it refuses.
 `landingFor(role)` decides where a signed-in person lands: an investing account
 on its home, and a company or dual-role account on its company. The front door,

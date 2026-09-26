@@ -44,6 +44,7 @@ export const useSignupEmailConfirmation = () => {
 
       localStorage.removeItem('signup_email');
 
+      queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== AUTH_QUERY_KEY[0] });
       await queryClient.refetchQueries({ queryKey: AUTH_QUERY_KEY, exact: true });
 
       onSuccess();

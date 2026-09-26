@@ -74,6 +74,21 @@ it('moves on only once the session answer says signed in, since verification sig
   expect(verified).toHaveBeenCalledOnce();
 });
 
+it('forgets what the tab held for whoever was signed in before, since verification signs a new person in', async () => {
+  const { result } = renderConfirmation();
+  client.setQueryData(['userAccount'], { data: { uuid: 'someone-else', role: 'company' } });
+  client.setQueryData(['userProfiles'], { data: { results: [{ uuid: 'someone-else' }] } });
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } });
+  vi.spyOn(client, 'refetchQueries').mockResolvedValue(undefined);
+  act(() => result.current.setVerificationCode('123456'));
+
+  await act(() => result.current.handleVerify(vi.fn()));
+
+  expect(client.getQueryData(['userAccount'])).toBeUndefined();
+  expect(client.getQueryData(['userProfiles'])).toBeUndefined();
+  expect(client.getQueryData(AUTH_QUERY_KEY)).toBeDefined();
+});
+
 it('starts with no email when signup saved none', () => {
   const { result } = renderConfirmation();
   expect(result.current.email).toBe('');
