@@ -66,6 +66,8 @@ it.each(KEYS)('keeps the real %s page titled once everything it asked for has co
 
   await waitFor(() => expect(client.isFetching()).toBe(0));
 
-  expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(DESTINATIONS[key].title);
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(
+    DESTINATIONS[key === 'dividends' ? 'publications' : key].title,
+  );
   client.clear();
 });

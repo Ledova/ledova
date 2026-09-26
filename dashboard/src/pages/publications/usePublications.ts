@@ -13,6 +13,7 @@ import type { BallotChoice } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 
 const PUBLICATIONS_KEY = ['publications'];
+const PERSONAL_NOTICES_KEY = [...PUBLICATIONS_KEY, 'addressed', 'me'];
 
 function saveACopy(document_: Blob, filename: string) {
   const url = URL.createObjectURL(document_);
@@ -34,8 +35,15 @@ export function usePublications() {
   const queryClient = useQueryClient();
 
   const listing = useInfiniteQuery({
-    queryKey: PUBLICATIONS_KEY,
-    queryFn: ({ pageParam }) => getPublications(apiClient, pageParam),
+    queryKey: PERSONAL_NOTICES_KEY,
+    queryFn: async ({ pageParam }) => {
+      const response = await getPublications(apiClient, pageParam, { addressed: 'me' });
+      const next = getPublicationsNextPage(response);
+      if (response.data.next && (next === undefined || !Number.isInteger(next) || next <= pageParam)) {
+        throw new Error('Notice pagination did not advance');
+      }
+      return response;
+    },
     getNextPageParam: getPublicationsNextPage,
     initialPageParam: 1,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
@@ -56,7 +64,9 @@ export function usePublications() {
   return {
     publications: listing.data?.pages.flatMap((page) => page.data?.results ?? []) ?? [],
     isLoading: listing.isLoading,
-    listFailed: listing.isError && !listing.data,
+    listFailed: listing.isError && !listing.isFetchNextPageError,
+    moreFailed: listing.isFetchNextPageError,
+    isRefreshing: listing.isFetching,
     retry: () => void listing.refetch(),
     hasMore: listing.hasNextPage,
     isLoadingMore: listing.isFetchingNextPage,
