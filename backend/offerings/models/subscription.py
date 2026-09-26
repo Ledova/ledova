@@ -128,6 +128,10 @@ class Subscription(DerivesCompanyFromOffering, BaseModel):
     refund_reference = models.CharField(max_length=140, blank=True)
 
     status = models.CharField(max_length=20, choices=SubscriptionStatus.choices, default=SubscriptionStatus.DRAFT)
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    allotted_at = models.DateTimeField(null=True, blank=True)
+    closed_at = models.DateTimeField(null=True, blank=True, help_text="When it was rejected or withdrawn")
 
     issuance_request = models.OneToOneField(
         "tokens.ShareIssuanceRequest",
@@ -221,12 +225,14 @@ class Subscription(DerivesCompanyFromOffering, BaseModel):
         self._require_status([SubscriptionStatus.DRAFT], SubscriptionStatus.SUBMITTED)
         self.status = SubscriptionStatus.SUBMITTED
         self.submitted_by = submitted_by
-        self.save(update_fields=["status", "submitted_by", "updated_at"])
+        self.submitted_at = timezone.now()
+        self.save(update_fields=["status", "submitted_by", "submitted_at", "updated_at"])
 
     def accept(self):
         self._require_status([SubscriptionStatus.SUBMITTED], SubscriptionStatus.ACCEPTED)
         self.status = SubscriptionStatus.ACCEPTED
-        self.save(update_fields=["status", "updated_at"])
+        self.accepted_at = timezone.now()
+        self.save(update_fields=["status", "accepted_at", "updated_at"])
 
     def mark_awaiting_payment(self, rail, settlement_asset, settlement_amount, reference, due_at):
         self._require_status([SubscriptionStatus.ACCEPTED], SubscriptionStatus.AWAITING_PAYMENT)
@@ -277,7 +283,8 @@ class Subscription(DerivesCompanyFromOffering, BaseModel):
     def mark_allotted(self):
         self._require_status([SubscriptionStatus.PAID], SubscriptionStatus.ALLOTTED)
         self.status = SubscriptionStatus.ALLOTTED
-        self.save(update_fields=["status", "updated_at"])
+        self.allotted_at = timezone.now()
+        self.save(update_fields=["status", "allotted_at", "updated_at"])
 
     def mark_refunded(self, amount, reference, notes):
         self._require_status(REFUNDABLE_SUBSCRIPTION_STATUSES, SubscriptionStatus.REFUNDED)
@@ -300,11 +307,13 @@ class Subscription(DerivesCompanyFromOffering, BaseModel):
         self._require_no_money_in()
         self.status = SubscriptionStatus.REJECTED
         self.payment_notes = notes
-        self.save(update_fields=["status", "payment_notes", "updated_at"])
+        self.closed_at = timezone.now()
+        self.save(update_fields=["status", "payment_notes", "closed_at", "updated_at"])
 
     def withdraw(self, notes):
         self._require_status(CLOSEABLE_SUBSCRIPTION_STATUSES, SubscriptionStatus.WITHDRAWN)
         self._require_no_money_in()
         self.status = SubscriptionStatus.WITHDRAWN
         self.payment_notes = notes
-        self.save(update_fields=["status", "payment_notes", "updated_at"])
+        self.closed_at = timezone.now()
+        self.save(update_fields=["status", "payment_notes", "closed_at", "updated_at"])

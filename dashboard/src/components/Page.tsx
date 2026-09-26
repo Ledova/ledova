@@ -28,20 +28,35 @@ export function Page({ actions, loading = false, children }: PageProps) {
 }
 
 interface PageActionProps {
-  icon: ReactNode;
+  icon?: ReactNode;
   label: string;
   onClick: () => void;
   active?: boolean;
+  primary?: boolean;
+  disabled?: boolean;
 }
 
-export function PageAction({ icon, label, onClick, active = false }: PageActionProps) {
+const ACTION_LOOKS = {
+  primary: 'border-brand-mid bg-brand-mid text-white hover:bg-brand',
+  active: 'border-brand-mid text-brand-light hover:bg-surface-tertiary',
+  plain: 'border-border text-text-primary hover:bg-surface-tertiary',
+};
+
+export function PageAction({
+  icon,
+  label,
+  onClick,
+  active = false,
+  primary = false,
+  disabled = false,
+}: PageActionProps) {
+  const look = primary ? ACTION_LOOKS.primary : active ? ACTION_LOOKS.active : ACTION_LOOKS.plain;
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors hover:bg-surface-tertiary ${
-        active ? 'border-brand-mid text-brand-light' : 'border-border text-text-primary'
-      }`}
+      disabled={disabled}
+      className={`inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${look}`}
     >
       {icon}
       <span>{label}</span>

@@ -25,6 +25,7 @@ SUBSCRIPTION_FIELDS = [
     "price_per_share",
     "amount_due",
     "amount_received",
+    "currency",
     "settlement_rail",
     "settlement_rail_display",
     "reference",
@@ -43,6 +44,7 @@ class SubscriptionListSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     settlement_rail_display = serializers.CharField(source="get_settlement_rail_display", read_only=True)
     wallet_address = serializers.CharField(source="wallet.address", read_only=True)
+    currency = serializers.CharField(source="offering.price_currency", read_only=True)
 
     class Meta:
         model = Subscription
@@ -90,6 +92,10 @@ class SubscriptionDetailSerializer(SubscriptionListSerializer):
             "refund_amount",
             "refunded_at",
             "refund_reference",
+            "submitted_at",
+            "accepted_at",
+            "allotted_at",
+            "closed_at",
             "updated_at",
         ]
         read_only_fields = fields

@@ -121,6 +121,19 @@ sidebar, with the notification bell beside the logo, and on a phone a top bar
 with the menu, the logo and the bell. It has no header bar and no footer; only
 the public layout has a footer.
 
+Pages rebuilt in the paper layout use the ledger blocks in
+`dashboard/src/components/Ledger.tsx`:
+
+- `Section`: a Newsreader heading over a hairline rule, with no card.
+- `Rows`: ruled label and value pairs, with figures right-aligned in tabular
+  numerals. Every amount names its currency (`formatAmount`), and share counts
+  are whole numbers.
+- `Status`: a status in words with a small mark, red only for a failure.
+- `Timeline`: each event with its date.
+
+White cards stay for forms and for things to act on, such as a payment
+instruction. The application page is the first page built this way.
+
 The design tokens are the single source of colour, spacing and radius values.
 `make generate-tokens` runs `packages/scripts/generate-css-tokens.mjs` with
 `tsx` over `packages/shared/src/constants/ui/design-tokens.ts` and writes
