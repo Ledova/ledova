@@ -41,3 +41,29 @@ describe('the signed-in destinations', () => {
     expect(Object.values(DESTINATIONS).filter((destination) => destination.title.trim() === '')).toEqual([]);
   });
 });
+
+describe("the owner's menus of 26 September, applied to today's pages", () => {
+  const AUDIENCE_OF_EACH_PAGE: Record<keyof typeof DESTINATIONS, Audience> = {
+    home: 'everyone',
+    wallets: 'everyone',
+    transactions: 'everyone',
+    publications: 'everyone',
+    dividends: 'everyone',
+    userProfile: 'everyone',
+    settings: 'everyone',
+    assetPrices: 'investing',
+    trading: 'investing',
+    directory: 'investing',
+    directoryDetail: 'investing',
+    subscriptions: 'investing',
+    subscriptionDetail: 'investing',
+    investorEligibility: 'investing',
+    company: 'company',
+    companyListing: 'company',
+    companyOffering: 'company',
+  };
+
+  it.each(Object.entries(AUDIENCE_OF_EACH_PAGE))('opens %s to %s', (key, audience) => {
+    expect(DESTINATIONS[key as keyof typeof DESTINATIONS].audience).toBe(audience);
+  });
+});
