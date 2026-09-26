@@ -73,8 +73,23 @@ Whole share counts are added without floating-point conversion and can be
 expanded into chain and wallet balances. Crypto balances, allocation charts,
 coin prices and market valuations are absent from this share ledger. If any
 wallet page or holdings read fails, the page offers a retry instead of presenting
-partial counts as complete. The existing personal publication summary remains
-until the later Needs you and In progress sections replace it.
+partial counts as complete.
+
+Below the shares, _Needs you_ links to the person's draft applications and
+payment instructions, and counts resolutions awaiting their vote. _In progress_
+lists applications under review, accepted but awaiting an instruction, or with
+payment received, and counts dividends awaiting a company payment record.
+That record is not proof of whether a bank transfer happened. Recent notices are
+counted separately as addressed in the last 30 days, not as unread. These are
+personal reads: every role gets the recipient-only publication summary; only a
+known investing role reads the applicant-filtered application list. All its
+pages must succeed before application work is shown. Each source has its own
+loading, failure and retry state, and unavailable data is never called empty.
+Application changes invalidate the work summary, and notice counts refresh at
+the next voting deadline and periodically, as they do on mobile. Actions open
+the existing application detail or Notices page; they do not submit, pay or vote
+from Holdings. The application list still depends on #749's retained-application
+fix before it can include applications whose company or class has become hidden.
 
 Where market values are shown elsewhere, they are in AUD: the shared
 `useCurrency` converts the API's US-dollar values at the current rate, shows a

@@ -28,5 +28,12 @@ export function usePublicationSummary() {
     return () => clearTimeout(timer);
   }, [closes, refetch]);
 
-  return { lines: summary.data ? describePublicationSummary(summary.data) : NOTHING_TO_SAY };
+  return {
+    lines: summary.data ? describePublicationSummary(summary.data) : NOTHING_TO_SAY,
+    summary: summary.data,
+    isPending: summary.isPending,
+    isError: summary.isError,
+    isFetching: summary.isFetching,
+    retry: summary.refetch,
+  };
 }

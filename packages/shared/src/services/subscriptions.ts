@@ -2,8 +2,10 @@ import { AxiosInstance } from 'axios';
 import { SUBSCRIPTION_ENDPOINTS } from '../constants';
 import type { PaginatedResponse, Subscription, SubscriptionDetail, SubscriptionInput } from '../types';
 
-export const getSubscriptions = (apiClient: AxiosInstance) =>
-  apiClient.get<PaginatedResponse<Subscription>>(SUBSCRIPTION_ENDPOINTS.BASE);
+export const getSubscriptions = (apiClient: AxiosInstance, page?: number) =>
+  page === undefined
+    ? apiClient.get<PaginatedResponse<Subscription>>(SUBSCRIPTION_ENDPOINTS.BASE)
+    : apiClient.get<PaginatedResponse<Subscription>>(SUBSCRIPTION_ENDPOINTS.BASE, { params: { page } });
 
 export const getSubscription = (apiClient: AxiosInstance, uuid: string) =>
   apiClient.get<SubscriptionDetail>(SUBSCRIPTION_ENDPOINTS.DETAIL(uuid));
