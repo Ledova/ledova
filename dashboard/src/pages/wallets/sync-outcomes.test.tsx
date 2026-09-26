@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import type React from 'react';
+
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,6 +14,10 @@ vi.mock('@hooks/useSelectedPortfolio', () => ({
 vi.mock('@hooks/useHeaderActions', () => ({ useHeaderActions: () => ({ setActions: api.setActions }) }));
 vi.mock('@hooks/useCurrency', () => ({
   useCurrency: () => ({ formatDisplayCurrency: (value: number) => `$${value}` }),
+}));
+vi.mock('./components/CryptoActions', () => ({ CryptoActions: () => null }));
+vi.mock('@hooks/useSendTransfer', () => ({
+  SendTransferProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 import { WalletsPage } from './index';

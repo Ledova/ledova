@@ -47,8 +47,11 @@ instead of deciding with a guessed role. Once the role is known, the sidebar
 offers only pages the role can open. Signing in, and verifying an email, which
 also signs a new person in, clear what the tab cached for whoever was signed in
 before, as signing out does, so a new person is never guarded by, or signs up
-against, the previous person's account. The guard decides pages, not data: the
-API still decides which rows a person sees, and answers 404 for one it refuses.
+against, the previous person's account. Buying crypto and sending are actions on
+Wallets for every account, not menu items; the Send flow is mounted around the
+whole page, so it survives the page reloading its wallet list. The guard
+decides pages, not data: the API still decides which rows a person sees, and
+answers 404 for one it refuses.
 `landingFor(role)` decides where a signed-in person lands: an investing account
 on its home, and a company or dual-role account on its company. The front door,
 sign-in, the end of sign-up, the signed-out pages and the trading fallback all

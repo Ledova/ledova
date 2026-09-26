@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   HouseIcon,
   WalletIcon,
-  CurrencyCircleDollarIcon,
   ArrowsClockwiseIcon,
   LinkIcon,
   ChartBarIcon,
@@ -12,7 +11,6 @@ import {
   QuestionIcon,
   SignOutIcon,
   EnvelopeIcon,
-  PaperPlaneTiltIcon,
   BuildingsIcon,
   FileTextIcon,
   ShieldCheckIcon,
@@ -24,8 +22,6 @@ import {
 import { DESIGN_TOKENS } from '@ledova/shared';
 import { useFeatureFlags, useRole } from '@hooks';
 import { useSignOut } from '@hooks/useSignOut';
-import { useBuyCrypto } from '@hooks/useBuyCrypto';
-import { useSendTransfer } from '@hooks/useSendTransfer';
 import { useUserProfile } from '@pages/user-profile/useUserProfile';
 import { MARKETING_URL } from '@utils/marketingUrl';
 import { Logo } from '@components/Logo';
@@ -52,32 +48,21 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
   const navigate = useNavigate();
   const { tradingEnabled } = useFeatureFlags();
   const { isInvestor, isCompany } = useRole();
-  const { openBuyCrypto } = useBuyCrypto();
-  const { openSendTransfer } = useSendTransfer();
   const { userProfile } = useUserProfile();
 
-  const investorNavItems = useMemo(
-    (): NavItem[] => [
-      { label: 'Home', path: '/home', icon: HouseIcon },
-      { label: 'Wallets', path: '/wallets', icon: WalletIcon },
-    ],
-    [],
-  );
-
-  const companyNavItems = useMemo(
-    (): NavItem[] => [
-      { label: 'Company', path: '/company', icon: BuildingsIcon },
-      { label: 'Listing', path: '/company/listing', icon: FileTextIcon },
-      { label: 'Offering', path: '/company/offering', icon: MegaphoneIcon },
-      { label: 'Wallets', path: '/wallets', icon: WalletIcon },
-    ],
-    [],
-  );
-
-  const navItemsBeforeActions = isCompany && !isInvestor ? companyNavItems : investorNavItems;
-
-  const navItemsAfterActions = useMemo((): NavItem[] => {
-    const items: NavItem[] = [];
+  const navItems = useMemo((): NavItem[] => {
+    const items: NavItem[] =
+      isCompany && !isInvestor
+        ? [
+            { label: 'Company', path: '/company', icon: BuildingsIcon },
+            { label: 'Listing', path: '/company/listing', icon: FileTextIcon },
+            { label: 'Offering', path: '/company/offering', icon: MegaphoneIcon },
+            { label: 'Wallets', path: '/wallets', icon: WalletIcon },
+          ]
+        : [
+            { label: 'Home', path: '/home', icon: HouseIcon },
+            { label: 'Wallets', path: '/wallets', icon: WalletIcon },
+          ];
 
     if (tradingEnabled && isInvestor) {
       items.push({ label: 'Trading', path: '/trading', icon: ArrowsClockwiseIcon });
@@ -114,11 +99,6 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
     onNavigate?.();
   };
 
-  const handleAction = (action: () => void) => {
-    action();
-    onNavigate?.();
-  };
-
   return (
     <aside className="w-60 bg-surface-base border-r border-border-subtle/30 flex flex-col h-full">
       <div className="h-16 flex items-center px-5 border-b border-border-subtle/30">
@@ -129,43 +109,7 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
         <div className="mb-2">
           <span className="px-3 text-xs font-medium text-text-muted uppercase tracking-wider">Menu</span>
         </div>
-        {navItemsBeforeActions.map((item) => {
-          const Icon = item.icon;
-          const active = isActive(item.path);
-          return (
-            <button
-              key={item.path}
-              onClick={() => handleNav(item.path)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150
-                ${
-                  active
-                    ? 'bg-brand-mid/10 text-brand-light'
-                    : 'text-text-secondary hover:bg-surface-raised hover:text-text-primary'
-                }`}
-            >
-              <Icon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
-
-        <button
-          onClick={() => handleAction(openBuyCrypto)}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 text-text-secondary hover:bg-surface-raised hover:text-text-primary"
-        >
-          <CurrencyCircleDollarIcon size={ICON_MD} />
-          <span>Buy</span>
-        </button>
-
-        <button
-          onClick={() => handleAction(openSendTransfer)}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 text-text-secondary hover:bg-surface-raised hover:text-text-primary"
-        >
-          <PaperPlaneTiltIcon size={ICON_MD} />
-          <span>Send</span>
-        </button>
-
-        {navItemsAfterActions.map((item) => {
+        {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.path);
           return (
@@ -236,7 +180,7 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-text-secondary hover:bg-error/10 hover:text-error-light transition-all duration-150 disabled:opacity-50"
         >
           <SignOutIcon size={ICON_MD} />
-          <span>{isSigningOut ? 'Signing out...' : 'Sign Out'}</span>
+          <span>{isSigningOut ? 'Signing out...' : 'Sign out'}</span>
         </button>
       </div>
     </aside>
