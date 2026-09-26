@@ -186,26 +186,222 @@ opened.
 
 ### Base Sepolia
 
-The owner has authorised exactly one Base Sepolia deployment of these
-contracts, to be run once a funded deployer key is in place. It has not been
-run. The owner's signer cutover and admission must also be ready for the
-platform deployment and approval steps; admitted local-test fixtures do not
-establish that readiness. When the public-testnet exercise runs, record the
-tested commit, chain id, deployer address, contract addresses and creation
-transactions/blocks, and the result of each step-8 check. Record the two-company
-control fixture and the before/after expiry and revocation observations,
-including direct-call refusals. Keep local rehearsal evidence separate.
+The authorised core deployment and fresh signer admission completed on
+**25 September 2026**, on public Base Sepolia, chain **84532**. The backend,
+worker and dashboard run locally; this is not a hosted production deployment.
+The [rollout checkpoint](https://github.com/Ledova/ledova/issues/648#issuecomment-5835262968)
+and the later public observations below record progress, **not closure of
+#648 or public release acceptance**.
 
-| Field | Value |
+Checkpoint cutoff: **25 September 2026, 18:24:17 UTC**.
+
+| Public acceptance proof | State at this checkpoint |
 | --- | --- |
-| Run on | *not yet run* |
-| Tested commit and chain id | *not yet run* |
-| Deployer | *not yet run* |
-| `ShareTokenFactory` | *not yet run* |
-| `AtomicSwap` | *not yet run* |
-| `AUDY` | *not yet run* |
-| Creation transactions and blocks | *not yet run* |
-| Companies A/B, class addresses and registry addresses | *not yet run* |
-| A-only control wallet and observed A/B membership | *not yet run* |
-| Expiry/revocation observations, transactions where applicable, blocks and direct-call results | *not yet run* |
-| Step-8 checks | *not yet run* |
+| A/B deployment and registry bindings | Both projected; four canonical successful deployment/approval receipts finalized and the complete DB deployment inventory targets only the configured factory. Later finalized control observations also rechecked both factory/registry/token bindings |
+| A-only C/I grants and positive controls | Both normal grants confirmed, both canonical receipts finalized and both finalized positive membership/direct-call baselines retained before revocation |
+| I classification revocation | Normal API denial observed; the periodic-fallback removal finalized, with a canonical block timestamp approximately 534.5 seconds after revocation and before original expiry. Finalized A/B membership and direct-call refusals retained |
+| C natural expiry | Real chain time passed the original 18:00 UTC expiry. Finalized A/B membership is false and both direct-call simulations refuse C, while A still stores the original nonzero expiry and B stores zero |
+
+| Field | Recorded value |
+| --- | --- |
+| Original contract source/build | Frozen artifacts from reviewed `b76c69c2`, merged as `7a4d58cb` in [#728](https://github.com/Ledova/ledova/pull/728); the later backend fixes retain these contracts and artifacts |
+| Current backend/worker | Source `32d161dcd269df1f1d5534ecc80ffb90e685e2f6`; [#734](https://github.com/Ledova/ledova/pull/734) merged as `3f9cf5ae`, with the same tree as the candidate and CI checkout |
+| Deployer/operator | `0x4A0DC41A44fA101d13e85CC4C10aE24aA165C290`, a dedicated software testnet signer; no physical Keystone claim |
+| `ShareTokenFactory` | `0xbe30d6790FDB765a0AcaE78cCCa72cFB62B9bCDd` |
+| `AtomicSwap` | `0xD0A6cA2BF4C074dDb91d850721a0F431ED877Ee4` |
+| `AUDY` | `0x030C3408F2456e71b66284DBCCB16ae674c83C84` |
+| Finality and admission | All five core transactions below were successful, canonical and finalized at the retained 10:43:21 UTC observation, finalized head `47281832`. After [#729](https://github.com/Ledova/ledova/pull/729), fresh signer admission opened generation 1 at nonce 5; exact replay returned `unchanged=true` |
+
+| Core transaction | Hash | Block |
+| --- | --- | --- |
+| Create factory | `0x786d7023f05f75ee5a9e17c1697338d6d421086d32e210ba95052bab51121bef` | 47281406 |
+| Create AUDY | `0xf26e3a38440e4a4cbabc904b76f50891925bcfa92ea819e8d144f33e84b85bbb` | 47281407 |
+| Add AUDY minter | `0xb36a85e38dfc11a7f51d8fb2949008433524d05aa2710064c778b1d8b6a4d23f` | 47281408 |
+| Create swap | `0x1503800d128dc4f502372d37b211e0befcc39838b70c5032696495cfef832800` | 47281409 |
+| Approve AUDY payment token | `0xf65d1cfd571e6683c70971de15b6290da6d6c17311695b9c6bdf137b258c3156` | 47281703 |
+
+The original script stopped after nonce 3 on an RPC read; a reviewed bounded
+continuation sent only the missing nonce-4 approval. Read-only reconciliation
+published the five-hash manifest without restarting deployment. The later
+admission audit independently checked all five finalized observations.
+[#734 CI](https://github.com/Ledova/ledova/actions/runs/36152565939) passed:
+ordinary shards reported 5,205 tests, including 732 specialized skips; scoped 646 and
+local-EVM 80 passed without skips. Native scope/check gates passed; this backend-only run skipped
+native builds. These checks do not replace public-chain acceptance.
+
+The owner authorised two explicitly fictional companies: A, ACN `999000001`,
+class `FXA648`, and B, ACN `999000010`, class `FXB648`, each with 1,000 authorised
+shares. Fixture setup activated the companies without ABR verification,
+completed signup, and set only the software investor's synthetic identity
+prerequisite. It did not assert real company registration, KYC, email
+verification or legal acceptance; terms acceptance remains false. The synthetic
+professional-investor claim began submitted without expiry or review. At
+16:19:37 UTC, normal staff verification set expiry to 20:35 UTC with explicit
+synthetic-only review notes: no real KYC evidence, legal declaration or investor
+qualification is asserted. The two issuers and software investor proved wallet ownership through the normal
+authenticated EIP-191 challenge/signature/readback flow. The separate Keystone
+participant received no fixture wallet or ownership-verification override.
+These are fresh fixture identities: no issued holdings or populated register
+was created, and no old register was carried over.
+
+| Company | Recorded class and recovery state |
+| --- | --- |
+| A | `0x1C01c83a491d2De1A682E693eA911bE12a11415C`; original deployment nonce 5, transaction `0xcead30e3bb5726170c43fc923c0e5c5eb2fe51ab0109bb4cfb49c3388d2f990f`, block `47287748`; swap approval nonce 6, transaction `0xc72d2ee643f000861a0d14389d288f079cfe126e888f2aa2f16927b053f18a3f`, block `47287750`; both projections confirmed, with approval recorded at 15:45:00.782972 UTC during normal approval recovery |
+| B | `0x4016dB3d817ce37151596f696afC039F832a7B24`; the normal retry retained the original deployment and operation. Deployment nonce 7, transaction `0xfb9dc0dd34622116456363903aae3d547816aaad37681edcdfe38a3ecb62d849`, block `47291343`, projected at 15:55 UTC. Swap approval nonce 8, transaction `0xc75aaeb82ab0c6bc578485ee457b2a2f4f0155a36b02bf66fe50b33a9d135ad0`, block `47291710`, confirmed at 16:10:02.310 UTC in readback 07 |
+
+The 16:22:15 UTC public deployment proof rechecked all four successful canonical
+receipts, including exact senders, nonces, calldata and events. All four blocks
+were below observed finalized head `47291776`. At pinned latest block
+`47292515`, factory mappings, token registry bindings, code, owner/share terms
+and swap approvals matched. A's registry is
+`0x88d215019f592db70de263af4baba97025064002`; B's distinct registry is
+`0x9fff97e65891d4be6c5ba68200d5d838c0e4ca73`. This pinned latest state was
+**not itself finalized**; receipt finality does not establish that stronger claim.
+The later finalized control observations below also rechecked factory registry
+mappings and token registry bindings. The original deployment proof's additional
+owner/share-term and swap-approval reads remain observations of its latest block.
+
+The read-only step-8 database inventory at 16:42:24 UTC contains exactly the
+expected A and B deployment records, with matching token/company identities,
+class addresses and factory target. The literal
+`exclude(contract_address='').exclude(intent__to=settings.SHARE_TOKEN_FACTORY_ADDRESS.lower())`
+UUID list is `[]`. Evidence
+`deployment-inventory-20260925T164222Z.json`
+has SHA-256 `e190a326efa679bdb2997f6538fe4bbcb561dd48cb685f7090a4c1f1c4b65f51`.
+
+After the backend fix, a separately reviewed keyless repair rechecked A's
+original canonical receipts/events and corrected exactly three zero
+`block_hash` columns. It preserved the original attempts, claims, timestamps,
+nonces and other fields; replay returned `already_corrected_no_writes`.
+A's original approval projection subsequently completed during normal approval
+recovery; this is a timestamp correlation in the retained audit. B's approval
+projection also completed. The B retry added one job and replay added none.
+Neither repair nor enqueue helper signed
+or broadcast a transaction; the normal worker signed B's attempts.
+
+Retained operator evidence includes `public-finality.json`,
+`public-admission-complete.json`, the fictional fixture execution summary,
+the software ownership record (SHA-256
+`ba2e444a54c2d06c30c6c745f82e8d95eef825cd2e5cb9b765efeb86153929e8`),
+and the metadata repair and normal retry records.
+A's completed projection is in `snapshot-20260925T1551.json`
+(SHA-256 `a56d1ebf7c8b9fc81d33e267d246d5c5c44c8ab6bdea181c123a59be56e60e3e`).
+The completed B snapshot is `readback-07.json`, SHA-256
+`1aaf5619df7aadfea18b4ba8f3034e37f8edf0aa42cbfce18f9d9d5a682e9b71`.
+Public proof `deployments-canonical-03.json`
+has SHA-256 `9b9e771ba446b9ccb12c792ca94280fd23129aeed49f386f26e86aa6ee3fdb0f`.
+Database, API and worker observations rely on retained operator audits; their
+digests identify files whose contents are not committed here. Public chain
+observations can be checked from the addresses, transactions and blocks below.
+The four finalized before/after control snapshots are also committed in the
+[public evidence bundle](evidence/base-sepolia-2026-09-25/README.md), with checksums.
+
+| Control | Public test wallet |
+| --- | --- |
+| C, independent expiry control | `0x63C4412edE96aB82D69301706BB511Be48294dD8` |
+| I, synthetic investor revocation control | `0x082aECc520291972b5deFded32eb1AB895bf96B3` |
+
+The independent A-only controls overlapped while awaiting finality. C's normal
+staff grant confirmed at 16:25 UTC with original expiry **18:00 UTC**, nonce 9,
+transaction
+`0x398f22c1d2b4b2fe432143d6d91b09721305d47b8f4be153d53eff938be08458`,
+block `47292537`. I's grant was requested through normal staff HTTP at 16:32 UTC
+while C awaited finality, and confirmed at 16:35:02 UTC with original expiry
+**20:35 UTC**, matching the synthetic classification. I's original transaction
+is `0x42f2d1954b5569e977f9eef2580fab889a3926ad235e0883d5b6880067e072e0`,
+nonce 10, block `47292837`. `grants-c-i-canonical-01.json` binds both canonical
+successful receipts to the original staff operations, expiries and events;
+the later `grants-c-i-finalized-01.json` at 16:55:22 UTC puts both below observed
+finalized head `47292917` (SHA-256
+`5d260d4047db7322e5ba951b1a8a6047cb95d291b36167a069ae76bb76bd9e3a`).
+
+C's positive finalized baseline was retained at 16:41:58 UTC in
+`c-baseline-finalized-01.json`, SHA-256
+`2eeb99961b3ff5ebf1a65b4406942ee25dee6a377ef625a36a18bb9fc882aba9`.
+At finalized block `47292664`, hash
+`0x69e0b765e829a00d0922957f67d153e892dfbce470eddfebc47cc5444ae711ee`,
+timestamp `1790353616`, C was approved in A and
+absent in B. Zero-value self-transfer `eth_call` simulations succeeded in A and
+returned `SenderNotWhitelisted(C)` in B. I's finalized positive baseline is
+also retained, before revocation, at 16:55:22 UTC in
+`i-baseline-finalized-01.json`, SHA-256
+`7fa42bca8957c638417b3d30f5c6c8bfe6dd8f1a1fa5d90e262807cbc539d793`:
+at finalized block `47292917`, hash
+`0x5f24fc9b96bc75d6a6bde9beccfad6937a40e2282fd999fe6525480cf6cee16b`,
+timestamp `1790354122`, A approved I and B did
+not; the same simulations succeeded in A and refused I in B. These records and the confirming readback
+`staff-audit-after-grant-i-02.json` (SHA-256
+`bb4f78f3c90fd98b09a3c3c088047b4ed6bf7977a8bc9423a65fe61cf5b20f5d`)
+are retained with the public acceptance evidence. To reproduce a guard check,
+verify the numbered block's hash, read each registry's membership for the
+control wallet, and `eth_call` each token's `transfer(wallet, 0)` from that same
+wallet at that block. Simulations prove the guard at the recorded state; they
+are not mined transfers or physical-wallet proof.
+
+Normal staff revocation took effect at **16:56:11.525869 UTC**, retaining I's
+original 20:35 UTC expiry. The normal eligibility read returned false 0.272
+seconds later. `market-before-01.json` and `market-after-01.json` show A's detail
+and order-book API responses changing from 200 to 404 and the market token list
+becoming empty. These are authenticated API observations, not browser UI proof.
+
+| Retained API evidence | SHA-256 |
+| --- | --- |
+| Normal staff revoke HTTP record | `0bdf6d774e3192d5b97f2f96fd4b3be1e1ba3c746280b70f34b8a02e925cbdb3` |
+| `market-before-01.json` | `ef56c397f00493cde543bc65bd0acae0792dd942d18bfb4f1cc055c68f08f9ee` |
+| `market-after-01.json` | `a8a89c576b0a249eec1157f0fa8c2b1fe37d3e472a948de74c89364bfefb394f` |
+
+The targeted refresh and 17:00 periodic sweep encountered
+registry-read errors and admitted no removal. Preserve these failed refresh
+attempts. The suppressed exceptions do not establish their underlying cause.
+The normal 17:05 periodic sweep admitted and signed I's removal; the 17:10
+recovery confirmed its projection. `revoke-after-01.json` supports this conservative job-window
+correlation using the scheduler link retained in an intermediate snapshot,
+not a job-to-change foreign key or proof of transaction commit ordering
+(SHA-256 `df27a0b9266dbf315c83a9fe380ddc8275baebcf69db1c7b54fc68f392551f18`).
+
+`removal-receipt-finality-02.json` independently verifies successful canonical
+`setExpiry(I,0)` transaction
+`0x2873e579c818d26795f96368cf3840573c1a7eb1a54f95ddc4bebbc81c4940b3`,
+nonce 11, block `47293809`, hash
+`0x6a194d12a9569be552f7dd8ab13b21366efa6bb4b0a97a17bee698123e2c7d57`,
+timestamp `1790355906` (17:05:06 UTC). Its interval from revocation is
+**approximately 534.5 seconds**, below fifteen minutes and strictly before the
+unchanged original expiry; this is removal evidence rather than natural expiry.
+The first 17:12 observation was provisional. The 17:28:33 UTC receipt recheck
+establishes finality at observed finalized head `47293954`, hash
+`0xef4cda3ca0755eeb7b3942ea5bc07b5d2dc9a7f089ccbbd6e966fdb792747da5`,
+timestamp `1790356196` (evidence SHA-256
+`74e06fc769451409fd5a77fa94a794f5fbecc89d41ed04bb5bb3e94a192e4ed4`).
+`i-removed-finalized-01.json` at 17:28:53 UTC checks that same finalized block:
+both registry expiries are zero, membership is false in A and B, and both
+zero-value self-transfer simulations return `SenderNotWhitelisted(I)`
+(SHA-256 `0efc077aa4ea0a4662c077271f0c77a454cab678a2547da7b566c2f095c456cc`).
+No positive-amount transfer, mined reverting transfer or hardware signature was
+performed.
+
+C's natural-expiry control completed after real public-chain time passed its
+original **18:00 UTC** expiry, timestamp `1790359200`. The first observation,
+`c-expired-latest-01.json`, at 18:01:04 UTC recorded latest block `47295485`, hash
+`0x8751ff7fafd24bb230086a3dce4e9891e8a0eba682fbcd3cecc2830fd1337db5`,
+timestamp `1790359258` (18:00:58 UTC), with evidence SHA-256
+`2a1371f929edf2572519bde02bfee43bdf2fb32173560b72a848fbd402587c80`.
+
+The finalized check, `c-expired-finalized-01.json`, at 18:24:17 UTC recorded
+block `47295622`, hash
+`0x45ef42a51fc2d0adff1467911221010f256dceb55b10081e4fc1e72d71e3d08f`,
+timestamp `1790359532` (18:05:32 UTC), with evidence SHA-256
+`7dcc3f458818f002b169fdc7c0611d18907571ca46b9bc1f58e69ba6e1fef997`.
+Both observations retained A's original nonzero expiry `1790359200` and B's
+zero expiry, while both memberships were false and both zero-value self-transfer
+simulations returned `SenderNotWhitelisted(C)`. The finalized observer also
+rechecked factory/registry/token bindings. This completes the natural-expiry
+control from its earlier finalized positive baseline; no local time advancement
+or expiry-zero removal was used to establish C's negative result.
+
+The #648 public approval-control exercise now has retained completion evidence;
+issue closure remains subject to final evidence review. The local funded
+journey for [#645 is already accepted](https://github.com/Ledova/ledova/issues/645#issuecomment-5827887653).
+Physical Keystone acceptance and release-level public swap proof belong to
+[#624](https://github.com/Ledova/ledova/issues/624), separately from this exercise.
+Update these rows from retained observations; prepared verifiers, synthetic
+setup, job success and elapsed time do not supply missing acceptance evidence.

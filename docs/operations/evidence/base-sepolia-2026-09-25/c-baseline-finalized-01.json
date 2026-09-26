@@ -1,0 +1,67 @@
+{
+  "observer": "company-approval-read-only-v1",
+  "kind": "eth_call_simulation_and_state",
+  "status": "observed_expected_state",
+  "recorded_at": "2026-09-25T16:41:58.214Z",
+  "rpc": "https://sepolia.base.org",
+  "chain_id": 84532,
+  "block_tag_requested": "finalized",
+  "block": {
+    "number": "0x2d1a0f8",
+    "hash": "0x69e0b765e829a00d0922957f67d153e892dfbce470eddfebc47cc5444ae711ee",
+    "timestamp": "1790353616"
+  },
+  "wallet": "0x63C4412edE96aB82D69301706BB511Be48294dD8",
+  "factory": "0xbe30d6790FDB765a0AcaE78cCCa72cFB62B9bCDd",
+  "code_hashes": {
+    "0xbe30d6790FDB765a0AcaE78cCCa72cFB62B9bCDd": "0xe494b964ebf1351356fab4dcedec2637f219b09992249132b8ee4f309b03e5bd",
+    "0x1C01c83a491d2De1A682E693eA911bE12a11415C": "0xa577e219de04d436e7315a243f284d1cef2ad66afa97f160e57fc66ab286bea9",
+    "0x88d215019F592db70De263aF4baBA97025064002": "0x1f0f31c1cf3fef11d81d11e84d2785f260e57327954c16ee86d01ba9597b546d",
+    "0x4016dB3d817ce37151596f696afC039F832a7B24": "0xc9fcb1daeaae27b27a9f0af4325982cbbf7c0bf791f31330a6e48d8c2ab70df6",
+    "0x9fFf97E65891D4BE6c5Ba68200D5d838C0E4Ca73": "0x1f0f31c1cf3fef11d81d11e84d2785f260e57327954c16ee86d01ba9597b546d"
+  },
+  "companies": {
+    "a": {
+      "acn": "999000001",
+      "token": "0x1C01c83a491d2De1A682E693eA911bE12a11415C",
+      "registry": "0x88d215019F592db70De263aF4baBA97025064002",
+      "expires_at": "1790359200",
+      "is_whitelisted": true,
+      "zero_self_transfer": {
+        "transaction": {
+          "from": "0x63C4412edE96aB82D69301706BB511Be48294dD8",
+          "to": "0x1C01c83a491d2De1A682E693eA911bE12a11415C",
+          "value": "0x0",
+          "data": "0xa9059cbb00000000000000000000000063c4412ede96ab82d69301706bb511be48294dd80000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "simulation": {
+          "outcome": "success"
+        }
+      }
+    },
+    "b": {
+      "acn": "999000010",
+      "token": "0x4016dB3d817ce37151596f696afC039F832a7B24",
+      "registry": "0x9fFf97E65891D4BE6c5Ba68200D5d838C0E4Ca73",
+      "expires_at": "0",
+      "is_whitelisted": false,
+      "zero_self_transfer": {
+        "transaction": {
+          "from": "0x63C4412edE96aB82D69301706BB511Be48294dD8",
+          "to": "0x4016dB3d817ce37151596f696afC039F832a7B24",
+          "value": "0x0",
+          "data": "0xa9059cbb00000000000000000000000063c4412ede96ab82d69301706bb511be48294dd80000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "simulation": {
+          "outcome": "reverted",
+          "error": "SenderNotWhitelisted",
+          "participant": "0x63C4412edE96aB82D69301706BB511Be48294dD8"
+        }
+      }
+    }
+  },
+  "transactions_signed": 0,
+  "transactions_broadcast": 0,
+  "worker_or_database_evidence": false,
+  "physical_wallet_evidence": false
+}
