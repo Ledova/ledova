@@ -47,10 +47,7 @@ function history(subscription: SubscriptionDetail): TimelineEvent[] {
     ['Refunded', subscription.refundedAt],
     [closed, subscription.closedAt],
   ];
-  return events
-    .filter((event): event is [string, string] => Boolean(event[1]))
-    .map(([label, at]) => ({ label, at }))
-    .sort((a, b) => a.at.localeCompare(b.at));
+  return events.filter((event): event is [string, string] => Boolean(event[1])).map(([label, at]) => ({ label, at }));
 }
 
 function Summary({ subscription }: { subscription: SubscriptionDetail }) {

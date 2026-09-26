@@ -85,7 +85,7 @@ it('states each figure as a whole-share count or an amount that names its curren
   expect(row('Payment reference')).toBe('PAY1A2B3C4D');
 });
 
-it('lists what has happened in date order, each with its date, and what happens next', async () => {
+it('lists what has happened in the order it happened, each with its date, and what happens next', async () => {
   show();
 
   const history = (await screen.findByText('History')).closest('section')!;
@@ -101,6 +101,18 @@ it('lists what has happened in date order, each with its date, and what happens 
     'Payment received23 September 2026',
   ]);
   expect(within(history).getByText(/^Next: /)).toBeTruthy();
+});
+
+it('keeps a payment received on the day its instruction was issued after the instruction', async () => {
+  show({ paymentInstructionIssuedAt: '2026-09-23T01:00:00Z', paymentReceivedOn: '2026-09-23' });
+
+  const history = (await screen.findByText('History')).closest('section')!;
+  expect(
+    within(history)
+      .getAllByRole('listitem')
+      .map((item) => item.firstElementChild?.nextElementSibling?.textContent)
+      .slice(-2),
+  ).toEqual(['Payment instruction issued', 'Payment received']);
 });
 
 it('leaves out a step whose date was never recorded, rather than guessing one', async () => {
