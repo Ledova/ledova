@@ -49,7 +49,7 @@ interface BuyCryptoModalProps {
 }
 
 export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccountUuid }: BuyCryptoModalProps) {
-  const { formatDisplayCurrency } = useCurrency();
+  const { exchangeRate, formatDisplayCurrency } = useCurrency();
   const [selectedAsset, setSelectedAsset] = useState<BuyableAssetConfig | null>(null);
 
   const priceQueries = useQueries({
@@ -62,7 +62,7 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
   });
   const currentPriceOf = (index: number) => {
     const price = parseFloat(priceQueries[index]?.data?.data.results[0]?.currentPrice ?? '');
-    return Number.isFinite(price) ? formatDisplayCurrency(price) : null;
+    return Number.isFinite(price) && exchangeRate ? formatDisplayCurrency(price) : null;
   };
 
   const walletsQuery = useQuery({
