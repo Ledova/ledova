@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { MemoryRouter, Route, Routes, useNavigationType } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -30,11 +30,23 @@ function addressOf(key: DestinationKey) {
   return DESTINATIONS[key].path.replace(':uuid', '7f1c2a9e');
 }
 
-function open(key: DestinationKey, role: AccountRole, { roleLoading = false, signedIn = true } = {}) {
+const retry = vi.fn();
+
+function open(
+  key: DestinationKey,
+  role: AccountRole,
+  { roleLoading = false, roleUnavailable = false, signedIn = true } = {},
+) {
   useAuthMock.mockReturnValue({ isAuthenticated: signedIn, isLoading: false, isFetching: false } as ReturnType<
     typeof useAuth
   >);
-  useRoleMock.mockReturnValue({ role, isLoading: roleLoading } as ReturnType<typeof useRole>);
+  useRoleMock.mockReturnValue({
+    role,
+    isLoading: roleLoading,
+    isKnown: signedIn && !roleLoading && !roleUnavailable,
+    isUnavailable: roleUnavailable,
+    retry,
+  } as unknown as ReturnType<typeof useRole>);
   render(
     <MemoryRouter initialEntries={[addressOf(key)]}>
       <Routes>
@@ -107,6 +119,28 @@ describe('which signed-in pages an account can open', () => {
       expect(screen.queryByText('company')).toBeNull();
     },
   );
+
+  it.each([
+    ['company', 'company'],
+    ['trading', 'investor'],
+  ] as const)('says the account could not be checked on %s rather than deciding with a guessed role', (key, role) => {
+    open(key, role, { roleUnavailable: true });
+    expect(screen.getByRole('alert').textContent).toContain('Your account could not be checked');
+    expect(screen.queryByText(key)).toBeNull();
+    expect(screen.queryByText('home')).toBeNull();
+    expect(screen.queryByText('company')).toBeNull();
+  });
+
+  it('checks the account again from Try again', () => {
+    open('company', 'company', { roleUnavailable: true });
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens a page for everyone even when the account could not be checked', () => {
+    open('wallets', 'company', { roleUnavailable: true });
+    expect(opened('wallets')).toBe(true);
+  });
 
   it('does not hold a page for everyone while the role loads', () => {
     open('wallets', 'investor', { roleLoading: true });

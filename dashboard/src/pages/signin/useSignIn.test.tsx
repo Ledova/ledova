@@ -95,6 +95,28 @@ describe('useSignIn', () => {
     queryClient.clear();
   });
 
+  it('forgets what the tab held for whoever was signed in before, keeping only the session check', async () => {
+    const { queryClient, wrapper } = createHarness();
+    queryClient.setQueryData(['userAccount'], { data: { role: 'company' } });
+    queryClient.setQueryData(['userProfiles'], { data: { results: [{ uuid: 'someone-else' }] } });
+    queryClient.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } });
+    signinMock.mockResolvedValue({ data: {} } as never);
+    vi.spyOn(queryClient, 'refetchQueries').mockResolvedValue(undefined);
+    const { result, unmount } = renderHook(() => useSignIn(), { wrapper });
+    fillForm(result);
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(queryClient.getQueryData(['userAccount'])).toBeUndefined();
+    expect(queryClient.getQueryData(['userProfiles'])).toBeUndefined();
+    expect(queryClient.getQueryData(AUTH_QUERY_KEY)).toBeDefined();
+
+    unmount();
+    queryClient.clear();
+  });
+
   it('does not persist token-looking response fields', async () => {
     const { queryClient, wrapper } = createHarness();
     const storageWrite = vi.spyOn(Storage.prototype, 'setItem');

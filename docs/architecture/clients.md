@@ -37,8 +37,11 @@ a dual-role account all of them. Every signed-in route is guarded by
 in; a signed-in person who cannot open the page goes to `landingFor(role)`,
 which replaces the refused address. On an investing or company page the guard
 shows the session check until the role is known, so no page appears on the
-way; a page for everyone opens without waiting. The sidebar offers only pages
-the role can open. The guard decides pages, not data: the API still decides
+way. If the account cannot be read, it says so and offers Try again instead of
+deciding with a guessed role. A page for everyone opens without waiting. Once
+the role is known, the sidebar offers only pages the role can open. Signing in
+clears what the tab cached for whoever was signed in before, as signing out
+does, so a new person is never guarded by the previous person's role. The guard decides pages, not data: the API still decides
 which rows a person sees, and answers 404 for one it refuses.
 `landingFor(role)` decides where a signed-in person lands: an investing account
 on its home, and a company or dual-role account on its company. The front door,

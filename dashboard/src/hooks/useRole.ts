@@ -23,5 +23,8 @@ export function useRole() {
     isInvestor: canOpen(role, 'investing'),
     isCompany: canOpen(role, 'company'),
     isLoading: query.isLoading,
+    isKnown: query.data !== undefined,
+    isUnavailable: query.isError && query.data === undefined,
+    retry: query.refetch,
   };
 }
