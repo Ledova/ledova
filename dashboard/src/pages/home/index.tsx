@@ -1,93 +1,73 @@
-import { useState } from 'react';
-import type { Asset } from '@ledova/shared';
-import { PerformanceSection } from './components/PerformanceSection';
-import { AssetAllocationCard } from './components/AssetAllocationCard';
-import { WalletAllocationCard } from './components/WalletAllocationCard';
-import { MarketCard } from './components/MarketCard';
-import { TransactionsCard } from './components/TransactionsCard';
+import { CaretRightIcon } from '@phosphor-icons/react';
+import { formatShareCount, getChainConfig } from '@ledova/shared';
+import { Section } from '@components/Ledger';
+import { Page, PageAction } from '@components/Page';
 import { PublishedCard } from './components/PublishedCard';
-import { AssetDetailModal } from './components/AssetDetailModal';
-import { useHome } from './useHome';
-import { Page } from '@components/Page';
+import { useShareHoldings } from './hooks/useShareHoldings';
 
 export function HomePage() {
-  const {
-    performanceTimeRange,
-    setPerformanceTimeRange,
-    performanceChartData,
-    timeRanges,
-    isLoading,
-    isError,
-    holdings,
-    wallets,
-    transactions,
-    selectedAsset,
-    setSelectedAssetUuid,
-    marketAssets,
-    isMarketAssetsLoading,
-  } = useHome();
-
-  const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
-
-  const handleAssetClick = (assetUuid: string) => {
-    setSelectedAssetUuid(assetUuid);
-    setIsAssetModalOpen(true);
-  };
-
-  const handleMarketAssetPress = (asset: Asset) => {
-    setSelectedAssetUuid(asset.uuid);
-    setIsAssetModalOpen(true);
-  };
-
-  const handleCloseAssetModal = () => {
-    setIsAssetModalOpen(false);
-    setSelectedAssetUuid(null);
-  };
+  const { data: holdings = [], isPending, isError, isFetching, refetch } = useShareHoldings();
 
   return (
     <Page>
+      <Section title="Shares in your wallets">
+        {isPending ? (
+          <p role="status" className="py-6 text-sm text-text-muted">
+            Loading your holdings…
+          </p>
+        ) : isError ? (
+          <div role="alert" className="flex flex-col items-start gap-3 py-6">
+            <p className="text-sm text-text-muted">We couldn&apos;t load all your holdings.</p>
+            <PageAction label="Try again" onClick={() => void refetch()} disabled={isFetching} />
+          </div>
+        ) : holdings.length === 0 ? (
+          <p className="py-6 text-sm text-text-muted">You don&apos;t hold any shares in your wallets yet.</p>
+        ) : (
+          <ul className="divide-y divide-border-subtle">
+            {holdings.map((holding) => (
+              <li key={holding.assetUuid}>
+                <details className="group">
+                  <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-2 py-4 marker:hidden">
+                    <CaretRightIcon aria-hidden="true" className="shrink-0 text-text-muted group-open:rotate-90" />
+                    <span className="min-w-0 flex-1 basis-40 break-words">
+                      {holding.companyName && (
+                        <span className="block text-sm text-text-muted">{holding.companyName}</span>
+                      )}
+                      <span className="block text-base text-text-primary">{holding.name}</span>
+                    </span>
+                    <span className="ml-auto break-all text-right text-sm tabular-nums text-text-primary">
+                      {formatShareCount(holding.quantity)} {holding.quantity === '1' ? 'share' : 'shares'}
+                    </span>
+                  </summary>
+                  <div className="flex flex-col gap-4 pb-5 pl-8">
+                    {holding.chains.map((chain) => (
+                      <div key={chain.chain}>
+                        <p className="flex flex-wrap justify-between gap-2 text-sm text-text-muted">
+                          <span>{getChainConfig(chain.chain)?.name ?? chain.chain}</span>
+                          <span className="tabular-nums">
+                            {formatShareCount(chain.quantity)} {chain.quantity === '1' ? 'share' : 'shares'}
+                          </span>
+                        </p>
+                        <dl className="mt-2 divide-y divide-border-subtle">
+                          {chain.wallets.map((wallet) => (
+                            <div key={wallet.uuid} className="flex flex-wrap justify-between gap-2 py-2 text-sm">
+                              <dt className="min-w-0 break-all text-text-muted">{wallet.name || wallet.address}</dt>
+                              <dd className="ml-auto text-right tabular-nums text-text-primary">
+                                {formatShareCount(wallet.quantity)} {wallet.quantity === '1' ? 'share' : 'shares'}
+                              </dd>
+                            </div>
+                          ))}
+                        </dl>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
       <PublishedCard />
-
-      <PerformanceSection
-        snapshotData={performanceChartData}
-        timeRanges={timeRanges}
-        selectedTimeRange={performanceTimeRange}
-        onTimeRangeChange={setPerformanceTimeRange}
-        isLoading={isLoading}
-        error={isError}
-      />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
-        <AssetAllocationCard
-          assetAllocation={holdings.assetAllocation}
-          totalValue={holdings.summary.totalValue}
-          summary={holdings.summary}
-          isLoading={holdings.isLoading}
-          hasError={holdings.hasError}
-          onAssetClick={handleAssetClick}
-        />
-        <WalletAllocationCard
-          totals={wallets.totals}
-          ethWalletsCount={wallets.ethWalletsCount}
-          btcWalletsCount={wallets.btcWalletsCount}
-          baseWalletsCount={wallets.baseWalletsCount}
-          isLoading={wallets.isLoading}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
-        <MarketCard assets={marketAssets} isLoading={isMarketAssetsLoading} onAssetPress={handleMarketAssetPress} />
-        <TransactionsCard
-          transactions={transactions.list}
-          totalCount={transactions.totalCount}
-          isLoading={transactions.isLoading}
-          isLoadingMore={transactions.isLoadingMore}
-          hasNextPage={transactions.hasNextPage}
-          onLoadMore={transactions.loadMore}
-        />
-      </div>
-
-      <AssetDetailModal isOpen={isAssetModalOpen} asset={selectedAsset} onClose={handleCloseAssetModal} />
     </Page>
   );
 }
