@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import contextlib
+import fnmatch
 import json
 import os
 import subprocess
@@ -46,6 +47,17 @@ def pattern_findings(shards):
         if not isinstance(patterns, list)
         or not patterns
         or not all(isinstance(pattern, str) and pattern.split() == [pattern] for pattern in patterns)
+    ]
+
+
+def unused_pattern_findings(shards, found):
+    return [
+        f"pattern {pattern} in shard {name} selects no test"
+        for name, patterns in shards.items()
+        for pattern in patterns
+        if not any(
+            fnmatch.fnmatchcase(case["id"], pattern if "*" in pattern else f"*{pattern}*") for case in found[name]
+        )
     ]
 
 
@@ -152,7 +164,7 @@ def main():
     if not problems:
         everything, found = discover(shards)
         problems = matrix_findings(yaml.safe_load(WORKFLOW.read_text(encoding="utf-8")), shards)
-        problems += findings(everything, found)
+        problems += findings(everything, found) + unused_pattern_findings(shards, found)
 
     if problems:
         print(f"The ordinary suite's shards do not partition it ({len(problems)}):\n", file=sys.stderr)

@@ -206,12 +206,19 @@ after `-k`, so it runs the tests whose ids match one of them.
 settings and test runner, it discovers the suite once with no patterns and once
 with each shard's patterns, each in a fresh interpreter as each CI job is. It
 counts each test id in every discovery, and refuses: a shard that does not list
-its patterns, each a string with no whitespace; a test id the unlabelled suite
+its patterns, each a string with no whitespace; a pattern that selects no test,
+such as one misspelt or left for a deleted app; a test id the unlabelled suite
 finds more than once, as when a factory builds two classes with one name; a
 module with a test id the shards find fewer or more times than the unlabelled
 suite; a test id a shard finds that the unlabelled suite does not; a module that
 fails to load; and a `backend-suite-shard` matrix that is anything but the file's
 shard names, such as one with an `include` or `exclude`.
+
+`-k` selects test methods by name, so a test that unittest builds without
+reading names is found by every shard, and the gate refuses it as duplicated.
+That covers the stand-in for a module that raises `SkipTest` as it is imported,
+a class whose only test is `runTest`, and an instance a `load_tests` adds. Skip a
+class rather than a module.
 
 A test id is the module that defines its class, the class and the method, so
 `wallets.*` selects every test a module under `backend/wallets/` defines. A new

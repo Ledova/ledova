@@ -67,6 +67,7 @@ TOKENS = a_module("tokens.tests.test_fold")
 WALLETS = a_module("wallets.tests.test_sync")
 SHARED = a_module("shared.tests.test_uploads")
 EVERYTHING = TOKENS + WALLETS + SHARED
+FOUND = {"tokens": TOKENS, "others": WALLETS + SHARED}
 FACTORY = a_module("shared.tests.case_factory")
 
 
@@ -125,6 +126,17 @@ class EveryShardListsItsTestNamePatterns(unittest.TestCase):
                 self.assertEqual(
                     gate.pattern_findings(shards), [f"{gate.SHARDS.relative_to(gate.ROOT)} names no shards"]
                 )
+
+
+class EveryPatternSelectsATest(unittest.TestCase):
+    def test_a_misspelt_or_stale_pattern_is_named_with_its_shard(self):
+        self.assertEqual(
+            gate.unused_pattern_findings({"tokens": ["tokens.*"], "others": ["wallets.*", "walets.*"]}, FOUND),
+            ["pattern walets.* in shard others selects no test"],
+        )
+
+    def test_a_pattern_without_a_star_is_widened_as_django_widens_it(self):
+        self.assertEqual(gate.unused_pattern_findings({"others": ["test_sync"]}, {"others": WALLETS}), [])
 
 
 class EachShardIsTheUnlabelledSuiteSelectedByItsPatterns(unittest.TestCase):
@@ -274,6 +286,14 @@ class TheExitStatusFollowsEveryFinding(unittest.TestCase):
 
         self.assertEqual((status, output), (1, ""))
         self.assertIn("  shard others does not list its test name patterns, each a string with no whitespace\n", errors)
+
+    def test_a_pattern_that_selects_no_test_exits_1_even_when_the_shards_partition_the_suite(self):
+        shards = {"tokens": ["tokens.*"], "others": ["wallets.*", "shared.*", "walets.*"]}
+
+        status, output, errors = self.run_gate(FOUND, ["tokens", "others"], shards=shards)
+
+        self.assertEqual((status, output), (1, ""))
+        self.assertIn("  pattern walets.* in shard others selects no test\n", errors)
 
     def test_a_matrix_missing_a_shard_exits_1_even_when_the_shards_partition_the_suite(self):
         status, _, errors = self.run_gate({"tokens": TOKENS, "others": WALLETS + SHARED}, ["tokens"])
