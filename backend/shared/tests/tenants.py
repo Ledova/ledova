@@ -274,6 +274,10 @@ def make_tenant(label, *, staff=False, superuser=False, with_swap=True):
     )
     subscription = Subscription.objects.create(
         offering=offering,
+        company_name=offering.token.company.display_name,
+        token_name=offering.token.name,
+        token_symbol=offering.token.symbol,
+        currency=offering.price_currency,
         user_account=account,
         wallet=wallet,
         submitted_by=user,

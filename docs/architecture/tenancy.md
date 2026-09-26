@@ -45,7 +45,10 @@ Important invariants:
   write scope too.
 - Positive ownership predicates fail closed for unknown owners. A visible
   child's non-nullable parents must also be readable, or `select_related`
-  can remove rows that `count()` counted.
+  can remove rows that `count()` counted. Investor applications deliberately retain
+  their company and offering identifiers after those parents become hidden. Their
+  route reads stored names and currency without joining those parents; hidden
+  drafts cannot be submitted, while reads and guarded withdrawals remain available.
 - The profile/account helpers are the explicitly enumerated `SECURITY DEFINER`
   functions that define principal membership. Invoker helpers read leaf
   policies, avoiding circular policy evaluation.

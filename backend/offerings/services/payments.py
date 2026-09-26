@@ -94,7 +94,7 @@ def build_instruction(subscription) -> dict:
         "rail_display": subscription.get_settlement_rail_display(),
         "reference": subscription.reference,
         "amount_due": str(subscription.amount_due),
-        "currency": subscription.offering.price_currency,
+        "currency": subscription.currency,
         "payment_due_at": subscription.payment_due_at,
         "issued_at": subscription.payment_instruction_issued_at,
         "payee": operator.legal_name or operator.name,

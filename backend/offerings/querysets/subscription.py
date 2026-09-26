@@ -72,6 +72,9 @@ class SubscriptionQuerySet(QuerySet):
             .order_by("-created_at")
         )
 
+    def for_applicant(self, user):
+        return self.subscribed_by(user).select_related("user_account", "wallet", "settlement_asset", "issuance_request")
+
     def with_relations(self):
         return self.select_related(
             "offering",

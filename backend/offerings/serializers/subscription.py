@@ -37,14 +37,10 @@ SUBSCRIPTION_FIELDS = [
 
 class SubscriptionListSerializer(serializers.ModelSerializer):
 
-    offering_uuid = serializers.UUIDField(source="offering.uuid", read_only=True)
-    token_symbol = serializers.CharField(source="offering.token.symbol", read_only=True)
-    token_name = serializers.CharField(source="offering.token.name", read_only=True)
-    company_name = serializers.CharField(source="offering.token.company.display_name", read_only=True)
+    offering_uuid = serializers.UUIDField(source="offering_id", read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     settlement_rail_display = serializers.CharField(source="get_settlement_rail_display", read_only=True)
     wallet_address = serializers.CharField(source="wallet.address", read_only=True)
-    currency = serializers.CharField(source="offering.price_currency", read_only=True)
 
     class Meta:
         model = Subscription

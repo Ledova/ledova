@@ -103,6 +103,10 @@ def issued(token, address, shares, paid=False):
         request.executed_issuance = issuance
         request.save(update_fields=["executed_issuance"])
         Subscription.objects.create(
+            company_name=token.company.display_name,
+            token_name=token.name,
+            token_symbol=token.symbol,
+            currency="AUD",
             offering=Offering.objects.create(
                 token=token,
                 exemption=OfferingExemption.PROFESSIONAL,

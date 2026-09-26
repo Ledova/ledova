@@ -124,6 +124,10 @@ class WorklistTest(TestCase):
     def _subscription(self, offering, status, quantity=1, issuance_request=None):
         return Subscription.objects.create(
             offering=offering,
+            company_name=offering.token.company.display_name,
+            token_name=offering.token.name,
+            token_symbol=offering.token.symbol,
+            currency=offering.price_currency,
             user_account=self.account,
             wallet=self.wallet,
             quantity=quantity,

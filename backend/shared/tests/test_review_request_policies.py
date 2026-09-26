@@ -104,6 +104,10 @@ class ReviewRequestPolicyTest(TestCase):
         ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.EXECUTING)
         self.cross_subscription = Subscription.objects.create(
             offering=self.two.offering,
+            company_name=self.two.offering.token.company.display_name,
+            token_name=self.two.offering.token.name,
+            token_symbol=self.two.offering.token.symbol,
+            currency=self.two.offering.price_currency,
             user_account=self.one.account,
             wallet=self.one.wallet,
             submitted_by=self.one.user,

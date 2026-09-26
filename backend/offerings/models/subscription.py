@@ -87,6 +87,11 @@ class Subscription(DerivesCompanyFromOffering, BaseModel):
     )
     wallet = models.ForeignKey("wallets.Wallet", on_delete=models.PROTECT, related_name="subscriptions")
 
+    company_name = models.CharField(max_length=255, editable=False)
+    token_name = models.CharField(max_length=100, editable=False)
+    token_symbol = models.CharField(max_length=10, editable=False)
+    currency = models.CharField(max_length=16, editable=False)
+
     quantity = models.PositiveIntegerField()
     allotted_quantity = models.PositiveIntegerField(null=True, blank=True)
     price_per_share = models.DecimalField(max_digits=18, decimal_places=2)
@@ -181,7 +186,7 @@ class Subscription(DerivesCompanyFromOffering, BaseModel):
         ]
 
     def __str__(self):
-        return f"{self.quantity} shares of {self.offering.token.symbol} ({self.get_status_display()})"
+        return f"{self.quantity} shares of {self.token_symbol} ({self.get_status_display()})"
 
     @property
     def allotment_quantity(self) -> int:

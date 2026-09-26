@@ -383,7 +383,9 @@ R13_WATCHES_BOTH_ENDS = (
     "R13's set is computed rather than maintained: links_between_policy_tables() walks Django's metadata for "
     "every non-nullable foreign key whose both ends carry policies, with a non-empty control behind it. The "
     "one direction it cannot watch is a platform-owned table classified out of POLICIES entirely, where "
-    "nothing stands behind the classification but the reason written beside it."
+    "nothing stands behind the classification but the reason written beside it. "
+    "The deliberate retained-application parent exception is exercised by ScopedApplicationRetentionTest: "
+    "its route reads snapshots without joining hidden company or offering rows."
 )
 
 PUBLIC_TERM = {
@@ -396,7 +398,10 @@ PUBLIC_TERM = {
     "market, and that token is visible because it is on the market. Remove either and R13's closure between "
     "the two tables fails, which is why it holds by construction rather than by luck. The policy reads only "
     "this table's own columns, so it forms no cycle with the company term that reads it.",
-    "offerings_subscription": "R12 at a third table, found by Omarch 2 measuring rather than reading. "
+    "offerings_subscription": "Applicants keep their applications when the offering or company is hidden. "
+    "The applicant route reads stored names and currency without joining those parents; submit rechecks "
+    "the visible offering and withdraw retains its money and mint guards. "
+    "R12 at a third table, found by Omarch 2 measuring rather than reading. "
     "OfferingViewSet.subscriptions reads Subscription.objects.for_issuer(offering), "
     "deliberately - the scope is the offering's ownership rather than the subscriber's account - so a "
     "member-only policy shows an issuer their own subscriptions and silently drops everyone else's. "
@@ -461,8 +466,8 @@ PUBLIC_TERM = {
     "through the visible-companies helper, the company terms read that helper alone, and nothing reads this table "
     "back.",
     "offerings_offering": "open_now() deliberately admits investors - the subscription serializer and "
-    "services/subscription.py re-read the offering under select_for_update, and an owner-only policy turns "
-    "that into DoesNotExist on the subscribe path rather than a refusal.",
+    "submit service re-read the offering in the caller's scope. An owner-only policy would refuse an "
+    "eligible investor whose company is open; retaining an existing application never widens this scope.",
 }
 
 AWAITING_R0: dict[str, MissingOwnerColumns] = {}

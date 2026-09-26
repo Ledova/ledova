@@ -217,6 +217,10 @@ def allotted_subscription(tenant, reviewer, document, allottee, label):
     wallet = Wallet.objects.get(address=allottee)
     subscription = Subscription.objects.create(
         offering=tenant.offering,
+        company_name=tenant.offering.token.company.display_name,
+        token_name=tenant.offering.token.name,
+        token_symbol=tenant.offering.token.symbol,
+        currency=tenant.offering.price_currency,
         user_account_id=wallet.user_account_id,
         wallet=wallet,
         quantity=25,
@@ -285,6 +289,10 @@ def awaiting_subscriptions(tenant, addresses, reviewer, label):
         subscriptions.append(
             Subscription.objects.create(
                 offering=tenant.offering,
+                company_name=tenant.offering.token.company.display_name,
+                token_name=tenant.offering.token.name,
+                token_symbol=tenant.offering.token.symbol,
+                currency=tenant.offering.price_currency,
                 user_account_id=wallet.user_account_id,
                 wallet=wallet,
                 quantity=quantity,

@@ -128,6 +128,10 @@ class RegisterTestBase(APITestCase):
         request.save(update_fields=["executed_issuance"])
         Subscription.objects.create(
             offering=offering,
+            company_name=offering.token.company.display_name,
+            token_name=offering.token.name,
+            token_symbol=offering.token.symbol,
+            currency=offering.price_currency,
             user_account=account,
             wallet=wallet,
             quantity=amount,
@@ -153,6 +157,10 @@ class RegisterTestBase(APITestCase):
     def _subscription(self, offering, account, wallet, quantity, received):
         return Subscription.objects.create(
             offering=offering,
+            company_name=offering.token.company.display_name,
+            token_name=offering.token.name,
+            token_symbol=offering.token.symbol,
+            currency=offering.price_currency,
             user_account=account,
             wallet=wallet,
             quantity=quantity,
