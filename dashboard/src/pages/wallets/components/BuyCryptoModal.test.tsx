@@ -100,7 +100,7 @@ afterEach(() => {
   vi.resetAllMocks();
 });
 
-it("shows each asset's current price in the display currency, and none for an asset without a price", async () => {
+it("shows each asset's current price in AUD, and none for an asset without a price", async () => {
   answer([]);
   show({});
 

@@ -8,7 +8,6 @@ export type AccountSummary = ApiSchema<'AccountSummary'>;
 export type SelectedPortfolio = NonNullable<UserPreferences['selectedPortfolio']>;
 
 export type Theme = ApiSchema<'ThemeEnum'>;
-export type DisplayCurrency = ApiSchema<'DisplayCurrencyEnum'>;
 
 export type UserPreferences = ApiResponse<'api_user_preferences_list'>;
 

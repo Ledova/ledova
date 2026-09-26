@@ -50,9 +50,13 @@ before, as signing out does, so a new person is never guarded by, or signs up
 against, the previous person's account. Buying crypto and sending are actions on
 Wallets for every account, not menu items, and the dashboard has no coin-price
 page or favourites; Home's market card still lists coin prices until Holdings
-replaces it. The Buy step shows each asset's current price in the display
-currency, and no price while the exchange rate is unknown. Both flows are
-mounted in the signed-in frame, so an open flow survives
+replaces it. Every market value is in AUD: the shared `useCurrency` converts
+the API's US-dollar values at the current rate, including Home's charts, shows
+a dash and draws no chart while the rate is unknown, and neither client offers
+another currency. An offering's prices and an application's amounts are in the
+offering's own currency, which defaults to AUD. The Buy step shows each
+asset's current price, and no price while the exchange rate is unknown. Both
+flows are mounted in the signed-in frame, so an open flow survives
 Wallets reloading its wallet list and the person leaving Wallets. The guard
 decides pages, not data: the API still decides which rows a person sees, and
 answers 404 for one it refuses.

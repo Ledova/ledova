@@ -5,7 +5,6 @@ jest.mock('react-native-gifted-charts', () => ({ PieChart: () => null }));
 
 jest.mock('../../../hooks/useCurrency', () => ({
   useCurrency: () => ({
-    displayCurrency: 'AUD',
     exchangeRate: 1,
     formatDisplayCurrency: (value?: number) => (value === undefined ? '—' : `$${value.toFixed(2)}`),
     isLoading: false,
