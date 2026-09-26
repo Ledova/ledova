@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { USER_ACCOUNT_ENDPOINTS, type AccountRole } from '@ledova/shared';
+import { WALLET_ENDPOINTS, type AccountRole } from '@ledova/shared';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), setActions: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
@@ -65,29 +65,15 @@ async function openWallets(role?: AccountRole) {
 }
 
 describe('crypto on the Wallets page', () => {
-  it.each([
-    ['investor', true],
-    ['company', false],
-    ['both', true],
-  ] as const)('offers Buy crypto to the %s role: %s', async (role, offered) => {
+  it.each(['investor', 'company', 'both'] as const)('offers Buy crypto to the %s role', async (role) => {
     await openWallets(role);
 
-    expect(screen.queryByRole('button', { name: 'Buy crypto' }) !== null).toBe(offered);
+    expect(screen.getByRole('button', { name: 'Buy crypto' })).toBeTruthy();
   });
 
   it.each(['investor', 'company', 'both'] as const)('offers Send to the %s role', async (role) => {
     await openWallets(role);
 
-    expect(screen.getByRole('button', { name: 'Send' })).toBeTruthy();
-  });
-
-  it('offers Buy crypto only once the role is known', async () => {
-    api.get.mockImplementation((url: string) =>
-      url === USER_ACCOUNT_ENDPOINTS.BASE ? new Promise(() => {}) : Promise.resolve(walletList),
-    );
-    await openWallets();
-
-    expect(screen.queryByRole('button', { name: 'Buy crypto' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Send' })).toBeTruthy();
   });
 
@@ -98,6 +84,30 @@ describe('crypto on the Wallets page', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Buy crypto' }));
 
     expect(await screen.findByText('Select an asset to purchase')).toBeTruthy();
+  });
+
+  it('keeps an open Send flow when the wallet list is fetched again after a failed first load', async () => {
+    api.get.mockImplementation((url: string) =>
+      url === WALLET_ENDPOINTS.BASE ? Promise.reject(new Error('Network unavailable')) : Promise.resolve(walletList),
+    );
+    queryClient.setQueryData(['userAccount'], { data: { role: 'investor' } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BuyCryptoProvider>
+          <WalletsPage />
+        </BuyCryptoProvider>
+      </QueryClientProvider>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Send' }));
+    expect(await screen.findByText('Select your wallet')).toBeTruthy();
+
+    api.get.mockImplementation(() => new Promise(() => {}));
+    await act(async () => {
+      void queryClient.invalidateQueries({ queryKey: ['wallets'] });
+    });
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Buy crypto' })).toBeNull());
+    expect(screen.getByText('Select your wallet')).toBeTruthy();
   });
 
   it('opens the Send wallet picker from Send', async () => {
