@@ -107,7 +107,7 @@ describe('an address that is not a page', () => {
     expect(screen.queryByRole('link', { name: 'Continue signing up' })).toBeNull();
   });
 
-  it('lets an account still signing up sign out, since the sidebar with Sign Out is not shown to it', () => {
+  it('lets an account still signing up sign out, since the sidebar with Sign out is not shown to it', () => {
     visit({ signedIn: true, finished: false });
 
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeTruthy();

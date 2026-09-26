@@ -31,7 +31,7 @@ function offeredTo(role: AccountRole) {
   );
   screen
     .getAllByRole('button')
-    .filter((button) => button.textContent !== 'Sign Out')
+    .filter((button) => button.textContent !== 'Sign out')
     .forEach((button) => fireEvent.click(button));
   return navigate.mock.calls.map(([path]) => path as string);
 }

@@ -131,7 +131,7 @@ export function SignInPage() {
                   <span>Signing in...</span>
                 </div>
               ) : (
-                'Sign In'
+                'Sign in'
               )}
             </button>
           </form>

@@ -203,7 +203,7 @@ export function SignupUser() {
         <p className="text-sm text-text-subtle">
           Already have an account?{' '}
           <Link to="/signin" className="font-semibold text-brand-light hover:text-brand-subtle transition-colors">
-            Sign In
+            Sign in
           </Link>
         </p>
       </div>

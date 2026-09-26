@@ -180,7 +180,7 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-text-secondary hover:bg-error/10 hover:text-error-light transition-all duration-150 disabled:opacity-50"
         >
           <SignOutIcon size={ICON_MD} />
-          <span>{isSigningOut ? 'Signing out...' : 'Sign Out'}</span>
+          <span>{isSigningOut ? 'Signing out...' : 'Sign out'}</span>
         </button>
       </div>
     </aside>
