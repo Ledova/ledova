@@ -46,31 +46,31 @@ assertions become inert when `fail` is replaced; intentional lifecycle/runner
 overrides remain allowed. It does not verify every test's assertions.
 
 [Ordinary shard checker](../../scripts/check-ordinary-shards.py) compares the test
-ids Django's runner builds, not module files, and counts each id in every
-discovery. A shard label must be an identifier naming a package directly under
-`backend/`: a module, directory or class label can build a factory's class the
-unlabelled suite never builds, under an id standing in for a copy in no shard. Two
-classes a factory builds, whether bound to module attributes or added by
-`load_tests`, can share one test id, and Django runs both, so the checker refuses
-any id the unlabelled suite finds more than once. It compares ids, not classes or
-what they run, so it does not report a test in an unassigned app when a module in
-an assigned app imports its class or discovers it through `load_tests`, or when
-import order decides which module defines a shared id, as when a factory caches its
-class by name and builds it for whichever module calls it first. A module that fails
-to import is a finding rather than a module: it is discovered as one `_FailedTest`
-on both sides and would otherwise look covered.
-Each discovery re-runs the checker with `--discover` in a fresh interpreter,
-because a module can define different tests depending on what was imported
-before it, and each CI shard starts from nothing.
+ids Django's runner builds, not module files, and counts each id in every discovery.
+A shard's discovery is the unlabelled one with the shard's patterns passed to the
+runner as `-k`, which Django matches against each whole test id, so a class one
+module imports from another is selected by the pattern for the module that defines
+it, and a pattern without `*` matches anywhere in an id. The checker widens such a
+pattern the same way when it refuses a pattern that selects no test. Two classes a
+factory builds, whether bound to module attributes or added by `load_tests`, can
+share one test id, and Django runs both, so the checker refuses any id the
+unlabelled suite finds more than once. A module that fails to import is a finding
+rather than a module: it is discovered as one `_FailedTest` in every discovery and
+would otherwise look covered. A module that raises `SkipTest` as it is imported is
+discovered as one skipped test that no pattern filters, so every shard finds it.
+Each discovery re-runs the checker with `--discover` in a fresh interpreter, because
+a module can find different tests the second time it is loaded in one interpreter,
+as a `load_tests` that keeps state does, and each CI shard starts from nothing.
 [Regression tests](../../scripts/tests/test_check_ordinary_shards.py) plant each
 finding with synthetic cases, run the checker's `main()` over them to hold its exit
-status to its findings and its printed total to the sum of the shard counts, and
-hold the committed matrix to the committed shard file and its labels to the
-backend's top-level packages. Against a stand-in for Django's runner, they plant a
-test that exists only once another shard's module is imported, a factory's class
-built in two modules that each run in a shard, and a module skipped as it is
-imported, which must be named by its own name. Discovery of the real backend runs
-in CI's shard jobs and in `make check`.
+status to its findings and its printed total to the sum of the shard counts, hold
+`--run` to the ordinary command with each pattern after `-k`, and hold the committed
+matrix to the committed shard file. Against a stand-in for Django's runner, they
+plant a module no pattern selects, a module two shards select, a class one module
+imports from another, a factory's class built in two modules, a module skipped as it
+is imported, which must be named by its own name, and a `load_tests` that finds its
+tests only the first time it runs. Discovery of the real backend runs in CI's shard
+jobs and in `make check`.
 
 ## Schema and client operations
 

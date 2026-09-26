@@ -56,7 +56,7 @@ splits the first across shard jobs (below):
 
 ```bash
 python manage.py test --settings=ledova_backend.settings.test --parallel 4 --noinput
-python manage.py test --settings=ledova_backend.settings.test_scoped --require-scoped-coverage --noinput
+python manage.py test --settings=ledova_backend.settings.test_scoped --require-scoped-coverage --parallel 4 --noinput
 python manage.py migrate --noinput
 python manage.py check_rls_roles
 python manage.py check_rls_catalogue
@@ -76,15 +76,14 @@ CI splits the ordinary suite into parallel "Django ordinary shard (NAME)" jobs,
 one for each shard in
 [`.github/ordinary-suite-shards.json`](../../.github/ordinary-suite-shards.json).
 Each job has its own PostgreSQL 16, and runs the ordinary command above with
-that shard's test labels appended. Before the suite, each runs the
-[ordinary shard gate](gates.md#the-ordinary-shard-gate). It refuses a shard label
-that is not a top-level backend package or is listed twice and a test id defined
-by more than one test class, and
-holds the shards' test ids to a partition of the unlabelled suite's, so on the
-same commit their `Ran N tests` counts add up to the unsharded run's. The
-"Django ordinary suite" check needs every shard, and fails unless each one succeeded; a failed, cancelled or
-skipped shard fails it. Locally, run the unsharded command. To repeat one shard,
-append `$(python ../scripts/check-ordinary-shards.py --labels NAME)` to it.
+`-k` and each of that shard's test name patterns appended. Before the suite, each
+runs the [ordinary shard gate](gates.md#the-ordinary-shard-gate). It refuses a
+test id defined by more than one test class, and holds the shards' test ids to a
+partition of the unlabelled suite's, so on the same commit their `Ran N tests`
+counts add up to the unsharded run's. The "Django ordinary suite" check needs
+every shard, and fails unless each one succeeded; a failed, cancelled or skipped
+shard fails it. Locally, run the unsharded command. To repeat one shard, run
+`python ../scripts/check-ordinary-shards.py --run NAME`.
 
 `black`, `isort` and `flake8` are development requirements and are not in the
 backend image, so running the source gates inside that image proves nothing

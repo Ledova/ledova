@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import contextlib
+import fnmatch
 import json
 import os
 import subprocess
@@ -17,6 +18,7 @@ SHARDS = ROOT / ".github" / "ordinary-suite-shards.json"
 WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
 JOB = "backend-suite-shard"
 SETTINGS = "ledova_backend.settings.test"
+WORKERS = "4"
 
 
 def cases(suite):
@@ -36,13 +38,27 @@ def record(case):
     }
 
 
-def label_findings(shards, backend=BACKEND):
-    listed = Counter(label for labels in shards.values() for label in labels)
+def pattern_findings(shards):
+    if not isinstance(shards, dict) or not shards:
+        return [f"{SHARDS.relative_to(ROOT)} names no shards"]
     return [
-        f"shard label {label} is not a top-level package"
-        for label in listed
-        if not (label.isidentifier() and (backend / label / "__init__.py").is_file())
-    ] + [f"shard label {label} is listed more than once" for label, times in listed.items() if times > 1]
+        f"shard {name} does not list its test name patterns, each a string with no whitespace"
+        for name, patterns in shards.items()
+        if not isinstance(patterns, list)
+        or not patterns
+        or not all(isinstance(pattern, str) and pattern.split() == [pattern] for pattern in patterns)
+    ]
+
+
+def unused_pattern_findings(shards, found):
+    return [
+        f"pattern {pattern} in shard {name} selects no test"
+        for name, patterns in shards.items()
+        for pattern in patterns
+        if not any(
+            fnmatch.fnmatchcase(case["id"], pattern if "*" in pattern else f"*{pattern}*") for case in found[name]
+        )
+    ]
 
 
 def findings(everything, shards):
@@ -88,7 +104,7 @@ def matrix_findings(workflow, shards):
     ]
 
 
-def in_this_interpreter(labels):
+def in_this_interpreter(patterns):
     sys.path.insert(0, os.getcwd())
     with contextlib.redirect_stdout(sys.stderr):
         import django
@@ -96,14 +112,14 @@ def in_this_interpreter(labels):
         from django.test.utils import get_runner
 
         django.setup()
-        runner = get_runner(settings)(verbosity=0, interactive=False)
+        runner = get_runner(settings)(verbosity=0, interactive=False, test_name_patterns=patterns)
         runner.setup_test_environment()
-        return [record(case) for case in cases(runner.build_suite(labels))]
+        return [record(case) for case in cases(runner.build_suite())]
 
 
-def in_a_fresh_interpreter(labels, backend):
+def in_a_fresh_interpreter(patterns, backend):
     child = subprocess.run(
-        [sys.executable, str(Path(__file__).resolve()), "--discover", *labels],
+        [sys.executable, str(Path(__file__).resolve()), "--discover", json.dumps(patterns)],
         cwd=backend,
         env=os.environ | {"DJANGO_SETTINGS_MODULE": SETTINGS},
         stdout=subprocess.PIPE,
@@ -115,13 +131,20 @@ def in_a_fresh_interpreter(labels, backend):
 
 def discover(shards, backend=BACKEND):
     everything = in_a_fresh_interpreter([], backend)
-    return everything, {name: in_a_fresh_interpreter(labels, backend) for name, labels in shards.items()}
+    return everything, {name: in_a_fresh_interpreter(patterns, backend) for name, patterns in shards.items()}
+
+
+def run(patterns):
+    os.chdir(BACKEND)
+    selection = [argument for pattern in patterns for argument in ("-k", pattern)]
+    command = ["manage.py", "test", f"--settings={SETTINGS}", "--parallel", WORKERS, "--noinput", *selection]
+    return os.execv(sys.executable, [sys.executable, *command])
 
 
 def main():
     parser = argparse.ArgumentParser(description="Hold the ordinary suite's CI shards to the unlabelled suite.")
-    parser.add_argument("--labels", metavar="SHARD", help="print one shard's Django test labels and exit")
-    parser.add_argument("--discover", nargs="*", help=argparse.SUPPRESS)
+    parser.add_argument("--run", metavar="SHARD", help="run one shard's suite as its CI job does")
+    parser.add_argument("--discover", type=json.loads, help=argparse.SUPPRESS)
     arguments = parser.parse_args()
 
     if arguments.discover is not None:
@@ -130,24 +153,27 @@ def main():
 
     shards = json.loads(SHARDS.read_text(encoding="utf-8"))
 
-    if arguments.labels is not None:
-        if arguments.labels not in shards:
-            print(f"{SHARDS.relative_to(ROOT)} defines no shard named {arguments.labels}", file=sys.stderr)
+    if arguments.run is not None:
+        patterns = shards.get(arguments.run) if isinstance(shards, dict) else None
+        if pattern_findings({arguments.run: patterns}):
+            print(f"{SHARDS.relative_to(ROOT)} has no test name patterns for shard {arguments.run}", file=sys.stderr)
             return 1
-        print(" ".join(shards[arguments.labels]))
-        return 0
+        return run(patterns)
 
-    everything, found = discover(shards)
-    problems = matrix_findings(yaml.safe_load(WORKFLOW.read_text(encoding="utf-8")), shards)
-    problems += label_findings(shards) + findings(everything, found)
+    problems = pattern_findings(shards)
+    if not problems:
+        everything, found = discover(shards)
+        problems = matrix_findings(yaml.safe_load(WORKFLOW.read_text(encoding="utf-8")), shards)
+        problems += findings(everything, found) + unused_pattern_findings(shards, found)
 
     if problems:
         print(f"The ordinary suite's shards do not partition it ({len(problems)}):\n", file=sys.stderr)
         for problem in problems:
             print(f"  {problem}", file=sys.stderr)
         print(
-            f"\nPut each app label, a top-level package, in exactly one shard in {SHARDS.relative_to(ROOT)}, give each"
-            f" test its own id, and keep the {JOB} matrix to exactly those shard names, with no include or exclude.\n\n"
+            f"\nGive each shard in {SHARDS.relative_to(ROOT)} test name patterns that together select each test id"
+            f" exactly once, give each test its own id, and keep the {JOB} matrix to exactly those shard names, with"
+            " no include or exclude.\n\n"
             'The rule is in docs/development/gates.md, "The ordinary shard gate".',
             file=sys.stderr,
         )
