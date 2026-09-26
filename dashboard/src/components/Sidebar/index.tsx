@@ -10,7 +10,6 @@ import {
   QuestionIcon,
   SignOutIcon,
   BuildingsIcon,
-  FileTextIcon,
   ShieldCheckIcon,
   MegaphoneIcon,
   NewspaperIcon,
@@ -37,14 +36,14 @@ interface NavItem {
 }
 
 interface NavGroup {
+  id: string;
   label?: string;
   items: NavItem[];
 }
 
 const COMPANY: NavItem[] = [
-  { destination: 'company', icon: BuildingsIcon },
-  { destination: 'companyListing', icon: FileTextIcon },
   { destination: 'companyOffering', icon: MegaphoneIcon },
+  { destination: 'company', icon: BuildingsIcon },
 ];
 
 const YOUR_SHARES: NavItem[] = [
@@ -114,10 +113,12 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
   const { signOut, isSigningOut } = useSignOut();
 
   const groups: NavGroup[] = [
-    ...(isCompany ? [{ label: companyName ?? DESTINATIONS.company.title, items: COMPANY }] : []),
-    { label: 'Your shares', items: YOUR_SHARES },
-    ...(isInvestor ? [{ label: 'Invest', items: INVEST.filter((item) => item !== MARKET || tradingEnabled) }] : []),
-    { items: YOURS },
+    ...(isCompany ? [{ id: 'company', label: companyName ?? DESTINATIONS.company.title, items: COMPANY }] : []),
+    { id: 'shares', label: 'Your shares', items: YOUR_SHARES },
+    ...(isInvestor
+      ? [{ id: 'invest', label: 'Invest', items: INVEST.filter((item) => item !== MARKET || tradingEnabled) }]
+      : []),
+    { id: 'yours', items: YOURS },
   ];
 
   const handleNav = (path: string) => {
@@ -134,7 +135,7 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
 
       <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
         {groups.map((group) => (
-          <div key={group.label ?? 'yours'} className="space-y-1">
+          <div key={group.id} className="space-y-1">
             {group.label && <GroupLabel>{group.label}</GroupLabel>}
             {group.items.map((item) => (
               <NavButton
@@ -144,7 +145,7 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
                 onSelect={handleNav}
               />
             ))}
-            {!group.label && (
+            {group.id === 'yours' && (
               <a
                 href={`${MARKETING_URL}/contact`}
                 target="_blank"

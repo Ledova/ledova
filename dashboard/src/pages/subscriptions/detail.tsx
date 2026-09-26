@@ -77,7 +77,7 @@ export default function SubscriptionDetailPage() {
               to="/subscriptions"
               className="mt-4 inline-block text-brand-light hover:text-brand-subtle font-medium"
             >
-              Back to my subscriptions
+              All applications
             </Link>
           </div>
         </Panel>
@@ -141,7 +141,7 @@ export default function SubscriptionDetailPage() {
           className="flex items-center gap-2 text-sm text-text-muted hover:text-text-primary transition-colors"
         >
           <ArrowLeftIcon size={16} />
-          Back to my subscriptions
+          All applications
         </Link>
       </div>
     </Page>
