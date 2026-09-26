@@ -2,7 +2,7 @@
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { ReactElement } from 'react';
-import { MemoryRouter, Route, Routes, useNavigationType } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useNavigationType } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { InSignedInFrame } from '@components/InSignedInFrame';
 import { DESTINATIONS, type AccountRole, type DestinationKey } from '@ledova/shared';
@@ -46,6 +46,7 @@ function open(
     signupFinished = true,
     profileLoading = false,
     profileFailed = false,
+    frameShowing = true,
   } = {},
 ) {
   useAuthMock.mockReturnValue({ isAuthenticated: signedIn, isLoading: false, isFetching: false } as ReturnType<
@@ -65,8 +66,9 @@ function open(
     refreshProfile: vi.fn(),
   } as unknown as ReturnType<typeof useUserProfile>);
   render(
-    <InSignedInFrame.Provider value>
+    <InSignedInFrame.Provider value={signedIn && signupFinished && !profileLoading && !profileFailed && frameShowing}>
       <MemoryRouter initialEntries={[addressOf(key)]}>
+        <Address />
         <Routes>
           {signedInRoutes(PAGES)}
           <Route path="/signin" element={<Page name="signin" />} />
@@ -75,6 +77,10 @@ function open(
       </MemoryRouter>
     </InSignedInFrame.Provider>,
   );
+}
+
+function Address() {
+  return <p data-testid="address">{useLocation().pathname}</p>;
 }
 
 function opened(name: string) {
@@ -97,6 +103,13 @@ describe('which signed-in pages an account can open', () => {
   it.each(['directoryDetail', 'trading'] as const)('lets an investor open %s, an investing page', (key) => {
     open(key, 'investor');
     expect(opened(key)).toBe(true);
+  });
+
+  it('sends an investor opening a company page to their home at once, even before the frame is showing', () => {
+    open('company', 'investor', { frameShowing: false });
+
+    expect(screen.getByTestId('address').textContent).toBe(DESTINATIONS.home.path);
+    expect(screen.queryByText('company')).toBeNull();
   });
 
   it.each(['company', 'companyListing'] as const)('sends an investor opening %s to their home instead', (key) => {

@@ -1,6 +1,8 @@
+import { useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { DESTINATIONS, landingFor } from '@ledova/shared';
 import { AuthLayout } from '@components/AuthLayout';
+import { InSignedInFrame } from '@components/InSignedInFrame';
 import { useAuth } from '@hooks/useAuth';
 import { useRole } from '@hooks/useRole';
 import { useSignupFinished } from '@hooks/useSignupFinished';
@@ -29,8 +31,9 @@ export const NotFoundPage = () => {
   const { isLoading: isProfileLoading } = useUserProfile();
   const { role, isLoading: isRoleLoading } = useRole();
   const framed = useSignupFinished();
+  const inFrame = useContext(InSignedInFrame);
 
-  if (isLoading || isProfileLoading || (framed && isRoleLoading)) return null;
+  if (isLoading || isProfileLoading || (framed && isRoleLoading) || framed !== inFrame) return null;
 
   if (!framed) {
     return (

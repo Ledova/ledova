@@ -85,7 +85,9 @@ its header, through `AuthLayoutAction`, so an account still signing up can
 always leave. The not-found page reads the same
 decision: inside the frame with a link to `landingFor(role)` for a finished
 account, and otherwise in the public layout with a link to sign in, or, for an
-account still signing up, back into sign-up.
+account still signing up, back into sign-up. It shows nothing until its own
+decision and the frame's agree, so, like a guarded page, it never appears in
+the wrong layout for a moment.
 The mobile app does not read the table yet.
 
 The design tokens are the single source of colour, spacing and radius values.

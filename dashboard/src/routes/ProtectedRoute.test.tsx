@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import type { PropsWithChildren, ReactNode } from 'react';
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -7,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiClientProvider, CACHE_TIMING } from '@ledova/shared';
 
 import { AUTH_QUERY_KEY } from '@hooks/useAuth';
+import { useSignupFinished } from '@hooks/useSignupFinished';
 import apiClient from '@services/apiClient';
 import { InSignedInFrame } from '@components/InSignedInFrame';
 import { ProtectedRoute } from './ProtectedRoute';
@@ -15,7 +17,19 @@ vi.mock('@services/apiClient', () => ({ default: { get: vi.fn() } }));
 
 let client: QueryClient;
 
-function renderGuard(valid: boolean, stale = true, inFrame = true) {
+function AsTheFrameDecides({ children }: PropsWithChildren) {
+  return <InSignedInFrame.Provider value={useSignupFinished()}>{children}</InSignedInFrame.Provider>;
+}
+
+function inFrame(children: ReactNode, frameShowing?: boolean) {
+  return frameShowing === undefined ? (
+    <AsTheFrameDecides>{children}</AsTheFrameDecides>
+  ) : (
+    <InSignedInFrame.Provider value={frameShowing}>{children}</InSignedInFrame.Provider>
+  );
+}
+
+function renderGuard(valid: boolean, stale = true, frameShowing?: boolean) {
   client.setQueryData(
     AUTH_QUERY_KEY,
     { data: { valid } },
@@ -27,7 +41,7 @@ function renderGuard(valid: boolean, stale = true, inFrame = true) {
   render(
     <QueryClientProvider client={client}>
       <ApiClientProvider client={apiClient}>
-        <InSignedInFrame.Provider value={inFrame}>
+        {inFrame(
           <MemoryRouter initialEntries={['/protected']}>
             <Routes>
               <Route
@@ -40,8 +54,9 @@ function renderGuard(valid: boolean, stale = true, inFrame = true) {
               />
               <Route path="/signin" element={<p>Sign in</p>} />
             </Routes>
-          </MemoryRouter>
-        </InSignedInFrame.Provider>
+          </MemoryRouter>,
+          frameShowing,
+        )}
       </ApiClientProvider>
     </QueryClientProvider>,
   );

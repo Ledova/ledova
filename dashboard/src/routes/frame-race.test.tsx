@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { useLayoutEffect, type PropsWithChildren } from 'react';
+import { useLayoutEffect, type PropsWithChildren, type ReactElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -12,9 +12,7 @@ const pending = vi.hoisted(() => new Map<string, Deferred>());
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
 vi.mock('@hooks/useAuth', () => ({ useAuth: () => ({ isAuthenticated: true, isLoading: false, isFetching: false }) }));
-vi.mock('@hooks/useSelectedPortfolio', () => ({ useSelectedPortfolio: () => ({ userAccount: { uuid: 'owner' } }) }));
 vi.mock('@pages/wallets/components/BuyCryptoModal', () => ({ BuyCryptoModal: () => null }));
-vi.mock('@pages/wallets/components/BuyCryptoWidgetModal', () => ({ BuyCryptoWidgetModal: () => null }));
 vi.mock('@hooks/useSendTransfer', () => ({ SendTransferProvider: ({ children }: PropsWithChildren) => children }));
 vi.mock('@components/Sidebar', () => ({ Sidebar: () => <nav aria-label="Sidebar" /> }));
 vi.mock('@components/DesktopHeader', () => ({ DesktopHeader: () => null }));
@@ -22,6 +20,7 @@ vi.mock('@components/MobileHeader', () => ({ MobileHeader: () => null }));
 vi.mock('@components/Footer', () => ({ default: () => null }));
 
 import Layout from '@components/Layout';
+import NotFoundPage from '@pages/NotFound';
 import { ProtectedRoute } from './ProtectedRoute';
 
 const renders: string[] = [];
@@ -67,6 +66,30 @@ async function answerTheRoleThenTheProfileBeforeTheRoleReachesItsSubscribers() {
 let root: Root;
 let container: HTMLDivElement;
 
+function load(entry: string, route: ReactElement) {
+  root = createRoot(container);
+  root.render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter initialEntries={[entry]}>
+        <Layout>
+          <Routes>{route}</Routes>
+        </Layout>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+function watchWhereTheNotFoundPageAppears() {
+  const seen: string[] = [];
+  const observer = new MutationObserver(() => {
+    if (!container.textContent?.includes('There is no page at this address')) return;
+    const where = container.querySelector('nav[aria-label="Sidebar"]') ? 'framed' : 'outside the frame';
+    if (seen.at(-1) !== where) seen.push(where);
+  });
+  observer.observe(container, { childList: true, subtree: true, characterData: true });
+  return { seen, stop: () => observer.disconnect() };
+}
+
 beforeEach(() => {
   scheduleRendersAsTheBrowserDoes();
   renders.length = 0;
@@ -89,24 +112,16 @@ afterEach(async () => {
 it.each(['investing', 'everyone'] as const)(
   'renders a directly loaded %s page only inside the signed-in frame, even when the role answers first',
   async (audience: Audience) => {
-    root = createRoot(container);
-    root.render(
-      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-        <MemoryRouter initialEntries={['/page']}>
-          <Layout>
-            <Routes>
-              <Route
-                path="/page"
-                element={
-                  <ProtectedRoute audience={audience}>
-                    <Page name={audience} />
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </Layout>
-        </MemoryRouter>
-      </QueryClientProvider>,
+    load(
+      '/page',
+      <Route
+        path="/page"
+        element={
+          <ProtectedRoute audience={audience}>
+            <Page name={audience} />
+          </ProtectedRoute>
+        }
+      />,
     );
     await until(() => pending.size === 2);
     expect([...pending.keys()].sort()).toEqual([USER_ACCOUNT_ENDPOINTS.BASE, USER_PROFILE_ENDPOINTS.BASE].sort());
@@ -119,3 +134,15 @@ it.each(['investing', 'everyone'] as const)(
     expect(renders).not.toContain(`${audience} outside the frame`);
   },
 );
+
+it('shows the not-found page only inside the signed-in frame, even when the role answers first', async () => {
+  const notFound = watchWhereTheNotFoundPageAppears();
+  load('/no-such-page', <Route path="*" element={<NotFoundPage />} />);
+  await until(() => pending.size === 2);
+
+  await answerTheRoleThenTheProfileBeforeTheRoleReachesItsSubscribers();
+  await until(() => notFound.seen.includes('framed'));
+  notFound.stop();
+
+  expect(notFound.seen).toEqual(['framed']);
+});
