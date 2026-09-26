@@ -209,8 +209,8 @@ describe('the page the sidebar marks as current', () => {
     expect(current()).toEqual(['Applications']);
   });
 
-  it('marks only Application on the company application page, not Company as well', () => {
+  it('marks Company on its nested application page', () => {
     show('company', '/company/listing');
-    expect(current()).toEqual(['Application']);
+    expect(current()).toEqual(['Company']);
   });
 });
