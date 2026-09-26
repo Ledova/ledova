@@ -67,6 +67,8 @@ class NativeBuildScopeTest(ScopeCase):
             "npm-shrinkwrap.json",
             "dashboard/package.json",
             ".gitattributes",
+            "dashboard/.gitattributes",
+            "docs/.gitattributes",
             ".npmrc",
             "packages/shared/src/index.ts",
             "mobile/assets/icon.png",
@@ -316,15 +318,33 @@ class DjangoScopeTest(ScopeCase):
                 self.git("reset", "--hard", self.base)
 
     def test_a_document_a_backend_file_names_runs_django_when_it_changes(self):
-        named = self.commit({"backend/rule.py": 'MESSAGE = "The rule is in docs/architecture/tenancy.md"\n'})
-        self.commit({"docs/architecture/tenancy.md": "# Tenancy model\n"})
+        named = self.commit(
+            {
+                "backend/shared/management/commands/rule.py": 'RULE = "docs/architecture/tenancy.md"\n',
+                "backend/.env.example": "# Upload limits: docs/operations/uploads.md\n",
+            }
+        )
+        self.commit({"docs/architecture/tenancy.md": "# Tenancy model\n", "docs/operations/uploads.md": "# Uploads\n"})
         edited = self.commit({"docs/architecture/tenancy.md": "# Tenancy\n"})
+        uploads = self.commit({"docs/operations/uploads.md": "# Upload limits\n"})
         removed = self.commit({}, removed=("docs/architecture/tenancy.md",))
         other = self.commit({"docs/guide.md": "updated"})
 
-        for base, head, required in ((named, edited, True), (edited, removed, True), (removed, other, False)):
+        for base, head, required in (
+            (named, edited, True),
+            (edited, uploads, True),
+            (uploads, removed, True),
+            (removed, other, False),
+        ):
             with self.subTest(head=head):
                 self.assertEqual(self.decision(head, base=base, scope="django")["required"], required)
+
+    def test_a_gitattributes_anywhere_runs_django_since_it_changes_how_files_check_out(self):
+        for path in ("docs/architecture/.gitattributes", "dashboard/.gitattributes", "docs/.gitattributes"):
+            with self.subTest(path=path):
+                head = self.commit({path: "tenancy.md working-tree-encoding=UTF-7\n"})
+                self.assertTrue(self.decision(head, scope="django")["required"])
+                self.git("reset", "--hard", self.base)
 
     def test_every_push_and_manual_run_tests_django_whatever_changed(self):
         head = self.commit({"docs/guide.md": "updated"})
@@ -420,22 +440,26 @@ class NativeBuildVerdictTest(unittest.TestCase):
 
 
 class DjangoVerdictTest(unittest.TestCase):
-    def needs(self, required="true", shards="success"):
+    def needs(self, required="true", shards="success", backend=None):
         return {
             "scope": {"result": "success", "outputs": {"required": required}},
             "backend-suite-shard": {"result": shards},
+            "backend": {"result": shards if backend is None else backend},
         }
 
-    def test_shards_that_ran_or_were_rightly_skipped_pass_and_nothing_else_does(self):
-        for required, shards, passed in (
-            ("true", "success", True),
-            ("false", "skipped", True),
-            ("true", "skipped", False),
-            ("true", "failure", False),
-            ("false", "success", False),
+    def test_django_jobs_that_ran_or_were_rightly_skipped_pass_and_nothing_else_does(self):
+        for required, shards, backend, passed in (
+            ("true", "success", "success", True),
+            ("false", "skipped", "skipped", True),
+            ("true", "skipped", "skipped", False),
+            ("true", "failure", "success", False),
+            ("true", "success", "failure", False),
+            ("true", "success", "skipped", False),
+            ("false", "skipped", "success", False),
+            ("false", "success", "skipped", False),
         ):
-            with self.subTest(required=required, shards=shards):
-                self.assertEqual(SCOPE.verdict(self.needs(required, shards), SCOPE.JOBS["django"]), passed)
+            with self.subTest(required=required, shards=shards, backend=backend):
+                self.assertEqual(SCOPE.verdict(self.needs(required, shards, backend), SCOPE.JOBS["django"]), passed)
 
     def test_verdict_cli_judges_the_django_jobs(self):
         for needs, status in ((self.needs("false", "skipped"), 0), (self.needs("true", "cancelled"), 1)):

@@ -20,8 +20,12 @@ NATIVE_INPUT_FILES = frozenset(
     )
 )
 UNREAD_BY_DJANGO = ("dashboard/", "docs/", "marketing/", "mobile/", "packages/")
-DOCUMENT = re.compile(r"docs/[\w./-]+\.md")
-JOBS = {"native": ("android", "ios"), "django": ("backend-suite-shard",)}
+DOCUMENT = re.compile(rb"docs/[\w./-]+\.md")
+JOBS = {"native": ("android", "ios"), "django": ("backend-suite-shard", "backend")}
+
+
+def changes_checkouts(path):
+    return path.rsplit("/", 1)[-1] == ".gitattributes"
 
 
 def changed_paths(event_name, payload, repository):
@@ -65,7 +69,10 @@ def native_scope(event_name, payload, repository):
     paths = changed_paths(event_name, payload, repository)
     if paths is None:
         return {"required": True, "reason": "Complete ancestor comparison unavailable"}
-    required = any(path.startswith(NATIVE_INPUT_PREFIXES) or path in NATIVE_INPUT_FILES for path in paths)
+    required = any(
+        path.startswith(NATIVE_INPUT_PREFIXES) or path in NATIVE_INPUT_FILES or changes_checkouts(path)
+        for path in paths
+    )
     return {
         "required": required,
         "reason": "Mobile or native build input changed" if required else "No mobile or native build inputs changed",
@@ -74,7 +81,9 @@ def native_scope(event_name, payload, repository):
 
 
 def documents_named_in(backend):
-    return {name for path in backend.rglob("*.py") for name in DOCUMENT.findall(path.read_text(encoding="utf-8"))}
+    return {
+        name.decode() for path in backend.rglob("*") if path.is_file() for name in DOCUMENT.findall(path.read_bytes())
+    }
 
 
 def django_scope(event_name, payload, repository):
@@ -84,7 +93,7 @@ def django_scope(event_name, payload, repository):
     if paths is None:
         return {"required": True, "reason": "Complete ancestor comparison unavailable"}
     named = documents_named_in(repository / "backend")
-    required = any(not path.startswith(UNREAD_BY_DJANGO) or path in named for path in paths)
+    required = any(not path.startswith(UNREAD_BY_DJANGO) or path in named or changes_checkouts(path) for path in paths)
     return {
         "required": required,
         "reason": "A path the Django jobs read changed" if required else "Only client code and documentation changed",

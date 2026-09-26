@@ -177,13 +177,13 @@ jobs:
         run: python ../scripts/check-ordinary-shards.py --run ${{ matrix.shard }}
 
   backend-suite:
-    name: Django ordinary suite
-    needs: [scope, backend-suite-shard]
+    name: Django verdict
+    needs: [scope, backend-suite-shard, backend]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Every shard succeeded, or the change needs none
+      - name: Every Django job succeeded, or the change needs none
         env:
           JOB_RESULTS: ${{ toJSON(needs) }}
         run: python3 scripts/ci-scope.py verdict django
