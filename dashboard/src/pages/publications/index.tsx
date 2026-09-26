@@ -5,14 +5,7 @@ import type { BallotChoice, Publication } from '@ledova/shared';
 import { Distribution } from './Distribution';
 import { Resolution } from './Resolution';
 import { usePublications } from './usePublications';
-
-function PageWrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="w-full max-w-4xl mx-auto px-4 pt-6 pb-16 sm:px-6 lg:px-8">
-      <div className="flex flex-col gap-4 sm:gap-5 md:gap-6">{children}</div>
-    </div>
-  );
-}
+import { Page } from '@components/Page';
 
 function PublicationRow({
   publication,
@@ -89,15 +82,11 @@ export default function PublicationsPage() {
   } = usePublications();
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 border-4 border-brand-subtle border-t-brand rounded-full animate-spin" />
-      </div>
-    );
+    return <Page loading />;
   }
 
   return (
-    <PageWrapper>
+    <Page>
       <Panel title={PUBLICATION_COPY.LIST_TITLE} icon={<NewspaperIcon size={20} />}>
         {openError && (
           <div role="alert" className="mx-4 mb-3 rounded-lg bg-error/10 px-4 py-3 text-sm text-error">
@@ -152,6 +141,6 @@ export default function PublicationsPage() {
           </>
         )}
       </Panel>
-    </PageWrapper>
+    </Page>
   );
 }

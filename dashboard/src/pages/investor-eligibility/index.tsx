@@ -17,14 +17,7 @@ import apiClient from '@services/apiClient';
 import { CATEGORIES, REASON_TEXT, WHOLESALE_ONLY_NOTICE } from './constants';
 import { ClaimModal } from './ClaimModal';
 import { useInvestorEligibility } from './useInvestorEligibility';
-
-function PageWrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="w-full max-w-6xl mx-auto px-4 pt-6 pb-16 sm:px-6 lg:px-8">
-      <div className="flex flex-col gap-4 sm:gap-5 md:gap-6">{children}</div>
-    </div>
-  );
-}
+import { Page } from '@components/Page';
 
 function StatusIcon({ classification }: { classification: InvestorClassification }) {
   if (classification.isLive) {
@@ -55,11 +48,7 @@ export default function InvestorEligibilityPage() {
   });
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 border-4 border-brand-subtle border-t-brand rounded-full animate-spin" />
-      </div>
-    );
+    return <Page loading />;
   }
 
   const isEligible = eligibility?.isEligible ?? false;
@@ -69,7 +58,7 @@ export default function InvestorEligibilityPage() {
   );
 
   return (
-    <PageWrapper>
+    <Page>
       <Panel title="Wholesale Investor Status" icon={<ShieldCheckIcon size={20} />}>
         <div className="px-2 py-2 space-y-3">
           <div className="flex items-start gap-3">
@@ -186,6 +175,6 @@ export default function InvestorEligibilityPage() {
           refresh();
         }}
       />
-    </PageWrapper>
+    </Page>
   );
 }

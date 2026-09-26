@@ -3,18 +3,11 @@ import { ArrowLeftIcon, BankIcon, CoinsIcon } from '@phosphor-icons/react';
 import { Panel } from '@components/Panel';
 import { formatDate } from '@ledova/shared';
 import type { Operator } from '@ledova/shared';
-import { useSelectedPortfolio } from '@hooks';
+import { useSelectedPortfolio } from '@hooks/useSelectedPortfolio';
 import { SubscribeForm } from '@pages/subscriptions/SubscribeForm';
 import { useCreateSubscription, useSubscribableWallets } from '@pages/subscriptions/useSubscriptions';
 import { useDirectoryToken } from './useDirectory';
-
-function PageWrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="w-full max-w-4xl mx-auto px-4 pt-6 pb-16 sm:px-6 lg:px-8">
-      <div className="flex flex-col gap-4 sm:gap-5 md:gap-6">{children}</div>
-    </div>
-  );
-}
+import { Page } from '@components/Page';
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -78,16 +71,12 @@ export default function DirectoryTokenPage() {
   const create = useCreateSubscription((created) => navigate(`/subscriptions/${created}`));
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 border-4 border-brand-subtle border-t-brand rounded-full animate-spin" />
-      </div>
-    );
+    return <Page loading />;
   }
 
   if (!token || notFound) {
     return (
-      <PageWrapper>
+      <Page>
         <Panel title="Not Available">
           <div className="px-2 py-8 text-center">
             <p className="text-text-muted">
@@ -99,14 +88,14 @@ export default function DirectoryTokenPage() {
             </Link>
           </div>
         </Panel>
-      </PageWrapper>
+      </Page>
     );
   }
 
   const offering = token.openOffering;
 
   return (
-    <PageWrapper>
+    <Page>
       <Panel title={`${token.company.displayName} (${token.symbol})`} icon={<CoinsIcon size={20} />}>
         <div className="px-2 py-2">
           <Row label="Share class" value={token.name} />
@@ -157,6 +146,6 @@ export default function DirectoryTokenPage() {
           Back to the directory
         </Link>
       </div>
-    </PageWrapper>
+    </Page>
   );
 }

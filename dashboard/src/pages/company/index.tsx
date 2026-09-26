@@ -1,4 +1,4 @@
-import { PageWrapper } from './components/PageWrapper';
+import { Page } from '@components/Page';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Field, Label, Input } from '@headlessui/react';
@@ -215,20 +215,20 @@ export default function CompanyPage() {
 
   if (isLoading) {
     return (
-      <PageWrapper>
+      <Page>
         <div className="animate-pulse space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="h-64 bg-surface-raised rounded-xl border border-border" />
             <div className="h-64 bg-surface-raised rounded-xl border border-border" />
           </div>
         </div>
-      </PageWrapper>
+      </Page>
     );
   }
 
   if (error) {
     return (
-      <PageWrapper>
+      <Page>
         <div className="bg-surface-raised rounded-xl border border-border p-8 text-center">
           <WarningIcon className="h-10 w-10 text-error-light mx-auto mb-3" weight="duotone" />
           <p className="text-text-secondary mb-4">Failed to load company information.</p>
@@ -239,25 +239,25 @@ export default function CompanyPage() {
             Retry
           </button>
         </div>
-      </PageWrapper>
+      </Page>
     );
   }
 
   if (!company) {
     return (
-      <PageWrapper>
+      <Page>
         <div className="bg-surface-raised rounded-xl border border-border p-8 text-center">
           <BuildingsIcon size={ICON_XL} className="text-text-muted mx-auto mb-3" />
           <p className="text-text-secondary">No company information available.</p>
         </div>
-      </PageWrapper>
+      </Page>
     );
   }
 
   const address = formatAddress(company);
 
   return (
-    <PageWrapper>
+    <Page>
       {successMessage && (
         <div className="flex items-center gap-3 p-4 rounded-lg bg-success-light/15 border border-success-light/25">
           <CheckCircleIcon className="h-5 w-5 text-success-light" weight="fill" />
@@ -453,7 +453,7 @@ export default function CompanyPage() {
           onClose={() => setSelectedTokenUuid(null)}
         />
       )}
-    </PageWrapper>
+    </Page>
   );
 }
 

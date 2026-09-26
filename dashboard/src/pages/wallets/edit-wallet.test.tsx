@@ -4,12 +4,11 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
-const api = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn(), setActions: vi.fn() }));
+const api = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
 vi.mock('@hooks/useSelectedPortfolio', () => ({
   useSelectedPortfolio: () => ({ portfolio: { userAccount: 'owner' } }),
 }));
-vi.mock('@hooks/useHeaderActions', () => ({ useHeaderActions: () => ({ setActions: api.setActions }) }));
 vi.mock('@hooks/useCurrency', () => ({
   useCurrency: () => ({ formatDisplayCurrency: (value: number) => `$${value}` }),
 }));
@@ -64,4 +63,17 @@ it('opens each wallet with its saved name and discards an edit that was not save
   fireEvent.doubleClick(screen.getByText('Other wallet'));
   expect(nameInput().value).toBe('Other wallet');
   expect(api.patch).not.toHaveBeenCalled();
+});
+
+it('opens the wallet sort and filter from the Filter action in the title row', async () => {
+  render(
+    <QueryClientProvider client={queryClient}>
+      <WalletsPage />
+    </QueryClientProvider>,
+  );
+  expect(screen.queryByText('Sort Wallets')).toBeNull();
+
+  fireEvent.click(await screen.findByRole('button', { name: 'Filter' }));
+
+  expect(await screen.findByText('Sort Wallets')).toBeTruthy();
 });

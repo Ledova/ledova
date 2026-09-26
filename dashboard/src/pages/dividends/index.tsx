@@ -1,4 +1,5 @@
 import { CoinsIcon } from '@phosphor-icons/react';
+import { Page } from '@components/Page';
 import { Panel } from '@components/Panel';
 import { PUBLICATION_COPY, formatDate, formatShareCount, useDividends } from '@ledova/shared';
 import type { Publication } from '@ledova/shared';
@@ -34,16 +35,12 @@ export default function DividendsPage() {
   const { dividends, isLoading, listFailed, retry, hasMore, isLoadingMore, loadMore } = useDividends();
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 border-4 border-brand-subtle border-t-brand rounded-full animate-spin" />
-      </div>
-    );
+    return <Page loading />;
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 pt-6 pb-16 sm:px-6 lg:px-8">
-      <Panel title={PUBLICATION_COPY.DIVIDENDS_TITLE} icon={<CoinsIcon size={20} />}>
+    <Page>
+      <Panel>
         <p className="text-xs text-text-muted pb-3">{PUBLICATION_COPY.DIVIDENDS_APART}</p>
         {listFailed ? (
           <div role="alert" className="px-4 py-12 text-center">
@@ -84,6 +81,6 @@ export default function DividendsPage() {
           </>
         )}
       </Panel>
-    </div>
+    </Page>
   );
 }

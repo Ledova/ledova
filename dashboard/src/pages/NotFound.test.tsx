@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AccountRole } from '@ledova/shared';
 
+import { InSignedInFrame } from '@components/InSignedInFrame';
 import Layout from '@components/Layout';
 import { useAuth } from '@hooks/useAuth';
 import { useRole } from '@hooks/useRole';
@@ -17,7 +18,6 @@ vi.mock('@hooks/useAuth', () => ({ useAuth: vi.fn() }));
 vi.mock('@hooks/useRole', () => ({ useRole: vi.fn() }));
 vi.mock('@pages/user-profile/useUserProfile', () => ({ useUserProfile: vi.fn() }));
 vi.mock('@components/Sidebar', () => ({ Sidebar: () => <nav aria-label="Sidebar" /> }));
-vi.mock('@components/DesktopHeader', () => ({ DesktopHeader: () => null }));
 vi.mock('@components/MobileHeader', () => ({ MobileHeader: () => null }));
 vi.mock('@components/Footer', () => ({ default: () => null }));
 vi.mock('@hooks/useBuyCrypto', () => ({
@@ -94,12 +94,12 @@ describe('an address that is not a page', () => {
   });
 
   it.each([
-    ['a finished account', true, 2, true],
-    ['an account still signing up', false, 1, false],
-  ] as const)('shows %s the same frame and page at an unknown address under /signup', (_, finished, level, framed) => {
+    ['a finished account', true, true],
+    ['an account still signing up', false, false],
+  ] as const)('shows %s the same frame and page at an unknown address under /signup', (_, finished, framed) => {
     visit({ signedIn: true, finished, address: '/signup/typo' });
 
-    expect(screen.getByRole('heading', { level, name: 'There is no page at this address' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'There is no page at this address' })).toBeTruthy();
     expect(screen.queryByRole('navigation', { name: 'Sidebar' }) !== null).toBe(framed);
   });
 
@@ -127,5 +127,26 @@ describe('an address that is not a page', () => {
 
     expect(screen.queryByRole('heading')).toBeNull();
     expect(screen.queryByRole('link')).toBeNull();
+  });
+
+  it('shows nothing inside the frame while its own read still says sign-up is unfinished', () => {
+    vi.mocked(useAuth).mockReturnValue({ isAuthenticated: true, isLoading: false } as ReturnType<typeof useAuth>);
+    vi.mocked(useRole).mockReturnValue({ role: 'investor', isLoading: false } as ReturnType<typeof useRole>);
+    vi.mocked(useUserProfile).mockReturnValue({
+      userProfile: { isSignupCompleted: false },
+      isLoading: false,
+    } as ReturnType<typeof useUserProfile>);
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <InSignedInFrame.Provider value>
+          <MemoryRouter initialEntries={['/no-such-page']}>
+            <NotFoundPage />
+          </MemoryRouter>
+        </InSignedInFrame.Provider>
+      </QueryClientProvider>,
+    );
+
+    expect(screen.queryByRole('heading')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Continue signing up' })).toBeNull();
   });
 });

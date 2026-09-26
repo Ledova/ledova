@@ -6,24 +6,24 @@ import { useAuth } from '@hooks/useAuth';
 import { useRole } from '@hooks/useRole';
 import { useUserProfile } from '@pages/user-profile/useUserProfile';
 import { InSignedInFrame } from '@components/InSignedInFrame';
+import { Page } from '@components/Page';
 import { AccountUnavailable } from './AccountUnavailable';
 import { SIGNUP_RESUMES_AT } from './signupRoutes';
 
 function RoleUnavailable({ onRetry }: { onRetry: () => void }) {
   return (
-    <div
-      role="alert"
-      className="flex flex-col items-center justify-center gap-3 min-h-screen bg-surface-raised px-4 text-center"
-    >
-      <p className="text-sm text-text-primary">Your account could not be checked, so this page cannot open yet.</p>
-      <button
-        type="button"
-        onClick={onRetry}
-        className="font-semibold text-brand-light transition-colors hover:text-brand-subtle"
-      >
-        Try again
-      </button>
-    </div>
+    <Page>
+      <div role="alert" className="flex flex-col items-center gap-3 py-20 text-center">
+        <p className="text-sm text-text-primary">Your account could not be checked, so this page cannot open yet.</p>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="font-semibold text-brand-light transition-colors hover:text-brand-subtle"
+        >
+          Try again
+        </button>
+      </div>
+    </Page>
   );
 }
 
@@ -47,7 +47,9 @@ export function ProtectedRoute({ audience, children }: { audience: Audience; chi
   const waitingForAccount = isAuthenticated && (isProfileLoading || (needsRole && !isKnown && !isUnavailable));
   const inFrame = useContext(InSignedInFrame);
 
-  if (isLoading || (!isAuthenticated && isFetching) || waitingForAccount) return <CheckingSession />;
+  if (isLoading || (!isAuthenticated && isFetching) || waitingForAccount) {
+    return inFrame ? <Page loading /> : <CheckingSession />;
+  }
 
   if (!isAuthenticated) return <Navigate to="/signin" replace />;
 

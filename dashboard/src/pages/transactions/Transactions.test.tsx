@@ -38,3 +38,16 @@ it('links to the dividends, which are listed beside the transactions and not amo
 
   expect(await screen.findByText('The dividends page')).toBeTruthy();
 });
+
+it('opens the transaction filters from the Filter action in the title row', async () => {
+  render(
+    <MemoryRouter initialEntries={['/transactions']}>
+      <TransactionsPage />
+    </MemoryRouter>,
+  );
+  expect(screen.queryByText('Filter Transactions')).toBeNull();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+
+  expect(await screen.findByText('Filter Transactions')).toBeTruthy();
+});

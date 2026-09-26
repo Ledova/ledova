@@ -44,6 +44,7 @@ export function useOfferings() {
     offerings: offeringsQuery.data?.data?.results ?? [],
     tokens: (tokensQuery.data?.data?.results ?? []).filter((token) => token.status === 'deployed'),
     settlementAssets: operatorQuery.data?.data?.supportedSettlementAssets ?? [],
+    operatorName: operatorQuery.data?.data?.name || 'the operator',
     isLoading: offeringsQuery.isLoading || tokensQuery.isLoading || operatorQuery.isLoading,
     refresh,
   };

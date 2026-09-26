@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeftIcon, InfoIcon, MegaphoneIcon, UsersThreeIcon, XCircleIcon } from '@phosphor-icons/react';
+import { InfoIcon, MegaphoneIcon, UsersThreeIcon, XCircleIcon } from '@phosphor-icons/react';
 import { Panel } from '@components/Panel';
 import {
   OFFERING_EXEMPTION_LABELS,
@@ -13,7 +12,7 @@ import {
 } from '@ledova/shared';
 import type { IssuerSubscription, OfferingListItem, OfferingExemption, OfferingInput } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { PageWrapper } from '../components/PageWrapper';
+import { Page } from '@components/Page';
 import { useCompany } from '../hooks/useCompany';
 import { useOfferingActions, useOfferingUnderEdit, useOfferings, useOfferingSubscriptions } from './useOffering';
 import { OfferingForm } from './OfferingForm';
@@ -170,10 +169,9 @@ function SubscriptionsPanel({ offerings }: { offerings: OfferingListItem[] }) {
 }
 
 export default function OfferingPage() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { company, companyUuid, isLoading: isLoadingCompany } = useCompany();
-  const { offerings, tokens, settlementAssets, isLoading: isLoadingOfferings, refresh } = useOfferings();
+  const { offerings, tokens, settlementAssets, operatorName, isLoading: isLoadingOfferings, refresh } = useOfferings();
   const [actionError, setActionError] = useState<string | null>(null);
   const [editingUuid, setEditingUuid] = useState<string | null>(null);
   const { offering: editing, isLoading: isLoadingEditing } = useOfferingUnderEdit(editingUuid ?? undefined);
@@ -195,18 +193,16 @@ export default function OfferingPage() {
   const run = (promise: Promise<unknown>) => promise.catch(surfaceError);
 
   if (isLoadingCompany || isLoadingOfferings) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 border-4 border-brand-subtle border-t-brand rounded-full animate-spin" />
-      </div>
-    );
+    return <Page loading />;
   }
 
   if (!company) {
     return (
-      <div className="text-center py-20">
-        <p className="text-text-muted">No company found. Please register your company first.</p>
-      </div>
+      <Page>
+        <div className="text-center py-20">
+          <p className="text-text-muted">No company found. Please register your company first.</p>
+        </div>
+      </Page>
     );
   }
 
@@ -226,7 +222,7 @@ export default function OfferingPage() {
   };
 
   return (
-    <PageWrapper>
+    <Page>
       {actionError && (
         <div className="flex items-start gap-3 p-4 rounded-lg bg-error-light/10 border border-error-light/30">
           <XCircleIcon size={20} className="text-error-light flex-shrink-0 mt-0.5" weight="fill" />
@@ -237,8 +233,8 @@ export default function OfferingPage() {
       <Panel title="Investor Directory" icon={<MegaphoneIcon size={20} />}>
         <div className="px-2 py-2 space-y-3">
           <p className="text-sm text-text-secondary">
-            Your company is listed in the investor directory only while this is on. Nothing is listed by default, and
-            the operator can switch it off. Turning it off hides your share classes; it does not withdraw an offering
+            Your company is listed in the investor directory only while this is on. Nothing is listed by default, and{' '}
+            {operatorName} can switch it off. Turning it off hides your share classes; it does not withdraw an offering
             already under review.
           </p>
           <label className="flex items-center gap-3">
@@ -295,6 +291,7 @@ export default function OfferingPage() {
           tokens={tokens}
           busy={busy}
           settlementAssets={settlementAssets}
+          operatorName={operatorName}
           onCreate={handleCreate}
           editing={editing}
           onUpdate={handleUpdate}
@@ -305,23 +302,13 @@ export default function OfferingPage() {
       <Panel title="What Happens Next" icon={<InfoIcon size={20} />}>
         <div className="px-2 py-2">
           <ol className="list-decimal list-inside space-y-2 text-sm text-text-secondary">
-            <li>Submit the offering; the operator reviews the bounds, the window and the exemption relied on</li>
+            <li>Submit the offering; {operatorName} reviews the bounds, the window and the exemption relied on</li>
             <li>Once approved, it opens automatically at the opening time you set</li>
             <li>Eligible investors see it in the directory and can subscribe</li>
-            <li>The operator closes it deliberately; reaching the cap does not close it on its own</li>
+            <li>It closes only when {operatorName} closes it; reaching the cap does not close it on its own</li>
           </ol>
         </div>
       </Panel>
-
-      <div>
-        <button
-          onClick={() => navigate('/company')}
-          className="flex items-center gap-2 text-sm text-text-muted hover:text-text-primary transition-colors"
-        >
-          <ArrowLeftIcon size={16} />
-          Back to Company
-        </button>
-      </div>
-    </PageWrapper>
+    </Page>
   );
 }

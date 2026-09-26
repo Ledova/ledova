@@ -27,25 +27,24 @@ export function useNotifications() {
     enabled: false,
   });
 
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    notificationsQuery.refetch();
+  };
+
   const markReadMutation = useMutation({
     mutationFn: (uuid: string) => markNotificationRead(apiClient, uuid),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    },
+    onSuccess: refresh,
   });
 
   const archiveMutation = useMutation({
     mutationFn: (uuid: string) => archiveNotification(apiClient, uuid),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    },
+    onSuccess: refresh,
   });
 
   const markAllReadMutation = useMutation({
     mutationFn: () => markAllNotificationsRead(apiClient),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    },
+    onSuccess: refresh,
   });
 
   return {

@@ -232,7 +232,7 @@ export function PerformanceSection({
         )}
       </div>
 
-      <div className="flex items-center justify-center gap-2 pt-3 mt-2 border-t border-border-subtle">
+      <div className="flex flex-wrap items-center justify-center gap-2 pt-3 mt-2 border-t border-border-subtle">
         <div className="flex bg-surface-tertiary rounded-full p-0.5">
           <button
             type="button"

@@ -11,10 +11,6 @@ const FOOTER_LINKS = [
   { label: 'Privacy', path: '/privacy-policy' },
 ];
 
-interface FooterProps {
-  minimal?: boolean;
-}
-
 function useOperatorName(): string | null {
   const { isAuthenticated } = useAuth();
   const query = useQuery({
@@ -26,20 +22,9 @@ function useOperatorName(): string | null {
   return query.data?.data?.name || null;
 }
 
-export default function Footer({ minimal = false }: FooterProps) {
+export default function Footer() {
   const currentYear = new Date().getFullYear();
   const operatorName = useOperatorName();
-
-  if (minimal) {
-    return (
-      <footer className="relative mt-auto border-t border-border">
-        <div className="mx-auto max-w-6xl px-4 py-6 text-center sm:px-6 lg:px-8">
-          {operatorName && <p className="text-sm text-text-secondary">Operated by {operatorName}</p>}
-          <p className="text-sm text-text-muted">&copy; {currentYear} Ledova contributors</p>
-        </div>
-      </footer>
-    );
-  }
 
   return (
     <footer className="relative mt-auto border-t border-border-subtle">

@@ -25,6 +25,7 @@ import { useUserProfile } from './useUserProfile';
 
 const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
 const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
+import { Page } from '@components/Page';
 import { Panel } from '@components/Panel';
 import { DocumentsPanel } from '@components/DocumentsPanel';
 import { useDocumentsEnabled } from '@hooks/useDocuments';
@@ -131,8 +132,8 @@ export function UserProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="w-full max-w-6xl mx-auto px-4 pt-6 pb-16 sm:px-6 lg:px-8">
-        <Panel title="Profile">
+      <Page>
+        <Panel>
           <div className="space-y-0">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-border-subtle last:border-b-0">
@@ -145,171 +146,169 @@ export function UserProfilePage() {
             ))}
           </div>
         </Panel>
-      </div>
+      </Page>
     );
   }
 
   if (isError) {
     return (
-      <div className="w-full max-w-6xl mx-auto px-4 pt-6 pb-16 sm:px-6 lg:px-8">
-        <Panel title="Profile">
+      <Page>
+        <Panel>
           <p className="text-sm text-error-light text-center py-6">Error loading profile</p>
         </Panel>
-      </div>
+      </Page>
     );
   }
 
   return (
-    <>
-      <div className="w-full max-w-6xl mx-auto px-4 pt-6 pb-16 sm:px-6 lg:px-8">
-        <Panel title="Profile">
-          {userProfile ? (
-            <>
-              <Section title="Personal Information">
-                <InfoRow
-                  label="Full Name"
-                  value={userProfile.fullName}
-                  icon={<UserIcon size={ICON_MD} className="text-text-muted" />}
-                />
-                <InfoRow
-                  label="Email"
-                  value={userProfile.email}
-                  icon={<EnvelopeIcon size={ICON_MD} className="text-text-muted" />}
-                />
-                {isEditingPhone ? (
-                  <div className="flex items-center gap-3 px-4 py-3 border-b border-border-subtle">
-                    <div className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center bg-surface-tertiary">
-                      <PhoneIcon size={ICON_MD} className="text-text-muted" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={editPhoneCode}
-                          onChange={(e) => setEditPhoneCode(e.target.value)}
-                          placeholder="+61"
-                          className="w-16 text-sm bg-surface-tertiary border border-border rounded-lg px-3 py-1.5 text-text-primary focus:outline-none focus:border-border-focus"
-                          autoFocus
-                        />
-                        <input
-                          type="tel"
-                          value={editPhoneNumber}
-                          onChange={(e) => setEditPhoneNumber(e.target.value)}
-                          placeholder="Phone number"
-                          className="flex-1 text-sm bg-surface-tertiary border border-border rounded-lg px-3 py-1.5 text-text-primary focus:outline-none focus:border-border-focus"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleSavePhone();
-                            if (e.key === 'Escape') setIsEditingPhone(false);
-                          }}
-                        />
-                      </div>
-                      <p className="text-xs text-text-muted mt-0.5">Phone</p>
-                    </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <button
-                        type="button"
-                        onClick={handleSavePhone}
-                        disabled={isUpdating}
-                        className="p-1.5 text-success-light hover:text-success-light transition-colors disabled:opacity-50"
-                      >
-                        <CheckIcon size={ICON_SM} weight="bold" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsEditingPhone(false)}
-                        disabled={isUpdating}
-                        className="p-1.5 text-text-muted hover:text-text-secondary transition-colors disabled:opacity-50"
-                      >
-                        <XIcon size={ICON_SM} weight="bold" />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleEditPhone}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-tertiary/50 transition-colors border-b border-border-subtle"
-                  >
-                    <div className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center bg-surface-tertiary">
-                      <PhoneIcon size={ICON_MD} className="text-text-muted" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-text-primary">{phoneDisplay || 'Not provided'}</p>
-                      <p className="text-xs text-text-muted mt-0.5">Phone</p>
-                    </div>
-                  </button>
-                )}
-                <InfoRow
-                  label="Date of Birth"
-                  value={formatDate(userProfile.dateOfBirth, 'Not available')}
-                  icon={<CalendarIcon size={ICON_MD} className="text-text-muted" />}
-                />
-                <InfoRow
-                  label="Address"
-                  value={userProfile.residentialAddress}
-                  icon={<MapPinIcon size={ICON_MD} className="text-text-muted" />}
-                />
-                <InfoRow
-                  label="Citizenship"
-                  value={userProfile.citizenshipCountryName}
-                  icon={<FlagIcon size={ICON_MD} className="text-text-muted" />}
-                  isLast
-                />
-              </Section>
-
-              <Section title="Account Status">
+    <Page>
+      <Panel>
+        {userProfile ? (
+          <>
+            <Section title="Personal Information">
+              <InfoRow
+                label="Full Name"
+                value={userProfile.fullName}
+                icon={<UserIcon size={ICON_MD} className="text-text-muted" />}
+              />
+              <InfoRow
+                label="Email"
+                value={userProfile.email}
+                icon={<EnvelopeIcon size={ICON_MD} className="text-text-muted" />}
+              />
+              {isEditingPhone ? (
                 <div className="flex items-center gap-3 px-4 py-3 border-b border-border-subtle">
                   <div className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center bg-surface-tertiary">
-                    <ShieldCheckIcon size={ICON_MD} className="text-text-muted" />
+                    <PhoneIcon size={ICON_MD} className="text-text-muted" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-text-primary">Identity Check</p>
-                    <p className="text-xs text-text-muted mt-0.5">Verify your identity</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={editPhoneCode}
+                        onChange={(e) => setEditPhoneCode(e.target.value)}
+                        placeholder="+61"
+                        className="w-16 text-sm bg-surface-tertiary border border-border rounded-lg px-3 py-1.5 text-text-primary focus:outline-none focus:border-border-focus"
+                        autoFocus
+                      />
+                      <input
+                        type="tel"
+                        value={editPhoneNumber}
+                        onChange={(e) => setEditPhoneNumber(e.target.value)}
+                        placeholder="Phone number"
+                        className="flex-1 text-sm bg-surface-tertiary border border-border rounded-lg px-3 py-1.5 text-text-primary focus:outline-none focus:border-border-focus"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSavePhone();
+                          if (e.key === 'Escape') setIsEditingPhone(false);
+                        }}
+                      />
+                    </div>
+                    <p className="text-xs text-text-muted mt-0.5">Phone</p>
                   </div>
-                  {verificationStatus.type === 'not_started' ? (
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     <button
                       type="button"
-                      onClick={() => setShowVerificationModal(true)}
-                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity ${getVerificationStatusBgColor(verificationStatus.type)} ${getVerificationStatusColor(verificationStatus.type)}`}
+                      onClick={handleSavePhone}
+                      disabled={isUpdating}
+                      className="p-1.5 text-success-light hover:text-success-light transition-colors disabled:opacity-50"
                     >
-                      {verificationStatus.label}
-                      <VerificationStatusIcon statusType={verificationStatus.type} />
+                      <CheckIcon size={ICON_SM} weight="bold" />
                     </button>
-                  ) : (
-                    <div
-                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getVerificationStatusBgColor(verificationStatus.type)} ${getVerificationStatusColor(verificationStatus.type)}`}
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingPhone(false)}
+                      disabled={isUpdating}
+                      className="p-1.5 text-text-muted hover:text-text-secondary transition-colors disabled:opacity-50"
                     >
-                      {verificationStatus.label}
-                      <VerificationStatusIcon statusType={verificationStatus.type} />
-                    </div>
-                  )}
-                </div>
-                <InfoRow
-                  label="Member Since"
-                  value={formatDate(userProfile.dateJoined, 'Not available')}
-                  icon={<CalendarIcon size={ICON_MD} className="text-text-muted" />}
-                />
-                <InfoRow
-                  label="Last Login"
-                  value={formatDateTime(userProfile.lastLogin)}
-                  icon={<ClockIcon size={ICON_MD} className="text-text-muted" />}
-                  isLast
-                />
-              </Section>
-
-              {documentsEnabled && (
-                <Section title="Supporting payslips">
-                  <div className="p-3">
-                    <DocumentsPanel />
+                      <XIcon size={ICON_SM} weight="bold" />
+                    </button>
                   </div>
-                </Section>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleEditPhone}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-tertiary/50 transition-colors border-b border-border-subtle"
+                >
+                  <div className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center bg-surface-tertiary">
+                    <PhoneIcon size={ICON_MD} className="text-text-muted" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-text-primary">{phoneDisplay || 'Not provided'}</p>
+                    <p className="text-xs text-text-muted mt-0.5">Phone</p>
+                  </div>
+                </button>
               )}
-            </>
-          ) : (
-            <p className="text-sm text-text-muted italic text-center py-6">No profile data available</p>
-          )}
-        </Panel>
-      </div>
+              <InfoRow
+                label="Date of Birth"
+                value={formatDate(userProfile.dateOfBirth, 'Not available')}
+                icon={<CalendarIcon size={ICON_MD} className="text-text-muted" />}
+              />
+              <InfoRow
+                label="Address"
+                value={userProfile.residentialAddress}
+                icon={<MapPinIcon size={ICON_MD} className="text-text-muted" />}
+              />
+              <InfoRow
+                label="Citizenship"
+                value={userProfile.citizenshipCountryName}
+                icon={<FlagIcon size={ICON_MD} className="text-text-muted" />}
+                isLast
+              />
+            </Section>
+
+            <Section title="Account Status">
+              <div className="flex items-center gap-3 px-4 py-3 border-b border-border-subtle">
+                <div className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center bg-surface-tertiary">
+                  <ShieldCheckIcon size={ICON_MD} className="text-text-muted" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-text-primary">Identity Check</p>
+                  <p className="text-xs text-text-muted mt-0.5">Verify your identity</p>
+                </div>
+                {verificationStatus.type === 'not_started' ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowVerificationModal(true)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity ${getVerificationStatusBgColor(verificationStatus.type)} ${getVerificationStatusColor(verificationStatus.type)}`}
+                  >
+                    {verificationStatus.label}
+                    <VerificationStatusIcon statusType={verificationStatus.type} />
+                  </button>
+                ) : (
+                  <div
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getVerificationStatusBgColor(verificationStatus.type)} ${getVerificationStatusColor(verificationStatus.type)}`}
+                  >
+                    {verificationStatus.label}
+                    <VerificationStatusIcon statusType={verificationStatus.type} />
+                  </div>
+                )}
+              </div>
+              <InfoRow
+                label="Member Since"
+                value={formatDate(userProfile.dateJoined, 'Not available')}
+                icon={<CalendarIcon size={ICON_MD} className="text-text-muted" />}
+              />
+              <InfoRow
+                label="Last Login"
+                value={formatDateTime(userProfile.lastLogin)}
+                icon={<ClockIcon size={ICON_MD} className="text-text-muted" />}
+                isLast
+              />
+            </Section>
+
+            {documentsEnabled && (
+              <Section title="Supporting payslips">
+                <div className="p-3">
+                  <DocumentsPanel />
+                </div>
+              </Section>
+            )}
+          </>
+        ) : (
+          <p className="text-sm text-text-muted italic text-center py-6">No profile data available</p>
+        )}
+      </Panel>
 
       <IdentityVerificationModal
         isOpen={showVerificationModal}
@@ -318,7 +317,7 @@ export function UserProfilePage() {
           refreshProfile();
         }}
       />
-    </>
+    </Page>
   );
 }
 
