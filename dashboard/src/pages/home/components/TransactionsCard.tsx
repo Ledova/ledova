@@ -1,6 +1,7 @@
 import { LinkIcon, ArrowUpIcon, ArrowDownIcon } from '@phosphor-icons/react';
 import {
   DESIGN_TOKENS,
+  DESTINATIONS,
   formatShortDate,
   formatTime,
   getBlockchainShortName,
@@ -39,7 +40,7 @@ export function TransactionsCard({
 
   if (isLoading) {
     return (
-      <Accordion title="Transactions" icon={<LinkIcon size={ICON_MD} />}>
+      <Accordion title={DESTINATIONS.transactions.title} icon={<LinkIcon size={ICON_MD} />}>
         <div className="flex items-center justify-center gap-2 py-6">
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand-mid"></div>
           <span className="text-sm text-text-muted">Loading transactions...</span>
@@ -50,7 +51,7 @@ export function TransactionsCard({
 
   if (transactions.length === 0) {
     return (
-      <Accordion title="Transactions" icon={<LinkIcon size={ICON_MD} />}>
+      <Accordion title={DESTINATIONS.transactions.title} icon={<LinkIcon size={ICON_MD} />}>
         <div className="flex items-center justify-center py-6">
           <span className="text-sm text-text-muted">No transactions found</span>
         </div>
@@ -59,7 +60,7 @@ export function TransactionsCard({
   }
 
   return (
-    <Accordion title="Transactions" icon={<LinkIcon size={ICON_MD} />}>
+    <Accordion title={DESTINATIONS.transactions.title} icon={<LinkIcon size={ICON_MD} />}>
       <div className="flex flex-col">
         <div className="max-h-[300px] overflow-y-auto space-y-1">
           {transactions.map((transaction, index) => {

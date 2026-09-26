@@ -54,7 +54,7 @@ with no question, an unknown kind, a window that closes before it opens, or a
 window that has already closed. Every member has one vote per share held on the
 record date, and the roll frozen at publication is the list of who may vote.
 Members with an account are told a resolution has been put to them and cast
-their own ballot on **Publications** in the dashboard or the app; see
+their own ballot on **Notices** in the dashboard, or **Publications** in the app; see
 [what the member sees](#what-the-member-sees-and-when).
 
 A resolution's page in **Admin → Shareholder publications → Publications**
@@ -206,7 +206,7 @@ notification naming the publication. A member the register could not name is on
 the roll, has no account, and is told nothing — reach them the way the company
 reaches any member it cannot address online.
 
-The notification opens **Publications** in the dashboard and in the app. There
+The notification opens **Notices** in the dashboard and **Publications** in the app. There
 the member sees, for each publication addressed to them: what was published, its
 title, the company and share class, the record date, and their own holding as it
 was frozen on that date — not their holding today. **Open the document** saves

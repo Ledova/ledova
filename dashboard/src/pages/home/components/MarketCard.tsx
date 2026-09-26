@@ -14,7 +14,7 @@ export function MarketCard({ assets, isLoading, onAssetPress }: MarketCardProps)
   const { formatDisplayCurrency } = useCurrency();
   if (isLoading) {
     return (
-      <Accordion title="Market" icon={<ChartBarIcon />}>
+      <Accordion title="Coin prices" icon={<ChartBarIcon />}>
         <div className="flex items-center justify-center gap-2 py-6">
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand-mid" />
           <span className="text-sm text-text-muted">Loading market data...</span>
@@ -25,7 +25,7 @@ export function MarketCard({ assets, isLoading, onAssetPress }: MarketCardProps)
 
   if (assets.length === 0) {
     return (
-      <Accordion title="Market" icon={<ChartBarIcon />}>
+      <Accordion title="Coin prices" icon={<ChartBarIcon />}>
         <div className="flex items-center justify-center py-6">
           <span className="text-sm text-text-muted">No assets available</span>
         </div>
@@ -34,7 +34,7 @@ export function MarketCard({ assets, isLoading, onAssetPress }: MarketCardProps)
   }
 
   return (
-    <Accordion title="Market" icon={<ChartBarIcon />}>
+    <Accordion title="Coin prices" icon={<ChartBarIcon />}>
       <div className="flex flex-col gap-1 px-2">
         {assets.map((asset) => {
           const currentPrice = asset.currentPrice ? parseFloat(asset.currentPrice) : null;

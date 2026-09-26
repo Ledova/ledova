@@ -38,7 +38,7 @@ export const SUBSCRIPTION_COPY = {
     'Open a company in the directory and, while its offering is open, commit to a number of shares. It stays a ' +
     'draft until you submit it, and nothing is payable until the operator accepts it and issues your reference.',
   DRAFT_HELP:
-    'A draft is not an application. Submitting it re-checks your investor classification and sends it to the ' +
+    'A draft is not sent to anyone. Submitting it re-checks your investor classification and sends it to the ' +
     'operator, who accepts it and issues the exact amount and reference to pay.',
   AWAITING_PAYMENT_HELP:
     'Pay the exact amount and quote the reference exactly. The operator matches the payment by that reference, ' +
