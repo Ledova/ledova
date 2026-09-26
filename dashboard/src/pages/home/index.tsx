@@ -6,7 +6,7 @@ import { WalletAllocationCard } from './components/WalletAllocationCard';
 import { MarketCard } from './components/MarketCard';
 import { TransactionsCard } from './components/TransactionsCard';
 import { PublishedCard } from './components/PublishedCard';
-import { AssetDetailModal } from '../asset-prices/components/AssetDetailModal';
+import { AssetDetailModal } from './components/AssetDetailModal';
 import { useHome } from './useHome';
 
 export function HomePage() {
@@ -23,7 +23,6 @@ export function HomePage() {
     selectedAsset,
     setSelectedAssetUuid,
     marketAssets,
-    favouriteAssetUuids,
     isMarketAssetsLoading,
   } = useHome();
 
@@ -78,12 +77,7 @@ export function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
-            <MarketCard
-              assets={marketAssets}
-              favouriteAssetUuids={favouriteAssetUuids}
-              isLoading={isMarketAssetsLoading}
-              onAssetPress={handleMarketAssetPress}
-            />
+            <MarketCard assets={marketAssets} isLoading={isMarketAssetsLoading} onAssetPress={handleMarketAssetPress} />
             <TransactionsCard
               transactions={transactions.list}
               totalCount={transactions.totalCount}

@@ -1,9 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   getAssetByUuid,
   getAssets,
-  getFavouriteAssets,
   BLOCKCHAIN,
   CACHE_TIMING,
   calculateWalletTotals,
@@ -42,19 +41,6 @@ export function useHome() {
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
   });
 
-  const favouritesQuery = useQuery({
-    queryKey: ['favouriteAssets'],
-    queryFn: () => getFavouriteAssets(apiClient),
-    enabled: !!userAccount?.uuid,
-    staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
-    gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
-  });
-
-  const favouriteAssetUuids = useMemo(
-    () => new Set((favouritesQuery.data?.data?.results ?? []).map((f) => f.asset.uuid)),
-    [favouritesQuery.data],
-  );
-
   return {
     isLoading: preferencesLoading || performance.isLoading,
     isError: performance.isError,
@@ -79,7 +65,6 @@ export function useHome() {
     },
     transactions,
     marketAssets: marketAssetsQuery.data?.data?.results ?? [],
-    favouriteAssetUuids,
     isMarketAssetsLoading: marketAssetsQuery.isLoading,
   };
 }

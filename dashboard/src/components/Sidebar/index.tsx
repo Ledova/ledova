@@ -5,7 +5,6 @@ import {
   WalletIcon,
   ArrowsClockwiseIcon,
   LinkIcon,
-  ChartBarIcon,
   UserIcon,
   GearIcon,
   QuestionIcon,
@@ -71,7 +70,6 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
     if (isInvestor) {
       items.push(
         { label: 'Transactions', path: '/transactions', icon: LinkIcon },
-        { label: 'Market', path: '/asset-prices', icon: ChartBarIcon },
         { label: 'Directory', path: '/directory', icon: StorefrontIcon },
         { label: 'Subscriptions', path: '/subscriptions', icon: HandCoinsIcon },
         { label: 'Eligibility', path: '/investor-eligibility', icon: ShieldCheckIcon },

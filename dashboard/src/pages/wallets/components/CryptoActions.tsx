@@ -14,7 +14,7 @@ export function CryptoActions() {
 
   return (
     <div className="flex flex-wrap justify-end gap-2">
-      <button type="button" onClick={() => openBuyCrypto()} className={ACTION_CLASS}>
+      <button type="button" onClick={openBuyCrypto} className={ACTION_CLASS}>
         <CurrencyCircleDollarIcon size={ICON_SM} />
         <span>Buy crypto</span>
       </button>

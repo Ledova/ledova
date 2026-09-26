@@ -19,9 +19,8 @@ import { WalletVerificationModal } from './components/WalletVerificationModal';
 import { DeriveAddressModal } from './components/DeriveAddressModal';
 import { AddWalletModal } from './components/AddWalletModal';
 import { CryptoActions } from './components/CryptoActions';
-import { SendTransferProvider } from '@hooks/useSendTransfer';
 
-function Wallets() {
+export function WalletsPage() {
   const { formatDisplayCurrency } = useCurrency();
   const {
     wallets,
@@ -244,14 +243,6 @@ function Wallets() {
         onApply={handleApply}
       />
     </main>
-  );
-}
-
-export function WalletsPage() {
-  return (
-    <SendTransferProvider>
-      <Wallets />
-    </SendTransferProvider>
   );
 }
 

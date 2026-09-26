@@ -18,7 +18,6 @@ export const DESTINATIONS = {
     subtitle: 'View your transaction history',
     audience: 'everyone',
   },
-  assetPrices: { path: '/asset-prices', title: 'Market', subtitle: 'Browse asset prices', audience: 'investing' },
   trading: { path: '/trading', title: 'Trading', subtitle: 'Buy and sell assets', audience: 'investing' },
   directory: { path: '/directory', title: 'Directory', audience: 'investing' },
   directoryDetail: { path: '/directory/:uuid', title: 'Directory', audience: 'investing' },

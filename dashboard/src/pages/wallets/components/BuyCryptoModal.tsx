@@ -9,12 +9,14 @@ import {
   ClockIcon,
   SpinnerGapIcon,
 } from '@phosphor-icons/react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery } from '@tanstack/react-query';
 import {
   BUYABLE_ASSETS,
+  CACHE_TIMING,
   WALLET_SIGNING_PREFERENCE,
   getWalletSigningPreferenceLabel,
   DESIGN_TOKENS,
+  getAssets,
   getWallets,
   getOnRampWidgetUrl,
   formatWalletAddressShort,
@@ -44,20 +46,24 @@ interface BuyCryptoModalProps {
   onClose: () => void;
   onNavigateToWidget: (url: string) => void;
   userAccountUuid?: string;
-  initialAsset?: string;
 }
 
-export function BuyCryptoModal({
-  isOpen,
-  onClose,
-  onNavigateToWidget,
-  userAccountUuid,
-  initialAsset,
-}: BuyCryptoModalProps) {
-  const { formatDisplayCurrency } = useCurrency();
-  const [chosenAsset, setChosenAsset] = useState<BuyableAssetConfig | null>(null);
-  const selectedAsset =
-    chosenAsset ?? (isOpen && initialAsset ? (BUYABLE_ASSETS.find((a) => a.symbol === initialAsset) ?? null) : null);
+export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccountUuid }: BuyCryptoModalProps) {
+  const { exchangeRate, formatDisplayCurrency } = useCurrency();
+  const [selectedAsset, setSelectedAsset] = useState<BuyableAssetConfig | null>(null);
+
+  const priceQueries = useQueries({
+    queries: BUYABLE_ASSETS.map((asset) => ({
+      queryKey: ['buyable-asset-price', asset.symbol],
+      queryFn: () => getAssets(apiClient, { symbol: asset.symbol, is_active: true }),
+      enabled: isOpen,
+      staleTime: CACHE_TIMING.SHORT_STALE_TIME,
+    })),
+  });
+  const currentPriceOf = (index: number) => {
+    const price = parseFloat(priceQueries[index]?.data?.data.results[0]?.currentPrice ?? '');
+    return Number.isFinite(price) && exchangeRate ? formatDisplayCurrency(price) : null;
+  };
 
   const walletsQuery = useQuery({
     queryKey: [
@@ -99,7 +105,7 @@ export function BuyCryptoModal({
   }, [selectedAsset, isLoadingWallets, matchingWallets, widgetMutation]);
 
   const resetAndClose = useCallback(() => {
-    setChosenAsset(null);
+    setSelectedAsset(null);
     widgetMutation.reset();
   }, [widgetMutation]);
 
@@ -108,16 +114,8 @@ export function BuyCryptoModal({
     onClose();
   }, [resetAndClose, onClose]);
 
-  const handleBack = useCallback(() => {
-    if (initialAsset) {
-      handleClose();
-    } else {
-      resetAndClose();
-    }
-  }, [initialAsset, handleClose, resetAndClose]);
-
   const handleSelectAsset = (asset: BuyableAssetConfig) => {
-    setChosenAsset(asset);
+    setSelectedAsset(asset);
   };
 
   const handleSelectWallet = (wallet: Wallet) => {
@@ -135,7 +133,7 @@ export function BuyCryptoModal({
       showFooter
       showCancelButton
       cancelLabel={isOnAssetStep ? 'Cancel' : 'Back'}
-      onCancel={isOnAssetStep ? handleClose : handleBack}
+      onCancel={isOnAssetStep ? handleClose : resetAndClose}
     >
       {isOnAssetStep && (
         <>
@@ -145,8 +143,9 @@ export function BuyCryptoModal({
           </div>
 
           <div className="flex flex-col gap-2">
-            {BUYABLE_ASSETS.map((asset) => {
+            {BUYABLE_ASSETS.map((asset, index) => {
               const isAssetProcessing = isProcessingAsset && selectedAsset?.symbol === asset.symbol;
+              const currentPrice = currentPriceOf(index);
 
               return (
                 <button
@@ -162,7 +161,11 @@ export function BuyCryptoModal({
                     </div>
                     <span className="text-base font-medium text-text-primary">{asset.name}</span>
                   </div>
-                  {isAssetProcessing && <SpinnerGapIcon size={ICON_SM} className="animate-spin text-brand-mid" />}
+                  {isAssetProcessing ? (
+                    <SpinnerGapIcon size={ICON_SM} className="animate-spin text-brand-mid" />
+                  ) : (
+                    currentPrice && <span className="text-sm tabular-nums text-text-muted">{currentPrice}</span>
+                  )}
                 </button>
               );
             })}
