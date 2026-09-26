@@ -5,42 +5,26 @@ export type Audience = 'everyone' | 'investing' | 'company';
 export interface Destination {
   path: string;
   title: string;
-  subtitle?: string;
   audience: Audience;
 }
 
 export const DESTINATIONS = {
-  home: { path: '/home', title: 'Home', subtitle: 'Overview of your portfolio', audience: 'everyone' },
-  wallets: { path: '/wallets', title: 'Wallets', subtitle: 'Manage your digital asset wallets', audience: 'everyone' },
-  transactions: {
-    path: '/transactions',
-    title: 'Transactions',
-    subtitle: 'View your transaction history',
-    audience: 'everyone',
-  },
-  trading: { path: '/trading', title: 'Trading', subtitle: 'Buy and sell assets', audience: 'investing' },
+  home: { path: '/home', title: 'Home', audience: 'everyone' },
+  wallets: { path: '/wallets', title: 'Wallets', audience: 'everyone' },
+  transactions: { path: '/transactions', title: 'Transactions', audience: 'everyone' },
+  trading: { path: '/trading', title: 'Trading', audience: 'investing' },
   directory: { path: '/directory', title: 'Directory', audience: 'investing' },
   directoryDetail: { path: '/directory/:uuid', title: 'Directory', audience: 'investing' },
   subscriptions: { path: '/subscriptions', title: 'Subscriptions', audience: 'investing' },
   subscriptionDetail: { path: '/subscriptions/:uuid', title: 'Subscription', audience: 'investing' },
-  investorEligibility: {
-    path: '/investor-eligibility',
-    title: 'Eligibility',
-    subtitle: 'Evidence your wholesale investor status',
-    audience: 'investing',
-  },
+  investorEligibility: { path: '/investor-eligibility', title: 'Eligibility', audience: 'investing' },
   publications: { path: '/publications', title: 'Publications', audience: 'everyone' },
   dividends: { path: '/dividends', title: 'Dividends', audience: 'everyone' },
-  company: { path: '/company', title: 'Company', subtitle: 'Manage your company profile', audience: 'company' },
-  companyListing: {
-    path: '/company/listing',
-    title: 'Listing Application',
-    subtitle: 'Upload documents and submit for review',
-    audience: 'company',
-  },
+  company: { path: '/company', title: 'Company', audience: 'company' },
+  companyListing: { path: '/company/listing', title: 'Listing Application', audience: 'company' },
   companyOffering: { path: '/company/offering', title: 'Offering', audience: 'company' },
-  userProfile: { path: '/user-profile', title: 'Profile', subtitle: 'Manage your account', audience: 'everyone' },
-  settings: { path: '/settings', title: 'Settings', subtitle: 'Configure your preferences', audience: 'everyone' },
+  userProfile: { path: '/user-profile', title: 'Profile', audience: 'everyone' },
+  settings: { path: '/settings', title: 'Settings', audience: 'everyone' },
 } as const satisfies Record<string, Destination>;
 
 export type DestinationKey = keyof typeof DESTINATIONS;

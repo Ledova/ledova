@@ -19,6 +19,7 @@ interface OfferingFormProps {
   tokens: Pick<CompanyShareTokenListItem, 'uuid' | 'name' | 'symbol'>[];
   busy: boolean;
   settlementAssets: OperatorSettlementAsset[];
+  operatorName: string;
   onCreate: (input: OfferingInput) => void;
   editing?: Offering;
   onUpdate?: (input: OfferingInput) => void;
@@ -46,6 +47,7 @@ export function OfferingForm({
   tokens,
   busy,
   settlementAssets,
+  operatorName,
   onCreate,
   editing,
   onUpdate,
@@ -230,7 +232,7 @@ export function OfferingForm({
 
           {settlementAssets.length === 0 ? (
             <p className="text-sm text-text-muted">
-              The operator has not configured a settlement asset, so this offering can take bank transfer only.
+              This offering can take bank transfer only: {operatorName} has not configured a settlement asset.
             </p>
           ) : (
             settlementAssets.map((asset) => (

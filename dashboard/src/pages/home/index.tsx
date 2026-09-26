@@ -8,6 +8,7 @@ import { TransactionsCard } from './components/TransactionsCard';
 import { PublishedCard } from './components/PublishedCard';
 import { AssetDetailModal } from './components/AssetDetailModal';
 import { useHome } from './useHome';
+import { Page } from '@components/Page';
 
 export function HomePage() {
   const {
@@ -44,54 +45,50 @@ export function HomePage() {
   };
 
   return (
-    <main className="text-text-primary">
-      <div className="w-full max-w-6xl mx-auto px-4 pt-6 pb-16 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-4 sm:gap-5 md:gap-6">
-          <PublishedCard />
+    <Page>
+      <PublishedCard />
 
-          <PerformanceSection
-            snapshotData={performanceChartData}
-            timeRanges={timeRanges}
-            selectedTimeRange={performanceTimeRange}
-            onTimeRangeChange={setPerformanceTimeRange}
-            isLoading={isLoading}
-            error={isError}
-          />
+      <PerformanceSection
+        snapshotData={performanceChartData}
+        timeRanges={timeRanges}
+        selectedTimeRange={performanceTimeRange}
+        onTimeRangeChange={setPerformanceTimeRange}
+        isLoading={isLoading}
+        error={isError}
+      />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
-            <AssetAllocationCard
-              assetAllocation={holdings.assetAllocation}
-              totalValue={holdings.summary.totalValue}
-              summary={holdings.summary}
-              isLoading={holdings.isLoading}
-              hasError={holdings.hasError}
-              onAssetClick={handleAssetClick}
-            />
-            <WalletAllocationCard
-              totals={wallets.totals}
-              ethWalletsCount={wallets.ethWalletsCount}
-              btcWalletsCount={wallets.btcWalletsCount}
-              baseWalletsCount={wallets.baseWalletsCount}
-              isLoading={wallets.isLoading}
-            />
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
+        <AssetAllocationCard
+          assetAllocation={holdings.assetAllocation}
+          totalValue={holdings.summary.totalValue}
+          summary={holdings.summary}
+          isLoading={holdings.isLoading}
+          hasError={holdings.hasError}
+          onAssetClick={handleAssetClick}
+        />
+        <WalletAllocationCard
+          totals={wallets.totals}
+          ethWalletsCount={wallets.ethWalletsCount}
+          btcWalletsCount={wallets.btcWalletsCount}
+          baseWalletsCount={wallets.baseWalletsCount}
+          isLoading={wallets.isLoading}
+        />
+      </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
-            <MarketCard assets={marketAssets} isLoading={isMarketAssetsLoading} onAssetPress={handleMarketAssetPress} />
-            <TransactionsCard
-              transactions={transactions.list}
-              totalCount={transactions.totalCount}
-              isLoading={transactions.isLoading}
-              isLoadingMore={transactions.isLoadingMore}
-              hasNextPage={transactions.hasNextPage}
-              onLoadMore={transactions.loadMore}
-            />
-          </div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
+        <MarketCard assets={marketAssets} isLoading={isMarketAssetsLoading} onAssetPress={handleMarketAssetPress} />
+        <TransactionsCard
+          transactions={transactions.list}
+          totalCount={transactions.totalCount}
+          isLoading={transactions.isLoading}
+          isLoadingMore={transactions.isLoadingMore}
+          hasNextPage={transactions.hasNextPage}
+          onLoadMore={transactions.loadMore}
+        />
       </div>
 
       <AssetDetailModal isOpen={isAssetModalOpen} asset={selectedAsset} onClose={handleCloseAssetModal} />
-    </main>
+    </Page>
   );
 }
 

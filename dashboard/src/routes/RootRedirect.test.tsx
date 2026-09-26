@@ -4,10 +4,12 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useAuth, useRole } from '@hooks';
+import { useAuth } from '@hooks/useAuth';
+import { useRole } from '@hooks/useRole';
 import { RootRedirect } from './RootRedirect';
 
-vi.mock('@hooks', () => ({ useAuth: vi.fn(), useRole: vi.fn() }));
+vi.mock('@hooks/useAuth', () => ({ useAuth: vi.fn() }));
+vi.mock('@hooks/useRole', () => ({ useRole: vi.fn() }));
 
 const useAuthMock = vi.mocked(useAuth);
 const useRoleMock = vi.mocked(useRole);

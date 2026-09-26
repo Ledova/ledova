@@ -32,7 +32,15 @@ describe('OfferingForm settlement assets', () => {
   afterEach(cleanup);
 
   it('offers the operator settlement assets the issuer may accept', () => {
-    render(<OfferingForm tokens={[TOKEN]} busy={false} settlementAssets={[AUDY, USDC]} onCreate={vi.fn()} />);
+    render(
+      <OfferingForm
+        tokens={[TOKEN]}
+        busy={false}
+        settlementAssets={[AUDY, USDC]}
+        operatorName="Example Operator"
+        onCreate={vi.fn()}
+      />,
+    );
 
     expect(screen.getByLabelText('AUDY')).toBeDefined();
     expect(screen.getByLabelText('USDC')).toBeDefined();
@@ -40,7 +48,15 @@ describe('OfferingForm settlement assets', () => {
 
   it('carries the chosen settlement assets in the payload', () => {
     const onCreate = vi.fn();
-    render(<OfferingForm tokens={[TOKEN]} busy={false} settlementAssets={[AUDY, USDC]} onCreate={onCreate} />);
+    render(
+      <OfferingForm
+        tokens={[TOKEN]}
+        busy={false}
+        settlementAssets={[AUDY, USDC]}
+        operatorName="Example Operator"
+        onCreate={onCreate}
+      />,
+    );
     fillTheRequiredFields();
 
     fireEvent.click(screen.getByLabelText('USDC'));
@@ -51,7 +67,15 @@ describe('OfferingForm settlement assets', () => {
 
   it('sends no settlement assets when the issuer chooses none', () => {
     const onCreate = vi.fn();
-    render(<OfferingForm tokens={[TOKEN]} busy={false} settlementAssets={[AUDY]} onCreate={onCreate} />);
+    render(
+      <OfferingForm
+        tokens={[TOKEN]}
+        busy={false}
+        settlementAssets={[AUDY]}
+        operatorName="Example Operator"
+        onCreate={onCreate}
+      />,
+    );
     fillTheRequiredFields();
 
     fireEvent.click(screen.getByText('Create draft offering'));
@@ -60,20 +84,44 @@ describe('OfferingForm settlement assets', () => {
   });
 
   it('says why there is nothing to choose when the operator supports no stablecoin', () => {
-    render(<OfferingForm tokens={[TOKEN]} busy={false} settlementAssets={[]} onCreate={vi.fn()} />);
+    render(
+      <OfferingForm
+        tokens={[TOKEN]}
+        busy={false}
+        settlementAssets={[]}
+        operatorName="Example Operator"
+        onCreate={vi.fn()}
+      />,
+    );
 
-    expect(screen.getByText(/operator has not configured a settlement asset/i)).toBeDefined();
+    expect(screen.getByText(/Example Operator has not configured a settlement asset/)).toBeDefined();
   });
 
   it('still offers bank transfer when there is no settlement asset', () => {
-    render(<OfferingForm tokens={[TOKEN]} busy={false} settlementAssets={[]} onCreate={vi.fn()} />);
+    render(
+      <OfferingForm
+        tokens={[TOKEN]}
+        busy={false}
+        settlementAssets={[]}
+        operatorName="Example Operator"
+        onCreate={vi.fn()}
+      />,
+    );
 
     expect(screen.getByLabelText('Accept bank transfer')).toBeDefined();
   });
 
   it('refuses an offering with no rail at all', () => {
     const onCreate = vi.fn();
-    render(<OfferingForm tokens={[TOKEN]} busy={false} settlementAssets={[AUDY]} onCreate={onCreate} />);
+    render(
+      <OfferingForm
+        tokens={[TOKEN]}
+        busy={false}
+        settlementAssets={[AUDY]}
+        operatorName="Example Operator"
+        onCreate={onCreate}
+      />,
+    );
     fillTheRequiredFields();
 
     fireEvent.click(screen.getByLabelText('Accept bank transfer'));

@@ -422,6 +422,14 @@ This records the target; the steps on #732 build it.
   everywhere, with no display-currency choice.
 - **One look.** Paper only, with no theme switch, and no test-network or
   synthetic-data notices in the product.
+- **Titles in the page.** For page titles the owner chose "Title in the page":
+  "As shown: the title and the page's actions sit in one row on the content's
+  own edge, at every width. The desktop header bar goes, and on long pages the
+  title scrolls away." For the signed-in footer the owner chose "Remove it":
+  "The operator stays named where it acts (listing review, Offering, Directory)
+  and in the mobile app's Help. Public pages keep their footer, and no legal
+  position needs it on every page." (Owner decisions, 26 September 2026, on
+  [#732](https://github.com/Ledova/ledova/issues/732#issuecomment-5845666218).)
 - **Mobile follows the web.** The mobile app takes paper and the new structure
   together, after the web.
 

@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useState, type ReactElement } from 'react';
+import { useCallback, useState, type ReactElement } from 'react';
 import { CircleIcon, CurrencyBtcIcon, CurrencyEthIcon, FunnelIcon } from '@phosphor-icons/react';
 import { BLOCKCHAIN, WALLET_VERIFICATION_STATUS, DESIGN_TOKENS, formatCryptoBalance } from '@ledova/shared';
 
 const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
-import { useHeaderActions } from '@hooks/useHeaderActions';
 import type { Wallet as WalletType, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
 import { useCurrency } from '@hooks/useCurrency';
+import { Page, PageAction } from '@components/Page';
 import { Panel } from '@components/Panel';
 import { WalletList, ChainEmptyState } from '@components/Wallet';
 import { useWallets } from './hooks/useWallets';
@@ -50,26 +50,6 @@ export function WalletsPage() {
 
   const { sortedWallets, sortOption, isFiltered, showSortModal, setShowSortModal, handleApply } =
     useWalletSort(wallets);
-
-  const { setActions } = useHeaderActions();
-
-  useEffect(() => {
-    setActions(
-      <button
-        type="button"
-        onClick={() => setShowSortModal(true)}
-        className={`p-1.5 rounded-lg transition-colors ${
-          isFiltered
-            ? 'text-brand-mid hover:text-brand-light'
-            : 'text-text-muted hover:text-text-primary hover:bg-surface-tertiary'
-        }`}
-        title="Filter wallets"
-      >
-        <FunnelIcon size={ICON_SM} weight={isFiltered ? 'fill' : 'regular'} />
-      </button>,
-    );
-    return () => setActions(null);
-  }, [setActions, setShowSortModal, isFiltered]);
 
   const ethWallets = sortedWallets.filter((w) => w.chain === BLOCKCHAIN.ETHEREUM);
   const btcWallets = sortedWallets.filter((w) => w.chain === BLOCKCHAIN.BITCOIN);
@@ -173,29 +153,27 @@ export function WalletsPage() {
   };
 
   if (isLoading) {
-    return (
-      <main className="text-text-primary">
-        <div className="w-full max-w-6xl mx-auto px-4 pt-6 pb-16 sm:px-6 lg:px-8">
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-mid"></div>
-            <p className="text-sm text-text-muted">Loading wallets...</p>
-          </div>
-        </div>
-      </main>
-    );
+    return <Page loading />;
   }
 
   return (
-    <main className="text-text-primary">
-      <div className="w-full max-w-6xl mx-auto px-4 pt-6 pb-16 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-4 sm:gap-5 md:gap-6">
+    <Page
+      actions={
+        <>
+          <PageAction
+            icon={<FunnelIcon size={ICON_SM} weight={isFiltered ? 'fill' : 'regular'} />}
+            label="Filter"
+            onClick={() => setShowSortModal(true)}
+            active={isFiltered}
+          />
           <CryptoActions />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 md:gap-6 items-start">
-            {renderChainPanel(BLOCKCHAIN.ETHEREUM, 'Ethereum', <CurrencyEthIcon size={ICON_MD} />, ethWallets)}
-            {renderChainPanel(BLOCKCHAIN.BITCOIN, 'Bitcoin', <CurrencyBtcIcon size={ICON_MD} />, btcWallets)}
-            {renderChainPanel(BLOCKCHAIN.BASE, 'Base', <CircleIcon size={ICON_MD} weight="fill" />, baseWallets)}
-          </div>
-        </div>
+        </>
+      }
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 md:gap-6 items-start">
+        {renderChainPanel(BLOCKCHAIN.ETHEREUM, 'Ethereum', <CurrencyEthIcon size={ICON_MD} />, ethWallets)}
+        {renderChainPanel(BLOCKCHAIN.BITCOIN, 'Bitcoin', <CurrencyBtcIcon size={ICON_MD} />, btcWallets)}
+        {renderChainPanel(BLOCKCHAIN.BASE, 'Base', <CircleIcon size={ICON_MD} weight="fill" />, baseWallets)}
       </div>
 
       <AddWalletModal
@@ -242,7 +220,7 @@ export function WalletsPage() {
         onClose={() => setShowSortModal(false)}
         onApply={handleApply}
       />
-    </main>
+    </Page>
   );
 }
 
