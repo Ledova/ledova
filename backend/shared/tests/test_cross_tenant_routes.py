@@ -217,7 +217,7 @@ ROUTES = (
     Route("put", "/api/financial-profiles/{financial_profile}/", {"occupation": "Changed"}),
     Route("patch", "/api/financial-profiles/{financial_profile}/", {"occupation": "Changed"}),
     Route("get", "/api/user-accounts/{account}/"),
-    Route("patch", "/api/user-accounts/{account}/", {"role": "both"}),
+    Route("patch", "/api/user-accounts/{account}/", {"role": "company"}),
     Route("get", "/api/user-preferences/{preferences}/"),
     Route("put", "/api/user-preferences/{preferences}/", {"theme": "light"}),
     Route("patch", "/api/user-preferences/{preferences}/", {"theme": "light"}),
