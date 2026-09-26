@@ -77,19 +77,22 @@ class NotificationScopingTest(APITestCase):
         self.assertEqual(list_response.json()["uuid"], str(own.uuid))
         self.assertEqual(NotificationPreferences.objects.count(), 2)
 
-        foreign_patch = self.client.patch(f"{PREFERENCES}{self.bob_preferences.uuid}/", {"marketing": True})
+        foreign_patch = self.client.patch(
+            f"{PREFERENCES}{self.bob_preferences.uuid}/", {"transactionAlerts": False}, format="json"
+        )
         self.assertEqual(foreign_patch.status_code, 404)
         self.assertEqual(self.client.get(f"{PREFERENCES}{self.bob_preferences.uuid}/").status_code, 404)
         self.bob_preferences.refresh_from_db()
-        self.assertFalse(self.bob_preferences.marketing)
+        self.assertTrue(self.bob_preferences.transaction_alerts)
 
-        own_patch = self.client.patch(f"{PREFERENCES}{own.uuid}/", {"marketing": True}, format="json")
+        own_patch = self.client.patch(f"{PREFERENCES}{own.uuid}/", {"transactionAlerts": False}, format="json")
         self.assertEqual(own_patch.status_code, 200)
-        own_post = self.client.post(PREFERENCES, {"priceAlerts": True}, format="json")
+        own.refresh_from_db()
+        self.assertFalse(own.transaction_alerts)
+        own_post = self.client.post(PREFERENCES, {"transactionAlerts": True}, format="json")
         self.assertEqual(own_post.status_code, 200)
         own.refresh_from_db()
-        self.assertTrue(own.marketing)
-        self.assertTrue(own.price_alerts)
+        self.assertTrue(own.transaction_alerts)
         self.assertEqual(NotificationPreferences.objects.count(), 2)
 
     def test_device_token_manager_is_owner_scoped(self):

@@ -8,8 +8,6 @@ from users.querysets.notification import NotificationQuerySet
 
 class NotificationType(models.TextChoices):
     TRANSACTION = "transaction", "Transaction"
-    PRICE = "price", "Price"
-    MARKETING = "marketing", "Marketing"
     GENERAL = "general", "General"
     SYSTEM = "system", "System"
 

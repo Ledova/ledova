@@ -2589,14 +2589,6 @@
         ],
         "type": "object"
       },
-      "DisplayCurrencyEnum": {
-        "description": "* `AUD` - Australian Dollar\n* `USD` - US Dollar",
-        "enum": [
-          "AUD",
-          "USD"
-        ],
-        "type": "string"
-      },
       "Document": {
         "properties": {
           "attachedAt": {
@@ -4388,7 +4380,7 @@
                 "$ref": "#/components/schemas/NotificationTypeEnum"
               }
             ],
-            "description": "Category of the notification\n\n* `transaction` - Transaction\n* `price` - Price\n* `marketing` - Marketing\n* `general` - General\n* `system` - System",
+            "description": "Category of the notification\n\n* `transaction` - Transaction\n* `general` - General\n* `system` - System",
             "readOnly": true
           },
           "readAt": {
@@ -4434,14 +4426,6 @@
             "readOnly": true,
             "type": "string"
           },
-          "marketing": {
-            "description": "Marketing and promotional notifications",
-            "type": "boolean"
-          },
-          "priceAlerts": {
-            "description": "Notifications for price threshold alerts",
-            "type": "boolean"
-          },
           "transactionAlerts": {
             "description": "Notifications for transaction status changes",
             "type": "boolean"
@@ -4474,14 +4458,6 @@
       },
       "NotificationPreferencesRequest": {
         "properties": {
-          "marketing": {
-            "description": "Marketing and promotional notifications",
-            "type": "boolean"
-          },
-          "priceAlerts": {
-            "description": "Notifications for price threshold alerts",
-            "type": "boolean"
-          },
           "transactionAlerts": {
             "description": "Notifications for transaction status changes",
             "type": "boolean"
@@ -4503,11 +4479,9 @@
         "type": "object"
       },
       "NotificationTypeEnum": {
-        "description": "* `transaction` - Transaction\n* `price` - Price\n* `marketing` - Marketing\n* `general` - General\n* `system` - System",
+        "description": "* `transaction` - Transaction\n* `general` - General\n* `system` - System",
         "enum": [
           "transaction",
-          "price",
-          "marketing",
           "general",
           "system"
         ],
@@ -6963,14 +6937,6 @@
       },
       "PatchedNotificationPreferencesRequest": {
         "properties": {
-          "marketing": {
-            "description": "Marketing and promotional notifications",
-            "type": "boolean"
-          },
-          "priceAlerts": {
-            "description": "Notifications for price threshold alerts",
-            "type": "boolean"
-          },
           "transactionAlerts": {
             "description": "Notifications for transaction status changes",
             "type": "boolean"
@@ -7093,14 +7059,6 @@
       },
       "PatchedUserPreferencesRequest": {
         "properties": {
-          "displayCurrency": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DisplayCurrencyEnum"
-              }
-            ],
-            "description": "Currency used for displaying prices and values\n\n* `AUD` - Australian Dollar\n* `USD` - US Dollar"
-          },
           "selectedPortfolio": {
             "description": "Unique identifier (primary key)",
             "format": "uuid",
@@ -12649,14 +12607,6 @@
       },
       "UserPreferences": {
         "properties": {
-          "displayCurrency": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DisplayCurrencyEnum"
-              }
-            ],
-            "description": "Currency used for displaying prices and values\n\n* `AUD` - Australian Dollar\n* `USD` - US Dollar"
-          },
           "selectedPortfolio": {
             "allOf": [
               {
@@ -12700,14 +12650,6 @@
       },
       "UserPreferencesRequest": {
         "properties": {
-          "displayCurrency": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DisplayCurrencyEnum"
-              }
-            ],
-            "description": "Currency used for displaying prices and values\n\n* `AUD` - Australian Dollar\n* `USD` - US Dollar"
-          },
           "selectedPortfolio": {
             "description": "Unique identifier (primary key)",
             "format": "uuid",

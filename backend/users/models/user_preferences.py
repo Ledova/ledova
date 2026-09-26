@@ -22,14 +22,6 @@ class UserPreferences(BaseModel):
         default="dark",
     )
 
-    CURRENCY_CHOICES = [("AUD", "Australian Dollar"), ("USD", "US Dollar")]
-    display_currency = models.CharField(
-        max_length=8,
-        choices=CURRENCY_CHOICES,
-        default="AUD",
-        help_text="Currency used for displaying prices and values",
-    )
-
     class Meta:
         verbose_name_plural = "User Preferences"
 

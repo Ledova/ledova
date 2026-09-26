@@ -9,26 +9,14 @@ import {
   EyeIcon,
   EyeSlashIcon,
   CircleNotchIcon,
-  CurrencyCircleDollarIcon,
 } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router-dom';
-import {
-  DESIGN_TOKENS,
-  deleteAccount,
-  changePassword,
-  exportAccountData,
-  getCurrentUserPreferences,
-  upsertCurrentUserPreferences,
-  CACHE_TIMING,
-} from '@ledova/shared';
+import { DESIGN_TOKENS, deleteAccount, changePassword, exportAccountData } from '@ledova/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useQuery } from '@tanstack/react-query';
-import type { DisplayCurrency } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { Panel } from '@components/Panel';
 import { Modal } from '@components/Modal';
 import { Page } from '@components/Page';
-import { useAuth } from '@hooks/useAuth';
 import { useNotificationPreferences } from './useNotificationPreferences';
 
 const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
@@ -131,28 +119,10 @@ function ToggleRow({ label, description, value, onToggle, disabled, isLast }: To
 export function SettingsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isAuthenticated } = useAuth();
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-
-  const preferencesQuery = useQuery({
-    queryKey: ['userPreferences'],
-    queryFn: () => getCurrentUserPreferences(apiClient),
-    enabled: isAuthenticated,
-    staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
-    gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
-  });
-  const displayCurrency: DisplayCurrency = preferencesQuery.data?.data?.displayCurrency ?? 'AUD';
-
-  const currencyMutation = useMutation({
-    mutationFn: (currency: DisplayCurrency) => upsertCurrentUserPreferences(apiClient, { displayCurrency: currency }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userPreferences'] });
-      queryClient.invalidateQueries({ queryKey: ['exchangeRate'] });
-    },
-  });
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -164,13 +134,9 @@ export function SettingsPage() {
 
   const {
     transactionAlerts,
-    priceAlerts,
-    marketing,
     isLoading: notificationsLoading,
     isUpdating,
     toggleTransactionAlerts,
-    togglePriceAlerts,
-    toggleMarketing,
   } = useNotificationPreferences();
 
   const deleteAccountMutation = useMutation({
@@ -275,49 +241,8 @@ export function SettingsPage() {
             value={transactionAlerts}
             onToggle={toggleTransactionAlerts}
             disabled={notificationsLoading || isUpdating}
-          />
-          <ToggleRow
-            label="Price Alerts"
-            description="Notifications for price threshold alerts"
-            value={priceAlerts}
-            onToggle={togglePriceAlerts}
-            disabled={notificationsLoading || isUpdating}
-          />
-          <ToggleRow
-            label="Marketing"
-            description="Marketing and promotional notifications"
-            value={marketing}
-            onToggle={toggleMarketing}
-            disabled={notificationsLoading || isUpdating}
             isLast
           />
-        </Section>
-
-        <Section title="Display">
-          <div className="flex items-center gap-3 px-4 py-3">
-            <div className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center bg-surface-tertiary">
-              <CurrencyCircleDollarIcon size={ICON_MD} className="text-text-muted" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-text-primary">Display Currency</p>
-              <p className="text-xs text-text-muted mt-0.5">All values are converted from USD</p>
-            </div>
-            <div className="flex rounded-lg border border-border-subtle overflow-hidden">
-              {(['AUD', 'USD'] as DisplayCurrency[]).map((currency) => (
-                <button
-                  key={currency}
-                  type="button"
-                  onClick={() => currencyMutation.mutate(currency)}
-                  disabled={currencyMutation.isPending}
-                  className={`px-4 py-1.5 text-sm font-medium transition-colors ${
-                    displayCurrency === currency ? 'bg-brand-mid text-white' : 'text-text-muted hover:text-text-primary'
-                  } ${currencyMutation.isPending ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
-                >
-                  {currency}
-                </button>
-              ))}
-            </div>
-          </div>
         </Section>
 
         <Section title="Data & Privacy">

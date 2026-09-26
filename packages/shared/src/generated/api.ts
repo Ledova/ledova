@@ -3066,7 +3066,6 @@ export interface ApiComponents {
       totalSupply: string;
       uuid: string;
     };
-    DisplayCurrencyEnum: 'AUD' | 'USD';
     Document: {
       attachedAt: string | null;
       classification: string | null;
@@ -3415,23 +3414,19 @@ export interface ApiComponents {
     };
     NotificationPreferences: {
       createdAt: string;
-      marketing?: boolean;
-      priceAlerts?: boolean;
       transactionAlerts?: boolean;
       updatedAt: string;
       userProfile: string;
       uuid: string;
     };
     NotificationPreferencesRequest: {
-      marketing?: boolean;
-      priceAlerts?: boolean;
       transactionAlerts?: boolean;
     };
     NotificationRequest: {
       isArchived?: boolean;
       isRead?: boolean;
     };
-    NotificationTypeEnum: 'transaction' | 'price' | 'marketing' | 'general' | 'system';
+    NotificationTypeEnum: 'transaction' | 'general' | 'system';
     NullEnum: null;
     OfferingDetail: {
       acceptsBankTransfer: boolean;
@@ -3923,8 +3918,6 @@ export interface ApiComponents {
       sourceOfFundsOtherText?: string | null;
     };
     PatchedNotificationPreferencesRequest: {
-      marketing?: boolean;
-      priceAlerts?: boolean;
       transactionAlerts?: boolean;
     };
     PatchedNotificationRequest: {
@@ -3957,7 +3950,6 @@ export interface ApiComponents {
       role?: ApiComponents['schemas']['RoleEnum'];
     };
     PatchedUserPreferencesRequest: {
-      displayCurrency?: ApiComponents['schemas']['DisplayCurrencyEnum'];
       selectedPortfolio?: string | null;
       theme?: ApiComponents['schemas']['ThemeEnum'];
     };
@@ -5055,7 +5047,6 @@ export interface ApiComponents {
     };
     UserDocumentTypeEnum: 'payslip' | 'bank_statement' | 'tax_return' | 'other';
     UserPreferences: {
-      displayCurrency?: ApiComponents['schemas']['DisplayCurrencyEnum'];
       selectedPortfolio: ApiComponents['schemas']['SelectedPortfolio'] | null;
       theme?: ApiComponents['schemas']['ThemeEnum'];
       userAccount: ApiComponents['schemas']['AccountSummary'] | null;
@@ -5063,7 +5054,6 @@ export interface ApiComponents {
       uuid: string;
     };
     UserPreferencesRequest: {
-      displayCurrency?: ApiComponents['schemas']['DisplayCurrencyEnum'];
       selectedPortfolio?: string | null;
       theme?: ApiComponents['schemas']['ThemeEnum'];
     };

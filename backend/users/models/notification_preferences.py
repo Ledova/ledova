@@ -15,14 +15,6 @@ class NotificationPreferences(BaseModel):
         default=True,
         help_text="Notifications for transaction status changes",
     )
-    price_alerts = models.BooleanField(
-        default=False,
-        help_text="Notifications for price threshold alerts",
-    )
-    marketing = models.BooleanField(
-        default=False,
-        help_text="Marketing and promotional notifications",
-    )
 
     class Meta:
         db_table = "users_notification_preferences"
@@ -33,11 +25,6 @@ class NotificationPreferences(BaseModel):
         return f"NotificationPreferences for {self.user_profile}"
 
     def can_receive_notification(self, notification_type: str) -> bool:
-        type_mapping = {
-            "transaction": self.transaction_alerts,
-            "price": self.price_alerts,
-            "marketing": self.marketing,
-            "general": True,
-        }
-
-        return type_mapping.get(notification_type, True)
+        if notification_type == "transaction":
+            return self.transaction_alerts
+        return True

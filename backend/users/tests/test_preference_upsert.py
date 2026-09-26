@@ -23,17 +23,15 @@ class PreferenceUpsertRouteTest(APITestCase):
 
     def test_the_first_post_creates_the_row_and_the_second_updates_it(self):
         first = self.client.post("/api/notification-preferences/", {"transactionAlerts": False}, format="json")
-        second = self.client.post("/api/notification-preferences/", {"priceAlerts": False}, format="json")
+        second = self.client.post("/api/notification-preferences/", {"transactionAlerts": True}, format="json")
 
         self.assertEqual([first.status_code, second.status_code], [200, 200])
         self.assertEqual(NotificationPreferences.objects.count(), 1)
-        row = NotificationPreferences.objects.get()
-        self.assertFalse(row.transaction_alerts)
-        self.assertFalse(row.price_alerts)
+        self.assertTrue(NotificationPreferences.objects.get().transaction_alerts)
 
     def test_a_second_post_leaves_the_row_it_did_not_name_alone(self):
         self.client.post("/api/notification-preferences/", {"transactionAlerts": False}, format="json")
-        self.client.post("/api/notification-preferences/", {"priceAlerts": False}, format="json")
+        self.client.post("/api/notification-preferences/", {}, format="json")
 
         self.assertFalse(NotificationPreferences.objects.get().transaction_alerts)
 

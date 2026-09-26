@@ -10,7 +10,6 @@ import { AUTH_QUERY_KEY } from '../../src/hooks/useAuth';
 import { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from '../../src/hooks/useUserPreferences';
 
 const preferences = {
-  displayCurrency: 'AUD',
   userAccount: { uuid: 'account-1' },
   selectedPortfolio: { uuid: 'portfolio-1' },
 };
