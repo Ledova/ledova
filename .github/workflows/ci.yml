@@ -122,7 +122,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [tokens, others]
+        shard: [tokens-1, tokens-2, tokens-3, shared-wallets, others]
     env:
       SECRET_KEY: ci-only
       STORAGE_BACKEND: local
@@ -155,12 +155,10 @@ jobs:
             backend/schema/requirements.txt
       - name: Install dependencies
         run: pip install -r requirements-dev.txt -c schema/requirements.txt
-      - name: Shard labels are top-level packages, and each ordinary test id is unique and in exactly one shard
+      - name: Each ordinary test id is unique and in exactly one shard
         run: python ../scripts/check-ordinary-shards.py
       - name: Suite
-        run: |
-          labels=$(python ../scripts/check-ordinary-shards.py --labels ${{ matrix.shard }})
-          python manage.py test --settings=ledova_backend.settings.test --parallel 4 --noinput $labels
+        run: python ../scripts/check-ordinary-shards.py --run ${{ matrix.shard }}
 
   backend-suite:
     name: Django ordinary suite
@@ -287,7 +285,7 @@ jobs:
       - name: Request path on the scoped connection (the half the ordinary settings cannot see)
         run: >-
           python manage.py test --settings=ledova_backend.settings.test_scoped
-          --require-scoped-coverage --noinput
+          --require-scoped-coverage --parallel 4 --noinput
       - name: Row-level-security roles and catalogue (the half no test can see)
         run: |
           python manage.py migrate --noinput
