@@ -2,7 +2,6 @@
 
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
@@ -48,9 +47,7 @@ describe('wallet sync feedback through the real service and mutation', () => {
     api.post.mockResolvedValueOnce({ data: { success: false, wallet, syncResult: { status: 'error', error } } });
     render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={['/wallets']}>
-          <WalletsPage />
-        </MemoryRouter>
+        <WalletsPage />
       </QueryClientProvider>,
     );
     fireEvent.click(await screen.findByText('Sync wallet'));
@@ -72,9 +69,7 @@ describe('wallet sync feedback through the real service and mutation', () => {
     api.post.mockResolvedValueOnce({ data: { success: false, wallet, syncResult: { status, error } } });
     render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={['/wallets']}>
-          <WalletsPage />
-        </MemoryRouter>
+        <WalletsPage />
       </QueryClientProvider>,
     );
     fireEvent.click(await screen.findByText('Sync wallet'));

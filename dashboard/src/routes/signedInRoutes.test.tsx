@@ -143,10 +143,11 @@ describe('which signed-in pages an account can open', () => {
   });
 
   it.each(['trading', 'company'] as const)(
-    'shows the session check on %s until the role is known, and neither the page nor a landing',
+    'keeps %s titled and loading until the role is known, and shows neither the page nor a landing',
     (key) => {
       open(key, 'investor', { roleLoading: true });
-      expect(screen.getByRole('status', { name: 'Checking your session' })).toBeTruthy();
+      expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(DESTINATIONS[key].title);
+      expect(screen.getByRole('status', { name: 'Loading' })).toBeTruthy();
       expect(screen.queryByText(key)).toBeNull();
       expect(screen.queryByText('home')).toBeNull();
       expect(screen.queryByText('company')).toBeNull();
@@ -158,6 +159,7 @@ describe('which signed-in pages an account can open', () => {
     ['trading', 'investor'],
   ] as const)('says the account could not be checked on %s rather than deciding with a guessed role', (key, role) => {
     open(key, role, { roleUnavailable: true });
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(DESTINATIONS[key].title);
     expect(screen.getByRole('alert').textContent).toContain('Your account could not be checked');
     expect(screen.queryByText(key)).toBeNull();
     expect(screen.queryByText('home')).toBeNull();

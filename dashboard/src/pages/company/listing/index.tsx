@@ -143,15 +143,17 @@ export default function ListingPage() {
 
   if (!company) {
     return (
-      <div className="text-center py-20">
-        <p className="text-text-muted">No company found. Please register your company first.</p>
-        <button
-          onClick={() => navigate('/company')}
-          className="mt-4 text-brand-light hover:text-brand-subtle font-medium"
-        >
-          Go to Company
-        </button>
-      </div>
+      <Page>
+        <div className="text-center py-20">
+          <p className="text-text-muted">No company found. Please register your company first.</p>
+          <button
+            onClick={() => navigate('/company')}
+            className="mt-4 text-brand-light hover:text-brand-subtle font-medium"
+          >
+            Go to Company
+          </button>
+        </div>
+      </Page>
     );
   }
 

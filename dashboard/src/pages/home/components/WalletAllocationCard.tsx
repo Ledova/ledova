@@ -112,7 +112,7 @@ export function WalletAllocationCard({
   return (
     <Panel>
       <div className="min-h-[200px]">
-        <div className="flex items-center justify-center h-[230px] pt-4">
+        <div className="flex items-center justify-center h-[230px]">
           <div className="relative w-[220px] h-[220px]">
             <Doughnut data={data} options={options} />
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">

@@ -18,6 +18,9 @@ vi.mock('@services/apiClient', () => ({ default: {} }));
 vi.mock('@hooks/useAuth', () => ({ useAuth: () => ({ isAuthenticated: true }) }));
 vi.mock('@hooks/useFeatureFlags', () => ({ useFeatureFlags: () => ({ tradingEnabled: true, isLoading: false }) }));
 vi.mock('@pages/user-profile/useUserProfile', () => ({ useUserProfile: () => ({ userProfile: null }) }));
+vi.mock('@components/NotificationBell', () => ({
+  NotificationBell: ({ align }: { align: string }) => <span data-testid="bell" data-align={align} />,
+}));
 
 function offeredTo(role: AccountRole) {
   const client = new QueryClient();
@@ -63,5 +66,35 @@ describe('the pages the sidebar offers', () => {
   it.each(['investor', 'company', 'both'] as const)('offers the %s role no Buy or Send', (role) => {
     offeredTo(role);
     expect(screen.queryAllByRole('button', { name: /buy|send/i }).map((button) => button.textContent)).toEqual([]);
+  });
+});
+
+describe('where the sidebar puts the bell', () => {
+  afterEach(cleanup);
+
+  function shown(withNotifications: boolean) {
+    const client = new QueryClient();
+    client.setQueryData(['userAccount'], { data: { role: 'investor' } });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <Sidebar withNotifications={withNotifications} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  }
+
+  it('puts the bell beside the logo, opening towards the page', () => {
+    shown(true);
+
+    const logoRow = screen.getByText('Ledova').closest('aside')!.firstElementChild!;
+    expect(logoRow.contains(screen.getByTestId('bell'))).toBe(true);
+    expect(screen.getByTestId('bell').dataset.align).toBe('start');
+  });
+
+  it('leaves the bell out of the sidebar the phone menu opens', () => {
+    shown(false);
+
+    expect(screen.queryByTestId('bell')).toBeNull();
   });
 });

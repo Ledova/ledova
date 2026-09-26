@@ -107,7 +107,11 @@ describe('the bell itself', () => {
     expect(await screen.findByRole('button', { name: 'Notifications' })).toBeTruthy();
   });
 
-  it('offers a named way to dismiss each notice, which archives it', async () => {
+  it('offers a named way to dismiss each notice, which archives it and takes it out of the open panel', async () => {
+    patch.mockImplementationOnce(async () => {
+      rows = [];
+      return { data: {} };
+    });
     showBell();
     fireEvent.click(await screen.findByRole('button', { name: 'Notifications, 1 unread' }));
     fireEvent.click(await screen.findByRole('button', { name: `Dismiss ${published.title}` }));
@@ -115,5 +119,27 @@ describe('the bell itself', () => {
     await waitFor(() =>
       expect(patch).toHaveBeenCalledWith(`/api/notifications/${published.uuid}/`, { is_archived: true }),
     );
+    expect(await screen.findByText('No notifications yet')).toBeTruthy();
+    expect(screen.queryByText(published.title)).toBeNull();
+  });
+
+  it('lists the notices when opened from the keyboard, as it does when clicked', async () => {
+    showBell();
+    const bell = await screen.findByRole('button', { name: 'Notifications, 1 unread' });
+
+    bell.focus();
+    fireEvent.keyDown(bell, { key: 'Enter' });
+
+    expect(await screen.findByText(published.title)).toBeTruthy();
+  });
+
+  it('opens its panel outside the bar that holds it, so nothing around the bell clips the panel', async () => {
+    const { container } = showBell();
+    fireEvent.click(await screen.findByRole('button', { name: 'Notifications, 1 unread' }));
+
+    const notice = await screen.findByText(published.title);
+
+    expect(container.contains(screen.getByRole('button', { name: 'Notifications, 1 unread' }))).toBe(true);
+    expect(container.contains(notice)).toBe(false);
   });
 });

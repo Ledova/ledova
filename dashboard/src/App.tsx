@@ -1,15 +1,13 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import type { ReactElement, ReactNode } from 'react';
-import { landingFor, type DestinationKey } from '@ledova/shared';
+import type { ReactNode } from 'react';
+import { landingFor } from '@ledova/shared';
 import { useAuth } from '@hooks/useAuth';
-import { useFeatureFlags } from '@hooks/useFeatureFlags';
 import { useRole } from '@hooks/useRole';
 import NotFoundPage from '@pages/NotFound';
 import { RootRedirect } from './routes/RootRedirect';
+import { PAGES } from './routes/pages';
 import { signedInRoutes } from './routes/signedInRoutes';
 import { signupRoutes } from './routes/signupRoutes';
-import HomePage from '@pages/home';
-
 import SignInPage from '@pages/signin';
 import { SignupUser } from '@pages/signup/user';
 import { SignupEmailConfirmation } from '@pages/signup/email-confirmation';
@@ -18,22 +16,7 @@ import { SignupIdentityVerification } from '@pages/signup/identity-verification'
 import { SignupUserProfile } from '@pages/signup/user-profile/SignupUserProfile';
 import { SignupFinancialProfile } from '@pages/signup/financial-profile';
 import { SignupReview } from '@pages/signup/review';
-import UserProfilePage from '@pages/user-profile';
-import WalletsPage from '@pages/wallets';
-import TransactionsPage from '@pages/transactions';
-import SettingsPage from '@pages/settings';
-import TradingPage from '@pages/trading';
-import CompanyPage from '@pages/company';
-import InvestorEligibilityPage from '@pages/investor-eligibility';
 
-import ListingPage from '@pages/company/listing';
-import OfferingPage from '@pages/company/offering';
-import DirectoryPage from '@pages/directory';
-import DirectoryTokenPage from '@pages/directory/detail';
-import SubscriptionsPage from '@pages/subscriptions';
-import SubscriptionDetailPage from '@pages/subscriptions/detail';
-import PublicationsPage from '@pages/publications';
-import DividendsPage from '@pages/dividends';
 import { SignupAccountType } from '@pages/signup/account-type';
 import { SignupCompanyRegistration } from '@pages/signup/company-registration';
 import Layout from '@components/Layout';
@@ -50,21 +33,6 @@ interface RouteGuardProps {
   children: ReactNode;
 }
 
-function TradingRoute() {
-  const { tradingEnabled, isLoading } = useFeatureFlags();
-  const { role } = useRole();
-
-  if (isLoading) {
-    return <LoadingSpinner />;
-  }
-
-  if (!tradingEnabled) {
-    return <Navigate to={landingFor(role)} replace />;
-  }
-
-  return <TradingPage />;
-}
-
 function PublicOnlyRoute({ children }: RouteGuardProps) {
   const { isAuthenticated, isLoading } = useAuth();
   const { role, isLoading: isRoleLoading } = useRole();
@@ -72,25 +40,6 @@ function PublicOnlyRoute({ children }: RouteGuardProps) {
   if (isAuthenticated) return <Navigate to={landingFor(role)} replace />;
   return <>{children}</>;
 }
-
-const PAGES: Record<DestinationKey, ReactElement> = {
-  home: <HomePage />,
-  wallets: <WalletsPage />,
-  transactions: <TransactionsPage />,
-  trading: <TradingRoute />,
-  directory: <DirectoryPage />,
-  directoryDetail: <DirectoryTokenPage />,
-  subscriptions: <SubscriptionsPage />,
-  subscriptionDetail: <SubscriptionDetailPage />,
-  investorEligibility: <InvestorEligibilityPage />,
-  publications: <PublicationsPage />,
-  dividends: <DividendsPage />,
-  company: <CompanyPage />,
-  companyListing: <ListingPage />,
-  companyOffering: <OfferingPage />,
-  userProfile: <UserProfilePage />,
-  settings: <SettingsPage />,
-};
 
 const SIGNED_IN_ROUTES = signedInRoutes(PAGES);
 

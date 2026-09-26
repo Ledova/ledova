@@ -2,7 +2,8 @@
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { Offering, OfferingInput } from '@ledova/shared';
+import { DESTINATIONS, type Offering, type OfferingInput } from '@ledova/shared';
+import { PageTitle } from '@components/PageTitle';
 
 const useCompany = vi.fn();
 const useOfferings = vi.fn();
@@ -84,6 +85,7 @@ function aPageShowing(offering: Offering, underEdit?: Offering) {
     offerings: [offering],
     tokens: [{ uuid: 'token-1', name: 'Ordinary Shares', symbol: 'QAT', status: 'deployed' }],
     settlementAssets: [],
+    operatorName: 'Example Operator',
     isLoading: false,
     refresh: vi.fn(),
   });
@@ -237,5 +239,32 @@ describe('what the edit form is seeded with, and what Save sends', () => {
     fireEvent.click(screen.getByText('Edit'));
 
     expect(screen.getByText(/Submitting it again sends it back for review/)).toBeTruthy();
+  });
+});
+
+describe('the operator named where it acts, and the title in every state', () => {
+  it('names the operator on the directory switch and in each step it takes', () => {
+    aPageShowing(anOffering({}));
+
+    render(<OfferingPage />);
+
+    expect(screen.getByText(/and Example Operator can switch it off/)).toBeTruthy();
+    expect(screen.getByText(/Example Operator reviews the bounds/)).toBeTruthy();
+    expect(screen.getByText(/closes only when Example Operator closes it/)).toBeTruthy();
+    expect(screen.getByText(/Example Operator has not configured a settlement asset/)).toBeTruthy();
+  });
+
+  it('keeps the page title when there is no company to show', () => {
+    aPageShowing(anOffering({}));
+    useCompany.mockReturnValue({ company: null, companyUuid: undefined, isLoading: false });
+
+    render(
+      <PageTitle.Provider value={DESTINATIONS.companyOffering.title}>
+        <OfferingPage />
+      </PageTitle.Provider>,
+    );
+
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(DESTINATIONS.companyOffering.title);
+    expect(screen.getByText(/No company found/)).toBeTruthy();
   });
 });

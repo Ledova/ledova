@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BellIcon, XIcon } from '@phosphor-icons/react';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react';
@@ -60,6 +61,46 @@ function NotificationItem({
   );
 }
 
+function NotificationList({
+  load,
+  notifications,
+  isLoading,
+  onRead,
+  onArchive,
+  onFollow,
+}: {
+  load: () => unknown;
+  notifications: Notification[];
+  isLoading: boolean;
+  onRead: (uuid: string) => void;
+  onArchive: (uuid: string) => void;
+  onFollow: (notification: Notification) => void;
+}) {
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  if (isLoading && notifications.length === 0) {
+    return <p className="px-4 py-8 text-center text-sm text-text-muted">Loading...</p>;
+  }
+  if (notifications.length === 0) {
+    return <p className="px-4 py-8 text-center text-sm text-text-muted">No notifications yet</p>;
+  }
+  return (
+    <>
+      {notifications.map((notification) => (
+        <NotificationItem
+          key={notification.uuid}
+          notification={notification}
+          onRead={onRead}
+          onArchive={onArchive}
+          onFollow={onFollow}
+        />
+      ))}
+    </>
+  );
+}
+
 export function NotificationBell({ align }: NotificationBellProps) {
   const navigate = useNavigate();
   const {
@@ -83,7 +124,6 @@ export function NotificationBell({ align }: NotificationBellProps) {
   return (
     <Popover>
       <PopoverButton
-        onClick={() => fetchNotifications()}
         aria-label={unreadCount > 0 ? `Notifications, ${badgeText} unread` : 'Notifications'}
         className="relative inline-flex h-10 w-10 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-tertiary hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-mid/30"
       >
@@ -117,21 +157,14 @@ export function NotificationBell({ align }: NotificationBellProps) {
         </div>
 
         <div className="max-h-96 overflow-y-auto">
-          {isLoadingNotifications && notifications.length === 0 ? (
-            <p className="px-4 py-8 text-center text-sm text-text-muted">Loading...</p>
-          ) : notifications.length === 0 ? (
-            <p className="px-4 py-8 text-center text-sm text-text-muted">No notifications yet</p>
-          ) : (
-            notifications.map((notification) => (
-              <NotificationItem
-                key={notification.uuid}
-                notification={notification}
-                onRead={markAsRead}
-                onArchive={archive}
-                onFollow={follow}
-              />
-            ))
-          )}
+          <NotificationList
+            load={fetchNotifications}
+            notifications={notifications}
+            isLoading={isLoadingNotifications}
+            onRead={markAsRead}
+            onArchive={archive}
+            onFollow={follow}
+          />
         </div>
       </PopoverPanel>
     </Popover>

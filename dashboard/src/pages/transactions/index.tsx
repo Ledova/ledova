@@ -68,7 +68,7 @@ export const TransactionsPage = () => {
     <Page
       actions={
         <>
-          <Link to="/dividends" className="px-2 text-sm text-brand-mid transition-colors hover:text-brand-light">
+          <Link to="/dividends" className="text-sm text-brand-mid transition-colors hover:text-brand-light">
             {PUBLICATION_COPY.DIVIDENDS_OPEN}
           </Link>
           <PageAction

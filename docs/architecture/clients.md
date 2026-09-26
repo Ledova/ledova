@@ -91,11 +91,15 @@ the wrong layout for a moment.
 The mobile app does not read the table yet.
 
 Inside the frame, every signed-in page renders in `Page`
-(`dashboard/src/components/Page.tsx`). Its title and its actions share one row
-on the content's own edge at every width, above the content or its loading
-state. The frame holds only the sidebar, with the notification bell beside the
-logo, and on a phone a top bar with the menu, the logo and the bell. It has no
-header bar and no footer; only the public layout has a footer.
+(`dashboard/src/components/Page.tsx`), and so do the route guard's own waiting
+and failure states, so each shows its page's title.
+`routes/every-page-titled.test.tsx` renders every real page with empty data and
+checks its title. The title and the page's actions share one row on the
+content's own edge, above the content or its loading state; on a phone too
+narrow for both, the actions wrap under the title. The frame holds only the
+sidebar, with the notification bell beside the logo, and on a phone a top bar
+with the menu, the logo and the bell. It has no header bar and no footer; only
+the public layout has a footer.
 
 The design tokens are the single source of colour, spacing and radius values.
 `make generate-tokens` runs `packages/scripts/generate-css-tokens.mjs` with

@@ -15,7 +15,6 @@ vi.mock('@hooks/useSelectedPortfolio', () => ({
 vi.mock('@hooks/useSignupFinished', () => ({ useSignupFinished: () => true }));
 vi.mock('@components/Sidebar', () => ({ Sidebar: () => null }));
 vi.mock('@components/MobileHeader', () => ({ MobileHeader: () => null }));
-vi.mock('@components/Footer', () => ({ default: () => null }));
 vi.mock('@hooks/useCurrency', () => ({
   useCurrency: () => ({ formatDisplayCurrency: (value: number) => `$${value}` }),
 }));

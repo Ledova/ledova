@@ -2,7 +2,6 @@
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn() }));
@@ -48,9 +47,7 @@ function nameInput() {
 it('opens each wallet with its saved name and discards an edit that was not saved', async () => {
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/wallets']}>
-        <WalletsPage />
-      </MemoryRouter>
+      <WalletsPage />
     </QueryClientProvider>,
   );
   fireEvent.doubleClick(await screen.findByText('Saved wallet'));
@@ -66,4 +63,17 @@ it('opens each wallet with its saved name and discards an edit that was not save
   fireEvent.doubleClick(screen.getByText('Other wallet'));
   expect(nameInput().value).toBe('Other wallet');
   expect(api.patch).not.toHaveBeenCalled();
+});
+
+it('opens the wallet sort and filter from the Filter action in the title row', async () => {
+  render(
+    <QueryClientProvider client={queryClient}>
+      <WalletsPage />
+    </QueryClientProvider>,
+  );
+  expect(screen.queryByText('Sort Wallets')).toBeNull();
+
+  fireEvent.click(await screen.findByRole('button', { name: 'Filter' }));
+
+  expect(await screen.findByText('Sort Wallets')).toBeTruthy();
 });
