@@ -9,7 +9,7 @@ import {
   openPublication,
   publicationFilename,
 } from '@ledova/shared';
-import type { BallotChoice } from '@ledova/shared';
+import type { BallotChoice, UserFriendlyError } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 
 const PUBLICATIONS_KEY = ['publications'];
@@ -27,7 +27,8 @@ function saveACopy(document_: Blob, filename: string) {
 }
 
 function whyItCouldNotBeOpened(error: unknown): string {
-  const status = (error as { response?: { status?: number } })?.response?.status;
+  const cause = (error as UserFriendlyError | undefined)?.originalError ?? error;
+  const status = (cause as { response?: { status?: number } })?.response?.status;
   return status === 503 ? PUBLICATION_COPY.UNDELIVERABLE : PUBLICATION_COPY.FAILED;
 }
 

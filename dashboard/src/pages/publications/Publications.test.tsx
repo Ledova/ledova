@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import apiClient from '@services/apiClient';
-import { PUBLICATION_COPY, formatDateTime } from '@ledova/shared';
+import { PUBLICATION_COPY, createUserFriendlyError, formatDateTime } from '@ledova/shared';
 import PublicationsPage from './index';
 
 vi.mock('@services/apiClient', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
@@ -200,6 +200,24 @@ describe('the publications a shareholder has been sent', () => {
     fireEvent.click(await screen.findByText(PUBLICATION_COPY.OPEN));
 
     expect((await screen.findByRole('alert')).textContent).toBe(PUBLICATION_COPY.UNDELIVERABLE);
+    expect(window.open).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [503, PUBLICATION_COPY.UNDELIVERABLE],
+    [500, PUBLICATION_COPY.FAILED],
+    [undefined, PUBLICATION_COPY.FAILED],
+  ])('retains download failure meaning when the API client wraps status %s', async (status, message) => {
+    const original = status
+      ? { response: { status, data: new Blob(['Unavailable'], { type: 'application/json' }) } }
+      : new Error('Network Error');
+    file = () => Promise.reject(createUserFriendlyError('Please try again.', original));
+
+    showPage();
+    fireEvent.click(await screen.findByText(PUBLICATION_COPY.OPEN));
+
+    expect((await screen.findByRole('alert')).textContent).toBe(message);
+    expect(saved).toEqual([]);
     expect(window.open).not.toHaveBeenCalled();
   });
 });
