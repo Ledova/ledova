@@ -9,21 +9,25 @@ import { canOpen, DESTINATIONS, landingFor, type AccountRole } from '@ledova/sha
 import { Sidebar } from '.';
 
 const navigate = vi.hoisted(() => vi.fn());
+const flags = vi.hoisted(() => ({ tradingEnabled: true }));
+const api = vi.hoisted(() => ({ get: vi.fn() }));
 
 vi.mock('react-router-dom', async (importOriginal) => ({
   ...(await importOriginal<typeof import('react-router-dom')>()),
   useNavigate: () => navigate,
 }));
-vi.mock('@services/apiClient', () => ({ default: {} }));
+vi.mock('@services/apiClient', () => ({ default: api }));
 vi.mock('@hooks/useAuth', () => ({ useAuth: () => ({ isAuthenticated: true }) }));
-vi.mock('@hooks/useFeatureFlags', () => ({ useFeatureFlags: () => ({ tradingEnabled: true, isLoading: false }) }));
+vi.mock('@hooks/useFeatureFlags', () => ({
+  useFeatureFlags: () => ({ tradingEnabled: flags.tradingEnabled, isLoading: false }),
+}));
 vi.mock('@pages/user-profile/useUserProfile', () => ({ useUserProfile: () => ({ userProfile: null }) }));
 vi.mock('@components/NotificationBell', () => ({
   NotificationBell: ({ align }: { align: string }) => <span data-testid="bell" data-align={align} />,
 }));
 
-function offeredTo(role: AccountRole) {
-  const client = new QueryClient();
+function show(role: AccountRole) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(['userAccount'], { data: { role } });
   render(
     <QueryClientProvider client={client}>
@@ -32,6 +36,10 @@ function offeredTo(role: AccountRole) {
       </MemoryRouter>
     </QueryClientProvider>,
   );
+}
+
+function offeredTo(role: AccountRole) {
+  show(role);
   screen
     .getAllByRole('button')
     .filter((button) => button.textContent !== 'Sign out')
@@ -96,5 +104,55 @@ describe('where the sidebar puts the bell', () => {
     shown(false);
 
     expect(screen.queryByTestId('bell')).toBeNull();
+  });
+});
+
+function menu() {
+  return [...screen.getByRole('navigation').children].map((group) => ({
+    label: group.querySelector('p')?.textContent ?? null,
+    items: [...group.querySelectorAll('button, a')].map((item) => item.textContent),
+  }));
+}
+
+const YOUR_SHARES = { label: 'Your shares', items: ['Holdings', 'Notices', 'Activity'] };
+const INVEST = { label: 'Invest', items: ['Directory', 'Applications', 'Market', 'Verification'] };
+const YOURS = { label: null, items: ['Wallets', 'Profile', 'Settings', 'Help & Support'] };
+const COMPANY = { label: 'Harbour Robotics Pty Ltd', items: ['Company', 'Application', 'Offerings'] };
+
+describe('the groups the sidebar shows', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    flags.tradingEnabled = true;
+    api.get.mockResolvedValue({
+      data: { results: [{ uuid: 'company', name: 'Harbour Robotics Pty Ltd' }], count: 1, next: null, previous: null },
+    });
+  });
+  afterEach(cleanup);
+
+  it("gives an investor Your shares, then Invest, then the account's own pages", () => {
+    show('investor');
+
+    expect(menu()).toEqual([YOUR_SHARES, INVEST, YOURS]);
+  });
+
+  it("puts a company's own group first, named after the company, and still gives it Your shares", async () => {
+    show('company');
+
+    expect(await screen.findByText(COMPANY.label)).toBeTruthy();
+    expect(menu()).toEqual([COMPANY, YOUR_SHARES, YOURS]);
+  });
+
+  it('gives an account with both roles the company group, Your shares and Invest', async () => {
+    show('both');
+
+    expect(await screen.findByText(COMPANY.label)).toBeTruthy();
+    expect(menu()).toEqual([COMPANY, YOUR_SHARES, INVEST, YOURS]);
+  });
+
+  it('leaves Market out of Invest while trading is off', () => {
+    flags.tradingEnabled = false;
+    show('investor');
+
+    expect(menu()[1]).toEqual({ label: 'Invest', items: ['Directory', 'Applications', 'Verification'] });
   });
 });

@@ -74,7 +74,7 @@ describe('an address that is not a page', () => {
   });
 
   it.each([
-    ['an investor', 'investor', 'Go to Home', '/home'],
+    ['an investor', 'investor', 'Go to Holdings', '/home'],
     ['a company', 'company', 'Go to Company', '/company'],
     ['a dual-role account', 'both', 'Go to Company', '/company'],
   ] as const)('shows %s, signed in, the page inside the frame with a way to its landing', (_, role, label, landing) => {
