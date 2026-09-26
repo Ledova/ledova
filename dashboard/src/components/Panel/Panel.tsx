@@ -28,7 +28,7 @@ export function Panel({ title, icon, actions, className = '', children }: PanelP
         </div>
       )}
 
-      <div className="px-4 pb-4 flex-1 min-h-0">{children}</div>
+      <div className={`min-h-0 flex-1 px-4 pb-4 ${title ? '' : 'pt-4'}`}>{children}</div>
     </div>
   );
 }

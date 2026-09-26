@@ -6,6 +6,7 @@ import { useNotifications } from '@ledova/shared';
 import type { Notification } from '@ledova/shared';
 
 const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
+const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 
 const DESTINATIONS: Record<string, string> = { [PUBLICATION_NOTICE]: '/publications' };
 
@@ -15,8 +16,7 @@ function destinationOf(notification: Notification): string | undefined {
 }
 
 interface NotificationBellProps {
-  iconSize?: number;
-  className?: string;
+  align: 'start' | 'end';
 }
 
 function NotificationItem({
@@ -31,36 +31,36 @@ function NotificationItem({
   onFollow: (notification: Notification) => void;
 }) {
   return (
-    <div className="group relative flex items-start gap-3 px-4 py-3 hover:bg-surface-raised/50 transition-colors border-b border-border-subtle/30 last:border-b-0">
+    <div className="relative border-b border-border-subtle last:border-b-0 hover:bg-surface-base">
       <button
         onClick={() => {
           if (!notification.isRead) onRead(notification.uuid);
           onFollow(notification);
         }}
-        className="flex-1 min-w-0 text-left flex items-start gap-3"
+        className="flex w-full items-start gap-3 py-3 pl-4 pr-11 text-left"
       >
-        {!notification.isRead && <span className="mt-1.5 h-2 w-2 rounded-full bg-brand-mid flex-shrink-0" />}
-        <div className={`min-w-0 flex-1 ${notification.isRead ? 'pl-5' : ''}`}>
-          <p className="text-sm font-medium text-text-primary truncate pr-6">{notification.title}</p>
-          <p className="text-xs text-text-muted line-clamp-2 mt-0.5">{notification.body}</p>
-          <p className="text-xs text-text-muted/60 mt-1">{formatDateTime(notification.createdAt)}</p>
-        </div>
+        <span
+          aria-hidden="true"
+          className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${notification.isRead ? '' : 'bg-brand-mid'}`}
+        />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium text-text-primary">{notification.title}</span>
+          <span className="mt-0.5 line-clamp-2 text-xs text-text-muted">{notification.body}</span>
+          <span className="mt-1 block text-xs text-text-subtle">{formatDateTime(notification.createdAt)}</span>
+        </span>
       </button>
       <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onArchive(notification.uuid);
-        }}
-        className="absolute top-3 right-3 p-1 rounded-md text-text-muted/40 opacity-0 group-hover:opacity-100 hover:text-text-primary hover:bg-surface-raised transition-all"
-        title="Dismiss"
+        onClick={() => onArchive(notification.uuid)}
+        aria-label={`Dismiss ${notification.title}`}
+        className="absolute right-3 top-3 rounded-md p-1 text-text-subtle transition-colors hover:bg-surface-tertiary hover:text-text-primary"
       >
-        <XIcon size={ICON_SM} />
+        <XIcon size={ICON_SM} aria-hidden="true" />
       </button>
     </div>
   );
 }
 
-export function NotificationBell({ iconSize = 20, className }: NotificationBellProps) {
+export function NotificationBell({ align }: NotificationBellProps) {
   const navigate = useNavigate();
   const {
     unreadCount,
@@ -81,30 +81,35 @@ export function NotificationBell({ iconSize = 20, className }: NotificationBellP
   };
 
   return (
-    <Popover className={`relative ${className ?? ''}`}>
+    <Popover>
       <PopoverButton
         onClick={() => fetchNotifications()}
-        className="relative inline-flex items-center justify-center w-10 h-10 rounded-full text-text-muted hover:text-text-primary hover:bg-surface-raised/50 focus:outline-none focus:ring-2 focus:ring-brand-mid/30 transition-all duration-200"
+        aria-label={unreadCount > 0 ? `Notifications, ${badgeText} unread` : 'Notifications'}
+        className="relative inline-flex h-10 w-10 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-tertiary hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-mid/30"
       >
-        <BellIcon weight="duotone" size={iconSize} aria-hidden="true" />
+        <BellIcon size={ICON_MD} aria-hidden="true" />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-error rounded-full">
+          <span
+            aria-hidden="true"
+            className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white"
+          >
             {badgeText}
           </span>
         )}
       </PopoverButton>
 
       <PopoverPanel
+        anchor={align === 'start' ? 'bottom start' : 'bottom end'}
         transition
-        className="absolute z-50 right-0 mt-2 w-80 rounded-xl bg-surface-overlay/95 backdrop-blur-md shadow-2xl shadow-black/20 border border-border-subtle/50 overflow-hidden transition data-[closed]:scale-95 data-[closed]:opacity-0 data-[enter]:duration-200 data-[leave]:duration-100"
+        className="z-50 w-80 overflow-hidden rounded-lg border border-border bg-surface-raised shadow-lg transition [--anchor-gap:8px] data-[closed]:opacity-0 data-[enter]:duration-150 data-[leave]:duration-100"
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle/30">
+        <div className="flex items-center justify-between border-b border-border-subtle px-4 py-3">
           <span className="text-sm font-medium text-text-primary">Notifications</span>
           {unreadCount > 0 && (
             <button
               onClick={() => markAllAsRead()}
               disabled={isMarkingAllRead}
-              className="text-xs text-brand-light hover:text-brand-subtle disabled:opacity-50 transition-colors"
+              className="text-xs text-brand-light transition-colors hover:text-brand-subtle disabled:opacity-50"
             >
               Mark all as read
             </button>
@@ -113,9 +118,9 @@ export function NotificationBell({ iconSize = 20, className }: NotificationBellP
 
         <div className="max-h-96 overflow-y-auto">
           {isLoadingNotifications && notifications.length === 0 ? (
-            <div className="px-4 py-8 text-center text-sm text-text-muted">Loading...</div>
+            <p className="px-4 py-8 text-center text-sm text-text-muted">Loading...</p>
           ) : notifications.length === 0 ? (
-            <div className="px-4 py-8 text-center text-sm text-text-muted">No notifications yet</div>
+            <p className="px-4 py-8 text-center text-sm text-text-muted">No notifications yet</p>
           ) : (
             notifications.map((notification) => (
               <NotificationItem

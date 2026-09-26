@@ -1,4 +1,4 @@
-import { PageWrapper } from '../components/PageWrapper';
+import { Page } from '@components/Page';
 import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -138,11 +138,7 @@ export default function ListingPage() {
   const isActing = submitMutation.isPending || resubmitMutation.isPending || withdrawMutation.isPending;
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 border-4 border-brand-subtle border-t-brand rounded-full animate-spin" />
-      </div>
-    );
+    return <Page loading />;
   }
 
   if (!company) {
@@ -198,7 +194,7 @@ export default function ListingPage() {
 
   if (!canEdit) {
     return (
-      <PageWrapper>
+      <Page>
         {errorBanner}
         <Panel>
           <ApplicationStatusView
@@ -209,12 +205,12 @@ export default function ListingPage() {
           />
         </Panel>
         {withdrawModal}
-      </PageWrapper>
+      </Page>
     );
   }
 
   return (
-    <PageWrapper>
+    <Page>
       {errorBanner}
 
       {isInfoRequired && (
@@ -425,7 +421,7 @@ export default function ListingPage() {
           setUploadModalOpen(false);
         }}
       />
-    </PageWrapper>
+    </Page>
   );
 }
 

@@ -1,25 +1,19 @@
 // @vitest-environment jsdom
 
-import type { PropsWithChildren } from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryRouter, Route, RouterProvider, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WALLET_ENDPOINTS, type AccountRole } from '@ledova/shared';
 
-const api = vi.hoisted(() => ({ get: vi.fn(), setActions: vi.fn() }));
+const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
 vi.mock('@hooks/useAuth', () => ({ useAuth: () => ({ isAuthenticated: true }) }));
 vi.mock('@hooks/useSelectedPortfolio', () => ({
   useSelectedPortfolio: () => ({ portfolio: { userAccount: 'owner' }, userAccount: { uuid: 'owner' } }),
 }));
-vi.mock('@hooks/useHeaderActions', () => ({
-  useHeaderActions: () => ({ setActions: api.setActions }),
-  HeaderActionsProvider: ({ children }: PropsWithChildren) => children,
-}));
 vi.mock('@hooks/useSignupFinished', () => ({ useSignupFinished: () => true }));
 vi.mock('@components/Sidebar', () => ({ Sidebar: () => null }));
-vi.mock('@components/DesktopHeader', () => ({ DesktopHeader: () => null }));
 vi.mock('@components/MobileHeader', () => ({ MobileHeader: () => null }));
 vi.mock('@components/Footer', () => ({ default: () => null }));
 vi.mock('@hooks/useCurrency', () => ({

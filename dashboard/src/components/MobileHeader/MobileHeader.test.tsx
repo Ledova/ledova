@@ -4,7 +4,6 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 
-vi.mock('@hooks/usePageTitle', () => ({ usePageTitle: () => ({ title: 'Synthetic page' }) }));
 vi.mock('@components/NotificationBell', () => ({ NotificationBell: () => null }));
 vi.mock('@components/Sidebar', () => ({ Sidebar: () => null }));
 

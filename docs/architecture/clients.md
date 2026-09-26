@@ -26,9 +26,9 @@ instance as its first argument, so each client keeps its own interceptors.
 
 The dashboard's signed-in pages are listed once, in `DESTINATIONS`
 (`packages/shared/src/constants/ui/destinations.ts`), each with its address,
-title, subtitle and audience. The dashboard builds its signed-in routes from a
-map keyed by that table, so TypeScript refuses an entry without a page or a page
-the table lacks, and the header takes its title from the same entry, detail
+title and audience. The dashboard builds its signed-in routes from a map keyed
+by that table, so TypeScript refuses an entry without a page or a page the table
+lacks, and each route hands its page the title from the same entry, detail
 pages included. The audience is `everyone`, `investing` or `company`, and
 `canOpen(role, audience)` says who may open it: an investor opens the pages for
 everyone and for investing, a company those for everyone and for companies, and
@@ -72,7 +72,7 @@ later recheck of the session does not take away a step being filled in. One case
 remains: if the session check itself fails as a step loads and succeeds on a
 later recheck, the step is replaced while the profile loads, and what was typed
 into it is lost.
-The signed-in frame (sidebar and headers) appears only for a signed-in account
+The signed-in frame (sidebar and phone bar) appears only for a signed-in account
 that has finished sign-up, which `useSignupFinished` decides; sign-in, sign-up
 and everything else use the public layout. The frame marks itself with
 `InSignedInFrame`, and a guarded page renders only inside it. The guard and the
@@ -89,6 +89,13 @@ account still signing up, back into sign-up. It shows nothing until its own
 decision and the frame's agree, so, like a guarded page, it never appears in
 the wrong layout for a moment.
 The mobile app does not read the table yet.
+
+Inside the frame, every signed-in page renders in `Page`
+(`dashboard/src/components/Page.tsx`). Its title and its actions share one row
+on the content's own edge at every width, above the content or its loading
+state. The frame holds only the sidebar, with the notification bell beside the
+logo, and on a phone a top bar with the menu, the logo and the bell. It has no
+header bar and no footer; only the public layout has a footer.
 
 The design tokens are the single source of colour, spacing and radius values.
 `make generate-tokens` runs `packages/scripts/generate-css-tokens.mjs` with

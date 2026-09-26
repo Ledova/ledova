@@ -17,7 +17,6 @@ vi.mock('@hooks/useAuth', () => ({ useAuth: vi.fn() }));
 vi.mock('@hooks/useRole', () => ({ useRole: vi.fn() }));
 vi.mock('@pages/user-profile/useUserProfile', () => ({ useUserProfile: vi.fn() }));
 vi.mock('@components/Sidebar', () => ({ Sidebar: () => <nav aria-label="Sidebar" /> }));
-vi.mock('@components/DesktopHeader', () => ({ DesktopHeader: () => null }));
 vi.mock('@components/MobileHeader', () => ({ MobileHeader: () => null }));
 vi.mock('@components/Footer', () => ({ default: () => null }));
 vi.mock('@hooks/useBuyCrypto', () => ({
@@ -94,12 +93,12 @@ describe('an address that is not a page', () => {
   });
 
   it.each([
-    ['a finished account', true, 2, true],
-    ['an account still signing up', false, 1, false],
-  ] as const)('shows %s the same frame and page at an unknown address under /signup', (_, finished, level, framed) => {
+    ['a finished account', true, true],
+    ['an account still signing up', false, false],
+  ] as const)('shows %s the same frame and page at an unknown address under /signup', (_, finished, framed) => {
     visit({ signedIn: true, finished, address: '/signup/typo' });
 
-    expect(screen.getByRole('heading', { level, name: 'There is no page at this address' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'There is no page at this address' })).toBeTruthy();
     expect(screen.queryByRole('navigation', { name: 'Sidebar' }) !== null).toBe(framed);
   });
 

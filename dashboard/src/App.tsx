@@ -1,7 +1,9 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import type { ReactElement, ReactNode } from 'react';
 import { landingFor, type DestinationKey } from '@ledova/shared';
-import { useAuth, useFeatureFlags, useRole } from '@hooks';
+import { useAuth } from '@hooks/useAuth';
+import { useFeatureFlags } from '@hooks/useFeatureFlags';
+import { useRole } from '@hooks/useRole';
 import NotFoundPage from '@pages/NotFound';
 import { RootRedirect } from './routes/RootRedirect';
 import { signedInRoutes } from './routes/signedInRoutes';

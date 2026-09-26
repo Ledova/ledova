@@ -1,17 +1,10 @@
 import { Link } from 'react-router-dom';
-import { BuildingsIcon, ShieldCheckIcon, StorefrontIcon } from '@phosphor-icons/react';
+import { BuildingsIcon, ShieldCheckIcon } from '@phosphor-icons/react';
 import { Panel } from '@components/Panel';
 import { DIRECTORY_COPY, formatDate } from '@ledova/shared';
 import type { DirectoryToken } from '@ledova/shared';
 import { useDirectoryTokens } from './useDirectory';
-
-function PageWrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="w-full max-w-6xl mx-auto px-4 pt-6 pb-16 sm:px-6 lg:px-8">
-      <div className="flex flex-col gap-4 sm:gap-5 md:gap-6">{children}</div>
-    </div>
-  );
-}
+import { Page } from '@components/Page';
 
 function EmptyState({ title, body, action }: { title: string; body: string; action?: React.ReactNode }) {
   return (
@@ -66,16 +59,12 @@ export default function DirectoryPage() {
   const { tokens, isEligible, isLoading } = useDirectoryTokens();
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 border-4 border-brand-subtle border-t-brand rounded-full animate-spin" />
-      </div>
-    );
+    return <Page loading />;
   }
 
   return (
-    <PageWrapper>
-      <Panel title="Investor Directory" icon={<StorefrontIcon size={20} />}>
+    <Page>
+      <Panel>
         {!isEligible ? (
           <EmptyState
             title={DIRECTORY_COPY.INELIGIBLE_TITLE}
@@ -100,6 +89,6 @@ export default function DirectoryPage() {
           </div>
         )}
       </Panel>
-    </PageWrapper>
+    </Page>
   );
 }

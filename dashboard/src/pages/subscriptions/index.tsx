@@ -1,17 +1,10 @@
 import { Link } from 'react-router-dom';
-import { HandCoinsIcon, StorefrontIcon } from '@phosphor-icons/react';
+import { StorefrontIcon } from '@phosphor-icons/react';
 import { Panel } from '@components/Panel';
 import { SUBSCRIPTION_COPY, formatDate } from '@ledova/shared';
 import type { Subscription } from '@ledova/shared';
 import { useSubscriptions } from './useSubscriptions';
-
-function PageWrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="w-full max-w-4xl mx-auto px-4 pt-6 pb-16 sm:px-6 lg:px-8">
-      <div className="flex flex-col gap-4 sm:gap-5 md:gap-6">{children}</div>
-    </div>
-  );
-}
+import { Page } from '@components/Page';
 
 function SubscriptionRow({ subscription }: { subscription: Subscription }) {
   return (
@@ -45,16 +38,12 @@ export default function SubscriptionsPage() {
   const { subscriptions, isLoading } = useSubscriptions();
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 border-4 border-brand-subtle border-t-brand rounded-full animate-spin" />
-      </div>
-    );
+    return <Page loading />;
   }
 
   return (
-    <PageWrapper>
-      <Panel title={SUBSCRIPTION_COPY.LIST_TITLE} icon={<HandCoinsIcon size={20} />}>
+    <Page>
+      <Panel>
         {subscriptions.length === 0 ? (
           <div className="px-4 py-12 text-center">
             <StorefrontIcon size={48} className="text-text-muted mx-auto mb-4" weight="duotone" />
@@ -75,6 +64,6 @@ export default function SubscriptionsPage() {
           </div>
         )}
       </Panel>
-    </PageWrapper>
+    </Page>
   );
 }

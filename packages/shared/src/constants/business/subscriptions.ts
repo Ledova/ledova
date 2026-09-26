@@ -33,7 +33,6 @@ export const SUBSCRIPTION_WITHDRAWABLE_STATUSES: SubscriptionStatus[] = [
 export const SUBSCRIPTION_SUBMITTABLE_STATUSES: SubscriptionStatus[] = ['draft'];
 
 export const SUBSCRIPTION_COPY = {
-  LIST_TITLE: 'My Subscriptions',
   EMPTY_TITLE: 'You have not subscribed to anything yet',
   EMPTY_BODY:
     'Open a company in the directory and, while its offering is open, commit to a number of shares. It stays a ' +

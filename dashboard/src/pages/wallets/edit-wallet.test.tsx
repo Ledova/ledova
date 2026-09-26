@@ -2,14 +2,14 @@
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
-const api = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn(), setActions: vi.fn() }));
+const api = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
 vi.mock('@hooks/useSelectedPortfolio', () => ({
   useSelectedPortfolio: () => ({ portfolio: { userAccount: 'owner' } }),
 }));
-vi.mock('@hooks/useHeaderActions', () => ({ useHeaderActions: () => ({ setActions: api.setActions }) }));
 vi.mock('@hooks/useCurrency', () => ({
   useCurrency: () => ({ formatDisplayCurrency: (value: number) => `$${value}` }),
 }));
@@ -48,7 +48,9 @@ function nameInput() {
 it('opens each wallet with its saved name and discards an edit that was not saved', async () => {
   render(
     <QueryClientProvider client={queryClient}>
-      <WalletsPage />
+      <MemoryRouter initialEntries={['/wallets']}>
+        <WalletsPage />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
   fireEvent.doubleClick(await screen.findByText('Saved wallet'));

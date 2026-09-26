@@ -1,16 +1,15 @@
 import { useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { ListIcon, XIcon } from '@phosphor-icons/react';
-import { usePageTitle } from '@hooks/usePageTitle';
 import { NotificationBell } from '@components/NotificationBell';
 import { Sidebar } from '@components/Sidebar';
+import { Logo } from '@components/Logo';
 import { DESIGN_TOKENS } from '@ledova/shared';
 
 const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 
 export function MobileHeader() {
   const [isOpen, setIsOpen] = useState(false);
-  const { title: pageTitle } = usePageTitle();
   const location = useLocation();
   const [shownPath, setShownPath] = useState(location.pathname);
 
@@ -23,31 +22,22 @@ export function MobileHeader() {
 
   return (
     <>
-      <div className="bg-surface-base/95 backdrop-blur-md">
-        <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="relative">
-            <div className="flex items-center h-14">
-              <button
-                onClick={() => setIsOpen(true)}
-                className="inline-flex items-center justify-center w-10 h-10 rounded-full text-text-muted hover:text-text-primary hover:bg-surface-raised/50 focus:outline-none focus:ring-2 focus:ring-brand-mid/30 transition-all duration-200"
-                aria-label="Open navigation"
-              >
-                <ListIcon size={ICON_MD} />
-              </button>
-
-              <div className="flex-1 flex justify-center">
-                <h1 className="text-base font-normal text-text-secondary tracking-wide">{pageTitle}</h1>
-              </div>
-
-              <NotificationBell iconSize={ICON_MD} />
-            </div>
-            <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border-subtle to-transparent" />
-          </div>
+      <div className="flex h-14 items-center gap-2 border-b border-border-subtle bg-surface-base px-2 sm:px-4">
+        <button
+          onClick={() => setIsOpen(true)}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-tertiary hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-mid/30"
+          aria-label="Open navigation"
+        >
+          <ListIcon size={ICON_MD} />
+        </button>
+        <Logo />
+        <div className="ml-auto">
+          <NotificationBell align="end" />
         </div>
       </div>
 
       <div
-        className={`fixed inset-0 z-50 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${
+        className={`fixed inset-0 z-50 bg-black/40 transition-opacity duration-300 ${
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={handleClose}
@@ -61,7 +51,7 @@ export function MobileHeader() {
       >
         <button
           onClick={handleClose}
-          className="absolute top-4 right-3 z-10 inline-flex items-center justify-center w-8 h-8 rounded-full text-text-muted hover:text-text-primary hover:bg-surface-raised/50 transition-all duration-200"
+          className="absolute right-3 top-4 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-tertiary hover:text-text-primary"
           aria-label="Close navigation"
         >
           <XIcon size={ICON_MD} />

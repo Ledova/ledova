@@ -26,7 +26,6 @@
     "baseUrl": "./src",
     "paths": {
       "@components/*": ["components/*"],
-      "@hooks": ["hooks/index.ts"],
       "@hooks/*": ["hooks/*"],
       "@pages/*": ["pages/*"],
       "@services/*": ["services/*"],

@@ -422,6 +422,12 @@ This records the target; the steps on #732 build it.
   everywhere, with no display-currency choice.
 - **One look.** Paper only, with no theme switch, and no test-network or
   synthetic-data notices in the product.
+- **Titles in the page.** A page's title and its actions sit in one row on the
+  content's own edge, at every width. The desktop header bar goes rather than
+  becoming sticky, and on a long page the title scrolls away. Signed-in pages
+  have no footer: the operator stays named where it acts, and the public pages
+  keep theirs (owner decisions, 26 September 2026, on
+  [#732](https://github.com/Ledova/ledova/issues/732#issuecomment-5845666218)).
 - **Mobile follows the web.** The mobile app takes paper and the new structure
   together, after the web.
 

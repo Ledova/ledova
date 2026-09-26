@@ -15,7 +15,6 @@ vi.mock('@hooks/useAuth', () => ({ useAuth: () => ({ isAuthenticated: true, isLo
 vi.mock('@pages/wallets/components/BuyCryptoModal', () => ({ BuyCryptoModal: () => null }));
 vi.mock('@hooks/useSendTransfer', () => ({ SendTransferProvider: ({ children }: PropsWithChildren) => children }));
 vi.mock('@components/Sidebar', () => ({ Sidebar: () => <nav aria-label="Sidebar" /> }));
-vi.mock('@components/DesktopHeader', () => ({ DesktopHeader: () => null }));
 vi.mock('@components/MobileHeader', () => ({ MobileHeader: () => null }));
 vi.mock('@components/Footer', () => ({ default: () => null }));
 
