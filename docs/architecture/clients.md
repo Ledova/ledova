@@ -26,14 +26,29 @@ instance as its first argument, so each client keeps its own interceptors.
 
 The dashboard's signed-in pages are listed once, in `DESTINATIONS`
 (`packages/shared/src/constants/ui/destinations.ts`), each with its address,
-title and subtitle. The dashboard builds its signed-in routes from a map keyed
-by that table, so TypeScript refuses an entry without a page or a page the
-table lacks, and the header takes its title from the same entry, detail pages
-included. `landingFor(role)` decides where a signed-in person lands: an
-investing account on its home, and a company or dual-role account on its
-company. The front door, sign-in, the end of sign-up, the signed-out pages and
-the trading fallback all use it; the front door, the signed-out pages and the
-trading fallback wait for the role before choosing.
+title, subtitle and audience. The dashboard builds its signed-in routes from a
+map keyed by that table, so TypeScript refuses an entry without a page or a page
+the table lacks, and the header takes its title from the same entry, detail
+pages included. The audience is `everyone`, `investing` or `company`, and
+`canOpen(role, audience)` says who may open it: an investor opens the pages for
+everyone and for investing, a company those for everyone and for companies, and
+a dual-role account all of them. Every signed-in route is guarded by
+`ProtectedRoute` with its entry's audience. A signed-out visitor goes to sign
+in; a signed-in person who cannot open the page goes to `landingFor(role)`,
+which replaces the refused address. On an investing or company page the guard
+shows the session check until the role is known, so no page appears on the
+way. If the account cannot be read, it says so and offers Try again instead of
+deciding with a guessed role. A page for everyone opens without waiting. Once
+the role is known, the sidebar offers only pages the role can open. Signing in
+clears what the tab cached for whoever was signed in before, as signing out
+does, so a new person is never guarded by the previous person's role. The guard decides pages, not data: the API still decides
+which rows a person sees, and answers 404 for one it refuses.
+`landingFor(role)` decides where a signed-in person lands: an investing account
+on its home, and a company or dual-role account on its company. The front door,
+sign-in, the end of sign-up, the signed-out pages and the trading fallback all
+use it; the front door and the signed-out pages wait for the role before
+choosing, and the trading fallback runs behind the guard, which has already
+waited for it.
 The mobile app does not read the table yet.
 
 The design tokens are the single source of colour, spacing and radius values.

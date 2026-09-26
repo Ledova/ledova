@@ -44,6 +44,9 @@ describe('the last click of signup', () => {
       isCompany: false,
       isInvestor: true,
       isLoading: false,
+      isKnown: true,
+      isUnavailable: false,
+      retry: vi.fn() as unknown as ReturnType<typeof useRole>['retry'],
     });
   });
 
@@ -96,6 +99,9 @@ describe('the last click of signup', () => {
       isCompany: role === 'company',
       isInvestor: role === 'investor',
       isLoading: false,
+      isKnown: true,
+      isUnavailable: false,
+      retry: vi.fn() as unknown as ReturnType<typeof useRole>['retry'],
     });
     vi.mocked(getCompanies).mockResolvedValue({ data: { results: [{ uuid: 'company-1' }] } } as Awaited<
       ReturnType<typeof getCompanies>

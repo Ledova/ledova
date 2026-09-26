@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { AccountRole, CACHE_TIMING, getUserAccount } from '@ledova/shared';
+import { AccountRole, CACHE_TIMING, canOpen, getUserAccount } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { useAuth } from './useAuth';
 
@@ -20,8 +20,11 @@ export function useRole() {
 
   return {
     role,
-    isInvestor: role === 'investor' || role === 'both',
-    isCompany: role === 'company' || role === 'both',
+    isInvestor: canOpen(role, 'investing'),
+    isCompany: canOpen(role, 'company'),
     isLoading: query.isLoading,
+    isKnown: query.data !== undefined,
+    isUnavailable: query.isError && query.data === undefined,
+    retry: query.refetch,
   };
 }

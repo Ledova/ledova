@@ -30,6 +30,7 @@ it('keeps each page subtitle with its title', () => {
     path: '/wallets',
     title: 'Wallets',
     subtitle: 'Manage your digital asset wallets',
+    audience: 'everyone',
   });
 });
 

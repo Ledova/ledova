@@ -1,10 +1,10 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import type { ReactElement, ReactNode } from 'react';
-import { DESTINATIONS, landingFor, type DestinationKey } from '@ledova/shared';
+import { landingFor, type DestinationKey } from '@ledova/shared';
 import { useAuth, useFeatureFlags, useRole } from '@hooks';
 import NotFoundPage from '@pages/NotFound';
 import { RootRedirect } from './routes/RootRedirect';
-import { ProtectedRoute } from './routes/ProtectedRoute';
+import { signedInRoutes } from './routes/signedInRoutes';
 import HomePage from '@pages/home';
 
 import SignInPage from '@pages/signin';
@@ -50,9 +50,9 @@ interface RouteGuardProps {
 
 function TradingRoute() {
   const { tradingEnabled, isLoading } = useFeatureFlags();
-  const { role, isLoading: isRoleLoading } = useRole();
+  const { role } = useRole();
 
-  if (isLoading || isRoleLoading) {
+  if (isLoading) {
     return <LoadingSpinner />;
   }
 
@@ -91,9 +91,7 @@ const PAGES: Record<DestinationKey, ReactElement> = {
   settings: <SettingsPage />,
 };
 
-const SIGNED_IN_ROUTES = (Object.keys(PAGES) as DestinationKey[]).map((key) => (
-  <Route key={key} path={DESTINATIONS[key].path} element={<ProtectedRoute>{PAGES[key]}</ProtectedRoute>} />
-));
+const SIGNED_IN_ROUTES = signedInRoutes(PAGES);
 
 function App() {
   return (
