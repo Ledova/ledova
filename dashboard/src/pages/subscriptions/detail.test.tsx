@@ -3,6 +3,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { SUBSCRIPTION_COPY, SUBSCRIPTION_ENDPOINTS } from '@ledova/shared';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
@@ -126,14 +127,17 @@ it('leaves out a step whose date was never recorded, rather than guessing one', 
   ).toEqual(['Drafted', 'Payment instruction issued', 'Payment received']);
 });
 
-it('offers Submit for review and Withdraw on a draft, and submits it', async () => {
+it.each([
+  ['Submit for review', SUBSCRIPTION_ENDPOINTS.SUBMIT('application-1'), {}],
+  ['Withdraw', SUBSCRIPTION_ENDPOINTS.WITHDRAW('application-1'), { reason: 'Withdrawn by the investor' }],
+])('offers %s on a draft, and sends it where it says', async (label, endpoint, body) => {
   api.post.mockResolvedValue({ data: {} });
   show({ status: 'draft', statusDisplay: 'Draft', amountReceived: null, paymentReceivedOn: null });
 
-  fireEvent.click(await screen.findByRole('button', { name: 'Submit for review' }));
+  fireEvent.click(await screen.findByRole('button', { name: label }));
 
-  expect(screen.getByRole('button', { name: 'Withdraw' })).toBeTruthy();
-  await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
+  await waitFor(() => expect(api.post).toHaveBeenCalledWith(endpoint, body));
+  expect(api.post).toHaveBeenCalledOnce();
 });
 
 it('offers neither action once money has been received', async () => {
@@ -142,4 +146,35 @@ it('offers neither action once money has been received', async () => {
   await screen.findByText('Kestrel Foods Pty Ltd · Class A preference');
   expect(screen.queryByRole('button', { name: 'Submit for review' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Withdraw' })).toBeNull();
+});
+
+it.each([
+  ['draft', 'Draft'],
+  ['submitted', 'Under review by the operator'],
+  ['accepted', 'Accepted, payment instruction next'],
+  ['awaiting_payment', 'Awaiting your payment'],
+  ['paid', 'Payment received, allotment next'],
+  ['allotted', 'Shares allotted'],
+  ['rejected', 'Rejected'],
+  ['withdrawn', 'Withdrawn'],
+  ['refunded', 'Refunded'],
+])('says what a %s application is doing, in words', async (status, words) => {
+  show({ status });
+
+  await screen.findByText('Kestrel Foods Pty Ltd · Class A preference');
+  expect(row('Status')).toBe(words);
+});
+
+it.each([
+  ['awaiting_payment', true],
+  ['paid', true],
+  ['allotted', false],
+  ['refunded', false],
+  ['withdrawn', false],
+  ['rejected', false],
+])('says money in blocks a withdrawal only while the money is held: %s', async (status, shown) => {
+  show({ status });
+
+  await screen.findByText('Kestrel Foods Pty Ltd · Class A preference');
+  expect(screen.queryByText(SUBSCRIPTION_COPY.MONEY_IN_HELP) !== null).toBe(shown);
 });

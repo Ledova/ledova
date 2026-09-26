@@ -46,8 +46,7 @@ export const SUBSCRIPTION_COPY = {
   PAID_HELP:
     'The operator has confirmed your payment. Your shares are allotted on chain shortly afterwards and then ' +
     'appear in your portfolio.',
-  ALLOTTED_HELP: 'Your shares have been issued on chain. They appear in your portfolio alongside your other holdings.',
-  MONEY_IN_HELP: 'A subscription with money recorded against it cannot be withdrawn. Ask the operator for a refund.',
+  MONEY_IN_HELP: 'An application with money recorded against it cannot be withdrawn. Ask the operator for a refund.',
   NO_WALLET_TITLE: 'Add a verified Base wallet first',
   NO_WALLET_BODY:
     'Shares are issued to a wallet you control, so you need a verified wallet on Base before you can subscribe. ' +

@@ -142,6 +142,19 @@ class SubscriptionServiceTest(SubscriptionServiceTestCase):
         self.assertGreaterEqual(withdrawn.closed_at, before)
         self.assertIsNone(withdrawn.submitted_at)
 
+    def test_a_later_step_leaves_an_earlier_steps_time_alone(self):
+        subscription = draft_subscription(self.tenant)
+        submit(subscription, submitted_by=self.tenant.user)
+        subscription.refresh_from_db()
+        submitted_at = subscription.submitted_at
+
+        accept(subscription)
+        subscription.refresh_from_db()
+
+        self.assertIsNotNone(submitted_at)
+        self.assertEqual(subscription.submitted_at, submitted_at)
+        self.assertGreater(subscription.accepted_at, submitted_at)
+
     def test_allotment_records_when_it_happened(self):
         subscription = paid_subscription(self.tenant)
         before = timezone.now()

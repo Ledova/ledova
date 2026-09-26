@@ -25,13 +25,6 @@ export function formatCurrency(value?: number, options: FormatCurrencyOptions = 
   }).format(value);
 }
 
-export function formatAmount(value: string | number | null | undefined, currency: string): string {
-  const amount = typeof value === 'string' && value.trim() !== '' ? Number(value) : value;
-  if (typeof amount !== 'number' || !Number.isFinite(amount)) return '—';
-  const figures = new Intl.NumberFormat('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
-  return `${currency}\u00a0${figures}`;
-}
-
 export function formatCryptoBalance(balance: string | number, symbol: string, decimals: number = 8): string {
   const balanceNum = typeof balance === 'string' ? parseFloat(balance) : balance;
   if (balanceNum === 0) return `0 ${symbol}`;

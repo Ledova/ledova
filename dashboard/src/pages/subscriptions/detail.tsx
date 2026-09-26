@@ -4,7 +4,7 @@ import {
   SUBSCRIPTION_COPY,
   SUBSCRIPTION_SUBMITTABLE_STATUSES,
   SUBSCRIPTION_WITHDRAWABLE_STATUSES,
-  formatAmount,
+  formatMoney,
   formatShareCount,
   getErrorMessage,
 } from '@ledova/shared';
@@ -15,6 +15,7 @@ import { PaymentInstructionCard } from './PaymentInstructionCard';
 import { useSubscription } from './useSubscriptions';
 
 const ACTION_ERROR_FALLBACK = 'The request was refused. Please try again.';
+const MONEY_HELD = ['awaiting_payment', 'paid'];
 
 const STATUS: Record<string, { words: string; tone: Tone }> = {
   draft: { words: 'Draft', tone: 'waiting' },
@@ -52,7 +53,7 @@ function history(subscription: SubscriptionDetail): TimelineEvent[] {
 
 function Summary({ subscription }: { subscription: SubscriptionDetail }) {
   const status = STATUS[subscription.status] ?? { words: subscription.statusDisplay, tone: 'moving' as Tone };
-  const amount = (value: string | null | undefined) => formatAmount(value, subscription.currency);
+  const amount = (value: string) => formatMoney(value, subscription.currency);
   return (
     <Section title={`${subscription.companyName} · ${subscription.tokenName}`}>
       <Rows>
@@ -142,7 +143,7 @@ export default function SubscriptionDetailPage() {
       <Section title="History">
         <Timeline events={history(subscription)} />
         {next && <p className="pt-1 text-sm text-text-secondary">Next: {next}</p>}
-        {subscription.amountReceived && !canWithdraw && (
+        {MONEY_HELD.includes(subscription.status) && subscription.amountReceived && (
           <p className="text-sm text-text-muted">{SUBSCRIPTION_COPY.MONEY_IN_HELP}</p>
         )}
       </Section>

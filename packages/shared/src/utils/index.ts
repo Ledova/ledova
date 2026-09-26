@@ -10,7 +10,6 @@ export {
   type DateRange,
 } from './date';
 export {
-  formatAmount,
   formatCurrency,
   type FormatCurrencyOptions,
   formatCryptoBalance,
