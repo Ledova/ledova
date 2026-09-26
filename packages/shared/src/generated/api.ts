@@ -4800,12 +4800,16 @@ export interface ApiComponents {
       wallet: string;
     };
     SubscriptionDetail: {
+      acceptedAt: string | null;
+      allottedAt: string | null;
       allottedQuantity: number | null;
       amountDue: string;
       amountOutstanding: string;
       amountReceived: string | null;
+      closedAt: string | null;
       companyName: string;
       createdAt: string;
+      currency: string;
       offeringUuid: string;
       paymentDueAt: string | null;
       paymentInstruction: ApiComponents['schemas']['PaymentInstruction'] | null;
@@ -4826,6 +4830,7 @@ export interface ApiComponents {
       settlementRailDisplay: string;
       status: ApiComponents['schemas']['SubscriptionStatusEnum'];
       statusDisplay: string;
+      submittedAt: string | null;
       tokenName: string;
       tokenSymbol: string;
       updatedAt: string;
@@ -4838,6 +4843,7 @@ export interface ApiComponents {
       amountReceived: string | null;
       companyName: string;
       createdAt: string;
+      currency: string;
       offeringUuid: string;
       paymentDueAt: string | null;
       pricePerShare: string;

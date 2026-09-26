@@ -190,3 +190,27 @@ describe('the groups the sidebar shows', () => {
     expect(screen.getAllByRole('button', { current: 'page' }).map((item) => item.textContent)).toEqual(['Directory']);
   });
 });
+
+describe('the page the sidebar marks as current', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.get.mockResolvedValue({ data: { results: [], count: 0, next: null, previous: null } });
+  });
+  afterEach(cleanup);
+
+  const current = () =>
+    screen
+      .queryAllByRole('button')
+      .filter((button) => button.getAttribute('aria-current') === 'page')
+      .map((button) => button.textContent);
+
+  it('marks Applications while one application is open', () => {
+    show('investor', '/subscriptions/7f1c2a9e');
+    expect(current()).toEqual(['Applications']);
+  });
+
+  it('marks Company on its nested application page', () => {
+    show('company', '/company/listing');
+    expect(current()).toEqual(['Company']);
+  });
+});
