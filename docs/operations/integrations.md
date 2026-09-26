@@ -176,14 +176,31 @@ There is no manual registry override or stale-pass fallback.
 
 ## Notifications and push
 
-Transaction confirmed and failed events, the KYC review outcome and every
-company application transition defer
-`users.tasks.notifications.send_push_notification`, which is what writes the
-`Notification` row (`users/tasks/notifications.py`). A company transition
-records nothing at transition time: `companies/services/company.py` only defers
-the job. The in-app inbox (the dashboard bell, the mobile inbox) therefore needs
-a running Procrastinate worker — with no worker the transition succeeds and the
-inbox stays empty until one drains the queue.
+Every `Notification` row is written by `NotificationService.notify_user`
+(`users/services/notifications.py`), from one of two tasks in
+`users/tasks/notifications.py`:
+- confirmed and failed transactions defer `send_transaction_notification`;
+- every other sender defers `send_push_notification`.
+
+A sender records nothing when its change happens; it only defers the job. The
+in-app inbox (the dashboard bell, the mobile inbox) therefore needs a running
+Procrastinate worker. With no worker, the change succeeds and the inbox stays
+empty until a worker drains the queue.
+
+Each notice names its kind as `type` in its `data`, and the dashboard bell opens
+that kind's page:
+
+| Kind (`data.type`) | Sent by | The bell opens |
+| --- | --- | --- |
+| `company` | `companies/services/company.py`, on each notified application transition | Application |
+| `offering` | `offerings/services/offering.py`, on each notified offering transition | Offerings |
+| `publication` | `shareholders/services/publications.py`, when a publication is announced | Notices |
+| `transaction` | `wallets/services/transaction_confirmation.py`, when a transaction is confirmed or fails | Activity |
+| `identity` | `users/services/identity.py`, when the identity check's result changes | Profile |
+
+A notice of any other kind stays where it is. That includes identity notices
+sent before they carried a type. The mobile inbox opens only publication
+notices.
 
 Company transitions notify the owner as: submit, resubmit, start_review,
 request_info (carrying the reason), approve, reject (carrying the reason),

@@ -108,7 +108,10 @@ class IdentityVerificationApprovalTest(TestCase):
         )
         rows = Notification.objects.filter(user=profile.user, notification_type="general").order_by("created_at")
         self.assertEqual([row.title for row in rows], ["Verification needs attention", "Identity verified"])
-        self.assertEqual([row.data["type"] for row in rows], ["identity", "identity"])
+        self.assertEqual(
+            [row.data for row in rows],
+            [{"type": "identity", "event": "YELLOW"}, {"type": "identity", "event": "GREEN"}],
+        )
 
     def test_outcome_bodies_never_tell_the_reader_to_open_the_app_from_inside_a_push(self):
         for result, (title, body) in REVIEW_OUTCOME_MESSAGES.items():

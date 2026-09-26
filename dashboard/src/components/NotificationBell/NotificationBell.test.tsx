@@ -115,6 +115,7 @@ describe('every kind of notice opens its own page', () => {
 
     expect(await screen.findByText(page)).toBeTruthy();
     await waitFor(() => expect(screen.queryByText(`A ${type} notice`)).toBeNull());
+    await waitFor(() => expect(patch).toHaveBeenCalledWith(`/api/notifications/${published.uuid}/`, { is_read: true }));
   });
 });
 
