@@ -44,7 +44,14 @@ address. Every page shows the session check until the profile is known, and an
 investing or company page until the role is known as well, so no page appears
 on the way. If the account cannot be read, it says so and offers Try again
 instead of deciding with a guessed role. Once the role is known, the sidebar
-offers only pages the role can open. Signing in, and verifying an email, which
+offers only pages the role can open, in groups: a company's own group first,
+named after the company; _Your shares_ for every account; _Invest_ for an
+investing account, with Market only while trading is on; then Wallets, Profile,
+Settings and Help. Each item takes its name and address from its entry in
+`DESTINATIONS`, so a menu label always matches the page's title. Until a new
+page exists, its name points at today's page: Holdings at the crypto home,
+Notices at Publications, Activity at Transactions. Signing in, and verifying an
+email, which
 also signs a new person in, clear what the tab cached for whoever was signed in
 before, as signing out does, so a new person is never guarded by, or signs up
 against, the previous person's account. Buying crypto and sending are actions on
