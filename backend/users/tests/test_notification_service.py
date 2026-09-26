@@ -77,3 +77,16 @@ class NotificationServicePreferencesTest(TestCase):
         self.assertEqual(result["status"], "skipped")
         self.assertEqual(Notification.objects.filter(user=user, notification_type="transaction").count(), 1)
         self.service.expo_client.send_batch.assert_not_called()
+
+    def test_muting_transaction_alerts_leaves_every_other_kind_pushing(self):
+        user = User.objects.create_user(email="muted-general@example.test", password="pw-12345678")
+        NotificationPreferences.objects.create(
+            user_profile=UserProfile.objects.create(user=user), transaction_alerts=False
+        )
+        DeviceToken.objects.create(user=user, push_token="ExponentPushToken[general]", device_type="ios")
+        self.service.expo_client = Mock(send_batch=Mock(return_value=[{"status": "ok"}]))
+
+        result = self.service.notify_user(user, "title", "body", notification_type="general")
+
+        self.assertEqual(result["status"], "sent")
+        self.service.expo_client.send_batch.assert_called_once()
