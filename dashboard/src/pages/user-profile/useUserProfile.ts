@@ -2,13 +2,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getUserProfiles, updateUserProfile, CACHE_TIMING } from '@ledova/shared';
 import type { UpdateUserProfile } from '@ledova/shared';
 import apiClient from '@services/apiClient';
+import { useAuth } from '@hooks/useAuth';
 
 export function useUserProfile() {
   const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
 
   const userProfileQuery = useQuery({
     queryKey: ['userProfiles'],
     queryFn: () => getUserProfiles(apiClient),
+    enabled: isAuthenticated,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
   });

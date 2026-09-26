@@ -8,13 +8,16 @@ import { DESTINATIONS, type AccountRole, type DestinationKey } from '@ledova/sha
 
 import { useAuth } from '@hooks/useAuth';
 import { useRole } from '@hooks/useRole';
+import { useUserProfile } from '@pages/user-profile/useUserProfile';
 import { signedInRoutes } from './signedInRoutes';
 
 vi.mock('@hooks/useAuth', () => ({ useAuth: vi.fn() }));
 vi.mock('@hooks/useRole', () => ({ useRole: vi.fn() }));
+vi.mock('@pages/user-profile/useUserProfile', () => ({ useUserProfile: vi.fn() }));
 
 const useAuthMock = vi.mocked(useAuth);
 const useRoleMock = vi.mocked(useRole);
+const useUserProfileMock = vi.mocked(useUserProfile);
 
 function Page({ name }: { name: string }) {
   return <p data-arrived-by={useNavigationType()}>{name}</p>;
@@ -35,7 +38,14 @@ const retry = vi.fn();
 function open(
   key: DestinationKey,
   role: AccountRole,
-  { roleLoading = false, roleUnavailable = false, signedIn = true } = {},
+  {
+    roleLoading = false,
+    roleUnavailable = false,
+    signedIn = true,
+    signupFinished = true,
+    profileLoading = false,
+    profileFailed = false,
+  } = {},
 ) {
   useAuthMock.mockReturnValue({ isAuthenticated: signedIn, isLoading: false, isFetching: false } as ReturnType<
     typeof useAuth
@@ -47,11 +57,18 @@ function open(
     isUnavailable: roleUnavailable,
     retry,
   } as unknown as ReturnType<typeof useRole>);
+  useUserProfileMock.mockReturnValue({
+    userProfile: profileLoading || profileFailed ? null : { isSignupCompleted: signupFinished },
+    isLoading: profileLoading,
+    isError: profileFailed,
+    refreshProfile: vi.fn(),
+  } as unknown as ReturnType<typeof useUserProfile>);
   render(
     <MemoryRouter initialEntries={[addressOf(key)]}>
       <Routes>
         {signedInRoutes(PAGES)}
         <Route path="/signin" element={<Page name="signin" />} />
+        <Route path="/signup/account-type" element={<Page name="signup" />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -150,5 +167,26 @@ describe('which signed-in pages an account can open', () => {
   it('still sends a signed-out visitor to sign in', () => {
     open('company', 'investor', { signedIn: false });
     expect(sentTo('signin')).toBe(true);
+  });
+
+  it.each(KEYS)('sends an account that has not finished sign-up from %s back into sign-up', (key) => {
+    open(key, 'both', { signupFinished: false });
+    expect(sentTo('signup')).toBe(true);
+    expect(screen.queryByText(key)).toBeNull();
+  });
+
+  it('shows an account whose profile could not be read an error, and does not send it into sign-up', () => {
+    open('home', 'investor', { profileFailed: true });
+    expect(screen.getByRole('alert')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
+    expect(screen.queryByText('home')).toBeNull();
+    expect(screen.queryByText('signup')).toBeNull();
+  });
+
+  it('shows the session check on a page for everyone until the profile says whether sign-up is finished', () => {
+    open('wallets', 'investor', { profileLoading: true });
+    expect(screen.getByRole('status', { name: 'Checking your session' })).toBeTruthy();
+    expect(screen.queryByText('wallets')).toBeNull();
+    expect(screen.queryByText('signup')).toBeNull();
   });
 });

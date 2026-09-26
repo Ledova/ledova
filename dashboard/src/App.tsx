@@ -5,6 +5,7 @@ import { useAuth, useFeatureFlags, useRole } from '@hooks';
 import NotFoundPage from '@pages/NotFound';
 import { RootRedirect } from './routes/RootRedirect';
 import { signedInRoutes } from './routes/signedInRoutes';
+import { signupRoutes } from './routes/signupRoutes';
 import HomePage from '@pages/home';
 
 import SignInPage from '@pages/signin';
@@ -93,6 +94,17 @@ const PAGES: Record<DestinationKey, ReactElement> = {
 
 const SIGNED_IN_ROUTES = signedInRoutes(PAGES);
 
+const SIGNUP_ROUTES = signupRoutes({
+  '/signup/email-confirmation': <SignupEmailConfirmation />,
+  '/signup/account-type': <SignupAccountType />,
+  '/signup/pre-screening': <SignupPreScreening />,
+  '/signup/identity-verification': <SignupIdentityVerification />,
+  '/signup/user-profile': <SignupUserProfile />,
+  '/signup/financial-profile': <SignupFinancialProfile />,
+  '/signup/company-registration': <SignupCompanyRegistration />,
+  '/signup/review': <SignupReview />,
+});
+
 function App() {
   return (
     <Layout>
@@ -116,14 +128,7 @@ function App() {
             </PublicOnlyRoute>
           }
         />
-        <Route path="/signup/email-confirmation" element={<SignupEmailConfirmation />} />
-        <Route path="/signup/account-type" element={<SignupAccountType />} />
-        <Route path="/signup/pre-screening" element={<SignupPreScreening />} />
-        <Route path="/signup/identity-verification" element={<SignupIdentityVerification />} />
-        <Route path="/signup/user-profile" element={<SignupUserProfile />} />
-        <Route path="/signup/financial-profile" element={<SignupFinancialProfile />} />
-        <Route path="/signup/company-registration" element={<SignupCompanyRegistration />} />
-        <Route path="/signup/review" element={<SignupReview />} />
+        {SIGNUP_ROUTES}
 
         {SIGNED_IN_ROUTES}
 

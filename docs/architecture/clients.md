@@ -34,21 +34,46 @@ pages included. The audience is `everyone`, `investing` or `company`, and
 everyone and for investing, a company those for everyone and for companies, and
 a dual-role account all of them. Every signed-in route is guarded by
 `ProtectedRoute` with its entry's audience. A signed-out visitor goes to sign
-in; a signed-in person who cannot open the page goes to `landingFor(role)`,
-which replaces the refused address. On an investing or company page the guard
-shows the session check until the role is known, so no page appears on the
-way. If the account cannot be read, it says so and offers Try again instead of
-deciding with a guessed role. A page for everyone opens without waiting. Once
-the role is known, the sidebar offers only pages the role can open. Signing in
-clears what the tab cached for whoever was signed in before, as signing out
-does, so a new person is never guarded by the previous person's role. The guard decides pages, not data: the API still decides
-which rows a person sees, and answers 404 for one it refuses.
+in. Email verification issues a full session before sign-up is finished, so a
+signed-in account whose profile does not say `isSignupCompleted` goes back to
+the account-type step, the first after email verification; the later steps
+fill their forms from what was saved. A signed-in account whose profile cannot
+be read sees an error with a way to try again, not a guess. A signed-in person
+who cannot open the page goes to `landingFor(role)`, which replaces the refused
+address. Every page shows the session check until the profile is known, and an
+investing or company page until the role is known as well, so no page appears
+on the way. If the account cannot be read, it says so and offers Try again
+instead of deciding with a guessed role. Once the role is known, the sidebar
+offers only pages the role can open. Signing in, and verifying an email, which
+also signs a new person in, clear what the tab cached for whoever was signed in
+before, as signing out does, so a new person is never guarded by, or signs up
+against, the previous person's account. The guard decides pages, not data: the
+API still decides which rows a person sees, and answers 404 for one it refuses.
 `landingFor(role)` decides where a signed-in person lands: an investing account
 on its home, and a company or dual-role account on its company. The front door,
 sign-in, the end of sign-up, the signed-out pages and the trading fallback all
 use it; the front door and the signed-out pages wait for the role before
 choosing, and the trading fallback runs behind the guard, which has already
-waited for it.
+waited for it. The eight steps after the create-account form are listed once,
+in `SIGNUP_STEPS` (`dashboard/src/routes/signupRoutes.tsx`), and `signupRoutes`
+places every one inside `SignupRoute`: an account that has finished sign-up
+goes to `landingFor(role)` instead of reopening one, while an account still
+signing up and a signed-out visitor move through them as before. Email
+verification refreshes the session answer before it moves on, as sign-in does,
+so in the in-app flow the steps read the profile once, before any form, and a
+later recheck of the session does not take away a step being filled in. One case
+remains: if the session check itself fails as a step loads and succeeds on a
+later recheck, the step is replaced while the profile loads, and what was typed
+into it is lost.
+The signed-in frame (sidebar and headers) appears only for a signed-in account
+that has finished sign-up, which `useSignupFinished` decides; sign-in, sign-up
+and everything else use the public layout. Since the sidebar's Sign Out is not
+shown there, the public layout gives any signed-in visitor a Sign out button in
+its header, through `AuthLayoutAction`, so an account still signing up can
+always leave. The not-found page reads the same
+decision: inside the frame with a link to `landingFor(role)` for a finished
+account, and otherwise in the public layout with a link to sign in, or, for an
+account still signing up, back into sign-up.
 The mobile app does not read the table yet.
 
 The design tokens are the single source of colour, spacing and radius values.

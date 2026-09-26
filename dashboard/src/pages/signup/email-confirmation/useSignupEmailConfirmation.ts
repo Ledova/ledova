@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   verifyEmail,
   resendVerificationCode,
@@ -8,9 +9,11 @@ import {
   EMAIL_CONFIRMATION_VALIDATION,
   describeFailure,
 } from '@ledova/shared';
+import { AUTH_QUERY_KEY } from '@hooks/useAuth';
 import apiClient from '@services/apiClient';
 
 export const useSignupEmailConfirmation = () => {
+  const queryClient = useQueryClient();
   const [email] = useState(() => localStorage.getItem('signup_email') || '');
   const [verificationCode, setVerificationCode] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
@@ -40,6 +43,9 @@ export const useSignupEmailConfirmation = () => {
       });
 
       localStorage.removeItem('signup_email');
+
+      queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== AUTH_QUERY_KEY[0] });
+      await queryClient.refetchQueries({ queryKey: AUTH_QUERY_KEY, exact: true });
 
       onSuccess();
     } catch (error: unknown) {

@@ -23,9 +23,10 @@ test.describe('the built dashboard serves its unauthenticated routes', () => {
     await page.screenshot({ path: 'test-results/signin.png', fullPage: true });
   });
 
-  test('an unknown route renders the not-found page rather than a blank body', async ({ page }) => {
+  test('an unknown route renders the not-found page with a way to sign in', async ({ page }) => {
     await page.goto('/this-route-does-not-exist');
-    await expect(page.locator('body')).not.toBeEmpty();
+    await expect(page.getByRole('heading', { name: 'There is no page at this address' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/signin');
     await page.screenshot({ path: 'test-results/not-found.png', fullPage: true });
   });
 

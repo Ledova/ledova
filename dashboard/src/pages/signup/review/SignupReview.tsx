@@ -22,8 +22,18 @@ function displayCompanyType(companyType: string | undefined) {
 
 export function SignupReview() {
   const navigate = useNavigate();
-  const { data, company, signupRole, isLoading, error, completeSignup, isSubmitting, canCompleteSignup, retryLoad } =
-    useReview();
+  const {
+    data,
+    company,
+    signupRole,
+    isLoading,
+    error,
+    completionError,
+    completeSignup,
+    isSubmitting,
+    canCompleteSignup,
+    retryLoad,
+  } = useReview();
 
   const handleBack = () => {
     if (signupRole === 'company') {
@@ -218,6 +228,11 @@ export function SignupReview() {
             {!canCompleteSignup && (
               <p className="text-sm text-error-light text-center mb-4">
                 Please ensure all information is complete to proceed.
+              </p>
+            )}
+            {completionError && (
+              <p role="alert" className="text-sm text-error-light text-center mb-4">
+                {completionError}
               </p>
             )}
             <button

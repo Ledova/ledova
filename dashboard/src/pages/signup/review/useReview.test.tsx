@@ -3,7 +3,7 @@
 import type { PropsWithChildren } from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { getCompanies, updateUserProfileCompletion } from '@ledova/shared';
+import { getCompanies, getUserProfiles, updateUserProfileCompletion } from '@ledova/shared';
 import { AUTH_QUERY_KEY } from '@hooks/useAuth';
 import { useRole } from '@hooks/useRole';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -22,7 +22,7 @@ vi.mock('@ledova/shared', async (importOriginal) => ({
 
 vi.mock('@hooks/useRole', () => ({ useRole: vi.fn(() => ({ role: 'investor' })) }));
 
-import { useReview } from './useReview';
+import { COMPLETION_FAILED, useReview } from './useReview';
 
 let queryClient: QueryClient | undefined;
 
@@ -64,7 +64,7 @@ describe('the last click of signup', () => {
     act(() => result.current.completeSignup());
 
     await waitFor(() => expect(navigate).toHaveBeenCalled());
-    expect(refetch).toHaveBeenCalledWith({ queryKey: AUTH_QUERY_KEY, exact: true });
+    expect(refetch).toHaveBeenCalledWith({ queryKey: AUTH_QUERY_KEY, exact: true }, { throwOnError: true });
   });
 
   it('does not navigate until that answer is back, so the guard cannot read a stale one', async () => {
@@ -88,6 +88,71 @@ describe('the last click of signup', () => {
     });
 
     await waitFor(() => expect(navigate).toHaveBeenCalledWith('/home'));
+  });
+
+  it('does not navigate until the profile the guard reads says sign-up is finished', async () => {
+    let finish: () => void = () => {};
+    vi.mocked(getUserProfiles)
+      .mockClear()
+      .mockResolvedValueOnce({ data: { results: [{ uuid: 'profile-1' }] } } as Awaited<
+        ReturnType<typeof getUserProfiles>
+      >)
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          finish = () =>
+            resolve({ data: { results: [{ uuid: 'profile-1', isSignupCompleted: true }] } } as Awaited<
+              ReturnType<typeof getUserProfiles>
+            >);
+        }),
+      );
+    const { client, wrapper } = harness();
+    const { result } = renderHook(() => useReview(), { wrapper });
+    await waitFor(() => expect(result.current.canCompleteSignup).toBe(true));
+
+    act(() => result.current.completeSignup());
+    await waitFor(() => expect(vi.mocked(getUserProfiles)).toHaveBeenCalledTimes(2));
+
+    expect(navigate).not.toHaveBeenCalled();
+
+    await act(async () => finish());
+
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/home'));
+    expect(client.getQueryData(['userProfiles'])).toEqual({
+      data: { results: [{ uuid: 'profile-1', isSignupCompleted: true }] },
+    });
+  });
+
+  it('stays on the review when the refreshed profile cannot be read, so the guard does not read the old one', async () => {
+    vi.mocked(getUserProfiles)
+      .mockClear()
+      .mockResolvedValueOnce({ data: { results: [{ uuid: 'profile-1' }] } } as Awaited<
+        ReturnType<typeof getUserProfiles>
+      >)
+      .mockRejectedValueOnce(new Error('Network unavailable'));
+    const { wrapper } = harness();
+    const { result } = renderHook(() => useReview(), { wrapper });
+    await waitFor(() => expect(result.current.canCompleteSignup).toBe(true));
+
+    act(() => result.current.completeSignup());
+
+    await waitFor(() => expect(result.current.error).toBe('Network unavailable'));
+    await waitFor(() => expect(result.current.isSubmitting).toBe(false));
+    expect(vi.mocked(getUserProfiles)).toHaveBeenCalledTimes(2);
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('says so on the review when the session cannot be checked again, so the person can retry', async () => {
+    const { client, wrapper } = harness();
+    vi.spyOn(client, 'refetchQueries').mockRejectedValue(new Error('Network unavailable'));
+    const { result } = renderHook(() => useReview(), { wrapper });
+    await waitFor(() => expect(result.current.canCompleteSignup).toBe(true));
+
+    act(() => result.current.completeSignup());
+
+    await waitFor(() => expect(result.current.completionError).toBe(COMPLETION_FAILED));
+    expect(result.current.isSubmitting).toBe(false);
+    expect(result.current.canCompleteSignup).toBe(true);
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it.each([
