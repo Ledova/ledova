@@ -26,7 +26,7 @@ jobs:
           fetch-depth: 0
       - name: Classify the complete pull-request or push change
         id: scope
-        run: python3 scripts/native-build-scope.py route
+        run: python3 scripts/ci-scope.py route native
 
   android:
     name: Android Release and native probe
@@ -185,5 +185,5 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Require successful routing and the expected native outcomes
         env:
-          NATIVE_JOB_RESULTS: ${{ toJSON(needs) }}
-        run: python3 scripts/native-build-scope.py verdict
+          JOB_RESULTS: ${{ toJSON(needs) }}
+        run: python3 scripts/ci-scope.py verdict native

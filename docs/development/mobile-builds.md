@@ -64,17 +64,25 @@ change includes one of these inputs:
 - Root `package.json`, `package-lock.json`, `npm-shrinkwrap.json` or `.npmrc`,
   and `dashboard/package.json`: the native jobs install the root workspace
   dependency graph before installing mobile dependencies.
-- `.gitattributes`, which can affect checked-out source and assets.
-- `.github/workflows/mobile-native.yml`, `scripts/native-build-scope.py` or
-  `scripts/tests/test_native_build_scope.py`.
+- Any `.gitattributes`, which can change how the files beside it are checked out.
+- `.github/workflows/mobile-native.yml`, `scripts/ci-scope.py` or
+  `scripts/tests/test_ci_scope.py`. The script also decides whether a change
+  runs the Django jobs, so a change to either decision builds both platforms.
 
 Other paths, including backend, dashboard application code, marketing and
 documentation, skip both native builds. Ordinary CI still runs. The router
-compares the full PR base-to-head range or the full push before-to-after range,
-including deleted and renamed inputs. A verified empty diff skips; unavailable
-or malformed comparisons, a PR base ahead of its branch, and non-ancestor push
-ranges conservatively run both platforms. Manual runs always build both and can
-check external tool or dependency drift without a mobile change.
+compares a pull request's head with the base commit its event records, or the
+full push before-to-after range, including deleted and renamed inputs. GitHub
+can leave a pull request's recorded base at the branch point after `main` moves,
+which still covers every file the pull request changes. A verified empty diff
+skips. These run both platforms, to be safe:
+
+- an unavailable or malformed comparison;
+- a recorded base that is not an ancestor of the head;
+- a push range whose start is not an ancestor of its end.
+
+Manual runs always build both, and can check external tool or dependency drift
+without a mobile change.
 
 The lightweight scope job and `Mobile native checks` verdict always run. The
 verdict requires successful classification and the expected platform results;

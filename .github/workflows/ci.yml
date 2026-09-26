@@ -116,8 +116,24 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  scope:
+    name: Determine Django scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      required: ${{ steps.scope.outputs.required }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Classify the complete pull-request change
+        id: scope
+        run: python3 scripts/ci-scope.py route django
+
   backend-suite-shard:
     name: Django ordinary shard (${{ matrix.shard }})
+    needs: scope
+    if: needs.scope.outputs.required == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -161,20 +177,21 @@ jobs:
         run: python ../scripts/check-ordinary-shards.py --run ${{ matrix.shard }}
 
   backend-suite:
-    name: Django ordinary suite
-    needs: backend-suite-shard
+    name: Django verdict
+    needs: [scope, backend-suite-shard, backend]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Every shard succeeded
+      - uses: actions/checkout@v7
+      - name: Every Django job succeeded, or the change needs none
         env:
-          RESULT: ${{ needs.backend-suite-shard.result }}
-        run: |
-          echo "Django ordinary shards: $RESULT"
-          test "$RESULT" = success
+          JOB_RESULTS: ${{ toJSON(needs) }}
+        run: python3 scripts/ci-scope.py verdict django
 
   backend:
     name: Django checks & tests
+    needs: scope
+    if: needs.scope.outputs.required == 'true'
     runs-on: ubuntu-latest
     env:
       SECRET_KEY: ci-only

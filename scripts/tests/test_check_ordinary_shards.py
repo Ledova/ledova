@@ -138,6 +138,15 @@ class EveryPatternSelectsATest(unittest.TestCase):
     def test_a_pattern_without_a_star_is_widened_as_django_widens_it(self):
         self.assertEqual(gate.unused_pattern_findings({"others": ["test_sync"]}, {"others": WALLETS}), [])
 
+    def test_a_pattern_with_a_star_is_matched_as_written_and_by_case(self):
+        self.assertEqual(
+            gate.unused_pattern_findings({"others": ["tests.test_sync*", "Wallets.*"]}, {"others": WALLETS}),
+            [
+                "pattern tests.test_sync* in shard others selects no test",
+                "pattern Wallets.* in shard others selects no test",
+            ],
+        )
+
 
 class EachShardIsTheUnlabelledSuiteSelectedByItsPatterns(unittest.TestCase):
     def test_a_module_no_pattern_selects_is_in_no_shard(self):

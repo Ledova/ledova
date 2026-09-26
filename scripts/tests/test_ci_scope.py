@@ -8,13 +8,13 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-SCRIPT = Path(__file__).resolve().parents[1] / "native-build-scope.py"
-SPEC = importlib.util.spec_from_file_location("native_build_scope", SCRIPT)
+SCRIPT = Path(__file__).resolve().parents[1] / "ci-scope.py"
+SPEC = importlib.util.spec_from_file_location("ci_scope", SCRIPT)
 SCOPE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(SCOPE)
 
 
-class NativeBuildScopeTest(unittest.TestCase):
+class ScopeCase(unittest.TestCase):
     def setUp(self):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
@@ -44,19 +44,17 @@ class NativeBuildScopeTest(unittest.TestCase):
         self.git("commit", "--quiet", "--allow-empty", "-m", "Fixture")
         return self.git("rev-parse", "HEAD")
 
-    def decision(self, head, base=None, event="pull_request"):
+    def decision(self, head, base=None, event="pull_request", scope="native"):
         base = self.base if base is None else base
         payload = (
             {"before": base, "after": head}
             if event == "push"
             else {"pull_request": {"base": {"sha": base}, "head": {"sha": head}}}
         )
-        return SCOPE.native_scope(
-            event,
-            payload,
-            self.repository,
-        )
+        return SCOPE.SCOPES[scope](event, payload, self.repository)
 
+
+class NativeBuildScopeTest(ScopeCase):
     def test_backend_and_docs_additions_modifications_deletions_skip(self):
         head = self.commit({"backend/new.py": "new", "docs/guide.md": "updated"}, removed=("backend/base.py",))
         self.assertEqual(self.decision(head)["required"], False)
@@ -69,14 +67,16 @@ class NativeBuildScopeTest(unittest.TestCase):
             "npm-shrinkwrap.json",
             "dashboard/package.json",
             ".gitattributes",
+            "dashboard/.gitattributes",
+            "docs/.gitattributes",
             ".npmrc",
             "packages/shared/src/index.ts",
             "mobile/assets/icon.png",
             "mobile/app.json",
             "mobile/plugins/withMobileSecurity.cjs",
             "mobile/native-tests/index.tsx",
-            "scripts/native-build-scope.py",
-            "scripts/tests/test_native_build_scope.py",
+            "scripts/ci-scope.py",
+            "scripts/tests/test_ci_scope.py",
             ".github/workflows/mobile-native.yml",
         )
         for path in paths:
@@ -105,7 +105,7 @@ class NativeBuildScopeTest(unittest.TestCase):
             "backend-other/file.py",
             "mobile-other/file.ts",
             "packages/shared-other/file.ts",
-            "scripts/native-build-scope.py.txt",
+            "scripts/ci-scope.py.txt",
             "nested/package.json",
         )
         for path in paths:
@@ -261,6 +261,7 @@ class NativeBuildScopeTest(unittest.TestCase):
                         sys.executable,
                         str(SCRIPT),
                         "route",
+                        "native",
                         "--event",
                         event_name,
                         "--event-file",
@@ -277,6 +278,116 @@ class NativeBuildScopeTest(unittest.TestCase):
                 self.assertEqual(output.read_text(), "required=false\n")
 
 
+class DjangoScopeTest(ScopeCase):
+    CLIENT_AND_DOCUMENTATION = (
+        "dashboard/src/index.tsx",
+        "dashboard/package.json",
+        "marketing/index.html",
+        "mobile/app.ts",
+        "packages/shared/src/index.ts",
+        "docs/guide.md",
+        "docs/architecture/new.md",
+    )
+
+    def test_a_pull_request_changing_only_client_code_and_documentation_skips_django(self):
+        head = self.commit(dict.fromkeys(self.CLIENT_AND_DOCUMENTATION, "changed"), removed=("mobile/app.ts",))
+
+        decision = self.decision(head, scope="django")
+
+        self.assertEqual((decision["required"], decision["changed_files"]), (False, 7))
+
+    def test_a_pull_request_changing_any_other_path_runs_django(self):
+        paths = (
+            "backend/new.py",
+            "contracts/contracts/AUDY.sol",
+            "scripts/check-docs.py",
+            ".github/workflows/ci.yml",
+            ".github/ordinary-suite-shards.json",
+            "docker-compose.yml",
+            "Makefile",
+            "package.json",
+            "README.md",
+            "dashboard-other/file.ts",
+            "docs-other/file.md",
+            "packagesfile.ts",
+        )
+        for path in paths:
+            with self.subTest(path=path):
+                head = self.commit({"dashboard/src/index.tsx": "changed", path: "changed"})
+                self.assertTrue(self.decision(head, scope="django")["required"])
+                self.git("reset", "--hard", self.base)
+
+    def test_a_document_a_backend_file_names_runs_django_when_it_changes(self):
+        named = self.commit(
+            {
+                "backend/shared/management/commands/rule.py": 'RULE = "docs/architecture/tenancy.md"\n',
+                "backend/.env.example": "# Upload limits: docs/operations/uploads.md\n",
+            }
+        )
+        self.commit({"docs/architecture/tenancy.md": "# Tenancy model\n", "docs/operations/uploads.md": "# Uploads\n"})
+        edited = self.commit({"docs/architecture/tenancy.md": "# Tenancy\n"})
+        uploads = self.commit({"docs/operations/uploads.md": "# Upload limits\n"})
+        removed = self.commit({}, removed=("docs/architecture/tenancy.md",))
+        other = self.commit({"docs/guide.md": "updated"})
+
+        for base, head, required in (
+            (named, edited, True),
+            (edited, uploads, True),
+            (uploads, removed, True),
+            (removed, other, False),
+        ):
+            with self.subTest(head=head):
+                self.assertEqual(self.decision(head, base=base, scope="django")["required"], required)
+
+    def test_a_gitattributes_anywhere_runs_django_since_it_changes_how_files_check_out(self):
+        for path in ("docs/architecture/.gitattributes", "dashboard/.gitattributes", "docs/.gitattributes"):
+            with self.subTest(path=path):
+                head = self.commit({path: "tenancy.md working-tree-encoding=UTF-7\n"})
+                self.assertTrue(self.decision(head, scope="django")["required"])
+                self.git("reset", "--hard", self.base)
+
+    def test_every_push_and_manual_run_tests_django_whatever_changed(self):
+        head = self.commit({"docs/guide.md": "updated"})
+        self.assertFalse(self.decision(head, scope="django")["required"])
+        for event in ("push", "workflow_dispatch", None):
+            with self.subTest(event=event):
+                self.assertTrue(self.decision(head, event=event, scope="django")["required"])
+
+    def test_an_unavailable_comparison_runs_django(self):
+        head = self.commit({"docs/guide.md": "updated"})
+        self.git("checkout", "--detach", self.base)
+        advanced_base = self.commit({"dashboard/src/index.tsx": "new base"})
+        for payload in (None, {}, {"pull_request": {"base": {"sha": advanced_base}, "head": {"sha": head}}}):
+            with self.subTest(payload=payload):
+                self.assertTrue(SCOPE.django_scope("pull_request", payload, self.repository)["required"])
+
+    def test_route_cli_writes_the_django_decision(self):
+        head = self.commit({"docs/new.md": "guide"})
+        event = self.repository / "pull-request-event.json"
+        event.write_text(json.dumps({"pull_request": {"base": {"sha": self.base}, "head": {"sha": head}}}))
+        output = self.repository / "github-output"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPT),
+                "route",
+                "django",
+                "--event",
+                "pull_request",
+                "--event-file",
+                str(event),
+                "--repository",
+                str(self.repository),
+            ],
+            env={**os.environ, "GITHUB_OUTPUT": str(output)},
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.assertFalse(json.loads(result.stdout)["required"])
+        self.assertEqual(output.read_text(), "required=false\n")
+
+
 class NativeBuildVerdictTest(unittest.TestCase):
     def needs(self, required="true", routing="success", android="success", ios="success"):
         return {
@@ -285,46 +396,81 @@ class NativeBuildVerdictTest(unittest.TestCase):
             "ios": {"result": ios},
         }
 
+    def passes(self, needs):
+        return SCOPE.verdict(needs, SCOPE.JOBS["native"])
+
     def test_required_builds_and_intentional_skips_both_have_positive_controls(self):
-        self.assertTrue(SCOPE.native_verdict(self.needs()))
-        self.assertTrue(SCOPE.native_verdict(self.needs(required="false", android="skipped", ios="skipped")))
+        self.assertTrue(self.passes(self.needs()))
+        self.assertTrue(self.passes(self.needs(required="false", android="skipped", ios="skipped")))
 
     def test_routing_failure_cancellation_missing_and_invalid_output_cannot_pass(self):
         for routing in ("failure", "cancelled", "skipped", ""):
             with self.subTest(routing=routing):
-                self.assertFalse(SCOPE.native_verdict(self.needs(routing=routing)))
+                self.assertFalse(self.passes(self.needs(routing=routing)))
                 self.assertFalse(
-                    SCOPE.native_verdict(
-                        self.needs(required="false", routing=routing, android="skipped", ios="skipped")
-                    )
+                    self.passes(self.needs(required="false", routing=routing, android="skipped", ios="skipped"))
                 )
         for required in (None, True, "", "FALSE", "maybe"):
             with self.subTest(required=required):
-                self.assertFalse(SCOPE.native_verdict(self.needs(required=required)))
-                self.assertFalse(SCOPE.native_verdict(self.needs(required=required, android="skipped", ios="skipped")))
+                self.assertFalse(self.passes(self.needs(required=required)))
+                self.assertFalse(self.passes(self.needs(required=required, android="skipped", ios="skipped")))
         for needs in (None, [], {}, {"scope": {"result": "success", "outputs": None}}):
             with self.subTest(needs=needs):
-                self.assertFalse(SCOPE.native_verdict(needs))
+                self.assertFalse(self.passes(needs))
 
     def test_either_native_job_failure_cancellation_or_unexpected_skip_cannot_pass(self):
         for platform in ("android", "ios"):
             for result in ("failure", "cancelled", "skipped", ""):
                 with self.subTest(platform=platform, result=result):
-                    self.assertFalse(SCOPE.native_verdict(self.needs(**{platform: result})))
+                    self.assertFalse(self.passes(self.needs(**{platform: result})))
 
     def test_skip_decision_with_unexpected_job_results_cannot_pass(self):
-        self.assertFalse(SCOPE.native_verdict(self.needs(required="false")))
+        self.assertFalse(self.passes(self.needs(required="false")))
 
     def test_verdict_cli_exits_nonzero_on_invalid_or_failed_dependency_results(self):
         for needs in ("not-json", json.dumps(self.needs(ios="failure"))):
             with self.subTest(needs=needs):
                 result = subprocess.run(
-                    [sys.executable, str(SCRIPT), "verdict"],
-                    env={**os.environ, "NATIVE_JOB_RESULTS": needs},
+                    [sys.executable, str(SCRIPT), "verdict", "native"],
+                    env={**os.environ, "JOB_RESULTS": needs},
                     capture_output=True,
                     text=True,
                 )
                 self.assertEqual(result.returncode, 1)
+
+
+class DjangoVerdictTest(unittest.TestCase):
+    def needs(self, required="true", shards="success", backend=None):
+        return {
+            "scope": {"result": "success", "outputs": {"required": required}},
+            "backend-suite-shard": {"result": shards},
+            "backend": {"result": shards if backend is None else backend},
+        }
+
+    def test_django_jobs_that_ran_or_were_rightly_skipped_pass_and_nothing_else_does(self):
+        for required, shards, backend, passed in (
+            ("true", "success", "success", True),
+            ("false", "skipped", "skipped", True),
+            ("true", "skipped", "skipped", False),
+            ("true", "failure", "success", False),
+            ("true", "success", "failure", False),
+            ("true", "success", "skipped", False),
+            ("false", "skipped", "success", False),
+            ("false", "success", "skipped", False),
+        ):
+            with self.subTest(required=required, shards=shards, backend=backend):
+                self.assertEqual(SCOPE.verdict(self.needs(required, shards, backend), SCOPE.JOBS["django"]), passed)
+
+    def test_verdict_cli_judges_the_django_jobs(self):
+        for needs, status in ((self.needs("false", "skipped"), 0), (self.needs("true", "cancelled"), 1)):
+            with self.subTest(needs=needs):
+                result = subprocess.run(
+                    [sys.executable, str(SCRIPT), "verdict", "django"],
+                    env={**os.environ, "JOB_RESULTS": json.dumps(needs)},
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(result.returncode, status)
 
 
 if __name__ == "__main__":

@@ -167,7 +167,7 @@ def main():
         problems += findings(everything, found) + unused_pattern_findings(shards, found)
 
     if problems:
-        print(f"The ordinary suite's shards do not partition it ({len(problems)}):\n", file=sys.stderr)
+        print(f"The ordinary suite's shards fail their gate ({len(problems)}):\n", file=sys.stderr)
         for problem in problems:
             print(f"  {problem}", file=sys.stderr)
         print(
