@@ -65,4 +65,27 @@ describe("the owner's menus of 26 September, applied to today's pages", () => {
   it.each(Object.entries(AUDIENCE_OF_EACH_PAGE))('opens %s to %s', (key, audience) => {
     expect(DESTINATIONS[key as keyof typeof DESTINATIONS].audience).toBe(audience);
   });
+
+  it('names each page as the owner chose', () => {
+    expect(
+      Object.fromEntries(Object.entries(DESTINATIONS).map(([key, destination]) => [key, destination.title])),
+    ).toEqual({
+      home: 'Holdings',
+      wallets: 'Wallets',
+      transactions: 'Activity',
+      trading: 'Market',
+      directory: 'Directory',
+      directoryDetail: 'Directory',
+      subscriptions: 'Applications',
+      subscriptionDetail: 'Application',
+      investorEligibility: 'Verification',
+      publications: 'Notices',
+      dividends: 'Dividends',
+      company: 'Company',
+      companyListing: 'Application',
+      companyOffering: 'Offerings',
+      userProfile: 'Profile',
+      settings: 'Settings',
+    });
+  });
 });

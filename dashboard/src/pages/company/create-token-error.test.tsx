@@ -6,6 +6,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const useCompany = vi.fn();
 const useTokensList = vi.fn();
 
+vi.mock('react-router-dom', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('react-router-dom')>()),
+  useNavigate: () => vi.fn(),
+}));
 vi.mock('./hooks/useCompany', () => ({ useCompany: () => useCompany() }));
 vi.mock('./hooks/useTokens', () => ({ useTokensList: () => useTokensList() }));
 vi.mock('@tanstack/react-query', () => ({

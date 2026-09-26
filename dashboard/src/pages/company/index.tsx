@@ -1,4 +1,5 @@
-import { Page } from '@components/Page';
+import { Page, PageAction } from '@components/Page';
+import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Field, Label, Input } from '@headlessui/react';
@@ -16,11 +17,13 @@ import {
   ArrowSquareOutIcon,
   TrendUpIcon,
   DownloadSimpleIcon,
+  FileTextIcon,
 } from '@phosphor-icons/react';
 import { Panel } from '@components/Panel';
 import { Modal } from '@components/Modal';
 import {
   DESIGN_TOKENS,
+  DESTINATIONS,
   HOLDER_TYPE_LABELS,
   REGISTER_COPY,
   updateCompany,
@@ -140,6 +143,7 @@ function formatAddress(company: NonNullable<ReturnType<typeof useCompany>['compa
 }
 
 export default function CompanyPage() {
+  const navigate = useNavigate();
   const { company, companyUuid, isLoading, error, refetch } = useCompany();
   const tokensList = useTokensList();
   const queryClient = useQueryClient();
@@ -257,7 +261,15 @@ export default function CompanyPage() {
   const address = formatAddress(company);
 
   return (
-    <Page>
+    <Page
+      actions={
+        <PageAction
+          icon={<FileTextIcon size={ICON_SM} />}
+          label={DESTINATIONS.companyListing.title}
+          onClick={() => navigate(DESTINATIONS.companyListing.path)}
+        />
+      }
+    >
       {successMessage && (
         <div className="flex items-center gap-3 p-4 rounded-lg bg-success-light/15 border border-success-light/25">
           <CheckCircleIcon className="h-5 w-5 text-success-light" weight="fill" />
