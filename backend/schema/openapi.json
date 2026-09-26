@@ -11307,6 +11307,18 @@
       },
       "SubscriptionDetail": {
         "properties": {
+          "acceptedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "allottedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "allottedQuantity": {
             "nullable": true,
             "readOnly": true,
@@ -11331,12 +11343,23 @@
             "readOnly": true,
             "type": "string"
           },
+          "closedAt": {
+            "description": "When it was rejected or withdrawn",
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "companyName": {
             "readOnly": true,
             "type": "string"
           },
           "createdAt": {
             "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "currency": {
             "readOnly": true,
             "type": "string"
           },
@@ -11449,6 +11472,12 @@
             "readOnly": true,
             "type": "string"
           },
+          "submittedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "tokenName": {
             "readOnly": true,
             "type": "string"
@@ -11474,12 +11503,16 @@
           }
         },
         "required": [
+          "acceptedAt",
+          "allottedAt",
           "allottedQuantity",
           "amountDue",
           "amountOutstanding",
           "amountReceived",
+          "closedAt",
           "companyName",
           "createdAt",
+          "currency",
           "offeringUuid",
           "paymentDueAt",
           "paymentInstruction",
@@ -11500,6 +11533,7 @@
           "settlementRailDisplay",
           "status",
           "statusDisplay",
+          "submittedAt",
           "tokenName",
           "tokenSymbol",
           "updatedAt",
@@ -11534,6 +11568,10 @@
           },
           "createdAt": {
             "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "currency": {
             "readOnly": true,
             "type": "string"
           },
@@ -11611,6 +11649,7 @@
           "amountReceived",
           "companyName",
           "createdAt",
+          "currency",
           "offeringUuid",
           "paymentDueAt",
           "pricePerShare",

@@ -38,6 +38,7 @@ from offerings.tests.factories import (
     eligible_subscriber,
     extra_wallet,
     open_offering,
+    paid_subscription,
 )
 from shared.tests.tenants import make_tenant
 from users.exceptions import InvestorNotEligibleException
@@ -121,6 +122,32 @@ class SubscriptionServiceTest(SubscriptionServiceTestCase):
         self.assertIsNotNone(subscription.payment_due_at)
         self.assertEqual(subscription.settlement_rail, SettlementRail.BANK_TRANSFER)
         self.assertIsNone(subscription.settlement_asset)
+
+    def test_each_step_records_when_it_happened(self):
+        before = timezone.now()
+        subscription = self._to_awaiting()
+        self.assertGreaterEqual(subscription.submitted_at, before)
+        self.assertGreaterEqual(subscription.accepted_at, subscription.submitted_at)
+        self.assertIsNone(subscription.allotted_at)
+        self.assertIsNone(subscription.closed_at)
+
+        rejected = self._to_awaiting()
+        reject(rejected, reason="Not proceeding")
+        rejected.refresh_from_db()
+        self.assertGreaterEqual(rejected.closed_at, rejected.accepted_at)
+
+        withdrawn = draft_subscription(self.tenant)
+        withdraw(withdrawn, reason="Investor pulled out")
+        withdrawn.refresh_from_db()
+        self.assertGreaterEqual(withdrawn.closed_at, before)
+        self.assertIsNone(withdrawn.submitted_at)
+
+    def test_allotment_records_when_it_happened(self):
+        subscription = paid_subscription(self.tenant)
+        before = timezone.now()
+        subscription.mark_allotted()
+        subscription.refresh_from_db()
+        self.assertGreaterEqual(subscription.allotted_at, before)
 
     def test_the_due_date_is_clamped_to_the_offering_close(self):
         self.offering.closes_at = timezone.now() + timedelta(hours=2)

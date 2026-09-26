@@ -123,4 +123,14 @@ How payment, refund, scale-back and share allotment fit together.
     resulting `ProtectedError` into a 409 that says how many rows hold the
     target, rather than the 503 a raw database error produced.
 
+## When each step happened
+
+Each transition method stamps its own time, so the record shows when the
+application moved as well as where it is: `submitted_at`, `accepted_at`,
+`payment_instruction_issued_at`, `allotted_at`, `refunded_at`, and `closed_at`
+for a rejection or a withdrawal. `payment_received_on` is the date the money
+arrived, as staff recorded it. The investor's application page lists these as
+its history, oldest first. Rows from before these fields leave the earlier
+steps unstamped, and the page leaves those steps out rather than guessing.
+
 Next: [issuance](contracts-and-issuance.md), [register](register.md), and [subscription recovery](../operations/recovery.md#subscriptions).
