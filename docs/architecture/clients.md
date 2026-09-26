@@ -51,7 +51,8 @@ against, the previous person's account. Buying crypto and sending are actions on
 Wallets for every account, not menu items, and the dashboard has no coin-price
 page or favourites; Home's market card still lists coin prices until Holdings
 replaces it. The Buy step shows each asset's current price in the display
-currency, and no price while the exchange rate is unknown. Both flows are mounted in the signed-in frame, so an open flow survives
+currency, and no price while the exchange rate is unknown. Both flows are
+mounted in the signed-in frame, so an open flow survives
 Wallets reloading its wallet list and the person leaving Wallets. The guard
 decides pages, not data: the API still decides which rows a person sees, and
 answers 404 for one it refuses.
@@ -73,7 +74,12 @@ later recheck, the step is replaced while the profile loads, and what was typed
 into it is lost.
 The signed-in frame (sidebar and headers) appears only for a signed-in account
 that has finished sign-up, which `useSignupFinished` decides; sign-in, sign-up
-and everything else use the public layout. Since the sidebar's Sign out is not
+and everything else use the public layout. The frame marks itself with
+`InSignedInFrame`, and a guarded page renders only inside it. The guard and the
+frame read the same queries but hear about them separately, and the guard also
+re-renders when the role arrives, so it can admit a page a moment before the
+frame appears. The page keeps showing the session check until then, rather
+than rendering once in the public layout. Since the sidebar's Sign out is not
 shown there, the public layout gives any signed-in visitor a Sign out button in
 its header, through `AuthLayoutAction`, so an account still signing up can
 always leave. The not-found page reads the same

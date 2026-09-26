@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { MemoryRouter, Route, Routes, useNavigationType } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { InSignedInFrame } from '@components/InSignedInFrame';
 import { DESTINATIONS, type AccountRole, type DestinationKey } from '@ledova/shared';
 
 import { useAuth } from '@hooks/useAuth';
@@ -64,13 +65,15 @@ function open(
     refreshProfile: vi.fn(),
   } as unknown as ReturnType<typeof useUserProfile>);
   render(
-    <MemoryRouter initialEntries={[addressOf(key)]}>
-      <Routes>
-        {signedInRoutes(PAGES)}
-        <Route path="/signin" element={<Page name="signin" />} />
-        <Route path="/signup/account-type" element={<Page name="signup" />} />
-      </Routes>
-    </MemoryRouter>,
+    <InSignedInFrame.Provider value>
+      <MemoryRouter initialEntries={[addressOf(key)]}>
+        <Routes>
+          {signedInRoutes(PAGES)}
+          <Route path="/signin" element={<Page name="signin" />} />
+          <Route path="/signup/account-type" element={<Page name="signup" />} />
+        </Routes>
+      </MemoryRouter>
+    </InSignedInFrame.Provider>,
   );
 }
 

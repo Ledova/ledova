@@ -8,13 +8,14 @@ import { ApiClientProvider, CACHE_TIMING } from '@ledova/shared';
 
 import { AUTH_QUERY_KEY } from '@hooks/useAuth';
 import apiClient from '@services/apiClient';
+import { InSignedInFrame } from '@components/InSignedInFrame';
 import { ProtectedRoute } from './ProtectedRoute';
 
 vi.mock('@services/apiClient', () => ({ default: { get: vi.fn() } }));
 
 let client: QueryClient;
 
-function renderGuard(valid: boolean, stale = true) {
+function renderGuard(valid: boolean, stale = true, inFrame = true) {
   client.setQueryData(
     AUTH_QUERY_KEY,
     { data: { valid } },
@@ -26,19 +27,21 @@ function renderGuard(valid: boolean, stale = true) {
   render(
     <QueryClientProvider client={client}>
       <ApiClientProvider client={apiClient}>
-        <MemoryRouter initialEntries={['/protected']}>
-          <Routes>
-            <Route
-              path="/protected"
-              element={
-                <ProtectedRoute audience="everyone">
-                  <p>Protected content</p>
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/signin" element={<p>Sign in</p>} />
-          </Routes>
-        </MemoryRouter>
+        <InSignedInFrame.Provider value={inFrame}>
+          <MemoryRouter initialEntries={['/protected']}>
+            <Routes>
+              <Route
+                path="/protected"
+                element={
+                  <ProtectedRoute audience="everyone">
+                    <p>Protected content</p>
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/signin" element={<p>Sign in</p>} />
+            </Routes>
+          </MemoryRouter>
+        </InSignedInFrame.Provider>
       </ApiClientProvider>
     </QueryClientProvider>,
   );
@@ -119,5 +122,13 @@ describe('a protected route checks an auth correction before redirecting', () =>
     expect(screen.queryByRole('status')).toBeNull();
     await act(async () => verification.resolve(true));
     expect(screen.getByText('Protected content')).toBeTruthy();
+  });
+
+  it('keeps a page it would admit behind the session check until the signed-in frame is showing', () => {
+    renderGuard(true, false, false);
+
+    expect(screen.getByRole('status', { name: 'Checking your session' })).toBeTruthy();
+    expect(screen.queryByText('Protected content')).toBeNull();
+    expect(screen.queryByText('Sign in')).toBeNull();
   });
 });
