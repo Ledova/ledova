@@ -7,16 +7,22 @@ import { HeaderActionsProvider } from '@hooks/useHeaderActions';
 import { BuyCryptoProvider } from '@hooks/useBuyCrypto';
 import { SendTransferProvider } from '@hooks/useSendTransfer';
 import { useSignupFinished } from '@hooks/useSignupFinished';
+import { useAuth } from '@hooks/useAuth';
+import { AuthLayoutAction } from './AuthLayout/AuthLayoutAction';
+import { SignOutButton } from './SignOutButton';
 
 export default function Layout({ children }: LayoutProps) {
   const framed = useSignupFinished();
+  const { isAuthenticated } = useAuth();
 
   if (!framed) {
     return (
-      <div className="relative flex min-h-screen min-w-[390px] flex-col bg-surface-base text-text-primary">
-        <div className="flex flex-grow flex-col">{children}</div>
-        <Footer />
-      </div>
+      <AuthLayoutAction.Provider value={isAuthenticated ? <SignOutButton /> : null}>
+        <div className="relative flex min-h-screen min-w-[390px] flex-col bg-surface-base text-text-primary">
+          <div className="flex flex-grow flex-col">{children}</div>
+          <Footer />
+        </div>
+      </AuthLayoutAction.Provider>
     );
   }
 

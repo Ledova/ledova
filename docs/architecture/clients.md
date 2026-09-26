@@ -63,10 +63,14 @@ verification refreshes the session answer before it moves on, as sign-in does,
 so in the in-app flow the steps read the profile once, before any form, and a
 later recheck of the session does not take away a step being filled in. One case
 remains: if the session check itself fails as a step loads and succeeds on a
-later recheck, the step is hidden while the profile loads.
+later recheck, the step is replaced while the profile loads, and what was typed
+into it is lost.
 The signed-in frame (sidebar and headers) appears only for a signed-in account
 that has finished sign-up, which `useSignupFinished` decides; sign-in, sign-up
-and everything else use the public layout. The not-found page reads the same
+and everything else use the public layout. Since the sidebar's Sign Out is not
+shown there, the public layout gives any signed-in visitor a Sign out button in
+its header, through `AuthLayoutAction`, so an account still signing up can
+always leave. The not-found page reads the same
 decision: inside the frame with a link to `landingFor(role)` for a finished
 account, and otherwise in the public layout with a link to sign in, or, for an
 account still signing up, back into sign-up.

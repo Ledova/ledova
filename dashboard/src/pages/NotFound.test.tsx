@@ -3,6 +3,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AccountRole } from '@ledova/shared';
 
@@ -48,13 +49,15 @@ function visit({
     isLoading: profileLoading,
   } as ReturnType<typeof useUserProfile>);
   render(
-    <MemoryRouter initialEntries={[address]}>
-      <Layout>
-        <Routes>
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </Layout>
-    </MemoryRouter>,
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter initialEntries={[address]}>
+        <Layout>
+          <Routes>
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </Layout>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -105,6 +108,18 @@ describe('an address that is not a page', () => {
 
     expect(screen.queryByRole('heading')).toBeNull();
     expect(screen.queryByRole('link', { name: 'Continue signing up' })).toBeNull();
+  });
+
+  it('lets an account still signing up sign out, since the sidebar with Sign Out is not shown to it', () => {
+    visit({ signedIn: true, finished: false });
+
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeTruthy();
+  });
+
+  it('offers no sign-out to a signed-out visitor', () => {
+    visit({ signedIn: false });
+
+    expect(screen.queryByRole('button', { name: 'Sign out' })).toBeNull();
   });
 
   it('says nothing until it knows whether the visitor is signed in', () => {

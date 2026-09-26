@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   HouseIcon,
   WalletIcon,
@@ -22,9 +21,9 @@ import {
   StorefrontIcon,
   HandCoinsIcon,
 } from '@phosphor-icons/react';
-import { signout, DESIGN_TOKENS } from '@ledova/shared';
-import apiClient from '@services/apiClient';
+import { DESIGN_TOKENS } from '@ledova/shared';
 import { useFeatureFlags, useRole } from '@hooks';
+import { useSignOut } from '@hooks/useSignOut';
 import { useBuyCrypto } from '@hooks/useBuyCrypto';
 import { useSendTransfer } from '@hooks/useSendTransfer';
 import { useUserProfile } from '@pages/user-profile/useUserProfile';
@@ -51,7 +50,6 @@ interface SidebarProps {
 export function Sidebar({ onNavigate }: SidebarProps = {}) {
   const location = useLocation();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { tradingEnabled } = useFeatureFlags();
   const { isInvestor, isCompany } = useRole();
   const { openBuyCrypto } = useBuyCrypto();
@@ -107,20 +105,9 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
     return items;
   }, [tradingEnabled, isInvestor, isCompany]);
 
-  const signoutMutation = useMutation({
-    mutationFn: () => signout(apiClient),
-    onSettled: () => {
-      queryClient.setQueryData(['auth', 'verify'], { data: { valid: false } });
-      queryClient.clear();
-      navigate('/signin');
-    },
-  });
+  const { signOut, isSigningOut } = useSignOut();
 
   const isActive = (path: string) => location.pathname === path;
-
-  const handleSignOut = () => {
-    signoutMutation.mutate();
-  };
 
   const handleNav = (path: string) => {
     navigate(path);
@@ -244,12 +231,12 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
           </div>
         )}
         <button
-          onClick={handleSignOut}
-          disabled={signoutMutation.isPending}
+          onClick={signOut}
+          disabled={isSigningOut}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-text-secondary hover:bg-error/10 hover:text-error-light transition-all duration-150 disabled:opacity-50"
         >
           <SignOutIcon size={ICON_MD} />
-          <span>{signoutMutation.isPending ? 'Signing out...' : 'Sign Out'}</span>
+          <span>{isSigningOut ? 'Signing out...' : 'Sign Out'}</span>
         </button>
       </div>
     </aside>
