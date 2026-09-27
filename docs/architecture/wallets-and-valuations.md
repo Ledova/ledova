@@ -202,9 +202,9 @@ remove newly admitted NAV history.
 
 ## Portfolio history
 
-Portfolio history keeps one holding entry per asset and adds `perChain` to
-each entry in the API response. Each slice identifies its network, exact
-decimal quantity and wallet UUIDs, plus `marketValue` when a historical price
+The internal portfolio value-series service keeps one holding entry per asset
+and adds `per_chain` to each computed entry. Each slice identifies its network, exact
+decimal quantity and wallet UUIDs, plus `market_value` when a historical price
 exists. Two registrations of the same address on different networks stay in
 their respective slices; the portfolio total still sums the asset once across
 those slices. The price belongs to the canonical asset and applies to each
@@ -213,9 +213,10 @@ network's recorded quantity for that date.
 The breakdown comes from daily `HoldingSnapshot` rows and their wallet links.
 Quantities carry forward from the last recorded day, including a recorded zero;
 current live balances do not replace historical quantities. There is no history
-before the first recorded holding. This history remains available through the
-portfolio API; the current dashboard and mobile Holdings pages show share
-quantities by company and class instead of a portfolio chart. Missing historical
+before the first recorded holding. The unused snapshots HTTP routes are
+[retired](../operations/upgrades.md#retired-asset-and-portfolio-http-routes);
+the service and historical rows remain. Dashboard and mobile Holdings pages show
+share quantities by company and class instead of a portfolio chart. Missing historical
 prices remain unpriced, while a priced zero stays zero. Base transfers use ETH
 for native quantities and gas fees, and use Base's chain ID for signing.
 

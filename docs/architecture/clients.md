@@ -131,8 +131,10 @@ not menu items, and the dashboard has no coin-price page or favourites.
 The retired portfolio screen's chart, allocation and snapshot helpers are removed
 from both clients and the shared package. The asset list remains in use by Buy
 crypto for current prices, and Wallets and Send still use the AUD exchange rate.
-Backend portfolio history, selected-portfolio preferences and operator actions
-retain their existing contracts.
+Unused asset detail, asset/portfolio snapshot and favourite-assets HTTP routes
+are [retired](../operations/upgrades.md#retired-asset-and-portfolio-http-routes).
+Backend history computation and data, selected-portfolio preferences and portfolio
+CRUD/add/remove-wallet operator actions remain.
 Native Wallets reads every page into an account- and session-scoped ledger. A
 failed page suppresses partial balances and stale actions until retry succeeds.
 Balances and numeric sorting retain decimal strings; converted fiat values remain

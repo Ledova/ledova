@@ -42,13 +42,17 @@ class DeploymentSelectionTest(APITestCase):
         Holding.objects.create(wallet=self.wallet, asset=native, quantity=5)
         Holding.objects.create(wallet=self.wallet, asset=self.asset, quantity=100)
 
-    def test_asset_summary_never_picks_one_of_two_active_networks(self):
-        response = self.client.get(f"/api/assets/{self.asset.pk}/")
+    def catalogue_asset(self):
+        response = self.client.get("/api/assets/")
         self.assertEqual(response.status_code, 200)
-        self.assertIsNone(response.json()["chain"])
-        self.assertIsNone(response.json()["contractAddress"])
+        return next(row for row in response.json()["results"] if row["uuid"] == str(self.asset.pk))
+
+    def test_asset_summary_never_picks_one_of_two_active_networks(self):
+        asset = self.catalogue_asset()
+        self.assertIsNone(asset["chain"])
+        self.assertIsNone(asset["contractAddress"])
         self.assertEqual(
-            {(row["chain"], row["contractAddress"], row["decimals"]) for row in response.json()["chainDeployments"]},
+            {(row["chain"], row["contractAddress"], row["decimals"]) for row in asset["chainDeployments"]},
             {("base", BASE_CONTRACT, 0), ("ethereum", ETH_CONTRACT, 6)},
         )
         response = self.client.get(f"/api/wallets/{self.wallet.pk}/holdings/")
@@ -59,13 +63,13 @@ class DeploymentSelectionTest(APITestCase):
     def test_only_one_active_deployment_may_supply_the_compatibility_fields(self):
         self.base.is_active = False
         self.base.save(update_fields=["is_active"])
-        response = self.client.get(f"/api/assets/{self.asset.pk}/")
-        self.assertEqual((response.json()["chain"], response.json()["contractAddress"]), ("ethereum", ETH_CONTRACT))
+        asset = self.catalogue_asset()
+        self.assertEqual((asset["chain"], asset["contractAddress"]), ("ethereum", ETH_CONTRACT))
         self.ethereum.is_active = False
         self.ethereum.save(update_fields=["is_active"])
-        response = self.client.get(f"/api/assets/{self.asset.pk}/")
-        self.assertIsNone(response.json()["chain"])
-        self.assertIsNone(response.json()["contractAddress"])
+        asset = self.catalogue_asset()
+        self.assertIsNone(asset["chain"])
+        self.assertIsNone(asset["contractAddress"])
 
     def test_preparation_estimates_and_encodes_using_the_wallet_deployments_decimals(self):
         provider = Mock()

@@ -467,8 +467,9 @@ The owner answered the two remaining scope questions on 27 September 2026
   Existing API visibility remains authoritative; the client does not discard an
   accessible class just because another company was returned first.
 - **Initial Market:** "Keep automatic matching for the first version." The
-  dashboard Market presents _For sale_ and _Wanted_ over existing matching.
-  Seller acceptance and rejection are not a prerequisite for that first version.
+  Market presentation in both clients is _For sale_ and _Wanted_ over existing
+  matching. Seller acceptance and rejection are not a prerequisite for that
+  first version.
 
 The buyer-funds-before-offering decision remains unchanged. These decisions set
 the implementation's scope, not permission for a live deployment or real funds.
@@ -538,10 +539,9 @@ those numbers as current.
 ## Clients and API types
 
 Both clients compile `@ledova/shared` from source, without a package build step.
-The mobile investor directory and subscription journey remain unscheduled in the
-[current roadmap](roadmap.md#remaining-work);
-shared hooks created earlier must accommodate both clients. The primary issuer
-workflow remains dashboard-led. See [B7b](https://github.com/Ledova/ledova/issues/115#issuecomment-5574947880)
+Directory, Applications and issuer Offering workflows are available in both the
+dashboard and mobile app, using shared hooks. Earlier client boundaries are
+recorded in [B7b](https://github.com/Ledova/ledova/issues/115#issuecomment-5574947880)
 and [B2](https://github.com/Ledova/ledova/issues/115#issuecomment-5574848881).
 
 Shared API types are generated from the committed OpenAPI snapshot. The owner

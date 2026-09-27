@@ -69,19 +69,6 @@ class GeneratedClientContractTest(APITestCase):
                     self.assertFalse(field.is_valid(body["selectedPortfolio"]))
                     self.assertFalse(validator.is_valid({**body, "selectedPortfolio": value}))
 
-    def test_favourite_asset_keeps_a_uuid_request_and_a_nested_asset_response(self):
-        path = "/api/favourite-assets/"
-        request = self.request_schema(path)
-        asset_id = str(self.owner.refs.stablecoin.uuid)
-        self.assertTrue(Draft4Validator(request).is_valid({"asset": asset_id}))
-        self.assertNotIn("uuid", request["properties"])
-        self.assertNotIn("userAccount", request["properties"])
-        response = self.client.post(path, {"asset": asset_id}, format="json")
-        validator = self.assert_response(path, response, "post")
-        self.assertEqual(response.json()["asset"]["uuid"], asset_id)
-        self.assertFalse(validator.is_valid({**response.json(), "asset": asset_id}))
-        self.assertFalse(Draft4Validator(request).is_valid({"asset": response.json()["asset"]}))
-
     def test_unset_profile_countries_are_nullable_outputs_without_admitting_null_input(self):
         UserProfile.objects.filter(pk=self.owner.profile.pk).update(citizenship_country=None, residence_country=None)
         path = "/api/user-profiles/{uuid}/"

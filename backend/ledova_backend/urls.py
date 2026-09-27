@@ -37,7 +37,6 @@ router.register(r"transactions", wallet_views.TransactionViewSet, basename="tran
 router.register(r"wallets", wallet_views.WalletViewSet, basename="wallets")
 router.register(r"fiat-purchases", wallet_views.FiatPurchaseViewSet, basename="fiat-purchases")
 router.register(r"portfolios", portfolio_views.PortfolioViewSet, basename="portfolios")
-router.register(r"favourite-assets", user_views.FavouriteAssetViewSet, basename="favourite-assets")
 router.register(r"assets", asset_views.AssetViewSet, basename="assets")
 router.register(r"feature-flags", feature_flag_views.FeatureFlagViewSet, basename="feature-flags")
 

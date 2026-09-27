@@ -5,17 +5,13 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.urls import include, path
-from django.utils import timezone
 from drf_spectacular.generators import SchemaGenerator
 from eth_account.messages import encode_defunct
 from rest_framework.routers import SimpleRouter
 from rest_framework.test import APITestCase
 
-from assets.models import Asset, AssetChainDeployment, AssetSnapshot
+from assets.models import Asset, AssetChainDeployment
 from assets.services.identity import native_asset_for_chain
-from assets.views.asset import AssetViewSet
-from portfolios.models import Portfolio
-from portfolios.views.portfolio import PortfolioViewSet
 from users.models import UserAccount, UserProfile
 from wallets.models import Holding, Wallet
 from wallets.tests.test_broadcast_transfer_guard import RECIPIENT, SIGNER, sign
@@ -35,13 +31,8 @@ class WalletActionContractTest(APITestCase):
         cls.asset = native_asset_for_chain("base")
         cls.asset.is_verified = True
         cls.asset.save(update_fields=["is_verified"])
-        AssetSnapshot.objects.create(asset=cls.asset, price=1, source_timestamp=timezone.now(), data_source="manual")
-        cls.portfolio = Portfolio.objects.create(user_account=cls.account, name="Synthetic portfolio")
-        cls.portfolio.wallets.add(cls.wallet)
         router = SimpleRouter()
         router.register("wallets", WalletViewSet, basename="wallet-contract")
-        router.register("assets", AssetViewSet, basename="asset-contract")
-        router.register("portfolios", PortfolioViewSet, basename="portfolio-contract")
         cls.document = SchemaGenerator(patterns=[path("api/", include(router.urls))]).get_schema(
             request=None, public=True
         )
@@ -100,19 +91,14 @@ class WalletActionContractTest(APITestCase):
         self.assert_shape(schema, response.json())
         return response.json()
 
-    def test_list_actions_document_arrays_instead_of_pagination_envelopes(self):
-        for resource, instance, action in (
-            ("wallets", self.wallet, "holdings"),
-            ("assets", self.asset, "snapshots"),
-            ("portfolios", self.portfolio, "snapshots"),
-        ):
-            with self.subTest(resource=resource):
-                response = self.client.get(f"/api/{resource}/{instance.uuid}/{action}/")
-                self.assertEqual(response.status_code, 200, response.data)
-                self.assertIsInstance(response.json(), list)
-                operation = self.document["paths"][f"/api/{resource}/{{uuid}}/{action}/"]["get"]
-                schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
-                self.assert_shape(schema, response.json())
+    def test_holdings_action_documents_an_array_instead_of_a_pagination_envelope(self):
+        response = self.client.get(f"/api/wallets/{self.wallet.uuid}/holdings/")
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertIsInstance(response.json(), list)
+        self.assertEqual([row["assetUuid"] for row in response.json()], [str(self.asset.uuid)])
+        operation = self.document["paths"]["/api/wallets/{uuid}/holdings/"]["get"]
+        schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+        self.assert_shape(schema, response.json())
 
     @patch("wallets.tasks.sync_wallet.defer")
     def test_challenge_and_signature_responses_match_the_generated_contract(self, defer):

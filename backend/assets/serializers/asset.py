@@ -5,7 +5,6 @@ from assets.choices import VALUE_SOURCE_CHOICES
 from assets.models import (
     Asset,
     AssetChainDeployment,
-    AssetSnapshot,
 )
 
 
@@ -103,36 +102,6 @@ class AssetSerializer(serializers.ModelSerializer):
             "last_nav_update",
             "is_yield_token",
             "current_price",
-            "created_at",
-            "updated_at",
-        )
-
-
-class AssetSnapshotSerializer(serializers.ModelSerializer):
-
-    asset = serializers.StringRelatedField(read_only=True)
-    asset_symbol = serializers.CharField(source="asset.symbol", read_only=True)
-
-    class Meta:
-        model = AssetSnapshot
-        fields = (
-            "uuid",
-            "asset",
-            "asset_symbol",
-            "price",
-            "price_currency",
-            "market_data",
-            "source_timestamp",
-            "data_source",
-            "block_number",
-            "tx_hash",
-            "created_at",
-            "updated_at",
-        )
-        read_only_fields = (
-            "uuid",
-            "asset",
-            "asset_symbol",
             "created_at",
             "updated_at",
         )
