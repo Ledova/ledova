@@ -112,27 +112,33 @@ describe('which signed-in pages an account can open', () => {
     expect(screen.queryByText('company')).toBeNull();
   });
 
-  it.each(['company', 'companyListing'] as const)('sends an investor opening %s to their home instead', (key) => {
-    open(key, 'investor');
-    expect(sentTo('home')).toBe(true);
-    expect(screen.queryByText(key)).toBeNull();
-  });
+  it.each(['companyRegister', 'company', 'companyListing'] as const)(
+    'sends an investor opening %s to their home instead',
+    (key) => {
+      open(key, 'investor');
+      expect(sentTo('home')).toBe(true);
+      expect(screen.queryByText(key)).toBeNull();
+    },
+  );
 
   it.each(['wallets', 'transactions'] as const)('lets a company open %s, a page for everyone', (key) => {
     open(key, 'company');
     expect(opened(key)).toBe(true);
   });
 
-  it.each(['companyListing', 'companyOffering'] as const)('lets a company open %s, a company page', (key) => {
-    open(key, 'company');
-    expect(opened(key)).toBe(true);
-  });
-
-  it.each(['trading', 'directory', 'subscriptionDetail'] as const)(
-    'sends a company opening %s to its company instead',
+  it.each(['companyRegister', 'companyListing', 'companyOffering'] as const)(
+    'lets a company open %s, a company page',
     (key) => {
       open(key, 'company');
-      expect(sentTo('company')).toBe(true);
+      expect(opened(key)).toBe(true);
+    },
+  );
+
+  it.each(['trading', 'directory', 'subscriptionDetail'] as const)(
+    'sends a company opening %s to Register instead',
+    (key) => {
+      open(key, 'company');
+      expect(sentTo('companyRegister')).toBe(true);
       expect(screen.queryByText(key)).toBeNull();
     },
   );

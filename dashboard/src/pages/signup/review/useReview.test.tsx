@@ -157,7 +157,7 @@ describe('the last click of signup', () => {
 
   it.each([
     ['investor', '/home'],
-    ['company', '/company'],
+    ['company', '/company/register'],
   ] as const)('sends a %s to %s', async (role, destination) => {
     vi.mocked(useRole).mockReturnValue({
       role,

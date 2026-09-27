@@ -407,7 +407,9 @@ This records the target; the steps on #732 build it.
   a company representative who signed up as a company. Investing accounts also
   get _Invest_: Directory, Applications, Market (only while `trading_enabled` is
   on) and Verification. Company accounts get their company group (Register,
-  Offerings, Company) and land on Register. The role stays as chosen at sign-up;
+  Offerings, Company) and land on Register. The web Register now implements this
+  landing with the stored register of current members, rather than wallet balances.
+  The role stays as chosen at sign-up;
   staff set "both" in admin, and a customer cannot change it afterwards.
 - **Names follow the product's terms.** Holdings replaces Home; Notices replaces
   Publications and Dividends; Activity replaces Transactions; Applications

@@ -54,7 +54,7 @@ function open(
       <Routes>
         {signupRoutes(STEPS)}
         <Route path="/home" element={<Page name="home" />} />
-        <Route path="/company" element={<Page name="company" />} />
+        <Route path="/company/register" element={<Page name="register" />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -70,8 +70,8 @@ describe('who can open the sign-up steps', () => {
 
   it.each([
     ['investor', 'home'],
-    ['company', 'company'],
-    ['both', 'company'],
+    ['company', 'register'],
+    ['both', 'register'],
   ] as const)('sends a finished %s account to its %s', (role, landing) => {
     open('/signup/account-type', { role });
     expect(sentTo(landing)).toBe(true);

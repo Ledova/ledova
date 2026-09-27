@@ -15,6 +15,7 @@ import {
   NewspaperIcon,
   StorefrontIcon,
   HandCoinsIcon,
+  BookOpenIcon,
 } from '@phosphor-icons/react';
 import { DESIGN_TOKENS, DESTINATIONS, getCompanies, type DestinationKey } from '@ledova/shared';
 import apiClient from '@services/apiClient';
@@ -42,6 +43,7 @@ interface NavGroup {
 }
 
 const COMPANY: NavItem[] = [
+  { destination: 'companyRegister', icon: BookOpenIcon },
   { destination: 'companyOffering', icon: MegaphoneIcon },
   { destination: 'company', icon: BuildingsIcon },
 ];

@@ -27,7 +27,7 @@ function renderRoot() {
         <Route path="/" element={<RootRedirect />} />
         <Route path="/signin" element={<p>Sign in</p>} />
         <Route path="/home" element={<p>Home</p>} />
-        <Route path="/company" element={<p>Company</p>} />
+        <Route path="/company/register" element={<p>Register</p>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -70,12 +70,12 @@ describe('where the front door sends a visitor', () => {
     expect(screen.getByText('Home')).toBeTruthy();
   });
 
-  it.each(['company', 'both'] as const)('sends a signed-in %s account to its company', (role) => {
+  it.each(['company', 'both'] as const)('sends a signed-in %s account to Register', (role) => {
     signedInAs(role);
 
     renderRoot();
 
-    expect(screen.getByText('Company')).toBeTruthy();
+    expect(screen.getByText('Register')).toBeTruthy();
   });
 
   it('waits for the role before choosing, so a company is never shown the investor home first', () => {
@@ -84,7 +84,7 @@ describe('where the front door sends a visitor', () => {
     renderRoot();
 
     expect(screen.queryByText('Home')).toBeNull();
-    expect(screen.queryByText('Company')).toBeNull();
+    expect(screen.queryByText('Register')).toBeNull();
   });
 
   it('decides nothing while it does not yet know', () => {
