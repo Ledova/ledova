@@ -88,8 +88,8 @@ loading, failure and retry state, and unavailable data is never called empty.
 Application changes invalidate the work summary, and notice counts refresh at
 the next voting deadline and periodically, as they do on mobile. Actions open
 the existing application detail or Notices page; they do not submit, pay or vote
-from Holdings. The application list still depends on #749's retained-application
-fix before it can include applications whose company or class has become hidden.
+from Holdings. The application list retains applications whose company or class
+has become hidden, using their stored names and currency.
 
 Where market values are shown elsewhere, they are in AUD: the shared
 `useCurrency` converts the API's US-dollar values at the current rate, shows a
