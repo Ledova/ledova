@@ -310,15 +310,18 @@ It adds no publication, distribution or resolution execution controls: staff
 prepare and publish on written instruction. Read failures hide stale actions and
 offer retry; file delivery failures distinguish an unavailable stored document.
 
-The mobile app keeps its current home summary card, publications list and
-separate dividends list until #750:
+Mobile Holdings links to personal Notices, which retains `addressed=me` on every
+page. Company Publications still shows all publications available to the account,
+including issuer publications, until its selected-company page follows in #750.
+The separate dividends list remains available from transaction history.
 
-- `usePublicationSummary` powers the home card. It reports publications in the
-  last 30 days, open resolutions awaiting the person's vote, and dividends
-  awaiting a company payment record. These are not unread counts or proof of
-  whether a bank transfer happened. The card opens publications and hides when
-  every count is zero. The shared hook refreshes at `nextClosesAt` and every five
-  minutes, with bounded timers that stop when the consumer leaves.
+- `usePublicationSummary` powers the Holdings sections _Votes needing you_ and
+  _Dividend records in progress_. It reports open resolutions awaiting the
+  person's vote, dividends awaiting a company payment record, and publications
+  addressed to the person in the last 30 days. These are not unread counts or
+  proof of whether a bank transfer happened. Failed reads show retry instead of
+  claiming there is no work. The shared hook refreshes at `nextClosesAt` and every
+  five minutes, with bounded timers that stop when the consumer leaves.
 - `useDividends` reads `?kind=distribution&addressed=me` a page at a time, so a
   company owner sees their own dividends, not every dividend their company
   declared. Its rows retain the same holding, entitlement and payment-record
