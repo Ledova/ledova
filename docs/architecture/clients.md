@@ -150,6 +150,21 @@ whole integers; submission refuses quantities or a resulting authorised cap abov
 the current request limit of 2,147,483,647 instead of rounding them. Staff still
 prepare outputs on written instruction.
 
+Company details and Company › Application use the same ledger blocks. Company
+keeps the existing first-owned-company selection, reads its complete detail and
+lists every page of its share classes, filtered to that company. Profile edits
+send only changed fields; registered-name edits stay limited to draft or
+information-requested applications. New class quantities stay exact strings.
+The Application page takes every uploaded document from the complete company
+detail, including multiple records of a type, and preserves the recorded review
+reasons, responses and dates. It submits, resubmits, withdraws and changes documents
+only through the existing owner endpoints and the existing page status rules.
+Failed reads hide stale actions and offer retry. Open profile, class, upload and
+withdrawal drafts survive read failures; mutations wait for a successful refresh,
+and pending requests keep their forms open until completion. Upload, removal and
+action refusals remain visible for retry. These pages add no staff approval or
+execution controls.
+
 `landingFor(role)` decides where a signed-in person lands: an investing account
 on Holdings, and a company or dual-role account on Register. The front door,
 sign-in, the end of sign-up, the signed-out pages and the trading fallback all

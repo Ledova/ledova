@@ -419,7 +419,9 @@ This records the target; the steps on #732 build it.
   held the name is retired; Verification replaces Eligibility; Register and
   Share classes replace Share Tokens; "Raise authorised shares" replaces Capital
   Increase; and the company application sits under Company instead of as
-  Listing. Directory keeps its name.
+  Listing. Company details and the company Application now use ledger sections,
+  retaining the existing owner submissions and staff review boundaries. Directory
+  keeps its name.
 - **Crypto lives inside Wallets.** Buying crypto and sending stay, as actions
   inside Wallets rather than menu items. The coin-price page and favourites are
   deleted; the Buy crypto step shows the current price. Amounts are in AUD
