@@ -4,9 +4,10 @@ import type { Tone } from '@components/Ledger';
 
 export function activityAmount(amount: string | null, symbol: string) {
   if (amount === null || !/^-?\d+(\.\d+)?$/.test(amount)) return 'Unavailable';
-  const [whole, fractional = ''] = amount.split('.');
+  const sign = amount.startsWith('-') ? '-' : '';
+  const [whole, fractional = ''] = amount.replace(/^-/, '').split('.');
   const fraction = fractional.replace(/0+$/, '');
-  return `${formatShareCount(whole)}${fraction ? `.${fraction}` : ''}${symbol ? ` ${symbol}` : ''}`;
+  return `${sign}${formatShareCount(whole)}${fraction ? `.${fraction}` : ''}${symbol ? ` ${symbol}` : ''}`;
 }
 
 export function activityDirection(transaction: Transaction) {

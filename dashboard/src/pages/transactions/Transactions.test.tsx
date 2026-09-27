@@ -276,3 +276,14 @@ it('shows exact amounts, native network fees and full identities in a read-only 
     'noopener,noreferrer',
   );
 });
+
+it.each([
+  ['-0.5', '-0.5 AUDX'],
+  ['-0.000000000000000001', '-0.000000000000000001 AUDX'],
+  ['-1000.50', '-1,000.5 AUDX'],
+  ['0.0000', '0 AUDX'],
+])('preserves the recorded sign and precision of %s', async (amount, expected) => {
+  activity = async () => page([{ ...transaction, amount }]);
+  show();
+  expect(await screen.findByText(expected)).toBeTruthy();
+});
