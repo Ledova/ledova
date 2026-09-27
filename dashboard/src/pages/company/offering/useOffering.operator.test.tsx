@@ -20,7 +20,7 @@ vi.mock('@ledova/shared', async () => {
 const { useOfferings } = await import('./useOffering');
 
 function Probe() {
-  const { operatorName, isLoading } = useOfferings();
+  const { operatorName, isLoading } = useOfferings('company-one');
   return <span>{isLoading ? 'loading' : `named: ${operatorName}`}</span>;
 }
 
