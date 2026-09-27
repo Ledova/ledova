@@ -108,6 +108,25 @@ it('distinguishes no classes from a failed read', async () => {
   expect(screen.queryByRole('button', { name: 'Retry share classes' })).toBeNull();
 });
 
+it('scopes every class page to the selected company so unrelated pages cannot hide its classes', async () => {
+  const original = api.get.getMockImplementation()!;
+  api.get.mockImplementation(async (url: string, config?: { params?: { page?: number; company_uuid?: string } }) => {
+    if (url !== CLASSES) return original(url);
+    if (config?.params?.page === 2) {
+      if (config.params.company_uuid !== 'company-one') throw new Error('Unrelated company page unavailable');
+      return { data: { ...EMPTY, results: [{ ...shareClass, uuid: 'class-two', name: 'Preference shares' }] } };
+    }
+    return { data: { ...EMPTY, results: [shareClass], next: 'https://example.invalid/classes?page=2' } };
+  });
+  show();
+  expect(await screen.findByRole('link', { name: 'Preference shares' })).toBeTruthy();
+  expect(screen.getByRole('link', { name: 'Ordinary shares' })).toBeTruthy();
+  expect(api.get.mock.calls.filter(([url]) => url === CLASSES)).toEqual([
+    [CLASSES, { params: { page: 1, company_uuid: 'company-one' } }],
+    [CLASSES, { params: { page: 2, company_uuid: 'company-one' } }],
+  ]);
+});
+
 it.each(['/api/v1/companies/', COMPANY])(
   'shows %s failure without empty-company claims and retries it',
   async (endpoint) => {

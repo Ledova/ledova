@@ -21,7 +21,7 @@ import type {
 
 export const getCompanyTokens = (
   apiClient: AxiosInstance,
-  params?: { page?: number; page_size?: number; status?: string },
+  params?: { page?: number; page_size?: number; status?: string; company_uuid?: string },
 ) => apiClient.get<PaginatedResponse<CompanyShareTokenListItem>>(COMPANY_TOKEN_ENDPOINTS.BASE, { params });
 
 export const getCompanyToken = (apiClient: AxiosInstance, uuid: string) =>

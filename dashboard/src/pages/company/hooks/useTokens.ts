@@ -10,7 +10,7 @@ export function useTokensList(companyUuid?: string) {
       const tokens: CompanyShareTokenListItem[] = [];
       let page: number | undefined = 1;
       while (page !== undefined) {
-        const { data } = await getCompanyTokens(apiClient, { page });
+        const { data } = await getCompanyTokens(apiClient, { page, company_uuid: companyUuid });
         tokens.push(...data.results.filter((token) => token.companyUuid === companyUuid));
         const next = getNextPageParam(data);
         if (data.next && (next === undefined || !Number.isInteger(next) || next <= page)) {
