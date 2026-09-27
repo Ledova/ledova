@@ -13,6 +13,10 @@ packages/shared/*
 !packages/shared/tsconfig.json
 !packages/shared/src/
 !packages/shared/src/**
+!packages/shared/tests/
+packages/shared/tests/*
+!packages/shared/tests/fixtures/
+!packages/shared/tests/fixtures/**
 
 !dashboard/
 dashboard/*
