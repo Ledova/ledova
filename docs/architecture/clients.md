@@ -168,6 +168,15 @@ dialog, states which records are retained, and clears the tab's account data
 after the server confirms success. Identity checks and supporting payslips retain
 their existing provider and deployment boundaries.
 
+Wallets reads every wallet page into a separate ledger cache. A failed read hides
+incomplete or stale rows and offers retry. Chain sections keep wallet verification,
+signing preference and sync feedback separate. Add, edit, derive and delete forms
+preserve refused input and stay open until success; background read failures keep
+the draft but block further submission until recovery. Hardware imports run one
+address at a time and remember confirmed additions for retry within the same import.
+A partial failure explains the number added and leaves the remaining selection
+available. These controls do not change wallet verification or signing authority.
+
 Where market values are shown elsewhere, they are in AUD: the shared
 `useCurrency` converts the API's US-dollar values at the current rate, shows a
 dash and draws no chart while the rate is unknown, and neither client offers

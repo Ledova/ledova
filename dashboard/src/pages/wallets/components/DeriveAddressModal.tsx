@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { getBlockchainDisplayName, getChainShortCode } from '@ledova/shared';
 import type { Wallet, DerivedAddress } from '@ledova/shared';
@@ -5,6 +6,9 @@ import { Modal } from '@components/Modal';
 import { deriveAddressFromParentKey } from '@utils/keystone/bcurDecoder';
 
 interface DeriveAddressModalProps {
+  readBlocked?: boolean;
+  notice?: ReactNode;
+  requestError?: string | null;
   isOpen: boolean;
   wallet: Wallet | null;
   onConfirm: (derivedAddress: DerivedAddress) => void;
@@ -18,6 +22,9 @@ export function DeriveAddressModal({
   onConfirm,
   onClose,
   isCreating = false,
+  requestError,
+  readBlocked,
+  notice,
 }: DeriveAddressModalProps) {
   const { derivedAddress, error } = useMemo((): { derivedAddress: DerivedAddress | null; error: string | null } => {
     if (!isOpen || !wallet?.parentPublicKey || !wallet?.parentChainCode || !wallet?.parentDerivationPath)
@@ -39,7 +46,7 @@ export function DeriveAddressModal({
   }, [isOpen, wallet]);
 
   const handleConfirm = () => {
-    if (derivedAddress) {
+    if (derivedAddress && !isCreating && !readBlocked) {
       onConfirm(derivedAddress);
     }
   };
@@ -51,15 +58,23 @@ export function DeriveAddressModal({
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={() => {
+        if (!isCreating) onClose();
+      }}
       title="Derive New Address"
       showFooter
       confirmLabel={isCreating ? 'Adding...' : 'Add Address'}
-      confirmDisabled={!derivedAddress || isCreating}
+      confirmDisabled={!derivedAddress || isCreating || readBlocked}
       confirmLoading={isCreating}
       onConfirm={handleConfirm}
     >
       <div className="space-y-5">
+        {notice}
+        {requestError && (
+          <p role="alert" className="text-sm text-error-light">
+            {requestError}
+          </p>
+        )}
         <div className="text-center">
           <p className="text-sm text-text-muted">Add another address from your hardware wallet</p>
         </div>
