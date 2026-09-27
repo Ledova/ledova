@@ -151,7 +151,7 @@ whole investor surface, mounted at `/api/v1/publications/`:
 
 | Route | Answers |
 | --- | --- |
-| `GET /api/v1/publications/` | What was published to this principal, newest first, with the caller's own holding, ballot, entitlement and recorded payment; `?kind=` narrows it to one kind and `?addressed=me` to the publications whose roll names the caller |
+| `GET /api/v1/publications/` | What was published to this principal, newest first, with the caller's own holding, ballot, entitlement and recorded payment; `?kind=` narrows it to one kind and `?addressed=me` to the publications whose roll names the caller; `?issuer=<company UUID>` selects an owned company |
 | `GET /api/v1/publications/summary/` | [Four counts](#the-summary) about the caller as a member, for the home page |
 | `GET /api/v1/publications/{uuid}/file/` | The stored document, as an attachment |
 | `POST /api/v1/publications/{uuid}/ballot/` | Casts the caller's ballot on a resolution, and answers with its updated row |
@@ -166,15 +166,25 @@ caller, which leaves out what a company owner reads only as the issuer. Both
 narrow what the policies already admit and widen nothing: the mobile dividends
 list below is the listing with `?kind=distribution&addressed=me`.
 
-The two filters belong to the listing alone. The view applies its filter
+The optional `issuer` UUID selects publications of one company owned by the
+caller. The filter validates that ownership against `Company.objects.owned_by`
+before filtering the publication's direct company ID. Malformed and blank UUIDs,
+non-owned companies and nonexistent companies return a 400 naming `issuer`;
+non-owned and nonexistent companies have the same refusal. A valid owned company
+with no publications returns an empty page. Omitting it preserves the mixed
+issuer/member list. Combining it with `addressed=me` takes the intersection, so
+an owner who is also on their company's roll can still read those personal rows.
+No filter changes the two-sided row policy or adds visibility.
+
+All three filters belong to the listing alone. The view applies its filter
 backends only to the `list` action, so a query string on the file route or the
 ballot route is ignored. Without that, DRF would apply the filters in
 `get_object`, which the ballot route reaches only after the ballot is recorded:
 a cast on a resolution with `?kind=distribution` would record an irrevocable
 ballot and then answer 404.
 
-The listing is scoped by the database alone — the view names `Publication` as
-its `scoped_model` and adds no owner filter, so the same two-sided policy that
+The unfiltered listing is scoped by the database alone — the view names `Publication` as
+its `scoped_model` and adds no implicit owner filter, so the same two-sided policy that
 admits a member and the company that published governs the page. The member's
 own holding is a correlated subquery on the roll rather than a join, so a
 company owner, who names no roll row, reads its own publications with `shares`
@@ -289,6 +299,17 @@ A dividend remains a company record, separate from on-chain transaction filters.
 
 The dashboard's **Holdings** page links to Notices from its personal work
 sections, described in [clients](clients.md).
+The dashboard's **Published to your members** page at `/company/publications`
+opens from Company for company and dual-role accounts. It follows every page with
+`issuer` set to the selected owned company, using a separate cache from Notices.
+Stored documents open through the same audited file route. Resolution results
+show exact share and member counts; dividends show the declared rate and dates
+available in the existing serializer. This issuer view has no ballot controls,
+personal entitlement or recorded personal payment, even if the owner holds shares.
+It adds no publication, distribution or resolution execution controls: staff
+prepare and publish on written instruction. Read failures hide stale actions and
+offer retry; file delivery failures distinguish an unavailable stored document.
+
 The mobile app keeps its current home summary card, publications list and
 separate dividends list until #750:
 

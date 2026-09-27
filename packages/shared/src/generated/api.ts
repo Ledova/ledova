@@ -7915,6 +7915,7 @@ export interface ApiOperations {
     parameters: {
       query?: {
         addressed?: 'me';
+        issuer?: string;
         kind?: 'distribution' | 'holding_statement' | 'meeting_notice' | 'resolution';
         ordering?: string;
         page?: number;

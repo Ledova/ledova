@@ -24,6 +24,7 @@ export const DESTINATIONS = {
   companyRegister: { path: '/company/register', title: 'Register', audience: 'company' },
   company: { path: '/company', title: 'Company', audience: 'company' },
   companyListing: { path: '/company/listing', title: 'Application', audience: 'company' },
+  companyPublications: { path: '/company/publications', title: 'Published to your members', audience: 'company' },
   companyOffering: { path: '/company/offering', title: 'Offerings', audience: 'company' },
   userProfile: { path: '/user-profile', title: 'Profile', audience: 'everyone' },
   settings: { path: '/settings', title: 'Settings', audience: 'everyone' },

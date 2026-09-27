@@ -62,6 +62,7 @@ describe("the owner's menus of 26 September, applied to today's pages", () => {
     company: 'company',
     companyListing: 'company',
     companyOffering: 'company',
+    companyPublications: 'company',
   };
 
   it.each(Object.entries(AUDIENCE_OF_EACH_PAGE))('opens %s to %s', (key, audience) => {
@@ -88,6 +89,7 @@ describe("the owner's menus of 26 September, applied to today's pages", () => {
       company: 'Company',
       companyListing: 'Application',
       companyOffering: 'Offerings',
+      companyPublications: 'Published to your members',
       userProfile: 'Profile',
       settings: 'Settings',
     });

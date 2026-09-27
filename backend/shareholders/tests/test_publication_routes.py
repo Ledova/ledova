@@ -148,6 +148,60 @@ class ThePublicationsRouteTest(StubUploadDependencies, TestCase):
         self.assertEqual(listed(self.holder.user, **dividends, addressed="me"), {str(dividend.pk)})
         self.assertEqual(listed(self.holder.user, addressed="me"), {str(dividend.pk), str(self.publication.pk)})
 
+    def test_an_issuer_filter_keeps_only_the_selected_owned_company_and_intersects_other_filters(self):
+        investor = self.elsewhere.members[0]
+        owned = a_company_with_members("issuer-owner-invests", owner=investor.user)
+        other_owned = a_company_with_members("issuer-second-company", owner=investor.user)
+        own_paper = published(owned)
+        own_dividend = a_distribution(owned)
+        other_paper = published(other_owned)
+        self.client.force_authenticate(investor.user)
+
+        def ids(**query):
+            return {row["uuid"] for row in self.rows(self.client.get(LISTING, query))}
+
+        self.assertEqual(ids(), {str(self.theirs.pk), str(own_paper.pk), str(own_dividend.pk), str(other_paper.pk)})
+        self.assertEqual(ids(issuer=owned.company.pk), {str(own_paper.pk), str(own_dividend.pk)})
+        self.assertEqual(ids(issuer=other_owned.company.pk), {str(other_paper.pk)})
+        self.assertEqual(ids(issuer=owned.company.pk, kind=PublicationKind.DISTRIBUTION), {str(own_dividend.pk)})
+        self.assertEqual(ids(issuer=owned.company.pk, addressed="me"), set())
+        self.assertEqual(ids(addressed="me"), {str(self.theirs.pk)})
+
+    def test_an_issuer_who_is_on_its_own_roll_keeps_its_papers_and_frozen_holding(self):
+        owned = a_company_with_members("issuer-is-member", owner_holds_first=True)
+        paper = published(owned)
+        owned.token.status = ShareTokenStatus.PAUSED
+        owned.token.save(update_fields=["status"])
+        self.client.force_authenticate(owned.owner)
+
+        for query in ({"issuer": owned.company.pk}, {"issuer": owned.company.pk, "addressed": "me"}):
+            with self.subTest(query=query):
+                rows = self.rows(self.client.get(LISTING, query))
+                self.assertEqual([row["uuid"] for row in rows], [str(paper.pk)])
+                self.assertEqual(rows[0]["shares"], str(owned.members[0].shares))
+
+    def test_an_issuer_filter_refuses_nonowned_and_missing_companies_identically_even_for_a_member(self):
+        self.client.force_authenticate(self.holder.user)
+
+        nonowned = self.client.get(LISTING, {"issuer": self.world.company.pk})
+        absent = self.client.get(LISTING, {"issuer": uuid4()})
+
+        self.assertEqual((nonowned.status_code, nonowned.content), (absent.status_code, absent.content))
+        self.assertEqual(nonowned.status_code, 400)
+        self.assertEqual(list(nonowned.json()), ["issuer"])
+        self.assertEqual([row["uuid"] for row in self.rows(self.client.get(LISTING))], [str(self.publication.pk)])
+
+    def test_an_issuer_filter_refuses_a_malformed_uuid_and_returns_empty_only_for_an_owned_company(self):
+        empty = a_company_with_members("issuer-without-papers", owner=self.world.owner)
+        self.client.force_authenticate(self.world.owner)
+
+        for value in ("not-a-uuid", ""):
+            with self.subTest(value=value):
+                malformed = self.client.get(LISTING, {"issuer": value})
+                self.assertEqual(malformed.status_code, 400)
+                self.assertEqual(list(malformed.json()), ["issuer"])
+        self.assertEqual(self.rows(self.client.get(LISTING, {"issuer": empty.company.pk})), [])
+
     def test_an_addressee_the_platform_does_not_know_is_refused_and_the_refusal_names_the_filter(self):
         self.client.force_authenticate(self.holder.user)
 
@@ -159,7 +213,7 @@ class ThePublicationsRouteTest(StubUploadDependencies, TestCase):
     def test_a_listing_filter_on_the_file_route_is_ignored(self):
         self.client.force_authenticate(self.holder.user)
 
-        for query in ("kind=distribution", "kind=bogus", "addressed=nobody"):
+        for query in ("kind=distribution", "kind=bogus", "addressed=nobody", "issuer=not-a-uuid"):
             with self.subTest(query=query):
                 response = self.client.get(f"{file_route(self.publication)}?{query}")
 

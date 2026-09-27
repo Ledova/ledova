@@ -157,7 +157,7 @@ class TheBallotRouteTest(StubUploadDependencies, TestCase):
     def test_a_listing_filter_on_the_ballot_route_is_ignored_and_the_ballot_is_answered_with_its_row(self):
         self.client.force_authenticate(self.holder.user)
 
-        for query in ("kind=bogus", "kind=distribution", "addressed=nobody"):
+        for query in ("kind=bogus", "kind=distribution", "addressed=nobody", "issuer=not-a-uuid"):
             with self.subTest(query=query):
                 resolution = a_resolution(self.world)
 
