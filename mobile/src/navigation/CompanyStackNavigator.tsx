@@ -1,5 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { CompanyRegisterScreen } from '../screens/company-register/CompanyRegisterScreen';
 import { CompanyScreen } from '../screens/company';
 import { CompanyPublicationsScreen } from '../screens/publications';
 import { TokenDetailScreen } from '../screens/company-tokens/TokenDetailScreen';
@@ -9,6 +10,7 @@ import { MainHeader } from './headers';
 
 export type CompanyStackParamList = {
   CompanyMain: undefined;
+  CompanyDetails: undefined;
   CompanyPublications: undefined;
   TokenDetail: { uuid: string; name?: string };
 };
@@ -28,7 +30,12 @@ export function CompanyStackNavigator() {
         ...MainHeader({ theme, onNotifications: () => {} }),
       })}
     >
-      <Stack.Screen name="CompanyMain" component={CompanyScreen} options={{ title: 'Company' }} />
+      <Stack.Screen name="CompanyMain" component={CompanyRegisterScreen} options={{ title: '' }} />
+      <Stack.Screen
+        name="CompanyDetails"
+        component={CompanyScreen}
+        options={{ title: 'Company', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
+      />
       <Stack.Screen
         name="CompanyPublications"
         component={CompanyPublicationsScreen}
@@ -37,8 +44,8 @@ export function CompanyStackNavigator() {
       <Stack.Screen
         name="TokenDetail"
         component={TokenDetailScreen}
-        options={({ route }) => ({
-          title: route.params.name || 'Token',
+        options={() => ({
+          title: '',
           headerLeft: undefined,
           headerBackVisible: true,
           headerRight: () => null,
