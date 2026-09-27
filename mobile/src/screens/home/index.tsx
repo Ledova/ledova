@@ -4,7 +4,7 @@ import { CaretDownIcon, CaretRightIcon } from 'phosphor-react-native';
 import { formatShareCount, getChainConfig, type ShareHoldingRow } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { GradientBackground } from '../../components/GradientBackground';
-import { PublishedCard } from './components/PublishedCard';
+import { NoticeWork } from './components/NoticeWork';
 import { useShareHoldings } from './useShareHoldings';
 
 function ShareHolding({ holding }: { holding: ShareHoldingRow }) {
@@ -130,7 +130,7 @@ export function HomeScreen() {
             holdings.map((holding) => <ShareHolding key={holding.assetUuid} holding={holding} />)
           )}
         </View>
-        <PublishedCard />
+        <NoticeWork />
       </ScrollView>
     </GradientBackground>
   );

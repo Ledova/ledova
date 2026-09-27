@@ -7,7 +7,7 @@ import { PUBLICATION_COPY, formatDateTime } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
 import { cache, files, resetFiles } from '../../testSupport/documentFiles';
-import { PublicationsScreen } from './index';
+import { CompanyPublicationsScreen, PublicationsScreen } from './index';
 
 jest.mock('expo-file-system', () => jest.requireActual('../../testSupport/documentFiles').nativeFileSystem);
 jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(), shareAsync: jest.fn() }));
@@ -115,7 +115,7 @@ beforeEach(() => {
   });
   const bytes = Uint8Array.from('%PDF', (character) => character.charCodeAt(0));
   served = async () => ({ data: bytes.buffer, headers: { 'content-type': 'application/pdf; charset=binary' } });
-  client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+  client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   jest
     .mocked(apiClient.get)
     .mockImplementation(async (url: string, config?: AxiosRequestConfig) =>
@@ -137,17 +137,30 @@ it('lists what was published, the share class it concerns and the holding frozen
 
   expect(await view.findByText('Annual holding statement 2026')).toBeTruthy();
   expect(view.getByText('Annual holding statement')).toBeTruthy();
-  expect(view.getByText('Synthetic Holdings Pty Ltd · Synthetic ordinary shares (SYN)')).toBeTruthy();
-  expect(view.getByText(`${PUBLICATION_COPY.RECORD_DATE_LABEL} 20 September 2026`)).toBeTruthy();
-  expect(view.getByText(`100 · ${PUBLICATION_COPY.HOLDING_LABEL}`)).toBeTruthy();
+  expect(view.getByText('Synthetic Holdings Pty Ltd')).toBeTruthy();
+  expect(view.getByText('Synthetic ordinary shares (SYN)')).toBeTruthy();
+  expect(view.getByText(PUBLICATION_COPY.RECORD_DATE_LABEL)).toBeTruthy();
+  expect(view.getByText('20 September 2026')).toBeTruthy();
+  expect(view.getByText(PUBLICATION_COPY.HOLDING_LABEL)).toBeTruthy();
+  expect(view.getByText('100')).toBeTruthy();
 });
 
-it('says so when nothing has been published, and offers no document to open', async () => {
+it.each([
+  [PublicationsScreen, PUBLICATION_COPY.EMPTY_TITLE, PUBLICATION_COPY.EMPTY_BODY, 'No publications available'],
+  [
+    CompanyPublicationsScreen,
+    'No publications available',
+    'Publications available to your account, including those issued by your company, will appear here.',
+    PUBLICATION_COPY.EMPTY_TITLE,
+  ],
+])('describes the empty publication scope without offering a document to open', async (Screen, title, body, absent) => {
   rows = [];
 
-  const view = await render(<PublicationsScreen />, { wrapper });
+  const view = await render(<Screen />, { wrapper });
 
-  expect(await view.findByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeTruthy();
+  expect(await view.findByText(title)).toBeTruthy();
+  expect(view.getByText(body)).toBeTruthy();
+  expect(view.queryByText(absent)).toBeNull();
   expect(view.queryByText(PUBLICATION_COPY.OPEN)).toBeNull();
 });
 
@@ -223,7 +236,8 @@ it('shows a resolution with its question, kind, basis, window, that it is open a
     ),
   ).toBeTruthy();
   expect(view.getByText(`${PUBLICATION_COPY.OPEN_UNTIL} ${formatDateTime(resolution.closesAt)}`)).toBeTruthy();
-  expect(view.getByText(`100 · ${PUBLICATION_COPY.VOTING_WEIGHT_LABEL}`)).toBeTruthy();
+  expect(view.getByText(PUBLICATION_COPY.VOTING_WEIGHT_LABEL)).toBeTruthy();
+  expect(view.getByText('100')).toBeTruthy();
   expect(view.getByLabelText(choiceButton('For'))).toBeTruthy();
 });
 
@@ -337,10 +351,10 @@ it('shows the result once closed: whether it carried, each count, and turnout ag
 
   expect(await view.findByText(PUBLICATION_COPY.CARRIED)).toBeTruthy();
   expect(view.getByText(PUBLICATION_COPY.CLOSED)).toBeTruthy();
-  expect(view.getByText('For: 100 shares · 1 member')).toBeTruthy();
-  expect(view.getByText('Against: 40 shares · 1 member')).toBeTruthy();
-  expect(view.getByText('Abstain: 0 shares · 0 members')).toBeTruthy();
-  expect(view.getByText(`${PUBLICATION_COPY.TURNOUT_LABEL}: 140 of 150 shares · 2 of 3 members`)).toBeTruthy();
+  expect(view.getByText('100 shares · 1 member')).toBeTruthy();
+  expect(view.getByText('40 shares · 1 member')).toBeTruthy();
+  expect(view.getByText('0 shares · 0 members')).toBeTruthy();
+  expect(view.getByText('140 of 150 shares · 2 of 3 members')).toBeTruthy();
   expect(view.queryByLabelText(choiceButton('For'))).toBeNull();
 });
 
@@ -438,10 +452,11 @@ it('shows a dividend with its rate, the frozen holding, the entitlement and the 
 
   expect(await view.findByText('Final dividend 2026')).toBeTruthy();
   expect(view.getByText('Dividend')).toBeTruthy();
-  expect(view.getByText(`${PUBLICATION_COPY.RATE_LABEL}: AUD 0.025 per share`)).toBeTruthy();
-  expect(view.getByText(`100 · ${PUBLICATION_COPY.HOLDING_LABEL}`)).toBeTruthy();
-  expect(view.getByText(`${PUBLICATION_COPY.ENTITLEMENT_LABEL}: AUD 2.50`)).toBeTruthy();
-  expect(view.getByText(`${PUBLICATION_COPY.PAYMENT_DATE_LABEL}: 3 October 2026`)).toBeTruthy();
+  expect(view.getByText('AUD 0.025 per share')).toBeTruthy();
+  expect(view.getByText(PUBLICATION_COPY.HOLDING_LABEL)).toBeTruthy();
+  expect(view.getByText('100')).toBeTruthy();
+  expect(view.getByText('AUD 2.50')).toBeTruthy();
+  expect(view.getByText('3 October 2026')).toBeTruthy();
   expect(view.getByText(PUBLICATION_COPY.NO_PAYMENT_RECORDED)).toBeTruthy();
   expect(view.getByText(PUBLICATION_COPY.RECORDS_ONLY)).toBeTruthy();
 });
@@ -470,7 +485,7 @@ it('says what part of a two-holding dividend entitlement is recorded, and never 
         '026, reference LDV-4412. The rest has no payment record yet.',
     ),
   ).toBeTruthy();
-  expect(view.getByText(`${PUBLICATION_COPY.ENTITLEMENT_LABEL}: AUD 3.50`)).toBeTruthy();
+  expect(view.getByText('AUD 3.50')).toBeTruthy();
   expect(view.queryByText('The company recorded this as paid on 3 October 2026, reference LDV-4412.')).toBeNull();
 });
 
@@ -480,7 +495,7 @@ it('says there is nothing to pay when a holding comes to less than a cent', asyn
   const view = await render(<PublicationsScreen />, { wrapper });
 
   expect(await view.findByText(PUBLICATION_COPY.NOTHING_PAYABLE)).toBeTruthy();
-  expect(view.getByText(`${PUBLICATION_COPY.ENTITLEMENT_LABEL}: AUD 0.00`)).toBeTruthy();
+  expect(view.getByText('AUD 0.00')).toBeTruthy();
 });
 
 it('shows the company owner a dividend with no entitlement or payment record of its own', async () => {
@@ -488,7 +503,7 @@ it('shows the company owner a dividend with no entitlement or payment record of 
 
   const view = await render(<PublicationsScreen />, { wrapper });
 
-  expect(await view.findByText(`${PUBLICATION_COPY.RATE_LABEL}: AUD 0.025 per share`)).toBeTruthy();
+  expect(await view.findByText('AUD 0.025 per share')).toBeTruthy();
   expect(view.queryByText(new RegExp(PUBLICATION_COPY.ENTITLEMENT_LABEL))).toBeNull();
   expect(view.queryByText(PUBLICATION_COPY.NO_PAYMENT_RECORDED)).toBeNull();
 });
@@ -499,4 +514,133 @@ it('shows none of a dividend on a document', async () => {
   expect(await view.findByText('Annual holding statement 2026')).toBeTruthy();
   expect(view.queryByText(new RegExp(PUBLICATION_COPY.RATE_LABEL))).toBeNull();
   expect(view.queryByText(PUBLICATION_COPY.NO_PAYMENT_RECORDED)).toBeNull();
+});
+
+it('requests only notices addressed to the caller on every page, separately from company publications', async () => {
+  const issuer = { ...statement, uuid: 'issuer-copy', title: 'Company publication not addressed to me', shares: null };
+  client.setQueryData(['publications', 'available'], {
+    pages: [{ data: { results: [issuer], next: null } }],
+    pageParams: [1],
+  });
+  listing = async (page) => ({
+    data: {
+      count: 2,
+      next: page === 1 ? 'https://api.example/api/v1/publications/?page=2' : null,
+      results: page === 1 ? rows : [{ ...statement, uuid: 'earlier', title: 'Earlier personal notice' }],
+    },
+  });
+  const view = await render(<PublicationsScreen />, { wrapper });
+  expect(await view.findByText(statement.title)).toBeTruthy();
+  expect(view.queryByText(issuer.title)).toBeNull();
+  await fireEvent.press(view.getByText(PUBLICATION_COPY.LOAD_MORE));
+  expect(await view.findByText('Earlier personal notice')).toBeTruthy();
+  expect(apiClient.get).toHaveBeenCalledWith(LISTING, { params: { page: 1, addressed: 'me' } });
+  expect(apiClient.get).toHaveBeenCalledWith(LISTING, { params: { page: 2, addressed: 'me' } });
+  await cleanup();
+  const company = await render(<CompanyPublicationsScreen />, { wrapper });
+  expect(await company.findByText(issuer.title)).toBeTruthy();
+  expect(company.queryByText('Earlier personal notice')).toBeNull();
+});
+
+it('keeps the unfiltered company publication path available without a personal entitlement', async () => {
+  rows = [{ ...statement, shares: null }];
+  const view = await render(<CompanyPublicationsScreen />, { wrapper });
+  expect(await view.findByText(statement.title)).toBeTruthy();
+  expect(apiClient.get).toHaveBeenCalledWith(LISTING, { params: { page: 1 } });
+  expect(view.queryByText(PUBLICATION_COPY.HOLDING_LABEL)).toBeNull();
+  expect(view.getByLabelText(`${PUBLICATION_COPY.OPEN}: ${statement.title}`)).toBeTruthy();
+});
+
+it('formats a large frozen share count without rounding', async () => {
+  rows = [{ ...statement, shares: '9007199254740993' }];
+  const view = await render(<PublicationsScreen />, { wrapper });
+  expect(await view.findByText('9,007,199,254,740,993')).toBeTruthy();
+  expect(view.queryByText('9,007,199,254,740,992')).toBeNull();
+});
+
+it('keeps earlier-page failure distinct and retries it without losing the loaded notice', async () => {
+  let failing = true;
+  listing = async (page) => {
+    if (page === 2 && failing) throw new Error('synthetic earlier-page failure');
+    return {
+      data: {
+        count: 2,
+        next: page === 1 ? 'https://api.example/api/v1/publications/?page=2' : null,
+        results: page === 1 ? rows : [{ ...statement, uuid: 'earlier', title: 'Earlier personal notice' }],
+      },
+    };
+  };
+  const view = await render(<PublicationsScreen />, { wrapper });
+  await fireEvent.press(await view.findByText(PUBLICATION_COPY.LOAD_MORE));
+  expect(await view.findByText('Earlier notices could not be loaded. The list is incomplete.')).toBeTruthy();
+  expect(view.getByText(statement.title)).toBeTruthy();
+  expect(view.queryByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeNull();
+  failing = false;
+  await fireEvent.press(view.getByText('Try earlier notices again'));
+  expect(await view.findByText('Earlier personal notice')).toBeTruthy();
+  expect(view.queryByText('Earlier notices could not be loaded. The list is incomplete.')).toBeNull();
+});
+
+it('can reach the next page when the first addressed page is empty', async () => {
+  listing = async (page) => ({
+    data: {
+      count: 1,
+      next: page === 1 ? 'https://api.example/api/v1/publications/?page=2' : null,
+      results: page === 1 ? [] : rows,
+    },
+  });
+  const view = await render(<PublicationsScreen />, { wrapper });
+  await fireEvent.press(await view.findByText(PUBLICATION_COPY.LOAD_MORE));
+  expect(await view.findByText(statement.title)).toBeTruthy();
+  expect(view.queryByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeNull();
+});
+
+it.each([
+  'https://api.example/?page=1',
+  'https://api.example/?page=wat',
+  'https://api.example/?page=1.5',
+  'https://api.example/?cursor=opaque',
+])('refuses a malformed or nonadvancing next page %s', async (next) => {
+  listing = async () => ({ data: { count: 2, next, results: rows } });
+  const view = await render(<PublicationsScreen />, { wrapper });
+  expect(await view.findByText(PUBLICATION_COPY.LIST_FAILED)).toBeTruthy();
+  expect(view.queryByText(statement.title)).toBeNull();
+  expect(view.queryByText(PUBLICATION_COPY.LOAD_MORE)).toBeNull();
+});
+
+it('withdraws stale document and ballot actions after refresh failure, then restores them on retry', async () => {
+  rows = [resolution];
+  const view = await render(<PublicationsScreen />, { wrapper });
+  expect(await view.findByLabelText(choiceButton('For'))).toBeTruthy();
+  let failing = true;
+  listing = async () => {
+    if (failing) throw new Error('synthetic refresh failure');
+    return { data: { count: 1, next: null, results: rows } };
+  };
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: ['publications'] });
+  });
+  expect(await view.findByText('Your notices could not be refreshed. Try again before continuing.')).toBeTruthy();
+  expect(view.queryByLabelText(choiceButton('For'))).toBeNull();
+  expect(view.queryByLabelText(`${PUBLICATION_COPY.OPEN}: ${resolution.title}`)).toBeNull();
+  failing = false;
+  await fireEvent.press(view.getByText(PUBLICATION_COPY.RETRY));
+  expect(await view.findByLabelText(choiceButton('For'))).toBeTruthy();
+});
+
+it('refreshes the shared personal work summary after a ballot settles', async () => {
+  rows = [resolution];
+  const summary = {
+    openResolutions: 1,
+    nextClosesAt: resolution.closesAt,
+    publishedSince: 1,
+    dividendsWithoutRecord: 0,
+  };
+  client.setQueryData(['publications', 'summary'], summary);
+  jest.mocked(apiClient.post).mockRejectedValue(new Error('synthetic ballot refusal'));
+  const view = await render(<PublicationsScreen />, { wrapper });
+  await fireEvent.press(await view.findByLabelText(choiceButton('For')));
+  await fireEvent.press(view.getByText(PUBLICATION_COPY.CONFIRM));
+  await waitFor(() => expect(client.getQueryState(['publications', 'summary'])?.isInvalidated).toBe(true));
+  expect(client.getQueryData(['publications', 'summary'])).toEqual(summary);
 });

@@ -59,9 +59,11 @@ Transactions page. Holdings replaces the crypto home at the existing `/home`
 address. Notices at `/publications` lists documents, resolutions and dividends
 addressed to the person. The old `/dividends` address redirects to Notices through
 the same signed-in route guard, keeping bookmarks and transaction links useful.
-The mobile app keeps the old names until #750 gives it the same structure. So,
-for now, Market means share trading on the web but the coin-price screen in the
-app.
+The mobile shell uses Holdings, Notices, Activity and the securities Market.
+Company and Invest retain their existing native screens until their corresponding
+web replacements are ported. Company Publications preserves the existing list of
+all publications available to the account, including its issuer publications;
+Your shares Notices separately requests only publications addressed to the person.
 
 Signing in, and verifying an email, which also signs a new person in, clear
 what the tab cached for whoever was signed in before, as signing out does, so a
@@ -106,6 +108,15 @@ the Documents page's first-page response shape. A failed background read retains
 an open claim's fields and selected evidence file, with a retry inside the modal.
 Submission waits for reliable reads and remains blocked if a refreshed history
 contains another pending claim.
+
+Mobile Holdings currently shows the notice-derived work under _Votes needing you_
+and _Dividend records in progress_. It does not claim applications are clear;
+application summaries follow the native Applications destination. Both native
+publication lists distinguish a failed refresh, which hides stale actions, from
+a failed earlier page, which keeps loaded rows with an incomplete-list warning.
+Every personal page retains the addressed filter, and ballot settlement
+invalidates the list and personal summary together. Native document copies and
+ballots retain their session boundaries.
 
 Where market values are shown elsewhere, they are in AUD: the shared
 `useCurrency` converts the API's US-dollar values at the current rate, shows a
@@ -198,8 +209,9 @@ maps it onto the theme tokens, which are the generated defaults, so the
 dashboard's `bg-surface-*`, `text-text-*` and `brand` classes, and any code
 that reads `PAPER_THEME` for colours such as charts, render in paper. Both
 clients bundle Newsreader for display text and Instrument Sans for everything
-else. The mobile app still reads the dark and light palettes, and moves to
-paper in its own change.
+else. Mobile also uses fixed paper and bundles these fonts with a finite
+loading/error/retry gate; saved local and account theme choices do not change
+the palette. Older shared palettes remain until their last consumers move.
 
 Mobile resolves the package through its Metro configuration and local workspace
 link. Run `npm --prefix mobile run check:resolution` after dependency/resolution

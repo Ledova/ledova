@@ -1,40 +1,26 @@
-import React from 'react';
 import { View, Text } from 'react-native';
 import { PUBLICATION_COPY, describePaymentStanding, describeRate, formatDate, formatMoney } from '@ledova/shared';
 import type { Publication } from '@ledova/shared';
+import { Row } from '../../components/Ledger';
 import { useThemedStyles } from '../../contexts';
 
 export function Distribution({ publication }: { publication: Publication }) {
   const styles = useThemedStyles((theme) => ({
-    box: {
-      marginTop: theme.spacing.sm,
-      padding: theme.spacing.sm,
-      borderRadius: theme.borderRadius.sm,
-      backgroundColor: theme.colors.surface.tertiary,
-    },
-    detail: { fontSize: theme.fontSize.xs, color: theme.colors.text.muted, marginTop: 2 },
-    entitlement: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-      marginTop: theme.spacing.xs,
-    },
-    record: { fontSize: theme.fontSize.sm, color: theme.colors.text.primary, marginTop: theme.spacing.sm },
+    box: { gap: 8 },
+    detail: { fontFamily: theme.fontFamily.regular, fontSize: 13, lineHeight: 20, color: theme.colors.text.muted },
+    record: { fontFamily: theme.fontFamily.regular, fontSize: 15, lineHeight: 23, color: theme.colors.text.primary },
   }));
   if (publication.kind !== 'distribution') return null;
   const entitled = publication.myEntitlement !== null && publication.myEntitlement !== undefined;
-
   return (
     <View style={styles.box}>
-      <Text style={styles.detail}>{`${PUBLICATION_COPY.RATE_LABEL}: ${describeRate(publication) ?? ''}`}</Text>
-      <Text style={styles.detail}>
-        {`${PUBLICATION_COPY.PAYMENT_DATE_LABEL}: ${formatDate(publication.paymentDate)}`}
-      </Text>
+      <Row label={PUBLICATION_COPY.RATE_LABEL}>{describeRate(publication)}</Row>
+      <Row label={PUBLICATION_COPY.PAYMENT_DATE_LABEL}>{formatDate(publication.paymentDate)}</Row>
       {entitled && (
         <>
-          <Text style={styles.entitlement}>
-            {`${PUBLICATION_COPY.ENTITLEMENT_LABEL}: ${formatMoney(publication.myEntitlement ?? '0', publication.currency ?? '')}`}
-          </Text>
+          <Row label={PUBLICATION_COPY.ENTITLEMENT_LABEL}>
+            {formatMoney(publication.myEntitlement ?? '0', publication.currency ?? '')}
+          </Row>
           <Text style={styles.detail}>{PUBLICATION_COPY.ENTITLEMENT_HELP}</Text>
           <Text style={styles.record}>{describePaymentStanding(publication)}</Text>
           <Text style={styles.detail}>{PUBLICATION_COPY.RECORDS_ONLY}</Text>

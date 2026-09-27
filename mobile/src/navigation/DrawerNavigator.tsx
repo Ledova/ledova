@@ -59,6 +59,7 @@ const SHARE_MENU_ITEMS: MenuItem[] = [
 
 const COMPANY_MENU_ITEMS: MenuItem[] = [
   { label: DESTINATIONS.company.title, icon: BuildingsIcon, action: 'tab', target: 'Company' },
+  { label: 'Publications', icon: NewspaperIcon, action: 'tab', target: 'CompanyPublications' },
   { label: DESTINATIONS.companyListing.title, icon: FileTextIcon, action: 'tab', target: 'Listing' },
 ];
 
@@ -160,6 +161,8 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
         params = { screen: 'Trading', params: { screen: 'TradingMain' } };
       } else if (item.target === 'Company') {
         params = { screen: 'Company', params: { screen: 'CompanyMain' } };
+      } else if (item.target === 'CompanyPublications') {
+        params = { screen: 'Company', params: { screen: 'CompanyPublications' } };
       } else if (item.target === 'Wallets') {
         params = { screen: 'Wallets', params: { screen: 'WalletsList' } };
       } else {
