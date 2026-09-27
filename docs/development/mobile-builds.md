@@ -7,7 +7,9 @@ Install the native toolchain and generate the Android or iOS project before runn
 The mobile app uses the versions resolved by `mobile/package-lock.json`: Expo
 54.0.33, React Native 0.81.5, React 19.1.0, SecureStore 15.0.8 and Expo Crypto
 15.0.8. Native projects are generated from `app.json` and the local config plugin;
-`android/` and `ios/` are not committed. Use a native development build to test
+`android/` and `ios/` are not committed. An explicit iOS distribution environment
+can override the store identity through `app.config.js`; see
+[iOS distribution builds](ios-distribution.md). Use a native development build to test
 these policies. Expo Go does not contain Ledova's native networking overrides.
 
 The lockfile keeps registry URLs and npm integrity values; the shared workspace

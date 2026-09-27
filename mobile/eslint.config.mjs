@@ -61,13 +61,14 @@ export default tseslint.config(
     },
   },
   {
-    files: ['babel.config.js', 'jest.config.js', 'jest.setup.js'],
+    files: ['app.config.js', 'babel.config.js', 'jest.config.js', 'jest.setup.js'],
     languageOptions: {
       sourceType: 'commonjs',
       globals: {
         module: 'writable',
         require: 'readonly',
         process: 'readonly',
+        URL: 'readonly',
         __dirname: 'readonly',
         jest: 'readonly',
       },

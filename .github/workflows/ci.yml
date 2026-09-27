@@ -83,6 +83,9 @@ jobs:
       - name: Mobile imports resolve from mobile/node_modules
         run: npm --prefix mobile run check:resolution
 
+      - name: iOS release configuration guards
+        run: node --test mobile/scripts/tests/ios-release-config.test.mjs
+
       - name: Lint workspaces
         run: |
           make lint
