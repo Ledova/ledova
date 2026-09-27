@@ -2,7 +2,7 @@ import { useQuery, useQueries } from '@tanstack/react-query';
 import {
   getShareTokens,
   getInvestorEligibility,
-  getUserOrders,
+  getOrders,
   getWallets,
   getWhitelistStatus,
   getWalletBalances,
@@ -13,30 +13,29 @@ import {
   TRADING_CONFIG,
   WALLET_VERIFICATION_STATUS,
 } from '@ledova/shared';
-import type { TransferOrder, GetOrdersParams, Wallet, WhitelistStatus } from '@ledova/shared';
+import type { Wallet, WhitelistStatus } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { useSelectedPortfolio } from '@hooks/useSelectedPortfolio';
+import { allMarketPages } from './marketData';
 
 export { parseTradingError };
 export type { WhitelistStatus };
 
 export const tradingQueryKeys = {
   tokens: ['trading', 'tokens'] as const,
-  orders: (params?: GetOrdersParams) => ['trading', 'orders', params] as const,
-  order: (uuid: string) => ['trading', 'orders', uuid] as const,
-  userOrders: (walletAddress: string) => ['trading', 'userOrders', walletAddress] as const,
   walletBalances: (walletAddress: string) => ['trading', 'walletBalances', walletAddress] as const,
   whitelistStatus: (tokenAddress: string, walletAddress: string) =>
     ['trading', 'whitelistStatus', tokenAddress, walletAddress] as const,
-  orderModifications: (orderUuid: string) => ['trading', 'orderModifications', orderUuid] as const,
 };
 
 export function useUserTradingWallets() {
-  const { isLoading: isLoadingPortfolio } = useSelectedPortfolio();
+  const { userAccount, isLoading: isLoadingPortfolio } = useSelectedPortfolio();
 
   const walletsQuery = useQuery({
-    queryKey: ['wallets', 'trading'],
-    queryFn: () => getWallets(apiClient),
+    queryKey: ['wallets', userAccount?.uuid, 'trading'],
+    queryFn: async () => ({
+      data: { results: await allMarketPages((page) => getWallets(apiClient, page ? { page } : undefined)) },
+    }),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
     select: (data) => ({
@@ -52,9 +51,10 @@ export function useUserTradingWallets() {
   });
 
   return {
-    wallets: walletsQuery.data?.wallets || ([] as Wallet[]),
-    actionWallets: walletsQuery.data?.actionWallets || ([] as Wallet[]),
-    walletAddresses: (walletsQuery.data?.wallets || []).map((w: Wallet) => w.address),
+    wallets: walletsQuery.isError ? [] : walletsQuery.data?.wallets || ([] as Wallet[]),
+    actionWallets: walletsQuery.isError ? [] : walletsQuery.data?.actionWallets || ([] as Wallet[]),
+    walletAddresses: (walletsQuery.isError ? [] : walletsQuery.data?.wallets || []).map((w: Wallet) => w.address),
+    isFetching: walletsQuery.isFetching,
     isLoading: isLoadingPortfolio || walletsQuery.isLoading,
     error: walletsQuery.error,
     refetch: walletsQuery.refetch,
@@ -73,19 +73,14 @@ export function useWalletsWhitelistStatus(tokenAddress: string | undefined, wall
     })),
   });
 
-  const isLoading = queries.some((q) => q.isLoading);
+  const isLoading = queries.some((q) => q.isFetching);
 
   const statusByAddress = new Map<string, WhitelistStatus>();
   queries.forEach((query, index) => {
-    if (query.data) {
+    if (query.data && !query.isError && !query.isFetching) {
       statusByAddress.set(walletAddresses[index].toLowerCase(), query.data);
     }
   });
-
-  const isWhitelisted = (address: string): boolean => {
-    const status = statusByAddress.get(address.toLowerCase());
-    return status?.isWhitelisted ?? false;
-  };
 
   const getStatus = (address: string): WhitelistStatus | undefined => {
     return statusByAddress.get(address.toLowerCase());
@@ -93,7 +88,6 @@ export function useWalletsWhitelistStatus(tokenAddress: string | undefined, wall
 
   return {
     statusByAddress,
-    isWhitelisted,
     getStatus,
     isLoading,
     refetch: () => queries.forEach((q) => q.refetch()),
@@ -114,18 +108,12 @@ export function useAllWalletTokenBalances(walletAddresses: string[]) {
   const isLoading = queries.some((q) => q.isLoading);
   const error = queries.find((q) => q.error)?.error;
 
-  const balancesByToken = new Map<string, Map<string, string>>();
   const tokenWallets = new Map<string, { walletAddress: string; balance: string }[]>();
 
   queries.forEach((query) => {
-    if (query.data) {
+    if (query.data && !query.isError) {
       const { walletAddress, balances } = query.data;
       (balances || []).forEach((balance) => {
-        if (!balancesByToken.has(balance.token)) {
-          balancesByToken.set(balance.token, new Map());
-        }
-        balancesByToken.get(balance.token)!.set(walletAddress, balance.balance);
-
         if (!tokenWallets.has(balance.token)) {
           tokenWallets.set(balance.token, []);
         }
@@ -137,56 +125,12 @@ export function useAllWalletTokenBalances(walletAddresses: string[]) {
     }
   });
 
-  const hasHoldings = (tokenUuid: string): boolean => {
-    return balancesByToken.has(tokenUuid);
-  };
-
-  const getTotalBalance = (tokenUuid: string): string => {
-    const tokenBalances = balancesByToken.get(tokenUuid);
-    if (!tokenBalances) return '0';
-    let total = BigInt(0);
-    tokenBalances.forEach((balance) => {
-      total += BigInt(balance);
-    });
-    return total.toString();
-  };
-
   const getWalletsWithHoldings = (tokenUuid: string): { walletAddress: string; balance: string }[] => {
     return tokenWallets.get(tokenUuid) || [];
   };
 
   return {
-    balancesByToken,
-    tokenWallets,
-    hasHoldings,
-    getTotalBalance,
     getWalletsWithHoldings,
-    isLoading,
-    error,
-    refetch: () => queries.forEach((q) => q.refetch()),
-  };
-}
-
-export function useAllUserOrders(walletAddresses: string[]) {
-  const queries = useQueries({
-    queries: walletAddresses.map((address) => ({
-      queryKey: tradingQueryKeys.userOrders(address),
-      queryFn: () => getUserOrders(apiClient, address).then((res) => res.data.results ?? []),
-      enabled: !!address,
-      staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
-      gcTime: CACHE_TIMING.DEFAULT_GC_TIME,
-    })),
-  });
-
-  const isLoading = queries.some((q) => q.isLoading);
-  const error = queries.find((q) => q.error)?.error;
-
-  const allOrders = queries.flatMap((query) => query.data || []);
-
-  allOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-  return {
-    orders: allOrders as TransferOrder[],
     isLoading,
     error,
     refetch: () => queries.forEach((q) => q.refetch()),
@@ -196,44 +140,28 @@ export function useAllUserOrders(walletAddresses: string[]) {
 export function useShareTokens() {
   return useQuery({
     queryKey: tradingQueryKeys.tokens,
-    queryFn: () => getShareTokens(apiClient).then((res) => res.data.results ?? []),
+    queryFn: () => allMarketPages((page) => getShareTokens(apiClient, page)),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.DEFAULT_GC_TIME,
   });
 }
 
-function useUserOrders(walletAddress: string | undefined) {
-  return useQuery({
-    queryKey: tradingQueryKeys.userOrders(walletAddress!),
-    queryFn: () => getUserOrders(apiClient, walletAddress!).then((res) => res.data.results),
-    enabled: !!walletAddress,
+export function useTrading({ walletAddresses = [] }: { walletAddresses?: string[] } = {}) {
+  const orders = useQuery({
+    queryKey: ['trading', 'userOrders', 'all'],
+    queryFn: () => allMarketPages((page) => getOrders(apiClient, page ? { page } : undefined)),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.DEFAULT_GC_TIME,
   });
-}
-
-interface UseTradingOptions {
-  tokenUuid?: string;
-  walletAddress?: string;
-  walletAddresses?: string[];
-}
-
-export function useTrading(options: UseTradingOptions = {}) {
-  const { walletAddress, walletAddresses = [] } = options;
-
-  const singleWalletOrdersQuery = useUserOrders(walletAddress);
-  const multiWalletOrdersQuery = useAllUserOrders(walletAddresses);
-
-  const useMultiWallet = walletAddresses.length > 0;
-  const userOrders = useMultiWallet ? multiWalletOrdersQuery.orders : singleWalletOrdersQuery.data || [];
-  const isLoadingUserOrders = useMultiWallet ? multiWalletOrdersQuery.isLoading : singleWalletOrdersQuery.isLoading;
-
   const tokenBalances = useAllWalletTokenBalances(walletAddresses);
-
   return {
-    userOrders: userOrders as TransferOrder[],
-    isLoadingUserOrders,
-    hasHoldings: tokenBalances.hasHoldings,
+    userOrders: orders.isError ? [] : (orders.data ?? []),
+    isLoadingUserOrders: orders.isLoading,
+    ordersError: orders.error,
+    refreshOrders: orders.refetch,
+    balancesError: tokenBalances.error,
+    isLoadingBalances: tokenBalances.isLoading,
+    refreshBalances: tokenBalances.refetch,
     getWalletsWithHoldings: tokenBalances.getWalletsWithHoldings,
   };
 }

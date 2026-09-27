@@ -12,6 +12,7 @@ import {
   type SwapOrder,
   type SwapSettlementResponse,
   type Wallet,
+  type TransferOrder,
 } from '@ledova/shared';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { swapSettlementStore } from '@services/swapSettlements';
@@ -20,9 +21,19 @@ import tradingApi from '@services/apiClient';
 import { TradingPage } from './index';
 import fixture from '../../../../packages/shared/tests/fixtures/swap-settlement-api.json';
 import { settlementListRow } from '../../../../packages/shared/tests/fixtures/swap-settlements';
-import { deferred, response, userUuid } from '../../../../packages/shared/tests/fixtures/order-submissions';
+import {
+  deferred,
+  response,
+  userUuid,
+  submittedOrder,
+} from '../../../../packages/shared/tests/fixtures/order-submissions';
 
-const state = vi.hoisted(() => ({ wallets: [] as Wallet[], swaps: [] as SwapOrder[] }));
+const state = vi.hoisted(() => ({
+  wallets: [] as Wallet[],
+  swaps: [] as SwapOrder[],
+  orders: [] as TransferOrder[],
+  tokens: [{ uuid: '30ca2374-1201-459b-93b0-6eb8c1a90492', name: 'Synthetic', symbol: 'DEP' }],
+}));
 vi.mock('@components/Modal', () => ({
   Modal: ({ isOpen, children }: { isOpen: boolean; children: ReactNode }) => (isOpen ? <div>{children}</div> : null),
 }));
@@ -43,7 +54,7 @@ vi.mock('./hooks/useTradingEvents', () => ({ useTradingEvents: () => {} }));
 vi.mock('./hooks/useAtomicSwaps', () => ({ useSwapOrdersMulti: () => ({ data: state.swaps, isLoading: false }) }));
 vi.mock('./useTrading', () => ({
   useShareTokens: () => ({
-    data: [{ uuid: '30ca2374-1201-459b-93b0-6eb8c1a90492', name: 'Synthetic', symbol: 'DEP' }],
+    data: state.tokens,
     isLoading: false,
   }),
   useInvestorEligibilityQuery: () => ({ data: { isEligible: true } }),
@@ -58,7 +69,7 @@ vi.mock('./useTrading', () => ({
     isLoading: false,
   }),
   useOrderBook: () => ({ data: null, isLoading: false }),
-  useTrading: () => ({ userOrders: [], isLoadingUserOrders: false, getWalletsWithHoldings: () => [] }),
+  useTrading: () => ({ userOrders: state.orders, isLoadingUserOrders: false, getWalletsWithHoldings: () => [] }),
 }));
 
 const captured = fixture.get_body as SwapSettlementResponse;
@@ -122,6 +133,8 @@ beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity, staleTime: Infinity } } });
   setAccount();
   state.wallets = [walletFor('buyer')];
+  state.orders = [];
+  state.tokens = [{ uuid: '30ca2374-1201-459b-93b0-6eb8c1a90492', name: 'Synthetic', symbol: 'DEP' }];
   state.swaps = [settlementListRow(captured)];
   requests = [];
   api = axios.create();
@@ -238,7 +251,8 @@ it('holds explicit version0 history and opens a refreshed version1 list row with
   state.swaps = [legacy];
   const view = render(<TradingPage />, { wrapper });
   expect(screen.queryByTitle('Sign swap')).toBeNull();
-  expect(screen.getByText(`${legacy.shareAmount}@$${(legacy.paymentAmount / 100).toFixed(2)}`)).toBeTruthy();
+  expect(screen.getByText('Unavailable')).toBeTruthy();
+  expect(screen.queryByText(String(legacy.shareAmount))).toBeNull();
   expect(screen.getByText('Buyer')).toBeTruthy();
   expect(screen.queryByText('Expired')).toBeNull();
   fireEvent.click(screen.getByText('Held for operator review'));
@@ -433,3 +447,12 @@ it.each(['other chain', 'other account'] as const)(
       expect(request.params.settlement_digest).toBe(captured.settlementDigest);
   },
 );
+
+it('retains owned order and trade access after the share class disappears from Market', () => {
+  state.tokens = [];
+  state.orders = [{ ...submittedOrder({ status: 'open' }), tokenName: 'Recorded class', tokenSymbol: null }];
+  render(<TradingPage />, { wrapper });
+  expect(screen.getByText('Recorded class')).toBeTruthy();
+  expect(screen.getByTitle('Modify')).toBeTruthy();
+  expect(screen.getByTitle('Sign swap')).toBeTruthy();
+});

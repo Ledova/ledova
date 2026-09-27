@@ -30,6 +30,7 @@ import { PlaceOrderPanel } from './components/PlaceOrderPanel';
 import { useTradingEvents } from './hooks/useTradingEvents';
 import { useInvestorEligibilityQuery } from './useTrading';
 import { Page } from '@components/Page';
+import { marketAmount, marketQuantity } from './marketData';
 
 const ICON_XL = DESIGN_TOKENS.icon.sizes.xl;
 
@@ -64,15 +65,15 @@ function OrderSuccessModal({
         <div className="w-full p-4 rounded-lg bg-surface-tertiary space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-text-muted">Quantity</span>
-            <span className="text-text-primary">{order.quantity} shares</span>
+            <span className="text-text-primary">{marketQuantity(order.quantity)} shares</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-text-muted">Price</span>
-            <span className="text-text-primary">${order.pricePerShare}</span>
+            <span className="text-text-primary">{marketAmount(order.pricePerShare)}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-text-muted">Total</span>
-            <span className="text-text-primary font-semibold">${order.totalValue}</span>
+            <span className="text-text-primary font-semibold">{marketAmount(order.totalValue)}</span>
           </div>
         </div>
         <button
@@ -104,8 +105,10 @@ export function TradingPage() {
   } | null>(null);
   const signingGeneration = useRef(0);
   const currentSigningGeneration = signingGeneration.current;
-  const { data: tokens, isLoading } = useShareTokens();
-  const { data: eligibility } = useInvestorEligibilityQuery();
+  const tokensQuery = useShareTokens();
+  const { data: tokens, isLoading } = tokensQuery;
+  const eligibilityQuery = useInvestorEligibilityQuery();
+  const { data: eligibility } = eligibilityQuery;
   const isEligible = eligibility?.isEligible ?? false;
   const [selectedTokenUuid, setSelectedTokenUuid] = useState<string | null>(null);
 
@@ -117,7 +120,8 @@ export function TradingPage() {
 
   useTradingEvents(selectedTokenUuid);
 
-  const { wallets, actionWallets, walletAddresses } = useUserTradingWallets();
+  const tradingWallets = useUserTradingWallets();
+  const { wallets, actionWallets, walletAddresses } = tradingWallets;
   const latestWallets = useRef(wallets);
   // eslint-disable-next-line react-hooks/refs
   latestWallets.current = wallets;
@@ -140,7 +144,7 @@ export function TradingPage() {
         )
           return;
         const data = event.query.state.data as { data?: { results?: Wallet[] } } | undefined;
-        const rows = event.type === 'removed' ? null : data?.data?.results;
+        const rows = event.type === 'removed' || event.query.state.status === 'error' ? null : data?.data?.results;
         const observed = Array.isArray(rows)
           ? (rows.find((candidate) => candidate.uuid === guard.walletUuid) ?? null)
           : null;
@@ -151,7 +155,8 @@ export function TradingPage() {
       }),
     [queryClient],
   );
-  const { data: swaps, isLoading: isLoadingSwaps } = useSwapOrdersMulti(walletAddresses);
+  const swapsQuery = useSwapOrdersMulti(walletAddresses);
+  const { data: swaps, isLoading: isLoadingSwaps } = swapsQuery;
 
   if (tokens && tokens.length > 0 && !selectedTokenUuid) {
     setSelectedTokenUuid(tokens[0].uuid);
@@ -161,20 +166,35 @@ export function TradingPage() {
     if (!tokens || !selectedTokenUuid) return null;
     return tokens.find((t) => t.uuid === selectedTokenUuid) || null;
   }, [tokens, selectedTokenUuid]);
-  const {
-    isWhitelisted,
-    getStatus: getWhitelistStatusFor,
-    isLoading: isLoadingWhitelistStatus,
-  } = useWalletsWhitelistStatus(selectedToken?.contractAddress ?? undefined, walletAddresses);
+  const { getStatus: getWhitelistStatusFor, isLoading: isLoadingWhitelistStatus } = useWalletsWhitelistStatus(
+    selectedToken?.contractAddress ?? undefined,
+    walletAddresses,
+  );
 
-  const { userOrders, isLoadingUserOrders, getWalletsWithHoldings } = useTrading({
-    tokenUuid: selectedTokenUuid || undefined,
+  const {
+    userOrders,
+    isLoadingUserOrders,
+    getWalletsWithHoldings,
+    ordersError,
+    refreshOrders,
+    balancesError,
+    isLoadingBalances,
+    refreshBalances,
+  } = useTrading({
     walletAddresses,
   });
 
-  const { data: orderBookData, isLoading: isLoadingOrderBook } = useOrderBook(selectedTokenUuid || undefined);
+  const orderBookQuery = useOrderBook(!tokensQuery.isError ? selectedToken?.uuid : undefined);
+  const { data: orderBookData, isLoading: isLoadingOrderBook } = orderBookQuery;
+  const readsUnavailable = !!(
+    tokensQuery.isError ||
+    tradingWallets.error ||
+    tokensQuery.isFetching ||
+    tradingWallets.isFetching
+  );
 
   const handleCreateOrder = (data: CreateOrderRequest): Promise<boolean> => {
+    if (readsUnavailable || !selectedToken || data.token !== selectedToken.uuid) return Promise.resolve(false);
     closeSwapSigning();
     actions.close();
     const signingWallet = wallets.find((w) => w.uuid === data.walletUuid);
@@ -248,12 +268,17 @@ export function TradingPage() {
         tokens={tokens || []}
         selectedTokenUuid={selectedTokenUuid}
         onSelectToken={setSelectedTokenUuid}
-        isLoading={isLoading}
+        isLoading={isLoading || eligibilityQuery.isLoading}
         isEligible={isEligible}
+        error={tokensQuery.error || eligibilityQuery.error}
+        onRetry={() => {
+          void tokensQuery.refetch();
+          void eligibilityQuery.refetch();
+        }}
       />
 
-      <section className="space-y-2 rounded-lg bg-surface-tertiary p-4" aria-label="Saved orders">
-        <h2 className="font-semibold">Saved orders</h2>
+      <section className="space-y-2 border-b border-border py-4" aria-label="Saved orders">
+        <h2 className="font-display text-xl">Saved orders</h2>
         <p className="text-sm text-text-muted">
           Check unfinished orders here. New buy and sell orders are separate orders, even with the same terms.
         </p>
@@ -284,8 +309,8 @@ export function TradingPage() {
         </button>
       </section>
 
-      <section className="space-y-2 rounded-lg bg-surface-tertiary p-4" aria-label="Saved cancellations and changes">
-        <h2 className="font-semibold">Saved cancellations and changes</h2>
+      <section className="space-y-2 border-b border-border py-4" aria-label="Saved cancellations and changes">
+        <h2 className="font-display text-xl">Saved cancellations and changes</h2>
         {actions.error && <p role="alert">{actions.error}</p>}
         {actions.pending.map((record, index) => (
           <button
@@ -310,8 +335,8 @@ export function TradingPage() {
         </button>
       </section>
 
-      <section className="space-y-2 rounded-lg bg-surface-tertiary p-4" aria-label="Saved trade signatures">
-        <h2 className="font-semibold">Saved trade signatures and approvals</h2>
+      <section className="space-y-2 border-b border-border py-4" aria-label="Saved trade signatures">
+        <h2 className="font-display text-xl">Saved trade signatures and approvals</h2>
         <p className="text-sm text-text-muted">
           Check the original trade after a lost connection or interrupted signing.
         </p>
@@ -341,35 +366,57 @@ export function TradingPage() {
         </button>
       </section>
 
+      {tradingWallets.error && (
+        <div role="alert">
+          Wallets could not be loaded. Trading actions are unavailable.{' '}
+          <button className="underline" onClick={() => void tradingWallets.refetch()}>
+            Retry wallets
+          </button>
+        </div>
+      )}
+      <OrdersPanel
+        tokenSymbol={!tokensQuery.isError ? (selectedToken?.symbol ?? null) : null}
+        orderBook={orderBookData || null}
+        isLoadingOrderBook={isLoadingOrderBook}
+        orderBookError={orderBookQuery.error}
+        onRefreshBook={() => void orderBookQuery.refetch()}
+        userOrders={userOrders}
+        isLoadingUserOrders={isLoadingUserOrders}
+        ordersError={ordersError}
+        onRefreshOrders={() => void refreshOrders()}
+        onCancelOrder={handleCancelOrder}
+        onEditOrder={handleEditOrder}
+        swaps={swaps}
+        isLoadingSwaps={isLoadingSwaps || tradingWallets.isLoading}
+        swapsError={swapsQuery.error || tradingWallets.error}
+        onRefreshSwaps={() => {
+          void tradingWallets.refetch();
+          void swapsQuery.refetch();
+        }}
+        wallets={wallets}
+        settlementOwner={settlements.owner}
+        onSignSwap={handleSignSwap}
+      />
       {selectedToken && (
         <>
-          <OrdersPanel
-            tokenSymbol={selectedToken.symbol}
-            orderBook={orderBookData || null}
-            isLoadingOrderBook={isLoadingOrderBook}
-            userOrders={userOrders}
-            isLoadingUserOrders={isLoadingUserOrders}
-            onCancelOrder={handleCancelOrder}
-            onEditOrder={handleEditOrder}
-            swaps={swaps}
-            isLoadingSwaps={isLoadingSwaps}
-            wallets={wallets}
-            settlementOwner={settlements.owner}
-            onSignSwap={handleSignSwap}
-          />
-
+          {balancesError && (
+            <div role="alert">
+              Share balances could not be loaded. Selling is unavailable.{' '}
+              <button className="underline" onClick={refreshBalances}>
+                Retry share balances
+              </button>
+            </div>
+          )}
           <PlaceOrderPanel
             token={selectedToken}
             wallets={wallets}
-            walletsWithHoldings={getWalletsWithHoldings(selectedToken.uuid)}
+            walletsWithHoldings={balancesError || isLoadingBalances ? [] : getWalletsWithHoldings(selectedToken.uuid)}
+            readsUnavailable={readsUnavailable}
+            getWalletWhitelistStatus={getWhitelistStatusFor}
             onSubmit={handleCreateOrder}
             onNewOrder={handleCloseOrderSigningFlow}
             onDismiss={handleCloseOrderSigningFlow}
             submissionError={submissions.error}
-            isWalletWhitelisted={walletAddresses.length > 0 && isWhitelisted(walletAddresses[0])}
-            isWhitelistStatusUnknown={
-              walletAddresses.length > 0 && getWhitelistStatusFor(walletAddresses[0])?.status === 'unknown'
-            }
             isLoadingWhitelistStatus={isLoadingWhitelistStatus}
           />
         </>

@@ -75,6 +75,17 @@ temporary files throughout these refreshes. Company Publications preserves the e
 all publications available to the account, including its issuer publications;
 Your shares Notices separately requests only publications addressed to the person.
 
+Market presents For sale and Wanted lists with automatic matching. Buyers fund
+before placing an offer. Owned order history reads independently of listed share
+classes and wallet availability, retaining recorded class labels or an explicit
+unavailable label. Wallet, class, owned-order and pending-trade reads follow every
+page; read failures expose retry and suppress stale actions. Existing saved-order,
+change, cancellation and trade-signature recovery remain available. AUD totals use
+integer cents; unsafe numeric quantities returned by legacy list APIs are marked
+unavailable. New quantities use exact integer strings above JavaScript's safe
+number range, within the existing signed 64-bit storage bound. The chosen wallet's
+allowlist status gates creation, and drafts survive failed prerequisite refreshes.
+
 Signing in, and verifying an email, which also signs a new person in, clear
 what the tab cached for whoever was signed in before, as signing out does, so a
 new person is never guarded by, or signs up against, the previous person's

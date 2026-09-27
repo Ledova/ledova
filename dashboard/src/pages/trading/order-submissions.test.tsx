@@ -89,7 +89,7 @@ vi.mock('./useTrading', async () => {
     useUserTradingWallets: () => ({ wallets: [f.wallet], walletAddresses: [f.wallet.address] }),
     useWalletsWhitelistStatus: () => ({
       isWhitelisted: () => true,
-      getStatus: () => ({ status: 'whitelisted' }),
+      getStatus: () => ({ status: 'whitelisted', isWhitelisted: true }),
       isLoading: false,
     }),
     useOrderBook: () => ({ data: null }),
