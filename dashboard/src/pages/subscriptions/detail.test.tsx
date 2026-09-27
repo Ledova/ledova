@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { SUBSCRIPTION_COPY, SUBSCRIPTION_ENDPOINTS } from '@ledova/shared';
@@ -47,6 +47,10 @@ let client: QueryClient;
 
 function show(overrides: Record<string, unknown> = {}) {
   api.get.mockResolvedValue({ data: { ...application, ...overrides } });
+  renderPage();
+}
+
+function renderPage() {
   render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={['/subscriptions/application-1']}>
@@ -179,4 +183,113 @@ it.each([
 
   await screen.findByText('Kestrel Foods Pty Ltd · Class A preference');
   expect(screen.queryByText(SUBSCRIPTION_COPY.MONEY_IN_HELP) !== null).toBe(shown);
+});
+
+it('distinguishes a server failure from a genuinely unavailable application and retries', async () => {
+  api.get.mockRejectedValue({ response: { status: 500 } });
+  renderPage();
+  expect(await screen.findByText('This application could not be loaded. Try again before continuing.')).toBeTruthy();
+  expect(screen.queryByText('Not available')).toBeNull();
+  api.get.mockResolvedValue({ data: application });
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  expect(await screen.findByText('Kestrel Foods Pty Ltd · Class A preference')).toBeTruthy();
+});
+
+it('gives a real 404 its own unavailable state and a route back to applications', async () => {
+  api.get.mockRejectedValue({ response: { status: 404 } });
+  renderPage();
+  expect(await screen.findByText('Not available')).toBeTruthy();
+  expect(screen.getByRole('link', { name: 'All applications' }).getAttribute('href')).toBe('/subscriptions');
+  expect(screen.queryByRole('button', { name: 'Submit for review' })).toBeNull();
+});
+
+it('suppresses stale amounts, payment instructions and actions when the application refresh fails', async () => {
+  show({ status: 'draft', amountReceived: null });
+  await screen.findByRole('button', { name: 'Submit for review' });
+  api.get.mockRejectedValue({ response: { status: 503 } });
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: ['subscriptions'] });
+  });
+  expect(await screen.findByRole('alert')).toBeTruthy();
+  expect(screen.queryByText('Amount due')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Submit for review' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Withdraw' })).toBeNull();
+});
+
+it.each(['Submit for review', 'Withdraw'])('keeps a refused %s request visible and permits retry', async (label) => {
+  api.post
+    .mockRejectedValueOnce({ response: { data: { detail: 'Please update your evidence.' } } })
+    .mockResolvedValue({ data: {} });
+  show({ status: 'draft', amountReceived: null });
+  fireEvent.click(await screen.findByRole('button', { name: label }));
+  expect(await screen.findByRole('alert')).toHaveProperty('textContent', 'Please update your evidence.');
+  fireEvent.click(screen.getByRole('button', { name: label }));
+  await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
+  await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+});
+
+it('keeps both actions disabled through submission and the subsequent state refresh', async () => {
+  let finishPost!: (value: { data: object }) => void;
+  let finishRead!: (value: { data: object }) => void;
+  api.post.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finishPost = resolve;
+      }),
+  );
+  show({ status: 'draft', amountReceived: null });
+  fireEvent.click(await screen.findByRole('button', { name: 'Submit for review' }));
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Withdraw' })).toHaveProperty('disabled', true));
+  fireEvent.click(screen.getByRole('button', { name: 'Submit for review' }));
+  expect(api.post).toHaveBeenCalledTimes(1);
+  api.get.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finishRead = resolve;
+      }),
+  );
+  await act(async () => finishPost({ data: {} }));
+  await waitFor(() => expect(finishRead).toBeTypeOf('function'));
+  expect(screen.getByRole('button', { name: 'Submit for review' })).toHaveProperty('disabled', true);
+  await act(async () => finishRead({ data: { ...application, status: 'submitted', amountReceived: null } }));
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Submit for review' })).toBeNull());
+  expect(row('Status')).toBe('Under review by the operator');
+});
+
+it('does not treat a recorded zero amount as money held', async () => {
+  show({ status: 'awaiting_payment', amountReceived: '0.00' });
+  expect(await screen.findByRole('button', { name: 'Withdraw' })).toBeTruthy();
+  expect(screen.queryByText(SUBSCRIPTION_COPY.MONEY_IN_HELP)).toBeNull();
+});
+
+it('shows outstanding money separately without changing a partially paid original instruction', async () => {
+  show({
+    status: 'awaiting_payment',
+    amountReceived: '300.00',
+    amountOutstanding: '1500.00',
+    paymentInstruction: {
+      rail: 'bank_transfer',
+      railDisplay: 'Bank transfer',
+      reference: 'PAY1A2B3C4D',
+      amountDue: '1800.00',
+      currency: 'AUD',
+      payee: 'Example Registry',
+      issuedAt: null,
+      paymentDueAt: null,
+      bankAccountName: 'Example Trust',
+      bankBsb: '001-002',
+      bankAccountNumber: '00012345',
+    },
+  });
+  expect(await screen.findByText(/A payment has already been recorded/)).toBeTruthy();
+  expect(row('Amount outstanding')).toBe(aud('1,500.00'));
+  expect(screen.getByText('Amount on instruction').nextElementSibling?.textContent).toContain(aud('1,800.00'));
+  expect(screen.queryByText(SUBSCRIPTION_COPY.AWAITING_PAYMENT_HELP)).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Withdraw' })).toBeNull();
+});
+
+it('does not invent payment rails when the authoritative instruction is unavailable', async () => {
+  show({ status: 'awaiting_payment', paymentInstruction: null, amountReceived: null });
+  expect(await screen.findByText('Payment instruction unavailable')).toBeTruthy();
+  expect(screen.queryByText('Account number')).toBeNull();
 });

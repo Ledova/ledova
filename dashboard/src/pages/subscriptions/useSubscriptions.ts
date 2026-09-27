@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
   createSubscription,
@@ -15,15 +15,31 @@ import apiClient from '@services/apiClient';
 const SUBSCRIPTIONS_KEY = ['subscriptions'];
 
 export function useSubscriptions() {
-  const query = useQuery({
-    queryKey: SUBSCRIPTIONS_KEY,
-    queryFn: () => getSubscriptions(apiClient),
+  const query = useInfiniteQuery({
+    queryKey: [...SUBSCRIPTIONS_KEY, 'list'],
+    queryFn: async ({ pageParam }) => {
+      const { data } = await getSubscriptions(apiClient, pageParam);
+      const next = getNextPageParam(data);
+      if (data.next && (next === undefined || !Number.isInteger(next) || next <= pageParam)) {
+        throw new Error('Application pagination did not advance');
+      }
+      return data;
+    },
+    getNextPageParam,
+    initialPageParam: 1,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
 
   return {
-    subscriptions: query.data?.data?.results ?? [],
+    subscriptions: query.data?.pages.flatMap((page) => page.results) ?? [],
     isLoading: query.isLoading,
+    hasError: query.isError && !query.isFetchNextPageError,
+    moreFailed: query.isFetchNextPageError,
+    hasMore: query.hasNextPage,
+    isLoadingMore: query.isFetchingNextPage,
+    isRefreshing: query.isFetching,
+    retry: () => query.refetch(),
+    loadMore: () => query.fetchNextPage(),
   };
 }
 
@@ -37,10 +53,7 @@ export function useSubscription(uuid: string | undefined) {
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
 
-  const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: SUBSCRIPTIONS_KEY });
-    queryClient.invalidateQueries({ queryKey: ['subscriptions', uuid] });
-  };
+  const refresh = () => queryClient.invalidateQueries({ queryKey: SUBSCRIPTIONS_KEY });
 
   const submit = useMutation({
     mutationFn: () => submitSubscription(apiClient, uuid!),
@@ -52,10 +65,15 @@ export function useSubscription(uuid: string | undefined) {
     onSuccess: refresh,
   });
 
+  const notFound = (query.error as { response?: { status?: number } } | null)?.response?.status === 404;
+
   return {
     subscription: query.data?.data ?? null,
     isLoading: query.isLoading,
-    notFound: query.isError,
+    notFound,
+    hasError: query.isError && !notFound,
+    isRefreshing: query.isFetching,
+    retry: () => query.refetch(),
     submit,
     withdraw,
   };

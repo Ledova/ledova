@@ -144,6 +144,20 @@ The server still selects the
 applicant and enforces quantity and eligibility rules. Payment details remain on
 the accepted application, which supplies its exact amount and reference.
 
+Applications presents the recorded company, class and currency independently of
+current Directory access. Further pages load on request; an unsuccessful later
+page keeps known records visible and labels the list incomplete. Initial and
+refresh failures offer a retry and suppress stale records or detail actions. A
+real missing detail has its own unavailable state. Submission and withdrawal
+wait for the resulting read before offering another action.
+
+The application supplies its payment instruction, including the unaltered
+reference, bank details or settlement asset units. Copy failures keep the value
+available for manual copying. When a payment is already recorded, the detail shows
+the amount outstanding separately and asks the investor to confirm any further
+payment with the operator; it does not recalculate the original instruction or
+stablecoin units. An absent instruction never falls back to generic payment rails.
+
 Where market values are shown elsewhere, they are in AUD: the shared
 `useCurrency` converts the API's US-dollar values at the current rate, shows a
 dash and draws no chart while the rate is unknown, and neither client offers
