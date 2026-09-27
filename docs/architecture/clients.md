@@ -140,8 +140,15 @@ share classes and each class's stored register. It shows current members, linked
 wallets and exact issued and authorised shares. Unopened registers and unknown or
 positive waiting-effect counts stay explicit. A failed class or register read
 hides the incomplete result and offers retry, including after a failed refresh.
-The existing Company page retains its class actions while dedicated class pages
-are built under #748. Staff still prepare outputs on written instruction.
+Register and Company open a class at `/company/register/:uuid`. Its ledger shows
+class state, exact issued and authorised shares, the stored members, and every
+page of issuance and authorised-share request history. Failed history reads hide
+stale rows and offer retry. The class page replaces the old Company modal; it
+retains deployment, logged register CSV export, saved pause recovery and staff
+reviewed issuance and **Raise authorised shares** requests. Share arithmetic uses
+whole integers; submission refuses quantities or a resulting authorised cap above
+the current request limit of 2,147,483,647 instead of rounding them. Staff still
+prepare outputs on written instruction.
 
 `landingFor(role)` decides where a signed-in person lands: an investing account
 on Holdings, and a company or dual-role account on Register. The front door,

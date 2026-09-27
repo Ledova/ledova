@@ -10,13 +10,18 @@ const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
 const providedApi = Object.assign(axios.create(), api);
 
-import { TokenDetailModal } from './index';
+import { MemoryRouter } from 'react-router-dom';
+import { PageTitle } from '@components/PageTitle';
+import { ShareClass } from './classes';
 
 const TOKEN = {
   uuid: 'token-1',
+  companyUuid: 'company-one',
+  companyName: 'Fictional Company',
   name: 'Ordinary Shares',
   symbol: 'QAT',
   status: 'deployed',
+  statusDisplay: 'Deployed',
   tokenType: 'ordinary',
   totalSupply: '1000000',
   contractAddress: `0x${'c'.repeat(40)}`,
@@ -42,7 +47,14 @@ const REQUEST = {
   createdAt: '2026-09-07T00:00:00Z',
 };
 
-const OPENED_EMPTY = { holders: [], totalHolders: 0, initialized: true, issuedSupply: '0', waitingEffects: 0 };
+const OPENED_EMPTY = {
+  token: TOKEN,
+  holders: [],
+  totalHolders: 0,
+  initialized: true,
+  issuedSupply: '0',
+  waitingEffects: 0,
+};
 
 const MEMBERS = {
   ...OPENED_EMPTY,
@@ -89,7 +101,11 @@ function showHistory() {
   render(
     <QueryClientProvider client={queryClient}>
       <ApiClientProvider client={providedApi}>
-        <TokenDetailModal uuid="token-1" companyStatus="active" onClose={vi.fn()} />
+        <MemoryRouter>
+          <PageTitle.Provider value="Share class">
+            <ShareClass uuid="token-1" />
+          </PageTitle.Provider>
+        </MemoryRouter>
       </ApiClientProvider>
     </QueryClientProvider>,
   );
@@ -104,6 +120,7 @@ beforeEach(() => {
   api.get.mockReset();
   api.post.mockReset();
   api.get.mockImplementation(async (url: string, config?: { params?: { page?: number } }) => {
+    if (url === '/api/v1/companies/company-one/') return { data: { uuid: 'company-one', status: 'active' } };
     if (url === COMPANY_TOKEN_ENDPOINTS.DETAIL('token-1')) return { data: { ...TOKEN, status: tokenStatus } };
     if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS('token-1')) return { data: register };
     if (url === COMPANY_TOKEN_ENDPOINTS.ISSUANCES('token-1') || url === COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASES) {
@@ -142,7 +159,14 @@ describe('the issuer request history through real query and service hooks', () =
   });
 
   it('refuses the export and says why while the register is not opened', async () => {
-    register = { holders: [], totalHolders: 0, initialized: false, issuedSupply: null, waitingEffects: null };
+    register = {
+      token: TOKEN,
+      holders: [],
+      totalHolders: 0,
+      initialized: false,
+      issuedSupply: null,
+      waitingEffects: null,
+    };
     showHistory();
     await screen.findByText(REGISTER_COPY.NOT_OPENED_NOTE);
     expect((screen.getByRole('button', { name: 'Download CSV' }) as HTMLButtonElement).disabled).toBe(true);
@@ -153,10 +177,10 @@ describe('the issuer request history through real query and service hooks', () =
     register = { ...MEMBERS, waitingEffects: 2 };
     showHistory();
     await screen.findByText('Mia Member');
-    expect(screen.getByText('0x1111...1111')).toBeDefined();
-    expect(screen.getByText('0x2222...2222')).toBeDefined();
+    expect(screen.getByText('0x1111111111111111111111111111111111111111 · active')).toBeDefined();
+    expect(screen.getByText('0x2222222222222222222222222222222222222222 ·')).toBeDefined();
     expect(screen.getByText(REGISTER_COPY.NO_WALLET)).toBeDefined();
-    expect(screen.getByText('(2)')).toBeDefined();
+    expect(screen.getByText('Current members · 2')).toBeDefined();
     expect(screen.getByText(REGISTER_COPY.WAITING_NOTE(2))).toBeDefined();
     expect((screen.getByRole('button', { name: 'Download CSV' }) as HTMLButtonElement).disabled).toBe(false);
   });
@@ -176,15 +200,14 @@ describe('the issuer request history through real query and service hooks', () =
     });
     showHistory();
     await screen.findByText('No issuance requests yet.');
-    fireEvent.click(screen.getByRole('button', { name: 'Request Issuance' }));
-    fireEvent.change(screen.getByLabelText('Recipient Address'), { target: { value: REQUEST.recipientAddress } });
-    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10000' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Request issuance' }));
+    fireEvent.change(screen.getByLabelText('Recipient address'), { target: { value: REQUEST.recipientAddress } });
+    fireEvent.change(screen.getByLabelText('Shares to issue'), { target: { value: '10000' } });
     fireEvent.change(screen.getByLabelText('Reason (optional)'), { target: { value: 'Founder allocation' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Request Issuance' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Submit issuance request' }));
 
     await screen.findByText('Submitted');
     expect(screen.getByText(/10,000 QAT to/)).toBeDefined();
-    expect(screen.getByText('(1)')).toBeDefined();
     expect(api.post).toHaveBeenCalledExactlyOnceWith(COMPANY_TOKEN_ENDPOINTS.ISSUE('token-1'), {
       recipient: REQUEST.recipientAddress,
       amount: 10000,
@@ -192,16 +215,13 @@ describe('the issuer request history through real query and service hooks', () =
     });
   });
 
-  it('keeps the whole page visible and can load older requests', async () => {
+  it('reads every page before displaying the full history', async () => {
     requests = Array.from({ length: 26 }, (_, index) => ({
       ...REQUEST,
       uuid: `request-${index}`,
       reason: `Allocation ${index}`,
     }));
     showHistory();
-    await screen.findByText('Allocation 24');
-    expect(screen.queryByText('Allocation 25')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Load more issuance requests' }));
     await screen.findByText('Allocation 25');
     expect(screen.getByText('Allocation 0')).toBeDefined();
     expect(screen.queryByRole('button', { name: 'Load more issuance requests' })).toBeNull();
@@ -234,19 +254,21 @@ describe('the issuer request history through real query and service hooks', () =
     ];
     showHistory();
     await screen.findByText('Approved');
-    expect(screen.getByText('Approved').className).not.toEqual(screen.getByText('Rejected').className);
+    expect(screen.getByText('Approved').previousElementSibling?.className).not.toEqual(
+      screen.getByText('Rejected').previousElementSibling?.className,
+    );
     expect(screen.getByText('Execution history')).toBeDefined();
     expect(screen.getByText('Execution failed. Operations review is required.')).toBeDefined();
   });
 
-  it('hides empty history on a draft token but preserves any existing requests', async () => {
+  it('keeps draft history readable and refreshes existing requests', async () => {
     tokenStatus = 'draft';
     showHistory();
-    await screen.findByText('Deploy Token');
-    expect(screen.queryByText('Issuance Requests')).toBeNull();
+    await screen.findByText('Deploy class');
+    expect(screen.getByText('No issuance requests yet.')).toBeDefined();
     requests = [REQUEST];
     await queryClient.invalidateQueries({ queryKey: ['token', 'token-1', 'issuance-requests'] });
     await screen.findByText('Submitted');
-    expect(screen.getByText('Issuance Requests')).toBeDefined();
+    expect(screen.getByText('Issuance requests')).toBeDefined();
   });
 });
