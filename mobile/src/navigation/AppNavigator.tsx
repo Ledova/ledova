@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SignInScreen } from '../screens/signin';
 import { SignUpScreen } from '../screens/signup/user';
@@ -33,16 +33,28 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export const AppNavigator = () => {
   const theme = useAppTheme();
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      theme={{
+        ...DefaultTheme,
+        colors: {
+          ...DefaultTheme.colors,
+          background: theme.colors.surface.base,
+          card: theme.colors.surface.base,
+          text: theme.colors.text.primary,
+          border: theme.colors.border.default,
+          primary: theme.colors.brand.default,
+        },
+      }}
+    >
       <Stack.Navigator
         initialRouteName="SignIn"
         screenOptions={{
           headerStyle: {
-            backgroundColor: theme.colors.surface.raised,
+            backgroundColor: theme.colors.surface.base,
           },
           headerTintColor: theme.colors.text.primary,
           headerTitleStyle: {
-            fontWeight: theme.fontWeight.semibold,
+            fontFamily: theme.fontFamily.display,
           },
           contentStyle: {
             backgroundColor: theme.colors.surface.base,

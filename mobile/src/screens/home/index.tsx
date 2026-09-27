@@ -1,174 +1,137 @@
-import { useState, useMemo, useCallback } from 'react';
-import { View, ScrollView, RefreshControl, Text } from 'react-native';
-import { GradientBackground } from '../../components/GradientBackground';
-import { Panel } from '../../components/panel';
-import { PerformanceCard } from './components/PerformanceCard';
-import { AssetAllocationCard } from './components/AssetAllocationCard';
-import { MarketCard } from './components/MarketCard';
-import { WalletsCard } from './components/WalletsCard';
-import { TransactionsCard } from './components/TransactionsCard';
-import { PublishedCard } from './components/PublishedCard';
-import { AssetDetailModal } from '../asset-prices/components/AssetDetailModal';
-import { useHome } from './useHome';
+import { useState } from 'react';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { CaretDownIcon, CaretRightIcon } from 'phosphor-react-native';
+import { formatShareCount, getChainConfig, type ShareHoldingRow } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../contexts';
+import { GradientBackground } from '../../components/GradientBackground';
+import { PublishedCard } from './components/PublishedCard';
+import { useShareHoldings } from './useShareHoldings';
+
+function ShareHolding({ holding }: { holding: ShareHoldingRow }) {
+  const [expanded, setExpanded] = useState(false);
+  const theme = useAppTheme();
+  const styles = useThemedStyles((theme) => ({
+    row: { borderBottomWidth: 1, borderBottomColor: theme.colors.border.subtle },
+    summary: { paddingVertical: 18, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    names: { flex: 1, gap: 4 },
+    company: { fontFamily: theme.fontFamily.regular, fontSize: 14, color: theme.colors.text.muted },
+    name: { fontFamily: theme.fontFamily.medium, fontSize: 17, color: theme.colors.text.primary },
+    quantity: { fontFamily: theme.fontFamily.regular, fontSize: 15, color: theme.colors.text.primary, marginTop: 6 },
+    detail: { paddingBottom: 18, paddingLeft: 30, gap: 20 },
+    chain: { gap: 10 },
+    chainName: { fontFamily: theme.fontFamily.semibold, fontSize: 14, color: theme.colors.text.muted },
+    wallet: { gap: 4, paddingTop: 10, borderTopWidth: 1, borderTopColor: theme.colors.border.subtle },
+    walletName: { fontFamily: theme.fontFamily.regular, fontSize: 14, color: theme.colors.text.muted },
+  }));
+  const count = (quantity: string) => `${formatShareCount(quantity)} ${quantity === '1' ? 'share' : 'shares'}`;
+  const Caret = expanded ? CaretDownIcon : CaretRightIcon;
+
+  return (
+    <View style={styles.row}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+        accessibilityLabel={`${holding.companyName ? `${holding.companyName}, ` : ''}${holding.name}, ${count(holding.quantity)}`}
+        onPress={() => setExpanded((value) => !value)}
+        style={styles.summary}
+      >
+        <Caret size={18} color={theme.colors.text.muted} />
+        <View style={styles.names}>
+          {holding.companyName && <Text style={styles.company}>{holding.companyName}</Text>}
+          <Text style={styles.name}>{holding.name}</Text>
+          <Text style={styles.quantity}>{count(holding.quantity)}</Text>
+        </View>
+      </Pressable>
+      {expanded && (
+        <View style={styles.detail}>
+          {holding.chains.map((chain) => (
+            <View key={chain.chain} style={styles.chain}>
+              <Text style={styles.chainName}>{getChainConfig(chain.chain)?.name ?? chain.chain}</Text>
+              <Text style={styles.walletName}>{count(chain.quantity)}</Text>
+              {chain.wallets.map((wallet) => (
+                <View key={wallet.uuid} style={styles.wallet}>
+                  <Text selectable style={styles.walletName}>
+                    {wallet.name || wallet.address}
+                  </Text>
+                  <Text style={styles.quantity}>{count(wallet.quantity)}</Text>
+                </View>
+              ))}
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
 
 export function HomeScreen() {
   const theme = useAppTheme();
+  const { data: holdings = [], isPending, isError, isFetching, refetch } = useShareHoldings();
   const styles = useThemedStyles((theme) => ({
-    container: {
-      flex: 1,
+    content: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 36, gap: 28 },
+    title: { fontFamily: theme.fontFamily.display, fontSize: 40, color: theme.colors.text.primary },
+    section: { gap: 8 },
+    heading: { fontFamily: theme.fontFamily.medium, fontSize: 17, color: theme.colors.text.primary, paddingBottom: 10 },
+    message: { fontFamily: theme.fontFamily.regular, fontSize: 15, lineHeight: 23, color: theme.colors.text.muted },
+    state: { paddingVertical: 20, gap: 14, alignItems: 'flex-start' },
+    retry: {
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.border.default,
+      borderRadius: 6,
     },
-    scrollView: {
-      flex: 1,
-    },
-    scrollContent: {
-      paddingTop: theme.spacing.md,
-      paddingHorizontal: theme.spacing.sm,
-      paddingBottom: theme.layout.screenBottomPadding,
-      gap: theme.spacing.md,
-    },
-    panelContent: {
-      height: 340,
-    },
-    lastUpdatedText: {
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.subtle,
-      textAlign: 'center',
-    },
+    retryText: { fontFamily: theme.fontFamily.medium, color: theme.colors.text.primary },
   }));
-  const [isAssetModalVisible, setIsAssetModalVisible] = useState(false);
-
-  const {
-    invalidateAll,
-    performanceTimeRange,
-    setPerformanceTimeRange,
-    performanceChartData,
-    timeRanges,
-    isLoading,
-    error,
-    holdings,
-    selectedAsset,
-    setSelectedAssetUuid,
-    wallets,
-    marketAssets,
-    favouriteAssetUuids,
-    isMarketAssetsLoading,
-    transactions,
-  } = useHome();
-
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-
-  const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    try {
-      await invalidateAll();
-      setLastUpdated(new Date());
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, [invalidateAll]);
-
-  const assetColorMap = useMemo(
-    () => Object.fromEntries(holdings.assetAllocation.map((item) => [item.symbol, item.color])),
-    [holdings.assetAllocation],
-  );
-
-  const handleAssetClick = (assetUuid: string) => {
-    setSelectedAssetUuid(assetUuid);
-    setIsAssetModalVisible(true);
-  };
-
-  const handleCloseAssetModal = () => {
-    setIsAssetModalVisible(false);
-    setSelectedAssetUuid(null);
-  };
-
-  const selectedAssetSymbol = selectedAsset
-    ? holdings.assetAllocation.find((a) => a.assetUuid === selectedAsset.uuid)?.symbol
-    : undefined;
 
   return (
     <GradientBackground>
-      <View style={styles.container}>
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              tintColor={theme.colors.interactive.active}
-            />
-          }
-        >
-          {lastUpdated && (
-            <Text style={styles.lastUpdatedText}>
-              Last updated: {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </Text>
-          )}
-
-          <PublishedCard />
-
-          <Panel>
-            <View style={styles.panelContent}>
-              <PerformanceCard
-                chartData={performanceChartData}
-                totalValue={holdings.summary.totalValue}
-                timeRanges={timeRanges}
-                selectedTimeRange={performanceTimeRange}
-                onTimeRangeChange={setPerformanceTimeRange}
-                isLoading={isLoading}
-                error={error}
-                assetColorMap={assetColorMap}
-              />
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching && !isPending}
+            onRefresh={() => void refetch()}
+            tintColor={theme.colors.brand.default}
+          />
+        }
+      >
+        <Text accessibilityRole="header" style={styles.title}>
+          Holdings
+        </Text>
+        <View style={styles.section}>
+          <Text accessibilityRole="header" style={styles.heading}>
+            Shares in your wallets
+          </Text>
+          {isPending ? (
+            <View style={styles.state}>
+              <ActivityIndicator color={theme.colors.brand.default} />
+              <Text style={styles.message}>Loading your holdings…</Text>
             </View>
-          </Panel>
-
-          <AssetAllocationCard
-            assetAllocation={holdings.assetAllocation}
-            totalValue={holdings.summary.totalValue}
-            summary={holdings.summary}
-            isLoading={holdings.isLoading}
-            hasError={holdings.hasError}
-            onAssetClick={handleAssetClick}
-          />
-
-          <WalletsCard
-            btcWalletsCount={wallets.btcWalletsCount}
-            ethWalletsCount={wallets.ethWalletsCount}
-            baseWalletsCount={wallets.baseWalletsCount}
-            totals={wallets.totals}
-            isLoading={wallets.isLoading}
-          />
-
-          <MarketCard
-            assets={marketAssets}
-            favouriteAssetUuids={favouriteAssetUuids as Set<string>}
-            isLoading={isMarketAssetsLoading}
-            onAssetPress={(asset) => handleAssetClick(asset.uuid)}
-          />
-
-          <TransactionsCard
-            transactions={transactions.list}
-            totalCount={transactions.totalCount}
-            isLoading={transactions.isLoading}
-            isLoadingMore={transactions.isLoadingMore}
-            hasNextPage={transactions.hasNextPage}
-            onLoadMore={transactions.loadMore}
-          />
-        </ScrollView>
-      </View>
-
-      <AssetDetailModal
-        visible={isAssetModalVisible}
-        asset={selectedAsset}
-        onClose={handleCloseAssetModal}
-        portfolioMode={true}
-        portfolioChartData={performanceChartData}
-        assetSymbol={selectedAssetSymbol}
-      />
+          ) : isError ? (
+            <View style={styles.state}>
+              <Text accessibilityRole="alert" style={styles.message}>
+                We couldn&apos;t load all your holdings.
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => void refetch()}
+                disabled={isFetching}
+                style={styles.retry}
+              >
+                <Text style={styles.retryText}>Try again</Text>
+              </Pressable>
+            </View>
+          ) : holdings.length === 0 ? (
+            <Text style={[styles.message, { paddingVertical: 20 }]}>
+              You don&apos;t hold any shares in your wallets yet.
+            </Text>
+          ) : (
+            holdings.map((holding) => <ShareHolding key={holding.assetUuid} holding={holding} />)
+          )}
+        </View>
+        <PublishedCard />
+      </ScrollView>
     </GradientBackground>
   );
 }

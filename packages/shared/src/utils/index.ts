@@ -98,3 +98,4 @@ export {
   swapSettlementRole,
   swapSettlementAdmitted,
 } from './swap-settlement-validation';
+export { summarizeShareHoldings, type ShareHoldingRow } from './share-holdings';

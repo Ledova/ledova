@@ -40,7 +40,7 @@ export function Accordion({ title, icon, actions, children, defaultExpanded = tr
     },
     title: {
       fontSize: theme.fontSize.lg,
-      fontWeight: theme.fontWeight.semibold,
+      fontFamily: theme.fontFamily.medium,
       color: theme.colors.text.primary,
     },
     content: {

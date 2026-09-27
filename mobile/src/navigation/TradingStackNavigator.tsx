@@ -27,7 +27,7 @@ export function TradingStackNavigator() {
         name="TradingMain"
         component={TradingScreen}
         options={() => ({
-          title: 'Trading',
+          title: 'Market',
         })}
       />
     </Stack.Navigator>

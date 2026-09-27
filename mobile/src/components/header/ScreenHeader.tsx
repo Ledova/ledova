@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text } from 'react-native';
-import { useAppTheme, useThemedStyles } from '../../contexts';
+import { useThemedStyles } from '../../contexts';
 
 interface ScreenHeaderProps {
   icon: React.ReactNode;
@@ -9,7 +9,6 @@ interface ScreenHeaderProps {
 }
 
 export function ScreenHeader({ icon, title, subtitle }: ScreenHeaderProps) {
-  const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
     header: {
       alignItems: 'center',
@@ -22,11 +21,12 @@ export function ScreenHeader({ icon, title, subtitle }: ScreenHeaderProps) {
     },
     title: {
       fontSize: theme.fontSize.xl,
-      fontWeight: theme.fontWeight.semibold,
+      fontFamily: theme.fontFamily.display,
       color: theme.colors.text.primary,
       marginBottom: theme.spacing.sm,
     },
     subtitle: {
+      fontFamily: theme.fontFamily.regular,
       fontSize: theme.fontSize.sm,
       color: theme.colors.text.muted,
       textAlign: 'center',
