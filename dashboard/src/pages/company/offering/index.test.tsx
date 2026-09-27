@@ -168,7 +168,8 @@ it('reads every offering and class page, filtering the selected company before p
   expect(screen.getByRole('heading', { name: 'Preference shares (ORD)' })).toBeTruthy();
   expect(screen.queryByText('Foreign shares (ORD)')).toBeNull();
   expect(api.get).toHaveBeenCalledWith(BASE, { params: { page: 2 } });
-  expect(api.get).toHaveBeenCalledWith(TOKENS, { params: { page: 2 } });
+  expect(api.get).toHaveBeenCalledWith(TOKENS, { params: { page: 1, company_uuid: company.uuid } });
+  expect(api.get).toHaveBeenCalledWith(TOKENS, { params: { page: 2, company_uuid: company.uuid } });
 });
 
 it.each([BASE, TOKENS, OPERATOR])(
