@@ -59,7 +59,7 @@ export function InvestorEligibilityScreen() {
   const [certifierBody, setCertifierBody] = useState<CertifierBody | ''>('');
   const [certifierMembershipNumber, setCertifierMembershipNumber] = useState('');
   const [claimError, setClaimError] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<{ uuid: string; message: string } | null>(null);
   const needsCompany = category === 'associated_person';
   const needsCertifier = category === 'accountant_certificate';
   const companiesQuery = useQuery({
@@ -138,7 +138,12 @@ export function InvestorEligibilityScreen() {
     try {
       await deleteClaim(uuid);
     } catch (error) {
-      if (epoch === getSessionEpoch()) setDeleteError(getErrorMessage(error, 'Your claim could not be withdrawn.'));
+      if (epoch === getSessionEpoch()) {
+        setDeleteError({
+          uuid,
+          message: getErrorMessage(error, 'Your claim could not be withdrawn.') ?? 'Your claim could not be withdrawn.',
+        });
+      }
     }
   };
   const close = () => {
@@ -219,11 +224,6 @@ export function InvestorEligibilityScreen() {
               ))}
             </Section>
             <Section title="Your claims">
-              {deleteError && (
-                <Text accessibilityRole="alert" style={styles.error}>
-                  {deleteError}
-                </Text>
-              )}
               {classifications.length === 0 ? (
                 <Text style={styles.message}>You have not made a claim yet.</Text>
               ) : (
@@ -233,6 +233,11 @@ export function InvestorEligibilityScreen() {
                     <Row label="Status">{claimState(claim)}</Row>
                     <Row label="Submitted">{formatDate(claim.createdAt)}</Row>
                     {claim.rejectionReason && <Text style={styles.message}>{claim.rejectionReason}</Text>}
+                    {deleteError?.uuid === claim.uuid && (
+                      <Text accessibilityRole="alert" style={styles.error}>
+                        {deleteError.message}
+                      </Text>
+                    )}
                     {claim.status === 'submitted' && (
                       <Action
                         label="Withdraw claim"
