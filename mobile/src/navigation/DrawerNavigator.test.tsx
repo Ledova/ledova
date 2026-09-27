@@ -129,6 +129,7 @@ it.each([
     expect(view.getByRole('button', { name })).toBeTruthy();
   expect(Boolean(view.queryByRole('header', { name: 'Company' }))).toBe(isCompany);
   expect(Boolean(view.queryByRole('button', { name: 'Application' }))).toBe(isCompany);
+  expect(Boolean(view.queryByRole('button', { name: 'Register' }))).toBe(isCompany);
   expect(Boolean(view.queryByRole('button', { name: 'Publications' }))).toBe(isCompany);
   expect(Boolean(view.queryByRole('header', { name: 'Invest' }))).toBe(isInvestor);
   expect(Boolean(view.queryByRole('button', { name: 'Market' }))).toBe(isInvestor);
@@ -145,6 +146,16 @@ it.each([
   await fireEvent.press(view.getByRole('button', { name: 'Activity' }));
   expect(mockNavigate).toHaveBeenLastCalledWith('MainApp', { screen: 'Main', params: { screen: 'Transactions' } });
   if (isCompany) {
+    await fireEvent.press(view.getByRole('button', { name: 'Register' }));
+    expect(mockNavigate).toHaveBeenLastCalledWith('MainApp', {
+      screen: 'Main',
+      params: { screen: 'Company', params: { screen: 'CompanyMain' } },
+    });
+    await fireEvent.press(view.getByRole('button', { name: 'Company' }));
+    expect(mockNavigate).toHaveBeenLastCalledWith('MainApp', {
+      screen: 'Main',
+      params: { screen: 'Company', params: { screen: 'CompanyDetails' } },
+    });
     await fireEvent.press(view.getByRole('button', { name: 'Publications' }));
     expect(mockNavigate).toHaveBeenLastCalledWith('MainApp', {
       screen: 'Main',

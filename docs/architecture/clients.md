@@ -60,14 +60,18 @@ address. Notices at `/publications` lists documents, resolutions and dividends
 addressed to the person. The old `/dividends` address redirects to Notices through
 the same signed-in route guard, keeping bookmarks and transaction links useful.
 The mobile shell uses Holdings, Notices, Activity and the securities Market.
-Company and the remaining Invest pages retain their existing native screens until
-their corresponding web replacements are ported. Native Verification uses the
-paper ledger and reads every claim page into its own cache, independently of the
-Documents page. Failed eligibility or history reads suppress status and actions,
-while an open evidence form retains its fields and private file copy. Submission
-waits for current reads and is blocked by an existing pending claim; withdrawal
-failures remain visible for retry. The existing session-scoped upload lifecycle
-owns temporary files throughout these refreshes. Company Publications preserves the existing list of
+Register is the native Company landing page. It reads every class and its stored
+register, with exact share quantities and complete-read failure states. A class
+opens its register and request histories, deployment and share request actions.
+Native pause recovery remains a separate port; Company details, Application and
+the remaining Invest pages retain their existing screens until their web
+replacements are ported. Native Verification uses the paper ledger and reads
+every claim page into its own cache, independently of the Documents page.
+Failed eligibility or history reads suppress status and actions, while an open
+evidence form retains its fields and private file copy. Submission waits for
+current reads and is blocked by an existing pending claim; withdrawal failures
+remain visible for retry. The existing session-scoped upload lifecycle owns
+temporary files throughout these refreshes. Company Publications preserves the existing list of
 all publications available to the account, including its issuer publications;
 Your shares Notices separately requests only publications addressed to the person.
 
