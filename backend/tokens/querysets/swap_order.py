@@ -40,7 +40,7 @@ class SwapOrderQuerySet(QuerySet):
         return self.exclude(status__in=[SwapOrderStatus.COMPLETED, SwapOrderStatus.FAILED, SwapOrderStatus.EXPIRED])
 
     def with_related(self):
-        return self.select_related("share_token", "payment_asset")
+        return self.select_related("payment_asset").prefetch_related("share_token")
 
     def completed_for_token(self, token):
         return self.filter(share_token=token, status="completed").order_by("-completed_at", "-pk")

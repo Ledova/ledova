@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useState } from 'react';
 import {
   ShieldCheckIcon,
@@ -25,6 +26,9 @@ import type { Wallet as WalletType } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 
 interface EditWalletModalProps {
+  readBlocked?: boolean;
+  notice?: ReactNode;
+  error?: string | null;
   wallet: WalletType | null;
   isOpen: boolean;
   onClose: () => void;
@@ -32,7 +36,16 @@ interface EditWalletModalProps {
   isUpdating: boolean;
 }
 
-export function EditWalletModal({ wallet, isOpen, onClose, onSave, isUpdating }: EditWalletModalProps) {
+export function EditWalletModal({
+  wallet,
+  isOpen,
+  onClose,
+  onSave,
+  isUpdating,
+  error,
+  readBlocked,
+  notice,
+}: EditWalletModalProps) {
   const { formatDisplayCurrency } = useCurrency();
   const [name, setName] = useState(wallet?.name || '');
 
@@ -46,21 +59,29 @@ export function EditWalletModal({ wallet, isOpen, onClose, onSave, isUpdating }:
   const ChainIcon = isBtc ? CurrencyBtcIcon : CurrencyEthIcon;
 
   const handleSave = () => {
-    onSave(wallet.uuid, name.trim());
-    onClose();
+    if (!isUpdating && !readBlocked) onSave(wallet.uuid, name.trim());
   };
 
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={() => {
+        if (!isUpdating) onClose();
+      }}
       title="Edit Wallet"
       showFooter
       confirmLabel={isUpdating ? 'Saving...' : 'Save'}
       confirmLoading={isUpdating}
+      confirmDisabled={readBlocked}
       onConfirm={handleSave}
     >
       <div className="space-y-5">
+        {notice}
+        {error && (
+          <p role="alert" className="text-sm text-error-light">
+            {error}
+          </p>
+        )}
         <div className="flex flex-col items-center gap-2 py-2">
           <ChainIcon size={48} className="text-info-light" weight="light" />
           <span className="text-xl font-semibold text-text-primary">{formatDisplayCurrency(marketValue)}</span>
@@ -121,6 +142,9 @@ export function EditWalletModal({ wallet, isOpen, onClose, onSave, isUpdating }:
           <label className="text-sm font-medium text-text-primary">Wallet Name</label>
           <input
             type="text"
+            aria-label="Wallet name"
+            disabled={isUpdating}
+            maxLength={100}
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="w-full bg-surface-tertiary border border-border rounded-lg px-3 py-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-mid"

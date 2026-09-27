@@ -46,3 +46,23 @@ it.each([
   expect(view.getByText(label)).toBeTruthy();
   if (status !== 'failed') expect(view.queryByText('✗ Failed')).toBeNull();
 });
+
+it.each([
+  ['base', '0xAbC', '0xabc', '0xdef', 'Outgoing'],
+  ['base', '0xAbC', '0xdef', '0xabc', 'Incoming'],
+  ['base', '0xAbC', '0xABC', '0xabc', 'Self transfer'],
+  ['base', '', '0xdef', null, 'Direction unavailable'],
+  ['bitcoin', '1Example', '1example', '1Other', 'Direction unavailable'],
+  ['bitcoin', 'bc1EXAMPLE', 'bc1example', 'bc1other', 'Outgoing'],
+  ['solana', 'ExampleWallet', 'examplewallet', 'OtherWallet', 'Direction unavailable'],
+] as const)('uses %s address identity for %s', (chain, walletAddress, fromAddress, toAddress, label) => {
+  const view = render(
+    <TransactionDetailModal
+      isOpen
+      transaction={{ ...transaction, chain, walletAddress, fromAddress, toAddress }}
+      onClose={() => {}}
+      onViewExplorer={() => {}}
+    />,
+  );
+  expect(view.getByText(label)).toBeTruthy();
+});

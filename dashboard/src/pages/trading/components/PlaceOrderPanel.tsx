@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from 'react';
-import type { ShareToken, CreateOrderRequest, Wallet, OrderType } from '@ledova/shared';
+import type { ShareToken, CreateOrderRequest, Wallet, OrderType, WhitelistStatus } from '@ledova/shared';
 import { ShieldWarningIcon } from '@phosphor-icons/react';
 import { DESIGN_TOKENS } from '@ledova/shared';
 import { Modal } from '@components/Modal';
@@ -16,9 +16,9 @@ interface PlaceOrderPanelProps {
   onNewOrder: () => void;
   onDismiss: () => void;
   submissionError: string | null;
-  isWalletWhitelisted: boolean;
-  isWhitelistStatusUnknown: boolean;
   isLoadingWhitelistStatus: boolean;
+  readsUnavailable?: boolean;
+  getWalletWhitelistStatus: (address: string) => WhitelistStatus | undefined;
 }
 
 export function PlaceOrderPanel({
@@ -29,14 +29,18 @@ export function PlaceOrderPanel({
   onNewOrder,
   onDismiss,
   submissionError,
-  isWalletWhitelisted,
-  isWhitelistStatusUnknown,
   isLoadingWhitelistStatus,
+  readsUnavailable = false,
+  getWalletWhitelistStatus,
 }: PlaceOrderPanelProps) {
   const [orderType, setOrderType] = useState<OrderType | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFormValid, setIsFormValid] = useState(false);
   const formRef = useRef<OrderFormRef>(null);
+  const [selectedAddress, setSelectedAddress] = useState('');
+  const walletStatus = getWalletWhitelistStatus(selectedAddress);
+  const walletAllowed = walletStatus?.isWhitelisted === true;
+  const isWhitelistStatusUnknown = !walletStatus || walletStatus.status === 'unknown';
   const transition = useRef({ generation: 0, pending: false });
 
   const isOpen = orderType !== null;
@@ -57,6 +61,7 @@ export function PlaceOrderPanel({
   };
 
   const handleClose = () => {
+    if (transition.current.pending) return;
     transition.current.generation++;
     transition.current.pending = false;
     onDismiss();
@@ -67,7 +72,7 @@ export function PlaceOrderPanel({
 
   const handleSubmit = useCallback(
     async (data: CreateOrderRequest) => {
-      if (transition.current.pending) return;
+      if (transition.current.pending || readsUnavailable || !walletAllowed) return;
       transition.current.pending = true;
       const generation = transition.current.generation;
       setIsSubmitting(true);
@@ -84,24 +89,25 @@ export function PlaceOrderPanel({
         }
       }
     },
-    [onSubmit],
+    [onSubmit, readsUnavailable, walletAllowed],
   );
 
-  const isConfirmDisabled = !isFormValid || isSubmitting || isLoadingWhitelistStatus || !isWalletWhitelisted;
+  const isConfirmDisabled =
+    !isFormValid || isSubmitting || isLoadingWhitelistStatus || !walletAllowed || readsUnavailable;
 
   return (
     <>
       <div className="flex gap-4">
         <button
           onClick={() => handleOpen('sell')}
-          disabled={wallets.length === 0}
+          disabled={wallets.length === 0 || readsUnavailable}
           className="flex-1 py-2.5 px-6 rounded-lg font-semibold text-text-primary bg-surface-tertiary hover:bg-surface-overlay border border-border-subtle disabled:bg-surface-disabled disabled:cursor-not-allowed transition-colors"
         >
           New sell order — {token.symbol}
         </button>
         <button
           onClick={() => handleOpen('buy')}
-          disabled={wallets.length === 0}
+          disabled={wallets.length === 0 || readsUnavailable}
           className="flex-1 py-2.5 px-6 rounded-lg font-semibold text-white bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed transition-colors"
         >
           New buy order — {token.symbol}
@@ -120,8 +126,11 @@ export function PlaceOrderPanel({
         onConfirm={() => formRef.current?.submit()}
       >
         <div className="space-y-4">
+          {readsUnavailable && (
+            <p role="status">Share classes and wallets must finish refreshing before placing this order.</p>
+          )}
           {submissionError && <p role="alert">{submissionError}</p>}
-          {!isWalletWhitelisted && !isLoadingWhitelistStatus && (
+          {!walletAllowed && !isLoadingWhitelistStatus && (
             <div className="p-4 rounded-lg bg-warning-light/10 border border-warning-light/20">
               <div className="flex items-start gap-3">
                 <ShieldWarningIcon size={ICON_LG} className="text-warning-light flex-shrink-0 mt-0.5" />
@@ -148,6 +157,12 @@ export function PlaceOrderPanel({
               defaultWalletUuid={availableWallets[0]?.uuid}
               onSubmit={handleSubmit}
               onValidationChange={setIsFormValid}
+              onWalletChange={setSelectedAddress}
+              disabled={isSubmitting}
+              getWalletBalance={(address) =>
+                walletsWithHoldings.find((holding) => holding.walletAddress.toLowerCase() === address.toLowerCase())
+                  ?.balance
+              }
             />
           )}
         </div>

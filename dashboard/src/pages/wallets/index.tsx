@@ -1,13 +1,11 @@
-import { useCallback, useState, type ReactElement } from 'react';
-import { CircleIcon, CurrencyBtcIcon, CurrencyEthIcon, FunnelIcon } from '@phosphor-icons/react';
-import { BLOCKCHAIN, WALLET_VERIFICATION_STATUS, DESIGN_TOKENS, formatCryptoBalance } from '@ledova/shared';
+import { useCallback, useState } from 'react';
+import { FunnelIcon } from '@phosphor-icons/react';
+import { BLOCKCHAIN, WALLET_VERIFICATION_STATUS, DESIGN_TOKENS } from '@ledova/shared';
 
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
 import type { Wallet as WalletType, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
-import { useCurrency } from '@hooks/useCurrency';
 import { Page, PageAction } from '@components/Page';
-import { Panel } from '@components/Panel';
+import { Section } from '@components/Ledger';
 import { WalletList, ChainEmptyState } from '@components/Wallet';
 import { useWallets } from './hooks/useWallets';
 import { useWalletSort } from './hooks/useWalletSort';
@@ -21,7 +19,6 @@ import { AddWalletModal } from './components/AddWalletModal';
 import { CryptoActions } from './components/CryptoActions';
 
 export function WalletsPage() {
-  const { formatDisplayCurrency } = useCurrency();
   const {
     wallets,
     handleCreateWallet,
@@ -35,6 +32,16 @@ export function WalletsPage() {
     handleDeriveAddress,
     canDeriveAddress,
     isLoading,
+    hasError,
+    isRefreshing,
+    retry,
+    createError,
+    updateError,
+    deleteError,
+    resetCreate,
+    resetUpdate,
+    resetDelete,
+    isDeleting,
     isCreating,
     isUpdating,
     isSyncing,
@@ -57,38 +64,52 @@ export function WalletsPage() {
 
   const selectedWallet = wallets.find((w) => w.uuid === selectedWalletUuid) ?? null;
 
-  const sumTotals = (chainWallets: WalletType[]) =>
-    chainWallets.reduce(
-      (acc, wallet) => ({
-        balance: acc.balance + (parseFloat(wallet.nativeBalance) || 0),
-        marketValue: acc.marketValue + (parseFloat(wallet.marketValue) || 0),
-      }),
-      { balance: 0, marketValue: 0 },
-    );
+  const readBlocked = hasError || isRefreshing;
+  const readNotice = readBlocked ? (
+    <div role={hasError ? 'alert' : 'status'} className="space-y-2 text-sm text-text-muted">
+      <p>
+        {hasError
+          ? 'Wallets could not be refreshed. Your draft is kept; retry before continuing.'
+          : 'Refreshing wallets before continuing…'}
+      </p>
+      {hasError && <PageAction label="Retry wallets" disabled={isRefreshing} onClick={() => void retry()} />}
+    </div>
+  ) : null;
+  const openAdd = () => {
+    resetCreate();
+    setShowAddModal(true);
+  };
+  const openEdit = (wallet: WalletType) => {
+    resetUpdate();
+    setEditingWallet(wallet);
+  };
+  const openDelete = (wallet: WalletType) => {
+    resetDelete();
+    setDeletingWallet(wallet);
+  };
 
   const handleSelectWallet = useCallback((wallet: WalletType) => {
     setSelectedWalletUuid((prev) => (prev === wallet.uuid ? null : wallet.uuid));
   }, []);
 
   const handleAddWalletSubmit = (data: Parameters<typeof handleCreateWallet>[0]) => {
-    handleCreateWallet(data);
-    setShowAddModal(false);
+    if (!readBlocked && !isCreating) handleCreateWallet(data, () => setShowAddModal(false));
   };
 
   const handleBatchSubmit = (addresses: DerivedAddress[], importData: HardwareWalletImport) => {
-    handleBatchCreateWallets(addresses, importData);
-    setShowAddModal(false);
+    if (!readBlocked && !isCreating) handleBatchCreateWallets(addresses, importData, () => setShowAddModal(false));
   };
 
   const handleSaveWallet = (uuid: string, name: string) => {
-    handleUpdateWalletName(uuid, name);
+    if (!readBlocked && !isUpdating) handleUpdateWalletName(uuid, name, () => setEditingWallet(null));
   };
 
   const handleConfirmDelete = () => {
-    if (deletingWallet) {
-      handleDeleteWallet(deletingWallet.uuid);
-      if (selectedWalletUuid === deletingWallet.uuid) setSelectedWalletUuid(null);
-      setDeletingWallet(null);
+    if (deletingWallet && !readBlocked && !isDeleting) {
+      handleDeleteWallet(deletingWallet.uuid, () => {
+        if (selectedWalletUuid === deletingWallet.uuid) setSelectedWalletUuid(null);
+        setDeletingWallet(null);
+      });
     }
   };
 
@@ -104,53 +125,37 @@ export function WalletsPage() {
       canVerify: isPending,
       canDerive,
       isSyncing,
-      onAdd: () => setShowAddModal(true),
-      onEdit: () => walletForChain && setEditingWallet(walletForChain),
+      onAdd: openAdd,
+      onEdit: () => walletForChain && openEdit(walletForChain),
       onVerify: () => walletForChain && setVerifyingWallet(walletForChain),
       onDerive: () => walletForChain && openDeriveModal(walletForChain),
       onSync: () => walletForChain && handleSyncWallet(walletForChain.uuid),
-      onDelete: () => walletForChain && setDeletingWallet(walletForChain),
+      onDelete: () => walletForChain && openDelete(walletForChain),
     };
   };
 
-  const renderChainPanel = (chain: string, title: string, icon: ReactElement, chainWallets: WalletType[]) => {
-    const totals = sumTotals(chainWallets);
-    return (
-      <Panel
-        title={title}
-        icon={icon}
-        actions={
-          chainWallets.length > 0 ? (
-            <div className="flex items-baseline gap-2">
-              <span className="text-xs text-text-muted">{formatCryptoBalance(totals.balance, '').trimEnd()}</span>
-              <span className="text-sm font-semibold text-text-primary">
-                {formatDisplayCurrency(totals.marketValue)}
-              </span>
-            </div>
-          ) : undefined
-        }
-      >
-        {chainWallets.length === 0 ? (
-          <ChainEmptyState message={`No ${title} wallets`} onAction={() => setShowAddModal(true)} />
-        ) : (
-          <>
-            <WalletList
-              wallets={chainWallets}
-              selectedWalletUuid={selectedWalletUuid}
-              onSelectWallet={handleSelectWallet}
-              onEditWallet={(wallet) => setEditingWallet(wallet)}
-            />
-            <WalletActionBar {...buildActionBarProps(chain)} />
-            {syncError && syncErrorWalletUuid === selectedWalletUuid && selectedWallet?.chain === chain && (
-              <p role="alert" className="mt-3 text-sm text-error-light">
-                {syncError}
-              </p>
-            )}
-          </>
-        )}
-      </Panel>
-    );
-  };
+  const renderChain = (chain: string, title: string, chainWallets: WalletType[]) => (
+    <Section title={title}>
+      {chainWallets.length === 0 ? (
+        <ChainEmptyState message={`No ${title} wallets`} onAction={openAdd} />
+      ) : (
+        <>
+          <WalletList
+            wallets={chainWallets}
+            selectedWalletUuid={selectedWalletUuid}
+            onSelectWallet={handleSelectWallet}
+            onEditWallet={openEdit}
+          />
+          <WalletActionBar {...buildActionBarProps(chain)} />
+          {syncError && syncErrorWalletUuid === selectedWalletUuid && selectedWallet?.chain === chain && (
+            <p role="alert" className="mt-3 text-sm text-error-light">
+              {syncError}
+            </p>
+          )}
+        </>
+      )}
+    </Section>
+  );
 
   if (isLoading) {
     return <Page loading />;
@@ -170,16 +175,31 @@ export function WalletsPage() {
         </>
       }
     >
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 md:gap-6 items-start">
-        {renderChainPanel(BLOCKCHAIN.ETHEREUM, 'Ethereum', <CurrencyEthIcon size={ICON_MD} />, ethWallets)}
-        {renderChainPanel(BLOCKCHAIN.BITCOIN, 'Bitcoin', <CurrencyBtcIcon size={ICON_MD} />, btcWallets)}
-        {renderChainPanel(BLOCKCHAIN.BASE, 'Base', <CircleIcon size={ICON_MD} weight="fill" />, baseWallets)}
-      </div>
+      {hasError ? (
+        <div role="alert" className="space-y-3">
+          <p className="text-sm text-text-muted">Your wallets could not be loaded. Try again before continuing.</p>
+          <PageAction label="Try again" disabled={isRefreshing} onClick={() => void retry()} />
+        </div>
+      ) : (
+        <>
+          <p className="text-sm text-text-muted">
+            Select a wallet to edit, verify, derive an address or sync its balances.
+          </p>
+          {renderChain(BLOCKCHAIN.ETHEREUM, 'Ethereum', ethWallets)}
+          {renderChain(BLOCKCHAIN.BITCOIN, 'Bitcoin', btcWallets)}
+          {renderChain(BLOCKCHAIN.BASE, 'Base', baseWallets)}
+        </>
+      )}
 
       <AddWalletModal
         isOpen={showAddModal}
         isLoading={isCreating}
-        onClose={() => setShowAddModal(false)}
+        error={createError}
+        readBlocked={readBlocked}
+        notice={readNotice}
+        onClose={() => {
+          if (!isCreating) setShowAddModal(false);
+        }}
         onSubmit={handleAddWalletSubmit}
         onBatchSubmit={handleBatchSubmit}
       />
@@ -188,16 +208,27 @@ export function WalletsPage() {
         key={editingWallet?.uuid}
         wallet={editingWallet}
         isOpen={!!editingWallet}
-        onClose={() => setEditingWallet(null)}
+        onClose={() => {
+          if (!isUpdating) setEditingWallet(null);
+        }}
         onSave={handleSaveWallet}
         isUpdating={isUpdating}
+        error={updateError}
+        readBlocked={readBlocked}
+        notice={readNotice}
       />
 
       <DeleteWalletModal
         isOpen={!!deletingWallet}
         wallet={deletingWallet}
+        isDeleting={isDeleting}
+        error={deleteError}
+        readBlocked={readBlocked}
+        notice={readNotice}
         onConfirm={handleConfirmDelete}
-        onClose={() => setDeletingWallet(null)}
+        onClose={() => {
+          if (!isDeleting) setDeletingWallet(null);
+        }}
       />
 
       <WalletVerificationModal
@@ -212,6 +243,9 @@ export function WalletsPage() {
         onConfirm={handleDeriveAddress}
         onClose={closeDeriveModal}
         isCreating={isCreating}
+        requestError={createError}
+        readBlocked={readBlocked || (!!derivingWallet && !canDeriveAddress(derivingWallet))}
+        notice={readNotice}
       />
 
       <WalletSortModal

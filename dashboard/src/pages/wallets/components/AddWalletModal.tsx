@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { QrCodeIcon, CheckIcon, WalletIcon, HardDrivesIcon } from '@phosphor-icons/react';
 import {
@@ -20,6 +21,9 @@ import { useWalletForm } from '../hooks/useWalletForm';
 import { extractFromKeystoneQR } from '@utils/keystone/bcurDecoder';
 
 interface AddWalletModalProps {
+  readBlocked?: boolean;
+  notice?: ReactNode;
+  error?: string | null;
   isOpen: boolean;
   isLoading: boolean;
   onClose: () => void;
@@ -27,7 +31,16 @@ interface AddWalletModalProps {
   onBatchSubmit: (addresses: DerivedAddress[], importData: HardwareWalletImport) => void;
 }
 
-export function AddWalletModal({ isOpen, isLoading, onClose, onSubmit, onBatchSubmit }: AddWalletModalProps) {
+export function AddWalletModal({
+  isOpen,
+  isLoading,
+  onClose,
+  onSubmit,
+  onBatchSubmit,
+  error,
+  readBlocked,
+  notice,
+}: AddWalletModalProps) {
   const form = useWalletForm({
     onSubmit,
     onBatchSubmit,
@@ -40,6 +53,7 @@ export function AddWalletModal({ isOpen, isLoading, onClose, onSubmit, onBatchSu
   }, [isOpen]);
 
   const handleClose = () => {
+    if (isLoading) return;
     form.stopScanner();
     form.reset();
     onClose();
@@ -48,11 +62,19 @@ export function AddWalletModal({ isOpen, isLoading, onClose, onSubmit, onBatchSu
   if (form.isSelectingAddresses && form.scannedURString) {
     return (
       <Modal isOpen={isOpen} onClose={handleClose} showFooter={false}>
+        {notice}
+        {error && (
+          <p role="alert" className="mb-3 text-sm text-error-light">
+            {error}
+          </p>
+        )}
         <AccountSelector
           urString={form.scannedURString}
-          onSelectAccounts={form.handleAddressSelection}
+          onSelectAccounts={(addresses, data) => {
+            if (!readBlocked && !isLoading) form.handleAddressSelection(addresses, data);
+          }}
           onCancel={form.handleBackToInput}
-          isLoading={isLoading}
+          isLoading={isLoading || !!readBlocked}
         />
       </Modal>
     );
@@ -65,10 +87,18 @@ export function AddWalletModal({ isOpen, isLoading, onClose, onSubmit, onBatchSu
       showFooter={!form.showScanner}
       confirmLabel={isLoading ? 'Adding...' : 'Add Wallet'}
       confirmLoading={isLoading}
-      confirmDisabled={isLoading || !form.address.trim()}
-      onConfirm={form.handleSubmit}
+      confirmDisabled={isLoading || readBlocked || !form.address.trim()}
+      onConfirm={() => {
+        if (!readBlocked && !isLoading) form.handleSubmit();
+      }}
     >
       <div className="space-y-4">
+        {notice}
+        {error && (
+          <p role="alert" className="text-sm text-error-light">
+            {error}
+          </p>
+        )}
         <div className="flex flex-col items-center gap-2 pt-2 pb-4">
           <WalletIcon size={ICON_XXL} weight="light" className="text-info-light" />
           <p className="text-sm text-text-muted text-center">
@@ -115,6 +145,7 @@ export function AddWalletModal({ isOpen, isLoading, onClose, onSubmit, onBatchSu
             <>
               <input
                 type="text"
+                aria-label="Wallet address"
                 value={form.address}
                 onChange={(e) => form.handleAddressChange(e.target.value)}
                 className={`w-full bg-surface-tertiary border rounded-lg px-3 py-2.5 text-sm text-text-primary font-mono focus:outline-none focus:ring-2 focus:ring-brand-mid ${
@@ -133,6 +164,7 @@ export function AddWalletModal({ isOpen, isLoading, onClose, onSubmit, onBatchSu
             <span>Wallet network</span>
             <select
               aria-label="Wallet network"
+              disabled={isLoading}
               value={form.selectedChain ?? ''}
               onChange={(event) => form.setSelectedChain(event.target.value)}
               className="w-full rounded-lg border border-border bg-surface-tertiary p-2 text-text-primary"
@@ -150,6 +182,7 @@ export function AddWalletModal({ isOpen, isLoading, onClose, onSubmit, onBatchSu
             <label className="text-xs text-text-muted">Wallet Name (Optional)</label>
             <input
               type="text"
+              aria-label="Wallet name"
               value={form.name}
               onChange={(e) => form.setName(e.target.value)}
               className="w-full bg-surface-tertiary border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-mid"
@@ -197,6 +230,7 @@ export function AccountSelector({ urString, onSelectAccounts, onCancel, isLoadin
           <span>EVM network</span>
           <select
             aria-label="Import EVM network"
+            disabled={isLoading}
             value={evmNetwork}
             onChange={(event) => setEvmNetwork(event.target.value as 'ETH' | 'BASE')}
             className="w-full rounded-lg border border-border bg-surface-tertiary p-2 text-text-primary"
@@ -270,6 +304,7 @@ function ImportAccounts({
               key={importAddressKey(derivedAddress)}
               type="button"
               onClick={() => toggleSelection(importAddressKey(derivedAddress))}
+              disabled={isImporting}
               className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors text-left ${
                 isSelected
                   ? 'border-brand-mid bg-brand-mid/5'
@@ -302,6 +337,7 @@ function ImportAccounts({
         <button
           type="button"
           onClick={onCancel}
+          disabled={isImporting}
           className="flex-1 px-4 py-2.5 border border-border rounded-lg text-sm font-medium text-text-secondary hover:bg-surface-tertiary transition-colors"
         >
           Cancel

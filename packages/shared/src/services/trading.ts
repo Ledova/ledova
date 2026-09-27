@@ -26,8 +26,8 @@ declare module 'axios' {
   }
 }
 
-export const getShareTokens = (apiClient: AxiosInstance) =>
-  apiClient.get<PaginatedResponse<ShareToken>>(TRADING_ENDPOINTS.TOKENS.LIST);
+export const getShareTokens = (apiClient: AxiosInstance, page?: number) =>
+  apiClient.get<PaginatedResponse<ShareToken>>(TRADING_ENDPOINTS.TOKENS.LIST, page ? { params: { page } } : undefined);
 
 export const getOrderBook = (apiClient: AxiosInstance, tokenUuid: string) =>
   apiClient.get<OrderBook>(TRADING_ENDPOINTS.TOKENS.ORDER_BOOK(tokenUuid));
@@ -146,9 +146,9 @@ export const getWalletBalances = (apiClient: AxiosInstance, walletAddress: strin
 export const getWhitelistStatus = (apiClient: AxiosInstance, tokenAddress: string, walletAddress: string) =>
   apiClient.get<WhitelistStatus>(TRADING_ENDPOINTS.WHITELIST.STATUS(tokenAddress, walletAddress));
 
-export const getSwapOrders = (apiClient: AxiosInstance, walletAddress: string) =>
+export const getSwapOrders = (apiClient: AxiosInstance, walletAddress: string, page?: number) =>
   apiClient.get<ApiResponse<'api_v1_trading_swaps_list'>>(TRADING_ENDPOINTS.SWAPS.LIST, {
-    params: { wallet_address: walletAddress },
+    params: { wallet_address: walletAddress, ...(page ? { page } : {}) },
   });
 
 export const getOrderModificationMessage = (

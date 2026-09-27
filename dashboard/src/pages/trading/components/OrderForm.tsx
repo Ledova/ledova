@@ -1,18 +1,19 @@
 import { useState, useEffect, useMemo, useImperativeHandle, forwardRef } from 'react';
-import { WalletIcon } from '@phosphor-icons/react';
-import { formatWalletAddressShort, formatCurrency, DESIGN_TOKENS } from '@ledova/shared';
-import type { ShareToken, CreateOrderRequest, Wallet as WalletType, OrderType } from '@ledova/shared';
-
-const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
+import { formatWalletAddressShort } from '@ledova/shared';
+import type { ShareToken, CreateOrderRequest, Wallet, OrderType } from '@ledova/shared';
+import { Rows, Row } from '@components/Ledger';
+import { marketAmount, priceCents } from '../marketData';
 
 interface OrderFormProps {
   token: ShareToken;
   orderType: OrderType;
-  wallets: WalletType[];
+  wallets: Wallet[];
   defaultWalletUuid?: string;
   getWalletBalance?: (address: string) => string | undefined;
   onSubmit: (data: CreateOrderRequest) => void;
   onValidationChange?: (isValid: boolean) => void;
+  onWalletChange?: (address: string) => void;
+  disabled?: boolean;
 }
 
 export interface OrderFormRef {
@@ -20,211 +21,203 @@ export interface OrderFormRef {
   isValid: boolean;
 }
 
+function wholeInput(value: string): bigint | null {
+  if (!/^\d{1,19}$/.test(value)) return null;
+  const parsed = BigInt(value);
+  return parsed <= 9223372036854775807n ? parsed : null;
+}
+
 export const OrderForm = forwardRef<OrderFormRef, OrderFormProps>(function OrderForm(
-  { token, orderType, wallets, defaultWalletUuid, getWalletBalance, onSubmit, onValidationChange },
+  {
+    token,
+    orderType,
+    wallets,
+    defaultWalletUuid,
+    getWalletBalance,
+    onSubmit,
+    onValidationChange,
+    onWalletChange,
+    disabled = false,
+  },
   ref,
 ) {
   const [quantity, setQuantity] = useState('');
   const [minQuantity, setMinQuantity] = useState('');
-  const [pricePerShare, setPricePerShare] = useState('');
+  const [pricePerShare, setPricePerShare] = useState(token.lastPrice ?? '');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [selectedWalletUuid, setSelectedWalletUuid] = useState(defaultWalletUuid ?? '');
-
   useEffect(() => {
-    if (defaultWalletUuid && !selectedWalletUuid) {
-      setSelectedWalletUuid(defaultWalletUuid);
-    }
+    if (defaultWalletUuid && !selectedWalletUuid) setSelectedWalletUuid(defaultWalletUuid);
   }, [defaultWalletUuid, selectedWalletUuid]);
-
-  useEffect(() => {
-    if (token.lastPrice && !pricePerShare) {
-      setPricePerShare(token.lastPrice);
-    }
-  }, [token.lastPrice, pricePerShare]);
-
-  const totalValue = useMemo(() => {
-    const qty = parseFloat(quantity) || 0;
-    const price = parseFloat(pricePerShare) || 0;
-    return qty * price;
-  }, [quantity, pricePerShare]);
-
   const selectedWallet = useMemo(
     () => wallets.find((wallet) => wallet.uuid === selectedWalletUuid),
     [wallets, selectedWalletUuid],
   );
-
-  const currentWalletBalance =
-    selectedWallet && getWalletBalance ? getWalletBalance(selectedWallet.address) : undefined;
-
-  const isValid = useMemo(() => {
-    const qty = parseFloat(quantity) || 0;
-    const minQty = parseFloat(minQuantity) || 0;
-    const price = parseFloat(pricePerShare) || 0;
-
-    if (qty <= 0 || price <= 0 || !selectedWallet) return false;
-
-    if (minQty > qty) return false;
-
-    if (orderType === 'sell' && currentWalletBalance) {
-      const balance = parseInt(currentWalletBalance, 10);
-      if (qty > balance) return false;
-    }
-
-    return true;
-  }, [quantity, minQuantity, pricePerShare, selectedWallet, orderType, currentWalletBalance]);
-
+  useEffect(() => {
+    onWalletChange?.(selectedWallet?.address ?? '');
+  }, [selectedWallet?.address, onWalletChange]);
+  const balance = selectedWallet && getWalletBalance ? getWalletBalance(selectedWallet.address) : undefined;
+  const qty = wholeInput(quantity);
+  const minimum = wholeInput(minQuantity || '0');
+  const cents = /^\d{1,16}(\.\d{1,2})?$/.test(pricePerShare) ? priceCents(pricePerShare) : null;
+  const withinBalance =
+    orderType !== 'sell' ||
+    !getWalletBalance ||
+    (balance !== undefined && /^\d+$/.test(balance) && qty !== null && BigInt(qty) <= BigInt(balance));
+  const isValid =
+    qty !== null &&
+    qty > 0 &&
+    minimum !== null &&
+    minimum <= qty &&
+    cents !== null &&
+    cents > 0n &&
+    !!selectedWallet &&
+    withinBalance;
   useEffect(() => {
     onValidationChange?.(isValid);
   }, [isValid, onValidationChange]);
-
   const handleSubmit = () => {
-    if (!isValid) return;
-
-    const minQty = parseFloat(minQuantity) || 0;
-    if (!selectedWallet) return;
-
+    if (!isValid || disabled || !selectedWallet || qty === null || minimum === null) return;
     onSubmit({
       token: token.uuid,
       orderType,
       walletUuid: selectedWallet.uuid,
       walletAddress: selectedWallet.address,
-      quantity: parseFloat(quantity),
-      minQuantity: minQty > 0 ? minQty : undefined,
+      quantity: qty <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(qty) : qty.toString(),
+      minQuantity:
+        minimum > 0 ? (minimum <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(minimum) : minimum.toString()) : undefined,
       pricePerShare,
     });
   };
-
-  useImperativeHandle(ref, () => ({
-    submit: handleSubmit,
-    isValid,
-  }));
-
+  useImperativeHandle(ref, () => ({ submit: handleSubmit, isValid }));
   const isBuy = orderType === 'buy';
-
   return (
     <div className="space-y-4">
-      <div className="space-y-0">
+      {isBuy && (
+        <p className="text-sm text-text-muted">
+          Fund your payment wallet before placing an offer. Matching is automatic; the matched trade still requires the
+          existing approval and signatures.
+        </p>
+      )}
+      <Rows>
         {token.lastPrice && (
-          <div className="flex items-center justify-between py-2.5 border-b border-border-subtle">
-            <span className="text-sm text-text-muted">Last Price:</span>
-            <span className="text-sm font-medium text-text-primary">{formatCurrency(parseFloat(token.lastPrice))}</span>
-          </div>
+          <Row label="Last price">
+            <span className="break-all">{marketAmount(token.lastPrice)}</span>
+          </Row>
         )}
-
-        <div className="flex items-center justify-between py-2.5 border-b border-border-subtle">
-          <span className="text-sm text-text-muted">{isBuy ? 'Delivery Wallet:' : 'Source Wallet:'}</span>
-          {wallets.length === 1 ? (
-            <div className="flex items-center gap-2">
-              <WalletIcon size={ICON_SM} className="text-brand-mid" />
-              <span className="text-sm font-medium text-text-primary font-mono">
-                {formatWalletAddressShort(wallets[0].address)}
-              </span>
-            </div>
-          ) : (
-            <select
-              value={selectedWalletUuid}
-              onChange={(e) => setSelectedWalletUuid(e.target.value)}
-              className="text-sm font-medium text-text-primary bg-transparent border-none focus:outline-none focus:ring-0 text-right cursor-pointer"
-            >
-              {wallets.map((wallet) => (
-                <option key={wallet.uuid} value={wallet.uuid}>
-                  {wallet.name || formatWalletAddressShort(wallet.address)}
-                </option>
-              ))}
-            </select>
+        {!isBuy && balance !== undefined && (
+          <Row label="Available shares">
+            <span className="break-all">{balance}</span>
+          </Row>
+        )}
+        <Row label="Total value">
+          <span className="break-all">
+            {qty !== null && cents !== null ? marketAmount(pricePerShare, qty) : 'Enter quantity and price'}
+          </span>
+        </Row>
+      </Rows>
+      <fieldset disabled={disabled} className="space-y-4">
+        <div className="space-y-1">
+          <label htmlFor="order-wallet" className="block text-sm">
+            {isBuy ? 'Delivery wallet' : 'Source wallet'}
+          </label>
+          <select
+            id="order-wallet"
+            value={selectedWalletUuid}
+            onChange={(event) => setSelectedWalletUuid(event.target.value)}
+            className="w-full border border-border bg-transparent p-3 text-sm"
+          >
+            <option value="" disabled>
+              Select a wallet
+            </option>
+            {wallets.map((wallet) => (
+              <option key={wallet.uuid} value={wallet.uuid}>
+                {wallet.name || formatWalletAddressShort(wallet.address)}
+              </option>
+            ))}
+          </select>
+          {selectedWallet && <p className="break-all text-xs text-text-muted">{selectedWallet.address}</p>}
+          {wallets.length === 0 && (
+            <p className="text-sm text-text-muted">No available wallet{isBuy ? '.' : ' with these shares.'}</p>
           )}
         </div>
-
-        {!isBuy && currentWalletBalance && (
-          <div className="flex items-center justify-between py-2.5 border-b border-border-subtle">
-            <span className="text-sm text-text-muted">Available:</span>
-            <span className="text-sm font-medium text-brand-light">{currentWalletBalance} shares</span>
-          </div>
-        )}
-
-        <div className="flex items-center justify-between py-2.5 border-b border-border-subtle">
-          <span className="text-sm text-text-muted">Total Value:</span>
-          <span className={`text-sm font-semibold ${totalValue > 0 ? 'text-text-primary' : 'text-text-muted'}`}>
-            {formatCurrency(totalValue)}
-          </span>
-        </div>
-      </div>
-
-      <div className="space-y-4 pt-2">
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-text-primary">Quantity (shares)</label>
+        <div className="space-y-1">
+          <label htmlFor="order-quantity" className="block text-sm">
+            Quantity (shares)
+          </label>
           <input
+            id="order-quantity"
             type="number"
             min="1"
             step="1"
-            max={!isBuy && currentWalletBalance ? currentWalletBalance : undefined}
+            max="9223372036854775807"
             value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
+            onChange={(event) => setQuantity(event.target.value)}
             placeholder="Enter number of shares"
-            className="w-full bg-surface-tertiary border border-border rounded-lg px-3 py-3 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-mid"
+            className="w-full border border-border bg-transparent p-3 text-sm"
           />
-          {!isBuy && currentWalletBalance && (
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-text-muted">Max: {currentWalletBalance} shares</p>
-              <button
-                type="button"
-                onClick={() => setQuantity(currentWalletBalance)}
-                className="text-xs text-brand-light hover:text-brand-subtle"
-              >
-                Use Max
-              </button>
-            </div>
+          {quantity && (qty === null || qty <= 0) && (
+            <p role="alert" className="text-sm">
+              Enter a positive whole quantity up to 9,223,372,036,854,775,807 shares.
+            </p>
           )}
+          {!isBuy && balance !== undefined && (
+            <button type="button" className="text-sm underline" onClick={() => setQuantity(balance)}>
+              Use Max
+            </button>
+          )}
+          {!withinBalance && <p className="text-sm">The source wallet does not have this quantity available.</p>}
         </div>
-
         <div>
-          <button
-            type="button"
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className="text-xs text-brand-light hover:text-brand-subtle font-medium"
-          >
+          <button type="button" className="text-sm underline" onClick={() => setShowAdvanced(!showAdvanced)}>
             {showAdvanced ? 'Hide advanced options' : 'Advanced options'}
           </button>
-
           {showAdvanced && (
-            <div className="space-y-2 mt-3">
-              <label className="text-sm font-medium text-text-primary">Minimum Fill Quantity (optional)</label>
+            <div className="mt-3 space-y-1">
+              <label htmlFor="order-minimum" className="block text-sm">
+                Minimum fill quantity (optional)
+              </label>
               <input
+                id="order-minimum"
                 type="number"
                 min="0"
                 step="1"
                 max={quantity || undefined}
                 value={minQuantity}
-                onChange={(e) => setMinQuantity(e.target.value)}
+                onChange={(event) => setMinQuantity(event.target.value)}
                 placeholder="0 = accept any partial fill"
-                className="w-full bg-surface-tertiary border border-border rounded-lg px-3 py-3 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-mid"
+                className="w-full border border-border bg-transparent p-3 text-sm"
               />
-              <p className="text-xs text-text-muted">Hint: Leave empty or 0 to accept any partial fill</p>
-              {minQuantity && parseFloat(minQuantity) > (parseFloat(quantity) || 0) && (
-                <p className="text-xs text-error-light">Minimum quantity cannot exceed total quantity.</p>
+              <p className="text-xs text-text-muted">Leave empty or 0 to accept any partial fill.</p>
+              {minQuantity && (minimum === null || qty === null || minimum > qty) && (
+                <p role="alert" className="text-sm">
+                  Minimum quantity must be a whole number no greater than the total.
+                </p>
               )}
             </div>
           )}
         </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-text-primary">Price per Share (AUD)</label>
+        <div className="space-y-1">
+          <label htmlFor="order-price" className="block text-sm">
+            Price per share (AUD)
+          </label>
           <input
+            id="order-price"
             type="number"
             min="0.01"
             step="0.01"
             value={pricePerShare}
-            onChange={(e) => setPricePerShare(e.target.value)}
+            onChange={(event) => setPricePerShare(event.target.value)}
             placeholder="Enter price per share"
-            className="w-full bg-surface-tertiary border border-border rounded-lg px-3 py-3 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-mid"
+            className="w-full border border-border bg-transparent p-3 text-sm"
           />
-          {token.lastPrice && (
-            <p className="text-xs text-text-muted">
-              Hint: Last traded at {formatCurrency(parseFloat(token.lastPrice))}
+          {pricePerShare && (cents === null || cents <= 0n) && (
+            <p role="alert" className="text-sm">
+              Enter a positive AUD price with at most two decimal places and 16 whole digits.
             </p>
           )}
         </div>
-      </div>
+      </fieldset>
     </div>
   );
 });

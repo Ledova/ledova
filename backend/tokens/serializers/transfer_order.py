@@ -15,13 +15,31 @@ from tokens.models import (
 from wallets.models import Wallet
 
 
+def token_identity(order, field):
+    token = getattr(order, "token", None)
+    if token is not None:
+        return getattr(token, field)
+    submission = getattr(order, "submission", None)
+    if submission is None:
+        return None
+    if field == "contract_address":
+        return submission.verifying_contract
+    return submission.token_metadata.get(field)
+
+
 class TransferOrderListSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     order_type_display = serializers.CharField(source="get_order_type_display", read_only=True)
-    token_symbol = serializers.CharField(source="token.symbol", read_only=True)
-    token_name = serializers.CharField(source="token.name", read_only=True)
+    token_symbol = serializers.SerializerMethodField()
+    token_name = serializers.SerializerMethodField()
     total_value = serializers.DecimalField(max_digits=20, decimal_places=2, read_only=True)
     remaining_quantity = serializers.IntegerField(read_only=True)
+
+    def get_token_symbol(self, order) -> str | None:
+        return token_identity(order, "symbol")
+
+    def get_token_name(self, order) -> str | None:
+        return token_identity(order, "name")
 
     class Meta:
         model = TransferOrder
@@ -46,17 +64,14 @@ class TransferOrderListSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class TransferOrderDetailSerializer(serializers.ModelSerializer):
-    status_display = serializers.CharField(source="get_status_display", read_only=True)
-    order_type_display = serializers.CharField(source="get_order_type_display", read_only=True)
-    token_symbol = serializers.CharField(source="token.symbol", read_only=True)
-    token_name = serializers.CharField(source="token.name", read_only=True)
-    token_contract_address = serializers.CharField(source="token.contract_address", read_only=True)
-    total_value = serializers.DecimalField(max_digits=20, decimal_places=2, read_only=True)
-    remaining_quantity = serializers.IntegerField(read_only=True)
+class TransferOrderDetailSerializer(TransferOrderListSerializer):
+    token_contract_address = serializers.SerializerMethodField()
     remaining_value = serializers.DecimalField(max_digits=20, decimal_places=2, read_only=True)
     matched_order_uuid = serializers.UUIDField(source="matched_order_id", read_only=True, allow_null=True)
     can_be_modified = serializers.BooleanField(read_only=True)
+
+    def get_token_contract_address(self, order) -> str | None:
+        return token_identity(order, "contract_address")
 
     class Meta:
         model = TransferOrder

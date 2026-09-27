@@ -8,6 +8,7 @@ from django.test.runner import DiscoverRunner
 from shared.db import APP_ALIAS, MIGRATE_ALIAS, OPERATOR_ALIAS
 
 SCOPED_TEST_LABELS = (
+    "tokens.tests.test_trading_retention.ScopedTradingRetentionTest",
     "offerings.tests.test_application_retention.ScopedApplicationRetentionTest",
     "blockchain.tests.test_fresh_signer_scoped.ScopedFreshSignerTest",
     "companies.tests.test_document_review_scoped.ScopedCompanyDocumentReviewTest",

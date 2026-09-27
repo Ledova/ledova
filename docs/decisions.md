@@ -454,13 +454,20 @@ This records the target; the steps on #732 build it.
 - **Mobile follows the web.** The mobile app takes paper and the new structure
   together, after the web.
 
-Two questions remain open:
+The owner answered the two remaining scope questions on 27 September 2026
+([#749](https://github.com/Ledova/ledova/issues/749#issuecomment-5850699327)):
 
-- **The Market's presentation:** plain lists over today's automatic matching, or a
-  seller's accept and reject built first, as
-  [product §7](product.md#7-initial-delivery-scope) describes.
-- **The first deployment the design targets:** a single issuer, or a registry of
-  many companies.
+- **Initial scope:** "One issuer first; expand later." The first testnet Invest
+  experience focuses on one fictional issuer. Directory presents its share
+  classes and offerings without adding a registry search or discovery product.
+  Existing API visibility remains authoritative; the client does not discard an
+  accessible class just because another company was returned first.
+- **Initial Market:** "Keep automatic matching for the first version." The
+  dashboard Market presents _For sale_ and _Wanted_ over existing matching.
+  Seller acceptance and rejection are not a prerequisite for that first version.
+
+The buyer-funds-before-offering decision remains unchanged. These decisions set
+the implementation's scope, not permission for a live deployment or real funds.
 
 ## The account-data export
 

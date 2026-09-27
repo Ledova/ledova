@@ -1,116 +1,63 @@
 import { useState } from 'react';
-import {
-  BellIcon,
-  UserCircleIcon,
-  CaretRightIcon,
-  TrashIcon,
-  ExportIcon,
-  LockIcon,
-  EyeIcon,
-  EyeSlashIcon,
-  CircleNotchIcon,
-} from '@phosphor-icons/react';
 import { useNavigate } from 'react-router-dom';
-import { DESIGN_TOKENS, deleteAccount, changePassword, exportAccountData } from '@ledova/shared';
+import { AUTH_QUERY_KEY, deleteAccount, changePassword, exportAccountData } from '@ledova/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@services/apiClient';
-import { Panel } from '@components/Panel';
 import { Modal } from '@components/Modal';
-import { Page } from '@components/Page';
+import { Page, PageAction } from '@components/Page';
+import { Section } from '@components/Ledger';
 import { useNotificationPreferences } from './useNotificationPreferences';
 
-const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
-const ICON_XL = DESIGN_TOKENS.icon.sizes.xl;
-
-interface SettingsItemProps {
-  icon: React.ReactNode;
-  title: string;
-  description?: string;
-  onClick?: () => void;
-  badge?: string;
-  disabled?: boolean;
-  danger?: boolean;
-  isLast?: boolean;
-}
-
-function SettingsItem({ icon, title, description, onClick, badge, disabled, danger, isLast }: SettingsItemProps) {
+function SettingsAction({ title, description, onClick }: { title: string; description: string; onClick: () => void }) {
   return (
     <button
       type="button"
+      aria-label={title}
       onClick={onClick}
-      disabled={disabled}
-      className={`w-full flex items-center gap-3 px-4 py-3 transition-colors text-left ${
-        !isLast ? 'border-b border-border-subtle' : ''
-      } ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-surface-tertiary/50'}`}
+      className="flex w-full flex-col gap-1 py-3 text-left hover:text-brand-mid"
     >
-      <div
-        className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${
-          danger ? 'bg-error-light/10' : 'bg-surface-tertiary'
-        }`}
-      >
-        {icon}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className={`text-sm font-medium ${danger ? 'text-error-light' : 'text-text-primary'}`}>{title}</span>
-          {badge && (
-            <span className="px-2 py-0.5 text-xs font-medium bg-brand-mid/20 text-brand-light rounded">{badge}</span>
-          )}
-        </div>
-        {description && <p className="text-xs text-text-muted truncate mt-0.5">{description}</p>}
-      </div>
-      <CaretRightIcon size={ICON_SM} className="text-text-subtle flex-shrink-0" />
+      <span className="text-sm font-medium">{title}</span>
+      <span className="text-sm text-text-muted">{description}</span>
     </button>
   );
 }
 
-interface SectionProps {
-  title: string;
-  children: React.ReactNode;
-}
-
-function Section({ title, children }: SectionProps) {
-  return (
-    <div className="mb-5">
-      <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2 px-1">{title}</p>
-      <div className="bg-surface-tertiary/50 rounded-lg overflow-hidden border border-border-subtle">{children}</div>
-    </div>
-  );
-}
-
-interface ToggleRowProps {
+function PasswordInput({
+  label,
+  value,
+  onChange,
+  autoComplete,
+  disabled,
+}: {
   label: string;
-  description: string;
-  value: boolean;
-  onToggle: (value: boolean) => void;
-  disabled?: boolean;
-  isLast?: boolean;
-}
-
-function ToggleRow({ label, description, value, onToggle, disabled, isLast }: ToggleRowProps) {
+  value: string;
+  onChange: (value: string) => void;
+  autoComplete: string;
+  disabled: boolean;
+}) {
+  const [visible, setVisible] = useState(false);
   return (
-    <div
-      className={`flex items-center gap-3 px-4 py-3 ${!isLast ? 'border-b border-border-subtle' : ''} ${disabled ? 'opacity-50' : ''}`}
-    >
-      <div className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center bg-surface-tertiary">
-        <BellIcon size={ICON_MD} className="text-text-muted" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-text-primary">{label}</p>
-        <p className="text-xs text-text-muted mt-0.5">{description}</p>
-      </div>
+    <div className="space-y-1">
+      <label className="flex flex-col gap-1 text-sm text-text-muted">
+        {label}
+        <input
+          type={visible ? 'text' : 'password'}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          autoComplete={autoComplete}
+          disabled={disabled}
+          className="min-w-0 rounded-lg border border-border bg-paper px-3 py-2 text-text-primary"
+        />
+      </label>
       <button
         type="button"
-        role="switch"
-        aria-checked={value}
-        onClick={() => onToggle(!value)}
+        aria-label={`${visible ? 'Hide' : 'Show'} ${label.toLowerCase()}`}
+        aria-pressed={visible}
         disabled={disabled}
-        className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${value ? 'bg-brand-mid' : 'bg-surface-disabled'} ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+        onClick={() => setVisible(!visible)}
+        className="text-sm text-brand-mid underline"
       >
-        <span
-          className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${value ? 'translate-x-6' : 'translate-x-1'}`}
-        />
+        {visible ? 'Hide' : 'Show'}
       </button>
     </div>
   );
@@ -119,286 +66,249 @@ function ToggleRow({ label, description, value, onToggle, disabled, isLast }: To
 export function SettingsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [showExportModal, setShowExportModal] = useState(false);
-
+  const preferences = useNotificationPreferences();
+  const [modal, setModal] = useState<'password' | 'export' | 'delete' | null>(null);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordError, setPasswordError] = useState('');
+  const [passwordChanged, setPasswordChanged] = useState(false);
 
-  const {
-    transactionAlerts,
-    isLoading: notificationsLoading,
-    isUpdating,
-    toggleTransactionAlerts,
-  } = useNotificationPreferences();
-
-  const deleteAccountMutation = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: () => deleteAccount(apiClient),
     onSuccess: () => {
+      queryClient.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } });
       queryClient.clear();
       navigate('/signin');
     },
   });
-
-  const changePasswordMutation = useMutation({
-    mutationFn: () =>
-      changePassword(apiClient, {
-        currentPassword,
-        newPassword,
-        newPasswordConfirm: confirmPassword,
-      }),
+  const passwordMutation = useMutation({
+    mutationFn: () => changePassword(apiClient, { currentPassword, newPassword, newPasswordConfirm: confirmPassword }),
     onSuccess: () => {
-      closePasswordModal();
+      setModal(null);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordChanged(true);
     },
     onError: (error: unknown) => {
-      const err = error as { response?: { data?: Record<string, string[]> } };
-      const data = err.response?.data;
-      if (data?.current_password) {
-        setPasswordError('Current password is incorrect');
-      } else if (data?.new_password) {
-        setPasswordError('Invalid new password');
-      } else if (data?.new_password_confirm) {
-        setPasswordError('Passwords do not match');
-      } else {
-        setPasswordError('Failed to change password. Please try again.');
-      }
+      const data = (error as { response?: { data?: Record<string, unknown> } }).response?.data;
+      if (data?.current_password || data?.currentPassword) setPasswordError('Current password is incorrect.');
+      else if (data?.new_password || data?.newPassword)
+        setPasswordError('The new password was not accepted. Choose another password.');
+      else if (data?.new_password_confirm || data?.newPasswordConfirm) setPasswordError('Passwords do not match.');
+      else setPasswordError('Your password could not be changed. Try again.');
     },
   });
-
-  const exportDataMutation = useMutation({
+  const exportMutation = useMutation({
     mutationFn: () => exportAccountData(apiClient),
     onSuccess: (response) => {
       const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `ledova-data-export-${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `ledova-data-export-${new Date().toISOString().split('T')[0]}.json`;
+      link.click();
       URL.revokeObjectURL(url);
-      setShowExportModal(false);
+      setModal(null);
     },
   });
 
-  const closePasswordModal = () => {
-    setShowPasswordModal(false);
+  function closePassword() {
+    if (passwordMutation.isPending) return;
+    setModal(null);
     setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
-    setShowCurrentPassword(false);
-    setShowNewPassword(false);
-    setShowConfirmPassword(false);
     setPasswordError('');
-    changePasswordMutation.reset();
-  };
+    passwordMutation.reset();
+  }
 
-  const handleChangePassword = () => {
+  function savePassword() {
+    if (passwordMutation.isPending) return;
     setPasswordError('');
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      setPasswordError('All fields are required');
-      return;
-    }
-    if (newPassword.length < 8) {
-      setPasswordError('New password must be at least 8 characters');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setPasswordError('Passwords do not match');
-      return;
-    }
-    changePasswordMutation.mutate();
-  };
+    if (!currentPassword || !newPassword || !confirmPassword) setPasswordError('All fields are required.');
+    else if (newPassword.length < 8) setPasswordError('New password must be at least 8 characters.');
+    else if (newPassword !== confirmPassword) setPasswordError('Passwords do not match.');
+    else passwordMutation.mutate();
+  }
 
   return (
     <Page>
-      <Panel>
-        <Section title="Profile & Security">
-          <SettingsItem
-            icon={<UserCircleIcon size={ICON_MD} className="text-text-muted" />}
+      <Section title="Profile and security">
+        <div className="divide-y divide-border-subtle">
+          <SettingsAction
             title="Profile"
-            description="Manage your personal information"
+            description="View your personal information and identity check."
             onClick={() => navigate('/user-profile')}
           />
-          <SettingsItem
-            icon={<LockIcon size={ICON_MD} className="text-text-muted" />}
-            title="Password"
-            description="Change your account password"
-            onClick={() => setShowPasswordModal(true)}
-            isLast
+          <SettingsAction
+            title="Change password"
+            description="Choose a new password for your account."
+            onClick={() => {
+              setPasswordChanged(false);
+              setModal('password');
+            }}
           />
-        </Section>
-
-        <Section title="Notifications">
-          <ToggleRow
-            label="Transaction Alerts"
-            description="Notifications for transaction status changes"
-            value={transactionAlerts}
-            onToggle={toggleTransactionAlerts}
-            disabled={notificationsLoading || isUpdating}
-            isLast
+        </div>
+        {passwordChanged && (
+          <p role="status" className="text-sm text-brand-mid">
+            Your password was changed.
+          </p>
+        )}
+      </Section>
+      <Section title="Notifications">
+        {preferences.isError ? (
+          <>
+            <p role="alert" className="text-sm text-error-light">
+              Notification preferences could not be loaded.
+            </p>
+            <div>
+              <PageAction label="Try again" onClick={() => void preferences.retry()} />
+            </div>
+          </>
+        ) : preferences.isLoading ? (
+          <p role="status" className="text-sm text-text-muted">
+            Loading notification preferences…
+          </p>
+        ) : preferences.transactionAlerts === undefined ? (
+          <p className="text-sm text-text-muted">Notification preferences are unavailable.</p>
+        ) : (
+          <div className="flex items-center justify-between gap-4 py-3">
+            <div>
+              <p className="text-sm font-medium">Transaction alerts</p>
+              <p className="text-sm text-text-muted">Notifications for transaction status changes.</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-label="Transaction alerts"
+              aria-checked={preferences.transactionAlerts}
+              disabled={preferences.isUpdating}
+              onClick={() => preferences.toggleTransactionAlerts(!preferences.transactionAlerts)}
+              className="rounded-lg border border-border px-3 py-2 text-sm disabled:opacity-50"
+            >
+              {preferences.transactionAlerts ? 'On' : 'Off'}
+            </button>
+          </div>
+        )}
+        {preferences.updateError && (
+          <p role="alert" className="text-sm text-error-light">
+            Your notification preference could not be saved. Try again.
+          </p>
+        )}
+      </Section>
+      <Section title="Data and privacy">
+        <div className="divide-y divide-border-subtle">
+          <SettingsAction
+            title="Export data"
+            description="Download a copy of your account data."
+            onClick={() => {
+              exportMutation.reset();
+              setModal('export');
+            }}
           />
-        </Section>
-
-        <Section title="Data & Privacy">
-          <SettingsItem
-            icon={<ExportIcon size={ICON_MD} className="text-text-muted" />}
-            title="Export Data"
-            description="Download a copy of your data"
-            onClick={() => setShowExportModal(true)}
+          <SettingsAction
+            title="Delete account"
+            description="Deactivate your account and remove personal details. Some records are retained."
+            onClick={() => {
+              deleteMutation.reset();
+              setModal('delete');
+            }}
           />
-          <SettingsItem
-            icon={<TrashIcon size={ICON_MD} className="text-error-light" />}
-            title="Delete Account"
-            description="Permanently delete your account"
-            onClick={() => setShowDeleteModal(true)}
-            danger
-            isLast
-          />
-        </Section>
-      </Panel>
-
+        </div>
+      </Section>
       <Modal
-        isOpen={showPasswordModal}
-        onClose={closePasswordModal}
-        title="Change Password"
+        isOpen={modal === 'password'}
+        onClose={closePassword}
+        title="Change password"
         showFooter
-        confirmLabel="Change Password"
-        onConfirm={handleChangePassword}
-        confirmLoading={changePasswordMutation.isPending}
+        confirmLabel="Change password"
+        onConfirm={savePassword}
+        confirmLoading={passwordMutation.isPending}
         confirmDisabled={!currentPassword || !newPassword || !confirmPassword}
       >
-        <div className="space-y-4 py-2">
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1.5">Current Password</label>
-            <div className="relative">
-              <input
-                type={showCurrentPassword ? 'text' : 'password'}
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                className="w-full px-3 py-2.5 pr-10 bg-surface-tertiary border border-border-subtle rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-focus"
-                placeholder="Enter current password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
-              >
-                {showCurrentPassword ? <EyeSlashIcon size={ICON_MD} /> : <EyeIcon size={ICON_MD} />}
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1.5">New Password</label>
-            <div className="relative">
-              <input
-                type={showNewPassword ? 'text' : 'password'}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-3 py-2.5 pr-10 bg-surface-tertiary border border-border-subtle rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-focus"
-                placeholder="Enter new password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowNewPassword(!showNewPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
-              >
-                {showNewPassword ? <EyeSlashIcon size={ICON_MD} /> : <EyeIcon size={ICON_MD} />}
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1.5">Confirm New Password</label>
-            <div className="relative">
-              <input
-                type={showConfirmPassword ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-3 py-2.5 pr-10 bg-surface-tertiary border border-border-subtle rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-focus"
-                placeholder="Confirm new password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
-              >
-                {showConfirmPassword ? <EyeSlashIcon size={ICON_MD} /> : <EyeIcon size={ICON_MD} />}
-              </button>
-            </div>
-          </div>
-
-          {passwordError && (
-            <div className="bg-error-light/10 border border-error-light/20 rounded-lg p-3">
-              <p className="text-sm text-error-light">{passwordError}</p>
-            </div>
-          )}
-        </div>
-      </Modal>
-
-      <Modal
-        isOpen={showExportModal}
-        onClose={() => setShowExportModal(false)}
-        title="Export Data"
-        showFooter
-        confirmLabel={exportDataMutation.isPending ? 'Exporting...' : 'Export'}
-        onConfirm={() => exportDataMutation.mutate()}
-        confirmLoading={exportDataMutation.isPending}
-      >
-        <div className="py-4">
-          <div className="w-16 h-16 rounded-full bg-brand-mid/10 flex items-center justify-center mx-auto mb-4">
-            {exportDataMutation.isPending ? (
-              <CircleNotchIcon size={ICON_XL} className="text-brand-mid animate-spin" />
-            ) : (
-              <ExportIcon size={ICON_XL} className="text-brand-mid" />
-            )}
-          </div>
-          <p className="text-text-primary font-medium text-center mb-2">Download your data</p>
-          <p className="text-sm text-text-muted text-center">
-            This will export your account data as a JSON file. The download will start automatically.
-          </p>
-          {exportDataMutation.isError && (
-            <div className="bg-error-light/10 border border-error-light/20 rounded-lg p-3 mt-4">
-              <p className="text-sm text-error-light text-center">Failed to export data. Please try again.</p>
-            </div>
-          )}
-        </div>
-      </Modal>
-
-      <Modal
-        isOpen={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        title="Delete Account"
-        showFooter
-        cancelLabel="Cancel"
-        confirmLabel="Delete Account"
-        onConfirm={() => deleteAccountMutation.mutate()}
-        confirmLoading={deleteAccountMutation.isPending}
-      >
-        <div className="py-4">
-          <div className="w-16 h-16 rounded-full bg-error-light/10 flex items-center justify-center mx-auto mb-4">
-            <TrashIcon size={ICON_XL} className="text-error-light" />
-          </div>
-          <p className="text-text-primary font-medium text-center mb-2">This action cannot be undone</p>
-          <p className="text-sm text-text-muted text-center mb-4">
-            This deactivates your account and removes your name, date of birth, phone number and address. Your country
-            of citizenship, financial profile, wallets, verification records and share register entries are kept.
-          </p>
-          <p className="text-sm text-text-muted text-center">Are you sure you want to delete your account?</p>
-          {deleteAccountMutation.isError && (
-            <div className="bg-error-light/10 border border-error-light/20 rounded-lg p-3 mt-4">
-              <p className="text-sm text-error-light text-center">
-                Failed to delete account. Please try again or contact the deployment operator.
+        {modal === 'password' && (
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              savePassword();
+            }}
+          >
+            <PasswordInput
+              label="Current password"
+              value={currentPassword}
+              onChange={setCurrentPassword}
+              autoComplete="current-password"
+              disabled={passwordMutation.isPending}
+            />
+            <PasswordInput
+              label="New password"
+              value={newPassword}
+              onChange={setNewPassword}
+              autoComplete="new-password"
+              disabled={passwordMutation.isPending}
+            />
+            <PasswordInput
+              label="Confirm new password"
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+              autoComplete="new-password"
+              disabled={passwordMutation.isPending}
+            />
+            {passwordError && (
+              <p role="alert" className="text-sm text-error-light">
+                {passwordError}
               </p>
-            </div>
-          )}
-        </div>
+            )}
+            <button type="submit" className="sr-only" tabIndex={-1} disabled={passwordMutation.isPending}>
+              Save password
+            </button>
+          </form>
+        )}
+      </Modal>
+      <Modal
+        isOpen={modal === 'export'}
+        onClose={() => {
+          if (!exportMutation.isPending) setModal(null);
+        }}
+        title="Export data"
+        showFooter
+        confirmLabel="Export"
+        onConfirm={() => exportMutation.mutate()}
+        confirmLoading={exportMutation.isPending}
+      >
+        <p className="text-sm text-text-muted">
+          Download your account data as a JSON file. The download starts when the export is ready.
+        </p>
+        {exportMutation.isError && (
+          <p role="alert" className="mt-3 text-sm text-error-light">
+            Your data could not be exported. Try again.
+          </p>
+        )}
+      </Modal>
+      <Modal
+        isOpen={modal === 'delete'}
+        onClose={() => {
+          if (!deleteMutation.isPending) setModal(null);
+        }}
+        title="Delete account"
+        showFooter
+        confirmLabel="Delete account"
+        onConfirm={() => deleteMutation.mutate()}
+        confirmLoading={deleteMutation.isPending}
+      >
+        <p className="mb-3 text-sm font-medium">This action cannot be undone.</p>
+        <p className="text-sm text-text-muted">
+          This deactivates your account and removes your name, date of birth, phone number and address. Your country of
+          citizenship, financial profile, wallets, verification records and share register entries are kept.
+        </p>
+        {deleteMutation.isError && (
+          <p role="alert" className="mt-3 text-sm text-error-light">
+            Your account could not be deleted. Try again or contact the deployment operator.
+          </p>
+        )}
       </Modal>
     </Page>
   );

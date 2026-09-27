@@ -1,16 +1,8 @@
-import { ArrowUpIcon, ArrowDownIcon } from '@phosphor-icons/react';
-import {
-  formatCryptoBalance,
-  formatShortDate,
-  formatTime,
-  getChainShortCode,
-  getTransactionStatus,
-  DESIGN_TOKENS,
-} from '@ledova/shared';
-
-const ICON_XXL = DESIGN_TOKENS.icon.sizes.xxl;
+import { formatDate, formatTime, getChainShortCode, getBlockchainDisplayName } from '@ledova/shared';
 import type { Transaction } from '@ledova/shared';
 import { Modal } from '@components/Modal';
+import { Row, Rows, Status } from '@components/Ledger';
+import { activityAmount, activityDirection, activityState, feeUnit } from '../presentation';
 
 interface TransactionDetailModalProps {
   isOpen: boolean;
@@ -19,95 +11,59 @@ interface TransactionDetailModalProps {
   onViewExplorer: () => void;
 }
 
-function DetailRow({
-  label,
-  value,
-  valueClassName = '',
-  mono = false,
-}: {
-  label: string;
-  value: string;
-  valueClassName?: string;
-  mono?: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between py-3">
-      <span className="text-xs text-text-muted">{label}</span>
-      <span className={`text-sm font-medium text-text-primary ${valueClassName} ${mono ? 'font-mono' : ''}`}>
-        {value}
-      </span>
-    </div>
-  );
-}
-
 export function TransactionDetailModal({ isOpen, transaction, onClose, onViewExplorer }: TransactionDetailModalProps) {
   if (!transaction) return null;
-
-  const walletAddr = transaction.walletAddress?.toLowerCase() || '';
-  const toAddress = transaction.toAddress?.toLowerCase() || '';
-  const incoming = toAddress === walletAddr;
-  const amount = parseFloat(transaction.amount || '0');
-  const status = getTransactionStatus(transaction.status);
-  const statusClasses = {
-    success: 'text-success-light',
-    error: 'text-error-light',
-    warning: 'text-warning-light',
-    info: 'text-text-muted',
-  };
-
-  const displayAmount = `${incoming ? '+' : '-'}${formatCryptoBalance(amount, transaction.assetSymbol || '')}`;
-
-  const showExplorerButton = !!transaction.txHash;
-
+  const state = activityState(transaction);
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title=""
-      showFooter={true}
+      title="Activity detail"
+      showFooter
       cancelLabel="Close"
       confirmLabel="View on Explorer"
-      onConfirm={showExplorerButton ? onViewExplorer : undefined}
-      confirmDisabled={!showExplorerButton}
+      onConfirm={transaction.txHash ? onViewExplorer : undefined}
     >
-      <div className="flex flex-col items-center py-4">
-        {incoming ? (
-          <ArrowDownIcon size={ICON_XXL} className="text-success-light mb-3" weight="light" />
-        ) : (
-          <ArrowUpIcon size={ICON_XXL} className="text-error-light mb-3" weight="light" />
+      <Rows>
+        <Row label="Direction">{activityDirection(transaction)}</Row>
+        <Row label="Status">
+          <Status tone={state.tone}>{state.label}</Status>
+        </Row>
+        <Row label="Asset">
+          <span className="break-words">{transaction.assetName || transaction.assetSymbol || 'Unavailable'}</span>
+        </Row>
+        <Row label="Amount">
+          <span className="break-all">{activityAmount(transaction.amount, transaction.assetSymbol)}</span>
+        </Row>
+        <Row label="Network">{getBlockchainDisplayName(getChainShortCode(transaction.chain))}</Row>
+        <Row label="Recorded">
+          {formatDate(transaction.createdAt)} {formatTime(transaction.createdAt)}
+        </Row>
+        {transaction.blockTimestamp && (
+          <Row label="Block time">
+            {formatDate(transaction.blockTimestamp)} {formatTime(transaction.blockTimestamp)}
+          </Row>
         )}
-        <h3 className="text-xl font-semibold text-text-primary">{incoming ? 'Received' : 'Sent'}</h3>
-      </div>
-
-      <div className="space-y-0 divide-y divide-border-subtle">
-        <DetailRow label="Asset" value={transaction.assetName || transaction.assetSymbol || 'Unknown Asset'} />
-        <DetailRow
-          label="Amount"
-          value={displayAmount}
-          valueClassName={incoming ? 'text-success-light' : 'text-error-light'}
-        />
-        <DetailRow label="Chain" value={transaction.chain ? getChainShortCode(transaction.chain) : 'Unknown'} />
-        <DetailRow
-          label="Timestamp"
-          value={`${formatShortDate(transaction.blockTimestamp)} ${formatTime(transaction.blockTimestamp)}`}
-        />
-        {transaction.status && (
-          <DetailRow label="Status" value={status.label} valueClassName={statusClasses[status.tone]} />
+        {transaction.transactionFee !== null && (
+          <Row label="Network fee">
+            <span className="break-all">{activityAmount(transaction.transactionFee, feeUnit(transaction.chain))}</span>
+          </Row>
         )}
-        {transaction.transactionFee && (
-          <DetailRow
-            label="Fee"
-            value={formatCryptoBalance(parseFloat(transaction.transactionFee), transaction.assetSymbol || '')}
-          />
-        )}
+        <Row label="Wallet">
+          <span className="break-all">{transaction.walletAddress}</span>
+        </Row>
+        <Row label="From">
+          <span className="break-all">{transaction.fromAddress}</span>
+        </Row>
+        <Row label="To">
+          <span className="break-all">{transaction.toAddress ?? 'Unavailable'}</span>
+        </Row>
         {transaction.txHash && (
-          <DetailRow
-            label="Tx Hash"
-            value={`${transaction.txHash.slice(0, 10)}...${transaction.txHash.slice(-8)}`}
-            mono
-          />
+          <Row label="Transaction">
+            <span className="break-all">{transaction.txHash}</span>
+          </Row>
         )}
-      </div>
+      </Rows>
     </Modal>
   );
 }

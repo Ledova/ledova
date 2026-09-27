@@ -1,93 +1,64 @@
+import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeftIcon, BankIcon, CoinsIcon } from '@phosphor-icons/react';
-import { Panel } from '@components/Panel';
-import { formatDate } from '@ledova/shared';
-import type { Operator } from '@ledova/shared';
-import { useSelectedPortfolio } from '@hooks/useSelectedPortfolio';
+import { DESTINATIONS, formatDate, formatMoney, formatShareCount } from '@ledova/shared';
+import { Row, Rows, Section, Status } from '@components/Ledger';
+import { Page, PageAction } from '@components/Page';
 import { SubscribeForm } from '@pages/subscriptions/SubscribeForm';
 import { useCreateSubscription, useSubscribableWallets } from '@pages/subscriptions/useSubscriptions';
 import { useDirectoryToken } from './useDirectory';
-import { Page } from '@components/Page';
-
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex items-baseline justify-between gap-4 py-2 border-b border-border-subtle/40 last:border-b-0">
-      <span className="text-sm text-text-muted">{label}</span>
-      <span className="text-sm text-text-primary text-right">{value}</span>
-    </div>
-  );
-}
-
-function PaymentPanel({ operator }: { operator: Operator | null }) {
-  const instructions = operator?.paymentInstructions;
-  if (!instructions) return null;
-  const hasBank = Boolean(instructions.bankAccountName && instructions.bankBsb && instructions.bankAccountNumber);
-  const hasWallet = Boolean(instructions.receivingWalletAddress);
-
-  return (
-    <Panel title="How Settlement Works" icon={<BankIcon size={20} />}>
-      <div className="px-2 py-2 space-y-3">
-        <p className="text-sm text-text-secondary">
-          Money for a subscription is paid to {operator?.name}, not to the company. Your exact reference and amount are
-          issued when a subscription is accepted; these are the rails available today.
-        </p>
-        <div>
-          {hasBank && (
-            <>
-              <Row label="Bank account name" value={instructions.bankAccountName} />
-              <Row label="BSB" value={instructions.bankBsb} />
-              <Row label="Account number" value={instructions.bankAccountNumber} />
-            </>
-          )}
-          {hasWallet && (
-            <Row
-              label={`Receiving wallet (${instructions.receivingWalletChain})`}
-              value={<span className="font-mono break-all">{instructions.receivingWalletAddress}</span>}
-            />
-          )}
-          {(operator?.supportedSettlementAssets ?? []).length > 0 && (
-            <Row
-              label="Settlement stablecoins"
-              value={(operator?.supportedSettlementAssets ?? []).map((asset) => asset.symbol).join(', ')}
-            />
-          )}
-        </div>
-        {!hasBank && !hasWallet && (
-          <p className="text-sm text-text-muted">
-            {operator?.name ?? 'The operator'} has not published payment details yet.
-          </p>
-        )}
-      </div>
-    </Panel>
-  );
-}
 
 export default function DirectoryTokenPage() {
   const { uuid } = useParams<{ uuid: string }>();
   const navigate = useNavigate();
-  const { token, operator, isLoading, notFound } = useDirectoryToken(uuid);
-  const { userAccount } = useSelectedPortfolio();
-  const { wallets } = useSubscribableWallets();
-  const create = useCreateSubscription((created) => navigate(`/subscriptions/${created}`));
+  const [draft, setDraft] = useState<{ offering: string; quantity: string; wallet: string | null } | null>(null);
+  const {
+    token,
+    operator,
+    isLoading,
+    notFound,
+    hasError,
+    retry,
+    isRefreshing,
+    operatorLoading,
+    operatorFailed,
+    operatorRefreshing,
+    retryOperator,
+  } = useDirectoryToken(uuid);
+  const wallets = useSubscribableWallets(Boolean(token?.openOffering) && !hasError && !notFound);
+  const create = useCreateSubscription((created) =>
+    navigate(DESTINATIONS.subscriptionDetail.path.replace(':uuid', created)),
+  );
 
-  if (isLoading) {
-    return <Page loading />;
+  if (isLoading) return <Page loading />;
+
+  if (hasError) {
+    return (
+      <Page>
+        <div role="alert" className="flex flex-col items-start gap-3 py-6">
+          <p className="text-sm text-text-primary">
+            This share class could not be loaded. Try again before continuing.
+          </p>
+          <PageAction label="Try again" onClick={() => void retry()} disabled={isRefreshing} />
+        </div>
+      </Page>
+    );
   }
 
   if (!token || notFound) {
     return (
       <Page>
-        <Panel title="Not Available">
-          <div className="px-2 py-8 text-center">
-            <p className="text-text-muted">
-              This share class is not in the directory. It may not be open to investors, or your investor status may not
-              be verified.
-            </p>
-            <Link to="/directory" className="mt-4 inline-block text-brand-light hover:text-brand-subtle font-medium">
-              Back to the directory
-            </Link>
-          </div>
-        </Panel>
+        <Section title="Share class not available">
+          <p className="py-2 text-sm text-text-muted">
+            This share class is not available to you in the directory. It may have closed or your investor status may
+            need updating.
+          </p>
+          <Link
+            to={DESTINATIONS.directory.path}
+            className="w-fit text-sm text-brand-light underline underline-offset-4"
+          >
+            Back to Directory
+          </Link>
+        </Section>
       </Page>
     );
   }
@@ -96,56 +67,98 @@ export default function DirectoryTokenPage() {
 
   return (
     <Page>
-      <Panel title={`${token.company.displayName} (${token.symbol})`} icon={<CoinsIcon size={20} />}>
-        <div className="px-2 py-2">
-          <Row label="Share class" value={token.name} />
-          <Row label="Industry" value={token.company.industry || '—'} />
-          <Row label="Location" value={[token.company.city, token.company.state].filter(Boolean).join(', ') || '—'} />
-          <Row label="Authorized shares" value={Number(token.totalSupply).toLocaleString()} />
-          <Row label="Shares issued" value={token.issuedShares.toLocaleString()} />
-          <Row label="Last traded price" value={token.lastPrice ?? '—'} />
-        </div>
-      </Panel>
-
-      <Panel title="Current Offering">
-        <div className="px-2 py-2">
-          {offering ? (
-            <>
-              <Row label="Price per share" value={`${offering.priceCurrency} ${offering.pricePerShare}`} />
-              <Row label="Opened" value={formatDate(offering.opensAt)} />
-              <Row label="Closes" value={offering.closesAt ? formatDate(offering.closesAt) : 'No closing date'} />
-            </>
-          ) : (
-            <p className="py-4 text-sm text-text-muted">
-              This company has no offering open. An offering appears here only once the operator has approved it and its
-              opening time has passed; until then there is nothing to subscribe to.
-            </p>
-          )}
-        </div>
-      </Panel>
-
-      {offering && (
-        <SubscribeForm
-          offering={offering}
-          wallets={wallets}
-          accountUuid={userAccount?.uuid ?? null}
-          busy={create.isPending}
-          error={create.error}
-          onSubscribe={({ wallet, quantity }) => create.mutate({ offering: offering.uuid, wallet, quantity })}
-        />
-      )}
-
-      <PaymentPanel operator={operator} />
-
-      <div>
-        <Link
-          to="/directory"
-          className="flex items-center gap-2 text-sm text-text-muted hover:text-text-primary transition-colors"
-        >
-          <ArrowLeftIcon size={16} />
-          Back to the directory
-        </Link>
+      <p className="break-words text-sm text-text-muted">{token.company.displayName}</p>
+      <div className="min-w-0 break-words">
+        <Section title={token.name}>
+          <Rows>
+            <Row label="Symbol">{token.symbol}</Row>
+            <Row label="Authorised shares">
+              <span className="break-all">{formatShareCount(token.totalSupply)}</span>
+            </Row>
+            <Row label="Shares issued">
+              {Number.isSafeInteger(token.issuedShares) && token.issuedShares >= 0
+                ? formatShareCount(String(token.issuedShares))
+                : 'Unavailable'}
+            </Row>
+            {token.company.industry && <Row label="Industry">{token.company.industry}</Row>}
+            {[token.company.city, token.company.state].some(Boolean) && (
+              <Row label="Location">{[token.company.city, token.company.state].filter(Boolean).join(', ')}</Row>
+            )}
+          </Rows>
+        </Section>
       </div>
+      <Section title="Current offering">
+        <p className="py-2 text-sm text-text-primary">
+          <Status tone={offering ? 'moving' : 'waiting'}>
+            {offering ? 'Open for applications' : 'No offering open'}
+          </Status>
+        </p>
+        {offering ? (
+          <Rows>
+            <Row label="Price per share">
+              <span className="break-all">{formatMoney(offering.pricePerShare, offering.priceCurrency)}</span>
+            </Row>
+            <Row label="Opened">{formatDate(offering.opensAt)}</Row>
+            <Row label="Closes">{offering.closesAt ? formatDate(offering.closesAt) : 'No closing date'}</Row>
+          </Rows>
+        ) : (
+          <p className="text-sm text-text-muted">
+            An offering will appear here when the operator has approved it and its opening time has arrived.
+          </p>
+        )}
+      </Section>
+      {offering &&
+        (wallets.isLoading ? (
+          <p role="status" className="py-3 text-sm text-text-muted">
+            Loading your receiving wallets…
+          </p>
+        ) : wallets.hasError ? (
+          <div role="alert" className="flex flex-col items-start gap-3 py-3">
+            <p className="text-sm text-text-primary">
+              Your receiving wallets could not be loaded. Try again before applying.
+            </p>
+            <PageAction
+              label="Try wallets again"
+              onClick={() => void wallets.retry()}
+              disabled={wallets.isRefreshing}
+            />
+          </div>
+        ) : (
+          <SubscribeForm
+            key={offering.uuid}
+            offering={offering}
+            draft={draft?.offering === offering.uuid ? draft : { quantity: '', wallet: null }}
+            onDraftChange={(updated) => setDraft({ ...updated, offering: offering.uuid })}
+            wallets={wallets.wallets}
+            busy={create.isPending}
+            error={create.error}
+            onSubscribe={({ wallet, quantity }) => create.mutate({ offering: offering.uuid, wallet, quantity })}
+          />
+        ))}
+      <Section title="Payments">
+        {operatorLoading ? (
+          <p role="status" className="text-sm text-text-muted">
+            Loading operator details…
+          </p>
+        ) : operatorFailed ? (
+          <div role="alert" className="flex flex-col items-start gap-3 py-2">
+            <p className="text-sm text-text-primary">Operator details could not be loaded.</p>
+            <PageAction
+              label="Try operator details again"
+              onClick={() => void retryOperator()}
+              disabled={operatorRefreshing}
+            />
+          </div>
+        ) : (
+          <p className="py-2 text-sm text-text-muted">
+            {operator?.name ?? 'The operator'} reviews your application. After it is accepted, open the application for
+            the exact amount and payment reference. Creating a draft does not send a payment.
+          </p>
+        )}
+      </Section>
+      <Link to={DESTINATIONS.directory.path} className="w-fit text-sm text-brand-light underline underline-offset-4">
+        Back to Directory
+      </Link>
     </Page>
   );
 }

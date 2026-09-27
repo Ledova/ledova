@@ -77,7 +77,7 @@ export function WalletActionBar({
   const hasSelection = !!selectedWallet;
 
   return (
-    <div className="flex items-center justify-center gap-1 pt-2 mt-1">
+    <div className="flex flex-wrap items-center justify-start gap-1 pt-2 mt-1">
       <ActionButton icon={<PlusIcon size={ICON_MD} />} label="Add" onClick={onAdd} />
       <ActionButton icon={<PencilSimpleIcon size={ICON_MD} />} label="Edit" onClick={onEdit} disabled={!hasSelection} />
       <ActionButton

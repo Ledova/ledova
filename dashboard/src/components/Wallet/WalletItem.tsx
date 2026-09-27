@@ -1,7 +1,6 @@
 import { HardDriveIcon, CloudIcon, ClockIcon } from '@phosphor-icons/react';
 import {
   formatCryptoBalance,
-  formatWalletAddressShort,
   formatSyncAge,
   WALLET_SIGNING_PREFERENCE,
   getWalletSigningPreferenceLabel,
@@ -22,7 +21,7 @@ interface WalletItemProps {
 
 export function WalletItem({ wallet, isSelected, onSelect, onEdit }: WalletItemProps) {
   const { formatDisplayCurrency } = useCurrency();
-  const secondaryLabel = wallet.name || formatWalletAddressShort(wallet.address);
+  const secondaryLabel = wallet.name || wallet.address;
   const isHardware = wallet.signingPreference === WALLET_SIGNING_PREFERENCE.HARDWARE;
   const TypeIcon = isHardware ? HardDriveIcon : CloudIcon;
   const syncAge = formatSyncAge(wallet.lastSyncedAt);
@@ -33,12 +32,13 @@ export function WalletItem({ wallet, isSelected, onSelect, onEdit }: WalletItemP
       onClick={onSelect}
       onDoubleClick={onEdit}
       aria-pressed={isSelected}
-      className={`w-full flex items-center gap-3 py-2.5 rounded-lg transition-colors text-left ${
+      className={`w-full flex flex-wrap items-center gap-x-3 gap-y-2 px-2 py-4 border-b border-border-subtle transition-colors text-left ${
         isSelected ? 'bg-brand-mid/10 hover:bg-brand-mid/15' : 'hover:bg-surface-tertiary'
       }`}
     >
       <WalletBadge verificationStatus={wallet.verificationStatus} />
-      <span className="text-xs text-text-muted truncate">{secondaryLabel}</span>
+      <span className="min-w-0 flex-1 text-sm text-text-primary break-all">{secondaryLabel}</span>
+      {wallet.name && <span className="order-3 w-full break-all text-xs text-text-muted">{wallet.address}</span>}
       {wallet.signingPreference && (
         <span
           title={getWalletSigningPreferenceLabel(wallet.signingPreference)}
@@ -48,7 +48,6 @@ export function WalletItem({ wallet, isSelected, onSelect, onEdit }: WalletItemP
           <TypeIcon size={ICON_XS} weight="bold" className="text-text-secondary" />
         </span>
       )}
-      <div className="flex-1" />
       {syncAge && (
         <span
           className="inline-flex items-center gap-0.5 text-xs text-text-subtle flex-shrink-0"
@@ -58,10 +57,10 @@ export function WalletItem({ wallet, isSelected, onSelect, onEdit }: WalletItemP
           {syncAge}
         </span>
       )}
-      <span className="text-xs text-text-muted flex-shrink-0">
+      <span className="text-xs text-text-muted break-all">
         {formatCryptoBalance(wallet.nativeBalance, '').trimEnd()}
       </span>
-      <span className="text-xs text-text-muted flex-shrink-0">
+      <span className="text-xs text-text-muted break-all">
         {formatDisplayCurrency(parseFloat(wallet.marketValue) || 0)}
       </span>
     </button>
