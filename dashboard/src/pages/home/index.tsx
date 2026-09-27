@@ -2,7 +2,7 @@ import { CaretRightIcon } from '@phosphor-icons/react';
 import { formatShareCount, getChainConfig } from '@ledova/shared';
 import { Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
-import { PublishedCard } from './components/PublishedCard';
+import { HoldingWork } from './components/HoldingWork';
 import { useShareHoldings } from './hooks/useShareHoldings';
 
 export function HomePage() {
@@ -67,7 +67,7 @@ export function HomePage() {
           </ul>
         )}
       </Section>
-      <PublishedCard />
+      <HoldingWork />
     </Page>
   );
 }

@@ -52,6 +52,14 @@ describe('the publication summary a member is shown', () => {
       ]),
     );
     expect(get).toHaveBeenCalledWith('/api/v1/publications/summary/');
+    expect(result.current.summary).toEqual({
+      openResolutions: 0,
+      nextClosesAt: null,
+      publishedSince: 2,
+      dividendsWithoutRecord: 1,
+    });
+    expect(result.current.isError).toBe(false);
+    expect(result.current.isPending).toBe(false);
   });
 
   it('has nothing to say when every count is zero', async () => {
@@ -66,6 +74,28 @@ describe('the publication summary a member is shown', () => {
 
     await waitFor(() => expect(client.getQueryState(PUBLICATION_SUMMARY_QUERY_KEY)?.status).toBe('success'));
     expect(result.current.lines).toEqual([]);
+  });
+
+  it('exposes failure and retry without changing the lines consumed by mobile', async () => {
+    let unavailable = true;
+    const { wrapper } = harness(() => {
+      if (unavailable) throw new Error('Unavailable');
+      return { openResolutions: 0, nextClosesAt: null, publishedSince: 1, dividendsWithoutRecord: 0 };
+    });
+    const { result } = renderHook(() => usePublicationSummary(), { wrapper });
+
+    expect(result.current.isPending).toBe(true);
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.summary).toBeUndefined();
+    expect(result.current.lines).toEqual([]);
+    unavailable = false;
+    await act(async () => {
+      await result.current.retry();
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(false));
+    expect(result.current.lines).toEqual(['1 thing published to you in the last 30 days']);
+    expect(result.current.summary?.publishedSince).toBe(1);
   });
 });
 
@@ -100,6 +130,7 @@ describe('keeping the summary current while the home page stays open', () => {
 
     expect(get).toHaveBeenCalledTimes(2);
     await waitFor(() => expect(result.current.lines).toEqual([]));
+    expect(result.current.summary).toEqual(nothing);
   });
 
   it('asks again every few minutes, for what was published or recorded since', async () => {
