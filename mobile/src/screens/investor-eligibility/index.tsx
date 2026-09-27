@@ -1,23 +1,25 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, TextInput } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  CheckCircleIcon,
-  ClockIcon,
-  InfoIcon,
-  ShieldCheckIcon,
-  TrashIcon,
-  UploadSimpleIcon,
-  WarningIcon,
-  XCircleIcon,
-} from 'phosphor-react-native';
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { getCompanies, getErrorMessage, formatDate } from '@ledova/shared';
-import type { CompanyListItem, CertifierBody, InvestorCategory, InvestorClassification } from '@ledova/shared';
-import { useAppTheme, useThemedStyles } from '../../contexts';
+import type { CertifierBody, InvestorCategory, InvestorClassification } from '@ledova/shared';
+import { useAppTheme, useThemedStyles, overlayColors } from '../../contexts';
 import { GradientBackground } from '../../components/GradientBackground';
-import { Panel } from '../../components/panel';
-import { CustomModal } from '../../components/modal';
+import { Action, Row, Section } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
+import { getSessionEpoch } from '../../services/sessionScope';
 import { CATEGORIES, CERTIFIER_BODIES, REASON_TEXT, WHOLESALE_ONLY_NOTICE } from './constants';
 import { useInvestorEligibility } from './useInvestorEligibility';
 import { useDocumentUpload } from '../../hooks/useDocumentUpload';
@@ -25,9 +27,7 @@ import { useDocumentUpload } from '../../hooks/useDocumentUpload';
 const CLAIM_ERROR_FALLBACK = 'The claim was refused. Please check the details and try again.';
 
 function claimState(claim: InvestorClassification) {
-  if (claim.isLive) {
-    return claim.expiresAt ? `Verified until ${formatDate(claim.expiresAt)}` : 'Verified';
-  }
+  if (claim.isLive) return claim.expiresAt ? `Verified until ${formatDate(claim.expiresAt)}` : 'Verified';
   if (claim.isExpired) return 'Expired';
   if (claim.status === 'submitted') return 'Awaiting review';
   return claim.statusDisplay;
@@ -36,9 +36,18 @@ function claimState(claim: InvestorClassification) {
 export function InvestorEligibilityScreen() {
   const theme = useAppTheme();
   const styles = useStyles();
-  const { eligibility, classifications, isLoading, submitClaim, isSubmitting, deleteClaim, isDeleting } =
-    useInvestorEligibility();
-
+  const {
+    eligibility,
+    classifications,
+    isLoading,
+    hasError,
+    isRefreshing,
+    refresh,
+    submitClaim,
+    isSubmitting,
+    deleteClaim,
+    isDeleting,
+  } = useInvestorEligibility();
   const [category, setCategory] = useState<InvestorCategory | null>(null);
   const document = useDocumentUpload(eligibility?.account);
   const { file, clear: clearDocument } = document;
@@ -49,17 +58,16 @@ export function InvestorEligibilityScreen() {
   const [certifierName, setCertifierName] = useState('');
   const [certifierBody, setCertifierBody] = useState<CertifierBody | ''>('');
   const [certifierMembershipNumber, setCertifierMembershipNumber] = useState('');
-
+  const [claimError, setClaimError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const needsCompany = category === 'associated_person';
   const needsCertifier = category === 'accountant_certificate';
-
-  const { data: companiesData } = useQuery({
+  const companiesQuery = useQuery({
     queryKey: ['companies'],
     queryFn: () => getCompanies(apiClient),
     enabled: needsCompany,
   });
-  const companies: CompanyListItem[] = companiesData?.data?.results ?? [];
-
+  const companies = companiesQuery.isError ? [] : (companiesQuery.data?.data.results ?? []);
   const reset = useCallback(() => {
     draftGeneration.current++;
     setCategory(null);
@@ -70,40 +78,42 @@ export function InvestorEligibilityScreen() {
     setCertifierName('');
     setCertifierBody('');
     setCertifierMembershipNumber('');
+    setClaimError(null);
   }, [clearDocument]);
-
   useEffect(reset, [reset]);
-
   function changeField<T>(setter: (value: T) => void, value: T) {
     draftGeneration.current++;
     setter(value);
   }
-
-  const pickFile = async () => {
-    try {
-      await document.pick();
-    } catch (error) {
-      Alert.alert('Cannot attach document', getErrorMessage(error) || 'Please choose the document again.');
-    }
-  };
-
+  const openClaim = classifications.some((claim) => claim.status === 'submitted');
+  const busy = isSubmitting || document.isSubmitting;
+  const blocked = isLoading || hasError || isRefreshing || openClaim || isDeleting;
   const isComplete =
     !!file &&
     !!category &&
     !!eligibility?.account &&
     declaredBasis.trim() !== '' &&
-    (!needsCompany || company !== '') &&
+    (!needsCompany ||
+      (!companiesQuery.isError && !companiesQuery.isFetching && companies.some((item) => item.uuid === company))) &&
     (!needsCertifier ||
       (certificateIssuedAt !== '' &&
         certifierName.trim() !== '' &&
         certifierBody !== '' &&
         certifierMembershipNumber.trim() !== ''));
-
-  const handleSubmit = async () => {
-    if (!isComplete || !category || !eligibility?.account) return;
-    const generation = draftGeneration.current;
+  const pickFile = async () => {
+    setClaimError(null);
     try {
-      const current = await document.submit(({ file: uploadFile, owner, sessionEpoch }) =>
+      await document.pick();
+    } catch (error) {
+      setClaimError(getErrorMessage(error, 'Please choose the document again.'));
+    }
+  };
+  const handleSubmit = async () => {
+    if (!isComplete || !category || !eligibility?.account || blocked || busy || document.isPicking) return;
+    const generation = draftGeneration.current;
+    setClaimError(null);
+    try {
+      const current = await document.submit(({ file: uploadFile, sessionEpoch }) =>
         submitClaim({
           sessionEpoch,
           category,
@@ -118,394 +128,316 @@ export function InvestorEligibilityScreen() {
       );
       if (current && generation === draftGeneration.current) reset();
     } catch (error) {
-      Alert.alert('Claim Refused', getErrorMessage(error, CLAIM_ERROR_FALLBACK) || CLAIM_ERROR_FALLBACK);
+      setClaimError(getErrorMessage(error, CLAIM_ERROR_FALLBACK));
     }
   };
-
-  if (isLoading) {
-    return (
-      <GradientBackground>
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={theme.colors.interactive.default} />
-        </View>
-      </GradientBackground>
-    );
-  }
-
-  const isEligible = eligibility?.isEligible ?? false;
-  const openClaim = classifications.find((claim) => claim.status === 'submitted');
-  const claimed = new Set(
-    classifications.filter((claim) => claim.isLive || claim.status === 'submitted').map((claim) => claim.category),
-  );
+  const withdraw = async (uuid: string) => {
+    if (isDeleting || busy || hasError || isRefreshing) return;
+    const epoch = getSessionEpoch();
+    setDeleteError(null);
+    try {
+      await deleteClaim(uuid);
+    } catch (error) {
+      if (epoch === getSessionEpoch()) setDeleteError(getErrorMessage(error, 'Your claim could not be withdrawn.'));
+    }
+  };
+  const close = () => {
+    if (!busy && !document.isPicking) reset();
+  };
   const spec = CATEGORIES.find((item) => item.category === category);
+  const readNotice = hasError ? (
+    <View style={styles.group}>
+      <Text accessibilityRole="alert" style={styles.message}>
+        Verification information could not be loaded. Try again before continuing.
+      </Text>
+      <Action label="Try again" onPress={() => void refresh()} disabled={isRefreshing} />
+    </View>
+  ) : isRefreshing ? (
+    <Text style={styles.message}>Refreshing verification information…</Text>
+  ) : null;
 
   return (
     <GradientBackground>
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-        <Panel title="Wholesale Investor Status" icon={<ShieldCheckIcon size={20} color={theme.colors.text.muted} />}>
-          <View style={styles.statusRow}>
-            {isEligible ? (
-              <CheckCircleIcon size={24} color={theme.colors.status.success.icon} weight="fill" />
-            ) : (
-              <WarningIcon size={24} color={theme.colors.status.warning.icon} weight="fill" />
-            )}
-            <View style={styles.statusTextContainer}>
-              <Text style={styles.statusTitle}>
-                {isEligible ? 'You can see and subscribe to offerings' : 'You cannot subscribe to offerings yet'}
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing && !isLoading}
+            onRefresh={() => void refresh()}
+            tintColor={theme.colors.brand.default}
+          />
+        }
+      >
+        <Text accessibilityRole="header" style={styles.title}>
+          Verification
+        </Text>
+        {isLoading ? (
+          <View style={styles.group}>
+            <ActivityIndicator color={theme.colors.brand.default} />
+            <Text style={styles.message}>Loading verification…</Text>
+          </View>
+        ) : hasError ? (
+          readNotice
+        ) : (
+          <>
+            <Section title="Investor status">
+              <Text style={styles.message}>
+                {eligibility?.isEligible
+                  ? 'You can see and subscribe to offerings'
+                  : 'You cannot subscribe to offerings yet'}
               </Text>
-              {!isEligible &&
+              {!eligibility?.isEligible &&
                 (eligibility?.reasons ?? []).map((reason) => (
-                  <Text key={reason} style={styles.statusReason}>
+                  <Text key={reason} style={styles.message}>
                     {REASON_TEXT[reason] ?? reason}
                   </Text>
                 ))}
-            </View>
-          </View>
-          <Text style={styles.notice}>{WHOLESALE_ONLY_NOTICE}</Text>
-        </Panel>
-
-        <Panel title="How You Qualify">
-          {CATEGORIES.map((item) => (
-            <View key={item.category} style={styles.row}>
-              <View style={styles.rowLeft}>
-                {claimed.has(item.category) ? (
-                  <CheckCircleIcon size={20} color={theme.colors.status.success.icon} weight="fill" />
-                ) : (
-                  <View style={styles.emptyCircle} />
-                )}
-                <View style={styles.rowTextContainer}>
-                  <Text style={styles.rowLabel}>
+              <Text style={styles.help}>{WHOLESALE_ONLY_NOTICE}</Text>
+            </Section>
+            <Section title="How you qualify">
+              {openClaim && (
+                <Text style={styles.message}>
+                  Your evidence is awaiting review. Withdraw that claim before submitting another.
+                </Text>
+              )}
+              {CATEGORIES.map((item) => (
+                <View key={item.category} style={styles.item}>
+                  <Text style={styles.label}>
                     {item.label} ({item.section})
                   </Text>
-                  <Text style={styles.rowHelper}>{item.evidence}</Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                accessibilityLabel={`Attach evidence for ${item.label}`}
-                onPress={() => changeField(setCategory, item.category)}
-                disabled={!!openClaim || !eligibility?.account}
-                style={styles.rowAction}
-              >
-                <UploadSimpleIcon
-                  size={18}
-                  color={openClaim ? theme.colors.text.muted : theme.colors.interactive.active}
-                />
-              </TouchableOpacity>
-            </View>
-          ))}
-        </Panel>
-
-        <Panel title="Your Claims">
-          {classifications.length === 0 ? (
-            <Text style={styles.emptyText}>You have not made a claim yet.</Text>
-          ) : (
-            classifications.map((claim) => (
-              <View key={claim.uuid} style={styles.row}>
-                <View style={styles.rowLeft}>
-                  {claim.isLive ? (
-                    <CheckCircleIcon size={20} color={theme.colors.status.success.icon} weight="fill" />
-                  ) : claim.status === 'submitted' ? (
-                    <ClockIcon size={20} color={theme.colors.status.info.icon} weight="fill" />
-                  ) : (
-                    <XCircleIcon size={20} color={theme.colors.status.error.icon} weight="fill" />
+                  <Text style={styles.message}>{item.evidence}</Text>
+                  {classifications.some((claim) => claim.category === item.category && claim.isLive) && (
+                    <Text style={styles.message}>Verified</Text>
                   )}
-                  <View style={styles.rowTextContainer}>
-                    <Text style={styles.rowLabel}>{claim.categoryDisplay}</Text>
-                    <Text style={styles.rowHelper}>
-                      {claimState(claim)}
-                      {claim.rejectionReason ? ` — ${claim.rejectionReason}` : ''}
-                    </Text>
-                  </View>
+                  <Action
+                    label="Attach evidence"
+                    accessibilityLabel={`Attach evidence for ${item.label}`}
+                    onPress={() => changeField(setCategory, item.category)}
+                    disabled={openClaim || !eligibility?.account || isRefreshing || isDeleting}
+                  />
                 </View>
-                {claim.status === 'submitted' && (
-                  <TouchableOpacity
-                    onPress={() => deleteClaim(claim.uuid)}
-                    disabled={isDeleting}
-                    style={styles.rowAction}
-                  >
-                    <TrashIcon size={18} color={theme.colors.status.error.icon} />
-                  </TouchableOpacity>
-                )}
-              </View>
-            ))
-          )}
-        </Panel>
-
-        <Panel title="What Happens Next" icon={<InfoIcon size={20} color={theme.colors.text.muted} />}>
-          {[
-            'Pick the category that applies to you and attach the evidence for it',
-            'The operator reviews your evidence and sets an expiry date',
-            'Once verified, offerings become visible and you can subscribe',
-            'Re-evidence your claim before it expires to stay eligible',
-          ].map((step, index) => (
-            <View key={step} style={styles.stepRow}>
-              <Text style={styles.stepNumber}>{index + 1}.</Text>
-              <Text style={styles.stepText}>{step}</Text>
-            </View>
-          ))}
-        </Panel>
+              ))}
+            </Section>
+            <Section title="Your claims">
+              {deleteError && (
+                <Text accessibilityRole="alert" style={styles.error}>
+                  {deleteError}
+                </Text>
+              )}
+              {classifications.length === 0 ? (
+                <Text style={styles.message}>You have not made a claim yet.</Text>
+              ) : (
+                classifications.map((claim) => (
+                  <View key={claim.uuid} style={styles.item}>
+                    <Text style={styles.label}>{claim.categoryDisplay}</Text>
+                    <Row label="Status">{claimState(claim)}</Row>
+                    <Row label="Submitted">{formatDate(claim.createdAt)}</Row>
+                    {claim.rejectionReason && <Text style={styles.message}>{claim.rejectionReason}</Text>}
+                    {claim.status === 'submitted' && (
+                      <Action
+                        label="Withdraw claim"
+                        accessibilityLabel={`Withdraw ${claim.categoryDisplay} claim`}
+                        onPress={() => void withdraw(claim.uuid)}
+                        disabled={isDeleting || isRefreshing}
+                      />
+                    )}
+                  </View>
+                ))
+              )}
+            </Section>
+            <Section title="What happens next">
+              <Text style={styles.message}>
+                The operator reviews your evidence and records its expiry. Verified evidence makes offerings available;
+                renew it before it expires.
+              </Text>
+            </Section>
+          </>
+        )}
       </ScrollView>
-
-      <CustomModal
-        visible={category !== null}
-        onClose={reset}
-        showFooter
-        confirmLabel="Submit for review"
-        onConfirm={handleSubmit}
-        confirmDisabled={!isComplete || isSubmitting || document.isSubmitting || document.isPicking}
-        confirmLoading={isSubmitting || document.isSubmitting}
-      >
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>{spec ? `Claim: ${spec.label}` : 'Claim'}</Text>
-          <Text style={styles.modalText}>{spec?.evidence}</Text>
-
-          {needsCompany && (
-            <>
-              <Text style={styles.fieldLabel}>Issuer</Text>
-              {companies.map((item) => (
-                <TouchableOpacity
-                  key={item.uuid}
-                  onPress={() => changeField(setCompany, item.uuid)}
-                  style={[styles.optionRow, company === item.uuid && styles.optionRowSelected]}
-                >
-                  <Text style={styles.optionText}>{item.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </>
-          )}
-
-          {needsCertifier && (
-            <>
-              <Text style={styles.fieldLabel}>Certificate date (YYYY-MM-DD)</Text>
-              <TextInput
-                value={certificateIssuedAt}
-                onChangeText={(value) => changeField(setCertificateIssuedAt, value)}
-                placeholder="2026-01-31"
-                placeholderTextColor={theme.colors.text.muted}
-                style={styles.input}
-              />
-              <Text style={styles.fieldLabel}>Professional body</Text>
-              {CERTIFIER_BODIES.map((body) => (
-                <TouchableOpacity
-                  key={body.value}
-                  onPress={() => changeField(setCertifierBody, body.value)}
-                  style={[styles.optionRow, certifierBody === body.value && styles.optionRowSelected]}
-                >
-                  <Text style={styles.optionText}>{body.label}</Text>
-                </TouchableOpacity>
-              ))}
-              <Text style={styles.fieldLabel}>Accountant name</Text>
-              <TextInput
-                value={certifierName}
-                onChangeText={(value) => changeField(setCertifierName, value)}
-                placeholderTextColor={theme.colors.text.muted}
-                style={styles.input}
-              />
-              <Text style={styles.fieldLabel}>Membership number</Text>
-              <TextInput
-                value={certifierMembershipNumber}
-                onChangeText={(value) => changeField(setCertifierMembershipNumber, value)}
-                placeholderTextColor={theme.colors.text.muted}
-                style={styles.input}
-              />
-            </>
-          )}
-
-          <Text style={styles.fieldLabel}>Basis for the claim</Text>
-          <TextInput
-            value={declaredBasis}
-            onChangeText={(value) => changeField(setDeclaredBasis, value)}
-            placeholder="Describe why this category applies to you"
-            placeholderTextColor={theme.colors.text.muted}
-            style={styles.textArea}
-            multiline
-          />
-
-          <TouchableOpacity onPress={pickFile} disabled={document.isPicking} style={styles.filePicker}>
-            <UploadSimpleIcon size={20} color={theme.colors.interactive.active} />
-            <Text style={styles.filePickerText}>{file ? file.name : 'Attach evidence (PDF or image, max 10 MB)'}</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.declaration}>
-            Submitting declares that this category applies to you and that the evidence attached is genuine.{' '}
-            {WHOLESALE_ONLY_NOTICE}
-          </Text>
-        </View>
-      </CustomModal>
+      <Modal visible={category !== null} animationType="fade" transparent onRequestClose={close}>
+        <SafeAreaView style={styles.overlay}>
+          <Pressable style={styles.backdrop} accessibilityLabel="Close claim" onPress={close} />
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalPosition}>
+            <View style={styles.modal} accessibilityViewIsModal>
+              <ScrollView
+                contentContainerStyle={styles.form}
+                keyboardShouldPersistTaps="handled"
+                refreshControl={
+                  <RefreshControl
+                    refreshing={isRefreshing && !isLoading}
+                    onRefresh={() => {
+                      if (!busy && !document.isPicking) void refresh();
+                    }}
+                    enabled={!busy && !document.isPicking}
+                    tintColor={theme.colors.brand.default}
+                  />
+                }
+              >
+                <Text accessibilityRole="header" style={styles.modalTitle}>
+                  {spec ? `Claim: ${spec.label}` : 'Claim'}
+                </Text>
+                <Text style={styles.message}>{spec?.evidence}</Text>
+                {readNotice}
+                {openClaim && (
+                  <Text accessibilityRole="alert" style={styles.message}>
+                    A claim is now awaiting review. Withdraw it before submitting another.
+                  </Text>
+                )}
+                {claimError && (
+                  <Text accessibilityRole="alert" style={styles.error}>
+                    {claimError}
+                  </Text>
+                )}
+                {needsCompany && (
+                  <View style={styles.group}>
+                    <Text style={styles.label}>Issuer</Text>
+                    {companiesQuery.isLoading ? (
+                      <Text style={styles.message}>Loading issuers…</Text>
+                    ) : companiesQuery.isError ? (
+                      <>
+                        <Text accessibilityRole="alert" style={styles.error}>
+                          Issuers could not be loaded.
+                        </Text>
+                        <Action
+                          label="Try issuers again"
+                          onPress={() => void companiesQuery.refetch()}
+                          disabled={companiesQuery.isFetching}
+                        />
+                      </>
+                    ) : companies.length === 0 ? (
+                      <Text style={styles.message}>No issuer is available for this account.</Text>
+                    ) : (
+                      companies.map((item) => (
+                        <Pressable
+                          key={item.uuid}
+                          accessibilityRole="radio"
+                          accessibilityState={{ checked: company === item.uuid }}
+                          onPress={() => changeField(setCompany, item.uuid)}
+                          style={[styles.option, company === item.uuid && styles.selected]}
+                        >
+                          <Text style={styles.message}>{item.name}</Text>
+                        </Pressable>
+                      ))
+                    )}
+                  </View>
+                )}
+                {needsCertifier && (
+                  <>
+                    <Text style={styles.label}>Certificate date (YYYY-MM-DD)</Text>
+                    <TextInput
+                      accessibilityLabel="Certificate date"
+                      value={certificateIssuedAt}
+                      onChangeText={(value) => changeField(setCertificateIssuedAt, value)}
+                      placeholder="2026-01-31"
+                      style={styles.input}
+                    />
+                    <Text style={styles.label}>Professional body</Text>
+                    {CERTIFIER_BODIES.map((body) => (
+                      <Pressable
+                        key={body.value}
+                        accessibilityRole="radio"
+                        accessibilityState={{ checked: certifierBody === body.value }}
+                        onPress={() => changeField(setCertifierBody, body.value)}
+                        style={[styles.option, certifierBody === body.value && styles.selected]}
+                      >
+                        <Text style={styles.message}>{body.label}</Text>
+                      </Pressable>
+                    ))}
+                    <Text style={styles.label}>Accountant name</Text>
+                    <TextInput
+                      accessibilityLabel="Accountant name"
+                      value={certifierName}
+                      onChangeText={(value) => changeField(setCertifierName, value)}
+                      style={styles.input}
+                    />
+                    <Text style={styles.label}>Membership number</Text>
+                    <TextInput
+                      accessibilityLabel="Membership number"
+                      value={certifierMembershipNumber}
+                      onChangeText={(value) => changeField(setCertifierMembershipNumber, value)}
+                      style={styles.input}
+                    />
+                  </>
+                )}
+                <Text style={styles.label}>Basis for the claim</Text>
+                <TextInput
+                  accessibilityLabel="Basis for the claim"
+                  value={declaredBasis}
+                  onChangeText={(value) => changeField(setDeclaredBasis, value)}
+                  placeholder="Describe why this category applies to you"
+                  style={[styles.input, styles.textArea]}
+                  multiline
+                />
+                <Action
+                  label={file ? file.name : 'Attach evidence (PDF or image, max 10 MB)'}
+                  onPress={() => void pickFile()}
+                  disabled={document.isPicking || busy}
+                />
+                <Text style={styles.help}>
+                  Submitting declares that this category applies to you and that the evidence attached is genuine.{' '}
+                  {WHOLESALE_ONLY_NOTICE}
+                </Text>
+              </ScrollView>
+              <View style={styles.footer}>
+                <Action label="Cancel" onPress={close} disabled={busy || document.isPicking} />
+                <Action
+                  label={busy ? 'Submitting…' : 'Submit for review'}
+                  onPress={() => void handleSubmit()}
+                  disabled={!isComplete || blocked || busy || document.isPicking}
+                  primary
+                />
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
     </GradientBackground>
   );
 }
 
 function useStyles() {
   return useThemedStyles((theme) => ({
-    container: {
-      flex: 1,
-    },
-    scrollContent: {
-      padding: theme.spacing.md,
-      gap: theme.spacing.md,
-      paddingBottom: theme.spacing.xxl,
-    },
-    centered: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    statusRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.sm,
-    },
-    statusTextContainer: {
-      flex: 1,
-    },
-    statusTitle: {
-      fontSize: theme.fontSize.base,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.primary,
-    },
-    statusReason: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      marginTop: theme.spacing.xs,
-    },
-    notice: {
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.muted,
-      paddingHorizontal: theme.spacing.sm,
-      paddingTop: theme.spacing.sm,
-    },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingVertical: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.sm,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border.subtle,
-      gap: theme.spacing.sm,
-    },
-    rowLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.sm,
-      flex: 1,
-    },
-    rowTextContainer: {
-      flex: 1,
-    },
-    rowLabel: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.primary,
-    },
-    rowHelper: {
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.muted,
-    },
-    rowAction: {
-      padding: theme.spacing.xs,
-    },
-    emptyCircle: {
-      width: 20,
-      height: 20,
+    content: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 36, gap: 28 },
+    title: { fontFamily: theme.fontFamily.display, fontSize: 40, color: theme.colors.text.primary },
+    modalTitle: { fontFamily: theme.fontFamily.display, fontSize: 26, color: theme.colors.text.primary },
+    message: { fontFamily: theme.fontFamily.regular, fontSize: 15, lineHeight: 23, color: theme.colors.text.muted },
+    help: { fontFamily: theme.fontFamily.regular, fontSize: 13, lineHeight: 20, color: theme.colors.text.muted },
+    label: { fontFamily: theme.fontFamily.medium, fontSize: 15, color: theme.colors.text.primary },
+    error: { fontFamily: theme.fontFamily.regular, fontSize: 15, color: theme.colors.status.error.text },
+    group: { gap: 12 },
+    item: { gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.border.subtle },
+    overlay: { flex: 1, backgroundColor: overlayColors.modal, justifyContent: 'center' as const },
+    backdrop: { position: 'absolute' as const, top: 0, left: 0, right: 0, bottom: 0 },
+    modalPosition: { maxHeight: '100%' as const, padding: 16, alignItems: 'center' as const },
+    modal: {
+      maxHeight: '100%' as const,
+      width: '100%' as const,
+      maxWidth: 480,
+      backgroundColor: theme.colors.surface.base,
       borderRadius: 10,
-      borderWidth: 2,
-      borderColor: theme.colors.border.default,
+      overflow: 'hidden' as const,
     },
-    emptyText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      padding: theme.spacing.sm,
-    },
-    stepRow: {
-      flexDirection: 'row',
-      gap: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.sm,
-      paddingVertical: theme.spacing.xs,
-    },
-    stepNumber: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-    },
-    stepText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.secondary,
-      flex: 1,
-    },
-    modalContent: {
-      gap: theme.spacing.sm,
-    },
-    modalTitle: {
-      fontSize: theme.fontSize.lg,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-    },
-    modalText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.secondary,
-    },
-    fieldLabel: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.primary,
-      marginTop: theme.spacing.sm,
+    form: { padding: 20, gap: 14 },
+    footer: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 12,
+      padding: 16,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border.default,
     },
     input: {
       borderWidth: 1,
       borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
-      paddingHorizontal: theme.spacing.sm,
-      paddingVertical: theme.spacing.sm,
+      borderRadius: 6,
+      padding: 12,
+      fontFamily: theme.fontFamily.regular,
+      fontSize: 15,
       color: theme.colors.text.primary,
-      backgroundColor: theme.colors.surface.tertiary,
+      backgroundColor: theme.colors.surface.raised,
     },
-    textArea: {
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
-      paddingHorizontal: theme.spacing.sm,
-      paddingVertical: theme.spacing.sm,
-      color: theme.colors.text.primary,
-      backgroundColor: theme.colors.surface.tertiary,
-      minHeight: 80,
-      textAlignVertical: 'top',
-    },
-    optionRow: {
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
-      padding: theme.spacing.sm,
-      marginTop: theme.spacing.xs,
-    },
-    optionRowSelected: {
-      borderColor: theme.colors.interactive.active,
-      backgroundColor: theme.colors.surface.tertiary,
-    },
-    optionText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.primary,
-    },
-    filePicker: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.sm,
-      borderWidth: 1,
-      borderStyle: 'dashed',
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
-      padding: theme.spacing.md,
-      marginTop: theme.spacing.sm,
-    },
-    filePickerText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.secondary,
-      flex: 1,
-    },
-    declaration: {
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.muted,
-      marginTop: theme.spacing.sm,
-    },
+    textArea: { minHeight: 90, textAlignVertical: 'top' as const },
+    option: { borderWidth: 1, borderColor: theme.colors.border.default, padding: 12, borderRadius: 6 },
+    selected: { borderColor: theme.colors.brand.default, backgroundColor: theme.colors.surface.raised },
   }));
 }
