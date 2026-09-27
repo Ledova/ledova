@@ -339,3 +339,29 @@ it('retains the raise draft across a failed read, locks it while sending, and al
   expect(view.getByLabelText('Additional shares').props.value).toBe('25');
   expect(view.getByRole('alert')).toBeTruthy();
 });
+
+it('rechecks deployment authority on pull-to-refresh and refuses pending, inactive and failed company reads', async () => {
+  classRecord = { ...token, status: 'draft', statusDisplay: 'Draft' };
+  const view = await render(screen(), { wrapper });
+  await waitFor(() => expect(view.getByRole('button', { name: 'Deploy class' })).toBeEnabled());
+  let finish!: (value: unknown) => void;
+  read = async (url, number) =>
+    url.includes('/companies/')
+      ? new Promise((resolve) => {
+          finish = resolve;
+        })
+      : defaultRead(url, number);
+  await act(() => view.getByTestId('share-class-screen').props.refreshControl.props.onRefresh());
+  await waitFor(() => expect(finish).toBeDefined());
+  await waitFor(() => expect(view.getByRole('button', { name: 'Deploy class' })).toBeDisabled());
+  await act(() => finish({ data: { uuid: 'company', status: 'suspended' } }));
+  await waitFor(() => expect(client.getQueryState(['company', 'company'])?.fetchStatus).toBe('idle'));
+  await waitFor(() => expect(view.getByRole('button', { name: 'Deploy class' })).toBeDisabled());
+  read = async (url, number) =>
+    url.includes('/companies/') ? Promise.reject(new Error('Unavailable')) : defaultRead(url, number);
+  await act(() => view.getByTestId('share-class-screen').props.refreshControl.props.onRefresh());
+  await waitFor(() => expect(view.getByText('We couldn’t load company state.')).toBeTruthy());
+  expect(view.queryByRole('button', { name: 'Deploy class' })).toBeNull();
+  expect(get.mock.calls.filter(([url]) => url.includes('/companies/'))).toHaveLength(3);
+  expect(post).not.toHaveBeenCalled();
+});

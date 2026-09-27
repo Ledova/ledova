@@ -119,6 +119,7 @@ function ShareClass({ uuid }: { uuid: string }) {
   return (
     <>
       <ScrollView
+        testID="share-class-screen"
         style={styles.page}
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={data.token.isFetching} onRefresh={() => void data.refresh()} />}
