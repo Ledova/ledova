@@ -82,7 +82,7 @@ export function Button({
   textStyle: customTextStyle,
 }: ButtonProps) {
   const theme = useAppTheme();
-  const styles = useThemedStyles((theme) => ({
+  const styles = useThemedStyles(() => ({
     button: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -121,7 +121,7 @@ export function Button({
   const textStyle: TextStyle = {
     ...styles.text,
     fontSize: sizeConfig.fontSize,
-    fontWeight: theme.fontWeight.semibold as TextStyle['fontWeight'],
+    fontFamily: theme.fontFamily.semibold,
     color: isDisabled ? variantConfig.textDisabled : variantConfig.text,
     ...customTextStyle,
   };

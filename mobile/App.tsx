@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppLockProvider, ThemeProvider } from './src/contexts';
 import { AppLockScreen } from './src/components/app-lock';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { AppFonts } from './src/components/AppFonts';
 
 import { ApiClientProvider } from '@ledova/shared';
 import { apiClient } from './src/services/apiClient';
@@ -28,11 +29,13 @@ export default function App() {
         <QueryClientProvider client={queryClient}>
           <ApiClientProvider client={apiClient}>
             <ThemeProvider>
-              <AppLockProvider>
-                <AppNavigator />
-                <AppLockScreen />
-                <StatusBar style="auto" />
-              </AppLockProvider>
+              <StatusBar style="dark" />
+              <AppFonts>
+                <AppLockProvider>
+                  <AppNavigator />
+                  <AppLockScreen />
+                </AppLockProvider>
+              </AppFonts>
             </ThemeProvider>
           </ApiClientProvider>
         </QueryClientProvider>

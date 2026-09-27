@@ -1,4 +1,5 @@
-import { HOLDING_ASSET_TYPE, type HoldingWithWallet } from '@ledova/shared';
+import { HOLDING_ASSET_TYPE } from '../constants';
+import type { HoldingWithWallet } from '../types';
 
 export interface ShareHoldingRow {
   assetUuid: string;
@@ -20,7 +21,7 @@ function wholeQuantity(value: string): bigint {
   if (!/^\d+(?:\.0+)?$/.test(value)) {
     throw new Error('Share quantity must be a non-negative whole number.');
   }
-  return BigInt(value.split('.')[0]);
+  return BigInt(value.replace(/\.0+$/, ''));
 }
 
 export function summarizeShareHoldings(input: HoldingWithWallet[]): ShareHoldingRow[] {

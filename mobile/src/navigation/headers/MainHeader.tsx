@@ -18,6 +18,8 @@ function DrawerToggleButton() {
   const { openDrawer } = useDrawer();
   return (
     <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel="Open menu"
       onPress={openDrawer}
       style={{
         width: 44,
@@ -38,6 +40,8 @@ export function MainHeader({ theme, onNotifications, unreadCount = 0 }: MainHead
     headerLeft: () => <DrawerToggleButton />,
     headerRight: () => (
       <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel="Notifications"
         onPress={onNotifications}
         style={{
           width: 44,
@@ -94,10 +98,10 @@ export function getMainHeaderStyle(theme: ThemeParam) {
     }) => (
       <Header
         title={getHeaderTitle(options as Parameters<typeof getHeaderTitle>[0], route.name)}
-        headerStyle={{ backgroundColor: theme.colors.surface.raised }}
+        headerStyle={{ backgroundColor: theme.colors.surface.base }}
         headerTintColor={theme.colors.text.primary}
         headerTitleStyle={{
-          fontWeight: theme.fontWeight.semibold as '600',
+          fontFamily: theme.fontFamily.display,
           fontSize: theme.fontSize.lg,
         }}
         headerShadowVisible={false}

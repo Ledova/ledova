@@ -1,4 +1,5 @@
 import React from 'react';
+import { PAPER_THEME } from '@ledova/shared';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
 interface ErrorBoundaryProps {
@@ -51,29 +52,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: '#0c1426',
+    backgroundColor: PAPER_THEME.surface.base,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fafbfc',
+    color: PAPER_THEME.text.primary,
     marginBottom: 8,
   },
   message: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: PAPER_THEME.text.muted,
     textAlign: 'center',
     marginBottom: 20,
   },
   button: {
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: '#4f46e5',
+    backgroundColor: PAPER_THEME.brand.default,
     borderRadius: 8,
   },
   buttonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#ffffff',
+    color: PAPER_THEME.utility.white,
   },
 });

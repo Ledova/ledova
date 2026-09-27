@@ -32,7 +32,7 @@ export function HomeStackNavigator({ onNotifications, unreadCount }: HomeStackNa
         name="HomeMain"
         component={HomeScreen}
         options={() => ({
-          title: 'Home',
+          title: '',
         })}
       />
     </Stack.Navigator>

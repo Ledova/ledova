@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Alert, ScrollView } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -11,16 +11,13 @@ import {
   QuestionIcon,
   SignOutIcon,
   LinkIcon,
-  ChartBarIcon,
-  CurrencyCircleDollarIcon,
   CertificateIcon,
-  PaperPlaneTiltIcon,
   BuildingsIcon,
   FileTextIcon,
   NewspaperIcon,
   ShieldCheckIcon,
 } from 'phosphor-react-native';
-import { signout, describeFailure } from '@ledova/shared';
+import { signout, describeFailure, DESTINATIONS } from '@ledova/shared';
 import { apiClient } from '../services/apiClient';
 import { notificationsService } from '../services/notificationsService';
 import { clearTokens } from '../services/tokenStorage';
@@ -54,25 +51,29 @@ interface MenuItem {
   target?: string;
 }
 
-const INVESTOR_MENU_ITEMS: MenuItem[] = [
-  { label: 'Home', icon: HouseIcon, action: 'tab', target: 'Home' },
-  { label: 'Wallets', icon: WalletIcon, action: 'tab', target: 'Wallets' },
-  { label: 'Buy', icon: CurrencyCircleDollarIcon, action: 'tab', target: 'Buy' },
-  { label: 'Send', icon: PaperPlaneTiltIcon, action: 'tab', target: 'Send' },
-  { label: 'Transactions', icon: LinkIcon, action: 'tab', target: 'Transactions' },
-  { label: 'Market', icon: ChartBarIcon, action: 'tab', target: 'Market' },
-  { label: 'Eligibility', icon: ShieldCheckIcon, action: 'tab', target: 'InvestorEligibility' },
-  { label: 'Publications', icon: NewspaperIcon, action: 'tab', target: 'Publications' },
+const SHARE_MENU_ITEMS: MenuItem[] = [
+  { label: DESTINATIONS.home.title, icon: HouseIcon, action: 'tab', target: 'Home' },
+  { label: DESTINATIONS.publications.title, icon: NewspaperIcon, action: 'tab', target: 'Publications' },
+  { label: DESTINATIONS.transactions.title, icon: LinkIcon, action: 'tab', target: 'Transactions' },
 ];
 
 const COMPANY_MENU_ITEMS: MenuItem[] = [
-  { label: 'Company', icon: BuildingsIcon, action: 'tab', target: 'Company' },
-  { label: 'Listing', icon: FileTextIcon, action: 'tab', target: 'Listing' },
-  { label: 'Wallets', icon: WalletIcon, action: 'tab', target: 'Wallets' },
-  { label: 'Publications', icon: NewspaperIcon, action: 'tab', target: 'Publications' },
+  { label: DESTINATIONS.company.title, icon: BuildingsIcon, action: 'tab', target: 'Company' },
+  { label: DESTINATIONS.companyListing.title, icon: FileTextIcon, action: 'tab', target: 'Listing' },
+];
+
+const INVEST_MENU_ITEMS: MenuItem[] = [
+  { label: DESTINATIONS.trading.title, icon: CertificateIcon, action: 'tab', target: 'Trading' },
+  {
+    label: DESTINATIONS.investorEligibility.title,
+    icon: ShieldCheckIcon,
+    action: 'tab',
+    target: 'InvestorEligibility',
+  },
 ];
 
 const SECONDARY_ITEMS: MenuItem[] = [
+  { label: DESTINATIONS.wallets.title, icon: WalletIcon, action: 'tab', target: 'Wallets' },
   { label: 'Profile', icon: UserIcon, action: 'tab', target: 'Profile' },
   { label: 'Settings', icon: GearIcon, action: 'screen', target: 'Settings' },
   { label: 'Help & Support', icon: QuestionIcon, action: 'screen', target: 'Help' },
@@ -85,7 +86,7 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
     drawerContent: {
       flex: 1,
       paddingTop: 50,
-      backgroundColor: theme.colors.surface.raised,
+      backgroundColor: theme.colors.surface.base,
     },
     drawerHeader: {
       flexDirection: 'row',
@@ -100,7 +101,7 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
     },
     drawerTitle: {
       fontSize: theme.fontSize.xl,
-      fontWeight: 'bold',
+      fontFamily: theme.fontFamily.display,
       color: theme.colors.text.primary,
       marginLeft: 12,
     },
@@ -114,8 +115,19 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
     menuText: {
       marginLeft: 16,
       fontSize: theme.fontSize.base,
-      fontWeight: theme.fontWeight.medium,
+      fontFamily: theme.fontFamily.medium,
       color: theme.colors.text.primary,
+    },
+    group: {
+      marginTop: 18,
+    },
+    groupLabel: {
+      fontFamily: theme.fontFamily.medium,
+      color: theme.colors.text.muted,
+      fontSize: 12,
+      textTransform: 'uppercase',
+      marginHorizontal: 28,
+      marginBottom: 4,
     },
     divider: {
       height: 1,
@@ -134,7 +146,7 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
   const { closeDrawer } = useDrawer();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { isEnabled } = useFeatureFlags();
-  const { isCompany } = useRole();
+  const { isCompany, isInvestor, isLoading } = useRole();
 
   const handleAction = (item: MenuItem) => {
     closeDrawer();
@@ -142,14 +154,14 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
       onSignOut();
     } else if (item.action === 'tab') {
       let params;
-      if (item.target === 'Company') {
+      if (item.target === 'Home') {
+        params = { screen: 'Home', params: { screen: 'HomeMain' } };
+      } else if (item.target === 'Trading') {
+        params = { screen: 'Trading', params: { screen: 'TradingMain' } };
+      } else if (item.target === 'Company') {
         params = { screen: 'Company', params: { screen: 'CompanyMain' } };
       } else if (item.target === 'Wallets') {
         params = { screen: 'Wallets', params: { screen: 'WalletsList' } };
-      } else if (item.target === 'Buy') {
-        params = { screen: 'Buy', params: { screen: 'BuySelect' } };
-      } else if (item.target === 'Send') {
-        params = { screen: 'Send', params: { screen: 'SendMain' } };
       } else {
         params = { screen: item.target as string };
       }
@@ -160,42 +172,49 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
   };
 
   const renderItem = (item: MenuItem) => (
-    <TouchableOpacity key={item.label} style={styles.menuItem} onPress={() => handleAction(item)}>
+    <TouchableOpacity
+      key={item.label}
+      accessibilityRole="button"
+      style={styles.menuItem}
+      onPress={() => handleAction(item)}
+    >
       <item.icon {...ICON_PROPS} />
       <Text style={styles.menuText}>{item.label}</Text>
     </TouchableOpacity>
   );
 
-  const showTrading = isEnabled('trading_enabled');
-  const menuItems = isCompany ? COMPANY_MENU_ITEMS : INVESTOR_MENU_ITEMS;
+  const groups = [
+    ...(isCompany ? [{ label: 'Company', items: COMPANY_MENU_ITEMS }] : []),
+    { label: 'Your shares', items: SHARE_MENU_ITEMS },
+    ...(isInvestor
+      ? [
+          {
+            label: 'Invest',
+            items: INVEST_MENU_ITEMS.filter((item) => item.target !== 'Trading' || isEnabled('trading_enabled')),
+          },
+        ]
+      : []),
+  ];
 
   return (
-    <View style={styles.drawerContent}>
+    <ScrollView style={styles.drawerContent} contentContainerStyle={{ paddingBottom: 60 }}>
       <View style={styles.drawerHeader}>
         {/* eslint-disable-next-line @typescript-eslint/no-require-imports */}
         <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
         <Text style={styles.drawerTitle}>Ledova</Text>
       </View>
-
-      {menuItems.map(renderItem)}
-      {showTrading && (
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => {
-            closeDrawer();
-            navigation.navigate('MainApp', {
-              screen: 'Main',
-              params: { screen: 'Trading', params: { screen: 'TradingMain' } },
-            } as never);
-          }}
-        >
-          <CertificateIcon {...ICON_PROPS} />
-          <Text style={styles.menuText}>Trading</Text>
-        </TouchableOpacity>
-      )}
+      {!isLoading &&
+        groups.map((group) => (
+          <View key={group.label} style={styles.group}>
+            <Text accessibilityRole="header" style={styles.groupLabel}>
+              {group.label}
+            </Text>
+            {group.items.map(renderItem)}
+          </View>
+        ))}
       <View style={styles.divider} />
       {SECONDARY_ITEMS.map(renderItem)}
-    </View>
+    </ScrollView>
   );
 }
 

@@ -1,4 +1,7 @@
 import React from 'react';
+import type { NavigatorScreenParams } from '@react-navigation/native';
+import { BuyStackNavigator, type BuyStackParamList } from './BuyStackNavigator';
+import { SendStackNavigator, type SendStackParamList } from './SendStackNavigator';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { WalletsScreen } from '../screens/wallets';
 import { WalletActionScreen } from '../screens/wallets/components/WalletActionScreen';
@@ -14,6 +17,8 @@ import { getMainHeaderStyle } from './headers/MainHeader';
 
 export type WalletsStackParamList = {
   WalletsList: undefined;
+  Buy: NavigatorScreenParams<BuyStackParamList>;
+  Send: NavigatorScreenParams<SendStackParamList>;
   WalletAction: {
     wallet: Wallet;
   };
@@ -51,6 +56,8 @@ export function WalletsStackNavigator() {
           title: 'Wallets',
         })}
       />
+      <Stack.Screen name="Buy" component={BuyStackNavigator} options={{ headerShown: false }} />
+      <Stack.Screen name="Send" component={SendStackNavigator} options={{ headerShown: false }} />
       <Stack.Screen
         name="WalletAction"
         component={WalletActionScreen}

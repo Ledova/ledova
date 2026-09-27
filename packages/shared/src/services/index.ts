@@ -132,3 +132,4 @@ export {
   downloadPublication,
   castBallot,
 } from './publications';
+export { getShareHoldings } from './share-holdings';

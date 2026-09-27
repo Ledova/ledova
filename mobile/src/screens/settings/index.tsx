@@ -8,13 +8,11 @@ import {
   BellIcon,
   UserGearIcon,
   AppWindowIcon,
-  SunIcon,
-  MoonIcon,
 } from 'phosphor-react-native';
 import { GradientBackground } from '../../components/GradientBackground';
 import { Panel } from '../../components/panel';
 import { CustomModal } from '../../components/modal';
-import { useAppLock, useAppTheme, useThemedStyles, useThemeMode } from '../../contexts';
+import { useAppLock, useAppTheme, useThemedStyles } from '../../contexts';
 import { useNotificationPreferences } from './useNotificationPreferences';
 import { useSettings } from './useSettings';
 
@@ -228,7 +226,6 @@ export function SettingsScreen() {
     },
   }));
 
-  const { themeMode, toggleTheme } = useThemeMode();
   const {
     isEnabled: appLockEnabled,
     setEnabled: setAppLockEnabled,
@@ -377,16 +374,6 @@ export function SettingsScreen() {
               <NavRow label="Change Password" onPress={() => setShowChangePasswordModal(true)} />
               <NavRow label="Export Data" onPress={() => setShowExportModal(true)} />
               <NavRow label="Delete Account" onPress={() => setShowDeleteModal(true)} danger isLast />
-            </Panel>
-
-            <Panel title="Appearance" icon={themeMode === 'dark' ? <MoonIcon /> : <SunIcon />}>
-              <ToggleRow
-                label="Light Mode"
-                description={themeMode === 'dark' ? 'Currently using dark theme' : 'Currently using light theme'}
-                value={themeMode === 'light'}
-                onValueChange={() => toggleTheme()}
-                isLast
-              />
             </Panel>
 
             <Panel title="App" icon={<AppWindowIcon />}>

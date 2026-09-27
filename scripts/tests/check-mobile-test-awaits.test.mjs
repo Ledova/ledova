@@ -9,9 +9,9 @@ const require = createRequire(path.join(MOBILE, 'package.json'));
 const { ESLint } = require('eslint');
 
 test('a missing press await before an absence assertion is rejected by the real mobile lint config', async () => {
-  const filePath = path.join(MOBILE, 'src/screens/home/components/AssetAllocationCard.test.tsx');
+  const filePath = path.join(MOBILE, 'src/screens/home/index.test.tsx');
   const source = await readFile(filePath, 'utf8');
-  const awaited = "await fireEvent.press(view.getByLabelText('Hide USDC by chain'));";
+  const awaited = "await fireEvent.press(view.getByText('Ordinary'));";
   assert.equal(source.split(awaited).length, 2, 'the toggle must await its closing press');
   const eslint = new ESLint({ cwd: MOBILE });
   const positive = await eslint.lintText(source, { filePath });

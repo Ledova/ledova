@@ -46,7 +46,7 @@ export function Panel({ title, icon, actions, style, fullHeight = false, childre
     },
     title: {
       fontSize: theme.fontSize.lg,
-      fontWeight: theme.fontWeight.semibold,
+      fontFamily: theme.fontFamily.medium,
       color: theme.colors.text.primary,
     },
     content: {

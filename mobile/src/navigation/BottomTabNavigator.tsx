@@ -1,23 +1,14 @@
 import React from 'react';
+import { DESTINATIONS } from '@ledova/shared';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { NavigatorScreenParams } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  HouseIcon,
-  WalletIcon,
-  CurrencyCircleDollarIcon,
-  CertificateIcon,
-  PaperPlaneTiltIcon,
-  BuildingsIcon,
-} from 'phosphor-react-native';
+import { HouseIcon, WalletIcon, CertificateIcon, BuildingsIcon } from 'phosphor-react-native';
 import { HomeStackNavigator } from './HomeStackNavigator';
 import type { HomeStackParamList } from './HomeStackNavigator';
 import { WalletsStackNavigator } from './WalletsStackNavigator';
-import { BuyStackNavigator } from './BuyStackNavigator';
-import { SendStackNavigator } from './SendStackNavigator';
 import { TradingStackNavigator } from './TradingStackNavigator';
 import { TransactionsScreen } from '../screens/transactions';
-import { AssetPricesScreen } from '../screens/asset-prices';
 import { UserProfileScreen } from '../screens/user-profile';
 import { CompanyStackNavigator } from './CompanyStackNavigator';
 import type { CompanyStackParamList } from './CompanyStackNavigator';
@@ -27,8 +18,6 @@ import { PublicationsScreen } from '../screens/publications';
 import { DividendsScreen } from '../screens/dividends';
 import { getMainHeaderStyle, MainHeader } from './headers';
 import type { WalletsStackParamList } from './WalletsStackNavigator';
-import type { BuyStackParamList } from './BuyStackNavigator';
-import type { SendStackParamList } from './SendStackNavigator';
 import type { TradingStackParamList } from './TradingStackNavigator';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useRole } from '../hooks/useRole';
@@ -36,9 +25,6 @@ import { useAppTheme } from '../contexts';
 
 export type BottomTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList>;
-  Market: undefined;
-  Buy: NavigatorScreenParams<BuyStackParamList>;
-  Send: NavigatorScreenParams<SendStackParamList>;
   Trading: NavigatorScreenParams<TradingStackParamList>;
   Transactions: undefined;
   Wallets: NavigatorScreenParams<WalletsStackParamList>;
@@ -61,8 +47,8 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const { isEnabled } = useFeatureFlags();
-  const { isCompany, isLoading: isLoadingRole } = useRole();
-  const showTrading = isEnabled('trading_enabled');
+  const { isCompany, isInvestor, isLoading: isLoadingRole } = useRole();
+  const showTrading = isInvestor && isEnabled('trading_enabled');
 
   if (isLoadingRole) {
     return null;
@@ -75,10 +61,10 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
         ...getMainHeaderStyle(theme),
         ...MainHeader({ theme, onNotifications, unreadCount }),
         tabBarStyle: {
-          backgroundColor: theme.colors.surface.raised,
+          backgroundColor: theme.colors.surface.base,
           borderTopColor: theme.colors.border.subtle,
           borderTopWidth: 1,
-          height: 46 + insets.bottom,
+          height: 58 + insets.bottom,
           paddingBottom: insets.bottom,
           paddingTop: 8,
         },
@@ -86,7 +72,9 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
         tabBarInactiveTintColor: theme.colors.text.muted,
         tabBarShowLabel: true,
         tabBarLabelStyle: {
-          fontSize: 10,
+          fontFamily: theme.fontFamily.medium,
+          fontSize: 11,
+          lineHeight: 14,
           marginTop: 1,
         },
       })}
@@ -95,9 +83,8 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
         name="Home"
         options={{
           headerShown: false,
-          tabBarLabel: 'Home',
+          tabBarLabel: DESTINATIONS.home.title,
           tabBarIcon: ({ color, size }) => <HouseIcon size={size} color={color} weight="regular" />,
-          tabBarItemStyle: isCompany ? { display: 'none' } : undefined,
         }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
@@ -142,47 +129,13 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
         })}
       />
 
-      <Tab.Screen
-        name="Buy"
-        component={BuyStackNavigator}
-        options={{
-          headerShown: false,
-          tabBarLabel: 'Buy',
-          tabBarIcon: ({ color, size }) => <CurrencyCircleDollarIcon size={size} color={color} weight="regular" />,
-          tabBarItemStyle: isCompany ? { display: 'none' } : undefined,
-        }}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            e.preventDefault();
-            navigation.navigate('Buy', { screen: 'BuySelect' });
-          },
-        })}
-      />
-
-      <Tab.Screen
-        name="Send"
-        component={SendStackNavigator}
-        options={{
-          headerShown: false,
-          tabBarLabel: 'Send',
-          tabBarIcon: ({ color, size }) => <PaperPlaneTiltIcon size={size} color={color} weight="regular" />,
-          tabBarItemStyle: isCompany ? { display: 'none' } : undefined,
-        }}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            e.preventDefault();
-            navigation.navigate('Send', { screen: 'SendMain' });
-          },
-        })}
-      />
-
       {showTrading && (
         <Tab.Screen
           name="Trading"
           component={TradingStackNavigator}
           options={{
             headerShown: false,
-            tabBarLabel: 'Trading',
+            tabBarLabel: DESTINATIONS.trading.title,
             tabBarIcon: ({ color, size }) => <CertificateIcon size={size} color={color} weight="regular" />,
           }}
           listeners={({ navigation }) => ({
@@ -198,16 +151,7 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
         name="Transactions"
         component={TransactionsScreen}
         options={{
-          title: 'Transactions',
-          tabBarItemStyle: { display: 'none' },
-        }}
-      />
-
-      <Tab.Screen
-        name="Market"
-        component={AssetPricesScreen}
-        options={{
-          title: 'Market',
+          title: DESTINATIONS.transactions.title,
           tabBarItemStyle: { display: 'none' },
         }}
       />
@@ -216,7 +160,7 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
         name="Publications"
         component={PublicationsScreen}
         options={{
-          title: 'Publications',
+          title: DESTINATIONS.publications.title,
           tabBarItemStyle: { display: 'none' },
         }}
       />
@@ -243,7 +187,7 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
         name="Listing"
         component={ListingScreen}
         options={{
-          title: 'Listing',
+          title: DESTINATIONS.companyListing.title,
           tabBarItemStyle: { display: 'none' },
         }}
       />
@@ -252,7 +196,7 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
         name="InvestorEligibility"
         component={InvestorEligibilityScreen}
         options={{
-          title: 'Eligibility',
+          title: DESTINATIONS.investorEligibility.title,
           tabBarItemStyle: { display: 'none' },
         }}
       />

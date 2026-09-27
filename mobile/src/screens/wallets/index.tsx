@@ -1,3 +1,4 @@
+import { CryptoActions } from './components/CryptoActions';
 import React, { useCallback, useLayoutEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -172,6 +173,7 @@ export function WalletsScreen() {
 
   return (
     <GradientBackground>
+      <CryptoActions />
       <View style={styles.container}>
         {isLoadingWallets ? (
           renderLoading()

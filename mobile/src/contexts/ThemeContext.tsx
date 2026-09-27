@@ -1,111 +1,40 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useMemo } from 'react';
 import { StyleSheet } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DESIGN_TOKENS, LIGHT_COLORS, upsertCurrentUserPreferences } from '@ledova/shared';
-import { useQueryClient, useMutation } from '@tanstack/react-query';
-import type { Theme } from '@ledova/shared';
-import { apiClient } from '../services/apiClient';
-import { useAuth } from '../hooks/useAuth';
-import { useUserPreferences } from '../hooks/useUserPreferences';
+import { DESIGN_TOKENS, PAPER_THEME } from '@ledova/shared';
 
-const STORAGE_KEY = 'ledova-theme';
-
-const DARK_THEME = {
-  colors: DESIGN_TOKENS.colors,
-  spacing: DESIGN_TOKENS.spacing,
-  borderRadius: DESIGN_TOKENS.borderRadius,
-  fontSize: DESIGN_TOKENS.fontSize,
-  fontWeight: DESIGN_TOKENS.fontWeight,
-  lineHeight: DESIGN_TOKENS.lineHeight,
-  layout: DESIGN_TOKENS.layout,
-  shadows: DESIGN_TOKENS.shadows,
-  animation: DESIGN_TOKENS.animation,
-  zIndex: DESIGN_TOKENS.zIndex,
-  icon: DESIGN_TOKENS.icon,
-} as const;
-
-const LIGHT_THEME = {
-  ...DARK_THEME,
-  colors: LIGHT_COLORS,
+const THEME = {
+  ...DESIGN_TOKENS,
+  colors: PAPER_THEME,
+  fontFamily: {
+    display: 'Newsreader_500Medium',
+    regular: 'InstrumentSans_400Regular',
+    medium: 'InstrumentSans_500Medium',
+    semibold: 'InstrumentSans_600SemiBold',
+    bold: 'InstrumentSans_700Bold',
+  },
   icon: {
     ...DESIGN_TOKENS.icon,
     colors: {
-      primary: LIGHT_COLORS.text.primary,
-      muted: LIGHT_COLORS.text.subtle,
+      primary: PAPER_THEME.text.primary,
+      muted: PAPER_THEME.text.subtle,
     },
   },
 } as const;
 
-type ThemeObject = typeof DARK_THEME;
+type ThemeObject = typeof THEME;
 
-interface ThemeContextValue {
-  theme: ThemeObject;
-  themeMode: Theme;
-  toggleTheme: () => void;
-}
-
-const ThemeContext = createContext<ThemeContextValue>({
-  theme: DARK_THEME,
-  themeMode: 'dark',
-  toggleTheme: () => {},
-});
+const ThemeContext = createContext(THEME);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [themeMode, setThemeMode] = useState<Theme>('dark');
-  const { isAuthenticated } = useAuth();
-  const { preferences } = useUserPreferences();
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((stored) => {
-      if (stored === 'light' || stored === 'dark') {
-        setThemeMode(stored);
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    if (preferences?.theme === 'light' || preferences?.theme === 'dark') {
-      setThemeMode(preferences.theme);
-      AsyncStorage.setItem(STORAGE_KEY, preferences.theme);
-    }
-  }, [preferences?.theme]);
-
-  const mutation = useMutation({
-    mutationFn: (newTheme: Theme) => upsertCurrentUserPreferences(apiClient, { theme: newTheme }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userPreferences'] });
-    },
-  });
-
-  const toggleTheme = useCallback(() => {
-    const newTheme: Theme = themeMode === 'dark' ? 'light' : 'dark';
-    setThemeMode(newTheme);
-    AsyncStorage.setItem(STORAGE_KEY, newTheme);
-    if (isAuthenticated) {
-      mutation.mutate(newTheme);
-    }
-  }, [themeMode, isAuthenticated, mutation]);
-
-  const theme = useMemo(() => (themeMode === 'light' ? LIGHT_THEME : DARK_THEME), [themeMode]);
-
-  const value = useMemo(() => ({ theme, themeMode, toggleTheme }), [theme, themeMode, toggleTheme]);
-
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  return <ThemeContext.Provider value={THEME}>{children}</ThemeContext.Provider>;
 }
 
 export function useAppTheme() {
-  return useContext(ThemeContext).theme;
-}
-
-export function useThemeMode() {
-  const { themeMode, toggleTheme } = useContext(ThemeContext);
-  return { themeMode, toggleTheme };
+  return useContext(ThemeContext);
 }
 
 export function useThemedStyles<T extends StyleSheet.NamedStyles<T>>(stylesFn: (theme: ThemeObject) => T): T {
-  const theme = useContext(ThemeContext).theme;
-
+  const theme = useContext(ThemeContext);
   return useMemo(() => StyleSheet.create(stylesFn(theme)), [stylesFn, theme]);
 }
 

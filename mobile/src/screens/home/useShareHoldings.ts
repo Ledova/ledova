@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { CACHE_TIMING, getShareHoldings } from '@ledova/shared';
-import apiClient from '@services/apiClient';
+import { apiClient } from '../../services/apiClient';
 
 export function useShareHoldings() {
   return useQuery({

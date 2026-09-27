@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { HOLDING_ASSET_TYPE, type HoldingWithWallet } from '@ledova/shared';
-import { summarizeShareHoldings } from './shareHoldings';
+import { HOLDING_ASSET_TYPE, type HoldingWithWallet } from '../../src';
+import { summarizeShareHoldings } from '../../src/utils/share-holdings';
 
 function held(overrides: Partial<HoldingWithWallet> = {}): HoldingWithWallet {
   return {
@@ -155,8 +154,8 @@ describe('summarizeShareHoldings', () => {
     const result = summarizeShareHoldings(input);
 
     expect(result.map(({ assetUuid }) => assetUuid)).toEqual(['asset-a', 'asset-c', 'asset-b', 'asset-1', 'asset-z']);
-    expect(result[3].chains[0].wallets.map(({ uuid }) => uuid)).toEqual(['wallet-a', 'wallet-b', 'wallet-z']);
-    expect(result[3].chains[0].wallets.every(({ name }) => name === undefined)).toBe(true);
+    expect(result[3]!.chains[0]!.wallets.map(({ uuid }) => uuid)).toEqual(['wallet-a', 'wallet-b', 'wallet-z']);
+    expect(result[3]!.chains[0]!.wallets.every(({ name }) => name === undefined)).toBe(true);
     expect(summarizeShareHoldings([...input].reverse())).toEqual(result);
     expect(input).toEqual(original);
   });
