@@ -318,7 +318,12 @@ jobs:
         run: npm ci
       - name: Real-chain tests (Hardhat node, deploy core contracts, the four modules make chain-test runs)
         working-directory: .
-        run: make chain-test PYTHON=python
+        env:
+          REDIS_URL: redis://127.0.0.1:6379/0
+        run: |
+          timeout --kill-after=2s 10s python backend/manage.py shell --command \
+            'from django.conf import settings; from redis import Redis; Redis.from_url(settings.REDIS_URL, socket_connect_timeout=2, socket_timeout=2).ping()'
+          make chain-test PYTHON=python
       - name: Bitcoin submission pipeline (isolated regtest and PostgreSQL)
         working-directory: .
         run: python scripts/test-bitcoin-chain.py
