@@ -178,6 +178,9 @@ it.each<AccountRole>(['company', 'both'])(
     summary = { ...NOTHING, openResolutions: 1 };
     const view = await render(<HomeScreen />, { wrapper });
     expect(await view.findByText('1 resolution awaits your vote')).toBeTruthy();
+    expect(
+      await view.findByText(accountRole === 'both' ? 'draft Company' : 'No dividend records are in progress.'),
+    ).toBeTruthy();
     await waitFor(() => expect(client.isFetching()).toBe(0));
     expect(get.mock.calls.some(([url]) => url === APPLICATIONS)).toBe(accountRole === 'both');
     expect(Boolean(view.queryByText('draft Company'))).toBe(accountRole === 'both');
