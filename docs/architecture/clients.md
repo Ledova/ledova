@@ -169,6 +169,20 @@ and pending requests keep their forms open until completion. Upload, removal and
 action refusals remain visible for retry. These pages add no staff approval or
 execution controls.
 
+Offerings uses ledger sections for directory visibility, every offering of the
+selected company and every subscription to the selected offering. Class and
+offering lists follow every page before presenting issuer actions; subscriptions
+show requested and allotted shares separately, including zero allotments. AUD
+amounts stay exact decimal strings. Payment confirmation and allotment remain
+read-only operator records. The existing draft/rejected edit, submission,
+withdrawal and draft deletion rules are unchanged. Create and edit forms retain
+their drafts through failed or refreshing prerequisite reads and pending writes;
+an unavailable edit never becomes a new offering. Quantities are whole integers
+within the existing 2,147,483,647 request limit before JSON number conversion.
+Price, ordered bounds, dates and available settlement choices are checked before
+submission. Operator details failing to load do not imply bank-transfer-only
+settlement.
+
 `landingFor(role)` decides where a signed-in person lands: an investing account
 on Holdings, and a company or dual-role account on Register. The front door,
 sign-in, the end of sign-up, the signed-out pages and the trading fallback all
@@ -202,6 +216,17 @@ account still signing up, back into sign-up. It shows nothing until its own
 decision and the frame's agree, so, like a guarded page, it never appears in
 the wrong layout for a moment.
 The mobile app does not read the table yet.
+
+Published to your members opens from Company at `/company/publications`, under
+company and dual-role guards. It reads every publication page with the selected
+owned company's UUID as `issuer`, separately from the personal Notices cache.
+It shows stored documents, frozen company/class names, resolution windows and
+exact share/member tallies, and dividend rates and dates. It has no personal
+ballot or entitlement controls, including when the owner is also a member.
+Loading and failed company/publication reads block document actions; retry never
+presents a partial list as complete. Document delivery failures remain visible.
+Staff still prepare and publish on written instruction; this page adds no
+publication creation, approval, payment or execution endpoint.
 
 Inside the frame, every signed-in page renders in `Page`
 (`dashboard/src/components/Page.tsx`), and so do the route guard's own waiting

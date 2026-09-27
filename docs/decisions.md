@@ -419,7 +419,7 @@ This records the target; the steps on #732 build it.
   held the name is retired; Verification replaces Eligibility; Register and
   Share classes replace Share Tokens; "Raise authorised shares" replaces Capital
   Increase; and the company application sits under Company instead of as
-  Listing. Company details and the company Application now use ledger sections,
+  Listing. Company details, Offerings and the company Application use ledger sections,
   retaining the existing owner submissions and staff review boundaries. Directory
   keeps its name.
 - **Crypto lives inside Wallets.** Buying crypto and sending stay, as actions
@@ -445,9 +445,11 @@ This records the target; the steps on #732 build it.
 - **Notices stays personal.** Asked whether to accept the gap until the register
   work provides the company's own publication list, the owner chose "Accept the
   gap": "Notices stays personal; the company's own list arrives with the register
-  work in step 6. Mobile keeps its current list until step 10." The issuer list
-  follows in #748 and the mobile change in #750. (Owner decision, 26 September
-  2026, on
+  work in step 6. Mobile keeps its current list until step 10." The web issuer
+  list now opens from Company as Published to your members, selecting the owned
+  company explicitly and showing stored documents and recorded tallies without
+  member voting controls. The mobile change follows in #750. (Owner decision,
+  26 September 2026, on
   [#732](https://github.com/Ledova/ledova/issues/732#issuecomment-5846254159).)
 - **Mobile follows the web.** The mobile app takes paper and the new structure
   together, after the web.

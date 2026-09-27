@@ -130,3 +130,80 @@ describe('OfferingForm settlement assets', () => {
     expect(onCreate).not.toHaveBeenCalled();
   });
 });
+
+afterEach(cleanup);
+
+function form(onCreate = vi.fn()) {
+  const props = {
+    tokens: [TOKEN],
+    busy: false,
+    settlementAssets: [AUDY, USDC],
+    operatorName: 'Example Operator',
+    onCreate,
+  };
+  return { ...render(<OfferingForm {...props} />), props, onCreate };
+}
+
+it.each([
+  ['Minimum shares', '1.5'],
+  ['Minimum shares', '1e1'],
+  ['Minimum shares', '0'],
+  ['Target shares', '9'],
+  ['Cap shares', '99'],
+  ['Cap shares', '2147483648'],
+  ['Cap shares', '9007199254740993'],
+  ['Price per share (AUD)', '0'],
+  ['Price per share (AUD)', '1e3'],
+  ['Price per share (AUD)', '0.001'],
+  ['Price per share (AUD)', '10000000000000000.00'],
+])('refuses invalid %s value %s before creating', (label, value) => {
+  const { onCreate } = form();
+  fillTheRequiredFields();
+  fireEvent.change(screen.getByLabelText(label), { target: { value } });
+  fireEvent.click(screen.getByRole('button', { name: 'Create draft offering' }));
+  expect(onCreate).not.toHaveBeenCalled();
+});
+
+it.each(['2147483646', '2147483647'])('sends an exact supported cap of %s without truncation', (value) => {
+  const { onCreate } = form();
+  fillTheRequiredFields();
+  fireEvent.change(screen.getByLabelText('Cap shares'), { target: { value } });
+  fireEvent.click(screen.getByRole('button', { name: 'Create draft offering' }));
+  expect(created(onCreate).capShares).toBe(Number(value));
+});
+
+it('requires closing after opening and sends valid local times as ISO timestamps', () => {
+  const { onCreate } = form();
+  fillTheRequiredFields();
+  fireEvent.change(screen.getByLabelText('Closes at (optional)'), { target: { value: '2026-10-01T08:00' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Create draft offering' }));
+  expect(onCreate).not.toHaveBeenCalled();
+  fireEvent.change(screen.getByLabelText('Closes at (optional)'), { target: { value: '2026-10-02T08:00' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Create draft offering' }));
+  expect(created(onCreate).opensAt).toBe(new Date('2026-10-01T09:00').toISOString());
+  expect(created(onCreate).closesAt).toBe(new Date('2026-10-02T08:00').toISOString());
+});
+
+it('keeps the initially selected class when background data changes order', () => {
+  const { props, rerender, onCreate } = form();
+  fillTheRequiredFields();
+  rerender(<OfferingForm {...props} tokens={[{ ...TOKEN, uuid: 'token-two', name: 'Preference' }, TOKEN]} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Create draft offering' }));
+  expect(created(onCreate).token).toBe(TOKEN.uuid);
+});
+
+it('preserves a draft while reads are blocked, and requires removing an unavailable settlement asset', () => {
+  const { props, rerender, onCreate } = form();
+  fillTheRequiredFields();
+  fireEvent.click(screen.getByLabelText('USDC'));
+  rerender(<OfferingForm {...props} blocked />);
+  fireEvent.click(screen.getByRole('button', { name: 'Create draft offering' }));
+  expect(onCreate).not.toHaveBeenCalled();
+  expect(screen.getByDisplayValue('1.50')).toBeTruthy();
+  rerender(<OfferingForm {...props} settlementAssets={[]} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Create draft offering' }));
+  expect(onCreate).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Remove unavailable settlement assets' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Create draft offering' }));
+  expect(created(onCreate).settlementAssets).toEqual([]);
+});

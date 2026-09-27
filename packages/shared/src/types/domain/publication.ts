@@ -4,7 +4,7 @@ export type Publication = ApiResponse<'api_v1_publications_list'>['results'][num
 
 export type PublicationQueryParams = ApiQuery<'api_v1_publications_list'>;
 
-export type PublicationFilters = Pick<PublicationQueryParams, 'kind' | 'addressed'>;
+export type PublicationFilters = Pick<PublicationQueryParams, 'kind' | 'addressed' | 'issuer'>;
 
 export type PublicationSummary = ApiResponse<'api_v1_publications_summary_retrieve'>;
 

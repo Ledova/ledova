@@ -473,3 +473,13 @@ for each share class it carries.
 
 Next: [legal positions](../legal/positions.md), [scheduled folds](../operations/jobs.md)
 and [operator recovery](../operations/recovery.md).
+
+## Company publication readback
+
+The web Company page links to Published to your members. It selects the current
+owned company explicitly, follows every page and reads the stored documents,
+resolution results and dividend rate/date facts. Personal Notices continues to
+select the caller's membership separately. The issuer page has no member ballot
+controls or staff publication/payment execution actions; staff act on written
+instruction. The [publication contract](shareholder-publications.md#the-members-route)
+owns the filter, storage and read-audit details.

@@ -65,6 +65,9 @@ it('shows company details, exact draft share classes and the class/application d
     '/company/register/class-one',
   );
   expect(screen.getByRole('button', { name: 'Application' })).toBeTruthy();
+  expect(screen.getByRole('link', { name: 'Published to your members' }).getAttribute('href')).toBe(
+    '/company/publications',
+  );
   expect(api.get.mock.calls.some(([url]) => String(url).includes('/stats/'))).toBe(false);
 });
 

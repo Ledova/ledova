@@ -77,6 +77,9 @@ export default function CompanyPage() {
                 )}
               </Rows>
               <PageAction label="Edit company" onClick={() => setEditing(company)} disabled={data.isRefreshing} />
+              <Link to={DESTINATIONS.companyPublications.path} className="w-fit text-sm text-brand-light underline">
+                Published to your members
+              </Link>
             </Section>
             <Section title={classes.isSuccess ? `Share classes (${classes.data.length})` : 'Share classes'}>
               {classes.isPending ? (

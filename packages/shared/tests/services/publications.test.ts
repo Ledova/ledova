@@ -73,6 +73,15 @@ describe('publication services', () => {
     });
   });
 
+  it('keeps an explicit issuer filter on each requested page without changing personal filtering', () => {
+    getPublications(apiClient, 1, { issuer: 'company-one' });
+    getPublications(apiClient, 3, { issuer: 'company-one', addressed: 'me' });
+    expect(get).toHaveBeenNthCalledWith(1, '/api/v1/publications/', { params: { page: 1, issuer: 'company-one' } });
+    expect(get).toHaveBeenNthCalledWith(2, '/api/v1/publications/', {
+      params: { page: 3, issuer: 'company-one', addressed: 'me' },
+    });
+  });
+
   it('reads the summary of what was published to the caller from its own route', () => {
     getPublicationSummary(apiClient);
 

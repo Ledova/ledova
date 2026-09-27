@@ -1,103 +1,92 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
-  createOffering,
   deleteOffering,
-  getCompanyTokens,
+  getNextPageParam,
   getOperator,
   getOffering,
   getOfferings,
   getOfferingSubscriptions,
   submitOffering,
-  updateOffering,
   withdrawOffering,
+  type PaginatedResponse,
 } from '@ledova/shared';
-import type { OfferingInput } from '@ledova/shared';
 import apiClient from '@services/apiClient';
+import { useTokensList } from '../hooks/useTokens';
 
-const OFFERINGS_KEY = ['offerings'];
+async function everyPage<T>(read: (page: number) => Promise<{ data: PaginatedResponse<T> }>) {
+  const rows: T[] = [];
+  let page: number | undefined = 1;
+  while (page !== undefined) {
+    const { data } = await read(page);
+    rows.push(...data.results);
+    const next = getNextPageParam(data);
+    if (data.next && (next === undefined || !Number.isInteger(next) || next <= page)) {
+      throw new Error('Offering pagination did not advance');
+    }
+    page = next;
+  }
+  return rows;
+}
 
-export function useOfferings() {
-  const queryClient = useQueryClient();
-
+export function useOfferings(companyUuid?: string) {
+  const client = useQueryClient();
   const offeringsQuery = useQuery({
-    queryKey: OFFERINGS_KEY,
-    queryFn: () => getOfferings(apiClient),
+    queryKey: ['offerings', companyUuid],
+    queryFn: () => everyPage((page) => getOfferings(apiClient, page)),
+    enabled: !!companyUuid,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
-
-  const tokensQuery = useQuery({
-    queryKey: ['company-tokens'],
-    queryFn: () => getCompanyTokens(apiClient),
-    staleTime: CACHE_TIMING.SHORT_STALE_TIME,
-  });
-
+  const tokensQuery = useTokensList(companyUuid);
   const operatorQuery = useQuery({
     queryKey: ['operator'],
     queryFn: () => getOperator(apiClient),
+    enabled: !!companyUuid,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
-
-  const refresh = () => queryClient.invalidateQueries({ queryKey: OFFERINGS_KEY });
-
+  const tokenIds = new Set(tokensQuery.data?.map((token) => token.uuid));
   return {
-    offerings: offeringsQuery.data?.data?.results ?? [],
-    tokens: (tokensQuery.data?.data?.results ?? []).filter((token) => token.status === 'deployed'),
-    settlementAssets: operatorQuery.data?.data?.supportedSettlementAssets ?? [],
-    operatorName: operatorQuery.data?.data?.name || 'the operator',
+    offerings: (offeringsQuery.data ?? []).filter((offering) => tokenIds.has(offering.tokenUuid)),
+    tokens: tokensQuery.data ?? [],
+    settlementAssets: operatorQuery.data?.data.supportedSettlementAssets ?? [],
+    operatorName: operatorQuery.isError ? 'the operator' : operatorQuery.data?.data.name || 'the operator',
     isLoading: offeringsQuery.isLoading || tokensQuery.isLoading || operatorQuery.isLoading,
-    refresh,
+    isRefreshing: offeringsQuery.isFetching || tokensQuery.isFetching || operatorQuery.isFetching,
+    error: offeringsQuery.error || tokensQuery.error || operatorQuery.error,
+    refetch: () => Promise.all([offeringsQuery.refetch(), tokensQuery.refetch(), operatorQuery.refetch()]),
+    refresh: () =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: ['offerings'] }),
+        client.invalidateQueries({ queryKey: ['offering'] }),
+        client.invalidateQueries({ queryKey: ['offering-subscriptions'] }),
+      ]),
   };
 }
 
-export function useOfferingSubscriptions(uuid: string | undefined) {
-  const query = useQuery({
+export function useOfferingSubscriptions(uuid?: string) {
+  return useQuery({
     queryKey: ['offering-subscriptions', uuid],
-    queryFn: () => getOfferingSubscriptions(apiClient, uuid!),
+    queryFn: () => everyPage((page) => getOfferingSubscriptions(apiClient, uuid!, page)),
     enabled: !!uuid,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
-
-  return { subscriptions: query.data?.data?.results ?? [], isLoading: query.isLoading };
 }
 
-export function useOfferingUnderEdit(uuid: string | undefined) {
-  const query = useQuery({
+export function useOfferingUnderEdit(uuid?: string) {
+  return useQuery({
     queryKey: ['offering', uuid],
-    queryFn: () => getOffering(apiClient, uuid!),
+    queryFn: async () => (await getOffering(apiClient, uuid!)).data,
     enabled: !!uuid,
     staleTime: 0,
   });
-
-  return { offering: query.data?.data, isLoading: query.isLoading };
 }
 
-export function useOfferingActions(onSettled: () => void) {
-  const create = useMutation({
-    mutationFn: (data: OfferingInput) => createOffering(apiClient, data),
-    onSuccess: onSettled,
-  });
-
-  const update = useMutation({
-    mutationFn: ({ uuid, data }: { uuid: string; data: Partial<OfferingInput> }) =>
-      updateOffering(apiClient, uuid, data),
-    onSuccess: onSettled,
-  });
-
-  const submit = useMutation({
-    mutationFn: (uuid: string) => submitOffering(apiClient, uuid),
-    onSuccess: onSettled,
-  });
-
+export function useOfferingActions(onSettled: () => Promise<unknown>) {
+  const submit = useMutation({ mutationFn: (uuid: string) => submitOffering(apiClient, uuid), onSuccess: onSettled });
   const withdraw = useMutation({
     mutationFn: ({ uuid, reason }: { uuid: string; reason: string }) => withdrawOffering(apiClient, uuid, reason),
     onSuccess: onSettled,
   });
-
-  const remove = useMutation({
-    mutationFn: (uuid: string) => deleteOffering(apiClient, uuid),
-    onSuccess: onSettled,
-  });
-
-  return { create, update, submit, withdraw, remove };
+  const remove = useMutation({ mutationFn: (uuid: string) => deleteOffering(apiClient, uuid), onSuccess: onSettled });
+  return { submit, withdraw, remove };
 }

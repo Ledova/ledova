@@ -137,6 +137,30 @@ class ScopedPublicationTest(RunsOnTheScopedConnection, StubUploadDependencies, A
         self.assertEqual([row["uuid"] for row in listed.json()["results"]], [str(self.mine.pk)])
         self.assertEqual(listed.json()["results"][0]["shares"], str(holder.shares))
 
+    def test_the_issuer_filter_is_owned_company_only_on_the_real_app_connection(self):
+        owner = self.there.members[0].user
+        with use_operator():
+            owned = a_company_with_members("scoped-owner-invests", owner=owner)
+            own_paper = published(owned)
+        self.client.force_authenticate(owner)
+
+        unfiltered = self.client.get(LISTING)
+        issued = self.client.get(LISTING, {"issuer": owned.company.pk})
+        personal = self.client.get(LISTING, {"addressed": "me"})
+        nonowned = self.client.get(LISTING, {"issuer": self.there.company.pk})
+        absent = self.client.get(LISTING, {"issuer": uuid4()})
+
+        self.assertEqual(unfiltered.status_code, 200)
+        self.assertEqual(
+            {row["uuid"] for row in unfiltered.json()["results"]}, {str(own_paper.pk), str(self.theirs.pk)}
+        )
+        self.assertEqual(issued.status_code, 200)
+        self.assertEqual([row["uuid"] for row in issued.json()["results"]], [str(own_paper.pk)])
+        self.assertEqual(personal.status_code, 200)
+        self.assertEqual([row["uuid"] for row in personal.json()["results"]], [str(self.theirs.pk)])
+        self.assertEqual((nonowned.status_code, nonowned.content), (absent.status_code, absent.content))
+        self.assertEqual(nonowned.status_code, 400)
+
     def test_the_route_refuses_a_publication_addressed_to_a_member_of_another_company(self):
         self.client.force_authenticate(self.here.members[0].user)
 

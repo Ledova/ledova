@@ -2,8 +2,10 @@ import { AxiosInstance } from 'axios';
 import { OFFERING_ENDPOINTS } from '../constants';
 import type { IssuerSubscription, Offering, OfferingListItem, OfferingInput, PaginatedResponse } from '../types';
 
-export const getOfferings = (apiClient: AxiosInstance) =>
-  apiClient.get<PaginatedResponse<OfferingListItem>>(OFFERING_ENDPOINTS.BASE);
+export const getOfferings = (apiClient: AxiosInstance, page?: number) =>
+  page === undefined
+    ? apiClient.get<PaginatedResponse<OfferingListItem>>(OFFERING_ENDPOINTS.BASE)
+    : apiClient.get<PaginatedResponse<OfferingListItem>>(OFFERING_ENDPOINTS.BASE, { params: { page } });
 
 export const getOffering = (apiClient: AxiosInstance, uuid: string) =>
   apiClient.get<Offering>(OFFERING_ENDPOINTS.DETAIL(uuid));
@@ -20,8 +22,12 @@ export const deleteOffering = (apiClient: AxiosInstance, uuid: string) =>
 export const submitOffering = (apiClient: AxiosInstance, uuid: string) =>
   apiClient.post<Offering>(OFFERING_ENDPOINTS.SUBMIT(uuid), {});
 
-export const getOfferingSubscriptions = (apiClient: AxiosInstance, uuid: string) =>
-  apiClient.get<PaginatedResponse<IssuerSubscription>>(OFFERING_ENDPOINTS.SUBSCRIPTIONS(uuid));
+export const getOfferingSubscriptions = (apiClient: AxiosInstance, uuid: string, page?: number) =>
+  page === undefined
+    ? apiClient.get<PaginatedResponse<IssuerSubscription>>(OFFERING_ENDPOINTS.SUBSCRIPTIONS(uuid))
+    : apiClient.get<PaginatedResponse<IssuerSubscription>>(OFFERING_ENDPOINTS.SUBSCRIPTIONS(uuid), {
+        params: { page },
+      });
 
 export const withdrawOffering = (apiClient: AxiosInstance, uuid: string, reason: string) =>
   apiClient.post<Offering>(OFFERING_ENDPOINTS.WITHDRAW(uuid), { reason });

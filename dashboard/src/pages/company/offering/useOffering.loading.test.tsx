@@ -11,8 +11,8 @@ vi.mock('@ledova/shared', async () => {
   const actual = await vi.importActual<Record<string, unknown>>('@ledova/shared');
   return {
     ...actual,
-    getOfferings: resolved([{ uuid: 'offering-1' }]),
-    getCompanyTokens: resolved([]),
+    getOfferings: resolved([{ uuid: 'offering-1', tokenUuid: 'token-one' }]),
+    getCompanyTokens: resolved([{ uuid: 'token-one', companyUuid: 'company-one' }]),
     getOperator: never,
   };
 });
@@ -20,7 +20,7 @@ vi.mock('@ledova/shared', async () => {
 const { useOfferings } = await import('./useOffering');
 
 function Probe() {
-  const { offerings, isLoading } = useOfferings();
+  const { offerings, isLoading } = useOfferings('company-one');
   return (
     <span>
       offerings:{offerings.length} {isLoading ? 'loading' : 'ready'}
