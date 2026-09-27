@@ -24,7 +24,7 @@ export function MarketOverview({
   onRetry,
 }: MarketOverviewProps) {
   return (
-    <Section title="Market">
+    <Section title="Share classes">
       <p className="text-sm text-text-muted">
         Select a share class to see For sale and Wanted. Orders match automatically. Buyers fund their payment wallet
         before placing an offer.
@@ -54,7 +54,7 @@ export function MarketOverview({
         tokens.map((token) => (
           <div key={token.uuid} className="border-b border-border-subtle py-3">
             <button
-              className="break-words text-left font-medium underline"
+              className="max-w-full break-all text-left font-medium underline"
               aria-pressed={selectedTokenUuid === token.uuid}
               onClick={() => onSelectToken(token.uuid)}
             >
