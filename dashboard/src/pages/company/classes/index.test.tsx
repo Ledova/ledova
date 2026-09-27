@@ -188,6 +188,46 @@ it('hides a stale class and its actions after its read starts failing', async ()
   expect(screen.queryByRole('button', { name: 'Raise authorised shares' })).toBeNull();
 });
 
+it.each(['issue', 'raise'] as const)(
+  'preserves the open %s form during a failed class refresh and retries safely',
+  async (form) => {
+    show();
+    let dialog: HTMLElement;
+    if (form === 'raise') {
+      dialog = await openRaise();
+      fireEvent.change(within(dialog).getByLabelText('Additional shares'), { target: { value: '2' } });
+    } else {
+      fireEvent.click(await screen.findByRole('button', { name: 'Request issuance' }));
+      dialog = await screen.findByRole('dialog');
+      fireEvent.change(within(dialog).getByLabelText('Recipient address'), {
+        target: { value: '0x' + '3'.repeat(40) },
+      });
+      fireEvent.change(within(dialog).getByLabelText('Shares to issue'), { target: { value: '2' } });
+      fireEvent.change(within(dialog).getByLabelText('Reason (optional)'), { target: { value: 'Keep this draft' } });
+    }
+    const confirm = form === 'raise' ? 'Create request' : 'Submit issuance request';
+    expect((within(dialog).getByRole('button', { name: confirm }) as HTMLButtonElement).disabled).toBe(false);
+    failed = CLASS;
+    await act(async () => client.invalidateQueries({ queryKey: ['token', 'class-one'], exact: true }));
+    await waitFor(() => expect(screen.queryByText('Ordinary shares')).toBeNull());
+    dialog = screen.getByRole('dialog');
+    expect((within(dialog).getByRole('button', { name: confirm }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(within(dialog).getByRole('button', { name: confirm }));
+    expect(api.post).not.toHaveBeenCalled();
+    const label = form === 'raise' ? 'Purpose' : 'Reason (optional)';
+    const value = form === 'raise' ? 'Fictional expansion' : 'Keep this draft';
+    expect((within(dialog).getByLabelText(label) as HTMLInputElement).value).toBe(value);
+    failed = null;
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Retry class state' }));
+    await waitFor(() =>
+      expect((within(dialog).getByRole('button', { name: confirm }) as HTMLButtonElement).disabled).toBe(false),
+    );
+    expect((within(dialog).getByLabelText(label) as HTMLInputElement).value).toBe(value);
+    fireEvent.click(within(dialog).getByRole('button', { name: confirm }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
+  },
+);
+
 it.each(['2147483646', '2147483647', '2147483648'])(
   'validates issuance quantity %s at the supported boundary',
   async (amount) => {

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Modal } from '@components/Modal';
+import { PageAction } from '@components/Page';
 import {
   createCapitalIncrease,
   formatShareCount,
@@ -17,16 +18,27 @@ const LIMIT_COPY = `Each request supports up to ${formatShareCount(MAX_REQUEST_S
 
 interface RequestProps {
   token: CompanyShareToken;
+  classRead: { isError: boolean; isFetching: boolean; refetch: () => Promise<unknown> };
   onClose: () => void;
   onSuccess: () => Promise<unknown>;
 }
 
-export function IssueSharesForm({ token, onClose, onSuccess }: RequestProps) {
+function ClassReadFailure({ query }: { query: RequestProps['classRead'] }) {
+  if (!query.isError) return null;
+  return (
+    <div role="alert" className="space-y-2 text-sm text-error-light">
+      <p>The class state could not be refreshed. Your draft is kept; retry before submitting.</p>
+      <PageAction label="Retry class state" onClick={() => void query.refetch()} disabled={query.isFetching} />
+    </div>
+  );
+}
+
+export function IssueSharesForm({ token, classRead, onClose, onSuccess }: RequestProps) {
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
   const quantity = requestShares(amount);
-  const valid = token.status === 'deployed' && recipient.trim() !== '' && quantity !== null;
+  const valid = !classRead.isError && token.status === 'deployed' && recipient.trim() !== '' && quantity !== null;
   const request = useMutation({
     mutationFn: () =>
       issueCompanyShares(apiClient, token.uuid, {
@@ -53,6 +65,7 @@ export function IssueSharesForm({ token, onClose, onSuccess }: RequestProps) {
       confirmLoading={request.isPending}
     >
       <div className="space-y-4">
+        <ClassReadFailure query={classRead} />
         <p className="text-sm text-text-muted">Staff review this request before any shares are issued.</p>
         {request.isError && (
           <p role="alert" className="text-sm text-error-light">
@@ -92,7 +105,7 @@ export function IssueSharesForm({ token, onClose, onSuccess }: RequestProps) {
   );
 }
 
-export function RaiseSharesForm({ token, onClose, onSuccess }: RequestProps) {
+export function RaiseSharesForm({ token, classRead, onClose, onSuccess }: RequestProps) {
   const [additional, setAdditional] = useState('');
   const [purpose, setPurpose] = useState('');
   const [boardReference, setBoardReference] = useState('');
@@ -101,6 +114,7 @@ export function RaiseSharesForm({ token, onClose, onSuccess }: RequestProps) {
   const newTotal = raisedSupply(token.totalSupply, additional);
   const newAuthorizedTotal = newTotal === null ? null : requestShares(newTotal);
   const valid =
+    !classRead.isError &&
     token.status === 'deployed' &&
     additionalShares !== null &&
     newAuthorizedTotal !== null &&
@@ -135,6 +149,7 @@ export function RaiseSharesForm({ token, onClose, onSuccess }: RequestProps) {
       confirmLoading={request.isPending}
     >
       <div className="space-y-4">
+        <ClassReadFailure query={classRead} />
         <p className="text-sm text-text-muted">
           Create a request, then submit it for staff review. Staff approval and execution raise the authorised cap; they
           do not issue shares.
