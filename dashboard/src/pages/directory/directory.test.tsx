@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
@@ -217,6 +217,69 @@ it('hides stale application actions after a failed class refresh', async () => {
   });
   expect(await screen.findByRole('alert')).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Create application' })).toBeNull();
+});
+
+it.each(['class', 'wallets'])('retains draft input through a failed %s refresh and retry', async (source) => {
+  let broken = false;
+  api.get.mockImplementation(async (url: string) => {
+    if (broken && url === (source === 'class' ? DIRECTORY_ENDPOINTS.TOKENS.DETAIL('ordinary') : WALLET_ENDPOINTS.BASE))
+      throw Error('Unavailable');
+    return url === WALLET_ENDPOINTS.BASE ? page([firstWallet, secondWallet]) : defaults(url);
+  });
+  renderPage(true);
+  fireEvent.change(await screen.findByLabelText('Shares'), { target: { value: '7' } });
+  fireEvent.change(screen.getByLabelText('Receiving wallet (Base)'), { target: { value: 'wallet-two' } });
+  broken = true;
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: [source === 'class' ? 'directory' : 'wallets'] });
+  });
+  expect(await screen.findByRole('alert')).toBeTruthy();
+  expect(screen.queryByLabelText('Shares')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Create application' })).toBeNull();
+  expect(api.post).not.toHaveBeenCalled();
+  broken = false;
+  fireEvent.click(screen.getByRole('button', { name: source === 'class' ? 'Try again' : 'Try wallets again' }));
+  expect(await screen.findByLabelText('Shares')).toHaveProperty('value', '7');
+  expect(screen.getByLabelText('Receiving wallet (Base)')).toHaveProperty('value', 'wallet-two');
+  fireEvent.click(screen.getByRole('button', { name: 'Create application' }));
+  expect(await screen.findByRole('heading', { name: 'Application detail' })).toBeTruthy();
+  expect(api.post).toHaveBeenCalledExactlyOnceWith(SUBSCRIPTION_ENDPOINTS.BASE, {
+    offering: 'offering',
+    wallet: 'wallet-two',
+    quantity: 7,
+  });
+});
+
+it.each(['closed', 'not found'])('removes application actions when a refreshed offering is %s', async (state) => {
+  renderPage(true);
+  fireEvent.change(await screen.findByLabelText('Shares'), { target: { value: '7' } });
+  api.get.mockImplementation(async (url: string) => {
+    if (url !== DIRECTORY_ENDPOINTS.TOKENS.DETAIL('ordinary')) return defaults(url);
+    if (state === 'not found') throw { response: { status: 404 } };
+    return { data: { ...token, openOffering: null } };
+  });
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: ['directory'] });
+  });
+  expect(await screen.findByText(state === 'closed' ? 'No offering open' : 'Share class not available')).toBeTruthy();
+  expect(screen.queryByLabelText('Shares')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Create application' })).toBeNull();
+  expect(api.post).not.toHaveBeenCalled();
+});
+
+it('does not carry a draft quantity into a different offering after refresh', async () => {
+  renderPage(true);
+  fireEvent.change(await screen.findByLabelText('Shares'), { target: { value: '7' } });
+  api.get.mockImplementation(async (url: string) =>
+    url === DIRECTORY_ENDPOINTS.TOKENS.DETAIL('ordinary')
+      ? { data: { ...token, openOffering: { ...token.openOffering, uuid: 'replacement' } } }
+      : defaults(url),
+  );
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: ['directory'] });
+  });
+  await waitFor(() => expect(screen.getByLabelText('Shares')).toHaveProperty('value', ''));
+  expect(screen.getByRole('button', { name: 'Create application' })).toHaveProperty('disabled', true);
 });
 
 it('reads every verified Base wallet page and creates a draft for the selected wallet without a preferences read', async () => {

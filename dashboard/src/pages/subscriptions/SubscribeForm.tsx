@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DESTINATIONS, SUBSCRIPTION_COPY, formatMoney, getErrorMessage } from '@ledova/shared';
 import type { DirectoryOpenOffering, Wallet } from '@ledova/shared';
@@ -11,6 +10,8 @@ const FIELD_CLASS =
 
 interface SubscribeFormProps {
   offering: DirectoryOpenOffering;
+  draft: { quantity: string; wallet: string | null };
+  onDraftChange: (draft: { quantity: string; wallet: string | null }) => void;
   wallets: Wallet[];
   busy: boolean;
   error: unknown;
@@ -27,9 +28,16 @@ function applicationAmount(quantity: string, price: string) {
   return `${total / 100n}.${String(total % 100n).padStart(2, '0')}`;
 }
 
-export function SubscribeForm({ offering, wallets, busy, error, onSubscribe }: SubscribeFormProps) {
-  const [quantity, setQuantity] = useState('');
-  const [wallet, setWallet] = useState<string | null>(null);
+export function SubscribeForm({
+  offering,
+  draft,
+  onDraftChange,
+  wallets,
+  busy,
+  error,
+  onSubscribe,
+}: SubscribeFormProps) {
+  const { quantity, wallet } = draft;
   const chosenWallet =
     wallet === null ? (wallets[0]?.uuid ?? '') : (wallets.find((item) => item.uuid === wallet)?.uuid ?? '');
   const amount = applicationAmount(quantity, offering.pricePerShare);
@@ -61,7 +69,7 @@ export function SubscribeForm({ offering, wallets, busy, error, onSubscribe }: S
             type="text"
             inputMode="numeric"
             value={quantity}
-            onChange={(event) => setQuantity(event.target.value)}
+            onChange={(event) => onDraftChange({ ...draft, quantity: event.target.value })}
             className={FIELD_CLASS}
             placeholder="Whole shares"
             aria-invalid={quantity !== '' && amount === null}
@@ -70,7 +78,11 @@ export function SubscribeForm({ offering, wallets, busy, error, onSubscribe }: S
         </label>
         <label className="block min-w-0">
           <span className="text-sm text-text-primary">Receiving wallet (Base)</span>
-          <select value={chosenWallet} onChange={(event) => setWallet(event.target.value)} className={FIELD_CLASS}>
+          <select
+            value={chosenWallet}
+            onChange={(event) => onDraftChange({ ...draft, wallet: event.target.value })}
+            className={FIELD_CLASS}
+          >
             <option value="" disabled>
               Choose a receiving wallet
             </option>

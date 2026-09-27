@@ -136,7 +136,11 @@ directory. An unavailable class and a failed read have different states. The
 authorised share count stays a decimal string; an issued count outside the API's
 safe numeric range is unavailable rather than rounded. A draft application reads
 every verified Base wallet page, requires a safe whole-share quantity and computes
-the displayed fixed-price total in integer cents. The server still selects the
+the displayed fixed-price total in integer cents. Its quantity and chosen wallet
+survive a failed class or wallet refresh, while the retry screen hides application
+actions. Those inputs are scoped to the offering, so a replacement offering starts
+with a fresh quantity. A closed or unavailable offering has no application form.
+The server still selects the
 applicant and enforces quantity and eligibility rules. Payment details remain on
 the accepted application, which supplies its exact amount and reference.
 

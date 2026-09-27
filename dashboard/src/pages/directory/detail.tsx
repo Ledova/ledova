@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { DESTINATIONS, formatDate, formatMoney, formatShareCount } from '@ledova/shared';
 import { Row, Rows, Section, Status } from '@components/Ledger';
@@ -9,6 +10,7 @@ import { useDirectoryToken } from './useDirectory';
 export default function DirectoryTokenPage() {
   const { uuid } = useParams<{ uuid: string }>();
   const navigate = useNavigate();
+  const [draft, setDraft] = useState<{ offering: string; quantity: string; wallet: string | null } | null>(null);
   const {
     token,
     operator,
@@ -125,6 +127,8 @@ export default function DirectoryTokenPage() {
           <SubscribeForm
             key={offering.uuid}
             offering={offering}
+            draft={draft?.offering === offering.uuid ? draft : { quantity: '', wallet: null }}
+            onDraftChange={(updated) => setDraft({ ...updated, offering: offering.uuid })}
             wallets={wallets.wallets}
             busy={create.isPending}
             error={create.error}

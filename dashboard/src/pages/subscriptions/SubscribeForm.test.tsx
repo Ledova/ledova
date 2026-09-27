@@ -1,10 +1,16 @@
 // @vitest-environment jsdom
 
+import { useState, type ComponentProps } from 'react';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import type { DirectoryOpenOffering, Wallet } from '@ledova/shared';
 import { SubscribeForm } from './SubscribeForm';
+
+function DraftForm(props: Omit<ComponentProps<typeof SubscribeForm>, 'draft' | 'onDraftChange'>) {
+  const [draft, setDraft] = useState<{ quantity: string; wallet: string | null }>({ quantity: '', wallet: null });
+  return <SubscribeForm {...props} draft={draft} onDraftChange={setDraft} />;
+}
 
 const offering: DirectoryOpenOffering = {
   uuid: 'offering',
@@ -21,7 +27,7 @@ it('computes the payable total with exact cents, including beyond floating-point
   const onSubscribe = vi.fn();
   render(
     <MemoryRouter>
-      <SubscribeForm offering={offering} wallets={[primary]} busy={false} error={null} onSubscribe={onSubscribe} />
+      <DraftForm offering={offering} wallets={[primary]} busy={false} error={null} onSubscribe={onSubscribe} />
     </MemoryRouter>,
   );
   fireEvent.change(screen.getByLabelText('Shares'), { target: { value: '3' } });
@@ -36,7 +42,7 @@ it.each(['', '0', '-1', '1.5', '3e2', '9007199254740993', 'Infinity', 'text'])(
     const onSubscribe = vi.fn();
     render(
       <MemoryRouter>
-        <SubscribeForm offering={offering} wallets={[primary]} busy={false} error={null} onSubscribe={onSubscribe} />
+        <DraftForm offering={offering} wallets={[primary]} busy={false} error={null} onSubscribe={onSubscribe} />
       </MemoryRouter>,
     );
     fireEvent.change(screen.getByLabelText('Shares'), { target: { value: quantity } });
@@ -51,7 +57,7 @@ it('requires an explicit replacement when a selected wallet disappears during re
   const onSubscribe = vi.fn();
   const renderForm = (wallets: Wallet[]) => (
     <MemoryRouter>
-      <SubscribeForm offering={offering} wallets={wallets} busy={false} error={null} onSubscribe={onSubscribe} />
+      <DraftForm offering={offering} wallets={wallets} busy={false} error={null} onSubscribe={onSubscribe} />
     </MemoryRouter>
   );
   const view = render(renderForm([primary, reserve]));
@@ -69,7 +75,7 @@ it('prevents a second draft request while the first one is pending', () => {
   const onSubscribe = vi.fn();
   render(
     <MemoryRouter>
-      <SubscribeForm offering={offering} wallets={[primary]} busy error={null} onSubscribe={onSubscribe} />
+      <DraftForm offering={offering} wallets={[primary]} busy error={null} onSubscribe={onSubscribe} />
     </MemoryRouter>,
   );
   fireEvent.change(screen.getByLabelText('Shares'), { target: { value: '2' } });
