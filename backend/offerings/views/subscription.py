@@ -27,8 +27,7 @@ class SubscriptionViewSet(
     scoped_model = Subscription
 
     def narrow(self, queryset):
-        queryset = queryset.subscribed_by(self.request.user)
-        return queryset.with_relations()
+        return queryset.for_applicant(self.request.user)
 
     def get_serializer_class(self):
         if self.action == "create":

@@ -141,6 +141,10 @@ def create_draft(offering: Offering, user_account, wallet, quantity: int, submit
         raise SubscriptionRefusedException(WALLET_NOT_ON_ACCOUNT)
     return Subscription.objects.create(
         offering=offering,
+        company_name=offering.token.company.display_name,
+        token_name=offering.token.name,
+        token_symbol=offering.token.symbol,
+        currency=offering.price_currency,
         user_account=user_account,
         wallet=wallet,
         submitted_by=submitted_by,
@@ -158,8 +162,12 @@ def _require_eligible(subscription: Subscription):
 
 @atomic()
 def submit(subscription: Subscription, submitted_by=None) -> Subscription:
-    _require_open(subscription.offering)
-    _check_bounds(subscription.offering, subscription.quantity)
+    offering = Offering.objects.with_relations().filter(pk=subscription.offering_id).first()
+    if offering is None:
+        raise SubscriptionRefusedException(OFFERING_NOT_OPEN.format(symbol=subscription.token_symbol))
+    subscription.offering = offering
+    _require_open(offering)
+    _check_bounds(offering, subscription.quantity)
     _require_eligible(subscription)
     subscription.submit(submitted_by=submitted_by)
     logger.info(f"Subscription {subscription.uuid} submitted for {subscription.offering.token.symbol}")

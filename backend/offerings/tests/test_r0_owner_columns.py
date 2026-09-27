@@ -4,8 +4,10 @@ from importlib import import_module
 from django.db import IntegrityError, ProgrammingError, connection, transaction
 from django.test import TestCase
 
+from companies.models import Company
 from offerings.models import Offering, Subscription
 from shared.tests.tenants import make_tenant
+from tokens.models import ShareToken
 
 POSTGRES_ONLY = (
     "The derive-and-refuse trigger is PostgreSQL only: SQLite has no plpgsql, and the column exists "
@@ -90,6 +92,10 @@ class OwnerColumnTriggerTest(TestCase):
     def test_bulk_create_bypasses_the_python_half_and_the_trigger_derives(self):
         row = Subscription(
             offering=self.issuer.offering,
+            company_name=self.issuer.offering.token.company.display_name,
+            token_name=self.issuer.offering.token.name,
+            token_symbol=self.issuer.offering.token.symbol,
+            currency=self.issuer.offering.price_currency,
             user_account=self.issuer.account,
             wallet=self.issuer.wallet,
             submitted_by=self.issuer.user,
@@ -157,6 +163,18 @@ class OwnerColumnTriggerTest(TestCase):
                 )
 
                 self.assertEqual(cursor.fetchone()[0], "NO")
+
+    def test_a_subscription_still_follows_its_visible_parents_updated_owner(self):
+        company = Company.objects.create(
+            owner=self.issuer.user, name="Synthetic second company", company_type="proprietary", acn="990000011"
+        )
+        ShareToken.objects.filter(pk=self.issuer.offering.token_id).update(company=company)
+        Offering.objects.filter(pk=self.issuer.offering.pk).update(summary="Same offering with an updated owner")
+        Subscription.objects.filter(pk=self.issuer.subscription.pk).update(payment_notes="Still follows the parent")
+
+        self.issuer.subscription.refresh_from_db()
+        self.assertEqual(self.issuer.subscription.company_id, company.pk)
+        self.assertEqual(self.issuer.subscription.company_name, self.issuer.company.name)
 
     def test_an_ordinary_update_still_works(self):
         offering = self.issuer.offering

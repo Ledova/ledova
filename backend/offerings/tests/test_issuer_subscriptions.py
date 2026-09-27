@@ -94,6 +94,10 @@ class IssuerSubscriptionReadTest(APITestCase):
         for index in range(25):
             subscription = Subscription.objects.create(
                 offering=self.offering,
+                company_name=self.offering.token.company.display_name,
+                token_name=self.offering.token.name,
+                token_symbol=self.offering.token.symbol,
+                currency=self.offering.price_currency,
                 user_account=other.account,
                 wallet=other.wallet,
                 submitted_by=other.user,

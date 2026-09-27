@@ -80,6 +80,10 @@ class CompanyDeletionTest(APITestCase):
         self.wallet = Wallet.objects.create(user_account=self.account, address=HOLDER, chain="base")
         self.subscription = Subscription.objects.create(
             offering=self.offering,
+            company_name=self.offering.token.company.display_name,
+            token_name=self.offering.token.name,
+            token_symbol=self.offering.token.symbol,
+            currency=self.offering.price_currency,
             user_account=self.account,
             wallet=self.wallet,
             quantity=100,

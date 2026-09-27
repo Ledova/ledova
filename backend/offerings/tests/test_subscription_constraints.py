@@ -20,6 +20,10 @@ class SubscriptionConstraintTest(TestCase):
     def _build(self, **overrides):
         fields = {
             "offering": self.tenant.offering,
+            "company_name": self.tenant.company.display_name,
+            "token_name": self.tenant.offering.token.name,
+            "token_symbol": self.tenant.offering.token.symbol,
+            "currency": self.tenant.offering.price_currency,
             "user_account": self.tenant.account,
             "wallet": self.tenant.wallet,
             "quantity": 10,

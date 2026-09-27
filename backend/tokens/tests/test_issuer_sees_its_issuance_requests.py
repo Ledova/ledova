@@ -130,6 +130,10 @@ class AnIssuerCanSeeTheRequestItMadeTest(APITestCase):
         open_to_investors(self.stranger)
         Subscription.objects.create(
             offering=self.stranger.offering,
+            company_name=self.stranger.offering.token.company.display_name,
+            token_name=self.stranger.offering.token.name,
+            token_symbol=self.stranger.offering.token.symbol,
+            currency=self.stranger.offering.price_currency,
             user_account=self.tenant.account,
             wallet=self.tenant.wallet,
             submitted_by=self.tenant.user,

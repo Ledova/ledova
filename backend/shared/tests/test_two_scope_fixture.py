@@ -17,6 +17,10 @@ REASON = "the policies exist only in PostgreSQL, and without them both scopes re
 def a_subscription_from(buyer, offering):
     return Subscription.objects.create(
         offering=offering,
+        company_name=offering.token.company.display_name,
+        token_name=offering.token.name,
+        token_symbol=offering.token.symbol,
+        currency=offering.price_currency,
         user_account=buyer.account,
         wallet=buyer.wallet,
         submitted_by=buyer.user,

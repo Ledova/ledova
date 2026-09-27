@@ -409,6 +409,10 @@ class ActionResponseContractTest(APITransactionTestCase):
         for _index in range(25):
             subscription = Subscription.objects.create(
                 offering=self.owner.offering,
+                company_name=self.owner.offering.token.company.display_name,
+                token_name=self.owner.offering.token.name,
+                token_symbol=self.owner.offering.token.symbol,
+                currency=self.owner.offering.price_currency,
                 user_account=self.owner.account,
                 wallet=self.owner.wallet,
                 quantity=10,

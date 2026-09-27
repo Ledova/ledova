@@ -11,9 +11,19 @@ How payment, refund, scale-back and share allotment fit together.
    offering to `Offering.objects.open_now()` inside
    `eligible_investor_companies(user)`, the account to the caller's investing
    account, the wallet to `owned_by(user).verified_evm()` on Base.
-   `create_draft` snapshots the offering price onto the row, so a later price
-   edit cannot move a live subscription.
-2. `POST .../submit/` runs `require_subscription_eligibility(account, company,
+   `create_draft` stores the offering price, currency, company display name
+   (trading name with legal-name fallback), class name and symbol on the row.
+   Later edits do not refresh those values. Existing applications are backfilled
+   from their parents by the migration, including hidden and paused classes.
+2. The personal list and detail read these stored values without joining the
+   offering, class or company. Reads, bank instructions and guarded withdrawal
+   remain available after a class is paused or the company leaves the directory,
+   is warned or suspended. An unchanged application link can retain its stored
+   owner when its parent is hidden; inserts, changed hidden links and owner
+   tampering are refused. RLS read scopes are unchanged.
+   `POST .../submit/` first re-reads the offering and its class and company under
+   the caller's policies. A hidden parent returns 400 and leaves the draft intact.
+   It then runs `require_subscription_eligibility(account, company,
    amount_due)`; `accept` in the admin runs it again, because a certificate can
    lapse between submission and acceptance and eligibility must still hold at acceptance. Both name the subscription's own account and issuer, so the
    qualification is checked against the record being accepted. An account may hold several live claims, so the test is whether
