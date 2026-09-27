@@ -10,6 +10,6 @@ it('preserves the existing first-page call and supports later verification claim
   await getInvestorClassifications(api);
   await getInvestorClassifications(api, 3);
 
-  expect(get).toHaveBeenNthCalledWith(1, '/api/v1/investor-classifications/');
-  expect(get).toHaveBeenNthCalledWith(2, '/api/v1/investor-classifications/', { params: { page: 3 } });
+  expect(get).toHaveBeenNthCalledWith(1, '/api/investor-classifications/');
+  expect(get).toHaveBeenNthCalledWith(2, '/api/investor-classifications/', { params: { page: 3 } });
 });

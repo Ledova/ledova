@@ -64,6 +64,7 @@ it.each(KEYS)('keeps the real %s page titled once everything it asked for has co
     </QueryClientProvider>,
   );
 
+  await screen.findByRole('heading', { level: 1 });
   await waitFor(() => expect(client.isFetching()).toBe(0));
 
   expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(
