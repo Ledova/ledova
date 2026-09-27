@@ -5,60 +5,56 @@ import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { useCompany } from './useCompany';
+import { companyRecord } from '../testSupport';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
-
-const summary = { uuid: 'company-1', name: 'Synthetic Company', status: 'draft', acn: '000000019' };
 let client: QueryClient;
-
+const company = companyRecord();
 beforeEach(() => {
-  api.get.mockReset();
+  vi.resetAllMocks();
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 });
-
 afterEach(() => {
   cleanup();
   client.clear();
 });
-
 function wrapper({ children }: PropsWithChildren) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
 
-function responses(detail: () => Promise<unknown>) {
-  api.get.mockImplementation((url: string) => {
-    if (url === '/api/v1/companies/') return Promise.resolve({ data: { results: [summary] } });
-    if (url === '/api/v1/companies/company-1/stats/') return Promise.resolve({ data: { totalTokens: 2 } });
-    if (url === '/api/v1/companies/company-1/') return detail();
-    throw new Error(`Unexpected request: ${url}`);
-  });
-}
-
-it('keeps the summary while detail is pending, then exposes the detail without inventing list fields', async () => {
+it('waits for the complete company instead of treating its list summary as loaded detail', async () => {
   let resolve: (value: unknown) => void = () => {};
-  const pending = new Promise((done) => {
-    resolve = done;
-  });
-  responses(() => pending);
+  api.get.mockImplementation((url: string) =>
+    url === '/api/v1/companies/'
+      ? Promise.resolve({ data: { results: [{ uuid: company.uuid, name: company.name }] } })
+      : new Promise((done) => {
+          resolve = done;
+        }),
+  );
   const { result } = renderHook(() => useCompany(), { wrapper });
-  await waitFor(() => expect(result.current.company).toEqual(summary));
-  expect(result.current.company).not.toHaveProperty('abn');
-
-  const detail = { ...summary, abn: 'test-abn', description: 'Fetched detail' };
-  await act(async () => {
-    resolve({ data: detail });
-  });
-  await waitFor(() => expect(result.current.company).toEqual(detail));
-  expect(result.current.company?.abn).toBe('test-abn');
+  await waitFor(() => expect(api.get).toHaveBeenCalledWith('/api/v1/companies/company-one/'));
+  expect(result.current.company).toBeNull();
+  expect(result.current.isLoading).toBe(true);
+  await act(async () => resolve({ data: company }));
+  await waitFor(() => expect(result.current.company).toEqual(company));
+  expect(api.get.mock.calls.map(([url]) => url)).toEqual(['/api/v1/companies/', '/api/v1/companies/company-one/']);
 });
 
-it('preserves the summary and reports the error when the detail request fails', async () => {
-  const failure = new Error('detail unavailable');
-  responses(() => Promise.reject(failure));
+it.each(['list', 'detail'])('reports and retries a failed %s read', async (source) => {
+  let failed = true;
+  const error = new Error('Unavailable');
+  api.get.mockImplementation(async (url: string) => {
+    if (failed && (source === 'list' ? url === '/api/v1/companies/' : url.endsWith('company-one/'))) throw error;
+    return { data: url === '/api/v1/companies/' ? { results: [{ uuid: company.uuid }] } : company };
+  });
   const { result } = renderHook(() => useCompany(), { wrapper });
-  await waitFor(() => expect(result.current.error).toBe(failure));
-  expect(result.current.company).toEqual(summary);
-  expect(result.current.company).not.toHaveProperty('abn');
-  expect(result.current.companyUuid).toBe('company-1');
+  await waitFor(() => expect(result.current.error).toBe(error));
+  expect(result.current.company).toBeNull();
+  failed = false;
+  await act(async () => {
+    await result.current.refetch();
+  });
+  await waitFor(() => expect(result.current.company).toEqual(company));
+  expect(result.current.error).toBeNull();
 });

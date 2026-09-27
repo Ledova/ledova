@@ -1,51 +1,24 @@
 import { useQuery } from '@tanstack/react-query';
-import { getCompanies, getCompany, getCompanyStats } from '@ledova/shared';
-import type { Company, CompanyListItem, CompanyStats } from '@ledova/shared';
+import { getCompanies, getCompany } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 
-export type CompanyView = (Company | CompanyListItem) & Partial<Company>;
-
 export function useCompany() {
-  const { data: companiesData, isLoading: isLoadingList } = useQuery({
+  const companies = useQuery({
     queryKey: ['companies'],
     queryFn: () => getCompanies(apiClient),
   });
-
-  const companyUuid = companiesData?.data?.results?.[0]?.uuid;
-
-  const {
-    data: company,
-    isLoading: isLoadingCompany,
-    error: companyError,
-    refetch: refetchCompany,
-  } = useQuery<Company>({
+  const companyUuid = companies.data?.data.results[0]?.uuid;
+  const detail = useQuery({
     queryKey: ['company', companyUuid],
-    queryFn: () => getCompany(apiClient, companyUuid!).then((res) => res.data),
-    enabled: !!companyUuid,
+    queryFn: () => getCompany(apiClient, companyUuid!).then(({ data }) => data),
+    enabled: !!companyUuid && !companies.isError,
   });
-
-  const {
-    data: stats,
-    isLoading: isLoadingStats,
-    error: statsError,
-    refetch: refetchStats,
-  } = useQuery<CompanyStats>({
-    queryKey: ['company-stats', companyUuid],
-    queryFn: () => getCompanyStats(apiClient, companyUuid!).then((res) => res.data),
-    enabled: !!companyUuid,
-  });
-
-  const companyView: CompanyView | null = company || companiesData?.data?.results?.[0] || null;
-
   return {
-    company: companyView,
+    company: detail.data ?? null,
     companyUuid,
-    stats: stats || null,
-    isLoading: isLoadingList || isLoadingCompany || isLoadingStats,
-    error: companyError || statsError,
-    refetch: () => {
-      refetchCompany();
-      refetchStats();
-    },
+    isLoading: companies.isLoading || detail.isLoading,
+    isRefreshing: companies.isFetching || detail.isFetching,
+    error: companies.error || detail.error,
+    refetch: () => Promise.all([companies.refetch(), ...(companyUuid ? [detail.refetch()] : [])]),
   };
 }
