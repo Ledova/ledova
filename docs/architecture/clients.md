@@ -55,8 +55,8 @@ offers only pages the role can open, in groups:
 
 Each item takes its name and address from its entry in `DESTINATIONS`, so a
 menu label always matches the page's title. Until a new page exists, its name
-points at today's page: Holdings at the crypto home, Notices at Publications,
-and Activity at Transactions. The mobile app keeps the old names until #750
+points at today's page: Notices at Publications and Activity at Transactions.
+Holdings replaces the crypto home at the existing `/home` address. The mobile app keeps the old names until #750
 gives it the same structure. So, for now, Market means share trading on the
 web but the coin-price screen in the app.
 
@@ -65,10 +65,20 @@ what the tab cached for whoever was signed in before, as signing out does, so a
 new person is never guarded by, or signs up against, the previous person's
 account. Buying crypto and sending are actions on Wallets for every account,
 not menu items, and the dashboard has no coin-price page or favourites.
-Holdings, today's crypto home, keeps its "Coin prices" card until step 5
-rebuilds it. Every market value is in AUD: the shared `useCurrency` converts
-the API's US-dollar values at the current rate, including Holdings' charts, shows
-a dash and draws no chart while the rate is unknown, and neither client offers
+Holdings reads every page of the person's wallets and lists their tokenized
+security holdings by company and class, with one row per asset across chains.
+It uses the API's current class and company names when available and the asset's
+combined name otherwise; a missing class lookup does not remove the holding.
+Whole share counts are added without floating-point conversion and can be
+expanded into chain and wallet balances. Crypto balances, allocation charts,
+coin prices and market valuations are absent from this share ledger. If any
+wallet page or holdings read fails, the page offers a retry instead of presenting
+partial counts as complete. The existing personal publication summary remains
+until the later Needs you and In progress sections replace it.
+
+Where market values are shown elsewhere, they are in AUD: the shared
+`useCurrency` converts the API's US-dollar values at the current rate, shows a
+dash and draws no chart while the rate is unknown, and neither client offers
 another currency. An offering's prices and an application's amounts are in the
 offering's own currency, which defaults to AUD. The Buy step shows each
 asset's current price, and no price while the exchange rate is unknown. Both
