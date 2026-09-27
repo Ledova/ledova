@@ -180,6 +180,8 @@ it('keeps listed supply exact and hides stale listed classes on a read error', (
   };
   const view = render(<MarketOverview {...props} />);
   expect(screen.getByText('9,007,199,254,740,993')).toBeTruthy();
+  expect(screen.getByText('Authorised shares')).toBeTruthy();
+  expect(screen.queryByText('Issued shares')).toBeNull();
   view.rerender(<MarketOverview {...props} error={new Error('fictional failure')} />);
   expect(screen.queryByText('9,007,199,254,740,993')).toBeNull();
   expect(screen.getByText('Retry share classes')).toBeTruthy();

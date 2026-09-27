@@ -62,7 +62,7 @@ export function MarketOverview({
             </button>
             <Rows>
               <Row label="Last trade">{token.lastPrice ? marketAmount(token.lastPrice) : 'Not recorded'}</Row>
-              <Row label="Issued shares">
+              <Row label="Authorised shares">
                 <span className="break-all">{token.totalSupply ? formatShareCount(token.totalSupply) : '0'}</span>
               </Row>
             </Rows>
