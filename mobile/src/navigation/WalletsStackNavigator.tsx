@@ -53,7 +53,7 @@ export function WalletsStackNavigator() {
         name="WalletsList"
         component={WalletsScreen}
         options={() => ({
-          title: 'Wallets',
+          title: '',
         })}
       />
       <Stack.Screen name="Buy" component={BuyStackNavigator} options={{ headerShown: false }} />
@@ -61,8 +61,8 @@ export function WalletsStackNavigator() {
       <Stack.Screen
         name="WalletAction"
         component={WalletActionScreen}
-        options={({ route }) => ({
-          title: route.params.wallet.name || 'Wallet',
+        options={() => ({
+          title: '',
           headerLeft: undefined,
           headerBackVisible: true,
           headerRight: () => null,

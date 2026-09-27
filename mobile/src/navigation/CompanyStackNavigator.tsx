@@ -1,8 +1,9 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { CompanyRegisterScreen } from '../screens/company-register/CompanyRegisterScreen';
+import { OfferingsScreen } from '../screens/company-offerings/OfferingsScreen';
 import { CompanyScreen } from '../screens/company';
-import { CompanyPublicationsScreen } from '../screens/publications';
+import { CompanyPublicationsScreen } from '../screens/company-publications/CompanyPublicationsScreen';
 import { TokenDetailScreen } from '../screens/company-tokens/TokenDetailScreen';
 import { useAppTheme } from '../contexts';
 import { getMainHeaderStyle } from './headers/MainHeader';
@@ -12,6 +13,7 @@ export type CompanyStackParamList = {
   CompanyMain: undefined;
   CompanyDetails: undefined;
   CompanyPublications: undefined;
+  CompanyOfferings: undefined;
   TokenDetail: { uuid: string; name?: string };
 };
 
@@ -34,7 +36,12 @@ export function CompanyStackNavigator() {
       <Stack.Screen
         name="CompanyDetails"
         component={CompanyScreen}
-        options={{ title: 'Company', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
+        options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
+      />
+      <Stack.Screen
+        name="CompanyOfferings"
+        component={OfferingsScreen}
+        options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
       />
       <Stack.Screen
         name="CompanyPublications"

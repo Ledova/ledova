@@ -213,11 +213,11 @@ network's recorded quantity for that date.
 The breakdown comes from daily `HoldingSnapshot` rows and their wallet links.
 Quantities carry forward from the last recorded day, including a recorded zero;
 current live balances do not replace historical quantities. There is no history
-before the first recorded holding. Dashboard and mobile expose the split under
-the chart's Holdings view, following the selected date. Older responses without
-network detail offer no expansion. A missing price is shown as unpriced, while
-a priced zero stays zero. Base transfers use ETH for native quantities and gas
-fees, and use Base's chain ID for signing.
+before the first recorded holding. This history remains available through the
+portfolio API; the current dashboard and mobile Holdings pages show share
+quantities by company and class instead of a portfolio chart. Missing historical
+prices remain unpriced, while a priced zero stays zero. Base transfers use ETH
+for native quantities and gas fees, and use Base's chain ID for signing.
 
 Next: [wallet transfers](transfers.md), [history and balance reconciliation](../reference/wallet-reconciliation.md),
 and [operator seeding](../operations/operator-console.md#seeding).

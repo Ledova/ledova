@@ -1,512 +1,305 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, Alert, Switch, TouchableOpacity, TextInput } from 'react-native';
-import {
-  CaretRightIcon,
-  EyeIcon,
-  EyeSlashIcon,
-  LockIcon,
-  BellIcon,
-  UserGearIcon,
-  AppWindowIcon,
-} from 'phosphor-react-native';
-import { GradientBackground } from '../../components/GradientBackground';
-import { Panel } from '../../components/panel';
-import { CustomModal } from '../../components/modal';
-import { useAppLock, useAppTheme, useThemedStyles } from '../../contexts';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { Action, Section } from '../../components/Ledger';
+import { useAppLock } from '../../contexts';
+import { AccountModal } from '../account/AccountModal';
+import { useAccountStyles } from '../account/styles';
 import { useNotificationPreferences } from './useNotificationPreferences';
 import { useSettings } from './useSettings';
 
-interface ToggleRowProps {
+function Toggle({
+  label,
+  description,
+  value,
+  disabled,
+  onChange,
+}: {
   label: string;
-  description?: string;
+  description: string;
   value: boolean;
-  onValueChange: (value: boolean) => void;
-  disabled?: boolean;
-  isLast?: boolean;
-}
-
-function ToggleRow({ label, description, value, onValueChange, disabled = false, isLast = false }: ToggleRowProps) {
-  const theme = useAppTheme();
-  const styles = useThemedStyles((theme) => ({
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: theme.spacing.md,
-      paddingVertical: theme.spacing.md,
-    },
-    rowBorder: {
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border.default,
-    },
-    rowTextContainer: {
-      flex: 1,
-      marginRight: theme.spacing.md,
-    },
-    rowLabel: {
-      fontSize: theme.fontSize.base,
-      color: theme.colors.text.primary,
-    },
-    rowLabelDisabled: {
-      color: theme.colors.text.muted,
-    },
-    rowDescription: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      marginTop: 2,
-    },
-    rowDescriptionDisabled: {
-      color: theme.colors.text.muted,
-    },
-  }));
+  disabled: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  const styles = useAccountStyles();
   return (
-    <TouchableOpacity
-      style={[styles.row, !isLast && styles.rowBorder]}
-      onPress={() => !disabled && onValueChange(!value)}
-      activeOpacity={disabled ? 1 : 0.7}
-      disabled={disabled}
-    >
-      <View style={styles.rowTextContainer}>
-        <Text style={[styles.rowLabel, disabled && styles.rowLabelDisabled]}>{label}</Text>
-        {description && (
-          <Text style={[styles.rowDescription, disabled && styles.rowDescriptionDisabled]}>{description}</Text>
-        )}
+    <View style={styles.toggle}>
+      <View style={styles.toggleText}>
+        <Text style={styles.text}>{label}</Text>
+        <Text style={styles.muted}>{description}</Text>
       </View>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        disabled={disabled}
-        trackColor={{
-          false: theme.colors.surface.disabled,
-          true: theme.colors.interactive.default,
-        }}
-        thumbColor={theme.colors.utility.white}
-        ios_backgroundColor={theme.colors.surface.disabled}
-      />
-    </TouchableOpacity>
-  );
-}
-
-interface NavRowProps {
-  label: string;
-  onPress: () => void;
-  danger?: boolean;
-  isLast?: boolean;
-}
-
-function NavRow({ label, onPress, danger = false, isLast = false }: NavRowProps) {
-  const theme = useAppTheme();
-  const styles = useThemedStyles((theme) => ({
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: theme.spacing.md,
-      paddingVertical: theme.spacing.md,
-    },
-    rowBorder: {
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border.default,
-    },
-    rowLabel: {
-      fontSize: theme.fontSize.base,
-      color: theme.colors.text.primary,
-    },
-    rowLabelDanger: {
-      color: theme.colors.status.error.icon,
-    },
-  }));
-  return (
-    <TouchableOpacity style={[styles.row, !isLast && styles.rowBorder]} onPress={onPress} activeOpacity={0.7}>
-      <Text style={[styles.rowLabel, danger && styles.rowLabelDanger]}>{label}</Text>
-      <CaretRightIcon size={20} color={theme.colors.text.muted} weight="regular" />
-    </TouchableOpacity>
+      <Switch accessibilityLabel={label} value={value} disabled={disabled} onValueChange={onChange} />
+    </View>
   );
 }
 
 export function SettingsScreen() {
-  const theme = useAppTheme();
-  const styles = useThemedStyles((theme) => ({
-    container: {
-      flex: 1,
-    },
-    scrollView: {
-      flex: 1,
-    },
-    content: {
-      paddingTop: theme.spacing.md,
-      paddingHorizontal: theme.spacing.sm,
-      gap: theme.spacing.md,
-    },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: theme.spacing.md,
-      paddingVertical: theme.spacing.md,
-    },
-    rowBorder: {
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border.default,
-    },
-    rowTextContainer: {
-      flex: 1,
-      marginRight: theme.spacing.md,
-    },
-    rowLabel: {
-      fontSize: theme.fontSize.base,
-      color: theme.colors.text.primary,
-    },
-    rowLabelDisabled: {
-      color: theme.colors.text.muted,
-    },
-    rowLabelDanger: {
-      color: theme.colors.status.error.icon,
-    },
-    rowDescription: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      marginTop: 2,
-    },
-    rowDescriptionDisabled: {
-      color: theme.colors.text.muted,
-    },
-    modalContent: {
-      gap: theme.spacing.sm,
-    },
-    modalTitle: {
-      fontSize: theme.fontSize.lg,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-      marginBottom: theme.spacing.xs,
-    },
-    modalText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.body,
-      lineHeight: 20,
-    },
-    modalTextDanger: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.status.error.icon,
-      fontWeight: theme.fontWeight.semibold,
-      lineHeight: 20,
-    },
-    modalTextHint: {
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.muted,
-      marginTop: theme.spacing.xs,
-    },
-    inputContainer: {
-      marginTop: theme.spacing.sm,
-    },
-    inputLabel: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.body,
-      marginBottom: theme.spacing.xs,
-    },
-    inputWrapper: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: theme.colors.surface.tertiary,
-      borderWidth: 1,
-      borderColor: theme.colors.border.strong,
-      borderRadius: theme.borderRadius.md,
-      paddingHorizontal: theme.spacing.md,
-      height: 48,
-    },
-    input: {
-      flex: 1,
-      color: theme.colors.text.primary,
-      fontSize: theme.fontSize.base,
-    },
-    eyeButton: {
-      padding: theme.spacing.xs,
-      marginLeft: theme.spacing.xs,
-    },
-  }));
-
-  const {
-    isEnabled: appLockEnabled,
-    setEnabled: setAppLockEnabled,
-    hasBiometricLogin,
-    enableBiometricLogin,
-    disableBiometricLogin,
-    biometricsAvailable,
-    biometricType,
-  } = useAppLock();
-
-  const { transactionAlerts, toggleTransactionAlerts, isUpdating } = useNotificationPreferences();
-
-  const {
-    changeUserPassword,
-    isChangingPassword,
-    exportData,
-    isExporting,
-    deleteUserAccount,
-    isDeleting,
-    rateApp,
-    shareApp,
-  } = useSettings();
-
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showExportModal, setShowExportModal] = useState(false);
-  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
-
+  const styles = useAccountStyles();
+  const lock = useAppLock();
+  const notifications = useNotificationPreferences();
+  const settings = useSettings();
+  const [modal, setModal] = useState<'password' | 'export' | 'delete' | null>(null);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  const handleAppLockToggle = useCallback(
-    async (value: boolean) => {
-      const success = await setAppLockEnabled(value);
-      if (!success && value) {
-        Alert.alert('Authentication Failed', `Could not enable ${biometricType} lock. Please try again.`, [
-          { text: 'OK' },
-        ]);
-      }
-    },
-    [setAppLockEnabled, biometricType],
-  );
-
-  const handleBiometricLoginToggle = useCallback(
-    async (value: boolean) => {
-      if (value) {
-        const success = await enableBiometricLogin();
-        if (!success) {
-          Alert.alert('Authentication Failed', `Could not enable ${biometricType} sign in. Please try again.`, [
-            { text: 'OK' },
-          ]);
-        }
-      } else {
-        Alert.alert(
-          `Disable ${biometricType} Sign In`,
-          'You will need to enter your email and password next time you sign in.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Disable',
-              style: 'destructive',
-              onPress: async () => {
-                await disableBiometricLogin();
-              },
-            },
-          ],
-        );
-      }
-    },
-    [enableBiometricLogin, disableBiometricLogin, biometricType],
-  );
-
-  const handleChangePassword = async () => {
+  const [showPasswords, setShowPasswords] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [securityPending, setSecurityPending] = useState(false);
+  const [securityError, setSecurityError] = useState<string | null>(null);
+  const [appError, setAppError] = useState<string | null>(null);
+  const busy = settings.isChangingPassword || settings.isExporting || settings.isDeleting;
+  const open = (kind: typeof modal) => {
+    if (!busy) {
+      setError(null);
+      setModal(kind);
+    }
+  };
+  const close = () => {
+    if (busy) return;
+    setModal(null);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setShowPasswords(false);
+    setError(null);
+  };
+  const secure = async (action: () => Promise<unknown>) => {
+    if (securityPending) return;
+    setSecurityPending(true);
+    setSecurityError(null);
+    try {
+      if ((await action()) === false) setSecurityError('Authentication could not be completed. Try again.');
+    } catch {
+      setSecurityError('This security setting could not be changed. Try again.');
+    } finally {
+      setSecurityPending(false);
+    }
+  };
+  const biometricLogin = (enabled: boolean) => {
+    if (enabled) void secure(lock.enableBiometricLogin);
+    else
+      Alert.alert(
+        `Disable ${lock.biometricType} sign in`,
+        'You will need your email and password next time you sign in.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Disable', style: 'destructive', onPress: () => void secure(lock.disableBiometricLogin) },
+        ],
+      );
+  };
+  const savePassword = async () => {
+    if (busy) return;
+    setError(null);
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields.');
+      setError('Fill in all password fields.');
       return;
     }
     if (newPassword !== confirmPassword) {
-      Alert.alert('Error', 'New passwords do not match.');
+      setError('The new passwords do not match.');
       return;
     }
     if (newPassword.length < 8) {
-      Alert.alert('Error', 'New password must be at least 8 characters long.');
+      setError('Use at least 8 characters for the new password.');
       return;
     }
-
-    const success = await changeUserPassword(currentPassword, newPassword, confirmPassword);
-    if (success) {
-      setShowChangePasswordModal(false);
+    if (await settings.changeUserPassword(currentPassword, newPassword, confirmPassword)) {
+      setModal(null);
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    }
+      setShowPasswords(false);
+    } else setError('Your password could not be changed. Check the details and try again.');
   };
-
-  const handleExportData = async () => {
-    const success = await exportData();
-    if (success) {
-      setShowExportModal(false);
-    }
+  const exportData = async () => {
+    if (busy) return;
+    setError(null);
+    if (await settings.exportData()) setModal(null);
+    else setError('Your data could not be exported. Try again.');
   };
-
-  const handleDeleteAccount = async () => {
-    await deleteUserAccount();
-    setShowDeleteModal(false);
+  const deleteAccount = async () => {
+    if (busy) return;
+    setError(null);
+    if (await settings.deleteUserAccount()) setModal(null);
+    else setError('Your account could not be deleted. Try again or contact the deployment operator.');
   };
-
   return (
-    <GradientBackground>
-      <View style={styles.container}>
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          <View style={styles.content}>
-            <Panel title="Security" icon={<LockIcon />}>
-              <ToggleRow
-                label={`${biometricType} Sign In`}
-                description={`Sign in with ${biometricType} instead of password`}
-                value={hasBiometricLogin}
-                onValueChange={handleBiometricLoginToggle}
-                disabled={!biometricsAvailable}
+    <>
+      <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+        <Text accessibilityRole="header" style={styles.title}>
+          Settings
+        </Text>
+        <Section title="Security">
+          <Toggle
+            label={`${lock.biometricType} sign in`}
+            description={`Sign in with ${lock.biometricType} instead of your password.`}
+            value={lock.hasBiometricLogin}
+            disabled={!lock.biometricsAvailable || securityPending}
+            onChange={biometricLogin}
+          />
+          <Toggle
+            label="App lock"
+            description={`Require ${lock.biometricType} after the app goes into the background.`}
+            value={lock.isEnabled}
+            disabled={!lock.biometricsAvailable || securityPending}
+            onChange={(value) => void secure(() => lock.setEnabled(value))}
+          />
+          {!lock.biometricsAvailable && (
+            <Text style={styles.muted}>Biometric security is not available on this device.</Text>
+          )}
+          {securityError && (
+            <Text accessibilityRole="alert" style={styles.error}>
+              {securityError}
+            </Text>
+          )}
+        </Section>
+        <Section title="Notifications">
+          {notifications.isLoading ? (
+            <ActivityIndicator accessibilityLabel="Loading notification settings" />
+          ) : notifications.isError || notifications.transactionAlerts === undefined ? (
+            <View style={styles.fields}>
+              <Text accessibilityRole="alert" style={styles.error}>
+                Your notification settings could not be loaded.
+              </Text>
+              <Action
+                label="Try notifications again"
+                disabled={notifications.isFetching}
+                onPress={() => void notifications.retry()}
               />
-              <ToggleRow
-                label="App Lock"
-                description={`Lock app with ${biometricType} after background`}
-                value={appLockEnabled}
-                onValueChange={handleAppLockToggle}
-                disabled={!biometricsAvailable}
-                isLast
-              />
-            </Panel>
-
-            <Panel title="Notifications" icon={<BellIcon />}>
-              <ToggleRow
-                label="Transaction Alerts"
-                description="Notifications for transaction status changes"
-                value={transactionAlerts}
-                onValueChange={toggleTransactionAlerts}
-                disabled={isUpdating}
-                isLast
-              />
-            </Panel>
-
-            <Panel title="Account" icon={<UserGearIcon />}>
-              <NavRow label="Change Password" onPress={() => setShowChangePasswordModal(true)} />
-              <NavRow label="Export Data" onPress={() => setShowExportModal(true)} />
-              <NavRow label="Delete Account" onPress={() => setShowDeleteModal(true)} danger isLast />
-            </Panel>
-
-            <Panel title="App" icon={<AppWindowIcon />}>
-              <NavRow label="Rate the App" onPress={rateApp} />
-              <NavRow label="Share with Friends" onPress={shareApp} isLast />
-            </Panel>
-          </View>
-        </ScrollView>
-      </View>
-
-      <CustomModal
-        visible={showExportModal}
-        onClose={() => setShowExportModal(false)}
-        showFooter
-        confirmLabel="Export"
-        onConfirm={handleExportData}
-        confirmLoading={isExporting}
-      >
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Export Your Data</Text>
-          <Text style={styles.modalText}>
-            This will export all your account data including your profile, wallets, transactions, and portfolios as a
-            JSON file.
+            </View>
+          ) : (
+            <Toggle
+              label="Transaction alerts"
+              description="Notifications for transaction status changes."
+              value={notifications.transactionAlerts}
+              disabled={notifications.isUpdating || notifications.isFetching}
+              onChange={notifications.toggleTransactionAlerts}
+            />
+          )}
+          {notifications.updateError && (
+            <Text accessibilityRole="alert" style={styles.error}>
+              Your notification setting could not be saved. Try again.
+            </Text>
+          )}
+        </Section>
+        <Section title="Account">
+          <Action label="Change password" disabled={busy} onPress={() => open('password')} />
+          <Text style={styles.muted}>Save a private JSON copy of your account data.</Text>
+          <Action label="Export data" disabled={busy} onPress={() => open('export')} />
+          <Text style={styles.muted}>
+            Deactivate your account and remove personal details. Some records are retained.
           </Text>
-          <Text style={styles.modalText}>You can save or share this file for your records.</Text>
-        </View>
-      </CustomModal>
-
-      <CustomModal
-        visible={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        showFooter
-        confirmLabel="Delete Account"
-        onConfirm={handleDeleteAccount}
-        confirmLoading={isDeleting}
+          <Action label="Delete account" disabled={busy} onPress={() => open('delete')} />
+        </Section>
+        <Section title="App">
+          <Action
+            label="Rate the app"
+            onPress={() => {
+              setAppError(null);
+              void settings.rateApp().catch(() => setAppError('The app-store listing could not be opened.'));
+            }}
+          />
+          <Action label="Share with friends" onPress={() => void settings.shareApp()} />
+          {appError && (
+            <Text accessibilityRole="alert" style={styles.error}>
+              {appError}
+            </Text>
+          )}
+        </Section>
+      </ScrollView>
+      <AccountModal
+        visible={modal === 'password'}
+        title="Change password"
+        busy={busy}
+        onClose={close}
+        actions={
+          <Action
+            label={settings.isChangingPassword ? 'Saving…' : 'Save password'}
+            primary
+            disabled={busy}
+            onPress={() => void savePassword()}
+          />
+        }
       >
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Delete Account</Text>
-          <Text style={styles.modalTextDanger}>This action cannot be undone.</Text>
-          <Text style={styles.modalText}>
-            Deleting your account will permanently remove your profile and personal information. Your transaction
-            history will be retained for compliance purposes.
+        {(
+          [
+            ['Current password', currentPassword, setCurrentPassword],
+            ['New password', newPassword, setNewPassword],
+            ['Confirm new password', confirmPassword, setConfirmPassword],
+          ] as const
+        ).map(([label, value, onChange]) => (
+          <View key={label} style={styles.fields}>
+            <Text style={styles.muted}>{label}</Text>
+            <TextInput
+              accessibilityLabel={label}
+              value={value}
+              onChangeText={onChange}
+              style={styles.input}
+              editable={!busy}
+              secureTextEntry={!showPasswords}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+        ))}
+        <Action
+          label={showPasswords ? 'Hide passwords' : 'Show passwords'}
+          disabled={busy}
+          onPress={() => setShowPasswords(!showPasswords)}
+        />
+        <Text style={styles.muted}>Use at least 8 characters for the new password.</Text>
+        {error && (
+          <Text accessibilityRole="alert" style={styles.error}>
+            {error}
           </Text>
-          <Text style={styles.modalText}>Are you sure you want to delete your account?</Text>
-        </View>
-      </CustomModal>
-
-      <CustomModal
-        visible={showChangePasswordModal}
-        onClose={() => {
-          setShowChangePasswordModal(false);
-          setCurrentPassword('');
-          setNewPassword('');
-          setConfirmPassword('');
-        }}
-        showFooter
-        confirmLabel="Change Password"
-        onConfirm={handleChangePassword}
-        confirmLoading={isChangingPassword}
+        )}
+      </AccountModal>
+      <AccountModal
+        visible={modal === 'export'}
+        title="Export data"
+        busy={busy}
+        onClose={close}
+        actions={
+          <Action
+            label={settings.isExporting ? 'Exporting…' : 'Export'}
+            primary
+            disabled={busy}
+            onPress={() => void exportData()}
+          />
+        }
       >
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Change Password</Text>
-          <Text style={styles.modalText}>Enter your current password and choose a new one.</Text>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Current Password</Text>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter current password"
-                placeholderTextColor={theme.colors.text.muted}
-                value={currentPassword}
-                onChangeText={setCurrentPassword}
-                secureTextEntry={!showCurrentPassword}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity onPress={() => setShowCurrentPassword(!showCurrentPassword)} style={styles.eyeButton}>
-                {showCurrentPassword ? (
-                  <EyeSlashIcon size={20} color={theme.colors.text.muted} />
-                ) : (
-                  <EyeIcon size={20} color={theme.colors.text.muted} />
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>New Password</Text>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter new password"
-                placeholderTextColor={theme.colors.text.muted}
-                value={newPassword}
-                onChangeText={setNewPassword}
-                secureTextEntry={!showNewPassword}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)} style={styles.eyeButton}>
-                {showNewPassword ? (
-                  <EyeSlashIcon size={20} color={theme.colors.text.muted} />
-                ) : (
-                  <EyeIcon size={20} color={theme.colors.text.muted} />
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Confirm New Password</Text>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.input}
-                placeholder="Confirm new password"
-                placeholderTextColor={theme.colors.text.muted}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry={!showConfirmPassword}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeButton}>
-                {showConfirmPassword ? (
-                  <EyeSlashIcon size={20} color={theme.colors.text.muted} />
-                ) : (
-                  <EyeIcon size={20} color={theme.colors.text.muted} />
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <Text style={styles.modalTextHint}>Password must be at least 8 characters long.</Text>
-        </View>
-      </CustomModal>
-    </GradientBackground>
+        <Text style={styles.text}>
+          Save or share your account data as a private JSON file. The share sheet opens when the export is ready.
+        </Text>
+        {error && (
+          <Text accessibilityRole="alert" style={styles.error}>
+            {error}
+          </Text>
+        )}
+      </AccountModal>
+      <AccountModal
+        visible={modal === 'delete'}
+        title="Delete account"
+        busy={busy}
+        onClose={close}
+        actions={
+          <Action
+            label={settings.isDeleting ? 'Deleting…' : 'Confirm deletion'}
+            primary
+            disabled={busy}
+            onPress={() => void deleteAccount()}
+          />
+        }
+      >
+        <Text style={styles.text}>This action cannot be undone.</Text>
+        <Text style={styles.text}>
+          This deactivates your account and removes your name, date of birth, phone number and address. Your country of
+          citizenship, financial profile, wallets, verification records and share register entries are kept.
+        </Text>
+        {error && (
+          <Text accessibilityRole="alert" style={styles.error}>
+            {error}
+          </Text>
+        )}
+      </AccountModal>
+    </>
   );
 }

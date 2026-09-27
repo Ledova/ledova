@@ -7,7 +7,8 @@ import { apiClient } from '../../services/apiClient';
 import { invalidateHomeDashboard } from '../../utils/queryInvalidation';
 
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn() } }));
-jest.mock('./components/NoticeWork', () => ({ NoticeWork: () => null }));
+jest.mock('./components/HoldingWork', () => ({ HoldingWork: () => null }));
+jest.mock('./useHoldingWork', () => ({ useHoldingWork: () => ({ refresh: jest.fn(), isRefreshing: false }) }));
 
 const get = jest.mocked(apiClient.get);
 let client: QueryClient;

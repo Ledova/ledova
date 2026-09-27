@@ -1,4 +1,6 @@
 import React from 'react';
+import { Dimensions } from 'react-native';
+import { CustomModal } from '../../components/modal';
 import { act, cleanup, fireEvent, render, renderHook, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import axios, { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
@@ -35,6 +37,9 @@ import {
   settlementApproval,
 } from '../../../../packages/shared/tests/fixtures/swap-settlements';
 
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 24, bottom: 24, left: 0, right: 0 }),
+}));
 jest.mock('uuid', () => ({ v4: () => '70000000-0000-4000-8000-000000000001' }));
 jest.mock('expo-crypto', () => ({ randomUUID: () => '70000000-0000-4000-8000-000000000001' }));
 jest.mock('../../services/secureKeyStorage', () => ({ getSeedPhrase: jest.fn() }));
@@ -52,34 +57,36 @@ jest.mock('@react-navigation/native', () => ({
 jest.mock('../../components/modal', () => {
   const { View, Text, Pressable } = jest.requireActual('react-native');
   return {
-    CustomModal: ({
-      visible,
-      children,
-      onClose,
-      onConfirm,
-      confirmLabel,
-      confirmDisabled,
-    }: {
-      visible: boolean;
-      children: React.ReactNode;
-      onClose: () => void;
-      onConfirm?: () => void;
-      confirmLabel?: string;
-      confirmDisabled?: boolean;
-    }) =>
-      visible ? (
-        <View>
-          {children}
-          <Pressable onPress={onClose}>
-            <Text>Dismiss settlement</Text>
-          </Pressable>
-          {onConfirm && (
-            <Pressable disabled={confirmDisabled} onPress={onConfirm}>
-              <Text>{confirmLabel}</Text>
+    CustomModal: jest.fn(
+      ({
+        visible,
+        children,
+        onClose,
+        onConfirm,
+        confirmLabel,
+        confirmDisabled,
+      }: {
+        visible: boolean;
+        children: React.ReactNode;
+        onClose: () => void;
+        onConfirm?: () => void;
+        confirmLabel?: string;
+        confirmDisabled?: boolean;
+      }) =>
+        visible ? (
+          <View>
+            {children}
+            <Pressable onPress={onClose}>
+              <Text>Dismiss settlement</Text>
             </Pressable>
-          )}
-        </View>
-      ) : null,
+            {onConfirm && (
+              <Pressable disabled={confirmDisabled} onPress={onConfirm}>
+                <Text>{confirmLabel}</Text>
+              </Pressable>
+            )}
+          </View>
+        ) : null,
+    ),
   };
 });
 let mockWallets: Wallet[];
@@ -232,6 +239,7 @@ async function showAndScan(view: Awaited<ReturnType<typeof render>>) {
 }
 const signatureQr = (index = 0) =>
   new ETHSignature(Buffer.from(fixture.signatures[index].slice(2), 'hex')).toUREncoder(1000).nextPart();
+const originalWindow = Dimensions.get('window');
 beforeEach(async () => {
   jest.spyOn(Date, 'now').mockReturnValue(settlementNow);
   current = settlementResponse();
@@ -261,7 +269,25 @@ beforeEach(async () => {
 });
 afterEach(async () => {
   await cleanup();
+  Dimensions.set({ window: originalWindow });
   client.clear();
+});
+
+it('keeps captured settlement terms while the review shrinks with the available window', async () => {
+  Dimensions.set({ window: { width: 390, height: 740, scale: 3, fontScale: 1 } });
+  const view = await render(<TradingScreen />, { wrapper });
+  await open(view);
+  expect(jest.mocked(CustomModal).mock.calls.at(-1)![0].maxHeight).toBe(644);
+
+  await act(async () => {
+    Dimensions.set({ window: { width: 740, height: 430, scale: 3, fontScale: 1 } });
+  });
+  expect(jest.mocked(CustomModal).mock.calls.at(-1)![0].maxHeight).toBe(334);
+  expect(view.getByText('Shares: 9007199254740993')).toBeTruthy();
+  expect(view.getByText('Payment: 13510798882111489.5 TUSD')).toBeTruthy();
+  expect(view.getByText('Sign settlement')).toBeTruthy();
+  expect(posts()).toHaveLength(0);
+  expect(getSeedPhrase).not.toHaveBeenCalled();
 });
 
 it('reviews exact captured terms and sends one real signature despite duplicate presses', async () => {
@@ -431,7 +457,7 @@ it('holds explicit V0 history and opens the refreshed V1 list row without signin
   mockActualOrders = true;
   mockSwaps = [listShape({ ...current.swapOrder, settlementProtocolVersion: 0, shareAmount: 10 })];
   const view = await render(<TradingScreen />, { wrapper });
-  expect(view.queryByText('Sign')).toBeNull();
+  expect(view.queryByRole('button', { name: 'Sign' })).toBeNull();
   expect(view.getByText('10 shares')).toBeTruthy();
   expect(view.getByText('Seller')).toBeTruthy();
   expect(view.queryByText('Expired')).toBeNull();
@@ -441,8 +467,8 @@ it('holds explicit V0 history and opens the refreshed V1 list row without signin
   mockSwaps = [settlementListRow(current)];
   await view.rerender(<TradingScreen />);
   expect(view.queryByText('Held for operator review')).toBeNull();
-  expect(view.getByText('Expired')).toBeTruthy();
-  await fireEvent.press(view.getByText('Sign'));
+  expect(view.queryByText('Expired')).toBeNull();
+  await fireEvent.press(view.getByRole('button', { name: 'Sign' }));
   await waitFor(() => expect(view.getByText('Check token approval')).toBeTruthy());
   expect(requests).toHaveLength(1);
   expect(requests[0]!.params).not.toHaveProperty('settlement_digest');
@@ -464,7 +490,7 @@ it.each([
     const row = view.getByText('Held for operator review').parent!;
     expect(within(row).getByText(role === 'seller' ? 'Seller' : 'Buyer')).toBeTruthy();
     expect(touchResponders(row)).toEqual([]);
-    expect(view.queryByText('Sign')).toBeNull();
+    expect(view.queryByRole('button', { name: 'Sign' })).toBeNull();
   },
 );
 
@@ -480,7 +506,7 @@ it.each([
   mockSwaps = [swap as SwapOrder];
   const view = await render(<TradingScreen />, { wrapper });
   expect(view.queryByText('Held for operator review')).toBeNull();
-  expect(view.queryByText('Sign')).toBeNull();
+  expect(view.queryByRole('button', { name: 'Sign' })).toBeNull();
   expect(requests).toHaveLength(0);
 });
 
@@ -669,10 +695,10 @@ it('keeps either owned unsigned side available for review in the actual orders l
   const view = await render(<OrdersCard {...props} />);
   expect(view.getByText('Review trade amounts')).toBeTruthy();
   expect(view.getByText('Buyer')).toBeTruthy();
-  await fireEvent.press(view.getByText('Sign'));
+  await fireEvent.press(view.getByRole('button', { name: 'Sign' }));
   expect(props.onSignSwap).toHaveBeenCalledWith(swap);
   await view.rerender(<OrdersCard {...props} swaps={[{ ...swap, buyerHasSigned: true, status: 'ready' }]} />);
-  expect(view.queryByText('Sign')).toBeNull();
+  expect(view.queryByRole('button', { name: 'Sign' })).toBeNull();
 });
 
 it('permanently retires on a wallet-cache material change and restoration in one React batch', async () => {

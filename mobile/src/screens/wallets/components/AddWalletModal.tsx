@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Action } from '../../../components/Ledger';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { WalletIcon, QrCodeIcon } from 'phosphor-react-native';
 import { getChainConfig, getAddressPlaceholder } from '@ledova/shared';
@@ -16,17 +17,25 @@ import { useAddWalletForm, FORM_STEPS } from '../useAddWalletForm';
 interface AddWalletModalProps {
   visible: boolean;
   isLoading: boolean;
+  readBlocked: boolean;
+  notice: string | null;
+  error: string | null;
+  onRetry: () => void;
   preselectedChain?: 'BTC' | 'ETH' | null;
   onClose: () => void;
-  onSubmit: (data: CreateWallet) => void;
-  onBatchSubmit: (addresses: DerivedAddress[], importData: HardwareWalletImport) => void;
-  onSoftwareWalletCreate?: (addresses: DerivedAddress[], importData: SoftwareWalletImport) => void;
+  onSubmit: (data: CreateWallet) => Promise<void>;
+  onBatchSubmit: (addresses: DerivedAddress[], importData: HardwareWalletImport) => Promise<void>;
+  onSoftwareWalletCreate?: (addresses: DerivedAddress[], importData: SoftwareWalletImport) => Promise<void>;
 }
 
 export function AddWalletModal({
   visible,
   isLoading,
   preselectedChain,
+  readBlocked,
+  notice,
+  error,
+  onRetry,
   onClose,
   onSubmit,
   onBatchSubmit,
@@ -103,10 +112,10 @@ export function AddWalletModal({
   }));
   const form = useAddWalletForm({
     onSubmit: (data) => {
-      onSubmit(data);
+      if (!isLoading && !readBlocked) void onSubmit(data).catch(() => undefined);
     },
     onBatchSubmit: (addresses, importData) => {
-      onBatchSubmit(addresses, importData);
+      if (!isLoading && !readBlocked) void onBatchSubmit(addresses, importData).catch(() => undefined);
     },
     preselectedChain,
   });
@@ -118,6 +127,7 @@ export function AddWalletModal({
   }, [visible]);
 
   const handleClose = () => {
+    if (isLoading) return;
     form.reset();
     onClose();
   };
@@ -133,10 +143,26 @@ export function AddWalletModal({
   };
 
   const handleSoftwareWalletComplete = (addresses: DerivedAddress[], importData: SoftwareWalletImport) => {
-    if (onSoftwareWalletCreate) {
-      onSoftwareWalletCreate(addresses, importData);
-    }
+    if (!onSoftwareWalletCreate || isLoading || readBlocked)
+      return Promise.reject(new Error('Refresh wallets before continuing.'));
+    return onSoftwareWalletCreate(addresses, importData);
   };
+
+  const feedback = (
+    <View>
+      {notice && (
+        <Text accessibilityRole="alert" style={styles.errorText}>
+          {notice}
+        </Text>
+      )}
+      {notice && <Action label="Retry wallets" disabled={isLoading} onPress={onRetry} />}
+      {error && (
+        <Text accessibilityRole="alert" style={styles.errorText}>
+          {error}
+        </Text>
+      )}
+    </View>
+  );
 
   const modalProps = {
     visible,
@@ -145,6 +171,7 @@ export function AddWalletModal({
     showCancelButton: true,
     cancelLabel: 'Close',
     onCancel: handleClose,
+    confirmLoading: isLoading,
   } as const;
 
   const resolveStep = () => {
@@ -156,7 +183,8 @@ export function AddWalletModal({
     switch (resolveStep()) {
       case FORM_STEPS.SELECT_TYPE:
         return (
-          <CustomModal {...modalProps}>
+          <CustomModal key="wallet-type" {...modalProps}>
+            {feedback}
             <WalletSigningPreferenceSelector onSelect={handleWalletSigningPreferenceSelect} />
           </CustomModal>
         );
@@ -167,17 +195,25 @@ export function AddWalletModal({
             visible={visible}
             onClose={handleClose}
             onComplete={handleSoftwareWalletComplete}
-            onCancel={() => form.setStep(FORM_STEPS.SELECT_TYPE)}
+            onCancel={() => {
+              if (!isLoading) form.setStep(FORM_STEPS.SELECT_TYPE);
+            }}
+            readBlocked={readBlocked}
+            notice={feedback}
           />
         );
 
       case FORM_STEPS.SELECT_ADDRESSES:
         return (
-          <CustomModal {...modalProps}>
+          <CustomModal key="wallet-addresses" {...modalProps}>
+            {feedback}
             <HardwareAccountSelector
               urString={form.scannedURString!}
               onSelectAccounts={form.handleAddressSelection}
-              onCancel={form.handleBackToInput}
+              onCancel={() => {
+                if (!isLoading) form.handleBackToInput();
+              }}
+              disabled={isLoading || readBlocked}
             />
           </CustomModal>
         );
@@ -186,15 +222,23 @@ export function AddWalletModal({
       default:
         return (
           <CustomModal
+            key="wallet-input"
             {...modalProps}
             cancelLabel="Back"
-            onCancel={() => form.setStep(FORM_STEPS.SELECT_TYPE)}
+            onCancel={() => {
+              if (!isLoading) form.setStep(FORM_STEPS.SELECT_TYPE);
+            }}
             confirmLabel="Add Wallet"
             onConfirm={form.handleSubmit}
             confirmLoading={isLoading}
-            confirmDisabled={isLoading}
+            confirmDisabled={isLoading || readBlocked}
           >
-            <WalletNetworkSelector network={form.selectedChain ?? ''} onChange={form.setSelectedChain} />
+            {feedback}
+            <WalletNetworkSelector
+              network={form.selectedChain ?? ''}
+              onChange={form.setSelectedChain}
+              disabled={isLoading}
+            />
             <View style={styles.heroSection}>
               <WalletIcon
                 size={theme.icon.sizes.xxl}
@@ -221,12 +265,13 @@ export function AddWalletModal({
 
               {form.showScanner ? (
                 <View style={styles.scannerContainer}>
-                  <AnimatedQRScanner active={visible} onComplete={form.handleQRScan} />
+                  <AnimatedQRScanner active={visible && !isLoading} onComplete={form.handleQRScan} />
                 </View>
               ) : (
                 <>
                   <TextInput
                     style={[styles.input, form.errors.address && styles.inputError]}
+                    accessibilityLabel="Wallet address"
                     value={form.address}
                     onChangeText={form.handleAddressChange}
                     placeholder={getAddressPlaceholder(
@@ -247,6 +292,7 @@ export function AddWalletModal({
                 <Text style={[styles.label, styles.labelWithMargin]}>Wallet Name (Optional)</Text>
                 <TextInput
                   style={styles.input}
+                  accessibilityLabel="Wallet name"
                   value={form.name}
                   onChangeText={form.setName}
                   placeholder="e.g., Savings, Trading, Cold Storage"

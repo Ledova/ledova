@@ -1,5 +1,6 @@
 import React from 'react';
-import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatUnits } from 'ethers';
 import { swapSettlementAdmitted, type SwapSettlement, type Wallet } from '@ledova/shared';
 import { CustomModal } from '../../../components/modal';
@@ -16,6 +17,8 @@ interface Props {
 
 export function SwapSettlementModal({ settlement, wallet, visible = true, onClose }: Props) {
   const theme = useAppTheme();
+  const { height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const styles = useThemedStyles((theme) => ({
     content: { gap: theme.spacing.md },
     title: { color: theme.colors.text.primary, fontSize: theme.fontSize.lg, fontWeight: theme.fontWeight.semibold },
@@ -45,8 +48,10 @@ export function SwapSettlementModal({ settlement, wallet, visible = true, onClos
   return (
     <>
       <CustomModal
+        key={current && confirm ? 'confirmable' : 'status'}
         visible={visible && view.step !== 'scan'}
         onClose={close}
+        maxHeight={height - insets.top - insets.bottom - 48}
         showFooter
         showCancelButton
         cancelLabel="Close"

@@ -1,5 +1,5 @@
 import { WALLET_ENDPOINTS } from '../constants';
-import { AxiosInstance } from 'axios';
+import { AxiosInstance, type AxiosRequestConfig } from 'axios';
 import { createUserFriendlyError } from '../utils/errors';
 import type {
   RequestVerificationChallengeResponse,
@@ -23,8 +23,10 @@ export const requestVerificationChallenge = (apiClient: AxiosInstance, uuid: str
 export const verifyWalletSignature = (apiClient: AxiosInstance, uuid: string, data: VerifyWalletRequest) =>
   apiClient.post<VerifyWalletResponse>(WALLET_ENDPOINTS.VERIFY_SIGNATURE(uuid), data);
 
-export const syncWallet = async (apiClient: AxiosInstance, uuid: string) => {
-  const response = await apiClient.post<SyncWalletResponse>(WALLET_ENDPOINTS.SYNC(uuid), {});
+export const syncWallet = async (apiClient: AxiosInstance, uuid: string, config?: AxiosRequestConfig) => {
+  const response = config
+    ? await apiClient.post<SyncWalletResponse>(WALLET_ENDPOINTS.SYNC(uuid), {}, config)
+    : await apiClient.post<SyncWalletResponse>(WALLET_ENDPOINTS.SYNC(uuid), {});
   if (!response.data.success || response.data.syncResult.status !== 'success') {
     const { status, error } = response.data.syncResult;
     const message =

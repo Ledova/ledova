@@ -3,35 +3,25 @@ import {
   getShareTokens,
   getInvestorEligibility,
   getOrders,
-  getUserOrders,
   getWallets,
   getWhitelistStatus,
   getWalletBalances,
-  parseTradingError,
-  getMarketData,
   getOrderBook,
   BLOCKCHAIN,
   CACHE_TIMING,
   TRADING_CONFIG,
   WALLET_VERIFICATION_STATUS,
 } from '@ledova/shared';
-import type { TransferOrder, GetOrdersParams, Wallet, WhitelistStatus, WalletTokenBalance } from '@ledova/shared';
+import type { Wallet, WhitelistStatus, WalletTokenBalance } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { useUserPreferences } from '../../hooks/useUserPreferences';
-
-export { parseTradingError };
-export type { WhitelistStatus };
+import { allMarketPages } from './marketData';
 
 export const tradingQueryKeys = {
   tokens: ['trading', 'tokens'] as const,
-  orders: (params?: GetOrdersParams) => ['trading', 'orders', params] as const,
-  order: (uuid: string) => ['trading', 'orders', uuid] as const,
-  userOrders: (walletAddress: string) => ['trading', 'userOrders', walletAddress] as const,
   walletBalances: (walletAddress: string) => ['trading', 'walletBalances', walletAddress] as const,
-  allUserOrders: (walletAddresses: string[]) => ['trading', 'allUserOrders', walletAddresses] as const,
   whitelistStatus: (tokenAddress: string, walletAddress: string) =>
     ['trading', 'whitelistStatus', tokenAddress, walletAddress] as const,
-  orderModifications: (orderUuid: string) => ['trading', 'orderModifications', orderUuid] as const,
 };
 
 export function useUserTradingWallets() {
@@ -39,7 +29,9 @@ export function useUserTradingWallets() {
 
   const walletsQuery = useQuery({
     queryKey: ['wallets', userAccount?.uuid, 'trading'],
-    queryFn: () => getWallets(apiClient),
+    queryFn: async () => ({
+      data: { results: await allMarketPages((page) => getWallets(apiClient, page ? { page } : undefined)) },
+    }),
     enabled: !!userAccount?.uuid,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
@@ -56,10 +48,11 @@ export function useUserTradingWallets() {
   });
 
   return {
-    wallets: walletsQuery.data?.wallets || ([] as Wallet[]),
-    actionWallets: walletsQuery.data?.actionWallets || ([] as Wallet[]),
-    walletAddresses: (walletsQuery.data?.wallets || []).map((w: Wallet) => w.address),
+    wallets: walletsQuery.isError ? [] : walletsQuery.data?.wallets || ([] as Wallet[]),
+    actionWallets: walletsQuery.isError ? [] : walletsQuery.data?.actionWallets || ([] as Wallet[]),
+    walletAddresses: (walletsQuery.isError ? [] : walletsQuery.data?.wallets || []).map((w: Wallet) => w.address),
     isLoading: isLoadingPreferences || walletsQuery.isLoading,
+    isFetching: walletsQuery.isFetching,
     error: walletsQuery.error,
     refetch: walletsQuery.refetch,
   };
@@ -77,11 +70,11 @@ export function useWalletsWhitelistStatus(tokenAddress: string | undefined, wall
     })),
   });
 
-  const isLoading = queries.some((q) => q.isLoading);
+  const isLoading = queries.some((q) => q.isFetching);
 
   const statusByAddress = new Map<string, WhitelistStatus>();
   queries.forEach((query, index) => {
-    if (query.data) {
+    if (query.data && !query.isError && !query.isFetching) {
       statusByAddress.set(walletAddresses[index].toLowerCase(), query.data);
     }
   });
@@ -100,7 +93,8 @@ export function useWalletsWhitelistStatus(tokenAddress: string | undefined, wall
     isWhitelisted,
     getStatus,
     isLoading,
-    refetch: () => queries.forEach((q) => q.refetch()),
+    error: queries.find((q) => q.error)?.error,
+    refetch: () => Promise.all(queries.map((q) => q.refetch())),
   };
 }
 
@@ -115,21 +109,15 @@ export function useAllWalletTokenBalances(walletAddresses: string[]) {
     })),
   });
 
-  const isLoading = queries.some((q) => q.isLoading);
+  const isLoading = queries.some((q) => q.isFetching);
   const error = queries.find((q) => q.error)?.error;
 
-  const balancesByToken = new Map<string, Map<string, string>>();
   const tokenWallets = new Map<string, { walletAddress: string; balance: string }[]>();
 
   queries.forEach((query) => {
-    if (query.data) {
+    if (query.data && !query.isError && !query.isFetching) {
       const { walletAddress, balances } = query.data;
       balances.forEach((balance: WalletTokenBalance) => {
-        if (!balancesByToken.has(balance.token)) {
-          balancesByToken.set(balance.token, new Map());
-        }
-        balancesByToken.get(balance.token)!.set(walletAddress, balance.balance);
-
         if (!tokenWallets.has(balance.token)) {
           tokenWallets.set(balance.token, []);
         }
@@ -141,88 +129,45 @@ export function useAllWalletTokenBalances(walletAddresses: string[]) {
     }
   });
 
-  const hasHoldings = (tokenUuid: string): boolean => {
-    return balancesByToken.has(tokenUuid);
-  };
-
-  const getTotalBalance = (tokenUuid: string): string => {
-    const tokenBalances = balancesByToken.get(tokenUuid);
-    if (!tokenBalances) return '0';
-    let total = BigInt(0);
-    tokenBalances.forEach((balance) => {
-      total += BigInt(balance);
-    });
-    return total.toString();
-  };
-
   const getWalletsWithHoldings = (tokenUuid: string): { walletAddress: string; balance: string }[] => {
-    return tokenWallets.get(tokenUuid) || [];
+    return (tokenWallets.get(tokenUuid) || []).filter(
+      (item) => /^\d+$/.test(item.balance) && BigInt(item.balance) > 0n,
+    );
   };
 
   return {
-    balancesByToken,
-    tokenWallets,
-    hasHoldings,
-    getTotalBalance,
     getWalletsWithHoldings,
     isLoading,
     error,
-    refetch: () => queries.forEach((q) => q.refetch()),
+    refetch: () => Promise.all(queries.map((q) => q.refetch())),
   };
 }
 
-export function useAllUserOrders(walletAddresses: string[]) {
-  const queries = useQueries({
-    queries: walletAddresses.map((address) => ({
-      queryKey: tradingQueryKeys.userOrders(address),
-      queryFn: () => getUserOrders(apiClient, address).then((res) => res.data.results),
-      enabled: !!address,
-      staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
-      gcTime: CACHE_TIMING.DEFAULT_GC_TIME,
-    })),
+export function useAllUserOrders() {
+  const { userAccount } = useUserPreferences();
+  const query = useQuery({
+    queryKey: ['trading', 'userOrders', 'all', userAccount?.uuid],
+    queryFn: () => allMarketPages((page) => getOrders(apiClient, page ? { page } : undefined)),
+    enabled: !!userAccount?.uuid,
+    staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
+    gcTime: CACHE_TIMING.DEFAULT_GC_TIME,
   });
-
-  const isLoading = queries.some((q) => q.isLoading);
-  const error = queries.find((q) => q.error)?.error;
-
-  const allOrders = queries.flatMap((query) => query.data || []);
-  allOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
   return {
-    orders: allOrders as TransferOrder[],
-    isLoading,
-    error,
-    refetch: () => queries.forEach((q) => q.refetch()),
+    orders: query.isError ? [] : (query.data ?? []),
+    isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    error: query.error,
+    refetch: query.refetch,
   };
 }
 
 export function useShareTokens() {
   return useQuery({
     queryKey: tradingQueryKeys.tokens,
-    queryFn: () => getShareTokens(apiClient).then((res) => res.data.results),
+    queryFn: () => allMarketPages((page) => getShareTokens(apiClient, page)),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.DEFAULT_GC_TIME,
   });
-}
-
-interface UseTradingOptions {
-  walletAddresses?: string[];
-}
-
-export function useTrading(options: UseTradingOptions = {}) {
-  const { walletAddresses = [] } = options;
-
-  const multiWalletOrdersQuery = useAllUserOrders(walletAddresses);
-  const tokenBalances = useAllWalletTokenBalances(walletAddresses);
-
-  return {
-    userOrders: multiWalletOrdersQuery.orders,
-    isLoadingUserOrders: multiWalletOrdersQuery.isLoading,
-    hasHoldings: tokenBalances.hasHoldings,
-    getWalletsWithHoldings: tokenBalances.getWalletsWithHoldings,
-    refetchOrders: multiWalletOrdersQuery.refetch,
-    refetchBalances: tokenBalances.refetch,
-  };
 }
 
 export function useOrderBook(tokenUuid: string | undefined) {

@@ -4,7 +4,8 @@ import { CaretDownIcon, CaretRightIcon } from 'phosphor-react-native';
 import { formatShareCount, getChainConfig, type ShareHoldingRow } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { GradientBackground } from '../../components/GradientBackground';
-import { NoticeWork } from './components/NoticeWork';
+import { HoldingWork } from './components/HoldingWork';
+import { useHoldingWork } from './useHoldingWork';
 import { useShareHoldings } from './useShareHoldings';
 
 function ShareHolding({ holding }: { holding: ShareHoldingRow }) {
@@ -66,6 +67,7 @@ function ShareHolding({ holding }: { holding: ShareHoldingRow }) {
 
 export function HomeScreen() {
   const theme = useAppTheme();
+  const work = useHoldingWork();
   const { data: holdings = [], isPending, isError, isFetching, refetch } = useShareHoldings();
   const styles = useThemedStyles((theme) => ({
     content: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 36, gap: 28 },
@@ -90,8 +92,8 @@ export function HomeScreen() {
         contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl
-            refreshing={isFetching && !isPending}
-            onRefresh={() => void refetch()}
+            refreshing={(isFetching && !isPending) || work.isRefreshing}
+            onRefresh={() => void Promise.all([refetch(), work.refresh()])}
             tintColor={theme.colors.brand.default}
           />
         }
@@ -130,7 +132,7 @@ export function HomeScreen() {
             holdings.map((holding) => <ShareHolding key={holding.assetUuid} holding={holding} />)
           )}
         </View>
-        <NoticeWork />
+        <HoldingWork work={work} />
       </ScrollView>
     </GradientBackground>
   );

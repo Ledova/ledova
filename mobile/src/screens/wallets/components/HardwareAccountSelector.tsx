@@ -11,11 +11,17 @@ import { WalletNetworkSelector } from './WalletNetworkSelector';
 
 interface HardwareAccountSelectorProps {
   urString: string;
+  disabled?: boolean;
   onSelectAccounts: (addresses: DerivedAddress[], importData: HardwareWalletImport) => void;
   onCancel: () => void;
 }
 
-export function HardwareAccountSelector({ urString, onSelectAccounts, onCancel }: HardwareAccountSelectorProps) {
+export function HardwareAccountSelector({
+  urString,
+  onSelectAccounts,
+  onCancel,
+  disabled = false,
+}: HardwareAccountSelectorProps) {
   const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
     container: {
@@ -139,7 +145,7 @@ export function HardwareAccountSelector({ urString, onSelectAccounts, onCancel }
   };
 
   const handleImport = () => {
-    if (!importData) return;
+    if (!importData || disabled) return;
     const selected = addresses.filter((addr) => selectedAddresses.has(importAddressKey(addr)));
     onSelectAccounts(selected, importData);
   };
@@ -171,6 +177,7 @@ export function HardwareAccountSelector({ urString, onSelectAccounts, onCancel }
       <TouchableOpacity
         key={importAddressKey(derivedAddress)}
         style={[styles.addressItem, isSelected && styles.addressItemSelected]}
+        disabled={disabled}
         onPress={() => toggleSelection(importAddressKey(derivedAddress))}
       >
         <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
@@ -206,6 +213,7 @@ export function HardwareAccountSelector({ urString, onSelectAccounts, onCancel }
       {addresses.some((item) => item.networkType !== 'BTC') && (
         <WalletNetworkSelector
           evmOnly
+          disabled={disabled}
           network={evmNetwork === 'BASE' ? 'base' : 'ethereum'}
           onChange={(network) => setEvmNetwork(network === 'base' ? 'BASE' : 'ETH')}
         />
@@ -215,10 +223,14 @@ export function HardwareAccountSelector({ urString, onSelectAccounts, onCancel }
       </ScrollView>
 
       <View style={styles.actions}>
-        <SecondaryButton onPress={onCancel} style={styles.actionButton}>
+        <SecondaryButton disabled={disabled} onPress={onCancel} style={styles.actionButton}>
           Cancel
         </SecondaryButton>
-        <PrimaryButton onPress={handleImport} disabled={selectedAddresses.size === 0} style={styles.actionButton}>
+        <PrimaryButton
+          onPress={handleImport}
+          disabled={disabled || selectedAddresses.size === 0}
+          style={styles.actionButton}
+        >
           Import Wallet
         </PrimaryButton>
       </View>

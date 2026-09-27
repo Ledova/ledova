@@ -40,6 +40,7 @@
         }
       ],
       "expo-dev-client",
+      "expo-system-ui",
       "@react-native-community/datetimepicker",
       [
         "expo-build-properties",

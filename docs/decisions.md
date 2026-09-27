@@ -395,6 +395,11 @@ unpriced holdings. This is a display requirement, not a claim that every client
 has completed it; see [B7d](https://github.com/Ledova/ledova/issues/115#issuecomment-5574975348)
 and [valuation presentation work](https://github.com/Ledova/ledova/issues/346).
 
+The later [signed-in app decision](#the-signed-in-app) supersedes that chart
+presentation: Holdings lists shares by company and class, and crypto actions
+stay in Wallets. The asset identity and valuation-source principles above still
+apply; the retired chart helpers are no longer part of either client.
+
 ## The signed-in app
 
 The signed-in app is rebuilt around the register; crypto stays supported but is

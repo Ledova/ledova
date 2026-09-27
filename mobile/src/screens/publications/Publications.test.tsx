@@ -7,7 +7,7 @@ import { PUBLICATION_COPY, formatDateTime } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
 import { cache, files, resetFiles } from '../../testSupport/documentFiles';
-import { CompanyPublicationsScreen, PublicationsScreen } from './index';
+import { PublicationsScreen } from './index';
 
 jest.mock('expo-file-system', () => jest.requireActual('../../testSupport/documentFiles').nativeFileSystem);
 jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(), shareAsync: jest.fn() }));
@@ -145,22 +145,14 @@ it('lists what was published, the share class it concerns and the holding frozen
   expect(view.getByText('100')).toBeTruthy();
 });
 
-it.each([
-  [PublicationsScreen, PUBLICATION_COPY.EMPTY_TITLE, PUBLICATION_COPY.EMPTY_BODY, 'No publications available'],
-  [
-    CompanyPublicationsScreen,
-    'No publications available',
-    'Publications available to your account, including those issued by your company, will appear here.',
-    PUBLICATION_COPY.EMPTY_TITLE,
-  ],
-])('describes the empty publication scope without offering a document to open', async (Screen, title, body, absent) => {
+it('describes the empty personal notice scope without offering a document to open', async () => {
   rows = [];
 
-  const view = await render(<Screen />, { wrapper });
+  const view = await render(<PublicationsScreen />, { wrapper });
 
-  expect(await view.findByText(title)).toBeTruthy();
-  expect(view.getByText(body)).toBeTruthy();
-  expect(view.queryByText(absent)).toBeNull();
+  expect(await view.findByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeTruthy();
+  expect(view.getByText(PUBLICATION_COPY.EMPTY_BODY)).toBeTruthy();
+  expect(view.queryByText('No publications available')).toBeNull();
   expect(view.queryByText(PUBLICATION_COPY.OPEN)).toBeNull();
 });
 
@@ -536,19 +528,6 @@ it('requests only notices addressed to the caller on every page, separately from
   expect(await view.findByText('Earlier personal notice')).toBeTruthy();
   expect(apiClient.get).toHaveBeenCalledWith(LISTING, { params: { page: 1, addressed: 'me' } });
   expect(apiClient.get).toHaveBeenCalledWith(LISTING, { params: { page: 2, addressed: 'me' } });
-  await cleanup();
-  const company = await render(<CompanyPublicationsScreen />, { wrapper });
-  expect(await company.findByText(issuer.title)).toBeTruthy();
-  expect(company.queryByText('Earlier personal notice')).toBeNull();
-});
-
-it('keeps the unfiltered company publication path available without a personal entitlement', async () => {
-  rows = [{ ...statement, shares: null }];
-  const view = await render(<CompanyPublicationsScreen />, { wrapper });
-  expect(await view.findByText(statement.title)).toBeTruthy();
-  expect(apiClient.get).toHaveBeenCalledWith(LISTING, { params: { page: 1 } });
-  expect(view.queryByText(PUBLICATION_COPY.HOLDING_LABEL)).toBeNull();
-  expect(view.getByLabelText(`${PUBLICATION_COPY.OPEN}: ${statement.title}`)).toBeTruthy();
 });
 
 it('formats a large frozen share count without rounding', async () => {
