@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { FileIcon, UploadSimpleIcon, XIcon } from '@phosphor-icons/react';
 import { Modal } from '@components/Modal';
+import { PageAction } from '@components/Page';
 import { getCompanies, getErrorMessage, submitInvestorClassification } from '@ledova/shared';
 import type { CompanyListItem, InvestorCategory } from '@ledova/shared';
 import { useQuery } from '@tanstack/react-query';
@@ -23,9 +24,21 @@ interface ClaimModalProps {
   category: InvestorCategory | null;
   userAccount: string | null;
   onSuccess: () => void;
+  submissionBlockedReason: string | null;
+  onRetry?: () => void;
+  isRetrying: boolean;
 }
 
-export function ClaimModal({ isOpen, onClose, category, userAccount, onSuccess }: ClaimModalProps) {
+export function ClaimModal({
+  isOpen,
+  onClose,
+  category,
+  userAccount,
+  onSuccess,
+  submissionBlockedReason,
+  onRetry,
+  isRetrying,
+}: ClaimModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [declaredBasis, setDeclaredBasis] = useState('');
   const [company, setCompany] = useState('');
@@ -42,12 +55,12 @@ export function ClaimModal({ isOpen, onClose, category, userAccount, onSuccess }
   const needsCompany = category === 'associated_person';
   const needsCertifier = category === 'accountant_certificate';
 
-  const { data: companiesData } = useQuery({
+  const companiesQuery = useQuery({
     queryKey: ['companies'],
     queryFn: () => getCompanies(apiClient),
     enabled: isOpen && needsCompany,
   });
-  const companies: CompanyListItem[] = companiesData?.data?.results ?? [];
+  const companies: CompanyListItem[] = companiesQuery.isError ? [] : (companiesQuery.data?.data?.results ?? []);
 
   const spec = CATEGORIES.find((item) => item.category === category);
 
@@ -71,12 +84,13 @@ export function ClaimModal({ isOpen, onClose, category, userAccount, onSuccess }
   }, []);
 
   const isComplete =
+    !submissionBlockedReason &&
     !!file &&
     !!category &&
     !!userAccount &&
     declarationAccepted &&
     declaredBasis.trim() !== '' &&
-    (!needsCompany || company !== '') &&
+    (!needsCompany || (company !== '' && !companiesQuery.isError && !companiesQuery.isLoading)) &&
     (!needsCertifier ||
       (certificateIssuedAt !== '' &&
         certifierName.trim() !== '' &&
@@ -123,8 +137,17 @@ export function ClaimModal({ isOpen, onClose, category, userAccount, onSuccess }
       confirmLoading={isSubmitting}
     >
       <div className="space-y-4">
+        {submissionBlockedReason && (
+          <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-primary">
+            <p>{submissionBlockedReason}</p>
+            {onRetry && <PageAction label="Try again" onClick={onRetry} disabled={isRetrying} />}
+          </div>
+        )}
         {error && (
-          <div className="rounded-lg border border-error-light/30 bg-error-light/10 p-3 text-sm text-error-light">
+          <div
+            role="alert"
+            className="rounded-lg border border-error-light/30 bg-error-light/10 p-3 text-sm text-error-light"
+          >
             {error}
           </div>
         )}
@@ -134,7 +157,12 @@ export function ClaimModal({ isOpen, onClose, category, userAccount, onSuccess }
         {needsCompany && (
           <label className="block">
             <span className="text-sm font-medium text-text-primary">Issuer</span>
-            <select value={company} onChange={(e) => setCompany(e.target.value)} className={FIELD_CLASS}>
+            <select
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              className={FIELD_CLASS}
+              disabled={companiesQuery.isLoading || companiesQuery.isError}
+            >
               <option value="">Select the issuer</option>
               {companies.map((item) => (
                 <option key={item.uuid} value={item.uuid}>
@@ -143,6 +171,17 @@ export function ClaimModal({ isOpen, onClose, category, userAccount, onSuccess }
               ))}
             </select>
           </label>
+        )}
+
+        {needsCompany && companiesQuery.isError && (
+          <div role="alert" className="flex flex-col items-start gap-2 text-sm text-error-light">
+            <p>Issuers could not be loaded.</p>
+            <PageAction
+              label="Try again"
+              onClick={() => void companiesQuery.refetch()}
+              disabled={companiesQuery.isFetching}
+            />
+          </div>
         )}
 
         {needsCertifier && (
@@ -207,7 +246,6 @@ export function ClaimModal({ isOpen, onClose, category, userAccount, onSuccess }
               setIsDragging(true);
             }}
             onDragLeave={() => setIsDragging(false)}
-            onClick={() => fileInputRef.current?.click()}
             className={`flex flex-col items-center justify-center gap-3 py-10 px-6 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${
               isDragging
                 ? 'border-brand-light bg-brand-mid/10'
@@ -216,14 +254,14 @@ export function ClaimModal({ isOpen, onClose, category, userAccount, onSuccess }
           >
             <UploadSimpleIcon size={32} className="text-text-muted" weight="light" />
             <div className="text-center">
-              <p className="text-sm text-text-primary">
-                Drag &amp; drop or <span className="text-brand-light font-medium">browse</span>
-              </p>
+              <p className="mb-3 text-sm text-text-primary">Drag and drop your evidence or choose a file.</p>
+              <PageAction label="Choose evidence file" onClick={() => fileInputRef.current?.click()} />
               <p className="text-xs text-text-muted mt-1">PDF or images, max 10 MB</p>
             </div>
             <input
               ref={fileInputRef}
               type="file"
+              aria-label="Evidence file"
               accept="application/pdf,image/png,image/jpeg"
               onChange={(e) => setFile(e.target.files?.[0] || null)}
               className="hidden"
@@ -236,7 +274,12 @@ export function ClaimModal({ isOpen, onClose, category, userAccount, onSuccess }
               <p className="text-sm text-text-primary truncate">{file.name}</p>
               <p className="text-xs text-text-muted">{formatFileSize(file.size)}</p>
             </div>
-            <button onClick={() => setFile(null)} className="text-text-muted hover:text-text-primary p-1">
+            <button
+              type="button"
+              aria-label="Remove evidence file"
+              onClick={() => setFile(null)}
+              className="text-text-muted hover:text-text-primary p-1"
+            >
               <XIcon size={16} />
             </button>
           </div>

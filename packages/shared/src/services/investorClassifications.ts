@@ -7,8 +7,12 @@ import type {
   PaginatedResponse,
 } from '../types';
 
-export const getInvestorClassifications = (apiClient: AxiosInstance) =>
-  apiClient.get<PaginatedResponse<InvestorClassification>>(INVESTOR_CLASSIFICATION_ENDPOINTS.BASE);
+export const getInvestorClassifications = (apiClient: AxiosInstance, page?: number) =>
+  page === undefined
+    ? apiClient.get<PaginatedResponse<InvestorClassification>>(INVESTOR_CLASSIFICATION_ENDPOINTS.BASE)
+    : apiClient.get<PaginatedResponse<InvestorClassification>>(INVESTOR_CLASSIFICATION_ENDPOINTS.BASE, {
+        params: { page },
+      });
 
 export const getInvestorEligibility = (apiClient: AxiosInstance) =>
   apiClient.get<InvestorEligibility>(INVESTOR_CLASSIFICATION_ENDPOINTS.ELIGIBILITY);
