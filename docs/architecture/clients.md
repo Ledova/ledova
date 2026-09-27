@@ -102,7 +102,10 @@ not imply that the investor is ineligible or has no evidence. Submission and
 withdrawal keep the API's existing authority checks, show failures, and refresh
 eligibility, claim history and Directory reads after success. Verification uses
 its own complete-history cache under the shared classification key, preserving
-the Documents page's first-page response shape.
+the Documents page's first-page response shape. A failed background read retains
+an open claim's fields and selected evidence file, with a retry inside the modal.
+Submission waits for reliable reads and remains blocked if a refreshed history
+contains another pending claim.
 
 Where market values are shown elsewhere, they are in AUD: the shared
 `useCurrency` converts the API's US-dollar values at the current rate, shows a

@@ -24,9 +24,21 @@ interface ClaimModalProps {
   category: InvestorCategory | null;
   userAccount: string | null;
   onSuccess: () => void;
+  submissionBlockedReason: string | null;
+  onRetry?: () => void;
+  isRetrying: boolean;
 }
 
-export function ClaimModal({ isOpen, onClose, category, userAccount, onSuccess }: ClaimModalProps) {
+export function ClaimModal({
+  isOpen,
+  onClose,
+  category,
+  userAccount,
+  onSuccess,
+  submissionBlockedReason,
+  onRetry,
+  isRetrying,
+}: ClaimModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [declaredBasis, setDeclaredBasis] = useState('');
   const [company, setCompany] = useState('');
@@ -72,6 +84,7 @@ export function ClaimModal({ isOpen, onClose, category, userAccount, onSuccess }
   }, []);
 
   const isComplete =
+    !submissionBlockedReason &&
     !!file &&
     !!category &&
     !!userAccount &&
@@ -124,6 +137,12 @@ export function ClaimModal({ isOpen, onClose, category, userAccount, onSuccess }
       confirmLoading={isSubmitting}
     >
       <div className="space-y-4">
+        {submissionBlockedReason && (
+          <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-primary">
+            <p>{submissionBlockedReason}</p>
+            {onRetry && <PageAction label="Try again" onClick={onRetry} disabled={isRetrying} />}
+          </div>
+        )}
         {error && (
           <div
             role="alert"

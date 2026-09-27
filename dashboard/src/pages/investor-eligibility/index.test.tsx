@@ -163,6 +163,92 @@ it('hides cached claims and actions when a refresh fails', async () => {
   expect(screen.queryByText('Verified to invest')).toBeNull();
 });
 
+it.each(['eligibility', 'claims'])('retains an open claim through a failed %s refresh and retry', async (source) => {
+  let broken = false;
+  api.get.mockImplementation(async (url: string) => {
+    const isEligibility = url === INVESTOR_CLASSIFICATION_ENDPOINTS.ELIGIBILITY;
+    if (broken && (source === 'eligibility' ? isEligibility : !isEligibility)) throw new Error('Unavailable');
+    return isEligibility ? { data: eligibility } : page();
+  });
+  renderPage();
+  fireEvent.click((await screen.findAllByRole('button', { name: 'Submit evidence' }))[1]);
+  const dialog = await screen.findByRole('dialog');
+  const file = new File(['retained evidence'], 'certificate.pdf', { type: 'application/pdf' });
+  fireEvent.change(within(dialog).getByLabelText('Certificate date'), { target: { value: '2026-09-01' } });
+  fireEvent.change(within(dialog).getByLabelText('Professional body'), { target: { value: 'cpa_australia' } });
+  fireEvent.change(within(dialog).getByLabelText('Accountant name'), { target: { value: 'Alex Example' } });
+  fireEvent.change(within(dialog).getByLabelText('Membership number'), { target: { value: 'TEST-123' } });
+  fireEvent.change(within(dialog).getByLabelText('Basis for the claim'), { target: { value: 'Current certificate' } });
+  fireEvent.change(within(dialog).getByLabelText('Evidence file'), { target: { files: [file] } });
+  fireEvent.click(within(dialog).getByRole('checkbox'));
+  expect((within(dialog).getByRole('button', { name: 'Submit for review' }) as HTMLButtonElement).disabled).toBe(false);
+  broken = true;
+  await act(async () => {
+    await client.invalidateQueries({
+      queryKey: [source === 'eligibility' ? 'investor-eligibility' : 'investor-classifications'],
+    });
+  });
+  await waitFor(() =>
+    expect(
+      client.getQueryState(
+        source === 'eligibility' ? ['investor-eligibility'] : ['investor-classifications', 'verification'],
+      )?.status,
+    ).toBe('error'),
+  );
+  expect(screen.getByRole('dialog')).toBe(dialog);
+  expect(within(dialog).getByRole('alert').textContent).toContain('Your verification could not be loaded');
+  expect(screen.queryByText('Verified to invest')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Submit evidence' })).toBeNull();
+  expect((within(dialog).getByLabelText('Basis for the claim') as HTMLTextAreaElement).value).toBe(
+    'Current certificate',
+  );
+  expect(within(dialog).getByText('certificate.pdf')).toBeTruthy();
+  const submit = within(dialog).getByRole('button', { name: 'Submit for review' }) as HTMLButtonElement;
+  expect(submit.disabled).toBe(true);
+  fireEvent.click(submit);
+  expect(api.post).not.toHaveBeenCalled();
+  broken = false;
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Try again' }));
+  await waitFor(() => expect(submit.disabled).toBe(false));
+  expect(screen.getByRole('dialog')).toBe(dialog);
+  fireEvent.click(submit);
+  await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
+  const payload = api.post.mock.calls[0][1] as FormData;
+  expect(payload.get('evidence_file')).toBe(file);
+  expect(payload.get('declared_basis')).toBe('Current certificate');
+  expect(payload.get('certificate_issued_at')).toBe('2026-09-01');
+  expect(payload.get('certifier_name')).toBe('Alex Example');
+  expect(payload.get('certifier_body')).toBe('cpa_australia');
+  expect(payload.get('certifier_membership_number')).toBe('TEST-123');
+});
+
+it('retains evidence but blocks a claim when a refresh discovers another pending claim', async () => {
+  renderPage();
+  fireEvent.click((await screen.findAllByRole('button', { name: 'Submit evidence' }))[0]);
+  const dialog = await screen.findByRole('dialog');
+  fireEvent.change(within(dialog).getByLabelText('Basis for the claim'), { target: { value: 'My evidence' } });
+  fireEvent.change(within(dialog).getByLabelText('Evidence file'), {
+    target: { files: [new File(['test'], 'proof.pdf', { type: 'application/pdf' })] },
+  });
+  fireEvent.click(within(dialog).getByRole('checkbox'));
+  api.get.mockImplementation(async (url: string) =>
+    url === INVESTOR_CLASSIFICATION_ENDPOINTS.ELIGIBILITY
+      ? { data: eligibility }
+      : page([claim({ status: 'submitted', isLive: false })]),
+  );
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: ['investor-classifications'] });
+  });
+  expect(
+    await within(dialog).findByText('Another claim is awaiting review. Withdraw it before submitting another.'),
+  ).toBeTruthy();
+  expect(within(dialog).getByText('proof.pdf')).toBeTruthy();
+  const submit = within(dialog).getByRole('button', { name: 'Submit for review' }) as HTMLButtonElement;
+  expect(submit.disabled).toBe(true);
+  fireEvent.click(submit);
+  expect(api.post).not.toHaveBeenCalled();
+});
+
 it('shows expiry, review dates and refusal reasons without truncating the claim name', async () => {
   api.get.mockImplementation(async (url: string) =>
     url === INVESTOR_CLASSIFICATION_ENDPOINTS.ELIGIBILITY
