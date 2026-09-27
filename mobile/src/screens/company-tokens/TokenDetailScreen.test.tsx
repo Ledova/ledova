@@ -1,4 +1,5 @@
 import React from 'react';
+import { Alert } from 'react-native';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
@@ -8,8 +9,9 @@ import { cache, files, resetFiles } from '../../testSupport/documentFiles';
 import { invalidateSessionScope } from '../../services/sessionScope';
 import { TokenDetailScreen } from './TokenDetailScreen';
 
+let mockCompanyRole = 'company';
 jest.mock('../../hooks/useUserPreferences', () => ({
-  useUserPreferences: () => ({ userAccount: { role: 'company' }, isLoading: false, isError: false }),
+  useUserPreferences: () => ({ userAccount: { role: mockCompanyRole }, isLoading: false, isError: false }),
 }));
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));
 jest.mock('expo-file-system', () => jest.requireActual('../../testSupport/documentFiles').nativeFileSystem);
@@ -93,6 +95,8 @@ function defaultRead(url: string, number: number): Promise<unknown> {
   return Promise.reject(new Error(`Unexpected ${url}`));
 }
 beforeEach(() => {
+  jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  mockCompanyRole = 'company';
   resetFiles();
   classRecord = { ...token };
   read = defaultRead;
@@ -111,6 +115,7 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+  jest.restoreAllMocks();
 });
 
 it('reads every page of each history and keeps exact confirmed quantities and register state', async () => {
@@ -254,6 +259,123 @@ it('blocks an open request when the refreshed class is paused and keeps its inpu
   expect(view.getByRole('button', { name: 'Create request' })).toBeDisabled();
 });
 
+function confirmation() {
+  const prompt = jest.mocked(Alert.alert).mock.calls.at(-1);
+  expect(prompt?.[0]).toBe('Deploy class?');
+  expect(prompt?.[1]).toContain('This cannot be undone.');
+  const confirm = prompt?.[2]?.find(({ text }) => text === 'Deploy');
+  const cancel = prompt?.[2]?.find(({ text }) => text === 'Cancel');
+  expect(confirm?.onPress).toBeDefined();
+  expect(cancel?.style).toBe('cancel');
+  return { confirm: confirm!.onPress!, cancel: cancel?.onPress };
+}
+
+it('requires irreversible-contract confirmation and allows cancel before one pending deployment', async () => {
+  classRecord = { ...token, status: 'draft', statusDisplay: 'Draft' };
+  let finish!: (value: unknown) => void;
+  const view = await render(screen(), { wrapper });
+  await waitFor(() => expect(view.getByRole('button', { name: 'Deploy class' })).toBeEnabled());
+  await fireEvent.press(view.getByRole('button', { name: 'Deploy class' }));
+  expect(post).not.toHaveBeenCalled();
+  const first = confirmation();
+  await act(() => first.cancel?.());
+  expect(post).not.toHaveBeenCalled();
+  post.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  await fireEvent.press(view.getByRole('button', { name: 'Deploy class' }));
+  const second = confirmation();
+  await act(() => first.confirm());
+  expect(post).not.toHaveBeenCalled();
+  await act(() => {
+    second.confirm();
+    second.confirm();
+  });
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+  expect(post).toHaveBeenCalledWith(URLS.DEPLOY(uuid));
+  try {
+    await waitFor(() => expect(view.getByRole('button', { name: 'Deploy class' })).toBeDisabled());
+  } finally {
+    await act(() => finish({ data: {} }));
+  }
+});
+
+it.each([
+  'refreshing',
+  'failed',
+  'class-refreshing',
+  'class-failed',
+  'inactive',
+  'class-changed',
+  'role-changed',
+  'session-changed',
+  'unmounted',
+])('invalidates an open deployment confirmation when %s', async (state) => {
+  classRecord = { ...token, status: 'draft', statusDisplay: 'Draft' };
+  const view = await render(screen(), { wrapper });
+  await waitFor(() => expect(view.getByRole('button', { name: 'Deploy class' })).toBeEnabled());
+  await fireEvent.press(view.getByRole('button', { name: 'Deploy class' }));
+  const pending = confirmation();
+  let finish: ((value: unknown) => void) | undefined;
+  let refresh: Promise<void> | undefined;
+  if (state === 'refreshing' || state === 'failed' || state === 'inactive') {
+    read = async (url, number) =>
+      url.includes('/companies/')
+        ? state === 'refreshing'
+          ? new Promise((resolve) => {
+              finish = resolve;
+            })
+          : state === 'failed'
+            ? Promise.reject(new Error('Unavailable'))
+            : { data: { uuid: 'company', status: 'suspended' } }
+        : defaultRead(url, number);
+    await act(() => {
+      refresh = client.invalidateQueries({ queryKey: ['company', 'company'] });
+    });
+    await waitFor(() =>
+      expect(client.getQueryState(['company', 'company'])?.fetchStatus).toBe(
+        state === 'refreshing' ? 'fetching' : 'idle',
+      ),
+    );
+  } else if (state === 'class-refreshing' || state === 'class-failed') {
+    read = async (url, number) =>
+      url === URLS.DETAIL(uuid)
+        ? state === 'class-refreshing'
+          ? new Promise((resolve) => {
+              finish = resolve;
+            })
+          : Promise.reject(new Error('Unavailable'))
+        : defaultRead(url, number);
+    await act(() => {
+      refresh = client.invalidateQueries({ queryKey: ['company-token', uuid], exact: true });
+    });
+    await waitFor(() =>
+      expect(client.getQueryState(['company-token', uuid])?.fetchStatus).toBe(
+        state === 'class-refreshing' ? 'fetching' : 'idle',
+      ),
+    );
+  } else if (state === 'class-changed') {
+    classRecord = { ...token, status: 'deploying', statusDisplay: 'Deploying' };
+    await act(() => client.invalidateQueries({ queryKey: ['company-token', uuid], exact: true }));
+  } else if (state === 'role-changed') {
+    mockCompanyRole = 'investor';
+    await view.rerender(screen());
+  } else if (state === 'session-changed') {
+    invalidateSessionScope();
+  } else {
+    await view.unmount();
+  }
+  await act(() => pending.confirm());
+  expect(post).not.toHaveBeenCalled();
+  await act(async () => {
+    finish?.({ data: state === 'class-refreshing' ? classRecord : { uuid: 'company', status: 'active' } });
+    await refresh;
+  });
+});
+
 it('requires a current active company before deployment and allows retry after failed company state', async () => {
   classRecord = { ...token, status: 'draft', statusDisplay: 'Draft' };
   read = async (url, number) =>
@@ -270,6 +392,8 @@ it('requires a current active company before deployment and allows retry after f
   await fireEvent.press(view.getByRole('button', { name: 'Retry company state' }));
   await waitFor(() => expect(view.getByRole('button', { name: 'Deploy class' })).toBeEnabled());
   await fireEvent.press(view.getByRole('button', { name: 'Deploy class' }));
+  expect(post).not.toHaveBeenCalled();
+  await act(() => confirmation().confirm());
   await waitFor(() => expect(post).toHaveBeenCalledWith(URLS.DEPLOY(uuid)));
 });
 

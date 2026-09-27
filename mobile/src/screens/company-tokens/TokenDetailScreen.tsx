@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from 'react';
-import { Text, View, ScrollView, RefreshControl, Linking } from 'react-native';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Text, View, ScrollView, RefreshControl, Linking, Alert } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
@@ -12,6 +13,7 @@ import {
 } from '@ledova/shared';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
 import { Section, Row, Action } from '../../components/Ledger';
+import { getSessionEpoch } from '../../services/sessionScope';
 import { ClassRegister } from '../company-register/ClassRegister';
 import { useCompanyStyles } from '../company-register/styles';
 import { useTokenDetail } from './useTokenDetail';
@@ -49,6 +51,78 @@ export function TokenDetailScreen({ route }: Props) {
 function ShareClass({ uuid }: { uuid: string }) {
   const styles = useCompanyStyles();
   const data = useTokenDetail(uuid);
+  const queryClient = useQueryClient();
+  const access = useRef(data.access);
+  useLayoutEffect(() => {
+    access.current = data.access;
+  }, [data.access]);
+  const deployment = useRef<{ mounted: boolean; confirmation: symbol | null; pending: boolean }>({
+    mounted: true,
+    confirmation: null,
+    pending: false,
+  });
+  useEffect(() => {
+    deployment.current.mounted = true;
+    return () => {
+      deployment.current.mounted = false;
+    };
+  }, []);
+  const canDeploy = (companyUuid?: string) => {
+    const currentClass = queryClient.getQueryState<typeof data.token.data>(['company-token', uuid]);
+    const currentCompany = queryClient.getQueryState<typeof data.company.data>([
+      'company',
+      currentClass?.data?.companyUuid,
+    ]);
+    return (
+      deployment.current.mounted &&
+      !deployment.current.pending &&
+      access.current.allowed &&
+      !access.current.isLoading &&
+      currentClass?.status === 'success' &&
+      currentClass.fetchStatus === 'idle' &&
+      !currentClass.isInvalidated &&
+      currentClass.data?.uuid === uuid &&
+      currentClass.data.status === 'draft' &&
+      (!companyUuid || currentClass.data.companyUuid === companyUuid) &&
+      currentCompany?.status === 'success' &&
+      currentCompany.fetchStatus === 'idle' &&
+      !currentCompany.isInvalidated &&
+      currentCompany.data?.uuid === currentClass.data.companyUuid &&
+      currentCompany.data.status === 'active'
+    );
+  };
+  const confirmDeployment = () => {
+    if (deployment.current.confirmation || data.deploy.isPending || !canDeploy()) return;
+    const epoch = getSessionEpoch();
+    const companyUuid = data.token.data?.companyUuid;
+    const confirmation = Symbol();
+    deployment.current.confirmation = confirmation;
+    const cancel = () => {
+      if (deployment.current.confirmation === confirmation) deployment.current.confirmation = null;
+    };
+    Alert.alert(
+      'Deploy class?',
+      'Create the share class contract on the blockchain? This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel', onPress: cancel },
+        {
+          text: 'Deploy',
+          onPress: () => {
+            if (deployment.current.confirmation !== confirmation) return;
+            deployment.current.confirmation = null;
+            if (epoch !== getSessionEpoch() || !canDeploy(companyUuid)) return;
+            deployment.current.pending = true;
+            data.deploy.mutate(undefined, {
+              onSettled: () => {
+                deployment.current.pending = false;
+              },
+            });
+          },
+        },
+      ],
+      { cancelable: true, onDismiss: cancel },
+    );
+  };
   const [form, setForm] = useState<'issue' | 'raise' | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
@@ -177,7 +251,7 @@ function ShareClass({ uuid }: { uuid: string }) {
                   data.company.data?.status !== 'active' ||
                   data.deploy.isPending
                 }
-                onPress={() => data.deploy.mutate()}
+                onPress={confirmDeployment}
               />
             </ReadResult>
           )}
