@@ -116,9 +116,11 @@ afterEach(async () => {
   await cleanup();
   client.clear();
   jest.restoreAllMocks();
+  jest.useRealTimers();
 });
 
 it('reads every page of each history and keeps exact confirmed quantities and register state', async () => {
+  jest.useFakeTimers();
   const view = await render(screen(), { wrapper });
   await waitFor(() => expect(view.getByText('Application APP-9')).toBeTruthy());
   expect(view.getByText('9,007,199,254,740,993 shares to 0xrecipient')).toBeTruthy();
