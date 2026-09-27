@@ -463,9 +463,8 @@ The owner answered the two remaining scope questions on 27 September 2026
   Existing API visibility remains authoritative; the client does not discard an
   accessible class just because another company was returned first.
 - **Initial Market:** "Keep automatic matching for the first version." The
-  planned Market presentation is _For sale_ and _Wanted_ over existing matching.
+  dashboard Market presents _For sale_ and _Wanted_ over existing matching.
   Seller acceptance and rejection are not a prerequisite for that first version.
-  This is the approved direction; the Market page change remains in #749.
 
 The buyer-funds-before-offering decision remains unchanged. These decisions set
 the implementation's scope, not permission for a live deployment or real funds.
