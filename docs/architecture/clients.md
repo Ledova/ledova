@@ -94,6 +94,16 @@ the existing application detail or Notices page; they do not submit, pay or vote
 from Holdings. The application list retains applications whose company or class
 has become hidden, using their stored names and currency.
 
+Verification shows the investor's current eligibility and complete claim history
+in the same ledger layout. Every claim page must load before qualification actions
+are offered, so a pending claim on a later page still prevents a second submission.
+Read failures hide stale eligibility and claims behind an explicit retry; they do
+not imply that the investor is ineligible or has no evidence. Submission and
+withdrawal keep the API's existing authority checks, show failures, and refresh
+eligibility, claim history and Directory reads after success. Verification uses
+its own complete-history cache under the shared classification key, preserving
+the Documents page's first-page response shape.
+
 Where market values are shown elsewhere, they are in AUD: the shared
 `useCurrency` converts the API's US-dollar values at the current rate, shows a
 dash and draws no chart while the rate is unknown, and neither client offers

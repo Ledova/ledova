@@ -1,169 +1,152 @@
 import { useState } from 'react';
-import {
-  CheckCircleIcon,
-  ClockIcon,
-  InfoIcon,
-  ShieldCheckIcon,
-  TrashIcon,
-  UploadSimpleIcon,
-  WarningIcon,
-  XCircleIcon,
-} from '@phosphor-icons/react';
+import { Link } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { Panel } from '@components/Panel';
-import { deleteInvestorClassification, formatDate } from '@ledova/shared';
+import { DESTINATIONS, deleteInvestorClassification, formatDate, getErrorMessage } from '@ledova/shared';
 import type { InvestorCategory, InvestorClassification } from '@ledova/shared';
+import { Row, Rows, Section, Status, type Tone } from '@components/Ledger';
+import { Page, PageAction } from '@components/Page';
 import apiClient from '@services/apiClient';
 import { CATEGORIES, REASON_TEXT, WHOLESALE_ONLY_NOTICE } from './constants';
 import { ClaimModal } from './ClaimModal';
 import { useInvestorEligibility } from './useInvestorEligibility';
-import { Page } from '@components/Page';
 
-function StatusIcon({ classification }: { classification: InvestorClassification }) {
-  if (classification.isLive) {
-    return <CheckCircleIcon size={20} className="text-success-light flex-shrink-0" weight="fill" />;
-  }
-  if (classification.status === 'submitted') {
-    return <ClockIcon size={20} className="text-info-light flex-shrink-0" weight="fill" />;
-  }
-  return <XCircleIcon size={20} className="text-error-light flex-shrink-0" weight="fill" />;
-}
-
-function claimState(classification: InvestorClassification) {
-  if (classification.isLive) {
-    return classification.expiresAt ? `Verified until ${formatDate(classification.expiresAt)}` : 'Verified';
-  }
-  if (classification.isExpired) return 'Expired';
-  if (classification.status === 'submitted') return 'Awaiting review';
-  return classification.statusDisplay;
+function claimState(classification: InvestorClassification): { label: string; tone: Tone } {
+  if (classification.isLive) return { label: 'Verified', tone: 'done' };
+  if (classification.isExpired) return { label: 'Expired', tone: 'closed' };
+  if (classification.status === 'submitted') return { label: 'Awaiting review', tone: 'moving' };
+  return { label: classification.statusDisplay, tone: 'closed' };
 }
 
 export default function InvestorEligibilityPage() {
-  const { eligibility, classifications, isLoading, refresh } = useInvestorEligibility();
+  const { eligibility, classifications, isLoading, hasError, isRefreshing, retry, refresh } = useInvestorEligibility();
   const [claimCategory, setClaimCategory] = useState<InvestorCategory | null>(null);
 
-  const deleteMutation = useMutation({
+  const withdraw = useMutation({
     mutationFn: (uuid: string) => deleteInvestorClassification(apiClient, uuid),
     onSuccess: refresh,
   });
 
-  if (isLoading) {
-    return <Page loading />;
+  if (isLoading) return <Page loading />;
+
+  if (hasError) {
+    return (
+      <Page>
+        <div role="alert" className="flex flex-col items-start gap-3 py-6">
+          <p className="text-sm text-text-primary">
+            Your verification could not be loaded. Try again before continuing.
+          </p>
+          <PageAction label="Try again" onClick={() => void retry()} disabled={isRefreshing} />
+        </div>
+      </Page>
+    );
   }
 
   const isEligible = eligibility?.isEligible ?? false;
   const openClaim = classifications.find((claim) => claim.status === 'submitted');
-  const claimedCategories = new Set(
-    classifications.filter((claim) => claim.isLive || claim.status === 'submitted').map((claim) => claim.category),
-  );
+  const liveCategories = new Set(classifications.filter((claim) => claim.isLive).map((claim) => claim.category));
 
   return (
     <Page>
-      <Panel title="Wholesale Investor Status" icon={<ShieldCheckIcon size={20} />}>
-        <div className="px-2 py-2 space-y-3">
-          <div className="flex items-start gap-3">
-            {isEligible ? (
-              <CheckCircleIcon size={24} className="text-success-light flex-shrink-0" weight="fill" />
-            ) : (
-              <WarningIcon size={24} className="text-warning-light flex-shrink-0" weight="fill" />
-            )}
-            <div>
-              <p className="text-sm font-medium text-text-primary">
-                {isEligible ? 'You can see and subscribe to offerings' : 'You cannot subscribe to offerings yet'}
-              </p>
-              {!isEligible && (
-                <ul className="mt-2 space-y-1">
-                  {(eligibility?.reasons ?? []).map((reason) => (
-                    <li key={reason} className="text-sm text-text-muted">
-                      {REASON_TEXT[reason] ?? reason}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-          <p className="text-xs text-text-muted">{WHOLESALE_ONLY_NOTICE}</p>
-        </div>
-      </Panel>
+      <p className="text-sm text-text-muted">Your investor status and the evidence reviewed by the operator.</p>
+      <Section title="Investor status">
+        <p className="py-2 text-sm text-text-primary">
+          <Status tone={isEligible ? 'done' : 'waiting'}>
+            {isEligible ? 'Verified to invest' : 'Verification needed'}
+          </Status>
+        </p>
+        {isEligible ? (
+          <Link
+            to={DESTINATIONS.directory.path}
+            className="w-fit text-sm text-brand-light underline underline-offset-4"
+          >
+            View the directory
+          </Link>
+        ) : (
+          <ul className="space-y-1 text-sm text-text-muted">
+            {(eligibility?.reasons ?? []).map((reason) => (
+              <li key={reason}>{REASON_TEXT[reason] ?? reason}</li>
+            ))}
+          </ul>
+        )}
+        <p className="text-sm text-text-muted">{WHOLESALE_ONLY_NOTICE}</p>
+      </Section>
 
-      <Panel title="How You Qualify">
-        <div className="divide-y divide-border-subtle">
-          {CATEGORIES.map((item) => {
-            const claimed = claimedCategories.has(item.category);
-            return (
-              <div key={item.category} className="px-2 py-3 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  {claimed ? (
-                    <CheckCircleIcon size={20} className="text-success-light flex-shrink-0" weight="fill" />
-                  ) : (
-                    <div className="w-5 h-5 rounded-full border-2 border-border flex-shrink-0" />
-                  )}
-                  <div className="min-w-0">
-                    <span className="text-sm text-text-primary block">
-                      {item.label} <span className="text-text-muted">({item.section})</span>
-                    </span>
-                    <span className="text-xs text-text-muted block">{item.evidence}</span>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setClaimCategory(item.category)}
-                  disabled={!!openClaim || !eligibility?.account}
-                  className="text-brand-light hover:text-brand-subtle disabled:text-text-muted disabled:cursor-not-allowed p-1"
-                  title={openClaim ? 'You already have a claim awaiting review' : 'Claim this category'}
-                >
-                  <UploadSimpleIcon size={16} />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </Panel>
-
-      <Panel title="Your Claims">
+      <Section title="Your claims">
+        {withdraw.isError && (
+          <p role="alert" className="py-2 text-sm text-error-light">
+            {getErrorMessage(withdraw.error, 'Your claim could not be withdrawn. Try again.')}
+          </p>
+        )}
         {classifications.length === 0 ? (
-          <p className="px-2 py-4 text-sm text-text-muted">You have not made a claim yet.</p>
+          <p className="py-3 text-sm text-text-muted">You have not submitted evidence yet. Choose a category below.</p>
         ) : (
           <div className="divide-y divide-border-subtle">
-            {classifications.map((claim) => (
-              <div key={claim.uuid} className="px-2 py-3 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <StatusIcon classification={claim} />
-                  <div className="min-w-0">
-                    <span className="text-sm text-text-primary block truncate">{claim.categoryDisplay}</span>
-                    <span className="text-xs text-text-muted block">
-                      {claimState(claim)}
-                      {claim.rejectionReason ? ` — ${claim.rejectionReason}` : ''}
-                    </span>
+            {classifications.map((claim) => {
+              const state = claimState(claim);
+              return (
+                <article key={claim.uuid} className="min-w-0 py-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1 basis-48">
+                      <h3 className="break-words text-sm font-medium text-text-primary">{claim.categoryDisplay}</h3>
+                      <p className="mt-1 text-sm text-text-muted">
+                        <Status tone={state.tone}>{state.label}</Status>
+                      </p>
+                    </div>
+                    {claim.status === 'submitted' && (
+                      <PageAction
+                        label={
+                          withdraw.isPending && withdraw.variables === claim.uuid ? 'Withdrawing…' : 'Withdraw claim'
+                        }
+                        onClick={() => withdraw.mutate(claim.uuid)}
+                        disabled={withdraw.isPending}
+                      />
+                    )}
                   </div>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {claim.status === 'submitted' && (
-                    <button
-                      onClick={() => deleteMutation.mutate(claim.uuid)}
-                      disabled={deleteMutation.isPending}
-                      className="text-error-light hover:text-error-light p-1"
-                      title="Withdraw this claim"
-                    >
-                      <TrashIcon size={16} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+                  <Rows>
+                    {claim.submittedAt && <Row label="Submitted">{formatDate(claim.submittedAt)}</Row>}
+                    {claim.reviewedAt && <Row label="Reviewed">{formatDate(claim.reviewedAt)}</Row>}
+                    {claim.expiresAt && <Row label="Expires">{formatDate(claim.expiresAt)}</Row>}
+                  </Rows>
+                  {claim.rejectionReason && <p className="pt-2 text-sm text-text-muted">{claim.rejectionReason}</p>}
+                </article>
+              );
+            })}
           </div>
         )}
-      </Panel>
+      </Section>
 
-      <Panel title="What Happens Next" icon={<InfoIcon size={20} />}>
-        <div className="px-2 py-3">
-          <ol className="list-decimal list-inside space-y-2 text-sm text-text-secondary">
-            <li>Pick the category that applies to you and attach the evidence for it</li>
-            <li>The operator reviews your evidence and sets an expiry date</li>
-            <li>Once verified, offerings become visible and you can subscribe</li>
-            <li>Re-evidence your claim before it expires to stay eligible</li>
-          </ol>
+      <Section title="How you qualify">
+        {openClaim && (
+          <p className="text-sm text-text-muted">
+            Your evidence is awaiting review. You can withdraw that claim before submitting another.
+          </p>
+        )}
+        <div className="divide-y divide-border-subtle">
+          {CATEGORIES.map((item) => (
+            <div key={item.category} className="flex flex-wrap items-start justify-between gap-3 py-4">
+              <div className="min-w-0 flex-1 basis-64">
+                <h3 className="text-sm font-medium text-text-primary">{item.label}</h3>
+                <p className="mt-1 text-sm text-text-muted">{item.evidence}</p>
+                <p className="mt-1 text-xs text-text-muted">{item.section}</p>
+              </div>
+              <PageAction
+                label={liveCategories.has(item.category) ? 'Update evidence' : 'Submit evidence'}
+                onClick={() => setClaimCategory(item.category)}
+                disabled={!!openClaim || !eligibility?.account || withdraw.isPending}
+              />
+            </div>
+          ))}
         </div>
-      </Panel>
+      </Section>
+
+      <Section title="What happens next">
+        <ol className="list-decimal space-y-2 py-2 pl-5 text-sm text-text-muted">
+          <li>Choose the category that applies to you and attach the evidence.</li>
+          <li>The operator reviews your evidence and sets an expiry date.</li>
+          <li>Once verified, you can view eligible offerings and apply for shares.</li>
+          <li>Update your evidence before it expires to stay eligible.</li>
+        </ol>
+      </Section>
 
       <ClaimModal
         isOpen={claimCategory !== null}
@@ -172,7 +155,7 @@ export default function InvestorEligibilityPage() {
         userAccount={eligibility?.account ?? null}
         onSuccess={() => {
           setClaimCategory(null);
-          refresh();
+          void refresh();
         }}
       />
     </Page>
