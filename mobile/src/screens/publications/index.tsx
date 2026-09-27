@@ -126,8 +126,12 @@ function PublicationList({ personal }: { personal: boolean }) {
         ) : (
           <>
             {publications.length === 0 && !hasMore && !moreFailed ? (
-              <Section title={PUBLICATION_COPY.EMPTY_TITLE}>
-                <Text style={styles.message}>{PUBLICATION_COPY.EMPTY_BODY}</Text>
+              <Section title={personal ? PUBLICATION_COPY.EMPTY_TITLE : 'No publications available'}>
+                <Text style={styles.message}>
+                  {personal
+                    ? PUBLICATION_COPY.EMPTY_BODY
+                    : 'Publications available to your account, including those issued by your company, will appear here.'}
+                </Text>
               </Section>
             ) : (
               publications.map(renderRow)

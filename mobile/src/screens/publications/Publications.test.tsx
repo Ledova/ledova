@@ -145,12 +145,22 @@ it('lists what was published, the share class it concerns and the holding frozen
   expect(view.getByText('100')).toBeTruthy();
 });
 
-it('says so when nothing has been published, and offers no document to open', async () => {
+it.each([
+  [PublicationsScreen, PUBLICATION_COPY.EMPTY_TITLE, PUBLICATION_COPY.EMPTY_BODY, 'No publications available'],
+  [
+    CompanyPublicationsScreen,
+    'No publications available',
+    'Publications available to your account, including those issued by your company, will appear here.',
+    PUBLICATION_COPY.EMPTY_TITLE,
+  ],
+])('describes the empty publication scope without offering a document to open', async (Screen, title, body, absent) => {
   rows = [];
 
-  const view = await render(<PublicationsScreen />, { wrapper });
+  const view = await render(<Screen />, { wrapper });
 
-  expect(await view.findByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeTruthy();
+  expect(await view.findByText(title)).toBeTruthy();
+  expect(view.getByText(body)).toBeTruthy();
+  expect(view.queryByText(absent)).toBeNull();
   expect(view.queryByText(PUBLICATION_COPY.OPEN)).toBeNull();
 });
 
