@@ -39,18 +39,7 @@ signed-in account whose profile does not say `isSignupCompleted` goes back to
 the account-type step, the first after email verification; the later steps
 fill their forms from what was saved. A signed-in account whose profile cannot
 be read sees an error with a way to try again, not a guess. A signed-in person
-who cannot open the page goes to Published to your members opens from Company at `/company/publications`, under
-company and dual-role guards. It reads every publication page with the selected
-owned company's UUID as `issuer`, separately from the personal Notices cache.
-It shows stored documents, frozen company/class names, resolution windows and
-exact share/member tallies, and dividend rates and dates. It has no personal
-ballot or entitlement controls, including when the owner is also a member.
-Loading and failed company/publication reads block document actions; retry never
-presents a partial list as complete. Document delivery failures remain visible.
-Staff still prepare and publish on written instruction; this page adds no
-publication creation, approval, payment or execution endpoint.
-
-`landingFor(role)`, which replaces the refused
+who cannot open the page goes to `landingFor(role)`, which replaces the refused
 address. Every page shows the session check until the profile is known, and an
 investing or company page until the role is known as well, so no page appears
 on the way. If the account cannot be read, it says so and offers Try again
@@ -227,6 +216,17 @@ account still signing up, back into sign-up. It shows nothing until its own
 decision and the frame's agree, so, like a guarded page, it never appears in
 the wrong layout for a moment.
 The mobile app does not read the table yet.
+
+Published to your members opens from Company at `/company/publications`, under
+company and dual-role guards. It reads every publication page with the selected
+owned company's UUID as `issuer`, separately from the personal Notices cache.
+It shows stored documents, frozen company/class names, resolution windows and
+exact share/member tallies, and dividend rates and dates. It has no personal
+ballot or entitlement controls, including when the owner is also a member.
+Loading and failed company/publication reads block document actions; retry never
+presents a partial list as complete. Document delivery failures remain visible.
+Staff still prepare and publish on written instruction; this page adds no
+publication creation, approval, payment or execution endpoint.
 
 Inside the frame, every signed-in page renders in `Page`
 (`dashboard/src/components/Page.tsx`), and so do the route guard's own waiting
