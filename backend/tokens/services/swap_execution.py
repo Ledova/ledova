@@ -205,6 +205,9 @@ def submit_signature(swap_order, signature, signer_address, *, user, participant
     if swap_terms(snapshot) != terms:
         raise SwapSignatureException("The swap changed while its signature was being checked")
     with use_operator(), atomic(durable=True):
+        share_class = (
+            ShareToken.objects.select_for_update(of=("self",), no_key=True).filter(pk=snapshot.share_token_id).first()
+        )
         _lock_authority(snapshot, user.pk, participant)
         swap = _lock_swap(snapshot)
         stored = swap.seller_signature if is_seller else swap.buyer_signature
@@ -220,6 +223,8 @@ def submit_signature(swap_order, signature, signer_address, *, user, participant
                 _lock_command(original)
                 recover_swap_execution.defer(transaction_id=str(original.pk))
             return swap
+        if share_class is None or not share_class.is_deployed:
+            raise SettlementContextChanged()
         assert_current_settlement(swap)
         if swap.deadline_passed:
             raise SwapExpiredException()
