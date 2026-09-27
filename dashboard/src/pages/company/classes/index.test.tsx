@@ -317,6 +317,101 @@ it('stops a prepared raise when a refresh says the class is paused', async () =>
   expect(api.post).not.toHaveBeenCalled();
 });
 
+it.each(['issue', 'raise'] as const)(
+  'keeps a pending %s request open through Escape and outside clicks, then retains a refusal for retry',
+  async (form) => {
+    let rejectRequest: (error: Error) => void = () => {};
+    api.post.mockImplementationOnce(
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectRequest = reject;
+        }),
+    );
+    show();
+    let dialog: HTMLElement;
+    if (form === 'raise') {
+      dialog = await openRaise();
+      fireEvent.change(within(dialog).getByLabelText('Additional shares'), { target: { value: '2' } });
+    } else {
+      fireEvent.click(await screen.findByRole('button', { name: 'Request issuance' }));
+      dialog = await screen.findByRole('dialog');
+      fireEvent.change(within(dialog).getByLabelText('Recipient address'), {
+        target: { value: '0x' + '3'.repeat(40) },
+      });
+      fireEvent.change(within(dialog).getByLabelText('Shares to issue'), { target: { value: '2' } });
+    }
+    const confirm = form === 'raise' ? 'Create request' : 'Submit issuance request';
+    fireEvent.click(within(dialog).getByRole('button', { name: confirm }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
+    await within(dialog).findByRole('button', { name: 'Loading...' });
+    expect(
+      within(dialog)
+        .getByLabelText(form === 'raise' ? 'Additional shares' : 'Shares to issue')
+        .matches(':disabled'),
+    ).toBe(true);
+    await act(async () => {
+      fireEvent.keyDown(window, { key: 'Escape' });
+    });
+    expect(screen.getByRole('dialog')).toBe(dialog);
+    await act(async () => {
+      fireEvent.pointerDown(document.body);
+      fireEvent.mouseDown(document.body);
+      fireEvent.click(document.body);
+    });
+    expect(screen.getByRole('dialog')).toBe(dialog);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Loading...' }));
+    expect(api.post).toHaveBeenCalledTimes(1);
+    await act(async () => rejectRequest(new Error('Refused')));
+    expect(await within(dialog).findByRole('alert')).toBeTruthy();
+    expect(
+      (within(dialog).getByLabelText(form === 'raise' ? 'Additional shares' : 'Shares to issue') as HTMLInputElement)
+        .value,
+    ).toBe('2');
+    fireEvent.click(within(dialog).getByRole('button', { name: confirm }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  },
+);
+
+it.each(['issue', 'raise'] as const)('blocks the prepared %s request while class state is refreshing', async (form) => {
+  show();
+  let dialog: HTMLElement;
+  if (form === 'raise') {
+    dialog = await openRaise();
+    fireEvent.change(within(dialog).getByLabelText('Additional shares'), { target: { value: '2' } });
+  } else {
+    fireEvent.click(await screen.findByRole('button', { name: 'Request issuance' }));
+    dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Recipient address'), { target: { value: '0x' + '3'.repeat(40) } });
+    fireEvent.change(within(dialog).getByLabelText('Shares to issue'), { target: { value: '2' } });
+  }
+  let resolveRead: (value: unknown) => void = () => {};
+  const original = api.get.getMockImplementation()!;
+  api.get.mockImplementation((url: string) =>
+    url === CLASS
+      ? new Promise((resolve) => {
+          resolveRead = resolve;
+        })
+      : original(url),
+  );
+  act(() => {
+    void client.invalidateQueries({ queryKey: ['token', 'class-one'], exact: true });
+  });
+  expect(await within(dialog).findByText('Refreshing class state before continuing.')).toBeTruthy();
+  const confirm = form === 'raise' ? 'Create request' : 'Submit issuance request';
+  expect((within(dialog).getByRole('button', { name: confirm }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(within(dialog).getByRole('button', { name: confirm }));
+  expect(api.post).not.toHaveBeenCalled();
+  await act(async () => resolveRead({ data: { ...token } }));
+  await waitFor(() =>
+    expect((within(dialog).getByRole('button', { name: confirm }) as HTMLButtonElement).disabled).toBe(false),
+  );
+  expect(
+    (within(dialog).getByLabelText(form === 'raise' ? 'Additional shares' : 'Shares to issue') as HTMLInputElement)
+      .value,
+  ).toBe('2');
+});
+
 it('downloads only the successful register CSV and reports failed attempts', async () => {
   const create = vi.fn(() => 'blob:synthetic');
   const revoke = vi.fn();

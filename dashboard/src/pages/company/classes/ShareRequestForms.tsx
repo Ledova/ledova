@@ -23,8 +23,13 @@ interface RequestProps {
   onSuccess: () => Promise<unknown>;
 }
 
-function ClassReadFailure({ query }: { query: RequestProps['classRead'] }) {
-  if (!query.isError) return null;
+function ClassReadState({ query }: { query: RequestProps['classRead'] }) {
+  if (!query.isError)
+    return query.isFetching ? (
+      <p role="status" className="text-sm text-text-muted">
+        Refreshing class state before continuing.
+      </p>
+    ) : null;
   return (
     <div role="alert" className="space-y-2 text-sm text-error-light">
       <p>The class state could not be refreshed. Your draft is kept; retry before submitting.</p>
@@ -38,7 +43,12 @@ export function IssueSharesForm({ token, classRead, onClose, onSuccess }: Reques
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
   const quantity = requestShares(amount);
-  const valid = !classRead.isError && token.status === 'deployed' && recipient.trim() !== '' && quantity !== null;
+  const valid =
+    !classRead.isError &&
+    !classRead.isFetching &&
+    token.status === 'deployed' &&
+    recipient.trim() !== '' &&
+    quantity !== null;
   const request = useMutation({
     mutationFn: () =>
       issueCompanyShares(apiClient, token.uuid, {
@@ -54,18 +64,20 @@ export function IssueSharesForm({ token, classRead, onClose, onSuccess }: Reques
   return (
     <Modal
       isOpen
-      onClose={onClose}
+      onClose={() => {
+        if (!request.isPending) onClose();
+      }}
       title={`Request ${token.symbol} issuance`}
       showFooter
       confirmLabel="Submit issuance request"
       onConfirm={() => {
-        if (valid) request.mutate();
+        if (valid && !request.isPending) request.mutate();
       }}
       confirmDisabled={!valid || request.isPending}
       confirmLoading={request.isPending}
     >
-      <div className="space-y-4">
-        <ClassReadFailure query={classRead} />
+      <fieldset disabled={request.isPending} className="space-y-4">
+        <ClassReadState query={classRead} />
         <p className="text-sm text-text-muted">Staff review this request before any shares are issued.</p>
         {request.isError && (
           <p role="alert" className="text-sm text-error-light">
@@ -100,7 +112,7 @@ export function IssueSharesForm({ token, classRead, onClose, onSuccess }: Reques
             The class must be deployed and unpaused before you request issuance.
           </p>
         )}
-      </div>
+      </fieldset>
     </Modal>
   );
 }
@@ -115,6 +127,7 @@ export function RaiseSharesForm({ token, classRead, onClose, onSuccess }: Reques
   const newAuthorizedTotal = newTotal === null ? null : requestShares(newTotal);
   const valid =
     !classRead.isError &&
+    !classRead.isFetching &&
     token.status === 'deployed' &&
     additionalShares !== null &&
     newAuthorizedTotal !== null &&
@@ -138,18 +151,20 @@ export function RaiseSharesForm({ token, classRead, onClose, onSuccess }: Reques
   return (
     <Modal
       isOpen
-      onClose={onClose}
+      onClose={() => {
+        if (!request.isPending) onClose();
+      }}
       title="Raise authorised shares"
       showFooter
       confirmLabel="Create request"
       onConfirm={() => {
-        if (valid) request.mutate();
+        if (valid && !request.isPending) request.mutate();
       }}
       confirmDisabled={!valid || request.isPending}
       confirmLoading={request.isPending}
     >
-      <div className="space-y-4">
-        <ClassReadFailure query={classRead} />
+      <fieldset disabled={request.isPending} className="space-y-4">
+        <ClassReadState query={classRead} />
         <p className="text-sm text-text-muted">
           Create a request, then submit it for staff review. Staff approval and execution raise the authorised cap; they
           do not issue shares.
@@ -206,7 +221,7 @@ export function RaiseSharesForm({ token, classRead, onClose, onSuccess }: Reques
             The class must be deployed and unpaused before you request a raise.
           </p>
         )}
-      </div>
+      </fieldset>
     </Modal>
   );
 }
