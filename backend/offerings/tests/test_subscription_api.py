@@ -110,6 +110,19 @@ class SubscriptionApiTest(APITestCase):
         self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual([row["uuid"] for row in response.json()["results"]], [str(mine.uuid)])
 
+    def test_an_issuer_lists_its_own_applications_and_not_those_made_to_its_offering(self):
+        investor = make_tenant("api-investor")
+        eligible_subscriber(investor)
+        forget_fixture_subscriptions()
+        mine = draft_subscription(self.tenant)
+        theirs = draft_subscription(investor, offering=self.offering)
+
+        listed = self.client.get(BASE).json()["results"]
+        received = self.client.get(f"/api/v1/offerings/{self.offering.uuid}/subscriptions/").json()["results"]
+
+        self.assertEqual([row["uuid"] for row in listed], [str(mine.uuid)])
+        self.assertIn(str(theirs.uuid), [row["uuid"] for row in received])
+
     def test_the_detail_nests_the_bank_instruction_read_only(self):
         subscription = draft_subscription(self.tenant)
         submit(subscription, submitted_by=self.tenant.user)

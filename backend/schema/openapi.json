@@ -3715,6 +3715,15 @@
             "readOnly": true,
             "type": "string"
           },
+          "shareClass": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HoldingShareClass"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
           "updatedAt": {
             "format": "date-time",
             "readOnly": true,
@@ -3753,11 +3762,35 @@
           "lastSyncedAt",
           "marketValue",
           "quantity",
+          "shareClass",
           "updatedAt",
           "uuid",
           "valueSource",
           "walletAddress",
           "walletUuid"
+        ],
+        "type": "object"
+      },
+      "HoldingShareClass": {
+        "properties": {
+          "companyName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "name": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "companyName",
+          "name",
+          "uuid"
         ],
         "type": "object"
       },

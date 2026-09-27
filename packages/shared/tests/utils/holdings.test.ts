@@ -42,6 +42,7 @@ function holding(overrides: Partial<HoldingWithWallet> = {}): HoldingWithWallet 
     marketValue: null,
     valueSource: overrides.marketValue == null ? 'unpriced' : 'market',
     lastSyncedAt: '2026-09-01T00:00:00Z',
+    shareClass: null,
     walletInfo: { uuid: 'wallet-uuid', name: undefined, address: `0x${'a'.repeat(40)}`, chain: 'base' },
     ...overrides,
   };

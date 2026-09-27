@@ -253,12 +253,16 @@ something has no standing record. A withdrawn record leaves the holding
 waiting again. A holding whose entitlement rounds down to nothing never waits,
 because the chain admits no record for it.
 
-The company owner reads its whole roll under the policies, and none of it
-counts: the summary counts the roll rows naming the caller, so an owner who is
-not a member of its own company counts nothing, and a member of another
-company counts nothing of this one. The policies are a second wall under that
-filter rather than the only one, as they are for `myBallot`. The number of
-queries does not grow with what was published, and a test holds that.
+The company owner reads its whole roll under the policies, and only its own
+rows count: the summary counts the roll rows naming the caller, so an owner who
+is not a member of its own company counts nothing, an owner who is one counts
+its own holding as any member does, and a member of another company counts
+nothing of this one. For a member the policies are a second wall under that
+filter, as they are for `myBallot`. For an owner on its own roll they admit
+every row, so the filter is the only wall, here and in the listing's `shares`,
+`ballotOutstanding` and `myEntitlement`. A test puts an owner on its own roll
+beside another member and holds all of them. The number of queries does not
+grow with what was published, and a test holds that.
 
 ## In the member's everyday views
 

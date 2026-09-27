@@ -31,6 +31,7 @@ function holding(): WalletHolding {
     createdAt: '',
     updatedAt: '',
     lastSyncedAt: '',
+    shareClass: null,
     asset: {
       uuid: 'asset',
       symbol: 'MULTI',

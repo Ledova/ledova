@@ -173,6 +173,25 @@ class ThePublicationSummaryTest(StubUploadDependencies, TestCase):
             (holder["openResolutions"], holder["publishedSince"], holder["dividendsWithoutRecord"]), (1, 3, 1)
         )
 
+    def test_a_company_owner_on_its_own_roll_counts_and_reads_only_its_own_holding(self):
+        world = a_company_with_members("summary-founder", holdings=(100, 40), owner_holds_first=True)
+        founder, other = world.members
+        resolution = a_resolution(world)
+        distribution = a_distribution(world)
+        a_payment(world, distribution, founder)
+
+        before = self.summary_for(founder.user)
+        rows = {row["kind"]: row for row in self.client.get(LISTING, {"addressed": "me"}).json()["results"]}
+        voted = self.client.post(f"{LISTING}{resolution.pk}/ballot/", {"choice": BallotChoice.FOR}, format="json")
+        after = self.summary_for(founder.user)
+
+        self.assertEqual((before["openResolutions"], before["dividendsWithoutRecord"]), (1, 0))
+        self.assertEqual((rows["resolution"]["shares"], rows["resolution"]["ballotOutstanding"]), ("100", True))
+        self.assertEqual(rows["distribution"]["myEntitlement"], "2.50")
+        self.assertEqual((after["openResolutions"], voted.json()["ballotOutstanding"]), (0, False))
+        self.assertEqual(self.counted_for(other.user, "openResolutions"), 1)
+        self.assertEqual(self.counted_for(other.user, "dividendsWithoutRecord"), 1)
+
     def test_the_summary_is_one_query_however_much_was_published(self):
         with self.assertNumQueries(1, using=current_alias()):
             summarise_for(self.holder.user)

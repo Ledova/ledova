@@ -27,6 +27,7 @@ export const generateMockHoldingsData = () => {
       valueSource: 'market' as const,
       walletAddress: wallet.address,
       lastSyncedAt: new Date().toISOString(),
+      shareClass: null,
       asset: {
         uuid: asset.uuid,
         symbol: asset.symbol,
