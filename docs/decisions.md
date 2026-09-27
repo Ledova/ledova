@@ -436,6 +436,13 @@ This records the target; the steps on #732 build it.
   combined name (e.g. "Kestrel Foods Class A") instead of the separate company
   and class." (Owner decision, 26 September 2026, on
   [#732](https://github.com/Ledova/ledova/issues/732#issuecomment-5846254159).)
+- **Notices stays personal.** Asked whether to accept the gap until the register
+  work provides the company's own publication list, the owner chose "Accept the
+  gap": "Notices stays personal; the company's own list arrives with the register
+  work in step 6. Mobile keeps its current list until step 10." The issuer list
+  follows in #748 and the mobile change in #750. (Owner decision, 26 September
+  2026, on
+  [#732](https://github.com/Ledova/ledova/issues/732#issuecomment-5846254159).)
 - **Mobile follows the web.** The mobile app takes paper and the new structure
   together, after the web.
 

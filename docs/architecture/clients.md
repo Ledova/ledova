@@ -54,11 +54,14 @@ offers only pages the role can open, in groups:
 - then Wallets, Profile, Settings and Help.
 
 Each item takes its name and address from its entry in `DESTINATIONS`, so a
-menu label always matches the page's title. Until a new page exists, its name
-points at today's page: Notices at Publications and Activity at Transactions.
-Holdings replaces the crypto home at the existing `/home` address. The mobile app keeps the old names until #750
-gives it the same structure. So, for now, Market means share trading on the
-web but the coin-price screen in the app.
+menu label always matches the page's title. Activity still points at today's
+Transactions page. Holdings replaces the crypto home at the existing `/home`
+address. Notices at `/publications` lists documents, resolutions and dividends
+addressed to the person. The old `/dividends` address redirects to Notices through
+the same signed-in route guard, keeping bookmarks and transaction links useful.
+The mobile app keeps the old names until #750 gives it the same structure. So,
+for now, Market means share trading on the web but the coin-price screen in the
+app.
 
 Signing in, and verifying an email, which also signs a new person in, clear
 what the tab cached for whoever was signed in before, as signing out does, so a

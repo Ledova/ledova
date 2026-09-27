@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import type { AxiosRequestConfig } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import apiClient from '@services/apiClient';
-import { PUBLICATION_COPY, formatDateTime } from '@ledova/shared';
+import { PUBLICATION_COPY, createUserFriendlyError, formatDateTime } from '@ledova/shared';
 import PublicationsPage from './index';
 
 vi.mock('@services/apiClient', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
@@ -80,19 +80,26 @@ const recorded = { recordedPaidOn: '2026-10-03', reference: 'LDV-4412', recorded
 let client: QueryClient;
 let rows: unknown[];
 let file: () => Promise<{ data: Blob }>;
-let listing: (page: number) => Promise<unknown>;
+let listing: (page: number, addressed?: string) => Promise<unknown>;
+let ownedOnly: unknown[];
 let saved: { href: string | null; download: string }[];
 
 beforeEach(() => {
   vi.clearAllMocks();
   rows = [statement];
+  ownedOnly = [];
   file = async () => ({ data: new Blob(['stored bytes'], { type: 'application/pdf' }) });
   client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-  listing = async (page) => ({
-    data: { count: rows.length, next: null, previous: null, results: page === 1 ? rows : [] },
+  listing = async (page, addressed) => ({
+    data: {
+      count: rows.length,
+      next: null,
+      previous: null,
+      results: page === 1 ? [...rows, ...(addressed === 'me' ? [] : ownedOnly)] : [],
+    },
   });
   vi.mocked(apiClient.get).mockImplementation(async (url: string, config?: AxiosRequestConfig) => {
-    if (url === '/api/v1/publications/') return listing(config?.params?.page ?? 1);
+    if (url === '/api/v1/publications/') return listing(config?.params?.page ?? 1, config?.params?.addressed);
     return file();
   });
   window.open = vi.fn();
@@ -196,14 +203,22 @@ describe('the publications a shareholder has been sent', () => {
     expect(window.open).not.toHaveBeenCalled();
   });
 
-  it('shows the company owner a publication it made, with no holding of its own', async () => {
-    rows = [{ ...statement, shares: null }];
+  it.each([
+    [503, PUBLICATION_COPY.UNDELIVERABLE],
+    [500, PUBLICATION_COPY.FAILED],
+    [undefined, PUBLICATION_COPY.FAILED],
+  ])('retains download failure meaning when the API client wraps status %s', async (status, message) => {
+    const original = status
+      ? { response: { status, data: new Blob(['Unavailable'], { type: 'application/json' }) } }
+      : new Error('Network Error');
+    file = () => Promise.reject(createUserFriendlyError('Please try again.', original));
 
     showPage();
+    fireEvent.click(await screen.findByText(PUBLICATION_COPY.OPEN));
 
-    expect(await screen.findByText('Annual holding statement 2026')).toBeTruthy();
-    expect(screen.queryByText(PUBLICATION_COPY.HOLDING_LABEL)).toBeNull();
-    expect(screen.getByText(PUBLICATION_COPY.OPEN)).toBeTruthy();
+    expect((await screen.findByRole('alert')).textContent).toBe(message);
+    expect(saved).toEqual([]);
+    expect(window.open).not.toHaveBeenCalled();
   });
 });
 
@@ -352,24 +367,6 @@ describe('a resolution put to the members', () => {
     expect(ballotButtons().some(Boolean)).toBe(false);
   });
 
-  it('shows the company owner the result and never a ballot control', async () => {
-    rows = [{ ...resolution, shares: null, ballotOutstanding: false }];
-
-    showPage();
-
-    expect(await screen.findByText(resolution.question)).toBeTruthy();
-    expect(ballotButtons().some(Boolean)).toBe(false);
-    expect(screen.queryByText(PUBLICATION_COPY.VOTING_WEIGHT_LABEL)).toBeNull();
-
-    cleanup();
-    client.clear();
-    rows = [{ ...resolution, ...closed, shares: null, ballotOutstanding: false, result: tally }];
-    showPage();
-
-    expect(await screen.findByText(PUBLICATION_COPY.CARRIED)).toBeTruthy();
-    expect(ballotButtons().some(Boolean)).toBe(false);
-  });
-
   it('offers the rest of a ballot when staff voted part of the holding, beside the part already voted', async () => {
     const partly = {
       ...resolution,
@@ -489,18 +486,6 @@ describe('a dividend declared to the members', () => {
     expect(screen.queryByText(PUBLICATION_COPY.NO_PAYMENT_RECORDED)).toBeNull();
   });
 
-  it('shows the company owner the rate and payment date with no entitlement or record of its own', async () => {
-    rows = [{ ...dividend, shares: null, myEntitlement: null }];
-
-    showPage();
-
-    expect(await screen.findByText('AUD 0.025 per share')).toBeTruthy();
-    expect(screen.getByText('3 October 2026')).toBeTruthy();
-    expect(screen.queryByText(PUBLICATION_COPY.ENTITLEMENT_LABEL)).toBeNull();
-    expect(screen.queryByText(PUBLICATION_COPY.NO_PAYMENT_RECORDED)).toBeNull();
-    expect(screen.queryByText(PUBLICATION_COPY.HOLDING_LABEL)).toBeNull();
-  });
-
   it('shows none of this on a document', async () => {
     rows = [statement];
 
@@ -509,5 +494,225 @@ describe('a dividend declared to the members', () => {
     expect(await screen.findByText('Annual holding statement 2026')).toBeTruthy();
     expect(screen.queryByText(PUBLICATION_COPY.RATE_LABEL)).toBeNull();
     expect(screen.queryByText(PUBLICATION_COPY.NO_PAYMENT_RECORDED)).toBeNull();
+  });
+});
+
+describe('personal Notices and preserved dividend behavior', () => {
+  it('shows loading without calling pending notices empty or offering an action', async () => {
+    let finish!: (value: unknown) => void;
+    listing = () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      });
+    showPage();
+    expect(screen.getByRole('status', { name: 'Loading' })).toBeTruthy();
+    expect(screen.queryByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeNull();
+    expect(screen.queryByRole('button', { name: PUBLICATION_COPY.OPEN })).toBeNull();
+    await act(async () => finish({ data: { count: 1, next: null, previous: null, results: rows } }));
+    expect(await screen.findByText(statement.title)).toBeTruthy();
+    expect(screen.queryByRole('status', { name: 'Loading' })).toBeNull();
+    expect(screen.getByRole('button', { name: PUBLICATION_COPY.OPEN })).toBeTruthy();
+  });
+
+  it('requests only addressed papers, excluding issuer-owned papers that were not addressed to the person', async () => {
+    rows = [];
+    ownedOnly = [{ ...statement, title: 'Issuer-only paper', shares: null }];
+    const unfiltered = (await listing(1)) as { data: { results: unknown[] } };
+    expect(unfiltered.data.results).toHaveLength(1);
+    showPage();
+    expect(await screen.findByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeTruthy();
+    expect(screen.queryByText('Issuer-only paper')).toBeNull();
+    expect(apiClient.get).toHaveBeenCalledWith('/api/v1/publications/', { params: { page: 1, addressed: 'me' } });
+  });
+
+  it('does not reuse the old unfiltered publication cache', async () => {
+    rows = [];
+    client.setQueryData(['publications'], {
+      pages: [
+        {
+          data: {
+            count: 1,
+            next: null,
+            previous: null,
+            results: [{ ...statement, title: 'Cached issuer-only paper' }],
+          },
+        },
+      ],
+      pageParams: [1],
+    });
+    showPage();
+    expect(await screen.findByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeTruthy();
+    expect(screen.queryByText('Cached issuer-only paper')).toBeNull();
+    expect(apiClient.get).toHaveBeenCalledWith('/api/v1/publications/', { params: { page: 1, addressed: 'me' } });
+  });
+
+  it('keeps the personal filter on every page, including the dividend rows merged into Notices', async () => {
+    listing = async (page) => ({
+      data: {
+        count: 3,
+        next: page === 1 ? 'https://api.example/api/v1/publications/?page=2' : null,
+        previous: null,
+        results: page === 1 ? [statement, resolution] : [dividend],
+      },
+    });
+    showPage();
+    expect(await screen.findByText(statement.title)).toBeTruthy();
+    expect(screen.getByText(resolution.title)).toBeTruthy();
+    fireEvent.click(screen.getByText(PUBLICATION_COPY.LOAD_MORE));
+    expect(await screen.findByText(dividend.title)).toBeTruthy();
+    expect(apiClient.get).toHaveBeenCalledWith('/api/v1/publications/', { params: { page: 1, addressed: 'me' } });
+    expect(apiClient.get).toHaveBeenCalledWith('/api/v1/publications/', { params: { page: 2, addressed: 'me' } });
+    const article = within(screen.getByText(dividend.title).closest('article')!);
+    expect(article.getByText('AUD 0.025 per share')).toBeTruthy();
+    expect(article.getByText('AUD 2.50')).toBeTruthy();
+    expect(article.getByText('3 October 2026')).toBeTruthy();
+    expect(article.getByRole('button', { name: PUBLICATION_COPY.OPEN })).toBeTruthy();
+  });
+
+  it('preserves share and money precision and calendar dates without a floating-point conversion', async () => {
+    rows = [
+      {
+        ...dividend,
+        shares: '9007199254740993',
+        myEntitlement: '9007199254740993.01',
+        paymentDate: '2026-10-03',
+        recordDate: '2026-09-20',
+      },
+    ];
+    showPage();
+    expect(await screen.findByText('9,007,199,254,740,993')).toBeTruthy();
+    expect(screen.queryByText('9,007,199,254,740,992')).toBeNull();
+    expect(screen.getByText('AUD 9,007,199,254,740,993.01')).toBeTruthy();
+    expect(screen.getByText('20 September 2026')).toBeTruthy();
+    expect(screen.getByText('3 October 2026')).toBeTruthy();
+  });
+
+  it('keeps earlier-page failure visible and retries that page without claiming the list is complete', async () => {
+    let failing = true;
+    listing = async (page) => {
+      if (page === 2 && failing) throw new Error('Unavailable');
+      return {
+        data: {
+          count: 2,
+          previous: null,
+          next: page === 1 ? 'https://api.example/api/v1/publications/?page=2' : null,
+          results: page === 1 ? [statement] : [dividend],
+        },
+      };
+    };
+    showPage();
+    fireEvent.click(await screen.findByText(PUBLICATION_COPY.LOAD_MORE));
+    expect((await screen.findByRole('alert')).textContent).toContain('The list is incomplete.');
+    expect(screen.getByText(statement.title)).toBeTruthy();
+    expect(screen.queryByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeNull();
+    failing = false;
+    fireEvent.click(screen.getByRole('button', { name: 'Try earlier notices again' }));
+    expect(await screen.findByText(dividend.title)).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(apiClient.get).toHaveBeenLastCalledWith('/api/v1/publications/', { params: { page: 2, addressed: 'me' } });
+  });
+
+  it('does not call zero known rows empty when another page is still outstanding or has failed', async () => {
+    listing = async (page) => {
+      if (page === 2) throw new Error('Unavailable');
+      return {
+        data: { count: 1, previous: null, next: 'https://api.example/api/v1/publications/?page=2', results: [] },
+      };
+    };
+    showPage();
+    expect(await screen.findByRole('button', { name: PUBLICATION_COPY.LOAD_MORE })).toBeTruthy();
+    expect(screen.queryByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: PUBLICATION_COPY.LOAD_MORE }));
+    expect((await screen.findByRole('alert')).textContent).toContain('The list is incomplete.');
+    expect(screen.queryByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Try earlier notices again' })).toBeTruthy();
+  });
+
+  it('withholds cached rows and vote controls after refresh failure until retry succeeds', async () => {
+    rows = [resolution];
+    showPage();
+    expect(await screen.findByRole('button', { name: 'For' })).toBeTruthy();
+    const read = listing;
+    listing = async () => {
+      throw new Error('Unavailable');
+    };
+    await act(async () => client.invalidateQueries({ queryKey: ['publications'] }));
+    expect((await screen.findByRole('alert')).textContent).toContain('could not be refreshed');
+    expect(screen.queryByText(resolution.title)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'For' })).toBeNull();
+    expect(screen.queryByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeNull();
+    listing = read;
+    fireEvent.click(screen.getByText(PUBLICATION_COPY.RETRY));
+    expect(await screen.findByRole('button', { name: 'For' })).toBeTruthy();
+  });
+
+  it.each(['https://api.example/api/v1/publications/?page=1', 'https://api.example/api/v1/publications/'])(
+    'rejects nonadvancing or malformed next-page links: %s',
+    async (next) => {
+      listing = async () => ({ data: { count: 2, previous: null, next, results: rows } });
+      showPage();
+      expect(await screen.findByRole('alert')).toBeTruthy();
+      expect(screen.queryByText(statement.title)).toBeNull();
+    },
+  );
+
+  it('keeps a document pending until the download is ready and allows retry after delivery failure', async () => {
+    let finish!: (value: { data: Blob }) => void;
+    file = () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      });
+    showPage();
+    fireEvent.click(await screen.findByRole('button', { name: PUBLICATION_COPY.OPEN }));
+    await waitFor(() =>
+      expect((screen.getByRole('button', { name: PUBLICATION_COPY.OPENING }) as HTMLButtonElement).disabled).toBe(true),
+    );
+    expect(saved).toHaveLength(0);
+    await act(async () => finish({ data: new Blob(['stored bytes'], { type: 'application/pdf' }) }));
+    await waitFor(() => expect(saved).toHaveLength(1));
+    file = async () => {
+      throw { response: { status: 503 } };
+    };
+    fireEvent.click(screen.getByRole('button', { name: PUBLICATION_COPY.OPEN }));
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    file = async () => ({ data: new Blob(['retry bytes'], { type: 'application/pdf' }) });
+    fireEvent.click(screen.getByRole('button', { name: PUBLICATION_COPY.OPEN }));
+    await waitFor(() => expect(saved).toHaveLength(2));
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('disables ballot confirmation while pending, retains refusal for retry, and invalidates the personal summary', async () => {
+    rows = [resolution];
+    client.setQueryData(['publications', 'summary'], { openResolutions: 1 });
+    let reject!: (reason: unknown) => void;
+    vi.mocked(apiClient.post).mockImplementation(
+      () =>
+        new Promise((_, refuse) => {
+          reject = refuse;
+        }),
+    );
+    showPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'For' }));
+    fireEvent.click(screen.getByRole('button', { name: PUBLICATION_COPY.CONFIRM }));
+    await waitFor(() =>
+      expect((screen.getByRole('button', { name: PUBLICATION_COPY.CASTING }) as HTMLButtonElement).disabled).toBe(true),
+    );
+    expect((screen.getByRole('button', { name: PUBLICATION_COPY.CANCEL }) as HTMLButtonElement).disabled).toBe(true);
+    await act(async () => reject({ response: { data: { detail: 'Ballot temporarily refused.' } } }));
+    expect((await screen.findByRole('alert')).textContent).toBe('Ballot temporarily refused.');
+    expect(client.getQueryState(['publications', 'summary'])?.isInvalidated).toBe(true);
+    vi.mocked(apiClient.post).mockImplementation(async () => {
+      const voted = {
+        ...resolution,
+        ballotOutstanding: false,
+        myBallot: { choice: 'for', castAt: fromNow(0), staffEntered: false },
+      };
+      rows = [voted];
+      return { data: voted };
+    });
+    fireEvent.click(screen.getByRole('button', { name: PUBLICATION_COPY.CONFIRM }));
+    expect(await screen.findByText(PUBLICATION_COPY.YOU_VOTED.for)).toBeTruthy();
+    expect(apiClient.post).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });

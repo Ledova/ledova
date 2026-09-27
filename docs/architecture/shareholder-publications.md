@@ -163,8 +163,8 @@ and a route with no client would be a surface nobody asked for.
 names the parameter rather than answered with an empty page. `addressed` takes
 one value, `me`, and keeps the publications whose roll has a row naming the
 caller, which leaves out what a company owner reads only as the issuer. Both
-narrow what the policies already admit and widen nothing: the dividends list
-below is the listing with `?kind=distribution&addressed=me`.
+narrow what the policies already admit and widen nothing: the mobile dividends
+list below is the listing with `?kind=distribution&addressed=me`.
 
 The two filters belong to the listing alone. The view applies its filter
 backends only to the `list` action, so a query string on the file route or the
@@ -224,9 +224,12 @@ through the policy-scoped connection, opens the stored document, records the
 `publication_read_unrecorded` if it cannot. A foreign or non-existent uuid answers the same 404 with the same body.
 
 Both clients read it through `@ledova/shared`: `getPublications` for the
-listing, a page at a time, `openPublication` for the blob the dashboard saves
-through a download link and `downloadPublication` for the bytes the mobile app
-writes to one private cache copy and hands to the system share sheet, the way a
+listing, a page at a time. Web Notices sends `addressed=me` on every page and
+uses a separate cache key from the older unfiltered list. The mobile publications
+list keeps its current scope until #750. The dashboard uses `openPublication`
+for the blob it saves through a download link, and `downloadPublication` gets
+the bytes the mobile app writes to one private cache copy and hands to the
+system share sheet, the way a
 company document is opened today. The stored object is named `.bin`, so each
 client names its copy with `publicationFilename` from the type served. A download
 link, unlike a new tab opened after the response, needs no popup permission.
@@ -266,29 +269,42 @@ grow with what was published, and a test holds that.
 
 ## In the member's everyday views
 
-What a company publishes reaches three places a member already looks, in the
-dashboard and in the mobile app alike, through `@ledova/shared`:
+The dashboard's **Notices** page at `/publications` lists every kind of
+publication addressed to the person, newest first: documents, resolutions and
+dividends together. A company owner's access as issuer does not add papers to
+this list. The owner accepted that the company's own list will be absent until
+#748 provides it, as recorded in [the signed-in app decisions](../decisions.md#the-signed-in-app).
+Each row retains its company, class, record date and frozen holding; dividends
+also show the rate, entitlement, payment date and what the company recorded.
+Whole share counts and money retain their decimal-string precision, and calendar
+dates display without a timezone shift. Downloads still use the audited file
+route, and resolutions retain confirmation, ballot status, refusal and results.
 
-- **A card on the home page** reads the summary through
-  `usePublicationSummary` and says, for example, "2 things published to you in
-  the last 30 days", "1 resolution awaiting your vote, closing" with the time
-  formatted by the shared helper, and "1 dividend awaiting a payment record". It
-  opens the publications page and is not shown at all when every count is zero.
-  While the page stays open, the hook asks again at `nextClosesAt`, so a vote
-  leaves the card when it closes, and every five minutes, for what was
-  published or recorded since. The close timer waits no longer than a browser
-  timer can hold, and both stop when the page goes.
-- **A dividends list beside transaction history**, not inside it. A
-  transaction is read from a chain and a dividend is what a company records, so
-  one list could not say what it shows, and the transaction filters of wallet,
-  chain and direction do not apply to a dividend. `useDividends` reads the
-  listing with `?kind=distribution&addressed=me` a page at a time, so a company
-  owner sees the dividends it is owed and not every dividend its company
-  declared. Each row shows the company, the class, the rate, the holding, the
-  entitlement, the payment date and the line the publications page shows about
-  what the company recorded. The transactions page links to it.
-- **A notification** of a new publication of any kind opens the publications
-  page in both clients, from its `type` alone.
+A failed first page offers a retry without calling the list empty. A failed
+later page keeps the known rows and labels the list incomplete, with a retry of
+that page. A failed refresh withholds cached rows and their voting controls
+until a retry succeeds. The old `/dividends` address redirects to Notices, so
+existing bookmarks and links from transaction history still reach the records.
+A dividend remains a company record, separate from on-chain transaction filters.
+
+The dashboard's **Holdings** page links to Notices from its personal work
+sections, described in [clients](clients.md).
+The mobile app keeps its current home summary card, publications list and
+separate dividends list until #750:
+
+- `usePublicationSummary` powers the home card. It reports publications in the
+  last 30 days, open resolutions awaiting the person's vote, and dividends
+  awaiting a company payment record. These are not unread counts or proof of
+  whether a bank transfer happened. The card opens publications and hides when
+  every count is zero. The shared hook refreshes at `nextClosesAt` and every five
+  minutes, with bounded timers that stop when the consumer leaves.
+- `useDividends` reads `?kind=distribution&addressed=me` a page at a time, so a
+  company owner sees their own dividends, not every dividend their company
+  declared. Its rows retain the same holding, entitlement and payment-record
+  details; mobile transaction history links to this separate list.
+
+In both clients, a notification of a new publication of any kind opens the
+publications page from its `type` alone.
 
 ## Every publication is announced
 
