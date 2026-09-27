@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { COMPANY_TOKEN_ENDPOINTS, type CompanyShareToken, type TokenHoldersResponse } from '@ledova/shared';
 import { PageTitle } from '@components/PageTitle';
 import { ShareClass } from '.';
+import { useShareClass } from './useShareClass';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
@@ -151,6 +152,55 @@ it('requires the actual parent company to be active before deploying', async () 
   await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(button);
   await waitFor(() => expect(api.post).toHaveBeenCalledWith(COMPANY_TOKEN_ENDPOINTS.DEPLOY('class-one')));
+});
+
+it.each(['inactive', 'failed'])('refreshes the deployment prerequisite through a %s company read', async (outcome) => {
+  token.status = 'draft';
+  show();
+  const hook = renderHook(() => useShareClass('class-one'), {
+    wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
+  });
+  const button = await screen.findByRole('button', { name: 'Deploy class' });
+  await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
+  const original = api.get.getMockImplementation()!;
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  api.get.mockImplementation(async (url: string) => {
+    if (url !== '/api/v1/companies/company-one/') return original(url);
+    await held;
+    if (outcome === 'failed') throw new Error('Company unavailable');
+    return { data: { uuid: 'company-one', status: 'approved' } };
+  });
+  let refresh!: Promise<unknown>;
+  act(() => {
+    refresh = hook.result.current.refresh();
+  });
+  await waitFor(() => expect(hook.result.current.company.isFetching).toBe(true));
+  await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(true));
+  fireEvent.click(button);
+  expect(api.post).not.toHaveBeenCalled();
+  await act(async () => {
+    release();
+    await refresh;
+  });
+  if (outcome === 'failed') {
+    expect(await screen.findByText("We couldn't load company state.")).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Deploy class' })).toBeNull();
+  } else {
+    await waitFor(() =>
+      expect((screen.getByRole('button', { name: 'Deploy class' }) as HTMLButtonElement).disabled).toBe(true),
+    );
+  }
+  expect(api.post).not.toHaveBeenCalled();
+  api.get.mockImplementation(original);
+  await act(async () => {
+    await hook.result.current.refresh();
+  });
+  await waitFor(() =>
+    expect((screen.getByRole('button', { name: 'Deploy class' }) as HTMLButtonElement).disabled).toBe(false),
+  );
 });
 
 it.each([

@@ -86,6 +86,13 @@ export function ShareClass({ uuid }: { uuid: string }) {
         {requestForms}
       </>
     );
+  const canDeploy =
+    token.status === 'draft' &&
+    !data.token.isFetching &&
+    !data.company.isFetching &&
+    !data.company.isError &&
+    data.company.data?.status === 'active' &&
+    !data.deploy.isPending;
   const deployed = token.status === 'deployed';
   const paused = token.status === 'paused';
   const addressUrl =
@@ -177,8 +184,10 @@ export function ShareClass({ uuid }: { uuid: string }) {
               <p className="text-sm text-text-muted">The company must be active before this class can be deployed.</p>
               <PageAction
                 label="Deploy class"
-                onClick={() => data.deploy.mutate()}
-                disabled={data.company.data?.status !== 'active' || data.deploy.isPending}
+                onClick={() => {
+                  if (canDeploy) data.deploy.mutate();
+                }}
+                disabled={!canDeploy}
               />
             </ReadResult>
           )}

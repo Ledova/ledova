@@ -79,6 +79,7 @@ export function useShareClass(uuid: string) {
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ['token', uuid] }),
       queryClient.invalidateQueries({ queryKey: ['tokens'] }),
+      queryClient.invalidateQueries({ queryKey: ['company', token.data?.companyUuid] }),
     ]);
   const deploy = useMutation({ mutationFn: () => deployCompanyToken(apiClient, uuid), onSuccess: refresh });
   const submitCapital = useMutation({
