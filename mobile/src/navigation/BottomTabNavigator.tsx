@@ -196,7 +196,7 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
         name="InvestorEligibility"
         component={InvestorEligibilityScreen}
         options={{
-          title: DESTINATIONS.investorEligibility.title,
+          title: '',
           tabBarItemStyle: { display: 'none' },
         }}
       />
