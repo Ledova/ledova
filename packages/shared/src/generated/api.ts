@@ -4901,8 +4901,8 @@ export interface ApiComponents {
       sellOrderUuid: string;
       settlementProtocolVersion: number;
       shareAmount: number;
-      shareTokenName: string;
-      shareTokenSymbol: string;
+      shareTokenName: string | null;
+      shareTokenSymbol: string | null;
       status: ApiComponents['schemas']['SwapOrderStatusEnum'];
       statusDisplay: string;
       uuid: string;
@@ -5000,9 +5000,9 @@ export interface ApiComponents {
       status: ApiComponents['schemas']['TransferOrderStatusEnum'];
       statusDisplay: string;
       token: string;
-      tokenContractAddress: string;
-      tokenName: string;
-      tokenSymbol: string;
+      tokenContractAddress: string | null;
+      tokenName: string | null;
+      tokenSymbol: string | null;
       totalValue: string;
       txHash: string;
       updatedAt: string;
@@ -5021,8 +5021,8 @@ export interface ApiComponents {
       status: ApiComponents['schemas']['TransferOrderStatusEnum'];
       statusDisplay: string;
       token: string;
-      tokenName: string;
-      tokenSymbol: string;
+      tokenName: string | null;
+      tokenSymbol: string | null;
       totalValue: string;
       uuid: string;
       walletAddress: string;

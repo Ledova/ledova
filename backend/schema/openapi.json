@@ -11827,10 +11827,12 @@
             "type": "integer"
           },
           "shareTokenName": {
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
           "shareTokenSymbol": {
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
@@ -12388,14 +12390,17 @@
             "type": "string"
           },
           "tokenContractAddress": {
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
           "tokenName": {
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
           "tokenSymbol": {
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
@@ -12517,10 +12522,12 @@
             "type": "string"
           },
           "tokenName": {
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
           "tokenSymbol": {
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },

@@ -51,6 +51,15 @@ do not make two deliberate actions the same action. Immutable intent and recorde
 outcomes survive changes to the current order. An inaccessible or missing recovery
 lookup never proves that an earlier request failed to commit.
 
+Owned order lists and details retain rows when the current share class becomes
+inaccessible. They display the visible class identity where available, otherwise
+the recorded create-admission identity. Legacy orders without that record return
+explicit null names, symbols and contract addresses. Search includes visible
+class identity and the owner's recorded admission identity. Pending swaps retain
+their recorded V1 display; inaccessible legacy class names and symbols are null.
+These reads preserve the existing order and wallet ownership checks and do not
+make a hidden class public or authorize a new trading action.
+
 Matching captures settlement domain, exact signed values and participant context.
 New signatures and approvals recheck a current authorized participant against
 that context. The completing signature, original execution admission and recovery
