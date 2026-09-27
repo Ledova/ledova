@@ -38,7 +38,7 @@ const profile = {
   citizenshipCountryName: 'Australia',
   dateJoined: '2026-09-01',
   lastLogin: null,
-  isIdentityVerified: false,
+  isIdVerified: false,
 };
 const clients: QueryClient[] = [];
 
@@ -134,6 +134,21 @@ it('distinguishes an empty profile from a failed read', async () => {
   expect(await screen.findByText('No profile data is available.')).toBeTruthy();
   expect(screen.queryByRole('alert')).toBeNull();
   expect(screen.queryByRole('button', { name: 'Edit phone' })).toBeNull();
+});
+
+it('preserves an unfinished phone edit across a failed background refresh', async () => {
+  const client = show('profile');
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit phone' }));
+  fireEvent.change(screen.getByLabelText('Phone number'), { target: { value: '422222222' } });
+  api.get.mockRejectedValueOnce(new Error('synthetic background failure'));
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: ['userProfiles'] });
+  });
+  expect((await screen.findByRole('alert')).textContent).toContain('could not be loaded');
+  expect(screen.queryByRole('button', { name: 'Save phone' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  expect(((await screen.findByLabelText('Phone number')) as HTMLInputElement).value).toBe('422222222');
+  expect(api.patch).not.toHaveBeenCalled();
 });
 
 it('does not invent a preference or allow a toggle after a failed read', async () => {
