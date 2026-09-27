@@ -4,11 +4,12 @@ import {
   createSubscription,
   getSubscription,
   getSubscriptions,
+  getNextPageParam,
   getWallets,
   submitSubscription,
   withdrawSubscription,
 } from '@ledova/shared';
-import type { SubscriptionInput } from '@ledova/shared';
+import type { SubscriptionInput, Wallet } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 
 const SUBSCRIPTIONS_KEY = ['subscriptions'];
@@ -60,16 +61,33 @@ export function useSubscription(uuid: string | undefined) {
   };
 }
 
-export function useSubscribableWallets() {
+export function useSubscribableWallets(enabled: boolean) {
   const query = useQuery({
-    queryKey: ['wallets', 'base-verified'],
-    queryFn: () => getWallets(apiClient, { chain: 'base', verification_status: 'VERIFIED' }),
+    queryKey: ['wallets', 'base-verified', 'complete'],
+    queryFn: async () => {
+      const all: Wallet[] = [];
+      let page: number | undefined = 1;
+      while (page !== undefined) {
+        const { data } = await getWallets(apiClient, { chain: 'base', verification_status: 'VERIFIED', page });
+        all.push(...data.results);
+        const next = getNextPageParam(data);
+        if (data.next && (next === undefined || !Number.isInteger(next) || next <= page)) {
+          throw new Error('Receiving wallet pagination did not advance');
+        }
+        page = next;
+      }
+      return all;
+    },
+    enabled,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
 
   return {
-    wallets: query.data?.data?.results ?? [],
+    wallets: query.data ?? [],
     isLoading: query.isLoading,
+    hasError: query.isError,
+    isRefreshing: query.isFetching,
+    retry: () => query.refetch(),
   };
 }
 

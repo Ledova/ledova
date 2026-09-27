@@ -128,6 +128,18 @@ Every personal page retains the addressed filter, and ballot settlement
 invalidates the list and personal summary together. Native document copies and
 ballots retain their session boundaries.
 
+Directory groups the accessible share classes under their company and opens a
+class's current offering in the ledger layout. The first experience targets one
+fictional issuer; it adds no registry search. Every directory page must load
+before entries are shown, and a read error offers a retry rather than an empty
+directory. An unavailable class and a failed read have different states. The
+authorised share count stays a decimal string; an issued count outside the API's
+safe numeric range is unavailable rather than rounded. A draft application reads
+every verified Base wallet page, requires a safe whole-share quantity and computes
+the displayed fixed-price total in integer cents. The server still selects the
+applicant and enforces quantity and eligibility rules. Payment details remain on
+the accepted application, which supplies its exact amount and reference.
+
 Where market values are shown elsewhere, they are in AUD: the shared
 `useCurrency` converts the API's US-dollar values at the current rate, shows a
 dash and draws no chart while the rate is unknown, and neither client offers

@@ -141,8 +141,12 @@ interface or provider while preserving required restrictions.
 
 ## 7. Initial delivery scope
 
-Start with straightforward listings and direct offers. Automatic matching, a
-continuous order book and advanced trading mechanisms are separate choices.
+Start with one fictional issuer on testnet, expanding later. The owner chose
+_For sale_ and _Wanted_ lists over the existing automatic matching for the first
+Market version; seller acceptance and rejection are later work, not an initial
+prerequisite. Buyers still fund before placing an offer. These
+[scope decisions](decisions.md#the-signed-in-app) do not introduce advanced trading
+mechanisms or authorize a live market.
 Keep the mobile app, shared web/mobile package and compliance capabilities in
 the product plan.
 
