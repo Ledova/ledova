@@ -15,6 +15,7 @@ interface CustomModalProps {
   onConfirm?: () => void;
   confirmDisabled?: boolean;
   confirmLoading?: boolean;
+  maxHeight?: number;
 }
 
 export function CustomModal({
@@ -29,6 +30,7 @@ export function CustomModal({
   onConfirm,
   confirmDisabled = false,
   confirmLoading = false,
+  maxHeight,
 }: CustomModalProps) {
   const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
@@ -123,7 +125,7 @@ export function CustomModal({
     <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
         <View style={styles.modalContainer}>
-          <TouchableOpacity activeOpacity={1} style={styles.modal}>
+          <TouchableOpacity activeOpacity={1} style={[styles.modal, { maxHeight }]}>
             <ScrollView
               style={styles.modalContent}
               contentContainerStyle={styles.modalContentContainer}

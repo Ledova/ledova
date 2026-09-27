@@ -1,95 +1,86 @@
-import { useState, useCallback } from 'react';
+import { useRef, useState } from 'react';
 import type { CreateWallet, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
-import { getChainByShortName, importedParentKey } from '@ledova/shared';
+import { getChainByShortName, getErrorMessage, importedParentKey, importAddressKey } from '@ledova/shared';
 import { useWalletsCrud } from './useWalletsCrud';
+import { assertSessionEpoch, getSessionEpoch } from '../../services/sessionScope';
 import type { SoftwareWalletImport } from '../../utils/softwareWallet';
 
-export function useWallets() {
-  const crud = useWalletsCrud();
-
+export function useWallets(crud: ReturnType<typeof useWalletsCrud>) {
   const [showAddModal, setShowAddModal] = useState(false);
-  const [preselectedChain, setPreselectedChain] = useState<'BTC' | 'ETH' | null>(null);
-
-  const openAddModal = useCallback((chain: 'BTC' | 'ETH' | null = null) => {
-    setPreselectedChain(chain);
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const pending = useRef(false);
+  const confirmed = useRef(new Set<string>());
+  const closeAddModal = () => {
+    if (!pending.current) setShowAddModal(false);
+  };
+  const openAddModal = () => {
+    confirmed.current.clear();
+    setCreateError(null);
     setShowAddModal(true);
-  }, []);
-
-  const closeAddModal = useCallback(() => {
-    setShowAddModal(false);
-    setPreselectedChain(null);
-  }, []);
-
-  const handleCreateWallet = useCallback(
-    (data: CreateWallet) => {
-      crud.createWallet(data, {
-        onSuccess: () => closeAddModal(),
-      });
-    },
-    [crud, closeAddModal],
-  );
-
-  const handleBatchCreateWallets = useCallback(
-    (addresses: DerivedAddress[], importData: HardwareWalletImport) => {
-      addresses.forEach((derivedAddress) => {
-        const parentKey = importedParentKey(derivedAddress, importData);
-
-        const chain = getChainByShortName(derivedAddress.networkType);
-        if (!chain?.isActive) return;
-
-        crud.createWallet({
-          address: derivedAddress.address,
+  };
+  const create = async (operation: (epoch: number) => Promise<void>) => {
+    if (pending.current || crud.isLoading || crud.isRefreshing || crud.hasError) return;
+    const epoch = getSessionEpoch();
+    pending.current = true;
+    setIsCreating(true);
+    setCreateError(null);
+    try {
+      await operation(epoch);
+      assertSessionEpoch(epoch);
+      setShowAddModal(false);
+    } catch (error) {
+      if (epoch === getSessionEpoch()) {
+        setCreateError(getErrorMessage(error, 'Wallets could not be added. Your selection is kept; try again.'));
+      }
+      throw error;
+    } finally {
+      pending.current = false;
+      setIsCreating(false);
+    }
+  };
+  const handleCreateWallet = (data: CreateWallet) =>
+    create(async () => {
+      await crud.createWallet(data);
+    });
+  const createBatch = (
+    addresses: DerivedAddress[],
+    importData: HardwareWalletImport | SoftwareWalletImport,
+    signingPreference: 'hardware' | 'software',
+  ) =>
+    create(async (epoch) => {
+      if (!addresses.length) throw new Error('Select at least one wallet.');
+      for (const address of addresses) {
+        assertSessionEpoch(epoch);
+        const key = importAddressKey(address);
+        if (confirmed.current.has(key)) continue;
+        const chain = getChainByShortName(address.networkType);
+        if (!chain?.isActive) throw new Error('This wallet network is not available.');
+        const parentKey = importedParentKey(address, importData);
+        await crud.createWallet({
+          address: address.address,
           chain: chain.code,
-          signingPreference: 'hardware',
-          derivationPath: derivedAddress.derivationPath,
+          signingPreference,
+          derivationPath: address.derivationPath,
           masterFingerprint: importData.masterFingerprint,
-          addressIndex: derivedAddress.addressIndex,
-
+          addressIndex: address.addressIndex,
           parentPublicKey: parentKey?.parentPublicKey,
           parentChainCode: parentKey?.parentChainCode,
           parentDerivationPath: parentKey?.parentDerivationPath,
         });
-      });
-      closeAddModal();
-    },
-    [crud, closeAddModal],
-  );
-
-  const handleSoftwareWalletCreate = useCallback(
-    (addresses: DerivedAddress[], importData: SoftwareWalletImport) => {
-      addresses.forEach((derivedAddress) => {
-        const parentKey = importedParentKey(derivedAddress, importData);
-
-        const chain = getChainByShortName(derivedAddress.networkType);
-        if (!chain?.isActive) return;
-
-        crud.createWallet({
-          address: derivedAddress.address,
-          chain: chain.code,
-          signingPreference: 'software',
-          derivationPath: derivedAddress.derivationPath,
-          masterFingerprint: importData.masterFingerprint,
-          addressIndex: derivedAddress.addressIndex,
-          parentPublicKey: parentKey?.parentPublicKey,
-          parentChainCode: parentKey?.parentChainCode,
-          parentDerivationPath: parentKey?.parentDerivationPath,
-        });
-      });
-      closeAddModal();
-    },
-    [crud, closeAddModal],
-  );
-
+        assertSessionEpoch(epoch);
+        confirmed.current.add(key);
+      }
+    });
   return {
-    isCreating: crud.isCreating,
-
+    isCreating,
     showAddModal,
-    preselectedChain,
-
+    createError,
     handleCreateWallet,
-    handleBatchCreateWallets,
-    handleSoftwareWalletCreate,
-
+    handleBatchCreateWallets: (addresses: DerivedAddress[], importData: HardwareWalletImport) =>
+      createBatch(addresses, importData, 'hardware'),
+    handleSoftwareWalletCreate: (addresses: DerivedAddress[], importData: SoftwareWalletImport) =>
+      createBatch(addresses, importData, 'software'),
     openAddModal,
     closeAddModal,
   };

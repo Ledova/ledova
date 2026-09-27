@@ -1,10 +1,17 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
-import { ShoppingCartIcon, TagIcon, WalletIcon, ShieldWarningIcon } from 'phosphor-react-native';
-import { formatWalletAddressShort, formatCurrency } from '@ledova/shared';
-import type { ShareToken, CreateOrderRequest, Wallet, OrderType, WhitelistStatus } from '@ledova/shared';
-import { CustomModal } from '../../../components/modal';
-import { useAppTheme, useThemedStyles } from '../../../contexts';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Text, TextInput, View } from 'react-native';
+import {
+  formatShareCount,
+  type ShareToken,
+  type CreateOrderRequest,
+  type Wallet,
+  type OrderType,
+  type WhitelistStatus,
+} from '@ledova/shared';
+import { Action, Row } from '../../../components/Ledger';
+import { AccountModal } from '../../account/AccountModal';
+import { marketAmount, priceCents } from '../marketData';
+import { useMarketStyles } from '../styles';
 
 interface CreateOrderModalProps {
   visible: boolean;
@@ -18,6 +25,14 @@ interface CreateOrderModalProps {
   isWalletWhitelisted: (address: string) => boolean;
   getWhitelistStatus: (address: string) => WhitelistStatus | undefined;
   isLoadingWhitelistStatus: boolean;
+  blocked?: boolean;
+  onRetry?: () => void;
+}
+
+function wholeInput(value: string): bigint | null {
+  if (!/^\d{1,19}$/.test(value)) return null;
+  const amount = BigInt(value);
+  return amount <= 9223372036854775807n ? amount : null;
 }
 
 export function CreateOrderModal({
@@ -32,392 +47,185 @@ export function CreateOrderModal({
   isWalletWhitelisted,
   getWhitelistStatus,
   isLoadingWhitelistStatus,
+  blocked,
+  onRetry,
 }: CreateOrderModalProps) {
-  const theme = useAppTheme();
-  const styles = useThemedStyles((theme) => ({
-    headerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.sm,
-      marginBottom: theme.spacing.md,
-    },
-    headerIcon: {
-      padding: theme.spacing.sm,
-      borderRadius: theme.borderRadius.md,
-    },
-    buyIcon: {
-      backgroundColor: theme.colors.success.default + '1A',
-    },
-    sellIcon: {
-      backgroundColor: theme.colors.error.default + '1A',
-    },
-    headerTitle: {
-      fontSize: theme.fontSize.base,
-      fontWeight: theme.fontWeight.semibold,
-    },
-    buyText: {
-      color: theme.colors.status.success.icon,
-    },
-    sellText: {
-      color: theme.colors.status.error.icon,
-    },
-    headerSubtitle: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-    },
-    warningBox: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: theme.spacing.sm,
-      padding: theme.spacing.md,
-      borderRadius: theme.borderRadius.md,
-      backgroundColor: theme.colors.warning.default + '1A',
-      borderWidth: 1,
-      borderColor: theme.colors.warning.default + '33',
-      marginBottom: theme.spacing.md,
-    },
-    warningTextContainer: {
-      flex: 1,
-    },
-    warningTitle: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.status.warning.icon,
-    },
-    warningDesc: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      marginTop: 4,
-    },
-    detailRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingVertical: theme.spacing.sm + 2,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border.subtle,
-    },
-    detailLabel: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-    },
-    detailValue: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.primary,
-    },
-    detailValueBold: {
-      fontWeight: theme.fontWeight.semibold,
-    },
-    detailValueMono: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.primary,
-      fontFamily: 'monospace',
-    },
-    detailValueHighlight: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.interactive.default,
-    },
-    walletSelector: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.interactive.default,
-    },
-    formSection: {
-      marginTop: theme.spacing.md,
-      gap: theme.spacing.xs,
-    },
-    inputLabel: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.primary,
-    },
-    input: {
-      backgroundColor: theme.colors.surface.tertiary,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
-      paddingHorizontal: theme.spacing.sm,
-      paddingVertical: theme.spacing.sm + 4,
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.primary,
-    },
-    inputHintRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    inputHint: {
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.muted,
-    },
-    useMaxButton: {
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.interactive.default,
-    },
-    emptyContainer: {
-      alignItems: 'center',
-      paddingVertical: theme.spacing.xl,
-      gap: theme.spacing.md,
-    },
-    emptyTitle: {
-      fontSize: theme.fontSize.lg,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-    },
-    emptyDesc: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      textAlign: 'center',
-    },
-  }));
-  const isBuy = orderType === 'buy';
+  const styles = useMarketStyles();
   const [quantity, setQuantity] = useState('');
-  const [minQuantity, setMinQuantity] = useState('');
-  const [pricePerShare, setPricePerShare] = useState('');
-  const [selectedWalletIndex, setSelectedWalletIndex] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [minimum, setMinimum] = useState('');
+  const [price, setPrice] = useState('');
+  const [walletUuid, setWalletUuid] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
   const transition = useRef({ generation: 0, pending: false });
-
-  const availableWallets = useMemo(() => {
-    if (!isBuy) {
-      return wallets.filter((w) =>
-        walletsWithHoldings.some((h) => h.walletAddress.toLowerCase() === w.address.toLowerCase()),
-      );
-    }
-    return wallets;
-  }, [wallets, walletsWithHoldings, isBuy]);
-
-  const selectedWallet = availableWallets[selectedWalletIndex];
-
-  const currentWalletBalance = useMemo(() => {
-    if (!selectedWallet || isBuy) return undefined;
-    const holding = walletsWithHoldings.find(
-      (h) => h.walletAddress.toLowerCase() === selectedWallet.address.toLowerCase(),
-    );
-    return holding?.balance;
-  }, [selectedWallet, walletsWithHoldings, isBuy]);
-
-  const totalValue = useMemo(() => {
-    const qty = parseFloat(quantity) || 0;
-    const price = parseFloat(pricePerShare) || 0;
-    return qty * price;
-  }, [quantity, pricePerShare]);
-
-  const isValid = useMemo(() => {
-    const qty = parseFloat(quantity) || 0;
-    const minQty = parseFloat(minQuantity) || 0;
-    const price = parseFloat(pricePerShare) || 0;
-
-    if (qty <= 0 || price <= 0 || !selectedWallet) return false;
-    if (minQty > qty) return false;
-    if (!isBuy && currentWalletBalance) {
-      if (qty > parseInt(currentWalletBalance, 10)) return false;
-    }
-    return true;
-  }, [quantity, minQuantity, pricePerShare, selectedWallet, isBuy, currentWalletBalance]);
-
-  const walletIsWhitelisted = selectedWallet ? isWalletWhitelisted(selectedWallet.address) : false;
-  const whitelistStatusUnknown = selectedWallet
-    ? getWhitelistStatus(selectedWallet.address)?.status === 'unknown'
-    : false;
-  const isConfirmDisabled = isSubmitting || !isValid || (!walletIsWhitelisted && !isLoadingWhitelistStatus);
-
+  const scope = `${visible}/${token.uuid}/${orderType}`;
+  const initial = useRef({ price: token.lastPrice ?? '', walletUuid: wallets[0]?.uuid ?? null });
+  useLayoutEffect(() => {
+    initial.current = { price: token.lastPrice ?? '', walletUuid: wallets[0]?.uuid ?? null };
+  });
   useEffect(() => {
     transition.current.generation++;
     transition.current.pending = false;
-    setIsSubmitting(false);
-    if (visible) {
-      setQuantity('');
-      setMinQuantity('');
-      setPricePerShare(token.lastPrice || '');
-      setSelectedWalletIndex(0);
-    }
-  }, [visible, token.lastPrice]);
-
-  const dismiss = () => {
-    transition.current.generation++;
-    transition.current.pending = false;
-    onClose();
-  };
-
-  const handleSubmit = async () => {
-    if (!visible || !isValid || !selectedWallet || transition.current.pending) return;
+    setPending(false);
+    setFailure(null);
+    setQuantity('');
+    setMinimum('');
+    setPrice(initial.current.price);
+    setWalletUuid(initial.current.walletUuid);
+  }, [scope]);
+  const wallet = wallets.find((item) => item.uuid === walletUuid);
+  const balance = walletsWithHoldings.find(
+    (item) => item.walletAddress.toLowerCase() === wallet?.address.toLowerCase(),
+  )?.balance;
+  const amount = wholeInput(quantity);
+  const min = wholeInput(minimum || '0');
+  const cents = /^\d{1,16}(\.\d{1,2})?$/.test(price) ? priceCents(price) : null;
+  const available = balance && /^\d+$/.test(balance) ? BigInt(balance) : null;
+  const valid =
+    !!wallet &&
+    amount !== null &&
+    amount > 0 &&
+    min !== null &&
+    min <= amount &&
+    cents !== null &&
+    cents > 0 &&
+    (orderType === 'buy' || (available !== null && available >= amount));
+  const allowlisted = !!wallet && isWalletWhitelisted(wallet.address);
+  const status = wallet ? getWhitelistStatus(wallet.address) : undefined;
+  const disabled = pending || !!blocked || isLoadingWhitelistStatus || !valid || !allowlisted;
+  const submit = async () => {
+    if (!visible || disabled || transition.current.pending || !wallet || amount === null || min === null) return;
     const generation = transition.current.generation;
     transition.current.pending = true;
-    setIsSubmitting(true);
-    const minQty = parseFloat(minQuantity) || 0;
+    setPending(true);
+    setFailure(null);
     try {
       await onSubmit({
         token: token.uuid,
         orderType,
-        walletUuid: selectedWallet.uuid,
-        walletAddress: selectedWallet.address,
-        quantity: parseFloat(quantity),
-        minQuantity: minQty > 0 ? minQty : undefined,
-        pricePerShare,
+        walletUuid: wallet.uuid,
+        walletAddress: wallet.address,
+        quantity: amount <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(amount) : amount.toString(),
+        minQuantity: min === 0n ? undefined : min <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(min) : min.toString(),
+        pricePerShare: price,
       });
+    } catch {
+      if (generation === transition.current.generation)
+        setFailure('The order could not be prepared. Your draft is retained.');
     } finally {
       if (generation === transition.current.generation) {
         transition.current.pending = false;
-        setIsSubmitting(false);
+        setPending(false);
       }
     }
   };
-
-  if (wallets.length === 0) {
-    return (
-      <CustomModal visible={visible} onClose={dismiss} showFooter cancelLabel="Close">
-        <View style={styles.emptyContainer}>
-          <WalletIcon size={theme.icon.sizes.xl} color={theme.colors.status.warning.icon} />
-          <Text style={styles.emptyTitle}>No Wallets Found</Text>
-          <Text style={styles.emptyDesc}>Please add an Ethereum wallet to your account before trading.</Text>
-        </View>
-      </CustomModal>
-    );
-  }
-
-  if (!isBuy && availableWallets.length === 0) {
-    return (
-      <CustomModal visible={visible} onClose={dismiss} showFooter cancelLabel="Close">
-        <View style={styles.emptyContainer}>
-          <WalletIcon size={theme.icon.sizes.xl} color={theme.colors.status.warning.icon} />
-          <Text style={styles.emptyTitle}>No Holdings Found</Text>
-          <Text style={styles.emptyDesc}>You don&apos;t have any {token.symbol} tokens in your wallets to sell.</Text>
-        </View>
-      </CustomModal>
-    );
-  }
-
+  const dismiss = () => {
+    if (transition.current.pending) return;
+    transition.current.generation++;
+    onClose();
+  };
   return (
-    <CustomModal
+    <AccountModal
       visible={visible}
+      title={`${orderType === 'buy' ? 'Wanted' : 'For sale'} · ${token.symbol}`}
+      busy={pending}
       onClose={dismiss}
-      showFooter
-      confirmLabel={isBuy ? 'Buy' : 'Sell'}
-      onConfirm={handleSubmit}
-      confirmDisabled={isConfirmDisabled}
+      actions={
+        <Action
+          label={orderType === 'buy' ? 'Buy' : 'Sell'}
+          primary
+          disabled={disabled}
+          onPress={() => void submit()}
+        />
+      }
     >
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {submissionError && (
-          <Text accessibilityRole="alert" style={styles.warningTitle}>
-            {submissionError}
+      <Text style={styles.text}>{token.name}</Text>
+      <Text style={styles.muted}>
+        Orders match automatically. Buyers fund their payment wallet before placing an offer.
+      </Text>
+      {blocked && (
+        <View style={styles.fields}>
+          <Text accessibilityRole="alert" style={styles.error}>
+            Current share class, eligibility or wallet details are unavailable. Your draft is retained.
           </Text>
-        )}
-        <View style={styles.headerRow}>
-          <View style={[styles.headerIcon, isBuy ? styles.buyIcon : styles.sellIcon]}>
-            {isBuy ? (
-              <ShoppingCartIcon size={theme.icon.sizes.md} color={theme.colors.status.success.icon} weight="bold" />
-            ) : (
-              <TagIcon size={theme.icon.sizes.md} color={theme.colors.status.error.icon} weight="bold" />
-            )}
-          </View>
-          <View>
-            <Text style={[styles.headerTitle, isBuy ? styles.buyText : styles.sellText]}>
-              {isBuy ? 'Buy' : 'Sell'} {token.symbol}
+          <Action label="Refresh trading details" disabled={pending} onPress={() => onRetry?.()} />
+        </View>
+      )}
+      {(submissionError || failure) && (
+        <Text accessibilityRole="alert" style={styles.error}>
+          {submissionError || failure}
+        </Text>
+      )}
+      <Text style={styles.text}>{orderType === 'buy' ? 'Delivery wallet' : 'Source wallet'}</Text>
+      {wallets.length === 0 && <Text style={styles.muted}>No verified trading wallets are available.</Text>}
+      {wallets.map((item) => (
+        <View key={item.uuid} style={styles.fields}>
+          <Action
+            label={item.name || item.address}
+            primary={walletUuid === item.uuid}
+            disabled={pending || blocked}
+            onPress={() => setWalletUuid(item.uuid)}
+          />
+          <Text selectable style={styles.muted}>
+            {item.address}
+          </Text>
+        </View>
+      ))}
+      {isLoadingWhitelistStatus ? (
+        <Text style={styles.muted}>Checking wallet allowlist…</Text>
+      ) : (
+        wallet &&
+        !allowlisted && (
+          <View style={styles.fields}>
+            <Text accessibilityRole="alert" style={styles.error}>
+              {!status || status.status === 'unknown'
+                ? 'Allowlist status unavailable. Retry the check to continue.'
+                : 'The operator must allowlist this wallet before an order can be placed.'}
             </Text>
-            <Text style={styles.headerSubtitle}>{token.name}</Text>
+            <Action label="Retry allowlist check" disabled={pending} onPress={() => onRetry?.()} />
           </View>
-        </View>
-
-        {!isLoadingWhitelistStatus && selectedWallet && !walletIsWhitelisted && (
-          <View style={styles.warningBox}>
-            <ShieldWarningIcon size={theme.icon.sizes.md} color={theme.colors.status.warning.icon} />
-            <View style={styles.warningTextContainer}>
-              <Text style={styles.warningTitle}>
-                {whitelistStatusUnknown ? 'Allowlist Status Unavailable' : 'Wallet Not Allowlisted'}
-              </Text>
-              <Text style={styles.warningDesc}>
-                {whitelistStatusUnknown
-                  ? 'We could not reach the network to check your allowlist status. Orders are held until the check succeeds - please try again shortly.'
-                  : 'The operator must add your wallet to the allowlist before you can place orders.'}
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {token.lastPrice && (
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Last Price</Text>
-            <Text style={styles.detailValue}>{formatCurrency(parseFloat(token.lastPrice))}</Text>
-          </View>
-        )}
-
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>{isBuy ? 'Delivery Wallet' : 'Source Wallet'}</Text>
-          {availableWallets.length === 1 ? (
-            <Text style={styles.detailValueMono}>{formatWalletAddressShort(availableWallets[0].address)}</Text>
-          ) : (
-            <TouchableOpacity onPress={() => setSelectedWalletIndex((i) => (i + 1) % availableWallets.length)}>
-              <Text style={styles.walletSelector}>
-                {selectedWallet?.name || formatWalletAddressShort(selectedWallet?.address || '')} ▼
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {!isBuy && currentWalletBalance && (
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Available</Text>
-            <Text style={styles.detailValueHighlight}>{currentWalletBalance} shares</Text>
-          </View>
-        )}
-
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Total Value</Text>
-          <Text style={[styles.detailValue, totalValue > 0 && styles.detailValueBold]}>
-            {formatCurrency(totalValue)}
-          </Text>
-        </View>
-
-        <View style={styles.formSection}>
-          <Text style={styles.inputLabel}>Quantity (shares)</Text>
-          <TextInput
-            style={styles.input}
-            value={quantity}
-            onChangeText={setQuantity}
-            placeholder="Enter number of shares"
-            placeholderTextColor={theme.colors.text.muted}
-            keyboardType="numeric"
-          />
-          {!isBuy && currentWalletBalance && (
-            <View style={styles.inputHintRow}>
-              <Text style={styles.inputHint}>Max: {currentWalletBalance}</Text>
-              <TouchableOpacity onPress={() => setQuantity(currentWalletBalance)}>
-                <Text style={styles.useMaxButton}>Use Max</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.formSection}>
-          <Text style={styles.inputLabel}>Minimum Fill Quantity (optional)</Text>
-          <TextInput
-            style={styles.input}
-            value={minQuantity}
-            onChangeText={setMinQuantity}
-            placeholder="0 = accept any partial fill"
-            placeholderTextColor={theme.colors.text.muted}
-            keyboardType="numeric"
-          />
-        </View>
-
-        <View style={styles.formSection}>
-          <Text style={styles.inputLabel}>Price per Share (AUD)</Text>
-          <TextInput
-            style={styles.input}
-            value={pricePerShare}
-            onChangeText={setPricePerShare}
-            placeholder="Enter price per share"
-            placeholderTextColor={theme.colors.text.muted}
-            keyboardType="decimal-pad"
-          />
-          {token.lastPrice && (
-            <Text style={styles.inputHint}>Last traded at {formatCurrency(parseFloat(token.lastPrice))}</Text>
-          )}
-        </View>
-      </ScrollView>
-    </CustomModal>
+        )
+      )}
+      {orderType === 'sell' && (
+        <Row label="Available shares">
+          {available === null ? 'Unavailable' : formatShareCount(available.toString())}
+        </Row>
+      )}
+      <Text style={styles.text}>Quantity (whole shares)</Text>
+      <TextInput
+        accessibilityLabel="Quantity"
+        placeholder="Enter number of shares"
+        style={styles.input}
+        value={quantity}
+        onChangeText={setQuantity}
+        keyboardType="number-pad"
+        editable={!pending}
+      />
+      <Text style={styles.text}>Minimum fill quantity (optional)</Text>
+      <TextInput
+        accessibilityLabel="Minimum fill quantity"
+        placeholder="0 = accept any partial fill"
+        style={styles.input}
+        value={minimum}
+        onChangeText={setMinimum}
+        keyboardType="number-pad"
+        editable={!pending}
+      />
+      <Text style={styles.text}>Price per share (AUD)</Text>
+      <TextInput
+        accessibilityLabel="Price per share"
+        placeholder="Enter price per share"
+        style={styles.input}
+        value={price}
+        onChangeText={setPrice}
+        keyboardType="decimal-pad"
+        editable={!pending}
+      />
+      <Text style={styles.muted}>
+        Use whole shares up to 9,223,372,036,854,775,807 and a positive price with at most two decimal places. Minimum
+        fill cannot exceed quantity.
+      </Text>
+      <Row label="Total">{amount !== null ? marketAmount(price, amount) : 'Unavailable'}</Row>
+    </AccountModal>
   );
 }

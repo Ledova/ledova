@@ -54,7 +54,7 @@ with no question, an unknown kind, a window that closes before it opens, or a
 window that has already closed. Every member has one vote per share held on the
 record date, and the roll frozen at publication is the list of who may vote.
 Members with an account are told a resolution has been put to them and cast
-their own ballot on **Notices** in the dashboard, or **Publications** in the app; see
+their own ballot on **Notices** in either client; see
 [what the member sees](#what-the-member-sees-and-when).
 
 A resolution's page in **Admin → Shareholder publications → Publications**
@@ -206,12 +206,13 @@ notification naming the publication. A member the register could not name is on
 the roll, has no account, and is told nothing — reach them the way the company
 reaches any member it cannot address online.
 
-The notification opens **Notices** in the dashboard and **Publications** in the app. There
-the member sees, for each publication addressed to them: what was published, its
-title, the company and share class, the record date, and their own holding as it
-was frozen on that date — not their holding today. **Open the document** saves
-a copy of the stored document itself. Older publications appear a page at a time. A company owner sees its own company's
-publications on the same page, with no holding of its own.
+The notification opens **Notices** in either client. There the member sees, for
+each publication addressed to them: what was published, its title, the company
+and share class, the record date, and their own holding as it was frozen on that
+date — not their holding today. **Open the document** saves a copy of the stored
+document itself. Older publications appear a page at a time. A company owner
+reads the selected company's issuer records separately through **Company →
+Published to your members**; personal notices and voting remain on **Notices**.
 
 A resolution also shows its question, whether it is ordinary or special, its
 voting window and whether it is not open yet, open or closed, with the member's
@@ -223,8 +224,9 @@ one of which you entered a ballot for, is told part of their holding has no
 ballot yet and may cast it for the rest. The page opens and closes voting at
 the window's times even if it was left open. Once it has closed, it shows the
 tally: shares and members for, against and abstaining, turnout against those
-eligible, and whether it was carried. A company owner sees the same resolution
-and its tally, and is never offered a ballot. If a ballot is refused, the page
+eligible, and whether it was carried. **Published to your members** shows the
+resolution and its tally without personal ballot controls, even when the owner
+is also a member. If a ballot is refused on **Notices**, the page
 shows why, in the words the server used: voting has not opened, has closed, or a
 ballot was already recorded.
 
@@ -237,11 +239,12 @@ whose holding comes to less than a cent is told there is nothing to pay. A
 person holding through two register members sees their two entitlements added
 together. If only one holding has a payment record, they are told how much of
 the total the company has recorded, with the most recent record's date and
-reference, and that the rest has no payment record yet. A company owner sees the rate and the payment date, and no entitlement
-or payment of its own. Publishing a dividend notifies members that it has been
+reference, and that the rest has no payment record yet. **Published to your
+members** shows the rate and payment date without personal entitlement or
+payment records. Publishing a dividend notifies members that it has been
 declared; recording a payment sends no notification.
 
-Nothing on that page names another member, and no holding, ballot, entitlement
+Nothing on personal **Notices** names another member, and no holding, ballot, entitlement
 or payment record but the reader's own is served: the roll rows and the events
 behind each line are the reader's, chosen by the database rather than by the
 page.

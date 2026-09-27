@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TextInput, ActivityIndicator, Pressable } from 'react-native';
+import { View, Text, TextInput, ActivityIndicator, Pressable, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOrderActionSigning, type OrderAction, type Wallet } from '@ledova/shared';
 import { CustomModal } from '../../../components/modal';
 import { QRDisplay, QRScanner } from '../../../components/qr';
@@ -17,6 +18,8 @@ interface Props {
 
 export function OrderActionModal({ action, wallets, onClose }: Props) {
   const theme = useAppTheme();
+  const { height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const styles = useThemedStyles((theme) => ({
     content: { gap: theme.spacing.md },
     title: { fontSize: theme.fontSize.lg, fontWeight: theme.fontWeight.semibold, color: theme.colors.text.primary },
@@ -97,8 +100,10 @@ export function OrderActionModal({ action, wallets, onClose }: Props) {
   return (
     <>
       <CustomModal
+        key={canConfirm ? 'confirmable' : 'status'}
         visible={!(state.phase === 'ready' && view.step === 'scan-signature')}
         onClose={close}
+        maxHeight={height - insets.top - insets.bottom - 48}
         showFooter
         showCancelButton
         cancelLabel={['applied', 'refused'].includes(state.phase) ? 'Done' : 'Close'}

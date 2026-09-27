@@ -1,3 +1,4 @@
+import { Action } from '../../../components/Ledger';
 import React, { useState, useEffect } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { KeyIcon, CheckCircleIcon } from 'phosphor-react-native';
@@ -12,7 +13,10 @@ interface DeriveAddressModalProps {
   wallet: Wallet | null;
   onConfirm: (derivedAddress: DerivedAddress) => void;
   onClose: () => void;
+  onRetry: () => void;
   isCreating?: boolean;
+  blocked?: boolean;
+  createError?: string | null;
 }
 
 export function DeriveAddressModal({
@@ -20,7 +24,10 @@ export function DeriveAddressModal({
   wallet,
   onConfirm,
   onClose,
+  onRetry,
   isCreating = false,
+  blocked = false,
+  createError,
 }: DeriveAddressModalProps) {
   const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
@@ -146,7 +153,7 @@ export function DeriveAddressModal({
   }, [visible, wallet]);
 
   const handleConfirm = () => {
-    if (derivedAddress) {
+    if (derivedAddress && !isCreating && !blocked) {
       onConfirm(derivedAddress);
     }
   };
@@ -158,14 +165,23 @@ export function DeriveAddressModal({
   return (
     <CustomModal
       visible={visible}
-      onClose={onClose}
+      onClose={() => {
+        if (!isCreating) onClose();
+      }}
       showFooter={true}
       cancelLabel="Cancel"
       confirmLabel={isCreating ? 'Adding...' : 'Add Address'}
       onConfirm={handleConfirm}
-      confirmDisabled={!derivedAddress || isCreating}
+      confirmDisabled={!derivedAddress || isCreating || blocked}
       confirmLoading={isCreating}
     >
+      {createError && (
+        <Text accessibilityRole="alert" style={styles.errorText}>
+          {createError}
+        </Text>
+      )}
+      {blocked && <Text style={styles.subtitle}>Refresh wallets before continuing. Your selection is kept.</Text>}
+      {blocked && <Action label="Retry wallets" disabled={isCreating} onPress={onRetry} />}
       <View style={styles.headerContainer}>
         <KeyIcon
           size={theme.icon.sizes.xl}

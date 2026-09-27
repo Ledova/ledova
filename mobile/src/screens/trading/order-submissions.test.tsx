@@ -1,3 +1,4 @@
+import { Action } from '../../components/Ledger';
 import React from 'react';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -16,7 +17,6 @@ import { EthSignRequest, ETHSignature } from '@keystonehq/bc-ur-registry-eth';
 import { QRDisplay, QRScanner } from '../../components/qr';
 import { TradingScreen } from './index';
 import { OrderSigningModal } from './components/OrderSigningModal';
-import { CustomModal } from '../../components/modal';
 import { getSeedPhrase } from '../../services/secureKeyStorage';
 import { signEthereumTypedData } from '../../utils/softwareWallet/localSigner';
 import { orderSubmissionStore } from '../../services/orderSubmissions';
@@ -39,6 +39,10 @@ import {
   wallet,
 } from '../../../../packages/shared/tests/fixtures/order-submissions';
 
+jest.mock('../../components/Ledger', () => {
+  const actual = jest.requireActual('../../components/Ledger');
+  return { ...actual, Action: jest.fn(actual.Action) };
+});
 jest.mock('@react-navigation/native', () => ({
   useFocusEffect: (callback: () => () => void) => {
     const React = jest.requireActual('react');
@@ -237,9 +241,9 @@ it('latches draft presses, and an account change while persisting prevents the f
   const view = await render(<TradingScreen />, { wrapper });
   await draftForm(view);
   const confirm = jest
-    .mocked(CustomModal)
-    .mock.calls.filter(([props]) => props.visible && props.confirmLabel === 'Buy')
-    .at(-1)![0].onConfirm!;
+    .mocked(Action)
+    .mock.calls.filter(([props]) => props.label === 'Buy')
+    .at(-1)![0].onPress;
   await act(async () => {
     confirm();
     confirm();
@@ -393,11 +397,11 @@ it('displays and retries exact recovered quantities above the safe integer range
   await orderSubmissionStore.create(owner, wallet.uuid);
   handler = async (config) => {
     if (config.url === endpoints.CREATE && creates().length === 1) throw new Error('Response lost');
-    return response(
-      config,
+    const body = JSON.parse(
       largeSnapshotJson(config.url === endpoints.CREATE ? 'created' : 'pending', config.method !== 'get'),
-      config.url === endpoints.CREATE ? 201 : 200,
     );
+    if (body.order) body.order.quantity = Number(largeQuantity);
+    return response(config, JSON.stringify(body), config.url === endpoints.CREATE ? 201 : 200);
   };
   const view = await render(<TradingScreen />, { wrapper });
   await waitFor(() => expect(view.getByText('Check saved order 1')).toBeTruthy());
@@ -412,6 +416,7 @@ it('displays and retries exact recovered quantities above the safe integer range
   expect(view.getByText(`Minimum fill: ${largeMinQuantity} shares`)).toBeTruthy();
   await fireEvent.press(view.getByText('Sign with biometric'));
   await waitFor(() => expect(view.getByText('Order created')).toBeTruthy());
+  expect(view.getByText('Recorded shares: Unavailable')).toBeTruthy();
   expect(messages()).toHaveLength(2);
   expect(creates()).toHaveLength(2);
   for (const config of [...messages(), ...creates()])
@@ -476,4 +481,19 @@ it('delivers each S1 success once when the open wrapper switches directly betwee
   expect(onSuccess).toHaveBeenCalledTimes(2);
   expect(onClose).not.toHaveBeenCalled();
   expect(await store.list(owner)).toHaveLength(0);
+});
+
+it('does not round an unsafe recorded quantity when recovering a completed order', async () => {
+  await orderSubmissionStore.create(owner, wallet.uuid);
+  handler = async (config) => {
+    const body = JSON.parse(largeSnapshotJson('created', false));
+    body.order.quantity = Number(largeQuantity);
+    return response(config, JSON.stringify(body));
+  };
+  const view = await render(<TradingScreen />, { wrapper });
+  await fireEvent.press(await view.findByText('Check saved order 1'));
+  await waitFor(() => expect(view.getByText('Order recovered')).toBeTruthy());
+  expect(view.getByText('Recorded shares: Unavailable')).toBeTruthy();
+  expect(creates()).toHaveLength(0);
+  expect(signEthereumTypedData).not.toHaveBeenCalled();
 });

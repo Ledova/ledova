@@ -4,6 +4,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { NavigatorScreenParams } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HouseIcon, WalletIcon, CertificateIcon, BuildingsIcon } from 'phosphor-react-native';
+import { ApplicationsStackNavigator, type ApplicationsStackParamList } from './ApplicationsStackNavigator';
+import { DirectoryStackNavigator, type DirectoryStackParamList } from './DirectoryStackNavigator';
 import { HomeStackNavigator } from './HomeStackNavigator';
 import type { HomeStackParamList } from './HomeStackNavigator';
 import { WalletsStackNavigator } from './WalletsStackNavigator';
@@ -25,6 +27,8 @@ import { useAppTheme } from '../contexts';
 
 export type BottomTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList>;
+  Directory: NavigatorScreenParams<DirectoryStackParamList>;
+  Applications: NavigatorScreenParams<ApplicationsStackParamList>;
   Trading: NavigatorScreenParams<TradingStackParamList>;
   Transactions: undefined;
   Wallets: NavigatorScreenParams<WalletsStackParamList>;
@@ -151,7 +155,7 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
         name="Transactions"
         component={TransactionsScreen}
         options={{
-          title: DESTINATIONS.transactions.title,
+          title: '',
           tabBarItemStyle: { display: 'none' },
         }}
       />
@@ -178,7 +182,7 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
         name="Profile"
         component={UserProfileScreen}
         options={{
-          title: 'Profile',
+          title: '',
           tabBarItemStyle: { display: 'none' },
         }}
       />
@@ -191,6 +195,18 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
           tabBarItemStyle: { display: 'none' },
         }}
       />
+
+      {isInvestor && (
+        <Tab.Screen name="Directory" options={{ headerShown: false, tabBarItemStyle: { display: 'none' } }}>
+          {() => <DirectoryStackNavigator onNotifications={onNotifications} unreadCount={unreadCount} />}
+        </Tab.Screen>
+      )}
+
+      {isInvestor && (
+        <Tab.Screen name="Applications" options={{ headerShown: false, tabBarItemStyle: { display: 'none' } }}>
+          {() => <ApplicationsStackNavigator onNotifications={onNotifications} unreadCount={unreadCount} />}
+        </Tab.Screen>
+      )}
 
       <Tab.Screen
         name="InvestorEligibility"

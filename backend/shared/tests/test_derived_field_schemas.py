@@ -118,6 +118,9 @@ class DerivedFieldResponseSchemaTest(APITransactionTestCase):
         self.assertEqual(response.status_code, 200, response.content)
         return response.json()
 
+    def catalogue_asset(self, asset):
+        return next(row for row in self.get_json(ASSETS)["results"] if row["uuid"] == str(asset.pk))
+
     def test_asset_deployment_nulls_and_blank_native_address_match_the_summary(self):
         asset = Asset.objects.create(
             symbol="DERIVED", name="Derived asset", asset_type="native_crypto", is_verified=True
@@ -125,19 +128,19 @@ class DerivedFieldResponseSchemaTest(APITransactionTestCase):
         deployment = AssetChainDeployment.objects.create(
             asset=asset, chain="base", contract_address="", is_active=False
         )
-        schema = self.response_schema(ASSETS + "{uuid}/")
+        schema = self.response_schema(ASSETS, page=True)
         fields = ("chain", "contractAddress", "assetTypeDisplay", "isYieldToken")
-        body = self.get_json(f"{ASSETS}{asset.pk}/")
+        body = self.catalogue_asset(asset)
         self.assertEqual([body[name] for name in fields], [None, None, "Crypto", False])
         self.assert_fields_match(schema, body, fields)
 
         AssetChainDeployment.objects.filter(pk=deployment.pk).update(is_active=True)
-        body = self.get_json(f"{ASSETS}{asset.pk}/")
+        body = self.catalogue_asset(asset)
         self.assertEqual((body["chain"], body["contractAddress"]), ("base", ""))
         self.assert_fields_match(schema, body, fields)
 
         AssetChainDeployment.objects.create(asset=asset, chain="ethereum", contract_address="")
-        body = self.get_json(f"{ASSETS}{asset.pk}/")
+        body = self.catalogue_asset(asset)
         self.assertIsNone(body["chain"])
         self.assertIsNone(body["contractAddress"])
         self.assertEqual(len(body["chainDeployments"]), 2)
@@ -153,9 +156,9 @@ class DerivedFieldResponseSchemaTest(APITransactionTestCase):
             nav_per_token=Decimal("1.005001"),
             last_nav_update=moment,
         )
-        schema = self.response_schema(ASSETS + "{uuid}/")
+        schema = self.response_schema(ASSETS, page=True)
         fields = ("navPerToken", "lastNavUpdate", "isYieldToken")
-        body = self.get_json(f"{ASSETS}{asset.pk}/")
+        body = self.catalogue_asset(asset)
         self.assertEqual(body["navPerToken"], "1.005001")
         self.assertEqual(datetime.fromisoformat(body["lastNavUpdate"]), moment)
         self.assertTrue(body["isYieldToken"])
@@ -163,21 +166,21 @@ class DerivedFieldResponseSchemaTest(APITransactionTestCase):
         self.assertEqual(self.resolved(schema["properties"]["lastNavUpdate"]).get("format"), "date-time")
 
         YieldToken.objects.filter(pk=token.pk).update(nav_per_token=0, last_nav_update=None)
-        body = self.get_json(f"{ASSETS}{asset.pk}/")
+        body = self.catalogue_asset(asset)
         self.assertEqual([body[name] for name in fields], [None, None, True])
         self.assert_fields_match(schema, body, fields)
 
         YieldToken.objects.filter(pk=token.pk).update(is_active=False)
-        body = self.get_json(f"{ASSETS}{asset.pk}/")
+        body = self.catalogue_asset(asset)
         self.assertEqual([body[name] for name in fields], [None, None, False])
         self.assert_fields_match(schema, body, fields)
 
     def test_asset_display_fallback_is_a_string_without_an_invented_choice_list(self):
         Asset.objects.filter(pk=self.owner.refs.asset.pk).update(asset_type="legacy_security")
         AssetChainDeployment.objects.create(asset=self.owner.refs.asset, chain="base")
-        body = self.get_json(f"{ASSETS}{self.owner.refs.asset.pk}/")
+        body = self.catalogue_asset(self.owner.refs.asset)
         self.assertEqual(body["assetTypeDisplay"], "Legacy Security")
-        field = self.response_schema(ASSETS + "{uuid}/")["properties"]["assetTypeDisplay"]
+        field = self.response_schema(ASSETS, page=True)["properties"]["assetTypeDisplay"]
         self.assert_matches(field, body["assetTypeDisplay"])
         self.assertNotIn("enum", self.resolved(field))
 

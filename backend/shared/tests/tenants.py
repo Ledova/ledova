@@ -377,7 +377,6 @@ def _rows(tenant):
 def route_context(tenant):
     context = {name: str(row.uuid) for name, row in _rows(tenant).items() if hasattr(row, "uuid")}
     context.update(
-        series_point=f"{tenant.portfolio.uuid}:{tenant.holding_snapshot.snapshot_date.isoformat()}",
         wallet_address=tenant.wallet.address,
         signed_transfer=tenant.signed_transfer,
         settlement_digest=tenant.swap.settlement_digest,

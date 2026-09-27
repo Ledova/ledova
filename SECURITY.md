@@ -20,8 +20,9 @@ forward version resolves them:
   change. These are build-time dependencies of a developer machine, not code
   shipped in the app.
 - **The base58 and elliptic-curve chain.** `base-x`, `bs58` and `elliptic` have
-  no fixed version published. The repository is local and testnet only, trading
-  is disabled by default, and the app signs testnet transactions.
+  no fixed version published. The repository is local and testnet only, with
+  synthetic data. Trading is enabled by default on the experimental deployment,
+  and the app signs testnet transactions.
 - **`pytest` in the backend tree.** `bitcoin-message-tool` declares `pytest` as
   a runtime dependency rather than a test one, so a production install pulls it
   in. `PYSEC-2026-1845` is ignored by id in the CI step: the application never

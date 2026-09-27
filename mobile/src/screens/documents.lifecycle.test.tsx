@@ -12,6 +12,11 @@ import { apiClient } from '../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../services/sessionScope';
 import { cache, files, pickedFile, resetFiles } from '../testSupport/documentFiles';
 
+jest.mock('react-native-safe-area-context', () => ({
+  ...jest.requireActual('react-native-safe-area-context'),
+  useSafeAreaInsets: () => ({ top: 24, bottom: 24, left: 0, right: 0 }),
+}));
+jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: jest.fn() }) }));
 jest.mock('expo-document-picker', () => ({ getDocumentAsync: jest.fn() }));
 jest.mock('expo-file-system', () => jest.requireActual('../testSupport/documentFiles').nativeFileSystem);
 jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(), shareAsync: jest.fn() }));
@@ -44,6 +49,14 @@ beforeEach(() => {
   jest.mocked(useCompanyDocuments).mockReturnValue({
     company: { uuid: 'company-a', status: 'draft', name: 'Synthetic company' },
     companyUuid: 'company-a',
+    access: { allowed: true, isLoading: false, isError: false },
+    error: null,
+    isRefreshing: false,
+    refetch: jest.fn(async () => {}),
+    deletion: { isPending: false, isError: false, reset: jest.fn() },
+    submission: { isPending: false },
+    resubmission: { isPending: false },
+    withdrawal: { isPending: false, isError: false, reset: jest.fn() },
     documents: [],
     uploadedTypes: new Set(),
     canEdit: true,
@@ -135,10 +148,12 @@ it.each(['success', 'refusal'])('retires a listing upload after %s and preserves
   );
   const view = await render(<ListingScreen />, { wrapper });
   let pressed!: Promise<void>;
+  await fireEvent.press(view.getByRole('button', { name: 'Upload Certificate of Incorporation' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Choose document' }));
   await act(async () => {
-    pressed = fireEvent.press(view.getByLabelText('Upload Certificate of Incorporation'));
+    pressed = fireEvent.press(view.getByRole('button', { name: 'Upload document' }));
   });
-  expect(upload).toHaveBeenCalledTimes(1);
+  await waitFor(() => expect(upload).toHaveBeenCalledTimes(1));
   const input = upload.mock.calls[0][0];
   expect(input).toMatchObject({ companyUuid: 'company-a', documentType: 'cert_inc' });
   expect(files.has(input.file.uri)).toBe(true);
@@ -149,7 +164,7 @@ it.each(['success', 'refusal'])('retires a listing upload after %s and preserves
     else refuse(new Error('Refused'));
     await pressed;
   });
-  expect(files.has(input.file.uri)).toBe(false);
+  await waitFor(() => expect(files.has(input.file.uri)).toBe(false));
   expect(files.has(returned.assets[0].uri)).toBe(false);
   expect(Alert.alert).not.toHaveBeenCalled();
 });
@@ -177,14 +192,14 @@ it('shares a viewed listing document from one private copy, and downloads nothin
   jest.mocked(Sharing.shareAsync).mockResolvedValueOnce(undefined);
   const view = await render(<ListingScreen />, { wrapper });
 
-  await fireEvent.press(view.getByLabelText('View Certificate of Incorporation'));
+  await fireEvent.press(view.getByLabelText('View a.pdf'));
   await waitFor(() =>
     expect(Alert.alert).toHaveBeenCalledWith('Cannot open document', 'Sharing is not available on this device.'),
   );
   expect(apiClient.get).not.toHaveBeenCalledWith('/documents/document-a/file/', expect.anything());
   expect(files.has(copy)).toBe(false);
 
-  await fireEvent.press(view.getByLabelText('View Certificate of Incorporation'));
+  await fireEvent.press(view.getByLabelText('View a.pdf'));
   await waitFor(() =>
     expect(Sharing.shareAsync).toHaveBeenCalledWith(copy, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' }),
   );
@@ -211,7 +226,7 @@ it('downloads nothing and stays silent when the session changes before a view st
   const view = await render(<ListingScreen />, { wrapper });
   let pressed!: Promise<void>;
   await act(async () => {
-    pressed = fireEvent.press(view.getByLabelText('View Certificate of Incorporation'));
+    pressed = fireEvent.press(view.getByLabelText('View a.pdf'));
   });
   await act(async () => {
     await pressed;
@@ -220,4 +235,28 @@ it('downloads nothing and stays silent when the session changes before a view st
   expect(apiClient.get).not.toHaveBeenCalledWith('/documents/document-a/file/', expect.anything());
   expect(Sharing.shareAsync).not.toHaveBeenCalled();
   expect(Alert.alert).not.toHaveBeenCalled();
+});
+
+it('keeps a selected company upload through refusal and failed company reads until retry succeeds', async () => {
+  pick.mockResolvedValue(pickedFile());
+  upload.mockRejectedValueOnce(new Error('Upload refused')).mockResolvedValueOnce({});
+  const view = await render(<ListingScreen />, { wrapper });
+  await fireEvent.press(view.getByRole('button', { name: 'Upload Certificate of Incorporation' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Choose document' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Upload document' }));
+  await waitFor(() => expect(view.getByText('Upload refused')).toBeTruthy());
+  const first = upload.mock.calls[0][0];
+  expect(files.has(first.file.uri)).toBe(true);
+  const ready = useCompanyDocuments();
+  jest.mocked(useCompanyDocuments).mockReturnValue({ ...ready, error: new Error('Read refused') });
+  await view.rerender(<ListingScreen />);
+  expect(view.getByText('1.pdf')).toBeTruthy();
+  expect(view.getByRole('button', { name: 'Upload document' })).toBeDisabled();
+  expect(upload).toHaveBeenCalledTimes(1);
+  jest.mocked(useCompanyDocuments).mockReturnValue(ready);
+  await view.rerender(<ListingScreen />);
+  await fireEvent.press(view.getByRole('button', { name: 'Upload document' }));
+  await waitFor(() => expect(view.queryByText('1.pdf')).toBeNull());
+  expect(upload.mock.calls[1][0].file).toEqual(first.file);
+  expect(files.has(first.file.uri)).toBe(false);
 });

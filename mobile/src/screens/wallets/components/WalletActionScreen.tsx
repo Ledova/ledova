@@ -1,492 +1,242 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useRef, useState } from 'react';
+import { Text, TextInput, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
-import {
-  ShieldCheckIcon,
-  ShieldIcon,
-  TreeStructureIcon,
-  TrashIcon,
-  FloppyDiskIcon,
-  CopyIcon,
-  HardDrivesIcon,
-  CloudIcon,
-  CurrencyBtcIcon,
-  CurrencyEthIcon,
-  ArrowsClockwiseIcon,
-} from 'phosphor-react-native';
-
-import type { WalletsStackParamList } from '../../../navigation/WalletsStackNavigator';
 import type { Wallet, DerivedAddress } from '@ledova/shared';
 import {
   WALLET_VERIFICATION_STATUS,
-  WALLET_SIGNING_PREFERENCE,
   getWalletSigningPreferenceLabel,
   canDeriveNextWalletAddress,
   getChainShortCode,
-  isBitcoinChain,
+  getBlockchainDisplayName,
   formatDate,
-  formatCryptoBalance,
+  getErrorMessage,
 } from '@ledova/shared';
+import type { WalletsStackParamList } from '../../../navigation/WalletsStackNavigator';
+import { Section, Row, Action } from '../../../components/Ledger';
 import { useCurrency } from '../../../hooks/useCurrency';
-import { GradientBackground } from '../../../components/GradientBackground';
-import { Panel } from '../../../components/panel';
-import { PrimaryButton } from '../../../components/buttons';
 import { DeleteWalletModal } from './DeleteWalletModal';
 import { DeriveAddressModal } from './DeriveAddressModal';
 import { useWalletsCrud } from '../useWalletsCrud';
-import { useAppTheme, useThemedStyles } from '../../../contexts';
+import { WalletsPage, useWalletStyles } from '../WalletsPage';
+import { walletBalance } from '../presentation';
+import { assertSessionEpoch, getSessionEpoch } from '../../../services/sessionScope';
 
 export function WalletActionScreen() {
-  const theme = useAppTheme();
-  const { formatDisplayCurrency } = useCurrency();
-  const styles = useThemedStyles((theme) => ({
-    container: {
-      flex: 1,
-    },
-    content: {
-      paddingTop: theme.spacing.md,
-      paddingHorizontal: theme.spacing.sm,
-    },
-    panelContent: {
-      flex: 1,
-      flexDirection: 'column',
-    },
-    infoSection: {
-      flex: 1,
-      padding: theme.spacing.sm,
-    },
-
-    addressValue: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'flex-end',
-      gap: theme.spacing.sm,
-      flex: 1,
-    },
-
-    heroSection: {
-      alignItems: 'center',
-      gap: theme.spacing.sm,
-      paddingTop: theme.spacing.sm,
-      paddingBottom: theme.spacing.lg,
-    },
-    heroValue: {
-      fontSize: theme.fontSize.xl,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-    },
-
-    detailsCard: {
-      gap: theme.spacing.xs,
-    },
-    detailRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: theme.spacing.sm,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border.subtle,
-    },
-    lastDetailRow: {
-      borderBottomWidth: 0,
-    },
-    detailLabel: {
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.muted,
-      flex: 0,
-      minWidth: 100,
-    },
-    detailValue: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.primary,
-      flex: 1,
-      textAlign: 'right',
-    },
-
-    typeValue: {
-      flexShrink: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'flex-end',
-      gap: theme.spacing.xs,
-    },
-    typeText: {
-      flexShrink: 1,
-      textAlign: 'right',
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.primary,
-    },
-    typeIconContainer: {
-      backgroundColor: theme.colors.surface.tertiary,
-      borderRadius: theme.borderRadius.sm,
-      padding: 4,
-    },
-
-    verificationValue: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.xs,
-    },
-    verifiedText: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-    },
-
-    nameSection: {
-      paddingHorizontal: theme.spacing.sm,
-      paddingTop: theme.spacing.md,
-      gap: theme.spacing.sm,
-    },
-    nameSectionLabel: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.primary,
-    },
-    nameInput: {
-      backgroundColor: theme.colors.surface.raised,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.lg,
-      paddingVertical: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.sm,
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.primary,
-    },
-    nameInputDisabled: {
-      opacity: 0.5,
-    },
-    nameHint: {
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.muted,
-    },
-
-    saveRow: {
-      paddingHorizontal: theme.spacing.sm,
-      paddingTop: theme.spacing.sm,
-    },
-
-    actionBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: theme.spacing.xs,
-      paddingVertical: theme.spacing.md,
-      marginTop: theme.spacing.sm,
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.border.subtle,
-    },
-    actionButton: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: theme.spacing.xs,
-      paddingHorizontal: theme.spacing.sm,
-      paddingVertical: theme.spacing.xs,
-      borderRadius: theme.borderRadius.md,
-    },
-    actionButtonDisabled: {
-      opacity: 0.35,
-    },
-    actionButtonLabel: {
-      fontSize: theme.fontSize.xs,
-      lineHeight: 12,
-      color: theme.colors.text.muted,
-    },
-    actionButtonLabelDisabled: {
-      color: theme.colors.text.subtle,
-    },
-    actionButtonLabelDanger: {
-      fontSize: theme.fontSize.xs,
-      lineHeight: 12,
-      color: theme.colors.error.light,
-    },
-    actionBarDivider: {
-      width: 1,
-      height: 32,
-      backgroundColor: theme.colors.border.subtle,
-      marginHorizontal: theme.spacing.xs,
-    },
-  }));
-  const navigation = useNavigation<NativeStackNavigationProp<WalletsStackParamList>>();
   const route = useRoute<RouteProp<WalletsStackParamList, 'WalletAction'>>();
-  const { wallet: routeWallet } = route.params;
+  return <WalletDetails key={route.params.wallet.uuid} uuid={route.params.wallet.uuid} />;
+}
 
+function WalletDetails({ uuid }: { uuid: string }) {
+  const navigation = useNavigation<NativeStackNavigationProp<WalletsStackParamList>>();
+  const styles = useWalletStyles();
   const crud = useWalletsCrud();
-  const wallet = crud.wallets.find((w: Wallet) => w.uuid === routeWallet.uuid) || routeWallet;
-
-  const isVerified = wallet.verificationStatus === WALLET_VERIFICATION_STATUS.VERIFIED;
-  const marketValue = parseFloat(wallet.marketValue) || 0;
-  const chainCode = getChainShortCode(wallet.chain);
-  const isHardware = wallet.signingPreference === WALLET_SIGNING_PREFERENCE.HARDWARE;
-  const isBtc = isBitcoinChain(chainCode);
-  const ChainIcon = isBtc ? CurrencyBtcIcon : CurrencyEthIcon;
-
-  const [walletName, setWalletName] = useState(wallet.name || '');
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [derivingFromWallet, setDerivingFromWallet] = useState<Wallet | null>(null);
-
-  const hasNameChanged = walletName.trim() !== (wallet.name || '');
-
-  const handleSaveName = () => {
-    if (hasNameChanged) {
-      crud.updateWallet(wallet.uuid, walletName.trim(), {
-        onSuccess: () => {
-          if (navigation.canGoBack()) navigation.goBack();
-        },
-      });
+  const { formatDisplayCurrency } = useCurrency();
+  const wallet = crud.wallets.find((item) => item.uuid === uuid);
+  const [name, setName] = useState<string | null>(null);
+  const [showDelete, setShowDelete] = useState(false);
+  const [deriving, setDeriving] = useState<Wallet | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
+  const pendingRef = useRef(false);
+  const blocked = crud.isLoading || crud.isRefreshing || crud.hasError || !wallet;
+  const isVerified = wallet?.verificationStatus === WALLET_VERIFICATION_STATUS.VERIFIED;
+  const canDerive = !!wallet && isVerified && canDeriveNextWalletAddress(wallet, crud.wallets);
+  const walletName = name ?? wallet?.name ?? '';
+  const canSave = isVerified && !blocked && !pending && walletName.trim() !== (wallet?.name ?? '');
+  const run = async (write: () => Promise<unknown>, completed?: () => void) => {
+    if (pendingRef.current || blocked) return;
+    const epoch = getSessionEpoch();
+    pendingRef.current = true;
+    setPending(true);
+    setError(null);
+    try {
+      await write();
+      assertSessionEpoch(epoch);
+      completed?.();
+    } catch (failure) {
+      if (epoch === getSessionEpoch())
+        setError(getErrorMessage(failure, 'This wallet could not be saved. Your changes are kept; try again.'));
+    } finally {
+      pendingRef.current = false;
+      setPending(false);
     }
   };
-
-  const canDeriveAddress = isVerified && canDeriveNextWalletAddress(wallet, crud.wallets);
-
-  const handleVerify = () => navigation.navigate('WalletVerification', { wallet });
-  const handleDerive = () => setDerivingFromWallet(wallet);
-  const handleDelete = () => setShowDeleteModal(true);
-
-  const handleConfirmDelete = () => {
-    crud.deleteWallet(wallet.uuid, {
-      onSuccess: () => {
-        setShowDeleteModal(false);
-        if (navigation.canGoBack()) navigation.goBack();
-      },
-    });
+  const back = () => {
+    if (navigation.isFocused() && navigation.canGoBack()) navigation.goBack();
   };
-
-  const handleDeriveConfirm = (derivedAddress: DerivedAddress) => {
-    crud.createWallet(
-      {
-        address: derivedAddress.address,
-        chain: wallet.chain,
-        signingPreference: wallet.signingPreference ?? undefined,
-        derivationPath: derivedAddress.derivationPath,
-        masterFingerprint: wallet.masterFingerprint,
-        addressIndex: derivedAddress.addressIndex,
-        parentPublicKey: wallet.parentPublicKey,
-        parentChainCode: wallet.parentChainCode,
-        parentDerivationPath: wallet.parentDerivationPath,
-      },
-      {
-        onSuccess: () => {
-          setDerivingFromWallet(null);
-          if (navigation.canGoBack()) navigation.goBack();
-        },
-      },
+  const derive = (address: DerivedAddress) => {
+    if (!wallet || !canDerive) return;
+    void run(
+      () =>
+        crud.createWallet({
+          address: address.address,
+          chain: wallet.chain,
+          signingPreference: wallet.signingPreference ?? undefined,
+          derivationPath: address.derivationPath,
+          masterFingerprint: wallet.masterFingerprint,
+          addressIndex: address.addressIndex,
+          parentPublicKey: wallet.parentPublicKey,
+          parentChainCode: wallet.parentChainCode,
+          parentDerivationPath: wallet.parentDerivationPath,
+        }),
+      () => setDeriving(null),
     );
   };
-
-  const isSyncingThis = crud.syncingWalletIds.has(wallet.uuid);
-
-  const handleSync = () => {
-    void crud.syncWallet(wallet.uuid).catch(() => undefined);
+  const copy = async () => {
+    if (!wallet || blocked) return;
+    setCopied(false);
+    setCopyError(null);
+    try {
+      if (!(await Clipboard.setStringAsync(wallet.address))) throw new Error('Clipboard refused');
+      setCopied(true);
+    } catch {
+      setCopyError('The address could not be copied. Try again.');
+    }
   };
-
-  const canSave = hasNameChanged && isVerified && !crud.isUpdating;
-
-  const iconSize = theme.icon.sizes.sm;
-  const disabledColor = theme.colors.text.subtle;
-  const primaryIcon = (disabled: boolean) => (disabled ? disabledColor : theme.colors.utility.white);
-
-  const displayAddress =
-    wallet.address.length > 16 ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-6)}` : wallet.address;
-
   return (
-    <GradientBackground>
-      <View style={styles.container}>
-        <View style={styles.content}>
-          <Panel fullHeight>
-            <View style={styles.panelContent}>
-              <View style={styles.infoSection}>
-                <View style={styles.heroSection}>
-                  <ChainIcon
-                    size={theme.icon.sizes.xxl}
-                    color={theme.colors.status.info.icon}
-                    weight={theme.icon.weights.light}
-                  />
-                  <Text style={styles.heroValue}>{formatDisplayCurrency(marketValue)}</Text>
-                </View>
-
-                <View style={styles.detailsCard}>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Address</Text>
-                    <TouchableOpacity
-                      style={styles.addressValue}
-                      onPress={() => Clipboard.setStringAsync(wallet.address)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.detailValue}>{displayAddress}</Text>
-                      <CopyIcon
-                        size={theme.icon.sizes.xs}
-                        color={theme.colors.interactive.active}
-                        weight={theme.icon.weights.regular}
-                      />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Balance</Text>
-                    <Text style={styles.detailValue}>
-                      {wallet.nativeBalance ? `${formatCryptoBalance(wallet.nativeBalance, chainCode)}` : 'N/A'}
-                    </Text>
-                  </View>
-
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Signing preference</Text>
-                    <View style={styles.typeValue}>
-                      <Text style={styles.typeText}>{getWalletSigningPreferenceLabel(wallet.signingPreference)}</Text>
-                      {wallet.signingPreference && (
-                        <View style={styles.typeIconContainer}>
-                          {isHardware ? (
-                            <HardDrivesIcon size={theme.icon.sizes.xs} color={theme.colors.text.muted} weight="bold" />
-                          ) : (
-                            <CloudIcon size={theme.icon.sizes.xs} color={theme.colors.text.muted} weight="bold" />
-                          )}
-                        </View>
-                      )}
-                    </View>
-                  </View>
-
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Last Sync</Text>
-                    <Text style={styles.detailValue}>{formatDate(wallet.lastSyncedAt)}</Text>
-                  </View>
-
-                  <View style={[styles.detailRow, styles.lastDetailRow]}>
-                    <Text style={styles.detailLabel}>Verification</Text>
-                    <View style={styles.verificationValue}>
-                      <Text
-                        style={[
-                          styles.verifiedText,
-                          {
-                            color: isVerified ? theme.colors.status.success.text : theme.colors.status.warning.text,
-                          },
-                        ]}
-                      >
-                        {isVerified ? 'Address verified' : 'Pending'}
-                      </Text>
-                      {isVerified ? (
-                        <ShieldCheckIcon
-                          size={theme.icon.sizes.sm}
-                          color={theme.colors.status.success.icon}
-                          weight="regular"
-                        />
-                      ) : (
-                        <ShieldIcon
-                          size={theme.icon.sizes.sm}
-                          color={theme.colors.status.warning.icon}
-                          weight="regular"
-                        />
-                      )}
-                    </View>
-                  </View>
-                </View>
-
-                <View style={styles.nameSection}>
-                  <Text style={styles.nameSectionLabel}>Wallet Name</Text>
-                  <TextInput
-                    style={[styles.nameInput, !isVerified && styles.nameInputDisabled]}
-                    value={walletName}
-                    onChangeText={setWalletName}
-                    placeholder="Enter wallet name (optional)"
-                    placeholderTextColor={theme.colors.text.subtle}
-                    maxLength={30}
-                    editable={isVerified && !crud.isUpdating}
-                  />
-                  <Text style={styles.nameHint}>Give your wallet a memorable name</Text>
-                </View>
-              </View>
-
-              {canSave && (
-                <View style={styles.saveRow}>
-                  <PrimaryButton
-                    onPress={handleSaveName}
-                    disabled={!canSave}
-                    loading={crud.isUpdating}
-                    size="small"
-                    fullWidth
-                    icon={<FloppyDiskIcon size={iconSize} color={primaryIcon(!canSave)} weight="regular" />}
-                  >
-                    Save Name
-                  </PrimaryButton>
-                </View>
+    <>
+      <WalletsPage
+        title="Wallet"
+        loading={crud.isLoading}
+        refreshing={crud.isRefreshing}
+        refresh={() => void crud.refetch()}
+      >
+        {crud.hasError ? (
+          <View style={styles.group}>
+            <Text accessibilityRole="alert" style={styles.message}>
+              This wallet could not be loaded. Your changes are kept; retry before continuing.
+            </Text>
+            <Action label="Try again" disabled={crud.isRefreshing} onPress={() => void crud.refetch()} />
+          </View>
+        ) : !wallet ? (
+          <Section title="Not available">
+            <Text style={styles.help}>This wallet is no longer in your account.</Text>
+          </Section>
+        ) : (
+          <>
+            <Section title={wallet.name || 'Unnamed wallet'}>
+              <Row label="Network">{getBlockchainDisplayName(getChainShortCode(wallet.chain))}</Row>
+              <Row label="Address">{wallet.address}</Row>
+              <Action label="Copy address" disabled={blocked} onPress={() => void copy()} />
+              {copied && <Text style={styles.help}>Copied address</Text>}
+              {copyError && (
+                <Text accessibilityRole="alert" style={styles.message}>
+                  {copyError}
+                </Text>
               )}
-
-              <View style={styles.actionBar}>
-                <TouchableOpacity
-                  style={[styles.actionButton, isVerified && styles.actionButtonDisabled]}
-                  onPress={handleVerify}
-                  disabled={isVerified}
-                  activeOpacity={0.7}
-                >
-                  <ShieldCheckIcon
-                    size={theme.icon.sizes.md}
-                    color={isVerified ? disabledColor : theme.colors.text.muted}
-                    weight="regular"
-                  />
-                  <Text style={[styles.actionButtonLabel, isVerified && styles.actionButtonLabelDisabled]}>Verify</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.actionButton, isSyncingThis && styles.actionButtonDisabled]}
-                  onPress={handleSync}
-                  disabled={isSyncingThis}
-                  activeOpacity={0.7}
-                >
-                  {isSyncingThis ? (
-                    <ActivityIndicator size="small" color={theme.colors.interactive.active} />
-                  ) : (
-                    <ArrowsClockwiseIcon size={theme.icon.sizes.md} color={theme.colors.text.muted} weight="regular" />
-                  )}
-                  <Text style={[styles.actionButtonLabel, isSyncingThis && styles.actionButtonLabelDisabled]}>
-                    Sync
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.actionButton, !canDeriveAddress && styles.actionButtonDisabled]}
-                  onPress={handleDerive}
-                  disabled={!canDeriveAddress}
-                  activeOpacity={0.7}
-                >
-                  <TreeStructureIcon
-                    size={theme.icon.sizes.md}
-                    color={canDeriveAddress ? theme.colors.text.muted : disabledColor}
-                    weight="regular"
-                  />
-                  <Text style={[styles.actionButtonLabel, !canDeriveAddress && styles.actionButtonLabelDisabled]}>
-                    Derive
-                  </Text>
-                </TouchableOpacity>
-
-                <View style={styles.actionBarDivider} />
-
-                <TouchableOpacity style={styles.actionButton} onPress={handleDelete} activeOpacity={0.7}>
-                  <TrashIcon size={theme.icon.sizes.md} color={theme.colors.error.light} weight="regular" />
-                  <Text style={styles.actionButtonLabelDanger}>Delete</Text>
-                </TouchableOpacity>
+              <Row label="Balance">
+                {walletBalance(wallet.nativeBalance)} {getChainShortCode(wallet.chain) === 'BTC' ? 'BTC' : 'ETH'}
+              </Row>
+              <Row label="Estimated value">{formatDisplayCurrency(Number(wallet.marketValue))}</Row>
+              <Row label="Signing preference">{getWalletSigningPreferenceLabel(wallet.signingPreference)}</Row>
+              <Row label="Verification">{isVerified ? 'Address verified' : 'Pending'}</Row>
+              <Row label="Last synced">{formatDate(wallet.lastSyncedAt)}</Row>
+            </Section>
+            <Section title="Wallet name">
+              <TextInput
+                accessibilityLabel="Wallet name"
+                value={walletName}
+                onChangeText={setName}
+                maxLength={100}
+                editable={isVerified && !pending}
+                placeholder="Name this wallet"
+                style={styles.input}
+              />
+              <Text style={styles.help}>
+                {isVerified
+                  ? 'Give this verified address a memorable name.'
+                  : 'Verify the address before changing its name.'}
+              </Text>
+              <Action
+                label={pending ? 'Saving…' : 'Save name'}
+                onPress={() => {
+                  if (canSave)
+                    void run(
+                      () => crud.updateWallet(wallet.uuid, walletName.trim()),
+                      () => setName(null),
+                    );
+                }}
+                disabled={!canSave}
+                primary
+              />
+            </Section>
+            {error && !showDelete && !deriving && (
+              <Text accessibilityRole="alert" style={styles.message}>
+                {error}
+              </Text>
+            )}
+            <Section title="Actions">
+              <View style={styles.actions}>
+                <Action
+                  label="Verify address"
+                  onPress={() => navigation.navigate('WalletVerification', { wallet })}
+                  disabled={blocked || pending || isVerified}
+                />
+                <Action
+                  label={crud.syncingWalletIds.has(wallet.uuid) ? 'Syncing…' : 'Sync balances'}
+                  onPress={() => {
+                    if (!blocked) void crud.syncWallet(wallet.uuid).catch(() => undefined);
+                  }}
+                  disabled={blocked || pending || crud.syncingWalletIds.has(wallet.uuid)}
+                />
+                <Action
+                  label="Derive address"
+                  onPress={() => {
+                    setError(null);
+                    setDeriving(wallet);
+                  }}
+                  disabled={blocked || pending || !canDerive}
+                />
+                <Action
+                  label="Delete wallet"
+                  onPress={() => {
+                    setError(null);
+                    setShowDelete(true);
+                  }}
+                  disabled={blocked || pending}
+                />
               </View>
-            </View>
-          </Panel>
-        </View>
-      </View>
-
+            </Section>
+          </>
+        )}
+      </WalletsPage>
       <DeleteWalletModal
-        visible={showDeleteModal}
-        walletName={wallet.name || displayAddress}
-        onConfirm={handleConfirmDelete}
-        onClose={() => setShowDeleteModal(false)}
+        visible={showDelete}
+        walletName={wallet?.name || 'this wallet'}
+        pending={pending}
+        blocked={blocked}
+        error={error}
+        onRetry={() => void crud.refetch()}
+        onConfirm={() =>
+          void run(
+            () => crud.deleteWallet(uuid),
+            () => {
+              setShowDelete(false);
+              back();
+            },
+          )
+        }
+        onClose={() => {
+          if (!pendingRef.current) setShowDelete(false);
+        }}
       />
-
       <DeriveAddressModal
-        visible={!!derivingFromWallet}
-        wallet={derivingFromWallet}
-        onConfirm={handleDeriveConfirm}
-        onClose={() => setDerivingFromWallet(null)}
-        isCreating={crud.isCreating}
+        visible={!!deriving}
+        wallet={deriving ? (wallet ?? deriving) : null}
+        isCreating={pending}
+        blocked={blocked || !canDerive}
+        createError={error}
+        onRetry={() => void crud.refetch()}
+        onConfirm={derive}
+        onClose={() => {
+          if (!pendingRef.current) setDeriving(null);
+        }}
       />
-    </GradientBackground>
+    </>
   );
 }

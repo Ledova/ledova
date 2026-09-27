@@ -8,6 +8,7 @@ import type { DerivedAddress } from '@ledova/shared';
 import { getBlockchainDisplayName, importAddressKey } from '@ledova/shared';
 
 interface SeedAccountSelectorProps {
+  disabled?: boolean;
   onNetworkChange: (network: string) => void;
   addresses: DerivedAddress[];
   selectedAddresses: Set<string>;
@@ -20,6 +21,7 @@ interface SeedAccountSelectorProps {
 
 export function SeedAccountSelector({
   onNetworkChange,
+  disabled = false,
   addresses,
   selectedAddresses,
   balances,
@@ -128,6 +130,7 @@ export function SeedAccountSelector({
 
       <WalletNetworkSelector
         evmOnly
+        disabled={disabled}
         network={
           addresses.find((address) => address.networkType !== 'BTC')?.networkType === 'BASE' ? 'base' : 'ethereum'
         }
@@ -143,6 +146,7 @@ export function SeedAccountSelector({
             <TouchableOpacity
               key={importAddressKey(addr)}
               style={[styles.accountItem, isSelected && styles.accountItemSelected]}
+              disabled={disabled}
               onPress={() => onToggleAddress(importAddressKey(addr))}
             >
               <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
@@ -170,7 +174,11 @@ export function SeedAccountSelector({
         <SecondaryButton onPress={onBack} style={styles.actionButton}>
           Back
         </SecondaryButton>
-        <PrimaryButton onPress={onConfirm} disabled={selectedAddresses.size === 0} style={styles.actionButton}>
+        <PrimaryButton
+          onPress={onConfirm}
+          disabled={disabled || selectedAddresses.size === 0}
+          style={styles.actionButton}
+        >
           Create Wallet
         </PrimaryButton>
       </View>

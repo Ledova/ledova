@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { CACHE_TIMING, getSwapOrders } from '@ledova/shared';
 import type { SwapOrder } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
+import { allMarketPages } from './marketData';
 
 export function useSwapOrdersMulti(walletAddresses: string[]) {
   return useQuery({
@@ -9,7 +10,7 @@ export function useSwapOrdersMulti(walletAddresses: string[]) {
     queryFn: async () => {
       if (walletAddresses.length === 0) return [] as SwapOrder[];
       const results = await Promise.all(
-        walletAddresses.map((addr) => getSwapOrders(apiClient, addr).then((res) => res.data.results)),
+        walletAddresses.map((addr) => allMarketPages((page) => getSwapOrders(apiClient, addr, page))),
       );
       const swapMap = new Map<string, SwapOrder>();
       results.flat().forEach((swap) => {

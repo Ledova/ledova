@@ -300,18 +300,29 @@ export function checkClientOperations(root, document) {
   }
 
   function linkedFile(node) {
-    const declared = declaration(unwrap(node));
-    if (!declared || !ts.isPropertySignature(declared) || declared.name.getText() !== 'fileUrl') return false;
-    let parent = declared.parent;
-    let property;
-    while (parent && !ts.isInterfaceDeclaration(parent)) {
-      if (ts.isPropertySignature(parent)) property = parent.name.getText();
-      parent = parent.parent;
-    }
+    if (
+      !node ||
+      path.relative(root, node.getSourceFile().fileName) !==
+        "mobile/src/screens/listing/DocumentEntry.tsx"
+    )
+      return false;
+    const components =
+      generatedModule &&
+      checker
+        .getExportsOfModule(generatedModule)
+        .find((entry) => entry.name === "ApiComponents");
+    const schemas =
+      components &&
+      propertyType(
+        checker.getDeclaredTypeOfSymbol(components),
+        "schemas",
+        node,
+      );
+    const document = propertyType(schemas, "CompanyDocument", node);
+    const file = document?.getProperty("fileUrl");
     return (
-      property === 'uploaded' &&
-      parent?.name.text === 'DocumentRowProps' &&
-      path.relative(root, declared.getSourceFile().fileName) === 'mobile/src/screens/listing/index.tsx'
+      !!file?.valueDeclaration &&
+      declaration(unwrap(node)) === file.valueDeclaration
     );
   }
 

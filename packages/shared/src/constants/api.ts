@@ -31,14 +31,7 @@ export const AUTH_ENDPOINTS = {
 } as const;
 export const ASSET_ENDPOINTS = {
   BASE: '/api/assets/',
-  DETAIL: (uuid: string) => `/api/assets/${uuid}/` as const,
-  SNAPSHOTS: (uuid: string) => `/api/assets/${uuid}/snapshots/` as const,
   EXCHANGE_RATES: '/api/assets/exchange-rates/',
-} as const;
-export const PORTFOLIO_ENDPOINTS = {
-  BASE: '/api/portfolios/',
-  DETAIL: (uuid: string) => `/api/portfolios/${uuid}/` as const,
-  SNAPSHOTS: (uuid: string) => `/api/portfolios/${uuid}/snapshots/` as const,
 } as const;
 export const USER_PROFILE_ENDPOINTS = {
   BASE: '/api/user-profiles/',
@@ -65,11 +58,6 @@ export const INVESTOR_CLASSIFICATION_ENDPOINTS = {
   EVIDENCE: (uuid: string) => `/api/investor-classifications/${uuid}/evidence/` as const,
   ELIGIBILITY: '/api/investor-classifications/eligibility/',
 } as const;
-export const FAVOURITE_ASSET_ENDPOINTS = {
-  BASE: '/api/favourite-assets/',
-  DETAIL: (uuid: string) => `/api/favourite-assets/${uuid}/` as const,
-} as const;
-
 export const DEVICE_TOKEN_ENDPOINTS = {
   BASE: '/api/device-tokens/',
   REGISTER: '/api/device-tokens/register/',

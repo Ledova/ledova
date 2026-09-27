@@ -5,7 +5,6 @@ from rest_framework.test import APITestCase
 
 from assets.models import Asset, AssetChainDeployment
 from shared.tests.tenants import make_eligible, make_tenant
-from users.models import FavouriteAsset
 from wallets.models import Holding
 
 User = get_user_model()
@@ -46,11 +45,6 @@ class AssetListExcludesTokenizedSecuritiesTest(APITestCase):
         self.assertNotIn("ORD", self._symbols({"asset_type": "tokenized_security"}))
         self.assertNotIn("ORD", self._symbols({"search": "Ordinary"}))
 
-    def test_the_detail_and_snapshot_routes_are_closed_too(self):
-        self.assertEqual(self.client.get(f"/api/assets/{self.share.uuid}/").status_code, 404)
-        self.assertEqual(self.client.get(f"/api/assets/{self.share.uuid}/snapshots/").status_code, 404)
-        self.assertEqual(self.client.get(f"/api/assets/{self.stablecoin.uuid}/").status_code, 200)
-
     def test_the_holder_still_sees_the_share_holding_on_the_wallet_route(self):
         Holding.objects.create(wallet=self.tenant.wallet, asset=self.share, quantity=Decimal("250"))
         self.client.force_authenticate(self.tenant.user)
@@ -72,31 +66,3 @@ class AssetListExcludesTokenizedSecuritiesTest(APITestCase):
         payload = response.json()
         rows = payload.get("results", payload)
         self.assertIn("DEP", [row["symbol"] for row in rows])
-
-    def test_a_favourite_on_a_share_asset_is_still_readable_by_its_owner(self):
-        favourite = FavouriteAsset.objects.create(user_account=self.tenant.account, asset=self.share)
-        self.client.force_authenticate(self.tenant.user)
-
-        response = self.client.get(f"/api/favourite-assets/{favourite.uuid}/")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["asset"]["symbol"], "ORD")
-
-    def test_a_stranger_cannot_favourite_another_companys_share_class(self):
-        response = self.client.post(
-            "/api/favourite-assets/",
-            {"user_account": str(self.outsider.account.uuid), "asset": str(self.share.uuid)},
-        )
-
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("asset", response.json())
-        self.assertFalse(FavouriteAsset.objects.filter(asset=self.share).exists())
-
-    def test_a_stablecoin_can_still_be_favourited(self):
-        response = self.client.post(
-            "/api/favourite-assets/",
-            {"user_account": str(self.outsider.account.uuid), "asset": str(self.stablecoin.uuid)},
-        )
-
-        self.assertEqual(response.status_code, 201)
-        self.assertTrue(FavouriteAsset.objects.filter(asset=self.stablecoin).exists())

@@ -4,6 +4,9 @@ import { EthSignRequest, ETHSignature } from '@keystonehq/bc-ur-registry-eth';
 import { OrderActionModal } from './components/OrderActionModal';
 import { getSeedPhrase } from '../../services/secureKeyStorage';
 import { QRDisplay, QRScanner } from '../../components/qr';
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 24, bottom: 24, left: 0, right: 0 }),
+}));
 jest.mock('uuid', () => ({ v4: () => '70000000-0000-4000-8000-000000000001' }));
 jest.mock('../../services/secureKeyStorage', () => ({ getSeedPhrase: jest.fn() }));
 jest.mock('../../components/qr', () => ({ QRDisplay: jest.fn(() => null), QRScanner: jest.fn(() => null) }));

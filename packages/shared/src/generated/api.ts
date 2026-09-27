@@ -15,38 +15,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/assets/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_assets_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/assets/{uuid}/snapshots/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_assets_snapshots_list'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/assets/exchange-rates/': {
     parameters: {
       query?: never;
@@ -170,38 +138,6 @@ export interface ApiPaths {
     put?: never;
     post: ApiOperations['api_email_verification_create'];
     delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/favourite-assets/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_favourite_assets_list'];
-    put?: never;
-    post: ApiOperations['api_favourite_assets_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/favourite-assets/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_favourite_assets_retrieve'];
-    put?: never;
-    post?: never;
-    delete: ApiOperations['api_favourite_assets_destroy'];
     options?: never;
     head?: never;
     patch?: never;
@@ -521,22 +457,6 @@ export interface ApiPaths {
     get?: never;
     put?: never;
     post: ApiOperations['api_portfolios_remove_wallet_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/portfolios/{uuid}/snapshots/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_portfolios_snapshots_list'];
-    put?: never;
-    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -2627,20 +2547,6 @@ export interface ApiComponents {
       isActive?: boolean;
       uuid: string;
     };
-    AssetSnapshot: {
-      asset: string;
-      assetSymbol: string;
-      blockNumber?: number | null;
-      createdAt: string;
-      dataSource: string;
-      marketData?: unknown;
-      price: string;
-      priceCurrency?: string;
-      sourceTimestamp: string;
-      txHash?: string | null;
-      updatedAt: string;
-      uuid: string;
-    };
     AssetTypeEnum:
       'native_crypto' | 'erc20_token' | 'stablecoin' | 'tokenized_security' | 'tokenized_rwa' | 'synthetic';
     AuthCookieRefreshed: {
@@ -3200,16 +3106,6 @@ export interface ApiComponents {
       fullName: string | null;
       residenceCountry?: string | null;
     };
-    FavouriteAsset: {
-      asset: ApiComponents['schemas']['Asset'];
-      createdAt: string;
-      updatedAt: string;
-      userAccount: string;
-      uuid: string;
-    };
-    FavouriteAssetRequest: {
-      asset: string;
-    };
     FeatureFlag: {
       description?: string;
       enabled?: boolean;
@@ -3742,12 +3638,6 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['Document'][];
     };
-    PaginatedFavouriteAssetList: {
-      count: number;
-      next?: string | null;
-      previous?: string | null;
-      results: ApiComponents['schemas']['FavouriteAsset'][];
-    };
     PaginatedFeatureFlagList: {
       count: number;
       next?: string | null;
@@ -4039,38 +3929,9 @@ export interface ApiComponents {
       walletCount: number;
       walletUuids: string[];
     };
-    PortfolioChainValue: {
-      chain: string;
-      marketValue?: string;
-      quantity: string;
-      wallets: string[];
-    };
-    PortfolioHoldingValue: {
-      assetUuid: string;
-      marketValue?: string;
-      perChain: ApiComponents['schemas']['PortfolioChainValue'][];
-      price?: string;
-      quantity: string;
-      wallets: string[];
-    };
     PortfolioRequest: {
       isActive?: boolean;
       name: string;
-    };
-    PortfolioValuePoint: {
-      accountId: string;
-      createdAt: string;
-      hasValueData: boolean;
-      holdingsData: {
-        [key: string]: ApiComponents['schemas']['PortfolioHoldingValue'];
-      };
-      portfolio: string;
-      portfolioName: string;
-      snapshotDate: string;
-      snapshotReason: string;
-      totalMarketValue: string | null;
-      updatedAt: string;
-      uuid: string;
     };
     PortfolioWalletResponse: {
       message: string;
@@ -5305,53 +5166,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_assets_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['Asset'];
-        };
-      };
-    };
-  };
-  api_assets_snapshots_list: {
-    parameters: {
-      query?: {
-        end_date?: string;
-        max_points?: number;
-        order_by?: '-source_timestamp' | 'source_timestamp';
-        start_date?: string;
-      };
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['AssetSnapshot'][];
-        };
-      };
-    };
-  };
   api_assets_exchange_rates_retrieve: {
     parameters: {
       query?: {
@@ -5573,98 +5387,6 @@ export interface ApiOperations {
         content: {
           'application/json': ApiComponents['schemas']['AuthEmailVerified'];
         };
-      };
-    };
-  };
-  api_favourite_assets_list: {
-    parameters: {
-      query?: {
-        asset?: string;
-        asset_symbol?: string;
-        date_from?: string;
-        date_to?: string;
-        ordering?: string;
-        page?: number;
-        user_account?: string;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['PaginatedFavouriteAssetList'];
-        };
-      };
-    };
-  };
-  api_favourite_assets_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['FavouriteAssetRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['FavouriteAssetRequest'];
-        'multipart/form-data': ApiComponents['schemas']['FavouriteAssetRequest'];
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['FavouriteAsset'];
-        };
-      };
-    };
-  };
-  api_favourite_assets_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['FavouriteAsset'];
-        };
-      };
-    };
-  };
-  api_favourite_assets_destroy: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
       };
     };
   };
@@ -6410,32 +6132,6 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['PortfolioWalletResponse'];
-        };
-      };
-    };
-  };
-  api_portfolios_snapshots_list: {
-    parameters: {
-      query?: {
-        end_date?: string;
-        max_points?: number;
-        order_by?: string;
-        start_date?: string;
-      };
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['PortfolioValuePoint'][];
         };
       };
     };

@@ -25,8 +25,15 @@ export const registerCompany = (apiClient: AxiosInstance, data: CompanyRegistrat
 export const getCompany = (apiClient: AxiosInstance, uuid: string) =>
   apiClient.get<Company>(COMPANY_ENDPOINTS.DETAIL(uuid));
 
-export const updateCompany = (apiClient: AxiosInstance, uuid: string, data: CompanyUpdate) =>
-  apiClient.patch<CompanyUpdateResponse>(COMPANY_ENDPOINTS.DETAIL(uuid), data);
+export const updateCompany = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  data: CompanyUpdate,
+  config?: AxiosRequestConfig,
+) =>
+  config === undefined
+    ? apiClient.patch<CompanyUpdateResponse>(COMPANY_ENDPOINTS.DETAIL(uuid), data)
+    : apiClient.patch<CompanyUpdateResponse>(COMPANY_ENDPOINTS.DETAIL(uuid), data, config);
 
 export const getCompanyStats = (apiClient: AxiosInstance, uuid: string) =>
   apiClient.get<CompanyStats>(COMPANY_ENDPOINTS.STATS(uuid));

@@ -1,6 +1,3 @@
-import type { TimeRange } from '../constants';
-import { TIME_RANGES } from '../constants';
-
 const CALENDAR_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 export function formatDate(
@@ -64,21 +61,6 @@ export function formatDateTime(
   } catch {
     return dateString;
   }
-}
-
-export interface DateRange {
-  start_date: string | undefined;
-  end_date: string | undefined;
-}
-
-export function getDateRange(timeRange: TimeRange): DateRange {
-  if (timeRange === 'ALL') return { start_date: undefined, end_date: undefined };
-  const range = TIME_RANGES.find((r) => r.label === timeRange);
-  if (!range?.months) return { start_date: undefined, end_date: undefined };
-  const endDate = new Date();
-  const startDate = new Date();
-  startDate.setMonth(startDate.getMonth() - range.months);
-  return { start_date: startDate.toISOString().split('T')[0], end_date: endDate.toISOString().split('T')[0] };
 }
 
 export function formatSyncAge(dateString: string | null | undefined): string | null {

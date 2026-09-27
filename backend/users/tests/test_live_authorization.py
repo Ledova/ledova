@@ -158,17 +158,6 @@ class UserLiveAuthorizationTest(APITestCase):
                     self.assertTrue(queryset.query.select_for_update)
                     self.assertEqual(queryset.query.select_for_update_of, expected_of)
 
-    def test_favourite_filters_cannot_expand_the_live_scope(self):
-        self.client.force_authenticate(self.alice)
-
-        response = self.client.get(
-            "/api/favourite-assets/",
-            {"user_account": str(self.bob_account.uuid)},
-        )
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(self.rows(response), [])
-
     def test_anonymous_managers_fail_closed(self):
         anonymous = AnonymousUser()
         managers = (

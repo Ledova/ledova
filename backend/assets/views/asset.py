@@ -1,28 +1,24 @@
 from drf_spectacular.utils import (
     OpenApiParameter,
-    OpenApiTypes,
     extend_schema,
     extend_schema_view,
 )
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from assets.filters import AssetFilter
 from assets.models import Asset
 from assets.serializers import (
     AssetSerializer,
-    AssetSnapshotSerializer,
     ExchangeRateResponseSerializer,
 )
 from assets.services import ExchangeRateService
-from shared.utils.querysets import sample_evenly
-from shared.views.base import AuthenticatedReadOnlyViewSet
+from shared.views.base import AuthenticatedListViewSet
 
 
 @extend_schema_view(list=extend_schema(parameters=[OpenApiParameter("chain", str)]))
-class AssetViewSet(AuthenticatedReadOnlyViewSet):
+class AssetViewSet(AuthenticatedListViewSet):
     serializer_class = AssetSerializer
     filterset_class = AssetFilter
     ordering = ["symbol"]
@@ -38,34 +34,6 @@ class AssetViewSet(AuthenticatedReadOnlyViewSet):
         else:
             queryset = queryset.filter_by_supported_chains()
         return queryset
-
-    @extend_schema(
-        responses=AssetSnapshotSerializer(many=True),
-        filters=False,
-        parameters=[
-            OpenApiParameter("start_date", OpenApiTypes.DATE),
-            OpenApiParameter("end_date", OpenApiTypes.DATE),
-            OpenApiParameter("order_by", str, enum=["source_timestamp", "-source_timestamp"]),
-            OpenApiParameter("max_points", int),
-        ],
-    )
-    @action(detail=True, methods=["get"], url_path="snapshots", pagination_class=None)
-    def snapshots(self, request, **kwargs):
-        asset = self.get_object()
-
-        order_by = request.query_params.get("order_by", "-source_timestamp")
-        if order_by not in {"source_timestamp", "-source_timestamp"}:
-            order_by = "-source_timestamp"
-        try:
-            queryset = asset.snapshots.filter_by_date_range(
-                request.query_params.get("start_date"), request.query_params.get("end_date")
-            )
-        except ValueError:
-            raise ValidationError({"detail": "start_date and end_date must be YYYY-MM-DD."})
-        queryset = sample_evenly(queryset.order_by(order_by), request.query_params.get("max_points"))
-
-        serializer = AssetSnapshotSerializer(queryset, many=True)
-        return Response(serializer.data)
 
     @extend_schema(responses={200: ExchangeRateResponseSerializer}, parameters=[OpenApiParameter("currency", str)])
     @action(detail=False, methods=["get"], url_path="exchange-rates")

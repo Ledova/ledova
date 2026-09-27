@@ -1,207 +1,111 @@
-import { CryptoActions } from './components/CryptoActions';
-import React, { useCallback, useLayoutEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useState } from 'react';
+import { Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { PlusIcon, FunnelIcon } from 'phosphor-react-native';
-import type { Wallet } from '@ledova/shared';
+import { BLOCKCHAIN, WALLET_VERIFICATION_STATUS, getChainShortCode } from '@ledova/shared';
 import type { WalletsStackParamList } from '../../navigation/WalletsStackNavigator';
-import { GradientBackground } from '../../components/GradientBackground';
-import { WalletList, WalletSortModal, useWalletSort } from '../../components/wallet-list';
+import { Section, Row, Action } from '../../components/Ledger';
+import { WalletSortModal, useWalletSort } from '../../components/wallet-list';
 import { AddWalletModal } from './components/AddWalletModal';
-import { DeleteWalletModal } from './components/DeleteWalletModal';
+import { CryptoActions } from './components/CryptoActions';
 import { useWallets } from './useWallets';
 import { useWalletsCrud } from './useWalletsCrud';
-import { useAppTheme, useThemedStyles } from '../../contexts';
-import { formatWalletAddressShort } from '@ledova/shared';
+import { WalletsPage, useWalletStyles } from './WalletsPage';
+import { walletBalance } from './presentation';
+import { useCurrency } from '../../hooks/useCurrency';
 
 export function WalletsScreen() {
-  const theme = useAppTheme();
-  const styles = useThemedStyles((theme) => ({
-    container: {
-      flex: 1,
-    },
-    headerButtons: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    headerButton: {
-      width: 44,
-      height: 44,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    loadingContainer: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: theme.spacing.md,
-    },
-    loadingText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-    },
-    emptyState: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: theme.spacing.md,
-      flex: 1,
-    },
-    emptyTitle: {
-      fontSize: theme.fontSize.base,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.muted,
-    },
-    emptySubtitle: {
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.subtle,
-      textAlign: 'center',
-    },
-    addWalletButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: theme.colors.interactive.active,
-      paddingHorizontal: theme.spacing.lg,
-      paddingVertical: theme.spacing.md,
-      borderRadius: theme.borderRadius.md,
-      gap: theme.spacing.sm,
-    },
-    addWalletButtonText: {
-      fontSize: theme.fontSize.base,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.utility.white,
-    },
-    fab: {
-      position: 'absolute',
-      bottom: theme.spacing.md,
-      right: theme.spacing.md,
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      backgroundColor: theme.colors.interactive.active,
-      alignItems: 'center',
-      justifyContent: 'center',
-      elevation: 4,
-      shadowColor: theme.colors.utility.black,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 4,
-    },
-  }));
+  const styles = useWalletStyles();
   const navigation = useNavigation<NativeStackNavigationProp<WalletsStackParamList>>();
-
-  const {
-    wallets,
-    isLoading: isLoadingWallets,
-    syncWallet: syncWalletById,
-    syncingWalletIds,
-    deleteWallet,
-  } = useWalletsCrud();
-  const hasNoWallets = wallets.length === 0;
-  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
-  const [deletingWallet, setDeletingWallet] = useState<Wallet | null>(null);
-
-  const {
-    showAddModal,
-    preselectedChain,
-    isCreating,
-    handleCreateWallet,
-    handleBatchCreateWallets,
-    handleSoftwareWalletCreate,
-    openAddModal,
-    closeAddModal,
-  } = useWallets();
-
-  const handleManualRefresh = useCallback(async () => {
-    setIsManualRefreshing(true);
-    try {
-      await Promise.allSettled(wallets.map((w: Wallet) => syncWalletById(w.uuid)));
-    } finally {
-      setIsManualRefreshing(false);
-    }
-  }, [wallets, syncWalletById]);
-
+  const crud = useWalletsCrud();
+  const form = useWallets(crud);
+  const { formatDisplayCurrency } = useCurrency();
+  const [syncingAll, setSyncingAll] = useState(false);
   const { sortedWallets, chainFilter, sortOption, isFiltered, showSortModal, setShowSortModal, handleApply } =
-    useWalletSort(wallets, 'default');
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <View style={styles.headerButtons}>
-          <TouchableOpacity
-            onPress={() => setShowSortModal(true)}
-            style={styles.headerButton}
-            hitSlop={{
-              top: theme.spacing.sm,
-              bottom: theme.spacing.sm,
-              left: theme.spacing.sm,
-              right: theme.spacing.sm,
-            }}
-          >
-            <FunnelIcon
-              size={theme.icon.sizes.lg}
-              color={isFiltered ? theme.colors.interactive.active : theme.colors.text.muted}
-              weight={isFiltered ? 'fill' : 'regular'}
-            />
-          </TouchableOpacity>
-        </View>
-      ),
-    });
-  }, [navigation, isFiltered, setShowSortModal]);
-
-  const handleAddWallet = () => {
-    openAddModal(null);
+    useWalletSort(crud.wallets);
+  const blocked = crud.isLoading || crud.hasError || crud.isRefreshing;
+  const notice = crud.hasError
+    ? 'Wallets could not be refreshed. Your draft is kept; retry before continuing.'
+    : blocked
+      ? 'Refreshing wallets before continuing…'
+      : null;
+  const syncAll = async () => {
+    if (blocked || syncingAll) return;
+    setSyncingAll(true);
+    try {
+      await Promise.allSettled(crud.wallets.map((wallet) => crud.syncWallet(wallet.uuid)));
+    } finally {
+      setSyncingAll(false);
+    }
   };
-
-  const renderEmptyState = () => (
-    <View style={styles.emptyState}>
-      <Text style={styles.emptyTitle}>No wallets found</Text>
-      <Text style={styles.emptySubtitle}>Add a wallet first to buy crypto</Text>
-      <TouchableOpacity style={styles.addWalletButton} onPress={handleAddWallet} activeOpacity={0.7}>
-        <PlusIcon size={theme.icon.sizes.sm} color={theme.colors.utility.white} weight="bold" />
-        <Text style={styles.addWalletButtonText}>Add Wallet</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderLoading = () => (
-    <View style={styles.loadingContainer}>
-      <ActivityIndicator size="large" color={theme.colors.interactive.active} />
-      <Text style={styles.loadingText}>Loading...</Text>
-    </View>
-  );
-
   return (
-    <GradientBackground>
-      <CryptoActions />
-      <View style={styles.container}>
-        {isLoadingWallets ? (
-          renderLoading()
-        ) : hasNoWallets ? (
-          renderEmptyState()
-        ) : (
-          <WalletList
-            wallets={sortedWallets}
-            onWalletAction={(wallet) => navigation.navigate('WalletAction', { wallet })}
-            onSyncWallet={(wallet) => {
-              void syncWalletById(wallet.uuid).catch(() => undefined);
-            }}
-            onDeleteWallet={(wallet) => setDeletingWallet(wallet)}
-            syncingWalletIds={syncingWalletIds}
-            chainFilter={chainFilter}
-            isLoading={isLoadingWallets}
-            onRefresh={handleManualRefresh}
-            refreshing={isManualRefreshing}
+    <>
+      <WalletsPage loading={crud.isLoading} refreshing={crud.isRefreshing} refresh={() => void crud.refetch()}>
+        <Text style={styles.help}>
+          Your addresses for receiving shares and managing test crypto. Open a wallet to verify, rename, derive another
+          address or sync its balances.
+        </Text>
+        <CryptoActions />
+        <View style={styles.actions}>
+          <Action label="Add wallet" onPress={form.openAddModal} disabled={blocked} primary />
+          <Action label={isFiltered ? 'Filter (active)' : 'Filter'} onPress={() => setShowSortModal(true)} />
+          <Action
+            label={syncingAll ? 'Syncing wallets…' : 'Sync balances'}
+            onPress={() => void syncAll()}
+            disabled={blocked || syncingAll || !crud.wallets.length}
           />
+        </View>
+        {crud.hasError ? (
+          <View style={styles.group}>
+            <Text accessibilityRole="alert" style={styles.message}>
+              Your wallets could not be loaded. Try again before continuing.
+            </Text>
+            <Action label="Try again" onPress={() => void crud.refetch()} disabled={crud.isRefreshing} />
+          </View>
+        ) : (
+          <>
+            {[
+              [BLOCKCHAIN.ETHEREUM, 'Ethereum', 'eth'],
+              [BLOCKCHAIN.BITCOIN, 'Bitcoin', 'btc'],
+              [BLOCKCHAIN.BASE, 'Base', 'base'],
+            ]
+              .filter(([, , filter]) => chainFilter === 'all' || chainFilter === filter)
+              .map(([chain, name]) => {
+                const wallets = sortedWallets.filter((wallet) => wallet.chain === chain);
+                return (
+                  <Section key={chain} title={name}>
+                    {wallets.length ? (
+                      wallets.map((wallet) => (
+                        <View key={wallet.uuid} style={styles.item}>
+                          <Text style={styles.name}>{wallet.name || 'Unnamed wallet'}</Text>
+                          <Row label="Address">{wallet.address}</Row>
+                          <Row label="Balance">
+                            {walletBalance(wallet.nativeBalance)}{' '}
+                            {getChainShortCode(wallet.chain) === 'BTC' ? 'BTC' : 'ETH'}
+                          </Row>
+                          <Row label="Estimated value">{formatDisplayCurrency(Number(wallet.marketValue))}</Row>
+                          <Row label="Verification">
+                            {wallet.verificationStatus === WALLET_VERIFICATION_STATUS.VERIFIED
+                              ? 'Address verified'
+                              : 'Pending'}
+                          </Row>
+                          <Action
+                            label="Open wallet"
+                            accessibilityLabel={`Open wallet ${wallet.name || wallet.address}`}
+                            onPress={() => navigation.navigate('WalletAction', { wallet })}
+                            disabled={blocked}
+                          />
+                        </View>
+                      ))
+                    ) : (
+                      <Text style={styles.help}>No {name} wallets</Text>
+                    )}
+                  </Section>
+                );
+              })}
+          </>
         )}
-      </View>
-
-      {!hasNoWallets && !isLoadingWallets && (
-        <TouchableOpacity style={styles.fab} onPress={handleAddWallet} activeOpacity={0.8}>
-          <PlusIcon size={theme.icon.sizes.md} color={theme.colors.utility.white} weight="bold" />
-        </TouchableOpacity>
-      )}
-
+      </WalletsPage>
       <WalletSortModal
         visible={showSortModal}
         selectedChain={chainFilter}
@@ -209,29 +113,18 @@ export function WalletsScreen() {
         onClose={() => setShowSortModal(false)}
         onApply={handleApply}
       />
-
       <AddWalletModal
-        visible={showAddModal}
-        isLoading={isCreating}
-        preselectedChain={preselectedChain}
-        onClose={closeAddModal}
-        onSubmit={handleCreateWallet}
-        onBatchSubmit={handleBatchCreateWallets}
-        onSoftwareWalletCreate={handleSoftwareWalletCreate}
+        visible={form.showAddModal}
+        isLoading={form.isCreating}
+        readBlocked={blocked}
+        notice={notice}
+        error={form.createError}
+        onRetry={() => void crud.refetch()}
+        onClose={form.closeAddModal}
+        onSubmit={form.handleCreateWallet}
+        onBatchSubmit={form.handleBatchCreateWallets}
+        onSoftwareWalletCreate={form.handleSoftwareWalletCreate}
       />
-
-      <DeleteWalletModal
-        visible={!!deletingWallet}
-        walletName={deletingWallet?.name || (deletingWallet ? formatWalletAddressShort(deletingWallet.address) : '')}
-        onConfirm={() => {
-          if (deletingWallet) {
-            deleteWallet(deletingWallet.uuid, {
-              onSuccess: () => setDeletingWallet(null),
-            });
-          }
-        }}
-        onClose={() => setDeletingWallet(null)}
-      />
-    </GradientBackground>
+    </>
   );
 }

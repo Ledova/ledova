@@ -395,6 +395,11 @@ unpriced holdings. This is a display requirement, not a claim that every client
 has completed it; see [B7d](https://github.com/Ledova/ledova/issues/115#issuecomment-5574975348)
 and [valuation presentation work](https://github.com/Ledova/ledova/issues/346).
 
+The later [signed-in app decision](#the-signed-in-app) supersedes that chart
+presentation: Holdings lists shares by company and class, and crypto actions
+stay in Wallets. The asset identity and valuation-source principles above still
+apply; the retired chart helpers are no longer part of either client.
+
 ## The signed-in app
 
 The signed-in app is rebuilt around the register; crypto stays supported but is
@@ -445,11 +450,10 @@ This records the target; the steps on #732 build it.
 - **Notices stays personal.** Asked whether to accept the gap until the register
   work provides the company's own publication list, the owner chose "Accept the
   gap": "Notices stays personal; the company's own list arrives with the register
-  work in step 6. Mobile keeps its current list until step 10." The web issuer
-  list now opens from Company as Published to your members, selecting the owned
-  company explicitly and showing stored documents and recorded tallies without
-  member voting controls. The mobile change follows in #750. (Owner decision,
-  26 September 2026, on
+  work in step 6. Mobile keeps its current list until step 10." The issuer list
+  opens from Company as Published to your members in both clients, selecting the
+  owned company explicitly and showing stored documents and recorded tallies
+  without member voting controls. (Owner decision, 26 September 2026, on
   [#732](https://github.com/Ledova/ledova/issues/732#issuecomment-5846254159).)
 - **Mobile follows the web.** The mobile app takes paper and the new structure
   together, after the web.
@@ -463,8 +467,9 @@ The owner answered the two remaining scope questions on 27 September 2026
   Existing API visibility remains authoritative; the client does not discard an
   accessible class just because another company was returned first.
 - **Initial Market:** "Keep automatic matching for the first version." The
-  dashboard Market presents _For sale_ and _Wanted_ over existing matching.
-  Seller acceptance and rejection are not a prerequisite for that first version.
+  Market presentation in both clients is _For sale_ and _Wanted_ over existing
+  matching. Seller acceptance and rejection are not a prerequisite for that
+  first version.
 
 The buyer-funds-before-offering decision remains unchanged. These decisions set
 the implementation's scope, not permission for a live deployment or real funds.
@@ -534,10 +539,9 @@ those numbers as current.
 ## Clients and API types
 
 Both clients compile `@ledova/shared` from source, without a package build step.
-The mobile investor directory and subscription journey remain unscheduled in the
-[current roadmap](roadmap.md#remaining-work);
-shared hooks created earlier must accommodate both clients. The primary issuer
-workflow remains dashboard-led. See [B7b](https://github.com/Ledova/ledova/issues/115#issuecomment-5574947880)
+Directory, Applications and issuer Offering workflows are available in both the
+dashboard and mobile app, using shared hooks. Earlier client boundaries are
+recorded in [B7b](https://github.com/Ledova/ledova/issues/115#issuecomment-5574947880)
 and [B2](https://github.com/Ledova/ledova/issues/115#issuecomment-5574848881).
 
 Shared API types are generated from the committed OpenAPI snapshot. The owner

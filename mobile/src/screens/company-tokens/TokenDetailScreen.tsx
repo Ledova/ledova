@@ -18,6 +18,7 @@ import { ClassRegister } from '../company-register/ClassRegister';
 import { useCompanyStyles } from '../company-register/styles';
 import { useTokenDetail } from './useTokenDetail';
 import { IssueSharesForm, RaiseSharesForm } from './ShareRequestForms';
+import { TokenPauseControls } from './TokenPauseControls';
 
 type Props = NativeStackScreenProps<CompanyStackParamList, 'TokenDetail'>;
 
@@ -267,6 +268,9 @@ function ShareClass({ uuid }: { uuid: string }) {
             </>
           )}
         </Section>
+        {(token.status === 'deployed' || token.status === 'paused') && (
+          <TokenPauseControls token={token} refreshing={data.token.isFetching} />
+        )}
         <Section title="Register of members">
           <Text style={styles.muted}>{REGISTER_COPY.PRIVACY_NOTE}</Text>
           <Action

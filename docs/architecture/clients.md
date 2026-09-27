@@ -45,6 +45,7 @@ investing or company page until the role is known as well, so no page appears
 on the way. If the account cannot be read, it says so and offers Try again
 instead of deciding with a guessed role. Once the role is known, the sidebar
 offers only pages the role can open, in groups:
+
 - a company's own group first, named after the company, with Register, Offerings and
   Company.
   The company's application sits under Company, opened from the Company page's
@@ -63,17 +64,46 @@ The mobile shell uses Holdings, Notices, Activity and the securities Market.
 Register is the native Company landing page. It reads every class and its stored
 register, with exact share quantities and complete-read failure states. A class
 opens its register and request histories, deployment and share request actions.
-Native pause recovery remains a separate port; Company details, Application and
-the remaining Invest pages retain their existing screens until their web
-replacements are ported. Native Verification uses the paper ledger and reads
-every claim page into its own cache, independently of the Documents page.
+Deployed and paused native classes also expose pause and recovery. Before a POST,
+the app saves and reads back the original request identity and direction in
+AsyncStorage, scoped to the user, account and class. Unresolved requests block
+new requests and remain available after reopening the page; checking or retrying
+keeps the same identity. A completed outcome can be dismissed without changing
+the class. The outcome describes the original request, not the current class
+state. Class refreshes block new requests, and captured session guards fence
+storage waits, transport retries and delayed responses.
+Company details reads the complete selected company and every share-class page,
+with exact quantities. Application retains every supplied document and the
+review timeline; failed reads block actions while edit, upload and withdrawal
+drafts remain available for retry. Uploads and document sharing retain the
+session-bound managed-copy lifecycle. Native Verification uses the paper ledger and
+reads every claim page into its own cache, independently of the Documents page.
 Failed eligibility or history reads suppress status and actions, while an open
 evidence form retains its fields and private file copy. Submission waits for
 current reads and is blocked by an existing pending claim; withdrawal failures
 remain visible for retry. The existing session-scoped upload lifecycle owns
-temporary files throughout these refreshes. Company Publications preserves the existing list of
-all publications available to the account, including its issuer publications;
-Your shares Notices separately requests only publications addressed to the person.
+temporary files throughout these refreshes. Native Directory is an investing-role
+stack that reads every eligible share-class page. Failed eligibility or catalogue
+reads suppress cached classes; detail failures suppress cached offering terms,
+and unavailable classes remain distinct from read failures. Authorised shares
+retain their exact integer strings, while issued counts outside the API's safe
+numeric range are marked unavailable. Native Applications reads recorded company,
+share-class and price snapshots independently of Directory eligibility. Failed
+history/detail refreshes suppress cached terms and actions; a later-page failure
+marks the history incomplete. Directory draft creation reads every verified Base
+wallet, preserves quantity and selection across failed refreshes, and blocks writes
+until current prerequisites recover. Native application writes carry the captured
+session epoch through the existing transport guard and ignore retired-session
+results. Payment details come only from the application's issued instruction,
+including exact references, leading zeroes and raw settlement units. Partial
+payments retain the original instruction and require operator confirmation before
+paying again; no native payment/signing action is added here. Mobile Activity reads history independently of its complete wallet selector. It
+keeps recorded decimal amounts exact, distinguishes failed refreshes from empty
+history, and marks failed older pages as incomplete. Pull to refresh reads current
+records; an open detail follows its current row. Supported wallet, network,
+direction and local-day filters replace sorting only the loaded subset. Date
+filters use block time and exclude records without one. Activity has no generated
+mock-record mode; synthetic journeys use API fixtures.
 
 Market presents For sale and Wanted lists with automatic matching. Buyers fund
 before placing an offer. Owned order history reads independently of listed share
@@ -85,12 +115,37 @@ integer cents; unsafe numeric quantities returned by legacy list APIs are marked
 unavailable. New quantities use exact integer strings above JavaScript's safe
 number range, within the existing signed 64-bit storage bound. The chosen wallet's
 allowlist status gates creation, and drafts survive failed prerequisite refreshes.
+Published to your members reads every publication page for the
+selected owned company with an explicit issuer filter. It shows stored documents,
+exact resolution results and distribution rates/dates without member actions or
+entitlements. Company and publication read failures hide stale records; refresh
+blocks document actions. Native document copies remain bound to the selected
+company, current role and starting session. Your shares Notices separately
+requests only publications addressed to the person and retains member voting.
 
 Signing in, and verifying an email, which also signs a new person in, clear
 what the tab cached for whoever was signed in before, as signing out does, so a
 new person is never guarded by, or signs up against, the previous person's
 account. Buying crypto and sending are actions on Wallets for every account,
 not menu items, and the dashboard has no coin-price page or favourites.
+The retired portfolio screen's chart, allocation and snapshot helpers are removed
+from both clients and the shared package. The asset list remains in use by Buy
+crypto for current prices, and Wallets and Send still use the AUD exchange rate.
+Unused asset detail, asset/portfolio snapshot and favourite-assets HTTP routes
+are [retired](../operations/upgrades.md#retired-asset-and-portfolio-http-routes).
+Backend history computation and data, selected-portfolio preferences and portfolio
+CRUD/add/remove-wallet operator actions remain.
+Native Wallets reads every page into an account- and session-scoped ledger. A
+failed page suppresses partial balances and stale actions until retry succeeds.
+Balances and numeric sorting retain decimal strings; converted fiat values remain
+labelled estimates. Wallet detail requires a current owned row rather than its
+navigation snapshot. Add, rename, delete and derive failures retain entered state,
+and pending modal operations cannot be dismissed or submitted twice. Imported
+addresses are registered in sequence; retries skip only previously confirmed
+requests in that import. Wallet reads and writes use the captured session epoch,
+and software registration waits for the server after the existing authenticated
+local seed storage. QR parsing, key derivation, verification, Buy and Send keep
+their existing boundaries.
 Holdings reads every page of the person's wallets and lists their tokenized
 security holdings by company and class, with one row per asset across chains.
 It uses the API's current class and company names when available and the asset's
@@ -130,14 +185,17 @@ an open claim's fields and selected evidence file, with a retry inside the modal
 Submission waits for reliable reads and remains blocked if a refreshed history
 contains another pending claim.
 
-Mobile Holdings currently shows the notice-derived work under _Votes needing you_
-and _Dividend records in progress_. It does not claim applications are clear;
-application summaries follow the native Applications destination. Both native
-publication lists distinguish a failed refresh, which hides stale actions, from
-a failed earlier page, which keeps loaded rows with an incomplete-list warning.
-Every personal page retains the addressed filter, and ballot settlement
-invalidates the list and personal summary together. Native document copies and
-ballots retain their session boundaries.
+Mobile Holdings uses the same _Needs you_ and _In progress_ grouping and opens
+the native Applications detail or Notices destination. It reads every application
+page only for a known investing account, keeps the query scoped to the account
+and session, and refreshes work after application changes or a page pull refresh.
+Applications and notices retain independent failures and retries. Personal
+Notices distinguishes a failed refresh, which hides stale actions, from a failed
+earlier page, which keeps loaded rows with an incomplete-list warning. The native
+issuer list requires every page to succeed before showing records; a failed page
+or refresh hides the list and offers retry. Every personal page retains the
+addressed filter, and ballot settlement invalidates the list and personal summary
+together. Native document copies and ballots retain their session boundaries.
 
 Directory groups the accessible share classes under their company and opens a
 class's current offering in the ledger layout. The first experience targets one
@@ -198,6 +256,37 @@ rows and details after a failed refresh. Filters use only supported API fields,
 with date bounds covering the whole selected days in the person's local time.
 Details preserve full wallet, address and transaction identities and can open the
 existing explorer; Activity adds no buying, sending or signing action.
+
+Mobile Company Offerings reads every offering and share-class page, filters to
+classes of the selected owned company, and reads every page of the selected
+offering's subscriptions. It keeps Directory visibility separate from offering
+review. Current successful company, class, operator and offering reads govern
+actions; an open editor retains its draft when a read or save fails. Native date
+and time controls set the offering window in the device's local time. Price
+strings remain exact, request share quantities retain the API bounds, and a
+removed settlement asset must be explicitly removed from the draft before save.
+Subscription facts remain separate from the stored share register and allotment.
+Offering writes and Directory visibility changes capture the native session epoch;
+credential lookup, token refresh and late UI callbacks cannot carry them into a
+replacement session.
+
+Mobile Profile and Settings use the same paper ledger as Holdings and Notices.
+Profile reads only the personal profile and retains an open phone draft through
+refresh and save failures; saving requires a current successful read. Settings
+keeps native biometric sign-in and app lock, and distinguishes unavailable
+notification preferences from disabled alerts. Password, private JSON export
+and account deletion use bounded confirmation dialogs that stay open after
+refusal and cannot close while their request is pending. Successful deletion
+retains the existing session retirement and private-cache cleanup boundary.
+
+Native Market uses the same For sale and Wanted ledger, automatic matching and
+buyer-funds-before-offer order. Class, wallet and trade lists read every page;
+account-owned order history remains available when classes or wallets disappear.
+Share counts and AUD totals use exact integer arithmetic, with unavailable labels
+for legacy numeric counts outside the safe range. An open order draft keeps its
+fields during failed refreshes, while current class, eligibility, wallet, holdings
+and allowlist checks gate submission. Existing signing, cancellation and settlement
+recovery retain their saved identities and session boundaries.
 
 Where market values are shown elsewhere, they are in AUD: the shared
 `useCurrency` converts the API's US-dollar values at the current rate, shows a
@@ -286,7 +375,8 @@ account, and otherwise in the public layout with a link to sign in, or, for an
 account still signing up, back into sign-up. It shows nothing until its own
 decision and the frame's agree, so, like a guarded page, it never appears in
 the wrong layout for a moment.
-The mobile app does not read the table yet.
+Native stacks and sign-up routes remain declared separately; the native drawer
+reuses titles from `DESTINATIONS`.
 
 Published to your members opens from Company at `/company/publications`, under
 company and dual-role guards. It reads every publication page with the selected
@@ -339,7 +429,7 @@ that reads `PAPER_THEME` for colours such as charts, render in paper. Both
 clients bundle Newsreader for display text and Instrument Sans for everything
 else. Mobile also uses fixed paper and bundles these fonts with a finite
 loading/error/retry gate; saved local and account theme choices do not change
-the palette. Older shared palettes remain until their last consumers move.
+the palette. Shared tokens and the CSS generator contain only paper; the retired dark and light palettes are removed.
 
 Mobile resolves the package through its Metro configuration and local workspace
 link. Run `npm --prefix mobile run check:resolution` after dependency/resolution

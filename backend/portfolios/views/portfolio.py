@@ -1,6 +1,4 @@
-from datetime import datetime
-
-from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -10,11 +8,9 @@ from portfolios.filters import PortfolioFilter
 from portfolios.models.portfolio import Portfolio
 from portfolios.serializers.portfolio import (
     PortfolioSerializer,
-    PortfolioValuePointSerializer,
     PortfolioWalletResponseSerializer,
 )
-from portfolios.services import PortfolioWalletService, portfolio_value_series
-from shared.utils.querysets import sample_evenly
+from portfolios.services import PortfolioWalletService
 from shared.views.base import AuthenticatedModelViewSet
 from users.services.accounts import account_of
 
@@ -70,31 +66,3 @@ class PortfolioViewSet(AuthenticatedModelViewSet):
             {"success": True, "message": "Wallet removed from portfolio successfully", "portfolio": serializer.data},
             status=status.HTTP_200_OK,
         )
-
-    @extend_schema(
-        responses=PortfolioValuePointSerializer(many=True),
-        filters=False,
-        parameters=[
-            OpenApiParameter("start_date", OpenApiTypes.DATE),
-            OpenApiParameter("end_date", OpenApiTypes.DATE),
-            OpenApiParameter("order_by", str),
-            OpenApiParameter("max_points", int),
-        ],
-    )
-    @action(detail=True, methods=["get"], url_path="snapshots", pagination_class=None)
-    def snapshots(self, request, *args, **kwargs):
-        portfolio = self.get_object()
-        params = request.query_params
-
-        bounds = {}
-        for key in ("start_date", "end_date"):
-            try:
-                bounds[key] = datetime.strptime(params[key], "%Y-%m-%d").date() if params.get(key) else None
-            except ValueError:
-                raise ValidationError({"detail": "start_date and end_date must be YYYY-MM-DD."})
-        points = portfolio_value_series(portfolio, **bounds)
-        if params.get("order_by") != "snapshot_date":
-            points.reverse()
-        points = sample_evenly(points, params.get("max_points"))
-
-        return Response(PortfolioValuePointSerializer(points, many=True).data)

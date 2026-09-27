@@ -1,63 +1,29 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getCompanies, getCompany, getCompanyStats, updateCompany } from '@ledova/shared';
-import type { Company, CompanyListItem, CompanyStats, CompanyUpdate } from '@ledova/shared';
+import { useQuery } from '@tanstack/react-query';
+import { getCompanies, getCompany } from '@ledova/shared';
 import { apiClient } from '../services/apiClient';
-
-type CompanyView = (Company | CompanyListItem) & Partial<Company>;
+import { useCompanyAccess } from '../screens/company-register/useCompanyRegister';
 
 export function useCompanyProfile() {
-  const queryClient = useQueryClient();
-
-  const { data: companiesData, isLoading: isLoadingList } = useQuery({
+  const access = useCompanyAccess();
+  const companies = useQuery({
     queryKey: ['companies'],
     queryFn: () => getCompanies(apiClient),
+    enabled: access.allowed,
   });
-
-  const companyUuid = companiesData?.data?.results?.[0]?.uuid;
-
-  const {
-    data: company,
-    isLoading: isLoadingCompany,
-    error: companyError,
-    refetch: refetchCompany,
-  } = useQuery<Company>({
+  const companyUuid = companies.data?.data.results[0]?.uuid;
+  const detail = useQuery({
     queryKey: ['company', companyUuid],
-    queryFn: () => getCompany(apiClient, companyUuid!).then((res) => res.data),
-    enabled: !!companyUuid,
+    queryFn: () => getCompany(apiClient, companyUuid!).then(({ data }) => data),
+    enabled: access.allowed && !!companyUuid && !companies.isError,
   });
-
-  const {
-    data: stats,
-    isLoading: isLoadingStats,
-    refetch: refetchStats,
-  } = useQuery<CompanyStats>({
-    queryKey: ['company-stats', companyUuid],
-    queryFn: () => getCompanyStats(apiClient, companyUuid!).then((res) => res.data),
-    enabled: !!companyUuid,
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: (data: CompanyUpdate) => updateCompany(apiClient, companyUuid!, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['company'] });
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
-    },
-  });
-
-  const refetch = async () => {
-    await Promise.all([refetchCompany(), refetchStats()]);
-  };
-
-  const companyView: CompanyView | null = company || companiesData?.data?.results?.[0] || null;
-
+  const refetch = () => Promise.all([companies.refetch(), ...(companyUuid ? [detail.refetch()] : [])]);
   return {
-    company: companyView,
+    access,
+    company: detail.data ?? null,
     companyUuid,
-    stats: stats || null,
-    isLoading: isLoadingList || isLoadingCompany || isLoadingStats,
-    error: companyError,
+    isLoading: companies.isLoading || detail.isLoading,
+    isRefreshing: companies.isFetching || detail.isFetching,
+    error: companies.error || detail.error,
     refetch,
-    updateCompany: updateMutation.mutateAsync,
-    isUpdating: updateMutation.isPending,
   };
 }

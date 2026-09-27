@@ -130,10 +130,13 @@ it.each([
   expect(Boolean(view.queryByRole('header', { name: 'Company' }))).toBe(isCompany);
   expect(Boolean(view.queryByRole('button', { name: 'Application' }))).toBe(isCompany);
   expect(Boolean(view.queryByRole('button', { name: 'Register' }))).toBe(isCompany);
-  expect(Boolean(view.queryByRole('button', { name: 'Publications' }))).toBe(isCompany);
+  expect(Boolean(view.queryByRole('button', { name: 'Offerings' }))).toBe(isCompany);
+  expect(Boolean(view.queryByRole('button', { name: 'Published to your members' }))).toBe(isCompany);
   expect(Boolean(view.queryByRole('header', { name: 'Invest' }))).toBe(isInvestor);
   expect(Boolean(view.queryByRole('button', { name: 'Market' }))).toBe(isInvestor);
   expect(Boolean(view.queryByRole('button', { name: 'Verification' }))).toBe(isInvestor);
+  expect(Boolean(view.queryByRole('button', { name: 'Directory' }))).toBe(isInvestor);
+  expect(Boolean(view.queryByRole('button', { name: 'Applications' }))).toBe(isInvestor);
   expect(view.queryByRole('button', { name: 'Buy' })).toBeNull();
   expect(view.queryByRole('button', { name: 'Send' })).toBeNull();
   await fireEvent.press(view.getByRole('button', { name: 'Holdings' }));
@@ -146,6 +149,11 @@ it.each([
   await fireEvent.press(view.getByRole('button', { name: 'Activity' }));
   expect(mockNavigate).toHaveBeenLastCalledWith('MainApp', { screen: 'Main', params: { screen: 'Transactions' } });
   if (isCompany) {
+    await fireEvent.press(view.getByRole('button', { name: 'Offerings' }));
+    expect(mockNavigate).toHaveBeenLastCalledWith('MainApp', {
+      screen: 'Main',
+      params: { screen: 'Company', params: { screen: 'CompanyOfferings' } },
+    });
     await fireEvent.press(view.getByRole('button', { name: 'Register' }));
     expect(mockNavigate).toHaveBeenLastCalledWith('MainApp', {
       screen: 'Main',
@@ -156,13 +164,23 @@ it.each([
       screen: 'Main',
       params: { screen: 'Company', params: { screen: 'CompanyDetails' } },
     });
-    await fireEvent.press(view.getByRole('button', { name: 'Publications' }));
+    await fireEvent.press(view.getByRole('button', { name: 'Published to your members' }));
     expect(mockNavigate).toHaveBeenLastCalledWith('MainApp', {
       screen: 'Main',
       params: { screen: 'Company', params: { screen: 'CompanyPublications' } },
     });
   }
   if (isInvestor) {
+    await fireEvent.press(view.getByRole('button', { name: 'Applications' }));
+    expect(mockNavigate).toHaveBeenLastCalledWith('MainApp', {
+      screen: 'Main',
+      params: { screen: 'Applications', params: { screen: 'ApplicationsMain' } },
+    });
+    await fireEvent.press(view.getByRole('button', { name: 'Directory' }));
+    expect(mockNavigate).toHaveBeenLastCalledWith('MainApp', {
+      screen: 'Main',
+      params: { screen: 'Directory', params: { screen: 'DirectoryMain' } },
+    });
     await fireEvent.press(view.getByRole('button', { name: 'Market' }));
     expect(mockNavigate).toHaveBeenLastCalledWith('MainApp', {
       screen: 'Main',

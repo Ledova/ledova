@@ -26,7 +26,6 @@
     "@fontsource-variable/instrument-sans": "^5.3.0",
     "@fontsource-variable/newsreader": "^5.3.0",
     "@headlessui/react": "^2.2.10",
-    "@heroicons/react": "^2.2.0",
     "@keystonehq/animated-qr": "^0.10.0",
     "@keystonehq/bc-ur-registry": "^0.8.0",
     "@ledova/shared": "*",

@@ -1,405 +1,163 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { Text, View, Pressable } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
-import { CurrencyBtcIcon, CurrencyEthIcon, CaretDownIcon, WalletIcon } from 'phosphor-react-native';
-import { useAppTheme, useThemedStyles } from '../../../../contexts';
-import { BLOCKCHAIN, formatWalletAddressShort } from '@ledova/shared';
-import { CustomModal } from '../../../../components/modal';
-import { DatePickerField } from '../../../../components/date-picker';
-import type { TransactionQueryParams } from '../../useTransactions';
 import type { Wallet } from '@ledova/shared';
+import { BLOCKCHAIN } from '@ledova/shared';
+import { useThemedStyles } from '../../../../contexts';
+import { Action } from '../../../../components/Ledger';
+import { DatePickerField } from '../../../../components/date-picker';
+import { ActivityModal } from '../ActivityModal';
+import type { TransactionFilters } from '../../useTransactions';
 
-interface TransactionFiltersModalProps {
+interface Props {
   isOpen: boolean;
-  filters: TransactionQueryParams;
-  ethWallets: Wallet[];
-  btcWallets: Wallet[];
-  baseWallets: Wallet[];
+  filters: TransactionFilters;
+  wallets: Wallet[];
+  walletsLoading: boolean;
+  walletsFailed: boolean;
+  walletsRefreshing: boolean;
+  onRetryWallets: () => void;
   onClose: () => void;
-  onUpdateFilters: (filters: TransactionQueryParams) => void;
-  onApplyFilters: (filters: TransactionQueryParams) => void;
+  onUpdateFilters: (filters: TransactionFilters) => void;
+  onApplyFilters: () => void;
   onClearFilters: () => void;
 }
-
-type DirectionOption = 'all' | 'incoming' | 'outgoing';
-type ChainOption = 'all' | typeof BLOCKCHAIN.BITCOIN | typeof BLOCKCHAIN.ETHEREUM | typeof BLOCKCHAIN.BASE;
 
 export function TransactionFiltersModal({
   isOpen,
   filters,
-  ethWallets,
-  btcWallets,
-  baseWallets,
+  wallets,
+  walletsLoading,
+  walletsFailed,
+  walletsRefreshing,
+  onRetryWallets,
   onClose,
   onUpdateFilters,
   onApplyFilters,
   onClearFilters,
-}: TransactionFiltersModalProps) {
-  const theme = useAppTheme();
+}: Props) {
   const styles = useThemedStyles((theme) => ({
-    headerContainer: {
-      alignItems: 'center',
-      paddingVertical: theme.spacing.sm,
-    },
-    title: {
-      fontSize: theme.fontSize.lg,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-      textAlign: 'center',
-    },
-    clearButton: {
-      marginTop: theme.spacing.xs,
-    },
-    clearButtonText: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.interactive.active,
-      textAlign: 'center',
-    },
-    filterSection: {
-      marginTop: theme.spacing.md,
-    },
-    sectionTitle: {
-      fontSize: theme.fontSize.xs,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.muted,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-      marginBottom: theme.spacing.sm,
-    },
-    buttonGroup: {
-      flexDirection: 'row',
-      gap: theme.spacing.xs,
-    },
-    filterButton: {
-      flex: 1,
-      paddingVertical: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.md,
-      borderRadius: theme.borderRadius.md,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      backgroundColor: theme.colors.surface.tertiary,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    filterButtonActive: {
-      backgroundColor: theme.colors.interactive.active,
-      borderColor: theme.colors.interactive.active,
-    },
-    filterButtonContent: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.xs,
-    },
-    filterButtonText: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.secondary,
-    },
-    filterButtonTextActive: {
-      color: theme.colors.text.primary,
-    },
-    iconActive: {
-      opacity: 1,
-    },
-    iconInactive: {
-      opacity: 0.6,
-    },
-    dropdown: {
-      backgroundColor: theme.colors.surface.tertiary,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
-      paddingHorizontal: theme.spacing.md,
-      paddingVertical: theme.spacing.sm,
-    },
-    dropdownPlaceholder: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-    },
-    dropdownSelectedText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.primary,
-    },
-    dropdownContainer: {
-      backgroundColor: theme.colors.surface.raised,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
-      marginTop: theme.spacing.xs,
-    },
-    dropdownItemContainer: {
-      borderBottomWidth: 0,
-    },
-    dropdownItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.sm,
-      paddingVertical: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.md,
-    },
-    dropdownItemText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.secondary,
-    },
-    dropdownLeftIcon: {
-      marginRight: theme.spacing.sm,
-    },
-    rowFields: {
-      flexDirection: 'row',
-      gap: theme.spacing.md,
-    },
-    fieldHalf: {
-      flex: 1,
-    },
+    group: { gap: 10 },
+    options: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 8 },
+    option: { borderWidth: 1, borderColor: theme.colors.border.default, borderRadius: 6, padding: 10 },
+    selected: { borderColor: theme.colors.brand.default, backgroundColor: theme.colors.surface.tertiary },
+    text: { fontFamily: theme.fontFamily.regular, fontSize: 14, color: theme.colors.text.primary },
+    help: { fontFamily: theme.fontFamily.regular, fontSize: 13, lineHeight: 20, color: theme.colors.text.muted },
+    dropdown: { borderWidth: 1, borderColor: theme.colors.border.default, padding: 10, borderRadius: 6 },
+    menu: { backgroundColor: theme.colors.surface.base },
   }));
-  const [localFilters, setLocalFilters] = useState<TransactionQueryParams>(filters);
-  const [selectedDirection, setSelectedDirection] = useState<DirectionOption>('all');
-  const [selectedChain, setSelectedChain] = useState<ChainOption>('all');
-  const [selectedWallet, setSelectedWallet] = useState<string | undefined>();
-  const [startDate, setStartDate] = useState<Date | undefined>();
-  const [endDate, setEndDate] = useState<Date | undefined>();
-  const prevIsOpenRef = useRef(isOpen);
-
-  const allWallets = [...ethWallets, ...btcWallets, ...baseWallets];
-
-  useEffect(() => {
-    if (isOpen && !prevIsOpenRef.current) {
-      setLocalFilters(filters);
-      setSelectedDirection(
-        filters.direction === 'incoming' || filters.direction === 'outgoing' ? filters.direction : 'all',
-      );
-      setSelectedChain((filters.chain as ChainOption) || 'all');
-      setSelectedWallet(filters.wallet);
-      setStartDate(filters.start_date ? new Date(filters.start_date) : undefined);
-      setEndDate(filters.end_date ? new Date(filters.end_date) : undefined);
-    }
-    prevIsOpenRef.current = isOpen;
-  }, [isOpen, filters]);
-
-  const hasActiveFilters =
-    selectedDirection !== 'all' || selectedChain !== 'all' || !!selectedWallet || !!startDate || !!endDate;
-
-  const formatDate = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const handleApply = () => {
-    const updatedFilters: TransactionQueryParams = {
-      ...localFilters,
-      direction: selectedDirection !== 'all' ? selectedDirection : undefined,
-      chain: selectedChain !== 'all' ? selectedChain : undefined,
-      wallet: selectedWallet,
-    };
-    onUpdateFilters(updatedFilters);
-    onApplyFilters(updatedFilters);
-  };
-
-  const handleClear = () => {
-    setLocalFilters({});
-    setSelectedDirection('all');
-    setSelectedChain('all');
-    setSelectedWallet(undefined);
-    setStartDate(undefined);
-    setEndDate(undefined);
-    onClearFilters();
-  };
-
-  const handleClose = () => {
-    setLocalFilters(filters);
-    setSelectedDirection(
-      filters.direction === 'incoming' || filters.direction === 'outgoing' ? filters.direction : 'all',
-    );
-    setSelectedChain((filters.chain as ChainOption) || 'all');
-    setSelectedWallet(filters.wallet);
-    setStartDate(filters.start_date ? new Date(filters.start_date) : undefined);
-    setEndDate(filters.end_date ? new Date(filters.end_date) : undefined);
-    onClose();
-  };
-
-  const getWalletDisplayName = (wallet: Wallet) => {
-    return wallet.name || formatWalletAddressShort(wallet.address);
-  };
-
-  const walletDropdownOptions = [
-    { label: 'All Wallets', value: '', chain: '' },
-    ...allWallets.map((wallet) => ({
-      label: getWalletDisplayName(wallet),
+  const change = (field: keyof TransactionFilters, value: string) =>
+    onUpdateFilters({ ...filters, [field]: value || undefined });
+  const dayString = (date: Date | undefined) =>
+    date
+      ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+      : '';
+  const datesInvalid = Boolean(filters.start_date && filters.end_date && filters.start_date > filters.end_date);
+  const walletOptions = [
+    { value: '', label: 'All wallets' },
+    ...(filters.wallet && !wallets.some((wallet) => wallet.uuid === filters.wallet)
+      ? [{ value: filters.wallet, label: 'Selected wallet unavailable' }]
+      : []),
+    ...wallets.map((wallet) => ({
       value: wallet.uuid,
-      chain: wallet.chain,
+      label: `${wallet.name ? `${wallet.name} · ` : ''}${wallet.address}`,
     })),
   ];
-
-  const directionOptions: { value: DirectionOption; label: string }[] = [
-    { value: 'all', label: 'All' },
-    { value: 'outgoing', label: 'Sent' },
-    { value: 'incoming', label: 'Received' },
-  ];
-
-  const chainOptions: { value: ChainOption; label: string; icon?: React.ReactNode }[] = [
-    { value: 'all', label: 'All' },
-    {
-      value: BLOCKCHAIN.BITCOIN,
-      label: 'BTC',
-      icon: <CurrencyBtcIcon size={14} weight={theme.icon.weights.bold} color="currentColor" />,
-    },
-    {
-      value: BLOCKCHAIN.ETHEREUM,
-      label: 'ETH',
-      icon: <CurrencyEthIcon size={14} weight={theme.icon.weights.bold} color="currentColor" />,
-    },
-    {
-      value: BLOCKCHAIN.BASE,
-      label: 'BASE',
-      icon: <CurrencyEthIcon size={14} weight={theme.icon.weights.bold} color="currentColor" />,
-    },
-  ];
-
+  const choices = (field: 'chain' | 'direction', title: string, options: { value: string; label: string }[]) => (
+    <View style={styles.group}>
+      <Text style={styles.text}>{title}</Text>
+      <View style={styles.options}>
+        {options.map((option) => (
+          <Pressable
+            key={option.value}
+            accessibilityRole="radio"
+            accessibilityLabel={`${title}: ${option.label}`}
+            accessibilityState={{ checked: (filters[field] ?? '') === option.value }}
+            onPress={() => change(field, option.value)}
+            style={[styles.option, (filters[field] ?? '') === option.value && styles.selected]}
+          >
+            <Text style={styles.text}>{option.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
   return (
-    <CustomModal
+    <ActivityModal
       visible={isOpen}
-      onClose={handleClose}
-      showFooter={true}
-      cancelLabel="Cancel"
-      confirmLabel="Apply"
-      onConfirm={handleApply}
+      title="Filter activity"
+      onClose={onClose}
+      actions={
+        <>
+          <Action label="Clear filters" onPress={onClearFilters} />
+          <Action
+            label="Apply"
+            primary
+            disabled={datesInvalid}
+            onPress={() => {
+              if (!datesInvalid) onApplyFilters();
+            }}
+          />
+        </>
+      }
     >
-      <View style={styles.headerContainer}>
-        <Text style={styles.title}>Filter Transactions</Text>
-        {hasActiveFilters && (
-          <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
-            <Text style={styles.clearButtonText}>Clear Filters</Text>
-          </TouchableOpacity>
+      {choices('direction', 'Direction', [
+        { value: '', label: 'All' },
+        { value: 'incoming', label: 'Incoming' },
+        { value: 'outgoing', label: 'Outgoing' },
+      ])}
+      {choices('chain', 'Network', [
+        { value: '', label: 'All' },
+        { value: BLOCKCHAIN.ETHEREUM, label: 'Ethereum' },
+        { value: BLOCKCHAIN.BITCOIN, label: 'Bitcoin' },
+        { value: BLOCKCHAIN.BASE, label: 'Base' },
+      ])}
+      <View style={styles.group}>
+        <Text style={styles.text}>Wallet</Text>
+        <Dropdown
+          accessibilityLabel="Wallet filter"
+          style={styles.dropdown}
+          containerStyle={styles.menu}
+          selectedTextStyle={styles.text}
+          itemTextStyle={styles.text}
+          placeholderStyle={styles.help}
+          data={walletOptions}
+          labelField="label"
+          valueField="value"
+          value={filters.wallet ?? ''}
+          placeholder="All wallets"
+          maxHeight={240}
+          disable={walletsLoading || walletsFailed}
+          onChange={(item) => change('wallet', item.value)}
+        />
+        {walletsLoading && <Text style={styles.help}>Loading wallets…</Text>}
+        {walletsFailed && (
+          <>
+            <Text accessibilityRole="alert" style={styles.text}>
+              Wallet filters could not be loaded. Your activity can still be viewed.
+            </Text>
+            <Action label="Try wallets again" onPress={onRetryWallets} disabled={walletsRefreshing} />
+          </>
         )}
       </View>
-
-      <View style={styles.filterSection}>
-        <Text style={styles.sectionTitle}>Direction</Text>
-        <View style={styles.buttonGroup}>
-          {directionOptions.map((option) => (
-            <TouchableOpacity
-              key={option.value}
-              style={[styles.filterButton, selectedDirection === option.value && styles.filterButtonActive]}
-              onPress={() => setSelectedDirection(option.value)}
-            >
-              <Text
-                style={[styles.filterButtonText, selectedDirection === option.value && styles.filterButtonTextActive]}
-              >
-                {option.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.filterSection}>
-        <Text style={styles.sectionTitle}>Chain</Text>
-        <View style={styles.buttonGroup}>
-          {chainOptions.map((option) => (
-            <TouchableOpacity
-              key={option.value}
-              style={[styles.filterButton, selectedChain === option.value && styles.filterButtonActive]}
-              onPress={() => setSelectedChain(option.value)}
-            >
-              <View style={styles.filterButtonContent}>
-                {option.icon && (
-                  <View style={selectedChain === option.value ? styles.iconActive : styles.iconInactive}>
-                    {option.icon}
-                  </View>
-                )}
-                <Text
-                  style={[styles.filterButtonText, selectedChain === option.value && styles.filterButtonTextActive]}
-                >
-                  {option.label}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      {allWallets.length > 0 && (
-        <View style={styles.filterSection}>
-          <Text style={styles.sectionTitle}>Wallet</Text>
-          <Dropdown
-            style={styles.dropdown}
-            placeholderStyle={styles.dropdownPlaceholder}
-            selectedTextStyle={styles.dropdownSelectedText}
-            containerStyle={styles.dropdownContainer}
-            itemContainerStyle={styles.dropdownItemContainer}
-            itemTextStyle={styles.dropdownItemText}
-            activeColor={theme.colors.surface.tertiary}
-            data={walletDropdownOptions}
-            maxHeight={250}
-            labelField="label"
-            valueField="value"
-            placeholder="All Wallets"
-            value={selectedWallet || ''}
-            onChange={(item) => setSelectedWallet(item.value || undefined)}
-            renderLeftIcon={() => (
-              <WalletIcon
-                size={16}
-                color={theme.colors.text.muted}
-                weight={theme.icon.weights.regular}
-                style={styles.dropdownLeftIcon}
-              />
-            )}
-            renderRightIcon={() => (
-              <CaretDownIcon size={16} color={theme.colors.text.muted} weight={theme.icon.weights.regular} />
-            )}
-            renderItem={(item) => (
-              <View style={styles.dropdownItem}>
-                {item.chain === BLOCKCHAIN.ETHEREUM || item.chain === BLOCKCHAIN.BASE ? (
-                  <CurrencyEthIcon size={14} color={theme.colors.text.muted} weight={theme.icon.weights.regular} />
-                ) : item.chain === BLOCKCHAIN.BITCOIN ? (
-                  <CurrencyBtcIcon size={14} color={theme.colors.text.muted} weight={theme.icon.weights.regular} />
-                ) : (
-                  <WalletIcon size={14} color={theme.colors.text.muted} weight={theme.icon.weights.regular} />
-                )}
-                <Text style={styles.dropdownItemText}>{item.label}</Text>
-              </View>
-            )}
-          />
-        </View>
+      <DatePickerField
+        label="From date"
+        value={filters.start_date ? new Date(`${filters.start_date}T12:00:00`) : undefined}
+        onChange={(date) => change('start_date', dayString(date))}
+      />
+      <DatePickerField
+        label="Through date"
+        value={filters.end_date ? new Date(`${filters.end_date}T12:00:00`) : undefined}
+        onChange={(date) => change('end_date', dayString(date))}
+      />
+      <Text style={styles.help}>
+        Dates filter block time across the whole selected days in your local time. Records without a block time are
+        excluded when dates are set.
+      </Text>
+      {datesInvalid && (
+        <Text accessibilityRole="alert" style={styles.text}>
+          The through date must be on or after the from date.
+        </Text>
       )}
-
-      <View style={styles.filterSection}>
-        <Text style={styles.sectionTitle}>Date Range</Text>
-        <View style={styles.rowFields}>
-          <View style={styles.fieldHalf}>
-            <DatePickerField
-              label="Start"
-              value={startDate}
-              onChange={(date) => {
-                setStartDate(date);
-                setLocalFilters((prev) => ({
-                  ...prev,
-                  start_date: date ? formatDate(date) : undefined,
-                }));
-              }}
-              maximumDate={endDate || new Date()}
-            />
-          </View>
-          <View style={styles.fieldHalf}>
-            <DatePickerField
-              label="End"
-              value={endDate}
-              onChange={(date) => {
-                setEndDate(date);
-                setLocalFilters((prev) => ({
-                  ...prev,
-                  end_date: date ? formatDate(date) : undefined,
-                }));
-              }}
-              minimumDate={startDate}
-              maximumDate={new Date()}
-            />
-          </View>
-        </View>
-      </View>
-    </CustomModal>
+    </ActivityModal>
   );
 }

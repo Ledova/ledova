@@ -234,9 +234,12 @@ through the policy-scoped connection, opens the stored document, records the
 `publication_read_unrecorded` if it cannot. A foreign or non-existent uuid answers the same 404 with the same body.
 
 Both clients read it through `@ledova/shared`: `getPublications` for the
-listing, a page at a time. Web Notices sends `addressed=me` on every page and
-uses a separate cache key from the older unfiltered list. The mobile publications
-list keeps its current scope until #750. The dashboard uses `openPublication`
+listing, a page at a time. Personal Notices sends `addressed=me` on every page.
+Mobile Published to your members exhausts the selected owned company’s pages
+with `issuer=<company UUID>` on each request and a separate issuer/session cache.
+Its read-only records include exact tallies and rates, not the owner’s personal
+ballot or entitlement. Failed complete reads cannot appear as an empty list.
+The dashboard uses `openPublication`
 for the blob it saves through a download link, and `downloadPublication` gets
 the bytes the mobile app writes to one private cache copy and hands to the
 system share sheet, the way a
@@ -311,17 +314,20 @@ prepare and publish on written instruction. Read failures hide stale actions and
 offer retry; file delivery failures distinguish an unavailable stored document.
 
 Mobile Holdings links to personal Notices, which retains `addressed=me` on every
-page. Company Publications still shows all publications available to the account,
-including issuer publications, until its selected-company page follows in #750.
-The separate dividends list remains available from transaction history.
+page. Native Published to your members selects the owned company with `issuer`
+on every page, separately from personal Notices. It shows stored documents and
+recorded resolution/dividend facts without personal ballot or entitlement
+controls. Company, account or session changes retire the prior document action;
+unavailable reads show retry and block stale actions. The separate dividends
+list remains available from transaction history.
 
-- `usePublicationSummary` powers the Holdings sections _Votes needing you_ and
-  _Dividend records in progress_. It reports open resolutions awaiting the
-  person's vote, dividends awaiting a company payment record, and publications
-  addressed to the person in the last 30 days. These are not unread counts or
-  proof of whether a bank transfer happened. Failed reads show retry instead of
-  claiming there is no work. The shared hook refreshes at `nextClosesAt` and every
-  five minutes, with bounded timers that stop when the consumer leaves.
+- `usePublicationSummary` powers the notice counts in Holdings: open resolutions
+  awaiting the person's vote, dividends awaiting a company payment record, and
+  publications addressed to the person in the last 30 days. These are not unread
+  counts or proof of whether a bank transfer happened. Failed reads show retry
+  instead of claiming there is no work. The shared hook refreshes at
+  `nextClosesAt` and every five minutes, with bounded timers that stop when the
+  consumer leaves.
 - `useDividends` reads `?kind=distribution&addressed=me` a page at a time, so a
   company owner sees their own dividends, not every dividend their company
   declared. Its rows retain the same holding, entitlement and payment-record

@@ -8,11 +8,9 @@ export {
   verifyAuth,
   changePassword,
 } from './auth';
-export { getAssets, getAssetsNextPage, getAssetByUuid } from './assets';
-export { getAssetSnapshots } from './assetSnapshots';
+export { getAssets } from './assets';
 export { getUserAccount, setAccountRole } from './userAccount';
 export { createFinancialProfile, updateFinancialProfile, getFinancialProfiles } from './financialProfile';
-export { getPortfolios, getPortfolioSnapshots as getPortfolioSnapshotsTimeSeries } from './portfolios';
 export {
   updateUserProfile,
   updateUserProfileCompletion,
@@ -28,7 +26,6 @@ export { prepareTransfer, prepareBitcoinTransfer, broadcastTransfer } from './wa
 export { getWalletHoldings, fetchBatchBalances, fetchImportBalances } from './wallet-balances';
 export { getTransactions, getTransactionsNextPage } from './transactions';
 export { getOnRampWidgetUrl } from './onramp';
-export { getFavouriteAssets, addFavouriteAsset, removeFavouriteAsset } from './favouriteAssets';
 export {
   registerDeviceToken,
   unregisterDeviceToken,

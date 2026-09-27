@@ -73,7 +73,7 @@ function buildSumsubHtml(token: string, themeColors: { bg: string; muted: string
           .init(ACCESS_TOKEN, function() {
             return Promise.resolve('');
           })
-          .withConf({ lang: 'en', theme: 'dark' })
+          .withConf({ lang: 'en', theme: 'light' })
           .on('idCheck.onApplicantSubmitted', function() {
             window.ReactNativeWebView.postMessage(JSON.stringify({ event: 'FORM_COMPLETED' }));
           })

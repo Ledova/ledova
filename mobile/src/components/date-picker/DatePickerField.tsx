@@ -163,7 +163,7 @@ export function DatePickerField({
                 onChange={handleChange}
                 minimumDate={minimumDate}
                 maximumDate={maximumDate}
-                themeVariant="dark"
+                themeVariant="light"
               />
             </View>
           </View>
@@ -177,7 +177,7 @@ export function DatePickerField({
             onChange={handleChange}
             minimumDate={minimumDate}
             maximumDate={maximumDate}
-            themeVariant="dark"
+            themeVariant="light"
           />
         )
       )}
