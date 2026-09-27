@@ -112,7 +112,7 @@ describe('which signed-in pages an account can open', () => {
     expect(screen.queryByText('company')).toBeNull();
   });
 
-  it.each(['companyRegister', 'company', 'companyListing'] as const)(
+  it.each(['companyClass', 'companyRegister', 'company', 'companyListing'] as const)(
     'sends an investor opening %s to their home instead',
     (key) => {
       open(key, 'investor');
@@ -126,7 +126,7 @@ describe('which signed-in pages an account can open', () => {
     expect(opened(key)).toBe(true);
   });
 
-  it.each(['companyRegister', 'companyListing', 'companyOffering'] as const)(
+  it.each(['companyClass', 'companyRegister', 'companyListing', 'companyOffering'] as const)(
     'lets a company open %s, a company page',
     (key) => {
       open(key, 'company');

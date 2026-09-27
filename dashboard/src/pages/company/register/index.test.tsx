@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { COMPANY_TOKEN_ENDPOINTS, type TokenHoldersResponse } from '@ledova/shared';
+import { MemoryRouter } from 'react-router-dom';
 import { PageTitle } from '@components/PageTitle';
 import CompanyRegisterPage from '.';
 
@@ -63,7 +64,9 @@ function show() {
   return render(
     <QueryClientProvider client={client}>
       <PageTitle.Provider value="Register">
-        <CompanyRegisterPage />
+        <MemoryRouter>
+          <CompanyRegisterPage />
+        </MemoryRouter>
       </PageTitle.Provider>
     </QueryClientProvider>,
   );
@@ -114,6 +117,9 @@ it('reads every class page and renders exact stored shares with each member and 
   const summary = screen.getByText('Ordinary shares').closest('summary')!;
   fireEvent.click(summary);
   expect(summary.closest('details')!.open).toBe(true);
+  expect(screen.getAllByRole('link', { name: 'Open share class' })[0].getAttribute('href')).toBe(
+    '/company/register/ordinary',
+  );
   expect(screen.getAllByText('9,007,199,254,740,993 shares')).toHaveLength(2);
   expect(screen.getAllByText('9,007,199,254,740,999')).toHaveLength(2);
   expect(screen.getAllByText('Example Member')).toHaveLength(2);

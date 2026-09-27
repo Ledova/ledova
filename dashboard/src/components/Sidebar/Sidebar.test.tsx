@@ -209,6 +209,11 @@ describe('the page the sidebar marks as current', () => {
     expect(current()).toEqual(['Applications']);
   });
 
+  it('marks Register on its share-class page', () => {
+    show('company', '/company/register/class-one');
+    expect(current()).toEqual(['Register']);
+  });
+
   it('marks Company on its nested application page', () => {
     show('company', '/company/listing');
     expect(current()).toEqual(['Company']);

@@ -409,6 +409,8 @@ This records the target; the steps on #732 build it.
   on) and Verification. Company accounts get their company group (Register,
   Offerings, Company) and land on Register. The web Register now implements this
   landing with the stored register of current members, rather than wallet balances.
+  Each class now opens from Register on its own ledger page, with the existing
+  staff-reviewed cap request named Raise authorised shares.
   The role stays as chosen at sign-up;
   staff set "both" in admin, and a customer cannot change it afterwards.
 - **Names follow the product's terms.** Holdings replaces Home; Notices replaces

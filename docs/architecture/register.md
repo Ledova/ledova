@@ -137,7 +137,7 @@ current members and linked wallets, exact issued and authorised shares, unopened
 registers and waiting-effect warnings. If any read fails, the page offers retry
 and hides partial or stale register rows. It does not substitute wallet balances
 for the stored register. Former members remain available in the register CSV
-downloaded from the existing Company workflow; certificates and other staff-prepared outputs still follow
+downloaded from the class page, reached from Register or Company; certificates and other staff-prepared outputs still follow
 written instructions through the operator workflow described below.
 
 `GET /api/v1/tokens/{uuid}/holders/` returns whether the register is
