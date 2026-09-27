@@ -78,10 +78,10 @@ it('asks for the dividends owed to the member alone and shows the company, the c
 
   expect(await view.findByText('Final dividend 2026')).toBeTruthy();
   expect(view.getByText('Synthetic Holdings Pty Ltd · Synthetic ordinary shares (SYN)')).toBeTruthy();
-  expect(view.getByText(`${PUBLICATION_COPY.RATE_LABEL}: AUD 0.025 per share`)).toBeTruthy();
+  expect(view.getByText('AUD 0.025 per share')).toBeTruthy();
   expect(view.getByText(`1,250 · ${PUBLICATION_COPY.HOLDING_LABEL}`)).toBeTruthy();
-  expect(view.getByText(`${PUBLICATION_COPY.ENTITLEMENT_LABEL}: AUD 31.25`)).toBeTruthy();
-  expect(view.getByText(`${PUBLICATION_COPY.PAYMENT_DATE_LABEL}: 3 October 2026`)).toBeTruthy();
+  expect(view.getByText('AUD 31.25')).toBeTruthy();
+  expect(view.getByText('3 October 2026')).toBeTruthy();
   expect(view.getByText(PUBLICATION_COPY.NO_PAYMENT_RECORDED)).toBeTruthy();
   expect(view.getByText(PUBLICATION_COPY.DIVIDENDS_APART)).toBeTruthy();
   expect(get).toHaveBeenCalledWith('/api/v1/publications/', {

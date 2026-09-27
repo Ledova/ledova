@@ -160,7 +160,7 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
         name="Publications"
         component={PublicationsScreen}
         options={{
-          title: DESTINATIONS.publications.title,
+          title: '',
           tabBarItemStyle: { display: 'none' },
         }}
       />

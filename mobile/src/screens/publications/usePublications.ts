@@ -11,7 +11,7 @@ import {
   getPublicationsNextPage,
   publicationFilename,
 } from '@ledova/shared';
-import type { BallotChoice } from '@ledova/shared';
+import type { BallotChoice, UserFriendlyError } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { shareDocumentCopy } from '../../services/documentCopies';
 import { getSessionEpoch } from '../../services/sessionScope';
@@ -27,11 +27,12 @@ const SHARING_UNAVAILABLE = 'Sharing is not available on this device.';
 const PUBLICATIONS_KEY = ['publications'];
 
 function whyItCouldNotBeOpened(error: unknown): string {
-  const status = (error as { response?: { status?: number } })?.response?.status;
+  const cause = (error as UserFriendlyError | undefined)?.originalError ?? error;
+  const status = (cause as { response?: { status?: number } })?.response?.status;
   return status === 503 ? PUBLICATION_COPY.UNDELIVERABLE : PUBLICATION_COPY.FAILED;
 }
 
-export function usePublications() {
+export function usePublications(personal = true) {
   const queryClient = useQueryClient();
   const [openingUuid, setOpeningUuid] = useState<string | undefined>(undefined);
   const [openError, setOpenError] = useState<string | undefined>(undefined);
@@ -39,8 +40,15 @@ export function usePublications() {
   const [castError, setCastError] = useState<{ uuid: string; message: string } | undefined>(undefined);
 
   const listing = useInfiniteQuery({
-    queryKey: PUBLICATIONS_KEY,
-    queryFn: ({ pageParam }) => getPublications(apiClient, pageParam),
+    queryKey: personal ? [...PUBLICATIONS_KEY, 'addressed', 'me'] : [...PUBLICATIONS_KEY, 'available'],
+    queryFn: async ({ pageParam }) => {
+      const response = await getPublications(apiClient, pageParam, personal ? { addressed: 'me' } : {});
+      const next = getPublicationsNextPage(response);
+      if (response.data.next && (next === undefined || !Number.isInteger(next) || next <= pageParam)) {
+        throw new Error('Publication pagination did not advance');
+      }
+      return response;
+    },
     getNextPageParam: getPublicationsNextPage,
     initialPageParam: 1,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
@@ -91,7 +99,9 @@ export function usePublications() {
   return {
     publications: listing.data?.pages.flatMap((page) => page.data?.results ?? []) ?? [],
     isLoading: listing.isLoading,
-    listFailed: listing.isError && !listing.data,
+    listFailed: listing.isError && !listing.isFetchNextPageError,
+    moreFailed: listing.isFetchNextPageError,
+    isRefreshing: listing.isFetching,
     retry: () => void listing.refetch(),
     hasMore: listing.hasNextPage,
     isLoadingMore: listing.isFetchingNextPage,
