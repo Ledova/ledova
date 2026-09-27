@@ -158,6 +158,16 @@ the amount outstanding separately and asks the investor to confirm any further
 payment with the operator; it does not recalculate the original instruction or
 stablecoin units. An absent instruction never falls back to generic payment rails.
 
+Profile and Settings use the ledger sections for personal information, identity
+status, security, notifications and data controls. Failed profile and preference
+reads hide stale values and offer retry. Phone edits remain open with their
+entered values after a refused save; notification switches retain the confirmed
+value until refresh succeeds. Password changes, data export and account deletion
+show request failures and allow retry. Deletion still requires its confirmation
+dialog, states which records are retained, and clears the tab's account data
+after the server confirms success. Identity checks and supporting payslips retain
+their existing provider and deployment boundaries.
+
 Where market values are shown elsewhere, they are in AUD: the shared
 `useCurrency` converts the API's US-dollar values at the current rate, shows a
 dash and draws no chart while the rate is unknown, and neither client offers

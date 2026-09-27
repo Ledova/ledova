@@ -25,9 +25,9 @@ export function useUserProfile() {
     },
   });
 
-  const handleUpdateProfile = (data: UpdateUserProfile) => {
+  const handleUpdateProfile = (data: UpdateUserProfile, onSuccess: () => void) => {
     if (!userProfile?.uuid) return;
-    updateMutation.mutate({ uuid: userProfile.uuid, data });
+    updateMutation.mutate({ uuid: userProfile.uuid, data }, { onSuccess });
   };
 
   const refreshProfile = () => {
@@ -41,5 +41,7 @@ export function useUserProfile() {
     refreshProfile,
     updateProfile: handleUpdateProfile,
     isUpdating: updateMutation.isPending,
+    updateError: updateMutation.isError,
+    resetUpdate: updateMutation.reset,
   };
 }
