@@ -652,7 +652,7 @@ it('keeps either owned unsigned side available for review in the actual orders l
   const { OrdersCard } = jest.requireActual<typeof import('./components/OrdersCard')>('./components/OrdersCard');
   const swap = { ...settlementListRow(current), sellerHasSigned: true, status: 'seller_signed' as const };
   const props = {
-    tokenSymbol: swap.shareTokenSymbol,
+    tokenSymbol: current.swapOrder.shareTokenSymbol,
     orderBook: null,
     isLoadingOrderBook: false,
     userOrders: [],
@@ -716,7 +716,7 @@ it('offers review from the actual V1 list before either party has signed', async
   const swap = settlementListRow(current);
   const view = await render(
     <OrdersCard
-      tokenSymbol={swap.shareTokenSymbol}
+      tokenSymbol={current.swapOrder.shareTokenSymbol}
       orderBook={null}
       isLoadingOrderBook={false}
       userOrders={[]}

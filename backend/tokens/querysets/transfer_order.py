@@ -151,22 +151,22 @@ class TransferOrderQuerySet(QuerySet):
         return self.advertised_liquidity().sell_orders().filter(token=token).order_by("price_per_share").first()
 
     def with_relations(self):
-        return self.select_related(
-            "token",
-            "token__company",
-            "payment_asset",
-            "wallet",
-            "wallet__user_account",
-            "owner_account",
-            "matched_order",
-        )
+        return self.prefetch_related("token", "submission")
 
     def search(self, query):
         if not query:
             return self
+        from tokens.models import OrderSubmission, ShareToken
+
+        visible_tokens = ShareToken.objects.filter(
+            models.Q(symbol__icontains=query) | models.Q(name__icontains=query)
+        ).values("pk")
+        recorded_orders = OrderSubmission.objects.filter(
+            models.Q(token_metadata__symbol__icontains=query) | models.Q(token_metadata__name__icontains=query)
+        ).values("order_id")
         return self.filter(
             models.Q(wallet_address__icontains=query)
-            | models.Q(token__symbol__icontains=query)
-            | models.Q(token__name__icontains=query)
+            | models.Q(token_id__in=visible_tokens)
+            | models.Q(pk__in=recorded_orders)
             | models.Q(tx_hash__icontains=query)
         )

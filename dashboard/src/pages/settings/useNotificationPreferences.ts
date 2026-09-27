@@ -1,4 +1,3 @@
-import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getNotificationPreferences, updateNotificationPreferences, CACHE_TIMING } from '@ledova/shared';
 import type { UpdateNotificationPreferencesRequest, NotificationPreferences } from '@ledova/shared';
@@ -26,17 +25,13 @@ export function useNotificationPreferences() {
 
   const preferences: NotificationPreferences | undefined = preferencesQuery.data?.data;
 
-  const toggleTransactionAlerts = useCallback(
-    async (value: boolean) => {
-      await updateMutation.mutateAsync({ transactionAlerts: value });
-    },
-    [updateMutation],
-  );
-
   return {
-    transactionAlerts: preferences?.transactionAlerts ?? true,
+    transactionAlerts: preferences?.transactionAlerts,
     isLoading: preferencesQuery.isLoading,
+    isError: preferencesQuery.isError,
+    retry: preferencesQuery.refetch,
     isUpdating: updateMutation.isPending,
-    toggleTransactionAlerts,
+    updateError: updateMutation.isError,
+    toggleTransactionAlerts: (value: boolean) => updateMutation.mutate({ transactionAlerts: value }),
   };
 }

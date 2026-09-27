@@ -54,8 +54,8 @@ offers only pages the role can open, in groups:
 - then Wallets, Profile, Settings and Help.
 
 Each item takes its name and address from its entry in `DESTINATIONS`, so a
-menu label always matches the page's title. Activity still points at today's
-Transactions page. Holdings replaces the crypto home at the existing `/home`
+menu label always matches the page's title. Activity keeps the `/transactions`
+address. Holdings replaces the crypto home at the existing `/home`
 address. Notices at `/publications` lists documents, resolutions and dividends
 addressed to the person. The old `/dividends` address redirects to Notices through
 the same signed-in route guard, keeping bookmarks and transaction links useful.
@@ -74,6 +74,17 @@ remain visible for retry. The existing session-scoped upload lifecycle owns
 temporary files throughout these refreshes. Company Publications preserves the existing list of
 all publications available to the account, including its issuer publications;
 Your shares Notices separately requests only publications addressed to the person.
+
+Market presents For sale and Wanted lists with automatic matching. Buyers fund
+before placing an offer. Owned order history reads independently of listed share
+classes and wallet availability, retaining recorded class labels or an explicit
+unavailable label. Wallet, class, owned-order and pending-trade reads follow every
+page; read failures expose retry and suppress stale actions. Existing saved-order,
+change, cancellation and trade-signature recovery remain available. AUD totals use
+integer cents; unsafe numeric quantities returned by legacy list APIs are marked
+unavailable. New quantities use exact integer strings above JavaScript's safe
+number range, within the existing signed 64-bit storage bound. The chosen wallet's
+allowlist status gates creation, and drafts survive failed prerequisite refreshes.
 
 Signing in, and verifying an email, which also signs a new person in, clear
 what the tab cached for whoever was signed in before, as signing out does, so a
@@ -127,6 +138,66 @@ a failed earlier page, which keeps loaded rows with an incomplete-list warning.
 Every personal page retains the addressed filter, and ballot settlement
 invalidates the list and personal summary together. Native document copies and
 ballots retain their session boundaries.
+
+Directory groups the accessible share classes under their company and opens a
+class's current offering in the ledger layout. The first experience targets one
+fictional issuer; it adds no registry search. Every directory page must load
+before entries are shown, and a read error offers a retry rather than an empty
+directory. An unavailable class and a failed read have different states. The
+authorised share count stays a decimal string; an issued count outside the API's
+safe numeric range is unavailable rather than rounded. A draft application reads
+every verified Base wallet page, requires a safe whole-share quantity and computes
+the displayed fixed-price total in integer cents. Its quantity and chosen wallet
+survive a failed class or wallet refresh, while the retry screen hides application
+actions. Those inputs are scoped to the offering, so a replacement offering starts
+with a fresh quantity. A closed or unavailable offering has no application form.
+The server still selects the
+applicant and enforces quantity and eligibility rules. Payment details remain on
+the accepted application, which supplies its exact amount and reference.
+
+Applications presents the recorded company, class and currency independently of
+current Directory access. Further pages load on request; an unsuccessful later
+page keeps known records visible and labels the list incomplete. Initial and
+refresh failures offer a retry and suppress stale records or detail actions. A
+real missing detail has its own unavailable state. Submission and withdrawal
+wait for the resulting read before offering another action.
+
+The application supplies its payment instruction, including the unaltered
+reference, bank details or settlement asset units. Copy failures keep the value
+available for manual copying. When a payment is already recorded, the detail shows
+the amount outstanding separately and asks the investor to confirm any further
+payment with the operator; it does not recalculate the original instruction or
+stablecoin units. An absent instruction never falls back to generic payment rails.
+
+Profile and Settings use the ledger sections for personal information, identity
+status, security, notifications and data controls. Failed profile and preference
+reads hide stale values and offer retry. Phone edits remain open with their
+entered values after a refused save; notification switches retain the confirmed
+value until refresh succeeds. Password changes, data export and account deletion
+show request failures and allow retry. Deletion still requires its confirmation
+dialog, states which records are retained, and clears the tab's account data
+after the server confirms success. Identity checks and supporting payslips retain
+their existing provider and deployment boundaries.
+
+Wallets reads every wallet page into a separate ledger cache. A failed read hides
+incomplete or stale rows and offers retry. Chain sections keep wallet verification,
+signing preference and sync feedback separate. Add, edit, derive and delete forms
+preserve refused input and stay open until success; background read failures keep
+the draft but block further submission until recovery. Hardware imports run one
+address at a time and remember confirmed additions for retry within the same import.
+A partial failure explains the number added and leaves the remaining selection
+available. These controls do not change wallet verification or signing authority.
+
+Activity presents recorded wallet transfers in a read-only ledger, with exact
+decimal amounts, native network fees and the current recorded status. Its history
+read does not depend on the wallet filter read succeeding. The wallet selector
+loads every page in its own cache; a failed page disables that selector and offers
+a retry without hiding history or clearing draft filters. History loads further
+pages on request, marks failed later reads as incomplete, and suppresses stale
+rows and details after a failed refresh. Filters use only supported API fields,
+with date bounds covering the whole selected days in the person's local time.
+Details preserve full wallet, address and transaction identities and can open the
+existing explorer; Activity adds no buying, sending or signing action.
 
 Where market values are shown elsewhere, they are in AUD: the shared
 `useCurrency` converts the API's US-dollar values at the current rate, shows a

@@ -1,69 +1,101 @@
 import { Link } from 'react-router-dom';
-import { StorefrontIcon } from '@phosphor-icons/react';
-import { Panel } from '@components/Panel';
-import { SUBSCRIPTION_COPY, formatDate } from '@ledova/shared';
+import { DESTINATIONS, SUBSCRIPTION_COPY, formatDate, formatMoney } from '@ledova/shared';
 import type { Subscription } from '@ledova/shared';
+import { Row, Rows, Section, Status } from '@components/Ledger';
+import { Page, PageAction } from '@components/Page';
+import { applicationShares, applicationState } from './presentation';
 import { useSubscriptions } from './useSubscriptions';
-import { Page } from '@components/Page';
 
-function SubscriptionRow({ subscription }: { subscription: Subscription }) {
+function ApplicationRow({ application }: { application: Subscription }) {
+  const state = applicationState(application);
   return (
-    <Link
-      to={`/subscriptions/${subscription.uuid}`}
-      className="block px-4 py-4 hover:bg-surface-tertiary/50 transition-colors border-b border-border-subtle/40 last:border-b-0"
-    >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-text-primary">
-            {subscription.companyName} <span className="text-text-muted">({subscription.tokenSymbol})</span>
-          </p>
-          <p className="text-xs text-text-muted mt-0.5">
-            {subscription.quantity.toLocaleString()} shares at {subscription.pricePerShare} ·{' '}
-            {formatDate(subscription.createdAt)}
-          </p>
-          {subscription.reference && (
-            <p className="text-xs text-text-muted mt-0.5 font-mono">Reference {subscription.reference}</p>
+    <article className="min-w-0 break-words">
+      <Section title={`${application.companyName} · ${application.tokenName}`}>
+        <p className="py-2 text-sm text-text-primary">
+          <Status tone={state.tone}>{state.words}</Status>
+        </p>
+        <Rows>
+          <Row label="Share class">{application.tokenSymbol}</Row>
+          <Row label="Shares applied for">{applicationShares(application.quantity)}</Row>
+          <Row label="Price per share">
+            <span className="break-all">{formatMoney(application.pricePerShare, application.currency)}</span>
+          </Row>
+          <Row label="Amount due">
+            <span className="break-all">{formatMoney(application.amountDue, application.currency)}</span>
+          </Row>
+          <Row label="Drafted">{formatDate(application.createdAt)}</Row>
+          {application.reference && (
+            <Row label="Payment reference">
+              <span className="break-all">{application.reference}</span>
+            </Row>
           )}
-        </div>
-        <div className="text-right">
-          <p className="text-sm font-mono text-text-primary">{subscription.amountDue}</p>
-          <p className="text-xs text-text-muted">{subscription.statusDisplay}</p>
-        </div>
-      </div>
-    </Link>
+        </Rows>
+        <Link
+          to={DESTINATIONS.subscriptionDetail.path.replace(':uuid', application.uuid)}
+          className="w-fit py-2 text-sm text-brand-light underline underline-offset-4"
+        >
+          Open application
+        </Link>
+      </Section>
+    </article>
   );
 }
 
 export default function SubscriptionsPage() {
-  const { subscriptions, isLoading } = useSubscriptions();
+  const { subscriptions, isLoading, hasError, moreFailed, hasMore, isLoadingMore, isRefreshing, retry, loadMore } =
+    useSubscriptions();
 
-  if (isLoading) {
-    return <Page loading />;
-  }
+  if (isLoading) return <Page loading />;
 
   return (
     <Page>
-      <Panel>
-        {subscriptions.length === 0 ? (
-          <div className="px-4 py-12 text-center">
-            <StorefrontIcon size={48} className="text-text-muted mx-auto mb-4" weight="duotone" />
-            <h3 className="text-lg font-semibold text-text-primary mb-2">{SUBSCRIPTION_COPY.EMPTY_TITLE}</h3>
-            <p className="text-text-muted max-w-xl mx-auto">{SUBSCRIPTION_COPY.EMPTY_BODY}</p>
-            <Link
-              to="/directory"
-              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-brand-mid hover:bg-brand px-5 py-2.5 text-sm font-semibold text-white transition-colors"
-            >
-              Browse the directory
-            </Link>
-          </div>
-        ) : (
-          <div className="-mx-4">
-            {subscriptions.map((subscription) => (
-              <SubscriptionRow key={subscription.uuid} subscription={subscription} />
-            ))}
-          </div>
-        )}
-      </Panel>
+      <p className="text-sm text-text-muted">Your applications for shares, from draft through allotment or closure.</p>
+      {hasError ? (
+        <div role="alert" className="flex flex-col items-start gap-3 py-6">
+          <p className="text-sm text-text-primary">
+            Your applications could not be loaded. Try again before continuing.
+          </p>
+          <PageAction label="Try again" onClick={() => void retry()} disabled={isRefreshing} />
+        </div>
+      ) : (
+        <>
+          {subscriptions.length === 0 && !hasMore && !moreFailed ? (
+            <Section title="No applications yet">
+              <p className="py-3 text-sm text-text-muted">{SUBSCRIPTION_COPY.EMPTY_BODY}</p>
+              <Link
+                to={DESTINATIONS.directory.path}
+                className="w-fit text-sm text-brand-light underline underline-offset-4"
+              >
+                Open Directory
+              </Link>
+            </Section>
+          ) : (
+            subscriptions.map((application) => <ApplicationRow key={application.uuid} application={application} />)
+          )}
+          {moreFailed ? (
+            <div role="alert" className="flex flex-col items-start gap-3 py-3">
+              <p className="text-sm text-text-primary">
+                More applications could not be loaded. The list is incomplete.
+              </p>
+              <PageAction
+                label="Try more applications again"
+                onClick={() => void loadMore()}
+                disabled={isLoadingMore}
+              />
+            </div>
+          ) : (
+            hasMore && (
+              <div className="py-3">
+                <PageAction
+                  label={isLoadingMore ? 'Loading applications…' : 'Load more applications'}
+                  onClick={() => void loadMore()}
+                  disabled={isLoadingMore}
+                />
+              </div>
+            )
+          )}
+        </>
+      )}
     </Page>
   );
 }

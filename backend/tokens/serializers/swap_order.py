@@ -40,8 +40,8 @@ class SwapViewerPartySerializer(serializers.Serializer):
 class SwapOrderListSerializer(RecordedSwapDisplay, serializers.ModelSerializer):
 
     status_display = serializers.CharField(source="get_status_display", read_only=True)
-    share_token_symbol = serializers.CharField(source="share_token.symbol", read_only=True)
-    share_token_name = serializers.CharField(source="share_token.name", read_only=True)
+    share_token_symbol = serializers.CharField(source="share_token.symbol", read_only=True, allow_null=True)
+    share_token_name = serializers.CharField(source="share_token.name", read_only=True, allow_null=True)
     payment_token_symbol = serializers.CharField(source="payment_asset.symbol", read_only=True)
     sell_order_uuid = serializers.UUIDField(source="sell_order_id", read_only=True)
     buy_order_uuid = serializers.UUIDField(source="buy_order_id", read_only=True)

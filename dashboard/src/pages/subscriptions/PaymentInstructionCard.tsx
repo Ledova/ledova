@@ -1,83 +1,111 @@
 import { useState } from 'react';
-import { BankIcon, CheckIcon, CopyIcon } from '@phosphor-icons/react';
-import { Panel } from '@components/Panel';
-import { SUBSCRIPTION_COPY, formatDate } from '@ledova/shared';
+import { SUBSCRIPTION_COPY, formatDate, formatMoney } from '@ledova/shared';
 import type { PaymentInstruction } from '@ledova/shared';
-
-const COPIED_FOR_MS = 1500;
+import { Row, Rows, Section } from '@components/Ledger';
+import { PageAction } from '@components/Page';
 
 function CopyButton({ value, label }: { value: string; label: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const copy = () => {
-    void navigator.clipboard.writeText(value).then(() => {
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), COPIED_FOR_MS);
-    });
+  const [result, setResult] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setResult('copied');
+    } catch {
+      setResult('failed');
+    }
   };
 
   return (
-    <button
-      type="button"
-      onClick={copy}
-      aria-label={`Copy ${label}`}
-      className="ml-2 inline-flex items-center text-text-muted hover:text-text-primary transition-colors"
-    >
-      {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
-    </button>
-  );
-}
-
-function Row({ label, value, copyable = false }: { label: string; value: string; copyable?: boolean }) {
-  return (
-    <div className="flex items-baseline justify-between gap-4 py-2 border-b border-border-subtle/40 last:border-b-0">
-      <span className="text-sm text-text-muted">{label}</span>
-      <span className="text-sm text-text-primary text-right flex items-baseline">
-        <span className="font-mono break-all">{value}</span>
-        {copyable && <CopyButton value={value} label={label} />}
-      </span>
+    <div className="flex flex-col items-end gap-1">
+      <PageAction label={`Copy ${label.toLowerCase()}`} onClick={() => void copy()} />
+      {result === 'copied' && (
+        <span role="status" className="text-xs text-text-muted">
+          Copied
+        </span>
+      )}
+      {result === 'failed' && (
+        <span role="alert" className="text-xs text-error-light">
+          Could not copy. Select and copy the value above.
+        </span>
+      )}
     </div>
   );
 }
 
-export function PaymentInstructionCard({ instruction }: { instruction: PaymentInstruction }) {
+function InstructionRow({
+  label,
+  value,
+  copyable = false,
+  display,
+}: {
+  label: string;
+  value?: string;
+  copyable?: boolean;
+  display?: string;
+}) {
+  return (
+    <Row label={label}>
+      <div className="flex min-w-0 flex-col items-end gap-2">
+        <span className="break-all">{display ?? value ?? 'Unavailable'}</span>
+        {copyable && value && <CopyButton key={value} value={value} label={label} />}
+      </div>
+    </Row>
+  );
+}
+
+export function PaymentInstructionCard({
+  instruction,
+  paymentRecorded = false,
+}: {
+  instruction: PaymentInstruction;
+  paymentRecorded?: boolean;
+}) {
   const isBank = instruction.rail === 'bank_transfer';
 
   return (
-    <Panel title="How To Pay" icon={<BankIcon size={20} />}>
-      <div className="px-2 py-2 space-y-3">
-        <p className="text-sm text-text-secondary">{SUBSCRIPTION_COPY.AWAITING_PAYMENT_HELP}</p>
-        <div>
-          <Row label="Reference" value={instruction.reference} copyable />
-          <Row label="Amount" value={`${instruction.currency} ${instruction.amountDue}`} copyable />
-          <Row label="Pay to" value={instruction.payee} />
-          {isBank ? (
-            <>
-              <Row label="Account name" value={instruction.bankAccountName ?? '—'} copyable />
-              <Row label="BSB" value={instruction.bankBsb ?? '—'} copyable />
-              <Row label="Account number" value={instruction.bankAccountNumber ?? '—'} copyable />
-            </>
-          ) : (
-            <>
-              <Row label="Token" value={`${instruction.assetSymbol ?? '—'} on ${instruction.chain ?? '—'}`} />
-              <Row label="Token contract" value={instruction.contractAddress ?? '—'} copyable />
-              <Row label="Receiving wallet" value={instruction.receivingWalletAddress ?? '—'} copyable />
-              <Row
-                label={`Amount in raw units (${instruction.decimals ?? 0} decimals)`}
-                value={instruction.settlementAmount ?? '—'}
-                copyable
-              />
-            </>
-          )}
-          {instruction.paymentDueAt && <Row label="Due by" value={formatDate(instruction.paymentDueAt)} />}
-        </div>
-        {!isBank && (
-          <p className="text-xs text-text-muted">
-            Send the token itself, not the native coin, and send it on {instruction.chain ?? 'the stated chain'}. The
-            operator confirms the transfer by its hash, and one transfer can fund one subscription only.
-          </p>
+    <Section title="Payment instruction">
+      <p className="py-2 text-sm text-text-muted">
+        {paymentRecorded
+          ? 'A payment has already been recorded. Confirm any remaining payment with the operator before paying again. These are the original instruction amounts.'
+          : SUBSCRIPTION_COPY.AWAITING_PAYMENT_HELP}
+      </p>
+      <Rows>
+        <InstructionRow label="Reference" value={instruction.reference} copyable />
+        <InstructionRow
+          label="Amount on instruction"
+          value={instruction.amountDue}
+          display={formatMoney(instruction.amountDue, instruction.currency)}
+          copyable
+        />
+        <InstructionRow label="Pay to" value={instruction.payee} />
+        {isBank ? (
+          <>
+            <InstructionRow label="Account name" value={instruction.bankAccountName} copyable />
+            <InstructionRow label="BSB" value={instruction.bankBsb} copyable />
+            <InstructionRow label="Account number" value={instruction.bankAccountNumber} copyable />
+          </>
+        ) : (
+          <>
+            <InstructionRow label="Asset" value={instruction.assetSymbol} />
+            <InstructionRow label="Network" value={instruction.chain} />
+            <InstructionRow label="Token contract" value={instruction.contractAddress} copyable />
+            <InstructionRow label="Receiving wallet" value={instruction.receivingWalletAddress} copyable />
+            <InstructionRow label="Raw units" value={instruction.settlementAmount} copyable />
+            <InstructionRow
+              label="Decimals"
+              value={instruction.decimals === undefined ? undefined : String(instruction.decimals)}
+            />
+          </>
         )}
-      </div>
-    </Panel>
+        {instruction.issuedAt && <InstructionRow label="Issued" value={formatDate(instruction.issuedAt)} />}
+        {instruction.paymentDueAt && <InstructionRow label="Due by" value={formatDate(instruction.paymentDueAt)} />}
+      </Rows>
+      {!isBank && (
+        <p className="py-2 text-sm text-text-muted">
+          Use the stated asset and network. The operator confirms the transfer by its hash, and one transfer can fund
+          one application only.
+        </p>
+      )}
+    </Section>
   );
 }

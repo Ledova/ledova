@@ -1,14 +1,7 @@
-import { ArrowUpIcon, ArrowDownIcon } from '@phosphor-icons/react';
-import {
-  formatCryptoBalance,
-  formatShortDate,
-  formatTime,
-  getBlockchainShortName,
-  DESIGN_TOKENS,
-} from '@ledova/shared';
-
-const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
+import { formatDate, getBlockchainDisplayName, getChainShortCode } from '@ledova/shared';
 import type { Transaction } from '@ledova/shared';
+import { Status } from '@components/Ledger';
+import { activityAmount, activityDirection, activityState } from '../presentation';
 
 interface TransactionListItemProps {
   transaction: Transaction;
@@ -16,35 +9,28 @@ interface TransactionListItemProps {
 }
 
 export function TransactionListItem({ transaction, onClick }: TransactionListItemProps) {
-  const walletAddr = transaction.walletAddress?.toLowerCase() || '';
-  const toAddress = transaction.toAddress?.toLowerCase() || '';
-  const incoming = toAddress === walletAddr;
-  const amount = parseFloat(transaction.amount || '0');
-
-  const displaySymbol = getBlockchainShortName(transaction.assetSymbol || '');
-  const displayAmount = formatCryptoBalance(amount, displaySymbol);
-
+  const state = activityState(transaction);
   return (
     <button
       type="button"
       onClick={() => onClick(transaction)}
-      className="w-full flex items-center justify-between py-3 px-2 hover:bg-surface-tertiary transition-colors text-left"
+      className="flex w-full flex-wrap items-start justify-between gap-3 py-4 text-left transition-colors hover:bg-surface-tertiary"
     >
-      <div className="flex items-center gap-2 flex-1 min-w-0">
-        {incoming ? (
-          <ArrowDownIcon size={ICON_SM} className="text-success-light flex-shrink-0" weight="light" />
-        ) : (
-          <ArrowUpIcon size={ICON_SM} className="text-error-light flex-shrink-0" weight="light" />
-        )}
-        <span className="text-xs font-semibold text-text-secondary">{displaySymbol}</span>
-        <span className="text-xs text-text-subtle">•</span>
-        <span className="text-xs text-text-subtle truncate">
-          {formatShortDate(transaction.blockTimestamp)} {formatTime(transaction.blockTimestamp)}
+      <span className="min-w-0 flex-1 basis-48">
+        <span className="block break-words text-sm font-medium text-text-primary">
+          {activityDirection(transaction)} · {transaction.assetName || transaction.assetSymbol || 'Asset unavailable'}
         </span>
-      </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <span className="text-xs text-text-muted">{displayAmount}</span>
-      </div>
+        <span className="mt-1 block text-sm text-text-muted">
+          {getBlockchainDisplayName(getChainShortCode(transaction.chain))} ·{' '}
+          {formatDate(transaction.blockTimestamp ?? transaction.createdAt)}
+        </span>
+        <span className="mt-1 block text-sm text-text-muted">
+          <Status tone={state.tone}>{state.label}</Status>
+        </span>
+      </span>
+      <span className="max-w-full break-all text-sm tabular-nums text-text-primary">
+        {activityAmount(transaction.amount, transaction.assetSymbol)}
+      </span>
     </button>
   );
 }
