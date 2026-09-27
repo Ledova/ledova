@@ -54,8 +54,8 @@ offers only pages the role can open, in groups:
 - then Wallets, Profile, Settings and Help.
 
 Each item takes its name and address from its entry in `DESTINATIONS`, so a
-menu label always matches the page's title. Activity still points at today's
-Transactions page. Holdings replaces the crypto home at the existing `/home`
+menu label always matches the page's title. Activity keeps the `/transactions`
+address. Holdings replaces the crypto home at the existing `/home`
 address. Notices at `/publications` lists documents, resolutions and dividends
 addressed to the person. The old `/dividends` address redirects to Notices through
 the same signed-in route guard, keeping bookmarks and transaction links useful.
@@ -176,6 +176,17 @@ the draft but block further submission until recovery. Hardware imports run one
 address at a time and remember confirmed additions for retry within the same import.
 A partial failure explains the number added and leaves the remaining selection
 available. These controls do not change wallet verification or signing authority.
+
+Activity presents recorded wallet transfers in a read-only ledger, with exact
+decimal amounts, native network fees and the current recorded status. Its history
+read does not depend on the wallet filter read succeeding. The wallet selector
+loads every page in its own cache; a failed page disables that selector and offers
+a retry without hiding history or clearing draft filters. History loads further
+pages on request, marks failed later reads as incomplete, and suppresses stale
+rows and details after a failed refresh. Filters use only supported API fields,
+with date bounds covering the whole selected days in the person's local time.
+Details preserve full wallet, address and transaction identities and can open the
+existing explorer; Activity adds no buying, sending or signing action.
 
 Where market values are shown elsewhere, they are in AUD: the shared
 `useCurrency` converts the API's US-dollar values at the current rate, shows a

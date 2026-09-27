@@ -1,14 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FunnelIcon, PackageIcon } from '@phosphor-icons/react';
-import { getBlockExplorerTxUrl, DESIGN_TOKENS, PUBLICATION_COPY } from '@ledova/shared';
-
-const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
-const ICON_XXL = DESIGN_TOKENS.icon.sizes.xxl;
+import { FunnelIcon } from '@phosphor-icons/react';
+import { DESTINATIONS, getBlockExplorerTxUrl } from '@ledova/shared';
 import type { Transaction } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
-import { Panel } from '@components/Panel';
-import { useTransactions } from './useTransactions';
+import { Section } from '@components/Ledger';
+import { useTransactions, type TransactionFilters } from './useTransactions';
 import { TransactionFilterModal } from './components/TransactionFilterModal';
 import { TransactionListItem } from './components/TransactionListItem';
 import { TransactionDetailModal } from './components/TransactionDetailModal';
@@ -17,7 +14,15 @@ export const TransactionsPage = () => {
   const {
     transactions,
     wallets,
+    walletsLoading,
+    walletsFailed,
+    walletsRefreshing,
+    retryWallets,
     isLoading,
+    hasError,
+    moreFailed,
+    isRefreshing,
+    retry,
     isLoadingMore,
     filters,
     hasActiveFilters,
@@ -28,51 +33,39 @@ export const TransactionsPage = () => {
     clearFilters,
     loadMore,
   } = useTransactions();
-
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedUuid, setSelectedUuid] = useState<string | null>(null);
   const [showFiltersModal, setShowFiltersModal] = useState(false);
-
-  const handleTransactionClick = (transaction: Transaction) => {
-    setSelectedTransaction(transaction);
-    setShowDetailModal(true);
-  };
-
-  const handleCloseDetailModal = () => {
-    setShowDetailModal(false);
-    setSelectedTransaction(null);
-  };
-
-  const handleFilterChange = (field: string, value: string) => {
+  const selectedTransaction = hasError
+    ? null
+    : (transactions.find((transaction) => transaction.uuid === selectedUuid) ?? null);
+  const handleTransactionClick = (transaction: Transaction) => setSelectedUuid(transaction.uuid);
+  const handleFilterChange = (field: keyof TransactionFilters, value: string) =>
     updateFilters({ ...filters, [field]: value || undefined });
-  };
-
   const handleApplyFilters = () => {
     applyFilters();
     setShowFiltersModal(false);
+    setSelectedUuid(null);
   };
-
   const handleClearFilters = () => {
     clearFilters();
     setShowFiltersModal(false);
+    setSelectedUuid(null);
   };
-
   const handleViewOnExplorer = () => {
-    if (selectedTransaction?.txHash && selectedTransaction?.chain) {
-      const url = getBlockExplorerTxUrl(selectedTransaction.chain, selectedTransaction.txHash);
-      window.open(url, '_blank');
-    }
+    if (!selectedTransaction?.txHash) return;
+    const url = getBlockExplorerTxUrl(selectedTransaction.chain, selectedTransaction.txHash);
+    if (url) window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   return (
     <Page
       actions={
         <>
-          <Link to="/dividends" className="text-sm text-brand-mid transition-colors hover:text-brand-light">
-            {PUBLICATION_COPY.DIVIDENDS_OPEN}
+          <Link to={DESTINATIONS.publications.path} className="text-sm text-brand-light underline underline-offset-4">
+            Open Notices
           </Link>
           <PageAction
-            icon={<FunnelIcon size={ICON_SM} weight={hasActiveFilters ? 'fill' : 'regular'} />}
+            icon={<FunnelIcon size={16} />}
             label="Filter"
             onClick={() => setShowFiltersModal(true)}
             active={hasActiveFilters}
@@ -80,69 +73,84 @@ export const TransactionsPage = () => {
         </>
       }
     >
-      <Panel>
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-12 gap-3">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-mid"></div>
-            <p className="text-sm text-text-muted">Loading transactions...</p>
-          </div>
-        ) : transactions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 gap-3">
-            <PackageIcon size={ICON_XXL} className="text-text-subtle" />
-            <p className="text-sm text-text-muted">No transactions found</p>
-            <p className="text-xs text-text-subtle text-center max-w-[250px]">
-              {hasActiveFilters
-                ? 'Try adjusting your filters to see more results'
-                : 'Transactions will appear here once confirmed on the blockchain'}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-0">
-            <div className="divide-y divide-border-subtle max-h-[500px] overflow-y-auto">
-              {transactions.map((tx) => (
-                <TransactionListItem key={tx.uuid} transaction={tx} onClick={handleTransactionClick} />
+      <p className="text-sm text-text-muted">
+        Recorded transfers for your wallets. Select an entry for its status and details.
+      </p>
+      {isLoading ? (
+        <p role="status" className="py-6 text-sm text-text-muted">
+          Loading activity…
+        </p>
+      ) : hasError ? (
+        <div role="alert" className="flex flex-col items-start gap-3 py-6">
+          <p className="text-sm text-text-primary">Your activity could not be loaded. Try again before continuing.</p>
+          <PageAction label="Try again" onClick={() => void retry()} disabled={isRefreshing} />
+        </div>
+      ) : (
+        <>
+          {transactions.length === 0 && !hasNextPage && !moreFailed ? (
+            <Section title={hasActiveFilters ? 'No matching activity' : 'No activity yet'}>
+              <p className="py-3 text-sm text-text-muted">
+                {hasActiveFilters
+                  ? 'Adjust or clear the filters to view more activity.'
+                  : 'Recorded transfers will appear here, including those awaiting confirmation.'}
+              </p>
+              {hasActiveFilters && (
+                <div>
+                  <PageAction label="Clear filters" onClick={handleClearFilters} />
+                </div>
+              )}
+            </Section>
+          ) : (
+            <div className="divide-y divide-border-subtle">
+              {transactions.map((transaction) => (
+                <TransactionListItem
+                  key={transaction.uuid}
+                  transaction={transaction}
+                  onClick={handleTransactionClick}
+                />
               ))}
             </div>
-
-            <div className="flex items-center justify-end pt-4 mt-4 border-t border-border-subtle text-xs text-text-subtle">
-              <span className="inline-flex items-center gap-1">
-                {totalCount > 0
-                  ? `${transactions.length} of ${totalCount} transaction${totalCount !== 1 ? 's' : ''}`
-                  : `${transactions.length} transaction${transactions.length !== 1 ? 's' : ''}`}
-                {hasNextPage && (
-                  <>
-                    <span>&middot;</span>
-                    <button
-                      type="button"
-                      onClick={loadMore}
-                      disabled={isLoadingMore}
-                      className="text-brand-mid hover:text-brand-light transition-colors disabled:opacity-50"
-                    >
-                      {isLoadingMore ? 'Loading...' : 'Load More'}
-                    </button>
-                  </>
-                )}
-              </span>
+          )}
+          {moreFailed ? (
+            <div role="alert" className="flex flex-col items-start gap-3 py-3">
+              <p className="text-sm text-text-primary">More activity could not be loaded. The list is incomplete.</p>
+              <PageAction label="Try more activity again" onClick={() => void loadMore()} disabled={isLoadingMore} />
             </div>
-          </div>
-        )}
-      </Panel>
-
+          ) : (
+            hasNextPage && (
+              <div>
+                <PageAction
+                  label={isLoadingMore ? 'Loading activity…' : 'Load more activity'}
+                  onClick={() => void loadMore()}
+                  disabled={isLoadingMore}
+                />
+              </div>
+            )
+          )}
+          {transactions.length > 0 && (
+            <p className="text-xs text-text-muted">
+              {transactions.length} of {totalCount} records shown
+            </p>
+          )}
+        </>
+      )}
       <TransactionFilterModal
         isOpen={showFiltersModal}
         filters={filters}
         wallets={wallets}
+        walletsLoading={walletsLoading}
+        walletsFailed={walletsFailed}
+        walletsRefreshing={walletsRefreshing}
+        onRetryWallets={() => void retryWallets()}
         onClose={() => setShowFiltersModal(false)}
         onFilterChange={handleFilterChange}
         onApply={handleApplyFilters}
         onClear={handleClearFilters}
-        updateFilters={updateFilters}
       />
-
       <TransactionDetailModal
-        isOpen={showDetailModal}
+        isOpen={selectedTransaction !== null}
         transaction={selectedTransaction}
-        onClose={handleCloseDetailModal}
+        onClose={() => setSelectedUuid(null)}
         onViewExplorer={handleViewOnExplorer}
       />
     </Page>
