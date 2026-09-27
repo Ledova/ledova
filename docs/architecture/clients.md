@@ -45,8 +45,8 @@ investing or company page until the role is known as well, so no page appears
 on the way. If the account cannot be read, it says so and offers Try again
 instead of deciding with a guessed role. Once the role is known, the sidebar
 offers only pages the role can open, in groups:
-- a company's own group first, named after the company, with Offerings and
-  Company. The owner's menu puts Register first in this group, and #748 adds it.
+- a company's own group first, named after the company, with Register, Offerings and
+  Company.
   The company's application sits under Company, opened from the Company page's
   title row, rather than as a menu item.
 - _Your shares_ for every account;
@@ -104,8 +104,17 @@ flows are mounted in the signed-in frame, so an open flow survives
 Wallets reloading its wallet list and the person leaving Wallets. The guard
 decides pages, not data: the API still decides which rows a person sees, and
 answers 404 for one it refuses.
+
+The Company Register at `/company/register` reads every page of the issuer's
+share classes and each class's stored register. It shows current members, linked
+wallets and exact issued and authorised shares. Unopened registers and unknown or
+positive waiting-effect counts stay explicit. A failed class or register read
+hides the incomplete result and offers retry, including after a failed refresh.
+The existing Company page retains its class actions while dedicated class pages
+are built under #748. Staff still prepare outputs on written instruction.
+
 `landingFor(role)` decides where a signed-in person lands: an investing account
-on its home, and a company or dual-role account on its company. The front door,
+on Holdings, and a company or dual-role account on Register. The front door,
 sign-in, the end of sign-up, the signed-out pages and the trading fallback all
 use it; the front door and the signed-out pages wait for the role before
 choosing, and the trading fallback runs behind the guard, which has already

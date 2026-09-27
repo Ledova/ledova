@@ -20,6 +20,7 @@ export const DESTINATIONS = {
   investorEligibility: { path: '/investor-eligibility', title: 'Verification', audience: 'investing' },
   publications: { path: '/publications', title: 'Notices', audience: 'everyone' },
   dividends: { path: '/dividends', title: 'Dividends', audience: 'everyone' },
+  companyRegister: { path: '/company/register', title: 'Register', audience: 'company' },
   company: { path: '/company', title: 'Company', audience: 'company' },
   companyListing: { path: '/company/listing', title: 'Application', audience: 'company' },
   companyOffering: { path: '/company/offering', title: 'Offerings', audience: 'company' },
@@ -40,5 +41,5 @@ export function canOpen(role: AccountRole, audience: Audience): boolean {
 }
 
 export function landingFor(role: AccountRole): string {
-  return role === 'investor' ? DESTINATIONS.home.path : DESTINATIONS.company.path;
+  return role === 'investor' ? DESTINATIONS.home.path : DESTINATIONS.companyRegister.path;
 }

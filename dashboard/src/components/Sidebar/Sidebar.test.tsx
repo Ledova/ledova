@@ -118,7 +118,7 @@ function menu() {
 const YOUR_SHARES = { label: 'Your shares', items: ['Holdings', 'Notices', 'Activity'] };
 const INVEST = { label: 'Invest', items: ['Directory', 'Applications', 'Market', 'Verification'] };
 const YOURS = { label: null, items: ['Wallets', 'Profile', 'Settings', 'Help & Support'] };
-const COMPANY = { label: 'Harbour Robotics Pty Ltd', items: ['Offerings', 'Company'] };
+const COMPANY = { label: 'Harbour Robotics Pty Ltd', items: ['Register', 'Offerings', 'Company'] };
 
 describe('the groups the sidebar shows', () => {
   beforeEach(() => {

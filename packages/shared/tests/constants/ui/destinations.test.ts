@@ -7,8 +7,8 @@ describe('where a signed-in person lands', () => {
     expect(landingFor('investor')).toBe(DESTINATIONS.home.path);
   });
 
-  it.each(['company', 'both'] as const)('sends a %s account to the company', (role) => {
-    expect(landingFor(role)).toBe(DESTINATIONS.company.path);
+  it.each(['company', 'both'] as const)('sends a %s account to Register', (role) => {
+    expect(landingFor(role)).toBe(DESTINATIONS.companyRegister.path);
   });
 
   it.each(['investor', 'company', 'both'] as const)('sends a %s account to a page it can open', (role) => {
@@ -57,6 +57,7 @@ describe("the owner's menus of 26 September, applied to today's pages", () => {
     subscriptions: 'investing',
     subscriptionDetail: 'investing',
     investorEligibility: 'investing',
+    companyRegister: 'company',
     company: 'company',
     companyListing: 'company',
     companyOffering: 'company',
@@ -81,6 +82,7 @@ describe("the owner's menus of 26 September, applied to today's pages", () => {
       investorEligibility: 'Verification',
       publications: 'Notices',
       dividends: 'Dividends',
+      companyRegister: 'Register',
       company: 'Company',
       companyListing: 'Application',
       companyOffering: 'Offerings',

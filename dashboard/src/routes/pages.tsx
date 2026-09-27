@@ -11,6 +11,7 @@ import SubscriptionDetailPage from '@pages/subscriptions/detail';
 import InvestorEligibilityPage from '@pages/investor-eligibility';
 import PublicationsPage from '@pages/publications';
 import CompanyPage from '@pages/company';
+import CompanyRegisterPage from '@pages/company/register';
 import ListingPage from '@pages/company/listing';
 import OfferingPage from '@pages/company/offering';
 import UserProfilePage from '@pages/user-profile';
@@ -29,6 +30,7 @@ export const PAGES: Record<DestinationKey, ReactElement> = {
   investorEligibility: <InvestorEligibilityPage />,
   publications: <PublicationsPage />,
   dividends: <Navigate to={DESTINATIONS.publications.path} replace />,
+  companyRegister: <CompanyRegisterPage />,
   company: <CompanyPage />,
   companyListing: <ListingPage />,
   companyOffering: <OfferingPage />,
