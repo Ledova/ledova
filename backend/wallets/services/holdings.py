@@ -7,8 +7,7 @@ from django.utils import timezone
 
 from assets.services.identity import recorded_native_asset_for_chain
 from shared.db import atomic
-from wallets.constants import SNAPSHOT_REASON_DAILY
-from wallets.models import Holding, HoldingSnapshot, Transaction, Wallet
+from wallets.models import Holding, Transaction, Wallet
 from wallets.services.chain import fetch_chain_balance
 from wallets.services.chain_observations import settled_chain_observation
 
@@ -52,10 +51,4 @@ def sync_holding(wallet, asset) -> Optional[Holding]:
         if not capped:
             holding.sync_version = holding.balance_version
         holding.save(update_fields=["quantity", "last_synced_at", "balance_version", "sync_version", "updated_at"])
-        HoldingSnapshot.objects.update_or_create(
-            holding=holding,
-            snapshot_date=timezone.now().date(),
-            defaults={"quantity": balance},
-            create_defaults={"quantity": balance, "snapshot_reason": SNAPSHOT_REASON_DAILY},
-        )
     return None if capped else holding

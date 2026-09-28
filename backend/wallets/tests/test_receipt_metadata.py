@@ -86,11 +86,11 @@ class ImportedReceiptMetadataChecks(SubmissionFixture):
         ):
             with self.subTest(header=header):
                 tx = self.pending()
-                snapshots = self.financial_state()[2]
+                holdings = self.financial_state()[1:]
                 self.observe(tx, header=header)
                 self.assertIsNone(tx.block_timestamp)
                 self.assertEqual((tx.block_number, tx.block_hash), (17, BLOCK_HASH))
-                self.assertEqual(self.financial_state()[2], snapshots)
+                self.assertEqual(self.financial_state()[1:], holdings)
 
     def test_missing_metadata_preserves_existing_evidence(self):
         for succeeded in (True, False):

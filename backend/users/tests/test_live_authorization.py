@@ -6,11 +6,9 @@ from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APITestCase
 
-from assets.models import Asset
 from shared.tests.under_the_policies import what_the_policies_admit_to
 from users.models import (
     DeviceToken,
-    FavouriteAsset,
     FinancialProfile,
     Notification,
     NotificationPreferences,
@@ -49,21 +47,6 @@ class UserLiveAuthorizationTest(APITestCase):
         self.bob_account = UserAccount.objects.create(account_number="ACCOUNT-BOB", user_profile=self.bob_profile)
         self.alice_preferences = UserPreferences.objects.create(user_profile=self.alice_profile)
         self.bob_preferences = UserPreferences.objects.create(user_profile=self.bob_profile)
-        self.asset = Asset.objects.create(
-            symbol="USER-SCOPE",
-            name="User scope asset",
-            asset_type="tokenized_security",
-            is_active=True,
-            is_verified=True,
-        )
-        self.alice_favourite = FavouriteAsset.objects.create(
-            user_account=self.alice_account,
-            asset=self.asset,
-        )
-        self.bob_favourite = FavouriteAsset.objects.create(
-            user_account=self.bob_account,
-            asset=self.asset,
-        )
 
     @staticmethod
     def rows(response):
@@ -82,11 +65,6 @@ class UserLiveAuthorizationTest(APITestCase):
                 what_the_policies_admit_to(self.alice, UserPreferences),
                 self.alice_preferences,
                 self.bob_preferences,
-            ),
-            (
-                what_the_policies_admit_to(self.alice, FavouriteAsset),
-                self.alice_favourite,
-                self.bob_favourite,
             ),
         )
         for queryset, own_object, foreign_object in cases:
@@ -165,7 +143,6 @@ class UserLiveAuthorizationTest(APITestCase):
             UserAccount.objects,
             FinancialProfile.objects,
             UserPreferences.objects,
-            FavouriteAsset.objects,
             Notification.objects,
             NotificationPreferences.objects,
             DeviceToken.objects,

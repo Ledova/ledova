@@ -12,8 +12,8 @@ from compliance.services.transaction_monitoring import TransactionMonitoringServ
 from integrations.blockchain import get_blockchain_client
 from shared.constants import normalize_chain
 from shared.db import atomic
-from wallets.constants import SNAPSHOT_REASON_TRANSACTION, TRANSACTION_STATUS_PENDING
-from wallets.models import Holding, HoldingSnapshot, Transaction, Wallet
+from wallets.constants import TRANSACTION_STATUS_PENDING
+from wallets.models import Holding, Transaction, Wallet
 from wallets.services.holdings import sync_holding
 
 logger = logging.getLogger(__name__)
@@ -58,19 +58,14 @@ def sync_wallet(wallet: Wallet) -> Dict[str, Any]:
 
 def _process_transactions(wallet: Wallet, transactions_data: List[Dict]) -> Dict[str, Any]:
     transactions_created = 0
-    snapshots_created = 0
     unreadable = 0
 
     with atomic():
         wallet = Wallet.objects.select_for_update().get(pk=wallet.pk)
         for tx_data in transactions_data:
             try:
-                result = _process_single_transaction(wallet, tx_data)
-
-                if result["tx"]:
+                if _process_single_transaction(wallet, tx_data):
                     transactions_created += 1
-                if result["snapshot"]:
-                    snapshots_created += 1
 
             except (KeyError, ValueError) as e:
                 logger.warning(f"Skipped tx: {e}")
@@ -80,15 +75,13 @@ def _process_transactions(wallet: Wallet, transactions_data: List[Dict]) -> Dict
     return {
         "status": "error" if unreadable else "success",
         "transactions": transactions_created,
-        "snapshots": snapshots_created,
         **({"error": HISTORY_UNREADABLE} if unreadable else {}),
     }
 
 
-def _process_single_transaction(wallet: Wallet, tx_data: Dict) -> Dict[str, bool]:
-    result = {"tx": False, "snapshot": False}
+def _process_single_transaction(wallet: Wallet, tx_data: Dict) -> bool:
     if Transaction.objects.filter(tx_hash=tx_data["tx_hash"], wallet=wallet).exists():
-        return result
+        return False
     asset = _resolve_asset(wallet, tx_data)
 
     block_timestamp = tx_data["block_timestamp"]
@@ -114,33 +107,19 @@ def _process_single_transaction(wallet: Wallet, tx_data: Dict) -> Dict[str, bool
             "imported_from_history": True,
         },
     )
-    result["tx"] = created
     if created:
         TransactionMonitoringService.queue_new_transaction(tx)
 
     if created and asset.is_verified:
-        holding, _ = Holding.objects.get_or_create(
+        Holding.objects.get_or_create(
             wallet=wallet,
             asset=asset,
             defaults={"quantity": Decimal("0")},
         )
-        snapshot_date = block_timestamp.date() if block_timestamp else timezone.now().date()
-        if snapshot_date == timezone.now().date():
-            _, snapshot_created = HoldingSnapshot.objects.update_or_create(
-                holding=holding,
-                snapshot_date=snapshot_date,
-                defaults={
-                    "quantity": holding.quantity,
-                    "block_number": tx_data.get("block_number"),
-                    "snapshot_reason": SNAPSHOT_REASON_TRANSACTION,
-                    "caused_by_transaction": tx,
-                },
-            )
-            result["snapshot"] = snapshot_created
     elif created and not asset.is_verified:
         logger.info(f"Skipping holding for unverified asset: {asset.symbol} (tx recorded for audit)")
 
-    return result
+    return created
 
 
 def _resolve_asset(wallet: Wallet, tx_data: Dict) -> Asset:

@@ -124,7 +124,7 @@ PRINCIPAL_BEARING = {
     'the task answers "Wallet not found" - fails closed and quiet, with the sweep finishing the row as '
     "the operator. The design covers it; the sentence exists so the next conversion with a longer delay "
     "knows the gap is proportional to it.",
-    "wallets.tasks.sync.sync_wallet": "Reads and writes one wallet's history, holdings and snapshots. "
+    "wallets.tasks.sync.sync_wallet": "Reads and writes one wallet's history and holdings. "
     "Converted: the principal is required with no default. Verification captures its user; the wallet "
     "admin, Alchemy webhook and hourly sweep explicitly choose None for operator work. Lookup and every "
     "sync write run inside that context. A user who lost account access after enqueue resolves no wallet, "

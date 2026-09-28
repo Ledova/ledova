@@ -27,13 +27,11 @@ from wallets.constants import (
     WALLET_VERIFICATION_STATUS_PENDING,
     WALLET_VERIFICATION_STATUS_VERIFIED,
 )
-from wallets.models import Holding, HoldingSnapshot, Transaction, Wallet
+from wallets.models import Holding, Transaction, Wallet
 from wallets.services.verification import complete_wallet_verification
 from wallets.tasks.sync import sync_all_wallets, sync_wallet
 
-TABLES = tuple(
-    model._meta.db_table for model in (Wallet, Holding, HoldingSnapshot, Transaction, ShareToken, ComplianceAlert)
-)
+TABLES = tuple(model._meta.db_table for model in (Wallet, Holding, Transaction, ShareToken, ComplianceAlert))
 
 
 class ScopedWalletSyncTest(RunsOnTheScopedConnection, TransactionTestCase):
@@ -113,11 +111,10 @@ class ScopedWalletSyncTest(RunsOnTheScopedConnection, TransactionTestCase):
                 Wallet.objects.get(pk=tenant.wallet.pk).last_synced_at,
                 Holding.objects.get(pk=tenant.holding.pk).quantity,
                 Transaction.objects.filter(wallet=tenant.wallet).count(),
-                HoldingSnapshot.objects.filter(holding=tenant.holding).count(),
                 ComplianceAlert.objects.filter(user_account=tenant.account).count(),
             )
 
-    def test_the_user_principal_carries_history_balance_snapshot_and_wallet_writes(self):
+    def test_the_user_principal_carries_history_balance_and_wallet_writes(self):
         other_before = self.state_of(self.other)
         observed = []
         with ExitStack() as stack:
@@ -125,13 +122,12 @@ class ScopedWalletSyncTest(RunsOnTheScopedConnection, TransactionTestCase):
                 stack.enter_context(connections[alias].execute_wrapper(self.recorder(observed)))
             result = self.run_task(self.owner.wallet, self.owner.user.pk)
 
-        self.assertEqual(result, {"status": "success", "transactions": 1, "snapshots": 1, "holdings": 1})
+        self.assertEqual(result, {"status": "success", "transactions": 1, "holdings": 1})
         self.assertEqual(self.observed, [(APP_ALIAS, settings.RLS_ROLES[APP_ALIAS], str(self.owner.user.pk), False)])
         self.assertEqual({alias for alias, _, _ in observed}, {APP_ALIAS})
         self.assertLessEqual(
             {
                 ("INSERT", Transaction._meta.db_table),
-                ("INSERT", HoldingSnapshot._meta.db_table),
                 ("UPDATE", Holding._meta.db_table),
                 ("UPDATE", Wallet._meta.db_table),
                 ("SELECT", ShareToken._meta.db_table),
@@ -139,9 +135,9 @@ class ScopedWalletSyncTest(RunsOnTheScopedConnection, TransactionTestCase):
             {(operation, table) for _, operation, table in observed},
         )
         self.balance.assert_called_once_with(self.other.deployed_token.contract_address, self.owner.wallet.address)
-        last_synced, quantity, transactions, snapshots, alerts = self.state_of(self.owner)
+        last_synced, quantity, transactions, alerts = self.state_of(self.owner)
         self.assertIsNotNone(last_synced)
-        self.assertEqual((quantity, transactions, snapshots, alerts), (Decimal("9"), 1, 1, 0))
+        self.assertEqual((quantity, transactions, alerts), (Decimal("9"), 1, 0))
         self.assertEqual(self.state_of(self.other), other_before)
         jobs = [row for key, row in self.queued().items() if key not in self.initial_jobs]
         self.assertEqual(len(jobs), 1)
