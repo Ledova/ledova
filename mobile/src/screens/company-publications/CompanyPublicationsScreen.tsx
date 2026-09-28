@@ -1,6 +1,6 @@
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
-import { Action } from '../../components/Ledger';
+import { Action, Lede } from '../../components/Ledger';
 import { useCompanyProfile } from '../../hooks/useCompanyProfile';
 import type { BottomTabParamList } from '../../navigation/BottomTabNavigator';
 import { CompanyReadNotice } from '../company/CompanyState';
@@ -44,6 +44,7 @@ export function CompanyPublicationsScreen() {
         Published to your members
       </Text>
       <Action label="Refresh" disabled={refreshing} onPress={refresh} />
+      <Lede>Staff prepare and publish these records on your company&apos;s written instruction.</Lede>
       {companyRead.isLoading ? (
         <Text style={styles.muted}>Loading company information…</Text>
       ) : companyRead.error ? (
@@ -52,11 +53,6 @@ export function CompanyPublicationsScreen() {
         <Text style={styles.muted}>No company information available.</Text>
       ) : (
         <>
-          <Text style={styles.muted}>
-            Staff prepare and publish these records on your company&apos;s written instruction.
-          </Text>
-          <Text style={styles.muted}>To read notices addressed to you or vote as a member, open Notices.</Text>
-          <Action label="Open Notices" onPress={() => navigation.navigate('Publications')} />
           <CompanyReadNotice read={companyRead} />
           {listing.isLoading ? (
             <Text style={styles.muted}>Loading company publications…</Text>
@@ -99,6 +95,8 @@ export function CompanyPublicationsScreen() {
               )}
             </>
           )}
+          <Text style={styles.muted}>To read notices addressed to you or vote as a member, open Notices.</Text>
+          <Action label="Open Notices" onPress={() => navigation.navigate('Publications')} />
         </>
       )}
     </ScrollView>

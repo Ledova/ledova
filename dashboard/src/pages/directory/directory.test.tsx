@@ -205,7 +205,7 @@ it('distinguishes an unavailable class from a service failure, which can be retr
   expect(await screen.findByText('Share class not available')).toBeTruthy();
   expect(screen.queryByRole('heading', { name: 'Apply for shares' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Back to Directory' }));
-  expect(await screen.findByText('Share classes and current offerings available to you.')).toBeTruthy();
+  expect(await screen.findByRole('heading', { name: 'Harbour Example Pty Ltd' })).toBeTruthy();
 });
 
 it('hides stale application actions after a failed class refresh', async () => {

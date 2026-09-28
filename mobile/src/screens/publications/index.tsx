@@ -99,7 +99,6 @@ export function PublicationsScreen() {
         <Text accessibilityRole="header" style={styles.title}>
           Notices
         </Text>
-        <Text style={styles.message}>Documents, votes and dividends addressed to you.</Text>
         {openError && (
           <Text accessibilityRole="alert" style={styles.error}>
             {openError}

@@ -32,7 +32,6 @@ export function DirectoryScreen() {
         </Section>
       ) : (
         <>
-          <Text style={styles.help}>Share classes and current offerings available to you.</Text>
           {tokens.length === 0 ? (
             <Section title="Share classes">
               <Text style={styles.help}>No share classes available.</Text>

@@ -46,7 +46,6 @@ export default function SubscriptionsPage() {
 
   return (
     <Page>
-      <p className="text-sm text-text-muted">Your applications for shares, from draft through allotment or closure.</p>
       {hasError ? (
         <div role="alert" className="flex flex-col items-start gap-3 py-6">
           <p className="text-sm text-text-primary">

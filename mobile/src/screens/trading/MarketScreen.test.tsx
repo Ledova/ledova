@@ -14,6 +14,7 @@ let mockOrders: TransferOrder[];
 let mockTokensError = false;
 let mockWalletsError = false;
 let mockPending = false;
+let mockSaved: { orders: object[]; actions: object[]; settlements: object[]; ordersError: string | null };
 jest.mock('@react-navigation/native', () => ({ useFocusEffect: () => {} }));
 jest.mock('expo-crypto', () => ({ randomUUID: jest.fn() }));
 jest.mock('../../services/swapSettlements', () => ({
@@ -25,19 +26,19 @@ jest.mock('./components/OrderActionModal', () => ({ OrderActionModal: () => null
 jest.mock('./components/SwapSettlementModal', () => ({ SwapSettlementModal: () => null }));
 jest.mock('@ledova/shared', () => {
   const actual = jest.requireActual('@ledova/shared');
-  const state = () => ({
-    pending: [],
+  const state = (pending: object[], error: string | null = null) => ({
+    pending,
     active: null,
-    error: null,
+    error,
     isLoading: false,
     close: mockClose,
     refresh: mockRefresh,
   });
   return {
     ...actual,
-    useOrderSubmissions: () => ({ ...state(), begin: mockBegin }),
-    useOrderActions: state,
-    useSwapSettlements: state,
+    useOrderSubmissions: () => ({ ...state(mockSaved.orders, mockSaved.ordersError), begin: mockBegin }),
+    useOrderActions: () => state(mockSaved.actions),
+    useSwapSettlements: () => state(mockSaved.settlements),
   };
 });
 jest.mock('./useTrading', () => ({
@@ -89,6 +90,8 @@ beforeEach(() => {
   mockTokensError = false;
   mockWalletsError = false;
   mockPending = false;
+  mockSaved = { orders: [], actions: [], settlements: [], ordersError: null };
+  mockRefresh.mockClear();
 });
 afterEach(async () => {
   await cleanup();
@@ -139,4 +142,36 @@ it('refreshes every independent trading read from pull to refresh', async () => 
     await scroll.props.refreshControl.props.onRefresh();
   });
   for (const refetch of mockRefetches) expect(refetch).toHaveBeenCalledTimes(1);
+});
+it('leaves Saved work off the screen when nothing is saved on this device', async () => {
+  const view = await render(<TradingScreen />, { wrapper });
+  expect(view.getByText('Trades awaiting signatures')).toBeTruthy();
+  expect(view.queryByText('Saved work')).toBeNull();
+  expect(view.queryByRole('button', { name: 'Refresh saved work' })).toBeNull();
+});
+it('shows a failed saved read in Saved work with one refresh for every saved list', async () => {
+  mockSaved.ordersError = 'Saved orders could not be read. Please try again.';
+  const view = await render(<TradingScreen />, { wrapper });
+  expect(view.getByText('Saved work')).toBeTruthy();
+  expect(view.getByRole('alert').props.children).toBe('Saved orders could not be read. Please try again.');
+  await fireEvent.press(view.getByRole('button', { name: 'Refresh saved work' }));
+  expect(mockRefresh).toHaveBeenCalledTimes(3);
+});
+it('lists saved work after the trades awaiting signatures', async () => {
+  mockSaved.orders = [{ submissionId: 'fictional-order', walletUuid: wallet.uuid }];
+  mockSaved.actions = [{ actionId: 'fictional-action', purpose: 'cancel' }];
+  mockSaved.settlements = [
+    { swapUuid: 'fictional-swap', walletUuid: wallet.uuid, kind: 'approval', txHash: '0xfictional' },
+  ];
+  const view = await render(<TradingScreen />, { wrapper });
+  expect(
+    view
+      .getAllByRole('header')
+      .map((header) => header.props.children)
+      .slice(-2),
+  ).toEqual(['Trades awaiting signatures', 'Saved work']);
+  expect(view.getByRole('button', { name: 'Check saved order 1' })).toBeTruthy();
+  expect(view.getByRole('button', { name: 'Check cancellation 1' })).toBeTruthy();
+  expect(view.getByRole('button', { name: 'Check saved settlement 1' })).toBeTruthy();
+  expect(view.getByText('Unconfirmed approval: 0xfictional')).toBeTruthy();
 });

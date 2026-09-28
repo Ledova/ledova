@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BLOCKCHAIN, WALLET_VERIFICATION_STATUS, getChainShortCode } from '@ledova/shared';
 import type { WalletsStackParamList } from '../../navigation/WalletsStackNavigator';
-import { Section, Row, Action } from '../../components/Ledger';
+import { Section, Row, Action, Lede } from '../../components/Ledger';
 import { WalletSortModal, useWalletSort } from '../../components/wallet-list';
 import { AddWalletModal } from './components/AddWalletModal';
 import { CryptoActions } from './components/CryptoActions';
@@ -41,10 +41,6 @@ export function WalletsScreen() {
   return (
     <>
       <WalletsPage loading={crud.isLoading} refreshing={crud.isRefreshing} refresh={() => void crud.refetch()}>
-        <Text style={styles.help}>
-          Your addresses for receiving shares and managing test crypto. Open a wallet to verify, rename, derive another
-          address or sync its balances.
-        </Text>
         <CryptoActions />
         <View style={styles.actions}>
           <Action label="Add wallet" onPress={form.openAddModal} disabled={blocked} primary />
@@ -55,6 +51,7 @@ export function WalletsScreen() {
             disabled={blocked || syncingAll || !crud.wallets.length}
           />
         </View>
+        <Lede>Open a wallet to verify, rename, derive another address or sync its balances.</Lede>
         {crud.hasError ? (
           <View style={styles.group}>
             <Text accessibilityRole="alert" style={styles.message}>
