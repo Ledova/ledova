@@ -32,6 +32,7 @@ class TransactionAlertsMigrationTest(TransactionTestCase):
         muted = self.profile("muted")
         muted_without_a_row = self.profile("muted-without-a-row")
         defaulted = self.profile("defaulted")
+        untouched = self.profile("untouched")
 
         before = migrate_to(BEFORE)
         self.assertNotIn("transaction_alerts", self.fields_of(before))
@@ -55,6 +56,7 @@ class TransactionAlertsMigrationTest(TransactionTestCase):
             (created.theme, created.selected_portfolio_id, created.transaction_alerts), ("dark", None, False)
         )
         self.assertTrue(merged.objects.get(user_profile_id=defaulted.pk).transaction_alerts)
+        self.assertFalse(merged.objects.filter(user_profile_id=untouched.pk).exists())
 
         reversed_apps = migrate_to(BEFORE)
         self.assertEqual(reversed_apps.get_model("users", "NotificationPreferences").objects.count(), 0)
