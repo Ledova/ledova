@@ -1,4 +1,5 @@
 from decimal import Decimal
+from uuid import uuid4
 
 from django.utils import timezone
 from drf_spectacular.generators import SchemaGenerator
@@ -7,8 +8,6 @@ from rest_framework.test import APITestCase
 from assets.models import Asset, AssetChainDeployment, AssetSnapshot, ExchangeRate
 from portfolios.tests.test_live_authorization import PortfolioFixtureMixin
 from shared.api.routes import registered_routes
-from users.models import FavouriteAsset
-from wallets.models import Holding, HoldingSnapshot
 
 RETIRED_ROUTES = {
     ("get", "/api/assets/{}/"),
@@ -36,13 +35,8 @@ class RetiredAssetRoutesTest(PortfolioFixtureMixin, APITestCase):
             symbol="USDC", name="USD Coin", asset_type="stablecoin", decimals=6, is_verified=True
         )
         AssetChainDeployment.objects.create(asset=self.asset, chain="ethereum", decimals=6)
-        self.favourite = FavouriteAsset.objects.create(user_account=self.account, asset=self.asset)
         self.asset_snapshot = AssetSnapshot.objects.create(
             asset=self.asset, price=Decimal("1"), source_timestamp=timezone.now(), data_source="manual"
-        )
-        holding = Holding.objects.create(wallet=self.wallet, asset=self.asset, quantity=Decimal("12"))
-        self.holding_snapshot = HoldingSnapshot.objects.create(
-            holding=holding, quantity=Decimal("12"), snapshot_date=timezone.localdate(), snapshot_reason="DAILY"
         )
         self.portfolio.wallets.add(self.wallet)
 
@@ -62,8 +56,9 @@ class RetiredAssetRoutesTest(PortfolioFixtureMixin, APITestCase):
             with self.subTest(path=path):
                 self.assertIn(path.replace("{}", "{uuid}"), paths)
 
-    def test_valid_owned_identifiers_return_404_without_changing_retained_data(self):
-        before = {model: list(model.objects.values()) for model in (FavouriteAsset, AssetSnapshot, HoldingSnapshot)}
+    def test_retired_paths_return_404_without_changing_retained_data(self):
+        before = list(AssetSnapshot.objects.values())
+        favourite = uuid4()
         requests = (
             ("get", f"/api/assets/{self.asset.uuid}/", {}),
             ("get", f"/api/assets/{self.asset.uuid}/snapshots/", {}),
@@ -74,17 +69,15 @@ class RetiredAssetRoutesTest(PortfolioFixtureMixin, APITestCase):
                 "/api/favourite-assets/",
                 {"userAccount": str(self.account.uuid), "asset": str(self.asset.uuid)},
             ),
-            ("get", f"/api/favourite-assets/{self.favourite.uuid}/", {}),
-            ("delete", f"/api/favourite-assets/{self.favourite.uuid}/", {}),
+            ("get", f"/api/favourite-assets/{favourite}/", {}),
+            ("delete", f"/api/favourite-assets/{favourite}/", {}),
         )
 
         for method, path, payload in requests:
             with self.subTest(method=method, path=path):
                 response = getattr(self.client, method)(path, payload, format="json")
                 self.assertEqual(response.status_code, 404)
-        for model, rows in before.items():
-            with self.subTest(model=model.__name__):
-                self.assertEqual(list(model.objects.values()), rows)
+        self.assertEqual(list(AssetSnapshot.objects.values()), before)
 
     def test_catalogue_exchange_rates_and_portfolio_wallet_actions_still_work(self):
         response = self.client.get("/api/assets/", {"chain": "ethereum"})

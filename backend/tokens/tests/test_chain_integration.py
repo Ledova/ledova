@@ -1554,8 +1554,6 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual(holding.quantity, Decimal("40"))
         self.assertIsNotNone(holding.last_synced_at)
         self.assertIsNone(holding.market_value)
-        snapshot = holding.snapshots.get()
-        self.assertEqual((snapshot.quantity, snapshot.snapshot_reason), (Decimal("40"), "DAILY"))
         self.assertEqual(self._contract().functions.balanceOf(self.investor).call(), 40)
 
     def test_lost_deployment_receipt_keeps_the_original_hash_until_the_sweep_projects_it(self):

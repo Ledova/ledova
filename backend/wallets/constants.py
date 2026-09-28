@@ -19,12 +19,3 @@ TRANSACTION_STATUS_CHOICES = [
     (TRANSACTION_STATUS_REORGED, "Confirmed, then dropped by a chain reorganisation"),
     (TRANSACTION_STATUS_REPLACED, "Replaced by another transaction that landed instead"),
 ]
-
-
-SNAPSHOT_REASON_TRANSACTION = "TRANSACTION"
-SNAPSHOT_REASON_DAILY = "DAILY"
-
-SNAPSHOT_REASON_CHOICES = [
-    (SNAPSHOT_REASON_TRANSACTION, "Transaction"),
-    (SNAPSHOT_REASON_DAILY, "Daily"),
-]

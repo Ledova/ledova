@@ -22,7 +22,6 @@ class WalletsAdminPagesTest(TestCase):
         self.instances = [
             self.tenant.wallet,
             self.tenant.holding,
-            self.tenant.holding_snapshot,
             self.tenant.transaction,
         ]
 

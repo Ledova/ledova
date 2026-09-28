@@ -3,11 +3,9 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from assets.models import Asset
 from portfolios.models import Portfolio
 from users.models import (
     DeviceToken,
-    FavouriteAsset,
     FinancialProfile,
     InvestorCategory,
     InvestorClassification,
@@ -36,14 +34,12 @@ class UsersAdminPagesTest(TestCase):
         profile = UserProfile.objects.create(user=user, full_name="Member", phone_country_code="+61", phone_number="4")
         account = UserAccount.objects.create(account_number="ADMIN-ACC", user_profile=profile)
         portfolio = Portfolio.objects.create(user_account=account, name="Admin portfolio")
-        asset = Asset.objects.create(symbol="ADM", name="Admin asset", asset_type="tokenized_security", is_active=True)
         self.instances = [
             profile,
             account,
             FinancialProfile.objects.create(user_profile=profile, occupation="Tester"),
             UserPreferences.objects.create(user_profile=profile, selected_portfolio=portfolio),
             NotificationPreferences.objects.create(user_profile=profile),
-            FavouriteAsset.objects.create(user_account=account, asset=asset),
             DeviceToken.objects.create(user=user, push_token="ExponentPushToken[admin]", device_type="ios"),
             Notification.objects.create(user=user, title="Hello", body="Body"),
             InvestorClassification.objects.create(

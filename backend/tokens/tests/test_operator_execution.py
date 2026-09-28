@@ -37,7 +37,7 @@ from tokens.tests.issuance_fixtures import (
     IssuanceNode,
     admit,
 )
-from wallets.models import Holding, HoldingSnapshot
+from wallets.models import Holding
 from whitelist.models import WhitelistEntry
 
 
@@ -116,7 +116,6 @@ class OperatorExecutionFromScopedContextTest(RunsOnTheScopedConnection, Transact
             self.assertEqual(issuance.initiated_by_id, self.staff.pk)
             holding = Holding.objects.get(wallet=self.investor.wallet, asset=self.issuer.refs.spare_asset)
             self.assertEqual(holding.quantity, Decimal("10"))
-            self.assertTrue(HoldingSnapshot.objects.filter(holding=holding, quantity=Decimal("10")).exists())
         self.node.client.send_raw_transaction.assert_called_once()
         self.assert_operator_writes()
 

@@ -12,7 +12,6 @@ from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from wallets.models import (
     Holding,
-    HoldingSnapshot,
     Transaction,
     Wallet,
     WalletSubmission,
@@ -94,7 +93,6 @@ class SubmissionFixture:
             return (
                 list(Transaction.objects.filter(wallet=self.wallet).order_by("pk").values()),
                 list(Holding.objects.filter(wallet=self.wallet).order_by("pk").values()),
-                list(HoldingSnapshot.objects.filter(holding__wallet=self.wallet).order_by("pk").values()),
             )
 
     def submission(self):

@@ -10,7 +10,7 @@ from rest_framework.test import APITransactionTestCase
 
 from shared.db import acting_for, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
-from wallets.models import Holding, HoldingSnapshot, Transaction
+from wallets.models import Holding, Transaction
 from wallets.services import transaction_confirmation
 from wallets.services.chain_observations import (
     claim_chain_observation,
@@ -111,7 +111,6 @@ class WalletFinalityChecks(WalletFinalityFixture):
             self.holding.refresh_from_db()
             self.assertEqual(self.holding.sync_version, sync_version)
             self.assertNotEqual(self.holding.balance_version, balance_version)
-            self.assertEqual(HoldingSnapshot.objects.get(holding=self.holding).quantity, Decimal("6"))
 
     def test_confirmed_transfer_keeps_maximum_fee_held_until_balance_repair_succeeds(self):
         self.observer.get_transaction_receipt.return_value["effectiveGasPrice"] = 10**9

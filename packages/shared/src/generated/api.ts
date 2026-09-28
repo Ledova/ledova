@@ -5038,7 +5038,6 @@ export interface ApiComponents {
     WalletSyncResult: {
       error?: string;
       holdings?: number;
-      snapshots?: number;
       status: ApiComponents['schemas']['WalletSyncResultStatusEnum'];
       transactions?: number;
     };

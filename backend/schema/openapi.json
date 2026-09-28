@@ -13056,9 +13056,6 @@
           "holdings": {
             "type": "integer"
           },
-          "snapshots": {
-            "type": "integer"
-          },
           "status": {
             "$ref": "#/components/schemas/WalletSyncResultStatusEnum"
           },
