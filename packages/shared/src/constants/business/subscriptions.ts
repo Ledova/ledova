@@ -2,8 +2,6 @@ import type { ApiComponents } from '../../generated/api';
 
 export type SubscriptionStatus = ApiComponents['schemas']['SubscriptionStatusEnum'];
 
-export type SettlementRail = ApiComponents['schemas']['SettlementRailEnum'];
-
 export const SUBSCRIPTION_ENDPOINTS = {
   BASE: '/api/v1/subscriptions/',
   DETAIL: (uuid: string) => `/api/v1/subscriptions/${uuid}/` as const,

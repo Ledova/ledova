@@ -15,8 +15,5 @@ export default defineConfig(({ mode }) => {
         usePolling: true,
       },
     },
-    define: {
-      __APP_ENV__: JSON.stringify(env.APP_ENV),
-    },
   };
 });

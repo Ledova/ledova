@@ -33,5 +33,3 @@ export function useThemedStyles<T extends StyleSheet.NamedStyles<T>>(stylesFn: (
 export const overlayColors = {
   modal: 'rgba(0, 0, 0, 0.5)',
 } as const;
-
-export const createStyles = StyleSheet.create;

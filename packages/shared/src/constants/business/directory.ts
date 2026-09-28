@@ -27,7 +27,6 @@ export const OFFERING_EXEMPTION_LABELS: Record<OfferingExemption, string> = {
   s761g_wholesale_client: 'Wholesale client (s761G)',
 };
 
-export const OFFERING_EDITABLE_STATUSES: OfferingStatus[] = ['draft'];
 export const OFFERING_WITHDRAWABLE_STATUSES: OfferingStatus[] = ['draft', 'submitted', 'under_review', 'rejected'];
 
 export const DIRECTORY_COPY = {

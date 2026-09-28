@@ -15,8 +15,6 @@ export type OrderActionChallenge = ApiSchema<'OrderActionChallenge'>;
 
 export type OrderActionChange = ApiSchema<'OrderActionChange'>;
 
-export type OrderActionResult = ApiSchema<'OrderActionAppliedResult'>;
-
 export type OrderActionSnapshot = ApiResponse<'api_v1_trading_orders_actions_retrieve'>;
 
 export type OrderActionRequest = ApiRequest<'api_v1_trading_orders_cancel_message_create'>;

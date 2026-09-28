@@ -1,5 +1,4 @@
 import type { ApiSchema, ApiResponse } from '../contracts';
-export type KYCProvider = ApiSchema<'KycProviderEnum'>;
 
 export type VerificationStatus = ApiSchema<'UserProfile'>['verificationStatus'];
 
