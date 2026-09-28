@@ -58,6 +58,21 @@ missing count as 0 and show nothing in its place. No database migration is neede
   `DeleteModel`, so reversing them recreates the two tables empty and outside
   the policy catalogue, and none of the rows. Export anything in either table
   worth keeping before applying them.
+- `users/0027_transaction_alerts_on_user_preferences` moves the transaction-alerts
+  switch onto `users_userpreferences`: it adds the `transaction_alerts` column,
+  on by default, copies each `users_notification_preferences` row's value onto
+  the same person's preferences row, creating that row with the model defaults
+  when the person had none, then drops `users_notification_preferences`. A
+  person with no notification row keeps the default. `/api/notification-preferences/`
+  returns 404; `/api/user-preferences/` carries `transactionAlerts` instead, and
+  the notification-preferences admin page and its bulk actions are gone.
+  `shared/0014_policies_without_notification_preferences` reinstalls the
+  row-level-security catalogue without the dropped table's policies and runs
+  after it. **Reversal does not restore data.** The copy step reverses as a
+  no-op and the column drop takes every carried value with it, so reversing
+  recreates `users_notification_preferences` empty and outside the policy
+  catalogue and puts everyone back on the default. Export that table before
+  applying the migration if you may need to reverse it.
 - `companies/0004_company_additional_info_response` stores the applicant's
   answer to a request for more information.
 - `tokens/0035_trading_state_invariants` checks existing order/swap amounts,

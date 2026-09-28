@@ -24,6 +24,7 @@ export function useUserPreferences() {
     selectedPortfolio: preferences?.selectedPortfolio ?? null,
     userAccount: preferences?.userAccount ?? null,
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
     isError: query.isError,
     error: query.error,
     refetch: query.refetch,

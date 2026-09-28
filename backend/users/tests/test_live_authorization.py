@@ -11,7 +11,6 @@ from users.models import (
     DeviceToken,
     FinancialProfile,
     Notification,
-    NotificationPreferences,
     UserAccount,
     UserPreferences,
     UserProfile,
@@ -144,7 +143,6 @@ class UserLiveAuthorizationTest(APITestCase):
             FinancialProfile.objects,
             UserPreferences.objects,
             Notification.objects,
-            NotificationPreferences.objects,
             DeviceToken.objects,
         )
         seen = [

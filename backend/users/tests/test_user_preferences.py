@@ -30,7 +30,9 @@ class UserPreferencesEndpointTest(APITestCase):
         self.assertEqual(created.status_code, 200, created.content)
 
         body = self.client.get("/api/user-preferences/").json()
-        self.assertEqual(set(body), {"uuid", "userProfile", "userAccount", "selectedPortfolio", "theme"})
+        self.assertEqual(
+            set(body), {"uuid", "userProfile", "userAccount", "selectedPortfolio", "theme", "transactionAlerts"}
+        )
         self.assertEqual(set(body["userAccount"]), {"uuid", "accountNumber", "accountType", "activationDate", "role"})
         self.assertEqual(body["userAccount"]["uuid"], str(self.account.uuid))
         self.assertEqual(set(body["selectedPortfolio"]), {"uuid", "userAccount", "name", "isActive"})
@@ -60,3 +62,13 @@ class UserPreferencesEndpointTest(APITestCase):
 
         self.assertEqual(preferences.selected_portfolio, self.foreign_portfolio)
         self.assertIsNone(self.client.get("/api/user-preferences/").json()["selectedPortfolio"])
+
+    def test_transaction_alerts_default_on_and_switch_off_through_the_upsert(self):
+        created = self.post(theme="light").json()
+        self.assertIs(created["transactionAlerts"], True)
+
+        switched = self.post(transactionAlerts=False).json()
+
+        self.assertEqual((switched["transactionAlerts"], switched["theme"]), (False, "light"))
+        self.assertFalse(UserPreferences.objects.get(user_profile=self.profile).transaction_alerts)
+        self.assertIs(self.client.get("/api/user-preferences/").json()["transactionAlerts"], False)

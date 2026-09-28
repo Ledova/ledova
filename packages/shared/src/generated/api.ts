@@ -287,38 +287,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/notification-preferences/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_notification_preferences_list'];
-    put?: never;
-    post: ApiOperations['api_notification_preferences_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/notification-preferences/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_notification_preferences_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch: ApiOperations['api_notification_preferences_partial_update'];
-    trace?: never;
-  };
   '/api/notifications/': {
     parameters: {
       query?: never;
@@ -3314,16 +3282,6 @@ export interface ApiComponents {
       updatedAt: string;
       uuid: string;
     };
-    NotificationPreferences: {
-      createdAt: string;
-      transactionAlerts?: boolean;
-      updatedAt: string;
-      userProfile: string;
-      uuid: string;
-    };
-    NotificationPreferencesRequest: {
-      transactionAlerts?: boolean;
-    };
     NotificationRequest: {
       isArchived?: boolean;
       isRead?: boolean;
@@ -3812,9 +3770,6 @@ export interface ApiComponents {
       sourceOfFunds?: unknown;
       sourceOfFundsOtherText?: string | null;
     };
-    PatchedNotificationPreferencesRequest: {
-      transactionAlerts?: boolean;
-    };
     PatchedNotificationRequest: {
       isArchived?: boolean;
       isRead?: boolean;
@@ -3846,6 +3801,7 @@ export interface ApiComponents {
     PatchedUserPreferencesRequest: {
       selectedPortfolio?: string | null;
       theme?: ApiComponents['schemas']['ThemeEnum'];
+      transactionAlerts?: boolean;
     };
     PatchedUserProfileRequest: {
       citizenshipCountry?: string;
@@ -4919,6 +4875,7 @@ export interface ApiComponents {
     UserPreferences: {
       selectedPortfolio: ApiComponents['schemas']['SelectedPortfolio'] | null;
       theme?: ApiComponents['schemas']['ThemeEnum'];
+      transactionAlerts?: boolean;
       userAccount: ApiComponents['schemas']['AccountSummary'] | null;
       userProfile: string;
       uuid: string;
@@ -4926,6 +4883,7 @@ export interface ApiComponents {
     UserPreferencesRequest: {
       selectedPortfolio?: string | null;
       theme?: ApiComponents['schemas']['ThemeEnum'];
+      transactionAlerts?: boolean;
     };
     UserProfile: {
       citizenshipCountry: string | null;
@@ -5699,101 +5657,6 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['InvestorEligibility'];
-        };
-      };
-    };
-  };
-  api_notification_preferences_list: {
-    parameters: {
-      query?: {
-        ordering?: string;
-        page?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['NotificationPreferences'];
-        };
-      };
-    };
-  };
-  api_notification_preferences_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: {
-      content: {
-        'application/json': ApiComponents['schemas']['NotificationPreferencesRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['NotificationPreferencesRequest'];
-        'multipart/form-data': ApiComponents['schemas']['NotificationPreferencesRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['NotificationPreferences'];
-        };
-      };
-    };
-  };
-  api_notification_preferences_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['NotificationPreferences'];
-        };
-      };
-    };
-  };
-  api_notification_preferences_partial_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: {
-      content: {
-        'application/json': ApiComponents['schemas']['PatchedNotificationPreferencesRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['PatchedNotificationPreferencesRequest'];
-        'multipart/form-data': ApiComponents['schemas']['PatchedNotificationPreferencesRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['NotificationPreferences'];
         };
       };
     };

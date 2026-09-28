@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
+import { ApiClientProvider, AUTH_QUERY_KEY, USER_PREFERENCES_QUERY_KEY } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { clearTokens } from '../../services/tokenStorage';
 import { resetFiles } from '../../testSupport/documentFiles';
@@ -29,7 +30,7 @@ jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), patc
 jest.mock('../../services/tokenStorage', () => ({ clearTokens: jest.fn() }));
 
 const PROFILE = '/api/user-profiles/';
-const PREFERENCES = '/api/notification-preferences/';
+const PREFERENCES = '/api/user-preferences/';
 const PASSWORD = '/api/change-password/';
 const DELETE = '/api/user-profiles/delete-account/';
 const EXPORT = '/api/user-profiles/export-data/';
@@ -61,6 +62,7 @@ beforeEach(() => {
   client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false, gcTime: Infinity } },
   });
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   profileFailure = false;
   preferencesFailure = false;
   transactionAlerts = false;
@@ -93,7 +95,11 @@ afterEach(async () => {
 });
 
 async function screen(element: React.ReactElement) {
-  return render(<QueryClientProvider client={client}>{element}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>{element}</ApiClientProvider>
+    </QueryClientProvider>,
+  );
 }
 
 async function settingsScreen() {
@@ -193,7 +199,7 @@ it('suppresses stale notification controls after a failed refresh', async () => 
   const view = await settingsScreen();
   expect(view.getByLabelText('Transaction alerts').props.value).toBe(true);
   preferencesFailure = true;
-  await act(() => client.invalidateQueries({ queryKey: ['notificationPreferences'] }));
+  await act(() => client.invalidateQueries({ queryKey: USER_PREFERENCES_QUERY_KEY }));
   expect(await view.findByText('Your notification settings could not be loaded.')).toBeTruthy();
   expect(view.queryByLabelText('Transaction alerts')).toBeNull();
 });

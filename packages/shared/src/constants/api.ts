@@ -64,10 +64,6 @@ export const DEVICE_TOKEN_ENDPOINTS = {
   UNREGISTER: '/api/device-tokens/unregister/',
 } as const;
 
-export const NOTIFICATION_PREFERENCES_ENDPOINTS = {
-  BASE: '/api/notification-preferences/',
-} as const;
-
 export const NOTIFICATION_ENDPOINTS = {
   BASE: '/api/notifications/',
   DETAIL: (uuid: string) => `/api/notifications/${uuid}/` as const,

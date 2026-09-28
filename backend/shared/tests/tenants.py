@@ -41,7 +41,6 @@ from users.models import (
     InvestorClassification,
     InvestorClassificationStatus,
     Notification,
-    NotificationPreferences,
     UserAccount,
     UserPreferences,
     UserProfile,
@@ -172,7 +171,6 @@ def make_tenant(label, *, staff=False, superuser=False, with_swap=True):
     preferences = UserPreferences.objects.create(user_profile=profile, selected_portfolio=portfolio)
     device_token = DeviceToken.objects.create(user=user, push_token=f"ExponentPushToken[{label}]", device_type="ios")
     notification = Notification.objects.create(user=user, title=f"For {label}", body="Body")
-    notification_preferences = NotificationPreferences.objects.create(user_profile=profile)
     investor_classification = InvestorClassification.objects.create(
         user_account=account,
         category=InvestorCategory.PROFESSIONAL_INVESTOR,
@@ -299,7 +297,6 @@ def make_tenant(label, *, staff=False, superuser=False, with_swap=True):
         preferences=preferences,
         device_token=device_token,
         notification=notification,
-        notification_preferences=notification_preferences,
         investor_classification=investor_classification,
         company=company,
         company_document=company_document,
