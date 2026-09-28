@@ -41,7 +41,7 @@ export const useIdentityVerification = (enabled = true) => {
     setIsContinuing(true);
     try {
       await refetchStatus();
-      queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
       return true;
     } catch {
       return false;

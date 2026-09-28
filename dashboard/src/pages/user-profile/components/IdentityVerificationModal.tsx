@@ -43,7 +43,7 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
   useEffect(() => {
     if (justSubmitted && !isVerified) {
       const timer = setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+        queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
         onClose();
       }, 3000);
       return () => clearTimeout(timer);

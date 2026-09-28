@@ -3,7 +3,6 @@ import { View, ActivityIndicator, Text } from 'react-native';
 import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
-import { invalidateHomeDashboard } from '../../../utils/queryInvalidation';
 import WebView from 'react-native-webview';
 import type { WebViewMessageEvent } from 'react-native-webview';
 import { GradientBackground } from '../../../components/GradientBackground';
@@ -79,7 +78,6 @@ export function OnRampWebViewScreen() {
   const handleComplete = () => {
     outcome.lifetime.retire();
     queryClient.invalidateQueries({ queryKey: ['wallets'] });
-    invalidateHomeDashboard(queryClient);
     handleClose();
   };
 

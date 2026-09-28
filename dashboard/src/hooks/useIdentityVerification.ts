@@ -49,7 +49,7 @@ export function useIdentityVerification() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['identity-verification', 'status'] });
-      queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
     },
   });
 
@@ -66,7 +66,7 @@ export function useIdentityVerification() {
     if (justSubmitted && (isVerified || isRejected)) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setJustSubmitted(false);
-      queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
     }
   }, [justSubmitted, isVerified, isRejected, queryClient]);
 
