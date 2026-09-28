@@ -199,6 +199,25 @@ it('does not install or invalidate queries for a launch whose owner unmounted', 
   expect(invalidate).not.toHaveBeenCalled();
 });
 
+it('refreshes the verification status and the profile after a launch and once the review completes', async () => {
+  const invalidate = jest.spyOn(client, 'invalidateQueries');
+  const { result } = await renderHook(() => useIdentityVerification(), { wrapper });
+  await act(async () => {
+    await result.current!.launchVerification();
+  });
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: ['identity-verification', 'status'] });
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: ['userProfiles'] });
+  invalidate.mockClear();
+  await act(() => result.current!.handleFormComplete());
+  expect(invalidate).not.toHaveBeenCalled();
+  get.mockResolvedValue({ data: { isVerified: true, status: 'completed' } });
+  await act(async () => {
+    await result.current!.refetchStatus();
+  });
+  await waitFor(() => expect(result.current!.justSubmitted).toBe(false));
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: ['userProfiles'] });
+});
+
 it('keeps hidden owners idle and retires a launch when visibility or focus is lost', async () => {
   const pending = deferred();
   const { result, rerender } = await renderHook(

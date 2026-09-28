@@ -18,7 +18,6 @@ export function useCompanyDocuments() {
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ['company', owner] }),
       queryClient.invalidateQueries({ queryKey: ['companies'] }),
-      queryClient.invalidateQueries({ queryKey: ['company-documents', owner] }),
     ]);
   const uploadMutation = useMutation({
     mutationFn: ({

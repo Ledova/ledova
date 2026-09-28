@@ -121,7 +121,7 @@ it('delivers one current completion and removes its native view', async () => {
     await message(current);
   });
   expect(mockGoBack).toHaveBeenCalledTimes(1);
-  expect(mockInvalidate).toHaveBeenCalled();
+  expect(mockInvalidate.mock.calls).toEqual([[{ queryKey: ['wallets'] }]]);
   expect(mockViews.size).toBe(0);
 });
 

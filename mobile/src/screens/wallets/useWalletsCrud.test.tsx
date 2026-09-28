@@ -47,14 +47,16 @@ describe('wallet sync feedback through the shared service', () => {
     expect(result.current?.syncingWalletIds.size).toBe(0);
   });
 
-  it('refreshes a successful sync without an error alert', async () => {
+  it('refreshes the wallets and transactions after a successful sync without an error alert', async () => {
     post.mockResolvedValue({ data: { success: true, syncResult: { status: 'success' } } });
     const { result } = await renderHook(() => useWalletsCrud(), { wrapper });
     await waitFor(() => expect(result.current?.isLoading).toBe(false));
+    const invalidated = jest.spyOn(client, 'invalidateQueries');
     await act(async () => {
       await result.current!.syncWallet('wallet-1');
     });
     expect(Alert.alert).not.toHaveBeenCalled();
+    expect(invalidated.mock.calls).toEqual([[{ queryKey: ['wallets'] }], [{ queryKey: ['all-transactions'] }]]);
   });
 
   it('tracks concurrent wallets independently and reuses an already pending request', async () => {

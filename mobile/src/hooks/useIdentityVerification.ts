@@ -86,7 +86,7 @@ export function useIdentityVerification(enabled = true) {
       // eslint-disable-next-line react-hooks/immutability
       submission.justSubmitted = false;
       render();
-      queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
     }
   }, [justSubmitted, isVerified, isRejected, queryClient, scope, submission]);
 
@@ -124,7 +124,7 @@ export function useIdentityVerification(enabled = true) {
       const data = await tokenMutation.mutateAsync();
       if (!currentLaunch()) return;
       queryClient.invalidateQueries({ queryKey: ['identity-verification', 'status'] });
-      queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
       scope.formUrl = data?.formUrl ?? null;
       scope.accessToken = scope.formUrl ? null : (data?.accessToken ?? null);
     } catch (error: unknown) {
