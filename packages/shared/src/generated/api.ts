@@ -3403,7 +3403,6 @@ export interface ApiComponents {
       maximumShares?: number | null;
       minimumShares: number;
       opensAt: string;
-      priceCurrency?: ApiComponents['schemas']['PriceCurrencyEnum'];
       pricePerShare: string;
       settlementAssets?: string[];
       summary?: string;
@@ -3829,7 +3828,6 @@ export interface ApiComponents {
       maximumShares?: number | null;
       minimumShares?: number;
       opensAt?: string;
-      priceCurrency?: ApiComponents['schemas']['PriceCurrencyEnum'];
       pricePerShare?: string;
       settlementAssets?: string[];
       summary?: string;
