@@ -1,4 +1,4 @@
-import type { DocumentType } from '@ledova/shared';
+import type { DocumentType } from '../../types/domain/company';
 
 export const REQUIRED_DOCUMENTS: { type: DocumentType; label: string }[] = [
   { type: 'cert_inc', label: 'Certificate of Incorporation' },

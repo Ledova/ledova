@@ -12,17 +12,19 @@ import {
 } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 import {
+  MAX_REQUEST_SHARES,
   createCapitalIncrease,
   formatShareCount,
   getErrorMessage,
   issueCompanyShares,
+  raisedSupply,
+  requestShares,
   type CompanyShareToken,
 } from '@ledova/shared';
 import { useAppTheme, overlayColors } from '../../contexts';
 import { Section, Action } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { useCompanyStyles } from '../company-register/styles';
-import { MAX_REQUEST_SHARES, raisedSupply, requestShares } from './shareQuantities';
 
 function RequestModal({ onClose, children }: { onClose: () => void; children: ReactNode }) {
   const theme = useAppTheme();

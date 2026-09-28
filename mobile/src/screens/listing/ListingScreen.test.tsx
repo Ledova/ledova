@@ -1,9 +1,9 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { REQUIRED_DOCUMENTS } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { ListingScreen } from '.';
-import { REQUIRED_DOCUMENTS } from './documents';
 
 const mockNavigate = jest.fn();
 let mockRole = 'company';

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Switch, Text, TextInput, View } from 'react-native';
 import {
   OFFERING_EXEMPTION_LABELS,
+  requestShares,
   type CompanyShareTokenListItem,
   type Offering,
   type OfferingExemption,
@@ -10,7 +11,6 @@ import {
 } from '@ledova/shared';
 import { Action } from '../../components/Ledger';
 import { useCompanyStyles } from '../company-register/styles';
-import { requestShares } from '../company-tokens/shareQuantities';
 import { OfferingDateField } from './OfferingDateField';
 
 export function OfferingForm({
