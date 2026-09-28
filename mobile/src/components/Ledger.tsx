@@ -57,11 +57,13 @@ export function LinkRow({
   label,
   onPress,
   accessibilityLabel,
+  last = false,
   children,
 }: {
   label: string;
   onPress: () => void;
   accessibilityLabel?: string;
+  last?: boolean;
   children?: ReactNode;
 }) {
   const theme = useAppTheme();
@@ -71,7 +73,7 @@ export function LinkRow({
       alignItems: 'center' as const,
       gap: 12,
       paddingVertical: 12,
-      borderBottomWidth: 1,
+      borderBottomWidth: last ? 0 : 1,
       borderBottomColor: theme.colors.border.subtle,
     },
     text: { flex: 1, gap: 4 },

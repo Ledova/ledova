@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
 import { InvestorEligibilityScreen } from './index';
+import { CATEGORIES } from './constants';
 import { apiClient } from '../../services/apiClient';
 import { files, pickedFile, resetFiles } from '../../testSupport/documentFiles';
 
@@ -92,6 +93,17 @@ async function refresh() {
     ]);
   });
 }
+
+it('ends the categories and claims cards on their last item without a rule above the card edge', async () => {
+  claimPages = { 1: { results: [claim('first'), claim('second')], next: null } };
+  const view = await page();
+  const attach = (label: string) => view.getByLabelText(`Attach evidence for ${label}`).parent;
+  expect(await view.findByText('Evidence second')).toBeTruthy();
+  expect(attach(CATEGORIES[0].label)).toHaveStyle({ borderBottomWidth: 1 });
+  expect(attach(CATEGORIES.at(-1)!.label)).toHaveStyle({ borderBottomWidth: 0 });
+  expect(view.getByText('Evidence first').parent).toHaveStyle({ borderBottomWidth: 1 });
+  expect(view.getByText('Evidence second').parent).toHaveStyle({ borderBottomWidth: 0 });
+});
 
 it('reads later claim pages and blocks a duplicate claim without changing the documents cache', async () => {
   claimPages = {

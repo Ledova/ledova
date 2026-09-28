@@ -205,8 +205,8 @@ export function InvestorEligibilityScreen() {
                   Your evidence is awaiting review. Withdraw that claim before submitting another.
                 </Text>
               )}
-              {CATEGORIES.map((item) => (
-                <View key={item.category} style={styles.item}>
+              {CATEGORIES.map((item, index) => (
+                <View key={item.category} style={[styles.item, index === CATEGORIES.length - 1 && styles.lastItem]}>
                   <Text style={styles.label}>
                     {item.label} ({item.section})
                   </Text>
@@ -227,8 +227,8 @@ export function InvestorEligibilityScreen() {
               {classifications.length === 0 ? (
                 <Text style={styles.message}>You have not made a claim yet.</Text>
               ) : (
-                classifications.map((claim) => (
-                  <View key={claim.uuid} style={styles.item}>
+                classifications.map((claim, index) => (
+                  <View key={claim.uuid} style={[styles.item, index === classifications.length - 1 && styles.lastItem]}>
                     <Text style={styles.label}>{claim.categoryDisplay}</Text>
                     <Row label="Status">{claimState(claim)}</Row>
                     <Row label="Submitted">{formatDate(claim.createdAt)}</Row>
@@ -411,6 +411,7 @@ function useStyles() {
     error: { fontFamily: theme.fontFamily.regular, fontSize: 15, color: theme.colors.status.error.text },
     group: { gap: 12 },
     item: { gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.border.subtle },
+    lastItem: { paddingBottom: 0, borderBottomWidth: 0 },
     overlay: { flex: 1, backgroundColor: overlayColors.modal, justifyContent: 'center' as const },
     backdrop: { position: 'absolute' as const, top: 0, left: 0, right: 0, bottom: 0 },
     modalPosition: { maxHeight: '100%' as const, padding: 16, alignItems: 'center' as const },

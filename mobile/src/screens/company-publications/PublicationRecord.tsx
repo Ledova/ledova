@@ -70,7 +70,7 @@ export function PublicationRecord({
   return (
     <Section title={publication.title}>
       <Text style={styles.muted}>{PUBLICATION_KIND_LABELS[publication.kind]}</Text>
-      <Text style={styles.heading}>{publication.companyName}</Text>
+      <Text style={styles.text}>{publication.companyName}</Text>
       <Text style={styles.muted}>
         {publication.tokenName} ({publication.tokenSymbol})
       </Text>

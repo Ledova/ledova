@@ -82,6 +82,7 @@ export function CompanyRegisterScreen() {
                       label="Share class"
                       accessibilityLabel={`Open ${register.token.name}`}
                       onPress={() => navigation.navigate('TokenDetail', { uuid, name: register.token.name })}
+                      last={!open}
                     />
                     {open && <ClassRegister register={register} />}
                   </View>
