@@ -13,7 +13,8 @@ let mockAccessError = false;
 const mockNavigate = jest.fn();
 const mockRetryAccess = jest.fn();
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: mockNavigate }) }));
-jest.mock('../../hooks/useUserPreferences', () => ({
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
   useUserPreferences: () => ({
     userAccount: { role: mockRole },
     isLoading: false,

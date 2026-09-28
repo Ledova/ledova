@@ -4,8 +4,7 @@ import type { PropsWithChildren } from 'react';
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { AUTH_ENDPOINTS } from '@ledova/shared';
-import { AUTH_QUERY_KEY } from '@hooks/useAuth';
+import { AUTH_ENDPOINTS, AUTH_QUERY_KEY } from '@ledova/shared';
 import { useSignupEmailConfirmation } from './useSignupEmailConfirmation';
 
 const api = vi.hoisted(() => ({ post: vi.fn() }));

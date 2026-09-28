@@ -21,7 +21,7 @@ import {
   validateWalletAddress,
   parseFiatValue,
 } from '@ledova/shared';
-import { useCurrency } from '@hooks/useCurrency';
+import { useCurrency } from '@ledova/shared';
 import type { Wallet, WhitelistStatus } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { useQRScanner, QRScannerView } from '@components/qr';

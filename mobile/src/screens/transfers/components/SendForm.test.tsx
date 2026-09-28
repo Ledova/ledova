@@ -1,7 +1,8 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import type { TransferableAsset } from '@ledova/shared';
 
-jest.mock('../../../hooks/useCurrency', () => ({
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
   useCurrency: () => ({ formatDisplayCurrency: (value: number) => `$${value.toFixed(2)}` }),
 }));
 

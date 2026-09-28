@@ -9,7 +9,8 @@ import { ASSET_ENDPOINTS, WALLET_ENDPOINTS } from '@ledova/shared';
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 const currency = vi.hoisted(() => ({ rate: 2 }));
 vi.mock('@services/apiClient', () => ({ default: api }));
-vi.mock('@hooks/useCurrency', () => ({
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
   useCurrency: () => ({
     exchangeRate: currency.rate,
     formatDisplayCurrency: (value: number) => `A$${value * currency.rate}`,

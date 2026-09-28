@@ -6,9 +6,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import type { AxiosInstance } from 'axios';
-import { ApiClientProvider, AUTH_ENDPOINTS } from '@ledova/shared';
+import { ApiClientProvider, AUTH_ENDPOINTS, AUTH_QUERY_KEY, useAuth } from '@ledova/shared';
 import { SignOutButton } from '@components/SignOutButton';
-import { AUTH_QUERY_KEY, useAuth } from './useAuth';
 import { useSignOut } from './useSignOut';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));

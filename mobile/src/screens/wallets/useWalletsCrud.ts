@@ -13,7 +13,7 @@ import {
 } from '@ledova/shared';
 import type { CreateWallet, Wallet } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { useUserPreferences } from '../../hooks/useUserPreferences';
+import { useUserPreferences } from '@ledova/shared';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 
 export function useWalletsCrud() {

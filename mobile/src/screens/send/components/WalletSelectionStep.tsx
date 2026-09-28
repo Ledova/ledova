@@ -14,10 +14,10 @@ import {
   formatWalletAddressShort,
   formatCryptoBalance,
   formatSyncAge,
+  useCurrency,
 } from '@ledova/shared';
 import type { Wallet } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
-import { useCurrency } from '../../../hooks/useCurrency';
 
 interface WalletSelectionStepProps {
   wallets: Wallet[];

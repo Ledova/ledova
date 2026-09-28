@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { USER_PREFERENCES_QUERY_KEY, upsertCurrentUserPreferences } from '@ledova/shared';
+import { USER_PREFERENCES_QUERY_KEY, upsertCurrentUserPreferences, useUserPreferences } from '@ledova/shared';
 import { Action, Section } from '../../components/Ledger';
 import { useAppLock } from '../../contexts';
-import { useUserPreferences } from '../../hooks/useUserPreferences';
 import { apiClient } from '../../services/apiClient';
 import { AccountModal } from '../account/AccountModal';
 import { useAccountStyles } from '../account/styles';

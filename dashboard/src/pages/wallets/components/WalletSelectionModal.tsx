@@ -10,7 +10,7 @@ import {
   WALLET_SIGNING_PREFERENCE,
   getWalletSigningPreferenceLabel,
 } from '@ledova/shared';
-import { useCurrency } from '@hooks/useCurrency';
+import { useCurrency } from '@ledova/shared';
 import type { Wallet } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { WalletBadge } from '@components/Wallet';

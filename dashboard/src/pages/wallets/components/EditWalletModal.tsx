@@ -19,7 +19,7 @@ import {
   getWalletSigningPreferenceLabel,
   DESIGN_TOKENS,
 } from '@ledova/shared';
-import { useCurrency } from '@hooks/useCurrency';
+import { useCurrency } from '@ledova/shared';
 
 const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
 import type { Wallet as WalletType } from '@ledova/shared';

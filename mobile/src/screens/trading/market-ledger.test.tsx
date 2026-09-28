@@ -24,7 +24,8 @@ jest.mock('../../components/Ledger', () => {
   return { ...actual, Action: jest.fn(actual.Action) };
 });
 jest.mock('../../services/apiClient', () => ({ apiClient: jest.requireActual('axios').default.create() }));
-jest.mock('../../hooks/useUserPreferences', () => ({
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
   useUserPreferences: () => ({ userAccount: { uuid: '20000000-0000-4000-8000-000000000001' }, isLoading: false }),
 }));
 let client: QueryClient;

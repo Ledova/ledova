@@ -16,7 +16,7 @@ import {
 } from '@ledova/shared';
 import type { WalletsStackParamList } from '../../../navigation/WalletsStackNavigator';
 import { Section, Row, Action } from '../../../components/Ledger';
-import { useCurrency } from '../../../hooks/useCurrency';
+import { useCurrency } from '@ledova/shared';
 import { DeleteWalletModal } from './DeleteWalletModal';
 import { DeriveAddressModal } from './DeriveAddressModal';
 import { useWalletsCrud } from '../useWalletsCrud';

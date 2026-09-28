@@ -12,7 +12,7 @@ import { useWallets } from './useWallets';
 import { useWalletsCrud } from './useWalletsCrud';
 import { WalletsPage, useWalletStyles } from './WalletsPage';
 import { walletBalance } from './presentation';
-import { useCurrency } from '../../hooks/useCurrency';
+import { useCurrency } from '@ledova/shared';
 
 export function WalletsScreen() {
   const styles = useWalletStyles();

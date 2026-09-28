@@ -12,7 +12,10 @@ type Deferred = { promise: Promise<unknown>; resolve: (value: unknown) => void }
 const pending = vi.hoisted(() => new Map<string, Deferred>());
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
-vi.mock('@hooks/useAuth', () => ({ useAuth: () => ({ isAuthenticated: true, isLoading: false, isFetching: false }) }));
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
+  useAuth: () => ({ isAuthenticated: true, isLoading: false, isFetching: false }),
+}));
 vi.mock('@pages/wallets/components/BuyCryptoModal', () => ({ BuyCryptoModal: () => null }));
 vi.mock('@hooks/useSendTransfer', () => ({ SendTransferProvider: ({ children }: PropsWithChildren) => children }));
 vi.mock('@components/Sidebar', () => ({ Sidebar: () => <nav aria-label="Sidebar" /> }));

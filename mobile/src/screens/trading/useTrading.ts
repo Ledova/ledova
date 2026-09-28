@@ -14,7 +14,7 @@ import {
 } from '@ledova/shared';
 import type { Wallet, WhitelistStatus, WalletTokenBalance } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { useUserPreferences } from '../../hooks/useUserPreferences';
+import { useUserPreferences } from '@ledova/shared';
 import { allMarketPages } from './marketData';
 
 export const tradingQueryKeys = {

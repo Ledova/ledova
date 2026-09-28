@@ -1,7 +1,6 @@
 import { Navigate } from 'react-router-dom';
-import { landingFor } from '@ledova/shared';
+import { landingFor, useAuth } from '@ledova/shared';
 
-import { useAuth } from '@hooks/useAuth';
 import { useRole } from '@hooks/useRole';
 
 export function RootRedirect() {

@@ -6,7 +6,8 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
-vi.mock('@hooks/useCurrency', () => ({
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
   useCurrency: () => ({ formatDisplayCurrency: (value: number) => `$${value}` }),
 }));
 vi.mock('./components/CryptoActions', () => ({ CryptoActions: () => null }));
