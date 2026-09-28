@@ -265,7 +265,7 @@ class HistoryPreservationChecks:
             self.assertEqual(self.check_receipt(self.history(), self.receipt_client())["status"], "attribution_pending")
             notification.assert_not_called()
 
-    def test_quarantined_history_receipt_never_opens_a_holding_or_snapshot(self):
+    def test_quarantined_history_receipt_never_opens_a_holding(self):
         data = self.history(contract_address="0x" + "cd" * 20)
         self.import_history(data)
         before = self.state()[1:]
