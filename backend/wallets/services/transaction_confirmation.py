@@ -3,7 +3,6 @@ from decimal import Decimal
 from typing import Any, Dict, Optional
 from uuid import uuid4
 
-from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from procrastinate import App
 from procrastinate.contrib.django.django_connector import DjangoConnector
@@ -18,19 +17,12 @@ from shared.constants import normalize_chain
 from shared.db import atomic, current_alias
 from users.tasks.notifications import send_transaction_notification
 from wallets.constants import (
-    SNAPSHOT_REASON_TRANSACTION,
     TRANSACTION_STATUS_CONFIRMED,
     TRANSACTION_STATUS_FAILED,
     TRANSACTION_STATUS_PENDING,
 )
 from wallets.exceptions import InvalidTransactionException
-from wallets.models import (
-    Holding,
-    HoldingSnapshot,
-    Transaction,
-    Wallet,
-    WalletChainWatch,
-)
+from wallets.models import Holding, Transaction, Wallet, WalletChainWatch
 from wallets.services.chain_observations import (
     final_receipt,
     finality_policy,
@@ -214,8 +206,6 @@ def reconcile_transaction(tx_hash: str, *, wallet: Wallet) -> bool:
         for holding in holdings:
             if not Holding.objects.filter(pk=holding.pk, balance_version=holding.balance_version).exists():
                 return False
-        if locked.status == TRANSACTION_STATUS_CONFIRMED:
-            _update_snapshot_on_confirmation(locked)
         locked.deducted_amount = Decimal("0")
         locked.deducted_fee = Decimal("0")
         locked.balance_reconciliation_token = None
@@ -242,16 +232,6 @@ def _move_holding(tx: Transaction, asset: Asset, delta: Decimal) -> tuple[Holdin
     holding.quantity = max(Decimal("0"), before + delta)
     holding.balance_version = uuid4()
     holding.save(update_fields=["quantity", "balance_version", "updated_at"])
-
-    HoldingSnapshot.objects.update_or_create(
-        holding=holding,
-        snapshot_date=timezone.now().date(),
-        defaults={
-            "quantity": holding.quantity,
-            "snapshot_reason": SNAPSHOT_REASON_TRANSACTION,
-            "caused_by_transaction": tx,
-        },
-    )
     return holding, holding.quantity - before
 
 
@@ -261,25 +241,3 @@ def _verify_holding_balance(wallet: Wallet, asset: Asset):
         return None
     holdings = [sync_holding(wallet, held_asset) for held_asset in dict.fromkeys([asset, native])]
     return None if any(holding is None for holding in holdings) else holdings
-
-
-def _update_snapshot_on_confirmation(tx: Transaction) -> None:
-    if not tx.block_timestamp:
-        return
-
-    snapshot_date = tx.block_timestamp.date()
-    holding = Holding.objects.filter(wallet=tx.wallet, asset=tx.asset).first()
-
-    if not holding:
-        return
-
-    HoldingSnapshot.objects.update_or_create(
-        holding=holding,
-        snapshot_date=snapshot_date,
-        defaults={
-            "quantity": holding.quantity,
-            "block_number": tx.block_number,
-            "snapshot_reason": SNAPSHOT_REASON_TRANSACTION,
-            "caused_by_transaction": tx,
-        },
-    )

@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import timedelta
 from decimal import Decimal
 from itertools import count
 from types import SimpleNamespace
@@ -36,7 +36,6 @@ from tokens.models.choices import TransferOrderType
 from users.constants import ACCOUNT_STATUS_ACTIVE
 from users.models import (
     DeviceToken,
-    FavouriteAsset,
     FinancialProfile,
     InvestorCategory,
     InvestorClassification,
@@ -48,7 +47,7 @@ from users.models import (
     UserProfile,
 )
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
-from wallets.models import Holding, HoldingSnapshot, Transaction, Wallet
+from wallets.models import Holding, Transaction, Wallet
 
 User = get_user_model()
 PASSWORD = "pw-12345678"
@@ -167,18 +166,10 @@ def make_tenant(label, *, staff=False, superuser=False, with_swap=True):
         amount=Decimal("1"),
         wallet=wallet,
     )
-    holding_snapshot = HoldingSnapshot.objects.create(
-        holding=holding,
-        quantity=Decimal("5"),
-        snapshot_date=date(2026, 9, 1),
-        snapshot_reason="DAILY",
-        caused_by_transaction=transaction,
-    )
 
     portfolio = Portfolio.objects.create(user_account=account, name=f"{label} portfolio")
     portfolio.wallets.add(wallet)
     preferences = UserPreferences.objects.create(user_profile=profile, selected_portfolio=portfolio)
-    favourite = FavouriteAsset.objects.create(user_account=account, asset=refs.asset)
     device_token = DeviceToken.objects.create(user=user, push_token=f"ExponentPushToken[{label}]", device_type="ios")
     notification = Notification.objects.create(user=user, title=f"For {label}", body="Body")
     notification_preferences = NotificationPreferences.objects.create(user_profile=profile)
@@ -304,10 +295,8 @@ def make_tenant(label, *, staff=False, superuser=False, with_swap=True):
         spare_wallet=spare_wallet,
         holding=holding,
         transaction=transaction,
-        holding_snapshot=holding_snapshot,
         portfolio=portfolio,
         preferences=preferences,
-        favourite=favourite,
         device_token=device_token,
         notification=notification,
         notification_preferences=notification_preferences,

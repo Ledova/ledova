@@ -98,11 +98,6 @@ THROUGH_ITS_WALLET = (
     "EXISTS (SELECT 1 FROM wallets held WHERE held.uuid = holdings.wallet_id "
     f"AND held.user_account_id IN (SELECT {PRINCIPAL_ACCOUNTS}()))"
 )
-THROUGH_ITS_HOLDING = (
-    "EXISTS (SELECT 1 FROM holdings counted JOIN wallets held ON held.uuid = counted.wallet_id "
-    "WHERE counted.uuid = holding_snapshots.holding_id "
-    f"AND held.user_account_id IN (SELECT {PRINCIPAL_ACCOUNTS}()))"
-)
 THROUGH_ITS_DOCUMENT = (
     "EXISTS (SELECT 1 FROM documents carrying WHERE carrying.uuid = document_extractions.document_id "
     f"AND carrying.uploaded_by_id = {PRINCIPAL})"
@@ -177,7 +172,6 @@ POLICIES = {
     "wallets_walletchainwatch": (_owned("user_account_id"), "false"),
     "wallets_walletchainobservation": (_owned("user_account_id"), "false"),
     "portfolios": (_owned("user_account_id"), _owned("user_account_id")),
-    "favourite_assets": (_owned("user_account_id"), _owned("user_account_id")),
     "users_investorclassification": (_owned("user_account_id"), _owned("user_account_id")),
     "offerings_subscription": (
         f"{_owned('user_account_id')} OR {ISSUES_THE_OFFERING}",
@@ -191,7 +185,6 @@ POLICIES = {
     "tokens_swaporder": (A_PARTY_TO_THE_SWAP, "false"),
     "compliance_customerriskassessment": (_owned("user_account_id"), _owned("user_account_id")),
     "holdings": (THROUGH_ITS_WALLET, THROUGH_ITS_WALLET),
-    "holding_snapshots": (THROUGH_ITS_HOLDING, THROUGH_ITS_HOLDING),
     "document_extractions": (THROUGH_ITS_DOCUMENT, THROUGH_ITS_DOCUMENT),
     "tokens_ordermodificationlog": (THROUGH_THE_ORDER_IT_MODIFIED, THROUGH_THE_ORDER_IT_MODIFIED),
     "tokens_shareissuance": (THROUGH_ITS_TOKEN, "false"),
