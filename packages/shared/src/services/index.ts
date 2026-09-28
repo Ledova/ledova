@@ -29,8 +29,6 @@ export { getOnRampWidgetUrl } from './onramp';
 export {
   registerDeviceToken,
   unregisterDeviceToken,
-  getNotificationPreferences,
-  updateNotificationPreferences,
   getNotifications,
   getUnreadNotificationCount,
   markNotificationRead,

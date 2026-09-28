@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { USER_PREFERENCES_QUERY_KEY, upsertCurrentUserPreferences } from '@ledova/shared';
 import { Action, Section } from '../../components/Ledger';
 import { useAppLock } from '../../contexts';
+import { useUserPreferences } from '../../hooks/useUserPreferences';
+import { apiClient } from '../../services/apiClient';
 import { AccountModal } from '../account/AccountModal';
 import { useAccountStyles } from '../account/styles';
-import { useNotificationPreferences } from './useNotificationPreferences';
 import { useSettings } from './useSettings';
 
 function Toggle({
@@ -35,7 +38,13 @@ function Toggle({
 export function SettingsScreen() {
   const styles = useAccountStyles();
   const lock = useAppLock();
-  const notifications = useNotificationPreferences();
+  const preferences = useUserPreferences();
+  const transactionAlerts = preferences.preferences?.transactionAlerts;
+  const queryClient = useQueryClient();
+  const alerts = useMutation({
+    mutationFn: (value: boolean) => upsertCurrentUserPreferences(apiClient, { transactionAlerts: value }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: USER_PREFERENCES_QUERY_KEY }),
+  });
   const settings = useSettings();
   const [modal, setModal] = useState<'password' | 'export' | 'delete' | null>(null);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -152,29 +161,29 @@ export function SettingsScreen() {
           )}
         </Section>
         <Section title="Notifications">
-          {notifications.isLoading ? (
+          {preferences.isLoading ? (
             <ActivityIndicator accessibilityLabel="Loading notification settings" />
-          ) : notifications.isError || notifications.transactionAlerts === undefined ? (
+          ) : preferences.isError || transactionAlerts === undefined ? (
             <View style={styles.fields}>
               <Text accessibilityRole="alert" style={styles.error}>
                 Your notification settings could not be loaded.
               </Text>
               <Action
                 label="Try notifications again"
-                disabled={notifications.isFetching}
-                onPress={() => void notifications.retry()}
+                disabled={preferences.isFetching}
+                onPress={() => void preferences.refetch()}
               />
             </View>
           ) : (
             <Toggle
               label="Transaction alerts"
               description="Notifications for transaction status changes."
-              value={notifications.transactionAlerts}
-              disabled={notifications.isUpdating || notifications.isFetching}
-              onChange={notifications.toggleTransactionAlerts}
+              value={transactionAlerts}
+              disabled={alerts.isPending || preferences.isFetching}
+              onChange={(value) => alerts.mutate(value)}
             />
           )}
-          {notifications.updateError && (
+          {alerts.isError && (
             <Text accessibilityRole="alert" style={styles.error}>
               Your notification setting could not be saved. Try again.
             </Text>

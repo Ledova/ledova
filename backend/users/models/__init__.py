@@ -8,7 +8,6 @@ from users.models.investor_classification import (
     InvestorClassificationStatus,
 )
 from users.models.notification import Notification
-from users.models.notification_preferences import NotificationPreferences
 from users.models.user_account import UserAccount
 from users.models.user_preferences import UserPreferences
 from users.models.user_profile import UserProfile
@@ -21,7 +20,6 @@ __all__ = [
     "InvestorCategory",
     "InvestorClassification",
     "InvestorClassificationStatus",
-    "NotificationPreferences",
     "PRODUCT_VALUE_THRESHOLD_AUD",
     "UserAccount",
     "UserPreferences",

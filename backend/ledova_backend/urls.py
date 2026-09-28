@@ -29,9 +29,6 @@ router.register(
     r"investor-classifications", user_views.InvestorClassificationViewSet, basename="investor-classifications"
 )
 router.register(r"device-tokens", user_views.DeviceTokenViewSet, basename="device-tokens")
-router.register(
-    r"notification-preferences", user_views.NotificationPreferencesViewSet, basename="notification-preferences"
-)
 router.register(r"notifications", user_views.NotificationViewSet, basename="notifications")
 router.register(r"transactions", wallet_views.TransactionViewSet, basename="transactions")
 router.register(r"wallets", wallet_views.WalletViewSet, basename="wallets")

@@ -10,7 +10,6 @@ from users.models import (
     InvestorCategory,
     InvestorClassification,
     Notification,
-    NotificationPreferences,
     UserAccount,
     UserPreferences,
     UserProfile,
@@ -39,7 +38,6 @@ class UsersAdminPagesTest(TestCase):
             account,
             FinancialProfile.objects.create(user_profile=profile, occupation="Tester"),
             UserPreferences.objects.create(user_profile=profile, selected_portfolio=portfolio),
-            NotificationPreferences.objects.create(user_profile=profile),
             DeviceToken.objects.create(user=user, push_token="ExponentPushToken[admin]", device_type="ios"),
             Notification.objects.create(user=user, title="Hello", body="Body"),
             InvestorClassification.objects.create(
@@ -49,18 +47,6 @@ class UsersAdminPagesTest(TestCase):
                 declaration_text="Declared",
             ),
         ]
-
-    def test_the_bulk_actions_switch_transaction_alerts_off_and_on(self):
-        preferences = next(item for item in self.instances if isinstance(item, NotificationPreferences))
-        url = reverse("admin:users_notificationpreferences_changelist")
-
-        for action, expected in (("disable_transaction_alerts", False), ("enable_transaction_alerts", True)):
-            with self.subTest(action=action):
-                response = self.client.post(url, {"action": action, "_selected_action": [str(preferences.pk)]})
-
-                self.assertEqual(response.status_code, 302)
-                preferences.refresh_from_db()
-                self.assertIs(preferences.transaction_alerts, expected)
 
     def test_every_users_model_is_registered_and_renders(self):
         registered = {model for model in admin.site._registry if model._meta.app_label == "users"}

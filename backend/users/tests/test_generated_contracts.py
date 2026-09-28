@@ -42,7 +42,7 @@ class GeneratedClientContractTest(APITestCase):
         return validator
 
     def test_singleton_lists_validate_the_object_and_reject_a_pagination_envelope(self):
-        for path in ("/api/user-accounts/", "/api/user-preferences/", "/api/notification-preferences/"):
+        for path in ("/api/user-accounts/", "/api/user-preferences/"):
             with self.subTest(path=path):
                 response = self.client.get(path)
                 validator = self.assert_response(path, response)
