@@ -1,9 +1,8 @@
 import { CaretRightIcon } from '@phosphor-icons/react';
-import { formatShareCount, getChainConfig } from '@ledova/shared';
+import { formatShareCount, getChainConfig, useShareHoldings } from '@ledova/shared';
 import { Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { HoldingWork } from './components/HoldingWork';
-import { useShareHoldings } from './hooks/useShareHoldings';
 
 export function HomePage() {
   const { data: holdings = [], isPending, isError, isFetching, refetch } = useShareHoldings();

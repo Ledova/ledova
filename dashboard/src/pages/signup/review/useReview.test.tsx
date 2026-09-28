@@ -3,8 +3,7 @@
 import type { PropsWithChildren } from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { getCompanies, getUserProfiles, updateUserProfileCompletion } from '@ledova/shared';
-import { AUTH_QUERY_KEY } from '@hooks/useAuth';
+import { getCompanies, getUserProfiles, updateUserProfileCompletion, AUTH_QUERY_KEY } from '@ledova/shared';
 import { useRole } from '@hooks/useRole';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

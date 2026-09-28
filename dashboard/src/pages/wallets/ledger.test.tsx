@@ -10,7 +10,8 @@ import { useWallets } from './hooks/useWallets';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
-vi.mock('@hooks/useCurrency', () => ({
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
   useCurrency: () => ({ formatDisplayCurrency: (value: number) => `AUD ${value}` }),
 }));
 vi.mock('./components/CryptoActions', () => ({ CryptoActions: () => null }));

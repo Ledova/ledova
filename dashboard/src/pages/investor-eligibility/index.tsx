@@ -48,7 +48,6 @@ export default function InvestorEligibilityPage() {
           </div>
         ) : (
           <>
-            <p className="text-sm text-text-muted">Your investor status and the evidence reviewed by the operator.</p>
             <Section title="Investor status">
               <p className="py-2 text-sm text-text-primary">
                 <Status tone={isEligible ? 'done' : 'waiting'}>

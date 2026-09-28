@@ -12,7 +12,7 @@ import {
   REGISTER_COPY,
 } from '@ledova/shared';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
-import { Section, Row, Action } from '../../components/Ledger';
+import { Section, Row, Action, Lede } from '../../components/Ledger';
 import { getSessionEpoch } from '../../services/sessionScope';
 import { ClassRegister } from '../company-register/ClassRegister';
 import { useCompanyStyles } from '../company-register/styles';
@@ -202,9 +202,9 @@ function ShareClass({ uuid }: { uuid: string }) {
         <Text accessibilityRole="header" style={styles.title}>
           {token.name}
         </Text>
-        <Text style={styles.muted}>
+        <Lede>
           {token.companyName} · {token.symbol}
-        </Text>
+        </Lede>
         <Section title="Class details">
           <View>
             <Row label="Class state">{token.statusDisplay}</Row>

@@ -5,7 +5,8 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import type { Wallet } from '@ledova/shared';
 
-vi.mock('@hooks/useCurrency', () => ({
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
   useCurrency: () => ({ formatDisplayCurrency: (value: number) => `$${value}` }),
 }));
 

@@ -1,8 +1,7 @@
-import { DESTINATIONS, formatDate, formatMoney } from '@ledova/shared';
+import { DESTINATIONS, formatDate, formatMoney, useDirectoryTokens } from '@ledova/shared';
 import type { DirectoryToken } from '@ledova/shared';
 import { LinkRow, Section, Status } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
-import { useDirectoryTokens } from './useDirectory';
 
 function ShareClassRow({ token }: { token: DirectoryToken }) {
   const offering = token.openOffering;
@@ -66,7 +65,6 @@ export default function DirectoryPage() {
 
   return (
     <Page>
-      <p className="text-sm text-text-muted">Share classes and current offerings available to you.</p>
       {tokens.length === 0 ? (
         <Section title="Share classes">
           <p className="py-3 text-sm text-text-muted">No share classes available.</p>

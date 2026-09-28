@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { PageAction } from '@components/Page';
-import { requestShares } from '../classes/shareQuantities';
-import { OFFERING_EXEMPTION_LABELS } from '@ledova/shared';
+import { OFFERING_EXEMPTION_LABELS, requestShares } from '@ledova/shared';
 import type {
   CompanyShareTokenListItem,
   Offering,

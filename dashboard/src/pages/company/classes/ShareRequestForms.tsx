@@ -3,14 +3,16 @@ import { useMutation } from '@tanstack/react-query';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import {
+  MAX_REQUEST_SHARES,
   createCapitalIncrease,
   formatShareCount,
   getErrorMessage,
   issueCompanyShares,
+  raisedSupply,
+  requestShares,
   type CompanyShareToken,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { MAX_REQUEST_SHARES, raisedSupply, requestShares } from './shareQuantities';
 
 const FIELD_CLASS =
   'mt-1 block w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary';

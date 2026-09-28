@@ -135,6 +135,17 @@ it('shows the ledger with recorded bounds, AUD amounts and read-only operator al
   expect(screen.getByRole('button', { name: 'Delete' })).toBeTruthy();
 });
 
+it('puts Your offerings first, then its applications, the directory switch and what happens next', async () => {
+  show();
+  await screen.findByRole('heading', { name: 'Applications' });
+  expect(screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)).toEqual([
+    'Your offerings (1)',
+    'Applications',
+    'Investor Directory',
+    'What happens next',
+  ]);
+});
+
 it('reads every offering and class page, filtering the selected company before presenting actions', async () => {
   const original = api.get.getMockImplementation()!;
   api.get.mockImplementation(async (url: string, config?: { params?: { page: number } }) => {
@@ -272,7 +283,8 @@ it('refreshes directory visibility after the existing PATCH and retains the valu
   show();
   const input = await screen.findByRole('checkbox', { name: 'Show this company to eligible investors' });
   fireEvent.click(input);
-  await screen.findByText('Directory change refused.');
+  const directory = screen.getByRole('heading', { name: 'Investor Directory' }).closest('section')!;
+  expect((await within(directory).findByRole('alert')).textContent).toBe('Directory change refused.');
   expect((input as HTMLInputElement).checked).toBe(false);
   fireEvent.click(input);
   await waitFor(() => expect((input as HTMLInputElement).checked).toBe(true));

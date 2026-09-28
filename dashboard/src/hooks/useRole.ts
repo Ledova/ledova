@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { AccountRole, CACHE_TIMING, canOpen, getUserAccount } from '@ledova/shared';
+import { AccountRole, CACHE_TIMING, canOpen, getUserAccount, useAuth } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { useAuth } from './useAuth';
 
 export type { AccountRole };
 

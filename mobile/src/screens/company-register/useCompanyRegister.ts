@@ -3,11 +3,11 @@ import {
   getCompanyTokens,
   getCompanyTokenHolders,
   getNextPageParam,
+  useUserPreferences,
   type PaginatedResponse,
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { useUserPreferences } from '../../hooks/useUserPreferences';
 
 export async function everyCompanyPage<T>(
   read: (page: number) => Promise<{ data: PaginatedResponse<T> }>,

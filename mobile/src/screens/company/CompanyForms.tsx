@@ -5,6 +5,7 @@ import {
   apiErrorSentence,
   createCompanyToken,
   updateCompany,
+  wholeShares,
   type Company,
   type CompanyUpdate,
   type TokenType,
@@ -13,7 +14,6 @@ import { CompanyModal } from './CompanyModal';
 import { Action } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { useCompanyStyles } from '../company-register/styles';
-import { wholeShares } from '../company-tokens/shareQuantities';
 import { CompanyReadNotice, type CompanyRead } from './CompanyState';
 
 const FIELDS = [

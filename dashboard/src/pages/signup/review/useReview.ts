@@ -11,9 +11,9 @@ import {
   CACHE_TIMING,
   describeFailure,
   landingFor,
+  AUTH_QUERY_KEY,
 } from '@ledova/shared';
 import { useRole } from '@hooks/useRole';
-import { AUTH_QUERY_KEY } from '@hooks/useAuth';
 import apiClient from '@services/apiClient';
 
 import type { ReviewData, Company } from '@ledova/shared';

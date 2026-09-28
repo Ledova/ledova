@@ -21,7 +21,10 @@ const mockLock = {
   setEnabled: jest.fn(),
 };
 jest.mock('../../contexts', () => ({ ...jest.requireActual('../../contexts'), useAppLock: () => mockLock }));
-jest.mock('../../hooks/useAuth', () => ({ useAuth: () => ({ isAuthenticated: true }) }));
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
+  useAuth: () => ({ isAuthenticated: true }),
+}));
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ reset: mockReset }) }));
 jest.mock('../user-profile/components/VerificationModal', () => ({ VerificationModal: () => null }));
 jest.mock('expo-file-system', () => jest.requireActual('../../testSupport/documentFiles').nativeFileSystem);

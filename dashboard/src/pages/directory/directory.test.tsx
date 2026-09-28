@@ -3,8 +3,10 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import type { AxiosInstance } from 'axios';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import {
+  ApiClientProvider,
   DIRECTORY_ENDPOINTS,
   INVESTOR_CLASSIFICATION_ENDPOINTS,
   SUBSCRIPTION_ENDPOINTS,
@@ -67,13 +69,15 @@ function renderPage(detail = false) {
   return render(
     <MemoryRouter initialEntries={[detail ? '/directory/ordinary' : '/directory']}>
       <QueryClientProvider client={client}>
-        <PageTitle.Provider value={detail ? 'Share class' : 'Directory'}>
-          <Routes>
-            <Route path="/directory" element={<DirectoryPage />} />
-            <Route path="/directory/:uuid" element={<DirectoryTokenPage />} />
-            <Route path="/subscriptions/:uuid" element={<h1>Application detail</h1>} />
-          </Routes>
-        </PageTitle.Provider>
+        <ApiClientProvider client={api as unknown as AxiosInstance}>
+          <PageTitle.Provider value={detail ? 'Share class' : 'Directory'}>
+            <Routes>
+              <Route path="/directory" element={<DirectoryPage />} />
+              <Route path="/directory/:uuid" element={<DirectoryTokenPage />} />
+              <Route path="/subscriptions/:uuid" element={<h1>Application detail</h1>} />
+            </Routes>
+          </PageTitle.Provider>
+        </ApiClientProvider>
       </QueryClientProvider>
     </MemoryRouter>,
   );
@@ -205,7 +209,7 @@ it('distinguishes an unavailable class from a service failure, which can be retr
   expect(await screen.findByText('Share class not available')).toBeTruthy();
   expect(screen.queryByRole('heading', { name: 'Apply for shares' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Back to Directory' }));
-  expect(await screen.findByText('Share classes and current offerings available to you.')).toBeTruthy();
+  expect(await screen.findByRole('heading', { name: 'Harbour Example Pty Ltd' })).toBeTruthy();
 });
 
 it('hides stale application actions after a failed class refresh', async () => {

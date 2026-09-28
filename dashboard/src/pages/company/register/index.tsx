@@ -9,10 +9,7 @@ export default function CompanyRegisterPage() {
   const { data: classes = [], isPending, isError, isFetching, refetch } = useCompanyRegister();
 
   return (
-    <Page>
-      <p className="text-sm text-text-muted">
-        The stored register records your company&apos;s members and their shares. Wallet balances do not replace it.
-      </p>
+    <Page lede="The stored register records your company's members and their shares; wallet balances do not replace it.">
       <Section title="Share classes">
         {isPending ? (
           <p role="status" className="py-3 text-sm text-text-muted">

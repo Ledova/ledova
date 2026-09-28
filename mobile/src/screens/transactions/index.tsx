@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { GradientBackground } from '../../components/GradientBackground';
-import { Action, Section } from '../../components/Ledger';
+import { Action, Lede, Section } from '../../components/Ledger';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { useTransactions } from './useTransactions';
 import { TransactionFiltersModal } from './components/filters/TransactionFiltersModal';
@@ -64,10 +64,8 @@ export function TransactionsScreen() {
         <Text accessibilityRole="header" style={styles.title}>
           Activity
         </Text>
-        <Text style={styles.message}>
-          Recorded transfers for your wallets. Select an entry for its status and details.
-        </Text>
         <Action label={hasActiveFilters ? 'Filter (active)' : 'Filter'} onPress={() => setShowFilters(true)} />
+        <Lede>Select an entry for its status and details.</Lede>
         {isLoading ? (
           <View style={styles.state}>
             <ActivityIndicator color={theme.colors.brand.default} />

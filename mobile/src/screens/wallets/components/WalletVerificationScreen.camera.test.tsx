@@ -47,8 +47,6 @@ jest.mock('@ledova/shared', () => ({
   ...jest.requireActual('@ledova/shared'),
   requestVerificationChallenge: (...args: unknown[]) => mockRequestChallenge(...args),
   verifyWalletSignature: (...args: unknown[]) => mockVerifySignature(...args),
-}));
-jest.mock('../../../hooks/useUserPreferences', () => ({
   useUserPreferences: () => ({ userAccount: { uuid: 'synthetic-account' } }),
 }));
 jest.mock('../../../services/apiClient', () => ({ apiClient: {} }));

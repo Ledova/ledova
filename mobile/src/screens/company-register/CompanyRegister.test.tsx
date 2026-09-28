@@ -8,7 +8,10 @@ import { CompanyRegisterScreen } from './CompanyRegisterScreen';
 const mockNavigate = jest.fn();
 let mockPreferences = { userAccount: { role: 'company' }, isLoading: false, isError: false, refetch: jest.fn() };
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: mockNavigate }) }));
-jest.mock('../../hooks/useUserPreferences', () => ({ useUserPreferences: () => mockPreferences }));
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
+  useUserPreferences: () => mockPreferences,
+}));
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn() } }));
 
 const get = jest.mocked(apiClient.get);
