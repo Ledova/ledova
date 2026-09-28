@@ -13,6 +13,8 @@ import {
   LinkIcon,
   CertificateIcon,
   BuildingsIcon,
+  BookOpenIcon,
+  MegaphoneIcon,
   FileTextIcon,
   NewspaperIcon,
   ShieldCheckIcon,
@@ -58,11 +60,9 @@ const SHARE_MENU_ITEMS: MenuItem[] = [
 ];
 
 const COMPANY_MENU_ITEMS: MenuItem[] = [
-  { label: 'Register', icon: BuildingsIcon, action: 'tab', target: 'Register' },
+  { label: DESTINATIONS.companyRegister.title, icon: BookOpenIcon, action: 'tab', target: 'Register' },
+  { label: DESTINATIONS.companyOffering.title, icon: MegaphoneIcon, action: 'tab', target: 'CompanyOfferings' },
   { label: DESTINATIONS.company.title, icon: BuildingsIcon, action: 'tab', target: 'Company' },
-  { label: 'Offerings', icon: FileTextIcon, action: 'tab', target: 'CompanyOfferings' },
-  { label: 'Published to your members', icon: NewspaperIcon, action: 'tab', target: 'CompanyPublications' },
-  { label: DESTINATIONS.companyListing.title, icon: FileTextIcon, action: 'tab', target: 'Listing' },
 ];
 
 const INVEST_MENU_ITEMS: MenuItem[] = [
@@ -173,8 +173,6 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
         params = { screen: 'Company', params: { screen: 'CompanyMain' } };
       } else if (item.target === 'CompanyOfferings') {
         params = { screen: 'Company', params: { screen: 'CompanyOfferings' } };
-      } else if (item.target === 'CompanyPublications') {
-        params = { screen: 'Company', params: { screen: 'CompanyPublications' } };
       } else if (item.target === 'Wallets') {
         params = { screen: 'Wallets', params: { screen: 'WalletsList' } };
       } else {

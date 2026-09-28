@@ -7,20 +7,8 @@ function buildColors(p: {
   error: { light: string; default: string; dark: string; subtle: string; backgroundSubtle: string };
   warning: { light: string; default: string };
   info: { light: string; default: string };
-  chartUI: {
-    pointerStrip: string;
-    tickColor: string;
-    gridColor: string;
-    lineBackground: string;
-    tooltipBg: string;
-    tooltipTitle: string;
-    tooltipBody: string;
-    tooltipBorder: string;
-  };
   badge: { successBg: string; infoBg: string };
   interactive: { selectedBg: string };
-  chart: readonly string[];
-  chain: { ethereum: string; bitcoin: string; base: string };
 }) {
   const colors = {
     surface: { ...p.surface, transparent: 'transparent' },
@@ -32,7 +20,6 @@ function buildColors(p: {
     warning: p.warning,
     info: p.info,
     utility: { white: '#ffffff', black: '#000000', transparent: 'transparent' },
-    chart: p.chart,
 
     status: {
       success: { icon: p.success.light, text: p.success.default },
@@ -61,20 +48,6 @@ function buildColors(p: {
       errorBackground: `${p.error.dark}80`,
       borderError: p.error.default,
     },
-    chartUI: {
-      portfolioLine: p.info.light,
-      pointerStrip: p.chartUI.pointerStrip,
-      tickColor: p.chartUI.tickColor,
-      gridColor: p.chartUI.gridColor,
-      lineBackground: p.chartUI.lineBackground,
-      tooltip: {
-        background: p.chartUI.tooltipBg,
-        titleColor: p.chartUI.tooltipTitle,
-        bodyColor: p.chartUI.tooltipBody,
-        borderColor: p.chartUI.tooltipBorder,
-      },
-    },
-    chain: p.chain,
   } as const;
   return colors;
 }
@@ -124,20 +97,8 @@ const PAPER_THEME = buildColors({
   },
   warning: { light: '#92400e', default: '#92400e' },
   info: { light: '#0369a1', default: '#0369a1' },
-  chartUI: {
-    pointerStrip: '#00000014',
-    tickColor: PAPER_COLORS.ink.muted,
-    gridColor: '#E5E7EB',
-    lineBackground: 'rgba(96, 165, 250, 0.08)',
-    tooltipBg: '#ffffff',
-    tooltipTitle: '#1a1a2e',
-    tooltipBody: '#4b5563',
-    tooltipBorder: '#d4d4d8',
-  },
   badge: { successBg: '#16a34a20', infoBg: PAPER_COLORS.paper.deep },
   interactive: { selectedBg: PAPER_COLORS.ledger.default + '1A' },
-  chart: ['#1d4ed8', PAPER_COLORS.ledger.default, '#b45309', '#b91c1c', '#6d28d9', '#be185d'],
-  chain: { ethereum: '#4c5fd5', bitcoin: '#c2410c', base: '#0052FF' },
 });
 
 function shadow(offsetY: number, blurRadius: number, opacity: number, elevation: number) {

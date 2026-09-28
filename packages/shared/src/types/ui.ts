@@ -37,13 +37,6 @@ export interface EmailConfirmationValidation {
   isValidFormat: boolean;
 }
 
-export interface ChartDataPoint {
-  dayIndex: number;
-  date: string;
-  price: number;
-  changePercent: number;
-}
-
 export interface RadioGroupFieldProps<Value extends string = string> {
   label: string;
   value: Value;

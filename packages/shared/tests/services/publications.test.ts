@@ -2,7 +2,6 @@ import type { AxiosInstance } from 'axios';
 import type { AxiosResponse } from 'axios';
 import {
   BALLOT_CHOICES,
-  DIVIDEND_FILTERS,
   PUBLICATION_COPY,
   PUBLICATION_ENDPOINTS,
   PUBLICATION_KIND_LABELS,
@@ -23,13 +22,11 @@ import {
   getPublicationsNextPage,
   openPublication,
 } from '../../src/services/publications';
-import type { PublicationResult, PublicationSummary } from '../../src/types';
+import type { PublicationResult } from '../../src/types';
 import {
   describePaymentRecord,
   describePaymentStanding,
-  describePublicationSummary,
   describeRate,
-  formatDateTime,
   formatMoney,
   paymentRecordState,
 } from '../../src/utils';
@@ -65,7 +62,7 @@ describe('publication services', () => {
 
   it('narrows the listing by the filters the caller names, a page at a time', () => {
     getPublications(apiClient, 2, { kind: 'resolution' });
-    getPublications(apiClient, 1, DIVIDEND_FILTERS);
+    getPublications(apiClient, 1, { kind: 'distribution', addressed: 'me' });
 
     expect(get).toHaveBeenNthCalledWith(1, '/api/v1/publications/', { params: { page: 2, kind: 'resolution' } });
     expect(get).toHaveBeenNthCalledWith(2, '/api/v1/publications/', {
@@ -289,55 +286,5 @@ describe('a distribution in the listing', () => {
     expect(copy.some(([key, text]) => claimsPaid(key) || claimsPaid(text))).toBe(true);
     expect(copy.filter(([key]) => claimsPaid(key) && !saysRecorded(key))).toEqual([]);
     expect(copy.filter(([, text]) => claimsPaid(text) && !saysRecorded(text))).toEqual([]);
-  });
-});
-
-describe('the summary of what was published to a member', () => {
-  const nothing: PublicationSummary = {
-    openResolutions: 0,
-    nextClosesAt: null,
-    publishedSince: 0,
-    dividendsWithoutRecord: 0,
-  };
-  const closes = '2026-10-02T07:00:00Z';
-
-  it('says nothing when every count is zero', () => {
-    expect(describePublicationSummary(nothing)).toEqual([]);
-  });
-
-  it('says each count once, in the singular, with the closing time formatted by the shared helper', () => {
-    expect(
-      describePublicationSummary({
-        openResolutions: 1,
-        nextClosesAt: closes,
-        publishedSince: 1,
-        dividendsWithoutRecord: 1,
-      }),
-    ).toEqual([
-      '1 thing published to you in the last 30 days',
-      `1 resolution awaiting your vote, closing ${formatDateTime(closes)}`,
-      '1 dividend awaiting a payment record',
-    ]);
-  });
-
-  it('says a count above one in the plural, and names the first of several resolutions to close', () => {
-    expect(
-      describePublicationSummary({
-        openResolutions: 2,
-        nextClosesAt: closes,
-        publishedSince: 3,
-        dividendsWithoutRecord: 2,
-      }),
-    ).toEqual([
-      '3 things published to you in the last 30 days',
-      `2 resolutions awaiting your vote, the first closing ${formatDateTime(closes)}`,
-      '2 dividends awaiting a payment record',
-    ]);
-  });
-
-  it('leaves out each count that is zero', () => {
-    expect(describePublicationSummary({ ...nothing, dividendsWithoutRecord: 1 })).toEqual([
-      '1 dividend awaiting a payment record',
-    ]);
   });
 });

@@ -1,3 +1,4 @@
+import { SUBSCRIPTION_IN_PROGRESS_STATUSES, SUBSCRIPTION_STATUS_LABELS } from '@ledova/shared';
 import type { Subscription, SubscriptionStatus } from '@ledova/shared';
 
 export interface ApplicationWork {
@@ -10,21 +11,16 @@ const NEEDS_YOU: Partial<Record<SubscriptionStatus, string>> = {
   awaiting_payment: 'View your payment instruction',
 };
 
-const IN_PROGRESS: Partial<Record<SubscriptionStatus, string>> = {
-  submitted: 'Under review by the operator',
-  accepted: 'Accepted, payment instruction next',
-  paid: 'Payment received',
-};
-
 export function applicationWork(applications: Subscription[]) {
   const needsYou: ApplicationWork[] = [];
   const inProgress: ApplicationWork[] = [];
 
   for (const application of applications) {
     const action = NEEDS_YOU[application.status];
-    const progress = IN_PROGRESS[application.status];
     if (action) needsYou.push({ application, description: action });
-    if (progress) inProgress.push({ application, description: progress });
+    if (SUBSCRIPTION_IN_PROGRESS_STATUSES.includes(application.status)) {
+      inProgress.push({ application, description: SUBSCRIPTION_STATUS_LABELS[application.status] });
+    }
   }
 
   return { needsYou, inProgress };

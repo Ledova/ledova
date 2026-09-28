@@ -6,7 +6,7 @@ import { getOperator, CACHE_TIMING } from '@ledova/shared';
 import { GradientBackground } from '../../components/GradientBackground';
 import { ContactCard } from './components/ContactCard';
 import { PUBLIC_LINKS, SUPPORT_EMAIL } from '../../config/publicLinks';
-import { useAppTheme, useThemedStyles } from '../../contexts';
+import { useThemedStyles } from '../../contexts';
 import { apiClient } from '../../services/apiClient';
 import appJson from '../../../app.json';
 
@@ -14,7 +14,6 @@ const APP_VERSION = appJson.expo.version;
 const CURRENT_YEAR = new Date().getFullYear();
 
 export function HelpScreen() {
-  const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
     container: {
       flex: 1,

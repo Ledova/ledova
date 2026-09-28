@@ -1,19 +1,12 @@
-import { formatShareCount, type Subscription, type SubscriptionDetail } from '@ledova/shared';
-
-const STATES: Record<string, string> = {
-  draft: 'Draft',
-  submitted: 'Under review by the operator',
-  accepted: 'Accepted, payment instruction next',
-  awaiting_payment: 'Awaiting your payment',
-  paid: 'Payment received, allotment next',
-  allotted: 'Shares allotted',
-  rejected: 'Rejected',
-  withdrawn: 'Withdrawn',
-  refunded: 'Refunded',
-};
+import {
+  SUBSCRIPTION_STATUS_LABELS,
+  formatShareCount,
+  type Subscription,
+  type SubscriptionDetail,
+} from '@ledova/shared';
 
 export function applicationState(application: Pick<Subscription, 'status' | 'statusDisplay'>) {
-  return STATES[application.status] ?? application.statusDisplay;
+  return SUBSCRIPTION_STATUS_LABELS[application.status] ?? application.statusDisplay;
 }
 
 export function applicationShares(quantity: number) {

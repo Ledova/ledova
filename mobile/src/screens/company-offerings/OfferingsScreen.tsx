@@ -251,7 +251,7 @@ export function OfferingsScreen() {
                     </Text>
                   )}
                 </Section>
-                <SubscriptionsLedger offerings={data.offerings} />
+                <SubscriptionsLedger offerings={data.offerings} operatorName={data.operatorName} />
               </>
             )}
             <Section title="What happens next">

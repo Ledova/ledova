@@ -4059,7 +4059,6 @@ export interface ApiComponents {
       dividendsWithoutRecord: number;
       nextClosesAt: string | null;
       openResolutions: number;
-      publishedSince: number;
     };
     RegisterCorrection: {
       appliedEntry: string | null;

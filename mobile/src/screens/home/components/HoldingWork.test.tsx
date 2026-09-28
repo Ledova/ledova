@@ -3,6 +3,7 @@ import { RefreshControl } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   ApiClientProvider,
+  formatDate,
   formatDateTime,
   type AccountRole,
   type Subscription,
@@ -28,17 +29,34 @@ jest.mock('../useShareHoldings', () => ({
 }));
 
 const get = jest.mocked(apiClient.get);
-const NOTHING = { openResolutions: 0, nextClosesAt: null, publishedSince: 0, dividendsWithoutRecord: 0 };
+const NOTHING = { openResolutions: 0, nextClosesAt: null, dividendsWithoutRecord: 0 };
 const AUTH = '/api/auth/verify/';
 const PREFERENCES = '/api/user-preferences/';
 const APPLICATIONS = '/api/v1/subscriptions/';
 const NOTICES = '/api/v1/publications/summary/';
+const PUBLICATIONS = '/api/v1/publications/';
 let client: QueryClient;
 let role: AccountRole | null;
 let summary: Record<string, unknown>;
 let pages: Record<number, Subscription[]>;
 let fail: string | undefined;
 let next: (page: number) => string | null;
+let published: Record<string, unknown>[];
+
+function notice(n: number, overrides: Record<string, unknown> = {}) {
+  return {
+    uuid: `notice-${n}`,
+    kind: 'meeting_notice',
+    title: `Notice ${n}`,
+    companyName: 'Harbour Example Pty Ltd',
+    tokenName: 'Ordinary',
+    createdAt: `2026-09-2${n}T00:00:00Z`,
+    opensAt: null,
+    closesAt: null,
+    result: null,
+    ...overrides,
+  };
+}
 
 function application(status: SubscriptionStatus, overrides: Partial<Subscription> = {}): Subscription {
   return {
@@ -80,6 +98,7 @@ beforeEach(() => {
   role = 'investor';
   summary = NOTHING;
   pages = { 1: [] };
+  published = [];
   fail = undefined;
   next = (page) => (pages[page + 1] ? `https://example.test/api/v1/subscriptions/?page=${page + 1}` : null);
   get.mockImplementation(async (url, config) => {
@@ -88,6 +107,8 @@ beforeEach(() => {
     if (url === AUTH) return { data: { valid: true } };
     if (url === PREFERENCES) return { data: { userAccount: role ? { uuid: 'account', role } : null } };
     if (url === NOTICES) return { data: summary };
+    if (url === PUBLICATIONS)
+      return { data: { results: published, next: null, count: published.length, previous: null } };
     if (url === APPLICATIONS) {
       const page = (config?.params as { page?: number } | undefined)?.page ?? 1;
       return {
@@ -118,7 +139,7 @@ it('groups actionable applications with votes and operator work with company rec
       'refunded',
     ].map((status) => application(status as SubscriptionStatus)),
   };
-  summary = { openResolutions: 2, nextClosesAt: '2026-10-03T05:00:00Z', publishedSince: 3, dividendsWithoutRecord: 1 };
+  summary = { openResolutions: 2, nextClosesAt: '2026-10-03T05:00:00Z', dividendsWithoutRecord: 1 };
   const view = await render(<HomeScreen />, { wrapper });
   expect(await view.findByText('draft Company')).toBeTruthy();
   const needs = within(view.getByRole('header', { name: 'Needs you' }).parent!);
@@ -129,13 +150,14 @@ it('groups actionable applications with votes and operator work with company rec
   for (const text of [
     'Under review by the operator',
     'Accepted, payment instruction next',
-    'Payment received',
+    'Payment received, allotment next',
     '1 dividend awaits a payment record from the company',
   ])
     expect(progress.getByText(text)).toBeTruthy();
   for (const status of ['allotted', 'rejected', 'withdrawn', 'refunded'])
     expect(view.queryByText(`${status} Company`)).toBeNull();
-  expect(view.getByText('3 notices addressed to you in the last 30 days.')).toBeTruthy();
+  const recent = within(view.getByRole('header', { name: 'Recently published to you' }).parent!);
+  expect(recent.getByText('Nothing has been published to you yet.')).toBeTruthy();
   expect(view.queryByText(/unread|unpaid/i)).toBeNull();
 });
 
@@ -159,12 +181,11 @@ it('opens the actual application detail route without repeating an amount for pa
   expect(view.queryByText(/250\.00|249\.50|Pay /)).toBeNull();
 });
 
-it('retains personal notice navigation and truthful published counts', async () => {
-  summary = { openResolutions: 2, nextClosesAt: '2026-10-03T05:00:00Z', publishedSince: 1, dividendsWithoutRecord: 1 };
+it('retains personal notice navigation', async () => {
+  summary = { openResolutions: 2, nextClosesAt: '2026-10-03T05:00:00Z', dividendsWithoutRecord: 1 };
   const view = await render(<HomeScreen />, { wrapper });
   expect(await view.findByText('2 resolutions await your vote')).toBeTruthy();
-  expect(view.getByText('1 notice addressed to you in the last 30 days.')).toBeTruthy();
-  for (const label of ['View notices to vote', 'View dividend notices', 'View notices']) {
+  for (const label of ['View notices to vote', 'View dividend notices', 'View all notices']) {
     await fireEvent.press(view.getByText(label));
     expect(mockNavigate).toHaveBeenLastCalledWith('MainApp', { screen: 'Main', params: { screen: 'Publications' } });
   }
@@ -299,11 +320,13 @@ it('refreshes all work and holdings on a page pull and updates work after existi
   expect(view.queryByText('Review and submit your draft')).toBeNull();
   pages = { 1: [application('paid')] };
   summary = { ...NOTHING, openResolutions: 1 };
+  published = [notice(1)];
   await act(async () => {
     (RefreshControl as unknown as { latestRef: { props: { onRefresh: () => void } } }).latestRef.props.onRefresh();
   });
-  expect(await view.findByText('Payment received')).toBeTruthy();
+  expect(await view.findByText('Payment received, allotment next')).toBeTruthy();
   expect(view.getByText('1 resolution awaits your vote')).toBeTruthy();
+  expect(view.getByText('Notice 1')).toBeTruthy();
   expect(mockRefetchHoldings).toHaveBeenCalledTimes(1);
 });
 
@@ -404,4 +427,54 @@ it('removes cached application links after the investing role is removed and doe
   });
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(get.mock.calls.filter(([url]) => url === APPLICATIONS)).toHaveLength(applicationReads);
+});
+
+it('lists the three latest notices addressed to you, and asks only for your own', async () => {
+  published = [notice(4), notice(3), notice(2), notice(1)];
+  const view = await render(<HomeScreen />, { wrapper });
+  expect(await view.findByText('Notice 4')).toBeTruthy();
+  const recent = within(view.getByRole('header', { name: 'Recently published to you' }).parent!);
+  expect(recent.getAllByText(/^Notice \d$/).map((title) => title.props.children)).toEqual([
+    'Notice 4',
+    'Notice 3',
+    'Notice 2',
+  ]);
+  expect(get).toHaveBeenCalledWith(PUBLICATIONS, { params: { page: 1, addressed: 'me' } });
+});
+
+it('names the company, kind and date of each notice, and says until when a vote is open', async () => {
+  const hour = 3_600_000;
+  const opensAt = new Date(Date.now() - 24 * hour).toISOString();
+  const closesAt = new Date(Date.now() + 24 * hour).toISOString();
+  const closedAt = new Date(Date.now() - hour).toISOString();
+  published = [
+    notice(3, { kind: 'resolution', opensAt, closesAt }),
+    notice(2, { kind: 'resolution', opensAt, closesAt: closedAt }),
+    notice(1, { kind: 'distribution' }),
+  ];
+  const view = await render(<HomeScreen />, { wrapper });
+  expect(await view.findByText('Notice 3')).toBeTruthy();
+  const row = (title: string) => within(view.getByText(title).parent!);
+  expect(row('Notice 3').getByText('Harbour Example Pty Ltd · Resolution')).toBeTruthy();
+  expect(row('Notice 3').getByText(`Open until ${formatDateTime(closesAt)}`)).toBeTruthy();
+  expect(row('Notice 3').getByText(formatDate('2026-09-23T00:00:00Z'))).toBeTruthy();
+  expect(row('Notice 2').getByText('Harbour Example Pty Ltd · Resolution')).toBeTruthy();
+  expect(row('Notice 2').queryByText(/Open until/)).toBeNull();
+  expect(row('Notice 1').getByText('Harbour Example Pty Ltd · Dividend')).toBeTruthy();
+  expect(row('Notice 1').queryByText(/Open until/)).toBeNull();
+});
+
+it('keeps the rest of the work while the latest notices fail, and retries only them', async () => {
+  fail = PUBLICATIONS;
+  summary = { ...NOTHING, openResolutions: 1 };
+  const view = await render(<HomeScreen />, { wrapper });
+  expect(await view.findByText("We couldn't load what was published to you.")).toBeTruthy();
+  expect(view.getByText('1 resolution awaits your vote')).toBeTruthy();
+  expect(view.queryByText('Nothing has been published to you yet.')).toBeNull();
+  const summaryReads = get.mock.calls.filter(([url]) => url === NOTICES).length;
+  fail = undefined;
+  published = [notice(1)];
+  await fireEvent.press(view.getByText('Try recent notices again'));
+  expect(await view.findByText('Notice 1')).toBeTruthy();
+  expect(get.mock.calls.filter(([url]) => url === NOTICES)).toHaveLength(summaryReads);
 });

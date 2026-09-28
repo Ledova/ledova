@@ -19,7 +19,6 @@ export const DESTINATIONS = {
   subscriptionDetail: { path: '/subscriptions/:uuid', title: 'Application', audience: 'investing' },
   investorEligibility: { path: '/investor-eligibility', title: 'Verification', audience: 'investing' },
   publications: { path: '/publications', title: 'Notices', audience: 'everyone' },
-  dividends: { path: '/dividends', title: 'Dividends', audience: 'everyone' },
   companyClass: { path: '/company/register/:uuid', title: 'Share class', audience: 'company' },
   companyRegister: { path: '/company/register', title: 'Register', audience: 'company' },
   company: { path: '/company', title: 'Company', audience: 'company' },

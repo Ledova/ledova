@@ -1,4 +1,4 @@
-import { formatShareCount, getNextPageParam } from '@ledova/shared';
+import { formatMoney, formatShareCount, getNextPageParam } from '@ledova/shared';
 import type { PaginatedResponse } from '@ledova/shared';
 
 export async function allMarketPages<T>(
@@ -33,5 +33,5 @@ export function marketAmount(price: string, quantity: number | bigint = 1): stri
   if (cents === null || (typeof quantity === 'number' && !Number.isSafeInteger(quantity)) || quantity < 0)
     return 'Unavailable';
   const total = cents * BigInt(quantity);
-  return `$${formatShareCount((total / 100n).toString())}.${(total % 100n).toString().padStart(2, '0')} AUD`;
+  return formatMoney(`${total / 100n}.${(total % 100n).toString().padStart(2, '0')}`, 'AUD');
 }

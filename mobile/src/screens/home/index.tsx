@@ -126,7 +126,8 @@ export function HomeScreen() {
             </View>
           ) : holdings.length === 0 ? (
             <Text style={[styles.message, { paddingVertical: 20 }]}>
-              You don&apos;t hold any shares in your wallets yet.
+              None of your wallets holds shares yet. The company&apos;s register is the record of what you hold; shares
+              appear here once they are in one of your wallets.
             </Text>
           ) : (
             holdings.map((holding) => <ShareHolding key={holding.assetUuid} holding={holding} />)

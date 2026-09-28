@@ -13,15 +13,17 @@ export const SUBSCRIPTION_ENDPOINTS = {
 
 export const SUBSCRIPTION_STATUS_LABELS: Record<SubscriptionStatus, string> = {
   draft: 'Draft',
-  submitted: 'Submitted',
-  accepted: 'Accepted',
-  awaiting_payment: 'Awaiting payment',
-  paid: 'Paid',
-  allotted: 'Allotted',
+  submitted: 'Under review by the operator',
+  accepted: 'Accepted, payment instruction next',
+  awaiting_payment: 'Awaiting your payment',
+  paid: 'Payment received, allotment next',
+  allotted: 'Shares allotted',
   rejected: 'Rejected',
   withdrawn: 'Withdrawn',
   refunded: 'Refunded',
 };
+
+export const SUBSCRIPTION_IN_PROGRESS_STATUSES: SubscriptionStatus[] = ['submitted', 'accepted', 'paid'];
 
 export const SUBSCRIPTION_WITHDRAWABLE_STATUSES: SubscriptionStatus[] = [
   'draft',

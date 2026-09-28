@@ -4,14 +4,20 @@ import { Rows, Row, Section, Status } from '@components/Ledger';
 import { useOfferingSubscriptions } from './useOffering';
 import { OfferingReadNotice } from './OfferingReadNotice';
 
-export function SubscriptionsLedger({ offerings }: { offerings: OfferingListItem[] }) {
+export function SubscriptionsLedger({
+  offerings,
+  operatorName,
+}: {
+  offerings: OfferingListItem[];
+  operatorName: string;
+}) {
   const [selected, setSelected] = useState('');
   const offering = offerings.find((row) => row.uuid === selected) ?? offerings[0];
   const read = useOfferingSubscriptions(offering?.uuid);
   if (!offering) return null;
   return (
-    <Section title="Subscriptions">
-      <p className="text-sm text-text-muted">{REGISTER_COPY.SUBSCRIPTIONS_NOTE}</p>
+    <Section title={REGISTER_COPY.APPLICATIONS_TITLE}>
+      <p className="text-sm text-text-muted">{REGISTER_COPY.APPLICATIONS_NOTE(operatorName)}</p>
       <label className="block text-sm">
         Offering
         <select
@@ -29,18 +35,18 @@ export function SubscriptionsLedger({ offerings }: { offerings: OfferingListItem
       {read.isError ? (
         <OfferingReadNotice
           read={{ error: read.error, isRefreshing: read.isFetching, refetch: read.refetch }}
-          label="Subscriptions"
+          label={REGISTER_COPY.APPLICATIONS_TITLE}
         />
       ) : read.isPending ? (
         <p role="status" className="text-sm text-text-muted">
-          Loading subscriptions…
+          Loading applications…
         </p>
       ) : read.data.length === 0 ? (
-        <p className="text-sm text-text-muted">{REGISTER_COPY.SUBSCRIPTIONS_EMPTY}</p>
+        <p className="text-sm text-text-muted">{REGISTER_COPY.APPLICATIONS_EMPTY}</p>
       ) : (
         <>
           <p className="text-sm text-text-muted">
-            {read.data.length} subscription{read.data.length === 1 ? '' : 's'}
+            {read.data.length} application{read.data.length === 1 ? '' : 's'}
           </p>
           <ul className="divide-y divide-border-subtle">
             {read.data.map((row) => (

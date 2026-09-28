@@ -191,7 +191,6 @@ export function StatusBanners({
 }
 
 function RejectionReasons({ labels }: { labels?: string[] | null }) {
-  const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
     rejectionReasons: {
       marginTop: theme.spacing.sm,

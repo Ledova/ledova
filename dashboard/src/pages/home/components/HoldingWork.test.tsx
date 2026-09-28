@@ -10,6 +10,8 @@ import {
   PUBLICATION_ENDPOINTS,
   SUBSCRIPTION_ENDPOINTS,
   USER_ACCOUNT_ENDPOINTS,
+  formatDate,
+  formatDateTime,
   type AccountRole,
   type PublicationSummary,
   type Subscription,
@@ -21,13 +23,29 @@ const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
 vi.mock('@hooks/useAuth', () => ({ useAuth: () => ({ isAuthenticated: true }) }));
 
-const NOTHING = { openResolutions: 0, nextClosesAt: null, publishedSince: 0, dividendsWithoutRecord: 0 };
+const NOTHING = { openResolutions: 0, nextClosesAt: null, dividendsWithoutRecord: 0 };
 let client: QueryClient;
 let role: AccountRole;
 let summary: PublicationSummary;
 let pages: Record<number, Subscription[]>;
 let fail: string | undefined;
 let next: (page: number) => string | null;
+let published: Record<string, unknown>[];
+
+function notice(n: number, overrides: Record<string, unknown> = {}) {
+  return {
+    uuid: `notice-${n}`,
+    kind: 'meeting_notice',
+    title: `Notice ${n}`,
+    companyName: 'Harbour Example Pty Ltd',
+    tokenName: 'Ordinary',
+    createdAt: `2026-09-2${n}T00:00:00Z`,
+    opensAt: null,
+    closesAt: null,
+    result: null,
+    ...overrides,
+  };
+}
 
 function application(status: SubscriptionStatus, overrides: Partial<Subscription> = {}): Subscription {
   return {
@@ -78,6 +96,7 @@ beforeEach(() => {
   api.get.mockReset();
   role = 'investor';
   summary = NOTHING;
+  published = [];
   pages = { 1: [] };
   fail = undefined;
   next = (page) => (pages[page + 1] ? `https://example.test/api/v1/subscriptions/?page=${page + 1}` : null);
@@ -86,6 +105,9 @@ beforeEach(() => {
     if (fail === url || (fail === 'page2' && config?.params?.page === 2)) throw new Error('Unavailable');
     if (url === USER_ACCOUNT_ENDPOINTS.BASE) return { data: { uuid: 'account', role } };
     if (url === PUBLICATION_ENDPOINTS.SUMMARY) return { data: summary };
+    if (url === PUBLICATION_ENDPOINTS.BASE) {
+      return { data: { results: published, next: null, count: published.length, previous: null } };
+    }
     if (url === SUBSCRIPTION_ENDPOINTS.BASE) {
       const page = config?.params?.page ?? 1;
       return {
@@ -115,7 +137,7 @@ it('separates actionable applications and votes from operator work and company p
       'refunded',
     ].map((status) => application(status as SubscriptionStatus)),
   };
-  summary = { openResolutions: 2, nextClosesAt: '2026-10-03T05:00:00Z', publishedSince: 3, dividendsWithoutRecord: 1 };
+  summary = { openResolutions: 2, nextClosesAt: '2026-10-03T05:00:00Z', dividendsWithoutRecord: 1 };
   show();
 
   expect(await screen.findByText('draft Company')).toBeTruthy();
@@ -124,18 +146,23 @@ it('separates actionable applications and votes from operator work and company p
   expect(section('Needs you').getByText(/^First closes /)).toBeTruthy();
   expect(section('In progress').getByText('Under review by the operator')).toBeTruthy();
   expect(section('In progress').getByText('Accepted, payment instruction next')).toBeTruthy();
-  expect(section('In progress').getByText('Payment received')).toBeTruthy();
+  expect(section('In progress').getByText('Payment received, allotment next')).toBeTruthy();
   expect(section('In progress').getByText('1 dividend awaits a payment record from the company')).toBeTruthy();
   for (const status of ['allotted', 'rejected', 'withdrawn', 'refunded'])
     expect(screen.queryByText(`${status} Company`)).toBeNull();
-  expect(screen.getByText(/3 notices addressed to you in the last 30 days/)).toBeTruthy();
+  expect(section('Recently published to you').getByText('Nothing has been published to you yet.')).toBeTruthy();
   expect(screen.queryByText(/unread|unpaid/i)).toBeNull();
   expect(api.get.mock.calls.map(([url]) => url)).toEqual(
     expect.arrayContaining([PUBLICATION_ENDPOINTS.SUMMARY, SUBSCRIPTION_ENDPOINTS.BASE]),
   );
   expect(
     api.get.mock.calls.every(([url]) =>
-      [PUBLICATION_ENDPOINTS.SUMMARY, SUBSCRIPTION_ENDPOINTS.BASE, USER_ACCOUNT_ENDPOINTS.BASE].includes(url),
+      [
+        PUBLICATION_ENDPOINTS.SUMMARY,
+        PUBLICATION_ENDPOINTS.BASE,
+        SUBSCRIPTION_ENDPOINTS.BASE,
+        USER_ACCOUNT_ENDPOINTS.BASE,
+      ].includes(url),
     ),
   ).toBe(true);
 });
@@ -286,4 +313,44 @@ it('updates work when existing application mutations invalidate their query pref
   await act(async () => client.invalidateQueries({ queryKey: ['subscriptions'] }));
   expect(await screen.findByText('Under review by the operator')).toBeTruthy();
   expect(screen.queryByText('Review and submit your draft')).toBeNull();
+});
+
+it('lists the three latest notices addressed to you, and asks only for your own', async () => {
+  published = [notice(4), notice(3), notice(2), notice(1)];
+  show();
+
+  const recent = section('Recently published to you');
+  expect(await recent.findByText('Notice 4')).toBeTruthy();
+  expect(recent.getAllByRole('listitem').map((item) => item.querySelector('p + p')?.textContent)).toEqual([
+    'Notice 4',
+    'Notice 3',
+    'Notice 2',
+  ]);
+  expect(api.get).toHaveBeenCalledWith(PUBLICATION_ENDPOINTS.BASE, { params: { page: 1, addressed: 'me' } });
+  fireEvent.click(recent.getByRole('link', { name: 'View all notices' }));
+  expect(await screen.findByText('Personal notices destination')).toBeTruthy();
+});
+
+it('names the company, kind and date of each notice, and says until when a vote is open', async () => {
+  const hour = 3_600_000;
+  const opensAt = new Date(Date.now() - 24 * hour).toISOString();
+  const closesAt = new Date(Date.now() + 24 * hour).toISOString();
+  const closedAt = new Date(Date.now() - hour).toISOString();
+  published = [
+    notice(3, { kind: 'resolution', opensAt, closesAt }),
+    notice(2, { kind: 'resolution', opensAt, closesAt: closedAt }),
+    notice(1, { kind: 'distribution' }),
+  ];
+  show();
+
+  const recent = section('Recently published to you');
+  expect(await recent.findByText('Notice 3')).toBeTruthy();
+  const [open, closed, dividend] = recent.getAllByRole('listitem').map((item) => within(item));
+  expect(open.getByText('Harbour Example Pty Ltd · Resolution')).toBeTruthy();
+  expect(open.getByText(`Open until ${formatDateTime(closesAt)}`)).toBeTruthy();
+  expect(open.getByText(formatDate('2026-09-23T00:00:00Z'))).toBeTruthy();
+  expect(closed.getByText('Harbour Example Pty Ltd · Resolution')).toBeTruthy();
+  expect(closed.queryByText(/Open until/)).toBeNull();
+  expect(dividend.getByText('Harbour Example Pty Ltd · Dividend')).toBeTruthy();
+  expect(dividend.queryByText(/Open until/)).toBeNull();
 });

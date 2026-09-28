@@ -55,8 +55,8 @@ afterEach(async () => {
 });
 
 it('calculates exact AUD cents and never represents unsafe numeric shares as exact', () => {
-  expect(marketAmount('0.29', 9007199254740991)).toBe('$2,612,087,783,874,887.39 AUD');
-  expect(marketAmount('9999999999999999.99', 2)).toBe('$19,999,999,999,999,999.98 AUD');
+  expect(marketAmount('0.29', 9007199254740991)).toBe('AUD\u00a02,612,087,783,874,887.39');
+  expect(marketAmount('9999999999999999.99', 2)).toBe('AUD\u00a019,999,999,999,999,999.98');
   expect(marketQuantity(9007199254740992)).toBe('Unavailable');
   expect(marketAmount('1.00', 9007199254740992)).toBe('Unavailable');
 });
@@ -257,7 +257,7 @@ it('requires a positive cent price and minimum not above quantity', async () => 
   await fireEvent.press(view.getByText('Buy'));
   expect(props.onSubmit).not.toHaveBeenCalled();
   await fireEvent.changeText(view.getByLabelText('Minimum fill quantity'), '2');
-  expect(view.getByText('$0.87 AUD')).toBeTruthy();
+  expect(view.getByText('AUD 0.87')).toBeTruthy();
   await fireEvent.press(view.getByText('Buy'));
   expect(props.onSubmit).toHaveBeenCalledWith(
     expect.objectContaining({ quantity: 3, minQuantity: 2, pricePerShare: '0.29' }),
@@ -268,7 +268,7 @@ it('sends large quantities and minimum as exact strings', async () => {
   const view = await render(<CreateOrderModal {...props} />);
   await fireEvent.changeText(view.getByLabelText('Quantity'), '9007199254740993');
   await fireEvent.changeText(view.getByLabelText('Minimum fill quantity'), '9007199254740992');
-  expect(view.getByText('$2,612,087,783,874,887.97 AUD')).toBeTruthy();
+  expect(view.getByText('AUD 2,612,087,783,874,887.97')).toBeTruthy();
   await fireEvent.press(view.getByText('Buy'));
   expect(props.onSubmit).toHaveBeenCalledWith(
     expect.objectContaining({ quantity: '9007199254740993', minQuantity: '9007199254740992', pricePerShare: '0.29' }),

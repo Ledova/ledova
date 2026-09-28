@@ -259,7 +259,6 @@ member:
 | --- | --- |
 | `openResolutions` | Resolutions whose window is open now and on which at least one of the caller's holdings has no ballot |
 | `nextClosesAt` | The soonest close among those, or null |
-| `publishedSince` | Publications of any kind addressed to the caller in the last 30 days |
 | `dividendsWithoutRecord` | Distributions on which at least one of the caller's holdings is owed a cent or more and has no standing payment record |
 
 A person on a roll twice, because two register members resolve to one account,
@@ -296,12 +295,12 @@ route, and resolutions retain confirmation, ballot status, refusal and results.
 A failed first page offers a retry without calling the list empty. A failed
 later page keeps the known rows and labels the list incomplete, with a retry of
 that page. A failed refresh withholds cached rows and their voting controls
-until a retry succeeds. The old `/dividends` address redirects to Notices, so
-existing bookmarks and links from transaction history still reach the records.
-A dividend remains a company record, separate from on-chain transaction filters.
+until a retry succeeds. A dividend remains a company record, separate from
+on-chain transaction filters.
 
-The dashboard's **Holdings** page links to Notices from its personal work
-sections, described in [clients](clients.md).
+The dashboard's **Holdings** page lists the three latest notices addressed to
+the person and links to Notices from its personal work sections, described in
+[clients](clients.md).
 The dashboard's **Published to your members** page at `/company/publications`
 opens from Company for company and dual-role accounts. It follows every page with
 `issuer` set to the selected owned company, using a separate cache from Notices.
@@ -313,25 +312,20 @@ It adds no publication, distribution or resolution execution controls: staff
 prepare and publish on written instruction. Read failures hide stale actions and
 offer retry; file delivery failures distinguish an unavailable stored document.
 
-Mobile Holdings links to personal Notices, which retains `addressed=me` on every
-page. Native Published to your members selects the owned company with `issuer`
-on every page, separately from personal Notices. It shows stored documents and
+Mobile Holdings lists the same three latest notices and links to personal
+Notices, which retains `addressed=me` on every page. Native Published to your
+members selects the owned company with `issuer` on every page, separately from
+personal Notices. It shows stored documents and
 recorded resolution/dividend facts without personal ballot or entitlement
 controls. Company, account or session changes retire the prior document action;
-unavailable reads show retry and block stale actions. The separate dividends
-list remains available from transaction history.
+unavailable reads show retry and block stale actions.
 
 - `usePublicationSummary` powers the notice counts in Holdings: open resolutions
-  awaiting the person's vote, dividends awaiting a company payment record, and
-  publications addressed to the person in the last 30 days. These are not unread
-  counts or proof of whether a bank transfer happened. Failed reads show retry
+  awaiting the person's vote and dividends awaiting a company payment record.
+  These are not unread counts or proof of whether a bank transfer happened. Failed reads show retry
   instead of claiming there is no work. The shared hook refreshes at
   `nextClosesAt` and every five minutes, with bounded timers that stop when the
   consumer leaves.
-- `useDividends` reads `?kind=distribution&addressed=me` a page at a time, so a
-  company owner sees their own dividends, not every dividend their company
-  declared. Its rows retain the same holding, entitlement and payment-record
-  details; mobile transaction history links to this separate list.
 
 In both clients, a notification of a new publication of any kind opens the
 publications page from its `type` alone.

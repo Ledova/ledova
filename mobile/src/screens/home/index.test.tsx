@@ -84,9 +84,17 @@ it('keeps Holdings visible while wallets load, then distinguishes a crypto-only 
   const view = await render(<HomeScreen />, { wrapper });
   expect(view.getByRole('header', { name: 'Holdings' })).toBeTruthy();
   expect(view.getByText('Loading your holdings…')).toBeTruthy();
-  expect(view.queryByText("You don't hold any shares in your wallets yet.")).toBeNull();
+  expect(
+    view.queryByText(
+      "None of your wallets holds shares yet. The company's register is the record of what you hold; shares appear here once they are in one of your wallets.",
+    ),
+  ).toBeNull();
   await act(async () => finish(page()));
-  expect(await view.findByText("You don't hold any shares in your wallets yet.")).toBeTruthy();
+  expect(
+    await view.findByText(
+      "None of your wallets holds shares yet. The company's register is the record of what you hold; shares appear here once they are in one of your wallets.",
+    ),
+  ).toBeTruthy();
   expect(view.queryByText(/0 shares|AUD|USD/)).toBeNull();
 });
 
@@ -147,7 +155,11 @@ it.each(['first page', 'second page', 'one holding', 'malformed next', 'fraction
     const view = await render(<HomeScreen />, { wrapper });
     expect(await view.findByRole('alert')).toHaveTextContent("We couldn't load all your holdings.");
     expect(view.queryByText('Harbour Example Pty Ltd')).toBeNull();
-    expect(view.queryByText("You don't hold any shares in your wallets yet.")).toBeNull();
+    expect(
+      view.queryByText(
+        "None of your wallets holds shares yet. The company's register is the record of what you hold; shares appear here once they are in one of your wallets.",
+      ),
+    ).toBeNull();
     failed = false;
     await fireEvent.press(view.getByRole('button', { name: 'Try again' }));
     expect(await view.findByText('20 shares')).toBeTruthy();

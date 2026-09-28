@@ -612,7 +612,6 @@ it('refreshes the shared personal work summary after a ballot settles', async ()
   const summary = {
     openResolutions: 1,
     nextClosesAt: resolution.closesAt,
-    publishedSince: 1,
     dividendsWithoutRecord: 0,
   };
   client.setQueryData(['publications', 'summary'], summary);

@@ -3,12 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { CACHE_TIMING } from '../constants/api';
 import { LONGEST_TIMER_DELAY, PUBLICATION_SUMMARY_REFRESH_INTERVAL } from '../constants/business/publications';
 import { getPublicationSummary } from '../services/publications';
-import { describePublicationSummary } from '../utils/publications';
 import { useApiClient } from './useApiClient';
 
-export const PUBLICATION_SUMMARY_QUERY_KEY = ['publications', 'summary'] as const;
-
-const NOTHING_TO_SAY: string[] = [];
+const PUBLICATION_SUMMARY_QUERY_KEY = ['publications', 'summary'] as const;
 
 export function usePublicationSummary() {
   const apiClient = useApiClient();
@@ -29,7 +26,6 @@ export function usePublicationSummary() {
   }, [closes, refetch]);
 
   return {
-    lines: summary.data ? describePublicationSummary(summary.data) : NOTHING_TO_SAY,
     summary: summary.data,
     isPending: summary.isPending,
     isError: summary.isError,
