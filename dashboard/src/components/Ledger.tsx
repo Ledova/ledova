@@ -5,8 +5,8 @@ import { formatDate } from '@ledova/shared';
 
 export function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="border-b border-border pb-2 font-display text-xl tracking-[-0.01em] text-text-primary">{title}</h2>
+    <section className="flex flex-col gap-2 rounded-xl border border-border bg-surface-raised p-4 sm:p-5">
+      <h2 className="break-words font-display text-xl tracking-[-0.01em] text-text-primary">{title}</h2>
       {children}
     </section>
   );

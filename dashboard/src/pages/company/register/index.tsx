@@ -9,22 +9,19 @@ export default function CompanyRegisterPage() {
   const { data: classes = [], isPending, isError, isFetching, refetch } = useCompanyRegister();
 
   return (
-    <Page>
-      <p className="text-sm text-text-muted">
-        The stored register records your company&apos;s members and their shares. Wallet balances do not replace it.
-      </p>
+    <Page lede="The stored register records your company's members and their shares; wallet balances do not replace it.">
       <Section title="Share classes">
         {isPending ? (
-          <p role="status" className="py-6 text-sm text-text-muted">
+          <p role="status" className="py-3 text-sm text-text-muted">
             Loading your register…
           </p>
         ) : isError ? (
-          <div role="alert" className="flex flex-col items-start gap-3 py-6">
+          <div role="alert" className="flex flex-col items-start gap-3 py-3">
             <p className="text-sm text-text-muted">We couldn&apos;t load the complete register.</p>
             <PageAction label="Try again" onClick={() => void refetch()} disabled={isFetching} />
           </div>
         ) : classes.length === 0 ? (
-          <p className="py-6 text-sm text-text-muted">Your company has no share classes yet.</p>
+          <p className="py-3 text-sm text-text-muted">Your company has no share classes yet.</p>
         ) : (
           <ul className="divide-y divide-border">
             {classes.map(({ companyName, register }) => (

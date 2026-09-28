@@ -15,7 +15,6 @@ export function ApplicationsScreen() {
     useSubscriptions();
   return (
     <ApplicationsPage loading={isLoading} refreshing={isRefreshing} refresh={() => void retry()}>
-      <Text style={styles.help}>Your applications for shares, from draft through allotment or closure.</Text>
       {hasError ? (
         <View style={styles.group}>
           <Text accessibilityRole="alert" style={styles.message}>

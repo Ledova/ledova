@@ -61,8 +61,7 @@ export default function DirectoryTokenPage() {
   const offering = token.openOffering;
 
   return (
-    <Page actions={back}>
-      <p className="break-words text-sm text-text-muted">{token.company.displayName}</p>
+    <Page actions={back} lede={token.company.displayName}>
       <div className="min-w-0 break-words">
         <Section title={token.name}>
           <Rows>

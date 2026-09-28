@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Text, View, ScrollView, RefreshControl, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Action, LinkRow, Section } from '../../components/Ledger';
+import { Action, Lede, LinkRow, Section } from '../../components/Ledger';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
 import { useCompanyRegister } from './useCompanyRegister';
 import { useCompanyStyles } from './styles';
@@ -30,9 +30,9 @@ export function CompanyRegisterScreen() {
       <Text accessibilityRole="header" style={styles.title}>
         Register
       </Text>
-      <Text style={styles.muted}>
-        The stored register records your company’s members and their shares. Wallet balances do not replace it.
-      </Text>
+      <Lede>
+        The stored register records your company’s members and their shares; wallet balances do not replace it.
+      </Lede>
       {access.isLoading ? (
         <Text style={styles.muted}>Loading your company access…</Text>
       ) : access.isError ? (

@@ -58,6 +58,7 @@ export const TransactionsPage = () => {
 
   return (
     <Page
+      lede="Select an entry for its status and details."
       actions={
         <PageAction
           icon={<FunnelIcon size={16} />}
@@ -67,9 +68,6 @@ export const TransactionsPage = () => {
         />
       }
     >
-      <p className="text-sm text-text-muted">
-        Recorded transfers for your wallets. Select an entry for its status and details.
-      </p>
       {isLoading ? (
         <p role="status" className="py-6 text-sm text-text-muted">
           Loading activity…

@@ -102,7 +102,7 @@ export default function OfferingPage() {
   const data = useOfferings(company?.uuid);
   const client = useQueryClient();
   const [editor, setEditor] = useState<{ company: string; uuid?: string } | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<{ listing: boolean; message: string } | null>(null);
   const actions = useOfferingActions(data.refresh);
   const listing = useMutation({
     mutationFn: ({ uuid, isOpen }: { uuid: string; isOpen: boolean }) =>
@@ -110,7 +110,10 @@ export default function OfferingPage() {
     onSuccess: () => client.invalidateQueries({ queryKey: ['company'] }),
     onMutate: () => setActionError(null),
     onError: (error) =>
-      setActionError(apiErrorSentence(error, 'Directory visibility could not be changed. Try again.')),
+      setActionError({
+        listing: true,
+        message: apiErrorSentence(error, 'Directory visibility could not be changed. Try again.'),
+      }),
   });
   const busy = actions.submit.isPending || actions.withdraw.isPending || actions.remove.isPending || listing.isPending;
   const ready =
@@ -126,7 +129,10 @@ export default function OfferingPage() {
       if (action === 'withdraw') await actions.withdraw.mutateAsync({ uuid, reason: 'Withdrawn by the issuer' });
       else await actions[action].mutateAsync(uuid);
     } catch (error) {
-      setActionError(apiErrorSentence(error, 'The request was refused. Please try again.'));
+      setActionError({
+        listing: false,
+        message: apiErrorSentence(error, 'The request was refused. Please try again.'),
+      });
     }
   };
   return (
@@ -149,35 +155,11 @@ export default function OfferingPage() {
           <p className="text-sm text-text-muted">No company found. Please register your company first.</p>
         ) : (
           <>
-            <Section title="Investor Directory">
-              <p className="text-sm text-text-muted">
-                Your company is listed in the investor directory only while this is on. Nothing is listed by default,
-                and {data.operatorName} can switch it off. Turning it off hides your share classes; it does not withdraw
-                an offering already under review.
-              </p>
-              <label className="flex items-center gap-3 text-sm text-text-primary">
-                <input
-                  type="checkbox"
-                  checked={company.isOpenToInvestors}
-                  disabled={!ready || !company.canIssueTokens}
-                  onChange={(event) => {
-                    if (ready && company.canIssueTokens)
-                      listing.mutate({ uuid: company.uuid, isOpen: event.target.checked });
-                  }}
-                />
-                Show this company to eligible investors
-              </label>
-              {!company.canIssueTokens && (
-                <p className="text-sm text-text-muted">
-                  Your company must be active before it can be listed. It is currently {company.statusDisplay}.
-                </p>
-              )}
-            </Section>
             <CompanyReadNotice read={companyRead} />
             <OfferingReadNotice read={data} />
-            {actionError && (
+            {actionError && !actionError.listing && (
               <p role="alert" className="text-sm text-error-light">
-                {actionError}
+                {actionError.message}
               </p>
             )}
             {!data.error && (
@@ -212,6 +194,35 @@ export default function OfferingPage() {
                 <SubscriptionsLedger offerings={data.offerings} operatorName={data.operatorName} />
               </>
             )}
+            <Section title="Investor Directory">
+              <p className="text-sm text-text-muted">
+                Your company is listed in the investor directory only while this is on. Nothing is listed by default,
+                and {data.operatorName} can switch it off. Turning it off hides your share classes; it does not withdraw
+                an offering already under review.
+              </p>
+              <label className="flex items-center gap-3 text-sm text-text-primary">
+                <input
+                  type="checkbox"
+                  checked={company.isOpenToInvestors}
+                  disabled={!ready || !company.canIssueTokens}
+                  onChange={(event) => {
+                    if (ready && company.canIssueTokens)
+                      listing.mutate({ uuid: company.uuid, isOpen: event.target.checked });
+                  }}
+                />
+                Show this company to eligible investors
+              </label>
+              {!company.canIssueTokens && (
+                <p className="text-sm text-text-muted">
+                  Your company must be active before it can be listed. It is currently {company.statusDisplay}.
+                </p>
+              )}
+              {actionError?.listing && (
+                <p role="alert" className="text-sm text-error-light">
+                  {actionError.message}
+                </p>
+              )}
+            </Section>
             <Section title="What happens next">
               <ol className="list-inside list-decimal space-y-2 text-sm text-text-muted">
                 <li>

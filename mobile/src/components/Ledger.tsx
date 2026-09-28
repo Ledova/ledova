@@ -25,6 +25,13 @@ export function Section({ title, children }: { title: string; children: ReactNod
   );
 }
 
+export function Lede({ children }: { children: ReactNode }) {
+  const styles = useThemedStyles((theme) => ({
+    lede: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 21, color: theme.colors.text.muted },
+  }));
+  return <Text style={styles.lede}>{children}</Text>;
+}
+
 export function Row({ label, children }: { label: string; children: ReactNode }) {
   const styles = useThemedStyles((theme) => ({
     row: {

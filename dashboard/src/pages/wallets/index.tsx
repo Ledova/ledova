@@ -18,6 +18,8 @@ import { DeriveAddressModal } from './components/DeriveAddressModal';
 import { AddWalletModal } from './components/AddWalletModal';
 import { CryptoActions } from './components/CryptoActions';
 
+const LEDE = 'Select a wallet to edit, verify, derive an address or sync its balances.';
+
 export function WalletsPage() {
   const {
     wallets,
@@ -161,11 +163,12 @@ export function WalletsPage() {
   );
 
   if (isLoading) {
-    return <Page loading />;
+    return <Page loading lede={LEDE} />;
   }
 
   return (
     <Page
+      lede={LEDE}
       actions={
         <>
           <PageAction
@@ -185,9 +188,6 @@ export function WalletsPage() {
         </div>
       ) : (
         <>
-          <p className="text-sm text-text-muted">
-            Select a wallet to edit, verify, derive an address or sync its balances.
-          </p>
           {renderChain(BLOCKCHAIN.ETHEREUM, 'Ethereum', ethWallets)}
           {renderChain(BLOCKCHAIN.BITCOIN, 'Bitcoin', btcWallets)}
           {renderChain(BLOCKCHAIN.BASE, 'Base', baseWallets)}

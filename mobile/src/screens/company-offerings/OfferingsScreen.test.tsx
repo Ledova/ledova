@@ -196,6 +196,17 @@ it('reads all owned offering, class and application pages and retains precise mo
   for (const url of [TOKENS, OFFERINGS, SUBSCRIPTIONS]) expect(get).toHaveBeenCalledWith(url, { params: { page: 2 } });
 });
 
+it('puts Your offerings first, then its applications, the directory switch and what happens next', async () => {
+  const view = await start();
+  expect(view.getAllByRole('header').map((header) => header.props.children)).toEqual([
+    'Offerings',
+    'Your offerings (1)',
+    'Applications',
+    'Investor Directory',
+    'What happens next',
+  ]);
+});
+
 it('makes no company or offering read for a member account', async () => {
   mockRole = 'member';
   const view = await render(<OfferingsScreen />, { wrapper });
