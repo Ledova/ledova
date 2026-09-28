@@ -181,9 +181,10 @@ it('distinguishes loading from an empty history', async () => {
     });
   const view = await show();
   expect(view.getByText('Loading activity…')).toBeTruthy();
-  expect(view.queryByText('No activity yet')).toBeNull();
+  expect(view.queryByText('No activity yet.')).toBeNull();
   await act(async () => finish(page([])));
-  expect(await view.findByText('No activity yet')).toBeTruthy();
+  expect(await view.findByText('No activity yet.')).toBeTruthy();
+  expect(view.getByText('Transfers')).toBeTruthy();
 });
 it('retries an initial history failure without claiming no records', async () => {
   activity = async () => {
@@ -191,7 +192,7 @@ it('retries an initial history failure without claiming no records', async () =>
   };
   const view = await show();
   expect(await view.findByText('Your activity could not be loaded. Try again before continuing.')).toBeTruthy();
-  expect(view.queryByText('No activity yet')).toBeNull();
+  expect(view.queryByText('No activity yet.')).toBeNull();
   activity = async () => page([transaction]);
   await fireEvent.press(view.getByText('Try again'));
   expect(await view.findByText('Pending')).toBeTruthy();
@@ -216,7 +217,7 @@ it('does not report an empty first page as complete when another page exists', a
     params.page === 1 ? page([], 'https://example.invalid/api/transactions/?page=2') : page([transaction]);
   const view = await show();
   await fireEvent.press(await view.findByText('Load more activity'));
-  expect(view.queryByText('No activity yet')).toBeNull();
+  expect(view.queryByText('No activity yet.')).toBeNull();
   expect(await view.findByText('Pending')).toBeTruthy();
 });
 it.each(['https://example.invalid/api/transactions/?page=1', 'https://example.invalid/api/transactions/?cursor=bad'])(

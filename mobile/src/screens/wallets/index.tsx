@@ -98,7 +98,7 @@ export function WalletsScreen() {
                         </View>
                       ))
                     ) : (
-                      <Text style={styles.help}>No {name} wallets</Text>
+                      <Text style={styles.help}>No {name} wallets yet.</Text>
                     )}
                   </Section>
                 );

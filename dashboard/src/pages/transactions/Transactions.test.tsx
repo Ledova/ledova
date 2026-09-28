@@ -188,9 +188,26 @@ it('distinguishes a pending read from an empty history', async () => {
     });
   show();
   expect(screen.getByText('Loading activity…')).toBeTruthy();
-  expect(screen.queryByText('No activity yet')).toBeNull();
+  expect(screen.queryByText('No activity yet.')).toBeNull();
   await act(async () => finish(page([])));
-  expect(await screen.findByText('No activity yet')).toBeTruthy();
+  expect(await screen.findByText('No activity yet.')).toBeTruthy();
+  expect(screen.getByRole('heading', { level: 2, name: 'Transfers' })).toBeTruthy();
+});
+
+it('keeps the Transfers title when filters match nothing and clears them from that state', async () => {
+  activity = async (params) => page(params.direction === 'outgoing' ? [] : [transaction]);
+  show();
+  await screen.findByText('Pending');
+  fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+  const dialog = screen.getByRole('dialog');
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Outgoing' }));
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Apply' }));
+  expect(await screen.findByText('No matching activity.')).toBeTruthy();
+  expect(screen.getByRole('heading', { level: 2, name: 'Transfers' })).toBeTruthy();
+  expect(screen.queryByText('No activity yet.')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+  expect(await screen.findByText('Pending')).toBeTruthy();
+  expect(screen.queryByText('No matching activity.')).toBeNull();
 });
 
 it('reports an initial history failure and retries without presenting an empty result', async () => {
@@ -199,7 +216,7 @@ it('reports an initial history failure and retries without presenting an empty r
   };
   show();
   expect(await screen.findByRole('alert')).toBeTruthy();
-  expect(screen.queryByText('No activity yet')).toBeNull();
+  expect(screen.queryByText('No activity yet.')).toBeNull();
   activity = async () => page([transaction]);
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
   expect(await screen.findByText('Pending')).toBeTruthy();
@@ -227,7 +244,7 @@ it('does not claim an empty first page is complete while a later page is outstan
     params.page === 1 ? page([], 'https://example.invalid/api/transactions/?page=2') : page([transaction]);
   show();
   fireEvent.click(await screen.findByRole('button', { name: 'Load more activity' }));
-  expect(screen.queryByText('No activity yet')).toBeNull();
+  expect(screen.queryByText('No activity yet.')).toBeNull();
   expect(await screen.findByText('Pending')).toBeTruthy();
 });
 

@@ -122,8 +122,8 @@ export function PublicationsScreen() {
         ) : (
           <>
             {publications.length === 0 && !hasMore && !moreFailed ? (
-              <Section title={PUBLICATION_COPY.EMPTY_TITLE}>
-                <Text style={styles.message}>{PUBLICATION_COPY.EMPTY_BODY}</Text>
+              <Section title="Your notices">
+                <Text style={styles.message}>{PUBLICATION_COPY.EMPTY}</Text>
               </Section>
             ) : (
               publications.map(renderRow)

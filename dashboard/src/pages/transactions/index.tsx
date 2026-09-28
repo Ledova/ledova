@@ -86,20 +86,18 @@ export const TransactionsPage = () => {
           <PageAction label="Try again" onClick={() => void retry()} disabled={isRefreshing} />
         </div>
       ) : (
-        <>
+        <Section title="Transfers">
           {transactions.length === 0 && !hasNextPage && !moreFailed ? (
-            <Section title={hasActiveFilters ? 'No matching activity' : 'No activity yet'}>
+            <>
               <p className="py-3 text-sm text-text-muted">
-                {hasActiveFilters
-                  ? 'Adjust or clear the filters to view more activity.'
-                  : 'Recorded transfers will appear here, including those awaiting confirmation.'}
+                {hasActiveFilters ? 'No matching activity.' : 'No activity yet.'}
               </p>
               {hasActiveFilters && (
                 <div>
                   <PageAction label="Clear filters" onClick={handleClearFilters} />
                 </div>
               )}
-            </Section>
+            </>
           ) : (
             <div className="divide-y divide-border-subtle">
               {transactions.map((transaction) => (
@@ -132,7 +130,7 @@ export const TransactionsPage = () => {
               {transactions.length} of {totalCount} records shown
             </p>
           )}
-        </>
+        </Section>
       )}
       <TransactionFilterModal
         isOpen={showFiltersModal}

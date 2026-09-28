@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { formatDate, formatMoney, SUBSCRIPTION_COPY } from '@ledova/shared';
+import { formatDate, formatMoney } from '@ledova/shared';
 import type { ApplicationsStackParamList } from '../../navigation/ApplicationsStackNavigator';
 import { Action, Row, Section } from '../../components/Ledger';
 import { ApplicationsPage, useApplicationStyles } from './ApplicationsPage';
@@ -26,8 +26,8 @@ export function ApplicationsScreen() {
       ) : (
         <>
           {subscriptions.length === 0 && !hasMore && !moreFailed ? (
-            <Section title="No applications yet">
-              <Text style={styles.help}>{SUBSCRIPTION_COPY.EMPTY_BODY}</Text>
+            <Section title="Your applications">
+              <Text style={styles.help}>No applications yet.</Text>
               <Action
                 label="Open Directory"
                 onPress={() => navigation.getParent()?.navigate('Directory', { screen: 'DirectoryMain' })}

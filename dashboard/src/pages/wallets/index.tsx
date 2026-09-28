@@ -6,7 +6,7 @@ const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
 import type { Wallet as WalletType, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { Section } from '@components/Ledger';
-import { WalletList, ChainEmptyState } from '@components/Wallet';
+import { WalletList } from '@components/Wallet';
 import { useWallets } from './hooks/useWallets';
 import { useWalletSort } from './hooks/useWalletSort';
 import { WalletActionBar } from './components/WalletActionBar';
@@ -137,7 +137,12 @@ export function WalletsPage() {
   const renderChain = (chain: string, title: string, chainWallets: WalletType[]) => (
     <Section title={title}>
       {chainWallets.length === 0 ? (
-        <ChainEmptyState message={`No ${title} wallets`} onAction={openAdd} />
+        <>
+          <p className="py-3 text-sm text-text-muted">No {title} wallets yet.</p>
+          <div>
+            <PageAction label="Add wallet" onClick={openAdd} />
+          </div>
+        </>
       ) : (
         <>
           <WalletList
