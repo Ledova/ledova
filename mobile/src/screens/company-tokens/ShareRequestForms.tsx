@@ -22,11 +22,11 @@ import {
   type CompanyShareToken,
 } from '@ledova/shared';
 import { useAppTheme, overlayColors } from '../../contexts';
-import { Section, Action } from '../../components/Ledger';
+import { Action } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { useCompanyStyles } from '../company-register/styles';
 
-function RequestModal({ onClose, children }: { onClose: () => void; children: ReactNode }) {
+function RequestModal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   const theme = useAppTheme();
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
@@ -44,7 +44,20 @@ function RequestModal({ onClose, children }: { onClose: () => void; children: Re
           accessibilityViewIsModal
           style={{ maxHeight: '90%', backgroundColor: theme.colors.surface.base, borderRadius: 8 }}
         >
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20 }}>
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, gap: 12 }}>
+            <Text
+              accessibilityRole="header"
+              style={{
+                fontFamily: theme.fontFamily.display,
+                fontSize: 25,
+                color: theme.colors.text.primary,
+                paddingBottom: 10,
+                borderBottomWidth: 1,
+                borderBottomColor: theme.colors.border.default,
+              }}
+            >
+              {title}
+            </Text>
             {children}
           </ScrollView>
         </View>
@@ -130,45 +143,44 @@ export function IssueSharesForm({ token, classRead, onClose, onSuccess }: Reques
   });
   return (
     <RequestModal
+      title={`Request ${token.symbol} issuance`}
       onClose={() => {
         if (!request.isPending) onClose();
       }}
     >
-      <Section title={`Request ${token.symbol} issuance`}>
-        <ClassReadState query={classRead} />
-        <Text style={styles.muted}>Staff review this request before any shares are issued.</Text>
-        {request.isError && (
-          <Text accessibilityRole="alert" style={styles.error}>
-            {getErrorMessage(request.error, 'The issuance request was refused. Try again.')}
-          </Text>
-        )}
-        <Field label="Recipient address" value={recipient} onChange={setRecipient} disabled={request.isPending} />
-        <Field label="Shares to issue" value={amount} onChange={setAmount} disabled={request.isPending} numeric />
-        <Text style={styles.muted}>
-          Each request supports up to {formatShareCount(MAX_REQUEST_SHARES.toString())} shares. Enter a positive whole
-          number.
+      <ClassReadState query={classRead} />
+      <Text style={styles.muted}>Staff review this request before any shares are issued.</Text>
+      {request.isError && (
+        <Text accessibilityRole="alert" style={styles.error}>
+          {getErrorMessage(request.error, 'The issuance request was refused. Try again.')}
         </Text>
-        {amount !== '' && quantity === null && (
-          <Text accessibilityRole="alert" style={styles.error}>
-            The quantity must be a whole number from 1 to {formatShareCount(MAX_REQUEST_SHARES.toString())}.
-          </Text>
-        )}
-        <Field label="Reason (optional)" value={reason} onChange={setReason} disabled={request.isPending} />
-        {token.status !== 'deployed' && (
-          <Text accessibilityRole="alert" style={styles.error}>
-            The class must be deployed and unpaused before you request issuance.
-          </Text>
-        )}
-        <Action
-          label="Submit issuance request"
-          primary
-          disabled={!valid || request.isPending}
-          onPress={() => {
-            if (valid && !request.isPending) request.mutate();
-          }}
-        />
-        <Action label="Cancel" disabled={request.isPending} onPress={onClose} />
-      </Section>
+      )}
+      <Field label="Recipient address" value={recipient} onChange={setRecipient} disabled={request.isPending} />
+      <Field label="Shares to issue" value={amount} onChange={setAmount} disabled={request.isPending} numeric />
+      <Text style={styles.muted}>
+        Each request supports up to {formatShareCount(MAX_REQUEST_SHARES.toString())} shares. Enter a positive whole
+        number.
+      </Text>
+      {amount !== '' && quantity === null && (
+        <Text accessibilityRole="alert" style={styles.error}>
+          The quantity must be a whole number from 1 to {formatShareCount(MAX_REQUEST_SHARES.toString())}.
+        </Text>
+      )}
+      <Field label="Reason (optional)" value={reason} onChange={setReason} disabled={request.isPending} />
+      {token.status !== 'deployed' && (
+        <Text accessibilityRole="alert" style={styles.error}>
+          The class must be deployed and unpaused before you request issuance.
+        </Text>
+      )}
+      <Action
+        label="Submit issuance request"
+        primary
+        disabled={!valid || request.isPending}
+        onPress={() => {
+          if (valid && !request.isPending) request.mutate();
+        }}
+      />
+      <Action label="Cancel" disabled={request.isPending} onPress={onClose} />
     </RequestModal>
   );
 }
@@ -207,67 +219,66 @@ export function RaiseSharesForm({ token, classRead, onClose, onSuccess }: Reques
   });
   return (
     <RequestModal
+      title="Raise authorised shares"
       onClose={() => {
         if (!request.isPending) onClose();
       }}
     >
-      <Section title="Raise authorised shares">
-        <ClassReadState query={classRead} />
-        <Text style={styles.muted}>
-          Create a request, then submit it for staff review. Staff approval and execution raise the authorised cap; they
-          do not issue shares.
+      <ClassReadState query={classRead} />
+      <Text style={styles.muted}>
+        Create a request, then submit it for staff review. Staff approval and execution raise the authorised cap; they
+        do not issue shares.
+      </Text>
+      <Text style={styles.text}>Current authorised shares: {formatShareCount(token.totalSupply)}</Text>
+      {request.isError && (
+        <Text accessibilityRole="alert" style={styles.error}>
+          {getErrorMessage(request.error, 'The request was refused. Try again.')}
         </Text>
-        <Text style={styles.text}>Current authorised shares: {formatShareCount(token.totalSupply)}</Text>
-        {request.isError && (
-          <Text accessibilityRole="alert" style={styles.error}>
-            {getErrorMessage(request.error, 'The request was refused. Try again.')}
-          </Text>
-        )}
-        <Field
-          label="Additional shares"
-          value={additional}
-          onChange={setAdditional}
-          disabled={request.isPending}
-          numeric
-        />
-        {newTotal !== null && <Text style={styles.text}>New authorised total: {formatShareCount(newTotal)}</Text>}
-        <Text style={styles.muted}>
-          The new authorised total must be at most {formatShareCount(MAX_REQUEST_SHARES.toString())} shares under the
-          current request limit.
+      )}
+      <Field
+        label="Additional shares"
+        value={additional}
+        onChange={setAdditional}
+        disabled={request.isPending}
+        numeric
+      />
+      {newTotal !== null && <Text style={styles.text}>New authorised total: {formatShareCount(newTotal)}</Text>}
+      <Text style={styles.muted}>
+        The new authorised total must be at most {formatShareCount(MAX_REQUEST_SHARES.toString())} shares under the
+        current request limit.
+      </Text>
+      {additional !== '' && (additionalShares === null || newAuthorizedTotal === null) && (
+        <Text accessibilityRole="alert" style={styles.error}>
+          Enter positive whole shares within the supported request limit.
         </Text>
-        {additional !== '' && (additionalShares === null || newAuthorizedTotal === null) && (
-          <Text accessibilityRole="alert" style={styles.error}>
-            Enter positive whole shares within the supported request limit.
-          </Text>
-        )}
-        <Field label="Purpose" value={purpose} onChange={setPurpose} disabled={request.isPending} />
-        <Field
-          label="Board resolution reference"
-          value={boardReference}
-          onChange={setBoardReference}
-          disabled={request.isPending}
-        />
-        <Field
-          label="Shareholder approval reference (optional)"
-          value={shareholderReference}
-          onChange={setShareholderReference}
-          disabled={request.isPending}
-        />
-        {token.status !== 'deployed' && (
-          <Text accessibilityRole="alert" style={styles.error}>
-            The class must be deployed and unpaused before you request a raise.
-          </Text>
-        )}
-        <Action
-          label="Create request"
-          primary
-          disabled={!valid || request.isPending}
-          onPress={() => {
-            if (valid && !request.isPending) request.mutate();
-          }}
-        />
-        <Action label="Cancel" disabled={request.isPending} onPress={onClose} />
-      </Section>
+      )}
+      <Field label="Purpose" value={purpose} onChange={setPurpose} disabled={request.isPending} />
+      <Field
+        label="Board resolution reference"
+        value={boardReference}
+        onChange={setBoardReference}
+        disabled={request.isPending}
+      />
+      <Field
+        label="Shareholder approval reference (optional)"
+        value={shareholderReference}
+        onChange={setShareholderReference}
+        disabled={request.isPending}
+      />
+      {token.status !== 'deployed' && (
+        <Text accessibilityRole="alert" style={styles.error}>
+          The class must be deployed and unpaused before you request a raise.
+        </Text>
+      )}
+      <Action
+        label="Create request"
+        primary
+        disabled={!valid || request.isPending}
+        onPress={() => {
+          if (valid && !request.isPending) request.mutate();
+        }}
+      />
+      <Action label="Cancel" disabled={request.isPending} onPress={onClose} />
     </RequestModal>
   );
 }

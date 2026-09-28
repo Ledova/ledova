@@ -1,7 +1,7 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { REQUIRED_DOCUMENTS } from '@ledova/shared';
+import { OPTIONAL_DOCUMENTS, REQUIRED_DOCUMENTS } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { ListingScreen } from '.';
 
@@ -88,6 +88,14 @@ it('renders every supplied document, including duplicates and other records, wit
   expect(view.getByRole('button', { name: 'Submit application' })).toBeEnabled();
   await fireEvent.press(view.getByRole('button', { name: 'Back to Company' }));
   expect(mockNavigate).toHaveBeenCalledWith('Company', { screen: 'CompanyDetails' });
+});
+
+it('ends each documents card on its last entry without a rule above the card edge', async () => {
+  const view = await render(<ListingScreen />, { wrapper });
+  expect((await view.findByText(REQUIRED_DOCUMENTS[0].label)).parent).toHaveStyle({ borderBottomWidth: 1 });
+  expect(view.getByText(REQUIRED_DOCUMENTS.at(-1)!.label).parent).toHaveStyle({ borderBottomWidth: 0 });
+  expect(view.getByText(OPTIONAL_DOCUMENTS[0].label).parent).toHaveStyle({ borderBottomWidth: 1 });
+  expect(view.getByText(OPTIONAL_DOCUMENTS.at(-1)!.label).parent).toHaveStyle({ borderBottomWidth: 0 });
 });
 
 it.each(['submitted', 'review', 'approved', 'active', 'rejected', 'withdrawn'])(

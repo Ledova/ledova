@@ -1,6 +1,6 @@
 import type { AxiosRequestConfig } from 'axios';
 import React from 'react';
-import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
 import { PUBLICATION_COPY, formatDateTime } from '@ledova/shared';
@@ -248,8 +248,12 @@ it('asks the member to confirm a ballot cannot be changed, and casts nothing whe
 
   await fireEvent.press(await view.findByLabelText(choiceButton('Against')));
 
-  expect(view.getByText(`${PUBLICATION_COPY.CONFIRM_TITLE} Against`)).toBeTruthy();
-  expect(view.getByText(PUBLICATION_COPY.CONFIRM_BODY)).toBeTruthy();
+  const confirmation = view.getByText(`${PUBLICATION_COPY.CONFIRM_TITLE} Against`).parent!;
+  expect(within(confirmation).getByText(PUBLICATION_COPY.CONFIRM_BODY)).toBeTruthy();
+  expect(within(confirmation).getByText(PUBLICATION_COPY.CONFIRM)).toBeTruthy();
+  expect(within(confirmation).getByText(PUBLICATION_COPY.CANCEL)).toBeTruthy();
+  expect(confirmation).toHaveStyle({ borderTopWidth: 1 });
+  expect(confirmation).not.toHaveStyle({ borderWidth: 1 });
   expect(view.queryByLabelText(choiceButton('Against'))).toBeNull();
   await fireEvent.press(view.getByText(PUBLICATION_COPY.CANCEL));
   expect(view.getByLabelText(choiceButton('Against'))).toBeTruthy();

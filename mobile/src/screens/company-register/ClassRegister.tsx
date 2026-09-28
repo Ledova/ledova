@@ -29,8 +29,11 @@ export function ClassRegister({ register }: { register: TokenHoldersResponse }) 
           {register.holders.length === 0 ? (
             <Text style={styles.muted}>No current members are recorded for this class.</Text>
           ) : (
-            register.holders.map((holder) => (
-              <View key={holder.member} style={styles.entry}>
+            register.holders.map((holder, index) => (
+              <View
+                key={holder.member}
+                style={[styles.entry, index === register.holders.length - 1 && styles.lastEntry]}
+              >
                 <Text style={styles.heading}>{holder.name || HOLDER_TYPE_LABELS[holder.holderType]}</Text>
                 <Text style={styles.text}>
                   {formatShareCount(holder.balance)} {holder.balance === '1' ? 'share' : 'shares'}

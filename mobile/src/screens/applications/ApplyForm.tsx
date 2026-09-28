@@ -39,14 +39,22 @@ export function ApplyForm({
     input: {
       borderWidth: 1,
       borderColor: theme.colors.border.default,
-      borderRadius: 6,
+      borderRadius: theme.borderRadius.md,
+      backgroundColor: theme.colors.surface.raised,
       padding: 12,
       fontFamily: theme.fontFamily.regular,
       fontSize: 16,
       color: theme.colors.text.primary,
     },
-    wallet: { padding: 12, gap: 6, borderWidth: 1, borderColor: theme.colors.border.default, borderRadius: 6 },
-    selected: { borderColor: theme.colors.brand.default, backgroundColor: theme.colors.surface.base },
+    wallet: {
+      padding: 12,
+      gap: 6,
+      borderWidth: 1,
+      borderColor: theme.colors.border.default,
+      borderRadius: theme.borderRadius.md,
+      backgroundColor: theme.colors.surface.raised,
+    },
+    selected: { borderColor: theme.colors.brand.default },
   }));
   const chosen =
     draft.wallet === null

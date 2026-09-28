@@ -42,7 +42,7 @@ export function Resolution({
     detail: { fontFamily: theme.fontFamily.regular, fontSize: 13, lineHeight: 20, color: theme.colors.text.muted },
     status: { fontFamily: theme.fontFamily.semibold, fontSize: 14, lineHeight: 21, color: theme.colors.text.primary },
     choices: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 8, marginTop: 6 },
-    confirmation: { gap: 10, padding: 14, borderWidth: 1, borderColor: theme.colors.border.default, borderRadius: 6 },
+    confirmation: { gap: 10, paddingTop: 12, borderTopWidth: 1, borderTopColor: theme.colors.border.subtle },
     error: {
       fontFamily: theme.fontFamily.regular,
       fontSize: 14,

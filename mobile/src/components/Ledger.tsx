@@ -5,15 +5,15 @@ import { useAppTheme, useThemedStyles } from '../contexts';
 
 export function Section({ title, children }: { title: string; children: ReactNode }) {
   const styles = useThemedStyles((theme) => ({
-    section: { gap: 12 },
-    title: {
-      fontFamily: theme.fontFamily.display,
-      fontSize: 25,
-      color: theme.colors.text.primary,
-      paddingBottom: 10,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border.default,
+    section: {
+      gap: 12,
+      padding: theme.spacing.md,
+      borderWidth: 1,
+      borderColor: theme.colors.border.default,
+      borderRadius: theme.borderRadius.lg,
+      backgroundColor: theme.colors.surface.raised,
     },
+    title: { fontFamily: theme.fontFamily.display, fontSize: 25, color: theme.colors.text.primary },
   }));
   return (
     <View style={styles.section}>
@@ -64,11 +64,13 @@ export function LinkRow({
   label,
   onPress,
   accessibilityLabel,
+  last = false,
   children,
 }: {
   label: string;
   onPress: () => void;
   accessibilityLabel?: string;
+  last?: boolean;
   children?: ReactNode;
 }) {
   const theme = useAppTheme();
@@ -78,7 +80,7 @@ export function LinkRow({
       alignItems: 'center' as const,
       gap: 12,
       paddingVertical: 12,
-      borderBottomWidth: 1,
+      borderBottomWidth: last ? 0 : 1,
       borderBottomColor: theme.colors.border.subtle,
     },
     text: { flex: 1, gap: 4 },
@@ -121,7 +123,7 @@ export function Action({
       borderRadius: 6,
       paddingHorizontal: 14,
       paddingVertical: 11,
-      backgroundColor: primary ? theme.colors.brand.default : theme.colors.surface.base,
+      backgroundColor: primary ? theme.colors.brand.default : theme.colors.surface.transparent,
       opacity: disabled ? 0.5 : 1,
     },
     label: {
