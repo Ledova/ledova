@@ -7,8 +7,6 @@ PUBLICATION_FILE_SUFFIX = ".bin"
 
 PUBLICATION_NOTICE = "publication"
 
-RECENTLY_PUBLISHED_DAYS = 30
-
 READ_AS_MEMBER = "member"
 READ_AS_COMPANY = "company"
 READ_AS_STAFF = "staff"

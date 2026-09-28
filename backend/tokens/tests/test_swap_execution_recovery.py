@@ -28,7 +28,7 @@ from shared.db import atomic, current_alias, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from tokens.exceptions import SwapNotReadyException
-from tokens.models import SwapOrder, TransferOrder
+from tokens.models import ShareToken, SwapOrder, TransferOrder
 from tokens.services import swap_execution
 from tokens.tasks.swap_reconciler import recover_swap_execution, resolve_executing_swaps
 from tokens.tests.swap_execution_fixtures import (
@@ -114,6 +114,160 @@ class SwapExecutionRecoveryTest(APITransactionTestCase):
                 ),
                 self.parents,
             )
+
+    def external_issuer_swap(self, label):
+        with use_operator():
+            issuer = make_tenant(f"{label}-issuer", with_swap=False)
+            self.fixture = make_execution(label, issuer=issuer)
+            self.swap = self.fixture.swap
+        swap_execution.publish_trading_event.reset_mock()
+        self.assertEqual(len({issuer.user.pk, self.fixture.seller.user.pk, self.fixture.buyer.user.pk}), 3)
+        return issuer
+
+    def class_status(self, status):
+        with use_operator():
+            ShareToken.objects.filter(pk=self.swap.share_token_id).update(status=status)
+
+    def admission_state(self):
+        with use_operator():
+            return (
+                SwapOrder.objects.filter(pk=self.swap.pk).values().get(),
+                list(BlockchainTransaction.objects.filter(related_uuid=self.swap.pk).order_by("pk").values()),
+                OutgoingOperation.objects.count(),
+                SignedAttempt.objects.count(),
+                self.jobs(),
+                swap_execution.publish_trading_event.call_count,
+            )
+
+    def test_foreign_deployed_class_accepts_each_first_signature_and_a_relay_without_execution(self):
+        for actor, signer in (("seller", "seller"), ("buyer", "buyer"), ("buyer", "seller")):
+            with self.subTest(actor=actor, signer=signer):
+                self.external_issuer_swap(f"admitted-{actor}-{signer}")
+                with patch.object(swap_execution, "get_base_chain_client", side_effect=AssertionError("Provider")):
+                    response = self.post_signature(actor, relayed=signer)
+                self.assertEqual(response.status_code, 200, response.content)
+                state, transactions, operations, attempts, jobs, events = self.admission_state()
+                self.assertEqual(state[f"{signer}_signature"], self.fixture.signatures[signer])
+                self.assertEqual(state["status"], f"{signer}_signed")
+                self.assertIsNone(state["transaction_id"])
+                self.assertEqual((transactions, operations, attempts, jobs, events), ([], 0, 0, [], 1))
+
+    def test_foreign_paused_class_refuses_new_signatures_and_a_relay_without_effects(self):
+        self.external_issuer_swap("paused-new")
+        self.class_status("paused")
+        before = self.admission_state()
+        for actor, signer in (("seller", "seller"), ("buyer", "buyer"), ("buyer", "seller")):
+            with self.subTest(actor=actor, signer=signer):
+                response = self.post_signature(actor, relayed=signer)
+                self.assertEqual(response.status_code, 409, response.content)
+                self.assertEqual(response.json()["code"], "swap_settlement_context_changed")
+                self.assertEqual(self.admission_state(), before)
+
+    def test_non_deployed_classes_refuse_new_admission(self):
+        self.external_issuer_swap("nondeployed-new")
+        for status in ("draft", "deploying", "failed"):
+            with self.subTest(status=status):
+                self.class_status(status)
+                before = self.admission_state()
+                response = self.post_signature("buyer")
+                self.assertEqual(response.status_code, 409, response.content)
+                self.assertEqual(response.json()["code"], "swap_settlement_context_changed")
+                self.assertEqual(self.admission_state(), before)
+
+    def test_pause_preserves_the_first_signature_and_refuses_the_other_side(self):
+        for first, second in (("seller", "buyer"), ("buyer", "seller")):
+            with self.subTest(first=first):
+                self.external_issuer_swap(f"paused-second-{first}")
+                response = self.post_signature(first)
+                self.assertEqual(response.status_code, 200, response.content)
+                self.class_status("paused")
+                before = self.admission_state()
+                response = self.post_signature(second)
+                self.assertEqual(response.status_code, 409, response.content)
+                self.assertEqual(response.json()["code"], "swap_settlement_context_changed")
+                self.assertEqual(self.admission_state(), before)
+                replay = self.post_signature(first)
+                self.assertEqual(replay.status_code, 200, replay.content)
+                self.assertEqual(self.admission_state(), before)
+
+    def test_paused_exact_signature_replays_keep_terminal_records_without_execution(self):
+        for status in ("failed", "expired"):
+            with self.subTest(status=status):
+                self.external_issuer_swap(f"paused-replay-{status}")
+                self.assertEqual(self.post_signature("seller").status_code, 200)
+                with use_operator():
+                    SwapOrder.objects.filter(pk=self.swap.pk).update(status=status)
+                self.class_status("paused")
+                before = self.admission_state()
+                response = self.post_signature("seller")
+                self.assertEqual(response.status_code, 200, response.content)
+                self.assertEqual(self.admission_state(), before)
+
+    def test_paused_completed_replay_preserves_the_original_execution(self):
+        self.external_issuer_swap("paused-completed")
+        self.admit()
+        self.assertEqual(self.recover(), "confirmed")
+        self.node.advance(head=12)
+        with use_operator(), override_settings(
+            WALLET_CHAIN_FINALITY_POLICIES={f"evm:{CHAIN_ID}": {"mode": "depth", "depth": 1}}
+        ):
+            self.assertEqual(swap_execution.settle(self.record.pk, client=self.node.client), "completed")
+        self.class_status("paused")
+        before = self.admission_state()
+        response = self.post_signature("seller")
+        self.assertEqual(response.status_code, 200, response.content)
+        after = self.admission_state()
+        self.assertEqual(after[:4], before[:4])
+        self.assertEqual(after[5], before[5])
+        self.assertEqual(len(after[4]), len(before[4]) + 1)
+        self.assertEqual(after[4][-1], before[4][-1])
+
+    def test_paused_different_valid_signature_refuses_before_the_class_gate(self):
+        from eth_keys.constants import SECPK1_N
+
+        from tokens.services import atomic_swap_service
+
+        self.external_issuer_swap("paused-different")
+        self.assertEqual(self.post_signature("seller").status_code, 200)
+        raw = bytes.fromhex(self.fixture.signatures["seller"][2:])
+        different = (
+            "0x" + (raw[:32] + (SECPK1_N - int.from_bytes(raw[32:64])).to_bytes(32) + bytes([55 - raw[64]])).hex()
+        )
+        self.assertNotEqual(different, self.fixture.signatures["seller"])
+        self.assertTrue(atomic_swap_service.verify_signature(self.swap, different, SELLER.address))
+        self.class_status("paused")
+        before = self.admission_state()
+        response = self.post_signature("seller", changes={"signature": different})
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertIn("already signed", str(response.data))
+        self.assertEqual(self.admission_state(), before)
+
+    def test_paused_ready_replay_admits_only_after_unpause_and_reuses_the_execution(self):
+        self.external_issuer_swap("paused-ready")
+        with override_settings(BLOCKCHAIN_OPERATOR_KEY=""):
+            self.assertEqual(self.post_signature("seller").status_code, 200)
+            self.assertEqual(self.post_signature("buyer").status_code, 200)
+        self.class_status("paused")
+        before = self.admission_state()
+        self.assertEqual(before[0]["status"], "ready")
+        response = self.post_signature("buyer")
+        self.assertEqual(response.status_code, 409, response.content)
+        self.assertEqual(self.admission_state(), before)
+        self.class_status("deployed")
+        response = self.post_signature("buyer")
+        self.assertEqual(response.status_code, 200, response.content)
+        admitted = self.admission_state()
+        self.assertEqual(admitted[0]["status"], "executing")
+        self.assertEqual(len(admitted[1]), 1)
+        self.assertEqual(len(admitted[4]), 1)
+        self.class_status("paused")
+        replay = self.post_signature("buyer")
+        self.assertEqual(replay.status_code, 200, replay.content)
+        recovered = self.admission_state()
+        self.assertEqual(recovered[:4], admitted[:4])
+        self.assertEqual(recovered[5], admitted[5])
+        self.assertEqual(len(recovered[4]), 2)
+        self.assertEqual(recovered[4][0], recovered[4][1])
 
     def test_two_private_participants_admit_relayed_signatures_and_original_actor(self):
         seen = []

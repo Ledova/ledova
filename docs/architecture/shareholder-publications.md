@@ -152,7 +152,7 @@ whole investor surface, mounted at `/api/v1/publications/`:
 | Route | Answers |
 | --- | --- |
 | `GET /api/v1/publications/` | What was published to this principal, newest first, with the caller's own holding, ballot, entitlement and recorded payment; `?kind=` narrows it to one kind and `?addressed=me` to the publications whose roll names the caller; `?issuer=<company UUID>` selects an owned company |
-| `GET /api/v1/publications/summary/` | [Four counts](#the-summary) about the caller as a member, for the home page |
+| `GET /api/v1/publications/summary/` | [What waits on the caller](#the-summary) as a member, for the home page |
 | `GET /api/v1/publications/{uuid}/file/` | The stored document, as an attachment |
 | `POST /api/v1/publications/{uuid}/ballot/` | Casts the caller's ballot on a resolution, and answers with its updated row |
 
@@ -163,8 +163,8 @@ and a route with no client would be a surface nobody asked for.
 names the parameter rather than answered with an empty page. `addressed` takes
 one value, `me`, and keeps the publications whose roll has a row naming the
 caller, which leaves out what a company owner reads only as the issuer. Both
-narrow what the policies already admit and widen nothing: the mobile dividends
-list below is the listing with `?kind=distribution&addressed=me`.
+narrow what the policies already admit and widen nothing. Notices and Holdings'
+latest notices read the listing with `?addressed=me`; no client sends `?kind=`.
 
 The optional `issuer` UUID selects publications of one company owned by the
 caller. The filter validates that ownership against `Company.objects.owned_by`
@@ -234,9 +234,12 @@ through the policy-scoped connection, opens the stored document, records the
 `publication_read_unrecorded` if it cannot. A foreign or non-existent uuid answers the same 404 with the same body.
 
 Both clients read it through `@ledova/shared`: `getPublications` for the
-listing, a page at a time. Web Notices sends `addressed=me` on every page and
-uses a separate cache key from the older unfiltered list. The mobile publications
-list keeps its current scope until #750. The dashboard uses `openPublication`
+listing, a page at a time. Personal Notices sends `addressed=me` on every page.
+Mobile Published to your members exhausts the selected owned company’s pages
+with `issuer=<company UUID>` on each request and a separate issuer/session cache.
+Its read-only records include exact tallies and rates, not the owner’s personal
+ballot or entitlement. Failed complete reads cannot appear as an empty list.
+The dashboard uses `openPublication`
 for the blob it saves through a download link, and `downloadPublication` gets
 the bytes the mobile app writes to one private cache copy and hands to the
 system share sheet, the way a
@@ -256,7 +259,6 @@ member:
 | --- | --- |
 | `openResolutions` | Resolutions whose window is open now and on which at least one of the caller's holdings has no ballot |
 | `nextClosesAt` | The soonest close among those, or null |
-| `publishedSince` | Publications of any kind addressed to the caller in the last 30 days |
 | `dividendsWithoutRecord` | Distributions on which at least one of the caller's holdings is owed a cent or more and has no standing payment record |
 
 A person on a roll twice, because two register members resolve to one account,
@@ -282,8 +284,8 @@ grow with what was published, and a test holds that.
 The dashboard's **Notices** page at `/publications` lists every kind of
 publication addressed to the person, newest first: documents, resolutions and
 dividends together. A company owner's access as issuer does not add papers to
-this list. The owner accepted that the company's own list will be absent until
-#748 provides it, as recorded in [the signed-in app decisions](../decisions.md#the-signed-in-app).
+this list: the company's own list is **Published to your members**, below, as
+recorded in [the signed-in app decisions](../decisions.md#the-signed-in-app).
 Each row retains its company, class, record date and frozen holding; dividends
 also show the rate, entitlement, payment date and what the company recorded.
 Whole share counts and money retain their decimal-string precision, and calendar
@@ -293,12 +295,12 @@ route, and resolutions retain confirmation, ballot status, refusal and results.
 A failed first page offers a retry without calling the list empty. A failed
 later page keeps the known rows and labels the list incomplete, with a retry of
 that page. A failed refresh withholds cached rows and their voting controls
-until a retry succeeds. The old `/dividends` address redirects to Notices, so
-existing bookmarks and links from transaction history still reach the records.
-A dividend remains a company record, separate from on-chain transaction filters.
+until a retry succeeds. A dividend remains a company record, separate from
+on-chain transaction filters.
 
-The dashboard's **Holdings** page links to Notices from its personal work
-sections, described in [clients](clients.md).
+The dashboard's **Holdings** page lists the three latest notices addressed to
+the person and links to Notices from its personal work sections, described in
+[clients](clients.md).
 The dashboard's **Published to your members** page at `/company/publications`
 opens from Company for company and dual-role accounts. It follows every page with
 `issuer` set to the selected owned company, using a separate cache from Notices.
@@ -310,22 +312,20 @@ It adds no publication, distribution or resolution execution controls: staff
 prepare and publish on written instruction. Read failures hide stale actions and
 offer retry; file delivery failures distinguish an unavailable stored document.
 
-Mobile Holdings links to personal Notices, which retains `addressed=me` on every
-page. Company Publications still shows all publications available to the account,
-including issuer publications, until its selected-company page follows in #750.
-The separate dividends list remains available from transaction history.
+Mobile Holdings lists the same three latest notices and links to personal
+Notices, which retains `addressed=me` on every page. Native Published to your
+members selects the owned company with `issuer` on every page, separately from
+personal Notices. It shows stored documents and
+recorded resolution/dividend facts without personal ballot or entitlement
+controls. Company, account or session changes retire the prior document action;
+unavailable reads show retry and block stale actions.
 
-- `usePublicationSummary` powers the Holdings sections _Votes needing you_ and
-  _Dividend records in progress_. It reports open resolutions awaiting the
-  person's vote, dividends awaiting a company payment record, and publications
-  addressed to the person in the last 30 days. These are not unread counts or
-  proof of whether a bank transfer happened. Failed reads show retry instead of
-  claiming there is no work. The shared hook refreshes at `nextClosesAt` and every
-  five minutes, with bounded timers that stop when the consumer leaves.
-- `useDividends` reads `?kind=distribution&addressed=me` a page at a time, so a
-  company owner sees their own dividends, not every dividend their company
-  declared. Its rows retain the same holding, entitlement and payment-record
-  details; mobile transaction history links to this separate list.
+- `usePublicationSummary` powers the notice counts in Holdings: open resolutions
+  awaiting the person's vote and dividends awaiting a company payment record.
+  These are not unread counts or proof of whether a bank transfer happened. Failed reads show retry
+  instead of claiming there is no work. The shared hook refreshes at
+  `nextClosesAt` and every five minutes, with bounded timers that stop when the
+  consumer leaves.
 
 In both clients, a notification of a new publication of any kind opens the
 publications page from its `type` alone.

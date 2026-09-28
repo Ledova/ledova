@@ -1,72 +1,3 @@
-const PALETTE = {
-  navy: {
-    950: '#0c1426',
-    900: '#1a2332',
-    800: '#2a3441',
-    750: '#243247',
-    600: '#4a5568',
-  },
-  slate: {
-    800: '#1e293b',
-    700: '#334155',
-    600: '#475569',
-    500: '#64748b',
-    400: '#94a3b8',
-    300: '#cbd5e1',
-  },
-  gray: {
-    800: '#1f2937',
-    700: '#374151',
-    600: '#4b5563',
-    500: '#6B7280',
-    400: '#8b95a1',
-    200: '#cbd2d8',
-    100: '#e4e7ea',
-    50: '#fafbfc',
-  },
-  indigo: {
-    700: '#4338ca',
-    600: '#4f46e5',
-    500: '#6366f1',
-    400: '#818cf8',
-    300: '#a5b4fc',
-  },
-  green: {
-    800: '#166534',
-    600: '#16a34a',
-    400: '#4ade80',
-  },
-  red: {
-    800: '#991b1b',
-    600: '#dc2626',
-    400: '#f87171',
-  },
-  amber: {
-    600: '#d97706',
-    400: '#fbbf24',
-  },
-  sky: {
-    600: '#0284c7',
-    400: '#38bdf8',
-  },
-
-  zinc: {
-    300: '#d4d4d8',
-    200: '#e4e4e7',
-    100: '#ececee',
-    50: '#f5f5f7',
-  },
-
-  coolGray: {
-    400: '#9CA3AF',
-    300: '#d1d5db',
-    200: '#E5E7EB',
-    100: '#f3f4f6',
-  },
-  white: '#ffffff',
-  black: '#000000',
-} as const;
-
 function buildColors(p: {
   surface: { base: string; raised: string; tertiary: string; overlay: string; disabled: string };
   text: { primary: string; secondary: string; body: string; muted: string; subtle: string };
@@ -76,20 +7,8 @@ function buildColors(p: {
   error: { light: string; default: string; dark: string; subtle: string; backgroundSubtle: string };
   warning: { light: string; default: string };
   info: { light: string; default: string };
-  chartUI: {
-    pointerStrip: string;
-    tickColor: string;
-    gridColor: string;
-    lineBackground: string;
-    tooltipBg: string;
-    tooltipTitle: string;
-    tooltipBody: string;
-    tooltipBorder: string;
-  };
   badge: { successBg: string; infoBg: string };
   interactive: { selectedBg: string };
-  chart?: readonly string[];
-  chain?: { ethereum: string; bitcoin: string; base: string };
 }) {
   const colors = {
     surface: { ...p.surface, transparent: 'transparent' },
@@ -100,8 +19,7 @@ function buildColors(p: {
     error: p.error,
     warning: p.warning,
     info: p.info,
-    utility: { white: PALETTE.white, black: PALETTE.black, transparent: 'transparent' },
-    chart: p.chart ?? (['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'] as readonly string[]),
+    utility: { white: '#ffffff', black: '#000000', transparent: 'transparent' },
 
     status: {
       success: { icon: p.success.light, text: p.success.default },
@@ -130,130 +48,12 @@ function buildColors(p: {
       errorBackground: `${p.error.dark}80`,
       borderError: p.error.default,
     },
-    chartUI: {
-      portfolioLine: p.info.light,
-      pointerStrip: p.chartUI.pointerStrip,
-      tickColor: p.chartUI.tickColor,
-      gridColor: p.chartUI.gridColor,
-      lineBackground: p.chartUI.lineBackground,
-      tooltip: {
-        background: p.chartUI.tooltipBg,
-        titleColor: p.chartUI.tooltipTitle,
-        bodyColor: p.chartUI.tooltipBody,
-        borderColor: p.chartUI.tooltipBorder,
-      },
-    },
-    chain: p.chain ?? { ethereum: '#627eea', bitcoin: '#f7931a', base: '#0052FF' },
   } as const;
   return colors;
 }
 
-const DARK_COLORS = buildColors({
-  surface: {
-    base: PALETTE.navy[950],
-    raised: PALETTE.navy[900],
-    tertiary: PALETTE.navy[800],
-    overlay: PALETTE.navy[750],
-    disabled: PALETTE.navy[600],
-  },
-  text: {
-    primary: PALETTE.gray[50],
-    secondary: PALETTE.gray[100],
-    body: PALETTE.gray[200],
-    muted: PALETTE.gray[400],
-    subtle: PALETTE.slate[500],
-  },
-  brand: {
-    subtle: PALETTE.indigo[300],
-    light: PALETTE.indigo[400],
-    mid: PALETTE.indigo[500],
-    default: PALETTE.indigo[600],
-    hover: PALETTE.indigo[700],
-  },
-  border: {
-    default: PALETTE.slate[700],
-    subtle: PALETTE.slate[800],
-    strong: PALETTE.slate[600],
-    focus: PALETTE.indigo[500],
-  },
-  success: { light: PALETTE.green[400], default: PALETTE.green[600], dark: PALETTE.green[800] },
-  error: {
-    light: PALETTE.red[400],
-    default: PALETTE.red[600],
-    dark: PALETTE.red[800],
-    subtle: '#fef2f2',
-    backgroundSubtle: PALETTE.red[600] + '1A',
-  },
-  warning: { light: PALETTE.amber[400], default: PALETTE.amber[600] },
-  info: { light: PALETTE.sky[400], default: PALETTE.sky[600] },
-  chartUI: {
-    pointerStrip: PALETTE.white + '26',
-    tickColor: PALETTE.coolGray[400],
-    gridColor: PALETTE.gray[700],
-    lineBackground: 'rgba(96, 165, 250, 0.1)',
-    tooltipBg: PALETTE.gray[700],
-    tooltipTitle: PALETTE.coolGray[100],
-    tooltipBody: PALETTE.coolGray[300],
-    tooltipBorder: PALETTE.gray[500],
-  },
-  badge: { successBg: `${PALETTE.green[800]}80`, infoBg: PALETTE.navy[800] },
-  interactive: { selectedBg: PALETTE.indigo[600] + '4D' },
-});
-
-const LIGHT_COLORS = buildColors({
-  surface: {
-    base: PALETTE.zinc[50],
-    raised: PALETTE.white,
-    tertiary: PALETTE.zinc[100],
-    overlay: PALETTE.zinc[200],
-    disabled: PALETTE.slate[300],
-  },
-  text: {
-    primary: '#1a1a2e',
-    secondary: PALETTE.gray[800],
-    body: PALETTE.gray[700],
-    muted: PALETTE.gray[500],
-    subtle: PALETTE.slate[400],
-  },
-  brand: {
-    subtle: PALETTE.indigo[300],
-    light: PALETTE.indigo[500],
-    mid: PALETTE.indigo[600],
-    default: PALETTE.indigo[600],
-    hover: PALETTE.indigo[700],
-  },
-  border: {
-    default: PALETTE.zinc[300],
-    subtle: PALETTE.zinc[200],
-    strong: PALETTE.slate[400],
-    focus: PALETTE.indigo[500],
-  },
-  success: { light: PALETTE.green[600], default: PALETTE.green[600], dark: PALETTE.green[800] },
-  error: {
-    light: PALETTE.red[600],
-    default: PALETTE.red[600],
-    dark: PALETTE.red[800],
-    subtle: '#fef2f2',
-    backgroundSubtle: PALETTE.red[600] + '14',
-  },
-  warning: { light: PALETTE.amber[600], default: PALETTE.amber[600] },
-  info: { light: PALETTE.sky[600], default: PALETTE.sky[600] },
-  chartUI: {
-    pointerStrip: PALETTE.black + '14',
-    tickColor: PALETTE.gray[500],
-    gridColor: PALETTE.coolGray[200],
-    lineBackground: 'rgba(96, 165, 250, 0.08)',
-    tooltipBg: PALETTE.white,
-    tooltipTitle: '#1a1a2e',
-    tooltipBody: PALETTE.gray[600],
-    tooltipBorder: PALETTE.zinc[300],
-  },
-  badge: { successBg: `${PALETTE.green[600]}20`, infoBg: PALETTE.zinc[100] },
-  interactive: { selectedBg: PALETTE.indigo[600] + '1A' },
-});
-
 const PAPER_COLORS = {
-  paper: { default: '#f6f3ec', deep: '#ece7dc', card: PALETTE.white },
+  paper: { default: '#f6f3ec', deep: '#ece7dc', card: '#ffffff' },
   ink: { default: '#17191e', muted: '#5b5f66' },
   rule: { default: '#e3ded3', soft: '#eeeae1', strong: '#d6d0c3' },
   ledger: { default: '#2e6a57', hover: '#245446', tint: '#e6eeea' },
@@ -291,31 +91,19 @@ const PAPER_THEME = buildColors({
   error: {
     light: '#b91c1c',
     default: '#b91c1c',
-    dark: PALETTE.red[800],
+    dark: '#991b1b',
     subtle: '#fef2f2',
     backgroundSubtle: '#b91c1c14',
   },
   warning: { light: '#92400e', default: '#92400e' },
   info: { light: '#0369a1', default: '#0369a1' },
-  chartUI: {
-    pointerStrip: LIGHT_COLORS.chartUI.pointerStrip,
-    tickColor: PAPER_COLORS.ink.muted,
-    gridColor: LIGHT_COLORS.chartUI.gridColor,
-    lineBackground: LIGHT_COLORS.chartUI.lineBackground,
-    tooltipBg: LIGHT_COLORS.chartUI.tooltip.background,
-    tooltipTitle: LIGHT_COLORS.chartUI.tooltip.titleColor,
-    tooltipBody: LIGHT_COLORS.chartUI.tooltip.bodyColor,
-    tooltipBorder: LIGHT_COLORS.chartUI.tooltip.borderColor,
-  },
-  badge: { successBg: `${PALETTE.green[600]}20`, infoBg: PAPER_COLORS.paper.deep },
+  badge: { successBg: '#16a34a20', infoBg: PAPER_COLORS.paper.deep },
   interactive: { selectedBg: PAPER_COLORS.ledger.default + '1A' },
-  chart: ['#1d4ed8', PAPER_COLORS.ledger.default, '#b45309', '#b91c1c', '#6d28d9', '#be185d'],
-  chain: { ethereum: '#4c5fd5', bitcoin: '#c2410c', base: '#0052FF' },
 });
 
 function shadow(offsetY: number, blurRadius: number, opacity: number, elevation: number) {
   return {
-    shadowColor: PALETTE.black,
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: offsetY },
     shadowOpacity: opacity,
     shadowRadius: blurRadius,
@@ -325,7 +113,7 @@ function shadow(offsetY: number, blurRadius: number, opacity: number, elevation:
 }
 
 export const DESIGN_TOKENS = {
-  colors: DARK_COLORS,
+  colors: PAPER_THEME,
 
   spacing: {
     xs: 4,
@@ -419,13 +207,13 @@ export const DESIGN_TOKENS = {
       fill: 'fill' as const,
     },
     colors: {
-      primary: DARK_COLORS.text.primary,
-      muted: DARK_COLORS.text.subtle,
+      primary: PAPER_THEME.text.primary,
+      muted: PAPER_THEME.text.subtle,
     },
   },
 } as const;
 
-export { LIGHT_COLORS, PAPER_COLORS, PAPER_THEME };
+export { PAPER_COLORS, PAPER_THEME };
 
 export type Shadow = typeof DESIGN_TOKENS.shadows;
 export type Icon = typeof DESIGN_TOKENS.icon;

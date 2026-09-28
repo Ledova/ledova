@@ -1,4 +1,6 @@
 import React from 'react';
+import { Dimensions } from 'react-native';
+import { CustomModal } from '../../components/modal';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import axios, { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
@@ -46,6 +48,9 @@ jest.mock('@react-navigation/native', () => ({
     const React = jest.requireActual('react');
     React.useEffect(callback, [callback]);
   },
+}));
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 24, bottom: 24, left: 0, right: 0 }),
 }));
 jest.mock('uuid', () => ({ v4: () => '70000000-0000-4000-8000-000000000001' }));
 jest.mock('expo-crypto', () => ({ randomUUID: jest.fn() }));
@@ -237,6 +242,7 @@ async function begin(view: Screen, purpose: 'cancel' | 'modify' = 'modify') {
     ).toBeTruthy(),
   );
 }
+const originalWindow = Dimensions.get('window');
 beforeEach(async () => {
   jest.clearAllMocks();
   jest.mocked(AsyncStorage.setItem).mockImplementation(nativeSet);
@@ -263,8 +269,27 @@ beforeEach(async () => {
 });
 afterEach(async () => {
   await cleanup();
+  Dimensions.set({ window: originalWindow });
   client.clear();
   jest.restoreAllMocks();
+});
+
+it('keeps the price draft while the review shrinks with the available window', async () => {
+  Dimensions.set({ window: { width: 390, height: 740, scale: 3, fontScale: 1 } });
+  const view = await render(<TradingScreen />, { wrapper });
+  await fireEvent.press(view.getByText('Change synthetic order'));
+  await waitFor(() => expect(view.getByText('Review change')).toBeTruthy());
+  await fireEvent.changeText(view.getByLabelText('New price per share'), '14.00');
+  expect(jest.mocked(CustomModal).mock.calls.at(-1)![0].maxHeight).toBe(644);
+
+  await act(async () => {
+    Dimensions.set({ window: { width: 740, height: 430, scale: 3, fontScale: 1 } });
+  });
+  expect(jest.mocked(CustomModal).mock.calls.at(-1)![0].maxHeight).toBe(334);
+  expect(view.getByLabelText('New price per share').props.value).toBe('14.00');
+  expect(view.getByText('Review change')).toBeTruthy();
+  expect(messagePosts()).toHaveLength(0);
+  expect(executes()).toHaveLength(0);
 });
 
 it('first price-only modification keeps exact context values despite the rounded numeric order DTO', async () => {
@@ -277,6 +302,8 @@ it('first price-only modification keeps exact context values despite the rounded
   await fireEvent.changeText(view.getByLabelText('New price per share'), '14.00');
   await fireEvent.press(view.getByText('Review change'));
   await waitFor(() => expect(view.getByText(`New quantity: ${largeQuantity} shares`)).toBeTruthy());
+  expect(view.getByText('Reviewed price per share: AUD 12.50')).toBeTruthy();
+  expect(view.getByText('New price per share: AUD 14.00')).toBeTruthy();
   expect(JSON.parse(messagePosts()[0]!.data)).toEqual({
     action_id: actionId,
     owner_account_uuid: accountUuid,

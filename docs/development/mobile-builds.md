@@ -12,6 +12,10 @@ can override the store identity through `app.config.js`; see
 [iOS distribution builds](ios-distribution.md). Use a native development build to test
 these policies. Expo Go does not contain Ledova's native networking overrides.
 
+The `expo-system-ui` plugin applies the paper-only light appearance to Android
+native dialogs, including when the device uses dark mode. Generated-project
+checks verify the Android light resource and both iOS light appearance settings.
+
 The lockfile keeps registry URLs and npm integrity values; the shared workspace
 is the intentional local link. Install with `--ignore-scripts` in native CI.
 The locked packages declaring install scripts are watcher, fsevents,

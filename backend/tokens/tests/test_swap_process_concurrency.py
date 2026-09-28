@@ -165,7 +165,7 @@ class SwapWorkersUseOneCurrentClaimTest(TransactionTestCase):
         self.assertTrue(seller.receive("signature_locked")["in_atomic"])
         buyer.send("store")
         buyer.receive("locking")
-        self.wait_for_row_lock(buyer, "customer_accounts_account", seller.database_pid)
+        self.wait_for_row_lock(buyer, "tokens_sharetoken", seller.database_pid)
         seller.send("signature")
         self.assertEqual(seller.done()["result"], SwapOrderStatus.SELLER_SIGNED)
         self.assertEqual(buyer.done()["result"], SwapOrderStatus.READY)

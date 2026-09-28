@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BellIcon, XIcon } from '@phosphor-icons/react';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react';
@@ -28,11 +28,13 @@ interface NotificationBellProps {
 
 function NotificationItem({
   notification,
+  register,
   onRead,
   onArchive,
   onFollow,
 }: {
   notification: Notification;
+  register: (button: HTMLButtonElement | null) => void;
   onRead: (uuid: string) => void;
   onArchive: (uuid: string) => void;
   onFollow: (notification: Notification) => void;
@@ -40,6 +42,7 @@ function NotificationItem({
   return (
     <div className="relative border-b border-border-subtle last:border-b-0 hover:bg-surface-base">
       <button
+        ref={register}
         onClick={() => {
           if (!notification.isRead) onRead(notification.uuid);
           onFollow(notification);
@@ -71,6 +74,7 @@ function NotificationList({
   load,
   notifications,
   isLoading,
+  heading,
   onRead,
   onArchive,
   onFollow,
@@ -78,13 +82,30 @@ function NotificationList({
   load: () => unknown;
   notifications: Notification[];
   isLoading: boolean;
+  heading: RefObject<HTMLHeadingElement | null>;
   onRead: (uuid: string) => void;
   onArchive: (uuid: string) => void;
   onFollow: (notification: Notification) => void;
 }) {
+  const buttons = useRef(new Map<string, HTMLButtonElement>());
+  const dismissed = useRef<{ uuid: string; index: number } | null>(null);
+
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    const pending = dismissed.current;
+    if (!pending || notifications.some(({ uuid }) => uuid === pending.uuid)) return;
+    dismissed.current = null;
+    const next = notifications[Math.min(pending.index, notifications.length - 1)];
+    (next ? buttons.current.get(next.uuid) : heading.current)?.focus();
+  }, [notifications, heading]);
+
+  const dismiss = (uuid: string) => {
+    dismissed.current = { uuid, index: notifications.findIndex((notification) => notification.uuid === uuid) };
+    onArchive(uuid);
+  };
 
   if (isLoading && notifications.length === 0) {
     return <p className="px-4 py-8 text-center text-sm text-text-muted">Loading...</p>;
@@ -98,8 +119,12 @@ function NotificationList({
         <NotificationItem
           key={notification.uuid}
           notification={notification}
+          register={(button) => {
+            if (button) buttons.current.set(notification.uuid, button);
+            else buttons.current.delete(notification.uuid);
+          }}
           onRead={onRead}
-          onArchive={onArchive}
+          onArchive={dismiss}
           onFollow={onFollow}
         />
       ))}
@@ -109,6 +134,7 @@ function NotificationList({
 
 export function NotificationBell({ align }: NotificationBellProps) {
   const navigate = useNavigate();
+  const heading = useRef<HTMLHeadingElement>(null);
   const {
     unreadCount,
     notifications,
@@ -154,10 +180,12 @@ export function NotificationBell({ align }: NotificationBellProps) {
         {({ close }) => (
           <>
             <div className="flex items-center justify-between border-b border-border-subtle px-4 py-3">
-              <span className="text-sm font-medium text-text-primary">Notifications</span>
+              <h2 ref={heading} tabIndex={-1} className="text-sm font-medium text-text-primary focus:outline-none">
+                Notifications
+              </h2>
               {unreadCount > 0 && (
                 <button
-                  onClick={() => markAllAsRead()}
+                  onClick={() => markAllAsRead(undefined, { onSuccess: () => heading.current?.focus() })}
                   disabled={isMarkingAllRead}
                   className="text-xs text-brand-light transition-colors hover:text-brand-subtle disabled:opacity-50"
                 >
@@ -171,6 +199,7 @@ export function NotificationBell({ align }: NotificationBellProps) {
                 load={fetchNotifications}
                 notifications={notifications}
                 isLoading={isLoadingNotifications}
+                heading={heading}
                 onRead={markAsRead}
                 onArchive={archive}
                 onFollow={(followed) => follow(followed, close)}

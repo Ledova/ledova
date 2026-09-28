@@ -13,6 +13,8 @@ import {
   LinkIcon,
   CertificateIcon,
   BuildingsIcon,
+  BookOpenIcon,
+  MegaphoneIcon,
   FileTextIcon,
   NewspaperIcon,
   ShieldCheckIcon,
@@ -58,13 +60,14 @@ const SHARE_MENU_ITEMS: MenuItem[] = [
 ];
 
 const COMPANY_MENU_ITEMS: MenuItem[] = [
-  { label: 'Register', icon: BuildingsIcon, action: 'tab', target: 'Register' },
+  { label: DESTINATIONS.companyRegister.title, icon: BookOpenIcon, action: 'tab', target: 'Register' },
+  { label: DESTINATIONS.companyOffering.title, icon: MegaphoneIcon, action: 'tab', target: 'CompanyOfferings' },
   { label: DESTINATIONS.company.title, icon: BuildingsIcon, action: 'tab', target: 'Company' },
-  { label: 'Publications', icon: NewspaperIcon, action: 'tab', target: 'CompanyPublications' },
-  { label: DESTINATIONS.companyListing.title, icon: FileTextIcon, action: 'tab', target: 'Listing' },
 ];
 
 const INVEST_MENU_ITEMS: MenuItem[] = [
+  { label: DESTINATIONS.directory.title, icon: BuildingsIcon, action: 'tab', target: 'Directory' },
+  { label: DESTINATIONS.subscriptions.title, icon: FileTextIcon, action: 'tab', target: 'Applications' },
   { label: DESTINATIONS.trading.title, icon: CertificateIcon, action: 'tab', target: 'Trading' },
   {
     label: DESTINATIONS.investorEligibility.title,
@@ -158,14 +161,18 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
       let params;
       if (item.target === 'Home') {
         params = { screen: 'Home', params: { screen: 'HomeMain' } };
+      } else if (item.target === 'Directory') {
+        params = { screen: 'Directory', params: { screen: 'DirectoryMain' } };
+      } else if (item.target === 'Applications') {
+        params = { screen: 'Applications', params: { screen: 'ApplicationsMain' } };
       } else if (item.target === 'Trading') {
         params = { screen: 'Trading', params: { screen: 'TradingMain' } };
       } else if (item.target === 'Company') {
         params = { screen: 'Company', params: { screen: 'CompanyDetails' } };
       } else if (item.target === 'Register') {
         params = { screen: 'Company', params: { screen: 'CompanyMain' } };
-      } else if (item.target === 'CompanyPublications') {
-        params = { screen: 'Company', params: { screen: 'CompanyPublications' } };
+      } else if (item.target === 'CompanyOfferings') {
+        params = { screen: 'Company', params: { screen: 'CompanyOfferings' } };
       } else if (item.target === 'Wallets') {
         params = { screen: 'Wallets', params: { screen: 'WalletsList' } };
       } else {
@@ -278,7 +285,7 @@ export function DrawerNavigator() {
               <BottomTabNavigator onNotifications={() => setShowNotificationsModal(true)} unreadCount={unreadCount} />
             )}
           </Stack.Screen>
-          <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
+          <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: '' }} />
           <Stack.Screen name="Help" component={HelpScreen} options={{ title: 'Help & Support' }} />
         </Stack.Navigator>
       </View>

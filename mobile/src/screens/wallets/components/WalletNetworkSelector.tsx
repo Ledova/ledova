@@ -7,9 +7,15 @@ interface WalletNetworkSelectorProps {
   network: string;
   onChange: (network: string) => void;
   evmOnly?: boolean;
+  disabled?: boolean;
 }
 
-export function WalletNetworkSelector({ network, onChange, evmOnly = false }: WalletNetworkSelectorProps) {
+export function WalletNetworkSelector({
+  network,
+  onChange,
+  evmOnly = false,
+  disabled = false,
+}: WalletNetworkSelectorProps) {
   const styles = useThemedStyles((theme) => ({
     row: { flexDirection: 'row', gap: theme.spacing.sm, marginBottom: theme.spacing.md },
     option: {
@@ -32,9 +38,10 @@ export function WalletNetworkSelector({ network, onChange, evmOnly = false }: Wa
         .map((chain) => (
           <TouchableOpacity
             key={chain.code}
+            disabled={disabled}
             accessibilityRole="radio"
             accessibilityLabel={`${chain.name} network`}
-            accessibilityState={{ selected: network === chain.code }}
+            accessibilityState={{ selected: network === chain.code, disabled }}
             style={[styles.option, network === chain.code && styles.selected]}
             onPress={() => onChange(chain.code)}
           >

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { compareWalletDecimals } from '../../screens/wallets/presentation';
 import { getChainName, BLOCKCHAIN, WALLET_SIGNING_PREFERENCE } from '@ledova/shared';
 import type { Wallet } from '@ledova/shared';
 import type { WalletChainFilter, WalletSortOption } from './WalletSortModal';
@@ -46,10 +47,10 @@ function sortWallets(wallets: Wallet[], option: WalletSortOption): Wallet[] {
         return aLabel.localeCompare(bLabel);
       }
       case 'highestValue': {
-        return parseFloat(b.marketValue || '0') - parseFloat(a.marketValue || '0');
+        return compareWalletDecimals(b.marketValue || '0', a.marketValue || '0');
       }
       case 'highestBalance': {
-        return parseFloat(b.nativeBalance || '0') - parseFloat(a.nativeBalance || '0');
+        return compareWalletDecimals(b.nativeBalance || '0', a.nativeBalance || '0');
       }
       default:
         return 0;

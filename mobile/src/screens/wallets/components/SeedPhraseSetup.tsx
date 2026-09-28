@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
+import { assertSessionEpoch, getSessionEpoch } from '../../../services/sessionScope';
 import { View, ActivityIndicator } from 'react-native';
 import { Text } from 'react-native';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
@@ -32,11 +33,13 @@ type InputMode = 'create' | 'import';
 interface SeedPhraseSetupProps {
   visible: boolean;
   onClose: () => void;
-  onComplete: (addresses: DerivedAddress[], importData: SoftwareWalletImport) => void;
+  onComplete: (addresses: DerivedAddress[], importData: SoftwareWalletImport) => Promise<void>;
+  readBlocked: boolean;
+  notice: ReactNode;
   onCancel: () => void;
 }
 
-export function SeedPhraseSetup({ visible, onClose, onComplete, onCancel }: SeedPhraseSetupProps) {
+export function SeedPhraseSetup({ visible, onClose, onComplete, onCancel, readBlocked, notice }: SeedPhraseSetupProps) {
   const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
     storingContainer: {
@@ -174,7 +177,8 @@ export function SeedPhraseSetup({ visible, onClose, onComplete, onCancel }: Seed
   }, []);
 
   const handleStoreAndCreate = useCallback(async () => {
-    if (!derivedData || selectedAddresses.size === 0) return;
+    if (!derivedData || selectedAddresses.size === 0 || readBlocked || step === SEED_STEP.STORING) return;
+    const epoch = getSessionEpoch();
 
     setStep(SEED_STEP.STORING);
     setStoreError(null);
@@ -186,6 +190,7 @@ export function SeedPhraseSetup({ visible, onClose, onComplete, onCancel }: Seed
         disableDeviceFallback: false,
       });
 
+      assertSessionEpoch(epoch);
       if (!authResult.success) {
         setStep(SEED_STEP.SELECT_ACCOUNTS);
         return;
@@ -194,13 +199,16 @@ export function SeedPhraseSetup({ visible, onClose, onComplete, onCancel }: Seed
       const seedId = computeSeedIdentifier(mnemonic);
       await storeSeedPhrase(seedId, mnemonic);
 
+      assertSessionEpoch(epoch);
       const selected = derivedData.addresses.filter((a) => selectedAddresses.has(importAddressKey(a)));
-      onComplete(selected, derivedData);
+      await onComplete(selected, derivedData);
+      assertSessionEpoch(epoch);
     } catch (err) {
+      if (epoch !== getSessionEpoch()) return;
       setStoreError(err instanceof Error ? err.message : 'Failed to store recovery phrase');
       setStep(SEED_STEP.SELECT_ACCOUNTS);
     }
-  }, [derivedData, selectedAddresses, mnemonic, onComplete]);
+  }, [derivedData, selectedAddresses, mnemonic, onComplete, readBlocked, step]);
 
   const getFooterProps = () => {
     switch (step) {
@@ -255,6 +263,7 @@ export function SeedPhraseSetup({ visible, onClose, onComplete, onCancel }: Seed
         if (!derivedData) return null;
         return (
           <SeedAccountSelector
+            disabled={readBlocked}
             onNetworkChange={selectEvmNetwork}
             addresses={derivedData.addresses}
             selectedAddresses={selectedAddresses}
@@ -280,7 +289,15 @@ export function SeedPhraseSetup({ visible, onClose, onComplete, onCancel }: Seed
   };
 
   return (
-    <CustomModal visible={visible} onClose={onClose} showFooter={true} {...getFooterProps()}>
+    <CustomModal
+      visible={visible}
+      onClose={() => {
+        if (step !== SEED_STEP.STORING) onClose();
+      }}
+      showFooter={step !== SEED_STEP.STORING}
+      {...getFooterProps()}
+    >
+      {notice}
       {renderContent()}
     </CustomModal>
   );

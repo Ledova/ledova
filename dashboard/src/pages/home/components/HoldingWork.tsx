@@ -1,5 +1,14 @@
 import { Link } from 'react-router-dom';
-import { DESTINATIONS, formatDateTime, formatShareCount } from '@ledova/shared';
+import {
+  DESTINATIONS,
+  PUBLICATION_COPY,
+  PUBLICATION_KIND_LABELS,
+  formatDate,
+  formatDateTime,
+  formatShareCount,
+  useResolutionStatus,
+  type Publication,
+} from '@ledova/shared';
 import { Section, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { useHoldingWork } from '../hooks/useHoldingWork';
@@ -31,6 +40,28 @@ function Applications({ rows }: { rows: ApplicationWork[] }) {
   );
 }
 
+function RecentNotice({ publication }: { publication: Publication }) {
+  const open = useResolutionStatus(publication) === 'open';
+  return (
+    <li className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 py-3">
+      <div className="min-w-0 flex-1 basis-48 break-words">
+        <p className="text-sm text-text-muted">
+          {publication.companyName} · {PUBLICATION_KIND_LABELS[publication.kind]}
+        </p>
+        <p className="text-base text-text-primary">{publication.title}</p>
+        {open && publication.closesAt && (
+          <p className="text-sm text-text-muted">
+            {PUBLICATION_COPY.OPEN_UNTIL} {formatDateTime(publication.closesAt)}
+          </p>
+        )}
+      </div>
+      <time dateTime={publication.createdAt} className="text-sm tabular-nums text-text-muted">
+        {formatDate(publication.createdAt)}
+      </time>
+    </li>
+  );
+}
+
 function ReadError({ children, retry, busy }: { children: string; retry: () => void; busy: boolean }) {
   return (
     <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-text-muted">
@@ -41,7 +72,7 @@ function ReadError({ children, retry, busy }: { children: string; retry: () => v
 }
 
 export function HoldingWork() {
-  const { role, applications, notices } = useHoldingWork();
+  const { role, applications, notices, recent } = useHoldingWork();
   const applicationsReady = role.isKnown && (!role.isInvestor || applications.isSuccess);
   const showApplications = role.isKnown && role.isInvestor && applications.isSuccess;
   const needsYou = showApplications ? applications.data.needsYou : [];
@@ -50,7 +81,6 @@ export function HoldingWork() {
   const complete = applicationsReady && summary !== undefined;
   const votes = summary?.openResolutions ?? 0;
   const dividends = summary?.dividendsWithoutRecord ?? 0;
-  const published = summary?.publishedSince ?? 0;
   const showReadState =
     !role.isKnown || (role.isInvestor && !applications.isSuccess) || notices.isPending || notices.isError;
 
@@ -132,14 +162,28 @@ export function HoldingWork() {
         )}
       </Section>
 
-      {published > 0 && (
-        <p className="text-sm text-text-muted">
-          {published} {published === 1 ? 'notice addressed' : 'notices addressed'} to you in the last 30 days.{' '}
-          <Link to={DESTINATIONS.publications.path} className={LINK}>
-            View notices
-          </Link>
-        </p>
-      )}
+      <Section title="Recently published to you">
+        {recent.isPending ? (
+          <p role="status" className="py-3 text-sm text-text-muted">
+            Checking what was published to you…
+          </p>
+        ) : recent.isError ? (
+          <ReadError retry={() => void recent.refetch()} busy={recent.isFetching}>
+            We couldn&apos;t load what was published to you.
+          </ReadError>
+        ) : recent.data.length === 0 ? (
+          <p className="py-3 text-sm text-text-muted">Nothing has been published to you yet.</p>
+        ) : (
+          <ul className="divide-y divide-border-subtle">
+            {recent.data.map((publication) => (
+              <RecentNotice key={publication.uuid} publication={publication} />
+            ))}
+          </ul>
+        )}
+        <Link to={DESTINATIONS.publications.path} className={`${LINK} self-start`}>
+          View all notices
+        </Link>
+      </Section>
     </>
   );
 }

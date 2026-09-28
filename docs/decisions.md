@@ -395,6 +395,11 @@ unpriced holdings. This is a display requirement, not a claim that every client
 has completed it; see [B7d](https://github.com/Ledova/ledova/issues/115#issuecomment-5574975348)
 and [valuation presentation work](https://github.com/Ledova/ledova/issues/346).
 
+The later [signed-in app decision](#the-signed-in-app) supersedes that chart
+presentation: Holdings lists shares by company and class, and crypto actions
+stay in Wallets. The asset identity and valuation-source principles above still
+apply; the retired chart helpers are no longer part of either client.
+
 ## The signed-in app
 
 The signed-in app is rebuilt around the register; crypto stays supported but is
@@ -445,29 +450,58 @@ This records the target; the steps on #732 build it.
 - **Notices stays personal.** Asked whether to accept the gap until the register
   work provides the company's own publication list, the owner chose "Accept the
   gap": "Notices stays personal; the company's own list arrives with the register
-  work in step 6. Mobile keeps its current list until step 10." The web issuer
-  list now opens from Company as Published to your members, selecting the owned
-  company explicitly and showing stored documents and recorded tallies without
-  member voting controls. The mobile change follows in #750. (Owner decision,
-  26 September 2026, on
+  work in step 6. Mobile keeps its current list until step 10." The issuer list
+  opens from Company as Published to your members in both clients, selecting the
+  owned company explicitly and showing stored documents and recorded tallies
+  without member voting controls. (Owner decision, 26 September 2026, on
   [#732](https://github.com/Ledova/ledova/issues/732#issuecomment-5846254159).)
 - **Mobile follows the web.** The mobile app takes paper and the new structure
   together, after the web.
+- **Applications keep their names.** Asked how an application should keep
+  showing its company, class and payment details while the company pauses the
+  class, leaves the directory, or is warned or suspended by staff, the owner
+  chose "Store them on the application": "One database change, filled in for
+  existing applications. Applications, payment details and Withdraw stay
+  available whatever the company does. Names are as at the time of applying, so
+  a later trading-name change won't show on older applications." (Owner
+  decision, 26 September 2026, on
+  [#749](https://github.com/Ledova/ledova/issues/749#issuecomment-5846560619).)
 
 The owner answered the two remaining scope questions on 27 September 2026
 ([#749](https://github.com/Ledova/ledova/issues/749#issuecomment-5850699327)):
 
-- **Initial scope:** "One issuer first; expand later." The first testnet Invest
-  experience focuses on one fictional issuer. Directory presents its share
-  classes and offerings without adding a registry search or discovery product.
-  Existing API visibility remains authoritative; the client does not discard an
-  accessible class just because another company was returned first.
-- **Initial Market:** "Keep automatic matching for the first version." The
-  dashboard Market presents _For sale_ and _Wanted_ over existing matching.
-  Seller acceptance and rejection are not a prerequisite for that first version.
+- **Initial scope:** "One issuer first; expand later."
+- **Initial Market:** "Keep automatic matching for the first version."
 
-The buyer-funds-before-offering decision remains unchanged. These decisions set
-the implementation's scope, not permission for a live deployment or real funds.
+On these answers the first testnet Invest experience presents one fictional
+issuer, and Directory lists its share classes and offerings with no registry
+search. The API's visibility stays authoritative, so the client does not discard
+an accessible class because another company was returned first. Market shows
+_For sale_ and _Wanted_ over the existing automatic matching, with no seller
+acceptance or rejection. The buyer-funds-before-offering decision remains
+unchanged. These decisions set the implementation's scope, not permission for a
+live deployment or real funds.
+
+The owner answered four follow-up questions on 28 September 2026, asked after an
+audit of this work ([#785](https://github.com/Ledova/ledova/issues/785)); pull
+requests on #785 carry out the last three:
+
+- **Staff outputs: not now.** Asked whether company users should see the
+  status of the outputs staff prepare for them (certificates, inspection copies,
+  the company pack) and how to ask for one, the owner chose "Not now": "Keep the
+  static boundary text. Companies ask the operator directly; revisit when real
+  issuers use it. No new issuer read of operator records."
+- **Data nothing reads goes.** For the favourites table and the hourly holding
+  snapshots, the owner chose "Delete them": "Remove the favourites model, table
+  and admin, and stop writing holding snapshots and drop that table. One
+  migration; the data is synthetic and has no reader."
+- **Offerings in AUD.** The owner chose "AUD only": "New offerings are priced in
+  AUD; the staff choice is removed. Existing offerings keep their currency.
+  Matches the rest of the app."
+- **One preferences record.** On whether notification preferences should merge
+  into user preferences, the owner chose "Merge them": "Move transaction alerts
+  onto the user preferences record; delete the separate model, table, route and
+  admin, with a migration carrying each person's setting across."
 
 ## The account-data export
 
@@ -534,10 +568,9 @@ those numbers as current.
 ## Clients and API types
 
 Both clients compile `@ledova/shared` from source, without a package build step.
-The mobile investor directory and subscription journey remain unscheduled in the
-[current roadmap](roadmap.md#remaining-work);
-shared hooks created earlier must accommodate both clients. The primary issuer
-workflow remains dashboard-led. See [B7b](https://github.com/Ledova/ledova/issues/115#issuecomment-5574947880)
+Directory, Applications and issuer Offering workflows are available in both the
+dashboard and mobile app, using shared hooks. Earlier client boundaries are
+recorded in [B7b](https://github.com/Ledova/ledova/issues/115#issuecomment-5574947880)
 and [B2](https://github.com/Ledova/ledova/issues/115#issuecomment-5574848881).
 
 Shared API types are generated from the committed OpenAPI snapshot. The owner

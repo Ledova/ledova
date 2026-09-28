@@ -1,38 +1,31 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  getCompanyDocuments,
   uploadCompanyDocument,
   deleteCompanyDocument,
   submitApplication,
   resubmitApplication,
   withdrawApplication,
-  describeFailure,
+  type DocumentType,
 } from '@ledova/shared';
-import type { CompanyDocument, DocumentType } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch } from '../../services/sessionScope';
 import { useCompanyProfile } from '../../hooks/useCompanyProfile';
 
 export function useCompanyDocuments() {
   const queryClient = useQueryClient();
-  const { company, companyUuid, isLoading: isLoadingCompany } = useCompanyProfile();
-
-  const { data: docsData, isLoading: isLoadingDocs } = useQuery({
-    queryKey: ['company-documents', companyUuid],
-    queryFn: () => getCompanyDocuments(apiClient, companyUuid!),
-    enabled: !!companyUuid,
-  });
-
-  const responseData = docsData?.data;
-  const documents: CompanyDocument[] = Array.isArray(responseData) ? responseData : responseData?.results || [];
-  const uploadedTypes = new Set(documents.map((d) => d.documentType));
-
+  const read = useCompanyProfile();
+  const refresh = (owner: string) =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['company', owner] }),
+      queryClient.invalidateQueries({ queryKey: ['companies'] }),
+      queryClient.invalidateQueries({ queryKey: ['company-documents', owner] }),
+    ]);
   const uploadMutation = useMutation({
     mutationFn: ({
       documentType,
       name,
       file,
-      companyUuid: owner,
+      companyUuid,
       sessionEpoch,
     }: {
       documentType: DocumentType;
@@ -43,66 +36,42 @@ export function useCompanyDocuments() {
     }) =>
       uploadCompanyDocument(
         apiClient,
-        owner,
+        companyUuid,
         { documentType, name, file } as Parameters<typeof uploadCompanyDocument>[2],
         { ledovaSessionEpoch: sessionEpoch },
       ),
     onSuccess: (_response, variables) => {
-      if (variables.sessionEpoch === getSessionEpoch()) {
-        return queryClient.invalidateQueries({ queryKey: ['company-documents', variables.companyUuid] });
-      }
+      if (variables.sessionEpoch === getSessionEpoch()) return refresh(variables.companyUuid);
     },
   });
-
-  const deleteMutation = useMutation({
-    mutationFn: (docUuid: string) => deleteCompanyDocument(apiClient, companyUuid!, docUuid),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['company-documents', companyUuid] });
-    },
-    onError: (error: unknown) => {
-      console.error(`Company document delete failed: ${describeFailure(error)}`);
-    },
+  const deletion = useMutation({
+    mutationFn: ({ companyUuid, documentUuid }: { companyUuid: string; documentUuid: string }) =>
+      deleteCompanyDocument(apiClient, companyUuid, documentUuid),
+    onSuccess: (_response, variables) => refresh(variables.companyUuid),
   });
-
-  const invalidateCompany = () => {
-    queryClient.invalidateQueries({ queryKey: ['company', companyUuid] });
-    queryClient.invalidateQueries({ queryKey: ['companies'] });
-  };
-
-  const submitMutation = useMutation({
-    mutationFn: () => submitApplication(apiClient, companyUuid!),
-    onSuccess: invalidateCompany,
+  const submission = useMutation({
+    mutationFn: (companyUuid: string) => submitApplication(apiClient, companyUuid),
+    onSuccess: (_response, owner) => refresh(owner),
   });
-
-  const resubmitMutation = useMutation({
-    mutationFn: (response: string) => resubmitApplication(apiClient, companyUuid!, { response }),
-    onSuccess: invalidateCompany,
+  const resubmission = useMutation({
+    mutationFn: ({ companyUuid, response }: { companyUuid: string; response: string }) =>
+      resubmitApplication(apiClient, companyUuid, { response }),
+    onSuccess: (_response, variables) => refresh(variables.companyUuid),
   });
-
-  const withdrawMutation = useMutation({
-    mutationFn: (reason: string) => withdrawApplication(apiClient, companyUuid!, { reason }),
-    onSuccess: invalidateCompany,
+  const withdrawal = useMutation({
+    mutationFn: ({ companyUuid, reason }: { companyUuid: string; reason: string }) =>
+      withdrawApplication(apiClient, companyUuid, { reason }),
+    onSuccess: (_response, variables) => refresh(variables.companyUuid),
   });
-
-  const canEdit = company?.status === 'draft' || company?.status === 'info_required';
-
   return {
-    company,
-    companyUuid,
-    documents,
-    uploadedTypes,
-    canEdit,
-    isLoading: isLoadingCompany || isLoadingDocs,
+    ...read,
+    documents: read.company?.documents ?? [],
+    canEdit: read.company?.status === 'draft' || read.company?.status === 'info_required',
     upload: uploadMutation.mutateAsync,
     isUploading: uploadMutation.isPending,
-    uploadError: uploadMutation.error,
-    deleteDocument: deleteMutation.mutate,
-    isDeleting: deleteMutation.isPending,
-    submitApplication: submitMutation.mutateAsync,
-    isSubmitting: submitMutation.isPending,
-    resubmitApplication: resubmitMutation.mutateAsync,
-    isResubmitting: resubmitMutation.isPending,
-    withdrawApplication: withdrawMutation.mutateAsync,
-    isWithdrawing: withdrawMutation.isPending,
+    deletion,
+    submission,
+    resubmission,
+    withdrawal,
   };
 }

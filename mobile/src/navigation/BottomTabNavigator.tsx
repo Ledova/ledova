@@ -4,6 +4,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { NavigatorScreenParams } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HouseIcon, WalletIcon, CertificateIcon, BuildingsIcon } from 'phosphor-react-native';
+import { ApplicationsStackNavigator, type ApplicationsStackParamList } from './ApplicationsStackNavigator';
+import { DirectoryStackNavigator, type DirectoryStackParamList } from './DirectoryStackNavigator';
 import { HomeStackNavigator } from './HomeStackNavigator';
 import type { HomeStackParamList } from './HomeStackNavigator';
 import { WalletsStackNavigator } from './WalletsStackNavigator';
@@ -15,7 +17,6 @@ import type { CompanyStackParamList } from './CompanyStackNavigator';
 import { ListingScreen } from '../screens/listing';
 import { InvestorEligibilityScreen } from '../screens/investor-eligibility';
 import { PublicationsScreen } from '../screens/publications';
-import { DividendsScreen } from '../screens/dividends';
 import { getMainHeaderStyle, MainHeader } from './headers';
 import type { WalletsStackParamList } from './WalletsStackNavigator';
 import type { TradingStackParamList } from './TradingStackNavigator';
@@ -25,6 +26,8 @@ import { useAppTheme } from '../contexts';
 
 export type BottomTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList>;
+  Directory: NavigatorScreenParams<DirectoryStackParamList>;
+  Applications: NavigatorScreenParams<ApplicationsStackParamList>;
   Trading: NavigatorScreenParams<TradingStackParamList>;
   Transactions: undefined;
   Wallets: NavigatorScreenParams<WalletsStackParamList>;
@@ -33,7 +36,6 @@ export type BottomTabParamList = {
   Listing: undefined;
   InvestorEligibility: undefined;
   Publications: undefined;
-  Dividends: undefined;
 };
 
 const Tab = createBottomTabNavigator<BottomTabParamList>();
@@ -151,7 +153,7 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
         name="Transactions"
         component={TransactionsScreen}
         options={{
-          title: DESTINATIONS.transactions.title,
+          title: '',
           tabBarItemStyle: { display: 'none' },
         }}
       />
@@ -166,19 +168,10 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
       />
 
       <Tab.Screen
-        name="Dividends"
-        component={DividendsScreen}
-        options={{
-          title: 'Dividends',
-          tabBarItemStyle: { display: 'none' },
-        }}
-      />
-
-      <Tab.Screen
         name="Profile"
         component={UserProfileScreen}
         options={{
-          title: 'Profile',
+          title: '',
           tabBarItemStyle: { display: 'none' },
         }}
       />
@@ -191,6 +184,18 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
           tabBarItemStyle: { display: 'none' },
         }}
       />
+
+      {isInvestor && (
+        <Tab.Screen name="Directory" options={{ headerShown: false, tabBarItemStyle: { display: 'none' } }}>
+          {() => <DirectoryStackNavigator onNotifications={onNotifications} unreadCount={unreadCount} />}
+        </Tab.Screen>
+      )}
+
+      {isInvestor && (
+        <Tab.Screen name="Applications" options={{ headerShown: false, tabBarItemStyle: { display: 'none' } }}>
+          {() => <ApplicationsStackNavigator onNotifications={onNotifications} unreadCount={unreadCount} />}
+        </Tab.Screen>
+      )}
 
       <Tab.Screen
         name="InvestorEligibility"

@@ -1,23 +1,15 @@
 import React, { createContext, useContext, useMemo } from 'react';
 import { StyleSheet } from 'react-native';
-import { DESIGN_TOKENS, PAPER_THEME } from '@ledova/shared';
+import { DESIGN_TOKENS } from '@ledova/shared';
 
 const THEME = {
   ...DESIGN_TOKENS,
-  colors: PAPER_THEME,
   fontFamily: {
     display: 'Newsreader_500Medium',
     regular: 'InstrumentSans_400Regular',
     medium: 'InstrumentSans_500Medium',
     semibold: 'InstrumentSans_600SemiBold',
     bold: 'InstrumentSans_700Bold',
-  },
-  icon: {
-    ...DESIGN_TOKENS.icon,
-    colors: {
-      primary: PAPER_THEME.text.primary,
-      muted: PAPER_THEME.text.subtle,
-    },
   },
 } as const;
 

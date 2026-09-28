@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 import traceback
+from contextlib import contextmanager
 from datetime import datetime
 from unittest import TestCase
 from unittest.mock import patch
@@ -87,13 +88,15 @@ def run(mode, row_id, detail):
         else:
             from tokens.services import swap_execution as execution_service
 
-            lock_authority = execution_service._lock_authority
+            transaction = execution_service.atomic
 
+            @contextmanager
             def announcing_lock(*args, **kwargs):
-                report("locking")
-                return lock_authority(*args, **kwargs)
+                with transaction(*args, **kwargs):
+                    report("locking")
+                    yield
 
-            with patch.object(execution_service, "_lock_authority", announcing_lock):
+            with patch.object(execution_service, "atomic", announcing_lock):
                 result = sign_swap(row, signature, signer.address, participant=detail).status
     elif mode == "expire":
         from tokens.services.swap_expiry import expire_unclaimed_swap

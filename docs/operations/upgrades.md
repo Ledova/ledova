@@ -4,6 +4,28 @@
 
 Apply only the migration notes relevant to the database you are upgrading. Schema reversibility does not guarantee data restoration.
 
+## Retired asset and portfolio HTTP routes
+
+The paper client cleanup removes the unused asset detail and asset snapshots
+GET routes, portfolio snapshots GET route, and favourite-assets list, create,
+detail and delete routes. These paths now return 404. No database migration is
+needed: favourites, asset and holding snapshots, their administration and account
+export remain available. Historical valuations are still computed internally by
+`portfolios/services/value_series.py`.
+
+`GET /api/assets/` and `GET /api/assets/exchange-rates/` remain available for
+Wallets and Buy crypto. Portfolio CRUD and the documented operator
+`add-wallet` and `remove-wallet` actions retain their contracts. Any external
+consumer of a retired route must stop using it before upgrading.
+
+## The publication summary's 30-day count
+
+`GET /api/v1/publications/summary/` no longer answers `publishedSince`; Holdings
+lists the three latest notices instead. Clients built before this change read the
+missing count as 0 and show nothing in its place. No database migration is needed.
+
+## Database migrations
+
 - `companies/0003_delete_review_and_signature_models` (with
   `tokens/0013_remove_transferorder_signature_request` before it) drops
   `ApplicationReview`, `ReviewNote` and `SignatureRequest`. **Reversal does not restore data.** All three operations are `DeleteModel`,
@@ -19,8 +41,9 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
   ten columns. Export any `accounts_waitlist` rows worth keeping first.
 - `portfolios/0005_delete_portfoliosnapshot` drops `portfolio_snapshots`. The
   value series is computed on read in `portfolios/services/value_series.py`, and
-  `GET /api/portfolios/{uuid}/snapshots/` keeps its path, parameters and row
-  shape. The hourly `sync_all_wallets` job upserts one `DAILY` `HoldingSnapshot`
+  that migration kept `GET /api/portfolios/{uuid}/snapshots/` compatible.
+  The later [route retirement](#retired-asset-and-portfolio-http-routes) removes
+  that HTTP surface without removing the value-series service or its source data. The hourly `sync_all_wallets` job upserts one `DAILY` `HoldingSnapshot`
   per holding per day, so a wallet with no transactions still gets a point, and
   the series starts at a wallet's first holding snapshot rather than inventing
   anything before it. The nightly `sync_all_portfolios` periodic job no longer

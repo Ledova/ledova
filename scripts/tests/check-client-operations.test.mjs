@@ -226,28 +226,123 @@ test('a retry config escaping through an object shorthand cannot bypass destinat
   ]);
 });
 
-test('the response-linked company file requires its internal binary route', async (t) => {
-  const sources = {
-    'mobile/src/screens/listing/index.tsx':
-      client +
-      'interface DocumentRowProps { uploaded?: { fileUrl?: string } } function DocumentRow({uploaded}: DocumentRowProps) { if (uploaded?.fileUrl) client.get(uploaded.fileUrl); }',
+test("the relocated response-linked company document requires its canonical field and internal binary route", async (t) => {
+  const component = "mobile/src/screens/listing/DocumentEntry.tsx";
+  const canonical = {
+    "packages/shared/src/generated/api.ts":
+      "export interface ApiComponents { schemas: { CompanyDocument: { fileUrl: string }; OtherDocument: { fileUrl: string } } }",
+    "packages/shared/src/index.ts":
+      "import type { ApiComponents } from './generated/api'; export type CompanyDocument = ApiComponents['schemas']['CompanyDocument']; export type OtherDocument = ApiComponents['schemas']['OtherDocument'];",
   };
-  const url = '/api/v1/companies/{company_uuid}/documents/{uuid}/file/';
+  const sources = {
+    ...canonical,
+    [component]:
+      client +
+      "import type { CompanyDocument as Document } from '@ledova/shared'; function DocumentEntry({document}: {document: Document}) { if (document.fileUrl) client.get(document.fileUrl!); }",
+  };
+  const url = "/api/v1/companies/{company_uuid}/documents/{uuid}/file/";
   const admitted = await fixture(t, sources, { [url]: { get: binary } });
   assert.deepEqual(admitted.failures, []);
-  assert.equal(admitted.operations[0].mechanism, 'CompanyDocument.fileUrl');
+  assert.equal(admitted.operations[0].mechanism, "CompanyDocument.fileUrl");
   const wrong = await fixture(t, sources, { [url]: { get: good } });
-  assert.match(wrong.failures.join('\n'), /must declare binary/);
+  assert.match(wrong.failures.join("\n"), /must declare binary/);
   const missing = await fixture(t, sources, {});
-  assert.match(missing.failures.join('\n'), /is absent from the schema/);
-  const unknown = await fixture(
+  assert.match(missing.failures.join("\n"), /is absent from the schema/);
+  const cases = [
+    [
+      component,
+      "interface CompanyDocument { fileUrl: string } function open(document: CompanyDocument) { client.get(document.fileUrl); }",
+    ],
+    [
+      component,
+      "function open(document: {fileUrl: string}) { client.get(document.fileUrl); }",
+    ],
+    [
+      component,
+      "import type { OtherDocument as CompanyDocument } from '@ledova/shared'; function open(document: CompanyDocument) { client.get(document.fileUrl); }",
+    ],
+    [
+      "mobile/src/another.ts",
+      "import type { CompanyDocument } from '@ledova/shared'; function open(document: CompanyDocument) { client.get(document.fileUrl); }",
+    ],
+    [
+      "mobile/src/screens/listing/index.tsx",
+      "interface DocumentRowProps { uploaded?: { fileUrl?: string } } function DocumentRow({uploaded}: DocumentRowProps) { if (uploaded?.fileUrl) client.get(uploaded.fileUrl); }",
+    ],
+  ];
+  for (const [file, source] of cases) {
+    const unknown = await fixture(
+      t,
+      { ...canonical, [file]: client + source },
+      { [url]: { get: binary } },
+    );
+    assert.match(
+      unknown.failures.join("\n"),
+      /Unresolved client destination/,
+      file + source,
+    );
+  }
+});
+
+test("the actual company document caller retains its generated binary and captured-session contract", async (t) => {
+  const url = "/api/v1/companies/{company_uuid}/documents/{uuid}/file/";
+  const document = {
+    openapi: "3.0.3",
+    info: { title: "Fixture", version: "1" },
+    paths: {
+      [url]: { get: { ...binary, operationId: "companyFile" } },
+      "/api/v1/trading/events/stream/": {
+        get: {
+          responses: {
+            200: {
+              content: {
+                "text/event-stream": {
+                  schema: {
+                    type: "string",
+                    "x-sse-events": ["connected", "changed"],
+                    "x-sse-connection-event": "connected",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    components: {
+      schemas: {
+        CompanyDocument: {
+          type: "object",
+          required: ["fileUrl"],
+          properties: { fileUrl: { type: "string" } },
+        },
+      },
+    },
+  };
+  const source = await readFile(
+    new URL(
+      "../../mobile/src/screens/listing/DocumentEntry.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const result = await fixture(
     t,
     {
-      'mobile/src/another.ts': client + 'function open(document: {fileUrl: string}) { client.get(document.fileUrl); }',
+      "packages/shared/src/generated/api.ts": await generateApiTypes(document),
+      "packages/shared/src/index.ts":
+        "import type { ApiComponents } from './generated/api'; export type CompanyDocument = ApiComponents['schemas']['CompanyDocument'];",
+      "mobile/src/services/apiClient.ts":
+        client + "export const apiClient = client;",
+      "mobile/src/screens/listing/DocumentEntry.tsx": source,
     },
-    { [url]: { get: binary } },
+    document.paths,
   );
-  assert.match(unknown.failures.join('\n'), /Unresolved client destination/);
+  assert.deepEqual(result.failures, []);
+  assert.equal(result.operations.length, 1);
+  assert.equal(result.operations[0].mechanism, "CompanyDocument.fileUrl");
+  assert.equal(result.operations[0].responseTypeChecked, true);
+  assert.match(source, /ledovaSessionEpoch: epoch/);
 });
 
 test('browser and mobile SSE builders check the actual event-stream path and content kind', async (t) => {

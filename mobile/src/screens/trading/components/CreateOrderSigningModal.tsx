@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { marketAmount, marketQuantity } from '../marketData';
 import { View, Text, ActivityIndicator } from 'react-native';
 import {
   getWalletVerificationEvmChainId,
@@ -82,6 +83,7 @@ export function CreateOrderSigningModal({ submission, wallet, tokens, onClose, o
   return (
     <>
       <CustomModal
+        key={canConfirm ? 'confirmable' : 'status'}
         visible={!(state.phase === 'ready' && view.step === 'scan-signature')}
         onClose={close}
         showFooter
@@ -125,7 +127,9 @@ export function CreateOrderSigningModal({ submission, wallet, tokens, onClose, o
               <Text style={styles.text}>
                 {state.snapshot?.intent.orderType.toUpperCase()} {state.snapshot?.intent.quantity} shares
               </Text>
-              <Text style={styles.text}>Price per share: ${state.snapshot?.intent.pricePerShare}</Text>
+              <Text style={styles.text}>
+                Price per share: {marketAmount(state.snapshot?.intent.pricePerShare ?? '')}
+              </Text>
               <Text style={styles.text}>Minimum fill: {state.snapshot?.intent.minQuantity} shares</Text>
               {!signing.walletReady && (
                 <Text style={styles.text}>
@@ -143,10 +147,8 @@ export function CreateOrderSigningModal({ submission, wallet, tokens, onClose, o
               <Text style={styles.text}>
                 Current status: {state.snapshot.order.statusDisplay ?? state.snapshot.order.status.replaceAll('_', ' ')}
               </Text>
-              <Text style={styles.text}>
-                {state.snapshot.order.quantity} {state.snapshot.order.tokenSymbol} shares at $
-                {state.snapshot.order.pricePerShare}
-              </Text>
+              <Text style={styles.text}>Recorded shares: {marketQuantity(state.snapshot.order.quantity)}</Text>
+              <Text style={styles.text}>Price per share: {marketAmount(state.snapshot.order.pricePerShare)}</Text>
             </>
           )}
           {state.phase === 'refused' && (

@@ -1,11 +1,7 @@
 import type {
   AccountExportData,
-  AssetFilters,
   AuthVerificationResponse,
   CastBallotRequest,
-  Portfolio,
-  PortfolioSnapshotQueryParams,
-  PortfolioSnapshotReason,
   PrepareBitcoinTransferRequest,
   PrepareBitcoinTransferResponse,
   PrepareTransferRequest,
@@ -25,10 +21,8 @@ describe('shared-types exports', () => {
     expect(typeExports).toBeDefined();
   });
 
-  it('exposes the public compile-time type surface', () => {
-    const filters: AssetFilters = { search: 'synthetic', chain: 'ethereum' };
+  it('keeps the profile email response-only', () => {
     const profileEmailIsResponseOnly: 'email' extends keyof UpdateUserProfile ? false : true = true;
-    expect(filters).toEqual({ search: 'synthetic', chain: 'ethereum' });
     expect(profileEmailIsResponseOnly).toBe(true);
   });
 
@@ -89,12 +83,8 @@ describe('shared-types exports', () => {
     expect(btcRequest.amountBtc).toBe('0.001');
   });
 
-  it('drops the query params and response fields the backend no longer reads or emits', () => {
+  it('does not expose an authentication reason the backend no longer emits', () => {
     const reason: Has<AuthVerificationResponse, 'reason'> = false;
-    const portfolioTotal: Has<Portfolio, 'totalValue' | 'template'> = false;
-    const snapshotReasonParam: Has<PortfolioSnapshotQueryParams, 'snapshot_reason'> = false;
-    const onlyDaily: PortfolioSnapshotReason = 'DAILY';
-    expect([reason, portfolioTotal, snapshotReasonParam]).toEqual([false, false, false]);
-    expect(onlyDaily).toBe('DAILY');
+    expect(reason).toBe(false);
   });
 });

@@ -3,7 +3,6 @@ from users.serializers.device_token import (
     RegisterDeviceTokenSerializer,
     UnregisterDeviceTokenSerializer,
 )
-from users.serializers.favourite_asset import FavouriteAssetSerializer
 from users.serializers.financial_profile import FinancialProfileSerializer
 from users.serializers.investor_classification import (
     InvestorClassificationSerializer,
@@ -17,7 +16,6 @@ from users.serializers.user_profile import UserProfileSerializer
 
 __all__ = [
     "DeviceTokenSerializer",
-    "FavouriteAssetSerializer",
     "FinancialProfileSerializer",
     "InvestorClassificationSerializer",
     "InvestorEligibilitySerializer",

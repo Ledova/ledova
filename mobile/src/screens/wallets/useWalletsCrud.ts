@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 import { Alert } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -7,155 +7,137 @@ import {
   updateWallet,
   deleteWallet,
   syncWallet,
-  CACHE_TIMING,
-  BLOCKCHAIN,
-  calculateWalletTotals,
-  filterWalletsByChain,
+  getNextPageParam,
   getErrorMessage,
+  CACHE_TIMING,
 } from '@ledova/shared';
-import type { CreateWallet } from '@ledova/shared';
+import type { CreateWallet, Wallet } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { invalidateHomeDashboard } from '../../utils/queryInvalidation';
 import { useUserPreferences } from '../../hooks/useUserPreferences';
-import { generateMockWalletsData } from './_mock/mock';
-import { mockDataEnabled } from '../../_mock/mockDataEnabled';
+import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 
 export function useWalletsCrud() {
-  const USE_MOCK_DATA = mockDataEnabled();
   const queryClient = useQueryClient();
-  const { userAccount } = useUserPreferences();
+  const owner = useUserPreferences();
+  const { userAccount } = owner;
+  const epoch = useSyncExternalStore(subscribeSession, getSessionEpoch, getSessionEpoch);
   const [syncingWalletIds, setSyncingWalletIds] = useState<Set<string>>(() => new Set());
   const pendingSyncs = useRef(new Map<string, ReturnType<typeof syncWallet>>());
 
   const walletsQuery = useQuery({
-    queryKey: ['wallets', userAccount?.uuid],
-    queryFn: () => getWallets(apiClient),
-    enabled: !USE_MOCK_DATA && !!userAccount?.uuid,
+    queryKey: ['wallets', 'ledger', userAccount?.uuid, epoch],
+    queryFn: async () => {
+      const wallets: Wallet[] = [];
+      let page: number | undefined = 1;
+      while (page !== undefined) {
+        assertSessionEpoch(epoch);
+        const { data } = await getWallets(apiClient, { page }, { ledovaSessionEpoch: epoch });
+        assertSessionEpoch(epoch);
+        wallets.push(...data.results);
+        const next = getNextPageParam(data);
+        if (data.next && (next === undefined || !Number.isInteger(next) || next <= page)) {
+          throw new Error('Wallet pagination did not advance');
+        }
+        page = next;
+      }
+      return wallets;
+    },
+    enabled: !!userAccount?.uuid,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
   });
 
-  const invalidateHome = () => invalidateHomeDashboard(queryClient);
+  const refresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['wallets'] });
+    invalidateHomeDashboard(queryClient);
+  };
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateWallet) => createWallet(apiClient, data),
-    onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ['wallets'] });
-      invalidateHome();
+    mutationFn: async ({ data, epoch: captured }: { data: CreateWallet; epoch: number }) => {
+      assertSessionEpoch(captured);
+      const response = await createWallet(apiClient, data, { ledovaSessionEpoch: captured });
+      assertSessionEpoch(captured);
+      return response;
     },
+    onSuccess: refresh,
   });
-
   const updateMutation = useMutation({
-    mutationFn: ({ uuid, name }: { uuid: string; name: string }) => updateWallet(apiClient, uuid, { name }),
-    onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ['wallets'] });
+    mutationFn: async ({ uuid, name, epoch: captured }: { uuid: string; name: string; epoch: number }) => {
+      assertSessionEpoch(captured);
+      const response = await updateWallet(apiClient, uuid, { name }, { ledovaSessionEpoch: captured });
+      assertSessionEpoch(captured);
+      return response;
     },
+    onSuccess: refresh,
   });
-
   const deleteMutation = useMutation({
-    mutationFn: (uuid: string) => deleteWallet(apiClient, uuid),
-    onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ['wallets'] });
-      invalidateHome();
+    mutationFn: async ({ uuid, epoch: captured }: { uuid: string; epoch: number }) => {
+      assertSessionEpoch(captured);
+      const response = await deleteWallet(apiClient, uuid, { ledovaSessionEpoch: captured });
+      assertSessionEpoch(captured);
+      return response;
     },
+    onSuccess: refresh,
   });
-
   const syncMutation = useMutation({
-    mutationFn: (uuid: string) => syncWallet(apiClient, uuid),
-    onMutate: (uuid: string) => {
-      setSyncingWalletIds((pending) => new Set(pending).add(uuid));
+    mutationFn: async ({ uuid, epoch: captured }: { uuid: string; epoch: number }) => {
+      assertSessionEpoch(captured);
+      const response = await syncWallet(apiClient, uuid, { ledovaSessionEpoch: captured });
+      assertSessionEpoch(captured);
+      return response;
     },
-    onSettled: (_data, _error, uuid) => {
-      queryClient.refetchQueries({ queryKey: ['wallets'] });
-      queryClient.refetchQueries({ queryKey: ['transactions'] });
-      invalidateHome();
+    onError: (error, { epoch: captured }) => {
+      if (captured === getSessionEpoch())
+        Alert.alert(
+          'Wallet not synced',
+          getErrorMessage(error, 'Wallet sync could not finish. Please try again later.') ||
+            'Wallet sync could not finish. Please try again later.',
+        );
+    },
+    onMutate: ({ uuid }) => setSyncingWalletIds((pending) => new Set(pending).add(uuid)),
+    onSettled: async (_data, _error, { uuid, epoch: captured }) => {
       setSyncingWalletIds((pending) => {
         const next = new Set(pending);
         next.delete(uuid);
         return next;
       });
-    },
-    onError: (error) => {
-      Alert.alert(
-        'Wallet not synced',
-        getErrorMessage(error, 'Wallet sync could not finish. Please try again later.') ||
-          'Wallet sync could not finish. Please try again later.',
-      );
+      if (captured !== getSessionEpoch()) return;
+      await refresh();
+      await queryClient.invalidateQueries({ queryKey: ['transactions'] });
     },
   });
-
   const { mutateAsync } = syncMutation;
   const syncWalletOnce = useCallback(
     (uuid: string) => {
-      const pending = pendingSyncs.current.get(uuid);
+      const captured = getSessionEpoch();
+      const key = `${captured}:${uuid}`;
+      const pending = pendingSyncs.current.get(key);
       if (pending) return pending;
-      const request = mutateAsync(uuid).finally(() => pendingSyncs.current.delete(uuid));
-      pendingSyncs.current.set(uuid, request);
+      const request = mutateAsync({ uuid, epoch: captured }).finally(() => pendingSyncs.current.delete(key));
+      pendingSyncs.current.set(key, request);
       return request;
     },
     [mutateAsync],
   );
 
-  const wallets = walletsQuery.data?.data.results || [];
-
-  const btcWallets = filterWalletsByChain(wallets, BLOCKCHAIN.BITCOIN);
-  const ethWallets = filterWalletsByChain(wallets, BLOCKCHAIN.ETHEREUM);
-  const baseWallets = filterWalletsByChain(wallets, BLOCKCHAIN.BASE);
-  const totals = calculateWalletTotals(wallets);
-
-  if (USE_MOCK_DATA) {
-    const mockWallets = generateMockWalletsData();
-    const mockBtcWallets = filterWalletsByChain(mockWallets, BLOCKCHAIN.BITCOIN);
-    const mockEthWallets = filterWalletsByChain(mockWallets, BLOCKCHAIN.ETHEREUM);
-    const mockBaseWallets = filterWalletsByChain(mockWallets, BLOCKCHAIN.BASE);
-    const mockTotals = calculateWalletTotals(mockWallets);
-
-    return {
-      wallets: mockWallets,
-      btcWallets: mockBtcWallets,
-      ethWallets: mockEthWallets,
-      baseWallets: mockBaseWallets,
-      totals: mockTotals,
-      isLoading: false,
-      isCreating: false,
-      isUpdating: false,
-      isDeleting: false,
-      isSyncing: false,
-      syncingWalletIds: new Set<string>(),
-      createWallet: (_data: CreateWallet, options?: { onSuccess?: () => void }) => {
-        options?.onSuccess?.();
-      },
-      updateWallet: (_uuid: string, _name: string, options?: { onSuccess?: () => void }) => {
-        options?.onSuccess?.();
-      },
-      deleteWallet: (_uuid: string, options?: { onSuccess?: () => void }) => {
-        options?.onSuccess?.();
-      },
-      syncWallet: async (_uuid: string) => undefined,
-      refetch: async () => ({ data: undefined, error: null }),
-    };
-  }
-
   return {
-    wallets,
-    btcWallets,
-    ethWallets,
-    baseWallets,
-    totals,
-
-    isLoading: walletsQuery.isLoading,
+    wallets: walletsQuery.data ?? [],
+    isLoading: owner.isLoading || walletsQuery.isLoading,
+    hasError: owner.isError || (!owner.isLoading && !userAccount?.uuid) || walletsQuery.isError,
+    isRefreshing: walletsQuery.isFetching,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
     isSyncing: syncingWalletIds.size > 0,
     syncingWalletIds,
-
-    createWallet: createMutation.mutate,
-    updateWallet: (uuid: string, name: string, options?: { onSuccess?: () => void }) =>
-      updateMutation.mutate({ uuid, name }, options),
-    deleteWallet: deleteMutation.mutate,
+    createWallet: (data: CreateWallet) => createMutation.mutateAsync({ data, epoch: getSessionEpoch() }),
+    updateWallet: (uuid: string, name: string) => updateMutation.mutateAsync({ uuid, name, epoch: getSessionEpoch() }),
+    deleteWallet: (uuid: string) => deleteMutation.mutateAsync({ uuid, epoch: getSessionEpoch() }),
     syncWallet: syncWalletOnce,
-
-    refetch: walletsQuery.refetch,
+    refetch: async () => {
+      if (owner.isError || !userAccount?.uuid) await owner.refetch();
+      return walletsQuery.refetch();
+    },
   };
 }

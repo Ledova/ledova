@@ -39,7 +39,6 @@ class PublicationPaymentRecordSerializer(serializers.Serializer):
 class PublicationSummarySerializer(serializers.Serializer):
     open_resolutions = serializers.IntegerField()
     next_closes_at = serializers.DateTimeField(allow_null=True)
-    published_since = serializers.IntegerField()
     dividends_without_record = serializers.IntegerField()
 
 

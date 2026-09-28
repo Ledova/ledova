@@ -25,13 +25,14 @@ def worker_databases():
 class OrderChild:
     def __init__(self, case, worker, phase, directory, **message):
         self.worker = worker
+        self.pending = b""
         self.errors = tempfile.TemporaryFile(mode="w+")
         self.process = subprocess.Popen(
             [sys.executable, "-m", f"tokens.tests.{worker}"],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=self.errors,
-            text=True,
+            bufsize=0,
             env={**os.environ, "ORDER_TEST_DATABASES": json.dumps(worker_databases(), default=str)},
         )
         case.addCleanup(self.close)
@@ -42,15 +43,20 @@ class OrderChild:
             "share_contract": case.tenant.deployed_token.contract_address,
             **message,
         }
-        self.process.stdin.write(json.dumps(payload) + "\n")
+        self.process.stdin.write((json.dumps(payload) + "\n").encode())
         self.process.stdin.flush()
 
     def read(self):
-        if not select.select([self.process.stdout], [], [], 20)[0]:
-            raise AssertionError(f"The {self.worker} did not reach its expected stage")
-        line = self.process.stdout.readline()
-        if not line:
-            raise AssertionError(f"The {self.worker} ended before its result: {self.error_output()}")
+        deadline = time.monotonic() + 20
+        while b"\n" not in self.pending:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0 or not select.select([self.process.stdout], [], [], remaining)[0]:
+                raise AssertionError(f"The {self.worker} did not reach its expected stage")
+            chunk = os.read(self.process.stdout.fileno(), 65536)
+            if not chunk:
+                raise AssertionError(f"The {self.worker} ended before its result: {self.error_output()}")
+            self.pending += chunk
+        line, self.pending = self.pending.split(b"\n", 1)
         return json.loads(line)
 
     def error_output(self):
@@ -58,7 +64,7 @@ class OrderChild:
         return self.errors.read()[-5000:]
 
     def release(self):
-        self.process.stdin.write("continue\n")
+        self.process.stdin.write(b"continue\n")
         self.process.stdin.flush()
 
     def wait(self):

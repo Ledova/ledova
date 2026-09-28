@@ -86,10 +86,18 @@ it('waits for the wallet read with its title intact and without claiming there a
 
   expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Holdings');
   expect(screen.getByRole('status').textContent).toBe('Loading your holdings…');
-  expect(screen.queryByText("You don't hold any shares in your wallets yet.")).toBeNull();
+  expect(
+    screen.queryByText(
+      "None of your wallets holds shares yet. The company's register is the record of what you hold; shares appear here once they are in one of your wallets.",
+    ),
+  ).toBeNull();
 
   await act(async () => finish(page([])));
-  expect(await screen.findByText("You don't hold any shares in your wallets yet.")).toBeTruthy();
+  expect(
+    await screen.findByText(
+      "None of your wallets holds shares yet. The company's register is the record of what you hold; shares appear here once they are in one of your wallets.",
+    ),
+  ).toBeTruthy();
 });
 
 it('reads every wallet page and shows exact share totals with company/class names and hidden-class fallback', async () => {
@@ -144,7 +152,11 @@ it('treats a crypto-only wallet as an empty share list without inventing a zero 
   );
   renderPage();
 
-  expect(await screen.findByText("You don't hold any shares in your wallets yet.")).toBeTruthy();
+  expect(
+    await screen.findByText(
+      "None of your wallets holds shares yet. The company's register is the record of what you hold; shares appear here once they are in one of your wallets.",
+    ),
+  ).toBeTruthy();
   expect(screen.queryByText(/0 shares|AUD|USD/)).toBeNull();
   expect(screen.queryByRole('alert')).toBeNull();
 });
@@ -170,7 +182,11 @@ it.each(['wallet page one', 'wallet page two', 'one wallet holding'])(
     renderPage();
 
     expect((await screen.findByRole('alert')).textContent).toContain("We couldn't load all your holdings.");
-    expect(screen.queryByText("You don't hold any shares in your wallets yet.")).toBeNull();
+    expect(
+      screen.queryByText(
+        "None of your wallets holds shares yet. The company's register is the record of what you hold; shares appear here once they are in one of your wallets.",
+      ),
+    ).toBeNull();
     expect(screen.queryByText('Harbour Example Pty Ltd')).toBeNull();
 
     failed = false;

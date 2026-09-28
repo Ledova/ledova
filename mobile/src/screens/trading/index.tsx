@@ -13,7 +13,8 @@ import {
 import { settlementWalletMaterial, swapSettlementCrypto, swapSettlementStore } from '../../services/swapSettlements';
 import { SwapSettlementModal } from './components/SwapSettlementModal';
 import { orderSubmissionSession, orderSubmissionStore } from '../../services/orderSubmissions';
-import { GradientBackground } from '../../components/GradientBackground';
+import { Action, Section } from '../../components/Ledger';
+import { useMarketStyles } from './styles';
 import {
   useShareTokens,
   useInvestorEligibilityQuery,
@@ -33,7 +34,7 @@ import { OrderSigningModal } from './components/OrderSigningModal';
 import { OrderActionModal } from './components/OrderActionModal';
 import { orderActionStore } from '../../services/orderActions';
 import { OrderDetailModal } from './components/OrderDetailModal';
-import { useAppTheme, useThemedStyles } from '../../contexts';
+import { useAppTheme } from '../../contexts';
 
 export function TradingScreen() {
   const submissions = useOrderSubmissions(orderSubmissionStore, orderSubmissionSession);
@@ -62,30 +63,23 @@ export function TradingScreen() {
   const signingGeneration = useRef(0);
   const currentSigningGeneration = signingGeneration.current;
   const theme = useAppTheme();
-  const styles = useThemedStyles((theme) => ({
-    container: { flex: 1 },
-    content: { flex: 1 },
-    scrollContent: {
-      paddingTop: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.sm,
-      paddingBottom: theme.spacing.xl,
-      gap: theme.spacing.md,
-    },
-  }));
+  const styles = useMarketStyles();
 
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTokenUuid, setSelectedTokenUuid] = useState<string | null>(null);
 
-  const { data: tokens, isLoading: isLoadingTokens, refetch: refetchTokens } = useShareTokens();
-  const { data: eligibility } = useInvestorEligibilityQuery();
-  const isEligible = eligibility?.isEligible ?? false;
-  const { wallets, actionWallets, walletAddresses } = useUserTradingWallets();
+  const tokensQuery = useShareTokens();
+  const tokens = tokensQuery.isError ? [] : (tokensQuery.data ?? []);
+  const eligibilityQuery = useInvestorEligibilityQuery();
+  const isEligible = !eligibilityQuery.isError && !!eligibilityQuery.data?.isEligible;
+  const tradingWallets = useUserTradingWallets();
+  const { wallets, actionWallets, walletAddresses } = tradingWallets;
   const currentWallets = useRef(wallets);
   // eslint-disable-next-line react-hooks/refs
   currentWallets.current = wallets;
   settlements.active?.isCurrent();
   const tokenBalances = useAllWalletTokenBalances(walletAddresses);
-  const userOrders = useAllUserOrders(walletAddresses);
+  const userOrders = useAllUserOrders();
   const swapOrders = useSwapOrdersMulti(walletAddresses);
 
   const effectiveTokenUuid = selectedTokenUuid ?? (tokens && tokens.length > 0 ? tokens[0].uuid : null);
@@ -96,14 +90,32 @@ export function TradingScreen() {
     if (!tokens || !effectiveTokenUuid) return null;
     return tokens.find((t: ShareToken) => t.uuid === effectiveTokenUuid) || null;
   }, [tokens, effectiveTokenUuid]);
-  const whitelistStatus = useWalletsWhitelistStatus(selectedToken?.contractAddress ?? undefined, walletAddresses);
+  const [draftToken, setDraftToken] = useState<ShareToken | null>(null);
+  const whitelistStatus = useWalletsWhitelistStatus(
+    (draftToken ?? selectedToken)?.contractAddress ?? undefined,
+    walletAddresses,
+  );
 
-  const { data: orderBookData, isLoading: isLoadingOrderBook } = useOrderBook(effectiveTokenUuid || undefined);
+  const orderBook = useOrderBook(selectedToken?.uuid);
+  const walletReadsBlocked = !!(tradingWallets.error || tradingWallets.isLoading || tradingWallets.isFetching);
+  const newOrdersBlocked =
+    walletReadsBlocked ||
+    !!(
+      tokensQuery.isError ||
+      tokensQuery.isLoading ||
+      tokensQuery.isFetching ||
+      eligibilityQuery.isError ||
+      eligibilityQuery.isFetching ||
+      !isEligible
+    );
+  const ordersBlocked = walletReadsBlocked || !!(userOrders.error || userOrders.isFetching);
+  const swapsBlocked = walletReadsBlocked || !!(swapOrders.isError || swapOrders.isFetching);
 
   const [createOrderType, setCreateOrderType] = useState<'buy' | 'sell'>('buy');
   const [showCreateOrder, setShowCreateOrder] = useState(false);
 
-  const [detailOrder, setDetailOrder] = useState<TransferOrder | null>(null);
+  const [detailOrderUuid, setDetailOrderUuid] = useState<string | null>(null);
+  const detailOrder = userOrders.orders.find((order) => order.uuid === detailOrderUuid) ?? null;
   const [showDetailOrder, setShowDetailOrder] = useState(false);
 
   const [settlementError, setSettlementError] = useState<string | null>(null);
@@ -120,7 +132,9 @@ export function TradingScreen() {
       if (key[0] !== 'wallets' || key[1] !== wallet.userAccount || key[2] !== 'trading') return;
       const data = event.query.state.data as { data: { results: Wallet[] } } | undefined;
       const current =
-        event.type === 'removed' ? undefined : data?.data?.results?.find((item) => item.uuid === wallet.uuid);
+        event.type === 'removed' || event.query.state.status === 'error'
+          ? undefined
+          : data?.data?.results?.find((item) => item.uuid === wallet.uuid);
       if (material !== settlementWalletMaterial(current)) retired = true;
     };
     return () =>
@@ -129,6 +143,7 @@ export function TradingScreen() {
       material === settlementWalletMaterial(currentWallets.current.find((item) => item.uuid === wallet.uuid));
   };
   const recoverSettlement = (record: SavedSwapSettlement) => {
+    if (walletReadsBlocked) return;
     closeSettlement();
     const wallet = wallets.find(
       (item) => item.uuid === record.walletUuid && item.userAccount === record.ownerAccountUuid,
@@ -144,6 +159,8 @@ export function TradingScreen() {
   };
 
   const handleBuy = () => {
+    if (newOrdersBlocked || !selectedToken) return;
+    setDraftToken(selectedToken);
     closeSettlement();
     signingGeneration.current++;
     submissions.close();
@@ -153,6 +170,8 @@ export function TradingScreen() {
   };
 
   const handleSell = () => {
+    if (newOrdersBlocked || !selectedToken) return;
+    setDraftToken(selectedToken);
     closeSettlement();
     signingGeneration.current++;
     submissions.close();
@@ -162,13 +181,26 @@ export function TradingScreen() {
   };
 
   const handleCreateOrderSubmit = async (data: CreateOrderRequest): Promise<boolean> => {
+    if (
+      newOrdersBlocked ||
+      !selectedToken ||
+      data.token !== selectedToken.uuid ||
+      whitelistStatus.isLoading ||
+      !whitelistStatus.isWhitelisted(data.walletAddress) ||
+      (data.orderType === 'sell' && (tokenBalances.error || tokenBalances.isLoading))
+    )
+      return false;
     const generation = signingGeneration.current;
     const accepted = await submissions.begin(data, wallets.find((wallet) => wallet.uuid === data.walletUuid) ?? null);
-    if (accepted && generation === signingGeneration.current) setShowCreateOrder(false);
+    if (accepted && generation === signingGeneration.current) {
+      setShowCreateOrder(false);
+      setDraftToken(null);
+    }
     return accepted;
   };
 
   const handleCancelOrder = (orderUuid: string) => {
+    if (ordersBlocked) return;
     closeSettlement();
     signingGeneration.current++;
     submissions.close();
@@ -178,6 +210,7 @@ export function TradingScreen() {
   };
 
   const handleEditOrder = (order: TransferOrder) => {
+    if (ordersBlocked) return;
     closeSettlement();
     signingGeneration.current++;
     submissions.close();
@@ -188,11 +221,12 @@ export function TradingScreen() {
 
   const handleViewOrder = (order: TransferOrder) => {
     closeSettlement();
-    setDetailOrder(order);
+    setDetailOrderUuid(order.uuid);
     setShowDetailOrder(true);
   };
 
   const handleSignSwap = (swap: SwapOrder) => {
+    if (swapsBlocked) return;
     closeSettlement();
     setSettlementError(null);
     submissions.close();
@@ -207,11 +241,23 @@ export function TradingScreen() {
     }
   };
 
-  const handleRefresh = useCallback(async () => {
+  const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([refetchTokens(), userOrders.refetch(), tokenBalances.refetch(), swapOrders.refetch()]);
-    setRefreshing(false);
-  }, [refetchTokens, userOrders, tokenBalances, swapOrders]);
+    try {
+      await Promise.all([
+        tokensQuery.refetch(),
+        eligibilityQuery.refetch(),
+        tradingWallets.refetch(),
+        userOrders.refetch(),
+        tokenBalances.refetch(),
+        whitelistStatus.refetch(),
+        swapOrders.refetch(),
+        orderBook.refetch(),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleSigningSuccess = () => {
     if (signingGeneration.current !== currentSigningGeneration) return;
@@ -229,10 +275,10 @@ export function TradingScreen() {
   }, []);
 
   return (
-    <GradientBackground>
-      <View style={styles.container}>
+    <View style={styles.page}>
+      <View style={styles.page}>
         <ScrollView
-          style={styles.content}
+          testID="market-screen"
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -242,14 +288,37 @@ export function TradingScreen() {
             />
           }
         >
-          <View style={styles.scrollContent}>
+          <View style={styles.content}>
+            <Text accessibilityRole="header" style={styles.title}>
+              Market
+            </Text>
+            {(eligibilityQuery.isError || tradingWallets.error) && (
+              <Section title="Trading details unavailable">
+                <Text accessibilityRole="alert" style={styles.error}>
+                  {eligibilityQuery.isError ? 'Eligibility could not be loaded.' : 'Wallets could not be loaded.'}
+                </Text>
+                <Action label="Retry trading details" onPress={() => void handleRefresh()} />
+              </Section>
+            )}
             <MarketList
               tokens={tokens || []}
               selectedTokenUuid={effectiveTokenUuid}
               onSelectToken={handleSelectToken}
-              isLoading={isLoadingTokens}
+              isLoading={tokensQuery.isLoading || eligibilityQuery.isLoading}
               isEligible={isEligible}
+              error={tokensQuery.error || eligibilityQuery.error}
+              onRetry={() => void handleRefresh()}
+              disabled={showCreateOrder || newOrdersBlocked}
             />
+
+            {selectedToken && (
+              <BuySellButtons
+                tokenSymbol={selectedToken.symbol}
+                onBuy={handleBuy}
+                onSell={handleSell}
+                disabled={newOrdersBlocked || wallets.length === 0 || showCreateOrder}
+              />
+            )}
 
             <View style={{ gap: theme.spacing.sm }} accessibilityLabel="Saved orders">
               <Text style={{ color: theme.colors.text.primary, fontWeight: theme.fontWeight.semibold }}>
@@ -356,45 +425,43 @@ export function TradingScreen() {
               </TouchableOpacity>
             </View>
 
-            {selectedToken && (
-              <>
-                <OrdersCard
-                  tokenSymbol={selectedToken.symbol}
-                  orderBook={orderBookData || null}
-                  isLoadingOrderBook={isLoadingOrderBook}
-                  userOrders={userOrders.orders}
-                  isLoadingUserOrders={userOrders.isLoading}
-                  onCancelOrder={handleCancelOrder}
-                  onEditOrder={handleEditOrder}
-                  onViewOrder={handleViewOrder}
-                  swaps={swapOrders.data}
-                  isLoadingSwaps={swapOrders.isLoading}
-                  wallets={wallets}
-                  settlementOwner={settlements.owner}
-                  onSignSwap={handleSignSwap}
-                />
-
-                <BuySellButtons
-                  tokenSymbol={selectedToken.symbol}
-                  onBuy={handleBuy}
-                  onSell={handleSell}
-                  disabled={wallets.length === 0}
-                />
-              </>
-            )}
+            <OrdersCard
+              tokenSymbol={selectedToken?.symbol ?? null}
+              orderBook={orderBook.isError ? null : (orderBook.data ?? null)}
+              isLoadingOrderBook={orderBook.isLoading}
+              orderBookError={orderBook.error}
+              onRefreshBook={() => void orderBook.refetch()}
+              userOrders={userOrders.orders}
+              isLoadingUserOrders={userOrders.isLoading}
+              ordersError={userOrders.error}
+              onRefreshOrders={() => void userOrders.refetch()}
+              ordersBlocked={ordersBlocked}
+              onCancelOrder={handleCancelOrder}
+              onEditOrder={handleEditOrder}
+              onViewOrder={handleViewOrder}
+              swaps={swapOrders.isError ? [] : swapOrders.data}
+              isLoadingSwaps={swapOrders.isLoading}
+              swapsError={swapOrders.error || tradingWallets.error}
+              onRefreshSwaps={() => void handleRefresh()}
+              swapsBlocked={swapsBlocked}
+              wallets={wallets}
+              settlementOwner={settlements.owner}
+              onSignSwap={handleSignSwap}
+            />
           </View>
         </ScrollView>
       </View>
 
-      {selectedToken && (
+      {draftToken && (
         <CreateOrderModal
           visible={showCreateOrder}
           onClose={() => {
             signingGeneration.current++;
             submissions.close();
             setShowCreateOrder(false);
+            setDraftToken(null);
           }}
-          token={selectedToken}
+          token={draftToken}
           orderType={createOrderType}
           wallets={wallets}
           walletsWithHoldings={walletsWithHoldings}
@@ -403,6 +470,13 @@ export function TradingScreen() {
           isWalletWhitelisted={whitelistStatus.isWhitelisted}
           getWhitelistStatus={whitelistStatus.getStatus}
           isLoadingWhitelistStatus={whitelistStatus.isLoading}
+          blocked={
+            newOrdersBlocked ||
+            !selectedToken ||
+            selectedToken.uuid !== draftToken.uuid ||
+            (createOrderType === 'sell' && !!(tokenBalances.error || tokenBalances.isLoading))
+          }
+          onRetry={() => void handleRefresh()}
         />
       )}
 
@@ -431,6 +505,7 @@ export function TradingScreen() {
         visible={showDetailOrder}
         onClose={() => setShowDetailOrder(false)}
         order={detailOrder}
+        blocked={ordersBlocked}
         onModify={handleEditOrder}
         onCancel={handleCancelOrder}
       />
@@ -445,6 +520,6 @@ export function TradingScreen() {
           }}
         />
       )}
-    </GradientBackground>
+    </View>
   );
 }

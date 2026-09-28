@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView } from 'react-native';
-import { useAppTheme, useThemedStyles } from '../../../contexts';
+import { useThemedStyles } from '../../../contexts';
 import { formatWalletAddressMedium, getNativeAssetSymbol, isSupportedEvmChain } from '@ledova/shared';
 import type { TransactionData } from '@ledova/shared';
 
@@ -10,7 +10,6 @@ interface ReviewTransactionProps {
 }
 
 export function ReviewTransaction({ transactionData, chainShortName }: ReviewTransactionProps) {
-  const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
     scrollContent: {
       flex: 1,

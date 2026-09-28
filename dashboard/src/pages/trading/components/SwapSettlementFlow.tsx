@@ -215,7 +215,9 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
               {exactSettlementAmount(response.typedData.message.paymentAmount, context.paymentAsset.deploymentDecimals)}{' '}
               {context.paymentAsset.symbol}
             </p>
-            <p>Price per share: {context.pricePerShare}</p>
+            <p>
+              Price per share: {context.pricePerShare} {context.paymentAsset.symbol}
+            </p>
             <p>
               Network: {context.shareToken.chain} ({response.typedData.domain.chainId})
             </p>

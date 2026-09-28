@@ -8,7 +8,7 @@ from rest_framework.test import APITestCase
 from assets.models import Asset, AssetChainDeployment
 from assets.services import sync as asset_sync
 from assets.services.identity import native_asset_for_chain, quarantine_unknown_token
-from users.models import FavouriteAsset, UserAccount, UserProfile
+from users.models import UserAccount, UserProfile
 from wallets.exceptions import InvalidTransactionException
 from wallets.models import Holding, Transaction, Wallet
 from wallets.services import transaction_confirmation
@@ -248,22 +248,13 @@ class UnknownTokenQuarantineTest(APITestCase):
 
     def test_quarantined_assets_are_invisible_to_customers(self):
         hidden = self.quarantined()
-        FavouriteAsset.objects.create(user_account=self.account, asset=hidden)
         self.client.force_authenticate(self.user)
 
-        listed = self.client.get("/api/assets/").json()["results"]
+        response = self.client.get("/api/assets/")
+        self.assertEqual(response.status_code, 200)
+        listed = response.json()["results"]
         self.assertEqual([row["symbol"] for row in listed], ["USDC"])
-        self.assertEqual(self.client.get(f"/api/assets/{hidden.uuid}/").status_code, 404)
-        self.assertEqual(self.client.get(f"/api/assets/{hidden.uuid}/snapshots/").status_code, 404)
-        self.assertEqual(self.client.get(f"/api/assets/{self.usdc.uuid}/").status_code, 200)
-
-        favourites = self.client.get("/api/favourite-assets/").json()["results"]
-        self.assertEqual(favourites, [])
-        response = self.client.post(
-            "/api/favourite-assets/", {"user_account": str(self.account.uuid), "asset": str(hidden.uuid)}
-        )
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("asset", response.json())
+        self.assertNotIn(str(hidden.uuid), [row["uuid"] for row in listed])
 
     def test_a_pending_transfer_naming_an_unknown_or_unverified_token_debits_nothing(self):
         eth = Asset.objects.create(symbol="ETH", name="Ether", asset_type="native_crypto", is_verified=True)

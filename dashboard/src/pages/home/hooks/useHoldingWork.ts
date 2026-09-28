@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
   getNextPageParam,
+  getPublications,
   getSubscriptions,
   usePublicationSummary,
   type Subscription,
@@ -35,5 +36,11 @@ export function useHoldingWork() {
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
 
-  return { role, notices, applications };
+  const recent = useQuery({
+    queryKey: ['publications', 'addressed', 'me', 'latest'],
+    queryFn: async () => (await getPublications(apiClient, 1, { addressed: 'me' })).data.results.slice(0, 3),
+    staleTime: CACHE_TIMING.SHORT_STALE_TIME,
+  });
+
+  return { role, notices, applications, recent };
 }

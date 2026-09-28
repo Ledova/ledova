@@ -1,6 +1,5 @@
 from drf_spectacular.extensions import OpenApiSerializerExtension
 
-from assets.serializers.asset import AssetSerializer
 from users.serializers.user_preferences import SelectedPortfolioSerializer
 
 
@@ -26,14 +25,4 @@ class UserProfileSchema(OpenApiSerializerExtension):
         if direction == "response":
             for name in ("citizenship_country", "residence_country"):
                 schema["properties"][name]["nullable"] = True
-        return schema
-
-
-class FavouriteAssetSchema(OpenApiSerializerExtension):
-    target_class = "users.serializers.favourite_asset.FavouriteAssetSerializer"
-
-    def map_serializer(self, auto_schema, direction):
-        schema = auto_schema._map_serializer(self.target, direction, bypass_extensions=True)
-        if direction == "response":
-            schema["properties"]["asset"] = auto_schema.resolve_serializer(AssetSerializer(), direction).ref
         return schema

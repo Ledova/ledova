@@ -1,772 +1,376 @@
-import React, { useRef, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, TextInput } from 'react-native';
-import {
-  CheckCircleIcon,
-  CircleIcon,
-  UploadSimpleIcon,
-  TrashIcon,
-  WarningIcon,
-  InfoIcon,
-  FileTextIcon,
-  EyeIcon,
-  ClockIcon,
-  XCircleIcon,
-} from 'phosphor-react-native';
-import * as Sharing from 'expo-sharing';
+import { useState } from 'react';
+import { Text, TextInput, View, ScrollView, RefreshControl } from 'react-native';
+import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
-import { getOperator, getErrorMessage, CACHE_TIMING } from '@ledova/shared';
-import type { Company, DocumentType } from '@ledova/shared';
-import { useAppTheme, useThemedStyles } from '../../contexts';
-import { GradientBackground } from '../../components/GradientBackground';
-import { Panel } from '../../components/panel';
-import { CustomModal } from '../../components/modal';
-import { PrimaryButton, SecondaryButton } from '../../components/buttons';
+import {
+  CACHE_TIMING,
+  formatDate,
+  getErrorMessage,
+  getOperator,
+  type CompanyDocument,
+  type DocumentType,
+} from '@ledova/shared';
+import type { BottomTabParamList } from '../../navigation/BottomTabNavigator';
+import { Action, Row, Section } from '../../components/Ledger';
+import { CompanyModal } from '../company/CompanyModal';
 import { apiClient } from '../../services/apiClient';
-import { shareDocumentCopy } from '../../services/documentCopies';
-import { getSessionEpoch } from '../../services/sessionScope';
+import { CompanyReadNotice } from '../company/CompanyState';
+import { useCompanyStyles } from '../company-register/styles';
+import { CompanyUpload } from './CompanyUpload';
+import { DocumentEntry } from './DocumentEntry';
+import { OPTIONAL_DOCUMENTS, REQUIRED_DOCUMENTS } from './documents';
 import { useCompanyDocuments } from './useCompanyDocuments';
-import { useDocumentUpload } from '../../hooks/useDocumentUpload';
 
-const EXTENSION_BY_MIME_TYPE: Record<string, string> = {
-  'application/pdf': '.pdf',
-  'image/png': '.png',
-  'image/jpeg': '.jpg',
-};
-
-const UTI_BY_MIME_TYPE: Record<string, string> = {
-  'application/pdf': 'com.adobe.pdf',
-  'image/png': 'public.png',
-  'image/jpeg': 'public.jpeg',
-};
-
-const REQUIRED_DOCUMENTS: { type: DocumentType; label: string }[] = [
-  { type: 'cert_inc', label: 'Certificate of Incorporation' },
-  { type: 'asic', label: 'ASIC Company Extract' },
-  { type: 'constitution', label: 'Company Constitution' },
-  { type: 'share_register', label: 'Current Share Register' },
-  { type: 'financials', label: 'Financial Statements' },
-  { type: 'director_id', label: 'Director Identification' },
-  { type: 'beneficial_ownership', label: 'Beneficial Ownership Declaration' },
-  { type: 'business_plan', label: 'Business Plan' },
-  { type: 'risk_disclosure', label: 'Risk Disclosure Statement' },
-];
-
-const OPTIONAL_DOCUMENTS: { type: DocumentType; label: string }[] = [
-  { type: 'auditor_report', label: 'Auditor Report' },
-  { type: 'shareholder', label: 'Shareholder Agreement' },
-  { type: 'prospectus', label: 'Prospectus' },
-  { type: 'legal_opinion', label: 'Legal Opinion' },
-  { type: 'tax_return', label: 'Tax Return' },
-  { type: 'bank_statement', label: 'Bank Statement' },
-];
-
-const WITHDRAWABLE_STATUSES: Company['status'][] = ['submitted', 'info_required'];
-
-const ACTION_ERROR_FALLBACK = 'The request was refused. Please try again.';
+const ACTION_ERROR = 'The request was refused. Please try again.';
 
 export function ListingScreen() {
-  const theme = useAppTheme();
-  const styles = useStyles();
-  const {
-    company,
-    companyUuid,
-    documents,
-    uploadedTypes,
-    canEdit,
-    isLoading,
-    upload,
-    isUploading,
-    deleteDocument,
-    isDeleting,
-    submitApplication,
-    isSubmitting,
-    resubmitApplication,
-    isResubmitting,
-    withdrawApplication,
-    isWithdrawing,
-  } = useCompanyDocuments();
-  const document = useDocumentUpload(companyUuid);
-  const documentAttempt = useRef(false);
-  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
-  const [infoResponse, setInfoResponse] = useState('');
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const styles = useCompanyStyles();
+  const navigation = useNavigation<NavigationProp<BottomTabParamList>>();
+  const data = useCompanyDocuments();
+  const { company, documents, canEdit, deletion, submission, resubmission, withdrawal } = data;
+  const [upload, setUpload] = useState<{ company: string; type: DocumentType; label: string } | null>(null);
+  const [withdrawing, setWithdrawing] = useState<string | null>(null);
   const [withdrawReason, setWithdrawReason] = useState('');
-
-  const { data: operator } = useQuery({
+  const [removing, setRemoving] = useState<{ company: string; document: CompanyDocument } | null>(null);
+  const [response, setResponse] = useState('');
+  const [responseCompany, setResponseCompany] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const operator = useQuery({
     queryKey: ['operator'],
-    queryFn: () => getOperator(apiClient).then((res) => res.data),
+    queryFn: () => getOperator(apiClient),
     staleTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
+    enabled: data.access.allowed,
   });
-  const operatorName = operator?.name || 'The operator';
-
-  const status = company?.status;
-  const isInfoRequired = status === 'info_required';
-  const canWithdraw = !!status && WITHDRAWABLE_STATUSES.includes(status);
-  const missingRequired = REQUIRED_DOCUMENTS.filter((d) => !uploadedTypes.has(d.type));
-  const hasRequiredDocuments = missingRequired.length === 0;
-  const isActing = isSubmitting || isResubmitting || isWithdrawing;
-
-  const showRefusal = (error: unknown) =>
-    Alert.alert('Request Refused', getErrorMessage(error, ACTION_ERROR_FALLBACK) || ACTION_ERROR_FALLBACK);
-
-  const handlePickAndUpload = async (documentType: DocumentType) => {
-    if (documentAttempt.current) return;
-    documentAttempt.current = true;
+  const operatorName = operator.isError ? 'The operator' : operator.data?.data.name || 'The operator';
+  const busy = deletion.isPending || submission.isPending || resubmission.isPending || withdrawal.isPending;
+  const ready = !!company && !data.error && !data.isRefreshing;
+  const canWithdraw = company?.status === 'submitted' || company?.status === 'info_required';
+  const missing = REQUIRED_DOCUMENTS.filter(
+    ({ type }) => !documents.some((document) => document.documentType === type),
+  );
+  const canSubmit = ready && company.status === 'draft' && missing.length === 0 && !busy;
+  const canResubmit =
+    ready &&
+    company.status === 'info_required' &&
+    missing.length === 0 &&
+    responseCompany === company.uuid &&
+    response.trim() !== '' &&
+    !busy;
+  const events = company
+    ? [
+        ['Submitted', company.submittedAt],
+        ['Review started', company.reviewStartedAt],
+        ['Information requested', company.infoRequestedAt],
+        ['Approved', company.approvedAt],
+        ['Activated', company.activatedAt],
+        ['Rejected', company.rejectionAt],
+        ['Withdrawn', company.withdrawnAt],
+      ]
+        .flatMap(([label, at]) => (at ? [{ label: label!, at }] : []))
+        .sort((a, b) => a.at.localeCompare(b.at))
+    : [];
+  const submit = async () => {
+    if (!canSubmit) return;
+    setActionError(null);
     try {
-      if (!canEdit || !(await document.pick())) return;
-      await document.submit(({ file, owner, sessionEpoch }) =>
-        upload({ documentType, name: file.name, file, companyUuid: owner, sessionEpoch }),
-      );
-    } catch {
-      Alert.alert('Upload Failed', 'Could not upload the document. Please try again.');
-    } finally {
-      document.clear();
-      documentAttempt.current = false;
-    }
-  };
-
-  const handleDelete = (docUuid: string) => {
-    setDeleteTarget(docUuid);
-  };
-
-  const confirmDelete = () => {
-    if (deleteTarget) {
-      deleteDocument(deleteTarget);
-      setDeleteTarget(null);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!hasRequiredDocuments) {
-      Alert.alert(
-        'Documents Required',
-        `Please upload all ${missingRequired.length} required document${missingRequired.length > 1 ? 's' : ''} before submitting your application.`,
-      );
-      return;
-    }
-    try {
-      await submitApplication();
+      await submission.mutateAsync(company.uuid);
     } catch (error) {
-      showRefusal(error);
+      setActionError(getErrorMessage(error, ACTION_ERROR));
     }
   };
-
-  const handleResubmit = async () => {
-    if (!hasRequiredDocuments) {
-      Alert.alert(
-        'Documents Required',
-        `Please upload all ${missingRequired.length} required document${missingRequired.length > 1 ? 's' : ''} before resubmitting your application.`,
-      );
-      return;
-    }
-    if (!infoResponse.trim()) {
-      Alert.alert('Response Required', 'Describe how you addressed the information request before resubmitting.');
-      return;
-    }
+  const resubmit = async () => {
+    if (!canResubmit) return;
+    setActionError(null);
     try {
-      await resubmitApplication(infoResponse.trim());
-      setInfoResponse('');
+      await resubmission.mutateAsync({ companyUuid: company.uuid, response: response.trim() });
+      setResponse('');
+      setResponseCompany(null);
     } catch (error) {
-      showRefusal(error);
+      setActionError(getErrorMessage(error, ACTION_ERROR));
     }
   };
-
-  const confirmWithdraw = async () => {
-    setShowWithdrawModal(false);
+  const withdraw = async () => {
+    if (!ready || !canWithdraw || !withdrawing || company.uuid !== withdrawing || busy) return;
     try {
-      await withdrawApplication(withdrawReason.trim());
+      await withdrawal.mutateAsync({ companyUuid: withdrawing, reason: withdrawReason.trim() });
+      setWithdrawing(null);
       setWithdrawReason('');
-    } catch (error) {
-      showRefusal(error);
-    }
+    } catch {}
   };
-
-  if (isLoading) {
-    return (
-      <GradientBackground>
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={theme.colors.interactive.default} />
-        </View>
-      </GradientBackground>
-    );
-  }
-
-  if (!company) {
-    return (
-      <GradientBackground>
-        <View style={styles.centered}>
-          <FileTextIcon size={48} color={theme.colors.text.muted} weight="regular" />
-          <Text style={styles.emptyText}>No company found. Please register your company first.</Text>
-        </View>
-      </GradientBackground>
-    );
-  }
-
-  const withdrawModal = (
-    <CustomModal
-      visible={showWithdrawModal}
-      onClose={() => setShowWithdrawModal(false)}
-      showFooter
-      confirmLabel="Withdraw"
-      onConfirm={confirmWithdraw}
-      confirmLoading={isWithdrawing}
-    >
-      <View style={styles.modalContent}>
-        <Text style={styles.modalTitle}>Withdraw Application</Text>
-        <Text style={styles.modalText}>
-          Withdrawing takes your application out of the review queue. You will need to register again to list your
-          company later.
-        </Text>
-        <Text style={styles.fieldLabel}>Reason (optional)</Text>
-        <TextInput
-          value={withdrawReason}
-          onChangeText={setWithdrawReason}
-          placeholder="Let the operator know why you are withdrawing"
-          placeholderTextColor={theme.colors.text.muted}
-          style={styles.textArea}
-          multiline
-        />
-      </View>
-    </CustomModal>
-  );
-
-  if (!canEdit) {
-    return (
-      <GradientBackground>
-        <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-          <Panel>
-            <ApplicationStatusView company={company} operatorName={operatorName} theme={theme} styles={styles} />
-            {canWithdraw && (
-              <View style={styles.submittedActions}>
-                <SecondaryButton onPress={() => setShowWithdrawModal(true)} loading={isWithdrawing} fullWidth>
-                  Withdraw Application
-                </SecondaryButton>
-              </View>
-            )}
-          </Panel>
-        </ScrollView>
-        {withdrawModal}
-      </GradientBackground>
-    );
-  }
-
-  return (
-    <GradientBackground>
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-        {isInfoRequired && (
-          <View style={styles.warningBanner}>
-            <WarningIcon size={20} color={theme.colors.status.warning.icon} weight="fill" />
-            <View style={styles.warningTextContainer}>
-              <Text style={styles.warningTitle}>Additional Information Required</Text>
-              {company.infoRequestReason ? (
-                <Text style={styles.warningMessage}>{company.infoRequestReason}</Text>
-              ) : null}
-            </View>
-          </View>
-        )}
-
-        <Panel title="Required Documents">
-          {REQUIRED_DOCUMENTS.map((doc, index) => {
-            const uploaded = documents.find((d) => d.documentType === doc.type);
-            return (
-              <DocumentRow
-                key={doc.type}
-                label={doc.label}
-                uploaded={uploaded}
-                onUpload={() => handlePickAndUpload(doc.type)}
-                onDelete={() => handleDelete(uploaded!.uuid)}
-                isUploading={isUploading || document.isPicking || document.isSubmitting}
-                isDeleting={isDeleting}
-                canEdit={canEdit}
-                isLast={index === REQUIRED_DOCUMENTS.length - 1}
-                theme={theme}
-              />
-            );
-          })}
-        </Panel>
-
-        <Panel title="Optional Documents">
-          {OPTIONAL_DOCUMENTS.map((doc, index) => {
-            const uploaded = documents.find((d) => d.documentType === doc.type);
-            return (
-              <DocumentRow
-                key={doc.type}
-                label={doc.label}
-                uploaded={uploaded}
-                onUpload={() => handlePickAndUpload(doc.type)}
-                onDelete={() => handleDelete(uploaded!.uuid)}
-                isUploading={isUploading || document.isPicking || document.isSubmitting}
-                isDeleting={isDeleting}
-                canEdit={canEdit}
-                isLast={index === OPTIONAL_DOCUMENTS.length - 1}
-                theme={theme}
-              />
-            );
-          })}
-        </Panel>
-
-        {isInfoRequired && (
-          <Panel title="Your Response">
-            <View style={styles.responseContainer}>
-              <Text style={styles.responseHint}>
-                Answer the request above, upload any documents it asks for, then resubmit your application.
-              </Text>
-              <TextInput
-                value={infoResponse}
-                onChangeText={setInfoResponse}
-                placeholder="Describe what you changed or provide the information requested"
-                placeholderTextColor={theme.colors.text.muted}
-                style={styles.textArea}
-                multiline
-              />
-            </View>
-          </Panel>
-        )}
-
-        <Panel title="What Happens Next" icon={<InfoIcon />}>
-          <View style={styles.stepsContainer}>
-            {[
-              'Submit your application with all required documents',
-              `${operatorName} reviews your application (2-5 business days)`,
-              'You may be asked for additional information',
-              'Once approved, you deploy your share token on the blockchain',
-              'Your company is activated on the platform',
-            ].map((step, i) => (
-              <View key={i} style={styles.stepRow}>
-                <Text style={styles.stepNumber}>{i + 1}.</Text>
-                <Text style={styles.stepText}>{step}</Text>
-              </View>
-            ))}
-          </View>
-        </Panel>
-
-        <View style={styles.submitSection}>
-          {isInfoRequired ? (
-            <PrimaryButton onPress={handleResubmit} loading={isResubmitting} disabled={isActing} fullWidth>
-              Resubmit Application
-            </PrimaryButton>
-          ) : (
-            <PrimaryButton onPress={handleSubmit} loading={isSubmitting} disabled={isActing} fullWidth>
-              Submit Application
-            </PrimaryButton>
-          )}
-          {canWithdraw && (
-            <TouchableOpacity onPress={() => setShowWithdrawModal(true)} disabled={isActing} hitSlop={8}>
-              <Text style={styles.withdrawLink}>Withdraw application</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <CustomModal
-          visible={!!deleteTarget}
-          onClose={() => setDeleteTarget(null)}
-          showFooter
-          confirmLabel="Delete"
-          onConfirm={confirmDelete}
-        >
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Delete Document</Text>
-            <Text style={styles.modalText}>
-              Are you sure you want to delete this document? This action cannot be undone.
-            </Text>
-          </View>
-        </CustomModal>
-      </ScrollView>
-      {withdrawModal}
-    </GradientBackground>
-  );
-}
-
-function ApplicationStatusView({
-  company,
-  operatorName,
-  theme,
-  styles,
-}: {
-  company: NonNullable<ReturnType<typeof useCompanyDocuments>['company']>;
-  operatorName: string;
-  theme: ReturnType<typeof useAppTheme>;
-  styles: ReturnType<typeof useStyles>;
-}) {
-  const statusLabel = company.statusDisplay || company.status;
-  const outcome = (() => {
-    switch (company.status) {
-      case 'approved':
-      case 'active':
-        return {
-          icon: <CheckCircleIcon size={48} color={theme.colors.status.success.icon} weight="duotone" />,
-          title: company.status === 'active' ? 'Company Active' : 'Application Approved',
-          body: `Your listing application was approved and your company is ${statusLabel}.`,
-        };
-      case 'rejected':
-        return {
-          icon: <XCircleIcon size={48} color={theme.colors.status.error.icon} weight="duotone" />,
-          title: 'Application Rejected',
-          body: company.rejectionReason
-            ? `${operatorName} rejected the application: ${company.rejectionReason}`
-            : `${operatorName} rejected the application.`,
-        };
-      case 'withdrawn':
-        return {
-          icon: <XCircleIcon size={48} color={theme.colors.text.muted} weight="duotone" />,
-          title: 'Application Withdrawn',
-          body: company.withdrawalReason
-            ? `You withdrew this application: ${company.withdrawalReason}`
-            : 'You withdrew this application.',
-        };
-      case 'review':
-        return {
-          icon: <ClockIcon size={48} color={theme.colors.status.info.icon} weight="duotone" />,
-          title: 'Under Review',
-          body: `${operatorName} is reviewing your application. Withdrawal is no longer available once the review has started.`,
-        };
-      case 'submitted':
-        return {
-          icon: <ClockIcon size={48} color={theme.colors.status.info.icon} weight="duotone" />,
-          title: 'Application Submitted',
-          body: `Your listing application is waiting for ${operatorName} to start the review.`,
-        };
-      default:
-        return {
-          icon: <InfoIcon size={48} color={theme.colors.text.muted} weight="duotone" />,
-          title: statusLabel,
-          body: `Your company is currently ${statusLabel}.`,
-        };
-    }
-  })();
-
-  return (
-    <View style={styles.submittedContainer}>
-      {outcome.icon}
-      <Text style={styles.submittedTitle}>{outcome.title}</Text>
-      <Text style={styles.submittedText}>{outcome.body}</Text>
-      {company.additionalInfoResponse ? (
-        <View style={styles.previousResponse}>
-          {company.infoRequestReason ? (
-            <>
-              <Text style={styles.previousResponseLabel}>Information requested</Text>
-              <Text style={styles.previousResponseText}>{company.infoRequestReason}</Text>
-            </>
-          ) : null}
-          <Text style={styles.previousResponseLabel}>Your response</Text>
-          <Text style={styles.previousResponseText}>{company.additionalInfoResponse}</Text>
-        </View>
-      ) : null}
-    </View>
-  );
-}
-
-interface DocumentRowProps {
-  label: string;
-  uploaded?: { uuid: string; name?: string; fileUrl?: string } | undefined;
-  onUpload: () => void;
-  onDelete: () => void;
-  isUploading: boolean;
-  isDeleting: boolean;
-  canEdit: boolean;
-  isLast: boolean;
-  theme: ReturnType<typeof useAppTheme>;
-}
-
-function DocumentRow({
-  label,
-  uploaded,
-  onUpload,
-  onDelete,
-  isUploading,
-  isDeleting,
-  canEdit,
-  isLast,
-  theme,
-}: DocumentRowProps) {
-  const styles = useStyles();
-  const [isOpening, setIsOpening] = useState(false);
-
-  const handleView = async () => {
-    if (!uploaded?.fileUrl || isOpening) {
-      return;
-    }
-    const sessionEpoch = getSessionEpoch();
-    const { uuid } = uploaded;
-
-    setIsOpening(true);
+  const remove = async () => {
+    if (!ready || !canEdit || !removing || company.uuid !== removing.company || busy) return;
     try {
-      if (!(await Sharing.isAvailableAsync())) {
-        Alert.alert('Cannot open document', 'Sharing is not available on this device.');
-        return;
-      }
-      await shareDocumentCopy(
-        sessionEpoch,
-        async () => {
-          const response = await apiClient.get<ArrayBuffer>(uploaded.fileUrl!, {
-            responseType: 'arraybuffer',
-            ledovaSessionEpoch: sessionEpoch,
-          });
-          const type = String(response.headers['content-type'] || 'application/octet-stream').split(';')[0];
-          return { name: `${uuid}${EXTENSION_BY_MIME_TYPE[type] || ''}`, type, bytes: new Uint8Array(response.data) };
-        },
-        (uri, type) => Sharing.shareAsync(uri, { mimeType: type, UTI: UTI_BY_MIME_TYPE[type] }),
-      );
-    } catch (error) {
-      if (sessionEpoch === getSessionEpoch()) {
-        Alert.alert('Cannot open document', getErrorMessage(error) || 'The document could not be opened.');
-      }
-    } finally {
-      setIsOpening(false);
-    }
+      await deletion.mutateAsync({ companyUuid: removing.company, documentUuid: removing.document.uuid });
+      setRemoving(null);
+    } catch {}
   };
-
-  return (
-    <View style={[styles.docRow, !isLast && styles.rowBorder]}>
-      <View style={styles.docRowLeft}>
-        {uploaded ? (
-          <CheckCircleIcon size={20} color={theme.colors.status.success.icon} weight="fill" />
-        ) : (
-          <CircleIcon size={20} color={theme.colors.border.default} weight="regular" />
-        )}
-        <View style={styles.docLabelContainer}>
-          <Text style={styles.docLabel} numberOfLines={1}>
-            {label}
-          </Text>
-          {uploaded?.name && (
-            <Text style={styles.docFilename} numberOfLines={1}>
-              {uploaded.name}
-            </Text>
-          )}
-        </View>
-      </View>
-      <View style={styles.docRowRight}>
-        {uploaded ? (
-          <>
-            {uploaded.fileUrl &&
-              (isOpening ? (
-                <ActivityIndicator size="small" color={theme.colors.interactive.default} />
-              ) : (
-                <TouchableOpacity accessibilityLabel={`View ${label}`} onPress={handleView} hitSlop={8}>
-                  <EyeIcon size={18} color={theme.colors.interactive.default} weight="regular" />
-                </TouchableOpacity>
-              ))}
-            {canEdit && (
-              <TouchableOpacity onPress={onDelete} disabled={isDeleting} hitSlop={8}>
-                <TrashIcon size={18} color={theme.colors.status.error.icon} weight="regular" />
-              </TouchableOpacity>
+  const documentSection = (title: string, types: { type: DocumentType; label: string }[], required: boolean) => (
+    <Section title={title}>
+      {types.map(({ type, label }) => {
+        const matches = documents.filter((document) => document.documentType === type);
+        return (
+          <View key={type} style={styles.entry}>
+            <Text style={styles.heading}>{label}</Text>
+            <Text style={styles.muted}>{matches.length ? 'Uploaded' : required ? 'Required' : 'Optional'}</Text>
+            {matches.map((document) => (
+              <DocumentEntry
+                key={document.uuid}
+                document={document}
+                editable={canEdit}
+                removable={ready && !busy}
+                onRemove={() => {
+                  deletion.reset();
+                  setRemoving({ company: company!.uuid, document });
+                }}
+              />
+            ))}
+            {canEdit && matches.length === 0 && type !== 'other' && (
+              <Action
+                label={`Upload ${label}`}
+                disabled={!ready || busy}
+                onPress={() => setUpload({ company: company!.uuid, type, label })}
+              />
             )}
-          </>
-        ) : canEdit ? (
-          <TouchableOpacity
-            accessibilityLabel={`Upload ${label}`}
-            onPress={onUpload}
-            disabled={isUploading}
-            hitSlop={8}
-            activeOpacity={0.7}
-          >
-            <UploadSimpleIcon size={18} color={theme.colors.interactive.default} weight="bold" />
-          </TouchableOpacity>
-        ) : null}
-      </View>
-    </View>
+          </View>
+        );
+      })}
+    </Section>
   );
-}
-
-function useStyles() {
-  return useThemedStyles((theme) => ({
-    container: {
-      flex: 1,
-    },
-    scrollContent: {
-      padding: theme.spacing.md,
-      gap: theme.spacing.md,
-      paddingBottom: theme.spacing.xl,
-    },
-    centered: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: theme.spacing.lg,
-      gap: theme.spacing.sm,
-    },
-    emptyText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      textAlign: 'center',
-    },
-
-    warningBanner: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      padding: theme.spacing.md,
-      borderRadius: theme.borderRadius.md,
-      backgroundColor: theme.colors.status.warning.icon + '1A',
-      borderWidth: 1,
-      borderColor: theme.colors.status.warning.icon + '4D',
-      gap: theme.spacing.sm,
-    },
-    warningTextContainer: {
-      flex: 1,
-    },
-    warningTitle: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.status.warning.icon,
-    },
-    warningMessage: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      marginTop: theme.spacing.xs,
-    },
-
-    submittedContainer: {
-      alignItems: 'center',
-      padding: theme.spacing.xl,
-      gap: theme.spacing.md,
-    },
-    submittedTitle: {
-      fontSize: theme.fontSize.lg,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-    },
-    submittedText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      textAlign: 'center',
-      lineHeight: theme.lineHeight.normal,
-    },
-    statusHighlight: {
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.primary,
-    },
-
-    docRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: theme.spacing.md,
-      paddingVertical: theme.spacing.sm,
-    },
-    docRowLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.sm,
-      flex: 1,
-      marginRight: theme.spacing.sm,
-    },
-    docRowRight: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.sm,
-    },
-    docLabelContainer: {
-      flex: 1,
-    },
-    docLabel: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.primary,
-    },
-    docFilename: {
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.muted,
-      marginTop: 2,
-    },
-    uploadButtonText: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.interactive.default,
-    },
-    rowBorder: {
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border.default,
-    },
-
-    stepsContainer: {
-      padding: theme.spacing.md,
-      gap: theme.spacing.xs,
-    },
-    stepRow: {
-      flexDirection: 'row',
-      gap: theme.spacing.xs,
-    },
-    stepNumber: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      width: 20,
-    },
-    stepText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.secondary,
-      flex: 1,
-    },
-
-    submitSection: {
-      alignItems: 'center',
-      gap: theme.spacing.sm,
-      paddingTop: theme.spacing.sm,
-    },
-    submittedActions: {
-      paddingHorizontal: theme.spacing.md,
-      paddingBottom: theme.spacing.md,
-    },
-    withdrawLink: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.muted,
-      paddingVertical: theme.spacing.xs,
-    },
-
-    previousResponse: {
-      marginTop: theme.spacing.sm,
-      padding: theme.spacing.sm,
-      borderRadius: theme.borderRadius.md,
-      backgroundColor: theme.colors.surface.tertiary,
-      gap: theme.spacing.xs,
-      alignSelf: 'stretch',
-    },
-    previousResponseLabel: {
-      fontSize: theme.fontSize.xs,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.muted,
-    },
-    previousResponseText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.secondary,
-    },
-    responseContainer: {
-      padding: theme.spacing.md,
-      gap: theme.spacing.sm,
-    },
-    responseHint: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.secondary,
-    },
-    fieldLabel: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.primary,
-    },
-    textArea: {
-      minHeight: 96,
-      textAlignVertical: 'top',
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
-      backgroundColor: theme.colors.surface.tertiary,
-      paddingHorizontal: theme.spacing.sm,
-      paddingVertical: theme.spacing.sm,
-      color: theme.colors.text.primary,
-      fontSize: theme.fontSize.sm,
-    },
-
-    modalContent: {
-      gap: theme.spacing.sm,
-    },
-    modalTitle: {
-      fontSize: theme.fontSize.lg,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-    },
-    modalText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      lineHeight: theme.lineHeight.normal,
-    },
-  }));
+  if (!data.access.allowed)
+    return (
+      <View style={[styles.page, styles.content]}>
+        <Text style={styles.muted}>
+          {data.access.isLoading
+            ? 'Loading your company access…'
+            : 'Verify your company access before opening Application.'}
+        </Text>
+        {data.access.isError && <Action label="Retry company access" onPress={() => void data.access.refetch()} />}
+      </View>
+    );
+  return (
+    <>
+      <ScrollView
+        testID="application-screen"
+        style={styles.page}
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={data.isRefreshing} onRefresh={() => void data.refetch()} />}
+      >
+        <Text accessibilityRole="header" style={styles.title}>
+          Application
+        </Text>
+        <Action label="Back to Company" onPress={() => navigation.navigate('Company', { screen: 'CompanyDetails' })} />
+        {data.isLoading ? (
+          <Text style={styles.muted}>Loading company information…</Text>
+        ) : data.error ? (
+          <CompanyReadNotice read={data} />
+        ) : !company ? (
+          <Text style={styles.muted}>No company found. Please register your company first.</Text>
+        ) : (
+          <>
+            <Section title="Application record">
+              <Text style={styles.heading}>{company.name}</Text>
+              <Row label="Status">{company.statusDisplay}</Row>
+              {events.map(({ label, at }) => (
+                <Row key={label} label={label}>
+                  {formatDate(at)}
+                </Row>
+              ))}
+              {company.status === 'submitted' && (
+                <Text style={styles.muted}>Your application is waiting for {operatorName} to start the review.</Text>
+              )}
+              {company.status === 'review' && (
+                <Text style={styles.muted}>
+                  {operatorName} is reviewing your application. Withdrawal is no longer available once review has
+                  started.
+                </Text>
+              )}
+              {!!company.rejectionReason && (
+                <Text style={styles.muted}>Rejection reason: {company.rejectionReason}</Text>
+              )}
+              {!!company.withdrawalReason && (
+                <Text style={styles.muted}>Withdrawal reason: {company.withdrawalReason}</Text>
+              )}
+              {!!company.infoRequestReason && (
+                <View style={styles.group}>
+                  <Text style={styles.heading}>Information requested</Text>
+                  <Text style={styles.text}>{company.infoRequestReason}</Text>
+                </View>
+              )}
+              {!!company.additionalInfoResponse && (
+                <View style={styles.group}>
+                  <Text style={styles.heading}>Your previous response</Text>
+                  <Text style={styles.text}>{company.additionalInfoResponse}</Text>
+                </View>
+              )}
+              {canWithdraw && (
+                <Action
+                  label="Withdraw application"
+                  disabled={!ready || busy}
+                  onPress={() => {
+                    withdrawal.reset();
+                    setWithdrawing(company.uuid);
+                    setWithdrawReason('');
+                  }}
+                />
+              )}
+            </Section>
+            {documentSection('Required documents', REQUIRED_DOCUMENTS, true)}
+            {documentSection('Optional documents', OPTIONAL_DOCUMENTS, false)}
+            {company.status === 'info_required' && (
+              <Section title="Your response">
+                <Text style={styles.muted}>
+                  Answer the request, upload the documents it asks for, then resubmit your application.
+                </Text>
+                <Text style={styles.text}>Response to the operator</Text>
+                <TextInput
+                  accessibilityLabel="Response to the operator"
+                  style={styles.input}
+                  multiline
+                  value={response}
+                  editable={!busy}
+                  onChangeText={(value) => {
+                    setResponseCompany(company.uuid);
+                    setResponse(value);
+                  }}
+                />
+                {responseCompany && responseCompany !== company.uuid && (
+                  <Text accessibilityRole="alert" style={styles.error}>
+                    This response belongs to another company. Edit it before continuing.
+                  </Text>
+                )}
+                {actionError && (
+                  <Text accessibilityRole="alert" style={styles.error}>
+                    {actionError}
+                  </Text>
+                )}
+                <Action
+                  label={resubmission.isPending ? 'Resubmitting…' : 'Resubmit application'}
+                  primary
+                  disabled={!canResubmit}
+                  onPress={() => void resubmit()}
+                />
+              </Section>
+            )}
+            {company.status === 'draft' && (
+              <View style={styles.group}>
+                {actionError && (
+                  <Text accessibilityRole="alert" style={styles.error}>
+                    {actionError}
+                  </Text>
+                )}
+                <Action
+                  label={submission.isPending ? 'Submitting…' : 'Submit application'}
+                  primary
+                  disabled={!canSubmit}
+                  onPress={() => void submit()}
+                />
+              </View>
+            )}
+            {canEdit && missing.length > 0 && (
+              <Text style={styles.muted}>
+                {missing.length} required document{missing.length === 1 ? '' : 's'} still missing.
+              </Text>
+            )}
+            <Section title="What happens next">
+              <Text style={styles.muted}>
+                {operatorName} reviews the application and may request more information. Approval and activation are
+                separate decisions. Share classes can be deployed once the company is active.
+              </Text>
+              {operator.isError && (
+                <View style={styles.group}>
+                  <Text accessibilityRole="alert" style={styles.error}>
+                    Operator details could not be loaded.
+                  </Text>
+                  <Action
+                    label="Retry operator details"
+                    disabled={operator.isFetching}
+                    onPress={() => void operator.refetch()}
+                  />
+                </View>
+              )}
+            </Section>
+          </>
+        )}
+      </ScrollView>
+      {withdrawing && (
+        <CompanyModal
+          onClose={() => {
+            if (!withdrawal.isPending) setWithdrawing(null);
+          }}
+        >
+          <View style={styles.group}>
+            <Text accessibilityRole="header" style={styles.heading}>
+              Withdraw application
+            </Text>
+            <CompanyReadNotice read={data} />
+            {(!canWithdraw || company?.uuid !== withdrawing) && !data.error && !data.isRefreshing && (
+              <Text accessibilityRole="alert" style={styles.error}>
+                This application can no longer be withdrawn.
+              </Text>
+            )}
+            <Text style={styles.muted}>
+              Withdrawal takes the application out of the review queue. You will need to register again to apply later.
+            </Text>
+            {withdrawal.isError && (
+              <Text accessibilityRole="alert" style={styles.error}>
+                {getErrorMessage(withdrawal.error, ACTION_ERROR)}
+              </Text>
+            )}
+            <Text style={styles.text}>Reason (optional)</Text>
+            <TextInput
+              accessibilityLabel="Reason (optional)"
+              style={styles.input}
+              multiline
+              value={withdrawReason}
+              onChangeText={setWithdrawReason}
+              editable={!withdrawal.isPending}
+            />
+            <Action
+              label="Confirm withdrawal"
+              disabled={!ready || !canWithdraw || company?.uuid !== withdrawing || busy}
+              onPress={() => void withdraw()}
+            />
+            <Action label="Cancel" disabled={withdrawal.isPending} onPress={() => setWithdrawing(null)} />
+          </View>
+        </CompanyModal>
+      )}
+      {removing && (
+        <CompanyModal
+          onClose={() => {
+            if (!deletion.isPending) setRemoving(null);
+          }}
+        >
+          <View style={styles.group}>
+            <Text accessibilityRole="header" style={styles.heading}>
+              Remove document
+            </Text>
+            <Text style={styles.text}>{removing.document.name}</Text>
+            <CompanyReadNotice read={data} />
+            {deletion.isError && (
+              <Text accessibilityRole="alert" style={styles.error}>
+                {getErrorMessage(deletion.error, ACTION_ERROR)}
+              </Text>
+            )}
+            <Action
+              label="Confirm removal"
+              disabled={!ready || !canEdit || company?.uuid !== removing.company || busy}
+              onPress={() => void remove()}
+            />
+            <Action label="Cancel" disabled={deletion.isPending} onPress={() => setRemoving(null)} />
+          </View>
+        </CompanyModal>
+      )}
+      {upload && (
+        <CompanyUpload
+          companyUuid={upload.company}
+          type={upload.type}
+          label={upload.label}
+          canUpload={company?.uuid === upload.company && canEdit}
+          read={data}
+          upload={data.upload}
+          onClose={() => setUpload(null)}
+        />
+      )}
+    </>
+  );
 }

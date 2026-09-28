@@ -4,10 +4,8 @@ export {
   formatTime,
   formatDateTime,
   formatSyncAge,
-  getDateRange,
   parseDateString,
   formatDateToString,
-  type DateRange,
 } from './date';
 export {
   formatCurrency,
@@ -51,12 +49,9 @@ export {
   apiErrorSentence,
 } from './errors';
 export type { SignInErrorReading, ApiErrorReading, ReadApiErrorOptions } from './errors';
-export { calculateHoldingsSummary, calculateAssetAllocation } from './holdings';
 export { getHoldingTokenDeployment } from './asset-deployment';
 export { importAddressKey, importOnEvmNetwork, importedParentKey, canDeriveNextWalletAddress } from './wallet-import';
-export { calculateWalletTotals, filterWalletsByChain } from './wallet';
 export { parseFiatValue } from './valuation';
-export { portfolioSnapshotPoints } from './portfolio-snapshots';
 export { readFeatureFlags, type FeatureFlagInputs } from './feature-flags';
 export {
   formatMoney,
@@ -66,7 +61,6 @@ export {
   paymentRecordState,
   type PaymentRecordState,
 } from './distributions';
-export { describePublicationSummary } from './publications';
 export { createOrderSubmissionStore } from './order-submission-storage';
 export type {
   OrderSubmissionOwner,

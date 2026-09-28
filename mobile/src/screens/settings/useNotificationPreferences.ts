@@ -1,10 +1,9 @@
-import { useCallback } from 'react';
-import { Alert } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getNotificationPreferences, updateNotificationPreferences, CACHE_TIMING } from '@ledova/shared';
 import type { UpdateNotificationPreferencesRequest, NotificationPreferences } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { useAuth } from '../../hooks/useAuth';
+
 export function useNotificationPreferences() {
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
@@ -26,22 +25,14 @@ export function useNotificationPreferences() {
 
   const preferences: NotificationPreferences | undefined = preferencesQuery.data?.data;
 
-  const toggleTransactionAlerts = useCallback(
-    async (value: boolean) => {
-      try {
-        await updateMutation.mutateAsync({ transactionAlerts: value });
-      } catch {
-        Alert.alert('Error', 'Failed to update notification settings. Please try again.', [{ text: 'OK' }]);
-      }
-    },
-    [updateMutation],
-  );
-
   return {
-    transactionAlerts: preferences?.transactionAlerts ?? true,
-
-    toggleTransactionAlerts,
-
+    transactionAlerts: preferences?.transactionAlerts,
+    isLoading: preferencesQuery.isLoading,
+    isFetching: preferencesQuery.isFetching,
+    isError: preferencesQuery.isError,
+    retry: preferencesQuery.refetch,
     isUpdating: updateMutation.isPending,
+    updateError: updateMutation.isError,
+    toggleTransactionAlerts: (value: boolean) => updateMutation.mutate({ transactionAlerts: value }),
   };
 }

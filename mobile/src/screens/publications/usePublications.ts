@@ -32,7 +32,7 @@ function whyItCouldNotBeOpened(error: unknown): string {
   return status === 503 ? PUBLICATION_COPY.UNDELIVERABLE : PUBLICATION_COPY.FAILED;
 }
 
-export function usePublications(personal = true) {
+export function usePublications() {
   const queryClient = useQueryClient();
   const [openingUuid, setOpeningUuid] = useState<string | undefined>(undefined);
   const [openError, setOpenError] = useState<string | undefined>(undefined);
@@ -40,9 +40,9 @@ export function usePublications(personal = true) {
   const [castError, setCastError] = useState<{ uuid: string; message: string } | undefined>(undefined);
 
   const listing = useInfiniteQuery({
-    queryKey: personal ? [...PUBLICATIONS_KEY, 'addressed', 'me'] : [...PUBLICATIONS_KEY, 'available'],
+    queryKey: [...PUBLICATIONS_KEY, 'addressed', 'me'],
     queryFn: async ({ pageParam }) => {
-      const response = await getPublications(apiClient, pageParam, personal ? { addressed: 'me' } : {});
+      const response = await getPublications(apiClient, pageParam, { addressed: 'me' });
       const next = getPublicationsNextPage(response);
       if (response.data.next && (next === undefined || !Number.isInteger(next) || next <= pageParam)) {
         throw new Error('Publication pagination did not advance');

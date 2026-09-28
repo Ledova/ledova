@@ -103,6 +103,8 @@ function NotificationItem({
         </View>
       </View>
       <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={`Dismiss ${notification.title}`}
         style={styles.archiveButton}
         onPress={() => onArchive(notification.uuid)}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -158,51 +160,6 @@ export function NotificationsModal({ visible, onClose }: NotificationsModalProps
     list: {
       flex: 1,
     },
-    notificationItem: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      paddingVertical: theme.spacing.sm,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border.subtle,
-    },
-    notificationContent: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: theme.spacing.sm,
-    },
-    unreadDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      backgroundColor: theme.colors.interactive.active,
-      marginTop: 6,
-    },
-    textContainer: {
-      flex: 1,
-    },
-    textContainerRead: {
-      paddingLeft: 16,
-    },
-    notificationTitle: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.primary,
-    },
-    notificationBody: {
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.muted,
-      marginTop: 2,
-    },
-    notificationTime: {
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.subtle,
-      marginTop: 4,
-    },
-    archiveButton: {
-      padding: theme.spacing.xs,
-      marginLeft: theme.spacing.xs,
-    },
   }));
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const {
@@ -235,7 +192,7 @@ export function NotificationsModal({ visible, onClose }: NotificationsModalProps
         <View style={styles.header}>
           <Text style={styles.title}>Notifications</Text>
           {unreadCount > 0 && (
-            <TouchableOpacity onPress={() => markAllAsRead()} disabled={isMarkingAllRead}>
+            <TouchableOpacity accessibilityRole="button" onPress={() => markAllAsRead()} disabled={isMarkingAllRead}>
               <Text style={[styles.markAllRead, isMarkingAllRead && styles.markAllReadDisabled]}>Mark all as read</Text>
             </TouchableOpacity>
           )}

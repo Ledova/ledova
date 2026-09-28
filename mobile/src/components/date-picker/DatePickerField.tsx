@@ -121,13 +121,6 @@ export function DatePickerField({
     setShow(true);
   };
 
-  const handleClear = () => {
-    onChange(undefined);
-    if (Platform.OS === 'android') {
-      setShow(false);
-    }
-  };
-
   const formatDate = (date: Date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -163,7 +156,7 @@ export function DatePickerField({
                 onChange={handleChange}
                 minimumDate={minimumDate}
                 maximumDate={maximumDate}
-                themeVariant="dark"
+                themeVariant="light"
               />
             </View>
           </View>
@@ -177,7 +170,7 @@ export function DatePickerField({
             onChange={handleChange}
             minimumDate={minimumDate}
             maximumDate={maximumDate}
-            themeVariant="dark"
+            themeVariant="light"
           />
         )
       )}

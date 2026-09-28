@@ -3,7 +3,7 @@ import { Alert } from 'react-native';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
-import { COMPANY_TOKEN_ENDPOINTS as URLS, REGISTER_COPY } from '@ledova/shared';
+import { ApiClientProvider, AUTH_QUERY_KEY, COMPANY_TOKEN_ENDPOINTS as URLS, REGISTER_COPY } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { cache, files, resetFiles } from '../../testSupport/documentFiles';
 import { invalidateSessionScope } from '../../services/sessionScope';
@@ -75,7 +75,11 @@ let client: QueryClient;
 let read: (url: string, number: number) => Promise<unknown>;
 let classRecord: typeof token;
 function wrapper({ children }: { children: React.ReactNode }) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+    </QueryClientProvider>
+  );
 }
 function screen() {
   return <TokenDetailScreen route={{ params: { uuid }, key: 'class', name: 'TokenDetail' }} navigation={{} as never} />;
@@ -103,6 +107,7 @@ beforeEach(() => {
   client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { gcTime: 0 } },
   });
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } });
   get.mockReset();
   get.mockImplementation(
     (url, config) =>

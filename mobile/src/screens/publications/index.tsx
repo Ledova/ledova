@@ -8,7 +8,7 @@ import { Distribution } from './Distribution';
 import { Resolution } from './Resolution';
 import { usePublications } from './usePublications';
 
-function PublicationList({ personal }: { personal: boolean }) {
+export function PublicationsScreen() {
   const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
     content: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 36, gap: 28 },
@@ -48,7 +48,7 @@ function PublicationList({ personal }: { personal: boolean }) {
     cast,
     castingUuid,
     castError,
-  } = usePublications(personal);
+  } = usePublications();
 
   const renderRow = (publication: Publication) => (
     <Section key={publication.uuid} title={publication.title}>
@@ -97,13 +97,9 @@ function PublicationList({ personal }: { personal: boolean }) {
         }
       >
         <Text accessibilityRole="header" style={styles.title}>
-          {personal ? 'Notices' : 'Publications'}
+          Notices
         </Text>
-        <Text style={styles.message}>
-          {personal
-            ? 'Documents, votes and dividends addressed to you.'
-            : 'Publications available to your account, including those issued by your company.'}
-        </Text>
+        <Text style={styles.message}>Documents, votes and dividends addressed to you.</Text>
         {openError && (
           <Text accessibilityRole="alert" style={styles.error}>
             {openError}
@@ -118,7 +114,7 @@ function PublicationList({ personal }: { personal: boolean }) {
           <View style={styles.state}>
             <Text accessibilityRole="alert" style={styles.message}>
               {publications.length
-                ? `Your ${personal ? 'notices' : 'publications'} could not be refreshed. Try again before continuing.`
+                ? 'Your notices could not be refreshed. Try again before continuing.'
                 : PUBLICATION_COPY.LIST_FAILED}
             </Text>
             <Action label={PUBLICATION_COPY.RETRY} onPress={retry} disabled={isRefreshing} />
@@ -126,12 +122,8 @@ function PublicationList({ personal }: { personal: boolean }) {
         ) : (
           <>
             {publications.length === 0 && !hasMore && !moreFailed ? (
-              <Section title={personal ? PUBLICATION_COPY.EMPTY_TITLE : 'No publications available'}>
-                <Text style={styles.message}>
-                  {personal
-                    ? PUBLICATION_COPY.EMPTY_BODY
-                    : 'Publications available to your account, including those issued by your company, will appear here.'}
-                </Text>
+              <Section title={PUBLICATION_COPY.EMPTY_TITLE}>
+                <Text style={styles.message}>{PUBLICATION_COPY.EMPTY_BODY}</Text>
               </Section>
             ) : (
               publications.map(renderRow)
@@ -158,12 +150,4 @@ function PublicationList({ personal }: { personal: boolean }) {
       </ScrollView>
     </GradientBackground>
   );
-}
-
-export function PublicationsScreen() {
-  return <PublicationList personal />;
-}
-
-export function CompanyPublicationsScreen() {
-  return <PublicationList personal={false} />;
 }

@@ -222,8 +222,6 @@ ROUTES = (
     Route("put", "/api/user-preferences/{preferences}/", {"theme": "light"}),
     Route("patch", "/api/user-preferences/{preferences}/", {"theme": "light"}),
     Route("delete", "/api/user-preferences/{preferences}/"),
-    Route("get", "/api/favourite-assets/{favourite}/"),
-    Route("delete", "/api/favourite-assets/{favourite}/"),
     Route("get", "/api/device-tokens/{device_token}/"),
     Route("post", "/api/device-tokens/unregister/", {"pushToken": "{push_token}"}),
     Route("get", "/api/notifications/{notification}/"),
@@ -253,7 +251,6 @@ ROUTES = (
     Route("put", "/api/portfolios/{portfolio}/", {"name": "Renamed"}),
     Route("patch", "/api/portfolios/{portfolio}/", {"name": "Renamed"}),
     Route("delete", "/api/portfolios/{portfolio}/"),
-    Route("get", "/api/portfolios/{portfolio}/snapshots/"),
     Route("post", "/api/portfolios/{portfolio}/add-wallet/", {"walletUuid": "{own_spare_wallet}"}),
     Route("post", "/api/portfolios/{own_portfolio}/add-wallet/", {"walletUuid": "{spare_wallet}"}),
     Route("post", "/api/portfolios/{portfolio}/remove-wallet/", {"walletUuid": "{own_wallet}"}),
@@ -468,7 +465,6 @@ REGISTRY_ADMIN_ROUTES = (
 LIST_ROUTES = (
     ("/api/user-profiles/", ("profile",)),
     ("/api/financial-profiles/", ("financial_profile",)),
-    ("/api/favourite-assets/", ("favourite",)),
     ("/api/device-tokens/", ("device_token",)),
     ("/api/notifications/", ("notification",)),
     ("/api/investor-classifications/", ("investor_classification",)),
@@ -476,7 +472,6 @@ LIST_ROUTES = (
     ("/api/wallets/{wallet}/holdings/", ("holding",)),
     ("/api/transactions/", ("transaction",)),
     ("/api/portfolios/", ("portfolio",)),
-    ("/api/portfolios/{portfolio}/snapshots/?start_date=2026-09-01&end_date=2026-09-01", ("series_point",)),
     ("/api/v1/companies/", ("company",)),
     ("/api/v1/companies/{company}/documents/", ("company_document",)),
     ("/api/v1/tokens/", ("token", "deployed_token")),
@@ -1172,9 +1167,10 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             published(here)
             a_resolution(here)
             a_distribution(here)
-            published(there)
+            a_resolution(there)
+            a_resolution(there)
         path = PUBLICATION_ROUTES["summary"][1]
-        nothing = {"openResolutions": 0, "nextClosesAt": None, "publishedSince": 0, "dividendsWithoutRecord": 0}
+        nothing = {"openResolutions": 0, "nextClosesAt": None, "dividendsWithoutRecord": 0}
         counted = {}
         for member in (here.members[0].user, there.members[0].user):
             self.client.force_authenticate(member)
@@ -1184,8 +1180,8 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         self.assertEqual(
             counted,
             {
-                here.members[0].user.pk: {"openResolutions": 1, "publishedSince": 3, "dividendsWithoutRecord": 1},
-                there.members[0].user.pk: {"openResolutions": 0, "publishedSince": 1, "dividendsWithoutRecord": 0},
+                here.members[0].user.pk: {"openResolutions": 1, "dividendsWithoutRecord": 1},
+                there.members[0].user.pk: {"openResolutions": 2, "dividendsWithoutRecord": 0},
             },
         )
         for actor in (here.owner, there.owner, *(tenant.user for tenant in self.actors)):

@@ -7,8 +7,7 @@ import type { PropsWithChildren } from 'react';
 
 import { LONGEST_TIMER_DELAY, PUBLICATION_SUMMARY_REFRESH_INTERVAL } from '../../src/constants';
 import { ApiClientProvider } from '../../src/hooks/useApiClient';
-import { useDividends } from '../../src/hooks/useDividends';
-import { PUBLICATION_SUMMARY_QUERY_KEY, usePublicationSummary } from '../../src/hooks/usePublicationSummary';
+import { usePublicationSummary } from '../../src/hooks/usePublicationSummary';
 
 const clients: QueryClient[] = [];
 
@@ -35,67 +34,37 @@ afterEach(() => {
 });
 
 describe('the publication summary a member is shown', () => {
-  it('reads the summary route and says each count that is not zero', async () => {
-    const { get, wrapper } = harness(() => ({
-      openResolutions: 0,
-      nextClosesAt: null,
-      publishedSince: 2,
-      dividendsWithoutRecord: 1,
-    }));
+  it('reads the summary route and gives its counts', async () => {
+    const counts = { openResolutions: 0, nextClosesAt: null, dividendsWithoutRecord: 1 };
+    const { get, wrapper } = harness(() => counts);
 
     const { result } = renderHook(() => usePublicationSummary(), { wrapper });
 
-    await waitFor(() =>
-      expect(result.current.lines).toEqual([
-        '2 things published to you in the last 30 days',
-        '1 dividend awaiting a payment record',
-      ]),
-    );
+    await waitFor(() => expect(result.current.summary).toEqual(counts));
     expect(get).toHaveBeenCalledWith('/api/v1/publications/summary/');
-    expect(result.current.summary).toEqual({
-      openResolutions: 0,
-      nextClosesAt: null,
-      publishedSince: 2,
-      dividendsWithoutRecord: 1,
-    });
     expect(result.current.isError).toBe(false);
     expect(result.current.isPending).toBe(false);
   });
 
-  it('has nothing to say when every count is zero', async () => {
-    const { client, wrapper } = harness(() => ({
-      openResolutions: 0,
-      nextClosesAt: null,
-      publishedSince: 0,
-      dividendsWithoutRecord: 0,
-    }));
-
-    const { result } = renderHook(() => usePublicationSummary(), { wrapper });
-
-    await waitFor(() => expect(client.getQueryState(PUBLICATION_SUMMARY_QUERY_KEY)?.status).toBe('success'));
-    expect(result.current.lines).toEqual([]);
-  });
-
-  it('exposes failure and retry without changing the lines consumed by mobile', async () => {
+  it('exposes failure and retry', async () => {
     let unavailable = true;
+    const counts = { openResolutions: 1, nextClosesAt: '2026-10-01T00:00:00Z', dividendsWithoutRecord: 0 };
     const { wrapper } = harness(() => {
       if (unavailable) throw new Error('Unavailable');
-      return { openResolutions: 0, nextClosesAt: null, publishedSince: 1, dividendsWithoutRecord: 0 };
+      return counts;
     });
     const { result } = renderHook(() => usePublicationSummary(), { wrapper });
 
     expect(result.current.isPending).toBe(true);
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.summary).toBeUndefined();
-    expect(result.current.lines).toEqual([]);
     unavailable = false;
     await act(async () => {
       await result.current.retry();
     });
 
     await waitFor(() => expect(result.current.isError).toBe(false));
-    expect(result.current.lines).toEqual(['1 thing published to you in the last 30 days']);
-    expect(result.current.summary?.publishedSince).toBe(1);
+    expect(result.current.summary).toEqual(counts);
   });
 });
 
@@ -104,7 +73,7 @@ describe('keeping the summary current while the home page stays open', () => {
   const MINUTE = 60 * 1000;
   const DAY = 24 * 60 * MINUTE;
   const at = (offset: number) => new Date(START + offset).toISOString();
-  const nothing = { openResolutions: 0, nextClosesAt: null, publishedSince: 0, dividendsWithoutRecord: 0 };
+  const nothing = { openResolutions: 0, nextClosesAt: null, dividendsWithoutRecord: 0 };
   const voting = (closesIn: number) => ({ ...nothing, openResolutions: 1, nextClosesAt: at(closesIn) });
 
   beforeEach(() => {
@@ -122,19 +91,17 @@ describe('keeping the summary current while the home page stays open', () => {
     const { get, wrapper } = harness(() => answers.shift() ?? nothing);
 
     const { result } = renderHook(() => usePublicationSummary(), { wrapper });
-    await waitFor(() => expect(result.current.lines).toHaveLength(1));
-    expect(result.current.lines[0]).toMatch(/^1 resolution awaiting your vote, closing /);
+    await waitFor(() => expect(result.current.summary?.openResolutions).toBe(1));
     await until(START + MINUTE - 1);
     expect(get).toHaveBeenCalledTimes(1);
     await until(START + MINUTE);
 
     expect(get).toHaveBeenCalledTimes(2);
-    await waitFor(() => expect(result.current.lines).toEqual([]));
-    expect(result.current.summary).toEqual(nothing);
+    await waitFor(() => expect(result.current.summary).toEqual(nothing));
   });
 
   it('asks again every few minutes, for what was published or recorded since', async () => {
-    const answers = [nothing, { ...nothing, publishedSince: 1 }];
+    const answers = [nothing, { ...nothing, dividendsWithoutRecord: 1 }];
     const { get, wrapper } = harness(() => answers.shift() ?? nothing);
 
     const { result } = renderHook(() => usePublicationSummary(), { wrapper });
@@ -144,7 +111,7 @@ describe('keeping the summary current while the home page stays open', () => {
     await until(START + PUBLICATION_SUMMARY_REFRESH_INTERVAL);
 
     expect(get).toHaveBeenCalledTimes(2);
-    await waitFor(() => expect(result.current.lines).toEqual(['1 thing published to you in the last 30 days']));
+    await waitFor(() => expect(result.current.summary?.dividendsWithoutRecord).toBe(1));
   });
 
   it('waits no longer than a timer can hold for a vote that closes far ahead', async () => {
@@ -152,7 +119,7 @@ describe('keeping the summary current while the home page stays open', () => {
     const { wrapper } = harness(() => voting(60 * DAY));
 
     const { result } = renderHook(() => usePublicationSummary(), { wrapper });
-    await waitFor(() => expect(result.current.lines).toHaveLength(1));
+    await waitFor(() => expect(result.current.summary).toBeDefined());
 
     expect(scheduled).toHaveBeenCalledWith(expect.any(Function), LONGEST_TIMER_DELAY);
   });
@@ -161,37 +128,10 @@ describe('keeping the summary current while the home page stays open', () => {
     const { get, wrapper } = harness(() => voting(MINUTE));
 
     const view = renderHook(() => usePublicationSummary(), { wrapper });
-    await waitFor(() => expect(view.result.current.lines).toHaveLength(1));
+    await waitFor(() => expect(view.result.current.summary).toBeDefined());
     view.unmount();
     await until(START + 3 * PUBLICATION_SUMMARY_REFRESH_INTERVAL);
 
     expect(get).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('the dividends a member is shown', () => {
-  it('lists the distributions addressed to the member alone, a page at a time', async () => {
-    const pages: Record<number, unknown> = {
-      1: {
-        count: 2,
-        next: 'https://api.example/api/v1/publications/?kind=distribution&page=2',
-        results: [{ uuid: 'a' }],
-      },
-      2: { count: 2, next: null, results: [{ uuid: 'b' }] },
-    };
-    const { get, wrapper } = harness((_, config) => pages[config?.params?.page]);
-
-    const { result } = renderHook(() => useDividends(), { wrapper });
-    await waitFor(() => expect(result.current.hasMore).toBe(true));
-    await act(async () => result.current.loadMore());
-
-    await waitFor(() => expect(result.current.dividends.map((row) => row.uuid)).toEqual(['a', 'b']));
-    expect(result.current.hasMore).toBe(false);
-    expect(get).toHaveBeenNthCalledWith(1, '/api/v1/publications/', {
-      params: { page: 1, kind: 'distribution', addressed: 'me' },
-    });
-    expect(get).toHaveBeenNthCalledWith(2, '/api/v1/publications/', {
-      params: { page: 2, kind: 'distribution', addressed: 'me' },
-    });
   });
 });

@@ -124,7 +124,12 @@ it('shows the ledger with recorded bounds, AUD amounts and read-only operator al
   await screen.findByRole('heading', { name: 'Your offerings (1)' });
   expect(screen.getByText('AUD 3.25')).toBeTruthy();
   expect(screen.getByText('5,000')).toBeTruthy();
-  expect(screen.getByText(/Payment confirmation and allotment are operator actions/)).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'Applications' })).toBeTruthy();
+  expect(
+    screen.getByText(
+      'Read-only. Payment confirmation and allotment are done by Example Operator; this is where you watch them happen.',
+    ),
+  ).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Confirm payment|Allot/ })).toBeNull();
   expect(screen.getByRole('button', { name: 'Edit' })).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Delete' })).toBeTruthy();
@@ -215,7 +220,7 @@ it('refuses repeated pagination and later-page failures without exposing partial
   expect(api.get.mock.calls.filter(([url]) => url === BASE)).toHaveLength(1);
 });
 
-it('reads all subscriptions and shows requested and zero allotted shares separately with exact money', async () => {
+it('reads all applications and shows requested and zero allotted shares separately with exact money', async () => {
   let broken = true;
   const original = api.get.getMockImplementation()!;
   api.get.mockImplementation(async (url: string, config?: { params?: { page: number } }) => {
@@ -247,14 +252,14 @@ it('reads all subscriptions and shows requested and zero allotted shares separat
     };
   });
   show();
-  const retry = await screen.findByRole('button', { name: 'Retry subscriptions' });
+  const retry = await screen.findByRole('button', { name: 'Retry applications' });
   expect(screen.queryByText('First Member')).toBeNull();
-  expect(screen.queryByText(/No subscription has been/)).toBeNull();
+  expect(screen.queryByText('No one has applied to this offering yet.')).toBeNull();
   broken = false;
   fireEvent.click(retry);
   await screen.findByText('Last Member');
   expect(screen.getByText('First Member')).toBeTruthy();
-  expect(screen.getByText('2 subscriptions')).toBeTruthy();
+  expect(screen.getByText('2 applications')).toBeTruthy();
   expect(screen.getAllByText('0')).toHaveLength(2);
   expect(screen.getAllByText('AUD 90,071,992,547,409.93')).toHaveLength(2);
 });

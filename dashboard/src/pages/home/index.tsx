@@ -21,7 +21,10 @@ export function HomePage() {
             <PageAction label="Try again" onClick={() => void refetch()} disabled={isFetching} />
           </div>
         ) : holdings.length === 0 ? (
-          <p className="py-6 text-sm text-text-muted">You don&apos;t hold any shares in your wallets yet.</p>
+          <p className="py-6 text-sm text-text-muted">
+            None of your wallets holds shares yet. The company&apos;s register is the record of what you hold; shares
+            appear here once they are in one of your wallets.
+          </p>
         ) : (
           <ul className="divide-y divide-border-subtle">
             {holdings.map((holding) => (

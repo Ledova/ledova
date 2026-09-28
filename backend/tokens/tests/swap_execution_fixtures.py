@@ -31,7 +31,7 @@ FINALIZED_HASH = "0x" + "dd" * 32
 NEXT_NONCE = 7
 
 
-def make_execution(label):
+def make_execution(label, *, issuer=None):
     seller = make_tenant(f"{label}-seller", with_swap=False)
     buyer = make_tenant(f"{label}-buyer", with_swap=False)
     make_eligible(seller)
@@ -46,7 +46,7 @@ def make_execution(label):
         )
         orders.append(
             TransferOrder.objects.create(
-                token=seller.deployed_token,
+                token=(issuer or seller).deployed_token,
                 payment_asset=seller.refs.stablecoin,
                 wallet=wallet,
                 owner_account=tenant.account,
