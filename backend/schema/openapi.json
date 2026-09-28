@@ -4773,9 +4773,6 @@
             "format": "date-time",
             "type": "string"
           },
-          "priceCurrency": {
-            "$ref": "#/components/schemas/PriceCurrencyEnum"
-          },
           "pricePerShare": {
             "format": "decimal",
             "pattern": "^-?\\d{0,16}(?:\\.\\d{0,2})?$",
@@ -6817,9 +6814,6 @@
           "opensAt": {
             "format": "date-time",
             "type": "string"
-          },
-          "priceCurrency": {
-            "$ref": "#/components/schemas/PriceCurrencyEnum"
           },
           "pricePerShare": {
             "format": "decimal",

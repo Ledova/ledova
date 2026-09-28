@@ -7,6 +7,7 @@ from django.urls import reverse
 from offerings.admin.offering import LOCKED_PAST_DRAFT
 from offerings.models import Offering, OfferingExemption, OfferingStatus
 from offerings.services.offering import CAP_ABOVE_HEADROOM
+from shared.constants import CURRENCY_LABEL_AUD, CURRENCY_LABEL_USD
 from shared.tests.tenants import make_tenant
 from tokens.models import ShareIssuance
 from tokens.models.choices import IssuanceStatus
@@ -42,7 +43,7 @@ class OfferingAdminTest(TestCase):
     def _editable_fields(self):
         return set(self.client.get(self._change_url()).context["adminform"].form.fields)
 
-    def _rewrite_the_economics(self):
+    def _rewrite_the_economics(self, **extra):
         return self.client.post(
             self._change_url(),
             {
@@ -53,7 +54,6 @@ class OfferingAdminTest(TestCase):
                 "token": self.tenant.token.pk,
                 "exemption": OfferingExemption.MINIMUM_AMOUNT,
                 "price_per_share": "0.01",
-                "price_currency": "AUD",
                 "minimum_shares": 1,
                 "target_shares": 2,
                 "cap_shares": 900,
@@ -62,6 +62,7 @@ class OfferingAdminTest(TestCase):
                 "opens_at_1": "00:00:00",
                 "closes_at_0": "2030-02-01",
                 "closes_at_1": "00:00:00",
+                **extra,
             },
         )
 
@@ -143,6 +144,24 @@ class OfferingAdminTest(TestCase):
         self.assertNotEqual(self._economics(), before)
         self.assertEqual(self._economics()[0], self.tenant.token.pk)
         self.assertEqual(self.offering.cap_shares, 900)
+
+    def test_the_currency_is_shown_on_the_change_form_and_never_chosen(self):
+        for status in OfferingStatus:
+            with self.subTest(status=status):
+                self._at(status)
+                self.assertNotIn("price_currency", self._editable_fields())
+        self._at(OfferingStatus.DRAFT)
+        self.assertContains(self.client.get(self._change_url()), CURRENCY_LABEL_AUD)
+        Offering.objects.filter(pk=self.offering.pk).update(price_currency="USD")
+        response = self.client.get(self._change_url())
+        self.assertContains(response, CURRENCY_LABEL_USD)
+        self.assertNotContains(response, CURRENCY_LABEL_AUD)
+
+    def test_a_currency_posted_to_the_change_form_is_ignored(self):
+        self._at(OfferingStatus.DRAFT)
+        self.assertEqual(self._rewrite_the_economics(price_currency="USD").status_code, 302)
+        self.offering.refresh_from_db()
+        self.assertEqual((self.offering.price_currency, self.offering.cap_shares), ("AUD", 900))
 
     def test_a_submitted_offering_keeps_its_share_class_and_its_cap_through_the_change_form(self):
         self._at(OfferingStatus.SUBMITTED)
