@@ -97,6 +97,19 @@ ownership of ShareTokenFactory, AUDY and AtomicSwap to the operator address
 immediately after deploying. Otherwise the backend's `onlyOwner` calls revert
 against the freshly deployed contracts.
 
+The package carries three more npm scripts that neither `deploy:local:core`
+nor `deploy:testnet` runs: `deploy:local:sample-share` (`scripts/deploy.ts`,
+local chains only) deploys a factory and a `DEMO` share class with three
+whitelisted test accounts and an initial mint, and `deploy:testnet:stablecoin`
+and `deploy:testnet:atomicswap` deploy `AUDY` and `AtomicSwap` on their own on
+Base Sepolia, the latter approving `STABLECOIN_ADDRESS`, `SHARE_TOKEN_ADDRESS`
+and `RELAYER_ADDRESS` when they are set. `scripts/deploy-share-token.ts` has
+no npm script: `npx hardhat run scripts/deploy-share-token.ts --network
+localhost` (or `baseSepolia`) from `contracts/` creates one share class on an
+existing `FACTORY_ADDRESS` from the `TOKEN_NAME`, `TOKEN_SYMBOL`,
+`COMPANY_ACN`, `AUTHORIZED_SHARES` and `INITIAL_MINT` inputs listed in
+[deployment configuration](configuration.md#contracts).
+
 `make chain-test` does the local sequence unattended: it compiles, starts a
 node, waits for `eth_chainId`, deploys the core contracts, sources
 `.deployed-contracts.env` and runs the four real-chain modules,

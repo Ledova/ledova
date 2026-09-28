@@ -120,9 +120,9 @@ updates:
         patterns: ["*"]
 
   # ESLint 10 and TypeScript 7 are each blocked by a plugin at its own latest
-  # release: eslint-plugin-import and eslint-plugin-react both cap their eslint peer
-  # at 9, and typescript-eslint peers typescript <6.1.0. There is no version to
-  # upgrade to, so `npm ci` refuses the tree and the whole group dies at install.
+  # release: eslint-plugin-react caps its eslint peer at 9, and typescript-eslint
+  # peers typescript <6.1.0. There is no version to upgrade to, so `npm ci`
+  # refuses the tree and the whole group dies at install.
   # Drop each when its plugin ships a release admitting the new major.
   - package-ecosystem: npm
     directory: /marketing
