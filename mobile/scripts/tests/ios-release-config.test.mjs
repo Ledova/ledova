@@ -69,7 +69,7 @@ test('rejects ambiguous versions, teams, build numbers and release flags', () =>
   }
 });
 
-test('release endpoints cannot use HTTP or carry embedded credentials', () => {
+test('release endpoints cannot use HTTP, carry embedded credentials or hide whitespace and backslashes', () => {
   for (const name of ['EXPO_PUBLIC_API_URL', 'EXPO_PUBLIC_MARKETING_URL']) {
     for (const value of [
       'http://localhost:8000',
@@ -77,10 +77,18 @@ test('release endpoints cannot use HTTP or carry embedded credentials', () => {
       'https://example.test?token=secret',
       'https://example.test#fragment',
       'https://',
+      'https://api.example.test/a b',
+      'https://api.example.test\\v1',
+      'https://api.example.test/\tv1',
+      'https://api.example.test/\nv1',
     ]) {
       assert.throws(() => resolve({ ...release, [name]: value }));
     }
   }
+});
+
+test('release endpoints keep an ordinary HTTPS URL with a path', () => {
+  assert.deepEqual(resolve({ ...release, EXPO_PUBLIC_API_URL: 'https://api.example.test/v1' }), resolve(release));
 });
 
 test('release builds refuse mock data and native diagnostic overrides', () => {
