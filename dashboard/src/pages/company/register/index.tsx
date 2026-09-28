@@ -1,7 +1,6 @@
 import { CaretRightIcon } from '@phosphor-icons/react';
-import { Link } from 'react-router-dom';
 import { DESTINATIONS } from '@ledova/shared';
-import { Section } from '@components/Ledger';
+import { LinkRow, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { useCompanyRegister } from './useCompanyRegister';
 import { ClassRegister } from './ClassRegister';
@@ -39,12 +38,12 @@ export default function CompanyRegisterPage() {
                     </span>
                     <span className="ml-auto text-sm text-text-muted">{register.token.symbol}</span>
                   </summary>
-                  <Link
-                    to={DESTINATIONS.companyClass.path.replace(':uuid', register.token.uuid)}
-                    className="mb-3 inline-block text-sm text-brand-light underline underline-offset-4"
-                  >
-                    Open share class
-                  </Link>
+                  <div className="border-b border-border-subtle">
+                    <LinkRow
+                      to={DESTINATIONS.companyClass.path.replace(':uuid', register.token.uuid)}
+                      label={DESTINATIONS.companyClass.title}
+                    />
+                  </div>
                   <ClassRegister register={register} />
                 </details>
               </li>

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { useThemedStyles } from '../contexts';
+import { CaretRightIcon } from 'phosphor-react-native';
+import { useAppTheme, useThemedStyles } from '../contexts';
 
 export function Section({ title, children }: { title: string; children: ReactNode }) {
   const styles = useThemedStyles((theme) => ({
@@ -48,6 +49,45 @@ export function Row({ label, children }: { label: string; children: ReactNode })
     <View style={styles.row}>
       <Text style={styles.label}>{label}</Text>
       <Text style={styles.value}>{children}</Text>
+    </View>
+  );
+}
+
+export function LinkRow({
+  label,
+  onPress,
+  accessibilityLabel,
+  children,
+}: {
+  label: string;
+  onPress: () => void;
+  accessibilityLabel?: string;
+  children?: ReactNode;
+}) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles((theme) => ({
+    row: { gap: 4, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.border.subtle },
+    link: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12 },
+    label: {
+      flex: 1,
+      fontFamily: theme.fontFamily.medium,
+      fontSize: 14,
+      lineHeight: 21,
+      color: theme.colors.text.primary,
+    },
+  }));
+  return (
+    <View style={styles.row}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        onPress={onPress}
+        style={styles.link}
+      >
+        <Text style={styles.label}>{label}</Text>
+        <CaretRightIcon size={16} color={theme.colors.text.muted} />
+      </Pressable>
+      {children}
     </View>
   );
 }

@@ -139,9 +139,7 @@ export function WalletsPage() {
       {chainWallets.length === 0 ? (
         <>
           <p className="py-3 text-sm text-text-muted">No {title} wallets yet.</p>
-          <div>
-            <PageAction label="Add wallet" onClick={openAdd} />
-          </div>
+          <PageAction label="Add wallet" onClick={openAdd} />
         </>
       ) : (
         <>

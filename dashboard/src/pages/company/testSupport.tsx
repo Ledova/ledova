@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import { render } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { PageTitle } from '@components/PageTitle';
-import type { Company, CompanyDocument, DocumentType } from '@ledova/shared';
+import { DESTINATIONS, type Company, type CompanyDocument, type DocumentType } from '@ledova/shared';
 
 export function companyRecord(overrides: Partial<Company> = {}): Company {
   return {
@@ -68,7 +68,13 @@ export function renderCompanyPage(client: QueryClient, page: ReactNode, title: s
   return render(
     <QueryClientProvider client={client}>
       <MemoryRouter>
-        <PageTitle.Provider value={title}>{page}</PageTitle.Provider>
+        <PageTitle.Provider value={title}>
+          <Routes>
+            <Route path="/" element={page} />
+            <Route path={DESTINATIONS.company.path} element={<p>Company page</p>} />
+            <Route path={DESTINATIONS.companyRegister.path} element={<p>Register page</p>} />
+          </Routes>
+        </PageTitle.Provider>
       </MemoryRouter>
     </QueryClientProvider>,
   );

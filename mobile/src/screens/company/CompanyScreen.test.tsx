@@ -89,7 +89,7 @@ it('uses complete company detail and every class page with exact quantities and 
   expect(mockNavigate).toHaveBeenCalledWith('TokenDetail', { uuid: 'class' });
   await fireEvent.press(view.getByRole('button', { name: 'Application' }));
   expect(mockNavigate).toHaveBeenCalledWith('Listing');
-  await fireEvent.press(view.getByRole('button', { name: 'Open Register' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Register' }));
   expect(mockNavigate).toHaveBeenCalledWith('CompanyMain');
   await fireEvent.press(view.getByText('Published to your members'));
   expect(mockNavigate).toHaveBeenCalledWith('CompanyPublications');

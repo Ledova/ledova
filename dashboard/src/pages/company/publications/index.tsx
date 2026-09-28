@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { DESTINATIONS } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { CompanyReadNotice } from '../CompanyState';
@@ -7,6 +7,7 @@ import { PublicationRecord } from './PublicationRecord';
 import { useIssuerPublications } from './useIssuerPublications';
 
 export default function IssuerPublicationsPage() {
+  const navigate = useNavigate();
   const companyRead = useCompany();
   const { company } = companyRead;
   const { listing, open, openingUuid, openError } = useIssuerPublications(company?.uuid);
@@ -15,19 +16,19 @@ export default function IssuerPublicationsPage() {
     <Page
       loading={companyRead.isLoading || listing.isLoading}
       actions={
-        <PageAction
-          label="Refresh"
-          onClick={() => {
-            void companyRead.refetch();
-            if (company) void listing.refetch();
-          }}
-          disabled={companyRead.isRefreshing || listing.isFetching}
-        />
+        <>
+          <PageAction label="Back to Company" onClick={() => navigate(DESTINATIONS.company.path)} />
+          <PageAction
+            label="Refresh"
+            onClick={() => {
+              void companyRead.refetch();
+              if (company) void listing.refetch();
+            }}
+            disabled={companyRead.isRefreshing || listing.isFetching}
+          />
+        </>
       }
     >
-      <Link to={DESTINATIONS.company.path} className="w-fit text-sm text-brand-light underline">
-        Back to Company
-      </Link>
       {companyRead.error ? (
         <CompanyReadNotice read={companyRead} />
       ) : !company ? (

@@ -417,6 +417,8 @@ Pages rebuilt in the paper layout use the ledger blocks in
 - `Rows`: ruled label and value pairs, with figures right-aligned in tabular
   numerals. Every amount names its currency (`formatMoney`), and share counts
   are whole numbers.
+- `LinkRow`: a row that opens another page, named after its destination, with
+  optional detail lines and a trailing chevron; the whole row is the link.
 - `Status`: a status in words with a small mark for waiting, moving, done or closed.
 - `Timeline`: each event with its date.
 
@@ -430,6 +432,22 @@ company, application or notice when they hold something, so their empty
 section's title names what it would hold ("Share classes", "Your
 applications", "Your notices"). Mobile's `Section` and `Action` follow the
 same rule.
+
+Actions use one language. `PageAction` is the button for whatever a page or a
+section does, and it keeps its content width wherever it sits: in the title row
+for the page as a whole (Edit company, Filter, Refresh, and the way back to the
+parent page such as Back to Register or Back to Company) and inside a section
+for what that section does (Create share class, Edit phone, Change password
+beside its sentence). A page reaches each of its own sub-pages from one place, a
+`LinkRow` in the section the sub-page belongs to, never also from a title action
+or an underlined link: Company lists Application and Published to your members
+under its details and each share class and the Register under its classes,
+Register lists a Share class row inside each class, and Settings lists Profile.
+A destination the sidebar already reaches, such as Notices, is not repeated in a
+title row. An underlined link is part of a sentence ("open Notices") or opens an
+external resource such as a block explorer or a stored document. Directory,
+Applications and Verification still reach their neighbours through standalone
+links. Mobile's `LinkRow` and `Action` follow the same rule.
 
 White cards stay for forms and for things to act on, such as a payment
 instruction. The application page is the first page built this way.
