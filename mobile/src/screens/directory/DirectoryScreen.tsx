@@ -1,11 +1,10 @@
 import { Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { formatDate, formatMoney, type DirectoryToken } from '@ledova/shared';
+import { formatDate, formatMoney, useDirectoryTokens, type DirectoryToken } from '@ledova/shared';
 import type { DirectoryStackParamList } from '../../navigation/DirectoryStackNavigator';
 import { Action, LinkRow, Section } from '../../components/Ledger';
 import { DirectoryPage, useDirectoryStyles } from './DirectoryPage';
-import { useDirectoryTokens } from './useDirectory';
 
 export function DirectoryScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<DirectoryStackParamList>>();

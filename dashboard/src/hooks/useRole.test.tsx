@@ -9,7 +9,10 @@ import { useRole } from './useRole';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
-vi.mock('./useAuth', () => ({ useAuth: () => ({ isAuthenticated: true }) }));
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
+  useAuth: () => ({ isAuthenticated: true }),
+}));
 
 let client: QueryClient;
 

@@ -3,6 +3,7 @@ import { RefreshControl } from 'react-native';
 import { act, cleanup, fireEvent, render, renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
+import { ApiClientProvider } from '@ledova/shared';
 import { useSubscription } from './useApplications';
 import { ApplicationsScreen } from './ApplicationsScreen';
 import { ApplicationDetailScreen } from './ApplicationDetailScreen';
@@ -150,7 +151,11 @@ afterEach(async () => {
   client.clear();
 });
 function wrapper({ children }: { children: React.ReactNode }) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+    </QueryClientProvider>
+  );
 }
 async function refresh(key: string[]) {
   await act(async () => {

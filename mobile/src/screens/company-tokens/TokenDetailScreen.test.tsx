@@ -10,7 +10,8 @@ import { invalidateSessionScope } from '../../services/sessionScope';
 import { TokenDetailScreen } from './TokenDetailScreen';
 
 let mockCompanyRole = 'company';
-jest.mock('../../hooks/useUserPreferences', () => ({
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
   useUserPreferences: () => ({ userAccount: { role: mockCompanyRole }, isLoading: false, isError: false }),
 }));
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));

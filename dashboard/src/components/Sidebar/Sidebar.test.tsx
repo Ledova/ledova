@@ -17,7 +17,10 @@ vi.mock('react-router-dom', async (importOriginal) => ({
   useNavigate: () => navigate,
 }));
 vi.mock('@services/apiClient', () => ({ default: api }));
-vi.mock('@hooks/useAuth', () => ({ useAuth: () => ({ isAuthenticated: true }) }));
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
+  useAuth: () => ({ isAuthenticated: true }),
+}));
 vi.mock('@hooks/useFeatureFlags', () => ({
   useFeatureFlags: () => ({ tradingEnabled: flags.tradingEnabled, isLoading: false }),
 }));

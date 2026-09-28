@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { DESTINATIONS, formatDate, formatMoney, formatShareCount } from '@ledova/shared';
+import { DESTINATIONS, formatDate, formatMoney, formatShareCount, useDirectoryToken } from '@ledova/shared';
 import { Row, Rows, Section, Status } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { SubscribeForm } from '@pages/subscriptions/SubscribeForm';
 import { useCreateSubscription, useSubscribableWallets } from '@pages/subscriptions/useSubscriptions';
-import { useDirectoryToken } from './useDirectory';
 
 export default function DirectoryTokenPage() {
   const { uuid } = useParams<{ uuid: string }>();

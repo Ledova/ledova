@@ -1,9 +1,9 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { REQUIRED_DOCUMENTS } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { ListingScreen } from '.';
-import { REQUIRED_DOCUMENTS } from './documents';
 
 const mockNavigate = jest.fn();
 let mockRole = 'company';
@@ -12,7 +12,8 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 24, bottom: 24, left: 0, right: 0 }),
 }));
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: mockNavigate }) }));
-jest.mock('../../hooks/useUserPreferences', () => ({
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
   useUserPreferences: () => ({ userAccount: { role: mockRole }, isLoading: false, isError: false }),
 }));
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn(), delete: jest.fn() } }));

@@ -20,7 +20,10 @@ import { SendTransferProvider } from '@hooks/useSendTransfer';
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn(), put: vi.fn(), delete: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
 vi.mock('@keystonehq/animated-qr', () => ({ AnimatedQRCode: () => null }));
-vi.mock('@hooks/useAuth', () => ({ useAuth: () => ({ isAuthenticated: true, isLoading: false, isFetching: false }) }));
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
+  useAuth: () => ({ isAuthenticated: true, isLoading: false, isFetching: false }),
+}));
 vi.mock('@hooks/useRole', () => ({
   useRole: () => ({ role: 'both', isKnown: true, isUnavailable: false, isLoading: false, retry: vi.fn() }),
 }));

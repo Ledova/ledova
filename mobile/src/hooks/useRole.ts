@@ -1,6 +1,4 @@
-import { AccountRole } from '@ledova/shared';
-
-import { useUserPreferences } from './useUserPreferences';
+import { AccountRole, useUserPreferences } from '@ledova/shared';
 
 export type { AccountRole };
 

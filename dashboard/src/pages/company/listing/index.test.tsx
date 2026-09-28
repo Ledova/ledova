@@ -3,10 +3,9 @@
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import type { Company } from '@ledova/shared';
+import { REQUIRED_DOCUMENTS, type Company } from '@ledova/shared';
 import ListingPage from '.';
 import { companyRecord, documentRecord, renderCompanyPage } from '../testSupport';
-import { REQUIRED_DOCUMENTS } from './documents';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), delete: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));

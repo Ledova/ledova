@@ -4,11 +4,14 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useAuth } from '@hooks/useAuth';
+import { useAuth } from '@ledova/shared';
 import { useRole } from '@hooks/useRole';
 import { RootRedirect } from './RootRedirect';
 
-vi.mock('@hooks/useAuth', () => ({ useAuth: vi.fn() }));
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
+  useAuth: vi.fn(),
+}));
 vi.mock('@hooks/useRole', () => ({ useRole: vi.fn() }));
 
 const useAuthMock = vi.mocked(useAuth);

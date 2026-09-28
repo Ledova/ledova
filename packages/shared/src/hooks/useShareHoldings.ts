@@ -1,8 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { CACHE_TIMING, getShareHoldings } from '@ledova/shared';
-import apiClient from '@services/apiClient';
+
+import { CACHE_TIMING } from '../constants/api';
+import { getShareHoldings } from '../services/share-holdings';
+import { useApiClient } from './useApiClient';
 
 export function useShareHoldings() {
+  const apiClient = useApiClient();
   return useQuery({
     queryKey: ['wallets', 'share-holdings'],
     queryFn: () => getShareHoldings(apiClient),

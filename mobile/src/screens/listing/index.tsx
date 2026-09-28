@@ -4,6 +4,8 @@ import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
+  OPTIONAL_DOCUMENTS,
+  REQUIRED_DOCUMENTS,
   formatDate,
   getErrorMessage,
   getOperator,
@@ -18,7 +20,6 @@ import { CompanyReadNotice } from '../company/CompanyState';
 import { useCompanyStyles } from '../company-register/styles';
 import { CompanyUpload } from './CompanyUpload';
 import { DocumentEntry } from './DocumentEntry';
-import { OPTIONAL_DOCUMENTS, REQUIRED_DOCUMENTS } from './documents';
 import { useCompanyDocuments } from './useCompanyDocuments';
 
 const ACTION_ERROR = 'The request was refused. Please try again.';

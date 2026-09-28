@@ -1,16 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
-import {
-  CACHE_TIMING,
-  getDirectoryToken,
-  getDirectoryTokens,
-  getInvestorEligibility,
-  getNextPageParam,
-  getOperator,
-  type DirectoryToken,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
+
+import { CACHE_TIMING } from '../constants/api';
+import { getDirectoryToken, getDirectoryTokens } from '../services/directory';
+import { getInvestorEligibility } from '../services/investorClassifications';
+import { getOperator } from '../services/operator';
+import type { DirectoryToken } from '../types';
+import { getNextPageParam } from '../utils/pagination';
+import { useApiClient } from './useApiClient';
 
 export function useDirectoryTokens() {
+  const apiClient = useApiClient();
   const eligibility = useQuery({
     queryKey: ['investor-eligibility'],
     queryFn: () => getInvestorEligibility(apiClient),
@@ -49,6 +48,7 @@ export function useDirectoryTokens() {
 }
 
 export function useDirectoryToken(uuid: string | undefined) {
+  const apiClient = useApiClient();
   const token = useQuery({
     queryKey: ['directory', 'token', uuid],
     queryFn: () => getDirectoryToken(apiClient, uuid!),

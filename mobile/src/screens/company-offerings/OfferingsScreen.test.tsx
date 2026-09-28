@@ -6,7 +6,8 @@ import { OfferingsScreen } from './OfferingsScreen';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
 
 let mockRole = 'company';
-jest.mock('../../hooks/useUserPreferences', () => ({
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
   useUserPreferences: () => ({ userAccount: { role: mockRole }, isLoading: false, isError: false }),
 }));
 jest.mock('react-native-safe-area-context', () => ({

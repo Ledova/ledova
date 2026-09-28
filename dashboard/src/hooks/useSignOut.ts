@@ -1,8 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { signout } from '@ledova/shared';
+import { signout, AUTH_QUERY_KEY } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { AUTH_QUERY_KEY } from './useAuth';
 
 export function useSignOut() {
   const navigate = useNavigate();
