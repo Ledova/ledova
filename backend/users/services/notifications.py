@@ -2,7 +2,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from integrations.expo_push import ExpoPushClient, ExpoPushError
-from users.models import DeviceToken, Notification, NotificationPreferences
+from users.models import DeviceToken, Notification, UserPreferences
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class NotificationService:
         notification_type: str = "general",
     ) -> Dict[str, Any]:
 
-        prefs = NotificationPreferences.objects.filter(user_profile__user=user).first()
+        prefs = UserPreferences.objects.filter(user_profile__user=user).first()
 
         Notification.objects.create(
             user=user,

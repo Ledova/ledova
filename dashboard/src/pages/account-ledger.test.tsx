@@ -5,11 +5,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import {
+  ApiClientProvider,
   AUTH_QUERY_KEY,
   AUTH_ENDPOINTS,
   USER_PROFILE_ENDPOINTS,
-  NOTIFICATION_PREFERENCES_ENDPOINTS,
+  USER_PREFERENCES_ENDPOINTS,
+  USER_PREFERENCES_QUERY_KEY,
 } from '@ledova/shared';
+import apiClient from '@services/apiClient';
 import UserProfilePage from './user-profile';
 import SettingsPage from './settings';
 
@@ -47,9 +50,12 @@ function show(page: 'profile' | 'settings') {
     defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false } },
   });
   clients.push(client);
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   render(
     <QueryClientProvider client={client}>
-      <MemoryRouter>{page === 'profile' ? <UserProfilePage /> : <SettingsPage />}</MemoryRouter>
+      <ApiClientProvider client={apiClient}>
+        <MemoryRouter>{page === 'profile' ? <UserProfilePage /> : <SettingsPage />}</MemoryRouter>
+      </ApiClientProvider>
     </QueryClientProvider>,
   );
   return client;
@@ -59,7 +65,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   api.get.mockImplementation(async (url: string) => {
     if (url === USER_PROFILE_ENDPOINTS.BASE) return { data: { results: [profile], next: null } };
-    if (url === NOTIFICATION_PREFERENCES_ENDPOINTS.BASE) return { data: { transactionAlerts: true } };
+    if (url === USER_PREFERENCES_ENDPOINTS.BASE) return { data: { transactionAlerts: true } };
     throw new Error(`Unexpected read ${url}`);
   });
   api.patch.mockResolvedValue({ data: profile });
@@ -177,7 +183,7 @@ it('hides a stale preference after refresh failure', async () => {
   await screen.findByRole('switch');
   api.get.mockRejectedValueOnce(new Error('synthetic refresh failure'));
   await act(async () => {
-    await client.invalidateQueries({ queryKey: ['notificationPreferences'] });
+    await client.invalidateQueries({ queryKey: USER_PREFERENCES_QUERY_KEY });
   });
   expect((await screen.findByRole('alert')).textContent).toContain('could not be loaded');
   expect(screen.queryByRole('switch')).toBeNull();

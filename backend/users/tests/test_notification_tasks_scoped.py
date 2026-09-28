@@ -23,8 +23,8 @@ from shared.tests.scoped import RunsOnTheScopedConnection
 from users.models import (
     DeviceToken,
     Notification,
-    NotificationPreferences,
     UserAccount,
+    UserPreferences,
     UserProfile,
 )
 from users.tasks.notifications import (
@@ -61,7 +61,7 @@ class NotificationTasksUseRecipientRolesTest(RunsOnTheScopedConnection, Transact
             to_address="0x" + "3" * 40,
             amount=Decimal("2.5"),
         )
-        preferences = NotificationPreferences.objects.create(user_profile=profile)
+        preferences = UserPreferences.objects.create(user_profile=profile)
         device = DeviceToken.objects.create(
             user=user, push_token=f"ExponentPushToken[{label}]", device_type=DeviceToken.DeviceType.IOS
         )
@@ -100,7 +100,7 @@ class NotificationTasksUseRecipientRolesTest(RunsOnTheScopedConnection, Transact
         tables = (
             "authentication_customuser",
             "users_userprofile",
-            "users_notification_preferences",
+            "users_userpreferences",
             "users_device_token",
             "notifications",
             "transactions",
@@ -121,9 +121,7 @@ class NotificationTasksUseRecipientRolesTest(RunsOnTheScopedConnection, Transact
             self.assert_scoped_to(self.recipient)
             self.assertEqual(messages[0]["to"], self.recipient.device.push_token)
             self.assertEqual(set(DeviceToken.objects.values_list("pk", flat=True)), {self.recipient.device.pk})
-            self.assertEqual(
-                set(NotificationPreferences.objects.values_list("pk", flat=True)), {self.recipient.preferences.pk}
-            )
+            self.assertEqual(set(UserPreferences.objects.values_list("pk", flat=True)), {self.recipient.preferences.pk})
             self.assertEqual(Notification.objects.count(), 1)
             self.assertEqual(DeviceToken.objects.filter(pk=self.other.device.pk).update(is_active=False), 0)
             return [{"status": "error", "details": {"error": "DeviceNotRegistered"}}]
@@ -140,7 +138,7 @@ class NotificationTasksUseRecipientRolesTest(RunsOnTheScopedConnection, Transact
         self.assertLessEqual(
             {
                 ("SELECT", "authentication_customuser"),
-                ("SELECT", "users_notification_preferences"),
+                ("SELECT", "users_userpreferences"),
                 ("SELECT", "users_device_token"),
                 ("INSERT", "notifications"),
                 ("UPDATE", "users_device_token"),
@@ -172,7 +170,7 @@ class NotificationTasksUseRecipientRolesTest(RunsOnTheScopedConnection, Transact
 
     def test_preferences_skip_push_but_preserve_the_recipients_inbox(self):
         with use_operator():
-            NotificationPreferences.objects.filter(pk=self.recipient.preferences.pk).update(transaction_alerts=False)
+            UserPreferences.objects.filter(pk=self.recipient.preferences.pk).update(transaction_alerts=False)
         observed = []
         with ExitStack() as stack:
             for alias in (APP_ALIAS, OPERATOR_ALIAS):

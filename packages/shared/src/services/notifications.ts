@@ -1,11 +1,9 @@
 import { AxiosInstance } from 'axios';
-import { DEVICE_TOKEN_ENDPOINTS, NOTIFICATION_ENDPOINTS, NOTIFICATION_PREFERENCES_ENDPOINTS } from '../constants';
+import { DEVICE_TOKEN_ENDPOINTS, NOTIFICATION_ENDPOINTS } from '../constants';
 import type {
   DeviceToken,
   RegisterDeviceTokenRequest,
   UnregisterDeviceTokenRequest,
-  NotificationPreferences,
-  UpdateNotificationPreferencesRequest,
   Notification,
   PaginatedResponse,
   UnreadCountResponse,
@@ -18,14 +16,6 @@ export const registerDeviceToken = (apiClient: AxiosInstance, data: RegisterDevi
 
 export const unregisterDeviceToken = (apiClient: AxiosInstance, data: UnregisterDeviceTokenRequest) => {
   return apiClient.post<void>(DEVICE_TOKEN_ENDPOINTS.UNREGISTER, data);
-};
-
-export const getNotificationPreferences = (apiClient: AxiosInstance) => {
-  return apiClient.get<NotificationPreferences>(NOTIFICATION_PREFERENCES_ENDPOINTS.BASE);
-};
-
-export const updateNotificationPreferences = (apiClient: AxiosInstance, data: UpdateNotificationPreferencesRequest) => {
-  return apiClient.post<NotificationPreferences>(NOTIFICATION_PREFERENCES_ENDPOINTS.BASE, data);
 };
 
 export const getNotifications = (apiClient: AxiosInstance) => {

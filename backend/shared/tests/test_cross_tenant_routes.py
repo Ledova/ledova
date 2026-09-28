@@ -226,11 +226,9 @@ ROUTES = (
     Route("post", "/api/device-tokens/unregister/", {"pushToken": "{push_token}"}),
     Route("get", "/api/notifications/{notification}/"),
     Route("patch", "/api/notifications/{notification}/", {"isRead": True}),
-    Route("get", "/api/notification-preferences/{notification_preferences}/"),
     Route("get", "/api/investor-classifications/{investor_classification}/"),
     Route("get", "/api/investor-classifications/{investor_classification}/evidence/"),
     Route("delete", "/api/investor-classifications/{investor_classification}/"),
-    Route("patch", "/api/notification-preferences/{notification_preferences}/", {"transactionAlerts": False}),
     Route("get", "/api/wallets/{wallet}/"),
     Route(
         "put",
@@ -485,7 +483,6 @@ LIST_ROUTES = (
 SINGLETON_ROUTES = (
     ("/api/user-accounts/", "account"),
     ("/api/user-preferences/", "preferences"),
-    ("/api/notification-preferences/", "notification_preferences"),
 )
 
 DIRECTORY_ROUTES = (Route("get", "/api/v1/directory/tokens/{deployed_token}/"),)

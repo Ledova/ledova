@@ -1,12 +1,19 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AUTH_QUERY_KEY, deleteAccount, changePassword, exportAccountData } from '@ledova/shared';
+import {
+  AUTH_QUERY_KEY,
+  USER_PREFERENCES_QUERY_KEY,
+  deleteAccount,
+  changePassword,
+  exportAccountData,
+  upsertCurrentUserPreferences,
+  useUserPreferences,
+} from '@ledova/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@services/apiClient';
 import { Modal } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
 import { Section } from '@components/Ledger';
-import { useNotificationPreferences } from './useNotificationPreferences';
 
 function SettingsAction({ title, description, onClick }: { title: string; description: string; onClick: () => void }) {
   return (
@@ -66,7 +73,12 @@ function PasswordInput({
 export function SettingsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const preferences = useNotificationPreferences();
+  const preferences = useUserPreferences();
+  const transactionAlerts = preferences.preferences?.transactionAlerts;
+  const alerts = useMutation({
+    mutationFn: (value: boolean) => upsertCurrentUserPreferences(apiClient, { transactionAlerts: value }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: USER_PREFERENCES_QUERY_KEY }),
+  });
   const [modal, setModal] = useState<'password' | 'export' | 'delete' | null>(null);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -164,14 +176,14 @@ export function SettingsPage() {
               Notification preferences could not be loaded.
             </p>
             <div>
-              <PageAction label="Try again" onClick={() => void preferences.retry()} />
+              <PageAction label="Try again" onClick={() => void preferences.refetch()} />
             </div>
           </>
         ) : preferences.isLoading ? (
           <p role="status" className="text-sm text-text-muted">
             Loading notification preferences…
           </p>
-        ) : preferences.transactionAlerts === undefined ? (
+        ) : transactionAlerts === undefined ? (
           <p className="text-sm text-text-muted">Notification preferences are unavailable.</p>
         ) : (
           <div className="flex items-center justify-between gap-4 py-3">
@@ -183,16 +195,16 @@ export function SettingsPage() {
               type="button"
               role="switch"
               aria-label="Transaction alerts"
-              aria-checked={preferences.transactionAlerts}
-              disabled={preferences.isUpdating}
-              onClick={() => preferences.toggleTransactionAlerts(!preferences.transactionAlerts)}
+              aria-checked={transactionAlerts}
+              disabled={alerts.isPending}
+              onClick={() => alerts.mutate(!transactionAlerts)}
               className="rounded-lg border border-border px-3 py-2 text-sm disabled:opacity-50"
             >
-              {preferences.transactionAlerts ? 'On' : 'Off'}
+              {transactionAlerts ? 'On' : 'Off'}
             </button>
           </div>
         )}
-        {preferences.updateError && (
+        {alerts.isError && (
           <p role="alert" className="text-sm text-error-light">
             Your notification preference could not be saved. Try again.
           </p>

@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from users.models import DeviceToken, Notification, NotificationPreferences, UserProfile
+from users.models import DeviceToken, Notification, UserPreferences, UserProfile
 from users.services.notifications import NotificationService
 
 User = get_user_model()
@@ -67,9 +67,7 @@ class NotificationServicePreferencesTest(TestCase):
 
     def test_disabled_type_keeps_the_inbox_row_and_skips_the_push(self):
         user = User.objects.create_user(email="muted@example.test", password="pw-12345678")
-        NotificationPreferences.objects.create(
-            user_profile=UserProfile.objects.create(user=user), transaction_alerts=False
-        )
+        UserPreferences.objects.create(user_profile=UserProfile.objects.create(user=user), transaction_alerts=False)
         DeviceToken.objects.create(user=user, push_token="ExponentPushToken[muted]", device_type="ios")
 
         result = self.service.notify_user(user, "title", "body", notification_type="transaction")
@@ -80,9 +78,7 @@ class NotificationServicePreferencesTest(TestCase):
 
     def test_muting_transaction_alerts_leaves_every_other_kind_pushing(self):
         user = User.objects.create_user(email="muted-general@example.test", password="pw-12345678")
-        NotificationPreferences.objects.create(
-            user_profile=UserProfile.objects.create(user=user), transaction_alerts=False
-        )
+        UserPreferences.objects.create(user_profile=UserProfile.objects.create(user=user), transaction_alerts=False)
         DeviceToken.objects.create(user=user, push_token="ExponentPushToken[general]", device_type="ios")
         self.service.expo_client = Mock(send_batch=Mock(return_value=[{"status": "ok"}]))
 

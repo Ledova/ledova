@@ -4325,52 +4325,6 @@
         ],
         "type": "object"
       },
-      "NotificationPreferences": {
-        "properties": {
-          "createdAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "transactionAlerts": {
-            "description": "Notifications for transaction status changes",
-            "type": "boolean"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "userProfile": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "uuid": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "createdAt",
-          "updatedAt",
-          "userProfile",
-          "uuid"
-        ],
-        "type": "object"
-      },
-      "NotificationPreferencesRequest": {
-        "properties": {
-          "transactionAlerts": {
-            "description": "Notifications for transaction status changes",
-            "type": "boolean"
-          }
-        },
-        "type": "object"
-      },
       "NotificationRequest": {
         "properties": {
           "isArchived": {
@@ -6810,15 +6764,6 @@
         },
         "type": "object"
       },
-      "PatchedNotificationPreferencesRequest": {
-        "properties": {
-          "transactionAlerts": {
-            "description": "Notifications for transaction status changes",
-            "type": "boolean"
-          }
-        },
-        "type": "object"
-      },
       "PatchedNotificationRequest": {
         "properties": {
           "isArchived": {
@@ -6942,6 +6887,10 @@
           },
           "theme": {
             "$ref": "#/components/schemas/ThemeEnum"
+          },
+          "transactionAlerts": {
+            "description": "Notifications for transaction status changes",
+            "type": "boolean"
           }
         },
         "type": "object"
@@ -12411,6 +12360,10 @@
           "theme": {
             "$ref": "#/components/schemas/ThemeEnum"
           },
+          "transactionAlerts": {
+            "description": "Notifications for transaction status changes",
+            "type": "boolean"
+          },
           "userAccount": {
             "allOf": [
               {
@@ -12451,6 +12404,10 @@
           },
           "theme": {
             "$ref": "#/components/schemas/ThemeEnum"
+          },
+          "transactionAlerts": {
+            "description": "Notifications for transaction status changes",
+            "type": "boolean"
           }
         },
         "type": "object"
@@ -14715,200 +14672,6 @@
           },
           {
             "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/notification-preferences/": {
-      "get": {
-        "operationId": "api_notification_preferences_list",
-        "parameters": [
-          {
-            "description": "Which field to use when ordering the results.",
-            "in": "query",
-            "name": "ordering",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "A page number within the paginated result set.",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotificationPreferences"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
-      "post": {
-        "operationId": "api_notification_preferences_create",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NotificationPreferencesRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/NotificationPreferencesRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/NotificationPreferencesRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotificationPreferences"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/notification-preferences/{uuid}/": {
-      "get": {
-        "operationId": "api_notification_preferences_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotificationPreferences"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
-      "patch": {
-        "operationId": "api_notification_preferences_partial_update",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PatchedNotificationPreferencesRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/PatchedNotificationPreferencesRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/PatchedNotificationPreferencesRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotificationPreferences"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
           }
         ],
         "tags": [

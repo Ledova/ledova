@@ -230,10 +230,14 @@ payment with the operator; it does not recalculate the original instruction or
 stablecoin units. An absent instruction never falls back to generic payment rails.
 
 Profile and Settings use the ledger sections for personal information, identity
-status, security, notifications and data controls. Failed profile and preference
-reads hide stale values and offer retry. Phone edits remain open with their
-entered values after a refused save; notification switches retain the confirmed
-value until refresh succeeds. Password changes, data export and account deletion
+status, security, notifications and data controls. The transaction-alerts switch
+is the `transactionAlerts` field of the one user preferences record: both
+clients read it through the shared `useUserPreferences` hook and save it with a
+partial `POST` to `/api/user-preferences/`; the switch has no route, model or
+admin page of its own. Failed profile and preference reads hide stale values
+and offer retry. Phone edits remain open with their entered values after a
+refused save; the switch retains the confirmed value until refresh succeeds.
+Password changes, data export and account deletion
 show request failures and allow retry. Deletion still requires its confirmation
 dialog, states which records are retained, and clears the tab's account data
 after the server confirms success. Identity checks and supporting payslips retain
@@ -275,8 +279,10 @@ replacement session.
 Mobile Profile and Settings use the same paper ledger as Holdings and Notices.
 Profile reads only the personal profile and retains an open phone draft through
 refresh and save failures; saving requires a current successful read. Settings
-keeps native biometric sign-in and app lock, and distinguishes unavailable
-notification preferences from disabled alerts. Password, private JSON export
+keeps native biometric sign-in and app lock, reads and saves the
+transaction-alerts switch through the same user preferences record as the
+dashboard, and distinguishes an unavailable preferences record from disabled
+alerts. Password, private JSON export
 and account deletion use bounded confirmation dialogs that stay open after
 refusal and cannot close while their request is pending. Successful deletion
 retains the existing session retirement and private-cache cleanup boundary.

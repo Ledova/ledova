@@ -155,10 +155,6 @@ POLICIES = {
         _owned_through_the_profile("users_financialprofile"),
         _owned_through_the_profile("users_financialprofile"),
     ),
-    "users_notification_preferences": (
-        _owned_through_the_profile("users_notification_preferences"),
-        _owned_through_the_profile("users_notification_preferences"),
-    ),
     "users_userpreferences": (
         _owned_through_the_profile("users_userpreferences"),
         _owned_through_the_profile("users_userpreferences"),
