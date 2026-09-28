@@ -421,7 +421,10 @@ the public layout has a footer.
 Pages rebuilt in the paper layout use the ledger blocks in
 `dashboard/src/components/Ledger.tsx`:
 
-- `Section`: a Newsreader heading over a hairline rule, with no card.
+- `Section`: a white card on the paper ground (`bg-surface-raised`, a
+  `border-border` hairline, `rounded-xl`), with its Newsreader title inside at
+  the top and no rule under it. The page's title row stays on the paper above
+  the cards.
 - `Rows`: ruled label and value pairs, with figures right-aligned in tabular
   numerals. Every amount names its currency (`formatMoney`), and share counts
   are whole numbers.
@@ -471,8 +474,13 @@ none. Other explanations stay in the section they explain, after the content
 they serve: Market's Saved work follows Trades awaiting signatures, and Offerings
 leads with Your offerings. Mobile's `Lede` follows the title and its actions.
 
-White cards stay for forms and for things to act on, such as a payment
-instruction. The application page is the first page built this way.
+Every section is its own card, including forms and things to act on such as a
+payment instruction. A group inside a section is set off by a rule or a small
+heading rather than a card of its own, as the For sale and Wanted lists on
+Market, the saved payslips on Profile and a vote's confirmation on Notices are
+([decision](../decisions.md#the-signed-in-app)). The saved pause and unpause
+requests on a share class are the exception: each still sits in a bordered box
+inside the class's card. Dialogs keep their own panel over the page.
 
 The design tokens are the single source of colour, spacing and radius values.
 `make generate-tokens` runs `packages/scripts/generate-css-tokens.mjs` with

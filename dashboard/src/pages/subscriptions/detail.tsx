@@ -67,7 +67,11 @@ function Summary({ subscription }: { subscription: SubscriptionDetail }) {
           <Row label="Receiving wallet">
             <span className="break-all font-mono">{subscription.walletAddress}</span>
           </Row>
-          {subscription.reference && <Row label="Payment reference">{subscription.reference}</Row>}
+          {subscription.reference && (
+            <Row label="Payment reference">
+              <span className="break-all">{subscription.reference}</span>
+            </Row>
+          )}
         </Rows>
       </Section>
     </div>

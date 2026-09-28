@@ -90,7 +90,7 @@ export function Resolution({
       )}
 
       {mayVote && choosing !== null && (
-        <div className="mt-3 rounded-lg border border-border bg-surface-raised p-4">
+        <div className="mt-3 border-t border-border-subtle pt-3">
           <p className="text-sm font-semibold text-text-primary">
             {PUBLICATION_COPY.CONFIRM_TITLE} {PUBLICATION_COPY.CHOICES[choosing]}
           </p>
