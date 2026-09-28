@@ -18,6 +18,12 @@ Wallets and Buy crypto. Portfolio CRUD and the documented operator
 `add-wallet` and `remove-wallet` actions retain their contracts. Any external
 consumer of a retired route must stop using it before upgrading.
 
+## The publication summary's 30-day count
+
+`GET /api/v1/publications/summary/` no longer answers `publishedSince`; Holdings
+lists the three latest notices instead. Clients built before this change read the
+missing count as 0 and show nothing in its place. No database migration is needed.
+
 ## Database migrations
 
 - `companies/0003_delete_review_and_signature_models` (with

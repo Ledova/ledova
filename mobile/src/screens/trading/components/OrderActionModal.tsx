@@ -9,6 +9,7 @@ import { getSeedPhrase } from '../../../services/secureKeyStorage';
 import { signEthereumTypedData } from '../../../utils/softwareWallet/localSigner';
 import { encodeEthereumTypedData } from '../../../utils/keystone/urEncoder';
 import { decodeKeystoneMessageSignature } from '../../../utils/keystone/urDecoder';
+import { marketAmount } from '../marketData';
 
 interface Props {
   action: OrderAction;
@@ -133,7 +134,9 @@ export function OrderActionModal({ action, wallets, onClose }: Props) {
               <Text style={styles.text}>Wallet: {state.snapshot?.walletAddress ?? state.context?.walletAddress}</Text>
               <Text style={styles.text}>Reviewed quantity: {review.currentValues.quantity} shares</Text>
               <Text style={styles.text}>Reviewed minimum: {review.currentValues.minQuantity} shares</Text>
-              <Text style={styles.text}>Reviewed price per share: ${review.currentValues.pricePerShare}</Text>
+              <Text style={styles.text}>
+                Reviewed price per share: {marketAmount(review.currentValues.pricePerShare)}
+              </Text>
               <Text style={styles.text}>Filled: {review.currentValues.filledQuantity} shares</Text>
             </>
           )}
@@ -180,7 +183,7 @@ export function OrderActionModal({ action, wallets, onClose }: Props) {
             <>
               <Text style={styles.text}>New quantity: {replacements.quantity} shares</Text>
               <Text style={styles.text}>New minimum fill: {replacements.minQuantity} shares</Text>
-              <Text style={styles.text}>New price per share: ${replacements.pricePerShare}</Text>
+              <Text style={styles.text}>New price per share: {marketAmount(replacements.pricePerShare)}</Text>
             </>
           )}
           {state.phase === 'ready' && (

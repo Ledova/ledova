@@ -319,6 +319,7 @@ it('displays and retries exact recovered quantities above the safe integer range
   fireEvent.click(await screen.findByText('Check saved order 1'));
   await waitFor(() => expect(screen.getByText(`BUY ${largeQuantity} shares`)).toBeTruthy());
   expect(screen.getByText(`Minimum fill: ${largeMinQuantity} shares`)).toBeTruthy();
+  expect(screen.getByText('Price per share: AUD 12.50')).toBeTruthy();
   sign();
   await waitFor(() => expect(screen.getByText('Order status unconfirmed')).toBeTruthy());
   expect(await orderSubmissionStore.list(owner)).toHaveLength(1);

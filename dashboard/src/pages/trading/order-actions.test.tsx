@@ -272,6 +272,8 @@ it('first price-only modification keeps exact context values despite the rounded
   fireEvent.change(screen.getByLabelText('New price per share'), { target: { value: '14.00' } });
   fireEvent.click(screen.getByText('Review change'));
   await waitFor(() => expect(screen.getByText(`New quantity: ${largeQuantity} shares`)).toBeTruthy());
+  expect(screen.getByText('Reviewed price per share: AUD 12.50')).toBeTruthy();
+  expect(screen.getByText('New price per share: AUD 14.00')).toBeTruthy();
   expect(JSON.parse(messagePosts()[0]!.data)).toEqual({
     action_id: actionId,
     owner_account_uuid: accountUuid,

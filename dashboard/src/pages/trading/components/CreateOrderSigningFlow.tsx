@@ -10,6 +10,7 @@ import {
   formatWalletAddressShort,
 } from '@ledova/shared';
 import { Modal } from '@components/Modal';
+import { marketAmount } from '../marketData';
 import { SeedPhraseInput } from '@components/SeedPhraseInput';
 import { QRScannerView, useQRScanner } from '@components/qr';
 import { encodeEthereumTypedData } from '@utils/keystone/urEncoder';
@@ -90,7 +91,7 @@ export function CreateOrderSigningFlow({ submission, wallet, tokens, onClose, on
               <p>
                 {state.snapshot?.intent.orderType.toUpperCase()} {state.snapshot?.intent.quantity} shares
               </p>
-              <p>Price per share: ${state.snapshot?.intent.pricePerShare}</p>
+              <p>Price per share: {marketAmount(state.snapshot?.intent.pricePerShare ?? '')}</p>
               <p>Minimum fill: {state.snapshot?.intent.minQuantity} shares</p>
             </div>
             {!signing.walletReady && (
@@ -150,8 +151,8 @@ export function CreateOrderSigningFlow({ submission, wallet, tokens, onClose, on
               Current status: {state.snapshot.order.statusDisplay ?? state.snapshot.order.status.replace(/_/g, ' ')}
             </p>
             <p>
-              {state.snapshot.order.quantity} {state.snapshot.order.tokenSymbol} shares at $
-              {state.snapshot.order.pricePerShare}
+              {state.snapshot.order.quantity} {state.snapshot.order.tokenSymbol} shares at{' '}
+              {marketAmount(state.snapshot.order.pricePerShare)}
             </p>
           </div>
         )}

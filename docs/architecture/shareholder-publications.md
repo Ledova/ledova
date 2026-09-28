@@ -152,7 +152,7 @@ whole investor surface, mounted at `/api/v1/publications/`:
 | Route | Answers |
 | --- | --- |
 | `GET /api/v1/publications/` | What was published to this principal, newest first, with the caller's own holding, ballot, entitlement and recorded payment; `?kind=` narrows it to one kind and `?addressed=me` to the publications whose roll names the caller; `?issuer=<company UUID>` selects an owned company |
-| `GET /api/v1/publications/summary/` | [Four counts](#the-summary) about the caller as a member, for the home page |
+| `GET /api/v1/publications/summary/` | [What waits on the caller](#the-summary) as a member, for the home page |
 | `GET /api/v1/publications/{uuid}/file/` | The stored document, as an attachment |
 | `POST /api/v1/publications/{uuid}/ballot/` | Casts the caller's ballot on a resolution, and answers with its updated row |
 
@@ -163,8 +163,8 @@ and a route with no client would be a surface nobody asked for.
 names the parameter rather than answered with an empty page. `addressed` takes
 one value, `me`, and keeps the publications whose roll has a row naming the
 caller, which leaves out what a company owner reads only as the issuer. Both
-narrow what the policies already admit and widen nothing: the mobile dividends
-list below is the listing with `?kind=distribution&addressed=me`.
+narrow what the policies already admit and widen nothing. Notices and Holdings'
+latest notices read the listing with `?addressed=me`; no client sends `?kind=`.
 
 The optional `issuer` UUID selects publications of one company owned by the
 caller. The filter validates that ownership against `Company.objects.owned_by`
@@ -284,8 +284,8 @@ grow with what was published, and a test holds that.
 The dashboard's **Notices** page at `/publications` lists every kind of
 publication addressed to the person, newest first: documents, resolutions and
 dividends together. A company owner's access as issuer does not add papers to
-this list. The owner accepted that the company's own list will be absent until
-#748 provides it, as recorded in [the signed-in app decisions](../decisions.md#the-signed-in-app).
+this list: the company's own list is **Published to your members**, below, as
+recorded in [the signed-in app decisions](../decisions.md#the-signed-in-app).
 Each row retains its company, class, record date and frozen holding; dividends
 also show the rate, entitlement, payment date and what the company recorded.
 Whole share counts and money retain their decimal-string precision, and calendar

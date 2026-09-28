@@ -291,7 +291,7 @@ recovery retain their saved identities and session boundaries.
 
 Where market values are shown elsewhere, they are in AUD: the shared
 `useCurrency` converts the API's US-dollar values at the current rate, shows a
-dash and draws no chart while the rate is unknown, and neither client offers
+dash while the rate is unknown, and neither client offers
 another currency. An offering's prices and an application's amounts are in the
 offering's own currency, which defaults to AUD. The Buy step shows each
 asset's current price, and no price while the exchange rate is unknown. Both
@@ -426,7 +426,7 @@ theme switch. `PAPER_COLORS` is the palette. The marketing site uses it
 directly (`bg-paper`, `text-ink`, `border-rule`, `bg-ledger`). `PAPER_THEME`
 maps it onto the theme tokens, which are the generated defaults, so the
 dashboard's `bg-surface-*`, `text-text-*` and `brand` classes, and any code
-that reads `PAPER_THEME` for colours such as charts, render in paper. Both
+that reads `PAPER_THEME` directly, render in paper. Both
 clients bundle Newsreader for display text and Instrument Sans for everything
 else. Mobile also uses fixed paper and bundles these fonts with a finite
 loading/error/retry gate; saved local and account theme choices do not change

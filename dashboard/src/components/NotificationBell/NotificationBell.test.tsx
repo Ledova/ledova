@@ -179,7 +179,7 @@ describe('the open panel after a change', () => {
   const listReads = () => get.mock.calls.filter(([url]) => url === LIST).length;
   const noticeButton = (title: string) => screen.getByText(title).closest('button')!;
 
-  it('moves focus to the next notice when one is dismissed, then to the heading once none remain', async () => {
+  it('moves focus to the next notice when one is dismissed, the previous when the last goes, then the heading', async () => {
     rows = [published, unrelated, third];
     patch.mockImplementation(async (url: string) => {
       rows = rows.filter((row) => url !== `/api/notifications/${row.uuid}/`);
@@ -194,11 +194,11 @@ describe('the open panel after a change', () => {
       await waitFor(() => expect(screen.queryByText(title)).toBeNull());
     };
 
-    await dismiss(published.title);
-    expect(document.activeElement).toBe(noticeButton(unrelated.title));
-    await dismiss(third.title);
-    expect(document.activeElement).toBe(noticeButton(unrelated.title));
     await dismiss(unrelated.title);
+    expect(document.activeElement).toBe(noticeButton(third.title));
+    await dismiss(third.title);
+    expect(document.activeElement).toBe(noticeButton(published.title));
+    await dismiss(published.title);
     expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Notifications' }));
   });
 

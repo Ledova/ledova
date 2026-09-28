@@ -486,7 +486,7 @@ The owner answered four follow-up questions on 28 September 2026, asked after an
 audit of this work ([#785](https://github.com/Ledova/ledova/issues/785)); pull
 requests on #785 carry out the last three:
 
-- **Staff outputs stay with staff.** Asked whether company users should see the
+- **Staff outputs: not now.** Asked whether company users should see the
   status of the outputs staff prepare for them (certificates, inspection copies,
   the company pack) and how to ask for one, the owner chose "Not now": "Keep the
   static boundary text. Companies ask the operator directly; revisit when real

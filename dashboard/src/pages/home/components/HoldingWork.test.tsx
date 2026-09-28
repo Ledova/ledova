@@ -150,6 +150,8 @@ it('separates actionable applications and votes from operator work and company p
   expect(section('In progress').getByText('1 dividend awaits a payment record from the company')).toBeTruthy();
   for (const status of ['allotted', 'rejected', 'withdrawn', 'refunded'])
     expect(screen.queryByText(`${status} Company`)).toBeNull();
+  for (const status of ['draft', 'awaiting_payment'])
+    expect(section('In progress').queryByText(`${status} Company`)).toBeNull();
   expect(section('Recently published to you').getByText('Nothing has been published to you yet.')).toBeTruthy();
   expect(screen.queryByText(/unread|unpaid/i)).toBeNull();
   expect(api.get.mock.calls.map(([url]) => url)).toEqual(
@@ -316,11 +318,13 @@ it('updates work when existing application mutations invalidate their query pref
 });
 
 it('lists the three latest notices addressed to you, and asks only for your own', async () => {
-  published = [notice(4), notice(3), notice(2), notice(1)];
+  published = [notice(4, { kind: 'distribution' }), notice(3), notice(2), notice(1)];
   show();
 
   const recent = section('Recently published to you');
   expect(await recent.findByText('Notice 4')).toBeTruthy();
+  expect(recent.getByText('Harbour Example Pty Ltd · Dividend')).toBeTruthy();
+  expect(recent.getAllByText('Harbour Example Pty Ltd · Meeting notice')).toHaveLength(2);
   expect(recent.getAllByRole('listitem').map((item) => item.querySelector('p + p')?.textContent)).toEqual([
     'Notice 4',
     'Notice 3',
@@ -333,24 +337,52 @@ it('lists the three latest notices addressed to you, and asks only for your own'
 
 it('names the company, kind and date of each notice, and says until when a vote is open', async () => {
   const hour = 3_600_000;
-  const opensAt = new Date(Date.now() - 24 * hour).toISOString();
-  const closesAt = new Date(Date.now() + 24 * hour).toISOString();
-  const closedAt = new Date(Date.now() - hour).toISOString();
+  const at = (hours: number) => new Date(Date.now() + hours * hour).toISOString();
   published = [
-    notice(3, { kind: 'resolution', opensAt, closesAt }),
-    notice(2, { kind: 'resolution', opensAt, closesAt: closedAt }),
-    notice(1, { kind: 'distribution' }),
+    notice(3, { kind: 'resolution', opensAt: at(-24), closesAt: at(24) }),
+    notice(2, { kind: 'resolution', opensAt: at(24), closesAt: at(48) }),
+    notice(1, { kind: 'resolution', opensAt: at(-24), closesAt: at(-1) }),
   ];
   show();
 
   const recent = section('Recently published to you');
   expect(await recent.findByText('Notice 3')).toBeTruthy();
-  const [open, closed, dividend] = recent.getAllByRole('listitem').map((item) => within(item));
+  const [open, upcoming, closed] = recent.getAllByRole('listitem').map((item) => within(item));
   expect(open.getByText('Harbour Example Pty Ltd · Resolution')).toBeTruthy();
-  expect(open.getByText(`Open until ${formatDateTime(closesAt)}`)).toBeTruthy();
+  expect(open.getByText(`Open until ${formatDateTime(at(24))}`)).toBeTruthy();
   expect(open.getByText(formatDate('2026-09-23T00:00:00Z'))).toBeTruthy();
-  expect(closed.getByText('Harbour Example Pty Ltd · Resolution')).toBeTruthy();
-  expect(closed.queryByText(/Open until/)).toBeNull();
-  expect(dividend.getByText('Harbour Example Pty Ltd · Dividend')).toBeTruthy();
-  expect(dividend.queryByText(/Open until/)).toBeNull();
+  for (const row of [upcoming, closed]) {
+    expect(row.getByText('Harbour Example Pty Ltd · Resolution')).toBeTruthy();
+    expect(row.queryByText(/Open until/)).toBeNull();
+  }
+});
+
+it('says it is checking while the latest notices load, and never calls a failed read empty', async () => {
+  let release!: () => void;
+  let requests = 0;
+  const original = api.get.getMockImplementation()!;
+  api.get.mockImplementation(async (url: string, config?: { params?: { page?: number } }) => {
+    if (url !== PUBLICATION_ENDPOINTS.BASE) return original(url, config);
+    requests += 1;
+    await new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    if (fail === url) throw new Error('Unavailable');
+    return { data: { results: published, next: null, count: published.length, previous: null } };
+  });
+  fail = PUBLICATION_ENDPOINTS.BASE;
+  show();
+
+  const recent = section('Recently published to you');
+  expect(await recent.findByText('Checking what was published to you…')).toBeTruthy();
+  expect(recent.queryByText('Nothing has been published to you yet.')).toBeNull();
+  await act(async () => release());
+  expect(await recent.findByText("We couldn't load what was published to you.")).toBeTruthy();
+  expect(recent.queryByText('Nothing has been published to you yet.')).toBeNull();
+  fail = undefined;
+  published = [notice(1)];
+  fireEvent.click(recent.getByRole('button', { name: 'Try again' }));
+  await waitFor(() => expect(requests).toBe(2));
+  await act(async () => release());
+  expect(await recent.findByText('Notice 1')).toBeTruthy();
 });

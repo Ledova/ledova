@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AnimatedQRCode } from '@keystonehq/animated-qr';
 import { useOrderActionSigning, type OrderAction, type Wallet } from '@ledova/shared';
 import { Modal } from '@components/Modal';
+import { marketAmount } from '../marketData';
 import { SeedPhraseInput } from '@components/SeedPhraseInput';
 import { QRScannerView, useQRScanner } from '@components/qr';
 import { encodeEthereumTypedData } from '@utils/keystone/urEncoder';
@@ -76,7 +77,7 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
             <p>Wallet: {state.snapshot?.walletAddress ?? state.context?.walletAddress}</p>
             <p>Reviewed quantity: {review.currentValues.quantity} shares</p>
             <p>Reviewed minimum: {review.currentValues.minQuantity} shares</p>
-            <p>Reviewed price per share: ${review.currentValues.pricePerShare}</p>
+            <p>Reviewed price per share: {marketAmount(review.currentValues.pricePerShare)}</p>
             <p>Filled: {review.currentValues.filledQuantity} shares</p>
           </div>
         )}
@@ -125,7 +126,7 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
           <div className="space-y-2">
             <p>New quantity: {replacements.quantity} shares</p>
             <p>New minimum fill: {replacements.minQuantity} shares</p>
-            <p>New price per share: ${replacements.pricePerShare}</p>
+            <p>New price per share: {marketAmount(replacements.pricePerShare)}</p>
           </div>
         )}
         {state.phase === 'ready' && (

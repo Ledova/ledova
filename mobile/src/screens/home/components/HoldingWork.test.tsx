@@ -156,6 +156,7 @@ it('groups actionable applications with votes and operator work with company rec
     expect(progress.getByText(text)).toBeTruthy();
   for (const status of ['allotted', 'rejected', 'withdrawn', 'refunded'])
     expect(view.queryByText(`${status} Company`)).toBeNull();
+  for (const status of ['draft', 'awaiting_payment']) expect(progress.queryByText(`${status} Company`)).toBeNull();
   const recent = within(view.getByRole('header', { name: 'Recently published to you' }).parent!);
   expect(recent.getByText('Nothing has been published to you yet.')).toBeTruthy();
   expect(view.queryByText(/unread|unpaid/i)).toBeNull();
@@ -444,24 +445,65 @@ it('lists the three latest notices addressed to you, and asks only for your own'
 
 it('names the company, kind and date of each notice, and says until when a vote is open', async () => {
   const hour = 3_600_000;
-  const opensAt = new Date(Date.now() - 24 * hour).toISOString();
-  const closesAt = new Date(Date.now() + 24 * hour).toISOString();
-  const closedAt = new Date(Date.now() - hour).toISOString();
+  const at = (hours: number) => new Date(Date.now() + hours * hour).toISOString();
   published = [
-    notice(3, { kind: 'resolution', opensAt, closesAt }),
-    notice(2, { kind: 'resolution', opensAt, closesAt: closedAt }),
-    notice(1, { kind: 'distribution' }),
+    notice(3, { kind: 'resolution', opensAt: at(-24), closesAt: at(24) }),
+    notice(2, { kind: 'resolution', opensAt: at(24), closesAt: at(48) }),
+    notice(1, { kind: 'resolution', opensAt: at(-24), closesAt: at(-1) }),
   ];
   const view = await render(<HomeScreen />, { wrapper });
   expect(await view.findByText('Notice 3')).toBeTruthy();
   const row = (title: string) => within(view.getByText(title).parent!);
   expect(row('Notice 3').getByText('Harbour Example Pty Ltd · Resolution')).toBeTruthy();
-  expect(row('Notice 3').getByText(`Open until ${formatDateTime(closesAt)}`)).toBeTruthy();
+  expect(row('Notice 3').getByText(`Open until ${formatDateTime(at(24))}`)).toBeTruthy();
   expect(row('Notice 3').getByText(formatDate('2026-09-23T00:00:00Z'))).toBeTruthy();
-  expect(row('Notice 2').getByText('Harbour Example Pty Ltd · Resolution')).toBeTruthy();
-  expect(row('Notice 2').queryByText(/Open until/)).toBeNull();
-  expect(row('Notice 1').getByText('Harbour Example Pty Ltd · Dividend')).toBeTruthy();
-  expect(row('Notice 1').queryByText(/Open until/)).toBeNull();
+  for (const title of ['Notice 2', 'Notice 1']) {
+    expect(row(title).getByText('Harbour Example Pty Ltd · Resolution')).toBeTruthy();
+    expect(row(title).queryByText(/Open until/)).toBeNull();
+  }
+});
+
+it('names a dividend by its kind, and says it is checking while the latest notices load', async () => {
+  const original = get.getMockImplementation()!;
+  let release!: () => void;
+  get.mockImplementation(async (url, config) => {
+    if (url !== PUBLICATIONS) return original(url, config);
+    await new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    return original(url, config);
+  });
+  published = [notice(1, { kind: 'distribution' })];
+  const view = await render(<HomeScreen />, { wrapper });
+  const recent = within(view.getByRole('header', { name: 'Recently published to you' }).parent!);
+  expect(await recent.findByText('Checking what was published to you…')).toBeTruthy();
+  expect(recent.queryByText('Nothing has been published to you yet.')).toBeNull();
+  await act(async () => release());
+  expect(await recent.findByText('Harbour Example Pty Ltd · Dividend')).toBeTruthy();
+});
+
+it('discards a retired session response before it can fill the latest notices of an old account', async () => {
+  client.setDefaultOptions({ queries: { retry: false, gcTime: Infinity } });
+  const original = get.getMockImplementation()!;
+  let release!: (value: unknown) => void;
+  let held = false;
+  get.mockImplementation((url, config) => {
+    if (url === PUBLICATIONS && !held) {
+      held = true;
+      return new Promise((resolve) => {
+        release = resolve;
+      });
+    }
+    return original(url, config);
+  });
+  const epoch = getSessionEpoch();
+  const view = await render(<HomeScreen />, { wrapper });
+  await waitFor(() => expect(held).toBe(true));
+  await act(async () => invalidateSessionScope());
+  expect(await view.findByText('Nothing has been published to you yet.')).toBeTruthy();
+  await act(async () => release({ data: { results: [notice(9, { title: 'Retired account notice' })], next: null } }));
+  expect(view.queryByText('Retired account notice')).toBeNull();
+  expect(client.getQueryData(['publications', 'addressed', 'me', 'latest', epoch])).toBeUndefined();
 });
 
 it('keeps the rest of the work while the latest notices fail, and retries only them', async () => {
