@@ -65,7 +65,6 @@ export default function DirectoryPage() {
 
   return (
     <Page>
-      <p className="text-sm text-text-muted">Share classes and current offerings available to you.</p>
       {tokens.length === 0 ? (
         <Section title="Share classes">
           <p className="py-3 text-sm text-text-muted">No share classes available.</p>

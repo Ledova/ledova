@@ -4,7 +4,7 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { formatDate, formatMoney, formatShareCount, useDirectoryToken } from '@ledova/shared';
 import type { DirectoryStackParamList } from '../../navigation/DirectoryStackNavigator';
-import { Action, Row, Section } from '../../components/Ledger';
+import { Action, Lede, Row, Section } from '../../components/Ledger';
 import { DirectoryPage, useDirectoryStyles } from './DirectoryPage';
 import { ApplyForm, type ApplicationDraft } from '../applications/ApplyForm';
 import { useCreateSubscription, useSubscribableWallets } from '../applications/useApplications';
@@ -74,7 +74,7 @@ export function ShareClassScreen() {
         </Section>
       ) : (
         <>
-          <Text style={styles.help}>{token.company.displayName}</Text>
+          <Lede>{token.company.displayName}</Lede>
           <Section title={token.name}>
             <Row label="Symbol">{token.symbol}</Row>
             <Row label="Authorised shares">{formatShareCount(token.totalSupply)}</Row>

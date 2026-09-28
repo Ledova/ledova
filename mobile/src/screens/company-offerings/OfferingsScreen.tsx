@@ -196,35 +196,8 @@ export function OfferingsScreen() {
           <Text style={styles.muted}>No company found. Please register your company first.</Text>
         ) : (
           <>
-            <Section title="Investor Directory">
-              <Text style={styles.muted}>
-                Your company is listed in the investor directory only while this is on. Nothing is listed by default,
-                and {data.operatorName} can switch it off. Turning it off hides your share classes; it does not withdraw
-                an offering already under review.
-              </Text>
-              <Text style={styles.text}>Show this company to eligible investors</Text>
-              <Switch
-                accessibilityLabel="Show this company to eligible investors"
-                value={company.isOpenToInvestors}
-                disabled={!ready || !company.canIssueTokens}
-                onValueChange={(isOpen) => {
-                  if (ready && company.canIssueTokens)
-                    listing.mutate({ uuid: company.uuid, isOpen, epoch: getSessionEpoch() });
-                }}
-              />
-              {!company.canIssueTokens && (
-                <Text style={styles.muted}>
-                  Your company must be active before it can be listed. It is currently {company.statusDisplay}.
-                </Text>
-              )}
-            </Section>
             <CompanyReadNotice read={companyRead} />
             <OfferingReadNotice read={data} />
-            {actionError && actionError.uuid === null && (
-              <Text accessibilityRole="alert" style={styles.error}>
-                {actionError.message}
-              </Text>
-            )}
             {!data.error && (
               <>
                 <Section title={`Your offerings (${data.offerings.length})`}>
@@ -254,6 +227,33 @@ export function OfferingsScreen() {
                 <SubscriptionsLedger offerings={data.offerings} operatorName={data.operatorName} />
               </>
             )}
+            <Section title="Investor Directory">
+              <Text style={styles.muted}>
+                Your company is listed in the investor directory only while this is on. Nothing is listed by default,
+                and {data.operatorName} can switch it off. Turning it off hides your share classes; it does not withdraw
+                an offering already under review.
+              </Text>
+              <Text style={styles.text}>Show this company to eligible investors</Text>
+              <Switch
+                accessibilityLabel="Show this company to eligible investors"
+                value={company.isOpenToInvestors}
+                disabled={!ready || !company.canIssueTokens}
+                onValueChange={(isOpen) => {
+                  if (ready && company.canIssueTokens)
+                    listing.mutate({ uuid: company.uuid, isOpen, epoch: getSessionEpoch() });
+                }}
+              />
+              {!company.canIssueTokens && (
+                <Text style={styles.muted}>
+                  Your company must be active before it can be listed. It is currently {company.statusDisplay}.
+                </Text>
+              )}
+              {actionError && actionError.uuid === null && (
+                <Text accessibilityRole="alert" style={styles.error}>
+                  {actionError.message}
+                </Text>
+              )}
+            </Section>
             <Section title="What happens next">
               <Text style={styles.muted}>
                 Submit the offering; {data.operatorName} reviews the bounds, the window and the exemption relied on.

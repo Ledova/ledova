@@ -14,6 +14,7 @@ export default function IssuerPublicationsPage() {
   const blocked = !!companyRead.error || companyRead.isRefreshing || listing.isError || listing.isFetching;
   return (
     <Page
+      lede="Staff prepare and publish these records on your company's written instruction."
       loading={companyRead.isLoading || listing.isLoading}
       actions={
         <>
@@ -35,16 +36,6 @@ export default function IssuerPublicationsPage() {
         <p className="text-sm text-text-muted">No company information available.</p>
       ) : (
         <>
-          <p className="text-sm text-text-muted">
-            Staff prepare and publish these records on your company&apos;s written instruction.
-          </p>
-          <p className="text-sm text-text-muted">
-            To read notices addressed to you or vote as a member, open{' '}
-            <Link to={DESTINATIONS.publications.path} className="text-brand-light underline">
-              Notices
-            </Link>
-            .
-          </p>
           {listing.isError ? (
             <div role="alert" className="space-y-2 text-sm text-text-muted">
               <p>Your company&apos;s publications could not be loaded. Try again before continuing.</p>
@@ -95,6 +86,13 @@ export default function IssuerPublicationsPage() {
               )}
             </>
           )}
+          <p className="text-sm text-text-muted">
+            To read notices addressed to you or vote as a member, open{' '}
+            <Link to={DESTINATIONS.publications.path} className="text-brand-light underline">
+              Notices
+            </Link>
+            .
+          </p>
         </>
       )}
     </Page>
