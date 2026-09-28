@@ -23,7 +23,6 @@ function claim(overrides: Partial<InvestorClassification> = {}): InvestorClassif
     declarationText: 'I declare',
     evidenceFileSize: 10,
     evidenceMimeType: 'application/pdf',
-    evidenceUrl: null,
     expiresAt: '2027-09-01T00:00:00Z',
     isExpired: false,
     isLive: true,

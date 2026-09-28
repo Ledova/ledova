@@ -1,17 +1,10 @@
 from decimal import Decimal
 
-from django.conf import settings
-from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from web3 import Web3
 
-from assets.models import Asset, AssetType
-from operators.settlement import settlement_assets
-from tokens.models import (
-    ShareToken,
-    TransferOrder,
-    TransferOrderType,
-)
+from tokens.models import TransferOrder, TransferOrderType
 from wallets.models import Wallet
 
 
@@ -174,64 +167,3 @@ class TransferOrderCreateSerializer(serializers.Serializer):
         data["wallet_address"] = canonical_wallet_address
 
         return data
-
-
-class PrepareTransferSerializer(serializers.Serializer):
-    token = serializers.UUIDField()
-    from_address = serializers.CharField(max_length=42)
-    to_address = serializers.CharField(max_length=42)
-    amount = serializers.IntegerField(min_value=1)
-
-    def validate_token(self, value):
-        token = ShareToken.objects.filter(uuid=value).first()
-        if token:
-            if not token.is_deployed:
-                raise serializers.ValidationError("Token is not deployed")
-            return token
-
-        asset = Asset.objects.filter(uuid=value, asset_type=AssetType.STABLECOIN.value).first()
-        if asset:
-            if not settlement_assets().filter(pk=asset.pk).exists():
-                raise serializers.ValidationError("Settlement asset is not available on the settlement chain")
-            return asset
-
-        raise serializers.ValidationError("Token not found")
-
-    def validate_from_address(self, value):
-        if not value.startswith("0x") or len(value) != 42:
-            raise serializers.ValidationError("Invalid Ethereum address format")
-        return value
-
-    def validate_to_address(self, value):
-        if not value.startswith("0x") or len(value) != 42:
-            raise serializers.ValidationError("Invalid Ethereum address format")
-        return value
-
-
-@extend_schema_serializer(component_name="TradingBroadcastTransfer")
-class BroadcastTransferSerializer(serializers.Serializer):
-
-    signed_transaction = serializers.CharField()
-
-    def validate_signed_transaction(self, value):
-        if not value.startswith("0x"):
-            raise serializers.ValidationError("Signed transaction must start with 0x")
-
-        from tokens.services.contracts import known_contract_addresses
-        from tokens.services.signed_transactions import decode_signed_transaction
-
-        try:
-            decoded = decode_signed_transaction(bytes.fromhex(value[2:]))
-        except ValueError:
-            raise serializers.ValidationError("Unable to decode signed transaction")
-
-        if decoded.chain_id is not None and decoded.chain_id != settings.BLOCKCHAIN_CHAIN_ID:
-            raise serializers.ValidationError("Transaction is signed for a different network")
-
-        if decoded.to is None:
-            raise serializers.ValidationError("Contract creation transactions are not allowed")
-
-        if decoded.to.lower() not in known_contract_addresses():
-            raise serializers.ValidationError("Transaction target is not a known Ledova contract")
-
-        return value

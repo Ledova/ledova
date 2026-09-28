@@ -123,13 +123,6 @@ class BinaryAndBalanceResponseSchemaTest(APITestCase):
         self.assertEqual(set(content), {"*/*"})
         self.assertEqual(content["*/*"]["schema"], {"type": "string", "format": "binary"})
 
-    def test_personal_document_schema_describes_the_streamed_file(self):
-        self.assert_file_schema(
-            "/api/v1/documents/{uuid}/file/",
-            f"/api/v1/documents/{self.tenant.document.uuid}/file/",
-            f"payslip for {self.tenant.label}".encode(),
-        )
-
     def test_company_document_schema_describes_the_streamed_file(self):
         self.assert_file_schema(
             "/api/v1/companies/{company_uuid}/documents/{uuid}/file/",
@@ -137,22 +130,16 @@ class BinaryAndBalanceResponseSchemaTest(APITestCase):
             f"asic extract for {self.tenant.label}".encode(),
         )
 
-    def test_classification_schema_describes_the_streamed_evidence(self):
-        self.assert_file_schema(
-            "/api/investor-classifications/{uuid}/evidence/",
-            f"/api/investor-classifications/{self.tenant.investor_classification.uuid}/evidence/",
-            f"evidence for {self.tenant.label}".encode(),
-        )
-
     def test_file_media_remains_selected_from_storage_with_a_binary_fallback(self):
-        document = self.tenant.document
+        document = self.tenant.company_document
+        url = f"/api/v1/companies/{self.tenant.company.uuid}/documents/{document.uuid}/file/"
         for mime in ("image/png", ""):
             document.mime_type = mime
             document.save(update_fields=["mime_type"])
-            response = self.client.get(f"/api/v1/documents/{document.uuid}/file/")
+            response = self.client.get(url)
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response["Content-Type"], mime or "application/octet-stream")
-            self.assertEqual(b"".join(response.streaming_content), f"payslip for {self.tenant.label}".encode())
+            self.assertEqual(b"".join(response.streaming_content), f"asic extract for {self.tenant.label}".encode())
             self.assertTrue(response.closed)
 
     def assert_csv_schema(self, path, response):

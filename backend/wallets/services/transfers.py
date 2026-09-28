@@ -314,36 +314,6 @@ def prepare_bitcoin_transaction(
         raise BlockchainAPIError("Failed to prepare the Bitcoin transaction.") from e
 
 
-def broadcast_ethereum_transaction(chain: str, signed_tx_hex: str) -> str:
-    try:
-        logger.info(f"Broadcasting signed {chain} transaction")
-
-        client = get_blockchain_client(chain)
-        tx_hash = client.broadcast_transaction(signed_tx_hex)
-
-        logger.info(f"Ethereum transaction broadcast successful: {tx_hash}")
-        return tx_hash
-
-    except Exception as e:
-        logger.error(f"Failed to broadcast Ethereum transaction: {str(e)}")
-        raise BlockchainAPIError("Failed to broadcast the Ethereum transaction.") from e
-
-
-def broadcast_bitcoin_transaction(signed_tx_hex: str) -> str:
-    try:
-        logger.info("Broadcasting signed Bitcoin transaction")
-
-        client = get_blockchain_client("BTC")
-        tx_hash = client.broadcast_transaction(signed_tx_hex)
-
-        logger.info(f"Bitcoin transaction broadcast successful: {tx_hash}")
-        return tx_hash
-
-    except Exception as e:
-        logger.error(f"Failed to broadcast Bitcoin transaction: {str(e)}")
-        raise BlockchainAPIError("Failed to broadcast the Bitcoin transaction.") from e
-
-
 def prepare_erc20_transaction(
     chain: str,
     from_address: str,

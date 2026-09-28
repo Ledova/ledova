@@ -4,16 +4,27 @@ from pathlib import Path
 
 from asgiref.sync import async_to_sync
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
 from django.test import RequestFactory, TransactionTestCase, override_settings
 
 from authentication.services import TokenService
-from documents.tests.test_document_file_access import (
+from companies.models import Company, CompanyType
+from companies.tests.test_document_file_access import (
     DOCUMENT_BYTES,
+    attach_file,
     make_document,
-    make_user,
 )
 from shared.upload_gateway import BoundedUploadASGI, BoundedUploadWSGI
+
+User = get_user_model()
+PASSWORD = "pw-12345678"
+
+
+def make_user(label):
+    return User.objects.create_user(
+        email=f"{label}@example.test", password=PASSWORD, is_active=True, is_email_verified=True
+    )
 
 
 @override_settings(DEBUG=False, STORAGE_BACKEND="local")
@@ -23,8 +34,11 @@ class LocalPrivateMediaStartupTest(TransactionTestCase):
         stranger = make_user("startup-stranger")
         self.owner_token = TokenService.issue(owner)[0]
         self.stranger_token = TokenService.issue(stranger)[0]
-        self.document = make_document(owner)
-        self.url = f"/api/v1/documents/{self.document.uuid}/file/"
+        company = Company.objects.create(
+            owner=owner, name="Startup Pty Ltd", company_type=CompanyType.PROPRIETARY, acn="123456789"
+        )
+        self.document = attach_file(make_document(company))
+        self.url = f"/api/v1/companies/{company.uuid}/documents/{self.document.uuid}/file/"
 
     def application(self, entrypoint):
         with override_settings(RLS_AMBIENT_ALIAS="app"):

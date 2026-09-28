@@ -3,11 +3,11 @@ from django.db import models
 from django.utils import timezone
 
 from offerings.exceptions import InvalidOfferingTransitionException
-from offerings.models.owner_column import DerivesCompanyFromToken
 from offerings.querysets.offering import OfferingQuerySet
 from operators.models import STABLECOIN_ONLY
 from shared.constants import CURRENCY_AUD, CURRENCY_CHOICES
 from shared.models import BaseModel
+from tokens.models.owner_column import DerivesCompanyFromToken
 
 BOUNDS_ORDERED_ERROR = "Minimum, target and cap must be at least one share and ordered minimum <= target <= cap."
 WINDOW_ORDERED_ERROR = "An offering must close after it opens."

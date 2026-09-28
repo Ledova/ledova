@@ -44,6 +44,3 @@ class SwapOrderQuerySet(QuerySet):
 
     def completed_for_token(self, token):
         return self.filter(share_token=token, status="completed").order_by("-completed_at", "-pk")
-
-    def pending_for_wallet_ids(self, wallet_ids):
-        return self.for_wallet_ids(wallet_ids).awaiting_signature().with_related()

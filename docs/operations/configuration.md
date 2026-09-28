@@ -26,7 +26,6 @@ lowercased and compared against `true` and treats anything else as off.
 | `DJANGO_ALLOWED_HOSTS` | empty | Yes outside local use, comma separated |
 | `DJANGO_CORS_ALLOWED_ORIGINS` | empty | Yes, comma separated; must list the dashboard origin |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | empty | Yes, comma separated; cookie-authenticated writes from an unlisted origin get `403 CSRF Failed` |
-| `LEDOVA_ADMIN_BASE_URL` | `http://localhost:5174/admin` | No |
 | `PUBLIC_API_BASE_URL` | `http://localhost:8000` | No |
 | `OPERATOR_NAME` | `Ledova operator` | No, used only when the operator row is created |
 | `REDIS_URL` | `redis://redis:6379/0` | **Yes.** It is `CACHES["default"]`, which holds the sign-in and upload quotas, and it is the trading event stream (`tokens/events.py`, `tokens/views/trading_events.py`). Background work is still Procrastinate on PostgreSQL |

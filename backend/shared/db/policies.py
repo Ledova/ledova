@@ -295,7 +295,7 @@ READS_WIDER_THAN_OWNERSHIP = {
         "and unknown issuers fail, the lookup selects only its UUID, and the claim writes use the app role.",
     ),
     "Market prices for already admitted tokens": (
-        "tokens/services/market_data_service.py market_summaries and get_market_data; "
+        "tokens/services/market_data_service.py market_summaries; "
         "tokens/services/trading_order_service.py get_order_book",
         "The operator publishes only price summaries, the last trade's public amounts and aggregated "
         "order-book levels for tokens already admitted under issuer ownership or investor eligibility. "

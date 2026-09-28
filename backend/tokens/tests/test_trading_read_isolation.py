@@ -238,7 +238,7 @@ class TradingReadIsolationTest(APITransactionTestCase):
         charlie_order = self._make_order(self.charlie_wallet, TransferOrderType.BUY)
         alice_charlie_swap = self._make_swap(self.alice_order, charlie_order, "2")
 
-        visible = SwapOrder.objects.pending_for_wallet_ids([duplicate_wallet.uuid])
+        visible = SwapOrder.objects.for_wallet_ids([duplicate_wallet.uuid]).awaiting_signature()
 
         self.assertNotIn(alice_charlie_swap.uuid, visible.values_list("uuid", flat=True))
 
@@ -252,55 +252,12 @@ class TradingReadIsolationTest(APITransactionTestCase):
         changed_swap.save(update_fields=["buyer_address"])
         self._restore_legacy_swaps()
 
-        visible = SwapOrder.objects.pending_for_wallet_ids([self.bob_wallet.uuid])
+        visible = SwapOrder.objects.for_wallet_ids([self.bob_wallet.uuid]).awaiting_signature()
 
         visible_ids = set(visible.values_list("uuid", flat=True))
         self.assertIn(self.swap.uuid, visible_ids)
         self.assertNotIn(malformed_swap.uuid, visible_ids)
         self.assertNotIn(changed_swap.uuid, visible_ids)
-
-    @patch("tokens.views.trading_transfer.token_transfer_service")
-    def test_transfer_prepare_rejects_foreign_from_address_before_service_calls(self, service_module):
-        self.client.force_authenticate(self.bob)
-        response = self.client.post(
-            "/api/v1/trading/transfers/prepare/",
-            {
-                "token": str(self.share_token.uuid),
-                "from_address": self.alice_wallet.address,
-                "to_address": self.bob_wallet.address,
-                "amount": 1,
-            },
-            format="json",
-        )
-
-        self.assertEqual(response.status_code, 404)
-        self.assertEqual(service_module.mock_calls, [])
-
-    @patch("tokens.views.trading_transfer.token_transfer_service")
-    def test_transfer_prepare_uses_canonical_owned_from_address(self, service_module):
-        service_module.prepare_transfer.return_value = {"to": self.share_token.contract_address}
-        self.client.force_authenticate(self.bob)
-
-        response = self.client.post(
-            "/api/v1/trading/transfers/prepare/",
-            {
-                "token": str(self.share_token.uuid),
-                "from_address": self.bob_case_variant,
-                "to_address": self.alice_wallet.address,
-                "amount": 1,
-            },
-            format="json",
-        )
-
-        canonical = Web3.to_checksum_address(self.bob_wallet.address)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["from_address"], canonical)
-        service_module.prepare_transfer.assert_called_once_with(
-            token=self.share_token,
-            from_address=canonical,
-            to_address=self.alice_wallet.address,
-            amount=1,
-        )
 
     @staticmethod
     def _whitelist_status_of(service, address):

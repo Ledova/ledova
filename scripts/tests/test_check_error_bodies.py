@@ -119,7 +119,7 @@ class TheSubclassSetComesFromTheSource(unittest.TestCase):
     def test_it_follows_apiexception_through_subclassing(self):
         names = gate.api_exception_names()
 
-        self.assertIn("TransferPreparationException", names)
+        self.assertIn("OrderCancellationException", names)
         self.assertIn("BlockchainAPIError", names)
 
     def test_it_is_large_enough_to_be_real(self):

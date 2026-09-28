@@ -23,7 +23,6 @@ const document: Document = {
   attachedAt: null,
   retentionUntil: '2026-10-09T00:00:00Z',
   purgedAt: null,
-  fileUrl: '/private-document/',
   latestExtraction: null,
   createdAt: '2026-09-09T00:00:00Z',
   updatedAt: '2026-09-09T00:00:00Z',
