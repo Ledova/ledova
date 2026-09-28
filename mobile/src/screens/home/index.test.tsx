@@ -1,7 +1,7 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { HOLDING_ASSET_TYPE, WALLET_ENDPOINTS, type WalletHolding } from '@ledova/shared';
+import { ApiClientProvider, HOLDING_ASSET_TYPE, WALLET_ENDPOINTS, type WalletHolding } from '@ledova/shared';
 import { HomeScreen } from './index';
 import { apiClient } from '../../services/apiClient';
 
@@ -60,7 +60,11 @@ function page(wallets = [firstWallet], next: string | null = null) {
 }
 
 function wrapper({ children }: { children: React.ReactNode }) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+    </QueryClientProvider>
+  );
 }
 
 beforeEach(() => {

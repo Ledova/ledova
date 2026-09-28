@@ -1,8 +1,7 @@
-import { DESTINATIONS, formatDate, formatMoney } from '@ledova/shared';
+import { DESTINATIONS, formatDate, formatMoney, useDirectoryTokens } from '@ledova/shared';
 import type { DirectoryToken } from '@ledova/shared';
 import { LinkRow, Section, Status } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
-import { useDirectoryTokens } from './useDirectory';
 
 function ShareClassRow({ token }: { token: DirectoryToken }) {
   const offering = token.openOffering;
