@@ -38,7 +38,12 @@ The plugin's CocoaPods post-install helper removes only the exact
 `${PODS_ROOT}/..` input from ReactCodegen's Generate Specs phase. Real spec inputs,
 generation commands and handler registration remain intact. iOS CI checks this
 with a genuine native spec control and preserves the generated Podspec and Pods
-project for build diagnosis.
+project for build diagnosis. The same post-install step raises any pod target
+whose `IPHONEOS_DEPLOYMENT_TARGET` is below the Podfile's platform to that
+platform, because Xcode 27 refuses targets below iOS 15.0 and some third-party
+resource bundles still declare older minimums; targets at or above the platform
+are left alone. `mobile/scripts/tests/ios-deployment-targets.test.mjs` covers
+the floor and the hook's insertion.
 
 | Component                | Build baseline                                                              |
 | ------------------------ | --------------------------------------------------------------------------- |

@@ -43,7 +43,9 @@ submitting for App Review; an unused local build number is not reserved at Apple
 Use an Xcode release accepted by App Store Connect. Since April 28, 2026,
 [Apple requires the iOS 26 SDK or later](https://developer.apple.com/news/?id=ueeok6yw).
 This requirement is separate from the app's minimum supported iOS version and
-the simulator CI toolchain.
+the simulator CI toolchain. Xcode 27 also refuses pod targets below iOS 15.0;
+the config plugin's post-install step raises them to the Podfile platform, as
+[mobile builds](mobile-builds.md) describes.
 
 After installing the locked dependencies described in [mobile builds](mobile-builds.md),
 run from `mobile/` with the release environment already set:

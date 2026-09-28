@@ -135,7 +135,7 @@ jobs:
       - name: Generate native projects and resolve Pods
         working-directory: mobile
         run: |
-          node --test scripts/tests/ios-codegen.test.mjs scripts/tests/ios-simulator-identity.test.mjs
+          node --test scripts/tests/ios-codegen.test.mjs scripts/tests/ios-deployment-targets.test.mjs scripts/tests/ios-simulator-identity.test.mjs
           npx jest --runInBand --testMatch '<rootDir>/native-tests/diagnostics.test.ts'
           npx expo prebuild --clean --no-install --platform all
           node scripts/check-native-projects.mjs

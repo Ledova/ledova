@@ -115,11 +115,16 @@ module.exports = function withMobileSecurity(config) {
     const anchor = /^[ \t]*post_install do \|installer\|[ \t]*$/m;
     const hooks = [...source.matchAll(new RegExp(anchor.source, 'gm'))];
     if (hooks.length !== 1)
-      throw new Error('Cannot install the iOS codegen correction: expected one post_install hook.');
+      throw new Error('Cannot install the iOS post-install helpers: expected one post_install hook.');
     const indent = `${hooks[0][0].match(/^[ \t]*/)[0]}  `;
     config.modResults.contents = CodeGenerator.mergeContents({
       src: source,
-      newSrc: `${indent}require_relative '../plugins/native/codegen-inputs'\n${indent}LedovaCodegen.remove_directory_input(installer)`,
+      newSrc: [
+        `${indent}require_relative '../plugins/native/codegen-inputs'`,
+        `${indent}LedovaCodegen.remove_directory_input(installer)`,
+        `${indent}require_relative '../plugins/native/deployment-targets'`,
+        `${indent}LedovaDeploymentTargets.raise_to_podfile_platform(installer)`,
+      ].join('\n'),
       tag: 'ledova-codegen-inputs',
       anchor,
       offset: 1,
