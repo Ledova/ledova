@@ -131,7 +131,7 @@ it.each([eligibilityUrl, listUrl, `${listUrl}2`])(
     failure = url;
     const view = await render(<DirectoryScreen />, { wrapper });
     expect(await view.findByText(/The directory could not be loaded/)).toBeTruthy();
-    expect(view.queryByText('No share classes available')).toBeNull();
+    expect(view.queryByText('No share classes available.')).toBeNull();
     expect(view.queryByText('Ordinary shares')).toBeNull();
     expect(view.queryByText('Verify your investor status')).toBeNull();
     failure = null;
@@ -154,7 +154,8 @@ it.each([`https://example.test${listUrl}?page=1`, `https://example.test${listUrl
 it('shows a reliable empty directory only after both reads succeed', async () => {
   pages = { 1: { results: [], next: null } };
   const view = await render(<DirectoryScreen />, { wrapper });
-  expect(await view.findByText('No share classes available')).toBeTruthy();
+  expect(await view.findByText('No share classes available.')).toBeTruthy();
+  expect(view.getByText('Share classes')).toBeTruthy();
   expect(view.queryByText('Verify your investor status')).toBeNull();
 });
 

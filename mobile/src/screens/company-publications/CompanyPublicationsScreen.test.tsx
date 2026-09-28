@@ -168,7 +168,7 @@ it('distinguishes an owned company with no publications from a missing company',
   rows = [];
   const view = await render(<CompanyPublicationsScreen />, { wrapper });
   expect(await view.findByText("Nothing has been published to this company's members yet.")).toBeTruthy();
-  expect(view.queryByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeNull();
+  expect(view.queryByText(PUBLICATION_COPY.EMPTY)).toBeNull();
   expect(view.queryByText(PUBLICATION_COPY.OPEN)).toBeNull();
   await cleanup();
   client.clear();

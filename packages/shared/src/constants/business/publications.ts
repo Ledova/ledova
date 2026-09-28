@@ -40,10 +40,7 @@ export const RESOLUTION_KIND_LABELS: Record<ResolutionKind, string> = {
 export const BALLOT_CHOICES: readonly BallotChoice[] = ['for', 'against', 'abstain'];
 
 export const PUBLICATION_COPY = {
-  EMPTY_TITLE: 'Nothing has been published to you yet',
-  EMPTY_BODY:
-    'A company publishes to the members of a share class on a record date. When it does, the document and the ' +
-    'holding it was addressed to appear here, and they stay here for seven years.',
+  EMPTY: 'Nothing has been published to you yet.',
   HOLDING_LABEL: 'Your holding on the record date',
   RECORD_DATE_LABEL: 'Record date',
   OPEN: 'Open the document',

@@ -67,7 +67,7 @@ it('waits for applications without claiming that the list is empty', async () =>
   );
   show();
   expect(screen.getByRole('status')).toBeTruthy();
-  expect(screen.queryByText('No applications yet')).toBeNull();
+  expect(screen.queryByText('No applications yet.')).toBeNull();
   await act(async () => finish(page()));
   expect(await screen.findByRole('article')).toBeTruthy();
 });
@@ -110,7 +110,8 @@ it('shows recorded identities and currency without a current Directory read, inc
 it('shows an empty state only after a successful complete empty response', async () => {
   api.get.mockResolvedValue(page([]));
   show();
-  expect(await screen.findByText('No applications yet')).toBeTruthy();
+  expect(await screen.findByText('No applications yet.')).toBeTruthy();
+  expect(screen.getByRole('heading', { level: 2, name: 'Your applications' })).toBeTruthy();
   expect(screen.getByRole('link', { name: 'Open Directory' }).getAttribute('href')).toBe('/directory');
   expect(screen.queryByRole('alert')).toBeNull();
 });
@@ -122,7 +123,7 @@ it('reports an initial failure and retries instead of claiming there are no appl
     'textContent',
     'Your applications could not be loaded. Try again before continuing.Try again',
   );
-  expect(screen.queryByText('No applications yet')).toBeNull();
+  expect(screen.queryByText('No applications yet.')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
   expect(await screen.findByRole('article')).toBeTruthy();
 });
@@ -152,7 +153,7 @@ it('does not call an empty page complete when the next page remains unread or fa
   show();
   fireEvent.click(await screen.findByRole('button', { name: 'Load more applications' }));
   expect(await screen.findByRole('alert')).toBeTruthy();
-  expect(screen.queryByText('No applications yet')).toBeNull();
+  expect(screen.queryByText('No applications yet.')).toBeNull();
 });
 
 it('hides stale application values and links after refresh failure until a successful retry', async () => {

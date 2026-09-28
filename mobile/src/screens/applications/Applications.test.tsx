@@ -200,11 +200,13 @@ it('suppresses cached application history on a failed refresh and recovers to a 
   await refresh(['subscriptions']);
   expect(await view.findByText(/Your applications could not be loaded/)).toBeTruthy();
   expect(view.queryByText('Draft')).toBeNull();
-  expect(view.queryByText('No applications yet')).toBeNull();
+  expect(view.queryByText('No applications yet.')).toBeNull();
   pages = { 1: { results: [], next: null } };
   failure = null;
   await fireEvent.press(view.getByText('Try again'));
-  await fireEvent.press(await view.findByText('Open Directory'));
+  expect(await view.findByText('No applications yet.')).toBeTruthy();
+  expect(view.getByText('Your applications')).toBeTruthy();
+  await fireEvent.press(view.getByText('Open Directory'));
   expect(mockParentNavigate).toHaveBeenCalledWith('Directory', { screen: 'DirectoryMain' });
 });
 

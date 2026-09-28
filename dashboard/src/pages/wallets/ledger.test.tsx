@@ -83,7 +83,7 @@ it.each(['failed second page', 'malformed next', 'stale refresh'])(
     }
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect(screen.queryByText('Primary wallet')).toBeNull();
-    expect(screen.queryByText('No Base wallets')).toBeNull();
+    expect(screen.queryByText('No Base wallets yet.')).toBeNull();
     broken = false;
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(await screen.findByText('Reserve wallet')).toBeTruthy();
@@ -145,6 +145,17 @@ it('keeps a refused delete confirmation open and requires a successful retry', a
   fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   expect(api.delete).toHaveBeenCalledTimes(2);
+});
+
+it('offers one Add wallet action under each empty chain and opens the add form from it', async () => {
+  api.get.mockResolvedValue(page([]));
+  show();
+  expect(await screen.findByText('No Ethereum wallets yet.')).toBeTruthy();
+  expect(screen.getByText('No Bitcoin wallets yet.')).toBeTruthy();
+  expect(screen.getByText('No Base wallets yet.')).toBeTruthy();
+  expect(screen.getAllByRole('button', { name: 'Add wallet' })).toHaveLength(3);
+  fireEvent.click(screen.getAllByRole('button', { name: 'Add wallet' })[1]);
+  expect(within(screen.getByRole('dialog')).getByLabelText('Wallet address')).toBeTruthy();
 });
 
 it('retains a refused new wallet and closes only on successful creation', async () => {

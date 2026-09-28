@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { DESTINATIONS, SUBSCRIPTION_COPY, formatDate, formatMoney } from '@ledova/shared';
+import { DESTINATIONS, formatDate, formatMoney } from '@ledova/shared';
 import type { Subscription } from '@ledova/shared';
 import { Row, Rows, Section, Status } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
@@ -60,8 +60,8 @@ export default function SubscriptionsPage() {
       ) : (
         <>
           {subscriptions.length === 0 && !hasMore && !moreFailed ? (
-            <Section title="No applications yet">
-              <p className="py-3 text-sm text-text-muted">{SUBSCRIPTION_COPY.EMPTY_BODY}</p>
+            <Section title="Your applications">
+              <p className="py-3 text-sm text-text-muted">No applications yet.</p>
               <Link
                 to={DESTINATIONS.directory.path}
                 className="w-fit text-sm text-brand-light underline underline-offset-4"

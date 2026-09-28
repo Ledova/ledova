@@ -420,6 +420,17 @@ Pages rebuilt in the paper layout use the ledger blocks in
 - `Status`: a status in words with a small mark for waiting, moving, done or closed.
 - `Timeline`: each event with its date.
 
+An empty section keeps its real title; the state is one muted sentence under
+it, in the `text-sm text-text-muted` paragraph ("No activity yet.", "No
+Ethereum wallets yet."), with at most one action, a `PageAction` or an inline
+link, and no icon block. A state is never a section's title. Activity's
+"Transfers" and each Wallets chain keep the same title whether or not they
+hold anything; Directory, Applications and Notices list one section per
+company, application or notice when they hold something, so their empty
+section's title names what it would hold ("Share classes", "Your
+applications", "Your notices"). Mobile's `Section` and `Action` follow the
+same rule.
+
 White cards stay for forms and for things to act on, such as a payment
 instruction. The application page is the first page built this way.
 

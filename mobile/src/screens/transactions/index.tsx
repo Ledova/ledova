@@ -87,16 +87,12 @@ export function TransactionsScreen() {
             <Action label="Try again" onPress={() => void retry()} disabled={isRefreshing} />
           </View>
         ) : (
-          <>
+          <Section title="Transfers">
             {transactions.length === 0 && !hasNextPage && !moreFailed ? (
-              <Section title={hasActiveFilters ? 'No matching activity' : 'No activity yet'}>
-                <Text style={styles.message}>
-                  {hasActiveFilters
-                    ? 'Adjust or clear the filters to view more activity.'
-                    : 'Recorded transfers will appear here, including those awaiting confirmation.'}
-                </Text>
+              <>
+                <Text style={styles.message}>{hasActiveFilters ? 'No matching activity.' : 'No activity yet.'}</Text>
                 {hasActiveFilters && <Action label="Clear filters" onPress={clear} />}
-              </Section>
+              </>
             ) : (
               <View>
                 {transactions.map((transaction) => (
@@ -129,7 +125,7 @@ export function TransactionsScreen() {
                 {transactions.length} of {totalCount} records shown
               </Text>
             )}
-          </>
+          </Section>
         )}
       </ScrollView>
       <TransactionFiltersModal
