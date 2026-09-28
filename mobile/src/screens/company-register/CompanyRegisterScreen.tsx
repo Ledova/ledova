@@ -59,11 +59,11 @@ export function CompanyRegisterScreen() {
             ) : query.data.length === 0 ? (
               <Text style={styles.muted}>Your company has no share classes yet.</Text>
             ) : (
-              query.data.map(({ companyName, register }) => {
+              query.data.map(({ companyName, register }, index) => {
                 const uuid = register.token.uuid;
                 const open = expanded.includes(uuid);
                 return (
-                  <View key={uuid} style={styles.entry}>
+                  <View key={uuid} style={[styles.entry, index === query.data.length - 1 && styles.lastEntry]}>
                     <Pressable
                       accessibilityRole="button"
                       accessibilityState={{ expanded: open }}

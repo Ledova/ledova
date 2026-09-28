@@ -74,8 +74,8 @@ export function WalletsScreen() {
                 return (
                   <Section key={chain} title={name}>
                     {wallets.length ? (
-                      wallets.map((wallet) => (
-                        <View key={wallet.uuid} style={styles.item}>
+                      wallets.map((wallet, index) => (
+                        <View key={wallet.uuid} style={[styles.item, index === wallets.length - 1 && styles.lastItem]}>
                           <Text style={styles.name}>{wallet.name || 'Unnamed wallet'}</Text>
                           <Row label="Address">{wallet.address}</Row>
                           <Row label="Balance">

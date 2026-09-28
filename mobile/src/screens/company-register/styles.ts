@@ -6,6 +6,7 @@ export const useCompanyStyles = () =>
     content: { padding: 20, paddingBottom: 48, gap: 28 },
     group: { gap: 12 },
     entry: { gap: 8, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.border.subtle },
+    lastEntry: { paddingBottom: 0, borderBottomWidth: 0 },
     title: { fontFamily: theme.fontFamily.display, fontSize: 34, color: theme.colors.text.primary },
     heading: { fontFamily: theme.fontFamily.medium, fontSize: 17, color: theme.colors.text.primary },
     text: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 21, color: theme.colors.text.primary },

@@ -17,7 +17,10 @@ import { useMarketStyles } from '../styles';
 function BookSide({ title, entries }: { title: string; entries: OrderBookEntry[] }) {
   const styles = useMarketStyles();
   return (
-    <Section title={title}>
+    <View style={styles.fields}>
+      <Text accessibilityRole="header" style={styles.heading}>
+        {title}
+      </Text>
       {entries.length === 0 ? (
         <Text style={styles.muted}>No orders listed.</Text>
       ) : (
@@ -29,7 +32,7 @@ function BookSide({ title, entries }: { title: string; entries: OrderBookEntry[]
           </View>
         ))
       )}
-    </Section>
+    </View>
   );
 }
 
@@ -88,7 +91,7 @@ export function OrdersCard({
     return () => clearInterval(timer);
   }, []);
   return (
-    <View style={styles.fields}>
+    <>
       {tokenSymbol && (
         <Section title={`Orders for ${tokenSymbol}`}>
           {orderBookError ? (
@@ -237,6 +240,6 @@ export function OrdersCard({
           })
         )}
       </Section>
-    </View>
+    </>
   );
 }
