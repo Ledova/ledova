@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
@@ -28,6 +28,7 @@ const FIELD_CLASS =
 const ACTION_ERROR = 'The request was refused. Please try again.';
 
 export default function ListingPage() {
+  const navigate = useNavigate();
   const data = useCompany();
   const { company } = data;
   const client = useQueryClient();
@@ -170,10 +171,10 @@ export default function ListingPage() {
   );
   return (
     <>
-      <Page loading={data.isLoading}>
-        <Link to={DESTINATIONS.company.path} className="w-fit text-sm text-brand-light underline">
-          Back to Company
-        </Link>
+      <Page
+        loading={data.isLoading}
+        actions={<PageAction label="Back to Company" onClick={() => navigate(DESTINATIONS.company.path)} />}
+      >
         {data.error ? (
           <CompanyReadNotice read={data} />
         ) : !company ? (

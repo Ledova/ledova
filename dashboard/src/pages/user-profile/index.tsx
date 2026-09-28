@@ -31,9 +31,7 @@ export function UserProfilePage() {
         <p role="alert" className="text-sm text-error-light">
           Your profile could not be loaded.
         </p>
-        <div>
-          <PageAction label="Try again" onClick={refreshProfile} />
-        </div>
+        <PageAction label="Try again" onClick={refreshProfile} />
       </Page>
     );
   }
@@ -115,9 +113,7 @@ export function UserProfilePage() {
             </div>
           </form>
         ) : (
-          <div>
-            <PageAction label="Edit phone" onClick={editPhone} />
-          </div>
+          <PageAction label="Edit phone" onClick={editPhone} />
         )}
       </Section>
       <Section title="Account status">
@@ -132,9 +128,7 @@ export function UserProfilePage() {
           <Row label="Member since">{formatDate(userProfile.dateJoined, 'Not available')}</Row>
           <Row label="Last login">{formatDateTime(userProfile.lastLogin)}</Row>
         </Rows>
-        <div>
-          <PageAction label="Review identity check" onClick={() => setVerificationOpen(true)} />
-        </div>
+        <PageAction label="Review identity check" onClick={() => setVerificationOpen(true)} />
       </Section>
       {documentsEnabled && (
         <Section title="Supporting payslips">

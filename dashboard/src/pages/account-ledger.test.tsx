@@ -178,6 +178,12 @@ it('retains the confirmed preference when saving fails and allows retry', async 
   expect(screen.queryByRole('alert')).toBeNull();
 });
 
+it('reaches Profile from its settings row', async () => {
+  show('settings');
+  await screen.findByRole('switch');
+  expect(screen.getByRole('link', { name: 'Profile' }).getAttribute('href')).toBe('/user-profile');
+});
+
 it('hides a stale preference after refresh failure', async () => {
   const client = show('settings');
   await screen.findByRole('switch');

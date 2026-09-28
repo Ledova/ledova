@@ -54,6 +54,11 @@ export function ShareClassScreen() {
         }
       }}
     >
+      <Action
+        disabled={create.isPending}
+        label="Back to Directory"
+        onPress={() => navigation.navigate('DirectoryMain')}
+      />
       {hasError ? (
         <View style={styles.group}>
           <Text accessibilityRole="alert" style={styles.message}>
@@ -151,11 +156,6 @@ export function ShareClassScreen() {
           </Section>
         </>
       )}
-      <Action
-        disabled={create.isPending}
-        label="Back to Directory"
-        onPress={() => navigation.navigate('DirectoryMain')}
-      />
     </DirectoryPage>
   );
 }

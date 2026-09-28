@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   DESTINATIONS,
   REGISTER_COPY,
@@ -54,10 +54,12 @@ export default function ShareClassPage() {
 }
 
 export function ShareClass({ uuid }: { uuid: string }) {
+  const navigate = useNavigate();
   const data = useShareClass(uuid);
   const [form, setForm] = useState<'issue' | 'raise' | null>(null);
   const [copyError, setCopyError] = useState(false);
   const token = data.token.data;
+  const back = <PageAction label="Back to Register" onClick={() => navigate(DESTINATIONS.companyRegister.path)} />;
   const requestForms = token && (
     <>
       {form === 'issue' && (
@@ -68,19 +70,16 @@ export function ShareClass({ uuid }: { uuid: string }) {
       )}
     </>
   );
-  if (data.token.isPending) return <Page loading />;
+  if (data.token.isPending) return <Page loading actions={back} />;
   if (data.token.isError || !token)
     return (
       <>
-        <Page>
+        <Page actions={back}>
           <div role="alert" className="space-y-3">
             <p className="text-sm text-text-muted">
               This share class could not be loaded. It may be unavailable to this account.
             </p>
             <PageAction label="Try again" onClick={() => void data.token.refetch()} disabled={data.token.isFetching} />
-            <Link to={DESTINATIONS.companyRegister.path} className="block text-sm text-brand-light underline">
-              Back to Register
-            </Link>
           </div>
         </Page>
         {requestForms}
@@ -103,13 +102,7 @@ export function ShareClass({ uuid }: { uuid: string }) {
   const issuances = data.issuances.data ?? [];
   return (
     <>
-      <Page>
-        <Link
-          to={DESTINATIONS.companyRegister.path}
-          className="w-fit text-sm text-brand-light underline underline-offset-4"
-        >
-          Back to Register
-        </Link>
+      <Page actions={back}>
         <Section title={token.name}>
           <p className="text-sm text-text-muted">
             {token.companyName} · {token.symbol} · {token.tokenTypeDisplay}

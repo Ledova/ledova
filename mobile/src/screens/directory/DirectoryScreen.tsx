@@ -1,9 +1,9 @@
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { formatDate, formatMoney, type DirectoryToken } from '@ledova/shared';
 import type { DirectoryStackParamList } from '../../navigation/DirectoryStackNavigator';
-import { Action, Section } from '../../components/Ledger';
+import { Action, LinkRow, Section } from '../../components/Ledger';
 import { DirectoryPage, useDirectoryStyles } from './DirectoryPage';
 import { useDirectoryTokens } from './useDirectory';
 
@@ -28,7 +28,7 @@ export function DirectoryScreen() {
             The directory shows share classes available to eligible investors. Submit your evidence for the operator to
             review.
           </Text>
-          <Action label="Open Verification" onPress={() => navigation.getParent()?.navigate('InvestorEligibility')} />
+          <LinkRow label="Verification" onPress={() => navigation.getParent()?.navigate('InvestorEligibility')} />
         </Section>
       ) : (
         <>
@@ -48,14 +48,12 @@ export function DirectoryScreen() {
                     </Text>
                   )}
                   {classes.map((token) => (
-                    <Pressable
+                    <LinkRow
                       key={token.uuid}
-                      accessibilityRole="button"
+                      label={token.name}
                       accessibilityLabel={`Open ${token.name}`}
                       onPress={() => navigation.navigate('DirectoryClass', { uuid: token.uuid })}
-                      style={styles.item}
                     >
-                      <Text style={styles.label}>{token.name}</Text>
                       <Text style={styles.help}>{token.symbol}</Text>
                       <Text style={styles.message}>{token.openOffering ? 'Offering open' : 'No offering open'}</Text>
                       {token.openOffering && (
@@ -70,7 +68,7 @@ export function DirectoryScreen() {
                           </Text>
                         </>
                       )}
-                    </Pressable>
+                    </LinkRow>
                   ))}
                 </Section>
               );

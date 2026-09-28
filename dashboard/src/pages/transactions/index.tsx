@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { FunnelIcon } from '@phosphor-icons/react';
-import { DESTINATIONS, getBlockExplorerTxUrl } from '@ledova/shared';
+import { getBlockExplorerTxUrl } from '@ledova/shared';
 import type { Transaction } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { Section } from '@components/Ledger';
@@ -60,17 +59,12 @@ export const TransactionsPage = () => {
   return (
     <Page
       actions={
-        <>
-          <Link to={DESTINATIONS.publications.path} className="text-sm text-brand-light underline underline-offset-4">
-            Open Notices
-          </Link>
-          <PageAction
-            icon={<FunnelIcon size={16} />}
-            label="Filter"
-            onClick={() => setShowFiltersModal(true)}
-            active={hasActiveFilters}
-          />
-        </>
+        <PageAction
+          icon={<FunnelIcon size={16} />}
+          label="Filter"
+          onClick={() => setShowFiltersModal(true)}
+          active={hasActiveFilters}
+        />
       }
     >
       <p className="text-sm text-text-muted">
@@ -92,11 +86,7 @@ export const TransactionsPage = () => {
               <p className="py-3 text-sm text-text-muted">
                 {hasActiveFilters ? 'No matching activity.' : 'No activity yet.'}
               </p>
-              {hasActiveFilters && (
-                <div>
-                  <PageAction label="Clear filters" onClick={handleClearFilters} />
-                </div>
-              )}
+              {hasActiveFilters && <PageAction label="Clear filters" onClick={handleClearFilters} />}
             </>
           ) : (
             <div className="divide-y divide-border-subtle">
@@ -116,13 +106,11 @@ export const TransactionsPage = () => {
             </div>
           ) : (
             hasNextPage && (
-              <div>
-                <PageAction
-                  label={isLoadingMore ? 'Loading activity…' : 'Load more activity'}
-                  onClick={() => void loadMore()}
-                  disabled={isLoadingMore}
-                />
-              </div>
+              <PageAction
+                label={isLoadingMore ? 'Loading activity…' : 'Load more activity'}
+                onClick={() => void loadMore()}
+                disabled={isLoadingMore}
+              />
             )
           )}
           {transactions.length > 0 && (

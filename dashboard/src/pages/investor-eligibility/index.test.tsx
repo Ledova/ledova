@@ -104,7 +104,7 @@ it('reads every claim page so an older pending claim still prevents duplicate su
     expect((button as HTMLButtonElement).disabled).toBe(true);
   }
   expect(api.get).toHaveBeenCalledWith(INVESTOR_CLASSIFICATION_ENDPOINTS.BASE, { params: { page: 2 } });
-  expect(screen.getByRole('link', { name: 'View the directory' }).getAttribute('href')).toBe('/directory');
+  expect(screen.getByRole('link', { name: 'Directory' }).getAttribute('href')).toBe('/directory');
 });
 
 it.each(['eligibility', 'claims', 'later claims'])(
@@ -267,7 +267,7 @@ it('shows expiry, review dates and refusal reasons without truncating the claim 
   expect(screen.getByText('Every holder on the account must finish identity verification.')).toBeTruthy();
   expect(screen.getByText('Please provide current evidence.')).toBeTruthy();
   expect(screen.getByText('Expires')).toBeTruthy();
-  expect(screen.queryByRole('link', { name: 'View the directory' })).toBeNull();
+  expect(screen.queryByRole('link', { name: 'Directory' })).toBeNull();
 });
 
 it('surfaces a refused withdrawal and retries it, refreshing claims and eligibility after success', async () => {

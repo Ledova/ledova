@@ -48,14 +48,15 @@ afterEach(() => {
   client.clear();
 });
 
-it('keeps the Application title and Company link when no company exists', async () => {
+it('keeps the Application title and the way back to Company when no company exists', async () => {
   api.get.mockImplementation(async (url: string) => ({
     data: url === '/api/v1/companies/' ? { results: [] } : { name: 'Example Registry' },
   }));
   show();
   expect(await screen.findByText(/No company found/)).toBeTruthy();
   expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Application');
-  expect(screen.getByRole('link', { name: 'Back to Company' }).getAttribute('href')).toBe('/company');
+  fireEvent.click(screen.getByRole('button', { name: 'Back to Company' }));
+  expect(await screen.findByText('Company page')).toBeTruthy();
 });
 
 it.each(['/api/v1/companies/', COMPANY])(

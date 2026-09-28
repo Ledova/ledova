@@ -2,7 +2,7 @@
 
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { TRANSACTION_ENDPOINTS, WALLET_ENDPOINTS, getBlockExplorerTxUrl, type Transaction } from '@ledova/shared';
 import { PageTitle } from '@components/PageTitle';
@@ -43,10 +43,7 @@ function show() {
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={['/transactions']}>
         <PageTitle.Provider value="Activity">
-          <Routes>
-            <Route path="/transactions" element={<TransactionsPage />} />
-            <Route path="/publications" element={<p>Notices page</p>} />
-          </Routes>
+          <TransactionsPage />
         </PageTitle.Provider>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -70,10 +67,10 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-it('links to the canonical Notices page', async () => {
+it('offers only Filter in the title row, leaving Notices to the sidebar', () => {
   show();
-  fireEvent.click(screen.getByRole('link', { name: 'Open Notices' }));
-  expect(await screen.findByText('Notices page')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Filter' })).toBeTruthy();
+  expect(screen.queryByRole('link', { name: 'Open Notices' })).toBeNull();
 });
 
 it('loads history independently of an empty wallet selector and preserves exact amounts', async () => {

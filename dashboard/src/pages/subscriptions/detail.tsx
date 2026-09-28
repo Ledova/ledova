@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   DESTINATIONS,
   SUBSCRIPTION_COPY,
@@ -76,6 +76,7 @@ function Summary({ subscription }: { subscription: SubscriptionDetail }) {
 
 export default function SubscriptionDetailPage() {
   const { uuid } = useParams<{ uuid: string }>();
+  const navigate = useNavigate();
   const { subscription, isLoading, notFound, hasError, isRefreshing, retry, submit, withdraw } = useSubscription(uuid);
 
   if (isLoading) {
@@ -97,15 +98,11 @@ export default function SubscriptionDetailPage() {
 
   if (!subscription || notFound) {
     return (
-      <Page>
+      <Page
+        actions={<PageAction label="Back to Applications" onClick={() => navigate(DESTINATIONS.subscriptions.path)} />}
+      >
         <Section title="Not available">
           <p className="text-sm text-text-muted">This application is not one of yours, or it no longer exists.</p>
-          <Link
-            to={DESTINATIONS.subscriptions.path}
-            className="text-sm font-medium text-brand-light hover:text-brand-subtle"
-          >
-            All applications
-          </Link>
         </Section>
       </Page>
     );
