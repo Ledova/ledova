@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { BLOCKCHAIN, WALLET_VERIFICATION_STATUS, getChainShortCode } from '@ledova/shared';
+import { BLOCKCHAIN, WALLET_VERIFICATION_STATUS, getChainShortCode, useCurrency } from '@ledova/shared';
 import type { WalletsStackParamList } from '../../navigation/WalletsStackNavigator';
 import { Section, Row, Action } from '../../components/Ledger';
 import { WalletSortModal, useWalletSort } from '../../components/wallet-list';
@@ -12,7 +12,6 @@ import { useWallets } from './useWallets';
 import { useWalletsCrud } from './useWalletsCrud';
 import { WalletsPage, useWalletStyles } from './WalletsPage';
 import { walletBalance } from './presentation';
-import { useCurrency } from '@ledova/shared';
 
 export function WalletsScreen() {
   const styles = useWalletStyles();

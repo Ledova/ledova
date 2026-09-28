@@ -13,10 +13,10 @@ import {
   getBlockchainDisplayName,
   formatDate,
   getErrorMessage,
+  useCurrency,
 } from '@ledova/shared';
 import type { WalletsStackParamList } from '../../../navigation/WalletsStackNavigator';
 import { Section, Row, Action } from '../../../components/Ledger';
-import { useCurrency } from '@ledova/shared';
 import { DeleteWalletModal } from './DeleteWalletModal';
 import { DeriveAddressModal } from './DeriveAddressModal';
 import { useWalletsCrud } from '../useWalletsCrud';
