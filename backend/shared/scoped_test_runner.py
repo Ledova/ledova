@@ -94,6 +94,7 @@ SCOPED_TEST_LABELS = (
     "documents.tests.test_evidence_under_scoped_roles.ScopedSupportingEvidenceTest",
     "wallets.tests.test_network_identity.ScopedWalletNetworkIdentityTest",
     "wallets.tests.test_holding_share_class.ScopedHoldingShareClassTest",
+    "wallets.tests.test_paused_class_transfer_refusal.ScopedPausedClassTransferRefusalTest",
     "companies.tests.test_registry_policy.ReviewedCompanyDeletionOnScopedConnectionTest",
     "blockchain.tests.test_monitor_scoped.ScopedMonitorObservationsTest",
     "users.tests.test_notification_tasks_scoped.NotificationTasksUseRecipientRolesTest",
