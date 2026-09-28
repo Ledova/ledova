@@ -4,7 +4,12 @@
 
 Wallet transfer preparation and broadcast support selected native and crypto
 asset transfers on allowed test networks. Share classes are refused by these
-routes; share movement has its own issuance and trading mechanisms.
+routes; share movement has its own issuance and trading mechanisms. The
+refusal resolves the destination through the caller's view of the class and
+then through the global asset catalogue, so it holds while a class is paused
+and hidden from non-issuers. A class marked deployed whose address the factory
+never attested has no catalogue entry yet; until recovery re-projects the
+deployment, only its issuer's view refuses a value-only transaction to it.
 
 EVM clients sign locally or through a hardware-wallet QR exchange. Bitcoin sends
 are signed with external tooling. Both backend submission paths decode signed
