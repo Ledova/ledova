@@ -6,7 +6,8 @@ import { marketAmount, marketQuantity } from '../marketData';
 
 function BookSide({ title, entries }: { title: string; entries: OrderBookEntry[] }) {
   return (
-    <Section title={title}>
+    <div className="flex flex-col gap-2">
+      <h3 className="text-sm font-medium text-text-primary">{title}</h3>
       {entries.length === 0 ? (
         <p className="text-sm text-text-muted">No orders listed.</p>
       ) : (
@@ -26,7 +27,7 @@ function BookSide({ title, entries }: { title: string; entries: OrderBookEntry[]
           </div>
         ))
       )}
-    </Section>
+    </div>
   );
 }
 

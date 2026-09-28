@@ -413,7 +413,10 @@ the public layout has a footer.
 Pages rebuilt in the paper layout use the ledger blocks in
 `dashboard/src/components/Ledger.tsx`:
 
-- `Section`: a Newsreader heading over a hairline rule, with no card.
+- `Section`: a white card on the paper ground (`bg-surface-raised`, a
+  `border-border` hairline, `rounded-xl`), with its Newsreader title inside at
+  the top and no rule under it. The page's title row stays on the paper above
+  the cards.
 - `Rows`: ruled label and value pairs, with figures right-aligned in tabular
   numerals. Every amount names its currency (`formatMoney`), and share counts
   are whole numbers.
@@ -454,8 +457,11 @@ repeated in a title row. An underlined link is part of a sentence ("open
 Notices") or opens an external resource such as a block explorer or a stored
 document. Mobile's `LinkRow` and `Action` follow the same rule.
 
-White cards stay for forms and for things to act on, such as a payment
-instruction. The application page is the first page built this way.
+Every section is its own card, including forms and things to act on such as a
+payment instruction, and a card holds no further card: a group inside a
+section is set off by a rule or a small heading, as the For sale and Wanted
+lists on Market, the saved payslips on Profile and a vote's confirmation on
+Notices are ([decision](../decisions.md#the-signed-in-app)).
 
 The design tokens are the single source of colour, spacing and radius values.
 `make generate-tokens` runs `packages/scripts/generate-css-tokens.mjs` with

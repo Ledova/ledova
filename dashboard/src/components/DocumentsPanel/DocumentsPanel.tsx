@@ -147,7 +147,7 @@ function ClaimSelector({
       value={value}
       onChange={(event) => onChange(event.target.value)}
       disabled={disabled}
-      className="w-full bg-surface-secondary border border-border-subtle rounded px-3 py-2 text-sm text-text-primary"
+      className="w-full bg-surface-raised border border-border-subtle rounded px-3 py-2 text-sm text-text-primary"
     >
       <option value="">Keep unattached</option>
       {claims
@@ -175,7 +175,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
   };
 
   return (
-    <div className="border border-border-subtle rounded-lg p-3 bg-surface-tertiary/50">
+    <div className="border-t border-border-subtle pt-3">
       <div className="flex items-center gap-3">
         <FileTextIcon size={ICON_MD} className="text-text-muted flex-shrink-0" />
         <div className="min-w-0 flex-1">
@@ -273,7 +273,7 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
   };
 
   return (
-    <div className="border border-dashed border-border-default rounded-lg p-4 space-y-3">
+    <div className="border border-dashed border-border rounded-lg p-4 space-y-3">
       {!file ? (
         <button
           type="button"
@@ -306,7 +306,7 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
             <select
               value={documentType}
               onChange={(e) => setDocumentType(e.target.value as DocumentType)}
-              className="bg-surface-secondary border border-border-subtle rounded px-3 py-2 text-sm text-text-primary"
+              className="bg-surface-raised border border-border-subtle rounded px-3 py-2 text-sm text-text-primary"
               disabled={upload.isPending}
             >
               <option value="payslip">Payslip</option>
@@ -323,7 +323,7 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
               onChange={(e) => setNote(e.target.value)}
               placeholder="Note (optional)"
               maxLength={255}
-              className="flex-1 bg-surface-secondary border border-border-subtle rounded px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
+              className="flex-1 bg-surface-raised border border-border-subtle rounded px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
               disabled={upload.isPending}
             />
           </div>

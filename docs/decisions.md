@@ -503,6 +503,16 @@ requests on #785 carry out the last three:
   onto the user preferences record; delete the separate model, table, route and
   admin, with a migration carrying each person's setting across."
 
+The owner chose the look of the signed-in pages on 29 September 2026:
+
+- **A card per section.** Shown an older build that grouped Settings, Profile,
+  Wallets and Activity in cards, the owner said: "I like how those cards enhance
+  the look and feel, otherwise everything looks a little cluttered." Shown two
+  treatments, each section as a card with its title inside or a grouped list
+  with the title above the card, the owner chose the first: "A for the cards, A
+  is a better style." Each ledger section is a white card on the paper ground;
+  the page's title and actions stay on the paper above the cards.
+
 ## The account-data export
 
 A person's own data export carries every transaction of their wallets, with no
