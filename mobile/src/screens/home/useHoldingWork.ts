@@ -4,6 +4,7 @@ import {
   CACHE_TIMING,
   USER_PREFERENCES_QUERY_KEY,
   getNextPageParam,
+  getPublications,
   getSubscriptions,
   useAuth,
   usePublicationSummary,
@@ -48,6 +49,17 @@ export function useHoldingWork() {
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
 
+  const recent = useQuery({
+    queryKey: ['publications', 'addressed', 'me', 'latest', epoch],
+    queryFn: async () => {
+      assertSessionEpoch(epoch);
+      const { data } = await getPublications(apiClient, 1, { addressed: 'me' });
+      assertSessionEpoch(epoch);
+      return data.results.slice(0, 3);
+    },
+    staleTime: CACHE_TIMING.SHORT_STALE_TIME,
+  });
+
   const retryAccount = () => (auth.isAuthenticated ? preferences.refetch() : auth.refetch());
 
   return {
@@ -58,8 +70,13 @@ export function useHoldingWork() {
     retryAccount,
     applications,
     notices,
-    isRefreshing: applications.isFetching || notices.isFetching || checkingAccount,
+    recent,
+    isRefreshing: applications.isFetching || notices.isFetching || recent.isFetching || checkingAccount,
     refresh: () =>
-      Promise.all([notices.retry(), known ? (investing ? applications.refetch() : Promise.resolve()) : retryAccount()]),
+      Promise.all([
+        notices.retry(),
+        recent.refetch(),
+        known ? (investing ? applications.refetch() : Promise.resolve()) : retryAccount(),
+      ]),
   };
 }

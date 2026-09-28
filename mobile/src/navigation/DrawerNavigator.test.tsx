@@ -128,10 +128,11 @@ it.each([
   for (const name of ['Holdings', 'Notices', 'Activity', 'Wallets'])
     expect(view.getByRole('button', { name })).toBeTruthy();
   expect(Boolean(view.queryByRole('header', { name: 'Company' }))).toBe(isCompany);
-  expect(Boolean(view.queryByRole('button', { name: 'Application' }))).toBe(isCompany);
   expect(Boolean(view.queryByRole('button', { name: 'Register' }))).toBe(isCompany);
   expect(Boolean(view.queryByRole('button', { name: 'Offerings' }))).toBe(isCompany);
-  expect(Boolean(view.queryByRole('button', { name: 'Published to your members' }))).toBe(isCompany);
+  expect(Boolean(view.queryByRole('button', { name: 'Company' }))).toBe(isCompany);
+  expect(view.queryByRole('button', { name: 'Application' })).toBeNull();
+  expect(view.queryByRole('button', { name: 'Published to your members' })).toBeNull();
   expect(Boolean(view.queryByRole('header', { name: 'Invest' }))).toBe(isInvestor);
   expect(Boolean(view.queryByRole('button', { name: 'Market' }))).toBe(isInvestor);
   expect(Boolean(view.queryByRole('button', { name: 'Verification' }))).toBe(isInvestor);
@@ -149,6 +150,9 @@ it.each([
   await fireEvent.press(view.getByRole('button', { name: 'Activity' }));
   expect(mockNavigate).toHaveBeenLastCalledWith('MainApp', { screen: 'Main', params: { screen: 'Transactions' } });
   if (isCompany) {
+    const buttons = view.getAllByRole('button');
+    const at = (name: string) => buttons.indexOf(view.getByRole('button', { name }));
+    expect([at('Offerings'), at('Company')]).toEqual([at('Register') + 1, at('Register') + 2]);
     await fireEvent.press(view.getByRole('button', { name: 'Offerings' }));
     expect(mockNavigate).toHaveBeenLastCalledWith('MainApp', {
       screen: 'Main',
@@ -163,11 +167,6 @@ it.each([
     expect(mockNavigate).toHaveBeenLastCalledWith('MainApp', {
       screen: 'Main',
       params: { screen: 'Company', params: { screen: 'CompanyDetails' } },
-    });
-    await fireEvent.press(view.getByRole('button', { name: 'Published to your members' }));
-    expect(mockNavigate).toHaveBeenLastCalledWith('MainApp', {
-      screen: 'Main',
-      params: { screen: 'Company', params: { screen: 'CompanyPublications' } },
     });
   }
   if (isInvestor) {

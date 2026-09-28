@@ -178,11 +178,17 @@ async function edit() {
   return view;
 }
 
-it('reads all owned offering, class and subscription pages and retains precise money and zero versus missing amounts', async () => {
+it('reads all owned offering, class and application pages and retains precise money and zero versus missing amounts', async () => {
   const view = await start();
   expect(view.queryByText('Foreign offering (EXA)')).toBeNull();
   expect(await view.findByText('Example investor 2')).toBeTruthy();
-  expect(view.getByText('2 subscriptions')).toBeTruthy();
+  expect(view.getByRole('header', { name: 'Applications' })).toBeTruthy();
+  expect(
+    view.getByText(
+      'Read-only. Payment confirmation and allotment are done by Example Operator; this is where you watch them happen.',
+    ),
+  ).toBeTruthy();
+  expect(view.getByText('2 applications')).toBeTruthy();
   expect(view.getByText(/AUD\s9,999,999,999,999,999\.99/)).toBeTruthy();
   expect(view.getByText(/AUD\s0\.00/)).toBeTruthy();
   expect(view.getByText('EXAMPLE-2')).toBeTruthy();
@@ -196,13 +202,13 @@ it('makes no company or offering read for a member account', async () => {
   expect(get).not.toHaveBeenCalled();
 });
 
-it('does not present incomplete subscriptions as complete and retries every page', async () => {
+it('does not present incomplete applications as complete and retries every page', async () => {
   badPage = SUBSCRIPTIONS;
   const view = await start();
-  expect(await view.findByText('Subscriptions could not be loaded. Try again before continuing.')).toBeTruthy();
+  expect(await view.findByText('Applications could not be loaded. Try again before continuing.')).toBeTruthy();
   expect(view.queryByText('Example investor 1')).toBeNull();
   badPage = null;
-  await fireEvent.press(view.getByRole('button', { name: 'Retry subscriptions' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Retry applications' }));
   expect(await view.findByText('Example investor 2')).toBeTruthy();
 });
 

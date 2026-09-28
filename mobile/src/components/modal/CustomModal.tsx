@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Modal, ScrollView, TouchableOpacity, Text } from 'react-native';
 import { overlayColors } from '../../contexts';
-import { useAppTheme, useThemedStyles } from '../../contexts';
+import { useThemedStyles } from '../../contexts';
 
 interface CustomModalProps {
   visible: boolean;
@@ -32,7 +32,6 @@ export function CustomModal({
   confirmLoading = false,
   maxHeight,
 }: CustomModalProps) {
-  const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
     overlay: {
       flex: 1,

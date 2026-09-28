@@ -7917,16 +7917,12 @@
           },
           "openResolutions": {
             "type": "integer"
-          },
-          "publishedSince": {
-            "type": "integer"
           }
         },
         "required": [
           "dividendsWithoutRecord",
           "nextClosesAt",
-          "openResolutions",
-          "publishedSince"
+          "openResolutions"
         ],
         "type": "object"
       },

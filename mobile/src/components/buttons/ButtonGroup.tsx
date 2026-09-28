@@ -2,7 +2,7 @@ import React from 'react';
 import { View, ViewStyle } from 'react-native';
 import { PrimaryButton } from './PrimaryButton';
 import { SecondaryButton } from './SecondaryButton';
-import { useAppTheme, useThemedStyles } from '../../contexts';
+import { useThemedStyles } from '../../contexts';
 
 interface ButtonGroupProps {
   secondaryButton?: {
@@ -29,7 +29,6 @@ interface ButtonGroupProps {
 }
 
 export function ButtonGroup({ secondaryButton, primaryButton, size = 'medium', style }: ButtonGroupProps) {
-  const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
     container: {
       flexDirection: 'row',

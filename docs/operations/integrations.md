@@ -176,9 +176,9 @@ There is no manual registry override or stale-pass fallback.
 
 ## Notifications and push
 
-Every `Notification` row is written by `NotificationService.notify_user`
-(`users/services/notifications.py`), from one of two tasks in
-`users/tasks/notifications.py`:
+The application writes every `Notification` row through
+`NotificationService.notify_user` (`users/services/notifications.py`), from one of
+two tasks in `users/tasks/notifications.py`:
 - confirmed and failed transactions defer `send_transaction_notification`;
 - every other sender defers `send_push_notification`.
 
@@ -186,6 +186,9 @@ A sender records nothing when its change happens; it only defers the job. The
 in-app inbox (the dashboard bell, the mobile inbox) therefore needs a running
 Procrastinate worker. With no worker, the change succeeds and the inbox stays
 empty until a worker drains the queue.
+
+Staff can also add, change and delete rows in the Django admin
+(`users/admin/notification.py`); a row added there sends no push.
 
 Each notice names its kind as `type` in its `data`, and the dashboard bell opens
 that kind's page:

@@ -8,8 +8,10 @@ import type { AxiosInstance } from 'axios';
 import { NotificationBell } from './index';
 
 const get = vi.fn();
-const patch = vi.fn(async () => ({ data: {} }));
-const apiClient = { get, patch } as unknown as AxiosInstance;
+const patch = vi.fn<(url: string, body: unknown) => Promise<{ data: object }>>();
+const post = vi.fn<(url: string) => Promise<{ data: object }>>();
+const apiClient = { get, patch, post } as unknown as AxiosInstance;
+const LIST = '/api/notifications/';
 
 const published = {
   uuid: 'notification-a',
@@ -28,14 +30,18 @@ const unrelated = {
 };
 
 let client: QueryClient;
-let rows: unknown[];
+let rows: { uuid: string; title: string; isRead: boolean; data?: unknown }[];
 
 beforeEach(() => {
   vi.clearAllMocks();
+  patch.mockImplementation(async () => ({ data: {} }));
+  post.mockImplementation(async () => ({ data: {} }));
   rows = [published];
   client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   get.mockImplementation(async (url: string) =>
-    url.includes('unread-count') ? { data: { unreadCount: rows.length } } : { data: { results: rows } },
+    url.includes('unread-count')
+      ? { data: { unreadCount: rows.filter((row) => !row.isRead).length } }
+      : { data: { results: rows } },
   );
 });
 
@@ -165,5 +171,73 @@ describe('the bell itself', () => {
 
     expect(container.contains(screen.getByRole('button', { name: 'Notifications, 1 unread' }))).toBe(true);
     expect(container.contains(notice)).toBe(false);
+  });
+});
+
+describe('the open panel after a change', () => {
+  const third = { ...published, uuid: 'notification-c', title: 'A third notice', data: { type: 'system' } };
+  const listReads = () => get.mock.calls.filter(([url]) => url === LIST).length;
+  const noticeButton = (title: string) => screen.getByText(title).closest('button')!;
+
+  it('moves focus to the next notice when one is dismissed, the previous when the last goes, then the heading', async () => {
+    rows = [published, unrelated, third];
+    patch.mockImplementation(async (url: string) => {
+      rows = rows.filter((row) => url !== `/api/notifications/${row.uuid}/`);
+      return { data: {} };
+    });
+    showBell();
+    fireEvent.click(await screen.findByRole('button', { name: 'Notifications, 3 unread' }));
+    const dismiss = async (title: string) => {
+      const button = await screen.findByRole('button', { name: `Dismiss ${title}` });
+      button.focus();
+      fireEvent.click(button);
+      await waitFor(() => expect(screen.queryByText(title)).toBeNull());
+    };
+
+    await dismiss(unrelated.title);
+    expect(document.activeElement).toBe(noticeButton(third.title));
+    await dismiss(third.title);
+    expect(document.activeElement).toBe(noticeButton(published.title));
+    await dismiss(published.title);
+    expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Notifications' }));
+  });
+
+  it('reloads the list and the count after one notice is read', async () => {
+    rows = [unrelated];
+    patch.mockImplementationOnce(async () => {
+      rows = [{ ...unrelated, isRead: true }];
+      return { data: {} };
+    });
+    showBell();
+    fireEvent.click(await screen.findByRole('button', { name: 'Notifications, 1 unread' }));
+    await screen.findByText(unrelated.title);
+    const before = listReads();
+
+    fireEvent.click(noticeButton(unrelated.title));
+
+    expect(await screen.findByRole('button', { name: 'Notifications' })).toBeTruthy();
+    await waitFor(() => expect(listReads()).toBe(before + 1));
+  });
+
+  it('reloads the list and the count after marking all as read, and keeps focus in the panel', async () => {
+    rows = [published, unrelated];
+    post.mockImplementationOnce(async () => {
+      rows = rows.map((row) => ({ ...row, isRead: true }));
+      return { data: {} };
+    });
+    showBell();
+    fireEvent.click(await screen.findByRole('button', { name: 'Notifications, 2 unread' }));
+    await screen.findByText(unrelated.title);
+    const before = listReads();
+    const markAll = screen.getByRole('button', { name: 'Mark all as read' });
+    markAll.focus();
+
+    fireEvent.click(markAll);
+
+    expect(await screen.findByRole('button', { name: 'Notifications' })).toBeTruthy();
+    expect(post).toHaveBeenCalledWith('/api/notifications/mark-all-read/');
+    await waitFor(() => expect(listReads()).toBe(before + 1));
+    expect(screen.queryByRole('button', { name: 'Mark all as read' })).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Notifications' }));
   });
 });

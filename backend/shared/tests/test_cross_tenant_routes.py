@@ -1167,9 +1167,10 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             published(here)
             a_resolution(here)
             a_distribution(here)
-            published(there)
+            a_resolution(there)
+            a_resolution(there)
         path = PUBLICATION_ROUTES["summary"][1]
-        nothing = {"openResolutions": 0, "nextClosesAt": None, "publishedSince": 0, "dividendsWithoutRecord": 0}
+        nothing = {"openResolutions": 0, "nextClosesAt": None, "dividendsWithoutRecord": 0}
         counted = {}
         for member in (here.members[0].user, there.members[0].user):
             self.client.force_authenticate(member)
@@ -1179,8 +1180,8 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         self.assertEqual(
             counted,
             {
-                here.members[0].user.pk: {"openResolutions": 1, "publishedSince": 3, "dividendsWithoutRecord": 1},
-                there.members[0].user.pk: {"openResolutions": 0, "publishedSince": 1, "dividendsWithoutRecord": 0},
+                here.members[0].user.pk: {"openResolutions": 1, "dividendsWithoutRecord": 1},
+                there.members[0].user.pk: {"openResolutions": 2, "dividendsWithoutRecord": 0},
             },
         )
         for actor in (here.owner, there.owner, *(tenant.user for tenant in self.actors)):

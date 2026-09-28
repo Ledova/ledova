@@ -10,7 +10,6 @@ export const HOLDER_TYPE_LABELS: Record<HolderType, string> = {
 };
 
 export const REGISTER_COPY = {
-  TITLE: 'Register Of Members',
   DOWNLOAD: 'Download CSV',
   DOWNLOAD_FAILED: 'The register could not be downloaded. Try again.',
   PRIVACY_NOTE:
@@ -27,16 +26,13 @@ export const REGISTER_COPY = {
     'Whether any completed issue or transfer waits to be recorded could not be checked. Try again before relying ' +
     'on these holdings.',
   NO_WALLET: 'No linked wallet',
-  NOT_OPENED_CLASSES: (symbols: string[]) =>
-    `Not opened yet, so their members are not listed: ${symbols.join(', ')}. An approved register opening starts ` +
-    'each one.',
   AMBIGUOUS_NOTE:
     "This member's wallets point to more than one person, so no name is shown. Resolve the wallet records before " +
     'relying on the register.',
   UNIDENTIFIED_NOTE:
     'No wallet linked to this member resolves to a person through its whitelist entry. Ask the operator to add one.',
-  SUBSCRIPTIONS_TITLE: 'Subscriptions',
-  SUBSCRIPTIONS_EMPTY: 'No subscription has been made to this offering yet.',
-  SUBSCRIPTIONS_NOTE:
-    'Read-only. Payment confirmation and allotment are operator actions; this is where you watch them happen.',
+  APPLICATIONS_TITLE: 'Applications',
+  APPLICATIONS_EMPTY: 'No one has applied to this offering yet.',
+  APPLICATIONS_NOTE: (operator: string) =>
+    `Read-only. Payment confirmation and allotment are done by ${operator}; this is where you watch them happen.`,
 } as const;

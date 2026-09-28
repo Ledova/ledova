@@ -246,6 +246,7 @@ it('shows exact captured values and records the actual software signature after 
   await load(settlement);
   expect(screen.getByText(/Shares: 9007199254740993 DEP/)).toBeTruthy();
   expect(screen.getByText('Payment: 13510798882111489.50 TUSD')).toBeTruthy();
+  expect(screen.getByText('Price per share: 1.50 TUSD')).toBeTruthy();
   enterSeed('trade');
   await waitFor(() => expect(settlement.getSnapshot().response?.hasSigned).toBe(true));
   await waitFor(() => expect(settlement.getSnapshot().phase).toBe('ready'));

@@ -106,9 +106,9 @@ A contract the allowlist does not know is recorded as an unverified `Asset`
 under a symbol no other row owns (the declared symbol, or the symbol plus a
 growing hex prefix of the contract address), compared case-insensitively.
 
-- Unverified rows are invisible to customers: the asset list and detail,
-  snapshots, favourites, wallet holdings, transactions, market values, price
-  sync and the portfolio value series all filter on `is_verified`. A quarantined
+- Unverified rows are invisible to customers: the asset list, wallet holdings,
+  transactions, market values, price sync and the portfolio value series all
+  filter on `is_verified`. A quarantined
   row is never priced, and its transaction is kept for audit without opening a
   `Holding`.
 - Allowlist a token with the asset admin's **Mark selected assets as verified

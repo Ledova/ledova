@@ -58,8 +58,7 @@ Each item takes its name and address from its entry in `DESTINATIONS`, so a
 menu label always matches the page's title. Activity keeps the `/transactions`
 address. Holdings replaces the crypto home at the existing `/home`
 address. Notices at `/publications` lists documents, resolutions and dividends
-addressed to the person. The old `/dividends` address redirects to Notices through
-the same signed-in route guard, keeping bookmarks and transaction links useful.
+addressed to the person.
 The mobile shell uses Holdings, Notices, Activity and the securities Market.
 Register is the native Company landing page. It reads every class and its stored
 register, with exact share quantities and complete-read failure states. A class
@@ -160,10 +159,12 @@ Below the shares, _Needs you_ links to the person's draft applications and
 payment instructions, and counts resolutions awaiting their vote. _In progress_
 lists applications under review, accepted but awaiting an instruction, or with
 payment received, and counts dividends awaiting a company payment record.
-That record is not proof of whether a bank transfer happened. Recent notices are
-counted separately as addressed in the last 30 days, not as unread. These are
-personal reads: every role gets the recipient-only publication summary; only a
-known investing role reads the applicant-filtered application list. All its
+That record is not proof of whether a bank transfer happened. _Recently
+published to you_ lists the three latest notices addressed to the person, each
+with its company, kind and date, and until when its vote is open. These are
+personal reads: every role gets the recipient-only publication summary and
+latest notices; only a known investing role reads the applicant-filtered
+application list. All its
 pages must succeed before application work is shown. Each source has its own
 loading, failure and retry state, and unavailable data is never called empty.
 Application changes invalidate the work summary, and notice counts refresh at
@@ -290,7 +291,7 @@ recovery retain their saved identities and session boundaries.
 
 Where market values are shown elsewhere, they are in AUD: the shared
 `useCurrency` converts the API's US-dollar values at the current rate, shows a
-dash and draws no chart while the rate is unknown, and neither client offers
+dash while the rate is unknown, and neither client offers
 another currency. An offering's prices and an application's amounts are in the
 offering's own currency, which defaults to AUD. The Buy step shows each
 asset's current price, and no price while the exchange rate is unknown. Both
@@ -425,7 +426,7 @@ theme switch. `PAPER_COLORS` is the palette. The marketing site uses it
 directly (`bg-paper`, `text-ink`, `border-rule`, `bg-ledger`). `PAPER_THEME`
 maps it onto the theme tokens, which are the generated defaults, so the
 dashboard's `bg-surface-*`, `text-text-*` and `brand` classes, and any code
-that reads `PAPER_THEME` for colours such as charts, render in paper. Both
+that reads `PAPER_THEME` directly, render in paper. Both
 clients bundle Newsreader for display text and Instrument Sans for everything
 else. Mobile also uses fixed paper and bundles these fonts with a finite
 loading/error/retry gate; saved local and account theme choices do not change

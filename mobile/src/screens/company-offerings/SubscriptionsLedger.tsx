@@ -6,15 +6,21 @@ import { useCompanyStyles } from '../company-register/styles';
 import { useOfferingSubscriptions } from './useOfferings';
 import { OfferingReadNotice } from './OfferingReadNotice';
 
-export function SubscriptionsLedger({ offerings }: { offerings: OfferingListItem[] }) {
+export function SubscriptionsLedger({
+  offerings,
+  operatorName,
+}: {
+  offerings: OfferingListItem[];
+  operatorName: string;
+}) {
   const styles = useCompanyStyles();
   const [selected, setSelected] = useState('');
   const offering = offerings.find((row) => row.uuid === selected) ?? offerings[0];
   const read = useOfferingSubscriptions(offering?.uuid);
   if (!offering) return null;
   return (
-    <Section title="Subscriptions">
-      <Text style={styles.muted}>{REGISTER_COPY.SUBSCRIPTIONS_NOTE}</Text>
+    <Section title={REGISTER_COPY.APPLICATIONS_TITLE}>
+      <Text style={styles.muted}>{REGISTER_COPY.APPLICATIONS_NOTE(operatorName)}</Text>
       <Text style={styles.text}>Offering</Text>
       {offerings.map((row) => (
         <Action
@@ -27,16 +33,16 @@ export function SubscriptionsLedger({ offerings }: { offerings: OfferingListItem
       {read.isError ? (
         <OfferingReadNotice
           read={{ error: read.error, isRefreshing: read.isFetching, refetch: read.refetch }}
-          label="Subscriptions"
+          label={REGISTER_COPY.APPLICATIONS_TITLE}
         />
       ) : read.isPending ? (
-        <Text style={styles.muted}>Loading subscriptions…</Text>
+        <Text style={styles.muted}>Loading applications…</Text>
       ) : read.data.length === 0 ? (
-        <Text style={styles.muted}>{REGISTER_COPY.SUBSCRIPTIONS_EMPTY}</Text>
+        <Text style={styles.muted}>{REGISTER_COPY.APPLICATIONS_EMPTY}</Text>
       ) : (
         <>
           <Text style={styles.muted}>
-            {read.data.length} subscription{read.data.length === 1 ? '' : 's'}
+            {read.data.length} application{read.data.length === 1 ? '' : 's'}
           </Text>
           {read.data.map((row) => (
             <View key={row.uuid} style={styles.entry}>

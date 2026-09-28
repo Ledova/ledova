@@ -127,7 +127,9 @@ export function CreateOrderSigningModal({ submission, wallet, tokens, onClose, o
               <Text style={styles.text}>
                 {state.snapshot?.intent.orderType.toUpperCase()} {state.snapshot?.intent.quantity} shares
               </Text>
-              <Text style={styles.text}>Price per share: ${state.snapshot?.intent.pricePerShare}</Text>
+              <Text style={styles.text}>
+                Price per share: {marketAmount(state.snapshot?.intent.pricePerShare ?? '')}
+              </Text>
               <Text style={styles.text}>Minimum fill: {state.snapshot?.intent.minQuantity} shares</Text>
               {!signing.walletReady && (
                 <Text style={styles.text}>

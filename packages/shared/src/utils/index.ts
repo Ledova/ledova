@@ -61,7 +61,6 @@ export {
   paymentRecordState,
   type PaymentRecordState,
 } from './distributions';
-export { describePublicationSummary } from './publications';
 export { createOrderSubmissionStore } from './order-submission-storage';
 export type {
   OrderSubmissionOwner,

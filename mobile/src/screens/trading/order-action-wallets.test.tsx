@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BLOCKCHAIN, WALLET_ENDPOINTS, type Wallet } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { useUserTradingWallets } from './useTrading';
-import { accountUuid, response, wallet } from '../../../../packages/shared/tests/fixtures/order-submissions';
+import { response, wallet } from '../../../../packages/shared/tests/fixtures/order-submissions';
 jest.mock('../../services/apiClient', () => ({ apiClient: jest.requireActual('axios').default.create() }));
 jest.mock('../../hooks/useUserPreferences', () => ({
   useUserPreferences: () => ({ userAccount: { uuid: '20000000-0000-4000-8000-000000000001' }, isLoading: false }),

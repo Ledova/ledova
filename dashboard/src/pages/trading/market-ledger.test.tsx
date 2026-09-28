@@ -53,8 +53,8 @@ afterEach(() => {
 });
 
 it('calculates exact AUD cents and never presents unsafe numeric shares as exact', () => {
-  expect(marketAmount('0.29', 9007199254740991)).toBe('$2,612,087,783,874,887.39 AUD');
-  expect(marketAmount('9999999999999999.99', 2)).toBe('$19,999,999,999,999,999.98 AUD');
+  expect(marketAmount('0.29', 9007199254740991)).toBe('AUD\u00a02,612,087,783,874,887.39');
+  expect(marketAmount('9999999999999999.99', 2)).toBe('AUD\u00a019,999,999,999,999,999.98');
   expect(marketQuantity(9007199254740992)).toBe('Unavailable');
   expect(marketAmount('1.00', 9007199254740992)).toBe('Unavailable');
 });
@@ -208,7 +208,7 @@ it('refuses fractional, out-of-range and overprecise order inputs before submitt
   act(() => ref.current?.submit());
   expect(submit).not.toHaveBeenCalled();
   fireEvent.change(screen.getByLabelText('Price per share (AUD)'), { target: { value: '0.29' } });
-  expect(screen.getByText('$0.87 AUD')).toBeTruthy();
+  expect(screen.getByText('AUD 0.87')).toBeTruthy();
   act(() => ref.current?.submit());
   expect(submit).toHaveBeenCalledWith(expect.objectContaining({ quantity: 3, pricePerShare: '0.29' }));
 });
@@ -263,7 +263,7 @@ it('sends supported large share quantities as exact strings without rounding', (
     />,
   );
   fireEvent.change(screen.getByLabelText('Quantity (shares)'), { target: { value: '9007199254740993' } });
-  expect(screen.getByText('$2,612,087,783,874,887.97 AUD')).toBeTruthy();
+  expect(screen.getByText('AUD 2,612,087,783,874,887.97')).toBeTruthy();
   act(() => ref.current?.submit());
   expect(submit).toHaveBeenCalledWith(expect.objectContaining({ quantity: '9007199254740993', pricePerShare: '0.29' }));
 });

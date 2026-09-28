@@ -10,7 +10,6 @@ from rest_framework.test import APIClient
 from shared.db import current_alias
 from shared.tests.test_admin_row_actions import staff_user
 from shared.tests.upload_fixtures import StubUploadDependencies
-from shareholders.constants import RECENTLY_PUBLISHED_DAYS
 from shareholders.models import BallotChoice
 from shareholders.services.distributions import withdraw_payment
 from shareholders.services.resolutions import close_resolution, enter_ballot
@@ -20,7 +19,6 @@ from shareholders.tests.fixtures import (
     a_distribution,
     a_payment,
     a_resolution,
-    as_the_schema_owner,
     published,
     roll_row,
     voting_has_closed,
@@ -29,18 +27,7 @@ from shareholders.tests.fixtures import (
 
 SUMMARY = "/api/v1/publications/summary/"
 LISTING = "/api/v1/publications/"
-NOTHING = {"openResolutions": 0, "nextClosesAt": None, "publishedSince": 0, "dividendsWithoutRecord": 0}
-
-
-def published_days_ago(publication, days):
-    as_the_schema_owner(
-        "shareholders_publication",
-        "shareholders_publication_is_frozen",
-        (
-            "UPDATE shareholders_publication SET created_at = %s WHERE uuid = %s",
-            [timezone.now() - timedelta(days=days), publication.pk],
-        ),
-    )
+NOTHING = {"openResolutions": 0, "nextClosesAt": None, "dividendsWithoutRecord": 0}
 
 
 def closing_in(world, days):
@@ -64,17 +51,6 @@ class ThePublicationSummaryTest(StubUploadDependencies, TestCase):
 
     def test_a_member_nothing_was_published_to_counts_nothing(self):
         self.assertEqual(self.summary_for(self.holder.user), NOTHING)
-
-    def test_everything_published_to_a_member_in_the_last_thirty_days_is_counted_whatever_its_kind(self):
-        published(self.world)
-        a_resolution(self.world)
-        a_distribution(self.world)
-        recent, old = published(self.world), published(self.world)
-        published_days_ago(recent, RECENTLY_PUBLISHED_DAYS - 1)
-        published_days_ago(old, RECENTLY_PUBLISHED_DAYS + 1)
-
-        self.assertEqual(self.counted_for(self.holder.user, "publishedSince"), 4)
-        self.assertEqual(self.counted_for(self.other.user, "publishedSince"), 4)
 
     def test_an_open_resolution_counts_for_each_member_until_that_member_has_voted(self):
         resolution = a_resolution(self.world)
@@ -110,7 +86,6 @@ class ThePublicationSummaryTest(StubUploadDependencies, TestCase):
 
         self.assertEqual(summary["openResolutions"], 1)
         self.assertEqual(parse_datetime(summary["nextClosesAt"]), open_now.closes_at)
-        self.assertEqual(summary["publishedSince"], 4)
 
     def test_the_next_closing_time_is_the_soonest_among_the_resolutions_still_awaiting_a_ballot(self):
         voted = closing_in(self.world, 1)
@@ -145,7 +120,7 @@ class ThePublicationSummaryTest(StubUploadDependencies, TestCase):
 
         self.assertEqual(self.counted_for(world.members[0].user, "dividendsWithoutRecord"), 1)
         self.assertEqual(self.counted_for(world.members[1].user, "dividendsWithoutRecord"), 0)
-        self.assertEqual(self.counted_for(world.members[1].user, "publishedSince"), 1)
+        self.assertEqual(len(self.client.get(LISTING, {"addressed": "me"}).json()["results"]), 1)
 
     def test_a_person_on_the_roll_twice_counts_a_dividend_until_each_holding_has_a_record(self):
         world = a_company_with_members("summary-dividend-twice", holdings=(100, 40, 10), first_person_holds_twice=True)
@@ -169,9 +144,7 @@ class ThePublicationSummaryTest(StubUploadDependencies, TestCase):
 
         self.assertEqual(len(listed), 3)
         self.assertEqual(owner, NOTHING)
-        self.assertEqual(
-            (holder["openResolutions"], holder["publishedSince"], holder["dividendsWithoutRecord"]), (1, 3, 1)
-        )
+        self.assertEqual((holder["openResolutions"], holder["dividendsWithoutRecord"]), (1, 1))
 
     def test_a_company_owner_on_its_own_roll_counts_and_reads_only_its_own_holding(self):
         world = a_company_with_members("summary-founder", holdings=(100, 40), owner_holds_first=True)
@@ -203,9 +176,7 @@ class ThePublicationSummaryTest(StubUploadDependencies, TestCase):
         with self.assertNumQueries(1, using=current_alias()):
             counted = summarise_for(self.holder.user)
 
-        self.assertEqual(
-            (counted["open_resolutions"], counted["published_since"], counted["dividends_without_record"]), (3, 9, 3)
-        )
+        self.assertEqual((counted["open_resolutions"], counted["dividends_without_record"]), (3, 3))
 
     def test_the_route_answers_in_the_same_number_of_queries_however_much_was_published(self):
         self.client.force_authenticate(self.holder.user)
@@ -219,7 +190,7 @@ class ThePublicationSummaryTest(StubUploadDependencies, TestCase):
         with self.assertNumQueries(len(sparse.captured_queries), using=current_alias()):
             response = self.client.get(SUMMARY)
 
-        self.assertEqual(response.json()["publishedSince"], 9)
+        self.assertEqual((response.json()["openResolutions"], response.json()["dividendsWithoutRecord"]), (3, 3))
 
     def test_an_unauthenticated_caller_is_refused(self):
         self.client.force_authenticate(None)

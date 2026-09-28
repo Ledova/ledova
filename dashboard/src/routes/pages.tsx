@@ -1,6 +1,5 @@
 import type { ReactElement } from 'react';
-import { Navigate } from 'react-router-dom';
-import { DESTINATIONS, type DestinationKey } from '@ledova/shared';
+import type { DestinationKey } from '@ledova/shared';
 import HomePage from '@pages/home';
 import WalletsPage from '@pages/wallets';
 import TransactionsPage from '@pages/transactions';
@@ -31,7 +30,6 @@ export const PAGES: Record<DestinationKey, ReactElement> = {
   subscriptionDetail: <SubscriptionDetailPage />,
   investorEligibility: <InvestorEligibilityPage />,
   publications: <PublicationsPage />,
-  dividends: <Navigate to={DESTINATIONS.publications.path} replace />,
   companyClass: <ShareClassPage />,
   companyRegister: <CompanyRegisterPage />,
   company: <CompanyPage />,

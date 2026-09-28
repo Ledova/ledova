@@ -17,7 +17,6 @@ import type { CompanyStackParamList } from './CompanyStackNavigator';
 import { ListingScreen } from '../screens/listing';
 import { InvestorEligibilityScreen } from '../screens/investor-eligibility';
 import { PublicationsScreen } from '../screens/publications';
-import { DividendsScreen } from '../screens/dividends';
 import { getMainHeaderStyle, MainHeader } from './headers';
 import type { WalletsStackParamList } from './WalletsStackNavigator';
 import type { TradingStackParamList } from './TradingStackNavigator';
@@ -37,7 +36,6 @@ export type BottomTabParamList = {
   Listing: undefined;
   InvestorEligibility: undefined;
   Publications: undefined;
-  Dividends: undefined;
 };
 
 const Tab = createBottomTabNavigator<BottomTabParamList>();
@@ -165,15 +163,6 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
         component={PublicationsScreen}
         options={{
           title: '',
-          tabBarItemStyle: { display: 'none' },
-        }}
-      />
-
-      <Tab.Screen
-        name="Dividends"
-        component={DividendsScreen}
-        options={{
-          title: 'Dividends',
           tabBarItemStyle: { display: 'none' },
         }}
       />

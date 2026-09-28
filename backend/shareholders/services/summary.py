@@ -1,9 +1,6 @@
-from datetime import timedelta
-
 from django.db import models
 from django.utils import timezone
 
-from shareholders.constants import RECENTLY_PUBLISHED_DAYS
 from shareholders.models import (
     Publication,
     PublicationEvent,
@@ -33,10 +30,6 @@ def summarise_for(user) -> dict:
     return Publication.objects.aggregate(
         open_resolutions=models.Count("pk", filter=voting),
         next_closes_at=models.Min("closes_at", filter=voting),
-        published_since=models.Count(
-            "pk",
-            filter=models.Q(models.Exists(mine), created_at__gte=now - timedelta(days=RECENTLY_PUBLISHED_DAYS)),
-        ),
         dividends_without_record=models.Count(
             "pk", filter=models.Q(models.Exists(unrecorded), kind=PublicationKind.DISTRIBUTION)
         ),
