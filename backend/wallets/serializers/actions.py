@@ -24,7 +24,6 @@ class WalletVerificationSignatureSerializer(serializers.Serializer):
 class WalletSyncResultSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=("success", "skipped", "error"))
     transactions = serializers.IntegerField(required=False)
-    snapshots = serializers.IntegerField(required=False)
     holdings = serializers.IntegerField(required=False)
     error = serializers.CharField(required=False)
 

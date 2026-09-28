@@ -150,7 +150,6 @@ class IssuanceSeedsTheHoldingTest(TransactionTestCase):
         self.assertEqual(request.status, RequestStatus.EXECUTED)
         holding = Holding.objects.get(wallet=self.wallet, asset=self.asset)
         self.assertEqual(holding.quantity, Decimal("25"))
-        self.assertEqual(holding.snapshots.get().quantity, Decimal("25"))
         self.assertIsNone(holding.market_value)
 
     def test_a_treasury_entry_with_no_wallet_is_skipped_and_raises_nothing(self):
