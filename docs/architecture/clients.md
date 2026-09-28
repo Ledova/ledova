@@ -293,7 +293,9 @@ Where market values are shown elsewhere, they are in AUD: the shared
 `useCurrency` converts the API's US-dollar values at the current rate, shows a
 dash while the rate is unknown, and neither client offers
 another currency. An offering's prices and an application's amounts are in the
-offering's own currency, which defaults to AUD. The Buy step shows each
+offering's currency: a new offering is priced in AUD, and one created before
+that rule keeps the currency it was given
+([decision](../decisions.md#the-signed-in-app)). The Buy step shows each
 asset's current price, and no price while the exchange rate is unknown. Both
 flows are mounted in the signed-in frame, so an open flow survives
 Wallets reloading its wallet list and the person leaving Wallets. The guard

@@ -10,7 +10,6 @@ WRITABLE_FIELDS = [
     "token",
     "exemption",
     "price_per_share",
-    "price_currency",
     "settlement_assets",
     "accepts_bank_transfer",
     "minimum_shares",

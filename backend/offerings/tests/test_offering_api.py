@@ -142,3 +142,28 @@ class OfferingApiTest(APITestCase):
         )
         self.assertEqual(response.status_code, 400, response.content)
         self.assertIn("settlementAssets", response.json())
+
+    def test_a_posted_currency_is_ignored_and_a_new_offering_is_priced_in_aud(self):
+        created = self.client.post(
+            BASE, {"token": str(self.tenant.token.uuid), "priceCurrency": "USD", **PAYLOAD}, format="json"
+        )
+        self.assertEqual(created.status_code, 201, created.content)
+        self.assertEqual(created.json()["priceCurrency"], "AUD")
+        self.assertEqual(Offering.objects.get(uuid=created.json()["uuid"]).price_currency, "AUD")
+
+    def test_an_edit_cannot_move_an_offering_out_of_aud(self):
+        patched = self.client.patch(self._detail(), {"priceCurrency": "USD", "summary": "Changed"}, format="json")
+        self.assertEqual(patched.status_code, 200, patched.content)
+        self.assertEqual(patched.json()["priceCurrency"], "AUD")
+        self.tenant.offering.refresh_from_db()
+        self.assertEqual((self.tenant.offering.price_currency, self.tenant.offering.summary), ("AUD", "Changed"))
+
+    def test_an_offering_priced_in_dollars_before_the_rule_keeps_them(self):
+        Offering.objects.filter(pk=self.tenant.offering.pk).update(price_currency="USD")
+        self.assertEqual(self.client.get(self._detail()).json()["priceCurrency"], "USD")
+        self.assertEqual(self.client.get(BASE).json()["results"][0]["priceCurrency"], "USD")
+        patched = self.client.patch(self._detail(), {"summary": "Still in dollars"}, format="json")
+        self.assertEqual(patched.status_code, 200, patched.content)
+        self.assertEqual(patched.json()["priceCurrency"], "USD")
+        self.tenant.offering.refresh_from_db()
+        self.assertEqual(self.tenant.offering.price_currency, "USD")
