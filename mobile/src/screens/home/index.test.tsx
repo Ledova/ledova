@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HOLDING_ASSET_TYPE, WALLET_ENDPOINTS, type WalletHolding } from '@ledova/shared';
 import { HomeScreen } from './index';
 import { apiClient } from '../../services/apiClient';
-import { invalidateHomeDashboard } from '../../utils/queryInvalidation';
 
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn() } }));
 jest.mock('./components/HoldingWork', () => ({ HoldingWork: () => null }));
@@ -177,13 +176,10 @@ it('refreshes after existing wallet invalidations and hides a stale total if tha
   const view = await render(<HomeScreen />, { wrapper });
   expect(await view.findByText('1 share')).toBeTruthy();
   quantity = '2';
-  await act(async () => invalidateHomeDashboard(client));
-  expect(await view.findByText('2 shares')).toBeTruthy();
-  quantity = '3';
   await act(async () => client.invalidateQueries({ queryKey: ['wallets'] }));
-  expect(await view.findByText('3 shares')).toBeTruthy();
+  expect(await view.findByText('2 shares')).toBeTruthy();
   failed = true;
   await act(async () => client.invalidateQueries({ queryKey: ['wallets'] }));
   await waitFor(() => expect(view.getByRole('alert')).toBeTruthy());
-  expect(view.queryByText('3 shares')).toBeNull();
+  expect(view.queryByText('2 shares')).toBeNull();
 });

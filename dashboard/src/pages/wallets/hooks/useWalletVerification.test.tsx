@@ -43,7 +43,7 @@ const createHarness = () => {
   const wrapper = ({ children }: PropsWithChildren) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
-  return { wrapper };
+  return { wrapper, queryClient };
 };
 
 describe('useWalletVerification', () => {
@@ -97,7 +97,8 @@ describe('useWalletVerification', () => {
   });
 
   it('signs the challenge locally and submits a 0x signature for the matching address', async () => {
-    const { wrapper } = createHarness();
+    const { wrapper, queryClient } = createHarness();
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
     const { result } = renderHook(() => useWalletVerification(), { wrapper });
 
     await act(async () => {
@@ -117,6 +118,7 @@ describe('useWalletVerification', () => {
     expect(verifyMessage(CHALLENGE, payload.signature).toLowerCase()).toBe(HARDHAT_ACCOUNT_0.toLowerCase());
 
     await waitFor(() => expect(result.current.verificationStep).toBe('success'));
+    expect(invalidate.mock.calls).toEqual([[{ queryKey: ['wallets'] }]]);
   });
 
   it('honours an explicit derivation path stored on the wallet', async () => {

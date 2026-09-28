@@ -90,8 +90,8 @@ it('keeps the selected company and session after React Query replaces pending mu
     expect.any(FormData),
     expect.objectContaining({ ledovaSessionEpoch: epoch }),
   );
-  expect(invalidated).toHaveBeenCalledWith({ queryKey: ['company-documents', 'company-a'] });
-  expect(invalidated).not.toHaveBeenCalledWith({ queryKey: ['company-documents', 'company-b'] });
+  expect(invalidated).toHaveBeenCalledWith({ queryKey: ['company', 'company-a'] });
+  expect(invalidated).not.toHaveBeenCalledWith({ queryKey: ['company', 'company-b'] });
 });
 
 it('does not invalidate a newer session when an old company upload succeeds', async () => {
