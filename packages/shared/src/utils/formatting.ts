@@ -1,5 +1,3 @@
-import { getChainShortCode } from '../constants';
-
 export interface FormatCurrencyOptions {
   currency?: string;
   locale?: string;
@@ -30,13 +28,4 @@ export function formatCryptoBalance(balance: string | number, symbol: string, de
   if (balanceNum === 0) return `0 ${symbol}`;
   const formatted = balanceNum.toFixed(decimals).replace(/\.?0+$/, '');
   return `${formatted} ${symbol}`;
-}
-
-export function getBlockchainShortName(chainName: string): string {
-  return getChainShortCode(chainName);
-}
-
-export function formatPercentage(value: number, decimals: number = 2): string {
-  if (value === undefined || value === null || isNaN(value)) return '—';
-  return `${value.toFixed(decimals)}%`;
 }

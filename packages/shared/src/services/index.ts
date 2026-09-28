@@ -38,9 +38,7 @@ export {
 export {
   getShareTokens,
   getOrderBook,
-  getMarketData,
   getOrders,
-  getUserOrders,
   getOrderCreateMessage,
   getOrderCancelMessage,
   getOrderActionContext,
@@ -60,8 +58,6 @@ export {
   registerCompany,
   getCompany,
   updateCompany,
-  getCompanyStats,
-  getCompanyDocuments,
   uploadCompanyDocument,
   deleteCompanyDocument,
   submitApplication,

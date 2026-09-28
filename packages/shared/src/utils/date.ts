@@ -18,19 +18,6 @@ export function formatDate(
   }
 }
 
-export function formatShortDate(
-  dateString: string | null | undefined,
-  fallback: string = 'Never',
-  locale: string = 'en-AU',
-): string {
-  if (!dateString) return fallback;
-  try {
-    return new Date(dateString).toLocaleDateString(locale, { month: 'short', day: 'numeric' });
-  } catch {
-    return dateString;
-  }
-}
-
 export function formatTime(
   dateString: string | null | undefined,
   fallback: string = 'Never',

@@ -23,8 +23,6 @@ export type SettlementSwapOrder = ApiSchema<'SettlementSwapOrder'>;
 
 export type SwapSettlementResponse = ApiSchema<'SettlementSwapOrderForSigning'>;
 
-export type SwapSettlementApprovalIdentity = SwapSettlementIdentity & Pick<SwapSettlementResponse, 'userRole'>;
-
 export type SwapSettlementApprovalStatus = ApiSchema<'SettlementApprovalStatus'>;
 
 export type SwapSettlementApprovalSufficient = ApiSchema<'SettlementSufficientApproval'>;

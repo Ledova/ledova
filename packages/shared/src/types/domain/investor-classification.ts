@@ -2,8 +2,6 @@ import type { ApiSchema, ApiRequest, ApiResponse } from '../contracts';
 
 export type InvestorCategory = ApiSchema<'CategoryEnum'>;
 
-export type InvestorClassificationStatus = ApiSchema<'InvestorClassificationStatusEnum'>;
-
 export type CertifierBody = ApiSchema<'CertifierBodyEnum'>;
 
 export type InvestorEligibilityReason = InvestorEligibility['reasons'][number];
