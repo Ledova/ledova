@@ -49,7 +49,6 @@ export default function ListingPage() {
     Promise.all([
       client.invalidateQueries({ queryKey: ['company'] }),
       client.invalidateQueries({ queryKey: ['companies'] }),
-      client.invalidateQueries({ queryKey: ['company-documents'] }),
     ]);
   const submit = useMutation({
     mutationFn: (uuid: string) => submitApplication(apiClient, uuid),

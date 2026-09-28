@@ -80,6 +80,18 @@ it.each(['profile', 'signup'] as const)('keeps the normal %s launch and submissi
   if (kind === 'signup') expect(view.getByText('Continue')).toBeTruthy();
 });
 
+it('refreshes the profile when the signup step continues after a submission', async () => {
+  const invalidate = jest.spyOn(client, 'invalidateQueries');
+  const view = await render(owner('signup'));
+  await waitFor(() => expect(view.queryByText('Loading status...')).toBeNull());
+  await fireEvent.press(view.getByText('Start Verification'));
+  await waitFor(() => expect(view.getByTestId('provider-owned-form')).toBeTruthy());
+  await fireEvent.press(view.getByText('Finish synthetic provider form'));
+  invalidate.mockClear();
+  await fireEvent.press(view.getByText('Continue'));
+  await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['userProfiles'] }));
+});
+
 it.each(['profile', 'signup'] as const)('retires a pending %s launch when its route loses focus', async (kind) => {
   let resolve!: (value: unknown) => void;
   post.mockReturnValue(

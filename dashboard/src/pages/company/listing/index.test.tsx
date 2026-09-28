@@ -97,9 +97,11 @@ it('requires every required type before sending submission and refreshes the res
     company = { ...company, status: 'submitted', statusDisplay: 'Submitted', submittedAt: '2026-09-02T00:00:00Z' };
     return { data: {} };
   });
+  const invalidate = vi.spyOn(client, 'invalidateQueries');
   fireEvent.click(submit);
   await waitFor(() => expect(api.post).toHaveBeenCalledWith(COMPANY + 'submit/', { confirm: true }));
   expect(await screen.findByText(/waiting for Example Registry/)).toBeTruthy();
+  expect(invalidate.mock.calls).toEqual([[{ queryKey: ['company'] }], [{ queryKey: ['companies'] }]]);
   expect(screen.queryByRole('button', { name: 'Submit application' })).toBeNull();
 });
 
