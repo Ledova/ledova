@@ -55,7 +55,7 @@ function formatDate(iso: string | null): string {
 function StatusPill({ status }: { status: ExtractionStatus | undefined }) {
   if (!status || status === 'pending') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-hover text-xs text-text-muted">
+      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-tertiary text-xs text-text-muted">
         <ClockIcon size={ICON_SM} /> Queued
       </span>
     );
@@ -147,7 +147,7 @@ function ClaimSelector({
       value={value}
       onChange={(event) => onChange(event.target.value)}
       disabled={disabled}
-      className="w-full bg-surface-raised border border-border-subtle rounded px-3 py-2 text-sm text-text-primary"
+      className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary"
     >
       <option value="">Keep unattached</option>
       {claims
@@ -286,7 +286,7 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
         </button>
       ) : (
         <div className="space-y-3">
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-surface-hover">
+          <div className="flex items-center gap-3">
             <FileTextIcon size={ICON_MD} className="text-brand-light flex-shrink-0" weight="regular" />
             <div className="min-w-0 flex-1">
               <p className="text-sm text-text-primary truncate">{file.name}</p>
@@ -302,11 +302,11 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
             </button>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <select
               value={documentType}
               onChange={(e) => setDocumentType(e.target.value as DocumentType)}
-              className="bg-surface-raised border border-border-subtle rounded px-3 py-2 text-sm text-text-primary"
+              className="rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary"
               disabled={upload.isPending}
             >
               <option value="payslip">Payslip</option>
@@ -323,7 +323,7 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
               onChange={(e) => setNote(e.target.value)}
               placeholder="Note (optional)"
               maxLength={255}
-              className="flex-1 bg-surface-raised border border-border-subtle rounded px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
+              className="min-w-0 flex-1 basis-40 rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
               disabled={upload.isPending}
             />
           </div>
@@ -338,7 +338,7 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
             type="button"
             onClick={handleSubmit}
             disabled={upload.isPending}
-            className="w-full px-4 py-2 rounded bg-brand text-white hover:bg-brand-dark text-sm font-medium disabled:bg-surface-disabled disabled:text-text-secondary"
+            className="w-full px-4 py-2 rounded bg-brand text-white hover:bg-brand-hover text-sm font-medium disabled:bg-surface-disabled disabled:text-text-secondary"
           >
             {upload.isPending ? 'Uploading…' : 'Upload & extract'}
           </button>

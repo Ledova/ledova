@@ -12,7 +12,7 @@ function BookSide({ title, entries }: { title: string; entries: OrderBookEntry[]
         <p className="text-sm text-text-muted">No orders listed.</p>
       ) : (
         entries.map((entry, index) => (
-          <div key={index} className="border-b border-border-subtle py-2">
+          <div key={index} className="border-b border-border-subtle py-2 last:border-b-0">
             <Rows>
               <Row label="Price per share">
                 <span className="break-all">{marketAmount(entry.price)}</span>
@@ -111,7 +111,7 @@ export function OrdersPanel({
           <p className="text-sm text-text-muted">No recorded orders.</p>
         ) : (
           userOrders.map((order) => (
-            <article key={order.uuid} className="border-b border-border-subtle py-3">
+            <article key={order.uuid} className="border-b border-border-subtle py-3 last:border-b-0">
               <h3 className="break-words font-medium">
                 {order.tokenName ?? order.tokenSymbol ?? 'Share class unavailable'}
               </h3>
@@ -213,7 +213,7 @@ export function OrdersPanel({
               }
             }
             return (
-              <article key={swap.uuid} className="border-b border-border-subtle py-3">
+              <article key={swap.uuid} className="border-b border-border-subtle py-3 last:border-b-0">
                 <h3 className="break-words font-medium">
                   {swap.shareTokenName ?? swap.shareTokenSymbol ?? 'Share class unavailable'}
                 </h3>

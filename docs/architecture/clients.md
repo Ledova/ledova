@@ -458,10 +458,12 @@ Notices") or opens an external resource such as a block explorer or a stored
 document. Mobile's `LinkRow` and `Action` follow the same rule.
 
 Every section is its own card, including forms and things to act on such as a
-payment instruction, and a card holds no further card: a group inside a
-section is set off by a rule or a small heading, as the For sale and Wanted
-lists on Market, the saved payslips on Profile and a vote's confirmation on
-Notices are ([decision](../decisions.md#the-signed-in-app)).
+payment instruction. A group inside a section is set off by a rule or a small
+heading rather than a card of its own, as the For sale and Wanted lists on
+Market, the saved payslips on Profile and a vote's confirmation on Notices are
+([decision](../decisions.md#the-signed-in-app)). The saved pause and unpause
+requests on a share class are the exception: each still sits in a bordered box
+inside the class's card. Dialogs keep their own panel over the page.
 
 The design tokens are the single source of colour, spacing and radius values.
 `make generate-tokens` runs `packages/scripts/generate-css-tokens.mjs` with

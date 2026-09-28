@@ -511,7 +511,10 @@ The owner chose the look of the signed-in pages on 29 September 2026:
   treatments, each section as a card with its title inside or a grouped list
   with the title above the card, the owner chose the first: "A for the cards, A
   is a better style." Each ledger section is a white card on the paper ground;
-  the page's title and actions stay on the paper above the cards.
+  the page's title and actions stay on the paper above the cards. (Owner
+  decisions, 29 September 2026, on
+  [#791](https://github.com/Ledova/ledova/issues/791#issuecomment-5878354674) and
+  [#791](https://github.com/Ledova/ledova/issues/791#issuecomment-5879159623).)
 
 ## The account-data export
 
