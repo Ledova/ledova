@@ -15,7 +15,6 @@ import type {
   WhitelistStatus,
   SignedCreateOrderRequest,
   WalletTokenBalancesResponse,
-  MarketData,
   PaginatedResponse,
   ApiResponse,
 } from '../types';
@@ -32,16 +31,8 @@ export const getShareTokens = (apiClient: AxiosInstance, page?: number) =>
 export const getOrderBook = (apiClient: AxiosInstance, tokenUuid: string) =>
   apiClient.get<OrderBook>(TRADING_ENDPOINTS.TOKENS.ORDER_BOOK(tokenUuid));
 
-export const getMarketData = (apiClient: AxiosInstance, tokenUuid: string) =>
-  apiClient.get<MarketData>(TRADING_ENDPOINTS.TOKENS.MARKET_DATA(tokenUuid));
-
 export const getOrders = (apiClient: AxiosInstance, params?: GetOrdersParams) =>
   apiClient.get<PaginatedResponse<TransferOrder>>(TRADING_ENDPOINTS.ORDERS.LIST, { params });
-
-export const getUserOrders = (apiClient: AxiosInstance, walletAddress: string) =>
-  apiClient.get<PaginatedResponse<TransferOrder>>(TRADING_ENDPOINTS.ORDERS.LIST, {
-    params: { wallet_address: walletAddress },
-  });
 
 const orderSubmissionBody = (data: OrderSubmissionRequest) => ({
   submission_id: data.submissionId,

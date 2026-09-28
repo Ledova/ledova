@@ -1,7 +1,5 @@
 import type { ApiSchema, ApiResponse } from '../contracts';
 
-export type OperatorDeploymentMode = ApiSchema<'DeploymentModeEnum'>;
-
 export type OperatorSettlementAsset = ApiSchema<'SettlementAsset'>;
 
 export type OperatorPaymentInstructions = ApiSchema<'OperatorPaymentInstructions'>;

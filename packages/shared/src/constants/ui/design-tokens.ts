@@ -215,5 +215,4 @@ export const DESIGN_TOKENS = {
 
 export { PAPER_COLORS, PAPER_THEME };
 
-export type Shadow = typeof DESIGN_TOKENS.shadows;
 export type Icon = typeof DESIGN_TOKENS.icon;

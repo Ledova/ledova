@@ -4,12 +4,6 @@ export type { TradingEventType } from '../../generated/api';
 
 export type OrderType = ApiComponents['schemas']['TransferOrderTypeEnum'];
 
-export type OrderStatus = ApiComponents['schemas']['TransferOrderStatusEnum'];
-
-export type SwapStatus = ApiComponents['schemas']['SwapOrderStatusEnum'];
-
-export type SwapUserRole = ApiComponents['schemas']['UserRoleEnum'];
-
 export const TRADING_EVENT_INVALIDATION_MAP: Record<TradingEventType, string[][]> = {
   order_created: [
     ['trading', 'orderBook'],
@@ -48,13 +42,10 @@ export const TRADING_EVENT_INVALIDATION_MAP: Record<TradingEventType, string[][]
 export const TRADING_ENDPOINTS = {
   TOKENS: {
     LIST: '/api/v1/trading/tokens/',
-    DETAIL: (uuid: string) => `/api/v1/trading/tokens/${uuid}/` as const,
     ORDER_BOOK: (uuid: string) => `/api/v1/trading/tokens/${uuid}/order-book/` as const,
-    MARKET_DATA: (uuid: string) => `/api/v1/trading/tokens/${uuid}/market-data/` as const,
   },
   ORDERS: {
     LIST: '/api/v1/trading/orders/',
-    DETAIL: (uuid: string) => `/api/v1/trading/orders/${uuid}/` as const,
     CREATE: '/api/v1/trading/orders/create/',
     CREATE_MESSAGE: '/api/v1/trading/orders/create/message/',
     SUBMISSION: (uuid: string) => `/api/v1/trading/orders/submissions/${uuid}/` as const,
@@ -64,7 +55,6 @@ export const TRADING_ENDPOINTS = {
     CANCEL_MESSAGE: (uuid: string) => `/api/v1/trading/orders/${uuid}/cancel/message/` as const,
     MODIFY: (uuid: string) => `/api/v1/trading/orders/${uuid}/modify/` as const,
     MODIFY_MESSAGE: (uuid: string) => `/api/v1/trading/orders/${uuid}/modify/message/` as const,
-    MODIFICATIONS: (uuid: string) => `/api/v1/trading/orders/${uuid}/modifications/` as const,
     SWAP: (uuid: string) => `/api/v1/trading/orders/${uuid}/swap/` as const,
     SWAP_SIGN: (uuid: string) => `/api/v1/trading/orders/${uuid}/swap/sign/` as const,
     SWAP_APPROVAL_STATUS: (uuid: string) => `/api/v1/trading/orders/${uuid}/swap/approval-status/` as const,
@@ -77,9 +67,6 @@ export const TRADING_ENDPOINTS = {
   SWAPS: {
     LIST: '/api/v1/trading/swaps/',
   },
-  TRANSFERS: {
-    PREPARE: '/api/v1/trading/transfers/prepare/',
-  },
   WHITELIST: {
     STATUS: (tokenAddress: string, address: string) =>
       `/api/v1/trading/whitelist/${tokenAddress}/${address}/status/` as const,
@@ -91,8 +78,6 @@ export const TRADING_ENDPOINTS = {
 
 export const TRADING_CONFIG = {
   ORDER_BOOK_FALLBACK_INTERVAL: 120000,
-  DEFAULT_ORDER_EXPIRY_DAYS: 7,
   SSE_RECONNECT_DELAY: 3000,
   SSE_MAX_RECONNECT_DELAY: 30000,
-  SSE_HEARTBEAT_TIMEOUT: 45000,
 } as const;
