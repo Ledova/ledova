@@ -225,6 +225,12 @@ it('opens the selected recorded application and never converts unsafe numeric sh
   expect(mockNavigate).toHaveBeenCalledWith('ApplicationDetail', { uuid: 'item-a' });
 });
 
+it('offers the way back to the applications list from the application detail', async () => {
+  const view = await render(<ApplicationDetailScreen />, { wrapper });
+  await fireEvent.press(await view.findByText('Back to Applications'));
+  expect(mockNavigate).toHaveBeenCalledWith('ApplicationsMain');
+});
+
 it('awaits submit and refreshed status, prevents duplicate actions, and keeps refusal available for retry', async () => {
   post.mockRejectedValueOnce(new Error('Fictional submission refused'));
   const view = await render(<ApplicationDetailScreen />, { wrapper });

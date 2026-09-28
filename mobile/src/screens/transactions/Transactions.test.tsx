@@ -91,7 +91,7 @@ afterEach(async () => {
   client.clear();
 });
 
-it('opens Notices and reads exact activity independently of an empty wallet list', async () => {
+it('reads exact activity independently of an empty wallet list and leaves Notices to the drawer', async () => {
   wallets = async () => page([]);
   const view = await show();
   expect(await view.findByText('9,007,199,254,740,993.000000000000000001 AUDX')).toBeTruthy();

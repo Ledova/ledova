@@ -48,8 +48,8 @@ offers only pages the role can open, in groups:
 
 - a company's own group first, named after the company, with Register, Offerings and
   Company.
-  The company's application sits under Company, opened from the Company page's
-  title row, rather than as a menu item.
+  The company's application sits under Company, opened from a row on the
+  Company page, rather than as a menu item.
 - _Your shares_ for every account;
 - _Invest_ for an investing account, with Market only while trading is on;
 - then Wallets, Profile, Settings and Help.

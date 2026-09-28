@@ -66,29 +66,30 @@ export function LinkRow({
 }) {
   const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
-    row: { gap: 4, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.border.subtle },
-    link: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12 },
-    label: {
-      flex: 1,
-      fontFamily: theme.fontFamily.medium,
-      fontSize: 14,
-      lineHeight: 21,
-      color: theme.colors.text.primary,
+    row: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 12,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border.subtle,
     },
+    text: { flex: 1, gap: 4 },
+    label: { fontFamily: theme.fontFamily.medium, fontSize: 14, lineHeight: 21, color: theme.colors.text.primary },
   }));
   return (
-    <View style={styles.row}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel}
-        onPress={onPress}
-        style={styles.link}
-      >
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      onPress={onPress}
+      style={styles.row}
+    >
+      <View style={styles.text}>
         <Text style={styles.label}>{label}</Text>
-        <CaretRightIcon size={16} color={theme.colors.text.muted} />
-      </Pressable>
-      {children}
-    </View>
+        {children}
+      </View>
+      <CaretRightIcon size={16} color={theme.colors.text.muted} />
+    </Pressable>
   );
 }
 

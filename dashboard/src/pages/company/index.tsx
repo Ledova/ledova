@@ -96,32 +96,35 @@ export default function CompanyPage() {
               ) : (classes.data ?? []).length === 0 ? (
                 <p className="text-sm text-text-muted">No share classes yet.</p>
               ) : (
-                <div className="divide-y divide-border-subtle">
+                <ul className="divide-y divide-border-subtle">
                   {classes.data!.map((token) => (
-                    <LinkRow
-                      key={token.uuid}
-                      to={DESTINATIONS.companyClass.path.replace(':uuid', token.uuid)}
-                      label={token.name}
-                      aside={
-                        <Status
-                          tone={
-                            token.status === 'deployed' ? 'done' : token.status === 'deploying' ? 'moving' : 'waiting'
-                          }
-                        >
-                          {token.statusDisplay}
-                        </Status>
-                      }
-                    >
-                      <p className="text-text-muted">
-                        {token.symbol} · {token.tokenTypeDisplay}
-                      </p>
-                      <p className="break-all text-text-muted">
-                        {formatShareCount(token.totalSupply)} authorised shares
-                      </p>
-                    </LinkRow>
+                    <li key={token.uuid}>
+                      <LinkRow
+                        to={DESTINATIONS.companyClass.path.replace(':uuid', token.uuid)}
+                        label={token.name}
+                        aside={
+                          <Status
+                            tone={
+                              token.status === 'deployed' ? 'done' : token.status === 'deploying' ? 'moving' : 'waiting'
+                            }
+                          >
+                            {token.statusDisplay}
+                          </Status>
+                        }
+                      >
+                        <p className="text-text-muted">
+                          {token.symbol} · {token.tokenTypeDisplay}
+                        </p>
+                        <p className="break-all text-text-muted">
+                          {formatShareCount(token.totalSupply)} authorised shares
+                        </p>
+                      </LinkRow>
+                    </li>
                   ))}
-                  <LinkRow to={DESTINATIONS.companyRegister.path} label={DESTINATIONS.companyRegister.title} />
-                </div>
+                  <li>
+                    <LinkRow to={DESTINATIONS.companyRegister.path} label={DESTINATIONS.companyRegister.title} />
+                  </li>
+                </ul>
               )}
               <PageAction
                 label="Create share class"
