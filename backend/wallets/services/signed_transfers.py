@@ -6,6 +6,7 @@ from django.conf import settings
 from eth_utils import from_wei
 from web3 import Web3
 
+from assets.models import AssetChainDeployment, AssetType
 from shared.constants import (
     BLOCKCHAIN_BASE,
     BLOCKCHAIN_ETHEREUM,
@@ -100,6 +101,14 @@ def _evm_plan(wallet, signed_transaction: str) -> SignedTransferPlan:
     ).first()
     if share_token is not None:
         raise InvalidTransactionException(NOT_TRANSFERABLE.format(symbol=share_token.symbol))
+
+    deployment = (
+        AssetChainDeployment.objects.select_related("asset")
+        .filter(chain__iexact=normalize_chain(wallet.chain), contract_address__iexact=decoded.to)
+        .first()
+    )
+    if deployment is not None and deployment.asset.asset_type == AssetType.TOKENIZED_SECURITY.value:
+        raise InvalidTransactionException(NOT_TRANSFERABLE.format(symbol=deployment.asset.symbol))
 
     if not decoded.data:
         return SignedTransferPlan(
