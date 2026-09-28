@@ -6,9 +6,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
-vi.mock('@hooks/useSelectedPortfolio', () => ({
-  useSelectedPortfolio: () => ({ portfolio: { userAccount: 'owner' } }),
-}));
 vi.mock('@hooks/useCurrency', () => ({
   useCurrency: () => ({ formatDisplayCurrency: (value: number) => `$${value}` }),
 }));

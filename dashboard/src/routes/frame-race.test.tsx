@@ -4,8 +4,9 @@ import { useLayoutEffect, type PropsWithChildren, type ReactElement } from 'reac
 import { createRoot, type Root } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import type { AxiosInstance } from 'axios';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { USER_ACCOUNT_ENDPOINTS, USER_PROFILE_ENDPOINTS, type Audience } from '@ledova/shared';
+import { ApiClientProvider, USER_ACCOUNT_ENDPOINTS, USER_PROFILE_ENDPOINTS, type Audience } from '@ledova/shared';
 
 type Deferred = { promise: Promise<unknown>; resolve: (value: unknown) => void };
 const pending = vi.hoisted(() => new Map<string, Deferred>());
@@ -69,11 +70,13 @@ function load(entry: string, route: ReactElement) {
   root = createRoot(container);
   root.render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-      <MemoryRouter initialEntries={[entry]}>
-        <Layout>
-          <Routes>{route}</Routes>
-        </Layout>
-      </MemoryRouter>
+      <ApiClientProvider client={api as unknown as AxiosInstance}>
+        <MemoryRouter initialEntries={[entry]}>
+          <Layout>
+            <Routes>{route}</Routes>
+          </Layout>
+        </MemoryRouter>
+      </ApiClientProvider>
     </QueryClientProvider>,
   );
 }

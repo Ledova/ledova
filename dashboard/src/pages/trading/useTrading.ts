@@ -15,7 +15,7 @@ import {
 } from '@ledova/shared';
 import type { Wallet, WhitelistStatus } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { useSelectedPortfolio } from '@hooks/useSelectedPortfolio';
+import { useUserPreferences } from '@ledova/shared';
 import { allMarketPages } from './marketData';
 
 export { parseTradingError };
@@ -29,7 +29,7 @@ export const tradingQueryKeys = {
 };
 
 export function useUserTradingWallets() {
-  const { userAccount, isLoading: isLoadingPortfolio } = useSelectedPortfolio();
+  const { userAccount, isLoading: isLoadingPortfolio } = useUserPreferences();
 
   const walletsQuery = useQuery({
     queryKey: ['wallets', userAccount?.uuid, 'trading'],

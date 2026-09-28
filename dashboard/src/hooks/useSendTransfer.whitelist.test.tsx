@@ -56,10 +56,6 @@ vi.mock('@ledova/shared', async () => {
   return { ...actual, getWhitelistStatus, getWalletHoldings };
 });
 
-vi.mock('./useSelectedPortfolio', () => ({
-  useSelectedPortfolio: () => ({ userAccount: { uuid: 'account-1' } }),
-}));
-
 vi.mock('@pages/wallets/components/WalletSelectionModal', () => ({
   WalletSelectionModal: ({ isOpen, onSelectWallet }: { isOpen: boolean; onSelectWallet: (w: Wallet) => void }) =>
     isOpen ? (
