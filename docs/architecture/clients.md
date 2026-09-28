@@ -110,10 +110,12 @@ classes and wallet availability, retaining recorded class labels or an explicit
 unavailable label. Wallet, class, owned-order and pending-trade reads follow every
 page; read failures expose retry and suppress stale actions. Saved orders,
 cancellations and changes, and trade signatures and approvals are records on this
-device for the signed-in account, read when Market opens and after each recovery.
-They sit in one Saved work section after Trades awaiting signatures, shown only
-while something is saved or a message about them, such as a failed read, needs
-showing, with one refresh that reads all three again. AUD totals use
+device for the signed-in account. Market reads them when it loads and after each
+recovery; one saved elsewhere later, such as in another browser tab, appears when
+Market is reopened on the web or pulled to refresh on mobile, whose Market tab
+stays loaded. They sit in one Saved work section after Trades awaiting signatures,
+shown only while something is saved or a message about them, such as a failed
+read, needs showing, with one refresh that reads all three again. AUD totals use
 integer cents; unsafe numeric quantities returned by legacy list APIs are marked
 unavailable. New quantities use exact integer strings above JavaScript's safe
 number range, within the existing signed 64-bit storage bound. The chosen wallet's

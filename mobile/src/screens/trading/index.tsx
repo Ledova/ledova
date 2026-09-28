@@ -253,6 +253,9 @@ export function TradingScreen() {
         whitelistStatus.refetch(),
         swapOrders.refetch(),
         orderBook.refetch(),
+        submissions.refresh(),
+        actions.refresh(),
+        settlements.refresh(),
       ]);
     } finally {
       setRefreshing(false);

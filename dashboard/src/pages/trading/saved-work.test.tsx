@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import type { PropsWithChildren } from 'react';
+import type { ComponentProps, PropsWithChildren } from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import axios, { type AxiosInstance } from 'axios';
@@ -19,12 +19,24 @@ import {
   wallet,
   walletUuid,
 } from '../../../../packages/shared/tests/fixtures/order-submissions';
-import { orderUuid } from '../../../../packages/shared/tests/fixtures/order-actions';
+import { actionId, orderUuid } from '../../../../packages/shared/tests/fixtures/order-actions';
 
 vi.mock('@keystonehq/animated-qr', () => ({ AnimatedQRCode: () => null }));
 vi.mock('./components/MarketOverview', () => ({ MarketOverview: () => null }));
 vi.mock('./components/PlaceOrderPanel', () => ({ PlaceOrderPanel: () => null }));
 vi.mock('./components/OrderSigningFlow', () => ({ OrderSigningFlow: () => null }));
+vi.mock('./components/OrdersPanel', async (importOriginal) => {
+  const { OrdersPanel } = await importOriginal<typeof import('./components/OrdersPanel')>();
+  const { settlementListRow } = await import('../../../../packages/shared/tests/fixtures/swap-settlements');
+  return {
+    OrdersPanel: (props: ComponentProps<typeof OrdersPanel>) => (
+      <>
+        <OrdersPanel {...props} />
+        <button onClick={() => props.onSignSwap(settlementListRow())}>Sign a trade listed for another account</button>
+      </>
+    ),
+  };
+});
 vi.mock('./hooks/useTradingEvents', () => ({ useTradingEvents: () => {} }));
 vi.mock('./hooks/useAtomicSwaps', () => ({ useSwapOrdersMulti: () => ({ data: [], isLoading: false }) }));
 vi.mock('./useTrading', async () => {
@@ -127,14 +139,44 @@ it('lists saved work after the trades awaiting signatures and refreshes every sa
   expect(await within(section).findByRole('button', { name: 'Check saved order 2' })).toBeTruthy();
 });
 
-it('shows Saved work with a failed read and its retry, and leaves once the retry finds nothing', async () => {
-  const key = `ledova.order-submissions.v1.${userUuid}.${accountUuid}.${walletUuid}.${submissionId}`;
-  localStorage.setItem(key, 'not a saved order');
+it.each([
+  {
+    list: 'orders',
+    key: `ledova.order-submissions.v1.${userUuid}.${accountUuid}.${walletUuid}.${submissionId}`,
+    message: 'Saved orders could not be read. Please try again.',
+  },
+  {
+    list: 'cancellations and changes',
+    key: `ledova.order-actions.v1.${userUuid}.${accountUuid}.${orderUuid}.modify.${actionId}`,
+    message: 'Saved cancellations and changes could not be read. Please try again.',
+  },
+  {
+    list: 'trade signatures',
+    key: `ledova.swap-settlements.v1.${userUuid}.${accountUuid}.${orderUuid}.${settlement.swapUuid}.${walletUuid}`,
+    message: 'Saved settlements could not be read. Please try again.',
+  },
+])(
+  'shows Saved work when the saved $list cannot be read, and leaves once a retry finds nothing',
+  async ({ key, message }) => {
+    localStorage.setItem(key, 'not a saved record');
+    render(<TradingPage />, { wrapper });
+    const { section, refresh } = await savedWork();
+    expect(within(section).getByRole('alert').textContent).toBe(message);
+    localStorage.removeItem(key);
+    fireEvent.click(refresh);
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Saved work' })).toBeNull());
+    expect(screen.queryByRole('alert')).toBeNull();
+  },
+);
+
+it('shows Saved work with the refusal when a trade cannot be opened for signing', async () => {
+  const reads = spyOnEverySavedList();
   render(<TradingPage />, { wrapper });
-  const { section, refresh } = await savedWork();
-  expect(within(section).getByRole('alert').textContent).toBe('Saved orders could not be read. Please try again.');
-  localStorage.removeItem(key);
-  fireEvent.click(refresh);
-  await waitFor(() => expect(screen.queryByRole('heading', { name: 'Saved work' })).toBeNull());
-  expect(screen.queryByRole('alert')).toBeNull();
+  await waitFor(() => reads.forEach((read) => expect(read).toHaveBeenCalledWith(owner)));
+  expect(screen.queryByRole('heading', { name: 'Saved work' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Sign a trade listed for another account' }));
+  const { section } = await savedWork();
+  expect(within(section).getByRole('alert').textContent).toBe(
+    'The trade details did not match the selected account and wallet.',
+  );
 });
