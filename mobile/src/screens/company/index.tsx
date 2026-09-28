@@ -75,8 +75,7 @@ export function CompanyScreen() {
           <Text style={styles.muted}>No company information available.</Text>
         ) : (
           <>
-            <Section title="Company details">
-              <Text style={styles.heading}>{company.name}</Text>
+            <Section title={company.name}>
               <Row label="Status">{company.statusDisplay}</Row>
               {company.tradingName && <Row label="Trading name">{company.tradingName}</Row>}
               <Row label="Type">{company.companyTypeDisplay}</Row>

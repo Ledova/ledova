@@ -82,7 +82,9 @@ afterEach(async () => {
 
 it('uses complete company detail and every class page with exact quantities and working destinations', async () => {
   const view = await render(<CompanyScreen />, { wrapper });
-  expect(await view.findByText('Fictional Company')).toBeTruthy();
+  expect(await view.findByRole('header', { name: 'Fictional Company' })).toBeTruthy();
+  expect(view.getAllByText('Fictional Company')).toHaveLength(1);
+  expect(view.queryByText('Company details')).toBeNull();
   expect(await view.findByText('9,007,199,254,740,993 authorised shares')).toBeTruthy();
   expect(view.getByText('Share classes (1)')).toBeTruthy();
   expect(view.queryByText('Foreign class')).toBeNull();
