@@ -34,11 +34,8 @@ export function DirectoryScreen() {
         <>
           <Text style={styles.help}>Share classes and current offerings available to you.</Text>
           {tokens.length === 0 ? (
-            <Section title="No share classes available">
-              <Text style={styles.help}>
-                There are no share classes available to you in the directory right now. The operator can help with
-                questions about an offering.
-              </Text>
+            <Section title="Share classes">
+              <Text style={styles.help}>No share classes available.</Text>
             </Section>
           ) : (
             [...issuers.entries()].map(([uuid, classes]) => {

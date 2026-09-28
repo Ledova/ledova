@@ -75,11 +75,8 @@ export default function DirectoryPage() {
     <Page>
       <p className="text-sm text-text-muted">Share classes and current offerings available to you.</p>
       {tokens.length === 0 ? (
-        <Section title="No share classes available">
-          <p className="py-2 text-sm text-text-muted">
-            There are no share classes available to you in the directory right now. The operator can help with questions
-            about an offering.
-          </p>
+        <Section title="Share classes">
+          <p className="py-3 text-sm text-text-muted">No share classes available.</p>
         </Section>
       ) : (
         [...issuers.entries()].map(([uuid, classes]) => {

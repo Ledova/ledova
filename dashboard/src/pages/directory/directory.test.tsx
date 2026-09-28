@@ -115,7 +115,7 @@ it('waits for eligibility and directs an ineligible investor to Verification wit
   );
   renderPage();
   expect(screen.getByRole('status')).toBeTruthy();
-  expect(screen.queryByText('No share classes available')).toBeNull();
+  expect(screen.queryByText('No share classes available.')).toBeNull();
   await act(async () => finish({ data: { ...eligibility.data, isEligible: false } }));
   expect(await screen.findByRole('link', { name: 'Open Verification' })).toBeTruthy();
   expect(api.get.mock.calls.some(([url]) => url === DIRECTORY_ENDPOINTS.TOKENS.LIST)).toBe(false);
@@ -141,7 +141,7 @@ it.each(['eligibility', 'first page', 'later page'])(
     });
     renderPage();
     expect(await screen.findByRole('alert')).toBeTruthy();
-    expect(screen.queryByText('No share classes available')).toBeNull();
+    expect(screen.queryByText('No share classes available.')).toBeNull();
     expect(screen.queryByRole('link', { name: /Ordinary/ })).toBeNull();
     broken = false;
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
@@ -154,7 +154,8 @@ it('distinguishes a successful empty directory from a failure', async () => {
     url === DIRECTORY_ENDPOINTS.TOKENS.LIST ? page([]) : defaults(url),
   );
   renderPage();
-  expect(await screen.findByText('No share classes available')).toBeTruthy();
+  expect(await screen.findByText('No share classes available.')).toBeTruthy();
+  expect(screen.getByRole('heading', { level: 2, name: 'Share classes' })).toBeTruthy();
   expect(screen.queryByRole('alert')).toBeNull();
 });
 

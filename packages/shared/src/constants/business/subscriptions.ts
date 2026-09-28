@@ -35,10 +35,6 @@ export const SUBSCRIPTION_WITHDRAWABLE_STATUSES: SubscriptionStatus[] = [
 export const SUBSCRIPTION_SUBMITTABLE_STATUSES: SubscriptionStatus[] = ['draft'];
 
 export const SUBSCRIPTION_COPY = {
-  EMPTY_TITLE: 'You have not subscribed to anything yet',
-  EMPTY_BODY:
-    'Open a company in the directory and, while its offering is open, commit to a number of shares. It stays a ' +
-    'draft until you submit it, and nothing is payable until the operator accepts it and issues your reference.',
   DRAFT_HELP:
     'A draft is not sent to anyone. Submitting it re-checks your investor classification and sends it to the ' +
     'operator, who accepts it and issues the exact amount and reference to pay.',
