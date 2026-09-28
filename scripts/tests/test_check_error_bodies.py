@@ -13,7 +13,7 @@ _spec = importlib.util.spec_from_file_location("check_error_bodies", SCRIPT)
 gate = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gate)
 
-SUBCLASSES = {"TransferPreparationException", "BlockchainAPIError"}
+SUBCLASSES = {"OrderCancellationException", "BlockchainAPIError"}
 
 
 NOTE_METHODS = {"mark_failed", "mark_refused"}
@@ -29,7 +29,7 @@ class AnExceptionsTextReachingTheBody(unittest.TestCase):
     def test_a_sanitised_fragment_does_not_hide_raw_exception_text_beside_it(self):
         source = (
             "try:\n    x()\nexcept Exception as e:\n"
-            "    raise TransferPreparationException(f\"{decode_exception_to_message(e, 'Failed')}: {e}\")\n"
+            "    raise OrderCancellationException(f\"{decode_exception_to_message(e, 'Failed')}: {e}\")\n"
         )
 
         self.assertEqual(len(findings(source)), 1)
@@ -37,18 +37,18 @@ class AnExceptionsTextReachingTheBody(unittest.TestCase):
 
     def test_the_bare_name(self):
         self.assertEqual(
-            len(findings("try:\n    x()\nexcept Exception as e:\n    raise TransferPreparationException(e)\n")), 1
+            len(findings("try:\n    x()\nexcept Exception as e:\n    raise OrderCancellationException(e)\n")), 1
         )
 
     def test_str_of_it(self):
         self.assertEqual(
-            len(findings("try:\n    x()\nexcept Exception as e:\n    raise TransferPreparationException(str(e))\n")), 1
+            len(findings("try:\n    x()\nexcept Exception as e:\n    raise OrderCancellationException(str(e))\n")), 1
         )
 
     def test_an_f_string_interpolating_it(self):
         self.assertEqual(
             len(findings(
-                'try:\n    x()\nexcept Exception as e:\n    raise TransferPreparationException(f"failed: {e}")\n'
+                'try:\n    x()\nexcept Exception as e:\n    raise OrderCancellationException(f"failed: {e}")\n'
             )), 1
         )
 
@@ -56,14 +56,14 @@ class AnExceptionsTextReachingTheBody(unittest.TestCase):
         self.assertEqual(
             len(findings(
                 "try:\n    x()\nexcept Exception as e:\n"
-                '    raw = str(e)\n    raise TransferPreparationException(f"failed: {raw}")\n'
+                '    raw = str(e)\n    raise OrderCancellationException(f"failed: {raw}")\n'
             )), 1
         )
 
     def test_a_keyword_argument(self):
         self.assertEqual(
             len(findings(
-                "try:\n    x()\nexcept Exception as e:\n    raise TransferPreparationException(detail=str(e))\n"
+                "try:\n    x()\nexcept Exception as e:\n    raise OrderCancellationException(detail=str(e))\n"
             )), 1
         )
 
@@ -73,7 +73,7 @@ class WhatIsNotAFinding(unittest.TestCase):
     def test_a_fixed_message(self):
         self.assertEqual(
             findings(
-                'try:\n    x()\nexcept Exception as e:\n    raise TransferPreparationException("It failed.") from e\n'
+                'try:\n    x()\nexcept Exception as e:\n    raise OrderCancellationException("It failed.") from e\n'
             ), []
         )
 
@@ -81,7 +81,7 @@ class WhatIsNotAFinding(unittest.TestCase):
         self.assertEqual(
             findings(
                 "try:\n    x()\nexcept Exception as e:\n"
-                '    logger.error(f"failed: {e}")\n    raise TransferPreparationException("It failed.") from e\n'
+                '    logger.error(f"failed: {e}")\n    raise OrderCancellationException("It failed.") from e\n'
             ), []
         )
 
@@ -89,7 +89,7 @@ class WhatIsNotAFinding(unittest.TestCase):
         self.assertEqual(
             findings(
                 "try:\n    x()\nexcept Exception as e:\n"
-                '    raise TransferPreparationException(f"status {order.get_status_display()}") from e\n'
+                '    raise OrderCancellationException(f"status {order.get_status_display()}") from e\n'
             ), []
         )
 
@@ -98,7 +98,7 @@ class WhatIsNotAFinding(unittest.TestCase):
             findings(
                 "try:\n    x()\nexcept Exception as e:\n"
                 "    friendly = decode_exception_to_message(e, 'Failed')\n"
-                '    raise TransferPreparationException(f"failed: {friendly}") from e\n'
+                '    raise OrderCancellationException(f"failed: {friendly}") from e\n'
             ), []
         )
 
@@ -110,7 +110,7 @@ class WhatIsNotAFinding(unittest.TestCase):
 
     def test_an_unnamed_handler_has_nothing_to_leak(self):
         self.assertEqual(
-            findings('try:\n    x()\nexcept Exception:\n    raise TransferPreparationException("It failed.")\n'), []
+            findings('try:\n    x()\nexcept Exception:\n    raise OrderCancellationException("It failed.")\n'), []
         )
 
 

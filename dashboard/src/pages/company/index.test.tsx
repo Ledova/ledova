@@ -68,7 +68,6 @@ it('shows company details, exact draft share classes and the class/application d
   expect(screen.getByRole('link', { name: 'Published to your members' }).getAttribute('href')).toBe(
     '/company/publications',
   );
-  expect(api.get.mock.calls.some(([url]) => String(url).includes('/stats/'))).toBe(false);
 });
 
 it('reads every class page, excludes other companies and retries a failed later page without showing partial or stale rows', async () => {

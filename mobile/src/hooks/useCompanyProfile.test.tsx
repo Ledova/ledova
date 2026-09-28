@@ -32,7 +32,6 @@ it('does not use an incomplete summary when the company detail fails', async () 
   await waitFor(() => expect(result.current.error).toBe(failure));
   expect(result.current.company).toBeNull();
   expect(result.current.companyUuid).toBe('company-1');
-  expect(get).not.toHaveBeenCalledWith(expect.stringContaining('/stats/'));
 });
 
 it('refreshes list and full detail and exposes failed list reads over cached detail', async () => {

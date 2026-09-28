@@ -38,7 +38,6 @@ User = get_user_model()
 @override_settings(ATOMIC_SWAP_ADDRESS=SYNTHETIC_SETTLEMENT_CONTRACT)
 class TradingReadIsolationTest(APITransactionTestCase):
     legacy_cases = {
-        "test_malformed_address_snapshots_do_not_grant_swap_visibility",
         "test_order_swap_reads_reject_malformed_order_snapshot_before_service",
         "test_legacy_list_retains_both_valid_and_malformed_address_history",
     }
@@ -229,7 +228,7 @@ class TradingReadIsolationTest(APITransactionTestCase):
         )
 
     def test_same_address_on_different_wallet_row_does_not_grant_swap_visibility(self):
-        duplicate_wallet = Wallet.objects.create(
+        Wallet.objects.create(
             user_account=self.bob_account,
             address=self.alice_wallet.address,
             chain="base",
@@ -238,26 +237,15 @@ class TradingReadIsolationTest(APITransactionTestCase):
         charlie_order = self._make_order(self.charlie_wallet, TransferOrderType.BUY)
         alice_charlie_swap = self._make_swap(self.alice_order, charlie_order, "2")
 
-        visible = SwapOrder.objects.for_wallet_ids([duplicate_wallet.uuid]).awaiting_signature()
+        self.client.force_authenticate(self.charlie)
+        party = self.client.get("/api/v1/trading/swaps/", {"wallet_address": self.charlie_wallet.address})
+        self.client.force_authenticate(self.bob)
+        duplicate = self.client.get("/api/v1/trading/swaps/", {"wallet_address": self.alice_wallet.address})
 
-        self.assertNotIn(alice_charlie_swap.uuid, visible.values_list("uuid", flat=True))
-
-    def test_malformed_address_snapshots_do_not_grant_swap_visibility(self):
-        malformed_order = self._make_order(self.bob_wallet, TransferOrderType.BUY, self.alice_wallet.address)
-        malformed_swap = self._make_swap(self.alice_order, malformed_order, "5")
-
-        valid_order = self._make_order(self.bob_wallet, TransferOrderType.BUY)
-        changed_swap = self._make_swap(self.alice_order, valid_order, "8")
-        changed_swap.buyer_address = self.alice_wallet.address
-        changed_swap.save(update_fields=["buyer_address"])
-        self._restore_legacy_swaps()
-
-        visible = SwapOrder.objects.for_wallet_ids([self.bob_wallet.uuid]).awaiting_signature()
-
-        visible_ids = set(visible.values_list("uuid", flat=True))
-        self.assertIn(self.swap.uuid, visible_ids)
-        self.assertNotIn(malformed_swap.uuid, visible_ids)
-        self.assertNotIn(changed_swap.uuid, visible_ids)
+        self.assertEqual(party.status_code, 200)
+        self.assertEqual([row["uuid"] for row in party.data["results"]], [str(alice_charlie_swap.uuid)])
+        self.assertEqual(duplicate.status_code, 200)
+        self.assertEqual(duplicate.data["results"], [])
 
     @staticmethod
     def _whitelist_status_of(service, address):

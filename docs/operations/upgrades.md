@@ -24,15 +24,17 @@ consumer of a retired route must stop using it before upgrading.
 
 The backend tidy-up removes the routes that no client, documented consumer or
 operator script called: `POST /api/v1/trading/transfers/prepare/` and
-`/broadcast/` (a share-class send goes through
-`POST /api/wallets/{uuid}/prepare-transfer/` and `/broadcast-transfer/`),
+`/broadcast/` (the clients send through
+`POST /api/wallets/{uuid}/prepare-transfer/` and `/broadcast-transfer/`, which
+refuse a share class),
 `GET /api/v1/trading/tokens/{uuid}/market-data/` (the market list and detail
 carry `lastPrice`, `bestBid` and `bestAsk`),
 `GET /api/v1/trading/orders/{uuid}/modifications/`,
 `GET /api/v1/companies/{uuid}/stats/`,
 `GET /api/v1/companies/{uuid}/application-status/` (the company detail carries
-the same status, timestamps and flags), the `/api/device-tokens/` list, create
-and detail routes (`register/` and `unregister/` remain),
+the same status, timestamps and flags except `reviewCompletedAt`), the
+`/api/device-tokens/` list, create and detail routes (`register/` and
+`unregister/` remain),
 `GET /api/investor-classifications/{uuid}/evidence/` and
 `GET /api/v1/documents/{uuid}/file/`. These paths now return 404, and the
 classification and personal-document responses no longer carry `evidenceUrl`
