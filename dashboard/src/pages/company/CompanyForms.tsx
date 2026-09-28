@@ -5,12 +5,12 @@ import {
   apiErrorSentence,
   createCompanyToken,
   updateCompany,
+  wholeShares,
   type Company,
   type CompanyUpdate,
   type TokenType,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { wholeShares } from './classes/shareQuantities';
 import { CompanyReadNotice, type CompanyRead } from './CompanyState';
 
 const FIELD_CLASS =

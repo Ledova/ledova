@@ -9,13 +9,13 @@ import {
   getShareIssuanceRequests,
   deployCompanyToken,
   submitCapitalIncrease,
+  wholeShares,
   COMPANY_TOKEN_ENDPOINTS,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { shareDocumentCopy } from '../../services/documentCopies';
 import { getSessionEpoch, assertSessionEpoch } from '../../services/sessionScope';
 import { checkedRegister, everyCompanyPage, useCompanyAccess } from '../company-register/useCompanyRegister';
-import { wholeShares } from './shareQuantities';
 
 export function useTokenDetail(uuid: string) {
   const queryClient = useQueryClient();

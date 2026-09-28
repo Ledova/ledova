@@ -8,8 +8,8 @@ import {
   getAddressPlaceholder,
   isBitcoinChain,
   parseFiatValue,
+  useCurrency,
 } from '@ledova/shared';
-import { useCurrency } from '../../../hooks/useCurrency';
 import type { TransferableAsset } from '@ledova/shared';
 
 interface SendFormProps {

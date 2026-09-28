@@ -32,8 +32,11 @@ let mockPreferences: {
   isError: boolean;
   refetch: () => Promise<void>;
 };
-jest.mock('../../hooks/useUserPreferences', () => ({ useUserPreferences: () => mockPreferences }));
-jest.mock('../../hooks/useCurrency', () => ({ useCurrency: () => ({ formatDisplayCurrency: () => 'AUD 42.00' }) }));
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
+  useUserPreferences: () => mockPreferences,
+  useCurrency: () => ({ formatDisplayCurrency: () => 'AUD 42.00' }),
+}));
 jest.mock('expo-clipboard', () => ({ setStringAsync: jest.fn() }));
 jest.mock('../../components/qr', () => {
   const { Text, Pressable } = jest.requireActual('react-native');

@@ -10,7 +10,10 @@ import { InSignedInFrame } from '@components/InSignedInFrame';
 import { Page } from '@components/Page';
 import { signedInRoutes } from './signedInRoutes';
 
-vi.mock('@hooks/useAuth', () => ({ useAuth: () => ({ isAuthenticated: true, isLoading: false, isFetching: false }) }));
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
+  useAuth: () => ({ isAuthenticated: true, isLoading: false, isFetching: false }),
+}));
 vi.mock('@hooks/useRole', () => ({
   useRole: () => ({ role: 'both', isKnown: true, isUnavailable: false, retry: vi.fn() }),
 }));

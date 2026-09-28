@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { CaretDownIcon, CaretRightIcon } from 'phosphor-react-native';
-import { formatShareCount, getChainConfig, type ShareHoldingRow } from '@ledova/shared';
+import { formatShareCount, getChainConfig, useShareHoldings, type ShareHoldingRow } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { GradientBackground } from '../../components/GradientBackground';
 import { HoldingWork } from './components/HoldingWork';
 import { useHoldingWork } from './useHoldingWork';
-import { useShareHoldings } from './useShareHoldings';
 
 function ShareHolding({ holding }: { holding: ShareHoldingRow }) {
   const [expanded, setExpanded] = useState(false);

@@ -5,7 +5,7 @@ import type { LayoutProps } from '@ledova/shared';
 import { BuyCryptoProvider } from '@hooks/useBuyCrypto';
 import { SendTransferProvider } from '@hooks/useSendTransfer';
 import { useSignupFinished } from '@hooks/useSignupFinished';
-import { useAuth } from '@hooks/useAuth';
+import { useAuth } from '@ledova/shared';
 import { AuthLayoutAction } from './AuthLayout/AuthLayoutAction';
 import { InSignedInFrame } from './InSignedInFrame';
 import { SignOutButton } from './SignOutButton';

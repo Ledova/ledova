@@ -34,9 +34,9 @@ import {
   formatCryptoBalance,
   formatSyncAge,
   getUserVerificationStatus,
+  useCurrency,
 } from '@ledova/shared';
 import type { BuyableAssetConfig, Wallet } from '@ledova/shared';
-import { useCurrency } from '../../../hooks/useCurrency';
 import { CustomModal } from '../../../components/modal';
 import { apiClient } from '../../../services/apiClient';
 import { useAppTheme, useThemedStyles } from '../../../contexts';

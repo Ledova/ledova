@@ -8,16 +8,15 @@ import { WALLET_ENDPOINTS, type AccountRole } from '@ledova/shared';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
-vi.mock('@hooks/useAuth', () => ({ useAuth: () => ({ isAuthenticated: true }) }));
-vi.mock('@hooks/useSelectedPortfolio', () => ({
-  useSelectedPortfolio: () => ({ portfolio: { userAccount: 'owner' }, userAccount: { uuid: 'owner' } }),
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
+  useUserPreferences: () => ({ userAccount: { uuid: 'owner' } }),
+  useAuth: () => ({ isAuthenticated: true }),
+  useCurrency: () => ({ formatDisplayCurrency: (value: number) => `$${value}` }),
 }));
 vi.mock('@hooks/useSignupFinished', () => ({ useSignupFinished: () => true }));
 vi.mock('@components/Sidebar', () => ({ Sidebar: () => null }));
 vi.mock('@components/MobileHeader', () => ({ MobileHeader: () => null }));
-vi.mock('@hooks/useCurrency', () => ({
-  useCurrency: () => ({ formatDisplayCurrency: (value: number) => `$${value}` }),
-}));
 vi.mock('@keystonehq/animated-qr', () => ({ AnimatedQRCode: () => null }));
 
 import Layout from '@components/Layout';

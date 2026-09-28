@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { getOperator, CACHE_TIMING } from '@ledova/shared';
+import { getOperator, CACHE_TIMING, useAuth } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { useAuth } from '@hooks/useAuth';
 import { MARKETING_URL } from '@utils/marketingUrl';
 
 const FOOTER_LINKS = [

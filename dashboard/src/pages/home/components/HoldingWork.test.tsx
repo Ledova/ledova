@@ -21,7 +21,10 @@ import { HoldingWork } from './HoldingWork';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
-vi.mock('@hooks/useAuth', () => ({ useAuth: () => ({ isAuthenticated: true }) }));
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
+  useAuth: () => ({ isAuthenticated: true }),
+}));
 
 const NOTHING = { openResolutions: 0, nextClosesAt: null, dividendsWithoutRecord: 0 };
 let client: QueryClient;

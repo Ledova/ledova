@@ -5,7 +5,8 @@ import { apiClient } from '../services/apiClient';
 import { useCompanyProfile } from './useCompanyProfile';
 
 jest.mock('../services/apiClient', () => ({ apiClient: { get: jest.fn() } }));
-jest.mock('./useUserPreferences', () => ({
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
   useUserPreferences: () => ({ userAccount: { role: 'company' }, isLoading: false, isError: false }),
 }));
 const get = jest.mocked(apiClient.get);

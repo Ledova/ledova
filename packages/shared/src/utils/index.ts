@@ -79,3 +79,4 @@ export {
   swapSettlementAdmitted,
 } from './swap-settlement-validation';
 export { summarizeShareHoldings, type ShareHoldingRow } from './share-holdings';
+export { MAX_REQUEST_SHARES, raisedSupply, requestShares, wholeShares } from './share-quantities';

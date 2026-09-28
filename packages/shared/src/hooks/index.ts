@@ -14,3 +14,5 @@ export { useOrderActionSigning } from './useOrderActionSigning';
 export { useSwapSettlements } from './useSwapSettlements';
 export { useSubmissionOwner } from './useSubmissionOwner';
 export { useResolutionStatus } from './useResolutionStatus';
+export { useShareHoldings } from './useShareHoldings';
+export { useDirectoryToken, useDirectoryTokens } from './useDirectory';

@@ -19,7 +19,10 @@ import SettingsPage from './settings';
 const api = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn(), post: vi.fn() }));
 const navigate = vi.hoisted(() => vi.fn());
 vi.mock('@services/apiClient', () => ({ default: api }));
-vi.mock('@hooks/useAuth', () => ({ useAuth: () => ({ isAuthenticated: true }) }));
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
+  useAuth: () => ({ isAuthenticated: true }),
+}));
 vi.mock('@hooks/useDocuments', () => ({ useDocumentsEnabled: () => false }));
 vi.mock('./user-profile/components/IdentityVerificationModal', () => ({
   IdentityVerificationModal: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>

@@ -6,7 +6,8 @@ import { apiClient } from '../../services/apiClient';
 import { useUserTradingWallets } from './useTrading';
 import { response, wallet } from '../../../../packages/shared/tests/fixtures/order-submissions';
 jest.mock('../../services/apiClient', () => ({ apiClient: jest.requireActual('axios').default.create() }));
-jest.mock('../../hooks/useUserPreferences', () => ({
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
   useUserPreferences: () => ({ userAccount: { uuid: '20000000-0000-4000-8000-000000000001' }, isLoading: false }),
 }));
 let client: QueryClient;

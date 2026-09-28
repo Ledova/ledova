@@ -21,8 +21,9 @@ import {
   accountUuid,
 } from '../../../../packages/shared/tests/fixtures/order-submissions';
 vi.mock('@services/apiClient', async () => ({ default: (await import('axios')).default.create() }));
-vi.mock('@hooks/useSelectedPortfolio', () => ({
-  useSelectedPortfolio: () => ({ userAccount: { uuid: '20000000-0000-4000-8000-000000000001' }, isLoading: false }),
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
+  useUserPreferences: () => ({ userAccount: { uuid: '20000000-0000-4000-8000-000000000001' }, isLoading: false }),
 }));
 let client: QueryClient;
 const token = {

@@ -3,8 +3,10 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import type { AxiosInstance } from 'axios';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import {
+  ApiClientProvider,
   DIRECTORY_ENDPOINTS,
   INVESTOR_CLASSIFICATION_ENDPOINTS,
   SUBSCRIPTION_ENDPOINTS,
@@ -67,13 +69,15 @@ function renderPage(detail = false) {
   return render(
     <MemoryRouter initialEntries={[detail ? '/directory/ordinary' : '/directory']}>
       <QueryClientProvider client={client}>
-        <PageTitle.Provider value={detail ? 'Share class' : 'Directory'}>
-          <Routes>
-            <Route path="/directory" element={<DirectoryPage />} />
-            <Route path="/directory/:uuid" element={<DirectoryTokenPage />} />
-            <Route path="/subscriptions/:uuid" element={<h1>Application detail</h1>} />
-          </Routes>
-        </PageTitle.Provider>
+        <ApiClientProvider client={api as unknown as AxiosInstance}>
+          <PageTitle.Provider value={detail ? 'Share class' : 'Directory'}>
+            <Routes>
+              <Route path="/directory" element={<DirectoryPage />} />
+              <Route path="/directory/:uuid" element={<DirectoryTokenPage />} />
+              <Route path="/subscriptions/:uuid" element={<h1>Application detail</h1>} />
+            </Routes>
+          </PageTitle.Provider>
+        </ApiClientProvider>
       </QueryClientProvider>
     </MemoryRouter>,
   );

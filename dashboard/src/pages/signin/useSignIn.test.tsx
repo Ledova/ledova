@@ -3,9 +3,8 @@
 import type { PropsWithChildren } from 'react';
 import { act, renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { signin } from '@ledova/shared';
+import { signin, AUTH_QUERY_KEY } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { AUTH_QUERY_KEY } from '@hooks/useAuth';
 import { useSignIn } from './useSignIn';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

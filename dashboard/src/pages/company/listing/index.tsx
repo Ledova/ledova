@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
   DESTINATIONS,
+  OPTIONAL_DOCUMENTS,
+  REQUIRED_DOCUMENTS,
   deleteCompanyDocument,
   formatDate,
   getErrorMessage,
@@ -21,7 +23,6 @@ import apiClient from '@services/apiClient';
 import { useCompany } from '../hooks/useCompany';
 import { CompanyReadNotice, CompanyStatusMark } from '../CompanyState';
 import { UploadModal } from './UploadModal';
-import { OPTIONAL_DOCUMENTS, REQUIRED_DOCUMENTS } from './documents';
 
 const FIELD_CLASS =
   'mt-1 block w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary';
