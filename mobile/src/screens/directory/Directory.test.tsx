@@ -104,7 +104,7 @@ it.each([
 it('shows verification before reading classes and navigates to the existing Verification destination', async () => {
   eligible = false;
   const view = await render(<DirectoryScreen />, { wrapper });
-  await fireEvent.press(await view.findByText('Open Verification'));
+  await fireEvent.press(await view.findByText('Verification'));
   expect(mockParentNavigate).toHaveBeenCalledWith('InvestorEligibility');
   expect(get.mock.calls.map(([url]) => url)).toEqual([eligibilityUrl]);
 });

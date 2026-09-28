@@ -49,7 +49,5 @@ export const useDirectoryStyles = () =>
     title: { fontFamily: theme.fontFamily.display, fontSize: 34, color: theme.colors.text.primary },
     message: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 21, color: theme.colors.text.primary },
     help: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 21, color: theme.colors.text.muted },
-    item: { paddingVertical: 16, gap: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.border.subtle },
-    label: { fontFamily: theme.fontFamily.medium, fontSize: 16, lineHeight: 23, color: theme.colors.text.primary },
     group: { gap: 12 },
   }));

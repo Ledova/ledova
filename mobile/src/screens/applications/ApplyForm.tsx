@@ -6,7 +6,7 @@ import {
   type DirectoryOpenOffering,
   type Wallet,
 } from '@ledova/shared';
-import { Action, Row, Section } from '../../components/Ledger';
+import { Action, LinkRow, Row, Section } from '../../components/Ledger';
 import { useThemedStyles } from '../../contexts';
 import { useApplicationStyles } from './ApplicationsPage';
 import { applicationAmount } from './presentation';
@@ -60,7 +60,7 @@ export function ApplyForm({
         <Text style={styles.help}>
           Shares are issued to a verified Base wallet you control. Add and verify one in Wallets before applying.
         </Text>
-        <Action label="Open Wallets" onPress={openWallets} />
+        <LinkRow label="Wallets" onPress={openWallets} />
       </Section>
     );
   return (

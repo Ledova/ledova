@@ -96,7 +96,7 @@ it('shows recorded identities and currency without a current Directory read, inc
   expect(within(first).getByText(/AUD\s2,500.00/)).toBeTruthy();
   expect(within(first).getByText(/AUD\s1.25/)).toBeTruthy();
   expect(within(first).getByText('EXAMPLE0123')).toBeTruthy();
-  expect(within(first).getByRole('link', { name: 'Open application' }).getAttribute('href')).toBe(
+  expect(within(first).getByRole('link', { name: 'Application' }).getAttribute('href')).toBe(
     '/subscriptions/application-one',
   );
   fireEvent.click(screen.getByRole('button', { name: 'Load more applications' }));
@@ -112,7 +112,7 @@ it('shows an empty state only after a successful complete empty response', async
   show();
   expect(await screen.findByText('No applications yet.')).toBeTruthy();
   expect(screen.getByRole('heading', { level: 2, name: 'Your applications' })).toBeTruthy();
-  expect(screen.getByRole('link', { name: 'Open Directory' }).getAttribute('href')).toBe('/directory');
+  expect(screen.getByRole('link', { name: 'Directory' }).getAttribute('href')).toBe('/directory');
   expect(screen.queryByRole('alert')).toBeNull();
 });
 
@@ -165,7 +165,7 @@ it('hides stale application values and links after refresh failure until a succe
   });
   expect(await screen.findByRole('alert')).toBeTruthy();
   expect(screen.queryByRole('article')).toBeNull();
-  expect(screen.queryByRole('link', { name: 'Open application' })).toBeNull();
+  expect(screen.queryByRole('link', { name: 'Application' })).toBeNull();
   api.get.mockResolvedValue(page());
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
   expect(await screen.findByRole('article')).toBeTruthy();

@@ -206,7 +206,7 @@ it('suppresses cached application history on a failed refresh and recovers to a 
   await fireEvent.press(view.getByText('Try again'));
   expect(await view.findByText('No applications yet.')).toBeTruthy();
   expect(view.getByText('Your applications')).toBeTruthy();
-  await fireEvent.press(view.getByText('Open Directory'));
+  await fireEvent.press(view.getByText('Directory'));
   expect(mockParentNavigate).toHaveBeenCalledWith('Directory', { screen: 'DirectoryMain' });
 });
 
@@ -475,7 +475,7 @@ it('requires another selection when a receiving wallet disappears and clears a d
 it('offers Wallets only after a complete reliable empty wallet read', async () => {
   walletPages = { 1: { results: [], next: null } };
   const view = await render(<ShareClassScreen />, { wrapper });
-  await fireEvent.press(await view.findByText('Open Wallets'));
+  await fireEvent.press(await view.findByText('Wallets'));
   expect(mockParentNavigate).toHaveBeenCalledWith('Wallets', { screen: 'WalletsList' });
   expect(view.queryByText('Create application')).toBeNull();
 });
@@ -485,7 +485,7 @@ it('rejects incomplete receiving-wallet pagination without enabling a partial ch
   const view = await render(<ShareClassScreen />, { wrapper });
   expect(await view.findByText(/Your receiving wallets could not be loaded/)).toBeTruthy();
   expect(view.queryByText('Create application')).toBeNull();
-  expect(view.queryByText('Open Wallets')).toBeNull();
+  expect(view.queryByText('Wallets')).toBeNull();
 });
 
 it.each([classUrl, walletsUrl])('blocks draft creation during an in-flight prerequisite refresh of %s', async (url) => {

@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { DESTINATIONS, deleteInvestorClassification, formatDate, getErrorMessage } from '@ledova/shared';
 import type { InvestorCategory, InvestorClassification } from '@ledova/shared';
-import { Row, Rows, Section, Status, type Tone } from '@components/Ledger';
+import { LinkRow, Row, Rows, Section, Status, type Tone } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import apiClient from '@services/apiClient';
 import { CATEGORIES, REASON_TEXT, WHOLESALE_ONLY_NOTICE } from './constants';
@@ -57,12 +56,7 @@ export default function InvestorEligibilityPage() {
                 </Status>
               </p>
               {isEligible ? (
-                <Link
-                  to={DESTINATIONS.directory.path}
-                  className="w-fit text-sm text-brand-light underline underline-offset-4"
-                >
-                  View the directory
-                </Link>
+                <LinkRow to={DESTINATIONS.directory.path} label={DESTINATIONS.directory.title} />
               ) : (
                 <ul className="space-y-1 text-sm text-text-muted">
                   {(eligibility?.reasons ?? []).map((reason) => (
