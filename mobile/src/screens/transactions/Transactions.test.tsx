@@ -186,6 +186,20 @@ it('distinguishes loading from an empty history', async () => {
   expect(await view.findByText('No activity yet.')).toBeTruthy();
   expect(view.getByText('Transfers')).toBeTruthy();
 });
+it('keeps the Transfers title when filters match nothing and clears them from that state', async () => {
+  activity = async (params) => page(params.direction === 'outgoing' ? [] : [transaction]);
+  const view = await show();
+  await view.findByText('Pending');
+  await fireEvent.press(view.getByText('Filter'));
+  await fireEvent.press(view.getByRole('radio', { name: 'Direction: Outgoing' }));
+  await fireEvent.press(view.getByText('Apply'));
+  expect(await view.findByText('No matching activity.')).toBeTruthy();
+  expect(view.getByText('Transfers')).toBeTruthy();
+  expect(view.queryByText('No activity yet.')).toBeNull();
+  await fireEvent.press(view.getByText('Clear filters'));
+  expect(await view.findByText('Pending')).toBeTruthy();
+  expect(view.queryByText('No matching activity.')).toBeNull();
+});
 it('retries an initial history failure without claiming no records', async () => {
   activity = async () => {
     throw Error('offline');
