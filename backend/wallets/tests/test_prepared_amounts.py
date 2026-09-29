@@ -45,14 +45,22 @@ class APreparedAmountIsTheExactWeiAsADecimalStringTest(SimpleTestCase):
                     self.prepare_native(get_client, amount)
         get_client.assert_not_called()
 
-    def test_a_token_transfer_sends_no_native_value(self, get_client):
+    @staticmethod
+    def prepare_token(get_client, amount, decimals):
         client = get_client.return_value
         client.estimate_erc20_transfer_gas.return_value = 60000
         client.get_gas_price.return_value = 10**9
         client.build_erc20_transfer_data.return_value = "0xa9059cbb"
         client.get_nonce.return_value = 7
         client.w3.eth.chain_id = 84532
-        prepared = prepare_erc20_transaction(
-            "base", FROM, TO, Decimal("1.5"), Decimal("10"), Decimal("1"), CONTRACT, "TST", 2
+        return prepare_erc20_transaction(
+            "base", FROM, TO, Decimal(amount), Decimal("10"), Decimal("1"), CONTRACT, "TST", decimals
         )
-        self.assertEqual(prepared["transaction"]["value"], "0")
+
+    def test_a_token_transfer_sends_no_native_value(self, get_client):
+        self.assertEqual(self.prepare_token(get_client, "1.5", 2)["transaction"]["value"], "0")
+
+    def test_the_reviewed_amount_is_written_out_plainly_even_below_a_millionth(self, get_client):
+        native = self.prepare_native(get_client, "0.0000001")
+        self.assertEqual((native["amount_eth"], native["transaction"]["value"]), ("0.0000001", "100000000000"))
+        self.assertEqual(self.prepare_token(get_client, "0.0000001", 8)["amount_token"], "0.0000001")

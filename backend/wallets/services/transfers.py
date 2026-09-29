@@ -261,7 +261,7 @@ def prepare_ethereum_transaction(
 
         return {
             "transaction": transaction,
-            "amount_eth": str(amount_eth),
+            "amount_eth": format(amount_eth, "f"),
             "gas_price_wei": str(gas_price_wei),
             "gas_price_gwei": str(Decimal(gas_price_wei) / Decimal(10**9)),
             "gas_limit": gas_limit,
@@ -424,7 +424,7 @@ def prepare_erc20_transaction(
 
         return {
             "transaction": transaction,
-            "amount_token": str(amount),
+            "amount_token": format(amount, "f"),
             "token_symbol": token_symbol,
             "token_decimals": token_decimals,
             "token_contract": contract_address,
