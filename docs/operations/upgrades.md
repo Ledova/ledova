@@ -128,6 +128,14 @@ accepted any string. No database migration is needed.
 lists the three latest notices instead. Clients built before this change read the
 missing count as 0 and show nothing in its place. No database migration is needed.
 
+## Retired transaction cleanup tasks
+
+`blockchain.tasks.cleanup_failed_transactions` and
+`wallets.tasks.confirmation.cleanup_stale_pending_transactions` are removed. No
+code enqueued them; they remained only to report overdue counts for jobs older
+workers had queued. A deployment that still has such jobs must drain them with a
+release that has the tasks before upgrading. No database migration is needed.
+
 ## Database migrations
 
 - `companies/0003_delete_review_and_signature_models` (with

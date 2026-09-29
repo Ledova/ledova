@@ -118,20 +118,14 @@ are excluded both from selection and from the fresh receipt-write check. Their
 [dedicated recovery and legacy hold](swap-settlement.md#legacy-history-hold)
 retain outcomes that cannot be attributed to the original settlement context.
 
-`blockchain.tasks.cleanup_failed_transactions` and
-`wallets.tasks.confirmation.cleanup_stale_pending_transactions` retain their
-names and `timestamp` argument for jobs already queued by older workers. They
-only report overdue unresolved row counts; their legacy `cleaned` or `failed`
-counts are zero. The callable `blockchain.services.transaction.cleanup_stale_transactions`
-also retains its `hours` argument and adds an `overdue` count. None of these
-compatibility handlers changes transaction state, balances or reservations,
-and neither task has a recurring schedule. Workers must load the updated code
-for the schedule and behavior changes to take effect; an old process still
-contains the former cleanup implementation.
+A deployment that still has `blockchain.tasks.cleanup_failed_transactions` or
+`wallets.tasks.confirmation.cleanup_stale_pending_transactions` jobs queued must
+drain them with a release that has those tasks before upgrading
+([upgrade note](../operations/upgrades.md#retired-transaction-cleanup-tasks)).
 
 Operator transactions without a hash remain unresolved. Recovering their
 identity, reviewing rows already failed by historical cleanup, and per-chain
-finality or reorg policy remain separate work. This change does not reopen
+finality or reorg policy remain separate work. Receipt recovery does not reopen
 terminal history or infer a compensating balance movement from an old timeout.
 
 ## EVM nonce-spend evidence
