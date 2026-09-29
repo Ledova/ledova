@@ -1,12 +1,9 @@
-import { useState } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { UserIcon, BuildingsIcon } from 'phosphor-react-native';
-import { CACHE_TIMING, describeFailure, getUserAccount, setAccountRole } from '@ledova/shared';
+import { UserIcon, BuildingsIcon, WarningCircleIcon } from 'phosphor-react-native';
+import { useSignupAccountType } from '@ledova/shared';
 import { GradientBackground } from '../../../components/GradientBackground';
-import { apiClient } from '../../../services/apiClient';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 
@@ -60,6 +57,22 @@ export function AccountTypeScreen() {
       color: theme.colors.text.muted,
       textAlign: 'center',
     },
+    errorContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.colors.error.default + '1A',
+      borderWidth: 1,
+      borderColor: theme.colors.form.borderError,
+      borderRadius: theme.borderRadius.md,
+      padding: theme.spacing.md,
+      marginBottom: theme.spacing.lg,
+    },
+    errorText: {
+      color: theme.colors.form.error,
+      fontSize: theme.fontSize.sm,
+      marginLeft: theme.spacing.sm,
+      flex: 1,
+    },
     options: {
       gap: theme.spacing.md,
     },
@@ -108,41 +121,16 @@ export function AccountTypeScreen() {
     },
   }));
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const queryClient = useQueryClient();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { account, isSubmitting, error, chooseRole } = useSignupAccountType();
 
-  const { data: accountResponse } = useQuery({
-    queryKey: ['userAccount'],
-    queryFn: () => getUserAccount(apiClient),
-    staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
-  });
-
-  const account = accountResponse?.data ?? null;
-
-  const updateRoleMutation = useMutation({
-    mutationFn: (role: AccountRole) => setAccountRole(apiClient, account!.uuid, role),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userAccount'] });
-      queryClient.invalidateQueries({ queryKey: ['userPreferences'] });
-    },
-  });
-
-  const handleSelect = async (role: AccountRole) => {
-    if (!account || isSubmitting) return;
-
-    setIsSubmitting(true);
-    try {
-      await updateRoleMutation.mutateAsync(role);
+  const handleSelect = (role: AccountRole) =>
+    chooseRole(role, () => {
       if (role === 'investor') {
         navigation.navigate('PreScreening');
       } else {
         navigation.navigate('IdentityVerification');
       }
-    } catch (error) {
-      console.error(`Failed to update account role: ${describeFailure(error)}`);
-      setIsSubmitting(false);
-    }
-  };
+    });
 
   const handleBack = () => {
     navigation.navigate('EmailConfirmation');
@@ -156,6 +144,17 @@ export function AccountTypeScreen() {
             <Text style={styles.title}>Choose Account Type</Text>
             <Text style={styles.subtitle}>How will you be using Ledova?</Text>
           </View>
+
+          {error ? (
+            <View style={styles.errorContainer}>
+              <WarningCircleIcon
+                size={theme.icon.sizes.md}
+                color={theme.colors.status.error.icon}
+                weight={theme.icon.weights.regular}
+              />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
 
           <View style={styles.options}>
             {ACCOUNT_TYPES.map((option) => {
