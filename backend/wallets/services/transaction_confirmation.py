@@ -6,6 +6,7 @@ from uuid import uuid4
 from django.utils.dateparse import parse_datetime
 from procrastinate import App
 from procrastinate.contrib.django.django_connector import DjangoConnector
+from web3 import Web3
 
 from assets.models import Asset, AssetType
 from assets.services.identity import (
@@ -75,7 +76,10 @@ def _pays_the_operator(chain: str, recipient: str) -> bool:
 
 
 def require_stablecoin_approvals(asset: Asset, chain: str, sender: str, recipient: str) -> None:
-    if asset.asset_type != AssetType.STABLECOIN.value or _pays_the_operator(chain, recipient):
+    if asset.asset_type != AssetType.STABLECOIN.value:
+        return
+    recipient = Web3.to_checksum_address(recipient)
+    if _pays_the_operator(chain, recipient):
         return
     with use_operator():
         if not whitelist.approved_for_any_company(sender):

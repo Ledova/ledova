@@ -311,6 +311,15 @@ class StablecoinApprovalChecks:
         paid = self.broadcast(self.payment(to=OPERATOR_RECEIVING))
         self.assertEqual(paid.status_code, 200, paid.content)
 
+    def test_a_recipient_written_without_its_prefix_matches_the_receiving_wallet_and_the_approvals(self):
+        self.receive_at(OPERATOR_RECEIVING)
+        exempt = self.prepare(to=OPERATOR_RECEIVING[2:].lower())
+        self.approve(self.wallet)
+        self.approve(self.recipient_wallet)
+        approved = self.prepare(to=RECIPIENT[2:].lower())
+
+        self.assertEqual((exempt.status_code, approved.status_code), (200, 200), (exempt.content, approved.content))
+
     def test_native_coins_and_other_tokens_move_without_any_approval(self):
         self.other_token()
 

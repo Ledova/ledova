@@ -56,7 +56,10 @@ chain it is configured for, is exempt on both sides, so an investor can pay a
 subscription to the address its payment instruction names without an approval;
 an unset receiving wallet, or one on another chain, exempts nothing. Native
 coins and other tokens are unaffected, and a submission recorded before the
-upgrade is still delivered. No database migration is needed.
+upgrade is still delivered. `prepare-transfer` now also answers 400, "The
+recipient is not a valid address for this wallet's network.", for a recipient
+that is not an address on the wallet's network, where before a Bitcoin prepare
+accepted any string. No database migration is needed.
 
 ## The publication summary's 30-day count
 
