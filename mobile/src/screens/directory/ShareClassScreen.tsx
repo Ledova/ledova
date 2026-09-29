@@ -4,7 +4,7 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { formatDate, formatMoney, formatShareCount, useDirectoryToken } from '@ledova/shared';
 import type { DirectoryStackParamList } from '../../navigation/DirectoryStackNavigator';
-import { Action, Lede, Row, Rows, Section } from '../../components/Ledger';
+import { Action, Row, Rows, Section } from '../../components/Ledger';
 import { DirectoryPage, useDirectoryStyles } from './DirectoryPage';
 import { ApplyForm, type ApplicationDraft } from '../applications/ApplyForm';
 import { useCreateSubscription, useSubscribableWallets } from '../applications/useApplications';
@@ -44,6 +44,14 @@ export function ShareClassScreen() {
   return (
     <DirectoryPage
       title="Share class"
+      lede={!hasError && token && !notFound ? token.company.displayName : undefined}
+      actions={
+        <Action
+          disabled={create.isPending}
+          label="Back to Directory"
+          onPress={() => navigation.navigate('DirectoryMain')}
+        />
+      }
       loading={isLoading}
       refreshing={isRefreshing || wallets.isRefreshing}
       refresh={() => {
@@ -53,11 +61,6 @@ export function ShareClassScreen() {
         }
       }}
     >
-      <Action
-        disabled={create.isPending}
-        label="Back to Directory"
-        onPress={() => navigation.navigate('DirectoryMain')}
-      />
       {hasError ? (
         <View style={styles.group}>
           <Text accessibilityRole="alert" style={styles.message}>
@@ -74,7 +77,6 @@ export function ShareClassScreen() {
         </Section>
       ) : (
         <>
-          <Lede>{token.company.displayName}</Lede>
           <Section title={token.name}>
             <Rows>
               <Row label="Symbol">{token.symbol}</Row>
