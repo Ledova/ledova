@@ -124,6 +124,8 @@ export function readApiError(error: unknown, options: ReadApiErrorOptions): ApiE
   if (!response || !('data' in response)) return { generalError: fallback };
 
   const data = response.data;
+  const bareBody = typeof data === 'string' || Array.isArray(data);
+  if (bareBody && (response.status ?? 0) >= 500) return { generalError: fallback };
   const announcedByTheBody = announcementOf(data);
   if (announcedByTheBody) return { generalError: announcedByTheBody.join(' ') };
   if (!data || typeof data !== 'object') return { generalError: fallback };

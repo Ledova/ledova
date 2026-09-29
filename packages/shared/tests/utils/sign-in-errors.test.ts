@@ -119,8 +119,14 @@ describe('a shape nothing recognises', () => {
     );
   });
 
-  it('shows a string body as it stands', () => {
-    expect(readSignInError(refusal(500, 'Service unavailable')).generalError).toBe('Service unavailable');
+  it('shows a refusal’s string body as it stands', () => {
+    expect(readSignInError(refusal(403, 'This account is locked.')).generalError).toBe('This account is locked.');
+  });
+
+  it('does not show a failing server’s string body, which names the failure rather than a reason', () => {
+    expect(readSignInError(refusal(500, 'Service unavailable')).generalError).toBe(
+      'Unable to sign in at the moment. Please try again later.',
+    );
   });
 
   it('joins an array body', () => {
