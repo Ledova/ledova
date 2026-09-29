@@ -68,10 +68,8 @@ class CapitalIncreaseRequest(DerivesCompanyFromToken, ReviewableRequest):
         return self.additional_shares
 
     @property
-    def can_be_edited(self) -> bool:
+    def can_be_submitted(self) -> bool:
         return self.status == RequestStatus.DRAFT
-
-    can_be_submitted = can_be_edited
 
     def mark_superseded(self, reason: str) -> None:
         self.status = RequestStatus.SUPERSEDED

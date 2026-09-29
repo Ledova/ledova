@@ -12,22 +12,20 @@ from companies.serializers import (
     ApplicationStatusSerializer,
     ApplicationSubmitSerializer,
     ApplicationWithdrawSerializer,
-    CompanyAPIKeySerializer,
     CompanyDetailSerializer,
     CompanyListSerializer,
     CompanyRegistrationSerializer,
     CompanyStatusUpdateSerializer,
     CompanyUpdateSerializer,
 )
-from companies.serializers.stats import CompanyStatsSerializer
-from companies.services import delete_company, submit_application, transition_company
+from companies.services import submit_application, transition_company
 from shared.views import AuthenticatedModelViewSet
-from tokens.services.company_stats import company_stats
 
 
 class CompanyViewSet(AuthenticatedModelViewSet):
-    administrative_actions = frozenset({"api_key", "status_update"})
+    administrative_actions = frozenset({"status_update"})
     operator_actions = administrative_actions
+    http_method_names = ["get", "post", "patch", "head", "options"]
     filterset_class = CompanyFilter
     ordering = ["-created_at"]
     ordering_fields = ["created_at", "name", "status"]
@@ -39,13 +37,11 @@ class CompanyViewSet(AuthenticatedModelViewSet):
             return CompanyRegistrationSerializer
         if self.action == "list":
             return CompanyListSerializer
-        if self.action in ["update", "partial_update"]:
+        if self.action == "partial_update":
             return CompanyUpdateSerializer
-        if self.action == "api_key":
-            return CompanyAPIKeySerializer
         if self.action == "status_update":
             return CompanyStatusUpdateSerializer
-        if self.action in ["submit", "application_status"]:
+        if self.action == "submit":
             return ApplicationStatusSerializer
         if self.action == "resubmit":
             return ApplicationResubmitSerializer
@@ -80,32 +76,6 @@ class CompanyViewSet(AuthenticatedModelViewSet):
 
     def perform_update(self, serializer):
         serializer.save()
-
-    def perform_destroy(self, instance):
-        delete_company(instance)
-
-    @extend_schema(responses=CompanyStatsSerializer)
-    @action(detail=True, methods=["get"])
-    def stats(self, request, uuid=None):
-        return Response(company_stats(self.get_object()))
-
-    @extend_schema(responses=CompanyAPIKeySerializer)
-    @action(detail=True, methods=["get", "post"], url_path="api-key")
-    def api_key(self, request, uuid=None):
-        company = self.get_object()
-
-        if request.method == "GET":
-            serializer = CompanyAPIKeySerializer(company)
-            return Response(serializer.data)
-
-        company.regenerate_api_key()
-        serializer = CompanyAPIKeySerializer(company)
-        return Response(
-            {
-                "message": "API key regenerated successfully",
-                **serializer.data,
-            }
-        )
 
     @extend_schema(
         responses=inline_serializer(
@@ -218,12 +188,6 @@ class CompanyViewSet(AuthenticatedModelViewSet):
                 "company": ApplicationStatusSerializer(company).data,
             }
         )
-
-    @extend_schema(responses=ApplicationStatusSerializer)
-    @action(detail=True, methods=["get"], url_path="application-status")
-    def application_status(self, request, uuid=None):
-        company = self.get_object()
-        return Response(ApplicationStatusSerializer(company).data)
 
     def narrow(self, queryset):
         if self.action in self.administrative_actions:

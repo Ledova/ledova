@@ -4,24 +4,29 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { canOpen, COMPANY_ENDPOINTS, DESTINATIONS, landingFor, type AccountRole } from '@ledova/shared';
+import { AUTH_ENDPOINTS, canOpen, COMPANY_ENDPOINTS, DESTINATIONS, landingFor, type AccountRole } from '@ledova/shared';
+import { MARKETING_URL } from '@utils/marketingUrl';
 
 import { Sidebar } from '.';
 
 const navigate = vi.hoisted(() => vi.fn());
 const flags = vi.hoisted(() => ({ tradingEnabled: true }));
-const api = vi.hoisted(() => ({ get: vi.fn() }));
+const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
+const person = vi.hoisted(() => ({ profile: null as { fullName?: string | null; email: string } | null }));
 
 vi.mock('react-router-dom', async (importOriginal) => ({
   ...(await importOriginal<typeof import('react-router-dom')>()),
   useNavigate: () => navigate,
 }));
 vi.mock('@services/apiClient', () => ({ default: api }));
-vi.mock('@hooks/useAuth', () => ({ useAuth: () => ({ isAuthenticated: true }) }));
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
+  useAuth: () => ({ isAuthenticated: true }),
+}));
 vi.mock('@hooks/useFeatureFlags', () => ({
   useFeatureFlags: () => ({ tradingEnabled: flags.tradingEnabled, isLoading: false }),
 }));
-vi.mock('@pages/user-profile/useUserProfile', () => ({ useUserProfile: () => ({ userProfile: null }) }));
+vi.mock('@pages/user-profile/useUserProfile', () => ({ useUserProfile: () => ({ userProfile: person.profile }) }));
 vi.mock('@components/NotificationBell', () => ({
   NotificationBell: ({ align }: { align: string }) => <span data-testid="bell" data-align={align} />,
 }));
@@ -117,7 +122,7 @@ function menu() {
 
 const YOUR_SHARES = { label: 'Your shares', items: ['Holdings', 'Notices', 'Activity'] };
 const INVEST = { label: 'Invest', items: ['Directory', 'Applications', 'Market', 'Verification'] };
-const YOURS = { label: null, items: ['Wallets', 'Profile', 'Settings', 'Help & Support'] };
+const YOURS = { label: null, items: ['Wallets', 'Profile', 'Settings'] };
 const COMPANY = { label: 'Harbour Robotics Pty Ltd', items: ['Register', 'Offerings', 'Company'] };
 
 describe('the groups the sidebar shows', () => {
@@ -184,6 +189,16 @@ describe('the groups the sidebar shows', () => {
     expect(api.get.mock.calls.filter(([url]) => url === COMPANY_ENDPOINTS.BASE)).toHaveLength(1);
   });
 
+  it('shows a long company name in full, wrapping it rather than cutting it short', async () => {
+    const name = 'HARBOUR ROBOTICS AND AUTONOMOUS MARINE SYSTEMS HOLDINGS PTY LTD';
+    api.get.mockResolvedValue({ data: { results: [{ uuid: 'company', name }], count: 1, next: null, previous: null } });
+    show('company');
+
+    const label = await screen.findByText(name);
+    expect(label.classList.contains('truncate')).toBe(false);
+    expect(label.classList.contains('break-words')).toBe(true);
+  });
+
   it("marks the current page's item, and only that one", () => {
     show('investor', DESTINATIONS.directory.path);
 
@@ -217,5 +232,82 @@ describe('the page the sidebar marks as current', () => {
   it('marks Company on its nested application page', () => {
     show('company', '/company/listing');
     expect(current()).toEqual(['Company']);
+  });
+});
+
+describe('the foot of the sidebar', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.get.mockResolvedValue({ data: { results: [], count: 0, next: null, previous: null } });
+    api.post.mockResolvedValue({ data: {} });
+  });
+  afterEach(() => {
+    person.profile = null;
+    cleanup();
+  });
+
+  const foot = () => screen.getByRole('button', { name: 'Sign out' }).parentElement!;
+  const footText = () => [...foot().children].map((part) => part.textContent);
+
+  it("ends with one block: the person's name, then Sign out", () => {
+    person.profile = { fullName: 'Ada Lovelace', email: 'ada@example.test' };
+    show('investor');
+
+    expect(footText()).toEqual(['Ada Lovelace', 'Sign out']);
+    expect(screen.queryByText('ada@example.test')).toBeNull();
+  });
+
+  it.each([
+    ['no name', null],
+    ['a blank name', '  '],
+  ])('names the person by email when the profile has %s', (_, fullName) => {
+    person.profile = { fullName, email: 'ada@example.test' };
+    show('investor');
+
+    expect(footText()).toEqual(['ada@example.test', 'Sign out']);
+  });
+
+  it('shows Sign out alone while the profile is unknown', () => {
+    show('investor');
+
+    expect(footText()).toEqual(['Sign out']);
+  });
+
+  it('signs out from the foot: it ends the session and returns to sign in', async () => {
+    show('investor');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }));
+
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/signin'));
+    expect(api.post).toHaveBeenCalledWith(AUTH_ENDPOINTS.SIGNOUT);
+  });
+
+  it("keeps the sidebar's Sign out look: its icon and red hover, and dimmed while signing out", async () => {
+    api.post.mockReturnValue(new Promise(() => {}));
+    show('investor');
+
+    const signOut = screen.getByRole('button', { name: 'Sign out' }) as HTMLButtonElement;
+    expect(signOut.querySelector('svg')).not.toBeNull();
+    expect(signOut.className.split(' ')).toEqual(
+      expect.arrayContaining(['hover:bg-error/10', 'hover:text-error-light', 'disabled:opacity-50']),
+    );
+    fireEvent.click(signOut);
+
+    expect(((await screen.findByRole('button', { name: 'Signing out...' })) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('ends the scrolling list with Help & Support, a footer-style link to the contact page, just above the ruled foot', () => {
+    show('investor');
+
+    const help = screen.getByRole('link', { name: 'Help & Support' });
+    const list = help.parentElement!;
+    expect(help.getAttribute('href')).toBe(`${MARKETING_URL}/contact`);
+    expect(help.getAttribute('target')).toBe('_blank');
+    expect(help.getAttribute('rel')).toBe('noopener noreferrer');
+    expect(screen.getByRole('navigation').contains(help)).toBe(false);
+    expect(list.contains(screen.getByRole('navigation'))).toBe(true);
+    expect(list.lastElementChild).toBe(help);
+    expect(list.nextElementSibling).toBe(foot());
+    expect(foot().className.split(' ')).toContain('border-t');
   });
 });

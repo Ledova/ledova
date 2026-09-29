@@ -6,7 +6,7 @@ import {
   type DirectoryOpenOffering,
   type Wallet,
 } from '@ledova/shared';
-import { Action, Row, Section } from '../../components/Ledger';
+import { Action, LinkRow, Row, Section } from '../../components/Ledger';
 import { useThemedStyles } from '../../contexts';
 import { useApplicationStyles } from './ApplicationsPage';
 import { applicationAmount } from './presentation';
@@ -39,14 +39,22 @@ export function ApplyForm({
     input: {
       borderWidth: 1,
       borderColor: theme.colors.border.default,
-      borderRadius: 6,
-      padding: 12,
+      borderRadius: theme.borderRadius.md,
+      backgroundColor: theme.colors.surface.raised,
+      padding: theme.spacing.smd,
       fontFamily: theme.fontFamily.regular,
       fontSize: 16,
       color: theme.colors.text.primary,
     },
-    wallet: { padding: 12, gap: 6, borderWidth: 1, borderColor: theme.colors.border.default, borderRadius: 6 },
-    selected: { borderColor: theme.colors.brand.default, backgroundColor: theme.colors.surface.base },
+    wallet: {
+      padding: theme.spacing.smd,
+      gap: 6,
+      borderWidth: 1,
+      borderColor: theme.colors.border.default,
+      borderRadius: theme.borderRadius.md,
+      backgroundColor: theme.colors.surface.raised,
+    },
+    selected: { borderColor: theme.colors.brand.default },
   }));
   const chosen =
     draft.wallet === null
@@ -60,7 +68,7 @@ export function ApplyForm({
         <Text style={styles.help}>
           Shares are issued to a verified Base wallet you control. Add and verify one in Wallets before applying.
         </Text>
-        <Action label="Open Wallets" onPress={openWallets} />
+        <LinkRow label="Wallets" onPress={openWallets} />
       </Section>
     );
   return (

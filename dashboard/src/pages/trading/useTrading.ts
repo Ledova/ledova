@@ -12,11 +12,11 @@ import {
   CACHE_TIMING,
   TRADING_CONFIG,
   WALLET_VERIFICATION_STATUS,
+  readEveryPage,
+  useUserPreferences,
 } from '@ledova/shared';
 import type { Wallet, WhitelistStatus } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { useSelectedPortfolio } from '@hooks/useSelectedPortfolio';
-import { allMarketPages } from './marketData';
 
 export { parseTradingError };
 export type { WhitelistStatus };
@@ -29,12 +29,12 @@ export const tradingQueryKeys = {
 };
 
 export function useUserTradingWallets() {
-  const { userAccount, isLoading: isLoadingPortfolio } = useSelectedPortfolio();
+  const { userAccount, isLoading: isLoadingPortfolio } = useUserPreferences();
 
   const walletsQuery = useQuery({
     queryKey: ['wallets', userAccount?.uuid, 'trading'],
     queryFn: async () => ({
-      data: { results: await allMarketPages((page) => getWallets(apiClient, page ? { page } : undefined)) },
+      data: { results: await readEveryPage((page) => getWallets(apiClient, { page })) },
     }),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
@@ -140,7 +140,7 @@ export function useAllWalletTokenBalances(walletAddresses: string[]) {
 export function useShareTokens() {
   return useQuery({
     queryKey: tradingQueryKeys.tokens,
-    queryFn: () => allMarketPages((page) => getShareTokens(apiClient, page)),
+    queryFn: () => readEveryPage((page) => getShareTokens(apiClient, page)),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.DEFAULT_GC_TIME,
   });
@@ -149,7 +149,7 @@ export function useShareTokens() {
 export function useTrading({ walletAddresses = [] }: { walletAddresses?: string[] } = {}) {
   const orders = useQuery({
     queryKey: ['trading', 'userOrders', 'all'],
-    queryFn: () => allMarketPages((page) => getOrders(apiClient, page ? { page } : undefined)),
+    queryFn: () => readEveryPage((page) => getOrders(apiClient, { page })),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.DEFAULT_GC_TIME,
   });

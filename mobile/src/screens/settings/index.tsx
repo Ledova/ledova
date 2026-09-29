@@ -1,39 +1,14 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Text, TextInput, View } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { USER_PREFERENCES_QUERY_KEY, upsertCurrentUserPreferences } from '@ledova/shared';
-import { Action, Section } from '../../components/Ledger';
+import { USER_PREFERENCES_QUERY_KEY, upsertCurrentUserPreferences, useUserPreferences } from '@ledova/shared';
+import { Action, Section, SwitchRow } from '../../components/Ledger';
+import { Page } from '../../components/Page';
 import { useAppLock } from '../../contexts';
-import { useUserPreferences } from '../../hooks/useUserPreferences';
 import { apiClient } from '../../services/apiClient';
-import { AccountModal } from '../account/AccountModal';
+import { CustomModal } from '../../components/modal';
 import { useAccountStyles } from '../account/styles';
 import { useSettings } from './useSettings';
-
-function Toggle({
-  label,
-  description,
-  value,
-  disabled,
-  onChange,
-}: {
-  label: string;
-  description: string;
-  value: boolean;
-  disabled: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  const styles = useAccountStyles();
-  return (
-    <View style={styles.toggle}>
-      <View style={styles.toggleText}>
-        <Text style={styles.text}>{label}</Text>
-        <Text style={styles.muted}>{description}</Text>
-      </View>
-      <Switch accessibilityLabel={label} value={value} disabled={disabled} onValueChange={onChange} />
-    </View>
-  );
-}
 
 export function SettingsScreen() {
   const styles = useAccountStyles();
@@ -132,22 +107,19 @@ export function SettingsScreen() {
   };
   return (
     <>
-      <ScrollView style={styles.page} contentContainerStyle={styles.content}>
-        <Text accessibilityRole="header" style={styles.title}>
-          Settings
-        </Text>
+      <Page title="Settings">
         <Section title="Security">
-          <Toggle
+          <SwitchRow
             label={`${lock.biometricType} sign in`}
             description={`Sign in with ${lock.biometricType} instead of your password.`}
-            value={lock.hasBiometricLogin}
+            checked={lock.hasBiometricLogin}
             disabled={!lock.biometricsAvailable || securityPending}
             onChange={biometricLogin}
           />
-          <Toggle
+          <SwitchRow
             label="App lock"
             description={`Require ${lock.biometricType} after the app goes into the background.`}
-            value={lock.isEnabled}
+            checked={lock.isEnabled}
             disabled={!lock.biometricsAvailable || securityPending}
             onChange={(value) => void secure(() => lock.setEnabled(value))}
           />
@@ -175,10 +147,10 @@ export function SettingsScreen() {
               />
             </View>
           ) : (
-            <Toggle
+            <SwitchRow
               label="Transaction alerts"
               description="Notifications for transaction status changes."
-              value={transactionAlerts}
+              checked={transactionAlerts}
               disabled={alerts.isPending || preferences.isFetching}
               onChange={(value) => alerts.mutate(value)}
             />
@@ -213,8 +185,8 @@ export function SettingsScreen() {
             </Text>
           )}
         </Section>
-      </ScrollView>
-      <AccountModal
+      </Page>
+      <CustomModal
         visible={modal === 'password'}
         title="Change password"
         busy={busy}
@@ -260,8 +232,8 @@ export function SettingsScreen() {
             {error}
           </Text>
         )}
-      </AccountModal>
-      <AccountModal
+      </CustomModal>
+      <CustomModal
         visible={modal === 'export'}
         title="Export data"
         busy={busy}
@@ -283,8 +255,8 @@ export function SettingsScreen() {
             {error}
           </Text>
         )}
-      </AccountModal>
-      <AccountModal
+      </CustomModal>
+      <CustomModal
         visible={modal === 'delete'}
         title="Delete account"
         busy={busy}
@@ -308,7 +280,7 @@ export function SettingsScreen() {
             {error}
           </Text>
         )}
-      </AccountModal>
+      </CustomModal>
     </>
   );
 }

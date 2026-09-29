@@ -188,25 +188,3 @@ def _uncommitted_balance(order: TransferOrder, observed_balance: Optional[int]) 
             order.payment_asset, order.wallet_address, deployment.decimals, exclude_uuid=order.uuid
         )
     return max(0, observed_balance - committed)
-
-
-def get_modification_history(order: TransferOrder) -> dict:
-    logs = order.modification_logs.all().order_by("-created_at")
-
-    return {
-        "order_uuid": str(order.uuid),
-        "original_quantity": order.original_quantity,
-        "original_price": str(order.original_price) if order.original_price else None,
-        "modification_count": order.modification_count,
-        "modifications": [
-            {
-                "uuid": str(log.uuid),
-                "field_name": log.field_name,
-                "old_value": log.old_value,
-                "new_value": log.new_value,
-                "signer_address": log.signer_address,
-                "created_at": log.created_at.isoformat(),
-            }
-            for log in logs
-        ],
-    }

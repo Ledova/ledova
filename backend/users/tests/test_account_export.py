@@ -38,8 +38,8 @@ class AccountExportTest(APITestCase):
         )
         FinancialProfile.objects.create(user_profile=self.profile, occupation="Engineer")
         self.account = UserAccount.objects.create(account_number="EXPORT-ACC", user_profile=self.profile)
-        self.portfolio = Portfolio.objects.create(user_account=self.account, name="Main")
-        UserPreferences.objects.create(user_profile=self.profile, selected_portfolio=self.portfolio)
+        Portfolio.objects.create(user_account=self.account, name="Main")
+        UserPreferences.objects.create(user_profile=self.profile, transaction_alerts=False)
         self.wallet = Wallet.objects.create(user_account=self.account, address="0x" + "a" * 40, chain="base")
         self.asset = Asset.objects.create(
             symbol="EXP", name="Export asset", asset_type="tokenized_security", is_active=True
@@ -70,7 +70,6 @@ class AccountExportTest(APITestCase):
                 "exportedAt",
                 "user",
                 "profile",
-                "preferences",
                 "financialProfile",
                 "account",
                 "wallets",
@@ -94,7 +93,6 @@ class AccountExportTest(APITestCase):
             },
         )
         self.assertEqual(body["profile"]["citizenshipCountry"], "Australia")
-        self.assertEqual(body["preferences"], {"selectedPortfolio": str(self.portfolio.uuid)})
         self.assertEqual(
             set(body["financialProfile"]),
             {"occupation", "sourceOfFunds", "sourceOfFundsOtherText", "intendedUse", "intendedUseOtherText"},
@@ -142,21 +140,18 @@ class AccountExportTest(APITestCase):
 
         self.assertEqual(body["user"]["email"], "bare@example.test")
         self.assertIsNone(body["profile"])
-        self.assertIsNone(body["preferences"])
         self.assertIsNone(body["financialProfile"])
         self.assertIsNone(body["account"])
         self.assertEqual(body["wallets"], [])
         self.assertEqual(body["transactions"], [])
         self.assertEqual(body["portfolios"], [])
 
-    def test_export_without_financial_profile_or_preferences(self):
+    def test_export_without_financial_profile(self):
         FinancialProfile.objects.filter(user_profile=self.profile).delete()
-        UserPreferences.objects.filter(user_profile=self.profile).delete()
 
         body = self.client.get(EXPORT).json()
 
         self.assertIsNone(body["financialProfile"])
-        self.assertIsNone(body["preferences"])
         self.assertEqual(body["account"]["uuid"], str(self.account.uuid))
 
     def test_every_transaction_is_exported_past_a_thousand(self):

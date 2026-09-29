@@ -1,9 +1,7 @@
 import { Field, Label, Input, Description } from '@headlessui/react';
 import { BuildingsIcon, WarningIcon, CaretDownIcon } from '@phosphor-icons/react';
-import { DESIGN_TOKENS } from '@ledova/shared';
+import { ICON_MD } from '@components/iconSizes';
 import { COMPANY_TYPES } from '../constants';
-
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 
 interface CompanyFormData {
   name: string;
@@ -43,8 +41,8 @@ export function CompanyRegistrationForm({
 }: CompanyRegistrationFormProps) {
   return (
     <>
-      <div className="bg-surface-raised rounded-lg border border-border">
-        <div className="p-6">
+      <div className="rounded-xl border border-border bg-surface-raised">
+        <div className="p-4 sm:p-5">
           <form onSubmit={onSubmit} className="space-y-6">
             {generalError && (
               <div className="bg-error-subtle border border-error-dark rounded-lg p-4">

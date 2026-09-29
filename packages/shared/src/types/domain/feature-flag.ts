@@ -1,2 +1,2 @@
-import type { ApiResponse } from '../contracts';
-export type FeatureFlag = ApiResponse<'api_feature_flags_retrieve'>;
+import type { ApiSchema } from '../contracts';
+export type FeatureFlag = ApiSchema<'FeatureFlag'>;

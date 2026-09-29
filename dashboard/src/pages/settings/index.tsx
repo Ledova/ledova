@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AUTH_QUERY_KEY,
+  DESTINATIONS,
   USER_PREFERENCES_QUERY_KEY,
   deleteAccount,
   changePassword,
@@ -13,19 +14,14 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@services/apiClient';
 import { Modal } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
-import { Section } from '@components/Ledger';
+import { LinkRow, Section, SwitchRow } from '@components/Ledger';
 
-function SettingsAction({ title, description, onClick }: { title: string; description: string; onClick: () => void }) {
+function ActionRow({ description, label, onClick }: { description: string; label: string; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      aria-label={title}
-      onClick={onClick}
-      className="flex w-full flex-col gap-1 py-3 text-left hover:text-brand-mid"
-    >
-      <span className="text-sm font-medium">{title}</span>
-      <span className="text-sm text-text-muted">{description}</span>
-    </button>
+    <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-3">
+      <p className="min-w-0 flex-1 basis-64 text-sm text-text-muted">{description}</p>
+      <PageAction label={label} onClick={onClick} />
+    </div>
   );
 }
 
@@ -53,7 +49,7 @@ function PasswordInput({
           onChange={(event) => onChange(event.target.value)}
           autoComplete={autoComplete}
           disabled={disabled}
-          className="min-w-0 rounded-lg border border-border bg-paper px-3 py-2 text-text-primary"
+          className="min-w-0 rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid"
         />
       </label>
       <button
@@ -149,14 +145,12 @@ export function SettingsPage() {
     <Page>
       <Section title="Profile and security">
         <div className="divide-y divide-border-subtle">
-          <SettingsAction
-            title="Profile"
-            description="View your personal information and identity check."
-            onClick={() => navigate('/user-profile')}
-          />
-          <SettingsAction
-            title="Change password"
+          <LinkRow to={DESTINATIONS.userProfile.path} label={DESTINATIONS.userProfile.title}>
+            <p className="text-text-muted">View your personal information and identity check.</p>
+          </LinkRow>
+          <ActionRow
             description="Choose a new password for your account."
+            label="Change password"
             onClick={() => {
               setPasswordChanged(false);
               setModal('password');
@@ -175,9 +169,7 @@ export function SettingsPage() {
             <p role="alert" className="text-sm text-error-light">
               Notification preferences could not be loaded.
             </p>
-            <div>
-              <PageAction label="Try again" onClick={() => void preferences.refetch()} />
-            </div>
+            <PageAction label="Try again" onClick={() => void preferences.refetch()} />
           </>
         ) : preferences.isLoading ? (
           <p role="status" className="text-sm text-text-muted">
@@ -186,23 +178,13 @@ export function SettingsPage() {
         ) : transactionAlerts === undefined ? (
           <p className="text-sm text-text-muted">Notification preferences are unavailable.</p>
         ) : (
-          <div className="flex items-center justify-between gap-4 py-3">
-            <div>
-              <p className="text-sm font-medium">Transaction alerts</p>
-              <p className="text-sm text-text-muted">Notifications for transaction status changes.</p>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-label="Transaction alerts"
-              aria-checked={transactionAlerts}
-              disabled={alerts.isPending}
-              onClick={() => alerts.mutate(!transactionAlerts)}
-              className="rounded-lg border border-border px-3 py-2 text-sm disabled:opacity-50"
-            >
-              {transactionAlerts ? 'On' : 'Off'}
-            </button>
-          </div>
+          <SwitchRow
+            label="Transaction alerts"
+            description="Notifications for transaction status changes."
+            checked={transactionAlerts}
+            disabled={alerts.isPending}
+            onChange={(value) => alerts.mutate(value)}
+          />
         )}
         {alerts.isError && (
           <p role="alert" className="text-sm text-error-light">
@@ -212,17 +194,17 @@ export function SettingsPage() {
       </Section>
       <Section title="Data and privacy">
         <div className="divide-y divide-border-subtle">
-          <SettingsAction
-            title="Export data"
+          <ActionRow
             description="Download a copy of your account data."
+            label="Export data"
             onClick={() => {
               exportMutation.reset();
               setModal('export');
             }}
           />
-          <SettingsAction
-            title="Delete account"
+          <ActionRow
             description="Deactivate your account and remove personal details. Some records are retained."
+            label="Delete account"
             onClick={() => {
               deleteMutation.reset();
               setModal('delete');

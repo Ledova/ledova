@@ -18,14 +18,11 @@ from offerings.tests.factories import (
     eligible_subscriber,
     open_offering,
 )
-from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import an_acn, make_eligible, make_tenant, open_to_investors
 from tokens.models import ShareIssuance
-from tokens.services import atomic_swap_service, token_transfer_service
+from tokens.services import atomic_swap_service
 from tokens.tests.market_fixtures import record_synthetic_admission
-from tokens.tests.test_signed_transactions import SIGNER, sign_legacy
-from users.models import FinancialProfile, Notification, UserPreferences, UserProfile
-from wallets.models import Wallet
+from users.models import FinancialProfile, Notification, UserProfile
 
 
 @override_settings(ATOMIC_SWAP_ADDRESS="0x" + "8" * 40)
@@ -227,56 +224,6 @@ class ActionResponseContractTest(APITransactionTestCase):
         )
         self.assertEqual(set(schema["required"]), set(body))
 
-    def market_response(self):
-        for order in (self.owner.order, self.owner.counter_order):
-            record_synthetic_admission(order)
-        response = self.client.get(f"/api/v1/trading/tokens/{self.owner.deployed_token.uuid}/market-data/")
-        self.assertEqual(response.status_code, 200)
-        body = response.json()
-        schema = self.assert_fields(
-            self.response_schema("/api/v1/trading/tokens/{uuid}/market-data/"),
-            body,
-            {
-                "token": "string",
-                "symbol": "string",
-                "lastTrade": "object",
-                "lastTradePrice": "string",
-                "bestBid": "string",
-                "bestAsk": "string",
-                "midpointPrice": "string",
-            },
-        )
-        self.assertEqual(set(schema["required"]), set(body))
-        return body, schema
-
-    def test_market_without_a_trade_keeps_null_trade_fields(self):
-        body, _schema = self.market_response()
-        self.assertIsNone(body["lastTrade"])
-        self.assertIsNone(body["lastTradePrice"])
-        self.assertEqual(body["bestBid"], "1.50")
-
-    def test_market_completed_trade_declares_its_actual_nested_shape(self):
-        self.addCleanup(restore_every_migration)
-        historical = migrate_to([("tokens", "0056_hold_legacy_swaps")])
-        historical.get_model("tokens", "SwapOrder").objects.filter(pk=self.owner.swap.pk).update(
-            status="completed", completed_at=timezone.now()
-        )
-        restore_every_migration()
-        body, schema = self.market_response()
-        self.assertEqual(body["lastTradePrice"], "1.5")
-        self.assertEqual(body["lastTrade"]["paymentAmount"], "15")
-        self.assert_fields(
-            schema["properties"]["lastTrade"],
-            body["lastTrade"],
-            {
-                "price": "string",
-                "shares": "integer",
-                "paymentAmount": "string",
-                "paymentToken": "string",
-                "completedAt": "string",
-            },
-        )
-
     def test_order_book_declares_aggregated_arrays_without_changing_the_market(self):
         for order in (self.owner.order, self.owner.counter_order):
             record_synthetic_admission(order)
@@ -456,17 +403,6 @@ class ActionResponseContractTest(APITransactionTestCase):
         ShareIssuance.objects.filter(token=self.owner.deployed_token).delete()
         self.assert_existing_empty_page(path, endpoint)
 
-    def test_company_stats_declares_all_four_existing_counts(self):
-        response = self.client.get(f"/api/v1/companies/{self.owner.company.uuid}/stats/")
-        self.assertEqual(response.status_code, 200)
-        body = response.json()
-        self.assertEqual(
-            body, {"totalTokens": 1, "totalShareholders": 0, "pendingActions": 0, "pendingCapitalIncreases": 0}
-        )
-        self.assert_fields(
-            self.response_schema("/api/v1/companies/{uuid}/stats/"), body, {name: "integer" for name in body}
-        )
-
     def test_company_contact_declares_only_the_actual_owner_profile_fields(self):
         UserProfile.objects.filter(user=self.owner.user).update(full_name="Synthetic Contact")
         response = self.client.get(f"/api/v1/companies/{self.owner.company.uuid}/")
@@ -558,7 +494,6 @@ class ActionResponseContractTest(APITransactionTestCase):
                 "exportedAt": "string",
                 "user": "object",
                 "profile": "object",
-                "preferences": "object",
                 "financialProfile": "object",
                 "account": "object",
                 "wallets": "array",
@@ -583,7 +518,6 @@ class ActionResponseContractTest(APITransactionTestCase):
                 "isIdVerified": "boolean",
                 "createdAt": "string",
             },
-            "preferences": {"selectedPortfolio": "string"},
             "financialProfile": {
                 "occupation": "string",
                 "sourceOfFunds": "json",
@@ -658,16 +592,14 @@ class ActionResponseContractTest(APITransactionTestCase):
         self.client.force_authenticate(user)
         body, _schema = self.export_response()
         self.assertEqual(
-            [body[name] for name in ("profile", "preferences", "financialProfile", "account")],
-            [None, None, None, None],
+            [body[name] for name in ("profile", "financialProfile", "account")],
+            [None, None, None],
         )
         self.assertEqual([body[name] for name in ("wallets", "transactions", "portfolios")], [[], [], []])
 
     def test_export_with_missing_optional_records_keeps_the_account(self):
         FinancialProfile.objects.filter(pk=self.owner.financial_profile.pk).delete()
-        UserPreferences.objects.filter(pk=self.owner.preferences.pk).delete()
         body, _schema = self.export_response()
-        self.assertIsNone(body["preferences"])
         self.assertIsNone(body["financialProfile"])
         self.assertEqual(body["account"]["uuid"], str(self.owner.account.uuid))
 
@@ -741,93 +673,6 @@ class ActionResponseContractTest(APITransactionTestCase):
         schema = self.response_schema("/api/v1/tokens/capital-increases/")
         self.assertEqual(set(schema["properties"]), set(body))
         self.assertEqual(set(self.resolved(schema["properties"]["results"]["items"])["properties"]), set(row))
-
-    def test_prepared_transfer_declares_the_real_token_and_transaction_fields(self):
-        service = token_transfer_service
-        self.enterContext(patch.object(service, "validate_transfer", Mock()))
-        chain = Mock(chain_id=84532, gas_price=100)
-        chain.to_checksum_address.side_effect = lambda value: value
-        chain.get_nonce.return_value = 3
-        chain.estimate_gas.return_value = 65000
-        chain.load_contract.return_value.functions.transfer.return_value._encode_transaction_data.return_value = (
-            "0x1234"
-        )
-        self.enterContext(patch.object(service, "get_base_chain_client", return_value=chain))
-        with patch("tokens.views.trading_transfer.token_transfer_service", service):
-            response = self.client.post(
-                "/api/v1/trading/transfers/prepare/",
-                {
-                    "token": str(self.owner.deployed_token.uuid),
-                    "fromAddress": self.owner.wallet.address,
-                    "toAddress": self.other.wallet.address,
-                    "amount": 12,
-                },
-                format="json",
-            )
-        self.assertEqual(response.status_code, 200)
-        body = response.json()
-        self.assertEqual(body["amount"], 12)
-        self.assertEqual(set(body["token"]), {"uuid", "symbol", "contractAddress"})
-        schema = self.assert_fields(
-            self.response_schema("/api/v1/trading/transfers/prepare/", "post"),
-            body,
-            {
-                "token": "object",
-                "fromAddress": "string",
-                "toAddress": "string",
-                "amount": "integer",
-                "transactionData": "object",
-            },
-        )
-        self.assert_fields(
-            schema["properties"]["token"],
-            body["token"],
-            {"uuid": "string", "symbol": "string", "contractAddress": "string"},
-        )
-        self.assert_fields(
-            schema["properties"]["transactionData"],
-            body["transactionData"],
-            {
-                "to": "string",
-                "data": "string",
-                "value": "integer",
-                "nonce": "integer",
-                "chainId": "integer",
-                "gasPrice": "integer",
-                "gas": "integer",
-            },
-        )
-        self.assertEqual(
-            set(self.resolved(schema["properties"]["transactionData"])["required"]), set(body["transactionData"])
-        )
-
-    def test_broadcast_receipt_declares_existing_fields_and_nullable_absence(self):
-        Wallet.objects.create(
-            user_account=self.owner.account, address=SIGNER.address, chain="base", verification_status="VERIFIED"
-        )
-        signed_transaction = sign_legacy(to="0x" + "8" * 40)
-        for receipt in ({"blockNumber": 7, "gasUsed": 21000}, {}):
-            with self.subTest(receipt=receipt):
-                with patch("tokens.views.trading_transfer.token_transfer_service") as constructor:
-                    constructor.broadcast_transfer.return_value = ("0x" + "f" * 64, receipt)
-                    response = self.client.post(
-                        "/api/v1/trading/transfers/broadcast/", {"signedTransaction": signed_transaction}, format="json"
-                    )
-                self.assertEqual(response.status_code, 200)
-                body = response.json()
-                self.assertEqual(
-                    body,
-                    {
-                        "txHash": "0x" + "f" * 64,
-                        "blockNumber": receipt.get("blockNumber"),
-                        "gasUsed": receipt.get("gasUsed"),
-                    },
-                )
-                self.assert_fields(
-                    self.response_schema("/api/v1/trading/transfers/broadcast/", "post"),
-                    body,
-                    {"txHash": "string", "blockNumber": "integer", "gasUsed": "integer"},
-                )
 
     def test_provider_webhooks_remain_excluded(self):
         paths = set(self.document["paths"])

@@ -1,8 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getUserProfiles, updateUserProfile, CACHE_TIMING } from '@ledova/shared';
+import { getUserProfiles, updateUserProfile, CACHE_TIMING, useAuth } from '@ledova/shared';
 import type { UpdateUserProfile } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { useAuth } from '@hooks/useAuth';
 
 export function useUserProfile() {
   const queryClient = useQueryClient();

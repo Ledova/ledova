@@ -6,20 +6,13 @@ import {
   PUBLICATION_COPY,
   downloadPublication,
   getPublications,
-  getPublicationsNextPage,
   publicationFilename,
-  type Publication,
+  readEveryPage,
   type UserFriendlyError,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { shareDocumentCopy } from '../../services/documentCopies';
+import { shareDocumentCopy, UTI_BY_MIME_TYPE } from '../../services/documentCopies';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
-
-const UTI_BY_MIME_TYPE: Record<string, string> = {
-  'application/pdf': 'com.adobe.pdf',
-  'image/png': 'public.png',
-  'image/jpeg': 'public.jpeg',
-};
 
 function openingFailure(error: unknown) {
   const cause = (error as UserFriendlyError | undefined)?.originalError ?? error;
@@ -42,22 +35,13 @@ export function useIssuerPublications(companyUuid: string | undefined, enabled: 
     queryKey: ['publications', 'issuer', companyUuid, epoch],
     enabled: enabled && !!companyUuid,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
-    queryFn: async () => {
-      const rows: Publication[] = [];
-      let page: number | undefined = 1;
-      while (page !== undefined) {
+    queryFn: () =>
+      readEveryPage(async (page) => {
         assertSessionEpoch(epoch);
         const response = await getPublications(apiClient, page, { issuer: companyUuid! });
         assertSessionEpoch(epoch);
-        rows.push(...response.data.results);
-        const next = getPublicationsNextPage(response);
-        if (response.data.next && (next === undefined || !Number.isInteger(next) || next <= page)) {
-          throw new Error('Issuer publication pagination did not advance');
-        }
-        page = next;
-      }
-      return rows;
-    },
+        return response;
+      }),
   });
   const canOpen = enabled && ready && listing.isSuccess && !listing.isFetching;
   const current = useRef({ scope, canOpen });

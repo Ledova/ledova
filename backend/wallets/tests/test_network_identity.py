@@ -54,9 +54,10 @@ class WalletNetworkIdentityTest(APITestCase):
         for response, chain, quantity in ((original, "ethereum", 2), (added, "base", 5)):
             AssetChainDeployment.objects.create(asset=asset, chain=chain)
             Holding.objects.create(wallet_id=response.json()["uuid"], asset=asset, quantity=quantity)
-            current = self.client.get(f'/api/wallets/{response.json()["uuid"]}/')
-            self.assertEqual(Decimal(current.json()["nativeBalance"]), quantity)
-            self.assertEqual(current.json()["chain"], chain)
+            listed = {row["uuid"]: row for row in self.client.get("/api/wallets/").json()["results"]}
+            current = listed[response.json()["uuid"]]
+            self.assertEqual(Decimal(current["nativeBalance"]), quantity)
+            self.assertEqual(current["chain"], chain)
             self.assertTrue(self.tenant.portfolio.wallets.filter(pk=response.json()["uuid"]).exists())
 
     def test_a_case_variant_is_rejected_only_on_the_same_network(self):

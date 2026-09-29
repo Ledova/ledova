@@ -15,6 +15,65 @@ interface StatusBannersProps {
   showRejectedBanner: boolean;
   showRetryBanner: boolean;
   rejectionLabels?: string[] | null;
+  plain?: boolean;
+}
+
+const COPY = {
+  verified: { title: 'Already Verified', body: 'Your identity has been verified successfully.' },
+  pending: {
+    title: 'Verification Submitted',
+    body: "Your documents have been submitted. We'll review them shortly and notify you of the result.",
+  },
+  onHold: {
+    title: 'Verification On Hold',
+    body: 'Your verification is currently on hold. We may need additional information. Please check back later or contact support.',
+  },
+  rejected: {
+    title: 'Verification Rejected',
+    body: 'Unfortunately, your verification was not approved. You may retry with different documents or contact support for assistance.',
+  },
+  retry: {
+    title: 'Retry Needed',
+    body: 'Your previous verification attempt needs to be retried. Please try again with clearer documents.',
+  },
+} as const;
+
+function Outcome({
+  icon,
+  title,
+  tone,
+  body,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  tone: string;
+  body: string;
+  children?: React.ReactNode;
+}) {
+  const styles = useThemedStyles((theme) => ({
+    outcome: { gap: theme.spacing.xs },
+    heading: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
+    title: { fontFamily: theme.fontFamily.medium, fontSize: theme.fontSize.sm, color: tone },
+    body: {
+      fontFamily: theme.fontFamily.regular,
+      fontSize: theme.fontSize.sm,
+      lineHeight: 21,
+      color: theme.colors.text.secondary,
+    },
+  }));
+  return (
+    <View style={styles.outcome}>
+      <View style={styles.heading}>
+        {icon}
+        <Text accessibilityRole="header" style={styles.title}>
+          {title}
+        </Text>
+      </View>
+      <Text style={styles.body}>{body}</Text>
+      {children}
+    </View>
+  );
 }
 
 export function StatusBanners({
@@ -24,6 +83,7 @@ export function StatusBanners({
   showRejectedBanner,
   showRetryBanner,
   rejectionLabels,
+  plain = false,
 }: StatusBannersProps) {
   const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
@@ -113,6 +173,52 @@ export function StatusBanners({
       marginTop: theme.spacing.xs,
     },
   }));
+  if (plain) {
+    const size = theme.icon.sizes.md;
+    return (
+      <>
+        {isVerified && (
+          <Outcome
+            icon={<CheckCircleIcon size={size} color={theme.colors.status.success.icon} weight="fill" />}
+            tone={theme.colors.status.success.text}
+            {...COPY.verified}
+          />
+        )}
+        {showPendingBanner && (
+          <Outcome
+            icon={<CheckCircleIcon size={size} color={theme.colors.interactive.active} weight="fill" />}
+            tone={theme.colors.interactive.active}
+            {...COPY.pending}
+          />
+        )}
+        {showOnHoldBanner && (
+          <Outcome
+            icon={<ClockCountdownIcon size={size} color={theme.colors.status.warning.icon} />}
+            tone={theme.colors.status.warning.text}
+            {...COPY.onHold}
+          />
+        )}
+        {showRejectedBanner && (
+          <Outcome
+            icon={<WarningCircleIcon size={size} color={theme.colors.status.error.icon} />}
+            tone={theme.colors.form.error}
+            {...COPY.rejected}
+          >
+            <RejectionReasons labels={rejectionLabels} />
+          </Outcome>
+        )}
+        {showRetryBanner && (
+          <Outcome
+            icon={<ArrowCounterClockwiseIcon size={size} color={theme.colors.status.warning.icon} />}
+            tone={theme.colors.status.warning.text}
+            {...COPY.retry}
+          >
+            <RejectionReasons labels={rejectionLabels} />
+          </Outcome>
+        )}
+      </>
+    );
+  }
   return (
     <>
       {isVerified && (
@@ -122,8 +228,8 @@ export function StatusBanners({
             color={theme.colors.status.success.icon}
             weight={theme.icon.weights.regular}
           />
-          <Text style={styles.successTitle}>Already Verified</Text>
-          <Text style={styles.bannerText}>Your identity has been verified successfully.</Text>
+          <Text style={styles.successTitle}>{COPY.verified.title}</Text>
+          <Text style={styles.bannerText}>{COPY.verified.body}</Text>
         </View>
       )}
 
@@ -134,10 +240,8 @@ export function StatusBanners({
             color={theme.colors.interactive.active}
             weight={theme.icon.weights.regular}
           />
-          <Text style={styles.pendingTitle}>Verification Submitted</Text>
-          <Text style={styles.bannerText}>
-            Your documents have been submitted. We&apos;ll review them shortly and notify you of the result.
-          </Text>
+          <Text style={styles.pendingTitle}>{COPY.pending.title}</Text>
+          <Text style={styles.bannerText}>{COPY.pending.body}</Text>
         </View>
       )}
 
@@ -148,11 +252,8 @@ export function StatusBanners({
             color={theme.colors.status.warning.icon}
             weight={theme.icon.weights.regular}
           />
-          <Text style={styles.warningTitle}>Verification On Hold</Text>
-          <Text style={styles.bannerText}>
-            Your verification is currently on hold. We may need additional information. Please check back later or
-            contact support.
-          </Text>
+          <Text style={styles.warningTitle}>{COPY.onHold.title}</Text>
+          <Text style={styles.bannerText}>{COPY.onHold.body}</Text>
         </View>
       )}
 
@@ -163,11 +264,8 @@ export function StatusBanners({
             color={theme.colors.status.error.icon}
             weight={theme.icon.weights.regular}
           />
-          <Text style={styles.rejectedTitle}>Verification Rejected</Text>
-          <Text style={styles.bannerText}>
-            Unfortunately, your verification was not approved. You may retry with different documents or contact support
-            for assistance.
-          </Text>
+          <Text style={styles.rejectedTitle}>{COPY.rejected.title}</Text>
+          <Text style={styles.bannerText}>{COPY.rejected.body}</Text>
           <RejectionReasons labels={rejectionLabels} />
         </View>
       )}
@@ -179,10 +277,8 @@ export function StatusBanners({
             color={theme.colors.status.warning.icon}
             weight={theme.icon.weights.regular}
           />
-          <Text style={styles.warningTitle}>Retry Needed</Text>
-          <Text style={styles.bannerText}>
-            Your previous verification attempt needs to be retried. Please try again with clearer documents.
-          </Text>
+          <Text style={styles.warningTitle}>{COPY.retry.title}</Text>
+          <Text style={styles.bannerText}>{COPY.retry.body}</Text>
           <RejectionReasons labels={rejectionLabels} />
         </View>
       )}

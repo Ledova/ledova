@@ -1,25 +1,27 @@
 from drf_spectacular.utils import OpenApiTypes, extend_schema
-from rest_framework import status
+from rest_framework import mixins, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
-from companies.filters import CompanyDocumentFilter
 from companies.models import Company, CompanyDocument
 from companies.serializers import CompanyDocumentSerializer
-from shared.views import AuthenticatedModelViewSet, stream_stored_file
+from shared.views import AuthenticatedGenericViewSet, stream_stored_file
 from shared.views.uploads import UploadProtectedView
 
 
-class DocumentViewSet(UploadProtectedView, AuthenticatedModelViewSet):
+class DocumentViewSet(
+    UploadProtectedView,
+    mixins.CreateModelMixin,
+    mixins.DestroyModelMixin,
+    AuthenticatedGenericViewSet,
+):
     queryset = CompanyDocument.objects.none()
     serializer_class = CompanyDocumentSerializer
-    filterset_class = CompanyDocumentFilter
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     http_method_names = ["get", "post", "delete", "head", "options"]
-    ordering = ["-created_at"]
-    ordering_fields = ["created_at"]
+    lookup_field = "uuid"
 
     scoped_model = CompanyDocument
 

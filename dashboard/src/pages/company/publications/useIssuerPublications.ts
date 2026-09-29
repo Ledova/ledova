@@ -3,10 +3,9 @@ import {
   CACHE_TIMING,
   PUBLICATION_COPY,
   getPublications,
-  getPublicationsNextPage,
   openPublication,
   publicationFilename,
-  type Publication,
+  readEveryPage,
   type UserFriendlyError,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
@@ -34,20 +33,7 @@ export function useIssuerPublications(companyUuid?: string) {
     queryKey: ['publications', 'issuer', companyUuid],
     enabled: !!companyUuid,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
-    queryFn: async () => {
-      const rows: Publication[] = [];
-      let page: number | undefined = 1;
-      while (page !== undefined) {
-        const response = await getPublications(apiClient, page, { issuer: companyUuid! });
-        rows.push(...response.data.results);
-        const next = getPublicationsNextPage(response);
-        if (response.data.next && (next === undefined || !Number.isInteger(next) || next <= page)) {
-          throw new Error('Issuer publication pagination did not advance');
-        }
-        page = next;
-      }
-      return rows;
-    },
+    queryFn: () => readEveryPage((page) => getPublications(apiClient, page, { issuer: companyUuid! })),
   });
   const opening = useMutation({
     mutationFn: async (uuid: string) => {

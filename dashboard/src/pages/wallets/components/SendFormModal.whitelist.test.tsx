@@ -169,6 +169,19 @@ describe('the Send form and the recipient allowlist', () => {
     expect(screen.getByRole('button', { name: /continue/i }).hasAttribute('disabled')).toBe(true);
   });
 
+  it('marks the chosen asset as a pressed row and states a refusal as a warning line, not a box', async () => {
+    renderFlow(unwhitelistedSender);
+
+    await chooseTheShareTokenAndType(whitelisted);
+
+    const token = screen.getByText('QAT').closest('button')!;
+    expect(token.getAttribute('aria-pressed')).toBe('true');
+    expect(token.parentElement!.className).toContain('divide-y');
+    const warning = await screen.findByText(/Your wallet is not whitelisted/i);
+    expect(warning.closest('p')!.className).toContain('text-warning-light');
+    expect(warning.closest('[class*="bg-warning"]')).toBeNull();
+  });
+
   it('accepts a whitelisted recipient', async () => {
     renderFlow();
 

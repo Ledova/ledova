@@ -21,14 +21,9 @@ class WalletUpdateTest(APITestCase):
         self.assertIn("nativeMarketValue", body)
         self.assertEqual(Wallet.objects.get(pk=self.tenant.wallet.pk).name, "Renamed")
 
-    def test_verified_identity_cannot_change_through_put_or_patch(self):
-        new_address = "0x" + "d" * 40
-        put_payload = {"userAccount": str(self.tenant.account.uuid), "address": new_address, "chain": "base"}
+    def test_verified_identity_cannot_change_through_patch(self):
+        response = self.client.patch(self.url, {"address": "0x" + "d" * 40}, format="json")
 
-        for method, payload in ((self.client.patch, {"address": new_address}), (self.client.put, put_payload)):
-            response = method(self.url, payload, format="json")
-            with self.subTest(method=method.__name__):
-                self.assertEqual(response.status_code, 400)
-                self.assertEqual(response.json()["address"], ["Verified wallet identity cannot be changed."])
-
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["address"], ["Verified wallet identity cannot be changed."])
         self.assertEqual(Wallet.objects.get(pk=self.tenant.wallet.pk).address, self.tenant.wallet.address)

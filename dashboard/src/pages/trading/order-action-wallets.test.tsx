@@ -9,11 +9,9 @@ import apiClient from '@services/apiClient';
 import { useUserTradingWallets } from './useTrading';
 import { response, wallet } from '../../../../packages/shared/tests/fixtures/order-submissions';
 vi.mock('@services/apiClient', async () => ({ default: (await import('axios')).default.create() }));
-vi.mock('@hooks/useSelectedPortfolio', () => ({
-  useSelectedPortfolio: () => ({
-    portfolio: { userAccount: '20000000-0000-4000-8000-000000000001' },
-    isLoading: false,
-  }),
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
+  useUserPreferences: () => ({ userAccount: { uuid: '20000000-0000-4000-8000-000000000001' }, isLoading: false }),
 }));
 let client: QueryClient;
 beforeEach(() => {
@@ -53,5 +51,5 @@ it('retains unverified EVM action wallets and the existing verified-only create 
   await waitFor(() => expect(view.result.current.actionWallets).toEqual([verified, unverified]));
   expect(view.result.current.wallets).toEqual([verified]);
   expect(view.result.current.walletAddresses).toEqual([verified.address]);
-  expect(calls).toEqual([['get', WALLET_ENDPOINTS.BASE, undefined]]);
+  expect(calls).toEqual([['get', WALLET_ENDPOINTS.BASE, { page: 1 }]]);
 });

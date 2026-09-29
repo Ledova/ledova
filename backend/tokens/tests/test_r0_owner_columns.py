@@ -19,7 +19,6 @@ from tokens.serializers.capital_increase import (
     CapitalIncreaseCreateSerializer,
     CapitalIncreaseDetailSerializer,
     CapitalIncreaseListSerializer,
-    CapitalIncreaseUpdateSerializer,
 )
 from tokens.serializers.share_issuance_request import ShareIssuanceRequestSerializer
 from tokens.serializers.swap_order import (
@@ -108,7 +107,6 @@ class TheOwnerColumnsAreNotWritableThroughAnySerializerTest(TestCase):
             (CapitalIncreaseListSerializer, "company"),
             (CapitalIncreaseDetailSerializer, "company"),
             (CapitalIncreaseCreateSerializer, "company"),
-            (CapitalIncreaseUpdateSerializer, "company"),
             (ShareIssuanceRequestSerializer, "company"),
         ):
             with self.subTest(serializer=serializer.__name__):

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { PageAction } from '@components/Page';
-import { requestShares } from '../classes/shareQuantities';
-import { OFFERING_EXEMPTION_LABELS } from '@ledova/shared';
+import { OFFERING_EXEMPTION_LABELS, requestShares } from '@ledova/shared';
 import type {
   CompanyShareTokenListItem,
   Offering,
@@ -9,12 +8,9 @@ import type {
   OfferingInput,
   OperatorSettlementAsset,
 } from '@ledova/shared';
+import { FIELD_CLASS } from '@components/fieldClass';
 
 const EXEMPTIONS = Object.entries(OFFERING_EXEMPTION_LABELS) as [OfferingExemption, string][];
-
-const FIELD_CLASS =
-  'mt-1 w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary ' +
-  'placeholder:text-text-muted focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid';
 
 interface OfferingFormProps {
   tokens: Pick<CompanyShareTokenListItem, 'uuid' | 'name' | 'symbol'>[];
@@ -304,13 +300,12 @@ export function OfferingForm({
           </>
         )}
         <PageAction label="Cancel" onClick={() => onCancelEdit?.()} disabled={busy} />
-        <button
+        <PageAction
+          label={editing ? 'Save changes' : 'Create draft offering'}
+          primary
           onClick={handleSubmit}
           disabled={!isComplete || busy || blocked}
-          className="rounded-lg bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed px-6 py-2.5 text-sm font-semibold text-white transition-colors"
-        >
-          {editing ? 'Save changes' : 'Create draft offering'}
-        </button>
+        />
       </div>
     </fieldset>
   );

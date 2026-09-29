@@ -603,8 +603,6 @@ class DemonstrationJourneyChainTest(SettlementChainMixin, APITransactionTestCase
         outsider_identity = f"owner_account_uuid={self.outsider.account.pk}&wallet_uuid={self.outsider.wallet.pk}"
         swap = f"/api/v1/trading/orders/{listing.pk}/swap/?swap_uuid={journey.swap.pk}&"
         routes = (
-            (self.tenant.user, f"/api/v1/trading/orders/{listing.pk}/", None),
-            (self.user_of(self.buyer), f"/api/v1/trading/orders/{bid.pk}/", None),
             (self.tenant.user, swap + seller_identity, swap + outsider_identity),
             (self.tenant.user, f"/api/v1/trading/swaps/?wallet_address={self.seller.address}", None),
             (self.tenant.user, f"{token}/holders/", None),

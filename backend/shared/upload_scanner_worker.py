@@ -1,20 +1,17 @@
 import json
-import resource
+import runpy
 import socket
 import struct
 import sys
 import time
+from pathlib import Path
+
+apply_limits = runpy.run_path(str(Path(__file__).with_name("upload_worker_limits.py")))["apply_limits"]
 
 
 def run():
     parameters = json.loads(sys.argv[1])
-    for limit, value in (
-        (resource.RLIMIT_CORE, 0),
-        (resource.RLIMIT_AS, parameters["memory_bytes"]),
-        (resource.RLIMIT_CPU, parameters["cpu_seconds"]),
-        (resource.RLIMIT_FSIZE, parameters["reply_bytes"]),
-    ):
-        resource.setrlimit(limit, (value, value))
+    apply_limits(parameters["memory_bytes"], parameters["cpu_seconds"], parameters["reply_bytes"])
     raw = sys.stdin.buffer.read(parameters["input_bytes"] + 1)
     if not raw or len(raw) > parameters["input_bytes"]:
         return 2

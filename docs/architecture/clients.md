@@ -24,6 +24,14 @@ Every client import is `from '@ledova/shared'`. `packages/shared/src/services`
 holds the API call functions both clients share; each takes the caller's axios
 instance as its first argument, so each client keeps its own interceptors.
 
+Wherever this page says a list reads every page, it does so through
+`readEveryPage` (`packages/shared/src/utils/pagination.ts`): it asks for page 1,
+follows each `next` link by the page number the link names, and returns the rows
+in page order. A read fails whole when a page fails or when a `next` link names
+no later page, so a stalled or malformed link is never presented as the end of
+the list. Lists that load further pages on request check each page's link the
+same way with `assertNextPageAdvances`.
+
 The dashboard's signed-in pages are listed once, in `DESTINATIONS`
 (`packages/shared/src/constants/ui/destinations.ts`), each with its address,
 title and audience. The dashboard builds its signed-in routes from a map keyed
@@ -48,11 +56,11 @@ offers only pages the role can open, in groups:
 
 - a company's own group first, named after the company, with Register, Offerings and
   Company.
-  The company's application sits under Company, opened from the Company page's
-  title row, rather than as a menu item.
+  The company's application sits under Company, opened from a row on the
+  Company page, rather than as a menu item.
 - _Your shares_ for every account;
 - _Invest_ for an investing account, with Market only while trading is on;
-- then Wallets, Profile, Settings and Help.
+- then Wallets, Profile and Settings.
 
 Each item takes its name and address from its entry in `DESTINATIONS`, so a
 menu label always matches the page's title. Activity keeps the `/transactions`
@@ -108,8 +116,14 @@ Market presents For sale and Wanted lists with automatic matching. Buyers fund
 before placing an offer. Owned order history reads independently of listed share
 classes and wallet availability, retaining recorded class labels or an explicit
 unavailable label. Wallet, class, owned-order and pending-trade reads follow every
-page; read failures expose retry and suppress stale actions. Existing saved-order,
-change, cancellation and trade-signature recovery remain available. AUD totals use
+page; read failures expose retry and suppress stale actions. Saved orders,
+cancellations and changes, and trade signatures and approvals are records on this
+device for the signed-in account. Market reads them when it loads and after each
+recovery; one saved elsewhere later, such as in another browser tab, appears when
+Market is reopened on the web or pulled to refresh on mobile, whose Market tab
+stays loaded. They sit in one Saved work section after Trades awaiting signatures,
+shown only while something is saved or a message about them, such as a failed
+read, needs showing, with one refresh that reads all three again. AUD totals use
 integer cents; unsafe numeric quantities returned by legacy list APIs are marked
 unavailable. New quantities use exact integer strings above JavaScript's safe
 number range, within the existing signed 64-bit storage bound. The chosen wallet's
@@ -126,15 +140,32 @@ Signing in, and verifying an email, which also signs a new person in, clear
 what the tab cached for whoever was signed in before, as signing out does, so a
 new person is never guarded by, or signs up against, the previous person's
 account. Buying crypto and sending are actions on Wallets for every account,
-not menu items, and the dashboard has no coin-price page or favourites.
+not menu items, and the dashboard has no coin-price page or favourites. On the
+web, Send opens its form directly when Wallets has read exactly one verified
+wallet on the networks it lists (Ethereum, Bitcoin and Base), and otherwise asks
+which wallet to send from: when several are verified, when none is, and when
+Wallets could not read them. Buy crypto goes straight to the widget only when a
+read that has finished finds exactly one verified wallet on the chosen asset's
+network, and asks which one receives it when there are several; while a read is
+running, or waiting for the connection to come back, it opens nothing by itself
+and its chooser's wallets cannot be chosen. Both web choosers read every page of
+verified wallets, so a wallet on a later page is offered and counted, and list
+each as a Wallets row reads, by its name or short address, with its balance and
+value labelled; neither says there are none before a read has answered, even
+offline, and one that cannot read the wallets says so and offers Try again,
+hiding any it listed before. Mobile follows later: its Send always starts at the
+wallet choice, and its Buy crypto can still go straight to the widget for, or
+offer, the wallets it read before, and says there are none when a read fails.
+Both mobile choosers also read every page of wallets.
 The retired portfolio screen's chart, allocation and snapshot helpers are removed
 from both clients and the shared package. The asset list remains in use by Buy
 crypto for current prices, and Wallets and Send still use the AUD exchange rate.
 Unused asset detail, asset/portfolio snapshot and favourite-assets HTTP routes
 are [retired](../operations/upgrades.md#retired-asset-and-portfolio-http-routes),
 and the favourites table, holding snapshots and value-series service behind them
-are [dropped](../operations/upgrades.md#database-migrations). Selected-portfolio
-preferences and portfolio CRUD/add/remove-wallet operator actions remain.
+are [dropped](../operations/upgrades.md#database-migrations). Portfolio CRUD and
+the add/remove-wallet operator actions remain; the selected-portfolio preference
+is [dropped](../operations/upgrades.md#theme-and-selected-portfolio-preferences).
 Native Wallets reads every page into an account- and session-scoped ledger. A
 failed page suppresses partial balances and stale actions until retry succeeds.
 Balances and numeric sorting retain decimal strings; converted fiat values remain
@@ -243,14 +274,23 @@ dialog, states which records are retained, and clears the tab's account data
 after the server confirms success. Identity checks and supporting payslips retain
 their existing provider and deployment boundaries.
 
-Wallets reads every wallet page into a separate ledger cache. A failed read hides
-incomplete or stale rows and offers retry. Chain sections keep wallet verification,
-signing preference and sync feedback separate. Add, edit, derive and delete forms
-preserve refused input and stay open until success; background read failures keep
-the draft but block further submission until recovery. Hardware imports run one
-address at a time and remember confirmed additions for retry within the same import.
-A partial failure explains the number added and leaves the remaining selection
-available. These controls do not change wallet verification or signing authority.
+On the web, Wallets reads every wallet page into a separate ledger cache. A
+failed read hides incomplete or stale rows and offers retry. Each chain's card
+lists its wallets, and each row shows the wallet's verification and signing
+preference, its balance in the chain's native unit and its value in AUD, each
+with its label, and its own actions: Edit, Sync and Delete, with Verify while the
+wallet awaits verification and Derive address where the next hardware address
+can be derived. Nothing is selected first. A failed sync is reported in the row
+of the wallet it belongs to, and every Sync waits while one is running. Add
+wallet is a title action, since the add form chooses the network. Add, edit,
+derive and delete forms preserve refused input and stay open until success;
+background read failures keep the draft but block further submission until
+recovery. Hardware imports run one address at a time and remember confirmed
+additions for retry within the same import. A partial failure explains the
+number added and leaves the remaining selection available. These controls do not
+change wallet verification or signing authority. Mobile's Wallets still gives
+each row a single Open wallet action, to the wallet's own screen, and syncs every
+balance with one Sync balances action.
 
 Activity presents recorded wallet transfers in a read-only ledger, with exact
 decimal amounts, native network fees and the current recorded status. Its history
@@ -260,8 +300,9 @@ a retry without hiding history or clearing draft filters. History loads further
 pages on request, marks failed later reads as incomplete, and suppresses stale
 rows and details after a failed refresh. Filters use only supported API fields,
 with date bounds covering the whole selected days in the person's local time.
-Details preserve full wallet, address and transaction identities and can open the
-existing explorer; Activity adds no buying, sending or signing action.
+Each entry opens in place to its detail, which preserves full wallet, address and
+transaction identities and links to the existing explorer; Activity adds no
+buying, sending or signing action.
 
 Mobile Company Offerings reads every offering and share-class page, filters to
 classes of the selected owned company, and reads every page of the selected
@@ -294,7 +335,8 @@ Share counts and AUD totals use exact integer arithmetic, with unavailable label
 for legacy numeric counts outside the safe range. An open order draft keeps its
 fields during failed refreshes, while current class, eligibility, wallet, holdings
 and allowlist checks gate submission. Existing signing, cancellation and settlement
-recovery retain their saved identities and session boundaries.
+recovery retain their saved identities and session boundaries, in the same Saved
+work section.
 
 Where market values are shown elsewhere, they are in AUD: the shared
 `useCurrency` converts the API's US-dollar values at the current rate, shows a
@@ -339,8 +381,9 @@ and pending requests keep their forms open until completion. Upload, removal and
 action refusals remain visible for retry. These pages add no staff approval or
 execution controls.
 
-Offerings uses ledger sections for directory visibility, every offering of the
-selected company and every subscription to the selected offering. Class and
+Offerings uses ledger sections for every offering of the selected company and
+every subscription to the selected offering, followed by directory visibility and
+what happens next. Class and
 offering lists follow every page before presenting issuer actions; subscriptions
 show requested and allotted shares separately, including zero allotments. AUD
 amounts stay exact decimal strings. Payment confirmation and allotment remain
@@ -392,7 +435,10 @@ Published to your members opens from Company at `/company/publications`, under
 company and dual-role guards. It reads every publication page with the selected
 owned company's UUID as `issuer`, separately from the personal Notices cache.
 It shows stored documents, frozen company/class names, resolution windows and
-exact share/member tallies, and dividend rates and dates. It has no personal
+exact share/member tallies, and dividend rates and dates, in one Publications
+card whose title carries the complete count, with each publication set off by a
+rule; with none, the same card says that nothing has been published yet. Both
+clients show it this way. It has no personal
 ballot or entitlement controls, including when the owner is also a member.
 Loading and failed company/publication reads block document actions; retry never
 presents a partial list as complete. Document delivery failures remain visible.
@@ -403,27 +449,83 @@ Inside the frame, every signed-in page renders in `Page`
 (`dashboard/src/components/Page.tsx`), and so do the route guard's own waiting
 and failure states, so each shows its page's title.
 `routes/every-page-titled.test.tsx` renders every real page with empty data and
-checks its title. The title and the page's actions share one row on the
-content's own edge, above the content or its loading state; on a phone too
-narrow for both, the actions wrap under the title. The frame holds only the
+checks its title. Each page opens with one title block on the content's own
+edge, above the content or its loading state: the title row, 64 px high, where
+the title and the page's actions share one row (on a phone too narrow for both,
+the actions wrap under the title), and the page's lede directly under that row
+when it has one. The first section follows the title block at the page's one
+gap, the same gap as between sections (16 px on a phone, 20 px from 640 px and
+24 px from 768 px), whether or not the page has a lede. The frame holds only the
 sidebar, with the notification bell beside the logo, and on a phone a top bar
 with the menu, the logo and the bell. It has no header bar and no footer; only
 the public layout has a footer.
 
+On mobile every signed-in screen renders in `Page`
+(`mobile/src/components/Page.tsx`), except those named at the end of this
+paragraph. `Page` is a scroll view on the paper that opens with one header
+block: the screen's title in Newsreader at 36 (`fontSize.xxxxl`), marked as the
+screen's header, then its lede directly under the title when it has one, then
+its screen actions as one wrapping row of content-width `Action`s: a way back
+such as Back to Directory, Back to Applications or Back to Company, Refresh on
+Published to your members, New offering, Edit company, Activity's Filter, and
+Wallets' Buy crypto, Send, Add wallet, Filter and Sync balances. Where the web
+keeps the title and actions on one row, a phone's large title leaves no room, so
+mobile keeps the lede with the title it describes and puts the actions after it.
+The side padding is 24 (`spacing.lg`), and the first card follows the header
+block at the same 24 as between cards, whether or not the screen has a lede or
+actions. A screen's loading, access and failure states render in the same frame
+under the same title; a company's share class is titled Share class until the
+class is read, and then by the class. Each screen keeps its own pull to refresh
+and keyboard handling, which `Page` hands to its scroll view. The stack header
+above the page carries no title of its own, only the menu or back button and, on
+a top-level screen, the bell, which in every stack opens the notifications and
+shows the unread count. The exceptions keep a frame of their own: Help & Support,
+the last row of the drawer's list, keeps its stack title and contact cards; the
+Send, Transfer, Verify Wallet and Recovery Phrase screens are titled inside their
+`Panel` card; and Buy crypto is its dialog over the plain paper, followed by the
+provider's web view, both under a Buy Crypto stack title.
+
+The sidebar's list holds its destinations and ends with Help & Support, a
+footer-style link to the contact page that opens in a new tab. The list scrolls
+on its own, so one too tall for the screen is cut at the rule above the foot. A
+group label wraps rather than being cut short, so a long company name is shown
+whole. The foot is one block: the person's full name, or the email when the
+profile has no name, above Sign out, which keeps its icon and red hover and is
+the public layout's `SignOutButton` in its sidebar variant. Mobile's drawer
+follows the same rule: its list ends with Help & Support, which opens the Help
+screen, and a foot pinned below the list names the person above Sign out.
+
 Pages rebuilt in the paper layout use the ledger blocks in
 `dashboard/src/components/Ledger.tsx`:
 
-- `Section`: a Newsreader heading over a hairline rule, with no card.
+- `Section`: a white card on the paper ground (`bg-surface-raised`, a
+  `border-border` hairline, `rounded-xl`), with its Newsreader title inside at
+  the top and no rule under it. The page's title row stays on the paper above
+  the cards.
 - `Rows`: ruled label and value pairs, with figures right-aligned in tabular
   numerals. Every amount names its currency (`formatMoney`), and share counts
   are whole numbers.
+- `LinkRow`: a row that opens another page, named after its destination, with
+  optional detail lines, an optional aside such as a status or a price, and a
+  trailing chevron; the whole row is the link.
+- `SwitchRow`: a row that turns a setting on or off, with its label, an
+  optional muted sentence under it, and an On or Off pill at its end that is
+  the switch itself (`role="switch"`), named by the label and described by the
+  sentence.
+- `Disclosure`: a row that opens in place: a button with `aria-expanded` and a
+  leading caret that turns when open, controlling the detail directly under it,
+  which it holds only while open. The detail is a landmark (`region`, labelled
+  by the button) only when asked, as Activity's filter is; entries are not,
+  since any number of them can be open. The page keeps whether it is open, so
+  it can close it when what it shows changes; a list keeps its open rows with
+  `useOpenRows`, as Activity, Holdings and the Register do.
 - `Status`: a status in words with a small mark for waiting, moving, done or closed.
 - `Timeline`: each event with its date.
 
 An empty section keeps its real title; the state is one muted sentence under
 it, in the `text-sm text-text-muted` paragraph ("No activity yet.", "No
-Ethereum wallets yet."), with at most one action, a `PageAction` or an inline
-link, and no icon block. A state is never a section's title. Activity's
+Ethereum wallets yet."), with at most one action, a `PageAction` or a
+`LinkRow`, and no icon block. A state is never a section's title. Activity's
 "Transfers" and each Wallets chain keep the same title whether or not they
 hold anything; Directory, Applications and Notices list one section per
 company, application or notice when they hold something, so their empty
@@ -431,8 +533,101 @@ section's title names what it would hold ("Share classes", "Your
 applications", "Your notices"). Mobile's `Section` and `Action` follow the
 same rule.
 
-White cards stay for forms and for things to act on, such as a payment
-instruction. The application page is the first page built this way.
+Actions use one language. `PageAction` is the button for whatever a page or a
+section does, and it keeps its content width wherever it sits: in the title row
+for the page as a whole (Edit company, Add wallet, Refresh, and the way back to the
+parent page such as Back to Register, Back to Company, Back to Directory or Back
+to Applications), inside a section for what that section does (Create share
+class, Edit phone, Change password beside its sentence), and in a row for what is
+done to that row's record alone (each wallet's Edit, Sync and Delete on Wallets,
+a submitted claim's Withdraw claim on Verification), so nothing is selected
+before acting and no toolbar waits under a list. A page reaches each of
+its own sub-pages, and each neighbour a section points to, from one place, a
+`LinkRow` in that section, never also from a title action or an underlined
+link: Company lists Application and Published to your members under its details
+and each share class and the Register under its classes; Register lists a Share
+class row inside each class; Settings lists Profile; Directory lists each share
+class under its company, or a Verification row until the investor is verified;
+Applications lists an Application row under each application, or a Directory
+row when there are none; Verification lists a Directory row once the investor
+is verified; and the apply form lists a Wallets row until there is a receiving
+wallet. A destination the sidebar already reaches, such as Notices, is not
+repeated in a title row. An underlined link is part of a sentence ("open
+Notices") or opens an external resource such as a block explorer or a stored
+document. Mobile's `LinkRow` and `Action` follow the same rule.
+
+A list on a page is read and filtered in place rather than in a dialog. An entry opens
+under its own row as a `Disclosure`, and the list's filter is a `Disclosure` at
+the top of the list's card, above the entries or the empty sentence; closed, it
+names the filters it applies. Opening an entry leaves any other open entry as it
+is, so the row stays where it was pressed and two entries can be compared.
+Applying or clearing the filter closes it and every open entry and returns focus
+to the filter's button. Activity's Transfers works this way, so its title row has
+no Filter action. Holdings and the Register have no filter, and their rows open
+the same way, each a `Disclosure`: a holding to its shares by network and wallet,
+a share class to its Share class row and stored register. Every row starts
+closed. A dialog is kept for work that sets the page aside: a
+form that creates or changes something, a signing step or a confirmation.
+Wallets sorts each chain's list in place as Activity filters: a Sort
+`Disclosure` at the top of a chain's card, shown once the chain holds two or
+more wallets, names the order it applies, and choosing an order applies it at
+once, closes it and returns focus to its button; each chain keeps its own order,
+so its title row has no Filter action either. On mobile,
+Activity's filter and entry detail, Market's order details and the Wallets sort
+still open in a dialog. The bell's notifications belong to the frame
+rather than a page, on both clients.
+
+A setting that takes effect as soon as it changes has one control, a
+`SwitchRow`: Transaction alerts on Settings and Show this company to eligible
+investors on Offerings. Its `aria-checked` is the saved value; it is disabled
+while a change is saving, keeps the saved value when the change is refused, and
+the refusal is an alert in the same card. On the web a choice that is saved
+with a form stays a checkbox, as the payment choices in the offering editor and
+the declaration in a claim do. Mobile's `SwitchRow` puts the native switch at
+the end of the same row, named by the label with the sentence as its hint, for
+biometric sign-in, App lock and Transaction alerts on Settings and Show this
+company to eligible investors on Offerings. The mobile offering editor's
+payment choices are not in that row yet: each is still a bare native switch
+under its own line of text.
+
+A lede, the one muted sentence under a page's title, appears only where it says
+what the titles do not: an instruction (Wallets, Activity) or a fact (Register,
+Published to your members, the company of a Directory share class). `Page` sets
+its `lede` in the title block, directly under the title row, as the heading's
+description; a page whose titles
+already say it, such as Directory, Applications, Verification or Notices, has
+none. Other explanations stay in the section they explain, after the content
+they serve: Market's Saved work follows Trades awaiting signatures, and Offerings
+leads with Your offerings. Mobile's `Page` sets its `lede` directly under the
+title, above the screen's actions.
+
+Every section is its own card, including forms and things to act on such as a
+payment instruction, and a dialog (`Modal` in `dashboard/src/components/Modal`)
+is the same card over the dimmed page: its Newsreader title sits inside at the
+top and labels it, its body scrolls inside the card when the screen is too short,
+and its actions end the card as one right-aligned row of content-width
+`PageAction`s (`ModalActions`), a plain Cancel, Close or Back before the primary
+action. On a narrow phone the row wraps onto another line rather than
+stretching. A group inside a card is set off by a rule or a small heading
+rather than a card of its own, as the For sale and Wanted lists on Market, the
+saved payslips on Profile, a vote's confirmation on Notices, the saved pause and
+unpause requests on a share class and the steps of a signing dialog are
+([decision](../decisions.md#the-signed-in-app)). On the signed-in pages and in
+their dialogs a field is white with a hairline border (`rounded-lg border
+border-border bg-surface-raised`), and warnings and errors are text rather than
+tinted boxes: a warning is warning-coloured, usually beside its icon, and an
+error is either error-coloured or in the plain or muted text around it. The one
+exception is the extraction status beside each saved payslip on Profile, a small
+tinted pill (Queued, Extracting, Extracted, or an error-tinted Failed) that labels
+the file rather than holding a message. The one box a card keeps is a dashed
+upload area, the payslip upload on Profile and the evidence file in a claim,
+because its outline marks where a file goes.
+Sign-in and the sign-up steps hold their forms in the same card on the public
+layout, under the same Newsreader titles, and sign-up lists its password rules
+as marked lines under the field rather than in a box. The rest of those forms
+keeps its earlier look: their fields are tinted, the message at the top of a
+form and the identity check's outcomes sit in tinted boxes, and a field's own
+error is error-coloured text under it.
 
 The design tokens are the single source of colour, spacing and radius values.
 `make generate-tokens` runs `packages/scripts/generate-css-tokens.mjs` with
@@ -449,8 +644,36 @@ dashboard's `bg-surface-*`, `text-text-*` and `brand` classes, and any code
 that reads `PAPER_THEME` directly, render in paper. Both
 clients bundle Newsreader for display text and Instrument Sans for everything
 else. Mobile also uses fixed paper and bundles these fonts with a finite
-loading/error/retry gate; saved local and account theme choices do not change
-the palette. Shared tokens and the CSS generator contain only paper; the retired dark and light palettes are removed.
+loading/error/retry gate; the account stores no theme, and a theme an older
+build saved on the device is not read. Shared tokens and the CSS generator contain only paper; the retired dark and light palettes are removed.
+
+On mobile a dialog is `CustomModal` in `mobile/src/components/modal`, the same
+card as `Section` (`useCardStyles` in `mobile/src/components/Ledger.tsx`) over
+the dimmed screen and inside the safe area. Its Newsreader title is the card's
+first element, marked as a header, and the card is marked
+`accessibilityViewIsModal` for VoiceOver; React Native has no way to make the
+title the dialog's accessible name as the web's `DialogTitle` does. Its body
+scrolls inside the card, and its actions end the card as one right-aligned row
+of content-width `Action`s (`ModalActions`), a plain Cancel, Close or Back before
+the one primary action, wrapping onto another line rather than stretching. The
+backdrop is a button that closes the dialog, and a busy dialog holds the
+backdrop, Android Back and Cancel. The iOS date sheet in `DatePickerField` and
+the Send, Transfer, Verify Wallet and Recovery Phrase screens (`Panel` in
+`mobile/src/components/panel`) use the same card and action row; their stack
+header has no title, so the card's title is the screen's only one. Inside them
+nothing is boxed, as on the web: `Rows` draws a rule only between items and
+`Row` and `LinkRow` draw none of their own, steps are numbered lines, fields
+are white with a hairline border (`useDialogStyles`), a choice is an outlined
+`Choice` marked selected rather than a second filled button, and warnings and
+errors are text rather than tinted boxes: a warning is warning-coloured,
+usually beside its icon, and an error is either error-coloured or in the plain
+or muted text around it. Values set in monospace (the send review's addresses,
+the signing summaries' values, a sent transaction's hash and the addresses in
+the wallet dialogs) use the theme's `fontFamily.mono`, the system monospaced
+face on iOS, as the web's `font-mono` does. The profile's identity dialog shows
+the check's outcome as plain lines; the sign-up screens keep their tinted fields
+and boxed outcomes, as on the web. Mobile's theme adds one spacing step, `smd`
+(12), for the web's 12px spacing the shared scale lacks.
 
 Mobile resolves the package through its Metro configuration and local workspace
 link. Run `npm --prefix mobile run check:resolution` after dependency/resolution

@@ -19,7 +19,6 @@ from operators.settlement import settlement_deployments
 from shared.constants import BLOCKCHAIN_BASE
 from tokens.exceptions import (
     ContractLoadException,
-    DeployedShareClassException,
     InvalidHolderAddressException,
     InvalidRecipientAddressException,
     InvalidTokenAddressException,
@@ -322,12 +321,3 @@ def get_wallet_token_balances(wallet_address: str) -> dict:
             ) from e
 
     return {"walletAddress": wallet_checksum, "balances": balances}
-
-
-def delete_share_token(token) -> None:
-    if token.is_on_chain:
-        logger.warning(f"Refused to delete {token.symbol}: on chain at {token.contract_address}")
-        raise DeployedShareClassException(token.symbol)
-
-    logger.info(f"Deleting share class {token.symbol} for company {token.company_id}")
-    token.delete()

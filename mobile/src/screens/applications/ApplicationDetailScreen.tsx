@@ -10,7 +10,7 @@ import {
   SUBSCRIPTION_WITHDRAWABLE_STATUSES,
 } from '@ledova/shared';
 import type { ApplicationsStackParamList } from '../../navigation/ApplicationsStackNavigator';
-import { Action, Row, Section } from '../../components/Ledger';
+import { Action, Row, Rows, Section } from '../../components/Ledger';
 import { getSessionEpoch } from '../../services/sessionScope';
 import { ApplicationsPage, useApplicationStyles } from './ApplicationsPage';
 import { PaymentInstruction } from './PaymentInstruction';
@@ -41,6 +41,7 @@ export function ApplicationDetailScreen() {
   return (
     <ApplicationsPage
       title="Application"
+      actions={<Action label="Back to Applications" onPress={() => navigation.navigate('ApplicationsMain')} />}
       loading={isLoading}
       refreshing={isRefreshing}
       refresh={() => {
@@ -61,24 +62,26 @@ export function ApplicationDetailScreen() {
       ) : (
         <>
           <Section title={`${subscription.companyName} · ${subscription.tokenName}`}>
-            <Row label="Status">{applicationState(subscription)}</Row>
-            <Row label="Shares applied for">{applicationShares(subscription.quantity)}</Row>
-            {subscription.allottedQuantity !== null && subscription.allottedQuantity !== subscription.quantity && (
-              <Row label="Shares to be allotted">{applicationShares(subscription.allottedQuantity)}</Row>
-            )}
-            <Row label="Price per share">{amount(subscription.pricePerShare)}</Row>
-            <Row label="Amount due">{amount(subscription.amountDue)}</Row>
-            {subscription.amountReceived && <Row label="Amount received">{amount(subscription.amountReceived)}</Row>}
-            {subscription.status === 'awaiting_payment' && subscription.amountOutstanding && (
-              <Row label="Amount outstanding">{amount(subscription.amountOutstanding)}</Row>
-            )}
-            {subscription.refundAmount && (
-              <Row label={subscription.refundedAt ? 'Refunded' : 'Refund owed to you'}>
-                {amount(subscription.refundAmount)}
-              </Row>
-            )}
-            <Row label="Receiving wallet">{subscription.walletAddress}</Row>
-            {subscription.reference && <Row label="Payment reference">{subscription.reference}</Row>}
+            <Rows>
+              <Row label="Status">{applicationState(subscription)}</Row>
+              <Row label="Shares applied for">{applicationShares(subscription.quantity)}</Row>
+              {subscription.allottedQuantity !== null && subscription.allottedQuantity !== subscription.quantity && (
+                <Row label="Shares to be allotted">{applicationShares(subscription.allottedQuantity)}</Row>
+              )}
+              <Row label="Price per share">{amount(subscription.pricePerShare)}</Row>
+              <Row label="Amount due">{amount(subscription.amountDue)}</Row>
+              {subscription.amountReceived && <Row label="Amount received">{amount(subscription.amountReceived)}</Row>}
+              {subscription.status === 'awaiting_payment' && subscription.amountOutstanding && (
+                <Row label="Amount outstanding">{amount(subscription.amountOutstanding)}</Row>
+              )}
+              {subscription.refundAmount && (
+                <Row label={subscription.refundedAt ? 'Refunded' : 'Refund owed to you'}>
+                  {amount(subscription.refundAmount)}
+                </Row>
+              )}
+              <Row label="Receiving wallet">{subscription.walletAddress}</Row>
+              {subscription.reference && <Row label="Payment reference">{subscription.reference}</Row>}
+            </Rows>
           </Section>
           {(canSubmit || canWithdraw) && (
             <Section title="Next step">
@@ -123,11 +126,13 @@ export function ApplicationDetailScreen() {
             </Section>
           )}
           <Section title="History">
-            {applicationHistory(subscription).map(([label, at]) => (
-              <Row key={label} label={label}>
-                {formatDate(at)}
-              </Row>
-            ))}
+            <Rows>
+              {applicationHistory(subscription).map(([label, at]) => (
+                <Row key={label} label={label}>
+                  {formatDate(at)}
+                </Row>
+              ))}
+            </Rows>
             {NEXT[subscription.status] && <Text style={styles.help}>Next: {NEXT[subscription.status]}</Text>}
             {['awaiting_payment', 'paid'].includes(subscription.status) && hasPayment && (
               <Text style={styles.help}>{SUBSCRIPTION_COPY.MONEY_IN_HELP}</Text>
@@ -135,7 +140,6 @@ export function ApplicationDetailScreen() {
           </Section>
         </>
       )}
-      <Action label="All applications" onPress={() => navigation.navigate('ApplicationsMain')} />
     </ApplicationsPage>
   );
 }

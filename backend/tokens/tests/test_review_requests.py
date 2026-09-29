@@ -50,7 +50,7 @@ class ReviewableRequestModelTest(TestCase):
 
     def test_capital_increase_walks_submit_review_and_approval(self):
         request = self.tenant.capital_increase
-        self.assertTrue(request.can_be_edited and request.can_be_submitted)
+        self.assertTrue(request.can_be_submitted)
         self.assertFalse(request.can_be_approved)
         with self.assertRaises(ValueError):
             request.approve(self.tenant.user)
@@ -59,7 +59,7 @@ class ReviewableRequestModelTest(TestCase):
         self.assertEqual(
             (request.status, request.submitted_by, request.dilution_percentage), ("submitted", self.tenant.user, 0.0)
         )
-        self.assertFalse(request.can_be_edited)
+        self.assertFalse(request.can_be_submitted)
 
         request.start_review(self.tenant.user)
         request.approve(self.tenant.user, notes="ok")
@@ -84,10 +84,11 @@ class ReviewableRequestModelTest(TestCase):
         with self.assertRaises(ValueError):
             request.mark_executing()
 
-    def test_detail_serializer_keeps_the_keys_the_dashboard_reads(self):
+    def test_the_detail_says_a_draft_can_be_submitted_and_offers_no_edit(self):
         data = CapitalIncreaseDetailSerializer(self.tenant.capital_increase).data
         self.assertEqual(data["status"], "draft")
-        self.assertTrue(data["can_be_edited"] and data["can_be_submitted"])
+        self.assertTrue(data["can_be_submitted"])
+        self.assertNotIn("can_be_edited", data)
         self.assertIsNone(data["dilution_percentage"])
 
 

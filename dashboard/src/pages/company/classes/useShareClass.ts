@@ -6,29 +6,13 @@ import {
   getCompanyTokenIssuances,
   getCapitalIncreases,
   getShareIssuanceRequests,
-  getNextPageParam,
+  readEveryPage,
   downloadTokenRegister,
   deployCompanyToken,
   submitCapitalIncrease,
-  type PaginatedResponse,
+  wholeShares,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { wholeShares } from './shareQuantities';
-
-async function everyPage<T>(read: (page: number) => Promise<{ data: PaginatedResponse<T> }>): Promise<T[]> {
-  const results: T[] = [];
-  let page: number | undefined = 1;
-  while (page !== undefined) {
-    const { data } = await read(page);
-    results.push(...data.results);
-    const next = getNextPageParam(data);
-    if (data.next && (next === undefined || !Number.isInteger(next) || next <= page)) {
-      throw new Error('Share class history pagination did not advance');
-    }
-    page = next;
-  }
-  return results;
-}
 
 export function useShareClass(uuid: string) {
   const queryClient = useQueryClient();
@@ -63,17 +47,17 @@ export function useShareClass(uuid: string) {
   const issuances = useQuery({
     queryKey: ['token', uuid, 'issuances'],
     enabled,
-    queryFn: () => everyPage((page) => getCompanyTokenIssuances(apiClient, uuid, { page })),
+    queryFn: () => readEveryPage((page) => getCompanyTokenIssuances(apiClient, uuid, { page })),
   });
   const capital = useQuery({
     queryKey: ['token', uuid, 'capital-increases'],
     enabled,
-    queryFn: () => everyPage((page) => getCapitalIncreases(apiClient, { token: uuid, page })),
+    queryFn: () => readEveryPage((page) => getCapitalIncreases(apiClient, { token: uuid, page })),
   });
   const requests = useQuery({
     queryKey: ['token', uuid, 'issuance-requests'],
     enabled,
-    queryFn: () => everyPage((page) => getShareIssuanceRequests(apiClient, { token: uuid, page })),
+    queryFn: () => readEveryPage((page) => getShareIssuanceRequests(apiClient, { token: uuid, page })),
   });
   const refresh = () =>
     Promise.all([

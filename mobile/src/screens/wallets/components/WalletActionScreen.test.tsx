@@ -25,7 +25,10 @@ jest.mock('@react-navigation/native', () => ({
 jest.mock('../useWalletsCrud', () => ({
   useWalletsCrud: () => ({ wallets: [mockWallet], syncingWalletIds: new Set(), isUpdating: false }),
 }));
-jest.mock('../../../hooks/useCurrency', () => ({ useCurrency: () => ({ formatDisplayCurrency: () => '$0.00' }) }));
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
+  useCurrency: () => ({ formatDisplayCurrency: () => '$0.00' }),
+}));
 jest.mock('./DeleteWalletModal', () => ({ DeleteWalletModal: () => null }));
 jest.mock('./DeriveAddressModal', () => ({ DeriveAddressModal: () => null }));
 

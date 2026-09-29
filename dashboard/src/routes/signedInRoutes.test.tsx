@@ -5,14 +5,16 @@ import type { ReactElement } from 'react';
 import { MemoryRouter, Route, Routes, useLocation, useNavigationType } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { InSignedInFrame } from '@components/InSignedInFrame';
-import { DESTINATIONS, type AccountRole, type DestinationKey } from '@ledova/shared';
+import { DESTINATIONS, useAuth, type AccountRole, type DestinationKey } from '@ledova/shared';
 
-import { useAuth } from '@hooks/useAuth';
 import { useRole } from '@hooks/useRole';
 import { useUserProfile } from '@pages/user-profile/useUserProfile';
 import { signedInRoutes } from './signedInRoutes';
 
-vi.mock('@hooks/useAuth', () => ({ useAuth: vi.fn() }));
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
+  useAuth: vi.fn(),
+}));
 vi.mock('@hooks/useRole', () => ({ useRole: vi.fn() }));
 vi.mock('@pages/user-profile/useUserProfile', () => ({ useUserProfile: vi.fn() }));
 

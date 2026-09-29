@@ -18,7 +18,9 @@ class Command(BaseCommand):
         if options["verbosity"] >= 1:
             for name in result["names"]:
                 self.stdout.write(f"orphan {name}")
-            verb = "would delete" if options["dry_run"] else "deleted"
-            self.stdout.write(f"{result['found']} orphaned, {verb} {result['deleted']}, failed {result['failed']}")
+            if options["dry_run"]:
+                self.stdout.write(f"{result['found']} orphaned, would delete {result['found']}")
+            else:
+                self.stdout.write(f"{result['found']} orphaned, deleted {result['deleted']}, failed {result['failed']}")
 
         return None

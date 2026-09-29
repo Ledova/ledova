@@ -1,6 +1,7 @@
 import { SwapSettlementError } from './swap-settlement-error';
 import type { SwapSettlementIdentity } from '../types';
 import type { OrderSubmissionOwner, OrderSubmissionStorage } from './order-submission-storage';
+import { isUuid } from './validation';
 
 export type SavedSwapSettlement = OrderSubmissionOwner &
   SwapSettlementIdentity & { version: 1 } & (
@@ -8,11 +9,10 @@ export type SavedSwapSettlement = OrderSubmissionOwner &
   );
 
 const PREFIX = 'ledova.swap-settlements.v1.';
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const HASH = /^0x[0-9a-f]{64}$/i;
 
 function scopePrefix(owner: OrderSubmissionOwner): string {
-  if (!UUID.test(owner.userUuid) || !UUID.test(owner.ownerAccountUuid))
+  if (!isUuid(owner.userUuid) || !isUuid(owner.ownerAccountUuid))
     throw new SwapSettlementError('The settlement account is unavailable.');
   return `${PREFIX}${owner.userUuid}.${owner.ownerAccountUuid}.`;
 }
@@ -22,7 +22,7 @@ function storageKey(record: SavedSwapSettlement): string {
   if (
     !record ||
     record.version !== 1 ||
-    ![record.orderUuid, record.swapUuid, record.walletUuid].every((id) => typeof id === 'string' && UUID.test(id)) ||
+    ![record.orderUuid, record.swapUuid, record.walletUuid].every((id) => typeof id === 'string' && isUuid(id)) ||
     !HASH.test(record.settlementDigest) ||
     !['signature', 'approval'].includes(record.kind) ||
     Object.keys(record).sort().join(',') !==

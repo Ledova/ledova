@@ -12,7 +12,7 @@ import { GradientBackground } from '../../../components/GradientBackground';
 import { PrimaryButton } from '../../../components/buttons';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
-import { usePreScreening } from './usePreScreening';
+import { useSignupPreScreening } from '@ledova/shared';
 import { ShieldCheckIcon, WarningCircleIcon, CheckCircleIcon } from 'phosphor-react-native';
 import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
@@ -189,7 +189,7 @@ export function PreScreeningScreen() {
     setFieldValue,
     handleSubmit,
     retryLoad,
-  } = usePreScreening();
+  } = useSignupPreScreening();
 
   const handleContinue = async () => {
     await handleSubmit(() => {

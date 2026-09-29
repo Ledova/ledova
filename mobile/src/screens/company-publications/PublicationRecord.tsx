@@ -12,7 +12,8 @@ import {
   useResolutionStatus,
   type Publication,
 } from '@ledova/shared';
-import { Action, Row, Section } from '../../components/Ledger';
+import { Action, Row, Rows } from '../../components/Ledger';
+import { useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../company-register/styles';
 
 function ResolutionRecord({ publication }: { publication: Publication }) {
@@ -26,8 +27,10 @@ function ResolutionRecord({ publication }: { publication: Publication }) {
         {publication.resolutionKind && `${RESOLUTION_KIND_LABELS[publication.resolutionKind]} · `}
         {PUBLICATION_COPY.BASIS}
       </Text>
-      <Row label="Voting opens">{formatDateTime(publication.opensAt)}</Row>
-      <Row label="Voting closes">{formatDateTime(publication.closesAt)}</Row>
+      <Rows>
+        <Row label="Voting opens">{formatDateTime(publication.opensAt)}</Row>
+        <Row label="Voting closes">{formatDateTime(publication.closesAt)}</Row>
+      </Rows>
       <Text style={styles.heading}>
         {status === 'upcoming'
           ? PUBLICATION_COPY.NOT_OPEN_YET
@@ -40,13 +43,15 @@ function ResolutionRecord({ publication }: { publication: Publication }) {
           <Text style={styles.heading}>
             {publication.result.carried ? PUBLICATION_COPY.CARRIED : PUBLICATION_COPY.NOT_CARRIED}
           </Text>
-          {BALLOT_CHOICES.map((choice) => (
-            <Row key={choice} label={PUBLICATION_COPY.CHOICES[choice]}>
-              {describeCount(publication.result![choice])}
-            </Row>
-          ))}
-          <Row label="Eligible">{describeCount(publication.result.eligible)}</Row>
-          <Row label={PUBLICATION_COPY.TURNOUT_LABEL}>{describeTurnout(publication.result)}</Row>
+          <Rows>
+            {BALLOT_CHOICES.map((choice) => (
+              <Row key={choice} label={PUBLICATION_COPY.CHOICES[choice]}>
+                {describeCount(publication.result![choice])}
+              </Row>
+            ))}
+            <Row label="Eligible">{describeCount(publication.result.eligible)}</Row>
+            <Row label={PUBLICATION_COPY.TURNOUT_LABEL}>{describeTurnout(publication.result)}</Row>
+          </Rows>
         </View>
       ) : (
         status === 'closed' && <Text style={styles.muted}>{PUBLICATION_COPY.RESULT_PENDING}</Text>
@@ -67,22 +72,30 @@ export function PublicationRecord({
   blocked: boolean;
 }) {
   const styles = useCompanyStyles();
+  const layout = useThemedStyles((theme) => ({
+    record: { gap: theme.spacing.sm, paddingVertical: theme.spacing.md },
+  }));
   return (
-    <Section title={publication.title}>
+    <View style={layout.record}>
+      <Text accessibilityRole="header" style={styles.heading}>
+        {publication.title}
+      </Text>
       <Text style={styles.muted}>{PUBLICATION_KIND_LABELS[publication.kind]}</Text>
-      <Text style={styles.heading}>{publication.companyName}</Text>
+      <Text style={styles.text}>{publication.companyName}</Text>
       <Text style={styles.muted}>
         {publication.tokenName} ({publication.tokenSymbol})
       </Text>
-      <Row label={PUBLICATION_COPY.RECORD_DATE_LABEL}>{formatDate(publication.recordDate)}</Row>
-      <Row label="Published">{formatDate(publication.createdAt)}</Row>
+      <Rows>
+        <Row label={PUBLICATION_COPY.RECORD_DATE_LABEL}>{formatDate(publication.recordDate)}</Row>
+        <Row label="Published">{formatDate(publication.createdAt)}</Row>
+      </Rows>
       <ResolutionRecord publication={publication} />
       {publication.kind === 'distribution' && (
-        <View style={styles.group}>
+        <Rows>
           <Row label="Rate per share">{describeRate(publication)}</Row>
           {publication.declaredOn && <Row label="Declared">{formatDate(publication.declaredOn)}</Row>}
           {publication.paymentDate && <Row label="Payment date">{formatDate(publication.paymentDate)}</Row>}
-        </View>
+        </Rows>
       )}
       <Action
         label={opening ? PUBLICATION_COPY.OPENING : PUBLICATION_COPY.OPEN}
@@ -90,6 +103,6 @@ export function PublicationRecord({
         onPress={open}
         disabled={opening || blocked}
       />
-    </Section>
+    </View>
   );
 }

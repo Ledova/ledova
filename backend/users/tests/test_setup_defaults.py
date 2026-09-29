@@ -20,7 +20,7 @@ class EnsureDefaultsTest(TestCase):
         self.assertEqual(account.user_profile, profile)
         self.assertEqual(portfolio.user_account, account)
         self.assertEqual(portfolio.name, "My Portfolio")
-        self.assertEqual(preferences.selected_portfolio, portfolio)
+        self.assertEqual(preferences.user_profile, profile)
 
     def test_second_call_reuses_every_row(self):
         first = ensure_defaults(self.user)
@@ -32,28 +32,26 @@ class EnsureDefaultsTest(TestCase):
         self.assertEqual(Portfolio.objects.filter(user_account__user_profile__user=self.user).count(), 1)
         self.assertEqual(UserPreferences.objects.filter(user_profile__user=self.user).count(), 1)
 
-    def test_existing_account_without_portfolio_gets_one_and_empty_preferences_are_filled(self):
+    def test_existing_account_without_portfolio_gets_one_and_keeps_its_preferences(self):
         profile = UserProfile.objects.create(user=self.user)
         account = UserAccount.objects.create(account_number="EXISTING", user_profile=profile)
-        preferences = UserPreferences.objects.create(user_profile=profile)
+        preferences = UserPreferences.objects.create(user_profile=profile, transaction_alerts=False)
 
         _, returned_account, portfolio, returned_preferences = ensure_defaults(self.user)
 
         self.assertEqual(returned_account, account)
-        self.assertEqual(account.portfolios.count(), 1)
+        self.assertEqual(list(account.portfolios.all()), [portfolio])
         self.assertEqual(returned_preferences.pk, preferences.pk)
         preferences.refresh_from_db()
-        self.assertEqual(preferences.selected_portfolio, portfolio)
+        self.assertFalse(preferences.transaction_alerts)
 
-    def test_populated_preferences_are_left_alone(self):
+    def test_an_account_that_has_portfolios_gets_no_new_one(self):
         profile = UserProfile.objects.create(user=self.user)
         account = UserAccount.objects.create(account_number="EXISTING", user_profile=profile)
         first_portfolio = Portfolio.objects.create(user_account=account, name="First")
-        chosen_portfolio = Portfolio.objects.create(user_account=account, name="Chosen")
-        UserPreferences.objects.create(user_profile=profile, selected_portfolio=chosen_portfolio)
+        second_portfolio = Portfolio.objects.create(user_account=account, name="Second")
 
-        _, _, portfolio, preferences = ensure_defaults(self.user)
+        _, _, portfolio, _ = ensure_defaults(self.user)
 
-        self.assertIn(portfolio, (first_portfolio, chosen_portfolio))
-        self.assertEqual(preferences.selected_portfolio, chosen_portfolio)
+        self.assertIn(portfolio, (first_portfolio, second_portfolio))
         self.assertEqual(account.portfolios.count(), 2)

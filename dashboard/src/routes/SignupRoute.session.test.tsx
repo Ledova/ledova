@@ -5,9 +5,8 @@ import { useState, type ReactElement } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiClientProvider, AUTH_ENDPOINTS, USER_PROFILE_ENDPOINTS } from '@ledova/shared';
+import { ApiClientProvider, AUTH_ENDPOINTS, USER_PROFILE_ENDPOINTS, AUTH_QUERY_KEY } from '@ledova/shared';
 
-import { AUTH_QUERY_KEY } from '@hooks/useAuth';
 import { SignupEmailConfirmation } from '@pages/signup/email-confirmation';
 import apiClient from '@services/apiClient';
 import { SIGNUP_STEPS, signupRoutes, type SignupStep } from './signupRoutes';

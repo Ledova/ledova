@@ -8,6 +8,7 @@ export {
   isValidFullName,
   isValidPhoneFormat,
   formatPhoneNumber,
+  isUuid,
 } from './validation';
 export {
   validateWalletAddress,
@@ -24,7 +25,7 @@ export { formatPhoneForDisplay, formatPhoneWithCountryCode, cleanPhoneNumber } f
 export { formatSourceOfFunds, sourceOfFundsChoices, formatIntendedUse } from './formatting-labels';
 export { validateUserProfileField } from './user-validation';
 export { getUserVerificationStatus, type VerificationStatusType } from './user-verification';
-export { getNextPageParam } from './pagination';
+export { assertNextPageAdvances, getNextPageParam, readEveryPage } from './pagination';
 export {
   createUserFriendlyError,
   getErrorMessage,
@@ -79,3 +80,4 @@ export {
   swapSettlementAdmitted,
 } from './swap-settlement-validation';
 export { summarizeShareHoldings, type ShareHoldingRow } from './share-holdings';
+export { MAX_REQUEST_SHARES, raisedSupply, requestShares, wholeShares } from './share-quantities';

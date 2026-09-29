@@ -1,37 +1,24 @@
 import logging
 from contextlib import closing
-from typing import Generator, Optional, Union
+from typing import Generator, Optional
 
 from django.conf import settings
 from django.db import OperationalError
 
-from assets.models import Asset
 from integrations.base_chain import get_base_chain_client
-from integrations.base_chain.exceptions import (
-    BaseChainContractError,
-    BaseChainTransactionError,
-)
-from operators.settlement import deployment_for, require_deployment
+from operators.settlement import require_deployment
 from shared.db import atomic
-from shared.utils.blockchain import decode_exception_to_message
 from shared.utils.token_amounts import token_base_units_ceiling
 from tokens.exceptions import (
     CreateOrderInsufficientBalanceException,
     CreateOrderNotWhitelistedException,
-    InsufficientBalanceException,
     InvalidRecipientAddressException,
     InvalidSettlementAmountException,
-    InvalidTokenAddressException,
-    NotWhitelistedException,
     OrderMatchException,
     OrderMatchingBusyException,
-    TokenPausedException,
-    TransferBroadcastException,
-    TransferPreparationException,
 )
 from tokens.models import (
     ShareToken,
-    ShareTokenStatus,
     TransferOrder,
     TransferOrderStatus,
     TransferOrderType,
@@ -45,120 +32,6 @@ from wallets.models.wallet import Blockchain
 from whitelist.services import whitelist
 
 logger = logging.getLogger(__name__)
-
-
-def contract_address(token) -> str:
-    if isinstance(token, Asset):
-        deployment = deployment_for(token)
-        return deployment.contract_address if deployment else ""
-    return token.contract_address
-
-
-def validate_transfer(
-    token: Union[ShareToken, Asset],
-    from_address: str,
-    to_address: str,
-    amount: int,
-) -> None:
-    if isinstance(token, ShareToken) and token.status == ShareTokenStatus.PAUSED:
-        raise TokenPausedException()
-    if isinstance(token, Asset) and not token.is_active:
-        raise TokenPausedException()
-
-    token_address = contract_address(token)
-    if not token_address:
-        raise InvalidTokenAddressException()
-
-    if not get_base_chain_client().is_valid_address(from_address):
-        raise InvalidRecipientAddressException()
-
-    if not get_base_chain_client().is_valid_address(to_address):
-        raise InvalidRecipientAddressException()
-
-    for party in (from_address, to_address):
-        if isinstance(token, ShareToken):
-            if not whitelist.is_whitelisted(token_address, party):
-                raise NotWhitelistedException(party)
-        elif not whitelist.approved_for_any_company(party):
-            raise NotWhitelistedException(party)
-
-    from tokens.services import share_token_service
-
-    balance = share_token_service.get_token_balance(token_address, from_address)
-    if balance < amount:
-        raise InsufficientBalanceException(balance, amount)
-
-
-def prepare_transfer(
-    token: Union[ShareToken, Asset],
-    from_address: str,
-    to_address: str,
-    amount: int,
-) -> dict:
-    try:
-        validate_transfer(token, from_address, to_address, amount)
-
-        token_address = contract_address(token)
-        from_checksum = get_base_chain_client().to_checksum_address(from_address)
-        to_checksum = get_base_chain_client().to_checksum_address(to_address)
-
-        contract_name = "AUDY" if isinstance(token, Asset) else "ShareToken"
-        token_contract = get_base_chain_client().load_contract(contract_name, token_address)
-        transfer_fn = token_contract.functions.transfer(to_checksum, amount)
-
-        nonce = get_base_chain_client().get_nonce(from_checksum)
-        gas_price = get_base_chain_client().gas_price
-        chain_id = get_base_chain_client().chain_id
-
-        tx_data = {
-            "to": token_address,
-            "data": transfer_fn._encode_transaction_data(),
-            "value": 0,
-            "nonce": nonce,
-            "chainId": chain_id,
-            "gasPrice": gas_price,
-        }
-
-        tx_data["gas"] = get_base_chain_client().estimate_gas(
-            {
-                "from": from_checksum,
-                "to": token_address,
-                "data": tx_data["data"],
-                "value": 0,
-            }
-        )
-
-        logger.info(f"Prepared transfer: {amount} {token.symbol} from {from_checksum} to {to_checksum}")
-
-        return tx_data
-
-    except (NotWhitelistedException, InsufficientBalanceException, TokenPausedException):
-        raise
-    except Exception as e:
-        logger.error(f"Preparation failed: {e}")
-        raise TransferPreparationException(decode_exception_to_message(e, "Transfer preparation failed.")) from e
-
-
-def broadcast_transfer(signed_tx: str) -> tuple[str, dict]:
-    try:
-        if signed_tx.startswith("0x"):
-            signed_tx_bytes = bytes.fromhex(signed_tx[2:])
-        else:
-            signed_tx_bytes = bytes.fromhex(signed_tx)
-
-        tx_hash = get_base_chain_client().send_raw_transaction(signed_tx_bytes)
-        receipt = get_base_chain_client().wait_for_receipt(tx_hash)
-
-        logger.info(f"Broadcast successful: {tx_hash}")
-
-        return tx_hash, dict(receipt)
-
-    except (BaseChainTransactionError, BaseChainContractError) as e:
-        logger.error(f"Broadcast failed: {e}")
-        raise TransferBroadcastException("Transfer broadcast failed.") from e
-    except ValueError as e:
-        logger.error(f"Invalid transaction hex: {e}")
-        raise TransferBroadcastException("Transfer broadcast failed: Invalid transaction format") from e
 
 
 @atomic()

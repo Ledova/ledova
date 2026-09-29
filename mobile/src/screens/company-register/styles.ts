@@ -2,11 +2,10 @@ import { useThemedStyles } from '../../contexts';
 
 export const useCompanyStyles = () =>
   useThemedStyles((theme) => ({
-    page: { flex: 1, backgroundColor: theme.colors.surface.base },
-    content: { padding: 20, paddingBottom: 48, gap: 28 },
-    group: { gap: 12 },
+    group: { gap: theme.spacing.smd },
+    choices: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: theme.spacing.sm },
     entry: { gap: 8, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.border.subtle },
-    title: { fontFamily: theme.fontFamily.display, fontSize: 34, color: theme.colors.text.primary },
+    lastEntry: { paddingBottom: 0, borderBottomWidth: 0 },
     heading: { fontFamily: theme.fontFamily.medium, fontSize: 17, color: theme.colors.text.primary },
     text: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 21, color: theme.colors.text.primary },
     muted: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 21, color: theme.colors.text.muted },
@@ -18,7 +17,7 @@ export const useCompanyStyles = () =>
       backgroundColor: theme.colors.surface.raised,
       borderColor: theme.colors.border.default,
       borderWidth: 1,
-      borderRadius: 6,
-      padding: 12,
+      borderRadius: theme.borderRadius.md,
+      padding: theme.spacing.smd,
     },
   }));

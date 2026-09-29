@@ -56,6 +56,7 @@ function renderPage() {
       <MemoryRouter initialEntries={['/subscriptions/application-1']}>
         <Routes>
           <Route path="/subscriptions/:uuid" element={<SubscriptionDetailPage />} />
+          <Route path="/subscriptions" element={<p>Applications page</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -199,8 +200,9 @@ it('gives a real 404 its own unavailable state and a route back to applications'
   api.get.mockRejectedValue({ response: { status: 404 } });
   renderPage();
   expect(await screen.findByText('Not available')).toBeTruthy();
-  expect(screen.getByRole('link', { name: 'All applications' }).getAttribute('href')).toBe('/subscriptions');
   expect(screen.queryByRole('button', { name: 'Submit for review' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Back to Applications' }));
+  expect(await screen.findByText('Applications page')).toBeTruthy();
 });
 
 it('suppresses stale amounts, payment instructions and actions when the application refresh fails', async () => {

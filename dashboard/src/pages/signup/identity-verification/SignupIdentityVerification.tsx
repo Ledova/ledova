@@ -9,10 +9,7 @@ import {
 import LoadingState from '@components/signup/LoadingState';
 import { useIdentityVerification } from '@hooks/useIdentityVerification';
 import { AuthLayout } from '@components/AuthLayout';
-import { DESIGN_TOKENS } from '@ledova/shared';
-
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
-const ICON_LG = DESIGN_TOKENS.icon.sizes.lg;
+import { ICON_MD, ICON_LG } from '@components/iconSizes';
 
 export function SignupIdentityVerification() {
   const navigate = useNavigate();
@@ -67,8 +64,8 @@ export function SignupIdentityVerification() {
         </p>
       </div>
 
-      <div className="bg-surface-raised rounded-lg border border-border">
-        <div className="p-6">
+      <div className="rounded-xl border border-border bg-surface-raised">
+        <div className="p-4 sm:p-5">
           {(isLoadingStatus || isLaunching) && (
             <div className="flex flex-col items-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-light"></div>

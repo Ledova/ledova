@@ -1,6 +1,6 @@
 import type { AxiosRequestConfig } from 'axios';
 import React from 'react';
-import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
 import { PUBLICATION_COPY, formatDateTime } from '@ledova/shared';
@@ -248,8 +248,12 @@ it('asks the member to confirm a ballot cannot be changed, and casts nothing whe
 
   await fireEvent.press(await view.findByLabelText(choiceButton('Against')));
 
-  expect(view.getByText(`${PUBLICATION_COPY.CONFIRM_TITLE} Against`)).toBeTruthy();
-  expect(view.getByText(PUBLICATION_COPY.CONFIRM_BODY)).toBeTruthy();
+  const confirmation = view.getByText(`${PUBLICATION_COPY.CONFIRM_TITLE} Against`).parent!;
+  expect(within(confirmation).getByText(PUBLICATION_COPY.CONFIRM_BODY)).toBeTruthy();
+  expect(within(confirmation).getByText(PUBLICATION_COPY.CONFIRM)).toBeTruthy();
+  expect(within(confirmation).getByText(PUBLICATION_COPY.CANCEL)).toBeTruthy();
+  expect(confirmation).toHaveStyle({ borderTopWidth: 1 });
+  expect(confirmation).not.toHaveStyle({ borderWidth: 1 });
   expect(view.queryByLabelText(choiceButton('Against'))).toBeNull();
   await fireEvent.press(view.getByText(PUBLICATION_COPY.CANCEL));
   expect(view.getByLabelText(choiceButton('Against'))).toBeTruthy();
@@ -574,13 +578,8 @@ it('can reach the next page when the first addressed page is empty', async () =>
   expect(view.queryByText(PUBLICATION_COPY.EMPTY)).toBeNull();
 });
 
-it.each([
-  'https://api.example/?page=1',
-  'https://api.example/?page=wat',
-  'https://api.example/?page=1.5',
-  'https://api.example/?cursor=opaque',
-])('refuses a malformed or nonadvancing next page %s', async (next) => {
-  listing = async () => ({ data: { count: 2, next, results: rows } });
+it('refuses a nonadvancing next page', async () => {
+  listing = async () => ({ data: { count: 2, next: 'https://api.example/?page=1', results: rows } });
   const view = await render(<PublicationsScreen />, { wrapper });
   expect(await view.findByText(PUBLICATION_COPY.LIST_FAILED)).toBeTruthy();
   expect(view.queryByText(statement.title)).toBeNull();

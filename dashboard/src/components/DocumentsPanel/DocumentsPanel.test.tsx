@@ -23,7 +23,6 @@ const document: Document = {
   attachedAt: null,
   retentionUntil: '2026-10-09T00:00:00Z',
   purgedAt: null,
-  fileUrl: '/private-document/',
   latestExtraction: null,
   createdAt: '2026-09-09T00:00:00Z',
   updatedAt: '2026-09-09T00:00:00Z',
@@ -91,6 +90,33 @@ describe('supporting payslips', () => {
     expect(screen.getByText('Check the pay period')).toBeTruthy();
     expect(screen.getByText('Confidence: Unknown')).toBeTruthy();
     expect(screen.queryByText(/not-a-number/)).toBeNull();
+  });
+
+  it('states a failed extraction as an error line with its mark, not a tinted box', async () => {
+    rows = [
+      {
+        ...document,
+        latestExtraction: {
+          uuid: 'synthetic-extraction',
+          status: 'failed',
+          modelName: 'synthetic-parser',
+          parsedJson: null,
+          confidence: null,
+          warnings: [],
+          error: 'The synthetic payslip could not be read.',
+          durationMs: null,
+          startedAt: null,
+          finishedAt: null,
+          createdAt: document.createdAt,
+          updatedAt: document.updatedAt,
+        },
+      },
+    ];
+    showPanel();
+    const failure = (await screen.findByText('The synthetic payslip could not be read.')).parentElement!;
+    expect(failure.className).toContain('text-error-light');
+    expect(failure.querySelector('svg')).toBeTruthy();
+    expect(failure.closest('[class*="bg-error"]')).toBeNull();
   });
 
   it('does not render or fetch payslips in single-issuer mode', async () => {

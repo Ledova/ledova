@@ -5,16 +5,15 @@ import {
   apiErrorSentence,
   createCompanyToken,
   updateCompany,
+  wholeShares,
   type Company,
   type CompanyUpdate,
   type TokenType,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { wholeShares } from './classes/shareQuantities';
 import { CompanyReadNotice, type CompanyRead } from './CompanyState';
+import { FIELD_CLASS } from '@components/fieldClass';
 
-const FIELD_CLASS =
-  'mt-1 block w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary';
 const EDIT_FIELDS = [
   ['name', 'Company name'],
   ['tradingName', 'Trading name'],

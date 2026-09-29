@@ -906,12 +906,12 @@ class CompanyPackTest(ProducesPacks, TestCase):
             [(company.name, "passed", "pack-a registered entity")],
         )
 
-    def test_the_pack_carries_no_credential_or_contact_detail_of_the_platform_account(self):
+    def test_the_pack_carries_no_contact_detail_of_the_platform_account(self):
         text = text_of(self.pack())
 
         company = Company.objects.get(pk=self.a.company.pk)
         self.assertIn(company.name.lower(), text)
-        for secret in (company.api_key, self.a.tenant.user.email, self.a.tenant.account.account_number):
+        for secret in (self.a.tenant.user.email, self.a.tenant.account.account_number):
             with self.subTest(secret=secret):
                 self.assertTrue(secret)
                 self.assertNotIn(secret.lower(), text)

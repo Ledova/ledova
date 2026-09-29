@@ -31,9 +31,7 @@ export function UserProfilePage() {
         <p role="alert" className="text-sm text-error-light">
           Your profile could not be loaded.
         </p>
-        <div>
-          <PageAction label="Try again" onClick={refreshProfile} />
-        </div>
+        <PageAction label="Try again" onClick={refreshProfile} />
       </Page>
     );
   }
@@ -83,7 +81,7 @@ export function UserProfilePage() {
                   value={phoneCode}
                   disabled={isUpdating}
                   onChange={(event) => setPhoneCode(event.target.value)}
-                  className="min-w-0 rounded-lg border border-border bg-paper px-3 py-2 text-text-primary"
+                  className="min-w-0 rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid"
                 />
               </label>
               <label className="flex min-w-0 flex-1 flex-col gap-1 text-sm text-text-muted">
@@ -94,7 +92,7 @@ export function UserProfilePage() {
                   value={phoneNumber}
                   disabled={isUpdating}
                   onChange={(event) => setPhoneNumber(event.target.value)}
-                  className="min-w-0 rounded-lg border border-border bg-paper px-3 py-2 text-text-primary"
+                  className="min-w-0 rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid"
                 />
               </label>
             </div>
@@ -115,9 +113,7 @@ export function UserProfilePage() {
             </div>
           </form>
         ) : (
-          <div>
-            <PageAction label="Edit phone" onClick={editPhone} />
-          </div>
+          <PageAction label="Edit phone" onClick={editPhone} />
         )}
       </Section>
       <Section title="Account status">
@@ -132,9 +128,7 @@ export function UserProfilePage() {
           <Row label="Member since">{formatDate(userProfile.dateJoined, 'Not available')}</Row>
           <Row label="Last login">{formatDateTime(userProfile.lastLogin)}</Row>
         </Rows>
-        <div>
-          <PageAction label="Review identity check" onClick={() => setVerificationOpen(true)} />
-        </div>
+        <PageAction label="Review identity check" onClick={() => setVerificationOpen(true)} />
       </Section>
       {documentsEnabled && (
         <Section title="Supporting payslips">

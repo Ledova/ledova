@@ -6,12 +6,11 @@ import { ScreenHeader } from '../../../components/header';
 import { DatePickerField } from '../../../components/date-picker';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
-import { useUserProfile } from './useUserProfile';
 import { UserIcon, WarningCircleIcon, HouseIcon, PhoneIcon } from 'phosphor-react-native';
 import { CountrySelector } from './components/CountrySelector';
 import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
-import { parseDateString, formatDateToString } from '@ledova/shared';
+import { parseDateString, formatDateToString, useSignupUserProfile } from '@ledova/shared';
 import { useRole } from '../../../hooks/useRole';
 
 export function UserProfileScreen() {
@@ -197,7 +196,7 @@ export function UserProfileScreen() {
     handleCountryChange,
     handleSubmit,
     retryLoad,
-  } = useUserProfile();
+  } = useSignupUserProfile();
 
   const { isCompany } = useRole();
 

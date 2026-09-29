@@ -64,11 +64,12 @@ it('shows company details, exact draft share classes and the class/application d
   expect(screen.getByRole('link', { name: 'Ordinary shares' }).getAttribute('href')).toBe(
     '/company/register/class-one',
   );
-  expect(screen.getByRole('button', { name: 'Application' })).toBeTruthy();
+  expect(screen.getByRole('link', { name: 'Application' }).getAttribute('href')).toBe('/company/listing');
   expect(screen.getByRole('link', { name: 'Published to your members' }).getAttribute('href')).toBe(
     '/company/publications',
   );
-  expect(api.get.mock.calls.some(([url]) => String(url).includes('/stats/'))).toBe(false);
+  expect(screen.getByRole('link', { name: 'Register' }).getAttribute('href')).toBe('/company/register');
+  expect(screen.getByRole('button', { name: 'Edit company' })).toBeTruthy();
 });
 
 it('reads every class page, excludes other companies and retries a failed later page without showing partial or stale rows', async () => {
@@ -109,6 +110,8 @@ it('distinguishes no classes from a failed read', async () => {
   show();
   expect(await screen.findByText('No share classes yet.')).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Retry share classes' })).toBeNull();
+  expect(screen.queryByRole('link', { name: 'Register' })).toBeNull();
+  expect(screen.getByRole('button', { name: 'Create share class' })).toBeTruthy();
 });
 
 it('scopes every class page to the selected company so unrelated pages cannot hide its classes', async () => {

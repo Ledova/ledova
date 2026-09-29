@@ -23,7 +23,6 @@ function claim(overrides: Partial<InvestorClassification> = {}): InvestorClassif
     declarationText: 'I declare',
     evidenceFileSize: 10,
     evidenceMimeType: 'application/pdf',
-    evidenceUrl: null,
     expiresAt: '2027-09-01T00:00:00Z',
     isExpired: false,
     isLive: true,
@@ -104,7 +103,7 @@ it('reads every claim page so an older pending claim still prevents duplicate su
     expect((button as HTMLButtonElement).disabled).toBe(true);
   }
   expect(api.get).toHaveBeenCalledWith(INVESTOR_CLASSIFICATION_ENDPOINTS.BASE, { params: { page: 2 } });
-  expect(screen.getByRole('link', { name: 'View the directory' }).getAttribute('href')).toBe('/directory');
+  expect(screen.getByRole('link', { name: 'Directory' }).getAttribute('href')).toBe('/directory');
 });
 
 it.each(['eligibility', 'claims', 'later claims'])(
@@ -138,18 +137,6 @@ it.each(['eligibility', 'claims', 'later claims'])(
     expect(await screen.findByText('Verified to invest')).toBeTruthy();
   },
 );
-
-it('refuses a nonadvancing pagination response instead of silently using incomplete claims', async () => {
-  api.get.mockImplementation(async (url: string) =>
-    url === INVESTOR_CLASSIFICATION_ENDPOINTS.ELIGIBILITY
-      ? { data: eligibility }
-      : page([claim()], 'http://localhost/api/v1/investor-classifications/?page=1'),
-  );
-  renderPage();
-  expect(await screen.findByRole('alert')).toBeTruthy();
-  expect(screen.queryByText('Verified to invest')).toBeNull();
-  expect(api.get.mock.calls.filter(([url]) => url === INVESTOR_CLASSIFICATION_ENDPOINTS.BASE)).toHaveLength(1);
-});
 
 it('hides cached claims and actions when a refresh fails', async () => {
   renderPage();
@@ -222,6 +209,39 @@ it.each(['eligibility', 'claims'])('retains an open claim through a failed %s re
   expect(payload.get('certifier_membership_number')).toBe('TEST-123');
 });
 
+it('keeps a claim that is being submitted open on Escape and closes it once it is saved', async () => {
+  let saved!: (value: unknown) => void;
+  api.post.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        saved = resolve;
+      }),
+  );
+  renderPage();
+  fireEvent.click((await screen.findAllByRole('button', { name: 'Submit evidence' }))[0]);
+  const dialog = await screen.findByRole('dialog');
+  const dropZone = within(dialog)
+    .getByText('Drag and drop your evidence or choose a file.')
+    .closest('div.border-dashed')!;
+  expect(dropZone.className).toContain('hover:bg-surface-tertiary');
+  expect(dropZone.className).not.toContain('bg-surface-hover');
+  fireEvent.change(within(dialog).getByLabelText('Basis for the claim'), { target: { value: 'My evidence' } });
+  fireEvent.change(within(dialog).getByLabelText('Evidence file'), {
+    target: { files: [new File(['test'], 'proof.pdf', { type: 'application/pdf' })] },
+  });
+  fireEvent.click(within(dialog).getByRole('checkbox'));
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Submit for review' }));
+  await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
+  expect((within(dialog).getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+  await act(async () => {});
+  expect(screen.getByRole('dialog')).toBe(dialog);
+  expect((within(dialog).getByLabelText('Basis for the claim') as HTMLTextAreaElement).value).toBe('My evidence');
+  expect(within(dialog).getByText('proof.pdf')).toBeTruthy();
+  await act(async () => saved({ data: claim({ status: 'submitted', isLive: false }) }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+});
+
 it('retains evidence but blocks a claim when a refresh discovers another pending claim', async () => {
   renderPage();
   fireEvent.click((await screen.findAllByRole('button', { name: 'Submit evidence' }))[0]);
@@ -267,7 +287,7 @@ it('shows expiry, review dates and refusal reasons without truncating the claim 
   expect(screen.getByText('Every holder on the account must finish identity verification.')).toBeTruthy();
   expect(screen.getByText('Please provide current evidence.')).toBeTruthy();
   expect(screen.getByText('Expires')).toBeTruthy();
-  expect(screen.queryByRole('link', { name: 'View the directory' })).toBeNull();
+  expect(screen.queryByRole('link', { name: 'Directory' })).toBeNull();
 });
 
 it('surfaces a refused withdrawal and retries it, refreshing claims and eligibility after success', async () => {

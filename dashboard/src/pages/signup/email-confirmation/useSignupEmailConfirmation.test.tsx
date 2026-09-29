@@ -1,22 +1,23 @@
 // @vitest-environment jsdom
 
 import type { PropsWithChildren } from 'react';
+import type { AxiosInstance } from 'axios';
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { AUTH_ENDPOINTS } from '@ledova/shared';
-import { AUTH_QUERY_KEY } from '@hooks/useAuth';
+import { ApiClientProvider, AUTH_ENDPOINTS, AUTH_QUERY_KEY } from '@ledova/shared';
 import { useSignupEmailConfirmation } from './useSignupEmailConfirmation';
 
-const api = vi.hoisted(() => ({ post: vi.fn() }));
-vi.mock('@services/apiClient', () => ({ default: api }));
+const api = { post: vi.fn() };
 
 let client: QueryClient;
 
 function renderConfirmation() {
   client = new QueryClient();
   const wrapper = ({ children }: PropsWithChildren) => (
-    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={api as unknown as AxiosInstance}>{children}</ApiClientProvider>
+    </QueryClientProvider>
   );
   return renderHook(() => useSignupEmailConfirmation(), { wrapper });
 }

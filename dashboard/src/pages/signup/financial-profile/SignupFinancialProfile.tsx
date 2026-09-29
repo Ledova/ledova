@@ -1,13 +1,11 @@
-import { useSignupFinancialProfile } from './useSignupFinancialProfile';
 import { FinancialProfileForm } from './components/FinancialProfileForm';
 import LoadingState from '@components/signup/LoadingState';
 import ErrorState from '@components/signup/ErrorState';
 import { useNavigate } from 'react-router-dom';
 import { ChartBarIcon } from '@phosphor-icons/react';
 import { AuthLayout } from '@components/AuthLayout';
-import { DESIGN_TOKENS } from '@ledova/shared';
-
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
+import { useSignupFinancialProfile } from '@ledova/shared';
+import { ICON_MD } from '@components/iconSizes';
 
 export function SignupFinancialProfile() {
   const navigate = useNavigate();
