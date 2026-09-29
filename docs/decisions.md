@@ -527,10 +527,15 @@ each recommendation
 - **No theme or selected portfolio.** `UserPreferences.theme` goes because paper
   is the only look, and `selected_portfolio` because no client read it; it can
   return with a portfolio switcher.
-- **Routes offer only the methods in use.** Unused `PUT`, `DELETE`, `retrieve`
-  and `create` methods are trimmed, through `http_method_names` or by building
-  the viewsets from only the mixins they need, with the schema and shared types
-  regenerated and the docs updated.
+- **Routes offer only the methods in use.** #832 removed the 33 operations no
+  client called, taking the schema from 191 operations to 158. Besides the API
+  key route's `GET` and `POST`, they were every `PUT` but the portfolios'
+  (eight), `PATCH` and `DELETE` on share classes, capital increases and user
+  preferences, `DELETE` on companies, thirteen single-row reads, the company
+  documents list, the user profile create and the `GET` on an order's cancel
+  message, trimmed through `http_method_names`, viewsets built from only the
+  mixins they need and an action narrowed to `POST`. The schema and shared
+  types were regenerated and the docs updated.
 
 The owner chose the look of the signed-in pages on 29 September 2026:
 
