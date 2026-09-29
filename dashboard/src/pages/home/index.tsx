@@ -1,11 +1,19 @@
-import { CaretRightIcon } from '@phosphor-icons/react';
+import { useState } from 'react';
 import { formatShareCount, getChainConfig, useShareHoldings } from '@ledova/shared';
-import { Section } from '@components/Ledger';
+import { Disclosure, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { HoldingWork } from './components/HoldingWork';
 
 export function HomePage() {
   const { data: holdings = [], isPending, isError, isFetching, refetch } = useShareHoldings();
+  const [openAssets, setOpenAssets] = useState<ReadonlySet<string>>(() => new Set());
+  const toggleAsset = (assetUuid: string) =>
+    setOpenAssets((current) => {
+      const next = new Set(current);
+      if (next.has(assetUuid)) next.delete(assetUuid);
+      else next.add(assetUuid);
+      return next;
+    });
 
   return (
     <Page>
@@ -28,20 +36,24 @@ export function HomePage() {
           <ul className="divide-y divide-border-subtle">
             {holdings.map((holding) => (
               <li key={holding.assetUuid}>
-                <details className="group">
-                  <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-2 py-4 marker:hidden">
-                    <CaretRightIcon aria-hidden="true" className="shrink-0 text-text-muted group-open:rotate-90" />
-                    <span className="min-w-0 flex-1 basis-40 break-words">
-                      {holding.companyName && (
-                        <span className="block text-sm text-text-muted">{holding.companyName}</span>
-                      )}
-                      <span className="block text-base text-text-primary">{holding.name}</span>
+                <Disclosure
+                  open={openAssets.has(holding.assetUuid)}
+                  onToggle={() => toggleAsset(holding.assetUuid)}
+                  summary={
+                    <span className="flex flex-wrap items-start justify-between gap-3">
+                      <span className="min-w-0 flex-1 basis-40 break-words">
+                        {holding.companyName && (
+                          <span className="block text-sm text-text-muted">{holding.companyName}</span>
+                        )}
+                        <span className="block text-base text-text-primary">{holding.name}</span>
+                      </span>
+                      <span className="ml-auto break-all text-right text-sm tabular-nums text-text-primary">
+                        {formatShareCount(holding.quantity)} {holding.quantity === '1' ? 'share' : 'shares'}
+                      </span>
                     </span>
-                    <span className="ml-auto break-all text-right text-sm tabular-nums text-text-primary">
-                      {formatShareCount(holding.quantity)} {holding.quantity === '1' ? 'share' : 'shares'}
-                    </span>
-                  </summary>
-                  <div className="flex flex-col gap-4 pb-5 pl-8">
+                  }
+                >
+                  <div className="flex flex-col gap-4">
                     {holding.chains.map((chain) => (
                       <div key={chain.chain}>
                         <p className="flex flex-wrap justify-between gap-2 text-sm text-text-muted">
@@ -63,7 +75,7 @@ export function HomePage() {
                       </div>
                     ))}
                   </div>
-                </details>
+                </Disclosure>
               </li>
             ))}
           </ul>
