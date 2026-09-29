@@ -247,3 +247,40 @@ test('the generated-project check refuses another delegate, a stale or missing c
     assert.throws(() => checkSceneProject(generatedProject(change)), message);
   }
 });
+
+const incomingLink =
+  /\bgetInitialURL\b|\baddEventListener\(\s*['"]url['"]|\buse(?:Linking)?URL\b|\blinking=\{|['"]expo-(?:linking|router)['"]/;
+
+function appSources(directory) {
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const file = path.join(directory, entry.name);
+    if (entry.isDirectory()) return appSources(file);
+    return /\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name) ? [file] : [];
+  });
+}
+
+test('the app reads no incoming links, because a link that cold-starts it never reaches getInitialURL', () => {
+  const sources = [
+    path.join(mobile, 'App.tsx'),
+    path.join(mobile, 'index.ts'),
+    ...appSources(path.join(mobile, 'src')),
+  ];
+  assert.ok(sources.length > 100);
+  const readers = sources
+    .filter((file) => incomingLink.test(fs.readFileSync(file, 'utf8')))
+    .map((file) => path.relative(mobile, file));
+  assert.deepEqual(
+    readers,
+    [],
+    'Under LedovaSceneDelegate a link that cold-starts the app reaches neither Linking.getInitialURL() nor a url listener; read docs/development/mobile-builds.md before handling incoming links.',
+  );
+  for (const call of [
+    'Linking.getInitialURL().then(open);',
+    "Linking.addEventListener('url', ({ url }) => open(url));",
+    'const url = useURL();',
+    '<NavigationContainer linking={linking}>',
+    "import * as Linking from 'expo-linking';",
+  ]) {
+    assert.match(call, incomingLink, call);
+  }
+});

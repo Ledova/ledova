@@ -33,17 +33,32 @@ those events to `AppDelegate`, which hands them to Expo's subscribers and
 `RCTLinkingManager` as before. UIKit still posts the application notifications that
 `AppState`, the app lock, the camera and WebViews observe. A window that becomes
 visible without a scene, such as Expo's developer menu, is moved into the app's
-scene. A link that cold-starts the app now arrives with the scene rather than in the
-launch options React Native reads, so `Linking.getInitialURL()` returns null; the
-app's JavaScript reads no incoming links. Generated-project checks verify the
-manifest and the delegate. The plugin refuses an `AppDelegate` that no longer
-creates the window, or another scene manifest, so an Expo upgrade that brings its
-own scene delegate stops at prebuild until this plugin is removed. It also
+scene. Generated-project checks verify the manifest and the delegate. The plugin
+refuses an `AppDelegate` that no longer creates the window, or another scene
+manifest, so an Expo upgrade that brings its own scene delegate stops at prebuild
+until this plugin is removed. It also
 refuses one whose window Objective-C cannot read, because the scene delegate
 asks for it by selector and would otherwise get nil and a black screen: the
 class must subclass `ExpoAppDelegate` and store `var window: UIWindow?`. Swift
 still exposes a private, weak or implicitly unwrapped `window` there; `@nonobjc`,
 `static`, `let` or a computed property hides it.
+
+A link that opens the app from closed does not reach JavaScript. UIKit delivers
+it with the connecting scene, after `AppDelegate` has started React Native with
+launch options that no longer carry it, so `Linking.getInitialURL()` returns null,
+and the `url` event the scene delegate sends fires before any JavaScript listens.
+On iOS 27.0 and 26.5 simulators the launch options React Native keeps for
+`getInitialURL` were empty after a link started the Release build, and held the
+link in the same build without the scene manifest. A link that arrives while the
+app runs, such as an OAuth redirect back to it, still reaches `Linking`'s `url`
+event. Nothing depends on this today: the app reads no incoming links, and
+`mobile/scripts/tests/ios-scene-lifecycle.test.mjs` fails if `App.tsx`, `index.ts`
+or code under `mobile/src` starts to. A feature that needs a link to open the
+closed app, such as an emailed confirmation link, must first move to Expo SDK 58,
+or 57.0.23 or later with `ios.enableSceneSupport`, whose scene delegate starts
+React Native with the link in its launch options
+([expo/expo#47628](https://github.com/expo/expo/pull/47628)). That upgrade
+replaces this plugin, which refuses the new `AppDelegate` at prebuild.
 
 The lockfile keeps registry URLs and npm integrity values; the shared workspace
 is the intentional local link. Install with `--ignore-scripts` in native CI.
