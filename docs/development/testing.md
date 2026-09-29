@@ -77,9 +77,9 @@ kernel refuses their address-space limit (see
 [upload limits](../operations/uploads.md#upload-validation-and-resource-limits)).
 The ordinary suite then skips
 `test_a_real_decoder_cannot_run_with_an_insufficient_address_space_budget` with
-that reason, and each test process logs the warning once. The CPU-limit and
-wall-deadline tests still run there. Only a Linux run, such as CI, proves the
-address-space cap.
+that reason, and the warning appears in the output. The CPU-limit and
+wall-deadline tests still run there, and so do the tests that simulate a kernel
+refusing each limit. Only a Linux run, such as CI, proves the address-space cap.
 
 CI splits the ordinary suite into parallel "Django ordinary shard (NAME)" jobs,
 one for each shard in

@@ -90,12 +90,16 @@ The decoder uses Linux resource limits; clean synthetic PDF/PNG/JPEG controls ru
 under the default 512 MiB address-space cap in CI. Resource limits contain work;
 they are not a security sandbox or an aggregate concurrency limit.
 
-Each child sets its core-dump, address-space, CPU and file-size limits before it
-reads the upload. Linux accepts all four, so production and CI apply every limit.
-A limit the kernel refuses to lower is skipped instead of failing every upload,
-and the parent logs one warning per process naming it, such as
-`Upload workers run without RLIMIT_AS, which this platform refuses to set`. A
-refusal to raise a hard limit still fails the upload. macOS refuses any
+Each child refuses to run unless its address-space, CPU and file-size limits
+are positive integers, so a setting below 1 fails every upload instead of lifting
+a limit; Python can read a negative value as unlimited. The child then turns core
+dumps off and sets the three limits before it reads the upload. Linux accepts all
+four, so production and CI apply every limit. The address-space limit is the only
+exception: when the kernel refuses to lower it to the configured value, the child
+runs without it instead of failing every upload, and the parent logs one warning
+per process, `Upload workers run without RLIMIT_AS, which this platform refuses to set`.
+Every other refusal still fails the upload, including a refused core-dump, CPU or
+file-size limit and an address-space limit above the hard limit. macOS refuses any
 address-space limit below what a process has already mapped, which is hundreds
 of GiB on Apple silicon, so on macOS the decoder and the scanner client run
 without the `UPLOAD_PROCESS_MEMORY_BYTES` cap. macOS enforces the CPU limit on

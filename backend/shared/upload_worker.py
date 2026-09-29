@@ -1,31 +1,16 @@
 import io
 import json
 import math
-import resource
+import runpy
 import sys
 import warnings
 from pathlib import Path
 
+apply_limits = runpy.run_path(str(Path(__file__).with_name("upload_worker_limits.py")))["apply_limits"]
+
 
 class InvalidContent(Exception):
     pass
-
-
-def apply_limits(limits):
-    for name, value in (
-        ("RLIMIT_CORE", 0),
-        ("RLIMIT_AS", limits["memory_bytes"]),
-        ("RLIMIT_CPU", limits["cpu_seconds"]),
-        ("RLIMIT_FSIZE", limits["output_bytes"]),
-    ):
-        limit = getattr(resource, name)
-        try:
-            resource.setrlimit(limit, (value, value))
-        except ValueError:
-            hard = resource.getrlimit(limit)[1]
-            if hard != resource.RLIM_INFINITY and value > hard:
-                raise
-            Path(name).touch()
 
 
 def check_dimensions(width, height, limits):
@@ -91,7 +76,7 @@ def process_image(raw, limits, render):
 def main():
     mode = sys.argv[1]
     limits = json.loads(sys.argv[2])
-    apply_limits(limits)
+    apply_limits(limits["memory_bytes"], limits["cpu_seconds"], limits["output_bytes"])
     raw = sys.stdin.buffer.read(limits["input_bytes"] + 1)
     if not raw or len(raw) > limits["input_bytes"]:
         return 2
