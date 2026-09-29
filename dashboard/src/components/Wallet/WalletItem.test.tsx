@@ -33,14 +33,45 @@ function figures(view: ReturnType<typeof render>) {
 }
 
 describe('wallet signing preferences on the dashboard', () => {
+  it.each([
+    ['VERIFIED', 'Wallet address verified'],
+    ['PENDING', 'Wallet address verification pending'],
+  ] as const)(
+    'exposes the %s status and the signing preference as named images, with their glyphs hidden',
+    (verificationStatus, status) => {
+      const view = render(
+        <WalletItem
+          wallet={{
+            ...wallet,
+            verificationStatus,
+            signingPreference: 'hardware',
+            lastSyncedAt: new Date().toISOString(),
+          }}
+        />,
+      );
+      expect(view.getByText('just now')).toBeTruthy();
+      expect(view.getAllByRole('img').map((image) => image.getAttribute('aria-label'))).toEqual([
+        status,
+        'Hardware (self-declared)',
+      ]);
+      expect(view.getByRole('img', { name: status })).toBeTruthy();
+      expect(view.getByRole('img', { name: 'Hardware (self-declared)' })).toBeTruthy();
+      const glyphs = Array.from(view.container.querySelectorAll('svg'));
+      expect(glyphs.length).toBeGreaterThan(0);
+      expect(glyphs.filter((glyph) => glyph.getAttribute('aria-hidden') !== 'true')).toEqual([]);
+    },
+  );
+
   it.each(['hardware', 'software'] as const)(
     'labels %s as self-declared independently of address verification',
     (signingPreference) => {
       const view = render(<WalletItem wallet={{ ...wallet, signingPreference }} />);
       expect(
-        view.getByLabelText(`${signingPreference === 'hardware' ? 'Hardware' : 'Software'} (self-declared)`),
+        view.getByRole('img', {
+          name: `${signingPreference === 'hardware' ? 'Hardware' : 'Software'} (self-declared)`,
+        }),
       ).toBeTruthy();
-      expect(view.getByLabelText('Wallet address verified')).toBeTruthy();
+      expect(view.getByRole('img', { name: 'Wallet address verified' })).toBeTruthy();
     },
   );
 
@@ -48,7 +79,9 @@ describe('wallet signing preferences on the dashboard', () => {
     const view = render(<WalletItem wallet={{ ...wallet, signingPreference: null }} />);
     expect(view.queryByLabelText('Hardware (self-declared)')).toBeNull();
     expect(view.queryByLabelText('Software (self-declared)')).toBeNull();
-    expect(view.getByLabelText('Wallet address verified')).toBeTruthy();
+    expect(view.getAllByRole('img').map((image) => image.getAttribute('aria-label'))).toEqual([
+      'Wallet address verified',
+    ]);
   });
 });
 

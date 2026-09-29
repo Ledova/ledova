@@ -39,16 +39,17 @@ export function WalletSummary({ wallet, compact = false }: WalletSummaryProps) {
             <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-subtle">
               {wallet.signingPreference && (
                 <span
+                  role="img"
                   title={getWalletSigningPreferenceLabel(wallet.signingPreference)}
                   aria-label={getWalletSigningPreferenceLabel(wallet.signingPreference)}
                   className="inline-flex items-center"
                 >
-                  <TypeIcon size={ICON_XS} weight="bold" className="text-text-secondary" />
+                  <TypeIcon aria-hidden size={ICON_XS} weight="bold" className="text-text-secondary" />
                 </span>
               )}
               {syncAge && (
                 <span className="inline-flex items-center gap-0.5" title={`Last synced: ${wallet.lastSyncedAt}`}>
-                  <ClockIcon size={ICON_XS} />
+                  <ClockIcon aria-hidden size={ICON_XS} />
                   {syncAge}
                 </span>
               )}
