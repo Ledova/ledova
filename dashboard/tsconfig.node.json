@@ -21,5 +21,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["vite.config.ts", "playwright.config.ts", "tests/smoke/**/*.ts"]
+  "include": ["vite.config.ts", "vite.config.test.ts", "playwright.config.ts", "tests/smoke/**/*.ts"]
 }

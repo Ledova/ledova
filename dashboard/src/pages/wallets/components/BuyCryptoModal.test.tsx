@@ -106,6 +106,8 @@ it("shows each asset's current price in AUD, and none for an asset without a pri
   show({});
 
   expect(await screen.findByText('A$196000')).toBeTruthy();
+  expect(screen.getByRole('dialog', { name: 'Buy crypto' })).toBeTruthy();
+  expect(screen.getByText('Bitcoin').closest('button')!.parentElement!.className).toContain('divide-y');
   expect(assetRows()).toEqual(['BitcoinA$196000', 'EthereumA$7000', 'USD CoinA$2', 'Tether']);
   expect(priceCalls().map(([, config]) => config.params)).toEqual(
     ['BTC', 'ETH', 'USDC', 'USDT'].map((symbol) => ({ symbol, is_active: true })),

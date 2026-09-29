@@ -1,24 +1,16 @@
 import { useEffect, useCallback, useState } from 'react';
-import {
-  ShieldCheckIcon,
-  QrCodeIcon,
-  CameraIcon,
-  CheckCircleIcon,
-  ArrowLeftIcon,
-  KeyIcon,
-} from '@phosphor-icons/react';
+import { CheckCircleIcon } from '@phosphor-icons/react';
 import { QRCodeSVG } from 'qrcode.react';
 import { DESIGN_TOKENS, getWalletVerificationEvmChainId } from '@ledova/shared';
 import type { Wallet } from '@ledova/shared';
-
-const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
-const ICON_XXL = DESIGN_TOKENS.icon.sizes.xxl;
-const ICON_DISPLAY = DESIGN_TOKENS.icon.sizes.display;
-import { Modal } from '@components/Modal';
+import { Modal, ModalActions } from '@components/Modal';
+import { PageAction } from '@components/Page';
 import { SeedPhraseInput } from '@components/SeedPhraseInput';
 import { useQRScanner, QRScannerView } from '@components/qr';
 import { useWalletVerification } from '../hooks/useWalletVerification';
 import { decodeKeystoneMessageSignature } from '@utils/keystone/urDecoder';
+
+const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 
 interface WalletVerificationModalProps {
   isOpen: boolean;
@@ -104,134 +96,65 @@ export function WalletVerificationModal({ isOpen, wallet, onClose }: WalletVerif
     switch (verificationStep) {
       case 'instructions':
         return (
-          <div className="space-y-6">
-            <div className="flex justify-center">
-              <div className="p-4 bg-brand-mid/10 rounded-full">
-                <ShieldCheckIcon size={ICON_XXL} className="text-brand-mid" />
-              </div>
-            </div>
+          <div className="space-y-4">
+            <p className="text-sm text-text-muted">
+              Prove ownership of this wallet by signing a verification message with your hardware wallet.
+            </p>
 
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-text-primary mb-2">Verify Your Wallet</h3>
-              <p className="text-sm text-text-muted">
-                Prove ownership of this wallet by signing a verification message with your hardware wallet.
-              </p>
-            </div>
+            <ol className="list-decimal space-y-2 pl-5 text-sm text-text-secondary">
+              <li>Scan the challenge QR code with your hardware wallet</li>
+              <li>Sign the message on your hardware wallet</li>
+              <li>Scan the signature QR code from your hardware wallet</li>
+            </ol>
 
-            <div className="space-y-3">
-              <div className="flex items-start gap-3 p-3 bg-surface-tertiary rounded-lg">
-                <span className="flex-shrink-0 w-6 h-6 bg-brand-mid text-white text-sm font-semibold rounded-full flex items-center justify-center">
-                  1
-                </span>
-                <p className="text-sm text-text-secondary">Scan the challenge QR code with your hardware wallet</p>
-              </div>
-              <div className="flex items-start gap-3 p-3 bg-surface-tertiary rounded-lg">
-                <span className="flex-shrink-0 w-6 h-6 bg-brand-mid text-white text-sm font-semibold rounded-full flex items-center justify-center">
-                  2
-                </span>
-                <p className="text-sm text-text-secondary">Sign the message on your hardware wallet</p>
-              </div>
-              <div className="flex items-start gap-3 p-3 bg-surface-tertiary rounded-lg">
-                <span className="flex-shrink-0 w-6 h-6 bg-brand-mid text-white text-sm font-semibold rounded-full flex items-center justify-center">
-                  3
-                </span>
-                <p className="text-sm text-text-secondary">Scan the signature QR code from your hardware wallet</p>
-              </div>
-            </div>
+            {verificationError && <p className="text-sm text-error-light">{verificationError}</p>}
 
-            {verificationError && (
-              <div className="p-3 bg-error-light/10 border border-error-light/20 rounded-lg">
-                <p className="text-sm text-error-light">{verificationError}</p>
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={handleStartVerification}
-              disabled={isRequestingChallenge}
-              className="w-full py-3 bg-brand-mid text-white text-sm font-medium rounded-lg hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed transition-colors"
-            >
-              {isRequestingChallenge ? 'Generating Challenge...' : 'Continue'}
-            </button>
-
-            {supportsSeedPhraseSigning && (
-              <button
-                type="button"
-                onClick={handleStartSeedPhraseVerification}
+            <ModalActions>
+              {supportsSeedPhraseSigning && (
+                <PageAction
+                  label="Sign with a seed phrase"
+                  onClick={handleStartSeedPhraseVerification}
+                  disabled={isRequestingChallenge}
+                />
+              )}
+              <PageAction
+                label={isRequestingChallenge ? 'Generating Challenge...' : 'Continue'}
+                primary
+                onClick={handleStartVerification}
                 disabled={isRequestingChallenge}
-                className="w-full py-3 bg-surface-tertiary text-text-primary text-sm font-medium rounded-lg hover:bg-surface-disabled disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                No hardware wallet? Sign with a seed phrase
-              </button>
-            )}
+              />
+            </ModalActions>
           </div>
         );
 
       case 'show-challenge-qr':
         return (
-          <div className="space-y-6">
-            <button
-              type="button"
-              onClick={goBack}
-              className="flex items-center gap-1 text-sm text-text-muted hover:text-text-primary transition-colors"
-            >
-              <ArrowLeftIcon size={ICON_SM} />
-              Back
-            </button>
-
-            <div className="flex justify-center">
-              <div className="p-4 bg-brand-mid/10 rounded-full">
-                <QrCodeIcon size={ICON_XXL} className="text-brand-mid" />
-              </div>
-            </div>
-
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-text-primary mb-2">Scan Challenge</h3>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <h3 className="text-sm font-medium text-text-primary">Scan Challenge</h3>
               <p className="text-sm text-text-muted">Scan this QR code with your hardware wallet</p>
             </div>
 
             {challengeQrData && (
-              <div className="flex justify-center p-4 bg-white rounded-lg">
+              <div className="flex justify-center py-2">
                 <QRCodeSVG value={challengeQrData} size={220} level="M" />
               </div>
             )}
 
-            {verificationError && (
-              <div className="p-3 bg-error-light/10 border border-error-light/20 rounded-lg">
-                <p className="text-sm text-error-light">{verificationError}</p>
-              </div>
-            )}
+            {verificationError && <p className="text-sm text-error-light">{verificationError}</p>}
 
-            <button
-              type="button"
-              onClick={proceedToScanSignature}
-              className="w-full py-3 bg-brand-mid text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors"
-            >
-              I&apos;ve Signed the Message
-            </button>
+            <ModalActions>
+              <PageAction label="Back" onClick={goBack} />
+              <PageAction label="I've Signed the Message" primary onClick={proceedToScanSignature} />
+            </ModalActions>
           </div>
         );
 
       case 'scan-signature':
         return (
-          <div className="space-y-6">
-            <button
-              type="button"
-              onClick={goBack}
-              className="flex items-center gap-1 text-sm text-text-muted hover:text-text-primary transition-colors"
-            >
-              <ArrowLeftIcon size={ICON_SM} />
-              Back
-            </button>
-
-            <div className="flex justify-center">
-              <div className="p-4 bg-brand-mid/10 rounded-full">
-                <CameraIcon size={ICON_XXL} className="text-brand-mid" />
-              </div>
-            </div>
-
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-text-primary mb-2">Scan Signature</h3>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <h3 className="text-sm font-medium text-text-primary">Scan Signature</h3>
               <p className="text-sm text-text-muted">
                 Point your camera at the signature QR code on your hardware wallet
               </p>
@@ -239,41 +162,26 @@ export function WalletVerificationModal({ isOpen, wallet, onClose }: WalletVerif
 
             <QRScannerView scannerId="qr-scanner" error={scannerError} />
 
-            {verificationError && (
-              <div className="p-3 bg-error-light/10 border border-error-light/20 rounded-lg">
-                <p className="text-sm text-error-light">{verificationError}</p>
-              </div>
-            )}
+            {verificationError && <p className="text-sm text-error-light">{verificationError}</p>}
 
             {isVerifying && (
-              <div className="flex items-center justify-center gap-2 py-3">
+              <div className="flex items-center gap-2">
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-brand-mid"></div>
                 <span className="text-sm text-text-muted">Verifying signature...</span>
               </div>
             )}
+
+            <ModalActions>
+              <PageAction label="Back" onClick={goBack} />
+            </ModalActions>
           </div>
         );
 
       case 'sign-software':
         return (
-          <div className="space-y-6">
-            <button
-              type="button"
-              onClick={handleBackFromSeedPhrase}
-              className="flex items-center gap-1 text-sm text-text-muted hover:text-text-primary transition-colors"
-            >
-              <ArrowLeftIcon size={ICON_SM} />
-              Back
-            </button>
-
-            <div className="flex justify-center">
-              <div className="p-4 bg-brand-mid/10 rounded-full">
-                <KeyIcon size={ICON_XXL} className="text-brand-mid" />
-              </div>
-            </div>
-
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-text-primary mb-2">Sign with Seed Phrase</h3>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <h3 className="text-sm font-medium text-text-primary">Sign with Seed Phrase</h3>
               <p className="text-sm text-text-muted">
                 Enter the seed phrase for wallet{' '}
                 <span className="font-mono text-xs text-text-secondary">
@@ -289,40 +197,36 @@ export function WalletVerificationModal({ isOpen, wallet, onClose }: WalletVerif
             />
 
             {verificationError && (
-              <div className="p-3 bg-error-light/10 border border-error-light/20 rounded-lg">
+              <div className="space-y-1">
                 <p className="text-sm text-error-light">{verificationError}</p>
                 {!seedPhrase && (
-                  <p className="text-xs text-error-light/80 mt-1">
+                  <p className="text-xs text-error-light/80">
                     The phrase was cleared when it was handed to the signer. Enter it again to retry.
                   </p>
                 )}
               </div>
             )}
 
-            <button
-              type="button"
-              onClick={handleSignWithSeedPhrase}
-              disabled={!seedPhrase.trim() || isSigningWithSeedPhrase || isVerifying}
-              className="w-full py-3 bg-brand-mid text-white text-sm font-medium rounded-lg hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed transition-colors"
-            >
-              {isSigningWithSeedPhrase || isVerifying ? 'Verifying...' : 'Sign and Verify'}
-            </button>
+            <ModalActions>
+              <PageAction label="Back" onClick={handleBackFromSeedPhrase} />
+              <PageAction
+                label={isSigningWithSeedPhrase || isVerifying ? 'Verifying...' : 'Sign and Verify'}
+                primary
+                onClick={handleSignWithSeedPhrase}
+                disabled={!seedPhrase.trim() || isSigningWithSeedPhrase || isVerifying}
+              />
+            </ModalActions>
           </div>
         );
 
       case 'success':
         return (
-          <div className="space-y-6 py-8">
-            <div className="flex justify-center">
-              <div className="p-4 bg-success-light/10 rounded-full">
-                <CheckCircleIcon size={ICON_DISPLAY} className="text-success-light" />
-              </div>
-            </div>
-
-            <div className="text-center">
-              <h3 className="text-xl font-semibold text-success-light mb-2">Wallet Verified!</h3>
-              <p className="text-sm text-text-muted">Your wallet has been successfully verified.</p>
-            </div>
+          <div className="space-y-1">
+            <h3 className="flex items-center gap-2 text-sm font-medium text-success-light">
+              <CheckCircleIcon size={ICON_MD} weight="fill" />
+              Wallet Verified!
+            </h3>
+            <p className="text-sm text-text-muted">Your wallet has been successfully verified.</p>
           </div>
         );
 
@@ -332,7 +236,7 @@ export function WalletVerificationModal({ isOpen, wallet, onClose }: WalletVerif
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Verify Wallet" showFooter={false}>
+    <Modal isOpen={isOpen} onClose={handleClose} title="Verify Wallet">
       {renderStepContent()}
     </Modal>
   );

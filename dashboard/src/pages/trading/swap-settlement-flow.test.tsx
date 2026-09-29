@@ -24,7 +24,10 @@ import { SwapSettlementFlow } from './components/SwapSettlementFlow';
 import apiFixture from '../../../../packages/shared/tests/fixtures/swap-settlement-api.json';
 import { memoryStorage, response, userUuid } from '../../../../packages/shared/tests/fixtures/order-submissions';
 
-vi.mock('@components/Modal', () => ({ Modal: ({ children }: { children: ReactNode }) => <div>{children}</div> }));
+vi.mock('@components/Modal', () => ({
+  Modal: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  ModalActions: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+}));
 vi.mock('@components/SeedPhraseInput', () => ({
   SeedPhraseInput: ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
     <input aria-label="Synthetic seed" value={value} onChange={(event) => onChange(event.target.value)} />
@@ -254,6 +257,19 @@ it('shows exact captured values and records the actual software signature after 
   expect(JSON.parse(calls.find((call) => call.method === 'post')!.data).signature).toBe(apiFixture.signatures[0]);
   expect(await store.list(owner)).toEqual([]);
   expect(screen.getByText('Your signature is recorded. Trade status: seller_signed.')).toBeTruthy();
+});
+
+it('lists the captured trade without a box and ends the review with Close, the approval check and the next step', async () => {
+  const { settlement } = setup();
+  render(<SwapSettlementFlow settlement={settlement} wallets={[wallet]} onClose={() => {}} />);
+  await load(settlement);
+  expect(screen.getByText('Price per share: 1.50 TUSD').parentElement!.className).not.toContain('bg-surface-tertiary');
+  const row = screen.getByRole('button', { name: 'Close' }).parentElement!;
+  expect(Array.from(row.children).map((action) => action.textContent)).toEqual([
+    'Close',
+    'Check token approval',
+    'Continue to sign',
+  ]);
 });
 
 it.each(['close', 'wallet', 'owner', 'unmount'] as const)(

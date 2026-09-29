@@ -3,7 +3,6 @@ import {
   CurrencyEthIcon,
   CurrencyBtcIcon,
   CurrencyCircleDollarIcon,
-  WalletIcon,
   HardDriveIcon,
   CloudIcon,
   ClockIcon,
@@ -32,7 +31,6 @@ import apiClient from '@services/apiClient';
 const ICON_XS = DESIGN_TOKENS.icon.sizes.xs;
 const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
-const ICON_XXL = DESIGN_TOKENS.icon.sizes.xxl;
 
 const ASSET_ICONS: Record<string, React.ReactNode> = {
   BTC: <CurrencyBtcIcon size={ICON_MD} className="text-text-primary" />,
@@ -130,6 +128,7 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
+      title="Buy crypto"
       showFooter
       showCancelButton
       cancelLabel={isOnAssetStep ? 'Cancel' : 'Back'}
@@ -137,12 +136,9 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
     >
       {isOnAssetStep && (
         <>
-          <div className="flex flex-col items-center gap-2 pt-2 pb-6">
-            <CurrencyCircleDollarIcon size={ICON_XXL} className="text-info-light" weight="light" />
-            <p className="text-sm text-text-muted">Select an asset to purchase</p>
-          </div>
+          <p className="text-sm text-text-muted">Select an asset to purchase</p>
 
-          <div className="flex flex-col gap-2">
+          <div className="mt-2 divide-y divide-border-subtle">
             {BUYABLE_ASSETS.map((asset, index) => {
               const isAssetProcessing = isProcessingAsset && selectedAsset?.symbol === asset.symbol;
               const currentPrice = currentPriceOf(index);
@@ -151,15 +147,13 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
                 <button
                   key={asset.symbol}
                   type="button"
-                  className="flex items-center justify-between p-4 rounded-lg bg-surface-tertiary hover:bg-surface-disabled transition-colors disabled:opacity-50"
+                  className="flex w-full items-center justify-between py-3 text-left disabled:opacity-50"
                   onClick={() => handleSelectAsset(asset)}
                   disabled={isProcessingAsset}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-surface-raised flex items-center justify-center">
-                      {ASSET_ICONS[asset.symbol]}
-                    </div>
-                    <span className="text-base font-medium text-text-primary">{asset.name}</span>
+                    {ASSET_ICONS[asset.symbol]}
+                    <span className="text-sm font-medium text-text-primary">{asset.name}</span>
                   </div>
                   {isAssetProcessing ? (
                     <SpinnerGapIcon size={ICON_SM} className="animate-spin text-brand-mid" />
@@ -174,22 +168,14 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
       )}
 
       {!isOnAssetStep && matchingWallets.length === 0 && (
-        <div className="flex flex-col items-center gap-2 pt-2 pb-6">
-          <WalletIcon size={ICON_XXL} className="text-text-subtle" weight="light" />
-          <p className="text-sm text-text-muted">
-            No verified wallets for {selectedAsset!.name}. Create one in Wallets.
-          </p>
-        </div>
+        <p className="text-sm text-text-muted">No verified wallets for {selectedAsset!.name}. Create one in Wallets.</p>
       )}
 
       {!isOnAssetStep && matchingWallets.length > 1 && (
         <>
-          <div className="flex flex-col items-center gap-2 pt-2 pb-6">
-            <WalletIcon size={ICON_XXL} className="text-info-light" weight="light" />
-            <p className="text-sm text-text-muted">Choose a wallet to receive {selectedAsset!.name}</p>
-          </div>
+          <p className="text-sm text-text-muted">Choose a wallet to receive {selectedAsset!.name}</p>
 
-          <div className="space-y-1">
+          <div className="mt-2 space-y-1">
             {matchingWallets.map((wallet) => {
               const walletLabel = wallet.name || formatWalletAddressShort(wallet.address);
               const isHardware = wallet.signingPreference === WALLET_SIGNING_PREFERENCE.HARDWARE;
@@ -244,7 +230,7 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
       )}
 
       {(widgetMutation.isError || walletsQuery.isError) && (
-        <p className="text-sm text-error-light text-center mt-4">
+        <p className="mt-4 text-sm text-error-light">
           {widgetMutation.error instanceof Error
             ? widgetMutation.error.message
             : walletsQuery.error instanceof Error

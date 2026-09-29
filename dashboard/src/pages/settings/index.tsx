@@ -49,7 +49,7 @@ function PasswordInput({
           onChange={(event) => onChange(event.target.value)}
           autoComplete={autoComplete}
           disabled={disabled}
-          className="min-w-0 rounded-lg border border-border bg-paper px-3 py-2 text-text-primary"
+          className="min-w-0 rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid"
         />
       </label>
       <button
