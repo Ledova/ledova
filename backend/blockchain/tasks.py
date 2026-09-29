@@ -13,10 +13,3 @@ def check_pending_transactions(timestamp: int) -> dict[str, Any]:
 
     chain_client = get_base_chain_client()
     return transaction.check_pending_transactions(chain_client)
-
-
-@app.task(retry=RetryStrategy(max_attempts=4, wait=60))
-def cleanup_failed_transactions(timestamp: int) -> dict[str, Any]:
-    from blockchain.services import transaction
-
-    return transaction.cleanup_stale_transactions(hours=24)

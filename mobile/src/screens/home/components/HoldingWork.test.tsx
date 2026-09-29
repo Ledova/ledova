@@ -18,16 +18,29 @@ const mockNavigate = jest.fn();
 const mockRefetchHoldings = jest.fn(async () => undefined);
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: mockNavigate }) }));
 jest.mock('../../../services/apiClient', () => ({ apiClient: { get: jest.fn() } }));
-jest.mock('@ledova/shared', () => ({
-  ...jest.requireActual('@ledova/shared'),
-  useShareHoldings: () => ({
-    data: [],
-    isPending: false,
-    isError: false,
-    isFetching: false,
-    refetch: mockRefetchHoldings,
-  }),
-}));
+let mockBetweenPages: (() => void) | undefined;
+jest.mock('@ledova/shared', () => {
+  const actual = jest.requireActual<typeof import('@ledova/shared')>('@ledova/shared');
+  return {
+    ...actual,
+    useShareHoldings: () => ({
+      data: [],
+      isPending: false,
+      isError: false,
+      isFetching: false,
+      refetch: mockRefetchHoldings,
+    }),
+    readEveryPage: (read: Parameters<typeof actual.readEveryPage>[0]) =>
+      actual.readEveryPage((page) => {
+        if (page > 1) {
+          const change = mockBetweenPages;
+          mockBetweenPages = undefined;
+          change?.();
+        }
+        return read(page);
+      }),
+  };
+});
 
 const get = jest.mocked(apiClient.get);
 const NOTHING = { openResolutions: 0, nextClosesAt: null, dividendsWithoutRecord: 0 };
@@ -101,6 +114,7 @@ beforeEach(() => {
   pages = { 1: [] };
   published = [];
   fail = undefined;
+  mockBetweenPages = undefined;
   next = (page) => (pages[page + 1] ? `https://example.test/api/v1/subscriptions/?page=${page + 1}` : null);
   get.mockImplementation(async (url, config) => {
     if (fail === url || (fail === 'page2' && (config?.params as { page?: number } | undefined)?.page === 2))
@@ -392,6 +406,20 @@ it('discards a retired session response before it can populate an old account ca
   );
   expect(view.queryByText('Retired account')).toBeNull();
   expect(client.getQueryData(['subscriptions', 'holdings-work', 'account', epoch])).toBeUndefined();
+});
+
+it('asks for no later application page once the session changes between pages', async () => {
+  pages = { 1: [application('draft')], 2: [application('submitted')] };
+  mockBetweenPages = () => {
+    pages = { 1: [] };
+    invalidateSessionScope();
+  };
+  const view = await render(<HomeScreen />, { wrapper });
+  expect(await view.findByText('No applications or votes need your attention.')).toBeTruthy();
+  const laterPages = get.mock.calls.filter(
+    ([url, config]) => url === APPLICATIONS && (config?.params as { page?: number } | undefined)?.page === 2,
+  );
+  expect(laterPages).toEqual([]);
 });
 
 it('shows applications while notices are pending without declaring the unfinished section empty', async () => {

@@ -481,7 +481,7 @@ block: the screen's title in Newsreader at 36 (`fontSize.xxxxl`), marked as the
 screen's header, then its lede directly under the title when it has one, then
 its screen actions as one wrapping row of content-width `Action`s: a way back
 such as Back to Directory, Back to Applications or Back to Company, Refresh on
-Published to your members, New offering, Edit company, Activity's Filter, and
+Published to your members, New offering, Edit company, and
 Wallets' Buy crypto, Send, Add wallet and Sync balances. Where the web
 keeps the title and actions on one row, a phone's large title leaves no room, so
 mobile keeps the lede with the title it describes and puts the actions after it.
@@ -534,7 +534,7 @@ Pages rebuilt in the paper layout use the ledger blocks in
   by the button) only when asked, as Activity's filter is; entries are not,
   since any number of them can be open. The page keeps whether it is open, so
   it can close it when what it shows changes; a list keeps its open rows with
-  `useOpenRows`, as Activity, Holdings and the Register do.
+  `useOpenRows` from `@ledova/shared`, as Activity, Holdings and the Register do.
 - `Status`: a status in words with a small mark for waiting, moving, done or closed.
 - `Timeline`: each event with its date.
 
@@ -588,11 +588,25 @@ Wallets sorts each chain's list in place as Activity filters, on both clients:
 a Sort `Disclosure` at the top of a chain's card, shown once the chain holds two
 or more wallets, names the order it applies, and choosing one of its six orders
 applies it at once, closes it and returns focus to its button, screen-reader
-focus on mobile, where the sort is the `Disclosure` in
-`mobile/src/components/Ledger.tsx`; each chain keeps its own order, so its
-title row has no Filter action either. On mobile, Activity's filter and entry
-detail and Market's order details still open in a dialog. The bell's
-notifications belong to the frame rather than a page, on both clients.
+focus on mobile; each chain keeps its own order, so its title row has no Filter
+action either. The bell's notifications belong to the frame rather than a page,
+on both clients.
+
+Mobile's Activity and Market follow the same rule with the `Disclosure` in
+`mobile/src/components/Ledger.tsx`: a button marked expanded or collapsed, with
+its caret on the summary's first line and its detail directly under it, indented
+past the caret and held only while open. The detail is not announced when it
+opens: as on the web, screen readers read the button's expanded state and then
+the detail after it. Activity's Filter is the first row of the Transfers card,
+closed at first and naming the filters it applies, so Activity has no screen
+action, and its loading and failure states sit in the same card under the
+filter, which stays at hand when a filtered read fails. Each entry opens its
+detail under its row, independently of the others; applying or clearing the
+filter closes it and every open entry and moves the screen reader's focus back
+to Filter. On Market, each of Your orders keeps its rows and opens the rest of
+its details, from Total quantity to Order ID, under them with Details, while
+changing or cancelling an order, signing and settling stay dialogs. Both keep
+their open rows with the same `useOpenRows` as the web's lists.
 
 A setting that takes effect as soon as it changes has one control, a
 `SwitchRow`: Transaction alerts on Settings and Show this company to eligible

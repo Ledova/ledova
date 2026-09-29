@@ -31,11 +31,24 @@ let mockPreferences: {
   isError: boolean;
   refetch: () => Promise<void>;
 };
-jest.mock('@ledova/shared', () => ({
-  ...jest.requireActual('@ledova/shared'),
-  useUserPreferences: () => mockPreferences,
-  useCurrency: () => ({ formatDisplayCurrency: () => 'AUD 42.00' }),
-}));
+let mockBetweenPages: (() => void) | undefined;
+jest.mock('@ledova/shared', () => {
+  const actual = jest.requireActual<typeof import('@ledova/shared')>('@ledova/shared');
+  return {
+    ...actual,
+    useUserPreferences: () => mockPreferences,
+    useCurrency: () => ({ formatDisplayCurrency: () => 'AUD 42.00' }),
+    readEveryPage: (read: Parameters<typeof actual.readEveryPage>[0]) =>
+      actual.readEveryPage((page) => {
+        if (page > 1) {
+          const change = mockBetweenPages;
+          mockBetweenPages = undefined;
+          change?.();
+        }
+        return read(page);
+      }),
+  };
+});
 jest.mock('expo-clipboard', () => ({ setStringAsync: jest.fn() }));
 jest.mock('../../components/qr', () => {
   const { Text, Pressable } = jest.requireActual('react-native');
@@ -103,6 +116,7 @@ beforeEach(() => {
     2: { results: [wallet('b', '9007199254740993.000000000000000001')], next: null },
   };
   failedPage = null;
+  mockBetweenPages = undefined;
   client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false, gcTime: 0 } },
   });
@@ -181,6 +195,27 @@ it('reports a failed later wallet page and retries the whole ledger before prese
   failedPage = null;
   await fireEvent.press(view.getByRole('button', { name: 'Try again' }));
   await waitFor(() => expect(view.getByText('Fictional b')).toBeTruthy());
+});
+
+it('discards a wallet page that arrives after the session changed', async () => {
+  const first = deferred<unknown>();
+  get.mockImplementationOnce(() => first.promise as ReturnType<typeof apiClient.get>);
+  const retired = getSessionEpoch();
+  const hook = await renderHook(() => useWalletsCrud(), { wrapper });
+  await waitFor(() => expect(get).toHaveBeenCalledTimes(1));
+  await act(async () => invalidateSessionScope());
+  await act(async () => first.resolve({ data: { results: [wallet('z')], next: null } }));
+  await waitFor(() => expect(hook.result.current!.wallets.map(({ uuid }) => uuid)).toEqual(['a', 'b']));
+  expect(client.getQueryData(['wallets', 'ledger', 'owner', retired])).toBeUndefined();
+});
+
+it('asks for no later wallet page once the session changes between pages', async () => {
+  const retired = getSessionEpoch();
+  mockBetweenPages = () => invalidateSessionScope();
+  const hook = await renderHook(() => useWalletsCrud(), { wrapper });
+  await waitFor(() => expect(hook.result.current!.wallets.map(({ uuid }) => uuid)).toEqual(['a', 'b']));
+  expect(get).toHaveBeenCalledWith(url, { params: { page: 1 }, ledovaSessionEpoch: retired });
+  expect(get).not.toHaveBeenCalledWith(url, { params: { page: 2 }, ledovaSessionEpoch: retired });
 });
 
 it('shows truthful empty networks and retains Buy and Send only as wallet destinations', async () => {
