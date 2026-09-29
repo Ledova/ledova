@@ -1,9 +1,9 @@
 from feature_flags.models.feature_flag import FeatureFlag
 from feature_flags.serializers.feature_flag import FeatureFlagSerializer
-from shared.views.base import AuthenticatedReadOnlyViewSet
+from shared.views.base import AuthenticatedListViewSet
 
 
-class FeatureFlagViewSet(AuthenticatedReadOnlyViewSet):
+class FeatureFlagViewSet(AuthenticatedListViewSet):
     serializer_class = FeatureFlagSerializer
     ordering = ["name"]
     ordering_fields = ["name", "created_at"]

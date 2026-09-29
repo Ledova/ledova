@@ -100,7 +100,7 @@ releases for this protocol change. Before preparing a fresh action, read
 `GET /api/v1/trading/orders/{order_uuid}/action-context/?owner_account_uuid=...`.
 This request is read-only. Use its canonical quantity/minimum/price strings for
 all absolute replacement values, including unchanged values in a price-only
-modification; ordinary order-detail numeric quantities are not a lossless source.
+modification; the order list's numeric quantities are not a lossless source.
 Persist and verify a fresh action UUID before the first message POST. A deliberate
 second action gets another UUID even if its terms are equal.
 
@@ -134,8 +134,9 @@ second event. The existing event mechanism has no outbox, so database recovery
 is not a guarantee of event delivery.
 
 Old unlinked cancel/modify challenges and modification logs remain unchanged.
-The retired GET cancel-message route returns `action_refresh_required`; old
-POSTs without the new identity fields receive ordinary required-field errors.
+A `GET` on the cancel-message route, which older clients used to issue the
+challenge, answers 405; old POSTs without the new identity fields receive
+ordinary required-field errors.
 A keyed pending action presenting an unlinked legacy challenge also receives
 `action_refresh_required` before spend. There is no automatic rebinding or legacy
 execution fallback. Existing settlement signatures and stored swap deadlines are

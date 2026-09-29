@@ -12,9 +12,8 @@ from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
 from shared.utils import get_client_ip
-from shared.views import AuthenticatedReadOnlyViewSet
+from shared.views import AuthenticatedListViewSet
 from tokens.exceptions import (
-    OrderActionRefreshRequiredException,
     SettlementApprovalUncertain,
     SettlementContextChanged,
     SwapExpiredException,
@@ -29,7 +28,6 @@ from tokens.models import (
 )
 from tokens.serializers import (
     TransferOrderCreateSerializer,
-    TransferOrderDetailSerializer,
     TransferOrderListSerializer,
 )
 from tokens.serializers.order_action import (
@@ -119,8 +117,9 @@ APPROVAL_TERMINAL_DETAILS = {
 }
 
 
-class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
+class TradingOrderViewSet(AuthenticatedListViewSet):
     serializer_class = TransferOrderListSerializer
+    lookup_field = "uuid"
     filterset_class = TransferOrderFilter
     ordering = ["-created_at"]
     ordering_fields = ["created_at", "status", "order_type"]
@@ -136,8 +135,6 @@ class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
             return SignedOrderSubmissionSerializer
         if self.action == "create_message":
             return TransferOrderCreateSerializer
-        if self.action == "retrieve":
-            return TransferOrderDetailSerializer
         return TransferOrderListSerializer
 
     @extend_schema(
@@ -180,12 +177,9 @@ class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
     def cancel(self, request, uuid=None):
         return self._execute_action(request, uuid, OrderActionPurpose.CANCEL)
 
-    @extend_schema(methods=["GET"], responses={400: OpenApiTypes.OBJECT}, request=None)
-    @extend_schema(methods=["POST"], request=OrderActionIdentitySerializer, responses=ORDER_ACTION_RESPONSES)
-    @action(detail=True, methods=["get", "post"], url_path="cancel/message")
+    @extend_schema(request=OrderActionIdentitySerializer, responses=ORDER_ACTION_RESPONSES)
+    @action(detail=True, methods=["post"], url_path="cancel/message")
     def cancel_message(self, request, uuid=None):
-        if request.method == "GET":
-            raise OrderActionRefreshRequiredException()
         serializer = OrderActionIdentitySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         result = issue_order_action(request.user, uuid, OrderActionPurpose.CANCEL, serializer.validated_data)

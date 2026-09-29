@@ -47,7 +47,7 @@ class SupersededCapitalIncreaseTest(TransactionTestCase):
         self.node.client.assert_expected_chain.assert_not_called()
         self.request.refresh_from_db()
         self.assertIsNone(self.request.executed_at)
-        self.assertFalse(self.request.can_be_executed or self.request.can_be_edited)
+        self.assertFalse(self.request.can_be_executed or self.request.can_be_submitted)
         replacement = self.draft(1600)
         submit_capital_increase(replacement, self.tenant.user)
         self.assertEqual(replacement.status, "submitted")

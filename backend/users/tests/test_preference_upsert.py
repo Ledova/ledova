@@ -33,10 +33,10 @@ class PreferenceUpsertRouteTest(APITestCase):
 
     def test_a_second_post_leaves_the_field_it_did_not_name_alone(self):
         self.client.post(PREFERENCES, {"transactionAlerts": False}, format="json")
-        self.client.post(PREFERENCES, {"theme": "light"}, format="json")
+        second = self.client.post(PREFERENCES, {}, format="json")
 
-        preferences = UserPreferences.objects.get()
-        self.assertEqual((preferences.transaction_alerts, preferences.theme), (False, "light"))
+        self.assertEqual(second.status_code, 200, second.content)
+        self.assertFalse(UserPreferences.objects.get().transaction_alerts)
 
     def test_the_row_belongs_to_the_caller_not_to_the_body(self):
         stranger = User.objects.create_user(email="stranger@example.test", password="pw-12345678")

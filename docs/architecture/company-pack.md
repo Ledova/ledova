@@ -450,7 +450,7 @@ roll through Ledova.
 | Unmatched listings and orders | Investors' private orders | [Trading](trading.md) |
 | Export records | No company-facing route exposes them | [Position 2](../legal/positions.md#2-section-168-who-is-obliged-to-keep-the-register) |
 | Signed transaction bytes | They can still be broadcast | [Outgoing signing](outgoing-signing.md) |
-| The company's API key and its owner's email | Credentials and contact details of a platform account, not company records | This page |
+| The company owner's email | Contact details of a platform account, not company records | This page |
 | A company document's staff notes, rejection reason, verifier and verification fingerprint | Ledova's own review of the document, which the company's API does not show | [Documents](#documents) |
 | Ledova's source code | The software licence is noncommercial; the pack carries interface files and the owner's statement of what they may be used for | [Position 5](../legal/positions.md#5-software-licensing-and-commercial-permission) |
 

@@ -261,30 +261,26 @@ class DerivedFieldResponseSchemaTest(APITransactionTestCase):
         self.assert_matches(schema, body)
         self.assertEqual(set(self.resolved(schema)["properties"]), set(body))
 
-    def test_profile_dates_booleans_and_nullable_countries_match_list_and_detail(self):
+    def test_profile_dates_booleans_and_nullable_countries_match_the_list(self):
         profile = self.owner.profile
         UserProfile.objects.filter(pk=profile.pk).update(citizenship_country=None, residence_country=None)
         fields = ("isActive", "isStaff", "dateJoined", "lastLogin", "citizenshipCountryName", "residenceCountryName")
-        detail_path = f"{PROFILES}{profile.uuid}/"
-        schema = self.response_schema(PROFILES + "{uuid}/")
-        for body, declared in (
-            (self.get_json(detail_path), schema),
-            (self.get_json(PROFILES)["results"][0], self.response_schema(PROFILES, page=True)),
-        ):
-            self.assertIs(body["isActive"], True)
-            self.assertIs(body["isStaff"], False)
-            self.assertIsNone(body["lastLogin"])
-            self.assertIsNone(body["citizenshipCountryName"])
-            self.assertIsNone(body["residenceCountryName"])
-            self.assert_fields_match(declared, body, fields)
-            self.assertEqual(self.resolved(declared["properties"]["dateJoined"]).get("format"), "date-time")
+        schema = self.response_schema(PROFILES, page=True)
+        body = self.get_json(PROFILES)["results"][0]
+        self.assertIs(body["isActive"], True)
+        self.assertIs(body["isStaff"], False)
+        self.assertIsNone(body["lastLogin"])
+        self.assertIsNone(body["citizenshipCountryName"])
+        self.assertIsNone(body["residenceCountryName"])
+        self.assert_fields_match(schema, body, fields)
+        self.assertEqual(self.resolved(schema["properties"]["dateJoined"]).get("format"), "date-time")
 
         moment = timezone.now().replace(microsecond=0)
         get_user_model().objects.filter(pk=self.owner.user.pk).update(last_login=moment, is_staff=True)
         UserProfile.objects.filter(pk=profile.pk).update(
             citizenship_country=self.owner.refs.country, residence_country=self.owner.refs.country
         )
-        body = self.get_json(detail_path)
+        body = self.get_json(PROFILES)["results"][0]
         self.assertIs(body["isStaff"], True)
         self.assertEqual(datetime.fromisoformat(body["lastLogin"]), moment)
         self.assertEqual(body["citizenshipCountryName"], self.owner.refs.country.name)
@@ -348,21 +344,24 @@ class DerivedFieldResponseSchemaTest(APITransactionTestCase):
 
     def test_company_document_url_preserves_uploaded_external_and_empty_strings(self):
         document = self.owner.company_document
-        path = f"{COMPANIES}{self.owner.company.uuid}/documents/{document.uuid}/"
-        schema = self.response_schema(COMPANIES + "{company_uuid}/documents/{uuid}/")["properties"]["fileUrl"]
+        documents = self.response_schema(COMPANIES + "{uuid}/")["properties"]["documents"]
+        schema = self.resolved(documents["items"])["properties"]["fileUrl"]
         relative = reverse(
             "companies:documents-file", kwargs={"company_uuid": self.owner.company.uuid, "uuid": document.uuid}
         )
-        body = self.get_json(path)
-        self.assertEqual(body["fileUrl"], "http://testserver" + relative)
-        self.assert_matches(schema, body["fileUrl"])
+
+        def file_url():
+            body = self.get_json(f"{COMPANIES}{self.owner.company.uuid}/")
+            return next(entry for entry in body["documents"] if entry["uuid"] == str(document.uuid))["fileUrl"]
+
+        self.assertEqual(file_url(), "http://testserver" + relative)
+        self.assert_matches(schema, file_url())
         self.assertEqual(CompanyDocumentSerializer(document).data["file_url"], relative)
         self.assert_matches(schema, relative)
         for value in ("https://docs.example.test/synthetic", ""):
             CompanyDocument.objects.filter(pk=document.pk).update(file="", external_url=value)
-            body = self.get_json(path)
-            self.assertEqual(body["fileUrl"], value)
-            self.assert_matches(schema, body["fileUrl"])
+            self.assertEqual(file_url(), value)
+            self.assert_matches(schema, value)
 
     def directory_row(self):
         body = self.get_json(DIRECTORY)
@@ -500,7 +499,7 @@ class DerivedFieldResponseSchemaTest(APITransactionTestCase):
         self.assertEqual(targeted, [])
 
     def test_schema_validation_rejects_wrong_null_dates_and_missing_nested_fields(self):
-        schema = self.response_schema(PROFILES + "{uuid}/")
+        schema = self.response_schema(PROFILES, page=True)
         joined = Draft4Validator(
             self.validation_schema(schema["properties"]["dateJoined"]), format_checker=self.formats
         )

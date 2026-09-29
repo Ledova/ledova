@@ -79,10 +79,11 @@ class CompanyDocumentFileUrlTest(StubUploadDependencies, APITestCase):
     def test_an_external_url_document_still_reports_its_external_url(self):
         document = make_document(self.company, external_url=EXTERNAL_URL)
 
-        response = self.client.get(f"{self.url}{document.uuid}/")
+        response = self.client.get(f"/api/v1/companies/{self.company.uuid}/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["fileUrl"], EXTERNAL_URL)
+        urls = {entry["uuid"]: entry["fileUrl"] for entry in response.json()["documents"]}
+        self.assertEqual(urls[str(document.uuid)], EXTERNAL_URL)
 
     def test_the_company_detail_reports_the_same_route_for_its_documents(self):
         document = attach_file(make_document(self.company))

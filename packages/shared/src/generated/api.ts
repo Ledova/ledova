@@ -127,22 +127,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/feature-flags/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_feature_flags_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/fiat-purchases/transak-widget-url/': {
     parameters: {
       query?: never;
@@ -182,8 +166,8 @@ export interface ApiPaths {
       path?: never;
       cookie?: never;
     };
-    get: ApiOperations['api_financial_profiles_retrieve'];
-    put: ApiOperations['api_financial_profiles_update'];
+    get?: never;
+    put?: never;
     post?: never;
     delete?: never;
     options?: never;
@@ -214,7 +198,7 @@ export interface ApiPaths {
       path?: never;
       cookie?: never;
     };
-    get: ApiOperations['api_investor_classifications_retrieve'];
+    get?: never;
     put?: never;
     post?: never;
     delete: ApiOperations['api_investor_classifications_destroy'];
@@ -262,7 +246,7 @@ export interface ApiPaths {
       path?: never;
       cookie?: never;
     };
-    get: ApiOperations['api_notifications_retrieve'];
+    get?: never;
     put?: never;
     post?: never;
     delete?: never;
@@ -495,22 +479,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/transactions/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_transactions_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/user-accounts/': {
     parameters: {
       query?: never;
@@ -534,7 +502,7 @@ export interface ApiPaths {
       path?: never;
       cookie?: never;
     };
-    get: ApiOperations['api_user_accounts_retrieve'];
+    get?: never;
     put?: never;
     post?: never;
     delete?: never;
@@ -559,22 +527,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/user-preferences/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_user_preferences_retrieve'];
-    put: ApiOperations['api_user_preferences_update'];
-    post?: never;
-    delete: ApiOperations['api_user_preferences_destroy'];
-    options?: never;
-    head?: never;
-    patch: ApiOperations['api_user_preferences_partial_update'];
-    trace?: never;
-  };
   '/api/user-profiles/': {
     parameters: {
       query?: never;
@@ -584,7 +536,7 @@ export interface ApiPaths {
     };
     get: ApiOperations['api_user_profiles_list'];
     put?: never;
-    post: ApiOperations['api_user_profiles_create'];
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -598,8 +550,8 @@ export interface ApiPaths {
       path?: never;
       cookie?: never;
     };
-    get: ApiOperations['api_user_profiles_retrieve'];
-    put: ApiOperations['api_user_profiles_update'];
+    get?: never;
+    put?: never;
     post?: never;
     delete?: never;
     options?: never;
@@ -694,7 +646,7 @@ export interface ApiPaths {
       path?: never;
       cookie?: never;
     };
-    get: ApiOperations['api_v1_companies_documents_list'];
+    get?: never;
     put?: never;
     post: ApiOperations['api_v1_companies_documents_create'];
     delete?: never;
@@ -710,7 +662,7 @@ export interface ApiPaths {
       path?: never;
       cookie?: never;
     };
-    get: ApiOperations['api_v1_companies_documents_retrieve'];
+    get?: never;
     put?: never;
     post?: never;
     delete: ApiOperations['api_v1_companies_documents_destroy'];
@@ -743,28 +695,12 @@ export interface ApiPaths {
       cookie?: never;
     };
     get: ApiOperations['api_v1_companies_retrieve'];
-    put: ApiOperations['api_v1_companies_update'];
-    post?: never;
-    delete: ApiOperations['api_v1_companies_destroy'];
-    options?: never;
-    head?: never;
-    patch: ApiOperations['api_v1_companies_partial_update'];
-    trace?: never;
-  };
-  '/api/v1/companies/{uuid}/api-key/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_companies_api_key_retrieve'];
     put?: never;
-    post: ApiOperations['api_v1_companies_api_key_create'];
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
-    patch?: never;
+    patch: ApiOperations['api_v1_companies_partial_update'];
     trace?: never;
   };
   '/api/v1/companies/{uuid}/resubmit/': {
@@ -935,7 +871,7 @@ export interface ApiPaths {
       cookie?: never;
     };
     get: ApiOperations['api_v1_offerings_retrieve'];
-    put: ApiOperations['api_v1_offerings_update'];
+    put?: never;
     post?: never;
     delete: ApiOperations['api_v1_offerings_destroy'];
     options?: never;
@@ -1143,12 +1079,12 @@ export interface ApiPaths {
       cookie?: never;
     };
     get: ApiOperations['api_v1_tokens_retrieve'];
-    put: ApiOperations['api_v1_tokens_update'];
+    put?: never;
     post?: never;
-    delete: ApiOperations['api_v1_tokens_destroy'];
+    delete?: never;
     options?: never;
     head?: never;
-    patch: ApiOperations['api_v1_tokens_partial_update'];
+    patch?: never;
     trace?: never;
   };
   '/api/v1/tokens/{uuid}/deploy/': {
@@ -1311,22 +1247,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/tokens/capital-increases/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_tokens_capital_increases_retrieve'];
-    put: ApiOperations['api_v1_tokens_capital_increases_update'];
-    post?: never;
-    delete: ApiOperations['api_v1_tokens_capital_increases_destroy'];
-    options?: never;
-    head?: never;
-    patch: ApiOperations['api_v1_tokens_capital_increases_partial_update'];
-    trace?: never;
-  };
   '/api/v1/tokens/capital-increases/{uuid}/submit/': {
     parameters: {
       query?: never;
@@ -1351,22 +1271,6 @@ export interface ApiPaths {
       cookie?: never;
     };
     get: ApiOperations['api_v1_tokens_issuance_requests_list'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/tokens/issuance-requests/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_tokens_issuance_requests_retrieve'];
     put?: never;
     post?: never;
     delete?: never;
@@ -1647,22 +1551,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/trading/orders/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_trading_orders_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/trading/orders/{uuid}/action-context/': {
     parameters: {
       query?: never;
@@ -1702,7 +1590,7 @@ export interface ApiPaths {
       path?: never;
       cookie?: never;
     };
-    get: ApiOperations['api_v1_trading_orders_cancel_message_retrieve'];
+    get?: never;
     put?: never;
     post: ApiOperations['api_v1_trading_orders_cancel_message_create'];
     delete?: never;
@@ -2134,8 +2022,8 @@ export interface ApiPaths {
       path?: never;
       cookie?: never;
     };
-    get: ApiOperations['api_wallets_retrieve'];
-    put: ApiOperations['api_wallets_update'];
+    get?: never;
+    put?: never;
     post?: never;
     delete: ApiOperations['api_wallets_destroy'];
     options?: never;
@@ -2272,7 +2160,6 @@ export interface ApiComponents {
       exportedAt: string;
       financialProfile: ApiComponents['schemas']['ExportedFinancialProfile'] | null;
       portfolios: ApiComponents['schemas']['ExportedPortfolio'][];
-      preferences: ApiComponents['schemas']['ExportedPreferences'] | null;
       profile: ApiComponents['schemas']['ExportedProfile'] | null;
       transactions: ApiComponents['schemas']['ExportedTransaction'][];
       user: ApiComponents['schemas']['ExportedUser'];
@@ -2455,7 +2342,6 @@ export interface ApiComponents {
     CapitalIncreaseDetail: {
       additionalShares: number;
       boardResolutionReference: string;
-      canBeEdited: boolean;
       canBeSubmitted: boolean;
       createdAt: string;
       dilutionPercentage: string | null;
@@ -2500,20 +2386,6 @@ export interface ApiComponents {
       message: string;
       request: ApiComponents['schemas']['CapitalIncreaseDetail'];
     };
-    CapitalIncreaseUpdate: {
-      additionalShares: number;
-      boardResolutionReference: string;
-      newAuthorizedTotal: number;
-      purpose: string;
-      shareholderApprovalReference?: string;
-    };
-    CapitalIncreaseUpdateRequest: {
-      additionalShares: number;
-      boardResolutionReference: string;
-      newAuthorizedTotal: number;
-      purpose: string;
-      shareholderApprovalReference?: string;
-    };
     CapitalRequestStatusEnum:
       | 'draft'
       | 'submitted'
@@ -2530,10 +2402,6 @@ export interface ApiComponents {
       currentPassword: string;
       newPassword: string;
       newPasswordConfirm: string;
-    };
-    CompanyAPIKey: {
-      apiKey: string;
-      apiKeyCreatedAt: string;
     };
     CompanyApplicationResubmitted: {
       company: ApiComponents['schemas']['ApplicationStatus'];
@@ -2698,23 +2566,6 @@ export interface ApiComponents {
       state?: string;
       tradingName?: string;
     };
-    CompanyUpdateRequest: {
-      abn?: string;
-      acn: string;
-      addressLine1?: string;
-      addressLine2?: string;
-      city?: string;
-      companyType?: ApiComponents['schemas']['CompanyTypeEnum'];
-      description?: string;
-      industry?: string;
-      isOpenToInvestors?: boolean;
-      name: string;
-      operatorWallet?: string | null;
-      phone?: string;
-      postcode?: string;
-      state?: string;
-      tradingName?: string;
-    };
     DeletedAccountResponse: {
       message: string;
     };
@@ -2849,9 +2700,6 @@ export interface ApiComponents {
       isActive: boolean;
       name: string;
       uuid: string;
-    };
-    ExportedPreferences: {
-      selectedPortfolio: string | null;
     };
     ExportedProfile: {
       citizenshipCountry: string | null;
@@ -3376,12 +3224,6 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['CapitalIncreaseList'][];
     };
-    PaginatedCompanyDocumentList: {
-      count: number;
-      next?: string | null;
-      previous?: string | null;
-      results: ApiComponents['schemas']['CompanyDocument'][];
-    };
     PaginatedCompanyListList: {
       count: number;
       next?: string | null;
@@ -3538,13 +3380,6 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['WhitelistEntry'][];
     };
-    PatchedCapitalIncreaseUpdateRequest: {
-      additionalShares?: number;
-      boardResolutionReference?: string;
-      newAuthorizedTotal?: number;
-      purpose?: string;
-      shareholderApprovalReference?: string;
-    };
     PatchedCompanyUpdateRequest: {
       abn?: string;
       acn?: string;
@@ -3602,11 +3437,6 @@ export interface ApiComponents {
     PatchedUserAccountRequest: {
       accountType?: ApiComponents['schemas']['AccountTypeEnum'];
       role?: ApiComponents['schemas']['RoleEnum'];
-    };
-    PatchedUserPreferencesRequest: {
-      selectedPortfolio?: string | null;
-      theme?: ApiComponents['schemas']['ThemeEnum'];
-      transactionAlerts?: boolean;
     };
     PatchedUserProfileRequest: {
       citizenshipCountry?: string;
@@ -3981,12 +3811,6 @@ export interface ApiComponents {
     ResolutionKindEnum: 'ordinary' | 'special';
     ReviewResultEnum: 'GREEN' | 'RED' | 'YELLOW';
     RoleEnum: 'investor' | 'company' | 'both';
-    SelectedPortfolio: {
-      isActive: boolean;
-      name: string;
-      userAccount: string;
-      uuid: string;
-    };
     SettlementApprovalBroadcastRequest: {
       ownerAccountUuid: string;
       settlementDigest: string;
@@ -4516,7 +4340,6 @@ export interface ApiComponents {
       userRole: ApiComponents['schemas']['UserRoleEnum'];
       walletUuid: string;
     };
-    ThemeEnum: 'dark' | 'light';
     TokenDeploymentStarted: {
       message: string;
       token: ApiComponents['schemas']['ShareTokenDetail'];
@@ -4570,34 +4393,6 @@ export interface ApiComponents {
       walletAddress: string;
       walletUuid: string;
     };
-    TransferOrderDetail: {
-      canBeModified: boolean;
-      completedAt: string | null;
-      createdAt: string;
-      errorMessage: string;
-      filledQuantity: number;
-      lastModifiedAt: string | null;
-      matchedOrderUuid: string | null;
-      minQuantity: number;
-      modificationCount: number;
-      orderType: ApiComponents['schemas']['TransferOrderTypeEnum'];
-      orderTypeDisplay: string;
-      pricePerShare: string;
-      quantity: number;
-      remainingQuantity: number;
-      remainingValue: string;
-      status: ApiComponents['schemas']['TransferOrderStatusEnum'];
-      statusDisplay: string;
-      token: string;
-      tokenContractAddress: string | null;
-      tokenName: string | null;
-      tokenSymbol: string | null;
-      totalValue: string;
-      txHash: string;
-      updatedAt: string;
-      uuid: string;
-      walletAddress: string;
-    };
     TransferOrderList: {
       createdAt: string;
       filledQuantity: number;
@@ -4643,16 +4438,12 @@ export interface ApiComponents {
     };
     UserDocumentTypeEnum: 'payslip' | 'bank_statement' | 'tax_return' | 'other';
     UserPreferences: {
-      selectedPortfolio: ApiComponents['schemas']['SelectedPortfolio'] | null;
-      theme?: ApiComponents['schemas']['ThemeEnum'];
       transactionAlerts?: boolean;
       userAccount: ApiComponents['schemas']['AccountSummary'] | null;
       userProfile: string;
       uuid: string;
     };
     UserPreferencesRequest: {
-      selectedPortfolio?: string | null;
-      theme?: ApiComponents['schemas']['ThemeEnum'];
       transactionAlerts?: boolean;
     };
     UserProfile: {
@@ -5068,27 +4859,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_feature_flags_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['FeatureFlag'];
-        };
-      };
-    };
-  };
   api_fiat_purchases_transak_widget_url_create: {
     parameters: {
       query?: never;
@@ -5152,54 +4922,6 @@ export interface ApiOperations {
     };
     responses: {
       201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['FinancialProfile'];
-        };
-      };
-    };
-  };
-  api_financial_profiles_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['FinancialProfile'];
-        };
-      };
-    };
-  };
-  api_financial_profiles_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: {
-      content: {
-        'application/json': ApiComponents['schemas']['FinancialProfileRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['FinancialProfileRequest'];
-        'multipart/form-data': ApiComponents['schemas']['FinancialProfileRequest'];
-      };
-    };
-    responses: {
-      200: {
         headers: {
           [name: string]: unknown;
         };
@@ -5283,27 +5005,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_investor_classifications_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['InvestorClassification'];
-        };
-      };
-    };
-  };
   api_investor_classifications_destroy: {
     parameters: {
       query?: never;
@@ -5363,27 +5064,6 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['PaginatedNotificationList'];
-        };
-      };
-    };
-  };
-  api_notifications_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['Notification'];
         };
       };
     };
@@ -5871,27 +5551,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_transactions_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['Transaction'];
-        };
-      };
-    };
-  };
   api_user_accounts_list: {
     parameters: {
       query?: {
@@ -5900,27 +5559,6 @@ export interface ApiOperations {
       };
       header?: never;
       path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['UserAccount'];
-        };
-      };
-    };
-  };
-  api_user_accounts_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
       cookie?: never;
     };
     requestBody?: never;
@@ -6009,100 +5647,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_user_preferences_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['UserPreferences'];
-        };
-      };
-    };
-  };
-  api_user_preferences_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: {
-      content: {
-        'application/json': ApiComponents['schemas']['UserPreferencesRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['UserPreferencesRequest'];
-        'multipart/form-data': ApiComponents['schemas']['UserPreferencesRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['UserPreferences'];
-        };
-      };
-    };
-  };
-  api_user_preferences_destroy: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  api_user_preferences_partial_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: {
-      content: {
-        'application/json': ApiComponents['schemas']['PatchedUserPreferencesRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['PatchedUserPreferencesRequest'];
-        'multipart/form-data': ApiComponents['schemas']['PatchedUserPreferencesRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['UserPreferences'];
-        };
-      };
-    };
-  };
   api_user_profiles_list: {
     parameters: {
       query?: {
@@ -6121,79 +5665,6 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['PaginatedUserProfileList'];
-        };
-      };
-    };
-  };
-  api_user_profiles_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['UserProfileRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['UserProfileRequest'];
-        'multipart/form-data': ApiComponents['schemas']['UserProfileRequest'];
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['UserProfile'];
-        };
-      };
-    };
-  };
-  api_user_profiles_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['UserProfile'];
-        };
-      };
-    };
-  };
-  api_user_profiles_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['UserProfileRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['UserProfileRequest'];
-        'multipart/form-data': ApiComponents['schemas']['UserProfileRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['UserProfile'];
         };
       };
     };
@@ -6359,33 +5830,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_v1_companies_documents_list: {
-    parameters: {
-      query?: {
-        company_uuid?: string;
-        document_type?: string;
-        is_verified?: boolean;
-        ordering?: string;
-        page?: number;
-      };
-      header?: never;
-      path: {
-        company_uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['PaginatedCompanyDocumentList'];
-        };
-      };
-    };
-  };
   api_v1_companies_documents_create: {
     parameters: {
       query?: never;
@@ -6404,28 +5848,6 @@ export interface ApiOperations {
     };
     responses: {
       201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CompanyDocument'];
-        };
-      };
-    };
-  };
-  api_v1_companies_documents_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        company_uuid: string;
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
         headers: {
           [name: string]: unknown;
         };
@@ -6498,52 +5920,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_v1_companies_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['CompanyUpdateRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['CompanyUpdateRequest'];
-        'multipart/form-data': ApiComponents['schemas']['CompanyUpdateRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CompanyUpdate'];
-        };
-      };
-    };
-  };
-  api_v1_companies_destroy: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
   api_v1_companies_partial_update: {
     parameters: {
       query?: never;
@@ -6567,48 +5943,6 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['CompanyUpdate'];
-        };
-      };
-    };
-  };
-  api_v1_companies_api_key_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CompanyAPIKey'];
-        };
-      };
-    };
-  };
-  api_v1_companies_api_key_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CompanyAPIKey'];
         };
       };
     };
@@ -6929,33 +6263,6 @@ export interface ApiOperations {
       cookie?: never;
     };
     requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['OfferingDetail'];
-        };
-      };
-    };
-  };
-  api_v1_offerings_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['OfferingWriteRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['OfferingWriteRequest'];
-        'multipart/form-data': ApiComponents['schemas']['OfferingWriteRequest'];
-      };
-    };
     responses: {
       200: {
         headers: {
@@ -7365,67 +6672,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_v1_tokens_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['ShareTokenDetail'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_destroy: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  api_v1_tokens_partial_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['ShareTokenDetail'];
-        };
-      };
-    };
-  };
   api_v1_tokens_deploy_create: {
     parameters: {
       query?: never;
@@ -7712,100 +6958,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_v1_tokens_capital_increases_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CapitalIncreaseDetail'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_capital_increases_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['CapitalIncreaseUpdateRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['CapitalIncreaseUpdateRequest'];
-        'multipart/form-data': ApiComponents['schemas']['CapitalIncreaseUpdateRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CapitalIncreaseUpdate'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_capital_increases_destroy: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  api_v1_tokens_capital_increases_partial_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: {
-      content: {
-        'application/json': ApiComponents['schemas']['PatchedCapitalIncreaseUpdateRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['PatchedCapitalIncreaseUpdateRequest'];
-        'multipart/form-data': ApiComponents['schemas']['PatchedCapitalIncreaseUpdateRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CapitalIncreaseUpdate'];
-        };
-      };
-    };
-  };
   api_v1_tokens_capital_increases_submit_create: {
     parameters: {
       query?: never;
@@ -7848,27 +7000,6 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['PaginatedShareIssuanceRequestList'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_issuance_requests_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['ShareIssuanceRequest'];
         };
       };
     };
@@ -8383,27 +7514,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_v1_trading_orders_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['TransferOrderDetail'];
-        };
-      };
-    };
-  };
   api_v1_trading_orders_action_context_retrieve: {
     parameters: {
       query: {
@@ -8527,29 +7637,6 @@ export interface ApiOperations {
         };
       };
       503: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': {
-            [key: string]: unknown;
-          };
-        };
-      };
-    };
-  };
-  api_v1_trading_orders_cancel_message_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      400: {
         headers: {
           [name: string]: unknown;
         };
@@ -9709,54 +8796,6 @@ export interface ApiOperations {
     };
     responses: {
       201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['Wallet'];
-        };
-      };
-    };
-  };
-  api_wallets_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['Wallet'];
-        };
-      };
-    };
-  };
-  api_wallets_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['WalletRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['WalletRequest'];
-        'multipart/form-data': ApiComponents['schemas']['WalletRequest'];
-      };
-    };
-    responses: {
-      200: {
         headers: {
           [name: string]: unknown;
         };

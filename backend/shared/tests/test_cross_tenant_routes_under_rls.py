@@ -81,7 +81,7 @@ class TheMatrixHoldsWhenTheDatabaseIsTheOnlyThingHoldingItTest(matrix.CrossTenan
     def test_the_split_is_a_split_and_not_one_side(self):
         somewhere = "00000000-0000-0000-0000-000000000000"
 
-        self.assertTrue(runs_on_the_operator_connection(f"/api/v1/companies/{somewhere}/api-key/", "get"))
+        self.assertTrue(runs_on_the_operator_connection(f"/api/v1/companies/{somewhere}/status/", "post"))
         self.assertFalse(runs_on_the_operator_connection(f"/api/v1/companies/{somewhere}/", "get"))
         self.assertFalse(runs_on_the_operator_connection("/api/wallets/", "get"))
 

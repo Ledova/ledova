@@ -141,11 +141,8 @@ class OrderActionSchemaTest(ActionFixtures, APITransactionTestCase):
         lookup = self.response_schema("/api/v1/trading/orders/actions/{action_id}/", "get")
         self.assert_keys(lookup, self.recover().json())
 
-    def test_retired_get_issuance_declares_its_refusal_without_a_success_envelope(self):
-        operation = self.document["paths"]["/api/v1/trading/orders/{uuid}/cancel/message/"]["get"]
-        self.assertNotIn("200", operation["responses"])
-        self.assertIn("400", operation["responses"])
+    def test_the_cancel_message_is_issued_by_post_alone(self):
+        self.assertEqual(set(self.document["paths"]["/api/v1/trading/orders/{uuid}/cancel/message/"]), {"post"})
         response = self.client.get(f"/api/v1/trading/orders/{self.order.pk}/cancel/message/")
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()["code"], "action_refresh_required")
+        self.assertEqual(response.status_code, 405)
         self.assertEqual(self.message().status_code, 200)

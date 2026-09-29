@@ -83,8 +83,7 @@ class UserMutationLifecycleTest(APITestCase):
                 response = self.client.options(url)
                 self.assertEqual(response.status_code, 200)
                 allowed_methods = {method.strip() for method in response.headers["Allow"].split(",")}
-                self.assertNotIn("DELETE", allowed_methods)
-                self.assertTrue({"GET", "PATCH", "HEAD", "OPTIONS"}.issubset(allowed_methods))
+                self.assertEqual(allowed_methods, {"PATCH", "OPTIONS"})
 
     def test_dedicated_account_deletion_keeps_shared_records_and_deactivates_only_requester(self):
         TokenService.issue(self.owner)

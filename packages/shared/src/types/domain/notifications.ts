@@ -8,7 +8,7 @@ export type RegisterDeviceTokenRequest = ApiRequest<'api_device_tokens_register_
 
 export type UnregisterDeviceTokenRequest = ApiRequest<'api_device_tokens_unregister_create'>;
 
-export type Notification = ApiResponse<'api_notifications_retrieve'>;
+export type Notification = ApiSchema<'Notification'>;
 
 export type UnreadCountResponse = ApiResponse<'api_notifications_unread_count_retrieve'>;
 

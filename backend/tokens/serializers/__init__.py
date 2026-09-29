@@ -2,7 +2,6 @@ from .capital_increase import (
     CapitalIncreaseCreateSerializer,
     CapitalIncreaseDetailSerializer,
     CapitalIncreaseListSerializer,
-    CapitalIncreaseUpdateSerializer,
 )
 from .former_holder import FormerMemberSerializer
 from .share_issuance import ShareIssuanceListSerializer
@@ -32,7 +31,6 @@ __all__ = [
     "CapitalIncreaseCreateSerializer",
     "CapitalIncreaseDetailSerializer",
     "CapitalIncreaseListSerializer",
-    "CapitalIncreaseUpdateSerializer",
     "ShareIssuanceCreateSerializer",
     "ShareIssuanceListSerializer",
     "ShareIssuanceRequestSerializer",

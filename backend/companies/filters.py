@@ -1,16 +1,6 @@
 import django_filters
 
-from companies.models import Company, CompanyDocument
-
-
-class CompanyDocumentFilter(django_filters.FilterSet):
-    company_uuid = django_filters.UUIDFilter(field_name="company__uuid")
-    document_type = django_filters.CharFilter()
-    is_verified = django_filters.BooleanFilter()
-
-    class Meta:
-        model = CompanyDocument
-        fields = []
+from companies.models import Company
 
 
 class CompanyFilter(django_filters.FilterSet):

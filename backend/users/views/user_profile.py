@@ -1,9 +1,10 @@
 from drf_spectacular.utils import extend_schema
+from rest_framework import mixins
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from shared.db import atomic
-from shared.views.base import AuthenticatedModelViewSet
+from shared.views.base import AuthenticatedGenericViewSet
 from users.models.user_profile import UserProfile
 from users.serializers import UserProfileSerializer
 from users.serializers.account_actions import (
@@ -13,9 +14,10 @@ from users.serializers.account_actions import (
 from users.services import lifecycle
 
 
-class UserProfileViewSet(AuthenticatedModelViewSet):
+class UserProfileViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, AuthenticatedGenericViewSet):
     serializer_class = UserProfileSerializer
-    http_method_names = ["get", "post", "put", "patch", "head", "options"]
+    http_method_names = ["get", "post", "patch", "head", "options"]
+    lookup_field = "uuid"
     ordering = ["-created_at"]
     ordering_fields = ["created_at", "full_name"]
 
@@ -24,19 +26,16 @@ class UserProfileViewSet(AuthenticatedModelViewSet):
     def narrow(self, queryset):
         queryset = queryset.filter(user_id=self.request.user.pk)
         queryset = queryset.select_related("citizenship_country")
-        if getattr(self, "action", None) in {"update", "partial_update"}:
+        if getattr(self, "action", None) == "partial_update":
             return queryset.select_for_update(of=("self",))
         return queryset
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
 
     def perform_update(self, serializer):
         serializer.save()
 
     @atomic()
-    def update(self, request, *args, **kwargs):
-        return super().update(request, *args, **kwargs)
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
 
     @extend_schema(responses=DeletedAccountResponseSerializer)
     @action(detail=False, methods=["post"], url_path="delete-account")

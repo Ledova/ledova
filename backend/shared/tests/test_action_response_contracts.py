@@ -22,7 +22,7 @@ from shared.tests.tenants import an_acn, make_eligible, make_tenant, open_to_inv
 from tokens.models import ShareIssuance
 from tokens.services import atomic_swap_service
 from tokens.tests.market_fixtures import record_synthetic_admission
-from users.models import FinancialProfile, Notification, UserPreferences, UserProfile
+from users.models import FinancialProfile, Notification, UserProfile
 
 
 @override_settings(ATOMIC_SWAP_ADDRESS="0x" + "8" * 40)
@@ -494,7 +494,6 @@ class ActionResponseContractTest(APITransactionTestCase):
                 "exportedAt": "string",
                 "user": "object",
                 "profile": "object",
-                "preferences": "object",
                 "financialProfile": "object",
                 "account": "object",
                 "wallets": "array",
@@ -519,7 +518,6 @@ class ActionResponseContractTest(APITransactionTestCase):
                 "isIdVerified": "boolean",
                 "createdAt": "string",
             },
-            "preferences": {"selectedPortfolio": "string"},
             "financialProfile": {
                 "occupation": "string",
                 "sourceOfFunds": "json",
@@ -594,16 +592,14 @@ class ActionResponseContractTest(APITransactionTestCase):
         self.client.force_authenticate(user)
         body, _schema = self.export_response()
         self.assertEqual(
-            [body[name] for name in ("profile", "preferences", "financialProfile", "account")],
-            [None, None, None, None],
+            [body[name] for name in ("profile", "financialProfile", "account")],
+            [None, None, None],
         )
         self.assertEqual([body[name] for name in ("wallets", "transactions", "portfolios")], [[], [], []])
 
     def test_export_with_missing_optional_records_keeps_the_account(self):
         FinancialProfile.objects.filter(pk=self.owner.financial_profile.pk).delete()
-        UserPreferences.objects.filter(pk=self.owner.preferences.pk).delete()
         body, _schema = self.export_response()
-        self.assertIsNone(body["preferences"])
         self.assertIsNone(body["financialProfile"])
         self.assertEqual(body["account"]["uuid"], str(self.owner.account.uuid))
 

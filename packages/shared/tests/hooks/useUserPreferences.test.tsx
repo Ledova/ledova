@@ -11,7 +11,7 @@ import { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from '../../src/hooks/
 
 const preferences = {
   userAccount: { uuid: 'account-1' },
-  selectedPortfolio: { uuid: 'portfolio-1' },
+  transactionAlerts: true,
 };
 const clients: QueryClient[] = [];
 
@@ -44,10 +44,9 @@ describe('shared user preferences', () => {
     expect(get).not.toHaveBeenCalled();
     expect(result.current.preferences).toBeUndefined();
     expect(result.current.userAccount).toBeNull();
-    expect(result.current.selectedPortfolio).toBeNull();
   });
 
-  it('loads the selected account and portfolio after authentication', async () => {
+  it('loads the account after authentication and exposes no portfolio selection', async () => {
     const { client, get, wrapper } = harness(false);
     const { result } = renderHook(() => useUserPreferences(), { wrapper });
     expect(get).not.toHaveBeenCalled();
@@ -59,7 +58,7 @@ describe('shared user preferences', () => {
     await waitFor(() => expect(result.current.preferences).toEqual(preferences));
     expect(get).toHaveBeenCalledWith(USER_PREFERENCES_ENDPOINTS.BASE);
     expect(result.current.userAccount).toEqual(preferences.userAccount);
-    expect(result.current.selectedPortfolio).toEqual(preferences.selectedPortfolio);
+    expect(result.current).not.toHaveProperty('selectedPortfolio');
   });
 
   it('does not expose a preferences response that arrives after sign-out', async () => {
@@ -81,7 +80,6 @@ describe('shared user preferences', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.preferences).toBeUndefined();
     expect(result.current.userAccount).toBeNull();
-    expect(result.current.selectedPortfolio).toBeNull();
   });
 
   it('reports a failed read without inventing an account selection', async () => {
@@ -91,6 +89,5 @@ describe('shared user preferences', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.userAccount).toBeNull();
-    expect(result.current.selectedPortfolio).toBeNull();
   });
 });
