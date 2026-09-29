@@ -43,18 +43,24 @@ export function DeriveAddressModal({
     },
     addressValue: {
       fontSize: theme.fontSize.sm,
-      fontFamily: 'monospace',
+      fontFamily: theme.fontFamily.mono,
       color: theme.colors.text.primary,
     },
     pathValue: {
       fontSize: theme.fontSize.xs,
-      fontFamily: 'monospace',
+      fontFamily: theme.fontFamily.mono,
       color: theme.colors.text.secondary,
     },
     loading: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: theme.spacing.sm,
+    },
+    info: {
+      flex: 1,
+      fontFamily: theme.fontFamily.regular,
+      fontSize: theme.fontSize.xs,
+      color: theme.colors.text.secondary,
     },
   }));
   const [derivedAddress, setDerivedAddress] = useState<DerivedAddress | null>(null);
@@ -140,7 +146,7 @@ export function DeriveAddressModal({
 
           <View style={text.line}>
             <CheckCircleIcon size={theme.icon.sizes.sm} color={theme.colors.status.info.icon} weight="fill" />
-            <Text style={[text.muted, text.lineText]}>
+            <Text style={styles.info}>
               {wallet.signingPreference === 'software'
                 ? 'This address is derived from the same recovery phrase as your existing wallet'
                 : 'This address shares the same master fingerprint as your existing wallet'}

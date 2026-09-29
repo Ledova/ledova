@@ -28,6 +28,12 @@ export function VerificationModal({ visible, onClose, onRefresh }: VerificationM
     needs: {
       gap: theme.spacing.xs,
     },
+    need: {
+      fontFamily: theme.fontFamily.regular,
+      fontSize: theme.fontSize.sm,
+      lineHeight: 21,
+      color: theme.colors.text.secondary,
+    },
   }));
   const {
     status,
@@ -132,9 +138,9 @@ export function VerificationModal({ visible, onClose, onRefresh }: VerificationM
             <Text accessibilityRole="header" style={text.heading}>
               What You&apos;ll Need:
             </Text>
-            <Text style={text.text}>{'\u2022'} A valid government-issued ID</Text>
-            <Text style={text.text}>{'\u2022'} Good lighting for clear photos</Text>
-            <Text style={text.text}>{'\u2022'} About 3-5 minutes</Text>
+            <Text style={styles.need}>{'\u2022'} A valid government-issued ID</Text>
+            <Text style={styles.need}>{'\u2022'} Good lighting for clear photos</Text>
+            <Text style={styles.need}>{'\u2022'} About 3-5 minutes</Text>
           </View>
         )}
       </CustomModal>

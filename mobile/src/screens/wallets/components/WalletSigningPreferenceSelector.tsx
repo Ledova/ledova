@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { KeyIcon, QrCodeIcon, CaretRightIcon } from 'phosphor-react-native';
+import { KeyIcon, QrCodeIcon } from 'phosphor-react-native';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { Rows } from '../../../components/Ledger';
 import { useDialogStyles } from '../../../components/modal';
@@ -45,11 +45,11 @@ export function WalletSigningPreferenceSelector({ onSelect }: WalletSigningPrefe
     },
     textContainer: {
       flex: 1,
-      gap: 2,
+      gap: theme.spacing.xs,
     },
     optionLabel: {
-      fontFamily: theme.fontFamily.medium,
-      fontSize: theme.fontSize.sm,
+      fontFamily: theme.fontFamily.semibold,
+      fontSize: theme.fontSize.base,
       color: theme.colors.text.primary,
     },
     optionDescription: {
@@ -70,7 +70,6 @@ export function WalletSigningPreferenceSelector({ onSelect }: WalletSigningPrefe
               <Text style={styles.optionLabel}>{label}</Text>
               <Text style={styles.optionDescription}>{description}</Text>
             </View>
-            <CaretRightIcon size={16} color={theme.colors.text.muted} />
           </TouchableOpacity>
         ))}
       </Rows>
