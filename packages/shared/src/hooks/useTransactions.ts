@@ -7,6 +7,7 @@ import { getWallets } from '../services/wallets';
 import type { TransactionQueryParams } from '../types';
 import { assertNextPageAdvances, readEveryPage } from '../utils/pagination';
 import { useApiClient } from './useApiClient';
+import { useLaterPages } from './useLaterPages';
 
 export type TransactionFilters = Pick<
   TransactionQueryParams,
@@ -24,8 +25,9 @@ export function useTransactions() {
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
   });
 
+  const queryKey = ['all-transactions', appliedFilters];
   const query = useInfiniteQuery({
-    queryKey: ['all-transactions', appliedFilters],
+    queryKey,
     queryFn: async ({ pageParam }) => {
       const response = await getTransactions(apiClient, {
         ...appliedFilters,
@@ -45,6 +47,7 @@ export function useTransactions() {
     staleTime: CACHE_TIMING.VERY_SHORT_STALE_TIME,
     gcTime: CACHE_TIMING.MEDIUM_GC_TIME,
   });
+  const pages = useLaterPages(queryKey, query);
 
   return {
     transactions: query.data?.pages.flatMap((page) => page.data.results) ?? [],
@@ -54,8 +57,8 @@ export function useTransactions() {
     walletsRefreshing: walletsQuery.isFetching,
     retryWallets: () => walletsQuery.refetch(),
     isLoading: query.isLoading,
-    hasError: query.isError && !query.isFetchNextPageError,
-    moreFailed: query.isFetchNextPageError,
+    hasError: pages.hasError,
+    moreFailed: pages.moreFailed,
     isRefreshing: query.isFetching,
     retry: () => query.refetch(),
     isLoadingMore: query.isFetchingNextPage,
@@ -70,8 +73,6 @@ export function useTransactions() {
       setFilters({});
       setAppliedFilters({});
     },
-    loadMore: () => {
-      if (query.hasNextPage && !query.isFetching) return query.fetchNextPage();
-    },
+    loadMore: pages.loadMore,
   };
 }

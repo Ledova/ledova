@@ -206,6 +206,89 @@ it('keeps known rows when a later page fails, marks the history incomplete and r
   expect(activityReads().at(-1)?.page).toBe(2);
 });
 
+async function laterPageFailed() {
+  activity = async (params) => {
+    if (params.page === 2) throw new Error('offline');
+    return page([entry('entry-one')], later(2));
+  };
+  const view = await loaded();
+  await act(async () => {
+    await view.result.current.loadMore();
+  });
+  await waitFor(() => expect(view.result.current.moreFailed).toBe(true));
+  return view;
+}
+
+async function refreshHeld() {
+  const refreshed = deferred<ReturnType<typeof page>>();
+  activity = () => refreshed.promise;
+  let refreshing!: Promise<void>;
+  act(() => {
+    refreshing = client.invalidateQueries({ queryKey: ['all-transactions'] });
+  });
+  return {
+    finish: (response: ReturnType<typeof page>) =>
+      act(async () => {
+        refreshed.resolve(response);
+        await refreshing;
+      }),
+  };
+}
+
+it('keeps known rows and the later-page failure while the history is read again', async () => {
+  const view = await laterPageFailed();
+
+  const refresh = await refreshHeld();
+  await waitFor(() => expect(view.result.current.isRefreshing).toBe(true));
+
+  expect(view.result.current.hasError).toBe(false);
+  expect(view.result.current.moreFailed).toBe(true);
+  expect(view.result.current.transactions).toEqual([entry('entry-one')]);
+
+  await refresh.finish(page([entry('entry-one', 'confirmed')], later(2)));
+  await waitFor(() => expect(view.result.current.isRefreshing).toBe(false));
+  expect(view.result.current.transactions).toEqual([entry('entry-one', 'confirmed')]);
+  expect(view.result.current.hasError).toBe(false);
+  expect(view.result.current.moreFailed).toBe(false);
+  expect(view.result.current.hasNextPage).toBe(true);
+});
+
+it('reports a refresh that fails after a later-page failure as a first-page failure, including while retried', async () => {
+  const view = await laterPageFailed();
+  activity = async () => {
+    throw new Error('offline');
+  };
+
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: ['all-transactions'] });
+  });
+  await waitFor(() => expect(view.result.current.hasError).toBe(true));
+  expect(view.result.current.moreFailed).toBe(false);
+
+  const retry = await refreshHeld();
+  await waitFor(() => expect(view.result.current.isRefreshing).toBe(true));
+  expect(view.result.current.hasError).toBe(true);
+  expect(view.result.current.moreFailed).toBe(false);
+
+  await retry.finish(page([entry('entry-one', 'confirmed')], later(2)));
+  await waitFor(() => expect(view.result.current.hasError).toBe(false));
+  expect(view.result.current.transactions).toEqual([entry('entry-one', 'confirmed')]);
+});
+
+it('does not take a first-page failure under new filters for the earlier later-page failure', async () => {
+  const view = await laterPageFailed();
+  activity = async () => {
+    throw new Error('offline');
+  };
+
+  act(() => view.result.current.updateFilters({ direction: 'incoming' }));
+  act(() => view.result.current.applyFilters());
+
+  await waitFor(() => expect(view.result.current.hasError).toBe(true));
+  expect(view.result.current.moreFailed).toBe(false);
+  expect(view.result.current.transactions).toEqual([]);
+});
+
 it('does not call an empty first page complete while a later page is outstanding', async () => {
   activity = async (params) => (params.page === 1 ? page([], later(2)) : page([entry('entry-one')]));
   const view = await loaded();

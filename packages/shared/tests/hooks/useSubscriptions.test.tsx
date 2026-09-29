@@ -121,6 +121,83 @@ describe('useSubscriptions', () => {
     expect(api.get).toHaveBeenLastCalledWith(SUBSCRIPTION_ENDPOINTS.BASE, { params: { page: 2 } });
   });
 
+  async function laterPageFailed() {
+    api.get.mockImplementation(async (_url: string, config?: { params?: { page?: number } }) => {
+      if (pageOf(config) === 1) return page([application('first')], `${listUrl}?page=2`);
+      throw new Error('Unavailable');
+    });
+    const view = renderHook(() => useSubscriptions(), { wrapper });
+    await waitFor(() => expect(view.result.current.hasMore).toBe(true));
+    await act(async () => {
+      await view.result.current.loadMore();
+    });
+    await waitFor(() => expect(view.result.current.moreFailed).toBe(true));
+    return view;
+  }
+
+  function refreshHeld() {
+    const refreshed = deferred<ReturnType<typeof page>>();
+    api.get.mockReturnValueOnce(refreshed.promise);
+    let refreshing!: Promise<void>;
+    act(() => {
+      refreshing = client.invalidateQueries({ queryKey: ['subscriptions'] });
+    });
+    return {
+      finish: (response: ReturnType<typeof page>) =>
+        act(async () => {
+          refreshed.resolve(response);
+          await refreshing;
+        }),
+    };
+  }
+
+  it('keeps known applications and the later-page failure while the list is read again', async () => {
+    const view = await laterPageFailed();
+
+    const refresh = refreshHeld();
+    await waitFor(() => expect(view.result.current.isRefreshing).toBe(true));
+
+    expect(view.result.current.hasError).toBe(false);
+    expect(view.result.current.moreFailed).toBe(true);
+    expect(view.result.current.subscriptions).toEqual([application('first')]);
+
+    await refresh.finish(page([application('first'), application('second')], `${listUrl}?page=2`));
+    await waitFor(() => expect(view.result.current.isRefreshing).toBe(false));
+    expect(view.result.current.subscriptions).toHaveLength(2);
+    expect(view.result.current.hasError).toBe(false);
+    expect(view.result.current.moreFailed).toBe(false);
+    expect(view.result.current.hasMore).toBe(true);
+  });
+
+  it('reports a refresh that fails after a later-page failure as a first-page failure', async () => {
+    const view = await laterPageFailed();
+    api.get.mockRejectedValue(new Error('Unavailable'));
+
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: ['subscriptions'] });
+    });
+
+    await waitFor(() => expect(view.result.current.hasError).toBe(true));
+    expect(view.result.current.moreFailed).toBe(false);
+  });
+
+  it('does not read a further page while the list is read again, so the refresh completes', async () => {
+    api.get.mockResolvedValue(page([application('first')], `${listUrl}?page=2`));
+    const view = renderHook(() => useSubscriptions(), { wrapper });
+    await waitFor(() => expect(view.result.current.hasMore).toBe(true));
+
+    const refresh = refreshHeld();
+    await waitFor(() => expect(view.result.current.isRefreshing).toBe(true));
+    await act(async () => {
+      await view.result.current.loadMore();
+    });
+
+    expect(api.get.mock.calls.map(([, config]) => pageOf(config))).toEqual([1, 1]);
+    await refresh.finish(page([application('first'), application('second')], `${listUrl}?page=2`));
+    await waitFor(() => expect(view.result.current.subscriptions).toHaveLength(2));
+    expect(view.result.current.hasError).toBe(false);
+  });
+
   it('does not call an empty first page complete while a later page is outstanding', async () => {
     api.get.mockImplementation(async (_url: string, config?: { params?: { page?: number } }) => {
       if (pageOf(config) === 1) return page([], `${listUrl}?page=2`);

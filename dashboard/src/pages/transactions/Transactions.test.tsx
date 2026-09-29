@@ -382,6 +382,38 @@ it('holds Load more while the history is read again, then offers the next page',
   expect(screen.getByRole('button', { name: 'Load more activity' })).toHaveProperty('disabled', false);
 });
 
+it('keeps entries and the later-page failure on screen while the history is read again', async () => {
+  const later = 'https://example.invalid/api/transactions/?page=2';
+  activity = async (params) => {
+    if (params.page === 2) throw Error('Unavailable');
+    return page([transaction], later);
+  };
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Load more activity' }));
+  expect(await screen.findByText('More activity could not be loaded. The list is incomplete.')).toBeTruthy();
+  let finish!: (response: ReturnType<typeof page>) => void;
+  activity = () =>
+    new Promise((resolve) => {
+      finish = resolve;
+    });
+  let refreshing!: Promise<void>;
+  act(() => {
+    refreshing = client.invalidateQueries({ queryKey: ['all-transactions'] });
+  });
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Try more activity again' })).toHaveProperty('disabled', true),
+  );
+  expect(screen.getByRole('button', { name: entryName })).toBeTruthy();
+  expect(screen.getByText('More activity could not be loaded. The list is incomplete.')).toBeTruthy();
+  expect(screen.queryByText('Your activity could not be loaded. Try again before continuing.')).toBeNull();
+  await act(async () => {
+    finish(page([{ ...transaction, status: 'confirmed' }], later));
+    await refreshing;
+  });
+  expect(await screen.findByText('✓ Confirmed')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Load more activity' })).toHaveProperty('disabled', false);
+});
+
 it('does not claim an empty first page is complete while a later page is outstanding', async () => {
   activity = async (params) =>
     params.page === 1 ? page([], 'https://example.invalid/api/transactions/?page=2') : page([transaction]);

@@ -67,11 +67,7 @@ export default function SubscriptionsPage() {
               <p className="text-sm text-text-primary">
                 More applications could not be loaded. The list is incomplete.
               </p>
-              <PageAction
-                label="Try more applications again"
-                onClick={() => void loadMore()}
-                disabled={isLoadingMore}
-              />
+              <PageAction label="Try more applications again" onClick={() => void loadMore()} disabled={isRefreshing} />
             </div>
           ) : (
             hasMore && (
@@ -79,7 +75,7 @@ export default function SubscriptionsPage() {
                 <PageAction
                   label={isLoadingMore ? 'Loading applications…' : 'Load more applications'}
                   onClick={() => void loadMore()}
-                  disabled={isLoadingMore}
+                  disabled={isRefreshing}
                 />
               </div>
             )
