@@ -3,6 +3,7 @@
 import argparse
 import base64
 import hashlib
+import http.client
 import json
 import os
 import platform
@@ -18,6 +19,7 @@ from urllib.request import Request, urlopen
 VERSION = "31.1"
 ARCHIVE_HASH = "b80d9c3e04da78fb6f0569685673418cf686fadba9042d926d13fb87ff503f9e"
 URL = f"https://bitcoincore.org/bin/bitcoin-core-{VERSION}/bitcoin-{VERSION}-x86_64-linux-gnu.tar.gz"
+DOWNLOAD_RETRY_DELAYS = (5, 15)
 
 
 def rpc(url, cookie, method):
@@ -39,6 +41,24 @@ def rpc(url, cookie, method):
     return result["result"]
 
 
+def download(url, path):
+    for delay in (*DOWNLOAD_RETRY_DELAYS, None):
+        try:
+            with urlopen(url, timeout=60) as source, path.open("wb") as target:
+                while chunk := source.read(1024 * 1024):
+                    target.write(chunk)
+            return
+        except (OSError, http.client.HTTPException) as error:
+            if delay is None:
+                raise
+            print(
+                f"Downloading Bitcoin Core failed ({error!r}); trying again in {delay} seconds.",
+                file=sys.stderr,
+                flush=True,
+            )
+            time.sleep(delay)
+
+
 def bitcoin_binary(directory):
     configured = os.environ.get("BITCOIN_TEST_BINARY")
     if configured:
@@ -49,9 +69,7 @@ def bitcoin_binary(directory):
                 "Set BITCOIN_TEST_BINARY to an installed Bitcoin Core 31.1 binary on this platform."
             )
         archive = directory / "bitcoin.tar.gz"
-        with urlopen(URL, timeout=60) as source, archive.open("wb") as target:
-            while chunk := source.read(1024 * 1024):
-                target.write(chunk)
+        download(URL, archive)
         with archive.open("rb") as source:
             checksum = hashlib.file_digest(source, "sha256").hexdigest()
         if checksum != ARCHIVE_HASH:
