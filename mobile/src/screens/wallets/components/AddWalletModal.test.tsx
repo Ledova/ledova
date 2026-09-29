@@ -1,5 +1,6 @@
-import { cleanup, fireEvent, render } from '@testing-library/react-native';
+import { cleanup, fireEvent, render, renderHook } from '@testing-library/react-native';
 import type { HardwareWalletImport } from '@ledova/shared';
+import { useAppTheme } from '../../../contexts';
 import { apiClient } from '../../../services/apiClient';
 import { extractFromKeystoneQR } from '../../../utils/keystone/bcurDecoder';
 import { AddWalletModal } from './AddWalletModal';
@@ -65,4 +66,24 @@ it('titles every step Add wallet and ends the account step with the selector row
   expect(view.queryByRole('button', { name: 'Close' })).toBeNull();
   await fireEvent.press(view.getByRole('button', { name: 'Close dialog' }));
   expect(close).toHaveBeenCalledTimes(1);
+});
+
+it('keeps the wallet kinds as 16pt semibold options', async () => {
+  const theme = (await renderHook(() => useAppTheme())).result.current;
+  const view = await render(
+    <AddWalletModal
+      visible
+      isLoading={false}
+      readBlocked={false}
+      notice={null}
+      error={null}
+      onRetry={jest.fn()}
+      onClose={jest.fn()}
+      onSubmit={jest.fn()}
+      onBatchSubmit={jest.fn()}
+    />,
+  );
+  for (const kind of ['Software Wallet', 'Hardware Wallet']) {
+    expect(view.getByText(kind)).toHaveStyle({ fontSize: 16, fontFamily: theme.fontFamily.semibold });
+  }
 });

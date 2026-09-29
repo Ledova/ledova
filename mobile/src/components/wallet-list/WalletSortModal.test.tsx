@@ -30,3 +30,13 @@ it('is titled Sort Wallets and lists the sort options as ruled rows with small h
   expect(apply).toHaveBeenCalledWith('base', 'name');
   expect(close).toHaveBeenCalledTimes(1);
 });
+
+it('keeps its small capital headings and 11pt option descriptions', async () => {
+  const view = await render(
+    <WalletSortModal visible selectedChain="all" selectedSort="default" onClose={jest.fn()} onApply={jest.fn()} />,
+  );
+  for (const name of ['Chain', 'Sort By']) {
+    expect(view.getByRole('header', { name })).toHaveStyle({ fontSize: 12, textTransform: 'uppercase' });
+  }
+  expect(view.getByText('Sort by name (A-Z)')).toHaveStyle({ fontSize: 11 });
+});

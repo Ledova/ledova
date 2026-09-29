@@ -33,6 +33,13 @@ export function SoftwareSignTransaction({
     scrollContentContainer: {
       gap: theme.spacing.md,
     },
+    sectionTitle: {
+      fontFamily: theme.fontFamily.semibold,
+      fontSize: theme.fontSize.xs,
+      color: theme.colors.text.secondary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
     successTitle: {
       color: theme.colors.status.success.text,
     },
@@ -101,7 +108,7 @@ export function SoftwareSignTransaction({
       showsVerticalScrollIndicator={false}
     >
       <View style={text.group}>
-        <Text accessibilityRole="header" style={text.heading}>
+        <Text accessibilityRole="header" style={styles.sectionTitle}>
           Transaction Summary
         </Text>
         <Rows>

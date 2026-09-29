@@ -4,6 +4,7 @@ import { useAppTheme } from '../../../contexts';
 import { ReviewTransaction } from './ReviewTransaction';
 import { SoftwareSignTransaction } from './SoftwareSignTransaction';
 import { BitcoinSignTransaction } from './BitcoinSignTransaction';
+import { SignTransaction } from './SignTransaction';
 
 jest.mock('../../../services/secureKeyStorage', () => ({ getSeedPhrase: jest.fn() }));
 jest.mock('../../../utils/softwareWallet', () => ({ signEthereumTransaction: jest.fn() }));
@@ -79,4 +80,44 @@ it('sets every value of the Bitcoin signing summary and the signed hex in monosp
     expect(view.getByText(value)).toHaveStyle({ fontFamily: family });
   }
   expect(view.getByDisplayValue('0200')).toHaveStyle({ fontFamily: family });
+});
+
+it('keeps the small captions of the signing steps and the Bitcoin paste error at caption size', async () => {
+  const evm = {
+    transaction: '',
+    fromAddress,
+    toAddress,
+    amountEth: '1',
+    gasCostEth: '0.01',
+    totalCostEth: '1.01',
+    gasPriceGwei: '2',
+    gasLimit: '21000',
+  } as TransactionData;
+  const review = await render(<ReviewTransaction transactionData={evm} chainShortName="ETH" />);
+  expect(review.getByRole('header', { name: 'Chain Details' })).toHaveStyle({ fontSize: 12 });
+  const qr = await render(<SignTransaction urEncodedTransaction={null} />);
+  expect(qr.getByRole('header', { name: 'Scan with your Wallet' })).toHaveStyle({
+    fontSize: 12,
+    textTransform: 'uppercase',
+  });
+  const software = await render(
+    <SoftwareSignTransaction wallet={{ uuid: 'wallet' } as Wallet} transactionData={evm} onSignComplete={jest.fn()} />,
+  );
+  expect(software.getByRole('header', { name: 'Transaction Summary' })).toHaveStyle({
+    fontSize: 12,
+    textTransform: 'uppercase',
+  });
+  const bitcoin = await render(
+    <BitcoinSignTransaction
+      transactionData={{ ...evm, amountBtc: '0.5', feePerByte: '12', estimatedTxSize: 140, totalCostBtc: '0.5' }}
+      signedHex=""
+      onChangeSignedHex={jest.fn()}
+      error="Paste a signed transaction"
+    />,
+  );
+  expect(bitcoin.getByRole('header', { name: 'What to sign' })).toHaveStyle({
+    fontSize: 12,
+    textTransform: 'uppercase',
+  });
+  expect(bitcoin.getByText('Paste a signed transaction')).toHaveStyle({ fontSize: 12 });
 });

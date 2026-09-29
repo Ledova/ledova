@@ -34,8 +34,20 @@ export function BitcoinSignTransaction({
     scrollContentContainer: {
       gap: theme.spacing.md,
     },
+    sectionTitle: {
+      fontFamily: theme.fontFamily.semibold,
+      fontSize: theme.fontSize.xs,
+      color: theme.colors.text.secondary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
     steps: {
       gap: theme.spacing.sm,
+    },
+    error: {
+      fontFamily: theme.fontFamily.regular,
+      fontSize: theme.fontSize.xs,
+      color: theme.colors.status.error.text,
     },
     input: {
       fontSize: theme.fontSize.sm,
@@ -57,7 +69,7 @@ export function BitcoinSignTransaction({
       </Text>
 
       <View style={text.group}>
-        <Text accessibilityRole="header" style={text.heading}>
+        <Text accessibilityRole="header" style={styles.sectionTitle}>
           What to sign
         </Text>
         <Rows>
@@ -105,7 +117,7 @@ export function BitcoinSignTransaction({
           autoCorrect={false}
           spellCheck={false}
         />
-        {error && <Text style={text.error}>{error}</Text>}
+        {error && <Text style={styles.error}>{error}</Text>}
       </View>
     </ScrollView>
   );

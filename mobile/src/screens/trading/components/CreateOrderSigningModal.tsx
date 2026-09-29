@@ -169,7 +169,7 @@ export function CreateOrderSigningModal({ submission, wallet, tokens, onClose, o
               <Text accessibilityRole="header" style={text.heading}>
                 Order status unconfirmed
               </Text>
-              <Text style={text.error}>{state.error}</Text>
+              <Text style={text.text}>{state.error}</Text>
               <Text style={text.text}>
                 This order remains saved. Check its status before signing again. An unavailable result does not start a
                 replacement order.

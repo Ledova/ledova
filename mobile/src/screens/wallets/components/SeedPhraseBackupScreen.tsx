@@ -35,6 +35,11 @@ export function SeedPhraseBackupScreen() {
     warningText: {
       color: theme.colors.status.warning.text,
     },
+    loadingText: {
+      fontFamily: theme.fontFamily.regular,
+      fontSize: theme.fontSize.base,
+      color: theme.colors.text.muted,
+    },
     countdown: {
       fontFamily: theme.fontFamily.regular,
       fontSize: theme.fontSize.xs,
@@ -129,7 +134,7 @@ export function SeedPhraseBackupScreen() {
       return (
         <View style={text.line}>
           <ActivityIndicator size="small" color={theme.colors.interactive.default} />
-          <Text style={[text.muted, text.lineText]}>Authenticating...</Text>
+          <Text style={[styles.loadingText, text.lineText]}>Authenticating...</Text>
         </View>
       );
     }

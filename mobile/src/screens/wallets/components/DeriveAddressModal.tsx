@@ -36,6 +36,9 @@ export function DeriveAddressModal({
       gap: theme.spacing.xs,
       paddingVertical: 10,
     },
+    strong: {
+      fontFamily: theme.fontFamily.medium,
+    },
     label: {
       fontFamily: theme.fontFamily.regular,
       fontSize: theme.fontSize.sm,
@@ -130,8 +133,12 @@ export function DeriveAddressModal({
       ) : derivedAddress ? (
         <>
           <Rows>
-            <Row label="Network">{networkName}</Row>
-            <Row label="Address Index">{derivedAddress.addressIndex}</Row>
+            <Row label="Network">
+              <Text style={styles.strong}>{networkName}</Text>
+            </Row>
+            <Row label="Address Index">
+              <Text style={styles.strong}>{derivedAddress.addressIndex}</Text>
+            </Row>
             <View style={styles.block}>
               <Text style={styles.label}>New Address</Text>
               <Text style={styles.addressValue} numberOfLines={2}>

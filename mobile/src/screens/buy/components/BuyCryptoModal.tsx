@@ -112,8 +112,8 @@ export function BuyCryptoModal({
     warningText: {
       flex: 1,
       fontFamily: theme.fontFamily.regular,
-      fontSize: theme.fontSize.sm,
-      lineHeight: 21,
+      fontSize: theme.fontSize.xs,
+      lineHeight: 18,
       color: theme.colors.status.warning.text,
     },
     optionItem: {

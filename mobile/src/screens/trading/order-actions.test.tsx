@@ -9,6 +9,7 @@ import * as Crypto from 'expo-crypto';
 import {
   ApiClientProvider,
   AUTH_QUERY_KEY,
+  DESIGN_TOKENS,
   USER_PREFERENCES_QUERY_KEY,
   TRADING_ENDPOINTS,
   type OrderActionContext,
@@ -455,6 +456,27 @@ it('recovers a lost response with its original change and separate current order
   expect(view.getByText('Current order status: Cancelled')).toBeTruthy();
   expect(executes()).toHaveLength(1);
   expect(await orderActionStore.list(owner)).toHaveLength(0);
+});
+
+it('keeps the web field size and states an unconfirmed action in plain text, as the web does', async () => {
+  const view = await render(<TradingScreen />, { wrapper });
+  await fireEvent.press(view.getByText('Change synthetic order'));
+  await waitFor(() => expect(view.getByText('Review change')).toBeTruthy());
+  for (const label of ['New quantity', 'New minimum fill', 'New price per share']) {
+    expect(view.getByLabelText(label)).toHaveStyle({ fontSize: 14 });
+  }
+  await fireEvent.changeText(view.getByLabelText('New price per share'), '14.00');
+  await fireEvent.press(view.getByText('Review change'));
+  await waitFor(() => expect(view.getByText('Sign with biometric')).toBeTruthy());
+  handler = async (config) => {
+    const reply = await ordinary(config);
+    if (config.method === 'post') throw new Error('Synthetic lost committed response');
+    return reply;
+  };
+  await fireEvent.press(view.getByText('Sign with biometric'));
+  await waitFor(() => expect(view.getByText('Action status unconfirmed')).toBeTruthy());
+  const [, message] = view.getByText('Action status unconfirmed').parent!.children;
+  expect(message).toHaveStyle({ color: DESIGN_TOKENS.colors.text.primary });
 });
 
 it('restart recovery bypasses context and forwards the recorded full values with the same ID', async () => {

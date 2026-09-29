@@ -148,6 +148,17 @@ it('leaves the account step to its own Back and Create Wallet row', async () => 
   expect(mockFooter).toBe(false);
 });
 
+it('keeps the securing line at its earlier 16pt size', async () => {
+  const write = deferred<void>();
+  const view = await prepared(jest.fn().mockReturnValue(write.promise));
+  await fireEvent.press(view.getByText('Create Wallet'));
+  await waitFor(() => expect(view.getByText('Securing your wallet...')).toHaveStyle({ fontSize: 16 }));
+  await act(async () => {
+    write.resolve();
+    await write.promise;
+  });
+});
+
 it('awaits wallet registration and keeps account selection when it is refused', async () => {
   const write = deferred<void>();
   const close = jest.fn();

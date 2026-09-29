@@ -11,6 +11,7 @@ import {
   selectSwapSettlement,
   ApiClientProvider,
   AUTH_QUERY_KEY,
+  DESIGN_TOKENS,
   USER_PREFERENCES_QUERY_KEY,
   type SwapOrder,
   type Wallet,
@@ -307,6 +308,14 @@ it('offers the settlement checks in the dialog action row rather than as links i
   expect(actionLabels(jest.mocked(CustomModal).mock.calls.at(-1)![0].actions)).toEqual(
     expect.arrayContaining(['Check settlement status', 'Check token approval']),
   );
+});
+
+it('sets its closing note as body text, like the rest of the web settlement dialog', async () => {
+  const view = await render(<TradingScreen />, { wrapper });
+  await open(view);
+  expect(view.getByText(/^You can close and check saved settlements later/)).toHaveStyle({
+    color: DESIGN_TOKENS.colors.text.primary,
+  });
 });
 
 it('reviews exact captured terms and sends one real signature despite duplicate presses', async () => {

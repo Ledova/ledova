@@ -10,7 +10,7 @@ import {
   CheckIcon,
 } from 'phosphor-react-native';
 import { Choice, Rows } from '../Ledger';
-import { CustomModal, useDialogStyles } from '../modal';
+import { CustomModal } from '../modal';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 
 export type WalletChainFilter = 'all' | 'btc' | 'eth' | 'base';
@@ -26,10 +26,16 @@ interface WalletSortModalProps {
 
 export function WalletSortModal({ visible, selectedChain, selectedSort, onClose, onApply }: WalletSortModalProps) {
   const theme = useAppTheme();
-  const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
     group: {
       gap: theme.spacing.sm,
+    },
+    sectionLabel: {
+      fontFamily: theme.fontFamily.medium,
+      fontSize: theme.fontSize.xs,
+      color: theme.colors.text.subtle,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
     },
     chainContainer: {
       flexDirection: 'row',
@@ -55,7 +61,7 @@ export function WalletSortModal({ visible, selectedChain, selectedSort, onClose,
     },
     optionDescription: {
       fontFamily: theme.fontFamily.regular,
-      fontSize: theme.fontSize.xs,
+      fontSize: 11,
       color: theme.colors.text.muted,
     },
   }));
@@ -134,7 +140,7 @@ export function WalletSortModal({ visible, selectedChain, selectedSort, onClose,
       onConfirm={handleApply}
     >
       <View style={styles.group}>
-        <Text accessibilityRole="header" style={text.heading}>
+        <Text accessibilityRole="header" style={styles.sectionLabel}>
           Chain
         </Text>
         <View style={styles.chainContainer}>
@@ -150,7 +156,7 @@ export function WalletSortModal({ visible, selectedChain, selectedSort, onClose,
       </View>
 
       <View style={styles.group}>
-        <Text accessibilityRole="header" style={text.heading}>
+        <Text accessibilityRole="header" style={styles.sectionLabel}>
           Sort By
         </Text>
         <Rows>

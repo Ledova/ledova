@@ -69,7 +69,7 @@ export function SendForm({
     },
     walletName: {
       flexShrink: 1,
-      fontFamily: theme.fontFamily.medium,
+      fontFamily: theme.fontFamily.semibold,
       fontSize: theme.fontSize.sm,
       color: theme.colors.text.primary,
     },

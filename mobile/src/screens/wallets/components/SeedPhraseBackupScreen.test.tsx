@@ -27,3 +27,9 @@ it('titles the recovery phrase once, on its card, and ends it with Done', async 
   await fireEvent.press(done);
   expect(mockGoBack).toHaveBeenCalledTimes(1);
 });
+
+it('keeps its authenticating line at its earlier 16pt size', async () => {
+  jest.mocked(getSeedPhrase).mockReturnValue(new Promise(() => undefined));
+  const view = await render(<SeedPhraseBackupScreen />);
+  expect(view.getByText('Authenticating...')).toHaveStyle({ fontSize: 16 });
+});

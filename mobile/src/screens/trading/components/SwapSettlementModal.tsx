@@ -169,7 +169,7 @@ export function SwapSettlementModal({ settlement, wallet, visible = true, onClos
               <QRDisplay data={view.qr} isUR />
             </>
           )}
-          <Text style={text.muted}>
+          <Text style={text.text}>
             You can close and check saved settlements later. Signing and sending always require a fresh review.
           </Text>
         </View>

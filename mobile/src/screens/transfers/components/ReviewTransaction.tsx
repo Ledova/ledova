@@ -24,6 +24,11 @@ export function ReviewTransaction({ transactionData, chainShortName }: ReviewTra
       fontSize: theme.fontSize.xs,
       color: theme.colors.text.muted,
     },
+    caption: {
+      fontFamily: theme.fontFamily.semibold,
+      fontSize: theme.fontSize.xs,
+      color: theme.colors.text.secondary,
+    },
   }));
   const nativeSymbol = getNativeAssetSymbol(chainShortName);
   const isEvm = isSupportedEvmChain(chainShortName);
@@ -64,7 +69,7 @@ export function ReviewTransaction({ transactionData, chainShortName }: ReviewTra
 
       {isEvm && (
         <View style={text.group}>
-          <Text accessibilityRole="header" style={text.heading}>
+          <Text accessibilityRole="header" style={styles.caption}>
             Chain Details
           </Text>
           <Rows>
@@ -76,7 +81,7 @@ export function ReviewTransaction({ transactionData, chainShortName }: ReviewTra
 
       {transactionData.feePerByte && (
         <View style={text.group}>
-          <Text accessibilityRole="header" style={text.heading}>
+          <Text accessibilityRole="header" style={styles.caption}>
             Fee Details
           </Text>
           <Rows>

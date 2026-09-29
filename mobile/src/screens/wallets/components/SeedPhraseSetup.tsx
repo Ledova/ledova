@@ -15,7 +15,7 @@ import type { DerivedAddress } from '@ledova/shared';
 import type { SoftwareWalletImport } from '../../../utils/softwareWallet';
 import { useFetchBalances } from '../../../hooks/useFetchBalances';
 import * as LocalAuthentication from 'expo-local-authentication';
-import { CustomModal, useDialogStyles } from '../../../components/modal';
+import { CustomModal } from '../../../components/modal';
 import { SeedPhraseGenerate } from './SeedPhraseGenerate';
 import { SeedPhraseConfirm } from './SeedPhraseConfirm';
 import { SeedAccountSelector } from './SeedAccountSelector';
@@ -41,12 +41,16 @@ interface SeedPhraseSetupProps {
 
 export function SeedPhraseSetup({ visible, onClose, onComplete, onCancel, readBlocked, notice }: SeedPhraseSetupProps) {
   const theme = useAppTheme();
-  const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
     storing: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: theme.spacing.sm,
+    },
+    storingText: {
+      fontFamily: theme.fontFamily.regular,
+      fontSize: theme.fontSize.base,
+      color: theme.colors.text.muted,
     },
   }));
   const [step, setStep] = useState<SeedStep>(SEED_STEP.GENERATE);
@@ -272,7 +276,7 @@ export function SeedPhraseSetup({ visible, onClose, onComplete, onCancel, readBl
         return (
           <View style={styles.storing}>
             <ActivityIndicator size="small" color={theme.colors.interactive.default} />
-            <Text style={text.muted}>Securing your wallet...</Text>
+            <Text style={styles.storingText}>Securing your wallet...</Text>
           </View>
         );
 

@@ -8,6 +8,7 @@ import * as Crypto from 'expo-crypto';
 import {
   ApiClientProvider,
   AUTH_QUERY_KEY,
+  DESIGN_TOKENS,
   USER_PREFERENCES_QUERY_KEY,
   TRADING_ENDPOINTS,
   OrderSubmission,
@@ -204,6 +205,19 @@ it('uses real draft and biometric callbacks and recovers a lost response across 
   expect(signEthereumTypedData).toHaveBeenCalledTimes(1);
   expect(await orderSubmissionStore.list(owner)).toHaveLength(0);
 }, 15_000);
+
+it('states an unconfirmed order in plain text, as the web does', async () => {
+  const actual = handler;
+  handler = async (config) => {
+    if (config.url === endpoints.CREATE) throw new Error('Response lost');
+    return actual(config);
+  };
+  const view = await render(<TradingScreen />, { wrapper });
+  await newOrder(view);
+  await fireEvent.press(view.getByText('Sign with biometric'));
+  const [, message] = view.getByText('Order status unconfirmed').parent!.children;
+  expect(message).toHaveStyle({ color: DESIGN_TOKENS.colors.text.primary });
+});
 
 it.each(['close', 'unmount', 'account', 'session'])(
   'does not sign after a seed read resolves following %s',

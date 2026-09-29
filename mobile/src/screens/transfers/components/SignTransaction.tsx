@@ -18,6 +18,14 @@ export function SignTransaction({ urEncodedTransaction }: SignTransactionProps) 
     scrollContentContainer: {
       gap: theme.spacing.md,
     },
+    sectionTitle: {
+      fontFamily: theme.fontFamily.semibold,
+      fontSize: theme.fontSize.xs,
+      color: theme.colors.text.secondary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      textAlign: 'center',
+    },
     qrContainer: {
       alignItems: 'center',
       justifyContent: 'center',
@@ -50,7 +58,7 @@ export function SignTransaction({ urEncodedTransaction }: SignTransactionProps) 
       contentContainerStyle={styles.scrollContentContainer}
       showsVerticalScrollIndicator={false}
     >
-      <Text accessibilityRole="header" style={text.heading}>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>
         Scan with your Wallet
       </Text>
       <View style={styles.qrContainer}>

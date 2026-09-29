@@ -23,6 +23,7 @@ export function OrderActionModal({ action, wallets, onClose }: Props) {
   const styles = useThemedStyles((theme) => ({
     content: { gap: theme.spacing.md },
     group: { gap: theme.spacing.xs },
+    field: { fontSize: theme.fontSize.sm },
     replacements: {
       gap: theme.spacing.xs,
       paddingTop: theme.spacing.smd,
@@ -146,7 +147,7 @@ export function OrderActionModal({ action, wallets, onClose }: Props) {
                     <TextInput
                       accessibilityLabel="New quantity"
                       keyboardType="number-pad"
-                      style={text.field}
+                      style={[text.field, styles.field]}
                       value={state.values?.quantity ?? ''}
                       onChangeText={(value) => action.edit('quantity', value)}
                     />
@@ -156,7 +157,7 @@ export function OrderActionModal({ action, wallets, onClose }: Props) {
                     <TextInput
                       accessibilityLabel="New minimum fill"
                       keyboardType="number-pad"
-                      style={text.field}
+                      style={[text.field, styles.field]}
                       value={state.values?.minQuantity ?? ''}
                       onChangeText={(value) => action.edit('minQuantity', value)}
                     />
@@ -166,7 +167,7 @@ export function OrderActionModal({ action, wallets, onClose }: Props) {
                     <TextInput
                       accessibilityLabel="New price per share"
                       keyboardType="decimal-pad"
-                      style={text.field}
+                      style={[text.field, styles.field]}
                       value={state.values?.pricePerShare ?? ''}
                       onChangeText={(value) => action.edit('pricePerShare', value)}
                     />
@@ -250,7 +251,7 @@ export function OrderActionModal({ action, wallets, onClose }: Props) {
                     ? 'Action status unconfirmed'
                     : 'Order details unavailable'}
               </Text>
-              <Text accessibilityRole="alert" style={text.error}>
+              <Text accessibilityRole="alert" style={text.text}>
                 {state.error}
               </Text>
               {action.record && !state.canRemoveReminder && (
