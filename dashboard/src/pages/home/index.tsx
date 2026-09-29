@@ -1,7 +1,6 @@
-import { formatShareCount, getChainConfig, useShareHoldings } from '@ledova/shared';
+import { formatShareCount, getChainConfig, useOpenRows, useShareHoldings } from '@ledova/shared';
 import { Disclosure, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
-import { useOpenRows } from '@hooks/useOpenRows';
 import { HoldingWork } from './components/HoldingWork';
 
 export function HomePage() {

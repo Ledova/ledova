@@ -1,7 +1,6 @@
-import { DESTINATIONS } from '@ledova/shared';
+import { DESTINATIONS, useOpenRows } from '@ledova/shared';
 import { Disclosure, LinkRow, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
-import { useOpenRows } from '@hooks/useOpenRows';
 import { useCompanyRegister } from './useCompanyRegister';
 import { ClassRegister } from './ClassRegister';
 

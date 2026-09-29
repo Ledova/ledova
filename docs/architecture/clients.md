@@ -518,7 +518,7 @@ Pages rebuilt in the paper layout use the ledger blocks in
   by the button) only when asked, as Activity's filter is; entries are not,
   since any number of them can be open. The page keeps whether it is open, so
   it can close it when what it shows changes; a list keeps its open rows with
-  `useOpenRows`, as Activity, Holdings and the Register do.
+  `useOpenRows` from `@ledova/shared`, as Activity, Holdings and the Register do.
 - `Status`: a status in words with a small mark for waiting, moving, done or closed.
 - `Timeline`: each event with its date.
 
@@ -590,7 +590,7 @@ filter closes it and every open entry and moves the screen reader's focus back
 to Filter. On Market, each of Your orders keeps its rows and opens the rest of
 its details, from Total quantity to Order ID, under them with Details, while
 changing or cancelling an order, signing and settling stay dialogs. Both keep
-their open rows with `useOpenRows` from `@ledova/shared`.
+their open rows with the same `useOpenRows` as the web's lists.
 
 A setting that takes effect as soon as it changes has one control, a
 `SwitchRow`: Transaction alerts on Settings and Show this company to eligible
