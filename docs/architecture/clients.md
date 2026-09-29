@@ -144,22 +144,28 @@ not menu items, and the dashboard has no coin-price page or favourites. On both
 clients, Send opens its form directly when Wallets has read exactly one verified
 wallet on the networks it lists (Ethereum, Bitcoin and Base), and otherwise asks
 which wallet to send from: when several are verified, when none is, and when
-Wallets could not read them. A form opened directly offers Cancel where Back
-would return to a choice never made. The web counts the wallets Wallets last
-read, even while it reads them again; mobile asks until that read has finished,
-and opens a lone Bitcoin wallet in the Bitcoin send form, as choosing one does.
+Wallets could not read them. A form opened directly, mobile's Bitcoin form
+included, offers Cancel where Back would return to a choice never made. The web
+counts the wallets Wallets last read, even while it reads them again; mobile
+asks until that read has finished, and while it waits for the connection, and
+opens a lone Bitcoin wallet in the Bitcoin send form, as choosing one does.
 Buy crypto goes straight to the widget only when a read that has finished finds
 exactly one verified wallet on the chosen asset's network, and asks which one
 receives it when there are several; while a read is running, or waiting for the
 connection to come back, it opens nothing by itself and its chooser's wallets
-cannot be chosen. Every chooser, on both clients, reads every page, so a
+cannot be chosen. When the purchase page cannot be opened, Buy crypto gives the
+server's reason for refusing it (`readApiError` in
+`packages/shared/src/utils/errors.ts`) and otherwise says "The purchase page
+could not be opened. Try again.", never a proxy's error page or a bare status
+line. Every chooser, on both clients, reads every page, so a
 verified wallet on a later page is offered and counted, lists and counts only
 the networks Wallets lists, and shows each wallet as a Wallets row reads:
 its name or short address, its verification and signing preference named for
 screen readers, its sync age, and its balance and value labelled. None says
 there are none before a read has answered, even offline, and one that cannot
 read the wallets says so and offers Try again, hiding any it listed before,
-without the request's error text.
+without the request's error text. Mobile's Send chooser says the same when the
+account's preferences cannot be read, and its Try again reads them first.
 The retired portfolio screen's chart, allocation and snapshot helpers are removed
 from both clients and the shared package. The asset list remains in use by Buy
 crypto for current prices, and Wallets and Send still use the AUD exchange rate.
@@ -274,8 +280,11 @@ row rather than the one it was opened with. Each chain's card lists its wallets,
 and each row shows the wallet's verification and self-declared signing
 preference, named for screen readers, its sync age, its balance in the chain's
 native unit and its value in AUD, each labelled (the value is Value on the web
-and Estimated value on mobile). A balance shows at most eight decimal
-places, rounded from its decimal string rather than through a float
+and Estimated value on mobile). Verification and signing preference are icons,
+as on the web: a mobile row no longer spells out Verification in a line of
+text, so sighted people read the status from the badge's check or clock, and a
+wallet's own screen still states both in words. A balance shows at most eight
+decimal places, rounded from its decimal string rather than through a float
 (`formatCryptoBalance` in `packages/shared/src/utils/formatting.ts`), and mobile's
 value and balance orders compare the decimal strings. The clients differ in where
 a wallet's actions sit. On the web each row carries its own: Edit, Sync and
