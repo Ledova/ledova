@@ -58,12 +58,14 @@ async function podfile(contents) {
 test('pods below the Podfile platform rise to it and the rest keep their targets', () => {
   const svg = target('RNSVG-RNSVGFilters', '12.4', { PRODUCT_NAME: 'RNSVGFilters' });
   const storage = target('RNCAsyncStorage-RNCAsyncStorage_resources', '13.4');
+  const single = target('SingleDigitPod', '9.0');
   const equal = target('EqualPod', '15.1');
   const newer = target('NewerPod', '16.0');
   const unset = target('NoTargetPod', null, { SKIP_INSTALL: 'YES' });
-  assert.deepEqual(raised([null, '15.1'], [svg, storage, equal, newer, unset]), [
+  assert.deepEqual(raised([null, '15.1'], [svg, storage, single, equal, newer, unset]), [
     target('RNSVG-RNSVGFilters', '15.1', { PRODUCT_NAME: 'RNSVGFilters' }),
     target('RNCAsyncStorage-RNCAsyncStorage_resources', '15.1'),
+    target('SingleDigitPod', '15.1'),
     equal,
     newer,
     unset,

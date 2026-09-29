@@ -62,20 +62,23 @@ test('rejects ambiguous versions, teams, build numbers and release flags', () =>
     LEDOVA_IOS_RELEASE: ['true', '0'],
     LEDOVA_IOS_BUNDLE_ID: ['org example.app', 'single'],
     LEDOVA_APPLE_TEAM_ID: ['short', 'testteam01'],
-    LEDOVA_APP_VERSION: ['1.0-beta', ' 1.0.0', '01.0.0'],
+    LEDOVA_APP_VERSION: ['1.0', '1.0-beta', ' 1.0.0', '01.0.0'],
     LEDOVA_IOS_BUILD_NUMBER: ['0', '01', '1.2', '10000'],
   })) {
     for (const value of values) assert.throws(() => resolve({ ...release, [name]: value }));
   }
 });
 
-test('release endpoints cannot use HTTP, carry embedded credentials or hide whitespace and backslashes', () => {
+test('release endpoints cannot use HTTP, carry credentials, a query or a fragment, or hide whitespace and backslashes', () => {
   for (const name of ['EXPO_PUBLIC_API_URL', 'EXPO_PUBLIC_MARKETING_URL']) {
     for (const value of [
       'http://localhost:8000',
       'https://user:password@example.test',
       'https://example.test?token=secret',
       'https://example.test#fragment',
+      'https://api.example.test?',
+      'https://api.example.test#',
+      'https://api.example.test/?#',
       'https://',
       'https://api.example.test/a b',
       'https://api.example.test\\v1',

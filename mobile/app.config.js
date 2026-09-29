@@ -19,8 +19,9 @@ module.exports = ({ config }) => {
   const version = required('LEDOVA_APP_VERSION', /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/);
   const buildNumber = required('LEDOVA_IOS_BUILD_NUMBER', /^[1-9]\d{0,3}$/);
   for (const name of ['EXPO_PUBLIC_API_URL', 'EXPO_PUBLIC_MARKETING_URL']) {
-    const url = new URL(required(name, /^https:\/\/[^\s\\]+$/));
-    if (url.username || url.password || url.search || url.hash) {
+    const value = required(name, /^https:\/\/[^\s\\]+$/);
+    const url = new URL(value);
+    if (url.username || url.password || /[?#]/.test(value)) {
       throw new Error(`${name} must be an HTTPS URL without credentials, query or fragment.`);
     }
   }

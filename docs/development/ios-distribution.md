@@ -26,11 +26,12 @@ archive or export command:
 | `EXPO_PUBLIC_USE_MOCK_DATA` | `false`                                      |
 
 Unset `EXPO_PUBLIC_DEV_API_HOST` and every `EXPO_PUBLIC_NATIVE_PROBE_*` variable.
-Set the support address and App Store URL when preparing the shipped experience.
+Set `EXPO_PUBLIC_SUPPORT_EMAIL` and `EXPO_PUBLIC_APP_STORE_URL` when preparing the
+shipped experience.
 `EXPO_PUBLIC_*` values are embedded in the app and must never contain secrets.
 The release config refuses a missing or malformed identity, the development
-placeholder, HTTP endpoints, URL credentials, whitespace or backslashes inside a
-URL, mock data and native probe flags.
+placeholder, HTTP endpoints, URL credentials, a query or fragment (even an empty
+one), whitespace or backslashes inside a URL, mock data and native probe flags.
 Without `LEDOVA_IOS_RELEASE`, the development config is unchanged.
 
 Confirm the latest upload in App Store Connect before selecting a build number.
@@ -49,9 +50,12 @@ the config plugin's post-install step raises them to the Podfile platform, as
 must also adopt the UIKit scene life cycle or iOS 27 stops it at launch;
 `plugins/withSceneLifecycle.cjs` adds the scene manifest and delegate at
 prebuild, and `check-native-projects.mjs` refuses a generated project without
-them. Launch the archived app on an iOS 27 device or simulator before uploading
-it. A link that opens the closed app does not reach JavaScript under the scene
-life cycle, as [mobile builds](mobile-builds.md) explains.
+them. Before uploading, launch the same commit on iOS 27: build it in Release for
+an iOS 27 simulator and open it to the sign-in screen, or install the archive on
+an iOS 27 device. An earlier iOS does not enforce the scene life cycle, so a
+device on iOS 18 does not cover this check. A link that opens the closed app
+does not reach JavaScript under the scene life cycle, as
+[mobile builds](mobile-builds.md) explains.
 
 After installing the locked dependencies described in [mobile builds](mobile-builds.md),
 run from `mobile/` with the release environment already set:
@@ -71,10 +75,13 @@ xcodebuild -workspace ios/Ledova.xcworkspace -scheme Ledova \
 
 Set `LEDOVA_RELEASE_OUTPUT` to a new absolute directory outside the checkout.
 Inspect the resolved bundle ID, team and version before archiving. Signing needs
-a valid identity/profile for this app and team, or an authenticated Xcode account
-able to manage them. Do not reuse expired or other-team profiles. Do not revoke
-certificates to resolve a local setup issue without checking their other users.
-The commands above do not request automatic profile/certificate creation.
+a valid identity and profile for this app and team. The commands above use only
+what is already installed. With Xcode signed in to an account that can manage
+them, add `-allowProvisioningUpdates` to the archive and export commands so
+xcodebuild may create or refresh the profile, then check the developer account
+for anything it created. Do not reuse expired or other-team profiles. Do not
+revoke certificates to resolve a local setup issue without checking their other
+users.
 
 Inspect the archive's Info.plist, signature and embedded provisioning profile.
 In Xcode Organizer, validate and export for App Store Connect using the owning
