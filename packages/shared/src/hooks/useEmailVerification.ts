@@ -47,7 +47,7 @@ export function useEmailVerification(email: string, onVerified: (verification: V
       console.error(`Email verification failed: ${describeFailure(error)}`);
       if ((error as { response?: unknown })?.response) {
         const reading = readApiError(error, {
-          fallback: 'Invalid verification code. Please try again.',
+          fallback: 'We could not check your code. Please try again.',
           displayedFields: EMAIL_VERIFICATION_FIELDS,
         });
         setGeneralError(reading.generalError ?? '');

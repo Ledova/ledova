@@ -77,8 +77,8 @@ it.each<[string, number, unknown, string, Record<string, string[]>]>([
     'Enter a valid email address.',
     { token: ['This code has expired.'] },
   ],
-  ['a proxy error page', 502, PROXY_PAGE, 'Invalid verification code. Please try again.', {}],
-  ['an empty answer', 503, '', 'Invalid verification code. Please try again.', {}],
+  ['a proxy error page', 502, PROXY_PAGE, 'We could not check your code. Please try again.', {}],
+  ['an empty answer', 503, '', 'We could not check your code. Please try again.', {}],
 ])('shows what a person can read when the server answers with %s', async (_, status, data, shown, marked) => {
   jest.spyOn(console, 'error').mockImplementation(() => {});
   api.post.mockRejectedValue({
