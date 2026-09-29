@@ -1,5 +1,6 @@
-import { useContext, type ReactElement, type ReactNode } from 'react';
+import { useContext, useEffect, useRef, type Key, type ReactElement, type ReactNode } from 'react';
 import {
+  AccessibilityInfo,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -93,6 +94,7 @@ interface CustomModalProps {
   onConfirm?: () => void;
   confirmDisabled?: boolean;
   confirmLoading?: boolean;
+  contentKey?: Key;
 }
 
 export function CustomModal({
@@ -112,6 +114,7 @@ export function CustomModal({
   onConfirm,
   confirmDisabled = false,
   confirmLoading = false,
+  contentKey,
 }: CustomModalProps) {
   const insets = useDialogInsets();
   const card = useCardStyles();
@@ -144,9 +147,16 @@ export function CustomModal({
   const close = () => {
     if (!busy) onClose();
   };
+  const heading = useRef<Text>(null);
+  const shown = useRef({ contentKey, visible });
+  useEffect(() => {
+    const replaced = shown.current.visible && visible && shown.current.contentKey !== contentKey;
+    shown.current = { contentKey, visible };
+    if (replaced && heading.current) AccessibilityInfo.sendAccessibilityEvent(heading.current, 'focus');
+  }, [contentKey, visible]);
   return (
     <Modal testID={`modal-${title}`} visible={visible} transparent animationType="fade" onRequestClose={close}>
-      <View style={styles.overlay}>
+      <View key={contentKey} style={styles.overlay}>
         <Pressable
           testID={`modal-backdrop-${title}`}
           accessibilityRole="button"
@@ -162,7 +172,7 @@ export function CustomModal({
         >
           <View style={styles.position} pointerEvents="box-none">
             <View accessibilityViewIsModal style={[card.card, styles.card]}>
-              <Text accessibilityRole="header" style={card.title}>
+              <Text ref={heading} accessibilityRole="header" style={card.title}>
                 {title}
               </Text>
               <ScrollView

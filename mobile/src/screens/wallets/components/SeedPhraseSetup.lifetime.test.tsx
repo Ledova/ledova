@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
-import { SeedPhraseSetup } from './SeedPhraseSetup';
+import { AddWalletModal } from './AddWalletModal';
 import { invalidateSessionScope } from '../../../services/sessionScope';
 
 let mockModalClose: () => void;
@@ -112,17 +112,33 @@ afterEach(async () => {
   await cleanup();
 });
 
-async function prepared(onComplete: React.ComponentProps<typeof SeedPhraseSetup>['onComplete'], onClose = jest.fn()) {
+async function softwareStep(
+  onComplete: NonNullable<React.ComponentProps<typeof AddWalletModal>['onSoftwareWalletCreate']> = jest.fn(),
+  onClose = jest.fn(),
+) {
   const view = await render(
-    <SeedPhraseSetup
+    <AddWalletModal
       visible
-      onComplete={onComplete}
-      onClose={onClose}
-      onCancel={jest.fn()}
+      isLoading={false}
       readBlocked={false}
       notice={null}
+      error={null}
+      onRetry={jest.fn()}
+      onClose={onClose}
+      onSubmit={jest.fn()}
+      onBatchSubmit={jest.fn()}
+      onSoftwareWalletCreate={onComplete}
     />,
   );
+  await fireEvent.press(view.getByText('Software Wallet'));
+  return view;
+}
+
+async function prepared(
+  onComplete: NonNullable<React.ComponentProps<typeof AddWalletModal>['onSoftwareWalletCreate']>,
+  onClose = jest.fn(),
+) {
+  const view = await softwareStep(onComplete, onClose);
   await fireEvent.press(view.getByText('Continue'));
   await fireEvent.press(view.getByText('Complete fictional confirmation'));
   await fireEvent.press(view.getByText('Verify'));
@@ -130,16 +146,7 @@ async function prepared(onComplete: React.ComponentProps<typeof SeedPhraseSetup>
 }
 
 it('leaves the account step to its own Back and Create Wallet row', async () => {
-  const view = await render(
-    <SeedPhraseSetup
-      visible
-      onComplete={jest.fn()}
-      onClose={jest.fn()}
-      onCancel={jest.fn()}
-      readBlocked={false}
-      notice={null}
-    />,
-  );
+  const view = await softwareStep();
   expect(mockFooter).toBe(true);
   await fireEvent.press(view.getByText('Continue'));
   await fireEvent.press(view.getByText('Complete fictional confirmation'));

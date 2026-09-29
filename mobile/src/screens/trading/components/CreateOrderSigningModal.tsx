@@ -83,7 +83,7 @@ export function CreateOrderSigningModal({ submission, wallet, tokens, onClose, o
   return (
     <>
       <CustomModal
-        key={canConfirm ? 'confirmable' : 'status'}
+        contentKey={canConfirm ? 'confirmable' : 'status'}
         visible={!(state.phase === 'ready' && view.step === 'scan-signature')}
         title={state.recovered ? 'Check saved order' : 'Review order'}
         onClose={close}

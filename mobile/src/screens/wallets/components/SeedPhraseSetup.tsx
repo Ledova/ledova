@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { assertSessionEpoch, getSessionEpoch } from '../../../services/sessionScope';
 import { View, ActivityIndicator } from 'react-native';
 import { Text } from 'react-native';
@@ -15,7 +15,6 @@ import type { DerivedAddress } from '@ledova/shared';
 import type { SoftwareWalletImport } from '../../../utils/softwareWallet';
 import { useFetchBalances } from '../../../hooks/useFetchBalances';
 import * as LocalAuthentication from 'expo-local-authentication';
-import { CustomModal } from '../../../components/modal';
 import { SeedPhraseGenerate } from './SeedPhraseGenerate';
 import { SeedPhraseConfirm } from './SeedPhraseConfirm';
 import { SeedAccountSelector } from './SeedAccountSelector';
@@ -30,16 +29,15 @@ const SEED_STEP = {
 type SeedStep = (typeof SEED_STEP)[keyof typeof SEED_STEP];
 type InputMode = 'create' | 'import';
 
-interface SeedPhraseSetupProps {
+interface SeedPhraseSetupOptions {
   visible: boolean;
   onClose: () => void;
   onComplete: (addresses: DerivedAddress[], importData: SoftwareWalletImport) => Promise<void>;
   readBlocked: boolean;
-  notice: ReactNode;
   onCancel: () => void;
 }
 
-export function SeedPhraseSetup({ visible, onClose, onComplete, onCancel, readBlocked, notice }: SeedPhraseSetupProps) {
+export function useSeedPhraseSetup({ visible, onClose, onComplete, onCancel, readBlocked }: SeedPhraseSetupOptions) {
   const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
     storing: {
@@ -65,13 +63,16 @@ export function SeedPhraseSetup({ visible, onClose, onComplete, onCancel, readBl
 
   const [derivedData, setDerivedData] = useState<SoftwareWalletImport | null>(null);
   const [selectedAddresses, setSelectedAddresses] = useState<Set<string>>(new Set());
-  const { balances, fetchBalances } = useFetchBalances();
+  const { balances, fetchBalances, clearBalances } = useFetchBalances();
 
   const [storeError, setStoreError] = useState<string | null>(null);
 
+  const showingAccounts = visible && (step === SEED_STEP.SELECT_ACCOUNTS || step === SEED_STEP.STORING);
   useEffect(() => {
-    if (derivedData && visible) void fetchBalances(derivedData.addresses);
-  }, [derivedData, visible, fetchBalances]);
+    if (!derivedData || !showingAccounts) return;
+    void fetchBalances(derivedData.addresses);
+    return clearBalances;
+  }, [derivedData, showingAccounts, fetchBalances, clearBalances]);
 
   const selectEvmNetwork = (network: string) => {
     if (!derivedData) return;
@@ -82,6 +83,7 @@ export function SeedPhraseSetup({ visible, onClose, onComplete, onCancel, readBl
 
   useEffect(() => {
     if (!visible) {
+      setInputMode('create');
       setMnemonic('');
       setImportWords(Array(12).fill(''));
       setDerivedData(null);
@@ -285,18 +287,14 @@ export function SeedPhraseSetup({ visible, onClose, onComplete, onCancel, readBl
     }
   };
 
-  return (
-    <CustomModal
-      visible={visible}
-      title="Add wallet"
-      onClose={() => {
+  return {
+    modal: {
+      onClose: () => {
         if (step !== SEED_STEP.STORING) onClose();
-      }}
-      showFooter={step === SEED_STEP.GENERATE || step === SEED_STEP.CONFIRM}
-      {...getFooterProps()}
-    >
-      {notice}
-      {renderContent()}
-    </CustomModal>
-  );
+      },
+      showFooter: step === SEED_STEP.GENERATE || step === SEED_STEP.CONFIRM,
+      ...getFooterProps(),
+    },
+    content: renderContent(),
+  };
 }

@@ -473,7 +473,7 @@ export function TradingScreen() {
 
       {actions.active && (
         <OrderActionModal
-          key={actions.active.record?.actionId ?? `${actions.active.orderUuid}/${actions.active.purpose}`}
+          key={`${actions.active.orderUuid}/${actions.active.purpose}`}
           action={actions.active}
           wallets={actionWallets}
           onClose={actions.close}
