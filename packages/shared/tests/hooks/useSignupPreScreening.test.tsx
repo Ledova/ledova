@@ -14,7 +14,7 @@ const profile = {
   confirmedIndividualAccount: false,
 };
 const PROXY_PAGE =
-  '<!DOCTYPE html><html><head><title>502 Bad Gateway</title></head><body><h1>502 Bad Gateway</h1></body></html>';
+  '<!DOCTYPE html><html><head><title>403 Forbidden</title></head><body><h1>403 Forbidden</h1></body></html>';
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -57,8 +57,8 @@ it.each<[string, number, unknown, string]>([
     { confirmedOver18: ['You must be 18 or older to continue.'] },
     'You must be 18 or older to continue.',
   ],
-  ['a proxy error page', 502, PROXY_PAGE, 'Failed to save pre-screening. Please try again.'],
-  ['an empty answer', 503, '', 'Failed to save pre-screening. Please try again.'],
+  ['a proxy error page', 403, PROXY_PAGE, 'Failed to save pre-screening. Please try again.'],
+  ['an empty answer', 404, '', 'Failed to save pre-screening. Please try again.'],
 ])('shows what a person can read when the server answers with %s', async (_, status, data, shown) => {
   jest.spyOn(console, 'error').mockImplementation(() => {});
   api.patch.mockRejectedValue({ response: { status, data } });

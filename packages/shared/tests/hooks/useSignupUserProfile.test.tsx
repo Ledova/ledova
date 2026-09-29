@@ -17,7 +17,7 @@ const profile = {
   phoneNumber: '7700900123',
 };
 const PROXY_PAGE =
-  '<!DOCTYPE html><html><head><title>502 Bad Gateway</title></head><body><h1>502 Bad Gateway</h1></body></html>';
+  '<!DOCTYPE html><html><head><title>403 Forbidden</title></head><body><h1>403 Forbidden</h1></body></html>';
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -68,8 +68,8 @@ it.each<[string, number, unknown, string, Record<string, string[]>]>([
     'Choose a supported country.',
     { phoneNumber: ['Enter a valid phone number.'] },
   ],
-  ['a proxy error page', 502, PROXY_PAGE, 'Failed to save profile. Please try again.', {}],
-  ['an empty answer', 503, '', 'Failed to save profile. Please try again.', {}],
+  ['a proxy error page', 403, PROXY_PAGE, 'Failed to save profile. Please try again.', {}],
+  ['an empty answer', 404, '', 'Failed to save profile. Please try again.', {}],
 ])('shows what a person can read when the server answers with %s', async (_, status, data, shown, marked) => {
   jest.spyOn(console, 'error').mockImplementation(() => {});
   api.patch.mockRejectedValue({ response: { status, data } });

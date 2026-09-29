@@ -74,7 +74,7 @@ it('retries a failed load from a fresh loading state', async () => {
 });
 
 const PROXY_PAGE =
-  '<!DOCTYPE html><html><head><title>502 Bad Gateway</title></head><body><h1>502 Bad Gateway</h1></body></html>';
+  '<!DOCTYPE html><html><head><title>403 Forbidden</title></head><body><h1>403 Forbidden</h1></body></html>';
 
 async function savedProfile(saved: object = {}) {
   api.get.mockResolvedValueOnce({ data: { count: 1, results: [{ uuid: 'profile-1' }] } });
@@ -103,8 +103,8 @@ it.each<[string, number, unknown, string, Record<string, string[]>]>([
     'A financial profile already exists for this user.',
     { occupation: ['Ensure this field has no more than 200 characters.'] },
   ],
-  ['a proxy error page', 502, PROXY_PAGE, 'Failed to save profile. Please try again.', {}],
-  ['an empty answer', 503, '', 'Failed to save profile. Please try again.', {}],
+  ['a proxy error page', 403, PROXY_PAGE, 'Failed to save profile. Please try again.', {}],
+  ['an empty answer', 404, '', 'Failed to save profile. Please try again.', {}],
 ])('shows what a person can read when the server answers with %s', async (_, status, data, shown, marked) => {
   jest.spyOn(console, 'error').mockImplementation(() => {});
   api.patch.mockRejectedValue({ response: { status, data } });

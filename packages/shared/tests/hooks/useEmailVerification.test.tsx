@@ -59,7 +59,7 @@ it('asks for the whole code before calling the server', async () => {
 });
 
 const PROXY_PAGE =
-  '<!DOCTYPE html><html><head><title>502 Bad Gateway</title></head><body><h1>502 Bad Gateway</h1></body></html>';
+  '<!DOCTYPE html><html><head><title>403 Forbidden</title></head><body><h1>403 Forbidden</h1></body></html>';
 
 it.each<[string, number, unknown, string, Record<string, string[]>]>([
   ['a sentence', 429, 'Too many attempts. Wait a minute.', 'Too many attempts. Wait a minute.', {}],
@@ -77,8 +77,8 @@ it.each<[string, number, unknown, string, Record<string, string[]>]>([
     'Enter a valid email address.',
     { token: ['This code has expired.'] },
   ],
-  ['a proxy error page', 502, PROXY_PAGE, 'We could not check your code. Please try again.', {}],
-  ['an empty answer', 503, '', 'We could not check your code. Please try again.', {}],
+  ['a proxy error page', 403, PROXY_PAGE, 'We could not check your code. Please try again.', {}],
+  ['an empty answer', 404, '', 'We could not check your code. Please try again.', {}],
 ])('shows what a person can read when the server answers with %s', async (_, status, data, shown, marked) => {
   jest.spyOn(console, 'error').mockImplementation(() => {});
   api.post.mockRejectedValue({
