@@ -6,22 +6,13 @@ import {
   isSupportedEvmTestChainId,
   isBitcoinTestnetSigningPath,
   isValidBitcoinNativeSegwitTestAddress,
+  type PreparedEvmTransaction,
 } from '@ledova/shared';
+import { preparedTransferTransaction } from '../preparedTransfer';
 
 export function encodeEthereumTransaction(
   address: string,
-  transaction: {
-    nonce: number;
-    to: string;
-    value: number;
-    gas: number;
-    chainId: number;
-    type?: number;
-    gasPrice?: number;
-    maxFeePerGas?: number;
-    maxPriorityFeePerGas?: number;
-    data?: string;
-  },
+  transaction: PreparedEvmTransaction,
   derivationPath?: string,
   masterFingerprint?: string,
 ): { type: string; cbor: Buffer; urString: string } | null {
@@ -32,32 +23,7 @@ export function encodeEthereumTransaction(
       return null;
     }
 
-    const isEIP1559 =
-      transaction.type === 2 ||
-      (transaction.maxFeePerGas !== undefined && transaction.maxPriorityFeePerGas !== undefined);
-
-    const ethTx = isEIP1559
-      ? Transaction.from({
-          type: 2,
-          to: transaction.to,
-          value: transaction.value,
-          gasLimit: transaction.gas,
-          maxFeePerGas: transaction.maxFeePerGas,
-          maxPriorityFeePerGas: transaction.maxPriorityFeePerGas,
-          nonce: transaction.nonce,
-          chainId: transaction.chainId,
-          data: transaction.data || '0x',
-        })
-      : Transaction.from({
-          type: 0,
-          to: transaction.to,
-          value: transaction.value,
-          gasLimit: transaction.gas,
-          gasPrice: transaction.gasPrice,
-          nonce: transaction.nonce,
-          chainId: transaction.chainId,
-          data: transaction.data || '0x',
-        });
+    const ethTx = Transaction.from(preparedTransferTransaction(transaction));
 
     const unsignedTx = ethTx.unsignedSerialized;
     const signDataHex = unsignedTx.startsWith('0x') ? unsignedTx.slice(2) : unsignedTx;

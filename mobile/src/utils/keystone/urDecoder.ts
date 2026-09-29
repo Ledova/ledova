@@ -2,21 +2,12 @@ import { URDecoder } from '@ngraveio/bc-ur';
 import { ETHSignature } from '@keystonehq/bc-ur-registry-eth';
 import { BtcSignature } from '@keystonehq/bc-ur-registry-btc';
 import { Transaction } from 'ethers';
+import type { PreparedEvmTransaction } from '@ledova/shared';
+import { preparedTransferTransaction } from '../preparedTransfer';
 
 export function decodeKeystoneSignature(
   urSignatureString: string,
-  unsignedTransaction: {
-    nonce: number;
-    to: string;
-    value: number;
-    gas: number;
-    chainId: number;
-    type?: number;
-    gasPrice?: number;
-    maxFeePerGas?: number;
-    maxPriorityFeePerGas?: number;
-    data?: string;
-  },
+  unsignedTransaction: PreparedEvmTransaction,
 ): string | null {
   try {
     const decoder = new URDecoder();
@@ -38,34 +29,7 @@ export function decodeKeystoneSignature(
     const s = '0x' + signatureBuffer.slice(32, 64).toString('hex');
     const v = signatureBuffer[64];
 
-    const isEIP1559 =
-      unsignedTransaction.type === 2 ||
-      (unsignedTransaction.maxFeePerGas !== undefined && unsignedTransaction.maxPriorityFeePerGas !== undefined);
-
-    const ethTx = isEIP1559
-      ? Transaction.from({
-          type: 2,
-          to: unsignedTransaction.to,
-          value: unsignedTransaction.value,
-          gasLimit: unsignedTransaction.gas,
-          maxFeePerGas: unsignedTransaction.maxFeePerGas,
-          maxPriorityFeePerGas: unsignedTransaction.maxPriorityFeePerGas,
-          nonce: unsignedTransaction.nonce,
-          chainId: unsignedTransaction.chainId,
-          data: unsignedTransaction.data || '0x',
-          signature: { r, s, v },
-        })
-      : Transaction.from({
-          type: 0,
-          to: unsignedTransaction.to,
-          value: unsignedTransaction.value,
-          gasLimit: unsignedTransaction.gas,
-          gasPrice: unsignedTransaction.gasPrice,
-          nonce: unsignedTransaction.nonce,
-          chainId: unsignedTransaction.chainId,
-          data: unsignedTransaction.data || '0x',
-          signature: { r, s, v },
-        });
+    const ethTx = Transaction.from({ ...preparedTransferTransaction(unsignedTransaction), signature: { r, s, v } });
 
     return ethTx.serialized;
   } catch {

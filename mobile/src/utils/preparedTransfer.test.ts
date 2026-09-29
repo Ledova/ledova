@@ -1,7 +1,12 @@
-import { Interface, Transaction, getAddress, parseEther, parseUnits } from 'ethers';
+import { EthSignRequest, ETHSignature } from '@keystonehq/bc-ur-registry-eth';
+import { HDNodeWallet, Interface, Transaction, getAddress, parseEther, parseUnits } from 'ethers';
 import fixture from '../../../packages/shared/tests/fixtures/prepared-transfer-api.json';
 import { preparedTransferTransaction } from './preparedTransfer';
 import { signEthereumTransaction } from './softwareWallet/localSigner';
+import { encodeEthereumTransaction } from './keystone/urEncoder';
+import { decodeKeystoneSignature } from './keystone/urDecoder';
+
+jest.mock('uuid', () => ({ v4: () => '70000000-0000-4000-8000-000000000001' }));
 
 const { mnemonic, derivationPath } = fixture.signer;
 const erc20 = new Interface(['function transfer(address to, uint256 amount)']);
@@ -75,3 +80,20 @@ it.each([undefined, null, JSON.stringify(fixture.native.transaction)])(
     expect(() => preparedTransferTransaction(transaction)).toThrow('The prepared transaction is unavailable.');
   },
 );
+
+it('encodes the native send the backend prepared for Keystone and rebuilds the bytes the software signer makes', async () => {
+  const prepared = fixture.native;
+  const encoded = encodeEthereumTransaction(prepared.fromAddress, prepared.transaction, derivationPath, '12345678');
+  expect(encoded).not.toBeNull();
+  const request = EthSignRequest.fromCBOR(encoded!.cbor);
+  const unsigned = Transaction.from(`0x${request.getSignData().toString('hex')}`);
+  const device = HDNodeWallet.fromPhrase(mnemonic, undefined, derivationPath);
+  const signature = device.signingKey.sign(unsigned.unsignedHash);
+  const scanned = new ETHSignature(Buffer.from(signature.serialized.slice(2), 'hex')).toUREncoder(1000).nextPart();
+  const expected = await signEthereumTransaction(
+    mnemonic,
+    derivationPath,
+    preparedTransferTransaction(prepared.transaction),
+  );
+  expect(decodeKeystoneSignature(scanned, prepared.transaction)).toBe(expected);
+});
