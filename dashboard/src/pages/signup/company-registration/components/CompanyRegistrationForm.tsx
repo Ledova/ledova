@@ -1,9 +1,7 @@
 import { Field, Label, Input, Description } from '@headlessui/react';
 import { BuildingsIcon, WarningIcon, CaretDownIcon } from '@phosphor-icons/react';
-import { DESIGN_TOKENS } from '@ledova/shared';
+import { ICON_MD } from '@components/iconSizes';
 import { COMPANY_TYPES } from '../constants';
-
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 
 interface CompanyFormData {
   name: string;

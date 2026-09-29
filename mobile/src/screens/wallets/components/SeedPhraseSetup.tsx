@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { assertSessionEpoch, getSessionEpoch } from '../../../services/sessionScope';
-import { View, ActivityIndicator } from 'react-native';
-import { Text } from 'react-native';
+import { View, ActivityIndicator, Text } from 'react-native';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import {
   generateMnemonic,

@@ -15,7 +15,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { GradientBackground } from '../../components/GradientBackground';
 import { PrimaryButton } from '../../components/buttons';
 import { useSignIn } from './useSignIn';
-import { useAppLock } from '../../contexts';
+import { useAppLock, useAppTheme, useThemedStyles } from '../../contexts';
 import {
   LockIcon,
   EnvelopeSimpleIcon,
@@ -26,7 +26,6 @@ import {
   KeyIcon,
 } from 'phosphor-react-native';
 import { layout } from '../../styles';
-import { useAppTheme, useThemedStyles } from '../../contexts';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 
 export function SignInScreen() {

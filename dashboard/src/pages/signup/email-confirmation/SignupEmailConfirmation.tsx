@@ -3,9 +3,7 @@ import { EnvelopeIcon } from '@phosphor-icons/react';
 import { EmailConfirmationForm } from './components/EmailConfirmationForm';
 import { useSignupEmailConfirmation } from './useSignupEmailConfirmation';
 import { AuthLayout } from '@components/AuthLayout';
-import { DESIGN_TOKENS } from '@ledova/shared';
-
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
+import { ICON_MD } from '@components/iconSizes';
 
 export function SignupEmailConfirmation() {
   const navigate = useNavigate();

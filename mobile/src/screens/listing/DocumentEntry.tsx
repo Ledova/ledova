@@ -5,19 +5,13 @@ import { formatDate, getErrorMessage, type CompanyDocument } from '@ledova/share
 import { Action } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch } from '../../services/sessionScope';
-import { shareDocumentCopy } from '../../services/documentCopies';
+import { shareDocumentCopy, UTI_BY_MIME_TYPE } from '../../services/documentCopies';
 import { useCompanyStyles } from '../company-register/styles';
 
 const EXTENSION_BY_MIME_TYPE: Record<string, string> = {
   'application/pdf': '.pdf',
   'image/png': '.png',
   'image/jpeg': '.jpg',
-};
-
-const UTI_BY_MIME_TYPE: Record<string, string> = {
-  'application/pdf': 'com.adobe.pdf',
-  'image/png': 'public.png',
-  'image/jpeg': 'public.jpeg',
 };
 
 export function DocumentEntry({

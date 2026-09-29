@@ -4,9 +4,7 @@ import { ListIcon, XIcon } from '@phosphor-icons/react';
 import { NotificationBell } from '@components/NotificationBell';
 import { Sidebar } from '@components/Sidebar';
 import { Logo } from '@components/Logo';
-import { DESIGN_TOKENS } from '@ledova/shared';
-
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
+import { ICON_MD } from '@components/iconSizes';
 
 export function MobileHeader() {
   const [isOpen, setIsOpen] = useState(false);

@@ -6,13 +6,11 @@ import {
   getNativeAssetSymbol,
   WALLET_SIGNING_PREFERENCE,
   getWalletSigningPreferenceLabel,
-  DESIGN_TOKENS,
   useCurrency,
 } from '@ledova/shared';
+import { ICON_XS } from '@components/iconSizes';
 import type { Wallet } from '@ledova/shared';
 import { WalletBadge } from './WalletBadge';
-
-const ICON_XS = DESIGN_TOKENS.icon.sizes.xs;
 
 interface WalletSummaryProps {
   wallet: Wallet;

@@ -5,9 +5,7 @@ import LoadingState from '@components/signup/LoadingState';
 import ErrorState from '@components/signup/ErrorState';
 import { useSignupPreScreening } from './useSignupPreScreening';
 import { AuthLayout } from '@components/AuthLayout';
-import { DESIGN_TOKENS } from '@ledova/shared';
-
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
+import { ICON_MD } from '@components/iconSizes';
 
 export function SignupPreScreening() {
   const navigate = useNavigate();

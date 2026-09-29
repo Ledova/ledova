@@ -17,11 +17,9 @@ import {
   WALLET_VERIFICATION_STATUS,
   WALLET_SIGNING_PREFERENCE,
   getWalletSigningPreferenceLabel,
-  DESIGN_TOKENS,
   useCurrency,
 } from '@ledova/shared';
-
-const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
+import { ICON_SM } from '@components/iconSizes';
 import type { Wallet as WalletType } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { Row, Rows } from '@components/Ledger';

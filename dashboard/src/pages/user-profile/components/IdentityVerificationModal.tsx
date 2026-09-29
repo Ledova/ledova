@@ -1,12 +1,10 @@
 import { useEffect, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { WarningIcon, CheckCircleIcon, ClockCountdownIcon, ArrowCounterClockwiseIcon } from '@phosphor-icons/react';
-import { DESIGN_TOKENS } from '@ledova/shared';
+import { ICON_MD } from '@components/iconSizes';
 import { useIdentityVerification } from '@hooks/useIdentityVerification';
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
-
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 
 interface IdentityVerificationModalProps {
   isOpen: boolean;
