@@ -90,6 +90,15 @@ the same results as CI's environment, but one changed from them can change a
 result: rerun a local failure with only CI's variables before reading it as a
 regression.
 
+On macOS the suites run the real upload decoder and scanner client, but the
+kernel refuses their address-space limit (see
+[upload limits](../operations/uploads.md#upload-validation-and-resource-limits)).
+The ordinary suite then skips
+`test_a_real_decoder_cannot_run_with_an_insufficient_address_space_budget` with
+that reason, and the warning appears in the output. The CPU-limit and
+wall-deadline tests still run there, and so do the tests that simulate a kernel
+refusing each limit. Only a Linux run, such as CI, proves the address-space cap.
+
 CI splits the ordinary suite into parallel "Django ordinary shard (NAME)" jobs,
 one for each shard in
 [`.github/ordinary-suite-shards.json`](../../.github/ordinary-suite-shards.json).
