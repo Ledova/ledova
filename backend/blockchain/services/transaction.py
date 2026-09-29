@@ -1,9 +1,7 @@
 import json
 import logging
-from datetime import timedelta
 from typing import Any
 
-from django.utils import timezone
 from web3 import Web3
 
 from shared.db import atomic
@@ -95,13 +93,3 @@ def check_pending_transactions(chain_client) -> dict[str, Any]:
 
     logger.info(f"Checked {checked} transactions: {confirmed} confirmed, {failed} failed")
     return {"checked": checked, "confirmed": confirmed, "failed": failed}
-
-
-def cleanup_stale_transactions(hours: int = 24) -> dict[str, Any]:
-    from blockchain.models import BlockchainTransaction
-
-    cutoff = timezone.now() - timedelta(hours=hours)
-    overdue = BlockchainTransaction.objects.stale(cutoff).count()
-
-    logger.info("Retained %s overdue transactions for receipt recovery", overdue)
-    return {"cleaned": 0, "overdue": overdue}
