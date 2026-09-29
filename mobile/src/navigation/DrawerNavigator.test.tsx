@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert } from 'react-native';
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { signout } from '@ledova/shared';
 import { notificationsService } from '../services/notificationsService';
@@ -11,6 +11,7 @@ const mockReset = jest.fn();
 const mockNavigate = jest.fn();
 let mockRole = { isCompany: false, isInvestor: true, isLoading: false };
 let mockTradingEnabled = false;
+let mockProfile: { fullName?: string | null; email: string } | null = null;
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ reset: mockReset, navigate: mockNavigate }) }));
 jest.mock('@react-navigation/native-stack', () => ({
   createNativeStackNavigator: () => ({ Navigator: () => null, Screen: () => null }),
@@ -36,6 +37,11 @@ jest.mock('../screens/settings', () => ({ SettingsScreen: () => null }));
 jest.mock('../components/notifications', () => ({ NotificationsModal: () => null }));
 jest.mock('../hooks/useFeatureFlags', () => ({ useFeatureFlags: () => ({ isEnabled: () => mockTradingEnabled }) }));
 jest.mock('../hooks/useRole', () => ({ useRole: () => mockRole }));
+jest.mock('../screens/user-profile/useUserProfile', () => ({ useUserProfile: () => ({ userProfile: mockProfile }) }));
+jest.mock('react-native-safe-area-context', () => ({
+  ...jest.requireActual('react-native-safe-area-context'),
+  useSafeAreaInsets: () => ({ top: 0, bottom: 34, left: 0, right: 0 }),
+}));
 jest.mock('../services/apiClient', () => ({ apiClient: {} }));
 jest.mock('../services/notificationsService', () => ({ notificationsService: { unregisterToken: jest.fn() } }));
 jest.mock('../services/tokenStorage', () => ({ clearTokens: jest.fn() }));
@@ -51,6 +57,7 @@ function cache() {
 beforeEach(() => {
   mockRole = { isCompany: false, isInvestor: true, isLoading: false };
   mockTradingEnabled = false;
+  mockProfile = null;
   client = new QueryClient();
   client.setQueryData(account, { email: 'synthetic@example.test' });
   events = [];
@@ -94,7 +101,7 @@ it.each([
     </QueryClientProvider>,
   );
 
-  await fireEvent.press(view.getByText('Logout'));
+  await fireEvent.press(view.getByRole('button', { name: 'Sign out' }));
   await fireEvent.press(view.getAllByText('Sign Out').at(-1)!);
 
   await waitFor(() => expect(view.queryByText('Sign Out')).toBeNull());
@@ -108,7 +115,7 @@ it.each([
   expect(mockReset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'SignIn' }] });
   expect(jest.mocked(Alert.alert).mock.calls).toEqual(alerts);
 
-  await fireEvent.press(view.getByText('Logout'));
+  await fireEvent.press(view.getByRole('button', { name: 'Sign out' }));
   expect(view.getAllByText('Sign Out')).toHaveLength(2);
   expect(view.queryByText('Loading...')).toBeNull();
 });
@@ -211,4 +218,54 @@ it('keeps securities Market behind its feature flag and waits for the role befor
     screen: 'Main',
     params: { screen: 'Wallets', params: { screen: 'WalletsList' } },
   });
+});
+
+async function footOf() {
+  const view = await render(
+    <QueryClientProvider client={client}>
+      <DrawerNavigator />
+    </QueryClientProvider>,
+  );
+  const foot = view.getByTestId('drawer-foot');
+  return {
+    view,
+    foot,
+    texts: within(foot)
+      .getAllByText(/.+/)
+      .map((node) => node.props.children),
+  };
+}
+
+it("ends the drawer with one block: the person's name, then Sign out, instead of a Logout item", async () => {
+  mockProfile = { fullName: 'Ada Lovelace', email: 'ada@example.test' };
+  const { view, foot, texts } = await footOf();
+
+  expect(texts).toEqual(['Ada Lovelace', 'Sign out']);
+  expect(within(foot).getByRole('button', { name: 'Sign out' })).toBeTruthy();
+  expect(view.queryByText('ada@example.test')).toBeNull();
+  expect(view.queryByText('Logout')).toBeNull();
+});
+
+it.each([
+  ['no name', null],
+  ['a blank name', '  '],
+])('names the person by email in the foot when the profile has %s', async (_, fullName) => {
+  mockProfile = { fullName, email: 'ada@example.test' };
+  const { texts } = await footOf();
+
+  expect(texts).toEqual(['ada@example.test', 'Sign out']);
+});
+
+it('shows Sign out alone in the foot while the profile is unknown', async () => {
+  const { texts } = await footOf();
+
+  expect(texts).toEqual(['Sign out']);
+});
+
+it('offers Help & Support as a footer link to the Help screen rather than a menu item', async () => {
+  const { view } = await footOf();
+
+  expect(view.queryByRole('button', { name: 'Help & Support' })).toBeNull();
+  await fireEvent.press(view.getByRole('link', { name: 'Help & Support' }));
+  expect(mockNavigate).toHaveBeenLastCalledWith('MainApp', { screen: 'Help' });
 });
