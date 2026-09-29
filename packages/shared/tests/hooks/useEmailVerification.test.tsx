@@ -58,10 +58,31 @@ it('asks for the whole code before calling the server', async () => {
   expect(onVerified).not.toHaveBeenCalled();
 });
 
-it('shows the refusal, does not move on, and logs the failure without its body', async () => {
+const PROXY_PAGE =
+  '<!DOCTYPE html><html><head><title>502 Bad Gateway</title></head><body><h1>502 Bad Gateway</h1></body></html>';
+
+it.each<[string, number, unknown, string, Record<string, string[]>]>([
+  ['a sentence', 429, 'Too many attempts. Wait a minute.', 'Too many attempts. Wait a minute.', {}],
+  [
+    'the refusal it sends for a wrong code',
+    400,
+    { token: ['Invalid email or verification code.'] },
+    '',
+    { token: ['Invalid email or verification code.'] },
+  ],
+  [
+    'refusals for the code and for the email the page does not show',
+    400,
+    { token: ['This code has expired.'], email: ['Enter a valid email address.'] },
+    'Enter a valid email address.',
+    { token: ['This code has expired.'] },
+  ],
+  ['a proxy error page', 502, PROXY_PAGE, 'Invalid verification code. Please try again.', {}],
+  ['an empty answer', 503, '', 'Invalid verification code. Please try again.', {}],
+])('shows what a person can read when the server answers with %s', async (_, status, data, shown, marked) => {
   jest.spyOn(console, 'error').mockImplementation(() => {});
   api.post.mockRejectedValue({
-    response: { status: 400, data: { token: ['This code has expired.'] } },
+    response: { status, data },
     config: { method: 'post', url: AUTH_ENDPOINTS.EMAIL_VERIFICATION },
   });
   const onVerified = jest.fn();
@@ -71,13 +92,25 @@ it('shows the refusal, does not move on, and logs the failure without its body',
 
   await act(() => result.current.handleVerify(moveOn));
 
-  expect(result.current.errors).toEqual({ token: ['This code has expired.'] });
-  expect(result.current.generalError).toBe('This code has expired.');
+  expect(result.current.generalError).toBe(shown);
+  expect(result.current.errors).toEqual(marked);
   expect(console.error).toHaveBeenCalledWith(
-    `Email verification failed: status=400 request=POST ${AUTH_ENDPOINTS.EMAIL_VERIFICATION}`,
+    `Email verification failed: status=${status} request=POST ${AUTH_ENDPOINTS.EMAIL_VERIFICATION}`,
   );
   expect(onVerified).not.toHaveBeenCalled();
   expect(moveOn).not.toHaveBeenCalled();
+});
+
+it('still says to check the connection when no answer came back', async () => {
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  api.post.mockRejectedValue(Object.assign(new Error('Network Error'), { code: 'ERR_NETWORK' }));
+  const { result } = renderHook(() => useEmailVerification('synthetic@example.test', jest.fn()), { wrapper });
+  act(() => result.current.setVerificationCode('123456'));
+
+  await act(() => result.current.handleVerify(jest.fn()));
+
+  expect(result.current.generalError).toBe('Network error. Please check your connection.');
+  expect(result.current.errors).toEqual({});
 });
 
 it('resends to the same email, says so, and clears the code typed so far', async () => {

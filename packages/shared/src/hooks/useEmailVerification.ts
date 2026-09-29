@@ -3,11 +3,13 @@ import { useState } from 'react';
 import { EMAIL_CONFIRMATION_VALIDATION } from '../constants/utilities';
 import { resendVerificationCode, verifyEmail } from '../services/auth';
 import type { FormErrors } from '../types';
-import { describeFailure } from '../utils/errors';
+import { describeFailure, readApiError } from '../utils/errors';
 import { formatVerificationToken, validateEmailConfirmation } from '../utils/validation';
 import { useApiClient } from './useApiClient';
 
 type Verification = Awaited<ReturnType<typeof verifyEmail>>;
+
+export const EMAIL_VERIFICATION_FIELDS = ['token'] as const;
 
 export function useEmailVerification(email: string, onVerified: (verification: Verification) => Promise<void> | void) {
   const apiClient = useApiClient();
@@ -43,20 +45,13 @@ export function useEmailVerification(email: string, onVerified: (verification: V
       onSuccess();
     } catch (error: unknown) {
       console.error(`Email verification failed: ${describeFailure(error)}`);
-      const axiosError = error as { response?: { data?: unknown } };
-      if (axiosError.response?.data) {
-        const errorData = axiosError.response.data;
-        if (typeof errorData === 'object' && !Array.isArray(errorData)) {
-          setErrors(errorData as FormErrors);
-          const firstError = Object.values(errorData).flat()[0];
-          if (firstError) {
-            setGeneralError(firstError as string);
-          }
-        } else if (typeof errorData === 'string') {
-          setGeneralError(errorData);
-        } else {
-          setGeneralError('Invalid verification code. Please try again.');
-        }
+      if ((error as { response?: unknown })?.response) {
+        const reading = readApiError(error, {
+          fallback: 'Invalid verification code. Please try again.',
+          displayedFields: EMAIL_VERIFICATION_FIELDS,
+        });
+        setGeneralError(reading.generalError ?? '');
+        setErrors(reading.fieldErrors ?? {});
       } else {
         setGeneralError('Network error. Please check your connection.');
       }

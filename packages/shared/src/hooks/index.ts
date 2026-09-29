@@ -17,7 +17,7 @@ export { useResolutionStatus } from './useResolutionStatus';
 export { useShareHoldings } from './useShareHoldings';
 export { useDirectoryToken, useDirectoryTokens } from './useDirectory';
 export { SIGNUP_USER_FIELDS, useSignupUser } from './useSignupUser';
-export { useEmailVerification } from './useEmailVerification';
+export { EMAIL_VERIFICATION_FIELDS, useEmailVerification } from './useEmailVerification';
 export { useSignupPreScreening } from './useSignupPreScreening';
 export { USER_PROFILE_FIELDS, useSignupUserProfile } from './useSignupUserProfile';
 export { FINANCIAL_PROFILE_FIELDS, useSignupFinancialProfile } from './useSignupFinancialProfile';
