@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react';
-import {
-  getFinancialProfiles,
-  createFinancialProfile,
-  updateFinancialProfile,
-  getUserProfiles,
-  sourceOfFundsChoices,
-} from '@ledova/shared';
-import { apiClient } from '../../../services/apiClient';
-import type { CreateFinancialProfile, FinancialProfileFormState, FormErrors } from '@ledova/shared';
 
-export const useFinancialProfile = () => {
+import { createFinancialProfile, getFinancialProfiles, updateFinancialProfile } from '../services/financialProfile';
+import { getUserProfiles } from '../services/users';
+import type { CreateFinancialProfile, FinancialProfileFormState, FormErrors } from '../types';
+import { describeFailure } from '../utils/errors';
+import { sourceOfFundsChoices } from '../utils/formatting-labels';
+import { useApiClient } from './useApiClient';
+
+export function useSignupFinancialProfile() {
+  const apiClient = useApiClient();
   const [form, setForm] = useState<FinancialProfileFormState>({
     userProfileId: '',
     occupation: '',
@@ -27,15 +26,12 @@ export const useFinancialProfile = () => {
   const [userProfileId, setUserProfileId] = useState<string | null>(null);
 
   const loadData = async () => {
-    setIsLoading(true);
-    setGeneralError('');
-
     try {
       const profileResponse = await getUserProfiles(apiClient);
       const profileData = profileResponse.data;
 
       if (profileData && profileData.results && profileData.count > 0) {
-        const userProfile = profileData.results[0];
+        const userProfile = profileData.results[0]!;
         const profileUuid = userProfile.uuid;
         setUserProfileId(profileUuid);
         setForm((prev) => ({ ...prev, userProfileId: profileUuid }));
@@ -44,7 +40,7 @@ export const useFinancialProfile = () => {
         const financialProfileData = financialProfileResponse.data;
 
         if (financialProfileData && financialProfileData.results && financialProfileData.count > 0) {
-          const existingProfile = financialProfileData.results[0];
+          const existingProfile = financialProfileData.results[0]!;
           setExistingProfileUuid(existingProfile.uuid);
 
           setForm({
@@ -59,7 +55,8 @@ export const useFinancialProfile = () => {
       } else {
         setGeneralError('Please complete your user profile first.');
       }
-    } catch {
+    } catch (error) {
+      console.error(`Failed to load financial profile: ${describeFailure(error)}`);
       setGeneralError('Failed to load profile. Please try again.');
     } finally {
       setIsLoading(false);
@@ -148,6 +145,7 @@ export const useFinancialProfile = () => {
 
       onSuccess();
     } catch (error: unknown) {
+      console.error(`Financial profile update failed: ${describeFailure(error)}`);
       const axiosError = error as { response?: { data?: unknown } };
       if (axiosError.response?.data) {
         const errorData = axiosError.response.data;
@@ -172,6 +170,8 @@ export const useFinancialProfile = () => {
   };
 
   const retryLoad = () => {
+    setIsLoading(true);
+    setGeneralError('');
     loadData();
   };
 
@@ -181,10 +181,11 @@ export const useFinancialProfile = () => {
     generalError,
     isLoading,
     isSubmitting,
+    existingProfileUuid,
     userProfileId,
     setFieldValue,
     toggleSourceOfFunds,
     handleSubmit,
     retryLoad,
   };
-};
+}

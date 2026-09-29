@@ -1,19 +1,22 @@
-// @vitest-environment jsdom
-
+/** @jest-environment jsdom */
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import type { JsonValue } from '@ledova/shared';
-import { useSignupFinancialProfile } from './useSignupFinancialProfile';
 
-const api = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn() }));
-vi.mock('@services/apiClient', () => ({ default: api }));
+import { useSignupFinancialProfile } from '../../src/hooks/useSignupFinancialProfile';
+import type { JsonValue } from '../../src/types';
+import { providers, signupApi } from '../fixtures/signup';
+
+const api = signupApi();
+const wrapper = providers(api);
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  jest.clearAllMocks();
   api.patch.mockResolvedValue({ data: {} });
 });
 
-afterEach(cleanup);
+afterEach(async () => {
+  await cleanup();
+  jest.restoreAllMocks();
+});
 
 it.each<{ funds: JsonValue; choices: string[] }>([
   { funds: ['savings', 'historical choice'], choices: ['savings', 'historical choice'] },
@@ -31,8 +34,8 @@ it.each<{ funds: JsonValue; choices: string[] }>([
       results: [{ uuid: 'financial-1', occupation: 'Engineer', sourceOfFunds: funds, intendedUse: 'savings' }],
     },
   });
-  const saved = vi.fn();
-  const { result } = renderHook(() => useSignupFinancialProfile());
+  const saved = jest.fn();
+  const { result } = renderHook(() => useSignupFinancialProfile(), { wrapper });
   await waitFor(() => expect(result.current.isLoading).toBe(false));
 
   expect(result.current.form.sourceOfFunds).toEqual(choices);
@@ -47,19 +50,20 @@ it.each<{ funds: JsonValue; choices: string[] }>([
     intendedUse: 'savings',
     intendedUseOtherText: null,
   });
-  expect(saved).toHaveBeenCalledOnce();
+  expect(saved).toHaveBeenCalledTimes(1);
 });
 
 it('retries a failed load from a fresh loading state', async () => {
-  const failure = vi.spyOn(console, 'error').mockImplementation(() => {});
+  jest.spyOn(console, 'error').mockImplementation(() => {});
   api.get.mockRejectedValueOnce(new Error('offline'));
   api.get.mockResolvedValueOnce({ data: { count: 1, results: [{ uuid: 'profile-1' }] } });
   api.get.mockResolvedValueOnce({
     data: { count: 1, results: [{ uuid: 'financial-1', occupation: 'Engineer', sourceOfFunds: [], intendedUse: '' }] },
   });
-  const { result } = renderHook(() => useSignupFinancialProfile());
+  const { result } = renderHook(() => useSignupFinancialProfile(), { wrapper });
   await waitFor(() => expect(result.current.generalError).toBe('Failed to load profile. Please try again.'));
   expect(result.current.isLoading).toBe(false);
+  expect(console.error).toHaveBeenCalledWith('Failed to load financial profile: Error: offline');
 
   act(() => result.current.retryLoad());
   expect(result.current.isLoading).toBe(true);
@@ -67,5 +71,4 @@ it('retries a failed load from a fresh loading state', async () => {
   await waitFor(() => expect(result.current.isLoading).toBe(false));
   expect(result.current.existingProfileUuid).toBe('financial-1');
   expect(result.current.form.occupation).toBe('Engineer');
-  failure.mockRestore();
 });
