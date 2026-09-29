@@ -29,3 +29,4 @@ export { useSwapOrdersMulti } from './useAtomicSwaps';
 export { useSubscribableWallets, useSubscriptions } from './useSubscriptions';
 export { useTransactions } from './useTransactions';
 export type { TransactionFilters } from './useTransactions';
+export { useOfferingSubscriptions, useOfferingUnderEdit } from './useOffering';

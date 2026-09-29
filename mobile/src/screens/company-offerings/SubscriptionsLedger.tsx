@@ -1,9 +1,15 @@
 import { useState } from 'react';
 import { Text, View } from 'react-native';
-import { formatDate, formatMoney, formatShareCount, REGISTER_COPY, type OfferingListItem } from '@ledova/shared';
+import {
+  formatDate,
+  formatMoney,
+  formatShareCount,
+  REGISTER_COPY,
+  useOfferingSubscriptions,
+  type OfferingListItem,
+} from '@ledova/shared';
 import { Action, Row, Rows, Section } from '../../components/Ledger';
 import { useCompanyStyles } from '../company-register/styles';
-import { useOfferingSubscriptions } from './useOfferings';
 import { OfferingReadNotice } from './OfferingReadNotice';
 
 export function SubscriptionsLedger({

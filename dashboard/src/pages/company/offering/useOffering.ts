@@ -3,9 +3,7 @@ import {
   CACHE_TIMING,
   deleteOffering,
   getOperator,
-  getOffering,
   getOfferings,
-  getOfferingSubscriptions,
   readEveryPage,
   submitOffering,
   withdrawOffering,
@@ -45,24 +43,6 @@ export function useOfferings(companyUuid?: string) {
         client.invalidateQueries({ queryKey: ['offering-subscriptions'] }),
       ]),
   };
-}
-
-export function useOfferingSubscriptions(uuid?: string) {
-  return useQuery({
-    queryKey: ['offering-subscriptions', uuid],
-    queryFn: () => readEveryPage((page) => getOfferingSubscriptions(apiClient, uuid!, page)),
-    enabled: !!uuid,
-    staleTime: CACHE_TIMING.SHORT_STALE_TIME,
-  });
-}
-
-export function useOfferingUnderEdit(uuid?: string) {
-  return useQuery({
-    queryKey: ['offering', uuid],
-    queryFn: async () => (await getOffering(apiClient, uuid!)).data,
-    enabled: !!uuid,
-    staleTime: 0,
-  });
 }
 
 export function useOfferingActions(onSettled: () => Promise<unknown>) {
