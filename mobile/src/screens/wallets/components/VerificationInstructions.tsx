@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
-import { CheckCircleIcon, WarningCircleIcon, ShieldCheckIcon } from 'phosphor-react-native';
+import { CheckCircleIcon, WarningCircleIcon } from 'phosphor-react-native';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { useDialogStyles } from '../../../components/modal';
 
@@ -67,26 +67,25 @@ export function VerificationInstructions({
     container: {
       gap: theme.spacing.md,
     },
+    step: {
+      fontFamily: theme.fontFamily.regular,
+      fontSize: theme.fontSize.sm,
+      lineHeight: 21,
+      color: theme.colors.text.secondary,
+    },
   }));
   if (isSoftwareWallet) {
     return (
       <View style={styles.container}>
         {verificationSuccess ? (
           <VerificationSuccess />
-        ) : isRequestingChallenge || isVerifying ? (
-          <View style={text.line}>
-            <ActivityIndicator size="small" color={theme.colors.interactive.default} />
-            <Text style={[text.heading, text.lineText]}>Verifying...</Text>
-          </View>
         ) : (
-          <View style={text.line}>
-            <ShieldCheckIcon
-              size={theme.icon.sizes.md}
-              color={theme.colors.status.info.icon}
-              weight={theme.icon.weights.regular}
-            />
-            <Text style={[text.heading, text.lineText]}>Verify Wallet</Text>
-          </View>
+          (isRequestingChallenge || isVerifying) && (
+            <View style={text.line}>
+              <ActivityIndicator size="small" color={theme.colors.interactive.default} />
+              <Text style={[text.heading, text.lineText]}>Verifying...</Text>
+            </View>
+          )
         )}
         {verificationError && <VerificationError message={verificationError} />}
       </View>
@@ -95,14 +94,12 @@ export function VerificationInstructions({
 
   return (
     <View style={styles.container}>
-      <Text style={text.muted}>Verify Wallet Ownership</Text>
-
       <View style={text.group}>
         <Text accessibilityRole="header" style={text.heading}>
           How verification works:
         </Text>
         {STEPS.map((step, index) => (
-          <Text key={step} style={text.text}>
+          <Text key={step} style={styles.step}>
             {index + 1}. {step}
           </Text>
         ))}

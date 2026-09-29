@@ -27,7 +27,7 @@ export function SendStackNavigator() {
         name="SendMain"
         component={SendScreen}
         options={() => ({
-          title: 'Send',
+          title: '',
         })}
       />
     </Stack.Navigator>
