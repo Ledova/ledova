@@ -25,7 +25,7 @@ function dialog(props: Partial<ComponentProps<typeof CustomModal>> = {}) {
   );
 }
 
-it('is the card over the dimmed page, labelled by its title and ended by one right-aligned action row', async () => {
+it('is the card over the dimmed page, titled first, marked modal and ended by one right-aligned action row', async () => {
   const close = jest.fn();
   const save = jest.fn();
   const view = await render(
@@ -35,6 +35,7 @@ it('is the card over the dimmed page, labelled by its title and ended by one rig
   const card = title.parent!;
   expect(card).toHaveStyle({ borderWidth: 1, borderRadius: 12, padding: 16, maxHeight: '100%' });
   expect(card.children[0]).toBe(title);
+  expect(card.props.accessibilityViewIsModal).toBe(true);
   const cancel = view.getByRole('button', { name: 'Cancel' });
   const row = cancel.parent!;
   expect(row.children).toEqual([
