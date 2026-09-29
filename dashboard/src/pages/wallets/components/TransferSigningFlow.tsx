@@ -1,7 +1,13 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { CheckCircleIcon, WarningCircleIcon, SpinnerGapIcon, ArrowSquareOutIcon } from '@phosphor-icons/react';
 import { AnimatedQRCode } from '@keystonehq/animated-qr';
-import { formatWalletAddressMedium, BLOCKCHAIN, getBlockExplorerTxUrl, getNativeAssetSymbol } from '@ledova/shared';
+import {
+  formatWalletAddressMedium,
+  BLOCKCHAIN,
+  getBlockExplorerTxUrl,
+  getNativeAssetSymbol,
+  readWei,
+} from '@ledova/shared';
 import { ICON_XS, ICON_MD, ICON_XL } from '@components/iconSizes';
 import { useQRScanner, QRScannerView } from '@components/qr';
 import { Row, Rows } from '@components/Ledger';
@@ -47,11 +53,13 @@ interface TransactionForQr {
 function formatTransactionForQr(preparedTx: PreparedWalletTransfer, wallet: Wallet): TransactionForQr | null {
   if ('transaction' in preparedTx && preparedTx.transaction) {
     const tx = preparedTx.transaction;
+    const value = readWei(tx.value);
+    if (value === null) return null;
     return {
       to: tx.to,
       from: wallet.address,
       data: tx.data || '0x',
-      value: '0x' + tx.value.toString(16),
+      value: '0x' + value.toString(16),
       gas: '0x' + tx.gas.toString(16),
       gasPrice: '0x' + tx.gasPrice.toString(16),
       nonce: '0x' + tx.nonce.toString(16),
@@ -196,23 +204,16 @@ export function TransferSigningFlow({
   const { error: scannerError, stopScanner } = useQRScanner({
     scannerId: 'transfer-qr-scanner',
     onScanSuccess: (text) => {
-      const signedTx = decodeKeystoneSignedTransaction(
-        text,
-        unsignedTx
-          ? {
-              to: unsignedTx.to,
-              value: unsignedTx.value,
-              gas: unsignedTx.gas,
-              gasPrice: unsignedTx.gasPrice,
-              nonce: unsignedTx.nonce,
-              data: unsignedTx.data,
-              chainId: unsignedTx.chainId,
-            }
-          : undefined,
-      );
-      if (signedTx) {
-        submitSignedTransaction(signedTx);
+      if (!unsignedTx) return;
+      let signedTx: string;
+      try {
+        signedTx = decodeKeystoneSignedTransaction(text, unsignedTx, wallet.address);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'The scanned code was refused.');
+        setSigningStep('show-qr');
+        return;
       }
+      submitSignedTransaction(signedTx);
     },
     enabled: signingStep === 'scan-signature',
   });

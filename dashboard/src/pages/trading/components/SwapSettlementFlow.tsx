@@ -162,15 +162,23 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
       if (!idle() || view.step !== 'scan' || !liveQr || view.qr !== reviewedQr || !wallet) return;
       if (view.kind === 'approval') {
         if (!approval) return;
-        const signed = decodeKeystoneSignedTransaction(text, approval);
-        if (signed && current()) void settlement.broadcastApproval(signed);
+        let signed: string;
+        try {
+          signed = decodeKeystoneSignedTransaction(text, approval, wallet.address);
+        } catch (error) {
+          if (!current()) return;
+          // eslint-disable-next-line react-hooks/immutability
+          view.error = error instanceof Error ? error.message : 'The scanned code was refused.';
+          render();
+          return;
+        }
+        if (current()) void settlement.broadcastApproval(signed);
       } else {
         const signature = decodeKeystoneMessageSignature(text);
         if (!signature || !response) return;
         void (async () => {
           try {
             const signer = await swapSettlementCrypto.recoverSigner(response.typedData, signature);
-            // eslint-disable-next-line react-hooks/immutability
             if (idle() && current() && view.step === 'scan' && view.qr === reviewedQr)
               await settlement.submitSignature(signature, signer);
           } catch {

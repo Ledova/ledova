@@ -91,23 +91,22 @@ const USER_PREFERENCES = {
 };
 
 const PREPARED_TRANSFER = {
-  fromAddress: VERIFIED_WALLET.address,
-  toAddress: RECIPIENT,
-  amountEth: '0.001',
-  gasCostEth: '0.000021',
-  gasLimit: 21000,
-  gasPriceGwei: '1',
-  gasPriceWei: '1000000000',
-  totalCostEth: '0.001021',
   transaction: {
-    chainId: BASE_SEPOLIA_CHAIN_ID,
+    nonce: 7,
     to: RECIPIENT,
-    value: 1_000_000_000_000_000,
+    value: '0x38d7ea4c68000',
     gas: 21000,
     gasPrice: 1_000_000_000,
-    nonce: 7,
-    data: '0x',
+    chainId: BASE_SEPOLIA_CHAIN_ID,
   },
+  amountEth: '0.001',
+  gasPriceWei: '1000000000',
+  gasPriceGwei: '1',
+  gasLimit: 21000,
+  gasCostEth: '0.000021',
+  totalCostEth: '0.001021',
+  fromAddress: VERIFIED_WALLET.address,
+  toAddress: RECIPIENT,
 };
 
 function paginated<T>(results: T[]) {

@@ -24,14 +24,13 @@ afterEach(async () => {
 it('sets the review addresses in monospace and leaves its amounts in the text face', async () => {
   const family = await mono();
   const data = {
-    transaction: '',
     fromAddress,
     toAddress,
     amountEth: '1',
     gasCostEth: '0.01',
     totalCostEth: '1.01',
     gasPriceGwei: '2',
-    gasLimit: '21000',
+    gasLimit: 21000,
   } as TransactionData;
   const view = await render(<ReviewTransaction transactionData={data} chainShortName="ETH" />);
   expect(view.getByText(formatWalletAddressMedium(fromAddress))).toHaveStyle({ fontFamily: family });
@@ -41,7 +40,7 @@ it('sets the review addresses in monospace and leaves its amounts in the text fa
 
 it('sets every value of the software signing summary in monospace', async () => {
   const family = await mono();
-  const data = { transaction: '{}', fromAddress, toAddress, amountEth: '1', gasCostEth: '0.01' } as TransactionData;
+  const data = { fromAddress, toAddress, amountEth: '1', gasCostEth: '0.01' } as TransactionData;
   const view = await render(
     <SoftwareSignTransaction wallet={{ uuid: 'wallet' } as Wallet} transactionData={data} onSignComplete={jest.fn()} />,
   );
@@ -58,7 +57,6 @@ it('sets every value of the software signing summary in monospace', async () => 
 it('sets every value of the Bitcoin signing summary and the signed hex in monospace', async () => {
   const family = await mono();
   const data = {
-    transaction: '',
     fromAddress: 'tb1qsenderaddressfictional0000000000aaaa',
     toAddress: 'tb1qrecipientaddressfictional000000bbbb',
     amountBtc: '0.5',
@@ -84,14 +82,13 @@ it('sets every value of the Bitcoin signing summary and the signed hex in monosp
 
 it('keeps the small captions of the signing steps and the Bitcoin paste error at caption size', async () => {
   const evm = {
-    transaction: '',
     fromAddress,
     toAddress,
     amountEth: '1',
     gasCostEth: '0.01',
     totalCostEth: '1.01',
     gasPriceGwei: '2',
-    gasLimit: '21000',
+    gasLimit: 21000,
   } as TransactionData;
   const review = await render(<ReviewTransaction transactionData={evm} chainShortName="ETH" />);
   expect(review.getByRole('header', { name: 'Chain Details' })).toHaveStyle({ fontSize: 12 });

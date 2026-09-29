@@ -136,11 +136,18 @@ work.
 - **The Keystone QR round trip.** Automated scanner controls do not establish
   the complete physical camera and hardware-wallet firmware journey. Verify a wallet,
   send one EVM crypto transfer through the transfer signing flow, and sign one
-  trading order through the QR branch. The transfer is the only place a raw
-  transaction UR is exercised at all, and the encoder force-encodes a legacy
-  type-0 transaction, so an EIP-1559 prepare is downgraded on the way to the
-  device: check that what the Keystone displays matches what was prepared. The
-  seed-phrase alternative in the dashboard does not cover any of this.
+  trading order through the QR branch. A transfer and a settlement's token
+  approval are the only places a raw transaction UR is exercised. Both are sent
+  as legacy type-0 transactions, which is what the backend prepares: check that
+  what the Keystone displays matches what was prepared. The Keystone 3 firmware
+  answers a transaction with an EIP-155 `v` (chain id × 2 + 35 + parity) in as
+  few bytes as it needs, so its signature is 65 bytes on chain 1, 66 on Base and
+  the local chain, 67 on Base Sepolia and 68 on Ethereum Sepolia. Both clients
+  read 65 to 72 bytes and refuse a `v` for another network or a signature that
+  does not recover to the wallet's address; tests encode signatures the same
+  way, but only a device shows that the firmware still does. Messages and typed
+  data are signed with `v` 27 or 28, always 65 bytes. The seed-phrase
+  alternative in the dashboard does not cover any of this.
 
 - **Bitcoin manual send.** Prepare a transfer from a Bitcoin wallet, sign the
   raw transaction with your own tooling, paste the hex, broadcast it, and

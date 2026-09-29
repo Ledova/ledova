@@ -135,6 +135,7 @@ class WalletActionContractTest(APITestCase):
         client.w3.eth.chain_id = 31337
         result = self.post_action("prepare-transfer", {"toAddress": RECIPIENT, "amountEth": "1"})
         self.assertEqual(result["amountEth"], "1")
+        self.assertEqual(result["transaction"]["value"], "0xde0b6b3a7640000")
 
     @patch("wallets.services.transfers.get_blockchain_client")
     def test_bitcoin_preparation_keeps_its_distinct_documented_shape(self, get_client):
@@ -166,6 +167,7 @@ class WalletActionContractTest(APITestCase):
             "prepare-transfer", {"toAddress": RECIPIENT, "amountToken": "1", "tokenContract": address}
         )
         self.assertEqual(result["amountToken"], "1")
+        self.assertEqual(result["transaction"]["value"], "0x0")
         self.assertNotIn("amountEth", result)
         self.assertNotIn("totalCostEth", result)
 

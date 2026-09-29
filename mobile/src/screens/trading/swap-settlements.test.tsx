@@ -27,6 +27,7 @@ import {
 } from '../../services/swapSettlements';
 import { invalidateSessionScope } from '../../services/sessionScope';
 import { deferred, response, wallet as baseWallet } from '../../../../packages/shared/tests/fixtures/order-submissions';
+import { keystoneSignatureBytes, legacyV } from '../../../../packages/shared/tests/fixtures/keystone-signatures';
 import {
   settlementFixture as fixture,
   settlementResponse,
@@ -664,8 +665,11 @@ it.each([
       fixture.paths[0],
       settlementApprovalTransaction(settlementApproval(current).transaction),
     );
-    const signature = Transaction.from(raw).signature!.serialized;
-    const qr = new ETHSignature(Buffer.from(signature.slice(2), 'hex')).toUREncoder(1000).nextPart();
+    const signed = Transaction.from(raw);
+    const { r, s, yParity } = signed.signature!;
+    const firmware = Buffer.from(keystoneSignatureBytes(r, s, legacyV(signed.chainId, yParity)));
+    expect(firmware).toHaveLength(67);
+    const qr = new ETHSignature(firmware).toUREncoder(1000).nextPart();
     const scanner = jest.mocked(QRScanner).mock.calls.at(-1)![0];
     await act(async () => scanner.onScan(qr));
   }

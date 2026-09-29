@@ -21,6 +21,7 @@ import {
   getHoldingTokenDeployment,
   readEveryPage,
   useUserPreferences,
+  validatePreparedTransfer,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { mockDataEnabled } from '../../_mock/mockDataEnabled';
@@ -149,14 +150,20 @@ export function useTransfers(initialWallet: Wallet | null = null) {
   }, [state.wallet, holdingsQuery.data, USE_MOCK_DATA]);
 
   const prepareTransferMutation = useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       uuid,
       data,
+      decimals,
     }: {
       uuid: string;
       data: PrepareTransferRequest | PrepareBitcoinTransferRequest;
-    }): Promise<AxiosResponse<PrepareTransferResponse | PrepareBitcoinTransferResponse>> =>
-      'amountBtc' in data ? prepareBitcoinTransfer(apiClient, uuid, data) : prepareTransfer(apiClient, uuid, data),
+      decimals: number;
+    }): Promise<AxiosResponse<PrepareTransferResponse | PrepareBitcoinTransferResponse>> => {
+      if ('amountBtc' in data) return prepareBitcoinTransfer(apiClient, uuid, data);
+      const response = await prepareTransfer(apiClient, uuid, data);
+      validatePreparedTransfer(response.data, data, decimals);
+      return response;
+    },
     onSuccess: (response) => {
       setState((prev) => ({
         ...prev,
@@ -305,6 +312,7 @@ export function useTransfers(initialWallet: Wallet | null = null) {
     prepareTransferMutation.mutate({
       uuid: state.wallet.uuid,
       data,
+      decimals: state.selectedAsset.decimals,
     });
   }, [state.wallet, state.selectedAsset, state.toAddress, state.amount, prepareTransferMutation, USE_MOCK_DATA]);
 
