@@ -68,7 +68,7 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
   const walletsFailed = walletsQuery.isError;
   const matchingWallets = walletsFailed ? [] : walletsQuery.data?.data.results || [];
   const isLoadingWallets = walletsQuery.isPending;
-  const walletsSettled = !walletsQuery.isFetching;
+  const walletsSettled = walletsQuery.fetchStatus === 'idle';
   const showWalletStep = !!selectedAsset && !isLoadingWallets && matchingWallets.length !== 1;
 
   const widgetMutation = useMutation({
@@ -181,7 +181,7 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
                 <WalletChoice
                   wallet={wallet}
                   onChoose={() => handleSelectWallet(wallet)}
-                  disabled={isLoading || walletsQuery.isFetching}
+                  disabled={isLoading || !walletsSettled}
                   busy={isLoading && widgetMutation.variables?.uuid === wallet.uuid}
                 />
               </li>

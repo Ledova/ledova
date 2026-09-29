@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { ASSET_ENDPOINTS, WALLET_ENDPOINTS } from '@ledova/shared';
 
@@ -146,6 +146,7 @@ afterEach(() => {
   cleanup();
   client.clear();
   vi.resetAllMocks();
+  onlineManager.setOnline(true);
 });
 
 it("shows each asset's current price in AUD, and none for an asset without a price", async () => {
@@ -324,6 +325,55 @@ it('says the wallets could not be loaded when the fresh read fails, rather than 
   );
   expect(api.post).toHaveBeenCalledOnce();
   expect(navigate).toHaveBeenCalledOnce();
+});
+
+it('opens nothing for the one wallet it read before while offline, and asks when the read after reconnecting finds two', async () => {
+  const navigate = vi.fn();
+  answer([wallet('wallet-1', 'First wallet')]);
+  render(
+    <QueryClientProvider client={client}>
+      <Reopenable onNavigateToWidget={navigate} />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByText('Ethereum'));
+  await waitFor(() => expect(navigate).toHaveBeenCalledOnce());
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  answer([wallet('wallet-1', 'First wallet'), wallet('wallet-2', 'Second wallet')]);
+  act(() => onlineManager.setOnline(false));
+
+  fireEvent.click(screen.getByRole('button', { name: 'Buy again' }));
+  fireEvent.click(await screen.findByText('Ethereum'));
+  await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+
+  expect(screen.getByText('Ethereum').closest('button')).toHaveProperty('disabled', true);
+  expect(walletCalls()).toHaveLength(1);
+
+  act(() => onlineManager.setOnline(true));
+
+  expect(await screen.findByRole('button', { name: /Second wallet/ })).toBeTruthy();
+  await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+  expect(api.post).toHaveBeenCalledOnce();
+  expect(navigate).toHaveBeenCalledOnce();
+});
+
+it('lets no wallet it read before be chosen while offline', async () => {
+  answer([wallet('wallet-1', 'First wallet'), wallet('wallet-2', 'Second wallet')]);
+  show({});
+  fireEvent.click(screen.getByText('Ethereum'));
+  await screen.findByRole('button', { name: /Second wallet/ });
+  fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+  act(() => onlineManager.setOnline(false));
+
+  fireEvent.click(await screen.findByText('Ethereum'));
+
+  const stale = await screen.findByRole('button', { name: /Second wallet/ });
+  expect(stale).toHaveProperty('disabled', true);
+  expect(screen.getByRole('button', { name: /First wallet/ })).toHaveProperty('disabled', true);
+
+  act(() => onlineManager.setOnline(true));
+
+  await waitFor(() => expect(screen.getByRole('button', { name: /Second wallet/ })).toHaveProperty('disabled', false));
+  expect(api.post).not.toHaveBeenCalled();
 });
 
 it('holds the wallets it listed before while it reads them again', async () => {
