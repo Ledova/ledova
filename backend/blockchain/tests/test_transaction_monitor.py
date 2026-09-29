@@ -8,8 +8,7 @@ from blockchain.models import BlockchainTransaction, TransactionStatus
 from blockchain.services.transaction import (
     check_pending_transactions as monitor_pending_transactions,
 )
-from blockchain.services.transaction import cleanup_stale_transactions
-from blockchain.tasks import check_pending_transactions, cleanup_failed_transactions
+from blockchain.tasks import check_pending_transactions
 
 TX_HASH = "0x" + "71" * 32
 BLOCK_HASH = "0x" + "72" * 32
@@ -17,7 +16,7 @@ CONFIRMED_RECEIPT = {"status": 1, "blockNumber": 77, "blockHash": BLOCK_HASH, "g
 
 
 class OverdueTransactionMonitorTest(TestCase):
-    def transaction(self, tx_hash=TX_HASH, status=TransactionStatus.SUBMITTED, *, hours=48):
+    def transaction(self, tx_hash=TX_HASH, status=TransactionStatus.SUBMITTED):
         tx = BlockchainTransaction.objects.create(
             tx_hash=tx_hash,
             status=status,
@@ -27,40 +26,24 @@ class OverdueTransactionMonitorTest(TestCase):
             submitted_at=timezone.now(),
             error_message="Waiting for a receipt",
         )
-        BlockchainTransaction.objects.filter(pk=tx.pk).update(created_at=timezone.now() - timedelta(hours=hours))
+        BlockchainTransaction.objects.filter(pk=tx.pk).update(created_at=timezone.now() - timedelta(hours=48))
         tx.refresh_from_db()
         return tx
 
     def stored_transactions(self):
         return list(BlockchainTransaction.objects.order_by("pk").values())
 
-    def test_cleanup_retains_pending_and_submitted_rows_with_or_without_hashes(self):
-        for index, status in enumerate((TransactionStatus.PENDING, TransactionStatus.SUBMITTED), start=1):
-            self.transaction("0x" + f"{index:064x}", status)
-            self.transaction(None, status)
-        self.transaction(hours=1)
-        before = self.stored_transactions()
-
-        first = cleanup_stale_transactions()
-        second = cleanup_stale_transactions()
-
-        self.assertEqual(self.stored_transactions(), before)
-        self.assertEqual(first, {"cleaned": 0, "overdue": 4})
-        self.assertEqual(second, first)
-
-    def test_late_receipt_is_confirmed_after_legacy_cleanup_and_a_missing_receipt(self):
+    def test_late_receipt_is_confirmed_after_a_missing_receipt(self):
         tx = self.transaction()
         client = Mock(spec=["get_transaction_receipt"])
         client.get_transaction_receipt.side_effect = [None, CONFIRMED_RECEIPT]
 
         with patch("integrations.base_chain.get_base_chain_client", return_value=client):
-            cleanup_failed_transactions(timestamp=0)
             missing = check_pending_transactions(timestamp=0)
             tx.refresh_from_db()
             self.assertEqual(tx.status, TransactionStatus.SUBMITTED)
             self.assertEqual(missing, {"checked": 1, "confirmed": 0, "failed": 0})
 
-            cleanup_failed_transactions(timestamp=0)
             result = check_pending_transactions(timestamp=0)
 
         self.assertEqual(client.get_transaction_receipt.call_args_list, [call(tx.tx_hash), call(tx.tx_hash)])
@@ -77,7 +60,6 @@ class OverdueTransactionMonitorTest(TestCase):
         client.get_transaction_receipt.side_effect = [None, RuntimeError("Synthetic provider outage")]
 
         for _ in range(2):
-            cleanup_stale_transactions()
             monitor_pending_transactions(client)
             self.assertEqual(self.stored_transactions(), before)
 
@@ -100,7 +82,7 @@ class OverdueTransactionMonitorTest(TestCase):
         )
         client.get_transaction_receipt.assert_called_once_with(tx.tx_hash)
 
-    def test_cleanup_and_receipt_sweep_leave_terminal_history_unchanged(self):
+    def test_receipt_sweep_leaves_terminal_history_unchanged(self):
         for index, status in enumerate(
             (TransactionStatus.CONFIRMED, TransactionStatus.FAILED, TransactionStatus.REVERTED), start=1
         ):
@@ -108,11 +90,9 @@ class OverdueTransactionMonitorTest(TestCase):
         before = self.stored_transactions()
         client = Mock(spec=["get_transaction_receipt"])
 
-        report = cleanup_failed_transactions(timestamp=0)
         checked = monitor_pending_transactions(client)
 
         self.assertEqual(self.stored_transactions(), before)
-        self.assertEqual(report["cleaned"], 0)
         self.assertEqual(checked, {"checked": 0, "confirmed": 0, "failed": 0})
         client.get_transaction_receipt.assert_not_called()
 

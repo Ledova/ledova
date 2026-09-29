@@ -35,8 +35,6 @@ SYSTEM_WIDE = {
     "assets.sync_exchange_rates": "Fetches published rates, identical for every tenant.",
     "blockchain.tasks.check_pending_transactions": "Polls recorded hashes of this deployment's pending and "
     "submitted transactions, across all issuers.",
-    "blockchain.tasks.cleanup_failed_transactions": "Reports overdue unresolved rows across the deployment "
-    "for queued legacy jobs; receipt recovery runs in check_pending_transactions.",
     "compliance.tasks.run_batch_monitoring": "Screens every account against the operator's rules, which is "
     "the operator's question rather than any customer's.",
     "compliance.tasks.screen_transaction": "Applies the operator's monitoring rules to a recorded transaction "
@@ -102,8 +100,6 @@ SYSTEM_WIDE = {
     "one that acts for somebody.",
     "wallets.tasks.confirmation.check_all_pending_transactions": "Requeues pending transactions and unfinished "
     "balance reconciliation across all accounts.",
-    "wallets.tasks.confirmation.cleanup_stale_pending_transactions": "Reports overdue pending rows across all "
-    "accounts for queued legacy jobs without changing status or balances.",
     "whitelist.tasks.sync.sync_all_entries": "Mirrors each company's on-chain whitelist registry into the "
     "staff-only approval rows. It reads chain state for every company and acts for no principal.",
     "procrastinate.builtin_tasks.remove_old_jobs": "Procrastinate's own queue maintenance.",

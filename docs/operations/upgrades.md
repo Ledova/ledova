@@ -128,6 +128,27 @@ accepted any string. No database migration is needed.
 lists the three latest notices instead. Clients built before this change read the
 missing count as 0 and show nothing in its place. No database migration is needed.
 
+## Retired transaction cleanup tasks
+
+`blockchain.tasks.cleanup_failed_transactions` and
+`wallets.tasks.confirmation.cleanup_stale_pending_transactions` are removed. No
+code enqueued them; they remained only to report overdue counts for jobs older
+workers had queued. Do not run such jobs on an older release to clear them:
+releases before 10 September 2026 ran them as a daily timeout that marked pending
+transactions as failed. Before upgrading, look for queued jobs under either name
+and delete them:
+
+```sql
+select id, task_name, status from procrastinate_jobs
+where task_name in (
+  'blockchain.tasks.cleanup_failed_transactions',
+  'wallets.tasks.confirmation.cleanup_stale_pending_transactions'
+) and status = 'todo';
+```
+
+A job left behind is harmless: a worker without the task marks it `failed` and
+runs nothing. No database migration is needed.
+
 ## Database migrations
 
 - `companies/0003_delete_review_and_signature_models` (with
