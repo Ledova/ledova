@@ -1,4 +1,3 @@
-from django.urls import reverse
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -37,7 +36,6 @@ class DocumentExtractionSerializer(serializers.ModelSerializer):
 
 class DocumentSerializer(serializers.ModelSerializer):
     latest_extraction = serializers.SerializerMethodField()
-    file_url = serializers.SerializerMethodField()
     retention_until = serializers.DateTimeField(read_only=True, allow_null=True)
 
     class Meta:
@@ -52,7 +50,6 @@ class DocumentSerializer(serializers.ModelSerializer):
             "attached_at",
             "retention_until",
             "purged_at",
-            "file_url",
             "latest_extraction",
             "created_at",
             "updated_at",
@@ -67,13 +64,6 @@ class DocumentSerializer(serializers.ModelSerializer):
         if not latest:
             return None
         return DocumentExtractionSerializer(latest).data
-
-    def get_file_url(self, obj: Document) -> str | None:
-        if not obj.content_available:
-            return None
-        url = reverse("documents:documents-file", kwargs={"uuid": obj.uuid})
-        request = self.context.get("request")
-        return request.build_absolute_uri(url) if request else url
 
 
 class DocumentUploadSerializer(serializers.ModelSerializer):

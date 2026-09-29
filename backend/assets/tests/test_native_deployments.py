@@ -85,7 +85,7 @@ class NativeDeploymentTest(TestCase):
         eth = Asset.objects.create(symbol="ETH", name="Ether", asset_type="native_crypto")
         AssetChainDeployment.objects.create(asset=eth, chain="ethereum")
         Holding.objects.create(wallet=wallet, asset=eth, quantity=7)
-        token = Asset.objects.create(symbol="USDC", name="USD Coin", asset_type="stablecoin", is_verified=True)
+        token = Asset.objects.create(symbol="USDC", name="USD Coin", asset_type="erc20_token", is_verified=True)
         contract = "0x" + "c" * 40
         AssetChainDeployment.objects.create(asset=token, chain="base", contract_address=contract, decimals=6)
         Holding.objects.create(wallet=wallet, asset=token, quantity=10)

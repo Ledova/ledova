@@ -19,10 +19,8 @@ from companies.serializers import (
     CompanyStatusUpdateSerializer,
     CompanyUpdateSerializer,
 )
-from companies.serializers.stats import CompanyStatsSerializer
 from companies.services import delete_company, submit_application, transition_company
 from shared.views import AuthenticatedModelViewSet
-from tokens.services.company_stats import company_stats
 
 
 class CompanyViewSet(AuthenticatedModelViewSet):
@@ -45,7 +43,7 @@ class CompanyViewSet(AuthenticatedModelViewSet):
             return CompanyAPIKeySerializer
         if self.action == "status_update":
             return CompanyStatusUpdateSerializer
-        if self.action in ["submit", "application_status"]:
+        if self.action == "submit":
             return ApplicationStatusSerializer
         if self.action == "resubmit":
             return ApplicationResubmitSerializer
@@ -83,11 +81,6 @@ class CompanyViewSet(AuthenticatedModelViewSet):
 
     def perform_destroy(self, instance):
         delete_company(instance)
-
-    @extend_schema(responses=CompanyStatsSerializer)
-    @action(detail=True, methods=["get"])
-    def stats(self, request, uuid=None):
-        return Response(company_stats(self.get_object()))
 
     @extend_schema(responses=CompanyAPIKeySerializer)
     @action(detail=True, methods=["get", "post"], url_path="api-key")
@@ -218,12 +211,6 @@ class CompanyViewSet(AuthenticatedModelViewSet):
                 "company": ApplicationStatusSerializer(company).data,
             }
         )
-
-    @extend_schema(responses=ApplicationStatusSerializer)
-    @action(detail=True, methods=["get"], url_path="application-status")
-    def application_status(self, request, uuid=None):
-        company = self.get_object()
-        return Response(ApplicationStatusSerializer(company).data)
 
     def narrow(self, queryset):
         if self.action in self.administrative_actions:

@@ -222,12 +222,10 @@ ROUTES = (
     Route("put", "/api/user-preferences/{preferences}/", {"theme": "light"}),
     Route("patch", "/api/user-preferences/{preferences}/", {"theme": "light"}),
     Route("delete", "/api/user-preferences/{preferences}/"),
-    Route("get", "/api/device-tokens/{device_token}/"),
     Route("post", "/api/device-tokens/unregister/", {"pushToken": "{push_token}"}),
     Route("get", "/api/notifications/{notification}/"),
     Route("patch", "/api/notifications/{notification}/", {"isRead": True}),
     Route("get", "/api/investor-classifications/{investor_classification}/"),
-    Route("get", "/api/investor-classifications/{investor_classification}/evidence/"),
     Route("delete", "/api/investor-classifications/{investor_classification}/"),
     Route("get", "/api/wallets/{wallet}/"),
     Route(
@@ -260,8 +258,6 @@ ROUTES = (
     Route("post", "/api/v1/companies/{company}/submit/", {"confirm": True}, prepare=_upload_listing_documents),
     Route("post", "/api/v1/companies/{company}/resubmit/", {"response": "Done"}, prepare=_request_company_info),
     Route("post", "/api/v1/companies/{company}/withdraw/", {}),
-    Route("get", "/api/v1/companies/{company}/stats/"),
-    Route("get", "/api/v1/companies/{company}/application-status/"),
     Route("get", "/api/v1/companies/{company}/documents/"),
     Route(
         "post",
@@ -344,16 +340,6 @@ ROUTES = (
     ),
     Route(
         "post",
-        "/api/v1/trading/transfers/prepare/",
-        {
-            "token": "{own_deployed_token}",
-            "fromAddress": "{wallet_address}",
-            "toAddress": RECIPIENT,
-            "amount": 1,
-        },
-    ),
-    Route(
-        "post",
         "/api/v1/trading/orders/create/",
         {
             "submissionId": "{own_account}",
@@ -392,7 +378,6 @@ ROUTES = (
         prepare=_a_pending_order_submission,
     ),
     Route("get", "/api/v1/trading/orders/{order}/"),
-    Route("get", "/api/v1/trading/orders/{order}/modifications/"),
     Route(
         "get",
         "/api/v1/trading/orders/{order}/swap/?swap_uuid={swap}"
@@ -432,7 +417,6 @@ ROUTES = (
         },
     ),
     Route("get", "/api/v1/documents/{document}/"),
-    Route("get", "/api/v1/documents/{document}/file/"),
     Route("post", "/api/v1/documents/{document}/attach/", {"classification": "{own_investor_classification}"}),
     Route("post", "/api/v1/documents/{own_document}/attach/", {"classification": "{investor_classification}"}),
     Route("delete", "/api/v1/documents/{document}/"),
@@ -463,7 +447,6 @@ REGISTRY_ADMIN_ROUTES = (
 LIST_ROUTES = (
     ("/api/user-profiles/", ("profile",)),
     ("/api/financial-profiles/", ("financial_profile",)),
-    ("/api/device-tokens/", ("device_token",)),
     ("/api/notifications/", ("notification",)),
     ("/api/investor-classifications/", ("investor_classification",)),
     ("/api/wallets/", ("wallet", "spare_wallet")),
@@ -489,7 +472,6 @@ DIRECTORY_ROUTES = (Route("get", "/api/v1/directory/tokens/{deployed_token}/"),)
 
 MARKET_ROUTES = (
     Route("get", "/api/v1/trading/tokens/{deployed_token}/"),
-    Route("get", "/api/v1/trading/tokens/{deployed_token}/market-data/"),
     Route("get", "/api/v1/trading/tokens/{deployed_token}/order-book/"),
 )
 
@@ -570,10 +552,6 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         self._service("tokens.views.trading_order.execute_order_submission")
         self._service("tokens.views.trading_order.issue_order_submission")
         self._service("tokens.views.trading_order.submission_snapshot").return_value = {}
-        trading_transfers = self._service("tokens.views.trading_transfer.token_transfer_service")
-        trading_transfers.contract_address.return_value = "0x" + "6" * 40
-        trading_transfers.prepare_transfer.return_value = {}
-        self._service("tokens.views.trading_order.get_modification_history").return_value = {}
         swaps = self._service("tokens.views.trading_order.atomic_swap_service")
         swaps.settlement_contract.return_value = SYNTHETIC_SETTLEMENT_CONTRACT
         swaps.broadcast_settlement_approval.return_value = SimpleNamespace(

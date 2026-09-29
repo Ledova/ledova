@@ -63,38 +63,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/device-tokens/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_device_tokens_list'];
-    put?: never;
-    post: ApiOperations['api_device_tokens_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/device-tokens/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_device_tokens_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/device-tokens/register/': {
     parameters: {
       query?: never;
@@ -250,22 +218,6 @@ export interface ApiPaths {
     put?: never;
     post?: never;
     delete: ApiOperations['api_investor_classifications_destroy'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/investor-classifications/{uuid}/evidence/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_investor_classifications_evidence_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
@@ -815,22 +767,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/companies/{uuid}/application-status/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_companies_application_status_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/companies/{uuid}/resubmit/': {
     parameters: {
       query?: never;
@@ -841,22 +777,6 @@ export interface ApiPaths {
     get?: never;
     put?: never;
     post: ApiOperations['api_v1_companies_resubmit_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/companies/{uuid}/stats/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_companies_stats_retrieve'];
-    put?: never;
-    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -985,22 +905,6 @@ export interface ApiPaths {
     get?: never;
     put?: never;
     post: ApiOperations['api_v1_documents_attach_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/documents/{uuid}/file/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_documents_file_retrieve'];
-    put?: never;
-    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -1807,22 +1711,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/trading/orders/{uuid}/modifications/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_trading_orders_modifications_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/trading/orders/{uuid}/modify/': {
     parameters: {
       query?: never;
@@ -2047,22 +1935,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/trading/tokens/{uuid}/market-data/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_trading_tokens_market_data_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/trading/tokens/{uuid}/order-book/': {
     parameters: {
       query?: never;
@@ -2073,38 +1945,6 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_trading_tokens_order_book_retrieve'];
     put?: never;
     post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/trading/transfers/broadcast/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_trading_transfers_broadcast_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/trading/transfers/prepare/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_trading_transfers_prepare_create'];
     delete?: never;
     options?: never;
     head?: never;
@@ -2817,12 +2657,6 @@ export interface ApiComponents {
       primaryContact: ApiComponents['schemas']['_CompanyUserProfileCreateRequest'];
       tradingName?: string;
     };
-    CompanyStats: {
-      pendingActions: number;
-      pendingCapitalIncreases: number;
-      totalShareholders: number;
-      totalTokens: number;
-    };
     CompanyStatusEnum:
       | 'draft'
       | 'submitted'
@@ -2896,11 +2730,6 @@ export interface ApiComponents {
     DeviceTokenNotFound: {
       detail: string;
     };
-    DeviceTokenRequest: {
-      deviceType: ApiComponents['schemas']['DeviceTypeEnum'];
-      isActive?: boolean;
-      pushToken: string;
-    };
     DeviceTypeEnum: 'ios' | 'android';
     DirectoryCompany: {
       city: string;
@@ -2945,7 +2774,6 @@ export interface ApiComponents {
       classification: string | null;
       createdAt: string;
       documentType: ApiComponents['schemas']['UserDocumentTypeEnum'];
-      fileUrl: string | null;
       latestExtraction: ApiComponents['schemas']['DocumentExtraction'] | null;
       mimeType: string;
       note: string;
@@ -3198,7 +3026,6 @@ export interface ApiComponents {
       declaredBasis?: string;
       evidenceFileSize: number | null;
       evidenceMimeType: string;
-      evidenceUrl: string | null;
       expiresAt: string | null;
       isExpired: boolean;
       isLive: boolean;
@@ -3251,22 +3078,6 @@ export interface ApiComponents {
     KycProviderEnum: 'sumsub' | 'kycaid';
     MarkAllReadResponse: {
       marked: number;
-    };
-    MarketData: {
-      bestAsk: string | null;
-      bestBid: string | null;
-      lastTrade: ApiComponents['schemas']['MarketLastTrade'] | null;
-      lastTradePrice: string | null;
-      midpointPrice: string | null;
-      symbol: string;
-      token: string;
-    };
-    MarketLastTrade: {
-      completedAt: string | null;
-      paymentAmount: string;
-      paymentToken: string;
-      price: string;
-      shares: number;
     };
     NameEnum: 'LedovaAtomicSwap';
     NetworkEnum: 'BTC';
@@ -3576,12 +3387,6 @@ export interface ApiComponents {
       next?: string | null;
       previous?: string | null;
       results: ApiComponents['schemas']['CompanyList'][];
-    };
-    PaginatedDeviceTokenList: {
-      count: number;
-      next?: string | null;
-      previous?: string | null;
-      results: ApiComponents['schemas']['DeviceToken'][];
     };
     PaginatedDirectoryTokenListList: {
       count: number;
@@ -3928,30 +3733,8 @@ export interface ApiComponents {
       totalCostEth?: string;
       transaction: ApiComponents['schemas']['PreparedEvmTransaction'];
     };
-    PreparedTokenTransaction: {
-      chainId: number;
-      data: string;
-      gas: number;
-      gasPrice: number;
-      nonce: number;
-      to: string;
-      value: number;
-    };
-    PreparedTokenTransfer: {
-      amount: number;
-      fromAddress: string;
-      toAddress: string;
-      token: ApiComponents['schemas']['TransferTokenInfo'];
-      transactionData: ApiComponents['schemas']['PreparedTokenTransaction'];
-    };
     PreparedWalletTransfer:
       ApiComponents['schemas']['PreparedEvmTransfer'] | ApiComponents['schemas']['PreparedBitcoinTransfer'];
-    PrepareTransferRequest: {
-      amount: number;
-      fromAddress: string;
-      toAddress: string;
-      token: string;
-    };
     PrepareWalletTransferRequest: {
       amountBtc?: string;
       amountEth?: string;
@@ -4738,16 +4521,8 @@ export interface ApiComponents {
       message: string;
       token: ApiComponents['schemas']['ShareTokenDetail'];
     };
-    TokenTransferReceipt: {
-      blockNumber: number | null;
-      gasUsed: number | null;
-      txHash: string;
-    };
     TokenTypeEnum: 'ordinary' | 'preference' | 'redeemable';
     ToStatusEnum: 'cancelled';
-    TradingBroadcastTransferRequest: {
-      signedTransaction: string;
-    };
     TradingWalletBalances: {
       balances: ApiComponents['schemas']['TradingWalletTokenBalance'][];
       walletAddress: string;
@@ -4852,11 +4627,6 @@ export interface ApiComponents {
       | 'expired'
       | 'failed';
     TransferOrderTypeEnum: 'buy' | 'sell';
-    TransferTokenInfo: {
-      contractAddress: string;
-      symbol: string;
-      uuid: string;
-    };
     TypeEnum: 'share_token' | 'stablecoin';
     UnreadCountResponse: {
       unreadCount: number;
@@ -5181,74 +4951,6 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['AuthPasswordChanged'];
-        };
-      };
-    };
-  };
-  api_device_tokens_list: {
-    parameters: {
-      query?: {
-        ordering?: string;
-        page?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['PaginatedDeviceTokenList'];
-        };
-      };
-    };
-  };
-  api_device_tokens_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['DeviceTokenRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['DeviceTokenRequest'];
-        'multipart/form-data': ApiComponents['schemas']['DeviceTokenRequest'];
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['DeviceToken'];
-        };
-      };
-    };
-  };
-  api_device_tokens_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['DeviceToken'];
         };
       };
     };
@@ -5618,27 +5320,6 @@ export interface ApiOperations {
           [name: string]: unknown;
         };
         content?: never;
-      };
-    };
-  };
-  api_investor_classifications_evidence_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          '*/*': Blob;
-        };
       };
     };
   };
@@ -6932,27 +6613,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_v1_companies_application_status_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['ApplicationStatus'];
-        };
-      };
-    };
-  };
   api_v1_companies_resubmit_create: {
     parameters: {
       query?: never;
@@ -6976,27 +6636,6 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['CompanyApplicationResubmitted'];
-        };
-      };
-    };
-  };
-  api_v1_companies_stats_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CompanyStats'];
         };
       };
     };
@@ -7229,27 +6868,6 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['Document'];
-        };
-      };
-    };
-  };
-  api_v1_documents_file_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          '*/*': Blob;
         };
       };
     };
@@ -9054,27 +8672,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_v1_trading_orders_modifications_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['TransferOrderList'];
-        };
-      };
-    };
-  };
   api_v1_trading_orders_modify_create: {
     parameters: {
       query?: never;
@@ -9800,27 +9397,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_v1_trading_tokens_market_data_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['MarketData'];
-        };
-      };
-    };
-  };
   api_v1_trading_tokens_order_book_retrieve: {
     parameters: {
       query?: never;
@@ -9838,56 +9414,6 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['OrderBook'];
-        };
-      };
-    };
-  };
-  api_v1_trading_transfers_broadcast_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['TradingBroadcastTransferRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['TradingBroadcastTransferRequest'];
-        'multipart/form-data': ApiComponents['schemas']['TradingBroadcastTransferRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['TokenTransferReceipt'];
-        };
-      };
-    };
-  };
-  api_v1_trading_transfers_prepare_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['PrepareTransferRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['PrepareTransferRequest'];
-        'multipart/form-data': ApiComponents['schemas']['PrepareTransferRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['PreparedTokenTransfer'];
         };
       };
     };
