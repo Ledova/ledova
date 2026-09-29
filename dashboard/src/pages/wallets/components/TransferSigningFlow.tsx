@@ -274,6 +274,8 @@ export function TransferSigningFlow({
     }
   }, [signingStep, isBitcoin]);
 
+  const cancel = <PageAction label="Cancel" onClick={handleClose} disabled={signingStep === 'submitting'} />;
+
   const renderStepContent = () => {
     if (signingStep === 'loading' || isPreparing) {
       return (
@@ -282,9 +284,7 @@ export function TransferSigningFlow({
             <SpinnerGapIcon size={ICON_XL} className="text-brand-mid animate-spin" />
             <p className="text-sm text-text-muted">Preparing transaction...</p>
           </div>
-          <ModalActions>
-            <PageAction label="Cancel" onClick={handleClose} />
-          </ModalActions>
+          <ModalActions>{cancel}</ModalActions>
         </div>
       );
     }
@@ -327,7 +327,7 @@ export function TransferSigningFlow({
             {error && <p className="text-sm text-error-light">{error}</p>}
 
             <ModalActions>
-              <PageAction label="Cancel" onClick={handleClose} />
+              {cancel}
               <PageAction
                 label="Continue"
                 primary
@@ -352,6 +352,7 @@ export function TransferSigningFlow({
             {error && <p className="text-sm text-error-light">{error}</p>}
 
             <ModalActions>
+              {cancel}
               <PageAction label="Back" onClick={goBack} />
               <PageAction label="I've Signed It" primary onClick={() => setSigningStep('scan-signature')} />
             </ModalActions>
@@ -380,6 +381,7 @@ export function TransferSigningFlow({
             <QRScannerView scannerId="transfer-qr-scanner" error={scannerError} />
 
             <ModalActions>
+              {cancel}
               <PageAction label="Back" onClick={goBack} />
             </ModalActions>
           </div>
@@ -387,10 +389,13 @@ export function TransferSigningFlow({
 
       case 'submitting':
         return (
-          <div className="flex flex-col items-center justify-center py-8 gap-3">
-            <SpinnerGapIcon size={ICON_XL} className="text-brand-mid animate-spin" />
-            <p className="text-sm text-text-muted">Broadcasting transaction...</p>
-            <p className="text-xs text-text-subtle">This may take a moment</p>
+          <div className="space-y-4">
+            <div className="flex flex-col items-center justify-center py-8 gap-3">
+              <SpinnerGapIcon size={ICON_XL} className="text-brand-mid animate-spin" />
+              <p className="text-sm text-text-muted">Broadcasting transaction...</p>
+              <p className="text-xs text-text-subtle">This may take a moment</p>
+            </div>
+            <ModalActions>{cancel}</ModalActions>
           </div>
         );
 
@@ -424,11 +429,13 @@ export function TransferSigningFlow({
               </div>
             )}
 
-            {isBitcoin && (
-              <ModalActions>
+            <ModalActions>
+              {isBitcoin ? (
                 <PageAction label="Done" primary onClick={handleClose} />
-              </ModalActions>
-            )}
+              ) : (
+                <PageAction label="Close" onClick={handleClose} />
+              )}
+            </ModalActions>
           </div>
         );
       }
