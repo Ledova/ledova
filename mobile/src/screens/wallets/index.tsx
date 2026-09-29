@@ -2,7 +2,13 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { BLOCKCHAIN, WALLET_VERIFICATION_STATUS, getChainShortCode, useCurrency } from '@ledova/shared';
+import {
+  BLOCKCHAIN,
+  WALLET_VERIFICATION_STATUS,
+  formatCryptoBalance,
+  getNativeAssetSymbol,
+  useCurrency,
+} from '@ledova/shared';
 import type { WalletsStackParamList } from '../../navigation/WalletsStackNavigator';
 import { Section, Row, Rows, Action } from '../../components/Ledger';
 import { WalletSortModal, useWalletSort } from '../../components/wallet-list';
@@ -11,7 +17,6 @@ import { CryptoActions } from './components/CryptoActions';
 import { useWallets } from './useWallets';
 import { useWalletsCrud } from './useWalletsCrud';
 import { WalletsPage, useWalletStyles } from './WalletsPage';
-import { walletBalance } from './presentation';
 
 export function WalletsScreen() {
   const styles = useWalletStyles();
@@ -85,8 +90,7 @@ export function WalletsScreen() {
                           <Rows>
                             <Row label="Address">{wallet.address}</Row>
                             <Row label="Balance">
-                              {walletBalance(wallet.nativeBalance)}{' '}
-                              {getChainShortCode(wallet.chain) === 'BTC' ? 'BTC' : 'ETH'}
+                              {formatCryptoBalance(wallet.nativeBalance, getNativeAssetSymbol(wallet.chain))}
                             </Row>
                             <Row label="Estimated value">{formatDisplayCurrency(Number(wallet.marketValue))}</Row>
                             <Row label="Verification">

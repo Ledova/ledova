@@ -137,11 +137,13 @@ afterEach(async () => {
   client.clear();
 });
 
-it('reads every wallet page and renders full addresses and exact balances without mock totals', async () => {
+it('reads every wallet page and renders full addresses and exact balances, to eight places, without mock totals', async () => {
+  pages[2].results[0].nativeBalance = '9007199254740993.123456789';
   const view = await mount(<WalletsScreen />);
   await waitFor(() => expect(view.getByText('Fictional b')).toBeTruthy());
-  expect(view.getByText('9,007,199,254,740,993.000000000000000001 ETH')).toBeTruthy();
-  expect(view.getByText('0.000000000000000001 ETH')).toBeTruthy();
+  expect(view.getByText('9007199254740993.12345679 ETH')).toBeTruthy();
+  expect(view.getByText('0 ETH')).toBeTruthy();
+  expect(view.queryByText(/0\.000000000000000001/)).toBeNull();
   expect(view.getByText(wallet('b').address)).toBeTruthy();
   expect(get).toHaveBeenCalledWith(url, { params: { page: 2 }, ledovaSessionEpoch: getSessionEpoch() });
   await fireEvent.press(view.getByRole('button', { name: 'Open wallet Fictional b' }));
@@ -283,6 +285,13 @@ it('keeps name changes through refresh failures and refused saves, then displays
   await waitFor(() => expect(view.getByText('Kept name')).toBeTruthy());
   expect(patch).toHaveBeenLastCalledWith(url + 'a/', { name: 'Kept name' }, { ledovaSessionEpoch: getSessionEpoch() });
   expect(mockBack).not.toHaveBeenCalled();
+});
+
+it("states the wallet's balance in its network's unit, to eight places, as the Wallets row does", async () => {
+  pages[1].results[0] = { ...pages[1].results[0], chain: 'bitcoin', nativeBalance: '0.012500000000000000' };
+  const view = await mount(<WalletActionScreen />);
+  await waitFor(() => expect(view.getByText('0.0125 BTC')).toBeTruthy());
+  expect(view.queryByText(/0\.0125000/)).toBeNull();
 });
 
 it('uses the complete current ledger rather than a stale route wallet after removal', async () => {

@@ -1,12 +1,3 @@
-import { formatShareCount } from '@ledova/shared';
-
-export function walletBalance(value: string | null | undefined) {
-  if (!value || !/^-?\d+(\.\d+)?$/.test(value)) return 'Unavailable';
-  const negative = value.startsWith('-');
-  const [whole, fraction] = (negative ? value.slice(1) : value).split('.');
-  return `${negative ? '-' : ''}${formatShareCount(whole)}${fraction ? `.${fraction}` : ''}`;
-}
-
 export function compareWalletDecimals(left: string, right: string) {
   const decimal = (value: string) => (/^-?\d+(\.\d+)?$/.test(value) ? value : '0');
   const a = decimal(left);
