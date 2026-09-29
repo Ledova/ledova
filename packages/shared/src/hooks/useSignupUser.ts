@@ -1,16 +1,17 @@
 import { useState, useMemo } from 'react';
-import {
-  signup,
-  FormErrors,
-  SignupRequest,
-  PASSWORD_VALIDATION,
-  isNumericOnly,
-  validatePassword,
-  describeFailure,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
 
-export const useSignupUser = () => {
+import { SIGNUP_NETWORK_ERROR } from '../constants/business/signup';
+import { PASSWORD_VALIDATION } from '../constants/utilities';
+import { signup } from '../services/auth';
+import type { FormErrors, SignupRequest } from '../types';
+import { describeFailure, readApiError } from '../utils/errors';
+import { isNumericOnly, validatePassword } from '../utils/validation';
+import { useApiClient } from './useApiClient';
+
+export const SIGNUP_USER_FIELDS: readonly (keyof SignupRequest)[] = ['email', 'password'];
+
+export function useSignupUser(rememberEmail: (email: string) => Promise<void> | void) {
+  const apiClient = useApiClient();
   const [form, setForm] = useState<SignupRequest>({
     email: '',
     password: '',
@@ -79,29 +80,18 @@ export const useSignupUser = () => {
         passwordConfirm: form.password,
       });
 
-      localStorage.setItem('signup_email', form.email);
+      await rememberEmail(form.email);
 
       onSuccess();
     } catch (error: unknown) {
       console.error(`Account creation failed: ${describeFailure(error)}`);
-      const axiosError = error as { response?: { data?: unknown } };
-      if (axiosError.response?.data) {
-        const errorData = axiosError.response.data;
-        if (typeof errorData === 'object' && !Array.isArray(errorData)) {
-          setErrors(errorData as FormErrors);
-
-          const firstError = Object.values(errorData).flat()[0];
-          if (firstError) {
-            setGeneralError(firstError as string);
-          }
-        } else if (typeof errorData === 'string') {
-          setGeneralError(errorData);
-        } else {
-          setGeneralError('Failed to create account. Please try again.');
-        }
-      } else {
-        setGeneralError('Network error. Please check your connection.');
-      }
+      const reading = readApiError(error, {
+        fallback: 'Failed to create account. Please try again.',
+        displayedFields: SIGNUP_USER_FIELDS,
+        unanswered: SIGNUP_NETWORK_ERROR,
+      });
+      setGeneralError(reading.generalError ?? '');
+      setErrors(reading.fieldErrors ?? {});
     } finally {
       setIsLoading(false);
     }
@@ -118,4 +108,4 @@ export const useSignupUser = () => {
     togglePassword,
     handleSubmit,
   };
-};
+}

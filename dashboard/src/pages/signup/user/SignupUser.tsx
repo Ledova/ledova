@@ -1,9 +1,23 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useSignupUser } from './useSignupUser';
 import { Field, Label, Input, Description } from '@headlessui/react';
 import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockIcon, UserIcon, WarningIcon } from '@phosphor-icons/react';
 import { AuthLayout } from '@components/AuthLayout';
+import { useSignupUser } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
+
+function emailRefusal(sentence: string) {
+  if (!/already registered/i.test(sentence)) return sentence;
+  const lead = sentence.split('Please')[0].trim().replace(/\.$/, '');
+  return (
+    <>
+      {`${lead}. Please `}
+      <Link to="/signin" className="underline hover:text-error-light">
+        sign in
+      </Link>
+      {' or use a different email.'}
+    </>
+  );
+}
 
 export function SignupUser() {
   const navigate = useNavigate();
@@ -17,7 +31,7 @@ export function SignupUser() {
     setFieldValue,
     togglePassword,
     handleSubmit,
-  } = useSignupUser();
+  } = useSignupUser((email) => localStorage.setItem('signup_email', email));
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,17 +90,8 @@ export function SignupUser() {
                 <Description className="text-error-light text-sm mt-1" role="alert">
                   {errors.email.map((error, index) => (
                     <span key={index}>
-                      {error.includes('already registered') ? (
-                        <>
-                          {error.split('Please')[0]}Please{' '}
-                          <Link to="/signin" className="underline hover:text-error-light">
-                            sign in
-                          </Link>
-                          {' or use a different email.'}
-                        </>
-                      ) : (
-                        error
-                      )}
+                      {index > 0 && ' '}
+                      {emailRefusal(error)}
                     </span>
                   ))}
                 </Description>

@@ -1,18 +1,12 @@
-// @vitest-environment jsdom
+/** @jest-environment jsdom */
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
+import type { QueryClient } from '@tanstack/react-query';
 
-import React from 'react';
-import { act, cleanup, fireEvent, render, renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { useSignupCompanyRegistration } from './useSignupCompanyRegistration';
-import { SignupCompanyRegistration } from './SignupCompanyRegistration';
-vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }));
-vi.mock('@components/AuthLayout', () => ({
-  AuthLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}));
+import { useSignupCompanyRegistration } from '../../src/hooks/useSignupCompanyRegistration';
+import { SIGNUP_LOAD_FAILED, SIGNUP_NETWORK_ERROR } from '../../src/constants/business/signup';
+import { axiosFailure, deferred, providers, queryClient, refusal, signupApi, unanswered } from '../fixtures/signup';
 
-const api = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn(), post: vi.fn() }));
-vi.mock('@services/apiClient', () => ({ default: api }));
+const api = signupApi();
 
 const summaryA = {
   uuid: 'company-a',
@@ -37,39 +31,27 @@ const detailB = { ...summaryB, abn: '53004085616' };
 const listKey = ['signup', 'company'];
 const detailKey = (uuid: string) => ['signup', 'company-detail', uuid];
 const list = (rows = [summaryA]) => ({ data: { count: rows.length, next: null, previous: null, results: rows } });
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (reason: unknown) => void;
-  const promise = new Promise<T>((done, fail) => {
-    resolve = done;
-    reject = fail;
-  });
-  return { promise, resolve, reject };
-}
+const profiles = (fullName: string) => ({
+  data: { results: [{ uuid: 'profile-a', fullName, phoneNumber: '00000000', phoneCountryCode: '+61' }] },
+});
 
 let client: QueryClient;
+let wrapper: ReturnType<typeof providers>;
+let profileRows: () => Promise<ReturnType<typeof profiles>>;
 let companyList: () => Promise<ReturnType<typeof list>>;
 let companyA: () => Promise<{ data: typeof detailA }>;
 let companyB: () => Promise<{ data: typeof detailB }>;
 
 beforeEach(() => {
-  vi.clearAllMocks();
-  client = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false, gcTime: 0 } },
-  });
+  jest.clearAllMocks();
+  client = queryClient();
+  wrapper = providers(api, client);
+  profileRows = () => Promise.resolve(profiles('Synthetic Person'));
   companyList = () => Promise.resolve(list());
   companyA = () => Promise.resolve({ data: detailA });
   companyB = () => Promise.resolve({ data: detailB });
   api.get.mockImplementation((url: string) => {
-    if (url === '/api/user-profiles/')
-      return Promise.resolve({
-        data: {
-          results: [
-            { uuid: 'profile-a', fullName: 'Synthetic Person', phoneNumber: '00000000', phoneCountryCode: '+61' },
-          ],
-        },
-      });
+    if (url === '/api/user-profiles/') return profileRows();
     if (url === '/api/v1/companies/') return companyList();
     if (url === '/api/v1/companies/company-a/') return companyA();
     if (url === '/api/v1/companies/company-b/') return companyB();
@@ -84,10 +66,6 @@ afterEach(async () => {
   client.clear();
 });
 
-function wrapper({ children }: { children: React.ReactNode }) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-}
-
 async function loaded() {
   const view = renderHook(() => useSignupCompanyRegistration(), { wrapper });
   await waitFor(() => expect(view.result.current.form.abn).toBe(detailA.abn));
@@ -101,7 +79,7 @@ it('waits for the selected detail, then prefills ABN and saves that detail', asy
   await waitFor(() => expect(api.get).toHaveBeenCalledWith('/api/v1/companies/company-a/'));
   expect(result.current.isLoading).toBe(true);
   expect(result.current.form.abn).toBe('');
-  const saved = vi.fn();
+  const saved = jest.fn();
   await act(() => result.current.handleSubmit(saved));
   expect(api.patch).not.toHaveBeenCalled();
   expect(api.post).not.toHaveBeenCalled();
@@ -131,7 +109,7 @@ it('preserves dirty fields and an emptied ABN while refreshing untouched fields'
   expect(result.current.form.name).toBe('Unsaved name');
   expect(result.current.form.abn).toBe('');
   expect(api.patch).not.toHaveBeenCalled();
-  await act(() => result.current.handleSubmit(vi.fn()));
+  await act(() => result.current.handleSubmit(jest.fn()));
   expect(api.patch).toHaveBeenCalledWith(
     '/api/v1/companies/company-a/',
     expect.objectContaining({ name: 'Unsaved name', abn: undefined }),
@@ -163,13 +141,13 @@ it('retires A immediately and ignores its late detail after the first list selec
   });
   await waitFor(() => expect(api.get).toHaveBeenCalledWith('/api/v1/companies/company-b/'));
   expect(result.current.form.name).not.toBe('Unsent A');
-  await act(() => result.current.handleSubmit(vi.fn()));
+  await act(() => result.current.handleSubmit(jest.fn()));
   expect(api.patch).not.toHaveBeenCalled();
   await act(() => pendingB.resolve({ data: detailB }));
   await waitFor(() => expect(result.current.form.abn).toBe(detailB.abn));
   await act(() => pendingA.resolve({ data: detailA }));
   expect(result.current.form.abn).toBe(detailB.abn);
-  await act(() => result.current.handleSubmit(vi.fn()));
+  await act(() => result.current.handleSubmit(jest.fn()));
   expect(api.patch).toHaveBeenCalledWith(
     '/api/v1/companies/company-b/',
     expect.objectContaining({ name: detailB.name, abn: detailB.abn }),
@@ -179,17 +157,19 @@ it('retires A immediately and ignores its late detail after the first list selec
 it('does not hydrate a different UUID returned from the selected detail endpoint', async () => {
   companyA = () => Promise.resolve({ data: detailB });
   const { result } = renderHook(() => useSignupCompanyRegistration(), { wrapper });
-  await waitFor(() => expect(result.current.loadError).toBeTruthy());
+  await waitFor(() =>
+    expect(result.current.loadError).toBe('Company details did not match the selected company. Please try again.'),
+  );
   expect(result.current.form.abn).toBe('');
-  await act(() => result.current.handleSubmit(vi.fn()));
+  await act(() => result.current.handleSubmit(jest.fn()));
   expect(api.patch).not.toHaveBeenCalled();
 });
 
 it('keeps a failed detail unresolved and recovers through the real retry path', async () => {
-  companyA = () => Promise.reject(new Error('Detail unavailable'));
+  companyA = () => Promise.reject(refusal(503, { detail: 'Detail unavailable' }));
   const { result } = renderHook(() => useSignupCompanyRegistration(), { wrapper });
   await waitFor(() => expect(result.current.loadError).toBe('Detail unavailable'));
-  await act(() => result.current.handleSubmit(vi.fn()));
+  await act(() => result.current.handleSubmit(jest.fn()));
   expect(api.patch).not.toHaveBeenCalled();
   expect(api.post).not.toHaveBeenCalled();
   companyA = () => Promise.resolve({ data: detailA });
@@ -198,10 +178,26 @@ it('keeps a failed detail unresolved and recovers through the real retry path', 
   expect(result.current.loadError).toBeNull();
 });
 
+it.each<[string, unknown, string]>([
+  ['a 404 that gives no reason', axiosFailure(404), SIGNUP_LOAD_FAILED],
+  ...unanswered(SIGNUP_LOAD_FAILED),
+])(
+  'says why the details could not be loaded, not what axios said, after %s, and still retries',
+  async (_, failure, shown) => {
+    profileRows = () => Promise.reject(failure);
+    const { result } = renderHook(() => useSignupCompanyRegistration(), { wrapper });
+    await waitFor(() => expect(result.current.loadError).toBe(shown));
+    profileRows = () => Promise.resolve(profiles('Synthetic Person'));
+    await act(() => result.current.retryLoad());
+    await waitFor(() => expect(result.current.loadError).toBeNull());
+    await waitFor(() => expect(result.current.form.abn).toBe(detailA.abn));
+  },
+);
+
 it('preserves dirty input after a background failure and explicit retry', async () => {
   const { result } = await loaded();
   await act(() => result.current.setFieldValue('abn', detailB.abn));
-  companyA = () => Promise.reject(new Error('Refresh unavailable'));
+  companyA = () => Promise.reject(refusal(503, { detail: 'Refresh unavailable' }));
   await act(() => client.refetchQueries({ queryKey: detailKey('company-a') }));
   await waitFor(() => expect(result.current.loadError).toBe('Refresh unavailable'));
   expect(result.current.form.abn).toBe(detailB.abn);
@@ -212,28 +208,28 @@ it('preserves dirty input after a background failure and explicit retry', async 
 });
 
 it('does not mistake a failed list load for a new registration', async () => {
-  companyList = () => Promise.reject(new Error('List unavailable'));
+  companyList = () => Promise.reject(refusal(503, { detail: 'List unavailable' }));
   const { result } = renderHook(() => useSignupCompanyRegistration(), { wrapper });
   await waitFor(() => expect(result.current.isLoading).toBe(false));
   await act(() => {
     result.current.setFieldValue('name', 'New input');
     result.current.setFieldValue('acn', '000000019');
   });
-  await act(() => result.current.handleSubmit(vi.fn()));
+  await act(() => result.current.handleSubmit(jest.fn()));
   expect(api.post).not.toHaveBeenCalled();
   expect(result.current.loadError).toBe('List unavailable');
 });
 
 it('retains new registration, empty-ABN omission and its ordinary invalidations', async () => {
   companyList = () => Promise.resolve(list([]));
-  const invalidate = vi.spyOn(client, 'invalidateQueries');
+  const invalidate = jest.spyOn(client, 'invalidateQueries');
   const { result } = renderHook(() => useSignupCompanyRegistration(), { wrapper });
   await waitFor(() => expect(result.current.isLoading).toBe(false));
   await act(() => {
     result.current.setFieldValue('name', 'New company');
     result.current.setFieldValue('acn', '000 000 019');
   });
-  const saved = vi.fn();
+  const saved = jest.fn();
   await act(() => result.current.handleSubmit(saved));
   expect(api.post).toHaveBeenCalledWith('/api/v1/companies/', {
     name: 'New company',
@@ -250,11 +246,22 @@ it('retains new registration, empty-ABN omission and its ordinary invalidations'
   expect(invalidate).toHaveBeenCalledWith({ queryKey: listKey });
 });
 
+it('refreshes the company list and the saved detail after an update', async () => {
+  const invalidate = jest.spyOn(client, 'invalidateQueries');
+  const { result } = await loaded();
+
+  await act(() => result.current.handleSubmit(jest.fn()));
+
+  expect(api.patch).toHaveBeenCalledTimes(1);
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: listKey });
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: detailKey('company-a') });
+});
+
 it.each(['success', 'failure'])('ignores a late A save %s after B is selected', async (outcome) => {
   const pending = deferred<{ data: { name: string } }>();
   api.patch.mockReturnValue(pending.promise);
   const { result } = await loaded();
-  const saved = vi.fn();
+  const saved = jest.fn();
   let submitting!: Promise<void>;
   await act(() => {
     submitting = result.current.handleSubmit(saved);
@@ -279,7 +286,7 @@ it('does not complete a stale A save after selection changes A to B to A', async
   const pending = deferred<{ data: { name: string } }>();
   api.patch.mockReturnValue(pending.promise);
   const { result } = await loaded();
-  const saved = vi.fn();
+  const saved = jest.fn();
   let submitting!: Promise<void>;
   await act(() => {
     submitting = result.current.handleSubmit(saved);
@@ -312,13 +319,12 @@ it('preserves a genuine registration success when the created company appears in
     result.current.setFieldValue('name', 'New company');
     result.current.setFieldValue('acn', '000000019');
   });
-  const saved = vi.fn();
+  const saved = jest.fn();
   let submitting!: Promise<void>;
   await act(() => {
     submitting = result.current.handleSubmit(saved);
   });
   await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
-  companyList = () => Promise.resolve(list());
   await act(() => {
     companyList = () => Promise.resolve(list());
     client.setQueryData(listKey, list());
@@ -335,7 +341,7 @@ it('does not navigate when a save resolves after unmount', async () => {
   const pending = deferred<{ data: { name: string } }>();
   api.patch.mockReturnValue(pending.promise);
   const { result, unmount } = await loaded();
-  const saved = vi.fn();
+  const saved = jest.fn();
   let submitting!: Promise<void>;
   await act(() => {
     submitting = result.current.handleSubmit(saved);
@@ -351,7 +357,7 @@ it('does not navigate when a save resolves after unmount', async () => {
 
 it('keeps identifier validation and a current save failure without clearing edits', async () => {
   const { result } = await loaded();
-  const saved = vi.fn();
+  const saved = jest.fn();
   await act(() => result.current.setFieldValue('abn', 'short'));
   await act(() => result.current.handleSubmit(saved));
   expect(result.current.errors.abn).toEqual(['ABN must be exactly 11 digits']);
@@ -364,28 +370,73 @@ it('keeps identifier validation and a current save failure without clearing edit
   expect(saved).not.toHaveBeenCalled();
 });
 
-it('uses the real registration retry screen and preserves visible edits on a failed refresh', async () => {
-  companyA = () => Promise.reject(new Error('Detail unavailable'));
-  const view = render(
-    <QueryClientProvider client={client}>
-      <SignupCompanyRegistration />
-    </QueryClientProvider>,
+it('marks a refusal under the field it names and says what no field shows', async () => {
+  const { result } = await loaded();
+  api.patch.mockRejectedValue({
+    response: {
+      data: {
+        acn: ['Company with this ACN already exists.', 'Try another.'],
+        owner: ['Only one company per account.'],
+      },
+    },
+  });
+  await act(() => result.current.handleSubmit(jest.fn()));
+  expect(result.current.errors).toEqual({ acn: ['Company with this ACN already exists.', 'Try another.'] });
+  expect(result.current.generalError).toBe('Only one company per account.');
+});
+
+it('says the company details could not be saved when a refusal gives no reason', async () => {
+  const { result } = await loaded();
+  api.patch.mockRejectedValue(refusal(404, ''));
+  await act(() => result.current.handleSubmit(jest.fn()));
+  expect(result.current.generalError).toBe('We could not save your company details. Please try again.');
+  expect(result.current.errors).toEqual({});
+});
+
+it.each(unanswered(SIGNUP_NETWORK_ERROR))(
+  'says why the company details were not saved after %s',
+  async (_, failure, shown) => {
+    const { result } = await loaded();
+    api.patch.mockRejectedValue(failure);
+    await act(() => result.current.handleSubmit(jest.fn()));
+    expect(result.current.generalError).toBe(shown);
+    expect(result.current.errors).toEqual({});
+  },
+);
+
+it('asks for a first and last name in the profile before registering a company', async () => {
+  companyList = () => Promise.resolve(list([]));
+  profileRows = () => Promise.resolve(profiles('Synthetic'));
+  const { result } = renderHook(() => useSignupCompanyRegistration(), { wrapper });
+  await waitFor(() => expect(result.current.isLoading).toBe(false));
+  await act(() => {
+    result.current.setFieldValue('name', 'New company');
+    result.current.setFieldValue('acn', '000000019');
+  });
+  await act(() => result.current.handleSubmit(jest.fn()));
+  expect(result.current.generalError).toBe(
+    'Please ensure your full name (first and last) is set in your profile before registering a company.',
   );
-  await waitFor(() => expect(view.getByText('Detail unavailable')).toBeTruthy());
   expect(api.post).not.toHaveBeenCalled();
-  expect(api.patch).not.toHaveBeenCalled();
-  companyA = () => Promise.resolve({ data: detailA });
-  fireEvent.click(view.getByRole('button', { name: 'Retry' }));
-  await waitFor(() => expect(view.getByDisplayValue(detailA.abn)).toBeTruthy());
-  fireEvent.change(view.getByDisplayValue(detailA.abn), { target: { value: detailB.abn } });
-  companyA = () => Promise.reject(new Error('Refresh unavailable'));
-  await act(() => client.refetchQueries({ queryKey: detailKey('company-a') }));
-  await waitFor(() => expect(view.getByText('Refresh unavailable')).toBeTruthy());
-  expect(view.getByDisplayValue(detailB.abn)).toBeTruthy();
-  companyA = () => Promise.resolve({ data: detailA });
-  fireEvent.click(view.getByRole('button', { name: 'Try Again' }));
-  await waitFor(() => expect(view.queryByText('Refresh unavailable')).toBeNull());
-  expect(view.getByDisplayValue(detailB.abn)).toBeTruthy();
+});
+
+it('reads the profile again when the step opens, so the name saved on the step before is the one registered', async () => {
+  companyList = () => Promise.resolve(list([]));
+  client.setQueryData(['userProfiles'], profiles('Synthetic'));
+  const { result } = renderHook(() => useSignupCompanyRegistration(), { wrapper });
+  await waitFor(() => expect(api.get).toHaveBeenCalledWith('/api/user-profiles/'));
+  await waitFor(() => expect(result.current.isLoading).toBe(false));
+  await waitFor(() => expect(client.getQueryState(['userProfiles'])?.fetchStatus).toBe('idle'));
+  await act(() => {
+    result.current.setFieldValue('name', 'New company');
+    result.current.setFieldValue('acn', '000000019');
+  });
+  await act(() => result.current.handleSubmit(jest.fn()));
+  expect(result.current.generalError).toBe('');
+  expect(api.post).toHaveBeenCalledWith(
+    '/api/v1/companies/',
+    expect.objectContaining({ primaryContact: { firstName: 'Synthetic', lastName: 'Person', phone: '+61 00000000' } }),
+  );
 });
 
 it('does not hydrate the next mounted form from an unmounted detail response', async () => {
@@ -410,7 +461,7 @@ it('rejects a captured submit callback after its form owner changes', async () =
     client.setQueryData(listKey, list([summaryB]));
   });
   await waitFor(() => expect(result.current.form.abn).toBe(detailB.abn));
-  await act(() => submitA(vi.fn()));
+  await act(() => submitA(jest.fn()));
   expect(api.patch).not.toHaveBeenCalled();
   expect(api.post).not.toHaveBeenCalled();
   expect(result.current.form.abn).toBe(detailB.abn);

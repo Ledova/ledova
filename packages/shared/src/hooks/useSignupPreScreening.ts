@@ -1,9 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getUserProfiles, updateUserProfile } from '@ledova/shared';
-import type { UpdateUserProfile } from '@ledova/shared';
-import { apiClient } from '../../../services/apiClient';
 
-export const usePreScreening = () => {
+import { SIGNUP_NETWORK_ERROR } from '../constants/business/signup';
+import { getUserProfiles, updateUserProfile } from '../services/users';
+import type { UpdateUserProfile } from '../types';
+import { apiErrorSentence, describeFailure } from '../utils/errors';
+import { useApiClient } from './useApiClient';
+
+export function useSignupPreScreening() {
+  const apiClient = useApiClient();
   const [acknowledgedWholesaleOnly, setAcknowledgedWholesaleOnly] = useState(false);
   const [form, setForm] = useState<UpdateUserProfile>({
     confirmedOver18: false,
@@ -17,15 +21,12 @@ export const usePreScreening = () => {
   const [existingProfileUuid, setExistingProfileUuid] = useState<string | null>(null);
 
   const loadUserProfile = useCallback(async () => {
-    setIsLoading(true);
-    setGeneralError('');
-
     try {
       const response = await getUserProfiles(apiClient);
       const profileData = response.data;
 
       if (profileData && profileData.results && profileData.count > 0) {
-        const existingProfile = profileData.results[0];
+        const existingProfile = profileData.results[0]!;
         setExistingProfileUuid(existingProfile.uuid);
 
         setForm({
@@ -34,12 +35,13 @@ export const usePreScreening = () => {
           confirmedIndividualAccount: existingProfile.confirmedIndividualAccount || false,
         });
       }
-    } catch {
+    } catch (error) {
+      console.error(`Failed to load profile data: ${describeFailure(error)}`);
       setGeneralError('Failed to load profile data. Please try again.');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [apiClient]);
 
   useEffect(() => {
     loadUserProfile();
@@ -74,35 +76,29 @@ export const usePreScreening = () => {
       return;
     }
 
+    if (!existingProfileUuid) {
+      setGeneralError('User profile not found. Please contact support.');
+      return;
+    }
+
     setIsSubmitting(true);
     setGeneralError('');
 
     try {
-      if (!existingProfileUuid) {
-        throw new Error('User profile not found. Please contact support.');
-      }
-
       await updateUserProfile(apiClient, existingProfileUuid, form);
 
       onSuccess();
     } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: unknown } };
-      if (axiosError.response?.data) {
-        const errorData = axiosError.response.data;
-        if (typeof errorData === 'string') {
-          setGeneralError(errorData);
-        } else {
-          setGeneralError('Failed to save pre-screening. Please try again.');
-        }
-      } else {
-        setGeneralError('Network error. Please check your connection.');
-      }
+      console.error(`Pre-screening update failed: ${describeFailure(error)}`);
+      setGeneralError(apiErrorSentence(error, 'Failed to save pre-screening. Please try again.', SIGNUP_NETWORK_ERROR));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const retryLoad = () => {
+    setIsLoading(true);
+    setGeneralError('');
     loadUserProfile();
   };
 
@@ -124,9 +120,10 @@ export const usePreScreening = () => {
     generalError,
     isLoading,
     isSubmitting,
+    existingProfileUuid,
     isFormValid,
     setFieldValue,
     handleSubmit,
     retryLoad,
   };
-};
+}

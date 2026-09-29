@@ -13,12 +13,11 @@ import { GradientBackground } from '../../../components/GradientBackground';
 import { PrimaryButton } from '../../../components/buttons';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
-import { useFinancialProfile } from './useFinancialProfile';
 import { WarningCircleIcon, ChartBarIcon } from 'phosphor-react-native';
 import { CheckIcon } from 'phosphor-react-native';
 import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
-import { SOURCE_OF_FUNDS_OPTIONS, INTENDED_USE_OPTIONS } from '@ledova/shared';
+import { SOURCE_OF_FUNDS_OPTIONS, INTENDED_USE_OPTIONS, useSignupFinancialProfile } from '@ledova/shared';
 
 export function FinancialProfileScreen() {
   const theme = useAppTheme();
@@ -252,7 +251,7 @@ export function FinancialProfileScreen() {
     toggleSourceOfFunds,
     handleSubmit,
     retryLoad,
-  } = useFinancialProfile();
+  } = useSignupFinancialProfile();
 
   const handleContinue = async () => {
     await handleSubmit(() => {

@@ -24,7 +24,7 @@ export function SignupReview() {
   const {
     data,
     company,
-    signupRole,
+    isCompany,
     isLoading,
     error,
     completionError,
@@ -35,7 +35,7 @@ export function SignupReview() {
   } = useReview();
 
   const handleBack = () => {
-    if (signupRole === 'company') {
+    if (isCompany) {
       navigate('/signup/company-registration');
     } else {
       navigate('/signup/financial-profile');
@@ -70,7 +70,6 @@ export function SignupReview() {
   }
 
   const { userProfile, financialProfile } = data;
-  const isCompany = signupRole === 'company';
 
   return (
     <AuthLayout>
