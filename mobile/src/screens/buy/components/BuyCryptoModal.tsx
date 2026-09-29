@@ -23,6 +23,7 @@ import {
   getOnRampWidgetUrl,
   getUserProfiles,
   getUserVerificationStatus,
+  readApiError,
   readEveryPage,
 } from '@ledova/shared';
 import type { BuyableAssetConfig, Wallet } from '@ledova/shared';
@@ -360,7 +361,12 @@ export function BuyCryptoModal({
 
       {widgetMutation.isError && (
         <Text style={text.error}>
-          {widgetMutation.error instanceof Error ? widgetMutation.error.message : 'Something went wrong'}
+          {
+            readApiError(widgetMutation.error, {
+              fallback: 'The purchase page could not be opened. Try again.',
+              displayedFields: [],
+            }).generalError
+          }
         </Text>
       )}
     </CustomModal>

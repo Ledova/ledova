@@ -375,3 +375,35 @@ it('holds every wallet while the chosen one opens the purchase, and marks only t
   await fireEvent.press(other);
   expect(post).toHaveBeenCalledTimes(1);
 });
+
+it.each([
+  [
+    'a refusal that gives its reason',
+    { status: 400, data: { detail: 'Purchases are paused for this account.' } },
+    'Purchases are paused for this account.',
+  ],
+  [
+    'a refusal of one field',
+    { status: 400, data: { walletUuid: ['This wallet cannot receive purchases.'] } },
+    'This wallet cannot receive purchases.',
+  ],
+  [
+    "a proxy's error page",
+    { status: 502, data: '<html><body><h1>502 Bad Gateway</h1></body></html>' },
+    'The purchase page could not be opened. Try again.',
+  ],
+] as const)(
+  'says why the purchase page could not be opened after %s, and never the raw response',
+  async (_, response, shown) => {
+    answer(async () => page([wallet('1', 'First wallet')]));
+    post.mockRejectedValue(
+      Object.assign(new Error(`Request failed with status code ${response.status}`), { response }),
+    );
+    const view = await render(<Reopenable navigate={jest.fn()} />);
+    await chooseEthereum(view);
+
+    expect(await view.findByText(shown)).toBeTruthy();
+    expect(view.queryByText(/Request failed with status code/)).toBeNull();
+    expect(view.queryByText(/Bad Gateway/)).toBeNull();
+  },
+);
