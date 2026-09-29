@@ -156,6 +156,17 @@ it('keeps a refused delete confirmation open and requires a successful retry', a
   expect(api.delete).toHaveBeenCalledTimes(2);
 });
 
+it('lists the networks as Ethereum, Bitcoin and Base, one card each', async () => {
+  show();
+  await screen.findByText('Primary wallet');
+
+  expect(screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)).toEqual([
+    'Ethereum',
+    'Bitcoin',
+    'Base',
+  ]);
+});
+
 it('states each empty chain in one sentence under its title and offers Add wallet once, in the title row', async () => {
   api.get.mockResolvedValue(page([]));
   show();

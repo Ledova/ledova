@@ -75,6 +75,11 @@ it('lists each verified wallet under its network with its balance and value labe
   const unnamed = within(dialog).getByRole('button', { name: new RegExp(formatWalletAddressShort(everyday.address)) });
   expect(figuresOf(unnamed)).toEqual(['Balance', '0 ETH', 'Value', 'AUD 0.00']);
   expect(
+    within(dialog)
+      .getAllByText(/^(Ethereum|Bitcoin|Base)$/)
+      .map((network) => network.textContent),
+  ).toEqual(['Ethereum', 'Bitcoin', 'Base']);
+  expect(
     ['Ethereum', 'Bitcoin', 'Base'].map((network) => within(dialog).getByText(network).nextElementSibling?.textContent),
   ).toEqual([
     expect.stringContaining('Savings'),
