@@ -96,7 +96,13 @@ def anchors_of(path: Path) -> set[str]:
 
 
 def dead_links(files: list[Path]) -> list[str]:
-    anchors = {path: anchors_of(path) for path in files}
+    # Both sides of the comparison are resolved paths. A link's target has to be
+    # resolved to be found, so the documents it is looked up among are keyed the
+    # same way. Keyed by the path each was found at, they never matched in a tree
+    # reached through a symlink - macOS keeps temporary directories under /var,
+    # which is a link to /private/var - and every anchor into another document
+    # went unchecked there while the gate reported nothing.
+    anchors = {path.resolve(): anchors_of(path) for path in files}
     findings = []
     for path in files:
         relative = path.relative_to(REPO_ROOT)
@@ -105,7 +111,7 @@ def dead_links(files: list[Path]) -> list[str]:
                 if target.startswith(("http://", "https://", "mailto:")):
                     continue
                 if target.startswith("#"):
-                    if target[1:] not in anchors[path]:
+                    if target[1:] not in anchors[path.resolve()]:
                         findings.append(f"{relative}:{line_number} dead anchor {target}")
                     continue
                 location, _, fragment = target.partition("#")

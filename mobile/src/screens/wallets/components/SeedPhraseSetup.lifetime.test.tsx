@@ -1,12 +1,14 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
-import { SeedPhraseSetup } from './SeedPhraseSetup';
+import { AddWalletModal } from './AddWalletModal';
 import { invalidateSessionScope } from '../../../services/sessionScope';
 
 let mockModalClose: () => void;
+let mockFooter: boolean | undefined;
 jest.mock('../../../components/modal', () => {
   const { Pressable, Text, View } = jest.requireActual('react-native');
   return {
+    ...jest.requireActual('../../../components/modal'),
     CustomModal: ({
       children,
       onClose,
@@ -21,6 +23,7 @@ jest.mock('../../../components/modal', () => {
       showFooter?: boolean;
     }) => {
       mockModalClose = onClose;
+      mockFooter = showFooter;
       return (
         <View>
           {children}
@@ -109,22 +112,59 @@ afterEach(async () => {
   await cleanup();
 });
 
-async function prepared(onComplete: React.ComponentProps<typeof SeedPhraseSetup>['onComplete'], onClose = jest.fn()) {
+async function softwareStep(
+  onComplete: NonNullable<React.ComponentProps<typeof AddWalletModal>['onSoftwareWalletCreate']> = jest.fn(),
+  onClose = jest.fn(),
+) {
   const view = await render(
-    <SeedPhraseSetup
+    <AddWalletModal
       visible
-      onComplete={onComplete}
-      onClose={onClose}
-      onCancel={jest.fn()}
+      isLoading={false}
       readBlocked={false}
       notice={null}
+      error={null}
+      onRetry={jest.fn()}
+      onClose={onClose}
+      onSubmit={jest.fn()}
+      onBatchSubmit={jest.fn()}
+      onSoftwareWalletCreate={onComplete}
     />,
   );
+  await fireEvent.press(view.getByText('Software Wallet'));
+  return view;
+}
+
+async function prepared(
+  onComplete: NonNullable<React.ComponentProps<typeof AddWalletModal>['onSoftwareWalletCreate']>,
+  onClose = jest.fn(),
+) {
+  const view = await softwareStep(onComplete, onClose);
   await fireEvent.press(view.getByText('Continue'));
   await fireEvent.press(view.getByText('Complete fictional confirmation'));
   await fireEvent.press(view.getByText('Verify'));
   return view;
 }
+
+it('leaves the account step to its own Back and Create Wallet row', async () => {
+  const view = await softwareStep();
+  expect(mockFooter).toBe(true);
+  await fireEvent.press(view.getByText('Continue'));
+  await fireEvent.press(view.getByText('Complete fictional confirmation'));
+  await fireEvent.press(view.getByText('Verify'));
+  expect(view.getByText('Create Wallet')).toBeTruthy();
+  expect(mockFooter).toBe(false);
+});
+
+it('keeps the securing line at its earlier 16pt size', async () => {
+  const write = deferred<void>();
+  const view = await prepared(jest.fn().mockReturnValue(write.promise));
+  await fireEvent.press(view.getByText('Create Wallet'));
+  await waitFor(() => expect(view.getByText('Securing your wallet...')).toHaveStyle({ fontSize: 16 }));
+  await act(async () => {
+    write.resolve();
+    await write.promise;
+  });
+});
 
 it('awaits wallet registration and keeps account selection when it is refused', async () => {
   const write = deferred<void>();

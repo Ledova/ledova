@@ -2,10 +2,12 @@ import logging
 from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, Optional
 
+from django.conf import settings
 from eth_utils import from_wei, to_wei
 from web3 import Web3
 
 from integrations.blockchain import get_blockchain_client
+from integrations.blockchain.bitcoin import is_bitcoin_address_valid
 from shared.constants import (
     BLOCKCHAIN_BITCOIN,
     EVM_BLOCKCHAINS,
@@ -25,6 +27,8 @@ from wallets.services.chain import token_deployment_decimals
 
 logger = logging.getLogger(__name__)
 
+INVALID_RECIPIENT = "The recipient is not a valid address for this wallet's network."
+
 
 def prepare_transfer(
     wallet,
@@ -38,6 +42,9 @@ def prepare_transfer(
 
     if chain not in SUPPORTED_CHAINS:
         raise UnsupportedChainException(wallet.chain.upper())
+
+    if to_address not in (None, "") and not _is_address_on(chain, to_address):
+        raise InvalidTransactionException(INVALID_RECIPIENT)
 
     if chain in EVM_BLOCKCHAINS and token_contract:
         return _prepare_erc20_transfer(
@@ -78,6 +85,14 @@ def prepare_transfer(
     raise UnsupportedChainException(chain.upper())
 
 
+def _is_address_on(chain: str, address) -> bool:
+    if not isinstance(address, str):
+        return False
+    if chain == BLOCKCHAIN_BITCOIN:
+        return is_bitcoin_address_valid(address, settings.BITCOIN_NETWORK)
+    return Web3.is_address(address)
+
+
 def _prepare_erc20_transfer(
     wallet,
     chain: str,
@@ -94,6 +109,7 @@ def _prepare_erc20_transfer(
     amount = _parse_amount(amount_token)
 
     token_asset = transaction_confirmation.resolve_transfer_asset(wallet, token_contract)
+    transaction_confirmation.require_stablecoin_approvals(token_asset, chain, wallet.address, to_address)
 
     token_holding = Holding.objects.filter(wallet=wallet, asset=token_asset).first()
     token_balance = token_holding.quantity if token_holding else Decimal("0")
@@ -312,36 +328,6 @@ def prepare_bitcoin_transaction(
     except Exception as e:
         logger.error(f"Error preparing Bitcoin transaction: {str(e)}", exc_info=True)
         raise BlockchainAPIError("Failed to prepare the Bitcoin transaction.") from e
-
-
-def broadcast_ethereum_transaction(chain: str, signed_tx_hex: str) -> str:
-    try:
-        logger.info(f"Broadcasting signed {chain} transaction")
-
-        client = get_blockchain_client(chain)
-        tx_hash = client.broadcast_transaction(signed_tx_hex)
-
-        logger.info(f"Ethereum transaction broadcast successful: {tx_hash}")
-        return tx_hash
-
-    except Exception as e:
-        logger.error(f"Failed to broadcast Ethereum transaction: {str(e)}")
-        raise BlockchainAPIError("Failed to broadcast the Ethereum transaction.") from e
-
-
-def broadcast_bitcoin_transaction(signed_tx_hex: str) -> str:
-    try:
-        logger.info("Broadcasting signed Bitcoin transaction")
-
-        client = get_blockchain_client("BTC")
-        tx_hash = client.broadcast_transaction(signed_tx_hex)
-
-        logger.info(f"Bitcoin transaction broadcast successful: {tx_hash}")
-        return tx_hash
-
-    except Exception as e:
-        logger.error(f"Failed to broadcast Bitcoin transaction: {str(e)}")
-        raise BlockchainAPIError("Failed to broadcast the Bitcoin transaction.") from e
 
 
 def prepare_erc20_transaction(

@@ -1,5 +1,7 @@
+import os
 import tempfile
 from datetime import timedelta
+from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 from uuid import uuid4
@@ -24,12 +26,14 @@ from shared.storage import (
     private_storage,
     swept_file_fields,
 )
+from shared.tasks.orphaned_files import sweep_private_uploads
 from shared.tests.tenants import an_account
 from users.models.investor_classification import InvestorClassification
 
 User = get_user_model()
 
 PDF = b"%PDF-1.4 minimal"
+DAILY_SWEEP_PREFIXES = ("companies", "documents")
 
 
 class PrivateFileFieldCoverageTest(TestCase):
@@ -244,3 +248,36 @@ class OrphanSweepTest(_StorageCase, TestCase):
             call_command("sweep_orphaned_files", verbosity=0)
 
         sweep.assert_called_once_with(dry_run=False)
+
+    def _unchanged_for(self, name, age):
+        moment = (timezone.now() - age).timestamp()
+        os.utime(private_storage().path(name), (moment, moment))
+        return name
+
+    def test_the_dry_run_lists_exactly_what_the_daily_job_then_deletes(self):
+        settled, fresh = timedelta(hours=24, minutes=1), timedelta(hours=23, minutes=59)
+        swept = [
+            self._unchanged_for(self._orphan(f"{prefix}/loose/old.pdf"), settled) for prefix in DAILY_SWEEP_PREFIXES
+        ]
+        kept = [
+            *(self._unchanged_for(self._orphan(f"{prefix}/loose/new.pdf"), fresh) for prefix in DAILY_SWEEP_PREFIXES),
+            self._unchanged_for(self._orphan("users/loose/old.pdf"), settled),
+            self._unchanged_for(self.a_document().file.name, settled),
+        ]
+        preview = StringIO()
+
+        call_command("sweep_orphaned_files", "--dry-run", stdout=preview)
+
+        self.assertEqual(
+            preview.getvalue().splitlines(), [f"orphan {name}" for name in swept] + ["2 orphaned, would delete 2"]
+        )
+        self.assertEqual(self.stored_files(), sorted(swept + kept))
+
+        with self.assertLogs("shared.tasks.orphaned_files", "INFO") as logged:
+            result = sweep_private_uploads()
+
+        self.assertEqual(result, {"found": 2, "deleted": 2, "failed": 0})
+        self.assertEqual(
+            logged.output, ["INFO:shared.tasks.orphaned_files:Orphaned uploads found: 2, deleted: 2, failed: 0"]
+        )
+        self.assertEqual(self.stored_files(), sorted(kept))

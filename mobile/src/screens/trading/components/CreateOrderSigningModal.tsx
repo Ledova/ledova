@@ -10,7 +10,7 @@ import {
   type ShareToken,
   formatWalletAddressShort,
 } from '@ledova/shared';
-import { CustomModal } from '../../../components/modal';
+import { CustomModal, useDialogStyles } from '../../../components/modal';
 import { QRDisplay, QRScanner } from '../../../components/qr';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { getSeedPhrase } from '../../../services/secureKeyStorage';
@@ -28,10 +28,10 @@ interface Props {
 
 export function CreateOrderSigningModal({ submission, wallet, tokens, onClose, onSuccess }: Props) {
   const theme = useAppTheme();
+  const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
     content: { gap: theme.spacing.md },
-    title: { fontSize: theme.fontSize.lg, fontWeight: theme.fontWeight.semibold, color: theme.colors.text.primary },
-    text: { fontSize: theme.fontSize.sm, color: theme.colors.text.secondary },
+    group: { gap: theme.spacing.xs },
   }));
   const delivered = useRef(false);
   const signing = useOrderSubmissionSigning(submission, wallet, (message, selectedWallet) => {
@@ -83,8 +83,9 @@ export function CreateOrderSigningModal({ submission, wallet, tokens, onClose, o
   return (
     <>
       <CustomModal
-        key={canConfirm ? 'confirmable' : 'status'}
+        contentKey={canConfirm ? 'confirmable' : 'status'}
         visible={!(state.phase === 'ready' && view.step === 'scan-signature')}
+        title={state.recovered ? 'Check saved order' : 'Review order'}
         onClose={close}
         showFooter
         showCancelButton
@@ -103,72 +104,79 @@ export function CreateOrderSigningModal({ submission, wallet, tokens, onClose, o
         }
       >
         <View style={styles.content}>
-          <Text style={styles.title}>{state.recovered ? 'Check saved order' : 'Review order'}</Text>
           {['preparing', 'signing', 'submitting'].includes(state.phase) && (
             <ActivityIndicator color={theme.colors.interactive.default} />
           )}
           {state.phase === 'preparing' && (
-            <Text style={styles.text}>Checking order and preparing signing details...</Text>
+            <Text style={text.text}>Checking order and preparing signing details...</Text>
           )}
-          {state.phase === 'signing' && <Text style={styles.text}>Authenticating and signing this order...</Text>}
+          {state.phase === 'signing' && <Text style={text.text}>Authenticating and signing this order...</Text>}
           {state.phase === 'submitting' && (
-            <Text style={styles.text}>
+            <Text style={text.text}>
               Submitting this order. You can close this window and check its status from saved orders.
             </Text>
           )}
           {state.phase === 'ready' && (
             <>
-              <Text style={styles.text}>
-                Token: {token ? `${token.symbol} — ${token.name}` : state.snapshot?.intent.token}
-              </Text>
-              <Text style={styles.text}>
-                Wallet: {formatWalletAddressShort(state.snapshot?.intent.walletAddress ?? '')}
-              </Text>
-              <Text style={styles.text}>
-                {state.snapshot?.intent.orderType.toUpperCase()} {state.snapshot?.intent.quantity} shares
-              </Text>
-              <Text style={styles.text}>
-                Price per share: {marketAmount(state.snapshot?.intent.pricePerShare ?? '')}
-              </Text>
-              <Text style={styles.text}>Minimum fill: {state.snapshot?.intent.minQuantity} shares</Text>
+              <View style={styles.group}>
+                <Text style={text.text}>
+                  Token: {token ? `${token.symbol} — ${token.name}` : state.snapshot?.intent.token}
+                </Text>
+                <Text style={text.text}>
+                  Wallet: {formatWalletAddressShort(state.snapshot?.intent.walletAddress ?? '')}
+                </Text>
+                <Text style={text.text}>
+                  {state.snapshot?.intent.orderType.toUpperCase()} {state.snapshot?.intent.quantity} shares
+                </Text>
+                <Text style={text.text}>
+                  Price per share: {marketAmount(state.snapshot?.intent.pricePerShare ?? '')}
+                </Text>
+                <Text style={text.text}>Minimum fill: {state.snapshot?.intent.minQuantity} shares</Text>
+              </View>
               {!signing.walletReady && (
-                <Text style={styles.text}>
+                <Text style={text.text}>
                   This wallet is unavailable for signing in the current account. The saved order remains available to
                   check.
                 </Text>
               )}
-              {view.error && <Text style={styles.text}>{view.error}</Text>}
+              {view.error && <Text style={text.error}>{view.error}</Text>}
               {view.step === 'show-qr' && view.qrData && <QRDisplay data={view.qrData.cborHex} isUR />}
             </>
           )}
           {state.phase === 'created' && state.snapshot?.order && (
-            <>
-              <Text style={styles.title}>{state.recovered ? 'Order recovered' : 'Order created'}</Text>
-              <Text style={styles.text}>
+            <View style={styles.group}>
+              <Text accessibilityRole="header" style={text.heading}>
+                {state.recovered ? 'Order recovered' : 'Order created'}
+              </Text>
+              <Text style={text.text}>
                 Current status: {state.snapshot.order.statusDisplay ?? state.snapshot.order.status.replaceAll('_', ' ')}
               </Text>
-              <Text style={styles.text}>Recorded shares: {marketQuantity(state.snapshot.order.quantity)}</Text>
-              <Text style={styles.text}>Price per share: {marketAmount(state.snapshot.order.pricePerShare)}</Text>
-            </>
+              <Text style={text.text}>Recorded shares: {marketQuantity(state.snapshot.order.quantity)}</Text>
+              <Text style={text.text}>Price per share: {marketAmount(state.snapshot.order.pricePerShare)}</Text>
+            </View>
           )}
           {state.phase === 'refused' && (
-            <>
-              <Text style={styles.title}>Order declined</Text>
-              <Text style={styles.text}>{state.snapshot?.refusal?.detail}</Text>
-              <Text style={styles.text}>A new order requires a new review and signature.</Text>
-            </>
+            <View style={styles.group}>
+              <Text accessibilityRole="header" style={text.heading}>
+                Order declined
+              </Text>
+              <Text style={text.text}>{state.snapshot?.refusal?.detail}</Text>
+              <Text style={text.text}>A new order requires a new review and signature.</Text>
+            </View>
           )}
           {state.phase === 'error' && (
-            <>
-              <Text style={styles.title}>Order status unconfirmed</Text>
-              <Text style={styles.text}>{state.error}</Text>
-              <Text style={styles.text}>
+            <View style={styles.group}>
+              <Text accessibilityRole="header" style={text.heading}>
+                Order status unconfirmed
+              </Text>
+              <Text style={text.text}>{state.error}</Text>
+              <Text style={text.text}>
                 This order remains saved. Check its status before signing again. An unavailable result does not start a
                 replacement order.
               </Text>
-            </>
+            </View>
           )}
-          {state.notice && <Text style={styles.text}>{state.notice}</Text>}
+          {state.notice && <Text style={text.text}>{state.notice}</Text>}
         </View>
       </CustomModal>
       <QRScanner

@@ -6,10 +6,10 @@ import {
   getErrorMessage,
   isBitcoinChain,
   getChainShortCode,
+  useUserPreferences,
 } from '@ledova/shared';
 import type { Wallet, VerifyWalletRequest } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { useUserPreferences } from '../../hooks/useUserPreferences';
 import { getSeedPhrase } from '../../services/secureKeyStorage';
 import { signEthereumMessage, signBitcoinMessage } from '../../utils/softwareWallet';
 

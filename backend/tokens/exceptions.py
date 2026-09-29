@@ -163,30 +163,12 @@ class InsufficientBalanceException(APIException):
             super().__init__()
 
 
-class TokenPausedException(APIException):
-    status_code = status.HTTP_400_BAD_REQUEST
-    default_detail = "Token transfers are paused."
-    default_code = "token_paused"
-
-
 class CreateOrderNotWhitelistedException(NotWhitelistedException):
     pass
 
 
 class CreateOrderInsufficientBalanceException(InsufficientBalanceException):
     pass
-
-
-class TransferPreparationException(APIException):
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-    default_detail = "Failed to prepare transfer."
-    default_code = "transfer_preparation_failed"
-
-
-class TransferBroadcastException(APIException):
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-    default_detail = "Failed to broadcast transfer."
-    default_code = "transfer_broadcast_failed"
 
 
 class OrderCancellationException(APIException):
@@ -253,20 +235,6 @@ class InvalidSignatureException(APIException):
     status_code = status.HTTP_403_FORBIDDEN
     default_detail = "Invalid signature - does not match the expected wallet address."
     default_code = "invalid_signature"
-
-
-class DeployedShareClassException(APIException):
-
-    status_code = status.HTTP_409_CONFLICT
-    default_detail = "A deployed share class is a register of members and cannot be deleted."
-    default_code = "deployed_share_class"
-
-    def __init__(self, symbol: str):
-        detail = (
-            f"{symbol} is on chain and is the register of members for its holders, so it cannot be deleted, "
-            "whatever its status. Pause it to stop transfers; the record is kept either way."
-        )
-        super().__init__(detail=detail)
 
 
 class SigningChallengeException(APIException):

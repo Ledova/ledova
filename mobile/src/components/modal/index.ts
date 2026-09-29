@@ -1,1 +1,1 @@
-export { CustomModal } from './CustomModal';
+export { CustomModal, ModalActions, useDialogInsets, useDialogStyles } from './CustomModal';

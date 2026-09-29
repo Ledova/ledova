@@ -7,7 +7,10 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { SignupPreScreening } from './SignupPreScreening';
 
 const hook = vi.hoisted(() => ({ state: {} as Record<string, unknown> }));
-vi.mock('./useSignupPreScreening', () => ({ useSignupPreScreening: () => hook.state }));
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
+  useSignupPreScreening: () => hook.state,
+}));
 
 afterEach(() => {
   cleanup();

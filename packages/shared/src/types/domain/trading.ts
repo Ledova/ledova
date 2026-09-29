@@ -32,6 +32,4 @@ export type CreateOrderMessageResponse = ApiSchema<'OrderCreateChallenge'>;
 
 export type SignedCreateOrderRequest = ApiRequest<'api_v1_trading_orders_create_create'>;
 
-export type ShareTokenTransferPrepareResponse = ApiResponse<'api_v1_trading_transfers_prepare_create'>;
-
 export type ApprovalTransaction = ApiSchema<'ApprovalTransaction'>;

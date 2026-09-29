@@ -1,0 +1,167 @@
+import { useEffect, type ComponentProps, type ReactNode } from 'react';
+import { AccessibilityInfo, Text } from 'react-native';
+import { cleanup, fireEvent, render } from '@testing-library/react-native';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
+import { Action } from '../Ledger';
+import { CustomModal } from './CustomModal';
+
+const mockLifecycle: string[] = [];
+jest.mock('react-native/Libraries/Modal/Modal', () => {
+  const { useEffect } = jest.requireActual('react');
+  const JestModal = jest.requireActual('react-native/jest/mocks/Modal').default;
+  function MockModal(props: { children: ReactNode }) {
+    useEffect(() => {
+      mockLifecycle.push('modal mounted');
+      return () => {
+        mockLifecycle.push('modal unmounted');
+      };
+    }, []);
+    return <JestModal {...props} visible />;
+  }
+  return { __esModule: true, default: MockModal };
+});
+
+afterEach(async () => {
+  await cleanup();
+  mockLifecycle.length = 0;
+});
+
+function dialog(props: Partial<ComponentProps<typeof CustomModal>> = {}) {
+  return (
+    <CustomModal
+      visible
+      title="Rename wallet"
+      onClose={jest.fn()}
+      showFooter
+      confirmLabel="Save"
+      onConfirm={jest.fn()}
+      {...props}
+    >
+      <Text>Body copy</Text>
+    </CustomModal>
+  );
+}
+
+it('is the card over the dimmed page, titled first, marked modal and ended by one right-aligned action row', async () => {
+  const close = jest.fn();
+  const save = jest.fn();
+  const view = await render(
+    dialog({ onClose: close, onConfirm: save, actions: <Action label="Remove" onPress={jest.fn()} /> }),
+  );
+  const title = view.getByRole('header', { name: 'Rename wallet' });
+  const card = title.parent!;
+  expect(card).toHaveStyle({ borderWidth: 1, borderRadius: 12, padding: 16, maxHeight: '100%' });
+  expect(card.children[0]).toBe(title);
+  expect(card.props.accessibilityViewIsModal).toBe(true);
+  const cancel = view.getByRole('button', { name: 'Cancel' });
+  const row = cancel.parent!;
+  expect(row.children).toEqual([
+    cancel,
+    view.getByRole('button', { name: 'Remove' }),
+    view.getByRole('button', { name: 'Save' }),
+  ]);
+  expect(row).toHaveStyle({ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end' });
+  expect(row).not.toHaveStyle({ borderTopWidth: 1 });
+  expect(card.children.at(-1)).toBe(row);
+  expect(cancel).toHaveStyle({ alignSelf: 'flex-start' });
+  expect(cancel).not.toHaveStyle({ flex: 1 });
+  await fireEvent.press(cancel);
+  expect(close).toHaveBeenCalledTimes(1);
+  await fireEvent.press(view.getByRole('button', { name: 'Save' }));
+  expect(save).toHaveBeenCalledTimes(1);
+  await fireEvent.press(view.getByRole('button', { name: 'Close dialog' }));
+  expect(close).toHaveBeenCalledTimes(2);
+});
+
+it('keeps the card inside the safe area of the screen', async () => {
+  const view = await render(
+    <SafeAreaInsetsContext.Provider value={{ top: 47, right: 0, bottom: 34, left: 0 }}>
+      {dialog()}
+    </SafeAreaInsetsContext.Provider>,
+  );
+  const card = view.getByRole('header', { name: 'Rename wallet' }).parent!;
+  expect(card.parent).toHaveStyle({ paddingTop: 63, paddingBottom: 50, paddingLeft: 16, paddingRight: 16 });
+});
+
+it('scrolls its body inside the card', async () => {
+  const view = await render(dialog());
+  const body = view.getByText('Body copy').parent!.parent!;
+  expect(body).toHaveStyle({ flexGrow: 0, flexShrink: 1 });
+});
+
+it('holds every way out while busy and shows the primary as loading', async () => {
+  const close = jest.fn();
+  const view = await render(
+    dialog({ onClose: close, busy: true, dismissLabel: 'Dismiss request', confirmLoading: true }),
+  );
+  await fireEvent.press(view.getByRole('button', { name: 'Dismiss request' }));
+  await fireEvent(view.getByTestId('modal-Rename wallet'), 'requestClose');
+  await fireEvent.press(view.getByRole('button', { name: 'Cancel' }));
+  expect(view.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+  expect(view.getByRole('button', { name: 'Loading...' })).toBeDisabled();
+  expect(close).not.toHaveBeenCalled();
+});
+
+it('leaves out the action row when a dialog has no actions', async () => {
+  const view = await render(dialog({ showFooter: false, onConfirm: undefined }));
+  expect(view.getByRole('header', { name: 'Rename wallet' })).toBeTruthy();
+  expect(view.queryByRole('button', { name: 'Cancel' })).toBeNull();
+  expect(view.getByText('Body copy')).toBeTruthy();
+});
+
+function Content() {
+  useEffect(() => {
+    mockLifecycle.push('content mounted');
+    return () => {
+      mockLifecycle.push('content unmounted');
+    };
+  }, []);
+  return <Text>Dialog content</Text>;
+}
+
+function stepped(contentKey: string, onConfirm?: () => void, visible = true) {
+  return (
+    <CustomModal
+      visible={visible}
+      title="Change order"
+      showFooter
+      contentKey={contentKey}
+      onClose={() => {}}
+      onConfirm={onConfirm}
+    >
+      <Content />
+    </CustomModal>
+  );
+}
+
+it('starts fresh dialog content without replacing its modal when the content key changes', async () => {
+  const view = await render(stepped('status'));
+  await view.rerender(stepped('status', () => {}));
+  expect(mockLifecycle).toEqual(['content mounted', 'modal mounted']);
+
+  await view.rerender(stepped('confirmable', () => {}));
+  expect(mockLifecycle).toEqual(['content mounted', 'modal mounted', 'content unmounted', 'content mounted']);
+  expect(view.getByText('Dialog content')).toBeTruthy();
+  expect(view.getByRole('button', { name: 'Confirm' })).toBeTruthy();
+});
+
+it('moves screen reader focus to the title only when content already shown is replaced', async () => {
+  const focus = jest.mocked(AccessibilityInfo.sendAccessibilityEvent);
+  const view = await render(stepped('status'));
+  await view.rerender(stepped('status', () => {}));
+  expect(focus).not.toHaveBeenCalled();
+
+  await view.rerender(stepped('confirmable', () => {}));
+  expect(focus).toHaveBeenCalledTimes(1);
+  const [target, event] = focus.mock.calls[0]!;
+  expect(event).toBe('focus');
+  expect((target as unknown as { props: Record<string, unknown> }).props).toMatchObject({
+    accessibilityRole: 'header',
+    children: 'Change order',
+  });
+
+  await view.rerender(stepped('status', undefined, false));
+  expect(focus).toHaveBeenCalledTimes(1);
+  await view.rerender(stepped('confirmable', () => {}));
+  expect(focus).toHaveBeenCalledTimes(1);
+});

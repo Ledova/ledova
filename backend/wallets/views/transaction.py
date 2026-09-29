@@ -1,10 +1,10 @@
-from shared.views import AuthenticatedReadOnlyViewSet
+from shared.views import AuthenticatedListViewSet
 from wallets.filters import TransactionFilter
 from wallets.models import Transaction
 from wallets.serializers import TransactionSerializer
 
 
-class TransactionViewSet(AuthenticatedReadOnlyViewSet):
+class TransactionViewSet(AuthenticatedListViewSet):
     serializer_class = TransactionSerializer
     filterset_class = TransactionFilter
     ordering = ["-block_timestamp"]

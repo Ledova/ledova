@@ -8,14 +8,15 @@ import {
   getCapitalIncreases,
   getShareIssuanceRequests,
   deployCompanyToken,
+  readEveryPage,
   submitCapitalIncrease,
+  wholeShares,
   COMPANY_TOKEN_ENDPOINTS,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { shareDocumentCopy } from '../../services/documentCopies';
 import { getSessionEpoch, assertSessionEpoch } from '../../services/sessionScope';
-import { checkedRegister, everyCompanyPage, useCompanyAccess } from '../company-register/useCompanyRegister';
-import { wholeShares } from './shareQuantities';
+import { checkedRegister, useCompanyAccess } from '../company-register/useCompanyRegister';
 
 export function useTokenDetail(uuid: string) {
   const queryClient = useQueryClient();
@@ -43,17 +44,17 @@ export function useTokenDetail(uuid: string) {
   const issuances = useQuery({
     queryKey: ['company-token', uuid, 'issuances'],
     enabled,
-    queryFn: () => everyCompanyPage((page) => getCompanyTokenIssuances(apiClient, uuid, { page })),
+    queryFn: () => readEveryPage((page) => getCompanyTokenIssuances(apiClient, uuid, { page })),
   });
   const capital = useQuery({
     queryKey: ['company-token', uuid, 'capital-increases'],
     enabled,
-    queryFn: () => everyCompanyPage((page) => getCapitalIncreases(apiClient, { token: uuid, page })),
+    queryFn: () => readEveryPage((page) => getCapitalIncreases(apiClient, { token: uuid, page })),
   });
   const requests = useQuery({
     queryKey: ['company-token', uuid, 'issuance-requests'],
     enabled,
-    queryFn: () => everyCompanyPage((page) => getShareIssuanceRequests(apiClient, { token: uuid, page })),
+    queryFn: () => readEveryPage((page) => getShareIssuanceRequests(apiClient, { token: uuid, page })),
   });
   const refresh = () =>
     Promise.all([

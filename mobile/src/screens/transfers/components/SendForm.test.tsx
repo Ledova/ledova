@@ -1,7 +1,9 @@
-import { fireEvent, render } from '@testing-library/react-native';
+import { fireEvent, render, renderHook } from '@testing-library/react-native';
 import type { TransferableAsset } from '@ledova/shared';
+import { useAppTheme } from '../../../contexts';
 
-jest.mock('../../../hooks/useCurrency', () => ({
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
   useCurrency: () => ({ formatDisplayCurrency: (value: number) => `$${value.toFixed(2)}` }),
 }));
 
@@ -90,4 +92,10 @@ describe('fiat values in the mobile send form', () => {
     const view = await show({ ...share, marketValue: '20' }, amount);
     expect(view.queryByText(/≈|NaN|Infinity/)).toBeNull();
   });
+});
+
+it('keeps the sending wallet name in its semibold face', async () => {
+  const theme = await renderHook(() => useAppTheme());
+  const view = await show();
+  expect(view.getByText('Test wallet')).toHaveStyle({ fontFamily: theme.result.current.fontFamily.semibold });
 });

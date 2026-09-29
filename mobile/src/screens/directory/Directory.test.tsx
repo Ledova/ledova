@@ -1,6 +1,7 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ApiClientProvider } from '@ledova/shared';
 import { DirectoryScreen } from './DirectoryScreen';
 import { ShareClassScreen } from './ShareClassScreen';
 import { DirectoryStackNavigator } from '../../navigation/DirectoryStackNavigator';
@@ -84,7 +85,11 @@ afterEach(async () => {
 });
 
 function wrapper({ children }: { children: React.ReactNode }) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+    </QueryClientProvider>
+  );
 }
 
 it.each([
@@ -104,7 +109,7 @@ it.each([
 it('shows verification before reading classes and navigates to the existing Verification destination', async () => {
   eligible = false;
   const view = await render(<DirectoryScreen />, { wrapper });
-  await fireEvent.press(await view.findByText('Open Verification'));
+  await fireEvent.press(await view.findByText('Verification'));
   expect(mockParentNavigate).toHaveBeenCalledWith('InvestorEligibility');
   expect(get.mock.calls.map(([url]) => url)).toEqual([eligibilityUrl]);
 });
@@ -137,17 +142,6 @@ it.each([eligibilityUrl, listUrl, `${listUrl}2`])(
     failure = null;
     await fireEvent.press(view.getByText('Try again'));
     expect(await view.findByText('Ordinary shares')).toBeTruthy();
-  },
-);
-
-it.each([`https://example.test${listUrl}?page=1`, `https://example.test${listUrl}?cursor=next`])(
-  'refuses incomplete pagination %s',
-  async (next) => {
-    pages = { 1: { results: [token], next } };
-    const view = await render(<DirectoryScreen />, { wrapper });
-    expect(await view.findByText(/The directory could not be loaded/)).toBeTruthy();
-    expect(view.queryByText('Ordinary shares')).toBeNull();
-    expect(get.mock.calls.filter(([url]) => url === listUrl)).toHaveLength(1);
   },
 );
 
@@ -209,6 +203,23 @@ it('suppresses stale class and offering terms after a failed refresh, then refle
   await fireEvent.press(view.getByText('Try again'));
   expect(await view.findByText('No offering open')).toBeTruthy();
   expect(view.getByText('Ordinary shares')).toBeTruthy();
+});
+
+it.each([
+  ['a failed read', () => (failure = detailUrl), /This share class could not be loaded/],
+  ['the class becoming unavailable', () => (notFound = true), 'Share class not available'],
+])('names the company under the title, and drops that lede with the class after %s', async (_, fail, state) => {
+  const view = await render(<ShareClassScreen />, { wrapper });
+  expect(await view.findByText('Ordinary shares')).toBeTruthy();
+  const title = view.getByRole('header', { name: 'Share class' });
+  expect(title.parent!.children[1]).toBe(view.getByText('Fictional Harbour Pty Ltd'));
+  fail();
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: ['directory', 'token'] });
+  });
+  expect(await view.findByText(state)).toBeTruthy();
+  expect(view.getByRole('header', { name: 'Share class' })).toBeTruthy();
+  expect(view.queryByText('Fictional Harbour Pty Ltd')).toBeNull();
 });
 
 it('treats a newly unavailable class as unavailable even with a cached prior record', async () => {

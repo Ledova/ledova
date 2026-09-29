@@ -11,7 +11,7 @@ from authentication.managers.user import EmailLookupState
 from authentication.services import TokenService
 from portfolios.models import Portfolio
 from shared.db import atomic
-from users.models import FinancialProfile, UserAccount, UserPreferences, UserProfile
+from users.models import FinancialProfile, UserAccount, UserProfile
 from wallets.models import Transaction, Wallet
 
 logger = logging.getLogger(__name__)
@@ -57,7 +57,6 @@ def export_account_data(user):
             "is_email_verified": user.is_email_verified,
         },
         "profile": None,
-        "preferences": None,
         "financial_profile": None,
         "account": None,
         "wallets": [],
@@ -81,15 +80,6 @@ def export_account_data(user):
     }
 
     account = UserAccount.objects.filter(user_profile=profile).first()
-
-    preferences = UserPreferences.objects.filter(user_profile=profile).select_related("selected_portfolio").first()
-    if preferences is not None:
-        portfolio = preferences.selected_portfolio
-        data["preferences"] = {
-            "selected_portfolio": (
-                portfolio.uuid if portfolio and account and portfolio.user_account_id == account.pk else None
-            ),
-        }
 
     data["financial_profile"] = (
         FinancialProfile.objects.filter(user_profile=profile)

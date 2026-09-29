@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Text, View, ScrollView, RefreshControl, Pressable } from 'react-native';
+import { Text, View, RefreshControl, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Section, Action } from '../../components/Ledger';
+import { Action, LinkRow, Rows, Section } from '../../components/Ledger';
+import { Page } from '../../components/Page';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
 import { useCompanyRegister } from './useCompanyRegister';
 import { useCompanyStyles } from './styles';
@@ -14,10 +15,10 @@ export function CompanyRegisterScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<CompanyStackParamList>>();
   const [expanded, setExpanded] = useState<string[]>([]);
   return (
-    <ScrollView
+    <Page
       testID="register-screen"
-      style={styles.page}
-      contentContainerStyle={styles.content}
+      title="Register"
+      lede="The stored register records your company’s members and their shares; wallet balances do not replace it."
       refreshControl={
         <RefreshControl
           refreshing={query.isFetching}
@@ -27,12 +28,6 @@ export function CompanyRegisterScreen() {
         />
       }
     >
-      <Text accessibilityRole="header" style={styles.title}>
-        Register
-      </Text>
-      <Text style={styles.muted}>
-        The stored register records your company’s members and their shares. Wallet balances do not replace it.
-      </Text>
       {access.isLoading ? (
         <Text style={styles.muted}>Loading your company access…</Text>
       ) : access.isError ? (
@@ -59,11 +54,11 @@ export function CompanyRegisterScreen() {
             ) : query.data.length === 0 ? (
               <Text style={styles.muted}>Your company has no share classes yet.</Text>
             ) : (
-              query.data.map(({ companyName, register }) => {
+              query.data.map(({ companyName, register }, index) => {
                 const uuid = register.token.uuid;
                 const open = expanded.includes(uuid);
                 return (
-                  <View key={uuid} style={styles.entry}>
+                  <View key={uuid} style={[styles.entry, index === query.data.length - 1 && styles.lastEntry]}>
                     <Pressable
                       accessibilityRole="button"
                       accessibilityState={{ expanded: open }}
@@ -78,12 +73,14 @@ export function CompanyRegisterScreen() {
                       </Text>
                       <Text style={styles.muted}>{open ? 'Hide members' : 'Show members'}</Text>
                     </Pressable>
-                    <Action
-                      label="Open share class"
-                      accessibilityLabel={`Open ${register.token.name}`}
-                      onPress={() => navigation.navigate('TokenDetail', { uuid, name: register.token.name })}
-                    />
-                    {open && <ClassRegister register={register} />}
+                    <Rows>
+                      <LinkRow
+                        label="Share class"
+                        accessibilityLabel={`Open ${register.token.name}`}
+                        onPress={() => navigation.navigate('TokenDetail', { uuid, name: register.token.name })}
+                      />
+                      {open && <ClassRegister register={register} />}
+                    </Rows>
                   </View>
                 );
               })
@@ -97,6 +94,6 @@ export function CompanyRegisterScreen() {
           </Section>
         </>
       )}
-    </ScrollView>
+    </Page>
   );
 }

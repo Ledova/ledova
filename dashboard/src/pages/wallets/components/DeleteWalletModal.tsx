@@ -43,16 +43,16 @@ export function DeleteWalletModal({
       confirmDisabled={readBlocked}
       confirmLoading={isDeleting}
     >
-      <div className="text-center py-4">
+      <div className="space-y-2">
         {notice}
         {error && (
-          <p role="alert" className="mb-3 text-sm text-error-light">
+          <p role="alert" className="text-sm text-error-light">
             {error}
           </p>
         )}
-        <p className="text-sm text-text-secondary mb-2">Are you sure you want to delete this wallet?</p>
-        <p className="text-sm font-medium text-text-primary">{walletDisplayName}</p>
-        <p className="text-xs text-text-muted mt-2">This action cannot be undone.</p>
+        <p className="text-sm text-text-secondary">Are you sure you want to delete this wallet?</p>
+        <p className="break-all text-sm font-medium text-text-primary">{walletDisplayName}</p>
+        <p className="text-xs text-text-muted">This action cannot be undone.</p>
       </div>
     </Modal>
   );

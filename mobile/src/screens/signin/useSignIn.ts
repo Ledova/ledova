@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { readSignInError, signin, FormErrors, SigninRequest } from '@ledova/shared';
+import { readSignInError, signin, FormErrors, SigninRequest, useAuth } from '@ledova/shared';
 import { apiClient, isRefreshRefusal, rotateRefreshToken, UserFriendlyError } from '../../services/apiClient';
 import { storeTokens } from '../../services/tokenStorage';
 import { notificationsService } from '../../services/notificationsService';
-import { useAuth } from '../../hooks/useAuth';
 
 export const useSignIn = () => {
   const { refetch: refetchAuth } = useAuth();

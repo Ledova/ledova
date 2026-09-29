@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Text, TextInput, View, ScrollView, RefreshControl } from 'react-native';
+import { Text, TextInput, View, RefreshControl } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
+  OPTIONAL_DOCUMENTS,
+  REQUIRED_DOCUMENTS,
   formatDate,
   getErrorMessage,
   getOperator,
@@ -11,14 +13,14 @@ import {
   type DocumentType,
 } from '@ledova/shared';
 import type { BottomTabParamList } from '../../navigation/BottomTabNavigator';
-import { Action, Row, Section } from '../../components/Ledger';
-import { CompanyModal } from '../company/CompanyModal';
+import { Action, Row, Rows, Section } from '../../components/Ledger';
+import { Page } from '../../components/Page';
+import { CustomModal } from '../../components/modal';
 import { apiClient } from '../../services/apiClient';
 import { CompanyReadNotice } from '../company/CompanyState';
 import { useCompanyStyles } from '../company-register/styles';
 import { CompanyUpload } from './CompanyUpload';
 import { DocumentEntry } from './DocumentEntry';
-import { OPTIONAL_DOCUMENTS, REQUIRED_DOCUMENTS } from './documents';
 import { useCompanyDocuments } from './useCompanyDocuments';
 
 const ACTION_ERROR = 'The request was refused. Please try again.';
@@ -106,10 +108,10 @@ export function ListingScreen() {
   };
   const documentSection = (title: string, types: { type: DocumentType; label: string }[], required: boolean) => (
     <Section title={title}>
-      {types.map(({ type, label }) => {
+      {types.map(({ type, label }, index) => {
         const matches = documents.filter((document) => document.documentType === type);
         return (
-          <View key={type} style={styles.entry}>
+          <View key={type} style={[styles.entry, index === types.length - 1 && styles.lastEntry]}>
             <Text style={styles.heading}>{label}</Text>
             <Text style={styles.muted}>{matches.length ? 'Uploaded' : required ? 'Required' : 'Optional'}</Text>
             {matches.map((document) => (
@@ -138,27 +140,28 @@ export function ListingScreen() {
   );
   if (!data.access.allowed)
     return (
-      <View style={[styles.page, styles.content]}>
+      <Page title="Application">
         <Text style={styles.muted}>
           {data.access.isLoading
             ? 'Loading your company access…'
             : 'Verify your company access before opening Application.'}
         </Text>
         {data.access.isError && <Action label="Retry company access" onPress={() => void data.access.refetch()} />}
-      </View>
+      </Page>
     );
   return (
     <>
-      <ScrollView
+      <Page
         testID="application-screen"
-        style={styles.page}
-        contentContainerStyle={styles.content}
+        title="Application"
+        actions={
+          <Action
+            label="Back to Company"
+            onPress={() => navigation.navigate('Company', { screen: 'CompanyDetails' })}
+          />
+        }
         refreshControl={<RefreshControl refreshing={data.isRefreshing} onRefresh={() => void data.refetch()} />}
       >
-        <Text accessibilityRole="header" style={styles.title}>
-          Application
-        </Text>
-        <Action label="Back to Company" onPress={() => navigation.navigate('Company', { screen: 'CompanyDetails' })} />
         {data.isLoading ? (
           <Text style={styles.muted}>Loading company information…</Text>
         ) : data.error ? (
@@ -168,13 +171,15 @@ export function ListingScreen() {
         ) : (
           <>
             <Section title="Application record">
-              <Text style={styles.heading}>{company.name}</Text>
-              <Row label="Status">{company.statusDisplay}</Row>
-              {events.map(({ label, at }) => (
-                <Row key={label} label={label}>
-                  {formatDate(at)}
-                </Row>
-              ))}
+              <Text style={styles.text}>{company.name}</Text>
+              <Rows>
+                <Row label="Status">{company.statusDisplay}</Row>
+                {events.map(({ label, at }) => (
+                  <Row key={label} label={label}>
+                    {formatDate(at)}
+                  </Row>
+                ))}
+              </Rows>
               {company.status === 'submitted' && (
                 <Text style={styles.muted}>Your application is waiting for {operatorName} to start the review.</Text>
               )}
@@ -291,17 +296,25 @@ export function ListingScreen() {
             </Section>
           </>
         )}
-      </ScrollView>
+      </Page>
       {withdrawing && (
-        <CompanyModal
+        <CustomModal
+          visible
+          title="Withdraw application"
           onClose={() => {
             if (!withdrawal.isPending) setWithdrawing(null);
           }}
+          busy={withdrawal.isPending}
+          actions={
+            <Action
+              label="Confirm withdrawal"
+              primary
+              disabled={!ready || !canWithdraw || company?.uuid !== withdrawing || busy}
+              onPress={() => void withdraw()}
+            />
+          }
         >
           <View style={styles.group}>
-            <Text accessibilityRole="header" style={styles.heading}>
-              Withdraw application
-            </Text>
             <CompanyReadNotice read={data} />
             {(!canWithdraw || company?.uuid !== withdrawing) && !data.error && !data.isRefreshing && (
               <Text accessibilityRole="alert" style={styles.error}>
@@ -325,25 +338,27 @@ export function ListingScreen() {
               onChangeText={setWithdrawReason}
               editable={!withdrawal.isPending}
             />
-            <Action
-              label="Confirm withdrawal"
-              disabled={!ready || !canWithdraw || company?.uuid !== withdrawing || busy}
-              onPress={() => void withdraw()}
-            />
-            <Action label="Cancel" disabled={withdrawal.isPending} onPress={() => setWithdrawing(null)} />
           </View>
-        </CompanyModal>
+        </CustomModal>
       )}
       {removing && (
-        <CompanyModal
+        <CustomModal
+          visible
+          title="Remove document"
           onClose={() => {
             if (!deletion.isPending) setRemoving(null);
           }}
+          busy={deletion.isPending}
+          actions={
+            <Action
+              label="Confirm removal"
+              primary
+              disabled={!ready || !canEdit || company?.uuid !== removing.company || busy}
+              onPress={() => void remove()}
+            />
+          }
         >
           <View style={styles.group}>
-            <Text accessibilityRole="header" style={styles.heading}>
-              Remove document
-            </Text>
             <Text style={styles.text}>{removing.document.name}</Text>
             <CompanyReadNotice read={data} />
             {deletion.isError && (
@@ -351,14 +366,8 @@ export function ListingScreen() {
                 {getErrorMessage(deletion.error, ACTION_ERROR)}
               </Text>
             )}
-            <Action
-              label="Confirm removal"
-              disabled={!ready || !canEdit || company?.uuid !== removing.company || busy}
-              onPress={() => void remove()}
-            />
-            <Action label="Cancel" disabled={deletion.isPending} onPress={() => setRemoving(null)} />
           </View>
-        </CompanyModal>
+        </CustomModal>
       )}
       {upload && (
         <CompanyUpload

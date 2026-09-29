@@ -88,6 +88,16 @@ describe('shared authentication follows the client refetch policy', () => {
     expect(get).toHaveBeenCalledTimes(1);
   });
 
+  it('reports a completed check that answers invalid as signed out', async () => {
+    const { get, wrapper } = harness();
+    get.mockResolvedValue({ data: { valid: false } });
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.isAuthenticated).toBe(false);
+    expect(get).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps a public form mounted when its nested auth consumer retries a failed check', async () => {
     const { get, wrapper } = harness();
     let rejectRetry!: (error: Error) => void;

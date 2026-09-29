@@ -1,5 +1,4 @@
 import importlib
-import os
 import re
 
 from django.conf import settings
@@ -11,7 +10,11 @@ from django.urls import clear_url_caches, reverse
 from rest_framework.test import APITestCase
 
 from companies.models import Company, CompanyDocument, CompanyType, DocumentType
-from shared.tests.upload_fixtures import StubUploadDependencies, pdf_bytes
+from shared.tests.upload_fixtures import (
+    PrivateDocumentFileChecks,
+    StubUploadDependencies,
+    pdf_bytes,
+)
 
 User = get_user_model()
 
@@ -76,10 +79,11 @@ class CompanyDocumentFileUrlTest(StubUploadDependencies, APITestCase):
     def test_an_external_url_document_still_reports_its_external_url(self):
         document = make_document(self.company, external_url=EXTERNAL_URL)
 
-        response = self.client.get(f"{self.url}{document.uuid}/")
+        response = self.client.get(f"/api/v1/companies/{self.company.uuid}/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["fileUrl"], EXTERNAL_URL)
+        urls = {entry["uuid"]: entry["fileUrl"] for entry in response.json()["documents"]}
+        self.assertEqual(urls[str(document.uuid)], EXTERNAL_URL)
 
     def test_the_company_detail_reports_the_same_route_for_its_documents(self):
         document = attach_file(make_document(self.company))
@@ -180,7 +184,7 @@ class CompanyDocumentFileViewTest(APITestCase):
 
 
 @override_settings(STORAGES=ADMIN_STORAGES)
-class CompanyDocumentIsNotServedFromMediaTest(TestCase):
+class CompanyDocumentIsNotServedFromMediaTest(PrivateDocumentFileChecks, TestCase):
 
     def setUp(self):
         self.staff = User.objects.create_superuser(email="doc-media-staff@example.test", password="pw-12345678")
@@ -193,17 +197,6 @@ class CompanyDocumentIsNotServedFromMediaTest(TestCase):
 
         importlib.reload(ledova_backend.urls)
         clear_url_caches()
-
-    def test_the_document_file_has_no_public_url_at_all(self):
-        with self.assertRaises(ValueError):
-            self.document.file.url
-
-    def test_the_document_bytes_live_outside_the_served_media_root(self):
-        path = self.document.file.path
-
-        self.assertTrue(os.path.isfile(path))
-        self.assertTrue(path.startswith(os.path.abspath(settings.PRIVATE_MEDIA_ROOT)))
-        self.assertFalse(path.startswith(os.path.abspath(settings.MEDIA_ROOT)))
 
     def test_an_anonymous_caller_cannot_fetch_the_document_from_media_under_debug(self):
         media_path = f"{settings.MEDIA_URL}{self.document.file.name}"

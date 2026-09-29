@@ -1,19 +1,19 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, Text, View } from 'react-native';
 import { CaretDownIcon, CaretRightIcon } from 'phosphor-react-native';
-import { formatShareCount, getChainConfig, type ShareHoldingRow } from '@ledova/shared';
+import { formatShareCount, getChainConfig, useShareHoldings, type ShareHoldingRow } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../contexts';
-import { GradientBackground } from '../../components/GradientBackground';
+import { Section } from '../../components/Ledger';
+import { Page } from '../../components/Page';
 import { HoldingWork } from './components/HoldingWork';
 import { useHoldingWork } from './useHoldingWork';
-import { useShareHoldings } from './useShareHoldings';
 
 function ShareHolding({ holding }: { holding: ShareHoldingRow }) {
   const [expanded, setExpanded] = useState(false);
   const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
     row: { borderBottomWidth: 1, borderBottomColor: theme.colors.border.subtle },
-    summary: { paddingVertical: 18, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    summary: { paddingVertical: 18, flexDirection: 'row', alignItems: 'center', gap: theme.spacing.smd },
     names: { flex: 1, gap: 4 },
     company: { fontFamily: theme.fontFamily.regular, fontSize: 14, color: theme.colors.text.muted },
     name: { fontFamily: theme.fontFamily.medium, fontSize: 17, color: theme.colors.text.primary },
@@ -70,12 +70,8 @@ export function HomeScreen() {
   const work = useHoldingWork();
   const { data: holdings = [], isPending, isError, isFetching, refetch } = useShareHoldings();
   const styles = useThemedStyles((theme) => ({
-    content: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 36, gap: 28 },
-    title: { fontFamily: theme.fontFamily.display, fontSize: 40, color: theme.colors.text.primary },
-    section: { gap: 8 },
-    heading: { fontFamily: theme.fontFamily.medium, fontSize: 17, color: theme.colors.text.primary, paddingBottom: 10 },
     message: { fontFamily: theme.fontFamily.regular, fontSize: 15, lineHeight: 23, color: theme.colors.text.muted },
-    state: { paddingVertical: 20, gap: 14, alignItems: 'flex-start' },
+    state: { gap: 14, alignItems: 'flex-start' },
     retry: {
       paddingHorizontal: 14,
       paddingVertical: 10,
@@ -87,54 +83,46 @@ export function HomeScreen() {
   }));
 
   return (
-    <GradientBackground>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={(isFetching && !isPending) || work.isRefreshing}
-            onRefresh={() => void Promise.all([refetch(), work.refresh()])}
-            tintColor={theme.colors.brand.default}
-          />
-        }
-      >
-        <Text accessibilityRole="header" style={styles.title}>
-          Holdings
-        </Text>
-        <View style={styles.section}>
-          <Text accessibilityRole="header" style={styles.heading}>
-            Shares in your wallets
-          </Text>
-          {isPending ? (
-            <View style={styles.state}>
-              <ActivityIndicator color={theme.colors.brand.default} />
-              <Text style={styles.message}>Loading your holdings…</Text>
-            </View>
-          ) : isError ? (
-            <View style={styles.state}>
-              <Text accessibilityRole="alert" style={styles.message}>
-                We couldn&apos;t load all your holdings.
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => void refetch()}
-                disabled={isFetching}
-                style={styles.retry}
-              >
-                <Text style={styles.retryText}>Try again</Text>
-              </Pressable>
-            </View>
-          ) : holdings.length === 0 ? (
-            <Text style={[styles.message, { paddingVertical: 20 }]}>
-              None of your wallets holds shares yet. The company&apos;s register is the record of what you hold; shares
-              appear here once they are in one of your wallets.
+    <Page
+      title="Holdings"
+      refreshControl={
+        <RefreshControl
+          refreshing={(isFetching && !isPending) || work.isRefreshing}
+          onRefresh={() => void Promise.all([refetch(), work.refresh()])}
+          tintColor={theme.colors.brand.default}
+        />
+      }
+    >
+      <Section title="Shares in your wallets">
+        {isPending ? (
+          <View style={styles.state}>
+            <ActivityIndicator color={theme.colors.brand.default} />
+            <Text style={styles.message}>Loading your holdings…</Text>
+          </View>
+        ) : isError ? (
+          <View style={styles.state}>
+            <Text accessibilityRole="alert" style={styles.message}>
+              We couldn&apos;t load all your holdings.
             </Text>
-          ) : (
-            holdings.map((holding) => <ShareHolding key={holding.assetUuid} holding={holding} />)
-          )}
-        </View>
-        <HoldingWork work={work} />
-      </ScrollView>
-    </GradientBackground>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void refetch()}
+              disabled={isFetching}
+              style={styles.retry}
+            >
+              <Text style={styles.retryText}>Try again</Text>
+            </Pressable>
+          </View>
+        ) : holdings.length === 0 ? (
+          <Text style={styles.message}>
+            None of your wallets holds shares yet. The company&apos;s register is the record of what you hold; shares
+            appear here once they are in one of your wallets.
+          </Text>
+        ) : (
+          holdings.map((holding) => <ShareHolding key={holding.assetUuid} holding={holding} />)
+        )}
+      </Section>
+      <HoldingWork work={work} />
+    </Page>
   );
 }

@@ -1,7 +1,6 @@
 from django.db import IntegrityError
 from rest_framework.exceptions import ValidationError
 
-from portfolios.models import Portfolio
 from shared.db import atomic
 from wallets.constants import WALLET_VERIFICATION_STATUS_PENDING
 from wallets.models import Wallet
@@ -19,19 +18,12 @@ def _refuse_duplicate(wallet):
         raise ValidationError({"address": DUPLICATE_WALLET}) from None
 
 
-def register_wallet(user, **fields):
+def register_wallet(**fields):
     wallet = Wallet(**fields, verification_status=WALLET_VERIFICATION_STATUS_PENDING)
     try:
         with atomic():
             wallet.save(force_insert=True)
-            preferences = getattr(getattr(user, "userprofile", None), "preferences", None)
-            portfolio = (
-                Portfolio.objects.filter(
-                    pk=preferences.selected_portfolio_id, user_account_id=wallet.user_account_id
-                ).first()
-                if preferences
-                else None
-            )
+            portfolio = wallet.user_account.portfolios.order_by("created_at", "uuid").first()
             if portfolio:
                 portfolio.wallets.add(wallet)
     except IntegrityError:

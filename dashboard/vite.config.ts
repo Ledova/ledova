@@ -17,18 +17,15 @@ const browserPolyfills: Record<string, string> = {
   stream: resolvePolyfillRoot('stream-browserify'),
 };
 
-function nodePolyfills(modules: string[]): Plugin {
+export function nodePolyfills(): Plugin {
   const alias: Record<string, string> = {};
-  for (const mod of modules) {
-    const resolved = browserPolyfills[mod];
-    if (resolved) {
-      alias[mod] = resolved;
-      alias[`node:${mod}`] = resolved;
-    }
+  for (const [mod, resolved] of Object.entries(browserPolyfills)) {
+    alias[mod] = resolved;
+    alias[`node:${mod}`] = resolved;
   }
 
-  const inject = {
-    Buffer: browserPolyfills.buffer,
+  const inject: Record<string, string | [string, string]> = {
+    Buffer: [browserPolyfills.buffer, 'Buffer'],
     process: browserPolyfills.process,
   };
 
@@ -43,7 +40,7 @@ function nodePolyfills(modules: string[]): Plugin {
       return {
         resolve: { alias },
         build: {
-          rollupOptions: { transform: { inject } },
+          rolldownOptions: { transform: { inject } },
         },
         optimizeDeps: {
           rolldownOptions: { transform: { inject } },
@@ -53,10 +50,15 @@ function nodePolyfills(modules: string[]): Plugin {
   };
 }
 
+function nodeBuiltins(modules: string[]): Plugin {
+  const alias = Object.fromEntries(modules.map((mod) => [mod, `node:${mod}`]));
+  return { name: 'node-builtins', config: () => ({ resolve: { alias } }) };
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   return {
-    plugins: [nodePolyfills(['buffer', 'process', 'util', 'events', 'stream']), react(), tailwindcss()],
+    plugins: [process.env.VITEST === 'true' ? nodeBuiltins(['buffer']) : nodePolyfills(), react(), tailwindcss()],
     resolve: {
       tsconfigPaths: true,
     },

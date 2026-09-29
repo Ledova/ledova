@@ -1,15 +1,15 @@
 from drf_spectacular.helpers import forced_singular_serializer
 from drf_spectacular.utils import extend_schema
-from rest_framework import status
+from rest_framework import mixins, status
 from rest_framework.response import Response
 
-from shared.views.base import AuthenticatedModelViewSet
+from shared.views.base import AuthenticatedGenericViewSet
 from users.models.user_preferences import UserPreferences
 from users.serializers.user_preferences import UserPreferencesSerializer
 from users.services import upsert_user_preferences
 
 
-class UserPreferencesViewSet(AuthenticatedModelViewSet):
+class UserPreferencesViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, AuthenticatedGenericViewSet):
     serializer_class = UserPreferencesSerializer
     ordering = ["-created_at"]
     ordering_fields = ["created_at"]

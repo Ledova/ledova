@@ -34,10 +34,12 @@ import {
   formatCryptoBalance,
   formatSyncAge,
   getUserVerificationStatus,
+  readEveryPage,
+  useCurrency,
 } from '@ledova/shared';
 import type { BuyableAssetConfig, Wallet } from '@ledova/shared';
-import { useCurrency } from '../../../hooks/useCurrency';
-import { CustomModal } from '../../../components/modal';
+import { Rows } from '../../../components/Ledger';
+import { CustomModal, useDialogStyles } from '../../../components/modal';
 import { apiClient } from '../../../services/apiClient';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { assertSessionEpoch, getSessionEpoch } from '../../../services/sessionScope';
@@ -101,84 +103,48 @@ export function BuyCryptoModal({
 }: BuyCryptoModalProps) {
   const theme = useAppTheme();
   const { formatDisplayCurrency } = useCurrency();
+  const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
-    heroSection: {
-      alignItems: 'center',
-      gap: theme.spacing.sm,
-      paddingTop: theme.spacing.sm,
-      paddingBottom: theme.spacing.lg,
-    },
-    heroSubtitle: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      textAlign: 'center',
-    },
-    warningBanner: {
+    warningLine: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       gap: theme.spacing.sm,
-      padding: theme.spacing.sm,
-      marginBottom: theme.spacing.md,
-      borderRadius: theme.borderRadius.md,
-      backgroundColor: `${theme.colors.status.warning.icon}15`,
-      borderWidth: 1,
-      borderColor: `${theme.colors.status.warning.icon}30`,
     },
     warningText: {
       flex: 1,
+      fontFamily: theme.fontFamily.regular,
       fontSize: theme.fontSize.xs,
-      color: theme.colors.status.warning.text,
       lineHeight: 18,
-    },
-    optionsContainer: {
-      gap: theme.spacing.sm,
+      color: theme.colors.status.warning.text,
     },
     optionItem: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: theme.spacing.sm,
-      borderRadius: theme.borderRadius.md,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      backgroundColor: theme.colors.surface.tertiary,
+      paddingVertical: theme.spacing.smd,
     },
     optionLeft: {
       flexDirection: 'row',
       alignItems: 'center',
+      gap: theme.spacing.smd,
       flex: 1,
-    },
-    iconContainer: {
-      width: theme.icon.sizes.hero,
-      height: theme.icon.sizes.hero,
-      borderRadius: theme.borderRadius.full,
-      backgroundColor: theme.colors.surface.raised,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginRight: theme.spacing.md,
     },
     optionItemDisabled: {
       opacity: 0.5,
     },
     optionLabel: {
-      fontSize: theme.fontSize.base,
-      fontWeight: theme.fontWeight.medium,
+      fontFamily: theme.fontFamily.medium,
+      fontSize: theme.fontSize.sm,
       color: theme.colors.text.primary,
     },
     optionLabelDisabled: {
       color: theme.colors.text.muted,
     },
-    walletList: {
-      gap: theme.spacing.xs,
-    },
     walletRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: theme.spacing.md,
-      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.smd,
       gap: theme.spacing.sm,
-      borderRadius: theme.borderRadius.md,
-      backgroundColor: theme.colors.surface.tertiary,
     },
     walletIconContainer: {
       position: 'relative',
@@ -195,6 +161,7 @@ export function BuyCryptoModal({
       flexShrink: 1,
     },
     walletName: {
+      fontFamily: theme.fontFamily.regular,
       fontSize: theme.fontSize.xs,
       color: theme.colors.text.muted,
       flexShrink: 1,
@@ -219,22 +186,19 @@ export function BuyCryptoModal({
       gap: theme.spacing.xs,
     },
     walletSyncAgeText: {
+      fontFamily: theme.fontFamily.regular,
       fontSize: theme.fontSize.xs,
       color: theme.colors.text.subtle,
     },
     walletBalance: {
+      fontFamily: theme.fontFamily.regular,
       fontSize: theme.fontSize.xs,
       color: theme.colors.text.muted,
     },
     walletMarketValue: {
+      fontFamily: theme.fontFamily.regular,
       fontSize: theme.fontSize.xs,
       color: theme.colors.text.muted,
-    },
-    errorText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.status.error.icon,
-      textAlign: 'center',
-      marginTop: theme.spacing.md,
     },
   }));
   const [selectedAsset, setSelectedAsset] = useState<BuyableAssetConfig | null>(null);
@@ -284,15 +248,18 @@ export function BuyCryptoModal({
       { chain: selectedAsset?.chain, verification_status: 'VERIFIED', ordering: 'signing_preference' },
     ],
     queryFn: () =>
-      getWallets(apiClient, {
-        chain: selectedAsset!.chain,
-        verification_status: 'VERIFIED',
-        ordering: 'signing_preference',
-      }),
+      readEveryPage((page) =>
+        getWallets(apiClient, {
+          chain: selectedAsset!.chain,
+          verification_status: 'VERIFIED',
+          ordering: 'signing_preference',
+          page,
+        }),
+      ),
     enabled: visible && !!selectedAsset,
   });
 
-  const matchingWallets = walletsQuery.data?.data.results || [];
+  const matchingWallets = walletsQuery.data ?? [];
   const isLoadingWallets = walletsQuery.isLoading;
 
   const widgetMutation = useMutation({
@@ -374,6 +341,7 @@ export function BuyCryptoModal({
   return (
     <CustomModal
       visible={visible}
+      title="Buy crypto"
       onClose={handleClose}
       showFooter={true}
       showCancelButton={true}
@@ -382,18 +350,11 @@ export function BuyCryptoModal({
     >
       {isOnAssetStep && (
         <>
-          <View style={styles.heroSection}>
-            <CurrencyCircleDollarIcon
-              size={theme.icon.sizes.xxl}
-              color={theme.colors.status.info.icon}
-              weight={theme.icon.weights.light}
-            />
-            <Text style={styles.heroSubtitle}>Select an asset to purchase</Text>
-          </View>
+          <Text style={text.muted}>Select an asset to purchase</Text>
 
           {!isProfileLoading && !isVerified && (
             <TouchableOpacity
-              style={styles.warningBanner}
+              style={styles.warningLine}
               onPress={() => {
                 handleClose();
                 onNavigateToProfile();
@@ -408,7 +369,7 @@ export function BuyCryptoModal({
             </TouchableOpacity>
           )}
 
-          <View style={styles.optionsContainer}>
+          <Rows>
             {BUYABLE_ASSETS.map((asset) => {
               const isAssetProcessing = isProcessingAsset && selectedAsset?.symbol === asset.symbol;
               const isDisabled = isProfileLoading || !isVerified || isProcessingAsset;
@@ -422,40 +383,26 @@ export function BuyCryptoModal({
                   disabled={isDisabled}
                 >
                   <View style={styles.optionLeft}>
-                    <View style={styles.iconContainer}>{getAssetIcon(asset.symbol, theme)}</View>
+                    {getAssetIcon(asset.symbol, theme)}
                     <Text style={[styles.optionLabel, !isVerified && styles.optionLabelDisabled]}>{asset.name}</Text>
                   </View>
                   {isAssetProcessing && <ActivityIndicator size="small" color={theme.colors.interactive.active} />}
                 </TouchableOpacity>
               );
             })}
-          </View>
+          </Rows>
         </>
       )}
 
       {!isOnAssetStep && matchingWallets.length === 0 && (
-        <View style={styles.heroSection}>
-          <WalletIcon
-            size={theme.icon.sizes.xxl}
-            color={theme.colors.status.info.icon}
-            weight={theme.icon.weights.light}
-          />
-          <Text style={styles.heroSubtitle}>No verified wallets for {selectedAsset!.name}. Create one in Wallets.</Text>
-        </View>
+        <Text style={text.muted}>No verified wallets for {selectedAsset!.name}. Create one in Wallets.</Text>
       )}
 
       {!isOnAssetStep && matchingWallets.length > 1 && (
         <>
-          <View style={styles.heroSection}>
-            <WalletIcon
-              size={theme.icon.sizes.xxl}
-              color={theme.colors.status.info.icon}
-              weight={theme.icon.weights.light}
-            />
-            <Text style={styles.heroSubtitle}>Choose a wallet to receive {selectedAsset!.name}</Text>
-          </View>
+          <Text style={text.muted}>Choose a wallet to receive {selectedAsset!.name}</Text>
 
-          <View style={styles.walletList}>
+          <Rows>
             {matchingWallets.map((wallet: Wallet) => {
               const walletLabel = wallet.name || formatWalletAddressShort(wallet.address);
               const isVerified = wallet.verificationStatus === WALLET_VERIFICATION_STATUS.VERIFIED;
@@ -534,12 +481,12 @@ export function BuyCryptoModal({
                 </TouchableOpacity>
               );
             })}
-          </View>
+          </Rows>
         </>
       )}
 
       {(widgetMutation.isError || walletsQuery.isError) && (
-        <Text style={styles.errorText}>
+        <Text style={text.error}>
           {widgetMutation.error instanceof Error
             ? widgetMutation.error.message
             : walletsQuery.error instanceof Error

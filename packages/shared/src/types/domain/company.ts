@@ -6,7 +6,7 @@ export type CompanyType = ApiSchema<'CompanyTypeEnum'>;
 
 export type DocumentType = ApiSchema<'CompanyDocumentDocumentTypeEnum'>;
 
-export type CompanyDocument = ApiResponse<'api_v1_companies_documents_retrieve'>;
+export type CompanyDocument = ApiSchema<'CompanyDocument'>;
 
 export type Company = ApiResponse<'api_v1_companies_retrieve'>;
 

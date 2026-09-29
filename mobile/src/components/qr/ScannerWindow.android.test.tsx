@@ -32,7 +32,10 @@ jest.mock('expo', () => ({
 }));
 jest.mock('../modal', () => {
   const { View } = jest.requireActual('react-native');
-  return { CustomModal: ({ children }: { children: React.ReactNode }) => <View>{children}</View> };
+  return {
+    ...jest.requireActual('../modal'),
+    CustomModal: ({ children }: { children: React.ReactNode }) => <View>{children}</View>,
+  };
 });
 
 import { QRScanner } from './QRScanner';

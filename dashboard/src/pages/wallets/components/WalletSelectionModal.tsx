@@ -1,25 +1,12 @@
-import { WalletIcon, ArrowsClockwiseIcon, PaperPlaneTiltIcon } from '@phosphor-icons/react';
+import { ArrowsClockwiseIcon } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  BLOCKCHAIN,
-  DESIGN_TOKENS,
-  getWallets,
-  formatCryptoBalance,
-  formatWalletAddressShort,
-  formatSyncAge,
-  WALLET_SIGNING_PREFERENCE,
-  getWalletSigningPreferenceLabel,
-} from '@ledova/shared';
-import { useCurrency } from '@hooks/useCurrency';
+import { getActiveChains, getChainConfig, getWallets, readEveryPage } from '@ledova/shared';
+import { ICON_LG } from '@components/iconSizes';
 import type { Wallet } from '@ledova/shared';
 import { Modal } from '@components/Modal';
-import { WalletBadge } from '@components/Wallet';
+import { PageAction } from '@components/Page';
+import { WalletChoice } from '@components/Wallet';
 import apiClient from '@services/apiClient';
-import { HardDriveIcon, CloudIcon, ClockIcon } from '@phosphor-icons/react';
-
-const ICON_XS = DESIGN_TOKENS.icon.sizes.xs;
-const ICON_LG = DESIGN_TOKENS.icon.sizes.lg;
-const ICON_XXL = DESIGN_TOKENS.icon.sizes.xxl;
 
 interface WalletSelectionModalProps {
   isOpen: boolean;
@@ -28,64 +15,36 @@ interface WalletSelectionModalProps {
 }
 
 export function WalletSelectionModal({ isOpen, onClose, onSelectWallet }: WalletSelectionModalProps) {
-  const { formatDisplayCurrency } = useCurrency();
   const walletsQuery = useQuery({
     queryKey: ['wallets', { verification_status: 'VERIFIED', ordering: 'signing_preference' }],
     queryFn: () =>
-      getWallets(apiClient, {
-        verification_status: 'VERIFIED',
-        ordering: 'signing_preference',
-      }),
+      readEveryPage((page) =>
+        getWallets(apiClient, {
+          verification_status: 'VERIFIED',
+          ordering: 'signing_preference',
+          page,
+        }),
+      ),
     enabled: isOpen,
   });
 
-  const wallets = walletsQuery.data?.data.results || [];
-  const ethWallets = wallets.filter((w) => w.chain === BLOCKCHAIN.ETHEREUM);
-  const btcWallets = wallets.filter((w) => w.chain === BLOCKCHAIN.BITCOIN);
-  const baseWallets = wallets.filter((w) => w.chain === BLOCKCHAIN.BASE);
-
-  const renderWallet = (wallet: Wallet) => {
-    const walletLabel = wallet.name || formatWalletAddressShort(wallet.address);
-    const isHardware = wallet.signingPreference === WALLET_SIGNING_PREFERENCE.HARDWARE;
-    const TypeIcon = isHardware ? HardDriveIcon : CloudIcon;
-    const syncAge = formatSyncAge(wallet.lastSyncedAt);
-    const marketValue = parseFloat(wallet.marketValue) || 0;
-
-    return (
-      <button
-        key={wallet.uuid}
-        type="button"
-        onClick={() => onSelectWallet(wallet)}
-        className="w-full flex items-center gap-3 py-2.5 rounded-lg hover:bg-surface-tertiary transition-colors text-left"
-      >
-        <WalletBadge verificationStatus={wallet.verificationStatus} />
-        <span className="text-xs text-text-muted truncate">{walletLabel}</span>
-        {wallet.signingPreference && (
-          <span
-            title={getWalletSigningPreferenceLabel(wallet.signingPreference)}
-            aria-label={getWalletSigningPreferenceLabel(wallet.signingPreference)}
-            className="inline-flex items-center justify-center p-1"
-          >
-            <TypeIcon size={ICON_XS} weight="bold" className="text-text-secondary" />
-          </span>
-        )}
-        <div className="flex-1" />
-        {syncAge && (
-          <span className="inline-flex items-center gap-0.5 text-xs text-text-subtle flex-shrink-0">
-            <ClockIcon size={ICON_XS} />
-            {syncAge}
-          </span>
-        )}
-        <span className="text-xs text-text-muted flex-shrink-0">
-          {formatCryptoBalance(wallet.nativeBalance, '').trimEnd()}
-        </span>
-        <span className="text-xs text-text-muted flex-shrink-0">{formatDisplayCurrency(marketValue)}</span>
-      </button>
-    );
-  };
+  const wallets = (walletsQuery.data ?? []).filter((wallet) => getChainConfig(wallet.chain)?.isActive);
 
   const renderContent = () => {
-    if (walletsQuery.isLoading) {
+    if (walletsQuery.isError) {
+      return (
+        <div role="alert" className="flex flex-col items-start gap-3">
+          <p className="text-sm text-text-muted">Your wallets could not be loaded. Try again before continuing.</p>
+          <PageAction
+            label="Try again"
+            disabled={walletsQuery.isFetching}
+            onClick={() => void walletsQuery.refetch()}
+          />
+        </div>
+      );
+    }
+
+    if (walletsQuery.isPending) {
       return (
         <div className="flex items-center justify-center py-8">
           <ArrowsClockwiseIcon size={ICON_LG} className="animate-spin text-text-muted" />
@@ -96,8 +55,7 @@ export function WalletSelectionModal({ isOpen, onClose, onSelectWallet }: Wallet
 
     if (wallets.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center py-8 gap-2">
-          <WalletIcon size={ICON_XXL} className="text-text-subtle" />
+        <div className="space-y-1">
           <p className="text-sm text-text-muted">No verified wallets found</p>
           <p className="text-xs text-text-subtle">Create and verify a wallet to send crypto</p>
         </div>
@@ -106,34 +64,28 @@ export function WalletSelectionModal({ isOpen, onClose, onSelectWallet }: Wallet
 
     return (
       <div className="space-y-4">
-        {ethWallets.length > 0 && (
-          <div className="space-y-1">
-            <span className="text-xs font-medium text-text-muted uppercase tracking-wider">Ethereum</span>
-            {ethWallets.map(renderWallet)}
-          </div>
-        )}
-        {btcWallets.length > 0 && (
-          <div className="space-y-1">
-            <span className="text-xs font-medium text-text-muted uppercase tracking-wider">Bitcoin</span>
-            {btcWallets.map(renderWallet)}
-          </div>
-        )}
-        {baseWallets.length > 0 && (
-          <div className="space-y-1">
-            <span className="text-xs font-medium text-text-muted uppercase tracking-wider">Base</span>
-            {baseWallets.map(renderWallet)}
-          </div>
-        )}
+        {getActiveChains().map(({ code, name }) => {
+          const chainWallets = wallets.filter((wallet) => wallet.chain === code);
+          if (chainWallets.length === 0) return null;
+          return (
+            <div key={code}>
+              <span className="text-xs font-medium uppercase tracking-wider text-text-muted">{name}</span>
+              <ul className="divide-y divide-border-subtle">
+                {chainWallets.map((wallet) => (
+                  <li key={wallet.uuid}>
+                    <WalletChoice wallet={wallet} onChoose={() => onSelectWallet(wallet)} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
       </div>
     );
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} showFooter showCancelButton onCancel={onClose}>
-      <div className="flex flex-col items-center gap-2 pt-2 pb-6">
-        <PaperPlaneTiltIcon size={ICON_XXL} className="text-info-light" weight="light" />
-        <p className="text-sm font-semibold text-text-muted">Select your wallet</p>
-      </div>
+    <Modal isOpen={isOpen} onClose={onClose} title="Select your wallet" showFooter showCancelButton onCancel={onClose}>
       {renderContent()}
     </Modal>
   );

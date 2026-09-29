@@ -1,12 +1,11 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, renderHook, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { COMPANY_TOKEN_ENDPOINTS, type CompanyShareToken, type TokenHoldersResponse } from '@ledova/shared';
-import { PageTitle } from '@components/PageTitle';
 import { ShareClass } from '.';
+import { renderCompanyPage } from '../testSupport';
 import { useShareClass } from './useShareClass';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
@@ -26,15 +25,7 @@ const CAPITAL = COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASES;
 const EXPORT = COMPANY_TOKEN_ENDPOINTS.REGISTER_EXPORT('class-one');
 
 function show() {
-  return render(
-    <QueryClientProvider client={client}>
-      <MemoryRouter>
-        <PageTitle.Provider value="Share class">
-          <ShareClass uuid="class-one" />
-        </PageTitle.Provider>
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
+  return renderCompanyPage(client, <ShareClass uuid="class-one" />, 'Share class');
 }
 
 async function openRaise() {
@@ -121,7 +112,8 @@ it('shows exact issued and authorised counts above the safe integer limit', asyn
   await screen.findByText('Ordinary shares');
   expect((await screen.findAllByText('9,007,199,254,740,993')).length).toBeGreaterThan(0);
   expect(screen.getAllByText('9,007,199,254,740,999').length).toBeGreaterThan(0);
-  expect(screen.getByRole('link', { name: 'Back to Register' }).getAttribute('href')).toBe('/company/register');
+  fireEvent.click(screen.getByRole('button', { name: 'Back to Register' }));
+  expect(await screen.findByText('Register page')).toBeTruthy();
 });
 
 it.each(['draft', 'deploying', 'deployed', 'paused'] as const)(

@@ -143,14 +143,16 @@ class WalletActionContractTest(APITestCase):
         )
         self.fund_wallet(wallet)
         get_client.return_value.get_gas_price.return_value = Decimal("2")
-        result = self.post_action("prepare-transfer", {"toAddress": "tb1qrecipient", "amountBtc": "1"}, wallet=wallet)
+        result = self.post_action(
+            "prepare-transfer", {"toAddress": "mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn", "amountBtc": "1"}, wallet=wallet
+        )
         self.assertEqual(result["network"], "BTC")
 
     @patch("wallets.services.transfers.get_blockchain_client")
     def test_token_preparation_does_not_promise_native_transfer_amount_fields(self, get_client):
         address = "0x" + "c" * 40
         asset = Asset.objects.create(
-            symbol="TST", name="Synthetic token", asset_type="stablecoin", decimals=6, is_verified=True
+            symbol="TST", name="Synthetic token", asset_type="erc20_token", decimals=6, is_verified=True
         )
         AssetChainDeployment.objects.create(asset=asset, chain="base", contract_address=address, decimals=6)
         Holding.objects.create(wallet=self.wallet, asset=asset, quantity=10)

@@ -1,14 +1,8 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 import { render } from '@testing-library/react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { PAPER_THEME, useUserPreferences } from '@ledova/shared';
+import { PAPER_THEME } from '@ledova/shared';
 import { ThemeProvider, useAppTheme } from './ThemeContext';
-
-jest.mock('@ledova/shared', () => ({
-  ...jest.requireActual('@ledova/shared'),
-  useUserPreferences: jest.fn(() => ({ data: { theme: 'dark' } })),
-}));
 
 function Sample() {
   const theme = useAppTheme();
@@ -19,8 +13,7 @@ function Sample() {
   );
 }
 
-it('uses paper independently of old local and account dark-mode choices', async () => {
-  jest.mocked(AsyncStorage.getItem).mockResolvedValue('dark');
+it('renders the paper palette in Instrument Sans', async () => {
   const view = await render(
     <ThemeProvider>
       <Sample />
@@ -31,6 +24,4 @@ it('uses paper independently of old local and account dark-mode choices', async 
     color: PAPER_THEME.text.primary,
     fontFamily: 'InstrumentSans_400Regular',
   });
-  expect(AsyncStorage.getItem).not.toHaveBeenCalled();
-  expect(useUserPreferences).not.toHaveBeenCalled();
 });

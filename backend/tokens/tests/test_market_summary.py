@@ -79,15 +79,6 @@ class MarketSummaryTest(APITransactionTestCase):
                     draft = self.rows(response)[str(self.alice.token.uuid)]
                     self.assertEqual((draft["lastPrice"], draft["bestBid"], draft["bestAsk"]), (None, None, None))
 
-    def test_market_data_endpoint_keeps_its_keys(self):
-        response = self.client.get(f"{TRADING}{self.alice.deployed_token.uuid}/market-data/")
-        self.assertEqual(response.status_code, 200)
-        body = response.json()
-        self.assertEqual(body["lastTradePrice"], "1.5")
-        self.assertEqual((body["bestBid"], body["bestAsk"], body["midpointPrice"]), ("1.50", "1.50", "1.50"))
-        self.assertEqual(body["lastTrade"]["paymentAmount"], "15")
-        self.assertEqual(body["lastTrade"]["paymentToken"], "TUSD")
-
     def test_directory_list_keeps_the_market_summary_keys(self):
         response = self.client.get(DIRECTORY)
         row = self.rows(response)[str(self.alice.deployed_token.uuid)]

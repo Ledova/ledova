@@ -72,6 +72,33 @@ An empty or suppressed run is not a pass: find the `Ran N tests` tally before
 reading the exit status. [Scoped connection evidence](#scoped-connection-evidence)
 explains how the ordinary and scoped suites differ.
 
+The suites read the environment as the backend does. CI sets `SECRET_KEY`,
+`STORAGE_BACKEND` and the `POSTGRES_*` connection for them and no other backend
+setting; locally these usually come from loading `backend/.env`, whose other
+values then reach the suites too. In CI the scoped suite also inherits
+`UPLOAD_TEST_CLAMAV_HOST`, a test variable that the scanner step exports and
+only the separate scanner suite reads. A setting the test settings assign keeps
+their value, though one the backend derives from the same variable can still
+follow the file. They assign the chain id and the finality policies, the only
+settings derived from `BLOCKCHAIN_CHAIN_ID` and `LOCAL_CHAIN_FINALITY_DEPTH`, so
+they override any value of either that the backend accepts: the suites run on
+84532, Base Sepolia, under only the
+[approved policies](../operations/chains.md#chain-configuration), as in CI, and
+the local stack's values can stay in the file. A value the backend refuses still
+stops the suites, as it stops every other command. The template's values give
+the same results as CI's environment, but one changed from them can change a
+result: rerun a local failure with only CI's variables before reading it as a
+regression.
+
+On macOS the suites run the real upload decoder and scanner client, but the
+kernel refuses their address-space limit (see
+[upload limits](../operations/uploads.md#upload-validation-and-resource-limits)).
+The ordinary suite then skips
+`test_a_real_decoder_cannot_run_with_an_insufficient_address_space_budget` with
+that reason, and the warning appears in the output. The CPU-limit and
+wall-deadline tests still run there, and so do the tests that simulate a kernel
+refusing each limit. Only a Linux run, such as CI, proves the address-space cap.
+
 CI splits the ordinary suite into parallel "Django ordinary shard (NAME)" jobs,
 one for each shard in
 [`.github/ordinary-suite-shards.json`](../../.github/ordinary-suite-shards.json).

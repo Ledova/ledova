@@ -30,4 +30,17 @@ one.
 | daily 03:50 | `purge_publications_past_the_clock` |
 | daily 04:00 | `check_periodic_reviews` |
 
+## Previewing the upload sweep
+
+`sweep_private_uploads` deletes private files under `companies/` and
+`documents/` that no row references and that have not changed for 24 hours;
+[uploaded files](../architecture/files-and-retention.md#deletion-and-retention)
+explains why. Each run logs how many files it found, deleted and failed to
+delete, and a file it failed to delete is tried again on the next run.
+
+To see what it would delete now, run
+`python manage.py sweep_orphaned_files --dry-run` from `backend/`. The command
+runs the same sweep, prints each file it would delete and deletes nothing.
+Without `--dry-run` it runs the sweep immediately.
+
 For interrupted work, use [recovery and reconciliation](recovery.md).

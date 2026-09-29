@@ -1,22 +1,50 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  ShieldCheckIcon,
-  WarningIcon,
-  CheckCircleIcon,
-  ClockCountdownIcon,
-  ArrowCounterClockwiseIcon,
-} from '@phosphor-icons/react';
-import { DESIGN_TOKENS } from '@ledova/shared';
+import { WarningIcon, CheckCircleIcon, ClockCountdownIcon, ArrowCounterClockwiseIcon } from '@phosphor-icons/react';
+import { ICON_MD } from '@components/iconSizes';
 import { useIdentityVerification } from '@hooks/useIdentityVerification';
-import { Modal } from '@components/Modal';
-
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
-const ICON_LG = DESIGN_TOKENS.icon.sizes.lg;
+import { Modal, ModalActions } from '@components/Modal';
+import { PageAction } from '@components/Page';
 
 interface IdentityVerificationModalProps {
   isOpen: boolean;
   onClose: () => void;
+}
+
+function Outcome({
+  icon,
+  title,
+  tone,
+  children,
+}: {
+  icon: ReactNode;
+  title: string;
+  tone: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="space-y-1">
+      <h3 className={`flex items-center gap-2 text-sm font-medium ${tone}`}>
+        {icon}
+        {title}
+      </h3>
+      {children}
+    </div>
+  );
+}
+
+function Reasons({ labels }: { labels?: string[] | null }) {
+  if (!labels || labels.length === 0) return null;
+  return (
+    <div className="pt-2">
+      <p className="text-xs text-text-muted uppercase mb-1">Reasons:</p>
+      {labels.map((label, index) => (
+        <p key={index} className="text-sm text-text-secondary mt-1">
+          &bull; {label}
+        </p>
+      ))}
+    </div>
+  );
 }
 
 export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificationModalProps) {
@@ -56,6 +84,8 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
     }
   }, [isOpen, resetState]);
 
+  const canStart = showForm && !isLoadingStatus && !sdkActive && !formUrl;
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Identity Verification" size="lg" fullHeight={!!formUrl}>
       <div className="space-y-4">
@@ -69,154 +99,99 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
         )}
 
         {isVerified && (
-          <div className="flex flex-col items-center py-8 px-6 bg-success/10 border border-success/20 rounded-lg">
-            <CheckCircleIcon size={ICON_LG} className="text-success-light" />
-            <h3 className="text-lg font-semibold text-success-light mt-2">Already Verified</h3>
-            <p className="text-sm text-text-secondary text-center mt-1">
-              Your identity has been verified successfully.
-            </p>
-          </div>
+          <Outcome
+            icon={<CheckCircleIcon size={ICON_MD} weight="fill" />}
+            title="Already Verified"
+            tone="text-success-light"
+          >
+            <p className="text-sm text-text-secondary">Your identity has been verified successfully.</p>
+          </Outcome>
         )}
 
         {showPendingBanner && (
-          <div className="flex flex-col items-center py-8 px-6 bg-brand-mid/10 border border-brand-mid/20 rounded-lg">
-            <CheckCircleIcon size={ICON_LG} className="text-brand-light" />
-            <h3 className="text-lg font-semibold text-brand-light mt-2">Verification Submitted</h3>
-            <p className="text-sm text-text-secondary text-center mt-1">
+          <Outcome
+            icon={<CheckCircleIcon size={ICON_MD} weight="fill" />}
+            title="Verification Submitted"
+            tone="text-brand-light"
+          >
+            <p className="text-sm text-text-secondary">
               Your documents have been submitted. We&apos;ll review them shortly and notify you of the result.
             </p>
-          </div>
+          </Outcome>
         )}
 
         {showOnHoldBanner && (
-          <div className="flex flex-col items-center py-8 px-6 bg-warning-light/10 border border-warning-light/30 rounded-lg">
-            <ClockCountdownIcon size={ICON_LG} className="text-warning-light" />
-            <h3 className="text-lg font-semibold text-warning-light mt-2">Verification On Hold</h3>
-            <p className="text-sm text-text-secondary text-center mt-1">
+          <Outcome icon={<ClockCountdownIcon size={ICON_MD} />} title="Verification On Hold" tone="text-warning-light">
+            <p className="text-sm text-text-secondary">
               Your verification is currently on hold. We may need additional information. Please check back later or
               contact support.
             </p>
-          </div>
+          </Outcome>
         )}
 
         {showRejectedBanner && (
-          <div className="flex flex-col items-center py-8 px-6 bg-error/10 border border-error/20 rounded-lg">
-            <WarningIcon size={ICON_LG} className="text-error-light" />
-            <h3 className="text-lg font-semibold text-error-light mt-2">Verification Rejected</h3>
-            <p className="text-sm text-text-secondary text-center mt-1">
+          <Outcome icon={<WarningIcon size={ICON_MD} />} title="Verification Rejected" tone="text-error-light">
+            <p className="text-sm text-text-secondary">
               Unfortunately, your verification was not approved. You may retry with different documents or contact
               support for assistance.
             </p>
-            {status?.rejectionLabels && status.rejectionLabels.length > 0 && (
-              <div className="mt-3 w-full">
-                <p className="text-xs text-text-muted uppercase mb-1">Reasons:</p>
-                {status.rejectionLabels.map((label, index) => (
-                  <p key={index} className="text-sm text-text-secondary mt-1">
-                    &bull; {label}
-                  </p>
-                ))}
-              </div>
-            )}
-          </div>
+            <Reasons labels={status?.rejectionLabels} />
+          </Outcome>
         )}
 
         {showRetryBanner && (
-          <div className="flex flex-col items-center py-8 px-6 bg-warning-light/10 border border-warning-light/30 rounded-lg">
-            <ArrowCounterClockwiseIcon size={ICON_LG} className="text-warning-light" />
-            <h3 className="text-lg font-semibold text-warning-light mt-2">Retry Needed</h3>
-            <p className="text-sm text-text-secondary text-center mt-1">
+          <Outcome icon={<ArrowCounterClockwiseIcon size={ICON_MD} />} title="Retry Needed" tone="text-warning-light">
+            <p className="text-sm text-text-secondary">
               Your previous verification attempt needs to be retried. Please try again with clearer documents.
             </p>
-            {status?.rejectionLabels && status.rejectionLabels.length > 0 && (
-              <div className="mt-3 w-full">
-                <p className="text-xs text-text-muted uppercase mb-1">Reasons:</p>
-                {status.rejectionLabels.map((label, index) => (
-                  <p key={index} className="text-sm text-text-secondary mt-1">
-                    &bull; {label}
-                  </p>
-                ))}
-              </div>
-            )}
-          </div>
+            <Reasons labels={status?.rejectionLabels} />
+          </Outcome>
         )}
 
         {verificationError && (
-          <div className="bg-error/10 border border-error/20 rounded-lg p-4">
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <WarningIcon size={ICON_MD} className="text-error-light" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-error-light" role="alert">
-                  {verificationError}
-                </p>
-              </div>
-            </div>
-          </div>
+          <p className="flex items-start gap-2 text-sm text-error-light" role="alert">
+            <WarningIcon size={ICON_MD} className="flex-shrink-0" />
+            {verificationError}
+          </p>
         )}
 
-        {showForm && !isLoadingStatus && !isLaunching && !sdkActive && !formUrl && (
-          <>
-            <div className="flex justify-center">
-              <div className="p-3 rounded-full bg-surface-tertiary border border-border">
-                <ShieldCheckIcon size={ICON_LG} className="text-text-muted" />
-              </div>
-            </div>
-            <p className="text-sm text-text-muted text-center">
-              Verify your identity to comply with financial regulations and unlock full account features.
-            </p>
-          </>
+        {canStart && !isLaunching && (
+          <p className="text-sm text-text-muted">
+            Verify your identity to comply with financial regulations and unlock full account features.
+          </p>
         )}
 
         {showForm && !isLoadingStatus && !formUrl && <div id="sumsub-profile-websdk-container"></div>}
 
         {formUrl && (
-          <div>
-            <iframe
-              src={formUrl}
-              title="Identity Verification"
-              className="w-full rounded-lg border border-border"
-              style={{ height: '800px' }}
-              allow="camera; microphone"
+          <iframe
+            src={formUrl}
+            title="Identity Verification"
+            className="w-full rounded-lg border border-border"
+            style={{ height: '800px' }}
+            allow="camera; microphone"
+          />
+        )}
+
+        <ModalActions>
+          <PageAction label="Close" onClick={onClose} />
+          {canStart && (
+            <PageAction
+              label={isLaunching ? 'Preparing...' : 'Start Verification'}
+              primary
+              onClick={() => launchVerification('#sumsub-profile-websdk-container')}
+              disabled={isLaunching}
             />
-          </div>
-        )}
-
-        {showForm && !isLoadingStatus && !sdkActive && !formUrl && (
-          <button
-            type="button"
-            onClick={() => launchVerification('#sumsub-profile-websdk-container')}
-            disabled={isLaunching}
-            className="w-full bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-brand-light/40 disabled:shadow-none"
-          >
-            {isLaunching ? (
-              <div className="flex items-center justify-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                <span>Preparing...</span>
-              </div>
-            ) : (
-              'Start Verification'
-            )}
-          </button>
-        )}
-
-        {showRetryBanner && (
-          <button
-            type="button"
-            onClick={() => launchVerification('#sumsub-profile-websdk-container')}
-            disabled={isLaunching}
-            className="w-full bg-warning hover:bg-warning disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors"
-          >
-            {isLaunching ? (
-              <div className="flex items-center justify-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                <span>Preparing...</span>
-              </div>
-            ) : (
-              'Retry Verification'
-            )}
-          </button>
-        )}
+          )}
+          {showRetryBanner && (
+            <PageAction
+              label={isLaunching ? 'Preparing...' : 'Retry Verification'}
+              primary
+              onClick={() => launchVerification('#sumsub-profile-websdk-container')}
+              disabled={isLaunching}
+            />
+          )}
+        </ModalActions>
       </div>
     </Modal>
   );

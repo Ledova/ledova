@@ -26,7 +26,6 @@ Both name the file `ledova-data-export-<UTC date>.json`.
 | --- | --- |
 | `user` | Email, when the account was created, whether the email is verified |
 | `profile` | Name, date of birth, phone, residential address, citizenship, whether identity is verified |
-| `preferences` | The selected portfolio |
 | `financialProfile` | Occupation, source of funds and intended use |
 | `account` | Account number, type, activation date |
 | `wallets` | Each wallet's name, chain, address, native balance, market value and verification |
@@ -37,7 +36,10 @@ A section the person has no row for is `null`, or an empty list. The export is
 the account's profile, wallets, transactions and portfolios. It is not
 everything Ledova holds about the person: classification claims and their
 evidence, uploaded documents, per-asset holdings, orders, subscriptions,
-notifications and register particulars are not in it.
+notifications, the transaction-alerts switch and register particulars are not
+in it. Until `users/0028` the export also had a `preferences` section holding
+the selected portfolio; it went with that preference
+([upgrade note](../operations/upgrades.md#theme-and-selected-portfolio-preferences)).
 
 ## Transactions
 

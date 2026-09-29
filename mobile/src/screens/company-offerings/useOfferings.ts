@@ -7,25 +7,25 @@ import {
   getOffering,
   getOfferings,
   getOfferingSubscriptions,
+  readEveryPage,
   submitOffering,
   withdrawOffering,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch } from '../../services/sessionScope';
-import { everyCompanyPage } from '../company-register/useCompanyRegister';
 
 export function useOfferings(companyUuid?: string) {
   const client = useQueryClient();
   const offeringsQuery = useQuery({
     queryKey: ['offerings', companyUuid],
-    queryFn: () => everyCompanyPage((page) => getOfferings(apiClient, page)),
+    queryFn: () => readEveryPage((page) => getOfferings(apiClient, page)),
     enabled: !!companyUuid,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
   const tokensQuery = useQuery({
     queryKey: ['company-tokens', 'company', companyUuid],
     queryFn: async () =>
-      (await everyCompanyPage((page) => getCompanyTokens(apiClient, { page }))).filter(
+      (await readEveryPage((page) => getCompanyTokens(apiClient, { page }))).filter(
         (token) => token.companyUuid === companyUuid,
       ),
     enabled: !!companyUuid,
@@ -59,7 +59,7 @@ export function useOfferings(companyUuid?: string) {
 export function useOfferingSubscriptions(uuid?: string) {
   return useQuery({
     queryKey: ['offering-subscriptions', uuid],
-    queryFn: () => everyCompanyPage((page) => getOfferingSubscriptions(apiClient, uuid!, page)),
+    queryFn: () => readEveryPage((page) => getOfferingSubscriptions(apiClient, uuid!, page)),
     enabled: !!uuid,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });

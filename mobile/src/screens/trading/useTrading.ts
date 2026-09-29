@@ -11,11 +11,11 @@ import {
   CACHE_TIMING,
   TRADING_CONFIG,
   WALLET_VERIFICATION_STATUS,
+  readEveryPage,
+  useUserPreferences,
 } from '@ledova/shared';
 import type { Wallet, WhitelistStatus, WalletTokenBalance } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { useUserPreferences } from '../../hooks/useUserPreferences';
-import { allMarketPages } from './marketData';
 
 export const tradingQueryKeys = {
   tokens: ['trading', 'tokens'] as const,
@@ -30,7 +30,7 @@ export function useUserTradingWallets() {
   const walletsQuery = useQuery({
     queryKey: ['wallets', userAccount?.uuid, 'trading'],
     queryFn: async () => ({
-      data: { results: await allMarketPages((page) => getWallets(apiClient, page ? { page } : undefined)) },
+      data: { results: await readEveryPage((page) => getWallets(apiClient, { page })) },
     }),
     enabled: !!userAccount?.uuid,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
@@ -147,7 +147,7 @@ export function useAllUserOrders() {
   const { userAccount } = useUserPreferences();
   const query = useQuery({
     queryKey: ['trading', 'userOrders', 'all', userAccount?.uuid],
-    queryFn: () => allMarketPages((page) => getOrders(apiClient, page ? { page } : undefined)),
+    queryFn: () => readEveryPage((page) => getOrders(apiClient, { page })),
     enabled: !!userAccount?.uuid,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.DEFAULT_GC_TIME,
@@ -164,7 +164,7 @@ export function useAllUserOrders() {
 export function useShareTokens() {
   return useQuery({
     queryKey: tradingQueryKeys.tokens,
-    queryFn: () => allMarketPages((page) => getShareTokens(apiClient, page)),
+    queryFn: () => readEveryPage((page) => getShareTokens(apiClient, page)),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.DEFAULT_GC_TIME,
   });

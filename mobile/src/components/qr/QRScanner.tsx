@@ -1,9 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { QrCodeIcon } from 'phosphor-react-native';
 
-import { useAppTheme, useThemedStyles } from '../../contexts';
-import { CustomModal } from '../modal';
+import { useThemedStyles } from '../../contexts';
+import { CustomModal, useDialogStyles } from '../modal';
 import { useCameraScanner } from './useCameraScanner';
 import { ScannerPreview } from './ScannerPreview';
 
@@ -16,28 +15,8 @@ interface QRScannerProps {
 }
 
 export function QRScanner({ visible, onClose, onScan, title = 'Scan QR Code', subtitle }: QRScannerProps) {
-  const theme = useAppTheme();
+  const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
-    headerContainer: {
-      alignItems: 'center',
-      paddingVertical: theme.spacing.md,
-      gap: theme.spacing.sm,
-    },
-    icon: {
-      marginBottom: theme.spacing.md,
-    },
-    title: {
-      fontSize: theme.fontSize.xl,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-      textAlign: 'center',
-    },
-    subtitle: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      textAlign: 'center',
-      marginBottom: theme.spacing.sm,
-    },
     cameraContainer: {
       width: '100%',
       height: 320,
@@ -45,7 +24,6 @@ export function QRScanner({ visible, onClose, onScan, title = 'Scan QR Code', su
       overflow: 'hidden',
       backgroundColor: theme.colors.utility.black,
       position: 'relative',
-      marginBottom: theme.spacing.md,
     },
     messageContainer: {
       flex: 1,
@@ -54,6 +32,7 @@ export function QRScanner({ visible, onClose, onScan, title = 'Scan QR Code', su
       padding: theme.spacing.xl,
     },
     message: {
+      fontFamily: theme.fontFamily.regular,
       fontSize: theme.fontSize.sm,
       color: theme.colors.text.muted,
       textAlign: 'center',
@@ -71,11 +50,6 @@ export function QRScanner({ visible, onClose, onScan, title = 'Scan QR Code', su
       borderRadius: theme.borderRadius.md,
       backgroundColor: theme.colors.utility.transparent,
     },
-    instructionText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      textAlign: 'center',
-    },
   }));
   const camera = useCameraScanner(visible, (data, finishScan) => {
     finishScan();
@@ -90,12 +64,8 @@ export function QRScanner({ visible, onClose, onScan, title = 'Scan QR Code', su
   if (!visible) return null;
 
   return (
-    <CustomModal visible={visible} onClose={handleClose} showFooter={true} cancelLabel="Cancel">
-      <View style={styles.headerContainer}>
-        <QrCodeIcon size={48} color={theme.colors.status.info.icon} weight="regular" style={styles.icon} />
-        <Text style={styles.title}>{title}</Text>
-        {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
-      </View>
+    <CustomModal visible={visible} title={title} onClose={handleClose} showFooter={true} cancelLabel="Cancel">
+      {subtitle && <Text style={text.muted}>{subtitle}</Text>}
 
       <View style={styles.cameraContainer}>
         <ScannerPreview {...camera.preview} />
@@ -112,7 +82,7 @@ export function QRScanner({ visible, onClose, onScan, title = 'Scan QR Code', su
         )}
       </View>
 
-      {camera.status === 'ready' && <Text style={styles.instructionText}>Position the QR code within the frame</Text>}
+      {camera.status === 'ready' && <Text style={text.muted}>Position the QR code within the frame</Text>}
     </CustomModal>
   );
 }

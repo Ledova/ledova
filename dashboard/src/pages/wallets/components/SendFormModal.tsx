@@ -6,32 +6,29 @@ import {
   ArrowsClockwiseIcon,
   CertificateIcon,
   CurrencyCircleDollarIcon,
-  CoinsIcon,
   ShieldWarningIcon,
   ShieldCheckIcon,
 } from '@phosphor-icons/react';
 import {
   getChainShortCode,
   BLOCKCHAIN,
-  DESIGN_TOKENS,
   getAddressPlaceholder,
   getBlockchainDisplayName,
   getEstimatedFee,
   formatWalletAddressShort,
   validateWalletAddress,
   parseFiatValue,
+  useCurrency,
 } from '@ledova/shared';
-import { useCurrency } from '@hooks/useCurrency';
+import { ICON_XS, ICON_SM, ICON_MD, ICON_LG } from '@components/iconSizes';
 import type { Wallet, WhitelistStatus } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { useQRScanner, QRScannerView } from '@components/qr';
 import type { UnifiedAsset } from '../hooks/useTransferFlow';
 
-const ICON_XS = DESIGN_TOKENS.icon.sizes.xs;
-const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
-const ICON_LG = DESIGN_TOKENS.icon.sizes.lg;
-const ICON_XXL = DESIGN_TOKENS.icon.sizes.xxl;
+const FIELD_CLASS =
+  'block w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary ' +
+  'placeholder:text-text-muted focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid';
 
 interface SendFormModalProps {
   isOpen: boolean;
@@ -45,7 +42,7 @@ interface SendFormModalProps {
   isCheckingRecipientWhitelist: boolean;
   senderWhitelistStatus?: WhitelistStatus;
   recipientWhitelistStatus?: WhitelistStatus;
-  onBack: () => void;
+  onBack?: () => void;
   onTransfer: (asset: UnifiedAsset, toAddress: string, amount: string) => void;
   onAssetChange?: (asset: UnifiedAsset | null) => void;
   onAddressChange?: (address: string) => void;
@@ -188,82 +185,81 @@ export function SendFormModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
+      title="Send"
       size="md"
       showFooter
       showCancelButton
-      cancelLabel="Back"
-      onCancel={onBack}
+      cancelLabel={onBack ? 'Back' : 'Cancel'}
+      onCancel={onBack ?? onClose}
       confirmLabel="Continue"
       confirmDisabled={!canTransfer}
       onConfirm={handleConfirm}
     >
       <div className="space-y-4">
-        <div className="flex flex-col items-center gap-2 pt-2 pb-6">
-          <ChainIcon size={ICON_XXL} className="text-info-light" weight="light" />
-          <span className="text-sm font-medium text-text-primary font-mono">{displayAddress}</span>
-        </div>
+        <p className="flex items-center gap-2 text-sm text-text-primary">
+          <ChainIcon size={ICON_MD} className="flex-shrink-0 text-text-muted" />
+          <span className="font-mono">{displayAddress}</span>
+        </p>
 
         {isLoadingAssets ? (
-          <div className="flex items-center justify-center py-4">
+          <div className="flex items-center py-2">
             <ArrowsClockwiseIcon size={ICON_LG} className="animate-spin text-text-muted" />
             <span className="ml-2 text-sm text-text-muted">Loading assets...</span>
           </div>
         ) : assets.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-4 gap-2">
-            <CoinsIcon size={ICON_XXL} className="text-text-subtle" />
-            <p className="text-sm text-text-muted">No assets in this wallet</p>
-          </div>
+          <p className="text-sm text-text-muted">No assets in this wallet</p>
         ) : (
-          <div className="space-y-0 rounded-lg border border-border overflow-hidden">
+          <div className="space-y-2">
             {hasShareTokens && !isSenderWhitelisted && senderWhitelistStatus !== undefined && (
-              <div className="p-3 bg-warning-light/10 border-b border-warning-light/20">
-                <div className="flex items-center gap-2">
-                  <ShieldWarningIcon size={ICON_SM} className="text-warning-light" />
-                  <p className="text-xs text-warning-light">
-                    {isSenderWhitelistUnknown
-                      ? 'We could not reach the network to check your allowlist status. Transfers of tokenized assets are held until the check succeeds - please try again shortly.'
-                      : 'Your wallet is not whitelisted. The operator must whitelist it before you can transfer tokenized assets.'}
-                  </p>
-                </div>
-              </div>
+              <p className="flex items-start gap-2 text-sm text-warning-light">
+                <ShieldWarningIcon size={ICON_SM} className="mt-0.5 flex-shrink-0" />
+                <span>
+                  {isSenderWhitelistUnknown
+                    ? 'We could not reach the network to check your allowlist status. Transfers of tokenized assets are held until the check succeeds - please try again shortly.'
+                    : 'Your wallet is not whitelisted. The operator must whitelist it before you can transfer tokenized assets.'}
+                </span>
+              </p>
             )}
 
-            {assets.map((asset, index) => {
-              const isSelected = selectedAsset?.id === asset.id;
-              const marketValue = parseFiatValue(asset.marketValue);
-              return (
-                <button
-                  key={asset.id}
-                  type="button"
-                  onClick={() => {
-                    setChosenAsset(asset);
-                    onAssetChange?.(asset);
-                    setAmount('');
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 text-left transition-colors ${
-                    isSelected ? 'bg-brand-mid/10' : 'hover:bg-surface-tertiary'
-                  } ${index < assets.length - 1 ? 'border-b border-border-subtle' : ''}`}
-                >
-                  <div className="flex items-center gap-2">
-                    {getAssetIcon(asset, isSelected)}
-                    <span className={`text-sm font-medium ${isSelected ? 'text-brand-light' : 'text-text-primary'}`}>
-                      {asset.symbol}
+            <div className="divide-y divide-border-subtle">
+              {assets.map((asset) => {
+                const isSelected = selectedAsset?.id === asset.id;
+                const marketValue = parseFiatValue(asset.marketValue);
+                return (
+                  <button
+                    key={asset.id}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => {
+                      setChosenAsset(asset);
+                      onAssetChange?.(asset);
+                      setAmount('');
+                    }}
+                    className="flex w-full items-center justify-between py-2.5 text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      {getAssetIcon(asset, isSelected)}
+                      <span className={`text-sm font-medium ${isSelected ? 'text-brand-light' : 'text-text-primary'}`}>
+                        {asset.symbol}
+                      </span>
+                    </div>
+                    <span className="flex items-center gap-1.5">
+                      {asset.type === 'crypto' && (
+                        <>
+                          <span className="text-xs text-text-muted">
+                            {asset.displayBalance} {asset.symbol}
+                          </span>
+                          <span className="text-xs text-text-subtle">&middot;</span>
+                        </>
+                      )}
+                      <span className={`text-sm font-medium ${isSelected ? 'text-brand-light' : 'text-text-primary'}`}>
+                        {marketValue === null ? 'Unpriced' : formatDisplayCurrency(marketValue)}
+                      </span>
                     </span>
-                  </div>
-                  <span className="flex items-center gap-1.5">
-                    {asset.type === 'crypto' && (
-                      <>
-                        <span className="text-xs text-text-muted">{asset.displayBalance}</span>
-                        <span className="text-xs text-text-subtle">&middot;</span>
-                      </>
-                    )}
-                    <span className={`text-sm font-medium ${isSelected ? 'text-brand-light' : 'text-text-primary'}`}>
-                      {marketValue === null ? 'Unpriced' : formatDisplayCurrency(marketValue)}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -295,7 +291,7 @@ export function SendFormModal({
               value={toAddress}
               onChange={(e) => handleAddressChange(e.target.value)}
               placeholder={addressPlaceholder}
-              className="w-full bg-surface-tertiary border border-border rounded-lg px-3 py-3 text-sm text-text-primary font-mono placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-mid"
+              className={`${FIELD_CLASS} font-mono`}
             />
           )}
           {toAddress && !isValidAddress && (
@@ -332,19 +328,16 @@ export function SendFormModal({
         )}
 
         {isShareToken && isValidAddress && !isRecipientWhitelisted && recipientWhitelistStatus !== undefined && (
-          <div
-            className={
-              isRecipientWhitelistUnknown
-                ? 'p-3 rounded-lg bg-warning-light/10 border border-warning-light/20'
-                : 'p-3 rounded-lg bg-error-light/10 border border-error-light/20'
-            }
+          <p
+            className={`flex items-start gap-2 text-sm ${isRecipientWhitelistUnknown ? 'text-warning-light' : 'text-error-light'}`}
           >
-            <p className={isRecipientWhitelistUnknown ? 'text-sm text-warning-light' : 'text-sm text-error-light'}>
+            <ShieldWarningIcon size={ICON_SM} className="mt-0.5 flex-shrink-0" />
+            <span>
               {isRecipientWhitelistUnknown
                 ? 'We could not reach the network to check the recipient allowlist status. The transfer is held until the check succeeds - please try again shortly.'
                 : 'The recipient address is not whitelisted. The operator must whitelist it before it can receive tokenized assets.'}
-            </p>
-          </div>
+            </span>
+          </p>
         )}
 
         {selectedAsset && (
@@ -355,7 +348,7 @@ export function SendFormModal({
               value={amount}
               onChange={handleAmountChange}
               placeholder={amountPlaceholder}
-              className="w-full bg-surface-tertiary border border-border rounded-lg px-3 py-3 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-mid"
+              className={FIELD_CLASS}
             />
             {parseFiatValue(selectedAsset.marketValue) === null && (
               <p className="text-xs text-text-muted">Unpriced: no fiat estimate available.</p>

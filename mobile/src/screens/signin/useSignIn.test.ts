@@ -4,7 +4,10 @@ import { createUserFriendlyError } from '@ledova/shared';
 import { rotateRefreshToken } from '../../services/apiClient';
 import { useSignIn } from './useSignIn';
 
-jest.mock('../../hooks/useAuth', () => ({ useAuth: () => ({ refetch: jest.fn() }) }));
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
+  useAuth: () => ({ refetch: jest.fn() }),
+}));
 jest.mock('../../services/apiClient', () => ({
   apiClient: {},
   isRefreshRefusal: jest.requireActual('../../services/apiClient').isRefreshRefusal,

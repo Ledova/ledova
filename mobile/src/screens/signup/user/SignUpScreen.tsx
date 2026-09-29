@@ -4,7 +4,8 @@ import { GradientBackground } from '../../../components/GradientBackground';
 import { PrimaryButton } from '../../../components/buttons';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
-import { useSignUp } from './useSignUp';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSignupUser } from '@ledova/shared';
 import {
   UserPlusIcon,
   EnvelopeSimpleIcon,
@@ -195,7 +196,7 @@ export function SignUpScreen() {
     setFieldValue,
     togglePassword,
     handleSubmit,
-  } = useSignUp();
+  } = useSignupUser((email) => AsyncStorage.setItem('signup_email', email));
 
   const handleSignUp = async () => {
     await handleSubmit(() => {

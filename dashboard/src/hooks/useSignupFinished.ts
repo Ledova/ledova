@@ -1,5 +1,5 @@
 import { useUserProfile } from '@pages/user-profile/useUserProfile';
-import { useAuth } from './useAuth';
+import { useAuth } from '@ledova/shared';
 
 export function useSignupFinished() {
   const { isAuthenticated } = useAuth();

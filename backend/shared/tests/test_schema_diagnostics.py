@@ -47,9 +47,9 @@ class SchemaDiagnosticsTest(TestCase):
     def test_current_schema_generation_has_no_warnings_or_errors(self):
         self.assertEqual(self.diagnostics, "")
 
-    def test_company_document_identity_has_uuid_format_on_detail_and_file_routes(self):
+    def test_company_document_identity_has_uuid_format_on_delete_and_file_routes(self):
         prefix = "/api/v1/companies/{company_uuid}/documents/{uuid}/"
-        for route, method in ((prefix, "get"), (prefix, "delete"), (prefix + "file/", "get")):
+        for route, method in ((prefix, "delete"), (prefix + "file/", "get")):
             with self.subTest(route=route, method=method):
                 parameters = self.document["paths"][route][method]["parameters"]
                 parameter = next(item for item in parameters if item["name"] == "uuid")
@@ -80,7 +80,7 @@ class SchemaDiagnosticsTest(TestCase):
         self.assertNotEqual(choices["CompanyDocumentDocumentTypeEnum"], choices["UserDocumentTypeEnum"])
         self.assertIn(
             {"$ref": "#/components/schemas/TransferOrderStatusEnum"},
-            schemas["TransferOrderDetail"]["properties"]["status"]["allOf"],
+            schemas["TransferOrderList"]["properties"]["status"]["allOf"],
         )
         self.assertEqual(
             schemas["OrderActionCancelResult"]["properties"]["fromStatus"]["$ref"],

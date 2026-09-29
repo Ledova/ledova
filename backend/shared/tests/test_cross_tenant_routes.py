@@ -30,7 +30,6 @@ from shared.db import atomic, current_alias, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.settlement import SYNTHETIC_SETTLEMENT_CONTRACT
 from shared.tests.tenants import (
-    an_acn,
     make_eligible,
     make_tenant,
     open_to_investors,
@@ -100,17 +99,6 @@ def _upload_listing_documents(tenant):
 
 def _clear_subscriptions(tenant):
     Subscription.objects.filter(user_account=tenant.account).delete()
-
-
-def _company_without_a_register(tenant):
-    company = Company.objects.create(
-        owner=tenant.user,
-        name=f"{tenant.label} empty registration",
-        acn=an_acn(70000000 + tenant.user.pk),
-        company_type=tenant.company.company_type,
-        operator_wallet=tenant.wallet,
-    )
-    return {"company": str(company.pk)}
 
 
 def _open_the_offering_to_the_actor(tenant):
@@ -210,31 +198,12 @@ REGISTER_INSTRUCTION_ROUTES = {
 }
 
 ROUTES = (
-    Route("get", "/api/user-profiles/{profile}/"),
-    Route("put", "/api/user-profiles/{profile}/", {"fullName": "Renamed", "citizenshipCountry": "{country}"}),
     Route("patch", "/api/user-profiles/{profile}/", {"fullName": "Renamed"}),
-    Route("get", "/api/financial-profiles/{financial_profile}/"),
-    Route("put", "/api/financial-profiles/{financial_profile}/", {"occupation": "Changed"}),
     Route("patch", "/api/financial-profiles/{financial_profile}/", {"occupation": "Changed"}),
-    Route("get", "/api/user-accounts/{account}/"),
     Route("patch", "/api/user-accounts/{account}/", {"role": "company"}),
-    Route("get", "/api/user-preferences/{preferences}/"),
-    Route("put", "/api/user-preferences/{preferences}/", {"theme": "light"}),
-    Route("patch", "/api/user-preferences/{preferences}/", {"theme": "light"}),
-    Route("delete", "/api/user-preferences/{preferences}/"),
-    Route("get", "/api/device-tokens/{device_token}/"),
     Route("post", "/api/device-tokens/unregister/", {"pushToken": "{push_token}"}),
-    Route("get", "/api/notifications/{notification}/"),
     Route("patch", "/api/notifications/{notification}/", {"isRead": True}),
-    Route("get", "/api/investor-classifications/{investor_classification}/"),
-    Route("get", "/api/investor-classifications/{investor_classification}/evidence/"),
     Route("delete", "/api/investor-classifications/{investor_classification}/"),
-    Route("get", "/api/wallets/{wallet}/"),
-    Route(
-        "put",
-        "/api/wallets/{wallet}/",
-        {"address": "{wallet_address}", "chain": "base"},
-    ),
     Route("patch", "/api/wallets/{wallet}/", {"name": "Renamed"}),
     Route("delete", "/api/wallets/{spare_wallet}/"),
     Route("post", "/api/wallets/{wallet}/request-verification/", {}),
@@ -243,7 +212,6 @@ ROUTES = (
     Route("get", "/api/wallets/{wallet}/holdings/"),
     Route("post", "/api/wallets/{wallet}/prepare-transfer/", {"toAddress": "0x" + "c" * 40, "amountEth": "0.1"}),
     Route("post", "/api/wallets/{wallet}/broadcast-transfer/", {"signedTransaction": "{signed_transfer}"}),
-    Route("get", "/api/transactions/{transaction}/"),
     Route("post", "/api/fiat-purchases/transak-widget-url/", {"walletUuid": "{wallet}"}),
     Route("get", "/api/portfolios/{portfolio}/"),
     Route("put", "/api/portfolios/{portfolio}/", {"name": "Renamed"}),
@@ -254,15 +222,10 @@ ROUTES = (
     Route("post", "/api/portfolios/{portfolio}/remove-wallet/", {"walletUuid": "{own_wallet}"}),
     Route("post", "/api/portfolios/{own_portfolio}/remove-wallet/", {"walletUuid": "{wallet}"}),
     Route("get", "/api/v1/companies/{company}/"),
-    Route("put", "/api/v1/companies/{company}/", {"name": "Renamed", "acn": "{acn}"}),
     Route("patch", "/api/v1/companies/{company}/", {"name": "Renamed"}),
-    Route("delete", "/api/v1/companies/{company}/", prepare=_company_without_a_register),
     Route("post", "/api/v1/companies/{company}/submit/", {"confirm": True}, prepare=_upload_listing_documents),
     Route("post", "/api/v1/companies/{company}/resubmit/", {"response": "Done"}, prepare=_request_company_info),
     Route("post", "/api/v1/companies/{company}/withdraw/", {}),
-    Route("get", "/api/v1/companies/{company}/stats/"),
-    Route("get", "/api/v1/companies/{company}/application-status/"),
-    Route("get", "/api/v1/companies/{company}/documents/"),
     Route(
         "post",
         "/api/v1/companies/{company}/documents/",
@@ -274,15 +237,10 @@ ROUTES = (
             "mime_type": "application/pdf",
         },
     ),
-    Route("get", "/api/v1/companies/{company}/documents/{company_document}/"),
-    Route("get", "/api/v1/companies/{own_company}/documents/{company_document}/"),
     Route("get", "/api/v1/companies/{company}/documents/{company_document}/file/"),
     Route("get", "/api/v1/companies/{own_company}/documents/{company_document}/file/"),
     Route("delete", "/api/v1/companies/{company}/documents/{company_document}/"),
     Route("get", "/api/v1/tokens/{token}/"),
-    Route("put", "/api/v1/tokens/{token}/", {"name": "Renamed"}),
-    Route("patch", "/api/v1/tokens/{token}/", {"name": "Renamed"}),
-    Route("delete", "/api/v1/tokens/{token}/"),
     Route("post", "/api/v1/tokens/{token}/deploy/", {}, prepare=_activate_company),
     Route("post", "/api/v1/tokens/{deployed_token}/pause/", {"submissionId": "{deployed_token}"}),
     Route("post", "/api/v1/tokens/{deployed_token}/unpause/", {"submissionId": "{deployed_token}"}),
@@ -302,15 +260,9 @@ ROUTES = (
         {"company": "{company}", "name": "New shares", "symbol": "NEW", "totalSupply": "1000"},
         foreign=400,
     ),
-    Route("get", "/api/v1/tokens/capital-increases/{capital_increase}/"),
-    Route("put", "/api/v1/tokens/capital-increases/{capital_increase}/", CAPITAL_INCREASE),
-    Route("patch", "/api/v1/tokens/capital-increases/{capital_increase}/", {"purpose": "Changed"}),
-    Route("delete", "/api/v1/tokens/capital-increases/{capital_increase}/"),
     Route("post", "/api/v1/tokens/capital-increases/{capital_increase}/submit/", {}),
     Route("post", "/api/v1/tokens/capital-increases/", {"token": "{deployed_token}", **CAPITAL_INCREASE}),
-    Route("get", "/api/v1/tokens/issuance-requests/{issuance_request}/"),
     Route("get", "/api/v1/offerings/{offering}/"),
-    Route("put", "/api/v1/offerings/{offering}/", {"token": "{deployed_token}", **OFFERING}),
     Route("patch", "/api/v1/offerings/{offering}/", {"summary": "Changed"}),
     Route("delete", "/api/v1/offerings/{offering}/", prepare=_clear_subscriptions),
     Route("post", "/api/v1/offerings/{offering}/submit/", {}, prepare=_activate_company),
@@ -328,29 +280,12 @@ ROUTES = (
         prepare=_open_the_offering_to_the_actor,
     ),
     Route(
-        "post",
-        "/api/user-preferences/",
-        {"selectedPortfolio": "{portfolio}"},
-        foreign=400,
-        rejects="selectedPortfolio",
-    ),
-    Route(
         "get",
         "/api/v1/trading/swaps/?wallet_address={wallet_address}",
     ),
     Route(
         "get",
         "/api/v1/trading/wallets/balances/?wallet_address={wallet_address}",
-    ),
-    Route(
-        "post",
-        "/api/v1/trading/transfers/prepare/",
-        {
-            "token": "{own_deployed_token}",
-            "fromAddress": "{wallet_address}",
-            "toAddress": RECIPIENT,
-            "amount": 1,
-        },
     ),
     Route(
         "post",
@@ -391,8 +326,6 @@ ROUTES = (
         "/api/v1/trading/orders/submissions/{account}/?owner_account_uuid={account}",
         prepare=_a_pending_order_submission,
     ),
-    Route("get", "/api/v1/trading/orders/{order}/"),
-    Route("get", "/api/v1/trading/orders/{order}/modifications/"),
     Route(
         "get",
         "/api/v1/trading/orders/{order}/swap/?swap_uuid={swap}"
@@ -432,7 +365,6 @@ ROUTES = (
         },
     ),
     Route("get", "/api/v1/documents/{document}/"),
-    Route("get", "/api/v1/documents/{document}/file/"),
     Route("post", "/api/v1/documents/{document}/attach/", {"classification": "{own_investor_classification}"}),
     Route("post", "/api/v1/documents/{own_document}/attach/", {"classification": "{investor_classification}"}),
     Route("delete", "/api/v1/documents/{document}/"),
@@ -440,8 +372,6 @@ ROUTES = (
 
 
 OPERATOR_ROUTES = (
-    Route("get", "/api/v1/companies/{company}/api-key/"),
-    Route("post", "/api/v1/companies/{company}/api-key/", {}),
     Route(
         "post",
         "/api/v1/companies/{company}/status/",
@@ -463,7 +393,6 @@ REGISTRY_ADMIN_ROUTES = (
 LIST_ROUTES = (
     ("/api/user-profiles/", ("profile",)),
     ("/api/financial-profiles/", ("financial_profile",)),
-    ("/api/device-tokens/", ("device_token",)),
     ("/api/notifications/", ("notification",)),
     ("/api/investor-classifications/", ("investor_classification",)),
     ("/api/wallets/", ("wallet", "spare_wallet")),
@@ -471,7 +400,6 @@ LIST_ROUTES = (
     ("/api/transactions/", ("transaction",)),
     ("/api/portfolios/", ("portfolio",)),
     ("/api/v1/companies/", ("company",)),
-    ("/api/v1/companies/{company}/documents/", ("company_document",)),
     ("/api/v1/tokens/", ("token", "deployed_token")),
     ("/api/v1/tokens/capital-increases/", ("capital_increase",)),
     ("/api/v1/tokens/issuance-requests/", ("issuance_request",)),
@@ -489,7 +417,6 @@ DIRECTORY_ROUTES = (Route("get", "/api/v1/directory/tokens/{deployed_token}/"),)
 
 MARKET_ROUTES = (
     Route("get", "/api/v1/trading/tokens/{deployed_token}/"),
-    Route("get", "/api/v1/trading/tokens/{deployed_token}/market-data/"),
     Route("get", "/api/v1/trading/tokens/{deployed_token}/order-book/"),
 )
 
@@ -570,10 +497,6 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         self._service("tokens.views.trading_order.execute_order_submission")
         self._service("tokens.views.trading_order.issue_order_submission")
         self._service("tokens.views.trading_order.submission_snapshot").return_value = {}
-        trading_transfers = self._service("tokens.views.trading_transfer.token_transfer_service")
-        trading_transfers.contract_address.return_value = "0x" + "6" * 40
-        trading_transfers.prepare_transfer.return_value = {}
-        self._service("tokens.views.trading_order.get_modification_history").return_value = {}
         swaps = self._service("tokens.views.trading_order.atomic_swap_service")
         swaps.settlement_contract.return_value = SYNTHETIC_SETTLEMENT_CONTRACT
         swaps.broadcast_settlement_approval.return_value = SimpleNamespace(
@@ -1276,7 +1199,6 @@ ACTION_ROUTES = (
     Route("post", "/api/v1/trading/orders/{order}/modify/message/"),
     Route("post", "/api/v1/trading/orders/{order}/cancel/"),
     Route("post", "/api/v1/trading/orders/{order}/modify/"),
-    Route("get", "/api/v1/trading/orders/{order}/cancel/message/", foreign=400),
 )
 
 
@@ -1316,14 +1238,11 @@ class OrderActionRouteChecks(ActionFixtures):
             route.path.format_map(context), body if route.method == "post" else None, format="json"
         )
 
-    def test_owned_action_routes_reach_the_real_service_and_preserve_legacy_refusal(self):
+    def test_owned_action_routes_reach_the_real_service(self):
         for route in ACTION_ROUTES:
             with self.subTest(method=route.method, path=route.path):
                 response = self.request_route(route)
-                expected = 400 if route.foreign == 400 else 200
-                self.assertEqual(response.status_code, expected, response.content)
-                if expected == 400:
-                    self.assertEqual(response.json()["code"], "action_refresh_required")
+                self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual([event for event, _ in self.events], ["order_cancelled", "order_modified"])
 
     def test_foreign_and_missing_actions_stay_hidden_for_regular_staff_and_superusers(self):

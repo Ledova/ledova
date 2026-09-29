@@ -100,7 +100,6 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
 
       <Tab.Screen
         name="Company"
-        component={CompanyStackNavigator}
         options={{
           headerShown: false,
           tabBarLabel: 'Company',
@@ -113,11 +112,12 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
             navigation.navigate('Company', { screen: 'CompanyMain' });
           },
         })}
-      />
+      >
+        {() => <CompanyStackNavigator onNotifications={onNotifications} unreadCount={unreadCount} />}
+      </Tab.Screen>
 
       <Tab.Screen
         name="Wallets"
-        component={WalletsStackNavigator}
         options={{
           headerShown: false,
           tabBarLabel: 'Wallets',
@@ -129,12 +129,13 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
             navigation.navigate('Wallets', { screen: 'WalletsList' });
           },
         })}
-      />
+      >
+        {() => <WalletsStackNavigator onNotifications={onNotifications} unreadCount={unreadCount} />}
+      </Tab.Screen>
 
       {showTrading && (
         <Tab.Screen
           name="Trading"
-          component={TradingStackNavigator}
           options={{
             headerShown: false,
             tabBarLabel: DESTINATIONS.trading.title,
@@ -146,7 +147,9 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
               navigation.navigate('Trading', { screen: 'TradingMain' });
             },
           })}
-        />
+        >
+          {() => <TradingStackNavigator onNotifications={onNotifications} unreadCount={unreadCount} />}
+        </Tab.Screen>
       )}
 
       <Tab.Screen
@@ -180,7 +183,7 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
         name="Listing"
         component={ListingScreen}
         options={{
-          title: DESTINATIONS.companyListing.title,
+          title: '',
           tabBarItemStyle: { display: 'none' },
         }}
       />

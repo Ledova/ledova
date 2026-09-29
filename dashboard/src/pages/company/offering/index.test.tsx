@@ -135,6 +135,17 @@ it('shows the ledger with recorded bounds, AUD amounts and read-only operator al
   expect(screen.getByRole('button', { name: 'Delete' })).toBeTruthy();
 });
 
+it('puts Your offerings first, then its applications, the directory switch and what happens next', async () => {
+  show();
+  await screen.findByRole('heading', { name: 'Applications' });
+  expect(screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)).toEqual([
+    'Your offerings (1)',
+    'Applications',
+    'Investor Directory',
+    'What happens next',
+  ]);
+});
+
 it('reads every offering and class page, filtering the selected company before presenting actions', async () => {
   const original = api.get.getMockImplementation()!;
   api.get.mockImplementation(async (url: string, config?: { params?: { page: number } }) => {
@@ -207,19 +218,6 @@ it.each(['/api/v1/companies/', COMPANY])('reports and retries %s without a false
   expect(await screen.findByRole('button', { name: 'Edit' })).toBeTruthy();
 });
 
-it('refuses repeated pagination and later-page failures without exposing partial offerings', async () => {
-  const original = api.get.getMockImplementation()!;
-  api.get.mockImplementation((url: string) =>
-    url === BASE
-      ? Promise.resolve({ data: { ...EMPTY, results: [offering], next: 'https://example.invalid/?page=1' } })
-      : original(url),
-  );
-  show();
-  await screen.findByRole('button', { name: 'Retry offering information' });
-  expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
-  expect(api.get.mock.calls.filter(([url]) => url === BASE)).toHaveLength(1);
-});
-
 it('reads all applications and shows requested and zero allotted shares separately with exact money', async () => {
   let broken = true;
   const original = api.get.getMockImplementation()!;
@@ -270,13 +268,42 @@ it('refreshes directory visibility after the existing PATCH and retains the valu
     return { data: company };
   });
   show();
-  const input = await screen.findByRole('checkbox', { name: 'Show this company to eligible investors' });
-  fireEvent.click(input);
-  await screen.findByText('Directory change refused.');
-  expect((input as HTMLInputElement).checked).toBe(false);
-  fireEvent.click(input);
-  await waitFor(() => expect((input as HTMLInputElement).checked).toBe(true));
+  const control = await screen.findByRole('switch', { name: 'Show this company to eligible investors' });
+  expect(control.getAttribute('aria-checked')).toBe('false');
+  fireEvent.click(control);
+  const directory = screen.getByRole('heading', { name: 'Investor Directory' }).closest('section')!;
+  expect((await within(directory).findByRole('alert')).textContent).toBe('Directory change refused.');
+  expect(control.getAttribute('aria-checked')).toBe('false');
+  fireEvent.click(control);
+  await waitFor(() => expect(control.getAttribute('aria-checked')).toBe('true'));
   expect(api.patch).toHaveBeenLastCalledWith(COMPANY, { isOpenToInvestors: true });
+});
+
+it('holds the directory switch while its change is saving', async () => {
+  let save!: () => void;
+  api.patch.mockImplementationOnce(
+    (_url, body) =>
+      new Promise((resolve) => {
+        save = () => {
+          company = { ...company, ...body };
+          resolve({ data: company });
+        };
+      }),
+  );
+  show();
+  const control = (await screen.findByRole('switch', {
+    name: 'Show this company to eligible investors',
+  })) as HTMLButtonElement;
+  fireEvent.click(control);
+  await waitFor(() => expect(control.disabled).toBe(true));
+  expect(control.getAttribute('aria-checked')).toBe('false');
+  fireEvent.click(control);
+  expect(api.patch).toHaveBeenCalledOnce();
+  await act(async () => save());
+  await waitFor(() => {
+    expect(control.disabled).toBe(false);
+    expect(control.getAttribute('aria-checked')).toBe('true');
+  });
 });
 
 it('keeps inactive company directory visibility disabled', async () => {
@@ -284,7 +311,7 @@ it('keeps inactive company directory visibility disabled', async () => {
   show();
   await screen.findByRole('heading', { name: 'Your offerings (1)' });
   expect(
-    (screen.getByRole('checkbox', { name: 'Show this company to eligible investors' }) as HTMLInputElement).disabled,
+    (screen.getByRole('switch', { name: 'Show this company to eligible investors' }) as HTMLButtonElement).disabled,
   ).toBe(true);
   expect(screen.getByText(/It is currently Approved/)).toBeTruthy();
 });

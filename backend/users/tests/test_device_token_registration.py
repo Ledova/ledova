@@ -54,12 +54,7 @@ class DeviceTokenRegistrationTest(APITestCase):
         self._register(self.owner)
         self._register(self.other)
 
-        self.client.force_authenticate(self.owner)
-        response = self.client.get("/api/device-tokens/")
-
-        rows = response.json()
-        rows = rows if isinstance(rows, list) else rows["results"]
-        self.assertEqual(rows, [])
+        self.assertFalse(DeviceToken.objects.filter(user=self.owner).exists())
 
     def test_unregistering_someone_elses_token_is_refused(self):
         self._register(self.owner)

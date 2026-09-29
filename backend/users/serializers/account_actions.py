@@ -22,10 +22,6 @@ class ExportedProfileSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField()
 
 
-class ExportedPreferencesSerializer(serializers.Serializer):
-    selected_portfolio = serializers.UUIDField(allow_null=True)
-
-
 class ExportedFinancialProfileSerializer(serializers.Serializer):
     occupation = serializers.CharField(allow_null=True, allow_blank=True)
     source_of_funds = serializers.JSONField(allow_null=True)
@@ -90,7 +86,6 @@ class AccountExportDataSerializer(serializers.Serializer):
     exported_at = serializers.DateTimeField()
     user = ExportedUserSerializer()
     profile = ExportedProfileSerializer(allow_null=True)
-    preferences = ExportedPreferencesSerializer(allow_null=True)
     financial_profile = ExportedFinancialProfileSerializer(allow_null=True)
     account = ExportedAccountSerializer(allow_null=True)
     wallets = ExportedWalletSerializer(many=True)

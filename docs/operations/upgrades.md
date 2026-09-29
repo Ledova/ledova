@@ -20,6 +20,108 @@ Wallets and Buy crypto. Portfolio CRUD and the documented operator
 `add-wallet` and `remove-wallet` actions retain their contracts. Any external
 consumer of a retired route must stop using it before upgrading.
 
+## Retired trading, company, device-token and file HTTP routes
+
+The backend tidy-up removes the routes that no client, documented consumer or
+operator script called: `POST /api/v1/trading/transfers/prepare/` and
+`/broadcast/` (the clients send through
+`POST /api/wallets/{uuid}/prepare-transfer/` and `/broadcast-transfer/`, which
+refuse a share class),
+`GET /api/v1/trading/tokens/{uuid}/market-data/` (the market list and detail
+carry `lastPrice`, `bestBid` and `bestAsk`),
+`GET /api/v1/trading/orders/{uuid}/modifications/`,
+`GET /api/v1/companies/{uuid}/stats/`,
+`GET /api/v1/companies/{uuid}/application-status/` (the company detail carries
+the same status, timestamps and flags except `reviewCompletedAt`), the
+`/api/device-tokens/` list, create and detail routes (`register/` and
+`unregister/` remain),
+`GET /api/investor-classifications/{uuid}/evidence/` and
+`GET /api/v1/documents/{uuid}/file/`. These paths now return 404, and the
+classification and personal-document responses no longer carry `evidenceUrl`
+or `fileUrl`; staff read both files through admin. No database migration is
+needed. Any external consumer of a retired route must stop using it before
+upgrading.
+
+## The company API key is gone
+
+Nothing authenticated with the key a company was issued at registration, so it
+is removed. `GET` and `POST /api/v1/companies/{uuid}/api-key/` return 404, the
+company admin no longer shows an API Access section, and
+[`companies/0011`](#database-migrations) drops the key and its creation time.
+Any script that read or regenerated a key must stop before upgrading.
+
+## Theme and selected-portfolio preferences
+
+Both clients are paper only and neither reads a portfolio selection, so the
+account's saved theme and selected portfolio are removed, and
+[`users/0028`](#database-migrations) drops them. `/api/user-preferences/` now
+answers `uuid`, `userProfile`, `userAccount` and `transactionAlerts`; a request
+that still sends `theme` or `selectedPortfolio` is answered 200 and the field is
+ignored. The account-data export loses its `preferences` section, which held only
+the selected portfolio. A new wallet still joins a portfolio: the account's
+first, the one sign-up creates, which is where sign-up pointed the selection and
+no client changed it. No client is affected.
+
+## Retired HTTP methods no client calls
+
+The routes below keep the methods the clients use and lose the ones nothing
+called: `PUT` where the clients send `PATCH`, deletion of companies and share
+classes, editing share classes (every field of the class detail was read-only,
+so a `PUT` or `PATCH` changed nothing), editing and deleting capital increase
+drafts, the user preferences detail, reads of single rows and the company
+documents list that the clients take from a list or a detail, a profile create
+that sign-up never used, and the cancel-message `GET` that only refused old
+clients. A path that keeps another method answers 405 to a retired one; a path
+left with none answers 404. No database migration is needed.
+
+| Answers 405 | Keeps |
+| --- | --- |
+| `GET` and `PUT /api/financial-profiles/{uuid}/` | `PATCH` |
+| `GET` and `PUT /api/user-profiles/{uuid}/`, `POST /api/user-profiles/` | `PATCH`, the list, `delete-account/`, `export-data/` |
+| `GET /api/user-accounts/{uuid}/` | `PATCH` |
+| `GET /api/notifications/{uuid}/` | `PATCH` |
+| `GET /api/investor-classifications/{uuid}/` | `DELETE` |
+| `GET` and `PUT /api/wallets/{uuid}/` | `PATCH`, `DELETE` and the wallet actions |
+| `PUT` and `DELETE /api/v1/companies/{uuid}/` | `GET`, `PATCH` and the application actions |
+| `GET /api/v1/companies/{uuid}/documents/` | `POST`; the company detail lists the documents |
+| `GET /api/v1/companies/{uuid}/documents/{uuid}/` | `DELETE` and `file/` |
+| `PUT /api/v1/offerings/{uuid}/` | `GET`, `PATCH`, `DELETE` |
+| `PUT`, `PATCH` and `DELETE /api/v1/tokens/{uuid}/` | `GET` and the class actions |
+| `GET /api/v1/trading/orders/{uuid}/cancel/message/` | `POST`, which issues the cancel challenge |
+
+`GET /api/feature-flags/{uuid}/`, `/api/transactions/{uuid}/`,
+`/api/v1/tokens/issuance-requests/{uuid}/` and `/api/v1/trading/orders/{uuid}/`
+answer 404; their lists stay. `/api/user-preferences/{uuid}/` answers 404 to
+every method; the clients read the list and save with `POST`, which stay.
+`/api/v1/tokens/capital-increases/{uuid}/` answers 404 to every method; the list,
+the create and `submit/` stay, and the detail a create or submit answers no longer
+carries `canBeEdited`, which only described the retired edit; `canBeSubmitted`
+stays. The company and share-class deletion refusals,
+`company_holds_a_register`, `company_holds_share_classes` and
+`deployed_share_class`, are gone with the routes: the API deletes neither, so
+[the register's deletion protection](../architecture/register.md#deletion-protection)
+now rests on the protected relations alone. Delist a company that should close.
+Any external consumer of a retired method must stop using it before upgrading.
+
+## Stablecoin sends need an approval on both sides
+
+`POST /api/wallets/{uuid}/prepare-transfer/` and `/broadcast-transfer/` now
+refuse a stablecoin transfer (asset type `stablecoin`, today AUDY) with 403 and
+code `stablecoin_approval_required` unless the sending wallet and the recipient
+each hold a live approval with at least one company. The message says which
+side lacks one. This is the
+[company-scoped approvals](../decisions.md#company-scoped-approvals) rule the
+retired trading transfer route used to enforce; Wallets > Send, where the
+clients send, never did. A transfer to the operator's receiving wallet, on the
+chain it is configured for, is exempt on both sides, so an investor can pay a
+subscription to the address its payment instruction names without an approval;
+an unset receiving wallet, or one on another chain, exempts nothing. Native
+coins and other tokens are unaffected, and a submission recorded before the
+upgrade is still delivered. `prepare-transfer` now also answers 400, "The
+recipient is not a valid address for this wallet's network.", for a recipient
+that is not an address on the wallet's network, where before a Bitcoin prepare
+accepted any string. No database migration is needed.
+
 ## The publication summary's 30-day count
 
 `GET /api/v1/publications/summary/` no longer answers `publishedSince`; Holdings
@@ -73,6 +175,13 @@ missing count as 0 and show nothing in its place. No database migration is neede
   recreates `users_notification_preferences` empty and outside the policy
   catalogue and puts everyone back on the default. Export that table before
   applying the migration if you may need to reverse it.
+- `users/0028_remove_theme_and_selected_portfolio` drops `theme` and
+  `selected_portfolio_id` from `users_userpreferences`; every row and its
+  `transaction_alerts` stay. **Reversal does not restore data.** It recreates
+  both columns, sets every theme to `dark`, the old default, and selects each
+  account's first portfolio, which is what sign-up selected; a person with no
+  account or no portfolio selects none. A `light` theme or another selection
+  saved before the upgrade is gone.
 - `companies/0004_company_additional_info_response` stores the applicant's
   answer to a request for more information.
 - `tokens/0035_trading_state_invariants` checks existing order/swap amounts,
@@ -293,6 +402,11 @@ missing count as 0 and show nothing in its place. No database migration is neede
   which creates no table, only the **Can change company pack** permission and
   the proxy's other defaults. Grant it, with **Can view company document**, to
   the staff who [produce company packs](register-foundation.md#producing-a-company-pack).
+- `companies/0011_remove_company_api_key` drops `api_key` and
+  `api_key_created_at` from `companies_company`. It rewrites no other column.
+  **Reversal does not restore data.** It recreates both columns and issues
+  every company a new random key dated at the reversal, which the unique
+  constraint needs; the keys dropped are gone.
 - `whitelist/0007_per_company_approvals` is a fresh start: it refuses to run while
   any whitelist change exists, because those were written for the retired global
   registry. Follow the [fresh-start redeploy](chains.md#fresh-start-redeploy).
@@ -333,8 +447,9 @@ missing count as 0 and show nothing in its place. No database migration is neede
   `Operator.supported_settlement_assets`. Before the fold the settlement paths
   accepted any active `Stablecoin` with an address; after it they accept only
   what that many-to-many lists, so without the seeding
-  `POST /api/v1/trading/transfer/prepare` would start refusing settlement
-  assets and the wallet balance endpoint would stop listing them. Confirm the
+  `POST /api/v1/trading/orders/create/` would refuse every order for want of a
+  configured settlement asset and the wallet balance endpoint would stop
+  listing them. Confirm the
   list in the operator admin after deploying. `0015` records the ids it
   actually added in a `tokens_stablecoin_fold_grant` table and its reverse
   removes only those, then drops the table, so an asset an operator had already

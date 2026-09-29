@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { getErrorMessage, type DocumentType } from '@ledova/shared';
 import { Action } from '../../components/Ledger';
-import { CompanyModal } from '../company/CompanyModal';
+import { CustomModal } from '../../components/modal';
 import { useDocumentUpload } from '../../hooks/useDocumentUpload';
 import { getSessionEpoch } from '../../services/sessionScope';
 import { CompanyReadNotice, type CompanyRead } from '../company/CompanyState';
@@ -59,11 +59,21 @@ export function CompanyUpload({
     }
   };
   return (
-    <CompanyModal onClose={close}>
+    <CustomModal
+      visible
+      title={`Upload ${label}`}
+      onClose={close}
+      busy={busy}
+      actions={
+        <Action
+          label={document.isSubmitting ? 'Uploading…' : 'Upload document'}
+          primary
+          disabled={!valid}
+          onPress={() => void submit()}
+        />
+      }
+    >
       <View style={styles.group}>
-        <Text accessibilityRole="header" style={styles.heading}>
-          Upload {label}
-        </Text>
         <CompanyReadNotice read={read} />
         {!canUpload && (
           <Text accessibilityRole="alert" style={styles.error}>
@@ -84,14 +94,7 @@ export function CompanyUpload({
             {error}
           </Text>
         )}
-        <Action
-          label={document.isSubmitting ? 'Uploading…' : 'Upload document'}
-          primary
-          disabled={!valid}
-          onPress={() => void submit()}
-        />
-        <Action label="Cancel" disabled={busy} onPress={close} />
       </View>
-    </CompanyModal>
+    </CustomModal>
   );
 }

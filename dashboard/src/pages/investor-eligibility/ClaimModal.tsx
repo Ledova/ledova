@@ -7,10 +7,7 @@ import type { CompanyListItem, InvestorCategory } from '@ledova/shared';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@services/apiClient';
 import { CATEGORIES, CERTIFIER_BODIES, WHOLESALE_ONLY_NOTICE } from './constants';
-
-const FIELD_CLASS =
-  'mt-1 w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary ' +
-  'placeholder:text-text-muted focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid';
+import { FIELD_CLASS } from '@components/fieldClass';
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -125,6 +122,7 @@ export function ClaimModal({
     <Modal
       isOpen={isOpen}
       onClose={() => {
+        if (isSubmitting) return;
         reset();
         onClose();
       }}
@@ -144,12 +142,9 @@ export function ClaimModal({
           </div>
         )}
         {error && (
-          <div
-            role="alert"
-            className="rounded-lg border border-error-light/30 bg-error-light/10 p-3 text-sm text-error-light"
-          >
+          <p role="alert" className="text-sm text-error-light">
             {error}
-          </div>
+          </p>
         )}
 
         <p className="text-sm text-text-secondary">{spec?.evidence}</p>
@@ -249,7 +244,7 @@ export function ClaimModal({
             className={`flex flex-col items-center justify-center gap-3 py-10 px-6 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${
               isDragging
                 ? 'border-brand-light bg-brand-mid/10'
-                : 'border-border hover:border-brand-subtle hover:bg-surface-hover'
+                : 'border-border hover:border-brand-subtle hover:bg-surface-tertiary'
             }`}
           >
             <UploadSimpleIcon size={32} className="text-text-muted" weight="light" />
@@ -268,7 +263,7 @@ export function ClaimModal({
             />
           </div>
         ) : (
-          <div className="flex items-center gap-3 p-4 rounded-lg bg-surface-hover">
+          <div className="flex items-center gap-3">
             <FileIcon size={24} className="text-brand-light flex-shrink-0" weight="regular" />
             <div className="min-w-0 flex-1">
               <p className="text-sm text-text-primary truncate">{file.name}</p>

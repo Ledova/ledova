@@ -7,13 +7,13 @@ import {
   updateWallet,
   deleteWallet,
   syncWallet,
-  getNextPageParam,
   getErrorMessage,
   CACHE_TIMING,
+  readEveryPage,
+  useUserPreferences,
 } from '@ledova/shared';
-import type { CreateWallet, Wallet } from '@ledova/shared';
+import type { CreateWallet } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { useUserPreferences } from '../../hooks/useUserPreferences';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 
 export function useWalletsCrud() {
@@ -26,22 +26,13 @@ export function useWalletsCrud() {
 
   const walletsQuery = useQuery({
     queryKey: ['wallets', 'ledger', userAccount?.uuid, epoch],
-    queryFn: async () => {
-      const wallets: Wallet[] = [];
-      let page: number | undefined = 1;
-      while (page !== undefined) {
+    queryFn: () =>
+      readEveryPage(async (page) => {
         assertSessionEpoch(epoch);
-        const { data } = await getWallets(apiClient, { page }, { ledovaSessionEpoch: epoch });
+        const response = await getWallets(apiClient, { page }, { ledovaSessionEpoch: epoch });
         assertSessionEpoch(epoch);
-        wallets.push(...data.results);
-        const next = getNextPageParam(data);
-        if (data.next && (next === undefined || !Number.isInteger(next) || next <= page)) {
-          throw new Error('Wallet pagination did not advance');
-        }
-        page = next;
-      }
-      return wallets;
-    },
+        return response;
+      }),
     enabled: !!userAccount?.uuid,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
