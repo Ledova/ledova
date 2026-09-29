@@ -450,6 +450,10 @@ Pages rebuilt in the paper layout use the ledger blocks in
 - `LinkRow`: a row that opens another page, named after its destination, with
   optional detail lines, an optional aside such as a status or a price, and a
   trailing chevron; the whole row is the link.
+- `SwitchRow`: a row that turns a setting on or off, with its label, an
+  optional muted sentence under it, and an On or Off pill at its end that is
+  the switch itself (`role="switch"`), named by the label and described by the
+  sentence.
 - `Disclosure`: a row that opens in place: a button with `aria-expanded` and a
   leading caret that turns when open, controlling the detail directly under it,
   which it holds only while open. The detail is a landmark (`region`, labelled
@@ -506,6 +510,19 @@ is reworked under item 5 of [#791](https://github.com/Ledova/ledova/issues/791).
 On mobile, Activity's filter and entry detail, Market's order details and the
 Wallets sort still open in a dialog. The bell's notifications belong to the frame
 rather than a page, on both clients.
+
+A setting that takes effect as soon as it changes has one control, a
+`SwitchRow`: Transaction alerts on Settings and Show this company to eligible
+investors on Offerings. Its `aria-checked` is the saved value; it is disabled
+while a change is saving, keeps the saved value when the change is refused, and
+the refusal is an alert in the same card. On the web a choice that is saved
+with a form stays a checkbox, as the payment choices in the offering editor and
+the declaration in a claim do. Mobile's `SwitchRow` puts the native switch at
+the end of the same row, named by the label with the sentence as its hint, for
+biometric sign-in, App lock and Transaction alerts on Settings and Show this
+company to eligible investors on Offerings. The mobile offering editor's
+payment choices are not in that row yet: each is still a bare native switch
+under its own line of text.
 
 A lede, the one muted sentence under a page's title, appears only where it says
 what the titles do not: an instruction (Wallets, Activity) or a fact (Register,

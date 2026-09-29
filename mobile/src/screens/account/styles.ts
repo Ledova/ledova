@@ -20,7 +20,5 @@ export function useAccountStyles() {
       backgroundColor: theme.colors.surface.raised,
       color: theme.colors.text.primary,
     },
-    toggle: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 16 },
-    toggleText: { flex: 1, gap: 5 },
   }));
 }

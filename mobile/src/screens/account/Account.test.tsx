@@ -219,6 +219,57 @@ it('reports a notification write refusal without changing its known saved value'
   await waitFor(() => expect(view.getByLabelText('Transaction alerts').props.value).toBe(true));
 });
 
+it('hints each settings switch with the sentence beside it', async () => {
+  const view = await settingsScreen();
+  expect(view.getByLabelText('Touch ID sign in').props.accessibilityHint).toBe(
+    'Sign in with Touch ID instead of your password.',
+  );
+  expect(view.getByLabelText('App lock').props.accessibilityHint).toBe(
+    'Require Touch ID after the app goes into the background.',
+  );
+  expect(view.getByLabelText('Transaction alerts').props.accessibilityHint).toBe(
+    'Notifications for transaction status changes.',
+  );
+});
+
+it('holds the alerts switch while its save is pending', async () => {
+  const view = await settingsScreen();
+  const saving = deferred<{ data: object }>();
+  jest.mocked(apiClient.post).mockReturnValueOnce(saving.promise);
+  try {
+    await fireEvent(view.getByLabelText('Transaction alerts'), 'valueChange', true);
+    await waitFor(() => expect(view.getByLabelText('Transaction alerts').props.disabled).toBe(true));
+    expect(view.getByLabelText('Transaction alerts').props.value).toBe(false);
+  } finally {
+    transactionAlerts = true;
+    await act(() => saving.resolve({ data: {} }));
+  }
+  await waitFor(() => {
+    expect(view.getByLabelText('Transaction alerts').props.disabled).toBe(false);
+    expect(view.getByLabelText('Transaction alerts').props.value).toBe(true);
+  });
+  expect(apiClient.post).toHaveBeenCalledTimes(1);
+});
+
+it.each([
+  ['Touch ID sign in', mockLock.enableBiometricLogin],
+  ['App lock', mockLock.setEnabled],
+] as const)('holds both security switches while %s is saving', async (label, save) => {
+  const saving = deferred<boolean>();
+  save.mockReturnValueOnce(saving.promise);
+  const view = await settingsScreen();
+  try {
+    await fireEvent(view.getByLabelText(label), 'valueChange', true);
+    await waitFor(() => expect(view.getByLabelText('Touch ID sign in').props.disabled).toBe(true));
+    expect(view.getByLabelText('App lock').props.disabled).toBe(true);
+  } finally {
+    await act(() => saving.resolve(true));
+  }
+  await waitFor(() => expect(view.getByLabelText('Touch ID sign in').props.disabled).toBe(false));
+  expect(view.getByLabelText('App lock').props.disabled).toBe(false);
+  expect(save).toHaveBeenCalledTimes(1);
+});
+
 it('validates password confirmation before writing and retains all fields on refusal', async () => {
   const view = await passwordForm();
   await fireEvent.changeText(view.getByLabelText('Confirm new password'), 'different');
