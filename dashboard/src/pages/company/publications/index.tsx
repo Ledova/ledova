@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { DESTINATIONS } from '@ledova/shared';
+import { Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { CompanyReadNotice } from '../CompanyState';
 import { useCompany } from '../hooks/useCompany';
@@ -12,6 +13,7 @@ export default function IssuerPublicationsPage() {
   const { company } = companyRead;
   const { listing, open, openingUuid, openError } = useIssuerPublications(company?.uuid);
   const blocked = !!companyRead.error || companyRead.isRefreshing || listing.isError || listing.isFetching;
+  const publications = listing.data;
   return (
     <Page
       lede="Staff prepare and publish these records on your company's written instruction."
@@ -48,42 +50,44 @@ export default function IssuerPublicationsPage() {
           ) : (
             <>
               <CompanyReadNotice read={companyRead} />
-              {listing.isFetching && (
-                <p role="status" className="text-sm text-text-muted">
-                  Refreshing company publications…
-                </p>
-              )}
-              {openError && (
-                <p role="alert" className="text-sm text-error-light">
-                  {openError}
-                </p>
-              )}
-              {listing.data?.length === 0 ? (
-                <p className="text-sm text-text-muted">
-                  Nothing has been published to this company&apos;s members yet.
-                </p>
-              ) : (
-                <>
+              <Section title={publications ? `Publications (${publications.length})` : 'Publications'}>
+                {listing.isFetching && (
+                  <p role="status" className="text-sm text-text-muted">
+                    Refreshing company publications…
+                  </p>
+                )}
+                {openError && (
+                  <p role="alert" className="text-sm text-error-light">
+                    {openError}
+                  </p>
+                )}
+                {!publications ? null : publications.length === 0 ? (
                   <p className="text-sm text-text-muted">
-                    {listing.data?.length} publication{listing.data?.length === 1 ? '' : 's'}
+                    Nothing has been published to this company&apos;s members yet.
                   </p>
-                  {listing.data?.map((publication) => (
-                    <PublicationRecord
-                      key={publication.uuid}
-                      publication={publication}
-                      open={() => {
-                        if (!blocked) open(publication.uuid);
-                      }}
-                      opening={openingUuid === publication.uuid}
-                      blocked={blocked}
-                    />
-                  ))}
-                  <p className="text-xs text-text-muted">
-                    These are the stored documents as published. Company and share class names are frozen at
-                    publication.
-                  </p>
-                </>
-              )}
+                ) : (
+                  <>
+                    <ul className="divide-y divide-border-subtle">
+                      {publications.map((publication) => (
+                        <li key={publication.uuid}>
+                          <PublicationRecord
+                            publication={publication}
+                            open={() => {
+                              if (!blocked) open(publication.uuid);
+                            }}
+                            opening={openingUuid === publication.uuid}
+                            blocked={blocked}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="text-xs text-text-muted">
+                      These are the stored documents as published. Company and share class names are frozen at
+                      publication.
+                    </p>
+                  </>
+                )}
+              </Section>
             </>
           )}
           <p className="text-sm text-text-muted">

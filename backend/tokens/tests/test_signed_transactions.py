@@ -1,17 +1,14 @@
-from django.test import SimpleTestCase, TestCase, override_settings
+from django.test import SimpleTestCase
 from eth_account import Account
 from eth_keys.constants import SECPK1_N
 from web3 import Web3
 
 from shared.tests.signed_transactions import high_s_transaction, with_signature_s
-from tokens.serializers import BroadcastTransferSerializer
 from tokens.services.signed_transactions import decode_signed_transaction
 
 SIGNER = Account.from_key("0x" + "11" * 32)
 CONTRACT = Web3.to_checksum_address("0x" + "ab" * 20)
-OTHER = Web3.to_checksum_address("0x" + "cd" * 20)
 CHAIN_ID = 84532
-OTHER_CHAIN_ID = 11155111
 
 
 def _hex(signed) -> str:
@@ -121,37 +118,3 @@ class DecodeSignedTransactionTest(SimpleTestCase):
         for raw in (b"", b"\x02\x00", b"\xc0", b"\xf8\x00", bytes.fromhex("deadbeef")):
             with self.subTest(raw=raw), self.assertRaises(ValueError):
                 decode_signed_transaction(raw)
-
-
-@override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
-class BroadcastTransferSerializerTest(TestCase):
-    def errors_for(self, signed_transaction):
-        serializer = BroadcastTransferSerializer(data={"signed_transaction": signed_transaction})
-        serializer.is_valid()
-        return serializer.errors.get("signed_transaction", [])
-
-    def test_accepts_legacy_and_eip1559_transactions_to_a_known_contract(self):
-        for signed in (sign_legacy(), sign_eip1559(), sign_legacy(chain_id=None)):
-            with self.subTest(signed=signed[:12]):
-                self.assertEqual(self.errors_for(signed), [])
-
-    def test_rejects_a_transaction_signed_for_another_network(self):
-        for signed in (sign_legacy(chain_id=OTHER_CHAIN_ID), sign_eip1559(chain_id=OTHER_CHAIN_ID)):
-            with self.subTest(signed=signed[:12]):
-                self.assertEqual(self.errors_for(signed), ["Transaction is signed for a different network"])
-
-    def test_rejects_a_transaction_without_the_0x_prefix(self):
-        self.assertEqual(self.errors_for(sign_legacy()[2:]), ["Signed transaction must start with 0x"])
-
-    def test_rejects_bytes_that_are_not_a_transaction(self):
-        for signed in ("0x", "0x02", "0xdeadbeef", "0xzz", "0x" + "c0"):
-            with self.subTest(signed=signed):
-                self.assertEqual(self.errors_for(signed), ["Unable to decode signed transaction"])
-
-    def test_rejects_contract_creation(self):
-        self.assertEqual(
-            self.errors_for(sign_eip1559(to=b"", data="0x6000")), ["Contract creation transactions are not allowed"]
-        )
-
-    def test_rejects_an_unknown_target(self):
-        self.assertEqual(self.errors_for(sign_legacy(to=OTHER)), ["Transaction target is not a known Ledova contract"])

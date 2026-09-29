@@ -20,6 +20,47 @@ Wallets and Buy crypto. Portfolio CRUD and the documented operator
 `add-wallet` and `remove-wallet` actions retain their contracts. Any external
 consumer of a retired route must stop using it before upgrading.
 
+## Retired trading, company, device-token and file HTTP routes
+
+The backend tidy-up removes the routes that no client, documented consumer or
+operator script called: `POST /api/v1/trading/transfers/prepare/` and
+`/broadcast/` (the clients send through
+`POST /api/wallets/{uuid}/prepare-transfer/` and `/broadcast-transfer/`, which
+refuse a share class),
+`GET /api/v1/trading/tokens/{uuid}/market-data/` (the market list and detail
+carry `lastPrice`, `bestBid` and `bestAsk`),
+`GET /api/v1/trading/orders/{uuid}/modifications/`,
+`GET /api/v1/companies/{uuid}/stats/`,
+`GET /api/v1/companies/{uuid}/application-status/` (the company detail carries
+the same status, timestamps and flags except `reviewCompletedAt`), the
+`/api/device-tokens/` list, create and detail routes (`register/` and
+`unregister/` remain),
+`GET /api/investor-classifications/{uuid}/evidence/` and
+`GET /api/v1/documents/{uuid}/file/`. These paths now return 404, and the
+classification and personal-document responses no longer carry `evidenceUrl`
+or `fileUrl`; staff read both files through admin. No database migration is
+needed. Any external consumer of a retired route must stop using it before
+upgrading.
+
+## Stablecoin sends need an approval on both sides
+
+`POST /api/wallets/{uuid}/prepare-transfer/` and `/broadcast-transfer/` now
+refuse a stablecoin transfer (asset type `stablecoin`, today AUDY) with 403 and
+code `stablecoin_approval_required` unless the sending wallet and the recipient
+each hold a live approval with at least one company. The message says which
+side lacks one. This is the
+[company-scoped approvals](../decisions.md#company-scoped-approvals) rule the
+retired trading transfer route used to enforce; Wallets > Send, where the
+clients send, never did. A transfer to the operator's receiving wallet, on the
+chain it is configured for, is exempt on both sides, so an investor can pay a
+subscription to the address its payment instruction names without an approval;
+an unset receiving wallet, or one on another chain, exempts nothing. Native
+coins and other tokens are unaffected, and a submission recorded before the
+upgrade is still delivered. `prepare-transfer` now also answers 400, "The
+recipient is not a valid address for this wallet's network.", for a recipient
+that is not an address on the wallet's network, where before a Bitcoin prepare
+accepted any string. No database migration is needed.
+
 ## The publication summary's 30-day count
 
 `GET /api/v1/publications/summary/` no longer answers `publishedSince`; Holdings
@@ -333,8 +374,9 @@ missing count as 0 and show nothing in its place. No database migration is neede
   `Operator.supported_settlement_assets`. Before the fold the settlement paths
   accepted any active `Stablecoin` with an address; after it they accept only
   what that many-to-many lists, so without the seeding
-  `POST /api/v1/trading/transfer/prepare` would start refusing settlement
-  assets and the wallet balance endpoint would stop listing them. Confirm the
+  `POST /api/v1/trading/orders/create/` would refuse every order for want of a
+  configured settlement asset and the wallet balance endpoint would stop
+  listing them. Confirm the
   list in the operator admin after deploying. `0015` records the ids it
   actually added in a `tokens_stablecoin_fold_grant` table and its reverse
   removes only those, then drops the table, so an asset an operator had already

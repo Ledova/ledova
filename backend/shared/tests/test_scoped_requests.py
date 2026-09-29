@@ -9,21 +9,16 @@ from django.urls import resolve
 from rest_framework.test import APIClient, APITransactionTestCase
 
 from documents.models import Document, DocumentType
-from feature_flags.models import FeatureFlag
 from shared.db import (
     APP_ALIAS,
-    atomic,
     current_alias,
-    on_commit,
     principal_of,
     use_operator,
 )
-from shared.services import act_under_row_lock
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from shared.tests.test_cross_tenant_routes_under_rls import locking_request_views
 from shared.tests.upload_fixtures import StubUploadDependencies, pdf_bytes
-from tokens.exceptions import OrderCancellationException
 from users.models import UserAccount, UserProfile
 from users.services.setup import ensure_defaults
 
@@ -110,7 +105,6 @@ class RequestTransactionsUseTheAppRoleTest(StubUploadDependencies, RunsOnTheScop
         with use_operator():
             self.user = User.objects.create_user(email="atomic-scoped@example.test", password=PASSWORD, is_active=True)
             self.profile = UserProfile.objects.create(user=self.user)
-            self.flag = FeatureFlag.objects.create(name="scoped-row-lock", enabled=False)
         self.signed_in_as(self.user)
 
     def upload(self):
@@ -143,36 +137,6 @@ class RequestTransactionsUseTheAppRoleTest(StubUploadDependencies, RunsOnTheScop
         self.assertEqual(seen, [(APP_ALIAS, True, 1)])
         with use_operator():
             self.assertEqual(Document.objects.count(), 1)
-
-    def test_row_lock_commits_before_returning_a_business_refusal(self):
-        committed = []
-
-        def act(row):
-            row.enabled = True
-            row.save(update_fields=["enabled"])
-            on_commit(lambda: committed.append(current_alias()))
-            return row, OrderCancellationException("refused after the write")
-
-        with CaptureQueriesContext(connections[APP_ALIAS]) as queries:
-            with self.assertRaises(OrderCancellationException):
-                act_under_row_lock(FeatureFlag.objects.all(), self.flag.pk, act)
-        self.assertTrue(any("FOR UPDATE" in item["sql"] for item in queries))
-        self.assertEqual(committed, [APP_ALIAS])
-        with use_operator():
-            self.assertTrue(FeatureFlag.objects.get(pk=self.flag.pk).enabled)
-
-    def test_row_lock_and_outer_transaction_roll_back_on_the_same_connection(self):
-        def act(row):
-            row.enabled = True
-            row.save(update_fields=["enabled"])
-            return row, None
-
-        with self.assertRaisesRegex(RuntimeError, "outer failure"):
-            with atomic():
-                act_under_row_lock(FeatureFlag.objects.all(), self.flag.pk, act)
-                raise RuntimeError("outer failure")
-        with use_operator():
-            self.assertFalse(FeatureFlag.objects.get(pk=self.flag.pk).enabled)
 
 
 class LockedUpdatesUseTheAppRoleTest(RunsOnTheScopedConnection, APITransactionTestCase):

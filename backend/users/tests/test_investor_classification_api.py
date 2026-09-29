@@ -69,13 +69,6 @@ class InvestorClassificationApiTest(StubUploadDependencies, APITestCase):
         self.assertEqual(classification.evidence_mime_type, "application/pdf")
         self.assertIsNotNone(classification.submitted_at)
 
-    def test_the_evidence_url_is_the_authenticated_route_not_media(self):
-        response = self.client.post(BASE, self._payload(), format="multipart")
-
-        url = response.json()["evidenceUrl"]
-        self.assertIn(f"{BASE}{response.json()['uuid']}/evidence/", url)
-        self.assertNotIn("/media/", url)
-
     def test_a_declaration_that_is_not_accepted_is_refused(self):
         response = self.client.post(BASE, self._payload(declaration_accepted="false"), format="multipart")
 
@@ -237,48 +230,18 @@ class EligibilityEndpointTest(APITestCase):
         self.assertEqual(self.client.get(f"{BASE}eligibility/").status_code, 401)
 
 
-class EvidenceViewTest(APITestCase):
+class EvidenceAdminViewTest(APITestCase):
 
     def setUp(self):
         self.user, self.account = make_investor("evidence-owner")
-        self.other_user, self.other_account = make_investor("evidence-other")
         self.staff = User.objects.create_superuser(email="evidence-staff@example.test", password="pw-12345678")
         self.classification = attach_evidence(make_classification(self.account), EVIDENCE_BYTES)
-        self.url = f"{BASE}{self.classification.uuid}/evidence/"
 
     @staticmethod
     def _streamed(response):
         return b"".join(response.streaming_content)
 
-    def test_the_owner_reads_the_bytes_through_the_api(self):
-        self.client.force_authenticate(self.user)
-
-        response = self.client.get(self.url)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.streaming)
-        self.assertEqual(self._streamed(response), EVIDENCE_BYTES)
-        self.assertEqual(response["Content-Type"], "application/pdf")
-
-    def test_it_streams_rather_than_redirecting_to_media(self):
-        self.client.force_authenticate(self.user)
-
-        response = self.client.get(self.url)
-
-        self.assertNotIn(response.status_code, (301, 302, 303, 307, 308))
-        self.assertIsNone(response.headers.get("Location"))
-        self.assertNotIn("/media/", response.headers.get("Content-Disposition", ""))
-
-    def test_another_tenant_gets_404(self):
-        self.client.force_authenticate(self.other_user)
-
-        self.assertEqual(self.client.get(self.url).status_code, 404)
-
-    def test_an_anonymous_caller_gets_401(self):
-        self.assertEqual(self.client.get(self.url).status_code, 401)
-
-    def test_staff_read_the_same_bytes_through_the_admin(self):
-        self.client.force_authenticate(None)
+    def test_staff_read_the_bytes_through_the_admin(self):
         self.client.force_login(self.staff)
 
         response = self.client.get(
@@ -289,7 +252,6 @@ class EvidenceViewTest(APITestCase):
         self.assertEqual(self._streamed(response), EVIDENCE_BYTES)
 
     def test_the_admin_evidence_view_refuses_a_non_staff_caller(self):
-        self.client.force_authenticate(None)
         self.client.force_login(self.user)
 
         response = self.client.get(
@@ -297,38 +259,6 @@ class EvidenceViewTest(APITestCase):
         )
 
         self.assertIn(response.status_code, (302, 403))
-
-    def test_the_evidence_renders_in_the_browser_when_its_type_is_one_uploads_allow(self):
-        self.client.force_authenticate(self.user)
-
-        response = self.client.get(self.url)
-
-        self.assertTrue(response.headers["Content-Disposition"].startswith("inline"))
-
-    def test_evidence_stored_as_html_is_downloaded_rather_than_rendered(self):
-        InvestorClassification.objects.filter(pk=self.classification.pk).update(evidence_mime_type="text/html")
-        self.client.force_authenticate(self.user)
-
-        response = self.client.get(self.url)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.headers["Content-Disposition"].startswith("attachment"))
-        self.assertEqual(self._streamed(response), EVIDENCE_BYTES)
-
-    def test_evidence_with_no_stored_type_is_downloaded_rather_than_rendered(self):
-        InvestorClassification.objects.filter(pk=self.classification.pk).update(evidence_mime_type="")
-        self.client.force_authenticate(self.user)
-
-        response = self.client.get(self.url)
-
-        self.assertTrue(response.headers["Content-Disposition"].startswith("attachment"))
-        self.assertEqual(response.headers["Content-Type"], "application/octet-stream")
-
-    def test_a_claim_with_no_evidence_is_404(self):
-        bare = make_classification(self.other_account)
-        self.client.force_authenticate(self.other_user)
-
-        self.assertEqual(self.client.get(f"{BASE}{bare.uuid}/evidence/").status_code, 404)
 
 
 @override_settings(STORAGES=ADMIN_STORAGES)

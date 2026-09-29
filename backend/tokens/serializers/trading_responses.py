@@ -7,7 +7,6 @@ from tokens.serializers.signing import (
     SettlementTypedDataSerializer,
 )
 from tokens.serializers.swap_order import SwapOrderDetailSerializer
-from wallets.serializers.actions import PreparedEvmTransactionSerializer
 
 
 class SettlementResponseIdentitySerializer(serializers.Serializer):
@@ -96,24 +95,6 @@ ApprovalDataResponseSerializer = PolymorphicProxySerializer(
 )
 
 
-class MarketLastTradeSerializer(serializers.Serializer):
-    price = serializers.CharField()
-    shares = serializers.IntegerField()
-    payment_amount = serializers.CharField()
-    payment_token = serializers.CharField()
-    completed_at = serializers.DateTimeField(allow_null=True)
-
-
-class MarketDataSerializer(serializers.Serializer):
-    token = serializers.UUIDField()
-    symbol = serializers.CharField()
-    last_trade = MarketLastTradeSerializer(allow_null=True)
-    last_trade_price = serializers.CharField(allow_null=True)
-    best_bid = serializers.CharField(allow_null=True)
-    best_ask = serializers.CharField(allow_null=True)
-    midpoint_price = serializers.CharField(allow_null=True)
-
-
 class OrderBookEntrySerializer(serializers.Serializer):
     price = serializers.CharField()
     quantity = serializers.IntegerField()
@@ -124,27 +105,3 @@ class OrderBookSerializer(serializers.Serializer):
     token = serializers.UUIDField()
     buy_orders = OrderBookEntrySerializer(many=True)
     sell_orders = OrderBookEntrySerializer(many=True)
-
-
-class TransferTokenInfoSerializer(serializers.Serializer):
-    uuid = serializers.UUIDField()
-    symbol = serializers.CharField()
-    contract_address = serializers.CharField()
-
-
-class PreparedTokenTransactionSerializer(PreparedEvmTransactionSerializer):
-    data = serializers.CharField()
-
-
-class PreparedTokenTransferSerializer(serializers.Serializer):
-    token = TransferTokenInfoSerializer()
-    from_address = serializers.CharField()
-    to_address = serializers.CharField()
-    amount = serializers.IntegerField()
-    transaction_data = PreparedTokenTransactionSerializer()
-
-
-class TokenTransferReceiptSerializer(serializers.Serializer):
-    tx_hash = serializers.CharField()
-    block_number = serializers.IntegerField(allow_null=True)
-    gas_used = serializers.IntegerField(allow_null=True)

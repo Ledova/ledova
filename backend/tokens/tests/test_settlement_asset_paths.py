@@ -10,8 +10,7 @@ from shared.tests.tenants import make_tenant
 from tokens.exceptions import SettlementContextChanged
 from tokens.filters import TransferOrderFilter
 from tokens.models import TransferOrder
-from tokens.serializers import PrepareTransferSerializer
-from tokens.services import atomic_swap_service, token_transfer_service
+from tokens.services import atomic_swap_service
 from tokens.services.atomic_swap_service import payment_address
 from tokens.services.settlement_context import (
     assert_current_settlement,
@@ -73,44 +72,3 @@ class TransferOrderFilterTest(TestCase):
         self.assertEqual(
             TransferOrderFilter({"payment_asset": str(uuid4())}, queryset=TransferOrder.objects.all()).qs.count(), 0
         )
-
-
-class TransferSettlementAddressTest(TestCase):
-    def setUp(self):
-        self.tenant = make_tenant("alice")
-        self.asset = self.tenant.refs.stablecoin
-
-    def test_the_contract_address_comes_from_the_receiving_chain_deployment(self):
-        AssetChainDeployment.objects.create(
-            asset=self.asset, chain="ethereum", contract_address=ETHEREUM_ADDRESS, decimals=2
-        )
-
-        self.assertEqual(token_transfer_service.contract_address(self.asset), BASE_ADDRESS)
-        self.assertEqual(
-            token_transfer_service.contract_address(self.tenant.deployed_token),
-            self.tenant.deployed_token.contract_address,
-        )
-
-        AssetChainDeployment.objects.filter(asset=self.asset, chain="base").update(is_active=False)
-        self.assertEqual(token_transfer_service.contract_address(self.asset), "")
-
-    def test_prepare_transfer_accepts_a_supported_settlement_asset_only(self):
-        payload = {
-            "token": str(self.asset.uuid),
-            "from_address": "0x" + "a" * 40,
-            "to_address": RECIPIENT,
-            "amount": 100,
-        }
-
-        unsupported = PrepareTransferSerializer(data=payload)
-        self.assertFalse(unsupported.is_valid())
-        self.assertEqual(unsupported.errors["token"], ["Settlement asset is not available on the settlement chain"])
-
-        Operator.get().supported_settlement_assets.add(self.asset)
-        supported = PrepareTransferSerializer(data=payload)
-        self.assertTrue(supported.is_valid(), supported.errors)
-        self.assertEqual(supported.validated_data["token"], self.asset)
-
-        share_token = PrepareTransferSerializer(data={**payload, "token": str(self.tenant.deployed_token.uuid)})
-        self.assertTrue(share_token.is_valid(), share_token.errors)
-        self.assertEqual(share_token.validated_data["token"], self.tenant.deployed_token)

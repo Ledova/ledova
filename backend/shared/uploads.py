@@ -7,7 +7,6 @@ from shared.upload_errors import UploadRejected
 from shared.upload_processing import process_upload
 from shared.upload_scanner import scan_upload
 
-MAX_UPLOAD_SIZE = settings.UPLOAD_MAX_BYTES
 ALLOWED_UPLOAD_MIME_TYPES = {"application/pdf", "image/png", "image/jpeg"}
 UPLOAD_MIME_BY_EXTENSION = {".pdf": "application/pdf", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}
 ALLOWED_UPLOAD_EXTENSIONS = set(UPLOAD_MIME_BY_EXTENSION)

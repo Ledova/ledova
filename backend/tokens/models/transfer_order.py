@@ -146,12 +146,6 @@ class TransferOrder(BaseModel):
         return self.remaining_quantity * self.price_per_share
 
     @property
-    def effective_min_quantity(self):
-        if self.min_quantity == 0:
-            return self.remaining_quantity
-        return min(self.min_quantity, self.remaining_quantity)
-
-    @property
     def can_cancel(self):
         return self.status in [TransferOrderStatus.OPEN, TransferOrderStatus.PARTIALLY_FILLED]
 

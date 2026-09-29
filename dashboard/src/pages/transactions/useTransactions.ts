@@ -71,6 +71,7 @@ export function useTransactions() {
     retry: () => query.refetch(),
     isLoadingMore: query.isFetchingNextPage,
     filters,
+    appliedFilters,
     hasActiveFilters: Object.values(appliedFilters).some((value) => value !== undefined),
     totalCount: query.data?.pages[0]?.data.count ?? 0,
     hasNextPage: query.hasNextPage,

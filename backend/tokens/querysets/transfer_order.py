@@ -144,12 +144,6 @@ class TransferOrderQuerySet(QuerySet):
             order_count=models.Count("uuid"),
         )[:limit]
 
-    def best_bid(self, token):
-        return self.advertised_liquidity().buy_orders().filter(token=token).order_by("-price_per_share").first()
-
-    def best_ask(self, token):
-        return self.advertised_liquidity().sell_orders().filter(token=token).order_by("price_per_share").first()
-
     def with_relations(self):
         return self.prefetch_related("token", "submission")
 
