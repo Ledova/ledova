@@ -368,15 +368,6 @@ READS_WIDER_THAN_OWNERSHIP = {
         "member does not own the company they administer",
         "shared/tests/test_principal_coverage.py - the administrative-action gate",
     ),
-    "Asset.snapshots on the snapshots action": (
-        "assets/views/asset.py:42",
-        "no policy term: asset_snapshots is UNSCOPED, price history for the catalogue that is identical "
-        "for every tenant. The read is bounded anyway - the asset comes from get_object(), which goes "
-        "through the policy queryset base and catalogue product filters, so the only snapshots reachable belong "
-        "to an asset this principal can already see",
-        "shared/tests/test_cross_tenant_routes_under_rls.py - the asset rows of the route matrix, which "
-        "reach the action through the same get_object()",
-    ),
 }
 
 R13_WATCHES_BOTH_ENDS = (
