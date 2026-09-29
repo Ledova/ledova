@@ -77,7 +77,7 @@ it('passes the reviewed Base transaction and wallet derivation data to the hardw
 });
 
 it('shows why it refuses a transaction that differs from the review, and never builds its code', async () => {
-  const view = await signing({ ...base, transaction: { ...base.transaction, value: '500000000000000000' } });
+  const view = await signing({ ...base, transaction: { ...base.transaction, value: '0x6f05b59d3b20000' } });
   expect(view.getByText('This transaction does not match your review: the amount is different.')).toBeTruthy();
   expect(encodeEthereumTransaction).not.toHaveBeenCalled();
 });

@@ -15,7 +15,7 @@ CONTRACT = "0x" + "c" * 40
 
 
 @patch("wallets.services.transfers.get_blockchain_client")
-class APreparedAmountIsTheExactWeiAsADecimalStringTest(SimpleTestCase):
+class APreparedAmountIsTheExactWeiAsAHexQuantityTest(SimpleTestCase):
     @staticmethod
     def prepare_native(get_client, amount):
         client = get_client.return_value
@@ -26,9 +26,9 @@ class APreparedAmountIsTheExactWeiAsADecimalStringTest(SimpleTestCase):
 
     def test_a_native_amount_is_sent_as_its_exact_wei(self, get_client):
         for amount, wei in (
-            ("9.99999999", "9999999990000000000"),
-            ("0.123456789012345678", "123456789012345678"),
-            ("1", "1000000000000000000"),
+            ("9.99999999", "0x8ac7230235dc1c00"),
+            ("0.123456789012345678", "0x1b69b4ba630f34e"),
+            ("1", "0xde0b6b3a7640000"),
         ):
             with self.subTest(amount=amount):
                 self.assertEqual(self.prepare_native(get_client, amount)["transaction"]["value"], wei)
@@ -58,9 +58,9 @@ class APreparedAmountIsTheExactWeiAsADecimalStringTest(SimpleTestCase):
         )
 
     def test_a_token_transfer_sends_no_native_value(self, get_client):
-        self.assertEqual(self.prepare_token(get_client, "1.5", 2)["transaction"]["value"], "0")
+        self.assertEqual(self.prepare_token(get_client, "1.5", 2)["transaction"]["value"], "0x0")
 
     def test_the_reviewed_amount_is_written_out_plainly_even_below_a_millionth(self, get_client):
         native = self.prepare_native(get_client, "0.0000001")
-        self.assertEqual((native["amount_eth"], native["transaction"]["value"]), ("0.0000001", "100000000000"))
+        self.assertEqual((native["amount_eth"], native["transaction"]["value"]), ("0.0000001", "0x174876e800"))
         self.assertEqual(self.prepare_token(get_client, "0.0000001", 8)["amount_token"], "0.0000001")

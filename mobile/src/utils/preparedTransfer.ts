@@ -1,5 +1,5 @@
-import { Interface, MaxUint256, isAddress, isHexString, parseUnits } from 'ethers';
-import type { TransactionData } from '@ledova/shared';
+import { Interface, isAddress, isHexString, parseUnits } from 'ethers';
+import { readWei, type TransactionData } from '@ledova/shared';
 
 const erc20 = new Interface(['function transfer(address to, uint256 amount)']);
 
@@ -18,11 +18,6 @@ function whole(value: unknown, field: string, accepts: (value: number) => boolea
 const count = (value: number) => Number.isSafeInteger(value) && value >= 0;
 const positive = (value: number) => Number.isSafeInteger(value) && value > 0;
 
-function wei(value: unknown): bigint {
-  if (typeof value !== 'string') return BigInt(whole(value, 'value', count));
-  return /^(0|[1-9][0-9]*)$/.test(value) && BigInt(value) <= MaxUint256 ? BigInt(value) : refuse('value');
-}
-
 export function preparedTransferTransaction(transaction: unknown) {
   if (typeof transaction !== 'object' || transaction === null)
     throw new Error('The prepared transaction is unavailable.');
@@ -32,7 +27,7 @@ export function preparedTransferTransaction(transaction: unknown) {
   return {
     type: 0,
     to,
-    value: wei(value),
+    value: readWei(value) ?? refuse('value'),
     gasLimit: BigInt(whole(gas, 'gas limit', positive)),
     gasPrice: BigInt(whole(gasPrice, 'gas price', positive)),
     nonce: whole(nonce, 'nonce', count),

@@ -1,5 +1,5 @@
 import { EthSignRequest, ETHSignature } from '@keystonehq/bc-ur-registry-eth';
-import { HDNodeWallet, Interface, MaxUint256, Transaction, getAddress, parseEther, parseUnits } from 'ethers';
+import { HDNodeWallet, Interface, Transaction, getAddress, parseEther, parseUnits } from 'ethers';
 import type { TransactionData } from '@ledova/shared';
 import fixture from '../../../packages/shared/tests/fixtures/prepared-transfer-api.json';
 import { keystoneSignatureBytes, legacyV } from '../../../packages/shared/tests/fixtures/keystone-signatures';
@@ -63,7 +63,7 @@ it.each(['nativeBeyondDouble', 'nativeEighteenPlaces'] as const)(
     const prepared = fixture[kind];
     const signed = await sign(prepared.transaction);
     expect(signed.value).toBe(parseEther(prepared.amountEth));
-    expect(signed.value.toString()).toBe(prepared.transaction.value);
+    expect(signed.value).toBe(BigInt(prepared.transaction.value));
   },
 );
 
@@ -86,11 +86,10 @@ it.each([
   ['value', { value: -1 }],
   ['value', { value: 0.5 }],
   ['value', { value: 2 ** 53 }],
-  ['value', { value: '' }],
-  ['value', { value: '0100' }],
-  ['value', { value: '1.5' }],
-  ['value', { value: '0x16345785d8a0000' }],
-  ['value', { value: (MaxUint256 + 1n).toString() }],
+  ['value', { value: '100000000000000000' }],
+  ['value', { value: '0x016345785d8a0000' }],
+  ['value', { value: '0x16345785D8A0000' }],
+  ['value', { value: `0x1${'0'.repeat(64)}` }],
   ['to address', { to: undefined }],
   ['to address', { to: '0x7E5F4552091A69125d5DfCb7b8C2659029395BDF' }],
   ['to address', { to: '0x7E5F4552091A69125d5DfCb7b8C2659029395B' }],
@@ -135,7 +134,7 @@ it.each(['native', 'nativeBeyondDouble', 'nativeEighteenPlaces'] as const)(
 );
 
 it('passes a native send below a millionth of an ETH, which the backend writes out plainly', () => {
-  const prepared = differing({ ...fixture.native, amountEth: '0.0000001' }, { value: '100000000000' });
+  const prepared = differing({ ...fixture.native, amountEth: '0.0000001' }, { value: '0x174876e800' });
   expect(reviewedTransferTransaction(prepared).value).toBe(100000000000n);
 });
 
@@ -146,10 +145,10 @@ it('passes the token send, which matches its review in the decimals the screen h
 it.each([
   [
     '0.5 ETH under a 0.1 ETH review',
-    differing(fixture.native, { value: '500000000000000000' }),
+    differing(fixture.native, { value: '0x6f05b59d3b20000' }),
     'the amount is different',
   ],
-  ['one wei more', differing(fixture.nativeBeyondDouble, { value: '9999999990000000001' }), 'the amount is different'],
+  ['one wei more', differing(fixture.nativeBeyondDouble, { value: '0x8ac7230235dc1c01' }), 'the amount is different'],
   ['another recipient', differing(fixture.native, { to: stranger }), 'the recipient is different'],
   ['a contract call', differing(fixture.native, { data: '0xa9059cbb' }), 'it is not a plain transfer'],
 ])('refuses a native send that differs from its review: %s', (_, prepared, reason) => {
@@ -170,7 +169,7 @@ it.each([
     { data: erc20.encodeFunctionData('transfer', [fixture.token.toAddress, 999999n]) },
     'the amount is different',
   ],
-  ['ETH as well', { value: '1' }, 'it also sends ETH'],
+  ['ETH as well', { value: '0x1' }, 'it also sends ETH'],
   [
     'an approval',
     { data: erc20.encodeFunctionData('approve', [fixture.token.toAddress, 150n]) },

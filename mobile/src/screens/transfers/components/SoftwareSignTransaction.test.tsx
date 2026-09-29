@@ -74,7 +74,7 @@ it.each([
   ['another token contract', differing(fixture.token, { to: stranger }), 'it calls a different token contract'],
   [
     '0.5 ETH under a 0.1 ETH review',
-    differing(fixture.native, { value: '500000000000000000' }),
+    differing(fixture.native, { value: '0x6f05b59d3b20000' }),
     'the amount is different',
   ],
   ['another recipient', differing(fixture.native, { to: stranger }), 'the recipient is different'],

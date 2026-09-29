@@ -247,7 +247,7 @@ def prepare_ethereum_transaction(
         transaction = {
             "nonce": nonce,
             "to": to_address_checksum,
-            "value": str(amount_wei),
+            "value": hex(amount_wei),
             "gas": gas_limit,
             "gasPrice": gas_price_wei,
             "chainId": client.w3.eth.chain_id,
@@ -409,7 +409,7 @@ def prepare_erc20_transaction(
         transaction = {
             "nonce": nonce,
             "to": contract_checksum,
-            "value": "0",
+            "value": "0x0",
             "data": encoded_data,
             "gas": gas_limit,
             "gasPrice": gas_price_wei,

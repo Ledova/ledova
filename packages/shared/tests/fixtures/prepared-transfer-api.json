@@ -9,7 +9,7 @@
     "transaction": {
       "nonce": 7,
       "to": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
-      "value": "100000000000000000",
+      "value": "0x16345785d8a0000",
       "gas": 21000,
       "gasPrice": 1350428469,
       "chainId": 31337
@@ -27,7 +27,7 @@
     "transaction": {
       "nonce": 7,
       "to": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
-      "value": "9999999990000000000",
+      "value": "0x8ac7230235dc1c00",
       "gas": 21000,
       "gasPrice": 1350428469,
       "chainId": 31337
@@ -45,7 +45,7 @@
     "transaction": {
       "nonce": 7,
       "to": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
-      "value": "123456789012345678",
+      "value": "0x1b69b4ba630f34e",
       "gas": 21000,
       "gasPrice": 1350428469,
       "chainId": 31337
@@ -63,7 +63,7 @@
     "transaction": {
       "nonce": 7,
       "to": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-      "value": "0",
+      "value": "0x0",
       "data": "0xa9059cbb0000000000000000000000007e5f4552091a69125d5dfcb7b8c2659029395bdf0000000000000000000000000000000000000000000000000000000000000096",
       "gas": 61710,
       "gasPrice": 1350428469,

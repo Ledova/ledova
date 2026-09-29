@@ -34,7 +34,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-function signingFlow() {
+function continueWith(value: unknown) {
   const onBroadcast = vi.fn<(signedTx: string) => Promise<string>>(async () => `0x${'a'.repeat(64)}`);
   render(
     <TransferSigningFlow
@@ -44,11 +44,16 @@ function signingFlow() {
       wallet={wallet}
       toAddress={prepared.toAddress}
       amount={prepared.amountEth}
-      preparedTransaction={prepared}
+      preparedTransaction={{ ...prepared, transaction: { ...prepared.transaction, value: value as string } }}
       onBroadcast={onBroadcast}
     />,
   );
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  return onBroadcast;
+}
+
+function signingFlow() {
+  const onBroadcast = continueWith(prepared.transaction.value);
   const request = extend
     .decodeToDataItem(Buffer.from(vi.mocked(AnimatedQRCode).mock.calls.at(-1)![0].cbor, 'hex'))
     .getData() as DataItemMap;
@@ -92,4 +97,22 @@ it('shows why it refuses a signature from another key and sends nothing', async 
   expect(screen.getByText('The scanned signature is not from this wallet.')).toBeTruthy();
   expect(screen.getByRole('button', { name: "I've Signed It" })).toBeTruthy();
   expect(onBroadcast).not.toHaveBeenCalled();
+});
+
+it('still encodes a value an older backend sent as a safe JSON number', () => {
+  continueWith(1000);
+  const request = extend
+    .decodeToDataItem(Buffer.from(vi.mocked(AnimatedQRCode).mock.calls.at(-1)![0].cbor, 'hex'))
+    .getData() as DataItemMap;
+  expect(Transaction.from(`0x${(request[2] as Buffer).toString('hex')}`).value).toBe(1000n);
+});
+
+it.each([
+  ['a decimal string', '9999999990000000000'],
+  ['a number above 2^53 - 1', 2 ** 53],
+  ['a fraction', 0.5],
+])('refuses to encode a value sent as %s', (_, value) => {
+  continueWith(value);
+  expect(screen.getByText('Failed to format transaction for signing')).toBeTruthy();
+  expect(AnimatedQRCode).not.toHaveBeenCalled();
 });

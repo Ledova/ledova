@@ -1,11 +1,11 @@
-import { parseEther } from 'ethers';
+import { parseEther, toQuantity } from 'ethers';
 import type { TransferableAsset, TransactionData, Wallet } from '@ledova/shared';
 
 function mockWei(amount: string): string {
   try {
-    return parseEther(amount).toString();
+    return toQuantity(parseEther(amount));
   } catch {
-    return '0';
+    return '0x0';
   }
 }
 
@@ -82,7 +82,7 @@ const generateMockEthereumTransactionData = (
     chainId: 11155111,
     nonce: 42,
     to: toAddress,
-    value: isNative ? mockWei(amount) : '0',
+    value: isNative ? mockWei(amount) : '0x0',
     data: isNative
       ? '0x'
       : `0xa9059cbb000000000000000000000000${toAddress.slice(2)}${parseInt(amount).toString(16).padStart(64, '0')}`,
