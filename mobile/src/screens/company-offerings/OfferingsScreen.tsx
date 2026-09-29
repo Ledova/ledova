@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RefreshControl, ScrollView, Switch, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   OFFERING_EXEMPTION_LABELS,
@@ -11,7 +11,7 @@ import {
   updateCompany,
   type OfferingListItem,
 } from '@ledova/shared';
-import { Action, Row, Section } from '../../components/Ledger';
+import { Action, Row, Section, SwitchRow } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch } from '../../services/sessionScope';
 import { useCompanyProfile } from '../../hooks/useCompanyProfile';
@@ -233,12 +233,11 @@ export function OfferingsScreen() {
                 and {data.operatorName} can switch it off. Turning it off hides your share classes; it does not withdraw
                 an offering already under review.
               </Text>
-              <Text style={styles.text}>Show this company to eligible investors</Text>
-              <Switch
-                accessibilityLabel="Show this company to eligible investors"
-                value={company.isOpenToInvestors}
+              <SwitchRow
+                label="Show this company to eligible investors"
+                checked={company.isOpenToInvestors ?? false}
                 disabled={!ready || !company.canIssueTokens}
-                onValueChange={(isOpen) => {
+                onChange={(isOpen) => {
                   if (ready && company.canIssueTokens)
                     listing.mutate({ uuid: company.uuid, isOpen, epoch: getSessionEpoch() });
                 }}

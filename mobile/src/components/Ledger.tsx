@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Switch, Text, View } from 'react-native';
 import { CaretRightIcon } from 'phosphor-react-native';
 import { useAppTheme, useThemedStyles } from '../contexts';
 
@@ -99,6 +99,42 @@ export function LinkRow({
       </View>
       <CaretRightIcon size={16} color={theme.colors.text.muted} />
     </Pressable>
+  );
+}
+
+export function SwitchRow({
+  label,
+  description,
+  checked,
+  disabled = false,
+  onChange,
+}: {
+  label: string;
+  description?: string;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  const styles = useThemedStyles((theme) => ({
+    row: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 16 },
+    text: { flex: 1, gap: 5 },
+    label: { fontFamily: theme.fontFamily.regular, fontSize: 15, lineHeight: 23, color: theme.colors.text.body },
+    description: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 22, color: theme.colors.text.muted },
+  }));
+  return (
+    <View style={styles.row}>
+      <View style={styles.text}>
+        <Text style={styles.label}>{label}</Text>
+        {!!description && <Text style={styles.description}>{description}</Text>}
+      </View>
+      <Switch
+        accessibilityLabel={label}
+        accessibilityHint={description}
+        value={checked}
+        disabled={disabled}
+        onValueChange={onChange}
+      />
+    </View>
   );
 }
 

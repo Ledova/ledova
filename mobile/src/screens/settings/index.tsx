@@ -1,38 +1,13 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, Text, TextInput, View } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { USER_PREFERENCES_QUERY_KEY, upsertCurrentUserPreferences, useUserPreferences } from '@ledova/shared';
-import { Action, Section } from '../../components/Ledger';
+import { Action, Section, SwitchRow } from '../../components/Ledger';
 import { useAppLock } from '../../contexts';
 import { apiClient } from '../../services/apiClient';
 import { AccountModal } from '../account/AccountModal';
 import { useAccountStyles } from '../account/styles';
 import { useSettings } from './useSettings';
-
-function Toggle({
-  label,
-  description,
-  value,
-  disabled,
-  onChange,
-}: {
-  label: string;
-  description: string;
-  value: boolean;
-  disabled: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  const styles = useAccountStyles();
-  return (
-    <View style={styles.toggle}>
-      <View style={styles.toggleText}>
-        <Text style={styles.text}>{label}</Text>
-        <Text style={styles.muted}>{description}</Text>
-      </View>
-      <Switch accessibilityLabel={label} value={value} disabled={disabled} onValueChange={onChange} />
-    </View>
-  );
-}
 
 export function SettingsScreen() {
   const styles = useAccountStyles();
@@ -136,17 +111,17 @@ export function SettingsScreen() {
           Settings
         </Text>
         <Section title="Security">
-          <Toggle
+          <SwitchRow
             label={`${lock.biometricType} sign in`}
             description={`Sign in with ${lock.biometricType} instead of your password.`}
-            value={lock.hasBiometricLogin}
+            checked={lock.hasBiometricLogin}
             disabled={!lock.biometricsAvailable || securityPending}
             onChange={biometricLogin}
           />
-          <Toggle
+          <SwitchRow
             label="App lock"
             description={`Require ${lock.biometricType} after the app goes into the background.`}
-            value={lock.isEnabled}
+            checked={lock.isEnabled}
             disabled={!lock.biometricsAvailable || securityPending}
             onChange={(value) => void secure(() => lock.setEnabled(value))}
           />
@@ -174,10 +149,10 @@ export function SettingsScreen() {
               />
             </View>
           ) : (
-            <Toggle
+            <SwitchRow
               label="Transaction alerts"
               description="Notifications for transaction status changes."
-              value={transactionAlerts}
+              checked={transactionAlerts}
               disabled={alerts.isPending || preferences.isFetching}
               onChange={(value) => alerts.mutate(value)}
             />
