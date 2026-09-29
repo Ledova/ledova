@@ -110,8 +110,7 @@ keeps recorded decimal amounts exact, distinguishes failed refreshes from empty
 history, and marks failed older pages as incomplete. Pull to refresh reads current
 records; an open detail follows its current row. Supported wallet, network,
 direction and local-day filters replace sorting only the loaded subset. Date
-filters use block time and exclude records without one. Activity has no generated
-mock-record mode; synthetic journeys use API fixtures.
+filters use block time and exclude records without one.
 
 Market presents For sale and Wanted lists with automatic matching. Buyers fund
 before placing an offer. Owned order history reads independently of listed share
