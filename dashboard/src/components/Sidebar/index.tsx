@@ -168,9 +168,9 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
         </a>
       </div>
 
-      <div className="border-t border-border-subtle px-6 py-4">
-        {person && <p className="mb-1 break-words text-sm font-medium text-text-primary">{person}</p>}
-        <SignOutButton />
+      <div className="border-t border-border-subtle p-3">
+        {person && <p className="break-words px-3 py-1 text-sm font-medium text-text-primary">{person}</p>}
+        <SignOutButton variant="sidebar" />
       </div>
     </aside>
   );

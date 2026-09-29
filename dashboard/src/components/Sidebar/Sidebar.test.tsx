@@ -4,14 +4,14 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { canOpen, COMPANY_ENDPOINTS, DESTINATIONS, landingFor, type AccountRole } from '@ledova/shared';
+import { AUTH_ENDPOINTS, canOpen, COMPANY_ENDPOINTS, DESTINATIONS, landingFor, type AccountRole } from '@ledova/shared';
 import { MARKETING_URL } from '@utils/marketingUrl';
 
 import { Sidebar } from '.';
 
 const navigate = vi.hoisted(() => vi.fn());
 const flags = vi.hoisted(() => ({ tradingEnabled: true }));
-const api = vi.hoisted(() => ({ get: vi.fn() }));
+const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 const person = vi.hoisted(() => ({ profile: null as { fullName?: string | null; email: string } | null }));
 
 vi.mock('react-router-dom', async (importOriginal) => ({
@@ -239,6 +239,7 @@ describe('the foot of the sidebar', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     api.get.mockResolvedValue({ data: { results: [], count: 0, next: null, previous: null } });
+    api.post.mockResolvedValue({ data: {} });
   });
   afterEach(() => {
     person.profile = null;
@@ -270,6 +271,29 @@ describe('the foot of the sidebar', () => {
     show('investor');
 
     expect(footText()).toEqual(['Sign out']);
+  });
+
+  it('signs out from the foot: it ends the session and returns to sign in', async () => {
+    show('investor');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }));
+
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/signin'));
+    expect(api.post).toHaveBeenCalledWith(AUTH_ENDPOINTS.SIGNOUT);
+  });
+
+  it("keeps the sidebar's Sign out look: its icon and red hover, and dimmed while signing out", async () => {
+    api.post.mockReturnValue(new Promise(() => {}));
+    show('investor');
+
+    const signOut = screen.getByRole('button', { name: 'Sign out' }) as HTMLButtonElement;
+    expect(signOut.querySelector('svg')).not.toBeNull();
+    expect(signOut.className.split(' ')).toEqual(
+      expect.arrayContaining(['hover:bg-error/10', 'hover:text-error-light', 'disabled:opacity-50']),
+    );
+    fireEvent.click(signOut);
+
+    expect(((await screen.findByRole('button', { name: 'Signing out...' })) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('ends the scrolling list with Help & Support, a footer-style link to the contact page, just above the ruled foot', () => {
