@@ -3,13 +3,13 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
+import type { AxiosInstance } from 'axios';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { SUBSCRIPTION_ENDPOINTS, type Subscription } from '@ledova/shared';
+import { ApiClientProvider, SUBSCRIPTION_ENDPOINTS, type Subscription } from '@ledova/shared';
 import { PageTitle } from '@components/PageTitle';
 import SubscriptionsPage from './index';
 
-const api = vi.hoisted(() => ({ get: vi.fn() }));
-vi.mock('@services/apiClient', () => ({ default: api }));
+const api = { get: vi.fn() };
 let client: QueryClient;
 const application: Subscription = {
   uuid: 'application-one',
@@ -40,9 +40,11 @@ function show() {
   render(
     <MemoryRouter>
       <QueryClientProvider client={client}>
-        <PageTitle.Provider value="Applications">
-          <SubscriptionsPage />
-        </PageTitle.Provider>
+        <ApiClientProvider client={api as unknown as AxiosInstance}>
+          <PageTitle.Provider value="Applications">
+            <SubscriptionsPage />
+          </PageTitle.Provider>
+        </ApiClientProvider>
       </QueryClientProvider>
     </MemoryRouter>,
   );

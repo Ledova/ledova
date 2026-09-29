@@ -26,3 +26,4 @@ export { COMPANY_REGISTRATION_FIELDS, useSignupCompanyRegistration } from './use
 export { useSignupReview } from './useSignupReview';
 export { useInvestorEligibilityQuery, useOrderBook, useShareTokens } from './useMarket';
 export { useSwapOrdersMulti } from './useAtomicSwaps';
+export { useSubscribableWallets, useSubscriptions } from './useSubscriptions';

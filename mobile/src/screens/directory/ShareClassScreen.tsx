@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { formatDate, formatMoney, formatShareCount, useDirectoryToken } from '@ledova/shared';
+import { formatDate, formatMoney, formatShareCount, useDirectoryToken, useSubscribableWallets } from '@ledova/shared';
 import type { DirectoryStackParamList } from '../../navigation/DirectoryStackNavigator';
 import { Action, Row, Rows, Section } from '../../components/Ledger';
 import { DirectoryPage, useDirectoryStyles } from './DirectoryPage';
 import { ApplyForm, type ApplicationDraft } from '../applications/ApplyForm';
-import { useCreateSubscription, useSubscribableWallets } from '../applications/useApplications';
+import { useCreateSubscription } from '../applications/useApplications';
 import { getSessionEpoch } from '../../services/sessionScope';
 
 export function ShareClassScreen() {

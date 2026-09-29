@@ -1,11 +1,10 @@
 import { Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { formatDate, formatMoney } from '@ledova/shared';
+import { formatDate, formatMoney, useSubscriptions } from '@ledova/shared';
 import type { ApplicationsStackParamList } from '../../navigation/ApplicationsStackNavigator';
 import { Action, LinkRow, Row, Rows, Section } from '../../components/Ledger';
 import { ApplicationsPage, useApplicationStyles } from './ApplicationsPage';
-import { useSubscriptions } from './useApplications';
 import { applicationShares, applicationState } from './presentation';
 
 export function ApplicationsScreen() {

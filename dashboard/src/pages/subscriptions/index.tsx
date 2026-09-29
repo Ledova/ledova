@@ -1,9 +1,8 @@
-import { DESTINATIONS, formatDate, formatMoney } from '@ledova/shared';
+import { DESTINATIONS, formatDate, formatMoney, useSubscriptions } from '@ledova/shared';
 import type { Subscription } from '@ledova/shared';
 import { LinkRow, Row, Rows, Section, Status } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { applicationShares, applicationState } from './presentation';
-import { useSubscriptions } from './useSubscriptions';
 
 function ApplicationRow({ application }: { application: Subscription }) {
   const state = applicationState(application);
