@@ -132,14 +132,20 @@ Signing in, and verifying an email, which also signs a new person in, clear
 what the tab cached for whoever was signed in before, as signing out does, so a
 new person is never guarded by, or signs up against, the previous person's
 account. Buying crypto and sending are actions on Wallets for every account,
-not menu items, and the dashboard has no coin-price page or favourites. Send
-opens its form directly when exactly one of the person's wallets is verified,
-and asks which wallet to send from only when several are; Buy crypto asks which
-wallet receives the chosen asset only when more than one verified wallet on that
-asset's network could. Both choosers list a wallet as a Wallets row reads, by its
-name or short address, with its balance and value labelled. A chooser that cannot
-read the wallets says so and offers Try again, hiding any it listed before, rather
-than saying there are none.
+not menu items, and the dashboard has no coin-price page or favourites. On the
+web, Send opens its form directly when Wallets has read exactly one verified
+wallet on the networks it lists (Ethereum, Bitcoin and Base), and otherwise asks
+which wallet to send from: when several are verified, when none is, and when
+Wallets could not read them. Buy crypto goes straight to the widget only when a
+read that has finished finds exactly one verified wallet on the chosen asset's
+network, and asks which one receives it when there are several; while a read is
+running it opens nothing by itself, and its chooser's wallets cannot be chosen.
+Both web choosers list a wallet as a Wallets row reads, by its name or short
+address, with its balance and value labelled, and one that cannot read the
+wallets says so and offers Try again, hiding any it listed before, rather than
+saying there are none. Mobile follows later: its Send always starts at the wallet
+choice, and its Buy crypto can still go straight to the widget for, or offer, the
+wallets it read before, and says there are none when a read fails.
 The retired portfolio screen's chart, allocation and snapshot helpers are removed
 from both clients and the shared package. The asset list remains in use by Buy
 crypto for current prices, and Wallets and Send still use the AUD exchange rate.
