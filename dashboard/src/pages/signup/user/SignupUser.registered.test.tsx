@@ -47,3 +47,11 @@ it('shows any other email refusal as the backend wrote it', async () => {
   expect((await screen.findByRole('alert')).textContent).toBe('Enter a valid email address.');
   expect(screen.queryByRole('link', { name: 'sign in' })).toBeNull();
 });
+
+it('separates two email refusals with a space', async () => {
+  signUpWith({ email: ['Enter a valid email address.', 'Ensure this field has no more than 254 characters.'] });
+
+  expect((await screen.findByRole('alert')).textContent).toBe(
+    'Enter a valid email address. Ensure this field has no more than 254 characters.',
+  );
+});
