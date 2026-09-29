@@ -5,6 +5,7 @@ import axios, { type AxiosResponse, type InternalAxiosRequestConfig } from 'axio
 import type { ReactNode } from 'react';
 
 import {
+  CACHE_TIMING,
   INVESTOR_CLASSIFICATION_ENDPOINTS,
   TRADING_CONFIG,
   TRADING_ENDPOINTS,
@@ -14,6 +15,7 @@ import { ApiClientProvider } from '../../src/hooks/useApiClient';
 import { useDirectoryTokens } from '../../src/hooks/useDirectory';
 import { useInvestorEligibilityQuery, useOrderBook, useShareTokens } from '../../src/hooks/useMarket';
 import type { InvestorEligibility, OrderBook, ShareToken } from '../../src/types';
+import { keepsAfterClosingFor, readsAgainOnReturnOnlyAfter } from '../fixtures/cache-timing';
 import { response } from '../fixtures/order-submissions';
 
 const token = { uuid: 'fictional-token', name: 'Ordinary', symbol: 'HEX', lastPrice: '0.29' } as ShareToken;
@@ -170,4 +172,37 @@ it('agrees with Directory on eligibility from one read when Directory reads it f
   expect(market.result.current.data).toEqual(eligible);
   expect(directory.result.current.isEligible).toBe(true);
   expect(eligibilityReads()).toHaveLength(1);
+});
+
+const readsOf = (url: string) => () => requests.filter((config) => config.url === url).length;
+
+it('counts listed share classes current for five minutes and keeps them two minutes after the Market closes', async () => {
+  jest.useFakeTimers();
+  const view = renderHook(() => useShareTokens(), { wrapper });
+  await waitFor(() => expect(view.result.current.isSuccess).toBe(true));
+
+  await readsAgainOnReturnOnlyAfter(CACHE_TIMING.DEFAULT_STALE_TIME, readsOf(TRADING_ENDPOINTS.TOKENS.LIST));
+  await keepsAfterClosingFor(CACHE_TIMING.DEFAULT_GC_TIME, client, ['trading', 'tokens'], view.unmount);
+});
+
+it('counts the order book current for two minutes while the Market is in the background', async () => {
+  jest.useFakeTimers();
+  const view = renderHook(() => useOrderBook(token.uuid), { wrapper });
+  await waitFor(() => expect(view.result.current.isSuccess).toBe(true));
+
+  await readsAgainOnReturnOnlyAfter(
+    CACHE_TIMING.SHORT_STALE_TIME,
+    readsOf(TRADING_ENDPOINTS.TOKENS.ORDER_BOOK(token.uuid)),
+  );
+});
+
+it('counts investor eligibility current for two minutes', async () => {
+  jest.useFakeTimers();
+  const view = renderHook(() => useInvestorEligibilityQuery(), { wrapper });
+  await waitFor(() => expect(view.result.current.isSuccess).toBe(true));
+
+  await readsAgainOnReturnOnlyAfter(
+    CACHE_TIMING.SHORT_STALE_TIME,
+    readsOf(INVESTOR_CLASSIFICATION_ENDPOINTS.ELIGIBILITY),
+  );
 });

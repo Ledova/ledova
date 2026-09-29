@@ -4,9 +4,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { AxiosInstance } from 'axios';
 import type { ReactNode } from 'react';
 
-import { TRANSACTION_ENDPOINTS, WALLET_ENDPOINTS } from '../../src/constants';
+import { CACHE_TIMING, TRANSACTION_ENDPOINTS, WALLET_ENDPOINTS } from '../../src/constants';
 import { ApiClientProvider } from '../../src/hooks/useApiClient';
 import { useTransactions } from '../../src/hooks/useTransactions';
+import { keepsAfterClosingFor, readsAgainOnReturnOnlyAfter } from '../fixtures/cache-timing';
 
 type Params = Record<string, unknown>;
 type Read = (params: Params) => Promise<unknown>;
@@ -64,6 +65,7 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+  jest.useRealTimers();
 });
 
 it('reads history independently of the wallet filter, one page at a time', async () => {
@@ -291,4 +293,20 @@ it('does not read a further page while the history is being read again, so the r
   await waitFor(() => expect(view.result.current.isRefreshing).toBe(false));
   expect(view.result.current.transactions).toEqual([entry('entry-one', 'confirmed')]);
   expect(view.result.current.hasError).toBe(false);
+});
+
+it('counts the history current for thirty seconds and keeps it five minutes after Activity closes', async () => {
+  jest.useFakeTimers();
+  const view = await loaded();
+
+  await readsAgainOnReturnOnlyAfter(CACHE_TIMING.VERY_SHORT_STALE_TIME, () => activityReads().length);
+  await keepsAfterClosingFor(CACHE_TIMING.MEDIUM_GC_TIME, client, ['all-transactions', {}], view.unmount);
+});
+
+it('counts the filter wallets current for five minutes', async () => {
+  jest.useFakeTimers();
+  const view = await loaded();
+  await waitFor(() => expect(view.result.current.walletsLoading).toBe(false));
+
+  await readsAgainOnReturnOnlyAfter(CACHE_TIMING.DEFAULT_STALE_TIME, () => reads(WALLET_ENDPOINTS.BASE).length);
 });

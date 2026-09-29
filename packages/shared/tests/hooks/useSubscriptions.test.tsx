@@ -4,9 +4,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { AxiosInstance } from 'axios';
 import type { ReactNode } from 'react';
 
-import { SUBSCRIPTION_ENDPOINTS, WALLET_ENDPOINTS } from '../../src/constants';
+import { CACHE_TIMING, SUBSCRIPTION_ENDPOINTS, WALLET_ENDPOINTS } from '../../src/constants';
 import { ApiClientProvider } from '../../src/hooks/useApiClient';
 import { useSubscribableWallets, useSubscriptions } from '../../src/hooks/useSubscriptions';
+import { readsAgainOnReturnOnlyAfter } from '../fixtures/cache-timing';
 
 const api = { get: jest.fn() };
 const listUrl = `https://example.invalid${SUBSCRIPTION_ENDPOINTS.BASE}`;
@@ -46,6 +47,7 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+  jest.useRealTimers();
 });
 
 describe('useSubscriptions', () => {
@@ -164,6 +166,15 @@ describe('useSubscriptions', () => {
     await waitFor(() => expect(view.result.current.subscriptions).toHaveLength(2));
     expect(view.result.current.hasError).toBe(false);
   });
+
+  it('counts the applications current for two minutes', async () => {
+    jest.useFakeTimers();
+    api.get.mockResolvedValue(page([application('first')]));
+    const view = renderHook(() => useSubscriptions(), { wrapper });
+    await waitFor(() => expect(view.result.current.subscriptions).toHaveLength(1));
+
+    await readsAgainOnReturnOnlyAfter(CACHE_TIMING.SHORT_STALE_TIME, () => api.get.mock.calls.length);
+  });
 });
 
 describe('useSubscribableWallets', () => {
@@ -220,5 +231,14 @@ describe('useSubscribableWallets', () => {
 
     await waitFor(() => expect(view.result.current.hasError).toBe(false));
     expect(view.result.current.wallets).toEqual([wallet('a')]);
+  });
+
+  it('counts the wallets current for two minutes', async () => {
+    jest.useFakeTimers();
+    api.get.mockResolvedValue(page([wallet('a')]));
+    const view = renderHook(() => useSubscribableWallets(true), { wrapper });
+    await waitFor(() => expect(view.result.current.wallets).toHaveLength(1));
+
+    await readsAgainOnReturnOnlyAfter(CACHE_TIMING.SHORT_STALE_TIME, () => api.get.mock.calls.length);
   });
 });

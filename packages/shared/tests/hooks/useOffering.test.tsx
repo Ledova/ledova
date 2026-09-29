@@ -4,9 +4,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { AxiosInstance } from 'axios';
 import type { ReactNode } from 'react';
 
-import { OFFERING_ENDPOINTS } from '../../src/constants';
+import { CACHE_TIMING, OFFERING_ENDPOINTS } from '../../src/constants';
 import { ApiClientProvider } from '../../src/hooks/useApiClient';
 import { useOfferingSubscriptions, useOfferingUnderEdit } from '../../src/hooks/useOffering';
+import { readsAgainOnReturnOnlyAfter } from '../fixtures/cache-timing';
 
 const api = { get: jest.fn() };
 const offering = { uuid: 'offering-a', status: 'draft', canBeEdited: true, summary: 'An example offering' };
@@ -33,6 +34,7 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+  jest.useRealTimers();
 });
 
 describe('useOfferingUnderEdit', () => {
@@ -133,5 +135,14 @@ describe('useOfferingSubscriptions', () => {
     });
 
     await waitFor(() => expect(view.result.current.data).toHaveLength(2));
+  });
+
+  it("counts the offering's applications current for two minutes", async () => {
+    jest.useFakeTimers();
+    api.get.mockResolvedValue(page([subscription(1)]));
+    const view = renderHook(() => useOfferingSubscriptions(offering.uuid), { wrapper });
+    await waitFor(() => expect(view.result.current.isSuccess).toBe(true));
+
+    await readsAgainOnReturnOnlyAfter(CACHE_TIMING.SHORT_STALE_TIME, () => api.get.mock.calls.length);
   });
 });

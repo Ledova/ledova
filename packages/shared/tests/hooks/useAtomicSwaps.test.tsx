@@ -4,11 +4,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import axios, { type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import type { ReactNode } from 'react';
 
-import { TRADING_ENDPOINTS, TRADING_EVENT_INVALIDATION_MAP } from '../../src/constants';
+import { CACHE_TIMING, TRADING_ENDPOINTS, TRADING_EVENT_INVALIDATION_MAP } from '../../src/constants';
 import { useSwapOrdersMulti } from '../../src/hooks/useAtomicSwaps';
 import { ApiClientProvider } from '../../src/hooks/useApiClient';
 import type { SwapOrder, Wallet } from '../../src/types';
 import { selectSwapSettlement } from '../../src/utils/swap-settlement-validation';
+import { keepsAfterClosingFor, readsAgainOnReturnOnlyAfter } from '../fixtures/cache-timing';
 import { response, wallet as baseWallet } from '../fixtures/order-submissions';
 import {
   settlementFixture as fixture,
@@ -60,6 +61,7 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+  jest.useRealTimers();
 });
 
 it('reads every page for each wallet and lists a trade visible from both wallets once', async () => {
@@ -139,4 +141,19 @@ it('keeps the trades under the swaps key that trading events refresh', async () 
 
   await waitFor(() => expect(view.result.current.data![0]!.status).toBe('completed'));
   expect(requests).toHaveLength(2);
+});
+
+it('counts trades current for two minutes and keeps them two minutes after the Market closes', async () => {
+  jest.useFakeTimers();
+  handle = async (config) => response(config, page([settlementListRow()]));
+  const view = renderHook(() => useSwapOrdersMulti([first]), { wrapper });
+  await waitFor(() => expect(view.result.current.isSuccess).toBe(true));
+
+  await readsAgainOnReturnOnlyAfter(CACHE_TIMING.SHORT_STALE_TIME, () => requests.length);
+  await keepsAfterClosingFor(
+    CACHE_TIMING.DEFAULT_GC_TIME,
+    client,
+    ['trading', 'swaps', 'multi', [first]],
+    view.unmount,
+  );
 });
