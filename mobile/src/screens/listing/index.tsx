@@ -13,8 +13,8 @@ import {
   type DocumentType,
 } from '@ledova/shared';
 import type { BottomTabParamList } from '../../navigation/BottomTabNavigator';
-import { Action, Row, Section } from '../../components/Ledger';
-import { CompanyModal } from '../company/CompanyModal';
+import { Action, Row, Rows, Section } from '../../components/Ledger';
+import { CustomModal } from '../../components/modal';
 import { apiClient } from '../../services/apiClient';
 import { CompanyReadNotice } from '../company/CompanyState';
 import { useCompanyStyles } from '../company-register/styles';
@@ -170,12 +170,14 @@ export function ListingScreen() {
           <>
             <Section title="Application record">
               <Text style={styles.text}>{company.name}</Text>
-              <Row label="Status">{company.statusDisplay}</Row>
-              {events.map(({ label, at }) => (
-                <Row key={label} label={label}>
-                  {formatDate(at)}
-                </Row>
-              ))}
+              <Rows>
+                <Row label="Status">{company.statusDisplay}</Row>
+                {events.map(({ label, at }) => (
+                  <Row key={label} label={label}>
+                    {formatDate(at)}
+                  </Row>
+                ))}
+              </Rows>
               {company.status === 'submitted' && (
                 <Text style={styles.muted}>Your application is waiting for {operatorName} to start the review.</Text>
               )}
@@ -294,15 +296,23 @@ export function ListingScreen() {
         )}
       </ScrollView>
       {withdrawing && (
-        <CompanyModal
+        <CustomModal
+          visible
+          title="Withdraw application"
           onClose={() => {
             if (!withdrawal.isPending) setWithdrawing(null);
           }}
+          busy={withdrawal.isPending}
+          actions={
+            <Action
+              label="Confirm withdrawal"
+              primary
+              disabled={!ready || !canWithdraw || company?.uuid !== withdrawing || busy}
+              onPress={() => void withdraw()}
+            />
+          }
         >
           <View style={styles.group}>
-            <Text accessibilityRole="header" style={styles.heading}>
-              Withdraw application
-            </Text>
             <CompanyReadNotice read={data} />
             {(!canWithdraw || company?.uuid !== withdrawing) && !data.error && !data.isRefreshing && (
               <Text accessibilityRole="alert" style={styles.error}>
@@ -326,25 +336,27 @@ export function ListingScreen() {
               onChangeText={setWithdrawReason}
               editable={!withdrawal.isPending}
             />
-            <Action
-              label="Confirm withdrawal"
-              disabled={!ready || !canWithdraw || company?.uuid !== withdrawing || busy}
-              onPress={() => void withdraw()}
-            />
-            <Action label="Cancel" disabled={withdrawal.isPending} onPress={() => setWithdrawing(null)} />
           </View>
-        </CompanyModal>
+        </CustomModal>
       )}
       {removing && (
-        <CompanyModal
+        <CustomModal
+          visible
+          title="Remove document"
           onClose={() => {
             if (!deletion.isPending) setRemoving(null);
           }}
+          busy={deletion.isPending}
+          actions={
+            <Action
+              label="Confirm removal"
+              primary
+              disabled={!ready || !canEdit || company?.uuid !== removing.company || busy}
+              onPress={() => void remove()}
+            />
+          }
         >
           <View style={styles.group}>
-            <Text accessibilityRole="header" style={styles.heading}>
-              Remove document
-            </Text>
             <Text style={styles.text}>{removing.document.name}</Text>
             <CompanyReadNotice read={data} />
             {deletion.isError && (
@@ -352,14 +364,8 @@ export function ListingScreen() {
                 {getErrorMessage(deletion.error, ACTION_ERROR)}
               </Text>
             )}
-            <Action
-              label="Confirm removal"
-              disabled={!ready || !canEdit || company?.uuid !== removing.company || busy}
-              onPress={() => void remove()}
-            />
-            <Action label="Cancel" disabled={deletion.isPending} onPress={() => setRemoving(null)} />
           </View>
-        </CompanyModal>
+        </CustomModal>
       )}
       {upload && (
         <CompanyUpload

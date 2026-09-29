@@ -132,6 +132,8 @@ it('keeps create drafts locked while pending and retains them on refusal without
   await fireEvent.changeText(view.getByLabelText('Class name'), 'Large class');
   await fireEvent.changeText(view.getByLabelText('Symbol'), 'big');
   await fireEvent.changeText(view.getByLabelText('Authorised shares'), '9007199254740993');
+  expect(view.getByRole('button', { name: 'Ordinary', selected: true })).toBeTruthy();
+  expect(view.getByRole('button', { name: 'Preference', selected: false })).toBeTruthy();
   await fireEvent.press(view.getAllByRole('button', { name: 'Create share class' }).at(-1)!);
   await waitFor(() => expect(view.getByRole('button', { name: 'Cancel' })).toBeDisabled());
   expect(view.getByLabelText('Authorised shares').props.editable).toBe(false);

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
-import { HardDrivesIcon, CheckIcon } from 'phosphor-react-native';
-import { PrimaryButton, SecondaryButton } from '../../../components/buttons';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { CheckIcon } from 'phosphor-react-native';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
+import { Action, Rows } from '../../../components/Ledger';
+import { ModalActions, useDialogStyles } from '../../../components/modal';
 import type { DerivedAddress, HardwareWalletImport } from '@ledova/shared';
 import { extractFromKeystoneQR } from '../../../utils/keystone/bcurDecoder';
 import { getBlockchainDisplayName, describeFailure, importOnEvmNetwork, importAddressKey } from '@ledova/shared';
@@ -16,49 +17,13 @@ interface HardwareAccountSelectorProps {
   onCancel: () => void;
 }
 
-export function HardwareAccountSelector({
-  urString,
-  onSelectAccounts,
-  onCancel,
-  disabled = false,
-}: HardwareAccountSelectorProps) {
-  const theme = useAppTheme();
-  const styles = useThemedStyles((theme) => ({
-    container: {
-      flex: 1,
-    },
-    heroSection: {
-      alignItems: 'center',
-      gap: theme.spacing.sm,
-      paddingTop: theme.spacing.sm,
-      paddingBottom: theme.spacing.lg,
-    },
-    heroSubtitle: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      textAlign: 'center',
-    },
-    loadingContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    addressList: {
-      flex: 1,
-    },
-    addressItem: {
+export function useAccountRowStyles() {
+  return useThemedStyles((theme) => ({
+    item: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: theme.colors.surface.tertiary,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
-      padding: theme.spacing.sm,
-      marginBottom: theme.spacing.sm,
-    },
-    addressItemSelected: {
-      borderColor: theme.colors.interactive.selected.border,
-      backgroundColor: theme.colors.interactive.selected.background,
+      gap: theme.spacing.smd,
+      paddingVertical: theme.spacing.smd,
     },
     checkbox: {
       width: theme.spacing.lg,
@@ -66,7 +31,6 @@ export function HardwareAccountSelector({
       borderRadius: theme.borderRadius.sm,
       borderWidth: 2,
       borderColor: theme.colors.border.strong,
-      marginRight: theme.spacing.md,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -74,39 +38,51 @@ export function HardwareAccountSelector({
       backgroundColor: theme.colors.interactive.default,
       borderColor: theme.colors.interactive.default,
     },
-    addressInfo: {
+    info: {
       flex: 1,
+      gap: theme.spacing.xs,
     },
-    addressHeader: {
+    header: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: theme.spacing.xs,
+      gap: theme.spacing.sm,
     },
-    networkName: {
+    network: {
+      fontFamily: theme.fontFamily.semibold,
       fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.semibold,
       color: theme.colors.text.primary,
     },
-    addressBalance: {
+    balance: {
+      fontFamily: theme.fontFamily.semibold,
       fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.semibold,
       color: theme.colors.text.primary,
     },
-    addressText: {
+    address: {
       fontSize: theme.fontSize.xs,
-      fontFamily: 'monospace',
+      fontFamily: theme.fontFamily.mono,
       color: theme.colors.text.muted,
     },
-    actions: {
-      flexDirection: 'row',
+  }));
+}
+
+export function HardwareAccountSelector({
+  urString,
+  onSelectAccounts,
+  onCancel,
+  disabled = false,
+}: HardwareAccountSelectorProps) {
+  const theme = useAppTheme();
+  const text = useDialogStyles();
+  const row = useAccountRowStyles();
+  const styles = useThemedStyles((theme) => ({
+    container: {
       gap: theme.spacing.md,
-      paddingVertical: theme.spacing.md,
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.border.default,
     },
-    actionButton: {
-      flex: 1,
+    loading: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.sm,
     },
   }));
   const [evmNetwork, setEvmNetwork] = useState<'ETH' | 'BASE'>('ETH');
@@ -152,18 +128,9 @@ export function HardwareAccountSelector({
 
   if (isLoading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.heroSection}>
-          <HardDrivesIcon
-            size={theme.icon.sizes.xxl}
-            color={theme.colors.status.info.icon}
-            weight={theme.icon.weights.light}
-          />
-          <Text style={styles.heroSubtitle}>Loading accounts...</Text>
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.interactive.default} />
-        </View>
+      <View style={styles.loading}>
+        <ActivityIndicator size="small" color={theme.colors.interactive.default} />
+        <Text style={text.muted}>Loading accounts...</Text>
       </View>
     );
   }
@@ -176,22 +143,24 @@ export function HardwareAccountSelector({
     return (
       <TouchableOpacity
         key={importAddressKey(derivedAddress)}
-        style={[styles.addressItem, isSelected && styles.addressItemSelected]}
+        accessibilityRole="button"
+        accessibilityState={{ selected: isSelected }}
+        style={row.item}
         disabled={disabled}
         onPress={() => toggleSelection(importAddressKey(derivedAddress))}
       >
-        <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
+        <View style={[row.checkbox, isSelected && row.checkboxSelected]}>
           {isSelected && (
             <CheckIcon size={theme.icon.sizes.sm} color={theme.colors.utility.white} weight={theme.icon.weights.fill} />
           )}
         </View>
 
-        <View style={styles.addressInfo}>
-          <View style={styles.addressHeader}>
-            <Text style={styles.networkName}>{networkName}</Text>
-            <Text style={styles.addressBalance}>{balance}</Text>
+        <View style={row.info}>
+          <View style={row.header}>
+            <Text style={row.network}>{networkName}</Text>
+            <Text style={row.balance}>{balance}</Text>
           </View>
-          <Text style={styles.addressText}>
+          <Text style={row.address}>
             {derivedAddress.address.slice(0, 10)}...{derivedAddress.address.slice(-8)}
           </Text>
         </View>
@@ -201,14 +170,7 @@ export function HardwareAccountSelector({
 
   return (
     <View style={styles.container}>
-      <View style={styles.heroSection}>
-        <HardDrivesIcon
-          size={theme.icon.sizes.xxl}
-          color={theme.colors.status.info.icon}
-          weight={theme.icon.weights.light}
-        />
-        <Text style={styles.heroSubtitle}>Review the accounts to import</Text>
-      </View>
+      <Text style={text.muted}>Review the accounts to import</Text>
 
       {addresses.some((item) => item.networkType !== 'BTC') && (
         <WalletNetworkSelector
@@ -218,22 +180,17 @@ export function HardwareAccountSelector({
           onChange={(network) => setEvmNetwork(network === 'base' ? 'BASE' : 'ETH')}
         />
       )}
-      <ScrollView style={styles.addressList} showsVerticalScrollIndicator={false}>
-        {addresses.map(renderAddressItem)}
-      </ScrollView>
+      <Rows>{addresses.map(renderAddressItem)}</Rows>
 
-      <View style={styles.actions}>
-        <SecondaryButton disabled={disabled} onPress={onCancel} style={styles.actionButton}>
-          Cancel
-        </SecondaryButton>
-        <PrimaryButton
-          onPress={handleImport}
+      <ModalActions>
+        <Action label="Cancel" disabled={disabled} onPress={onCancel} />
+        <Action
+          label="Import Wallet"
+          primary
           disabled={disabled || selectedAddresses.size === 0}
-          style={styles.actionButton}
-        >
-          Import Wallet
-        </PrimaryButton>
-      </View>
+          onPress={handleImport}
+        />
+      </ModalActions>
     </View>
   );
 }

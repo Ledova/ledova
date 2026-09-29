@@ -1,10 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import {
-  FunnelIcon,
-  CurrencyBtcIcon,
-  CurrencyEthIcon,
-  CircleIcon,
   ListBulletsIcon,
   ShieldCheckIcon,
   SortAscendingIcon,
@@ -13,6 +9,7 @@ import {
   CoinsIcon,
   CheckIcon,
 } from 'phosphor-react-native';
+import { Choice, Rows } from '../Ledger';
 import { CustomModal } from '../modal';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 
@@ -30,128 +27,50 @@ interface WalletSortModalProps {
 export function WalletSortModal({ visible, selectedChain, selectedSort, onClose, onApply }: WalletSortModalProps) {
   const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
-    header: {
-      alignItems: 'center',
-      paddingVertical: theme.spacing.xs,
-      marginBottom: theme.spacing.sm,
-    },
-    headerIcon: {
-      marginBottom: theme.spacing.xs,
-    },
-    title: {
-      fontSize: theme.fontSize.lg,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-      textAlign: 'center',
+    group: {
+      gap: theme.spacing.sm,
     },
     sectionLabel: {
+      fontFamily: theme.fontFamily.medium,
       fontSize: theme.fontSize.xs,
-      fontWeight: theme.fontWeight.medium,
       color: theme.colors.text.subtle,
       textTransform: 'uppercase',
       letterSpacing: 0.5,
-      marginBottom: theme.spacing.xs,
     },
     chainContainer: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       gap: theme.spacing.sm,
-      marginBottom: theme.spacing.md,
-    },
-    chainChip: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: theme.spacing.xs,
-      paddingVertical: theme.spacing.xs,
-      borderRadius: theme.borderRadius.md,
-      backgroundColor: theme.colors.surface.tertiary,
-      borderWidth: 2,
-      borderColor: 'transparent',
-    },
-    chainChipSelected: {
-      borderColor: theme.colors.interactive.default,
-      backgroundColor: theme.colors.surface.disabled,
-    },
-    chainChipLabel: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.primary,
-    },
-    chainChipLabelSelected: {
-      color: theme.colors.interactive.active,
-    },
-    optionsContainer: {
-      gap: theme.spacing.xs,
     },
     optionItem: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingVertical: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.sm,
-      borderRadius: theme.borderRadius.md,
-      backgroundColor: theme.colors.surface.tertiary,
-      borderWidth: 2,
-      borderColor: 'transparent',
-    },
-    optionItemSelected: {
-      borderColor: theme.colors.interactive.default,
-      backgroundColor: theme.colors.surface.disabled,
-    },
-    optionLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      flex: 1,
-    },
-    iconContainer: {
-      width: 32,
-      height: 32,
-      borderRadius: theme.borderRadius.full,
-      backgroundColor: theme.colors.surface.raised,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginRight: theme.spacing.sm,
+      gap: theme.spacing.smd,
+      paddingVertical: theme.spacing.smd,
     },
     optionContent: {
       flex: 1,
     },
     optionLabel: {
+      fontFamily: theme.fontFamily.medium,
       fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
       color: theme.colors.text.primary,
-      marginBottom: 1,
     },
     optionLabelSelected: {
       color: theme.colors.interactive.active,
     },
     optionDescription: {
+      fontFamily: theme.fontFamily.regular,
       fontSize: 11,
       color: theme.colors.text.muted,
     },
   }));
 
-  const chainOptions: Array<{ id: WalletChainFilter; label: string; icon: React.ReactNode }> = [
-    {
-      id: 'all',
-      label: 'All',
-      icon: <ListBulletsIcon size={theme.icon.sizes.sm} color={theme.colors.text.primary} weight="regular" />,
-    },
-    {
-      id: 'btc',
-      label: 'BTC',
-      icon: <CurrencyBtcIcon size={theme.icon.sizes.sm} color={theme.colors.text.primary} weight="regular" />,
-    },
-    {
-      id: 'eth',
-      label: 'ETH',
-      icon: <CurrencyEthIcon size={theme.icon.sizes.sm} color={theme.colors.text.primary} weight="regular" />,
-    },
-    {
-      id: 'base',
-      label: 'BASE',
-      icon: <CircleIcon size={theme.icon.sizes.sm} color={theme.colors.text.primary} weight="fill" />,
-    },
+  const chainOptions: Array<{ id: WalletChainFilter; label: string }> = [
+    { id: 'all', label: 'All' },
+    { id: 'btc', label: 'BTC' },
+    { id: 'eth', label: 'ETH' },
+    { id: 'base', label: 'BASE' },
   ];
 
   const sortOptions: Array<{ id: WalletSortOption; label: string; icon: React.ReactNode; description: string }> = [
@@ -211,6 +130,7 @@ export function WalletSortModal({ visible, selectedChain, selectedSort, onClose,
   return (
     <CustomModal
       visible={visible}
+      title="Sort Wallets"
       onClose={onClose}
       showFooter={true}
       showCancelButton={true}
@@ -219,58 +139,50 @@ export function WalletSortModal({ visible, selectedChain, selectedSort, onClose,
       onCancel={onClose}
       onConfirm={handleApply}
     >
-      <View style={styles.header}>
-        <FunnelIcon
-          size={theme.icon.sizes.lg}
-          color={theme.colors.interactive.active}
-          weight="regular"
-          style={styles.headerIcon}
-        />
-        <Text style={styles.title}>Sort Wallets</Text>
-      </View>
-
-      <Text style={styles.sectionLabel}>Chain</Text>
-      <View style={styles.chainContainer}>
-        {chainOptions.map((option) => {
-          const isSelected = localChain === option.id;
-          return (
-            <TouchableOpacity
+      <View style={styles.group}>
+        <Text accessibilityRole="header" style={styles.sectionLabel}>
+          Chain
+        </Text>
+        <View style={styles.chainContainer}>
+          {chainOptions.map((option) => (
+            <Choice
               key={option.id}
-              style={[styles.chainChip, isSelected && styles.chainChipSelected]}
+              label={option.label}
+              selected={localChain === option.id}
               onPress={() => setLocalChain(option.id)}
-              activeOpacity={0.7}
-            >
-              {option.icon}
-              <Text style={[styles.chainChipLabel, isSelected && styles.chainChipLabelSelected]}>{option.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
+            />
+          ))}
+        </View>
       </View>
 
-      <Text style={styles.sectionLabel}>Sort By</Text>
-      <View style={styles.optionsContainer}>
-        {sortOptions.map((option) => {
-          const isSelected = localSort === option.id;
-          return (
-            <TouchableOpacity
-              key={option.id}
-              style={[styles.optionItem, isSelected && styles.optionItemSelected]}
-              onPress={() => setLocalSort(option.id)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.optionLeft}>
-                <View style={styles.iconContainer}>{option.icon}</View>
+      <View style={styles.group}>
+        <Text accessibilityRole="header" style={styles.sectionLabel}>
+          Sort By
+        </Text>
+        <Rows>
+          {sortOptions.map((option) => {
+            const isSelected = localSort === option.id;
+            return (
+              <TouchableOpacity
+                key={option.id}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected }}
+                style={styles.optionItem}
+                onPress={() => setLocalSort(option.id)}
+                activeOpacity={0.7}
+              >
+                {option.icon}
                 <View style={styles.optionContent}>
                   <Text style={[styles.optionLabel, isSelected && styles.optionLabelSelected]}>{option.label}</Text>
                   <Text style={styles.optionDescription}>{option.description}</Text>
                 </View>
-              </View>
-              {isSelected && (
-                <CheckIcon size={theme.icon.sizes.sm} color={theme.colors.interactive.active} weight="bold" />
-              )}
-            </TouchableOpacity>
-          );
-        })}
+                {isSelected && (
+                  <CheckIcon size={theme.icon.sizes.sm} color={theme.colors.interactive.active} weight="bold" />
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </Rows>
       </View>
     </CustomModal>
   );

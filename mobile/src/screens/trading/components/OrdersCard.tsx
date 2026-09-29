@@ -10,7 +10,7 @@ import {
   type OrderBook,
   type OrderBookEntry,
 } from '@ledova/shared';
-import { Action, Row, Section } from '../../../components/Ledger';
+import { Action, Row, Rows, Section } from '../../../components/Ledger';
 import { marketAmount, marketQuantity } from '../marketData';
 import { useMarketStyles } from '../styles';
 
@@ -24,13 +24,17 @@ function BookSide({ title, entries }: { title: string; entries: OrderBookEntry[]
       {entries.length === 0 ? (
         <Text style={styles.muted}>No orders listed.</Text>
       ) : (
-        entries.map((entry, index) => (
-          <View key={index} style={styles.classRow}>
-            <Row label="Price per share">{marketAmount(entry.price)}</Row>
-            <Row label="Shares">{marketQuantity(entry.quantity)}</Row>
-            <Row label="Total">{marketAmount(entry.price, entry.quantity)}</Row>
-          </View>
-        ))
+        <Rows>
+          {entries.map((entry, index) => (
+            <View key={index} style={styles.classRow}>
+              <Rows>
+                <Row label="Price per share">{marketAmount(entry.price)}</Row>
+                <Row label="Shares">{marketQuantity(entry.quantity)}</Row>
+                <Row label="Total">{marketAmount(entry.price, entry.quantity)}</Row>
+              </Rows>
+            </View>
+          ))}
+        </Rows>
       )}
     </View>
   );
@@ -125,58 +129,62 @@ export function OrdersCard({
         ) : userOrders.length === 0 ? (
           <Text style={styles.muted}>No recorded orders.</Text>
         ) : (
-          userOrders.map((order) => (
-            <View key={order.uuid} style={styles.classRow}>
-              <Text style={styles.text}>{order.tokenName ?? order.tokenSymbol ?? 'Share class unavailable'}</Text>
-              <Row label="Order">{order.orderType === 'buy' ? 'Wanted' : 'For sale'}</Row>
-              <Row label="Status">{order.statusDisplay ?? order.status.replace(/_/g, ' ')}</Row>
-              <Row label="Shares remaining">{marketQuantity(order.remainingQuantity ?? order.quantity)}</Row>
-              <Row label="Price per share">{marketAmount(order.pricePerShare)}</Row>
-              <Row label="Remaining value">
-                {marketAmount(order.pricePerShare, order.remainingQuantity ?? order.quantity)}
-              </Row>
-              <Row label="Created">{formatDateTime(order.createdAt)}</Row>
-              <Row label="Wallet">{order.walletAddress}</Row>
-              <View style={styles.actions}>
-                <Action
-                  label="Details"
-                  accessibilityLabel={`Details for order ${order.uuid}`}
-                  onPress={() => onViewOrder(order)}
-                  disabled={ordersBlocked}
-                />
-                {['open', 'partially_filled'].includes(order.status) &&
-                  (confirming === order.uuid ? (
-                    <>
-                      <Text style={styles.text}>Cancel this order?</Text>
-                      <Action
-                        label="Yes, cancel"
-                        disabled={ordersBlocked}
-                        onPress={() => {
-                          onCancelOrder(order.uuid);
-                          setConfirming(null);
-                        }}
-                      />
-                      <Action label="Keep order" onPress={() => setConfirming(null)} />
-                    </>
-                  ) : (
-                    <>
-                      <Action
-                        label="Modify"
-                        accessibilityLabel={`Modify order ${order.uuid}`}
-                        disabled={ordersBlocked}
-                        onPress={() => onEditOrder(order)}
-                      />
-                      <Action
-                        label="Cancel order"
-                        accessibilityLabel={`Cancel order ${order.uuid}`}
-                        disabled={ordersBlocked}
-                        onPress={() => setConfirming(order.uuid)}
-                      />
-                    </>
-                  ))}
+          <Rows>
+            {userOrders.map((order) => (
+              <View key={order.uuid} style={styles.classRow}>
+                <Text style={styles.text}>{order.tokenName ?? order.tokenSymbol ?? 'Share class unavailable'}</Text>
+                <Rows>
+                  <Row label="Order">{order.orderType === 'buy' ? 'Wanted' : 'For sale'}</Row>
+                  <Row label="Status">{order.statusDisplay ?? order.status.replace(/_/g, ' ')}</Row>
+                  <Row label="Shares remaining">{marketQuantity(order.remainingQuantity ?? order.quantity)}</Row>
+                  <Row label="Price per share">{marketAmount(order.pricePerShare)}</Row>
+                  <Row label="Remaining value">
+                    {marketAmount(order.pricePerShare, order.remainingQuantity ?? order.quantity)}
+                  </Row>
+                  <Row label="Created">{formatDateTime(order.createdAt)}</Row>
+                  <Row label="Wallet">{order.walletAddress}</Row>
+                </Rows>
+                <View style={styles.actions}>
+                  <Action
+                    label="Details"
+                    accessibilityLabel={`Details for order ${order.uuid}`}
+                    onPress={() => onViewOrder(order)}
+                    disabled={ordersBlocked}
+                  />
+                  {['open', 'partially_filled'].includes(order.status) &&
+                    (confirming === order.uuid ? (
+                      <>
+                        <Text style={styles.text}>Cancel this order?</Text>
+                        <Action
+                          label="Yes, cancel"
+                          disabled={ordersBlocked}
+                          onPress={() => {
+                            onCancelOrder(order.uuid);
+                            setConfirming(null);
+                          }}
+                        />
+                        <Action label="Keep order" onPress={() => setConfirming(null)} />
+                      </>
+                    ) : (
+                      <>
+                        <Action
+                          label="Modify"
+                          accessibilityLabel={`Modify order ${order.uuid}`}
+                          disabled={ordersBlocked}
+                          onPress={() => onEditOrder(order)}
+                        />
+                        <Action
+                          label="Cancel order"
+                          accessibilityLabel={`Cancel order ${order.uuid}`}
+                          disabled={ordersBlocked}
+                          onPress={() => setConfirming(order.uuid)}
+                        />
+                      </>
+                    ))}
+                </View>
               </View>
-            </View>
-          ))
+            ))}
+          </Rows>
         )}
       </Section>
       <Section title="Trades awaiting signatures">
@@ -192,52 +200,56 @@ export function OrdersCard({
         ) : !swaps?.length ? (
           <Text style={styles.muted}>No trades awaiting signatures for your verified wallets.</Text>
         ) : (
-          swaps.map((swap) => {
-            const legacy = swap.settlementProtocolVersion === 0;
-            let canReview = false;
-            let role = wallets.some((wallet) => wallet.address.toLowerCase() === swap.sellerAddress.toLowerCase())
-              ? 'Seller'
-              : wallets.some((wallet) => wallet.address.toLowerCase() === swap.buyerAddress.toLowerCase())
-                ? 'Buyer'
-                : 'Unavailable';
-            if (!legacy && settlementOwner && ['created', 'seller_signed', 'buyer_signed'].includes(swap.status)) {
-              try {
-                const { selection } = selectSwapSettlement(swap, settlementOwner, wallets);
-                role = selection.orderUuid === swap.sellOrderUuid ? 'Seller' : 'Buyer';
-                canReview = true;
-              } catch {
-                canReview = false;
+          <Rows>
+            {swaps.map((swap) => {
+              const legacy = swap.settlementProtocolVersion === 0;
+              let canReview = false;
+              let role = wallets.some((wallet) => wallet.address.toLowerCase() === swap.sellerAddress.toLowerCase())
+                ? 'Seller'
+                : wallets.some((wallet) => wallet.address.toLowerCase() === swap.buyerAddress.toLowerCase())
+                  ? 'Buyer'
+                  : 'Unavailable';
+              if (!legacy && settlementOwner && ['created', 'seller_signed', 'buyer_signed'].includes(swap.status)) {
+                try {
+                  const { selection } = selectSwapSettlement(swap, settlementOwner, wallets);
+                  role = selection.orderUuid === swap.sellOrderUuid ? 'Seller' : 'Buyer';
+                  canReview = true;
+                } catch {
+                  canReview = false;
+                }
               }
-            }
-            return (
-              <View key={swap.uuid} style={styles.classRow}>
-                <Text style={styles.text}>
-                  {swap.shareTokenName ?? swap.shareTokenSymbol ?? 'Share class unavailable'}
-                </Text>
-                <Row label="Your role">{role}</Row>
-                <Row label="Status">{swap.status.replace(/_/g, ' ')}</Row>
-                {legacy ? (
-                  <Row label="Recorded shares">{marketQuantity(swap.shareAmount)} shares</Row>
-                ) : (
-                  <Row label="Amounts">Review trade amounts</Row>
-                )}
-                {!legacy && new Date(swap.expiresAt).getTime() <= now && <Row label="Signing window">Expired</Row>}
-                <Row label="Expires">{formatDateTime(swap.expiresAt)}</Row>
-                {legacy ? (
-                  <Text style={styles.muted}>Held for operator review</Text>
-                ) : canReview ? (
-                  <Action
-                    label="Review trade and sign"
-                    accessibilityLabel="Sign"
-                    onPress={() => onSignSwap(swap)}
-                    disabled={swapsBlocked}
-                  />
-                ) : (
-                  <Text style={styles.muted}>No signature is available for the current account and wallets.</Text>
-                )}
-              </View>
-            );
-          })
+              return (
+                <View key={swap.uuid} style={styles.classRow}>
+                  <Text style={styles.text}>
+                    {swap.shareTokenName ?? swap.shareTokenSymbol ?? 'Share class unavailable'}
+                  </Text>
+                  <Rows>
+                    <Row label="Your role">{role}</Row>
+                    <Row label="Status">{swap.status.replace(/_/g, ' ')}</Row>
+                    {legacy ? (
+                      <Row label="Recorded shares">{marketQuantity(swap.shareAmount)} shares</Row>
+                    ) : (
+                      <Row label="Amounts">Review trade amounts</Row>
+                    )}
+                    {!legacy && new Date(swap.expiresAt).getTime() <= now && <Row label="Signing window">Expired</Row>}
+                    <Row label="Expires">{formatDateTime(swap.expiresAt)}</Row>
+                  </Rows>
+                  {legacy ? (
+                    <Text style={styles.muted}>Held for operator review</Text>
+                  ) : canReview ? (
+                    <Action
+                      label="Review trade and sign"
+                      accessibilityLabel="Sign"
+                      onPress={() => onSignSwap(swap)}
+                      disabled={swapsBlocked}
+                    />
+                  ) : (
+                    <Text style={styles.muted}>No signature is available for the current account and wallets.</Text>
+                  )}
+                </View>
+              );
+            })}
+          </Rows>
         )}
       </Section>
     </>
