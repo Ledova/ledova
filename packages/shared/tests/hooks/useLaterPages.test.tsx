@@ -109,6 +109,28 @@ it('shows a refresh that fails as a first-page failure, including while it is re
   expect(view.result.current.moreFailed).toBe(false);
 });
 
+it('shows a refresh that throws the later page’s own error again as a first-page failure', async () => {
+  const offline = new Error('offline');
+  read = async (page) => {
+    if (page === 2) throw offline;
+    return { rows: ['first'], next: 2 };
+  };
+  const view = renderHook(() => useList(), { wrapper });
+  await waitFor(() => expect(view.result.current.rows).toEqual(['first']));
+  await act(() => view.result.current.loadMore());
+  await waitFor(() => expect(view.result.current.moreFailed).toBe(true));
+  read = async () => {
+    throw offline;
+  };
+
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: ['list'] });
+  });
+
+  await waitFor(() => expect(view.result.current.hasError).toBe(true));
+  expect(view.result.current.moreFailed).toBe(false);
+});
+
 it('does not take another list’s first-page failure for this list’s later-page failure', async () => {
   await laterPageFailed('notices');
   read = async () => {
