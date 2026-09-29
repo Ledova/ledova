@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import axios from 'axios';
 import { ApiClientProvider, AUTH_QUERY_KEY, USER_PREFERENCES_QUERY_KEY, COMPANY_TOKEN_ENDPOINTS } from '@ledova/shared';
-import { listSavedPauses } from '@services/pauseSubmissions';
+import { pauseSubmissionStore } from '@services/pauseSubmissions';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
@@ -64,7 +64,9 @@ beforeEach(() => {
   api.get.mockImplementation(async () => response());
   api.post.mockImplementation(async (_url: string, body: { submissionId: string }) => {
     id = body.submissionId;
-    expect(listSavedPauses(owner, tokenUuid)).toEqual([{ ...owner, tokenUuid, submissionId: id, paused: true }]);
+    expect(pauseSubmissionStore.list(owner, tokenUuid)).toEqual([
+      { ...owner, tokenUuid, submissionId: id, paused: true },
+    ]);
     return response();
   });
 });
@@ -107,7 +109,7 @@ it('recovers an uncertain post after remount and retries with the original ident
   const first = show();
   fireEvent.click(await screen.findByRole('button', { name: 'Pause' }));
   await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
-  const original = listSavedPauses(owner, tokenUuid)[0];
+  const original = pauseSubmissionStore.list(owner, tokenUuid)[0];
   first.unmount();
   show();
   await screen.findByText(`Pause request ${original.submissionId}`);
@@ -115,7 +117,7 @@ it('recovers an uncertain post after remount and retries with the original ident
   fireEvent.click(screen.getByRole('button', { name: 'Retry same request' }));
   await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
   expect(api.post.mock.calls[1][1]).toEqual({ submissionId: original.submissionId });
-  expect(listSavedPauses(owner, tokenUuid)).toHaveLength(1);
+  expect(pauseSubmissionStore.list(owner, tokenUuid)).toHaveLength(1);
 });
 
 it('keeps an original completed outcome separate from a later current token state', async () => {
@@ -127,7 +129,7 @@ it('keeps an original completed outcome separate from a later current token stat
   await screen.findByText(/original pause transaction was confirmed/);
   expect(screen.getByRole('button', { name: 'Pause' })).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Dismiss outcome' }));
-  await waitFor(() => expect(listSavedPauses(owner, tokenUuid)).toHaveLength(0));
+  await waitFor(() => expect(pauseSubmissionStore.list(owner, tokenUuid)).toHaveLength(0));
   expect(api.post).toHaveBeenCalledTimes(1);
 });
 
@@ -137,7 +139,7 @@ it('cannot send when the identifier was not retained by storage', async () => {
   fireEvent.click(await screen.findByRole('button', { name: 'Pause' }));
   await screen.findByRole('alert');
   expect(api.post).not.toHaveBeenCalled();
-  expect(listSavedPauses(owner, tokenUuid)).toHaveLength(0);
+  expect(pauseSubmissionStore.list(owner, tokenUuid)).toHaveLength(0);
 });
 
 it('retains the displayed identity and refuses a retry whose storage write is lost', async () => {
@@ -158,19 +160,19 @@ it('restores the exact displayed request before retrying after its storage entry
   show();
   fireEvent.click(await screen.findByRole('button', { name: 'Pause' }));
   await screen.findByText(/Pause request retained/);
-  const original = listSavedPauses(owner, tokenUuid)[0];
+  const original = pauseSubmissionStore.list(owner, tokenUuid)[0];
   localStorage.clear();
   fireEvent.click(screen.getByRole('button', { name: 'Retry same request' }));
   await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
   expect(api.post.mock.calls[1][1]).toEqual({ submissionId: original.submissionId });
-  expect(listSavedPauses(owner, tokenUuid)).toEqual([original]);
+  expect(pauseSubmissionStore.list(owner, tokenUuid)).toEqual([original]);
 });
 
 it('refuses to replace different stored terms with a displayed retry', async () => {
   show();
   fireEvent.click(await screen.findByRole('button', { name: 'Pause' }));
   await screen.findByText(/Pause request retained/);
-  const original = listSavedPauses(owner, tokenUuid)[0];
+  const original = pauseSubmissionStore.list(owner, tokenUuid)[0];
   const name = Object.keys(localStorage)[0];
   localStorage.setItem(name, JSON.stringify({ ...original, paused: false }));
   fireEvent.click(screen.getByRole('button', { name: 'Retry same request' }));
@@ -188,7 +190,7 @@ it('does not erase recovery when the server responds with another submission', a
   show();
   fireEvent.click(await screen.findByRole('button', { name: 'Pause' }));
   await waitFor(() => expect(screen.getAllByRole('alert').length).toBeGreaterThan(0));
-  expect(listSavedPauses(owner, tokenUuid)).toHaveLength(1);
+  expect(pauseSubmissionStore.list(owner, tokenUuid)).toHaveLength(1);
   expect(screen.queryByRole('button', { name: 'Dismiss outcome' })).toBeNull();
 });
 
@@ -212,7 +214,7 @@ it('hides the old issuer requests on account change and rejects a delayed respon
   await act(async () => release(response()));
   expect(screen.queryByText(`Pause request ${id}`)).toBeNull();
   expect(screen.queryByText(/original pause transaction was confirmed/)).toBeNull();
-  expect(listSavedPauses(owner, tokenUuid)).toHaveLength(1);
+  expect(pauseSubmissionStore.list(owner, tokenUuid)).toHaveLength(1);
 });
 
 it('retains both completed and newer requests instead of overwriting the older reminder', async () => {
@@ -231,7 +233,7 @@ it('retains both completed and newer requests instead of overwriting the older r
   fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
   await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
   expect(id).not.toBe(original);
-  expect(listSavedPauses(owner, tokenUuid)).toHaveLength(2);
+  expect(pauseSubmissionStore.list(owner, tokenUuid)).toHaveLength(2);
 });
 
 it('recovers a permanent unpause refusal and permits a later deliberate opposite request', async () => {
@@ -252,7 +254,7 @@ it('recovers a permanent unpause refusal and permits a later deliberate opposite
   });
   api.post.mockImplementationOnce(async (_url: string, body: { submissionId: string }) => {
     refusedId = body.submissionId;
-    expect(listSavedPauses(owner, tokenUuid)[0].paused).toBe(false);
+    expect(pauseSubmissionStore.list(owner, tokenUuid)[0].paused).toBe(false);
     return refusal();
   });
   api.get.mockImplementation(async () => refusal());
@@ -273,7 +275,7 @@ it('recovers a permanent unpause refusal and permits a later deliberate opposite
   await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
   expect(api.post.mock.calls[1][0]).toBe(COMPANY_TOKEN_ENDPOINTS.PAUSE(tokenUuid));
   expect(id).not.toBe(refusedId!);
-  expect(listSavedPauses(owner, tokenUuid)).toHaveLength(2);
+  expect(pauseSubmissionStore.list(owner, tokenUuid)).toHaveLength(2);
 });
 
 it('blocks sending while saved requests are unreadable on mount and lists them after a storage event', async () => {

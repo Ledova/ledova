@@ -157,10 +157,17 @@ it('hides old member rows when a refresh fails instead of presenting a complete 
   expect(view.queryByText('Alex Member')).toBeNull();
 });
 
-it.each(['investor', 'loading', 'error'])(
+it('reads issuer records for a dual-role account', async () => {
+  mockPreferences.userAccount.role = 'both';
+  const view = await render(<CompanyRegisterScreen />, { wrapper });
+  await waitFor(() => expect(view.getByRole('button', { name: 'Open Preference shares' })).toBeTruthy());
+});
+
+it.each(['investor', 'undefined-role', 'loading', 'error'])(
   'does not read issuer records with %s access, including pull-to-refresh',
   async (state) => {
     if (state === 'investor') mockPreferences.userAccount.role = 'investor';
+    if (state === 'undefined-role') mockPreferences.userAccount.role = 'staff';
     if (state === 'loading') {
       mockPreferences.userAccount.role = 'investor';
       mockPreferences.isLoading = true;

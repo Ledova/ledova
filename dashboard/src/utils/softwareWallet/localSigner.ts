@@ -1,73 +1,10 @@
 import { ethers } from 'ethers';
 import { HDKey } from 'ethereum-cryptography/hdkey';
 import { mnemonicToSeedSync } from 'ethereum-cryptography/bip39';
+import { createLocalSigner } from '@ledova/shared';
 
 export const DEFAULT_EVM_DERIVATION_PATH = "m/44'/60'/0'/0/0";
 
-function wipe(...arrays: (Uint8Array | null | undefined)[]): void {
-  for (const arr of arrays) {
-    if (arr) arr.fill(0);
-  }
-}
+const signer = createLocalSigner({ ethers, HDKey, mnemonicToSeedSync });
 
-function deriveKey(mnemonic: string, derivationPath: string) {
-  const seed = mnemonicToSeedSync(mnemonic);
-  const masterKey = HDKey.fromMasterSeed(seed);
-  const childKey = masterKey.derive(derivationPath);
-
-  if (!childKey.privateKey) {
-    wipe(seed, masterKey.privateKey);
-    throw new Error('Failed to derive private key from mnemonic');
-  }
-
-  const privateKey = new Uint8Array(childKey.privateKey);
-  wipe(seed, masterKey.privateKey, childKey.privateKey);
-
-  return { privateKey, cleanup: () => wipe(privateKey) };
-}
-
-async function withEthereumSigner<T>(
-  mnemonic: string,
-  derivationPath: string,
-  sign: (wallet: ethers.Wallet) => Promise<T>,
-): Promise<T> {
-  const { privateKey, cleanup } = deriveKey(mnemonic, derivationPath);
-  try {
-    const wallet = new ethers.Wallet(new ethers.SigningKey(privateKey));
-    return await sign(wallet);
-  } finally {
-    cleanup();
-  }
-}
-
-export function deriveAddress(mnemonic: string, derivationPath: string): string {
-  const { privateKey, cleanup } = deriveKey(mnemonic, derivationPath);
-  try {
-    const wallet = new ethers.Wallet(new ethers.SigningKey(privateKey));
-    return wallet.address;
-  } finally {
-    cleanup();
-  }
-}
-
-export async function signEthereumTransaction(
-  mnemonic: string,
-  derivationPath: string,
-  unsignedTx: ethers.TransactionLike,
-): Promise<string> {
-  return withEthereumSigner(mnemonic, derivationPath, (wallet) => wallet.signTransaction(unsignedTx));
-}
-
-export async function signEthereumMessage(mnemonic: string, derivationPath: string, message: string): Promise<string> {
-  return withEthereumSigner(mnemonic, derivationPath, (wallet) => wallet.signMessage(message));
-}
-
-export async function signEthereumTypedData(
-  mnemonic: string,
-  derivationPath: string,
-  domain: ethers.TypedDataDomain,
-  types: Record<string, ethers.TypedDataField[]>,
-  value: Record<string, unknown>,
-): Promise<string> {
-  return withEthereumSigner(mnemonic, derivationPath, (wallet) => wallet.signTypedData(domain, types, value));
-}
+export const { deriveAddress, signEthereumTransaction, signEthereumMessage, signEthereumTypedData } = signer;
