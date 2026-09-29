@@ -526,6 +526,17 @@ it('withdraws an editable rejected record and retains its previous reason after 
   expect(api.post).toHaveBeenCalledWith(DETAIL + 'withdraw/', { reason: 'Withdrawn by the issuer' });
 });
 
+it.each([
+  ['a failing server’s bare body', { status: 502, data: 'Bad Gateway' }],
+  ['no answer', undefined],
+])('says an action could not be completed when %s gives no reason', async (_failure, response) => {
+  api.post.mockRejectedValueOnce(Object.assign(new Error('Request failed with status code 502'), { response }));
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Submit for review' }));
+  expect(await screen.findByText('The request could not be completed. Try again.')).toBeTruthy();
+  expect(screen.queryByText(/Bad Gateway|status code|refused/)).toBeNull();
+});
+
 it('shows the latest action refusal and refreshes after deleting a draft', async () => {
   api.post.mockRejectedValueOnce(refusal('Submission refused.'));
   api.delete.mockRejectedValueOnce(refusal('Deletion refused.')).mockImplementationOnce(async () => {

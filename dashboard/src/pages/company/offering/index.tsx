@@ -131,7 +131,7 @@ export default function OfferingPage() {
     } catch (error) {
       setActionError({
         listing: false,
-        message: apiErrorSentence(error, 'The request was refused. Please try again.'),
+        message: apiErrorSentence(error, 'The request could not be completed. Try again.'),
       });
     }
   };
