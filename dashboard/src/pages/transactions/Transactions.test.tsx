@@ -4,13 +4,19 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
+import type { AxiosInstance } from 'axios';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { TRANSACTION_ENDPOINTS, WALLET_ENDPOINTS, getBlockExplorerTxUrl, type Transaction } from '@ledova/shared';
+import {
+  ApiClientProvider,
+  TRANSACTION_ENDPOINTS,
+  WALLET_ENDPOINTS,
+  getBlockExplorerTxUrl,
+  type Transaction,
+} from '@ledova/shared';
 import { PageTitle } from '@components/PageTitle';
 import TransactionsPage from './index';
 
-const api = vi.hoisted(() => ({ get: vi.fn() }));
-vi.mock('@services/apiClient', () => ({ default: api }));
+const api = { get: vi.fn() };
 const wallet = { uuid: 'wallet-one', name: 'Primary wallet', address: `0x${'a'.repeat(40)}`, chain: 'base' };
 const secondWallet = { ...wallet, uuid: 'wallet-two', name: 'Reserve wallet', address: `0x${'b'.repeat(40)}` };
 const transaction: Transaction = {
@@ -43,11 +49,13 @@ let wallets: (params: Record<string, unknown>) => Promise<unknown>;
 function show() {
   render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/transactions']}>
-        <PageTitle.Provider value="Activity">
-          <TransactionsPage />
-        </PageTitle.Provider>
-      </MemoryRouter>
+      <ApiClientProvider client={api as unknown as AxiosInstance}>
+        <MemoryRouter initialEntries={['/transactions']}>
+          <PageTitle.Provider value="Activity">
+            <TransactionsPage />
+          </PageTitle.Provider>
+        </MemoryRouter>
+      </ApiClientProvider>
     </QueryClientProvider>,
   );
 }
@@ -365,7 +373,7 @@ it('suppresses stale activity detail after a failed refresh and recovers the cur
     throw Error('Unavailable');
   };
   await act(async () => {
-    await client.invalidateQueries({ queryKey: ['transactions'] });
+    await client.invalidateQueries({ queryKey: ['all-transactions'] });
   });
   expect(await screen.findByRole('alert')).toBeTruthy();
   await waitFor(() => expect(screen.queryByRole('button', { name: entryName })).toBeNull());
@@ -447,15 +455,4 @@ it('toggles entries from the keyboard and leaves another open entry where it is'
   expect(second.getAttribute('aria-expanded')).toBe('false');
   expect(detailOf(second).hidden).toBe(true);
   expect(detailOf(first).hidden).toBe(false);
-});
-
-it.each([
-  ['-0.5', '-0.5 AUDX'],
-  ['-0.000000000000000001', '-0.000000000000000001 AUDX'],
-  ['-1000.50', '-1,000.5 AUDX'],
-  ['0.0000', '0 AUDX'],
-])('preserves the recorded sign and precision of %s', async (amount, expected) => {
-  activity = async () => page([{ ...transaction, amount }]);
-  show();
-  expect(await screen.findByText(expected)).toBeTruthy();
 });

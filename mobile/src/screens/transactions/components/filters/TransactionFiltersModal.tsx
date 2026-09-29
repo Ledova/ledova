@@ -1,12 +1,11 @@
 import { Text, View } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
-import type { Wallet } from '@ledova/shared';
+import type { TransactionFilters, Wallet } from '@ledova/shared';
 import { BLOCKCHAIN } from '@ledova/shared';
 import { useThemedStyles } from '../../../../contexts';
 import { Action, Choice } from '../../../../components/Ledger';
 import { DatePickerField } from '../../../../components/date-picker';
 import { CustomModal } from '../../../../components/modal';
-import type { TransactionFilters } from '../../useTransactions';
 
 interface Props {
   isOpen: boolean;

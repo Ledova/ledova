@@ -27,3 +27,5 @@ export { useSignupReview } from './useSignupReview';
 export { useInvestorEligibilityQuery, useOrderBook, useShareTokens } from './useMarket';
 export { useSwapOrdersMulti } from './useAtomicSwaps';
 export { useSubscribableWallets, useSubscriptions } from './useSubscriptions';
+export { useTransactions } from './useTransactions';
+export type { TransactionFilters } from './useTransactions';

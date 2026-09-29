@@ -1,15 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
-import {
-  CACHE_TIMING,
-  assertNextPageAdvances,
-  getTransactions,
-  getTransactionsNextPage,
-  getWallets,
-  readEveryPage,
-} from '@ledova/shared';
-import type { TransactionQueryParams } from '@ledova/shared';
-import apiClient from '@services/apiClient';
+
+import { CACHE_TIMING } from '../constants/api';
+import { getTransactions, getTransactionsNextPage } from '../services/transactions';
+import { getWallets } from '../services/wallets';
+import type { TransactionQueryParams } from '../types';
+import { assertNextPageAdvances, readEveryPage } from '../utils/pagination';
+import { useApiClient } from './useApiClient';
 
 export type TransactionFilters = Pick<
   TransactionQueryParams,
@@ -17,6 +14,7 @@ export type TransactionFilters = Pick<
 >;
 
 export function useTransactions() {
+  const apiClient = useApiClient();
   const [filters, setFilters] = useState<TransactionFilters>({});
   const [appliedFilters, setAppliedFilters] = useState<TransactionFilters>({});
 
@@ -27,7 +25,7 @@ export function useTransactions() {
   });
 
   const query = useInfiniteQuery({
-    queryKey: ['transactions', appliedFilters],
+    queryKey: ['all-transactions', appliedFilters],
     queryFn: async ({ pageParam }) => {
       const response = await getTransactions(apiClient, {
         ...appliedFilters,
@@ -72,6 +70,8 @@ export function useTransactions() {
       setFilters({});
       setAppliedFilters({});
     },
-    loadMore: () => query.fetchNextPage(),
+    loadMore: () => {
+      if (query.hasNextPage && !query.isFetching) return query.fetchNextPage();
+    },
   };
 }

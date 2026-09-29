@@ -1,8 +1,14 @@
 import { Pressable, Text, View } from 'react-native';
-import { formatDate, getBlockchainDisplayName, getChainShortCode, getTransactionStatus } from '@ledova/shared';
+import {
+  activityAmount,
+  activityDirection,
+  formatDate,
+  getBlockchainDisplayName,
+  getChainShortCode,
+  getTransactionStatus,
+} from '@ledova/shared';
 import type { Transaction } from '@ledova/shared';
 import { useThemedStyles } from '../../../contexts';
-import { activityAmount, activityDirection } from '../presentation';
 
 export function TransactionListItem({
   transaction,

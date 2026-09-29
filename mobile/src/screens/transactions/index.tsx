@@ -3,7 +3,7 @@ import { ActivityIndicator, RefreshControl, Text, View } from 'react-native';
 import { Action, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useAppTheme, useThemedStyles } from '../../contexts';
-import { useTransactions } from './useTransactions';
+import { useTransactions } from '@ledova/shared';
 import { TransactionFiltersModal } from './components/filters/TransactionFiltersModal';
 import { TransactionListItem } from './components/TransactionListItem';
 import { TransactionDetailModal } from './components/TransactionDetailModal';

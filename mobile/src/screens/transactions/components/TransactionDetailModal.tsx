@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Linking, Text } from 'react-native';
 import {
+  activityAmount,
+  activityDirection,
+  feeUnit,
   formatDate,
   formatTime,
   getChainShortCode,
@@ -12,7 +15,6 @@ import type { Transaction } from '@ledova/shared';
 import { Action, Row, Rows } from '../../../components/Ledger';
 import { useThemedStyles } from '../../../contexts';
 import { CustomModal } from '../../../components/modal';
-import { activityAmount, activityDirection, feeUnit } from '../presentation';
 
 export function TransactionDetailModal({
   visible,
