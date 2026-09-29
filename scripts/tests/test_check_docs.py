@@ -135,6 +135,28 @@ class TheDeadLinkRuleSeesBothDirections(unittest.TestCase):
         with a_tree(documents):
             self.assertEqual(gate.dead_links(gate.documented_files()), [])
 
+    def test_a_tree_reached_through_a_symlink_still_checks_every_anchor(self):
+        """Link targets are resolved, so the documents they are matched against are too.
+
+        macOS keeps temporary directories under /var, a symlink to /private/var.
+        While the documents were keyed by the path they were found at, no resolved
+        target matched one there, and a dead anchor in another document passed.
+        The symlink is made here so the plant fires on every platform.
+        """
+        documents = {
+            "docs/architecture/transfers.md": (
+                "# Transfers\n\n[Top](#transfers)\n"
+                "[Receipts](../operations/recovery.md#receipts) · [Gone](../operations/recovery.md#missing)\n"
+            ),
+            "docs/operations/recovery.md": "# Recovery\n\n## Receipts\n",
+        }
+        with a_tree(documents) as root, TemporaryDirectory() as elsewhere:
+            link = Path(elsewhere) / "repository"
+            link.symlink_to(root, target_is_directory=True)
+            gate.REPO_ROOT = link
+            findings = gate.dead_links(gate.documented_files())
+        self.assertEqual(findings, ["docs/architecture/transfers.md:4 dead anchor ../operations/recovery.md#missing"])
+
     def test_an_external_url_is_not_resolved(self):
         with a_tree({"README.md": "See [the act](https://example.invalid/a#b).\n"}):
             self.assertEqual(gate.dead_links(gate.documented_files()), [])

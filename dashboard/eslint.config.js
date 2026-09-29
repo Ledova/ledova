@@ -7,6 +7,15 @@ import tseslint from 'typescript-eslint';
 import prettierPlugin from 'eslint-plugin-prettier';
 import prettierConfig from 'eslint-config-prettier';
 
+const NODE_GLOBALS_THE_BROWSER_LACKS = [
+  { name: 'Buffer', message: "The browser has no Buffer global. Import it: import { Buffer } from 'buffer'." },
+  {
+    name: 'process',
+    message: "The browser has no process global. Import it (import process from 'process') or read import.meta.env.",
+  },
+  { name: 'global', message: 'The browser has no global variable. Use globalThis.' },
+];
+
 export default tseslint.config(
   { ignores: ['dist'] },
   {
@@ -40,6 +49,13 @@ export default tseslint.config(
       'react/react-in-jsx-scope': 'off',
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       'react-hooks/exhaustive-deps': 'off',
+    },
+  },
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/**/*.test.{ts,tsx}'],
+    rules: {
+      'no-restricted-globals': ['error', ...NODE_GLOBALS_THE_BROWSER_LACKS],
     },
   },
 );

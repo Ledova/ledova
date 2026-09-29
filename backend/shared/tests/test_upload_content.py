@@ -1,4 +1,6 @@
 import io
+import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from types import SimpleNamespace
@@ -9,10 +11,27 @@ from django.test import SimpleTestCase, override_settings
 from PIL import Image
 from rest_framework import serializers
 
-from shared.tests.upload_fixtures import image_bytes, pdf_bytes, pdf_with_images
+from shared.tests.upload_fixtures import (
+    ADDRESS_SPACE_EVERY_KERNEL_ACCEPTS,
+    REFUSED_ADDRESS_SPACE_WARNING,
+    a_worker_on_a_refusing_kernel,
+    image_bytes,
+    pdf_bytes,
+    pdf_with_images,
+)
 from shared.upload_errors import UploadRejected
-from shared.upload_processing import WORKER, process_upload
+from shared.upload_process import report_refused_address_space
+from shared.upload_processing import PROCESSING_LIMIT, WORKER, process_upload
 from shared.uploads import read_bounded, validate_upload
+
+
+def the_kernel_refuses_an_address_space_limit_of(value):
+    probe = (
+        "import resource\nimport sys\ntry:\n"
+        f"    resource.setrlimit(resource.RLIMIT_AS, ({value}, {value}))\n"
+        "except ValueError:\n    sys.exit(3)\n"
+    )
+    return subprocess.run([sys.executable, "-I", "-B", "-c", probe], check=False).returncode == 3
 
 
 class UploadContentTest(SimpleTestCase):
@@ -162,10 +181,13 @@ class UploadRendererTest(SimpleTestCase):
                     self.assertLessEqual(max(image.size), 16)
 
     def test_a_real_decoder_cannot_run_with_an_insufficient_address_space_budget(self):
+        budget = 32 * 1024 * 1024
+        if the_kernel_refuses_an_address_space_limit_of(budget):
+            self.skipTest("this kernel refuses a 32 MiB address-space limit, so the decoder runs without one here")
         raw = pdf_bytes()
         self.assertEqual(process_upload(raw), "application/pdf")
 
-        with override_settings(UPLOAD_PROCESS_MEMORY_BYTES=32 * 1024 * 1024), self.assertRaises(UploadRejected):
+        with override_settings(UPLOAD_PROCESS_MEMORY_BYTES=budget), self.assertRaises(UploadRejected):
             process_upload(raw)
 
     def test_rendered_output_bytes_have_a_separate_limit(self):
@@ -184,7 +206,7 @@ class UploadRendererTest(SimpleTestCase):
                 "def burn(*args):\n"
                 "    started = time.process_time()\n"
                 "    while time.process_time() - started < 2:\n"
-                "        pass\n"
+                "        sum(range(100000))\n"
                 "    return 'image/png'\n"
                 "worker['main'].__globals__['process_image'] = burn\n"
                 "sys.exit(worker['main']())\n"
@@ -202,3 +224,45 @@ class UploadRendererTest(SimpleTestCase):
             worker.write_text('import time\ntime.sleep(2)\nprint(\'{"mime_type": "image/png"}\')\n')
             with patch("shared.upload_processing.WORKER", worker), self.assertRaises(UploadRejected):
                 process_upload(image_bytes())
+
+
+class DecoderLimitRuleTest(SimpleTestCase):
+    def setUp(self):
+        report_refused_address_space.cache_clear()
+        self.addCleanup(report_refused_address_space.cache_clear)
+
+    @override_settings(UPLOAD_PROCESS_CPU_SECONDS=4, UPLOAD_RENDER_MAX_BYTES=4096)
+    def test_a_refused_address_space_lowering_is_skipped_reported_once_and_the_rest_still_apply(self):
+        with tempfile.TemporaryDirectory() as directory:
+            worker = a_worker_on_a_refusing_kernel(WORKER, directory)
+            with patch("shared.upload_processing.WORKER", worker), self.assertLogs("shared.upload_process") as logs:
+                self.assertEqual(process_upload(image_bytes()), "image/png")
+                self.assertEqual(process_upload(image_bytes()), "image/png")
+            observed = (Path(directory) / "observed").read_text()
+
+        self.assertEqual(logs.output, [REFUSED_ADDRESS_SPACE_WARNING])
+        self.assertEqual(observed, "[(0, 0), (4, 4), (4096, 4096)]")
+
+    def test_a_refusal_under_a_finite_hard_limit_above_the_budget_is_still_a_lowering(self):
+        with tempfile.TemporaryDirectory() as directory:
+            worker = a_worker_on_a_refusing_kernel(WORKER, directory, hard="2 ** 40")
+            with patch("shared.upload_processing.WORKER", worker), self.assertLogs("shared.upload_process") as logs:
+                self.assertEqual(process_upload(image_bytes()), "image/png")
+
+        self.assertEqual(logs.output, [REFUSED_ADDRESS_SPACE_WARNING])
+
+    @override_settings(UPLOAD_PROCESS_MEMORY_BYTES=ADDRESS_SPACE_EVERY_KERNEL_ACCEPTS)
+    def test_every_other_refusal_still_refuses_the_upload_before_reading_it(self):
+        for refused, hard in (
+            ("RLIMIT_AS", "1024 * 1024"),
+            ("RLIMIT_CORE", "resource.RLIM_INFINITY"),
+            ("RLIMIT_CPU", "resource.RLIM_INFINITY"),
+            ("RLIMIT_FSIZE", "resource.RLIM_INFINITY"),
+        ):
+            with self.subTest(refused=refused), tempfile.TemporaryDirectory() as directory:
+                worker = a_worker_on_a_refusing_kernel(WORKER, directory, refused=refused, hard=hard)
+                with patch("shared.upload_processing.WORKER", worker), self.assertNoLogs("shared.upload_process"):
+                    with self.assertRaisesMessage(UploadRejected, PROCESSING_LIMIT):
+                        process_upload(image_bytes())
+
+                self.assertFalse((Path(directory) / "observed").exists())
