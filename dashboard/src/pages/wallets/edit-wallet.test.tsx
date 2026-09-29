@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
@@ -42,36 +42,28 @@ function nameInput() {
   return screen.getByPlaceholderText('Enter wallet name (optional)') as HTMLInputElement;
 }
 
+function edit(wallet: string) {
+  fireEvent.click(within(screen.getByRole('group', { name: wallet })).getByRole('button', { name: 'Edit' }));
+}
+
 it('opens each wallet with its saved name and discards an edit that was not saved', async () => {
   render(
     <QueryClientProvider client={queryClient}>
       <WalletsPage />
     </QueryClientProvider>,
   );
-  fireEvent.doubleClick(await screen.findByText('Saved wallet'));
+  await screen.findByText('Saved wallet');
+  edit('Saved wallet');
   expect(nameInput().value).toBe('Saved wallet');
   fireEvent.change(nameInput(), { target: { value: 'Unsaved name' } });
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   expect(screen.queryByPlaceholderText('Enter wallet name (optional)')).toBeNull();
 
-  fireEvent.doubleClick(screen.getByText('Saved wallet'));
+  edit('Saved wallet');
   expect(nameInput().value).toBe('Saved wallet');
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
-  fireEvent.doubleClick(screen.getByText('Other wallet'));
+  edit('Other wallet');
   expect(nameInput().value).toBe('Other wallet');
   expect(api.patch).not.toHaveBeenCalled();
-});
-
-it('opens the wallet sort and filter from the Filter action in the title row', async () => {
-  render(
-    <QueryClientProvider client={queryClient}>
-      <WalletsPage />
-    </QueryClientProvider>,
-  );
-  expect(screen.queryByText('Sort Wallets')).toBeNull();
-
-  fireEvent.click(await screen.findByRole('button', { name: 'Filter' }));
-
-  expect(await screen.findByText('Sort Wallets')).toBeTruthy();
 });

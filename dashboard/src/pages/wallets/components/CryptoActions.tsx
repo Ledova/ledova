@@ -1,19 +1,25 @@
-import { CurrencyCircleDollarIcon, PaperPlaneTiltIcon } from '@phosphor-icons/react';
-import { DESIGN_TOKENS } from '@ledova/shared';
+import { WALLET_VERIFICATION_STATUS, getChainConfig } from '@ledova/shared';
+import type { Wallet } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { useBuyCrypto } from '@hooks/useBuyCrypto';
 import { useSendTransfer } from '@hooks/useSendTransfer';
 
-const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
-
-export function CryptoActions() {
+export function CryptoActions({ wallets }: { wallets: Wallet[] | null }) {
   const { openBuyCrypto } = useBuyCrypto();
-  const { openSendTransfer } = useSendTransfer();
+  const { openSendTransfer, openSendTransferFrom } = useSendTransfer();
+  const verified = (wallets ?? []).filter(
+    (wallet) =>
+      getChainConfig(wallet.chain)?.isActive && wallet.verificationStatus === WALLET_VERIFICATION_STATUS.VERIFIED,
+  );
+  const onlyVerified = verified.length === 1 ? verified[0] : null;
 
   return (
     <>
-      <PageAction icon={<CurrencyCircleDollarIcon size={ICON_SM} />} label="Buy crypto" onClick={openBuyCrypto} />
-      <PageAction icon={<PaperPlaneTiltIcon size={ICON_SM} />} label="Send" onClick={openSendTransfer} />
+      <PageAction label="Buy crypto" onClick={openBuyCrypto} />
+      <PageAction
+        label="Send"
+        onClick={() => (onlyVerified ? openSendTransferFrom(onlyVerified) : openSendTransfer())}
+      />
     </>
   );
 }
