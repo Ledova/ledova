@@ -62,7 +62,7 @@ it('lists each verified wallet under its network with its balance and value labe
   const choice = await within(dialog).findByRole('button', { name: /Savings/ });
 
   expect(api.get).toHaveBeenCalledWith(WALLET_ENDPOINTS.BASE, {
-    params: { verification_status: 'VERIFIED', ordering: 'signing_preference' },
+    params: { verification_status: 'VERIFIED', ordering: 'signing_preference', page: 1 },
   });
   expect(figuresOf(choice)).toEqual(['Balance', '0.42 ETH', 'Value', 'AUD 0.50']);
   expect(within(choice).queryByText(savings.address)).toBeNull();
@@ -89,6 +89,36 @@ it('lists each verified wallet under its network with its balance and value labe
 
   fireEvent.click(within(dialog).getByRole('button', { name: /Cold storage/ }));
   expect(chosen).toHaveBeenCalledExactlyOnceWith(cold);
+});
+
+it('offers every verified wallet when they fill more than one page', async () => {
+  api.get.mockImplementation(async (_url: string, config: { params: { page?: number } }) =>
+    (config.params.page ?? 1) === 1
+      ? {
+          data: {
+            results: [savings, cold],
+            count: 3,
+            next: 'https://example.test/api/wallets/?page=2',
+            previous: null,
+          },
+        }
+      : { data: { results: [everyday], count: 3, next: null, previous: null } },
+  );
+  show();
+  const dialog = await screen.findByRole('dialog', { name: 'Select your wallet' });
+
+  const onSecondPage = await within(dialog).findByRole('button', {
+    name: new RegExp(formatWalletAddressShort(everyday.address)),
+  });
+  expect(within(dialog).getByRole('button', { name: /Savings/ })).toBeTruthy();
+  expect(within(dialog).getByRole('button', { name: /Cold storage/ })).toBeTruthy();
+  expect(api.get.mock.calls.map(([, config]) => config.params)).toEqual([
+    { verification_status: 'VERIFIED', ordering: 'signing_preference', page: 1 },
+    { verification_status: 'VERIFIED', ordering: 'signing_preference', page: 2 },
+  ]);
+
+  fireEvent.click(onSecondPage);
+  expect(chosen).toHaveBeenCalledExactlyOnceWith(everyday);
 });
 
 it('says the wallets could not be loaded when the read fails, rather than that there are none, and tries again', async () => {

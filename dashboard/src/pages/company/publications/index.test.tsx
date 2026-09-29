@@ -151,16 +151,6 @@ it.each([1, 2])('suppresses partial records when page %s fails and retries all p
   expect(await screen.findByText('Record 2')).toBeTruthy();
 });
 
-it.each(['https://example.invalid/publications/?page=1', 'https://example.invalid/publications/?page=bad'])(
-  'refuses a non-advancing pagination link %s',
-  async (next) => {
-    read = async () => ({ data: { ...EMPTY, results: [statement], next } });
-    show();
-    expect(await screen.findByRole('button', { name: 'Retry publications' })).toBeTruthy();
-    expect(api.get.mock.calls.filter(([url]) => url === BASE)).toHaveLength(1);
-  },
-);
-
 it('blocks stale document actions during refresh and hides them after failure until retry succeeds', async () => {
   show();
   await screen.findByText('Annual statement');

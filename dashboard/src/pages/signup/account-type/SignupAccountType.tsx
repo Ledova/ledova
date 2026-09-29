@@ -1,11 +1,8 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { UserIcon, BuildingsIcon } from '@phosphor-icons/react';
-import { CACHE_TIMING, describeFailure, getUserAccount, setAccountRole } from '@ledova/shared';
-import { ICON_LG } from '@components/iconSizes';
+import { UserIcon, BuildingsIcon, WarningIcon } from '@phosphor-icons/react';
+import { useSignupAccountType } from '@ledova/shared';
+import { ICON_LG, ICON_MD } from '@components/iconSizes';
 import { AuthLayout } from '@components/AuthLayout';
-import apiClient from '@services/apiClient';
 
 type AccountRole = 'investor' | 'company';
 
@@ -33,41 +30,16 @@ const ACCOUNT_TYPES: AccountTypeOption[] = [
 
 export function SignupAccountType() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { account, isSubmitting, error, chooseRole } = useSignupAccountType();
 
-  const { data: accountResponse } = useQuery({
-    queryKey: ['userAccount'],
-    queryFn: () => getUserAccount(apiClient),
-    staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
-  });
-
-  const account = accountResponse?.data ?? null;
-
-  const updateRoleMutation = useMutation({
-    mutationFn: (role: AccountRole) => setAccountRole(apiClient, account!.uuid, role),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userAccount'] });
-      queryClient.invalidateQueries({ queryKey: ['userPreferences'] });
-    },
-  });
-
-  const handleSelect = async (role: AccountRole) => {
-    if (!account || isSubmitting) return;
-
-    setIsSubmitting(true);
-    try {
-      await updateRoleMutation.mutateAsync(role);
+  const handleSelect = (role: AccountRole) =>
+    chooseRole(role, () => {
       if (role === 'investor') {
         navigate('/signup/pre-screening');
       } else {
         navigate('/signup/identity-verification');
       }
-    } catch (error) {
-      console.error(`Failed to update account role: ${describeFailure(error)}`);
-      setIsSubmitting(false);
-    }
-  };
+    });
 
   const handleBack = () => {
     navigate('/signup/email-confirmation');
@@ -79,6 +51,21 @@ export function SignupAccountType() {
         <h1 className="font-display text-3xl tracking-[-0.01em] text-text-primary">Choose Account Type</h1>
         <p className="text-sm text-text-muted mt-1 px-4">How will you be using Ledova?</p>
       </div>
+
+      {error && (
+        <div className="mb-4 bg-error-subtle border border-error-dark rounded-lg p-4">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <WarningIcon size={ICON_MD} className="text-error-light" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-error-light" role="alert">
+                {error}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-3">
         {ACCOUNT_TYPES.map((option) => {

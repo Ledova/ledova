@@ -4,10 +4,10 @@ import {
   deleteInvestorClassification,
   getInvestorClassifications,
   getInvestorEligibility,
-  getNextPageParam,
+  readEveryPage,
   submitInvestorClassification,
 } from '@ledova/shared';
-import type { InvestorClassification, InvestorClassificationSubmission } from '@ledova/shared';
+import type { InvestorClassificationSubmission } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch } from '../../services/sessionScope';
 
@@ -22,20 +22,7 @@ export function useInvestorEligibility() {
   });
   const classificationsQuery = useQuery({
     queryKey: ['investor-classifications', 'verification'],
-    queryFn: async () => {
-      const claims: InvestorClassification[] = [];
-      let page: number | undefined = 1;
-      while (page !== undefined) {
-        const { data } = await getInvestorClassifications(apiClient, page);
-        claims.push(...data.results);
-        const next = getNextPageParam(data);
-        if (data.next && (next === undefined || !Number.isInteger(next) || next <= page)) {
-          throw new Error('Verification history pagination did not advance');
-        }
-        page = next;
-      }
-      return claims;
-    },
+    queryFn: () => readEveryPage((page) => getInvestorClassifications(apiClient, page)),
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
   const refresh = () =>

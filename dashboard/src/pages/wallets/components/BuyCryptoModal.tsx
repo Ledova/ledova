@@ -1,7 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CurrencyEthIcon, CurrencyBtcIcon, CurrencyCircleDollarIcon, SpinnerGapIcon } from '@phosphor-icons/react';
 import { useMutation, useQueries, useQuery } from '@tanstack/react-query';
-import { BUYABLE_ASSETS, CACHE_TIMING, getAssets, getWallets, getOnRampWidgetUrl, useCurrency } from '@ledova/shared';
+import {
+  BUYABLE_ASSETS,
+  CACHE_TIMING,
+  getAssets,
+  getWallets,
+  getOnRampWidgetUrl,
+  readEveryPage,
+  useCurrency,
+} from '@ledova/shared';
 import { ICON_SM, ICON_MD } from '@components/iconSizes';
 import type { BuyableAssetConfig, Wallet } from '@ledova/shared';
 import { Modal } from '@components/Modal';
@@ -47,16 +55,19 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
       { chain: selectedAsset?.chain, verification_status: 'VERIFIED', ordering: 'signing_preference' },
     ],
     queryFn: () =>
-      getWallets(apiClient, {
-        chain: selectedAsset!.chain,
-        verification_status: 'VERIFIED',
-        ordering: 'signing_preference',
-      }),
+      readEveryPage((page) =>
+        getWallets(apiClient, {
+          chain: selectedAsset!.chain,
+          verification_status: 'VERIFIED',
+          ordering: 'signing_preference',
+          page,
+        }),
+      ),
     enabled: !!userAccountUuid && !!selectedAsset,
   });
 
   const walletsFailed = walletsQuery.isError;
-  const matchingWallets = walletsFailed ? [] : walletsQuery.data?.data.results || [];
+  const matchingWallets = walletsFailed ? [] : (walletsQuery.data ?? []);
   const isLoadingWallets = walletsQuery.isPending;
   const walletsSettled = walletsQuery.fetchStatus === 'idle';
   const showWalletStep = !!selectedAsset && !isLoadingWallets && matchingWallets.length !== 1;

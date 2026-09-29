@@ -4,8 +4,7 @@ import { CACHE_TIMING } from '../constants/api';
 import { getDirectoryToken, getDirectoryTokens } from '../services/directory';
 import { getInvestorEligibility } from '../services/investorClassifications';
 import { getOperator } from '../services/operator';
-import type { DirectoryToken } from '../types';
-import { getNextPageParam } from '../utils/pagination';
+import { readEveryPage } from '../utils/pagination';
 import { useApiClient } from './useApiClient';
 
 export function useDirectoryTokens() {
@@ -18,20 +17,7 @@ export function useDirectoryTokens() {
 
   const tokens = useQuery({
     queryKey: ['directory', 'tokens', 'complete'],
-    queryFn: async () => {
-      const all: DirectoryToken[] = [];
-      let page: number | undefined = 1;
-      while (page !== undefined) {
-        const { data } = await getDirectoryTokens(apiClient, page);
-        all.push(...data.results);
-        const next = getNextPageParam(data);
-        if (data.next && (next === undefined || !Number.isInteger(next) || next <= page)) {
-          throw new Error('Directory pagination did not advance');
-        }
-        page = next;
-      }
-      return all;
-    },
+    queryFn: () => readEveryPage((page) => getDirectoryTokens(apiClient, page)),
     enabled: eligibility.data?.data?.isEligible === true && !eligibility.isError,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });

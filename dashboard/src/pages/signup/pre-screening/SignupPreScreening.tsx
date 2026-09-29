@@ -3,8 +3,8 @@ import { Checkbox, Description, Field, Label } from '@headlessui/react';
 import { ShieldCheckIcon, WarningIcon, CheckCircleIcon } from '@phosphor-icons/react';
 import LoadingState from '@components/signup/LoadingState';
 import ErrorState from '@components/signup/ErrorState';
-import { useSignupPreScreening } from './useSignupPreScreening';
 import { AuthLayout } from '@components/AuthLayout';
+import { useSignupPreScreening } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
 
 export function SignupPreScreening() {

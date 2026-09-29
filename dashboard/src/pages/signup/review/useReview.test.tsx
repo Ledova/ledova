@@ -1,27 +1,30 @@
 // @vitest-environment jsdom
 
 import type { PropsWithChildren } from 'react';
+import type { AxiosInstance } from 'axios';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { getCompanies, getUserProfiles, updateUserProfileCompletion, AUTH_QUERY_KEY } from '@ledova/shared';
+import {
+  ApiClientProvider,
+  AUTH_QUERY_KEY,
+  createUserFriendlyError,
+  SIGNUP_COMPLETION_FAILED,
+  SIGNUP_LOAD_FAILED,
+} from '@ledova/shared';
 import { useRole } from '@hooks/useRole';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const navigate = vi.fn();
 vi.mock('react-router-dom', () => ({ useNavigate: () => navigate }));
 
-vi.mock('@ledova/shared', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@ledova/shared')>()),
-  getUserProfiles: vi.fn(async () => ({ data: { results: [{ uuid: 'profile-1' }] } })),
-  getCompanies: vi.fn(async () => ({ data: { results: [] } })),
-  getCompany: vi.fn(async () => ({ data: { uuid: 'company-1', abn: '51824753556' } })),
-  updateUserProfileCompletion: vi.fn(async () => ({ data: {} })),
-  useFinancialProfile: () => ({ financialProfile: { uuid: 'financial-1' }, isLoading: false }),
-}));
-
 vi.mock('@hooks/useRole', () => ({ useRole: vi.fn(() => ({ role: 'investor' })) }));
 
-import { COMPLETION_FAILED, useReview } from './useReview';
+import { useReview } from './useReview';
+
+const api = { get: vi.fn(), patch: vi.fn() };
+const profile = { data: { results: [{ uuid: 'profile-1' }] } };
+let profileAnswers: (() => Promise<unknown>)[];
+let companies: { data: { results: { uuid: string }[] } };
 
 let queryClient: QueryClient | undefined;
 
@@ -29,15 +32,31 @@ const harness = () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   queryClient = client;
   const wrapper = ({ children }: PropsWithChildren) => (
-    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={api as unknown as AxiosInstance}>{children}</ApiClientProvider>
+    </QueryClientProvider>
   );
   return { client, wrapper };
 };
 
+const profileReads = () => api.get.mock.calls.filter(([url]) => url === '/api/user-profiles/').length;
+
 describe('the last click of signup', () => {
   beforeEach(() => {
     navigate.mockClear();
-    vi.mocked(updateUserProfileCompletion).mockClear();
+    api.get.mockReset();
+    api.patch.mockReset();
+    profileAnswers = [];
+    companies = { data: { results: [] } };
+    api.get.mockImplementation((url: string) => {
+      if (url === '/api/user-profiles/') return (profileAnswers.shift() ?? (() => Promise.resolve(profile)))();
+      if (url === '/api/financial-profiles/') return Promise.resolve({ data: { results: [{ uuid: 'financial-1' }] } });
+      if (url === '/api/v1/companies/') return Promise.resolve(companies);
+      if (url === '/api/v1/companies/company-1/')
+        return Promise.resolve({ data: { uuid: 'company-1', abn: '51824753556' } });
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    api.patch.mockResolvedValue({ data: {} });
     vi.mocked(useRole).mockReturnValue({
       role: 'investor',
       isCompany: false,
@@ -78,7 +97,7 @@ describe('the last click of signup', () => {
     await waitFor(() => expect(result.current.canCompleteSignup).toBe(true));
 
     act(() => result.current.completeSignup());
-    await waitFor(() => expect(vi.mocked(updateUserProfileCompletion)).toHaveBeenCalled());
+    await waitFor(() => expect(api.patch).toHaveBeenCalled());
 
     expect(navigate).not.toHaveBeenCalled();
 
@@ -91,25 +110,19 @@ describe('the last click of signup', () => {
 
   it('does not navigate until the profile the guard reads says sign-up is finished', async () => {
     let finish: () => void = () => {};
-    vi.mocked(getUserProfiles)
-      .mockClear()
-      .mockResolvedValueOnce({ data: { results: [{ uuid: 'profile-1' }] } } as Awaited<
-        ReturnType<typeof getUserProfiles>
-      >)
-      .mockReturnValueOnce(
+    profileAnswers = [
+      () => Promise.resolve(profile),
+      () =>
         new Promise((resolve) => {
-          finish = () =>
-            resolve({ data: { results: [{ uuid: 'profile-1', isSignupCompleted: true }] } } as Awaited<
-              ReturnType<typeof getUserProfiles>
-            >);
+          finish = () => resolve({ data: { results: [{ uuid: 'profile-1', isSignupCompleted: true }] } });
         }),
-      );
+    ];
     const { client, wrapper } = harness();
     const { result } = renderHook(() => useReview(), { wrapper });
     await waitFor(() => expect(result.current.canCompleteSignup).toBe(true));
 
     act(() => result.current.completeSignup());
-    await waitFor(() => expect(vi.mocked(getUserProfiles)).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(profileReads()).toBe(2));
 
     expect(navigate).not.toHaveBeenCalled();
 
@@ -122,33 +135,38 @@ describe('the last click of signup', () => {
   });
 
   it('stays on the review when the refreshed profile cannot be read, so the guard does not read the old one', async () => {
-    vi.mocked(getUserProfiles)
-      .mockClear()
-      .mockResolvedValueOnce({ data: { results: [{ uuid: 'profile-1' }] } } as Awaited<
-        ReturnType<typeof getUserProfiles>
-      >)
-      .mockRejectedValueOnce(new Error('Network unavailable'));
+    profileAnswers = [() => Promise.resolve(profile), () => Promise.reject(new Error('Network unavailable'))];
     const { wrapper } = harness();
     const { result } = renderHook(() => useReview(), { wrapper });
     await waitFor(() => expect(result.current.canCompleteSignup).toBe(true));
 
     act(() => result.current.completeSignup());
 
-    await waitFor(() => expect(result.current.error).toBe('Network unavailable'));
+    await waitFor(() => expect(result.current.error).toBe(SIGNUP_LOAD_FAILED));
     await waitFor(() => expect(result.current.isSubmitting).toBe(false));
-    expect(vi.mocked(getUserProfiles)).toHaveBeenCalledTimes(2);
+    expect(profileReads()).toBe(2);
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it('says so on the review when the session cannot be checked again, so the person can retry', async () => {
+  it.each([
+    ['refused', { response: { status: 401, data: { detail: 'Session expired.' } } }, SIGNUP_COMPLETION_FAILED],
+    [
+      'unreachable',
+      createUserFriendlyError(
+        'Unable to connect to our servers. Please check your internet connection and try again.',
+        new Error('Network Error'),
+      ),
+      'Unable to connect to our servers. Please check your internet connection and try again.',
+    ],
+  ])('says so on the review when the session check is %s, so the person can retry', async (_, failure, shown) => {
     const { client, wrapper } = harness();
-    vi.spyOn(client, 'refetchQueries').mockRejectedValue(new Error('Network unavailable'));
+    vi.spyOn(client, 'refetchQueries').mockRejectedValue(failure);
     const { result } = renderHook(() => useReview(), { wrapper });
     await waitFor(() => expect(result.current.canCompleteSignup).toBe(true));
 
     act(() => result.current.completeSignup());
 
-    await waitFor(() => expect(result.current.completionError).toBe(COMPLETION_FAILED));
+    await waitFor(() => expect(result.current.completionError).toBe(shown));
     expect(result.current.isSubmitting).toBe(false);
     expect(result.current.canCompleteSignup).toBe(true);
     expect(navigate).not.toHaveBeenCalled();
@@ -167,9 +185,7 @@ describe('the last click of signup', () => {
       isUnavailable: false,
       retry: vi.fn() as unknown as ReturnType<typeof useRole>['retry'],
     });
-    vi.mocked(getCompanies).mockResolvedValue({ data: { results: [{ uuid: 'company-1' }] } } as Awaited<
-      ReturnType<typeof getCompanies>
-    >);
+    companies = { data: { results: [{ uuid: 'company-1' }] } };
     const { client, wrapper } = harness();
     vi.spyOn(client, 'refetchQueries').mockResolvedValue(undefined);
     const { result } = renderHook(() => useReview(), { wrapper });

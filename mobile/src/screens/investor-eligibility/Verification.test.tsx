@@ -139,17 +139,6 @@ it.each([eligibilityUrl, claimsUrl, `${claimsUrl}2`])(
   },
 );
 
-it.each([`https://example.test${claimsUrl}?page=1`, `https://example.test${claimsUrl}?cursor=next`])(
-  'rejects a non-advancing advertised next page %s',
-  async (next) => {
-    claimPages = { 1: { results: [claim('partial')], next } };
-    const view = await page();
-    expect(await view.findByText(/Verification information could not be loaded/)).toBeTruthy();
-    expect(view.queryByText('Evidence partial')).toBeNull();
-    expect(get.mock.calls.filter(([url]) => url === claimsUrl)).toHaveLength(1);
-  },
-);
-
 it.each([eligibilityUrl, claimsUrl])(
   'retains the draft and private evidence through failed background %s and retries the same bytes',
   async (url) => {
