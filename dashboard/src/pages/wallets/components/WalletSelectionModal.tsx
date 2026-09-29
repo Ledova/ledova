@@ -1,6 +1,6 @@
 import { ArrowsClockwiseIcon } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
-import { BLOCKCHAIN, DESIGN_TOKENS, getWallets } from '@ledova/shared';
+import { DESIGN_TOKENS, getActiveChains, getChainConfig, getWallets } from '@ledova/shared';
 import type { Wallet } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
@@ -8,11 +8,6 @@ import { WalletChoice } from '@components/Wallet';
 import apiClient from '@services/apiClient';
 
 const ICON_LG = DESIGN_TOKENS.icon.sizes.lg;
-const CHAINS = [
-  { chain: BLOCKCHAIN.ETHEREUM, title: 'Ethereum' },
-  { chain: BLOCKCHAIN.BITCOIN, title: 'Bitcoin' },
-  { chain: BLOCKCHAIN.BASE, title: 'Base' },
-];
 
 interface WalletSelectionModalProps {
   isOpen: boolean;
@@ -31,7 +26,7 @@ export function WalletSelectionModal({ isOpen, onClose, onSelectWallet }: Wallet
     enabled: isOpen,
   });
 
-  const wallets = walletsQuery.data?.data.results || [];
+  const wallets = (walletsQuery.data?.data.results || []).filter((wallet) => getChainConfig(wallet.chain)?.isActive);
 
   const renderContent = () => {
     if (walletsQuery.isError) {
@@ -67,12 +62,12 @@ export function WalletSelectionModal({ isOpen, onClose, onSelectWallet }: Wallet
 
     return (
       <div className="space-y-4">
-        {CHAINS.map(({ chain, title }) => {
-          const chainWallets = wallets.filter((wallet) => wallet.chain === chain);
+        {getActiveChains().map(({ code, name }) => {
+          const chainWallets = wallets.filter((wallet) => wallet.chain === code);
           if (chainWallets.length === 0) return null;
           return (
-            <div key={chain}>
-              <span className="text-xs font-medium uppercase tracking-wider text-text-muted">{title}</span>
+            <div key={code}>
+              <span className="text-xs font-medium uppercase tracking-wider text-text-muted">{name}</span>
               <ul className="divide-y divide-border-subtle">
                 {chainWallets.map((wallet) => (
                   <li key={wallet.uuid}>

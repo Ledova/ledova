@@ -40,6 +40,14 @@ const pendingWallet = {
   verificationStatus: 'PENDING',
 };
 const reserveWallet = { ...baseWallet, uuid: 'wallet-3', name: 'Reserve wallet', address: `0x${'5'.repeat(40)}` };
+const polygonWallet = {
+  ...baseWallet,
+  uuid: 'wallet-4',
+  name: 'Polygon wallet',
+  address: `0x${'6'.repeat(40)}`,
+  chain: 'polygon',
+};
+const LOAD_FAILED = 'Your wallets could not be loaded. Try again before continuing.';
 const listOf = (results: unknown[]) => ({ data: { results, count: results.length, next: null, previous: null } });
 const walletList = listOf([baseWallet, pendingWallet]);
 let queryClient: QueryClient;
@@ -164,6 +172,75 @@ describe('crypto on the Wallets page', () => {
     expect(within(ether).getByText('5 ETH')).toBeTruthy();
     expect(within(form).getByText('Max: 5 ETH')).toBeTruthy();
     expect(within(form).queryByText(/ETH ETH/)).toBeNull();
+  });
+
+  it('opens the chooser, in its failed state, when a refresh fails after the page read one verified wallet', async () => {
+    await openWallets('investor');
+    const read = api.get.getMockImplementation()!;
+    api.get.mockImplementation((url: string, config?: { params?: Record<string, unknown> }) =>
+      url === WALLET_ENDPOINTS.BASE ? Promise.reject(new Error('Network unavailable')) : read(url, config),
+    );
+    await act(async () => {
+      await queryClient.invalidateQueries({ queryKey: ['wallets'] });
+    });
+    expect(await screen.findByText(LOAD_FAILED)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    const chooser = await screen.findByRole('dialog', { name: 'Select your wallet' });
+    expect(await within(chooser).findByText(LOAD_FAILED)).toBeTruthy();
+    expect(screen.queryByRole('dialog', { name: 'Send' })).toBeNull();
+  });
+
+  it('does not count a verified wallet on a network the page does not list', async () => {
+    answer(listOf([polygonWallet]));
+    queryClient.setQueryData(['userAccount'], { data: { role: 'investor' } });
+    renderWalletsInTheFrame();
+    await screen.findByText('No Base wallets yet.');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    const chooser = await screen.findByRole('dialog', { name: 'Select your wallet' });
+    expect(await within(chooser).findByText('No verified wallets found')).toBeTruthy();
+    expect(within(chooser).queryByText('Polygon wallet')).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'Send' })).toBeNull();
+  });
+
+  it('opens the form for the one verified wallet the page lists, beside one on another network', async () => {
+    answer(listOf([baseWallet, polygonWallet]));
+    await openWallets('investor');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    const form = await screen.findByRole('dialog', { name: 'Send' });
+    expect(within(form).getByText(formatWalletAddressShort(baseWallet.address))).toBeTruthy();
+    expect(screen.queryByText('Select your wallet')).toBeNull();
+  });
+
+  it('offers Cancel, not Back, on the shortcut after an earlier Send went through the chooser', async () => {
+    answer(listOf([baseWallet, reserveWallet]));
+    await openWallets('investor');
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+    fireEvent.click(
+      await within(await screen.findByRole('dialog', { name: 'Select your wallet' })).findByText('Reserve wallet'),
+    );
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Send' })).getByRole('button', { name: 'Back' }));
+    fireEvent.click(
+      within(await screen.findByRole('dialog', { name: 'Select your wallet' })).getByRole('button', { name: 'Cancel' }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    answer(listOf([baseWallet]));
+    await act(async () => {
+      await queryClient.invalidateQueries({ queryKey: ['wallets'] });
+    });
+    await waitFor(() => expect(screen.queryByText('Reserve wallet')).toBeNull());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    const form = await screen.findByRole('dialog', { name: 'Send' });
+    expect(within(form).getByText(formatWalletAddressShort(baseWallet.address))).toBeTruthy();
+    expect(within(form).queryByRole('button', { name: 'Back' })).toBeNull();
+    expect(within(form).getByRole('button', { name: 'Cancel' })).toBeTruthy();
   });
 
   it('asks which wallet to send from when several are verified, and goes Back to that choice', async () => {

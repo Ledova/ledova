@@ -1,4 +1,4 @@
-import { WALLET_VERIFICATION_STATUS } from '@ledova/shared';
+import { WALLET_VERIFICATION_STATUS, getChainConfig } from '@ledova/shared';
 import type { Wallet } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { useBuyCrypto } from '@hooks/useBuyCrypto';
@@ -8,7 +8,8 @@ export function CryptoActions({ wallets }: { wallets: Wallet[] | null }) {
   const { openBuyCrypto } = useBuyCrypto();
   const { openSendTransfer, openSendTransferFrom } = useSendTransfer();
   const verified = (wallets ?? []).filter(
-    (wallet) => wallet.verificationStatus === WALLET_VERIFICATION_STATUS.VERIFIED,
+    (wallet) =>
+      getChainConfig(wallet.chain)?.isActive && wallet.verificationStatus === WALLET_VERIFICATION_STATUS.VERIFIED,
   );
   const onlyVerified = verified.length === 1 ? verified[0] : null;
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BLOCKCHAIN, WALLET_VERIFICATION_STATUS } from '@ledova/shared';
+import { WALLET_VERIFICATION_STATUS, getActiveChains } from '@ledova/shared';
 import type { Wallet as WalletType, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { Section } from '@components/Ledger';
@@ -16,11 +16,6 @@ import { AddWalletModal } from './components/AddWalletModal';
 import { CryptoActions } from './components/CryptoActions';
 
 const LEDE = 'Verify a wallet to send from it or buy crypto into it.';
-const CHAINS = [
-  { chain: BLOCKCHAIN.ETHEREUM, title: 'Ethereum' },
-  { chain: BLOCKCHAIN.BITCOIN, title: 'Bitcoin' },
-  { chain: BLOCKCHAIN.BASE, title: 'Base' },
-];
 
 export function WalletsPage() {
   const {
@@ -169,7 +164,7 @@ export function WalletsPage() {
           <PageAction label="Try again" disabled={isRefreshing} onClick={() => void retry()} />
         </div>
       ) : (
-        CHAINS.map(({ chain, title }) => renderChain(chain, title))
+        getActiveChains().map(({ code, name }) => renderChain(code, name))
       )}
 
       <AddWalletModal
