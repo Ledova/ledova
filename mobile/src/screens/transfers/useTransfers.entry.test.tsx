@@ -133,6 +133,17 @@ it.each([
   ['0.5 ETH for 0.1 typed', 'native', '0.1', { ...fixture.native, amountEth: '0.5' }, 'amount'],
   ['15 tokens for 1.5 typed', 'token', '1.5', { ...fixture.token, amountToken: '15' }, 'amount'],
   ['1.555 of a two-decimal token', 'token', '1.555', { ...fixture.token, amountToken: '1.555' }, 'amount'],
+  [
+    'the same call on another token contract',
+    'token',
+    '1.5',
+    {
+      ...fixture.token,
+      tokenContract: `0x${'5'.repeat(40)}`,
+      transaction: { ...fixture.token.transaction, to: `0x${'5'.repeat(40)}` },
+    },
+    'token',
+  ],
 ] as const)('refuses %s before the review screen', async (_, kind, typed, answer, field) => {
   const { view, transfer } = await prepare(kind, typed, answer);
   expect(

@@ -1,6 +1,8 @@
-interface Amounts {
+interface TransferFields {
+  toAddress?: string;
   amountEth?: string;
   amountToken?: string;
+  tokenContract?: string;
 }
 
 function baseUnits(amount: string | undefined, decimals: number): bigint | null {
@@ -14,11 +16,13 @@ function mismatch(reason: string): never {
 }
 
 export function validatePreparedTransfer(
-  prepared: Amounts & { toAddress?: string },
-  entered: Amounts & { toAddress: string },
+  prepared: TransferFields,
+  entered: TransferFields & { toAddress: string },
   tokenDecimals: number,
 ): void {
   if (prepared.toAddress?.toLowerCase() !== entered.toAddress.toLowerCase()) mismatch('the recipient is different');
+  if (prepared.tokenContract?.toLowerCase() !== entered.tokenContract?.toLowerCase())
+    mismatch('the token is different');
   const token = entered.amountToken !== undefined;
   const decimals = token ? tokenDecimals : 18;
   const typed = baseUnits(token ? entered.amountToken : entered.amountEth, decimals);

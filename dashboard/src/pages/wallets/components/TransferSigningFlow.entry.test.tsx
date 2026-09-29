@@ -91,6 +91,17 @@ it.each([
     fixture.token.tokenContract,
     'amount',
   ],
+  [
+    'the same call on another token contract',
+    {
+      ...fixture.token,
+      tokenContract: `0x${'5'.repeat(40)}`,
+      transaction: { ...fixture.token.transaction, to: `0x${'5'.repeat(40)}` },
+    },
+    '1.5',
+    fixture.token.tokenContract,
+    'token',
+  ],
 ])('refuses %s before offering the transfer for signing', async (_, answer, amount, token, field) => {
   send(answer, amount, token);
   expect(
