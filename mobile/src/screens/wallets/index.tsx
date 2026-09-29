@@ -42,7 +42,7 @@ export function WalletsScreen() {
         actions={
           !crud.isLoading && (
             <>
-              <CryptoActions />
+              <CryptoActions wallets={crud.hasError || crud.isRefreshing ? null : crud.wallets} />
               <Action label="Add wallet" onPress={form.openAddModal} disabled={blocked} primary />
               <Action label={isFiltered ? 'Filter (active)' : 'Filter'} onPress={() => setShowSortModal(true)} />
               <Action

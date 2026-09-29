@@ -194,6 +194,83 @@ it('shows truthful empty networks and retains Buy and Send only as wallet destin
   expect(mockNavigate).toHaveBeenCalledWith('Send', { screen: 'SendMain' });
 });
 
+describe('Send from Wallets', () => {
+  const pending: Wallet = { ...wallet('p'), verificationStatus: 'PENDING' };
+  const bitcoin: Wallet = { ...wallet('c'), chain: 'bitcoin', address: `tb1q${'c'.repeat(38)}` };
+  const polygon = { ...wallet('d'), chain: 'polygon' } as unknown as Wallet;
+
+  async function pressSend(results: Wallet[]) {
+    pages = { 1: { results, next: null } };
+    const view = await mount(<WalletsScreen />);
+    await waitFor(() => expect(view.getByRole('button', { name: 'Sync balances' })).not.toBeDisabled());
+    await fireEvent.press(view.getByRole('button', { name: 'Send' }));
+    return view;
+  }
+
+  it('opens the form for the only verified wallet, beside a pending one and one on a network Wallets does not list', async () => {
+    await pressSend([wallet('a'), pending, polygon]);
+    expect(mockNavigate.mock.calls).toEqual([
+      [
+        'Send',
+        {
+          screen: 'SendMain',
+          params: { wallet: pages[1].results[0] },
+        },
+      ],
+    ]);
+  });
+
+  it("opens a Bitcoin wallet's own send form when it is the only verified wallet", async () => {
+    await pressSend([bitcoin, pending]);
+    expect(mockNavigate.mock.calls).toEqual([['TransferDetails', { wallet: pages[1].results[0] }]]);
+  });
+
+  it.each([
+    ['several are verified', [wallet('a'), bitcoin]],
+    ['none is verified', [pending]],
+    ['the only verified wallet is on a network Wallets does not list', [polygon, pending]],
+  ])('asks which wallet to send from when %s', async (_, results) => {
+    await pressSend(results);
+    expect(mockNavigate.mock.calls).toEqual([['Send', { screen: 'SendMain' }]]);
+  });
+
+  it('asks which wallet to send from when a refresh fails after reading one', async () => {
+    const view = await pressSend([wallet('a')]);
+    expect(mockNavigate).toHaveBeenLastCalledWith('Send', { screen: 'SendMain', params: { wallet: wallet('a') } });
+    failedPage = 1;
+    await refresh();
+    await waitFor(() =>
+      expect(view.getByText('Your wallets could not be loaded. Try again before continuing.')).toBeTruthy(),
+    );
+
+    await fireEvent.press(view.getByRole('button', { name: 'Send' }));
+
+    expect(mockNavigate).toHaveBeenLastCalledWith('Send', { screen: 'SendMain' });
+  });
+
+  it('asks which wallet to send from while a refresh has not finished, and opens the form once it has', async () => {
+    const view = await pressSend([wallet('a')]);
+    const read = deferred<unknown>();
+    get.mockImplementationOnce(() => read.promise as ReturnType<typeof apiClient.get>);
+    let refreshed!: Promise<void>;
+    try {
+      await act(async () => {
+        refreshed = client.invalidateQueries({ queryKey: ['wallets'] });
+      });
+      await waitFor(() => expect(view.getByRole('button', { name: 'Sync balances' })).toBeDisabled());
+
+      await fireEvent.press(view.getByRole('button', { name: 'Send' }));
+      expect(mockNavigate).toHaveBeenLastCalledWith('Send', { screen: 'SendMain' });
+    } finally {
+      await act(async () => read.resolve({ data: pages[1] }));
+    }
+    await act(() => refreshed);
+    await waitFor(() => expect(view.getByRole('button', { name: 'Sync balances' })).not.toBeDisabled());
+    await fireEvent.press(view.getByRole('button', { name: 'Send' }));
+    expect(mockNavigate).toHaveBeenLastCalledWith('Send', { screen: 'SendMain', params: { wallet: wallet('a') } });
+  });
+});
+
 it('heads Wallets with its lede and then every screen action in one row, before the first network card', async () => {
   const view = await mount(<WalletsScreen />);
   await waitFor(() => expect(view.getByText('Fictional b')).toBeTruthy());
