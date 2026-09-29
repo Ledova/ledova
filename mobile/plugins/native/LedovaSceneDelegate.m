@@ -23,9 +23,21 @@ static id<UIApplicationDelegate> LedovaApplicationDelegate(SEL selector)
   self.window = [LedovaApplicationDelegate(@selector(window)) window];
   self.window.windowScene = (UIWindowScene *)scene;
   [self.window makeKeyAndVisible];
+  [NSNotificationCenter.defaultCenter addObserver:self
+                                         selector:@selector(windowDidBecomeVisible:)
+                                             name:UIWindowDidBecomeVisibleNotification
+                                           object:nil];
   [self scene:scene openURLContexts:connectionOptions.URLContexts];
   for (NSUserActivity *userActivity in connectionOptions.userActivities) {
     [self scene:scene continueUserActivity:userActivity];
+  }
+}
+
+- (void)windowDidBecomeVisible:(NSNotification *)notification
+{
+  UIWindow *window = notification.object;
+  if (window.windowScene == nil) {
+    window.windowScene = self.window.windowScene;
   }
 }
 
