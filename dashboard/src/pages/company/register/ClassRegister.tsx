@@ -3,7 +3,7 @@ import { Rows, Row, Status } from '@components/Ledger';
 
 export function ClassRegister({ register }: { register: TokenHoldersResponse }) {
   return (
-    <div className="flex flex-col gap-4 pb-6">
+    <div className="flex flex-col gap-4">
       <Rows>
         <Row label="Issued shares">
           <span className="break-all">

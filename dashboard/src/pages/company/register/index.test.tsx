@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { COMPANY_TOKEN_ENDPOINTS, type TokenHoldersResponse } from '@ledova/shared';
@@ -76,6 +77,16 @@ function serve(value = register()) {
   api.get.mockImplementation(async (url: string) => (url === COMPANY_TOKEN_ENDPOINTS.BASE ? page() : { data: value }));
 }
 
+function detailOf(row: HTMLElement) {
+  const detail = document.getElementById(row.getAttribute('aria-controls') ?? '');
+  expect(detail).not.toBeNull();
+  return detail!;
+}
+
+async function openOrdinary() {
+  fireEvent.click(await screen.findByRole('button', { name: /Ordinary shares/ }));
+}
+
 beforeEach(() => {
   api.get.mockReset();
   role.isKnown = true;
@@ -114,12 +125,12 @@ it('reads every class page and renders exact stored shares with each member and 
   show();
   expect(await screen.findByText('Preference shares')).toBeTruthy();
   expect(api.get).toHaveBeenCalledWith(COMPANY_TOKEN_ENDPOINTS.BASE, { params: { page: 2 } });
-  const summary = screen.getByText('Ordinary shares').closest('summary')!;
-  fireEvent.click(summary);
-  expect(summary.closest('details')!.open).toBe(true);
-  expect(screen.getAllByRole('link', { name: 'Share class' })[0].getAttribute('href')).toBe(
+  fireEvent.click(screen.getByRole('button', { name: /Ordinary shares/ }));
+  fireEvent.click(screen.getByRole('button', { name: /Preference shares/ }));
+  expect(screen.getAllByRole('link', { name: 'Share class' }).map((link) => link.getAttribute('href'))).toEqual([
     '/company/register/ordinary',
-  );
+    '/company/register/preference',
+  ]);
   expect(screen.getAllByText('9,007,199,254,740,993 shares')).toHaveLength(2);
   expect(screen.getAllByText('9,007,199,254,740,999')).toHaveLength(2);
   expect(screen.getAllByText('Example Member')).toHaveLength(2);
@@ -158,7 +169,8 @@ it.each(['class list', 'class page two', 'register'])(
 it('hides stale members after a failed refresh and reflects a successful register invalidation', async () => {
   serve();
   show();
-  expect(await screen.findByText('Example Member')).toBeTruthy();
+  await openOrdinary();
+  expect(screen.getByText('Example Member')).toBeTruthy();
   api.get.mockRejectedValue(new Error('Unavailable'));
   await act(async () => client.invalidateQueries({ queryKey: ['tokens'] }));
   expect(await screen.findByRole('alert')).toBeTruthy();
@@ -166,13 +178,14 @@ it('hides stale members after a failed refresh and reflects a successful registe
   serve(register('ordinary', { holders: [], totalHolders: 0, issuedSupply: '0' }));
   await act(async () => client.invalidateQueries({ queryKey: ['tokens'] }));
   expect(await screen.findByText('No current members are recorded for this class.')).toBeTruthy();
+  expect(screen.getByRole('button', { name: /Ordinary shares/ }).getAttribute('aria-expanded')).toBe('true');
   expect(screen.queryByText('Example Member')).toBeNull();
 });
 
 it.each([null, 2])('keeps waiting effects %s distinct from a current register', async (waitingEffects) => {
   serve(register('ordinary', { waitingEffects }));
   show();
-  await screen.findByText('Ordinary shares');
+  await openOrdinary();
   expect(screen.getByRole('status').textContent).toContain(
     waitingEffects === null ? 'could not be checked' : '2 completed issues or transfers wait',
   );
@@ -190,7 +203,8 @@ it('does not present an unopened register as an empty opened register or zero is
     }),
   );
   show();
-  expect(await screen.findByText('Not opened')).toBeTruthy();
+  await openOrdinary();
+  expect(screen.getByText('Not opened')).toBeTruthy();
   expect(screen.getByText('Not recorded')).toBeTruthy();
   expect(screen.queryByText(/Current members/)).toBeNull();
   expect(screen.getByText(/An approved register opening starts it/)).toBeTruthy();
@@ -200,9 +214,64 @@ it('retains unresolved identity and wallet-less members without inventing a name
   const holder = register().holders[0];
   serve(register('ordinary', { holders: [{ ...holder, name: null, holderType: 'ambiguous', wallets: [] }] }));
   show();
-  expect(await screen.findByText('Ambiguous')).toBeTruthy();
+  await openOrdinary();
+  expect(screen.getByText('Ambiguous')).toBeTruthy();
   expect(screen.getByText(/wallets point to more than one person/)).toBeTruthy();
   expect(screen.getByText('No linked wallet')).toBeTruthy();
+});
+
+it('opens each class in place under its row, all closed at first, independently and from the keyboard', async () => {
+  const user = userEvent.setup();
+  api.get.mockImplementation(async (url: string) =>
+    url === COMPANY_TOKEN_ENDPOINTS.BASE
+      ? page(['ordinary', 'preference'])
+      : { data: register(url.includes('preference') ? 'preference' : 'ordinary') },
+  );
+  show();
+  const ordinary = await screen.findByRole('button', { name: /Ordinary shares/ });
+  const preference = screen.getByRole('button', { name: /Preference shares/ });
+  for (const row of [ordinary, preference]) {
+    expect(row.getAttribute('aria-expanded')).toBe('false');
+    expect(detailOf(row).hidden).toBe(true);
+    expect(detailOf(row).textContent).toBe('');
+    expect(row.querySelector('a, button, input, select, textarea')).toBeNull();
+  }
+  expect(screen.queryByRole('link', { name: 'Share class' })).toBeNull();
+  expect(screen.queryByText('Example Member')).toBeNull();
+
+  fireEvent.click(ordinary);
+  const detail = detailOf(ordinary);
+  expect(ordinary.getAttribute('aria-expanded')).toBe('true');
+  expect(detail.hidden).toBe(false);
+  expect(ordinary.closest('li')!.contains(detail)).toBe(true);
+  expect(ordinary.compareDocumentPosition(detail) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(within(detail).getByRole('link', { name: 'Share class' }).getAttribute('href')).toBe(
+    '/company/register/ordinary',
+  );
+  expect(within(detail).getByRole('heading', { level: 3, name: 'Current members · 1' })).toBeTruthy();
+  expect(within(detail).getByText('Example Member')).toBeTruthy();
+  expect(detailOf(preference).textContent).toBe('');
+  expect(screen.queryAllByRole('region')).toHaveLength(0);
+
+  ordinary.focus();
+  await user.tab();
+  expect(document.activeElement).toBe(within(detail).getByRole('link', { name: 'Share class' }));
+  await user.tab();
+  expect(document.activeElement).toBe(preference);
+  await user.keyboard('{Enter}');
+  expect(preference.getAttribute('aria-expanded')).toBe('true');
+  expect(within(detailOf(preference)).getByRole('link', { name: 'Share class' }).getAttribute('href')).toBe(
+    '/company/register/preference',
+  );
+  expect(ordinary.getAttribute('aria-expanded')).toBe('true');
+  expect(within(detailOf(ordinary)).getByText('Example Member')).toBeTruthy();
+  expect(screen.queryAllByRole('region')).toHaveLength(0);
+
+  await user.keyboard(' ');
+  expect(preference.getAttribute('aria-expanded')).toBe('false');
+  expect(detailOf(preference).hidden).toBe(true);
+  expect(detailOf(preference).textContent).toBe('');
+  expect(detailOf(ordinary).hidden).toBe(false);
 });
 
 it.each(['1', '0', '-1', '1.5'])('rejects non-advancing pagination to page %s', async (next) => {
@@ -216,6 +285,7 @@ it.each(['1.5', '-1', '1e3'])('rejects inexact share balance %s instead of publi
   serve(register('ordinary', { holders: [{ ...register().holders[0], balance }] }));
   show();
   expect(await screen.findByRole('alert')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /Ordinary shares/ })).toBeNull();
   expect(screen.queryByText('Example Member')).toBeNull();
 });
 
