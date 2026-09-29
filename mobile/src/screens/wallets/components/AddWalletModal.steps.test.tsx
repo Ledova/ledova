@@ -64,7 +64,7 @@ jest.mock('../../../components/modal', () => {
       </View>
     ) : null;
   }
-  return { CustomModal: jest.fn(MockCustomModal) };
+  return { ...jest.requireActual('../../../components/modal'), CustomModal: jest.fn(MockCustomModal) };
 });
 jest.mock('../../../services/apiClient', () => ({ apiClient: { post: jest.fn() } }));
 jest.mock('../../../utils/keystone/bcurDecoder', () => ({ extractFromKeystoneQR: jest.fn() }));

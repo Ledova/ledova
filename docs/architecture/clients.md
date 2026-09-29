@@ -450,6 +450,10 @@ Pages rebuilt in the paper layout use the ledger blocks in
 - `LinkRow`: a row that opens another page, named after its destination, with
   optional detail lines, an optional aside such as a status or a price, and a
   trailing chevron; the whole row is the link.
+- `SwitchRow`: a row that turns a setting on or off, with its label, an
+  optional muted sentence under it, and an On or Off pill at its end that is
+  the switch itself (`role="switch"`), named by the label and described by the
+  sentence.
 - `Disclosure`: a row that opens in place: a button with `aria-expanded` and a
   leading caret that turns when open, controlling the detail directly under it,
   which it holds only while open. The detail is a landmark (`region`, labelled
@@ -507,6 +511,19 @@ On mobile, Activity's filter and entry detail, Market's order details and the
 Wallets sort still open in a dialog. The bell's notifications belong to the frame
 rather than a page, on both clients.
 
+A setting that takes effect as soon as it changes has one control, a
+`SwitchRow`: Transaction alerts on Settings and Show this company to eligible
+investors on Offerings. Its `aria-checked` is the saved value; it is disabled
+while a change is saving, keeps the saved value when the change is refused, and
+the refusal is an alert in the same card. On the web a choice that is saved
+with a form stays a checkbox, as the payment choices in the offering editor and
+the declaration in a claim do. Mobile's `SwitchRow` puts the native switch at
+the end of the same row, named by the label with the sentence as its hint, for
+biometric sign-in, App lock and Transaction alerts on Settings and Show this
+company to eligible investors on Offerings. The mobile offering editor's
+payment choices are not in that row yet: each is still a bare native switch
+under its own line of text.
+
 A lede, the one muted sentence under a page's title, appears only where it says
 what the titles do not: an instruction (Wallets, Activity) or a fact (Register,
 Published to your members, the company of a Directory share class). `Page` sets
@@ -562,6 +579,34 @@ clients bundle Newsreader for display text and Instrument Sans for everything
 else. Mobile also uses fixed paper and bundles these fonts with a finite
 loading/error/retry gate; saved local and account theme choices do not change
 the palette. Shared tokens and the CSS generator contain only paper; the retired dark and light palettes are removed.
+
+On mobile a dialog is `CustomModal` in `mobile/src/components/modal`, the same
+card as `Section` (`useCardStyles` in `mobile/src/components/Ledger.tsx`) over
+the dimmed screen and inside the safe area. Its Newsreader title is the card's
+first element, marked as a header, and the card is marked
+`accessibilityViewIsModal` for VoiceOver; React Native has no way to make the
+title the dialog's accessible name as the web's `DialogTitle` does. Its body
+scrolls inside the card, and its actions end the card as one right-aligned row
+of content-width `Action`s (`ModalActions`), a plain Cancel, Close or Back before
+the one primary action, wrapping onto another line rather than stretching. The
+backdrop is a button that closes the dialog, and a busy dialog holds the
+backdrop, Android Back and Cancel. The iOS date sheet in `DatePickerField` and
+the Send, Transfer, Verify Wallet and Recovery Phrase screens (`Panel` in
+`mobile/src/components/panel`) use the same card and action row; their stack
+header has no title, so the card's title is the screen's only one. Inside them
+nothing is boxed, as on the web: `Rows` draws a rule only between items and
+`Row` and `LinkRow` draw none of their own, steps are numbered lines, fields
+are white with a hairline border (`useDialogStyles`), a choice is an outlined
+`Choice` marked selected rather than a second filled button, and warnings and
+errors are text rather than tinted boxes: a warning is warning-coloured,
+usually beside its icon, and an error is either error-coloured or in the plain
+or muted text around it. Values set in monospace (the send review's addresses,
+the signing summaries' values, a sent transaction's hash and the addresses in
+the wallet dialogs) use the theme's `fontFamily.mono`, the system monospaced
+face on iOS, as the web's `font-mono` does. The profile's identity dialog shows
+the check's outcome as plain lines; the sign-up screens keep their tinted fields
+and boxed outcomes, as on the web. Mobile's theme adds one spacing step, `smd`
+(12), for the web's 12px spacing the shared scale lacks.
 
 Mobile resolves the package through its Metro configuration and local workspace
 link. Run `npm --prefix mobile run check:resolution` after dependency/resolution

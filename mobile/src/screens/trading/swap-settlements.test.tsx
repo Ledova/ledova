@@ -11,6 +11,7 @@ import {
   selectSwapSettlement,
   ApiClientProvider,
   AUTH_QUERY_KEY,
+  DESIGN_TOKENS,
   USER_PREFERENCES_QUERY_KEY,
   type SwapOrder,
   type Wallet,
@@ -72,6 +73,7 @@ jest.mock('../../components/modal', () => {
     visible,
     contentKey,
     children,
+    actions,
     onClose,
     onConfirm,
     confirmLabel,
@@ -80,6 +82,7 @@ jest.mock('../../components/modal', () => {
     visible: boolean;
     contentKey?: React.Key;
     children: React.ReactNode;
+    actions?: React.ReactNode;
     onClose: () => void;
     onConfirm?: () => void;
     confirmLabel?: string;
@@ -94,6 +97,7 @@ jest.mock('../../components/modal', () => {
     return visible ? (
       <View>
         <MockDialogContent key={contentKey}>{children}</MockDialogContent>
+        {actions}
         <Pressable onPress={onClose}>
           <Text>Dismiss settlement</Text>
         </Pressable>
@@ -105,8 +109,14 @@ jest.mock('../../components/modal', () => {
       </View>
     ) : null;
   }
-  return { CustomModal: jest.fn(MockCustomModal) };
+  return { ...jest.requireActual('../../components/modal'), CustomModal: jest.fn(MockCustomModal) };
 });
+function actionLabels(node: React.ReactNode): string[] {
+  return React.Children.toArray(node).flatMap((child) => {
+    if (!React.isValidElement<{ label?: string; children?: React.ReactNode }>(child)) return [];
+    return child.props.label ? [child.props.label] : actionLabels(child.props.children);
+  });
+}
 let mockWallets: Wallet[];
 let mockSwaps: SwapOrder[];
 let mockActualOrders: boolean;
@@ -292,16 +302,17 @@ afterEach(async () => {
   client.clear();
 });
 
-it('keeps captured settlement terms while the review shrinks with the available window', async () => {
+it('keeps captured settlement terms in the self-sizing dialog when the available window changes', async () => {
   Dimensions.set({ window: { width: 390, height: 740, scale: 3, fontScale: 1 } });
   const view = await render(<TradingScreen />, { wrapper });
   await open(view);
-  expect(jest.mocked(CustomModal).mock.calls.at(-1)![0].maxHeight).toBe(644);
+  expect(jest.mocked(CustomModal).mock.calls.at(-1)![0]).toMatchObject({ visible: true, title: 'Review settlement' });
 
   await act(async () => {
     Dimensions.set({ window: { width: 740, height: 430, scale: 3, fontScale: 1 } });
   });
-  expect(jest.mocked(CustomModal).mock.calls.at(-1)![0].maxHeight).toBe(334);
+  expect(jest.mocked(CustomModal).mock.calls.at(-1)![0]).toMatchObject({ visible: true, title: 'Review settlement' });
+  expect(jest.mocked(CustomModal).mock.calls.at(-1)![0]).not.toHaveProperty('maxHeight');
   expect(view.getByText('Shares: 9007199254740993')).toBeTruthy();
   expect(view.getByText('Payment: 13510798882111489.5 TUSD')).toBeTruthy();
   expect(view.getByText('Sign settlement')).toBeTruthy();
@@ -318,7 +329,7 @@ it('keeps one mounted settlement dialog from review through the recorded signatu
   };
   const view = await render(<TradingScreen />, { wrapper });
   await fireEvent.press(view.getByText('Open settlement 1'));
-  await waitFor(() => expect(view.getByText('Review settlement')).toBeTruthy());
+  await waitFor(() => expect(jest.mocked(CustomModal).mock.calls.at(-1)![0].title).toBe('Review settlement'));
   await release();
   await fireEvent.press(await view.findByText('Check token approval'));
   await release();
@@ -331,6 +342,22 @@ it('keeps one mounted settlement dialog from review through the recorded signatu
   expect(dialogEvents('modal unmounted')).toBe(0);
   expect(dialogEvents('content mounted')).toBe(3);
   expect(jest.mocked(CustomModal).mock.calls.every(([props]) => props.visible)).toBe(true);
+});
+
+it('offers the settlement checks in the dialog action row rather than as links in its body', async () => {
+  const view = await render(<TradingScreen />, { wrapper });
+  await open(view);
+  expect(actionLabels(jest.mocked(CustomModal).mock.calls.at(-1)![0].actions)).toEqual(
+    expect.arrayContaining(['Check settlement status', 'Check token approval']),
+  );
+});
+
+it('sets its closing note as body text, like the rest of the web settlement dialog', async () => {
+  const view = await render(<TradingScreen />, { wrapper });
+  await open(view);
+  expect(view.getByText(/^You can close and check saved settlements later/)).toHaveStyle({
+    color: DESIGN_TOKENS.colors.text.primary,
+  });
 });
 
 it('reviews exact captured terms and sends one real signature despite duplicate presses', async () => {

@@ -1,15 +1,5 @@
-import { useState, type ReactNode } from 'react';
-import {
-  Text,
-  TextInput,
-  View,
-  Modal,
-  ScrollView,
-  Pressable,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-} from 'react-native';
+import { useState } from 'react';
+import { Text, TextInput, View } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 import {
   MAX_REQUEST_SHARES,
@@ -21,50 +11,10 @@ import {
   requestShares,
   type CompanyShareToken,
 } from '@ledova/shared';
-import { useAppTheme, overlayColors } from '../../contexts';
 import { Action } from '../../components/Ledger';
+import { CustomModal } from '../../components/modal';
 import { apiClient } from '../../services/apiClient';
 import { useCompanyStyles } from '../company-register/styles';
-
-function RequestModal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
-  const theme = useAppTheme();
-  return (
-    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1, justifyContent: 'center', padding: 20 }}
-      >
-        <Pressable
-          accessibilityLabel="Dismiss request"
-          accessibilityRole="button"
-          onPress={onClose}
-          style={[StyleSheet.absoluteFillObject, { backgroundColor: overlayColors.modal }]}
-        />
-        <View
-          accessibilityViewIsModal
-          style={{ maxHeight: '90%', backgroundColor: theme.colors.surface.base, borderRadius: 8 }}
-        >
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, gap: 12 }}>
-            <Text
-              accessibilityRole="header"
-              style={{
-                fontFamily: theme.fontFamily.display,
-                fontSize: 25,
-                color: theme.colors.text.primary,
-                paddingBottom: 10,
-                borderBottomWidth: 1,
-                borderBottomColor: theme.colors.border.default,
-              }}
-            >
-              {title}
-            </Text>
-            {children}
-          </ScrollView>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
-  );
-}
 
 interface RequestProps {
   token: CompanyShareToken;
@@ -142,10 +92,19 @@ export function IssueSharesForm({ token, classRead, onClose, onSuccess }: Reques
     },
   });
   return (
-    <RequestModal
+    <CustomModal
+      visible
       title={`Request ${token.symbol} issuance`}
       onClose={() => {
         if (!request.isPending) onClose();
+      }}
+      busy={request.isPending}
+      dismissLabel="Dismiss request"
+      showFooter
+      confirmLabel="Submit issuance request"
+      confirmDisabled={!valid || request.isPending}
+      onConfirm={() => {
+        if (valid && !request.isPending) request.mutate();
       }}
     >
       <ClassReadState query={classRead} />
@@ -172,16 +131,7 @@ export function IssueSharesForm({ token, classRead, onClose, onSuccess }: Reques
           The class must be deployed and unpaused before you request issuance.
         </Text>
       )}
-      <Action
-        label="Submit issuance request"
-        primary
-        disabled={!valid || request.isPending}
-        onPress={() => {
-          if (valid && !request.isPending) request.mutate();
-        }}
-      />
-      <Action label="Cancel" disabled={request.isPending} onPress={onClose} />
-    </RequestModal>
+    </CustomModal>
   );
 }
 
@@ -218,10 +168,19 @@ export function RaiseSharesForm({ token, classRead, onClose, onSuccess }: Reques
     },
   });
   return (
-    <RequestModal
+    <CustomModal
+      visible
       title="Raise authorised shares"
       onClose={() => {
         if (!request.isPending) onClose();
+      }}
+      busy={request.isPending}
+      dismissLabel="Dismiss request"
+      showFooter
+      confirmLabel="Create request"
+      confirmDisabled={!valid || request.isPending}
+      onConfirm={() => {
+        if (valid && !request.isPending) request.mutate();
       }}
     >
       <ClassReadState query={classRead} />
@@ -270,15 +229,6 @@ export function RaiseSharesForm({ token, classRead, onClose, onSuccess }: Reques
           The class must be deployed and unpaused before you request a raise.
         </Text>
       )}
-      <Action
-        label="Create request"
-        primary
-        disabled={!valid || request.isPending}
-        onPress={() => {
-          if (valid && !request.isPending) request.mutate();
-        }}
-      />
-      <Action label="Cancel" disabled={request.isPending} onPress={onClose} />
-    </RequestModal>
+    </CustomModal>
   );
 }

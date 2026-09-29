@@ -9,6 +9,7 @@ import * as Crypto from 'expo-crypto';
 import {
   ApiClientProvider,
   AUTH_QUERY_KEY,
+  DESIGN_TOKENS,
   USER_PREFERENCES_QUERY_KEY,
   TRADING_ENDPOINTS,
   OrderSubmission,
@@ -60,8 +61,9 @@ const dialogEvents = (event: string) => mockDialogLifecycle.filter((entry) => en
 jest.mock('../../components/modal', () => {
   const { useEffect } = jest.requireActual('react');
   const { View, Text, Pressable } = jest.requireActual('react-native');
-  function MockDialogContent({ children }: { children: React.ReactNode }) {
+  function MockDialogContent({ children, tracked }: { children: React.ReactNode; tracked: boolean }) {
     useEffect(() => {
+      if (!tracked) return;
       mockDialogLifecycle.push('content mounted');
       return () => {
         mockDialogLifecycle.push('content unmounted');
@@ -71,22 +73,28 @@ jest.mock('../../components/modal', () => {
   }
   function MockCustomModal({
     visible,
+    title,
     contentKey,
     children,
+    actions,
     onClose,
     onConfirm,
     confirmLabel,
     confirmDisabled,
   }: {
     visible: boolean;
+    title: string;
     contentKey?: React.Key;
     children: React.ReactNode;
+    actions?: React.ReactNode;
     onClose: () => void;
     onConfirm?: () => void;
     confirmLabel?: string;
     confirmDisabled?: boolean;
   }) {
+    const tracked = !/^(Wanted|For sale) · /.test(title);
     useEffect(() => {
+      if (!tracked) return;
       mockDialogLifecycle.push('modal mounted');
       return () => {
         mockDialogLifecycle.push('modal unmounted');
@@ -94,7 +102,10 @@ jest.mock('../../components/modal', () => {
     }, []);
     return visible ? (
       <View>
-        <MockDialogContent key={contentKey}>{children}</MockDialogContent>
+        <MockDialogContent key={contentKey} tracked={tracked}>
+          {children}
+        </MockDialogContent>
+        {actions}
         <Pressable onPress={onClose}>
           <Text>Dismiss window</Text>
         </Pressable>
@@ -106,7 +117,7 @@ jest.mock('../../components/modal', () => {
       </View>
     ) : null;
   }
-  return { CustomModal: jest.fn(MockCustomModal) };
+  return { ...jest.requireActual('../../components/modal'), CustomModal: jest.fn(MockCustomModal) };
 });
 jest.mock('./components/MarketList', () => ({ MarketList: () => null }));
 jest.mock('./components/OrdersCard', () => ({ OrdersCard: () => null }));
@@ -246,6 +257,19 @@ it('keeps one mounted signing dialog while the order is prepared, signed and cre
   expect(dialogEvents('modal unmounted')).toBe(0);
   expect(dialogEvents('content mounted')).toBe(3);
   expect(jest.mocked(CustomModal).mock.calls.every(([props]) => props.visible)).toBe(true);
+});
+
+it('states an unconfirmed order in plain text, as the web does', async () => {
+  const actual = handler;
+  handler = async (config) => {
+    if (config.url === endpoints.CREATE) throw new Error('Response lost');
+    return actual(config);
+  };
+  const view = await render(<TradingScreen />, { wrapper });
+  await newOrder(view);
+  await fireEvent.press(view.getByText('Sign with biometric'));
+  const [, message] = view.getByText('Order status unconfirmed').parent!.children;
+  expect(message).toHaveStyle({ color: DESIGN_TOKENS.colors.text.primary });
 });
 
 it.each(['close', 'unmount', 'account', 'session'])(

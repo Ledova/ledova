@@ -40,13 +40,13 @@ interface SeedPhraseSetupOptions {
 export function useSeedPhraseSetup({ visible, onClose, onComplete, onCancel, readBlocked }: SeedPhraseSetupOptions) {
   const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
-    storingContainer: {
-      flex: 1,
+    storing: {
+      flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
-      gap: theme.spacing.md,
+      gap: theme.spacing.sm,
     },
     storingText: {
+      fontFamily: theme.fontFamily.regular,
       fontSize: theme.fontSize.base,
       color: theme.colors.text.muted,
     },
@@ -230,10 +230,7 @@ export function useSeedPhraseSetup({ visible, onClose, onComplete, onCancel, rea
           confirmDisabled: quizAnswers.some((a) => !a),
         };
       default:
-        return {
-          cancelLabel: 'Back' as const,
-          onCancel: onCancel,
-        };
+        return {};
     }
   };
 
@@ -279,8 +276,8 @@ export function useSeedPhraseSetup({ visible, onClose, onComplete, onCancel, rea
 
       case SEED_STEP.STORING:
         return (
-          <View style={styles.storingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.interactive.default} />
+          <View style={styles.storing}>
+            <ActivityIndicator size="small" color={theme.colors.interactive.default} />
             <Text style={styles.storingText}>Securing your wallet...</Text>
           </View>
         );
@@ -295,7 +292,7 @@ export function useSeedPhraseSetup({ visible, onClose, onComplete, onCancel, rea
       onClose: () => {
         if (step !== SEED_STEP.STORING) onClose();
       },
-      showFooter: step !== SEED_STEP.STORING,
+      showFooter: step === SEED_STEP.GENERATE || step === SEED_STEP.CONFIRM,
       ...getFooterProps(),
     },
     content: renderContent(),

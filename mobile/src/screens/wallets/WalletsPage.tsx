@@ -50,9 +50,14 @@ export const useWalletStyles = () =>
     message: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 21, color: theme.colors.text.primary },
     help: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 21, color: theme.colors.text.muted },
     name: { fontFamily: theme.fontFamily.medium, fontSize: 17, color: theme.colors.text.primary },
-    group: { gap: 12 },
-    actions: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 12 },
-    item: { gap: 12, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.border.default },
+    group: { gap: theme.spacing.smd },
+    actions: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: theme.spacing.smd },
+    item: {
+      gap: theme.spacing.smd,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border.default,
+    },
     lastItem: { paddingBottom: 0, borderBottomWidth: 0 },
     input: {
       fontFamily: theme.fontFamily.regular,
@@ -60,7 +65,7 @@ export const useWalletStyles = () =>
       borderWidth: 1,
       borderColor: theme.colors.border.default,
       borderRadius: 6,
-      padding: 12,
+      padding: theme.spacing.smd,
       fontSize: 16,
     },
   }));

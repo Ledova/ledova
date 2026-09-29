@@ -1,12 +1,13 @@
 import React, { useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 import { XIcon } from 'phosphor-react-native';
 import { formatDateTime, PUBLICATION_NOTICE } from '@ledova/shared';
 import type { Notification } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../contexts';
-import { CustomModal } from '../modal';
+import { Action, Rows } from '../Ledger';
+import { CustomModal, useDialogStyles } from '../modal';
 import { useNotifications } from '@ledova/shared';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 
@@ -39,8 +40,6 @@ function NotificationItem({
       flexDirection: 'row' as const,
       alignItems: 'flex-start' as const,
       paddingVertical: theme.spacing.sm,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border.subtle,
     },
     notificationContent: {
       flex: 1,
@@ -62,16 +61,18 @@ function NotificationItem({
       paddingLeft: 16,
     },
     notificationTitle: {
+      fontFamily: theme.fontFamily.medium,
       fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
       color: theme.colors.text.primary,
     },
     notificationBody: {
+      fontFamily: theme.fontFamily.regular,
       fontSize: theme.fontSize.xs,
       color: theme.colors.text.muted,
       marginTop: 2,
     },
     notificationTime: {
+      fontFamily: theme.fontFamily.regular,
       fontSize: theme.fontSize.xs,
       color: theme.colors.text.subtle,
       marginTop: 4,
@@ -117,50 +118,7 @@ function NotificationItem({
 
 export function NotificationsModal({ visible, onClose }: NotificationsModalProps) {
   const theme = useAppTheme();
-  const styles = useThemedStyles((theme) => ({
-    container: {
-      paddingVertical: theme.spacing.sm,
-      minHeight: 300,
-      maxHeight: 500,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: theme.spacing.md,
-    },
-    title: {
-      fontSize: theme.fontSize.xl,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-    },
-    markAllRead: {
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.interactive.active,
-    },
-    markAllReadDisabled: {
-      opacity: 0.5,
-    },
-    loadingContainer: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: theme.spacing.xl,
-    },
-    emptyContainer: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: theme.spacing.xl,
-    },
-    emptyText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-    },
-    list: {
-      flex: 1,
-    },
-  }));
+  const styles = useDialogStyles();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const {
     unreadCount,
@@ -187,39 +145,35 @@ export function NotificationsModal({ visible, onClose }: NotificationsModalProps
   };
 
   return (
-    <CustomModal visible={visible} onClose={onClose} showFooter={false}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Notifications</Text>
-          {unreadCount > 0 && (
-            <TouchableOpacity accessibilityRole="button" onPress={() => markAllAsRead()} disabled={isMarkingAllRead}>
-              <Text style={[styles.markAllRead, isMarkingAllRead && styles.markAllReadDisabled]}>Mark all as read</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {isLoadingNotifications && notifications.length === 0 ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color={theme.colors.interactive.active} />
-          </View>
-        ) : notifications.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No notifications yet</Text>
-          </View>
-        ) : (
-          <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
-            {notifications.map((notification: Notification) => (
-              <NotificationItem
-                key={notification.uuid}
-                notification={notification}
-                onRead={markAsRead}
-                onArchive={archive}
-                onFollow={follow}
-              />
-            ))}
-          </ScrollView>
-        )}
-      </View>
+    <CustomModal
+      visible={visible}
+      title="Notifications"
+      onClose={onClose}
+      showFooter
+      cancelLabel="Close"
+      actions={
+        unreadCount > 0 ? (
+          <Action label="Mark all as read" onPress={() => markAllAsRead()} disabled={isMarkingAllRead} />
+        ) : undefined
+      }
+    >
+      {isLoadingNotifications && notifications.length === 0 ? (
+        <ActivityIndicator size="small" color={theme.colors.interactive.active} />
+      ) : notifications.length === 0 ? (
+        <Text style={styles.muted}>No notifications yet</Text>
+      ) : (
+        <Rows>
+          {notifications.map((notification: Notification) => (
+            <NotificationItem
+              key={notification.uuid}
+              notification={notification}
+              onRead={markAsRead}
+              onArchive={archive}
+              onFollow={follow}
+            />
+          ))}
+        </Rows>
+      )}
     </CustomModal>
   );
 }

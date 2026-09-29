@@ -12,15 +12,13 @@ export function useAccountStyles() {
     input: {
       fontFamily: theme.fontFamily.regular,
       fontSize: 16,
-      paddingHorizontal: 12,
-      paddingVertical: 12,
+      paddingHorizontal: theme.spacing.smd,
+      paddingVertical: theme.spacing.smd,
       borderWidth: 1,
       borderRadius: theme.borderRadius.md,
       borderColor: theme.colors.border.default,
       backgroundColor: theme.colors.surface.raised,
       color: theme.colors.text.primary,
     },
-    toggle: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 16 },
-    toggleText: { flex: 1, gap: 5 },
   }));
 }

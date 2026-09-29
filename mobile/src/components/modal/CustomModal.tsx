@@ -1,186 +1,208 @@
-import React, { useEffect, useRef } from 'react';
-import { AccessibilityInfo, View, Modal, ScrollView, TouchableOpacity, Text } from 'react-native';
-import { overlayColors } from '../../contexts';
-import { useThemedStyles } from '../../contexts';
+import { useContext, useEffect, useRef, type Key, type ReactElement, type ReactNode } from 'react';
+import {
+  AccessibilityInfo,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type RefreshControlProps,
+} from 'react-native';
+import { SafeAreaInsetsContext, initialWindowMetrics } from 'react-native-safe-area-context';
+import { overlayColors, useThemedStyles } from '../../contexts';
+import { Action, useCardStyles } from '../Ledger';
+
+const NO_INSETS = { top: 0, right: 0, bottom: 0, left: 0 };
+
+export function useDialogInsets() {
+  return useContext(SafeAreaInsetsContext) ?? initialWindowMetrics?.insets ?? NO_INSETS;
+}
+
+export function useDialogStyles() {
+  return useThemedStyles((theme) => ({
+    text: {
+      fontFamily: theme.fontFamily.regular,
+      fontSize: theme.fontSize.sm,
+      lineHeight: 21,
+      color: theme.colors.text.primary,
+    },
+    muted: {
+      fontFamily: theme.fontFamily.regular,
+      fontSize: theme.fontSize.sm,
+      lineHeight: 21,
+      color: theme.colors.text.muted,
+    },
+    heading: {
+      fontFamily: theme.fontFamily.medium,
+      fontSize: theme.fontSize.sm,
+      lineHeight: 21,
+      color: theme.colors.text.primary,
+    },
+    error: {
+      fontFamily: theme.fontFamily.regular,
+      fontSize: theme.fontSize.sm,
+      lineHeight: 21,
+      color: theme.colors.status.error.text,
+    },
+    group: { gap: theme.spacing.xs },
+    line: { flexDirection: 'row' as const, alignItems: 'flex-start' as const, gap: theme.spacing.sm },
+    lineText: { flex: 1 },
+    field: {
+      borderWidth: 1,
+      borderColor: theme.colors.border.default,
+      borderRadius: theme.borderRadius.md,
+      backgroundColor: theme.colors.surface.raised,
+      paddingHorizontal: theme.spacing.smd,
+      paddingVertical: theme.spacing.smd,
+      fontFamily: theme.fontFamily.regular,
+      fontSize: theme.fontSize.base,
+      color: theme.colors.text.primary,
+    },
+  }));
+}
+
+export function ModalActions({ children }: { children: ReactNode }) {
+  const styles = useThemedStyles((theme) => ({
+    row: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      justifyContent: 'flex-end' as const,
+      alignItems: 'center' as const,
+      gap: theme.spacing.sm,
+    },
+  }));
+  return <View style={styles.row}>{children}</View>;
+}
 
 interface CustomModalProps {
   visible: boolean;
+  title: string;
   onClose: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
+  busy?: boolean;
+  dismissLabel?: string;
+  refreshControl?: ReactElement<RefreshControlProps>;
   showFooter?: boolean;
   showCancelButton?: boolean;
   cancelLabel?: string;
-  confirmLabel?: string;
   onCancel?: () => void;
+  actions?: ReactNode;
+  confirmLabel?: string;
   onConfirm?: () => void;
   confirmDisabled?: boolean;
   confirmLoading?: boolean;
-  maxHeight?: number;
-  contentKey?: React.Key;
+  contentKey?: Key;
 }
 
 export function CustomModal({
   visible,
+  title,
   onClose,
   children,
+  busy = false,
+  dismissLabel = 'Close dialog',
+  refreshControl,
   showFooter = false,
   showCancelButton = true,
   cancelLabel = 'Cancel',
-  confirmLabel = 'Confirm',
   onCancel,
+  actions,
+  confirmLabel = 'Confirm',
   onConfirm,
   confirmDisabled = false,
   confirmLoading = false,
-  maxHeight,
   contentKey,
 }: CustomModalProps) {
+  const insets = useDialogInsets();
+  const card = useCardStyles();
   const styles = useThemedStyles((theme) => ({
-    overlay: {
+    overlay: { flex: 1, backgroundColor: overlayColors.modal },
+    keyboard: { flex: 1 },
+    position: {
       flex: 1,
-      backgroundColor: overlayColors.modal,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      paddingTop: insets.top + theme.spacing.md,
+      paddingRight: insets.right + theme.spacing.md,
+      paddingBottom: insets.bottom + theme.spacing.md,
+      paddingLeft: insets.left + theme.spacing.md,
     },
-    modalContainer: {
-      width: '90%',
-      maxWidth: 400,
-      borderRadius: theme.borderRadius.lg,
-
-      shadowColor: theme.colors.utility.black,
-      shadowOffset: {
-        width: 0,
-        height: 8,
-      },
-      shadowOpacity: 0.5,
-      shadowRadius: 12,
-
-      elevation: 10,
-    },
-    modal: {
-      backgroundColor: theme.colors.surface.raised,
-      borderRadius: theme.borderRadius.lg,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      overflow: 'hidden',
-      flexDirection: 'column',
-    },
-    modalContent: {
-      flexShrink: 1,
-    },
-    modalContentContainer: {
-      paddingHorizontal: theme.spacing.md,
-      paddingTop: theme.spacing.md,
-      paddingBottom: theme.spacing.md,
-    },
-    footer: {
-      flexDirection: 'row',
+    card: {
+      width: '100%' as const,
+      maxWidth: 520,
+      maxHeight: '100%' as const,
       gap: theme.spacing.md,
-      padding: theme.spacing.md,
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.border.default,
-      backgroundColor: theme.colors.surface.tertiary,
-      marginTop: theme.spacing.lg,
+      shadowColor: theme.colors.utility.black,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.2,
+      shadowRadius: 16,
+      elevation: 8,
     },
-    button: {
-      flex: 1,
-      paddingVertical: theme.spacing.md,
-      borderRadius: theme.borderRadius.md,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    cancelButton: {
-      backgroundColor: theme.colors.surface.disabled,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-    },
-    cancelButtonFullWidth: {
-      flex: 0,
-      width: '100%',
-    },
-    cancelButtonText: {
-      fontSize: theme.fontSize.base,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.primary,
-    },
-    confirmButton: {
-      backgroundColor: theme.colors.interactive.active,
-    },
-    confirmButtonFullWidth: {
-      flex: 0,
-      width: '100%',
-    },
-    confirmButtonDisabled: {
-      backgroundColor: theme.colors.interactive.disabled,
-      opacity: 0.5,
-    },
-    confirmButtonText: {
-      fontSize: theme.fontSize.base,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.utility.white,
-    },
-    confirmButtonTextDisabled: {
-      color: theme.colors.text.muted,
-    },
+    body: { flexGrow: 0, flexShrink: 1 },
+    content: { gap: theme.spacing.md },
   }));
-  const content = useRef<View>(null);
+  const close = () => {
+    if (!busy) onClose();
+  };
+  const heading = useRef<Text>(null);
   const shown = useRef({ contentKey, visible });
   useEffect(() => {
     const replaced = shown.current.visible && visible && shown.current.contentKey !== contentKey;
     shown.current = { contentKey, visible };
-    if (replaced && content.current) AccessibilityInfo.sendAccessibilityEvent(content.current, 'focus');
+    if (replaced && heading.current) AccessibilityInfo.sendAccessibilityEvent(heading.current, 'focus');
   }, [contentKey, visible]);
   return (
-    <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={onClose}>
-      <TouchableOpacity key={contentKey} ref={content} style={styles.overlay} activeOpacity={1} onPress={onClose}>
-        <View style={styles.modalContainer}>
-          <TouchableOpacity activeOpacity={1} style={[styles.modal, { maxHeight }]}>
-            <ScrollView
-              style={styles.modalContent}
-              contentContainerStyle={styles.modalContentContainer}
-              showsVerticalScrollIndicator={false}
-            >
-              {children}
-            </ScrollView>
-
-            {showFooter && (
-              <View style={styles.footer}>
-                {showCancelButton && (
-                  <TouchableOpacity
-                    style={[styles.button, styles.cancelButton, !onConfirm && styles.cancelButtonFullWidth]}
-                    onPress={onCancel ?? onClose}
-                    disabled={confirmLoading}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.cancelButtonText}>{cancelLabel}</Text>
-                  </TouchableOpacity>
-                )}
-                {onConfirm && (
-                  <TouchableOpacity
-                    style={[
-                      styles.button,
-                      styles.confirmButton,
-                      (confirmDisabled || confirmLoading) && styles.confirmButtonDisabled,
-                      !showCancelButton && styles.confirmButtonFullWidth,
-                    ]}
-                    onPress={onConfirm}
-                    disabled={confirmDisabled || confirmLoading}
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      style={[
-                        styles.confirmButtonText,
-                        (confirmDisabled || confirmLoading) && styles.confirmButtonTextDisabled,
-                      ]}
-                    >
-                      {confirmLoading ? 'Loading...' : confirmLabel}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
+    <Modal testID={`modal-${title}`} visible={visible} transparent animationType="fade" onRequestClose={close}>
+      <View key={contentKey} style={styles.overlay}>
+        <Pressable
+          testID={`modal-backdrop-${title}`}
+          accessibilityRole="button"
+          accessibilityLabel={dismissLabel}
+          style={StyleSheet.absoluteFill}
+          disabled={busy}
+          onPress={close}
+        />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.keyboard}
+          pointerEvents="box-none"
+        >
+          <View style={styles.position} pointerEvents="box-none">
+            <View accessibilityViewIsModal style={[card.card, styles.card]}>
+              <Text ref={heading} accessibilityRole="header" style={card.title}>
+                {title}
+              </Text>
+              <ScrollView
+                style={styles.body}
+                contentContainerStyle={styles.content}
+                keyboardShouldPersistTaps="handled"
+                refreshControl={refreshControl}
+              >
+                {children}
+              </ScrollView>
+              {(showFooter || actions !== undefined) && (
+                <ModalActions>
+                  {showCancelButton && (
+                    <Action label={cancelLabel} disabled={busy || confirmLoading} onPress={onCancel ?? close} />
+                  )}
+                  {actions}
+                  {onConfirm && (
+                    <Action
+                      label={confirmLoading ? 'Loading...' : confirmLabel}
+                      primary
+                      disabled={confirmDisabled || confirmLoading}
+                      onPress={onConfirm}
+                    />
+                  )}
+                </ModalActions>
+              )}
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }

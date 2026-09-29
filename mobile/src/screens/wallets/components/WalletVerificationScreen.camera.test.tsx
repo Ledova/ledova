@@ -271,6 +271,14 @@ it.each(['get', 'request'] as const)('shows a native %s failure with a usable Ba
   expect(failing).toHaveBeenCalledTimes(1);
 });
 
+it.each(['hardware', 'software'] as const)('titles the %s wallet check once, on its card', async (preference) => {
+  mockWallet = { ...mockWallet, signingPreference: preference };
+  const view = await render(<WalletVerificationScreen />, { wrapper });
+  await waitFor(() => expect(view.getByRole('header', { name: 'Verify Wallet' })).toBeTruthy());
+  expect(view.getAllByText('Verify Wallet')).toHaveLength(1);
+  expect(view.queryByText('Verify Wallet Ownership')).toBeNull();
+});
+
 it('does not involve the camera when verifying a software wallet', async () => {
   mockWallet.signingPreference = 'software';
   const view = await render(<WalletVerificationScreen />, { wrapper });

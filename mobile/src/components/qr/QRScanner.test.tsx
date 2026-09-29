@@ -45,6 +45,7 @@ jest.mock('expo-camera', () => {
 jest.mock('../modal', () => {
   const { View, Pressable, Text } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
+    ...jest.requireActual('../modal'),
     CustomModal: ({ children, onClose }: { children: React.ReactNode; onClose: () => void }) => (
       <View>
         {children}

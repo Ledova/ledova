@@ -1,11 +1,11 @@
-import { Text, View, Pressable } from 'react-native';
+import { Text, View } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
 import type { Wallet } from '@ledova/shared';
 import { BLOCKCHAIN } from '@ledova/shared';
 import { useThemedStyles } from '../../../../contexts';
-import { Action } from '../../../../components/Ledger';
+import { Action, Choice } from '../../../../components/Ledger';
 import { DatePickerField } from '../../../../components/date-picker';
-import { ActivityModal } from '../ActivityModal';
+import { CustomModal } from '../../../../components/modal';
 import type { TransactionFilters } from '../../useTransactions';
 
 interface Props {
@@ -38,11 +38,10 @@ export function TransactionFiltersModal({
   const styles = useThemedStyles((theme) => ({
     group: { gap: 10 },
     options: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 8 },
-    option: { borderWidth: 1, borderColor: theme.colors.border.default, borderRadius: 6, padding: 10 },
-    selected: { borderColor: theme.colors.brand.default, backgroundColor: theme.colors.surface.tertiary },
     text: { fontFamily: theme.fontFamily.regular, fontSize: 14, color: theme.colors.text.primary },
     help: { fontFamily: theme.fontFamily.regular, fontSize: 13, lineHeight: 20, color: theme.colors.text.muted },
     dropdown: { borderWidth: 1, borderColor: theme.colors.border.default, padding: 10, borderRadius: 6 },
+    field: { backgroundColor: theme.colors.surface.raised },
     menu: { backgroundColor: theme.colors.surface.base },
   }));
   const change = (field: keyof TransactionFilters, value: string) =>
@@ -67,25 +66,24 @@ export function TransactionFiltersModal({
       <Text style={styles.text}>{title}</Text>
       <View style={styles.options}>
         {options.map((option) => (
-          <Pressable
+          <Choice
             key={option.value}
+            label={option.label}
+            selected={(filters[field] ?? '') === option.value}
             accessibilityRole="radio"
             accessibilityLabel={`${title}: ${option.label}`}
-            accessibilityState={{ checked: (filters[field] ?? '') === option.value }}
             onPress={() => change(field, option.value)}
-            style={[styles.option, (filters[field] ?? '') === option.value && styles.selected]}
-          >
-            <Text style={styles.text}>{option.label}</Text>
-          </Pressable>
+          />
         ))}
       </View>
     </View>
   );
   return (
-    <ActivityModal
+    <CustomModal
       visible={isOpen}
       title="Filter activity"
       onClose={onClose}
+      cancelLabel="Close"
       actions={
         <>
           <Action label="Clear filters" onPress={onClearFilters} />
@@ -143,11 +141,13 @@ export function TransactionFiltersModal({
         label="From date"
         value={filters.start_date ? new Date(`${filters.start_date}T12:00:00`) : undefined}
         onChange={(date) => change('start_date', dayString(date))}
+        fieldStyle={styles.field}
       />
       <DatePickerField
         label="Through date"
         value={filters.end_date ? new Date(`${filters.end_date}T12:00:00`) : undefined}
         onChange={(date) => change('end_date', dayString(date))}
+        fieldStyle={styles.field}
       />
       <Text style={styles.help}>
         Dates filter block time across the whole selected days in your local time. Records without a block time are
@@ -158,6 +158,6 @@ export function TransactionFiltersModal({
           The through date must be on or after the from date.
         </Text>
       )}
-    </ActivityModal>
+    </CustomModal>
   );
 }

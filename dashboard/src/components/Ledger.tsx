@@ -40,6 +40,46 @@ export function LinkRow({
   );
 }
 
+export function SwitchRow({
+  label,
+  description,
+  checked,
+  disabled = false,
+  onChange,
+}: {
+  label: string;
+  description?: string;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  const descriptionId = useId();
+  return (
+    <div className="flex items-center justify-between gap-4 py-3">
+      <div className="min-w-0 flex-1">
+        <p className="break-words text-sm font-medium">{label}</p>
+        {description && (
+          <p id={descriptionId} className="text-sm text-text-muted">
+            {description}
+          </p>
+        )}
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-label={label}
+        aria-checked={checked}
+        aria-describedby={description ? descriptionId : undefined}
+        disabled={disabled}
+        onClick={() => onChange(!checked)}
+        className="shrink-0 rounded-lg border border-border px-3 py-2 text-sm disabled:opacity-50"
+      >
+        {checked ? 'On' : 'Off'}
+      </button>
+    </div>
+  );
+}
+
 export function Disclosure({
   ref,
   summary,

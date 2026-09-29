@@ -9,6 +9,7 @@ import * as Crypto from 'expo-crypto';
 import {
   ApiClientProvider,
   AUTH_QUERY_KEY,
+  DESIGN_TOKENS,
   USER_PREFERENCES_QUERY_KEY,
   TRADING_ENDPOINTS,
   type OrderActionContext,
@@ -75,6 +76,7 @@ jest.mock('../../components/modal', () => {
     visible,
     contentKey,
     children,
+    actions,
     onClose,
     onConfirm,
     confirmLabel,
@@ -83,6 +85,7 @@ jest.mock('../../components/modal', () => {
     visible: boolean;
     contentKey?: React.Key;
     children: React.ReactNode;
+    actions?: React.ReactNode;
     onClose: () => void;
     onConfirm?: () => void;
     confirmLabel?: string;
@@ -97,6 +100,7 @@ jest.mock('../../components/modal', () => {
     return visible ? (
       <View>
         <MockDialogContent key={contentKey}>{children}</MockDialogContent>
+        {actions}
         <Pressable onPress={onClose}>
           <Text>Dismiss window</Text>
         </Pressable>
@@ -108,9 +112,15 @@ jest.mock('../../components/modal', () => {
       </View>
     ) : null;
   }
-  return { CustomModal: jest.fn(MockCustomModal) };
+  return { ...jest.requireActual('../../components/modal'), CustomModal: jest.fn(MockCustomModal) };
 });
 jest.mock('./components/MarketList', () => ({ MarketList: () => null }));
+function actionLabels(node: React.ReactNode): string[] {
+  return React.Children.toArray(node).flatMap((child) => {
+    if (!React.isValidElement<{ label?: string; children?: React.ReactNode }>(child)) return [];
+    return child.props.label ? [child.props.label] : actionLabels(child.props.children);
+  });
+}
 jest.mock('./components/OrdersCard', () => {
   const { Pressable, Text } = jest.requireActual('react-native');
   const f = jest.requireActual('../../../../packages/shared/tests/fixtures/order-actions');
@@ -293,18 +303,19 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-it('keeps the price draft while the review shrinks with the available window', async () => {
+it('keeps the price draft in the self-sizing dialog when the available window changes', async () => {
   Dimensions.set({ window: { width: 390, height: 740, scale: 3, fontScale: 1 } });
   const view = await render(<TradingScreen />, { wrapper });
   await fireEvent.press(view.getByText('Change synthetic order'));
   await waitFor(() => expect(view.getByText('Review change')).toBeTruthy());
   await fireEvent.changeText(view.getByLabelText('New price per share'), '14.00');
-  expect(jest.mocked(CustomModal).mock.calls.at(-1)![0].maxHeight).toBe(644);
+  expect(jest.mocked(CustomModal).mock.calls.at(-1)![0]).toMatchObject({ visible: true, title: 'Change order' });
 
   await act(async () => {
     Dimensions.set({ window: { width: 740, height: 430, scale: 3, fontScale: 1 } });
   });
-  expect(jest.mocked(CustomModal).mock.calls.at(-1)![0].maxHeight).toBe(334);
+  expect(jest.mocked(CustomModal).mock.calls.at(-1)![0]).toMatchObject({ visible: true, title: 'Change order' });
+  expect(jest.mocked(CustomModal).mock.calls.at(-1)![0]).not.toHaveProperty('maxHeight');
   expect(view.getByLabelText('New price per share').props.value).toBe('14.00');
   expect(view.getByText('Review change')).toBeTruthy();
   expect(messagePosts()).toHaveLength(0);
@@ -431,6 +442,7 @@ it('a rejected preparation can remove its reminder and review a new change after
   await view.findByText('New quantity must exceed the filled amount.');
   expect(stored.get(actionId)?.status).toBe('pending');
   expect(await orderActionStore.list(owner)).toHaveLength(1);
+  expect(actionLabels(jest.mocked(CustomModal).mock.calls.at(-1)![0].actions)).toEqual(['Remove saved reminder']);
   await fireEvent.press(view.getByRole('button', { name: 'Remove saved reminder' }));
   await waitFor(() => expect(view.getByLabelText('New quantity').props.value).toBe('10'));
   expect(view.getByText('Filled: 5 shares')).toBeTruthy();
@@ -507,6 +519,27 @@ it('recovers a lost response with its original change and separate current order
   expect(view.getByText('Current order status: Cancelled')).toBeTruthy();
   expect(executes()).toHaveLength(1);
   expect(await orderActionStore.list(owner)).toHaveLength(0);
+});
+
+it('keeps the web field size and states an unconfirmed action in plain text, as the web does', async () => {
+  const view = await render(<TradingScreen />, { wrapper });
+  await fireEvent.press(view.getByText('Change synthetic order'));
+  await waitFor(() => expect(view.getByText('Review change')).toBeTruthy());
+  for (const label of ['New quantity', 'New minimum fill', 'New price per share']) {
+    expect(view.getByLabelText(label)).toHaveStyle({ fontSize: 14 });
+  }
+  await fireEvent.changeText(view.getByLabelText('New price per share'), '14.00');
+  await fireEvent.press(view.getByText('Review change'));
+  await waitFor(() => expect(view.getByText('Sign with biometric')).toBeTruthy());
+  handler = async (config) => {
+    const reply = await ordinary(config);
+    if (config.method === 'post') throw new Error('Synthetic lost committed response');
+    return reply;
+  };
+  await fireEvent.press(view.getByText('Sign with biometric'));
+  await waitFor(() => expect(view.getByText('Action status unconfirmed')).toBeTruthy());
+  const [, message] = view.getByText('Action status unconfirmed').parent!.children;
+  expect(message).toHaveStyle({ color: DESIGN_TOKENS.colors.text.primary });
 });
 
 it('restart recovery bypasses context and forwards the recorded full values with the same ID', async () => {

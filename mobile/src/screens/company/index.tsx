@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getCompanyTokens, formatShareCount, type Company } from '@ledova/shared';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
 import type { BottomTabParamList } from '../../navigation/BottomTabNavigator';
-import { Action, LinkRow, Row, Section } from '../../components/Ledger';
+import { Action, LinkRow, Row, Section, Rows } from '../../components/Ledger';
 import { useCompanyProfile } from '../../hooks/useCompanyProfile';
 import { apiClient } from '../../services/apiClient';
 import { everyCompanyPage } from '../company-register/useCompanyRegister';
@@ -76,16 +76,20 @@ export function CompanyScreen() {
         ) : (
           <>
             <Section title={company.name}>
-              <Row label="Status">{company.statusDisplay}</Row>
-              {company.tradingName && <Row label="Trading name">{company.tradingName}</Row>}
-              <Row label="Type">{company.companyTypeDisplay}</Row>
-              <Row label="ACN">{company.acn}</Row>
-              {company.abn && <Row label="ABN">{company.abn}</Row>}
-              {company.email && <Row label="Email">{company.email}</Row>}
-              {company.phone && <Row label="Phone">{company.phone}</Row>}
-              {!!address && <Row label="Address">{address}</Row>}
-              <LinkRow label="Application" onPress={() => navigation.navigate('Listing')} />
-              <LinkRow label="Published to your members" onPress={() => navigation.navigate('CompanyPublications')} />
+              <Rows>
+                <Row label="Status">{company.statusDisplay}</Row>
+                {company.tradingName && <Row label="Trading name">{company.tradingName}</Row>}
+                <Row label="Type">{company.companyTypeDisplay}</Row>
+                <Row label="ACN">{company.acn}</Row>
+                {company.abn && <Row label="ABN">{company.abn}</Row>}
+                {company.email && <Row label="Email">{company.email}</Row>}
+                {company.phone && <Row label="Phone">{company.phone}</Row>}
+                {!!address && <Row label="Address">{address}</Row>}
+              </Rows>
+              <Rows>
+                <LinkRow label="Application" onPress={() => navigation.navigate('Listing')} />
+                <LinkRow label="Published to your members" onPress={() => navigation.navigate('CompanyPublications')} />
+              </Rows>
               <Action label="Edit company" onPress={() => setEditing(company)} disabled={data.isRefreshing} />
             </Section>
             <Section title={classes.isSuccess ? `Share classes (${classes.data.length})` : 'Share classes'}>
@@ -105,7 +109,7 @@ export function CompanyScreen() {
               ) : classes.data.length === 0 ? (
                 <Text style={styles.muted}>No share classes yet.</Text>
               ) : (
-                <>
+                <Rows>
                   {classes.data.map((token) => (
                     <LinkRow
                       key={token.uuid}
@@ -120,7 +124,7 @@ export function CompanyScreen() {
                     </LinkRow>
                   ))}
                   <LinkRow label="Register" onPress={() => navigation.navigate('CompanyMain')} />
-                </>
+                </Rows>
               )}
               <Action label="Create share class" disabled={data.isRefreshing} onPress={() => setCreating(company)} />
             </Section>
