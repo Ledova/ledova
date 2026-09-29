@@ -1,5 +1,4 @@
-import type { AxiosInstance } from 'axios';
-import type { AxiosResponse } from 'axios';
+import type { AxiosInstance, AxiosResponse } from 'axios';
 import {
   BALLOT_CHOICES,
   PUBLICATION_COPY,
