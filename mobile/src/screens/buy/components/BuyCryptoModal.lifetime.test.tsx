@@ -23,7 +23,7 @@ jest.mock('@tanstack/react-query', () => ({
   useQuery: ({ queryKey, enabled }: { queryKey: string[]; enabled?: boolean }) =>
     queryKey[0] === 'userProfiles'
       ? { data: { data: { results: [{}] } }, isLoading: false }
-      : { data: enabled ? mockWallets : [], isLoading: false },
+      : { data: enabled ? mockWallets : [], isPending: false, isError: false, fetchStatus: 'idle' },
 }));
 jest.mock('../../../services/apiClient', () => ({ apiClient: {} }));
 jest.mock('../../../contexts', () => ({

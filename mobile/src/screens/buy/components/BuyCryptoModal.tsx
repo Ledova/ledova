@@ -26,7 +26,7 @@ import {
   readEveryPage,
 } from '@ledova/shared';
 import type { BuyableAssetConfig, Wallet } from '@ledova/shared';
-import { Rows } from '../../../components/Ledger';
+import { Action, Rows } from '../../../components/Ledger';
 import { WalletChoice } from '../../../components/wallet-list';
 import { CustomModal, useDialogStyles } from '../../../components/modal';
 import { apiClient } from '../../../services/apiClient';
@@ -128,6 +128,9 @@ export function BuyCryptoModal({
     optionLabelDisabled: {
       color: theme.colors.text.muted,
     },
+    failure: {
+      gap: theme.spacing.smd,
+    },
   }));
   const [selectedAsset, setSelectedAsset] = useState<BuyableAssetConfig | null>(null);
   const [showWalletStep, setShowWalletStep] = useState(false);
@@ -187,8 +190,10 @@ export function BuyCryptoModal({
     enabled: visible && !!selectedAsset,
   });
 
-  const matchingWallets = walletsQuery.data ?? [];
-  const isLoadingWallets = walletsQuery.isLoading;
+  const walletsFailed = walletsQuery.isError;
+  const matchingWallets = walletsFailed ? [] : (walletsQuery.data ?? []);
+  const isLoadingWallets = walletsQuery.isPending;
+  const walletsSettled = walletsQuery.fetchStatus === 'idle';
 
   const widgetMutation = useMutation({
     mutationFn: async (wallet: Wallet) => {
@@ -227,12 +232,12 @@ export function BuyCryptoModal({
   useEffect(() => {
     if (!isRequestActive(requestScope) || !selectedAsset || isLoadingWallets) return;
 
-    if (matchingWallets.length === 1 && widgetMutation.isIdle) {
-      widgetMutation.mutate(matchingWallets[0]);
-    } else if (matchingWallets.length !== 1) {
+    if (matchingWallets.length !== 1) {
       setShowWalletStep(true);
+    } else if (walletsSettled && widgetMutation.isIdle) {
+      widgetMutation.mutate(matchingWallets[0]);
     }
-  }, [requestScope, isRequestActive, selectedAsset, isLoadingWallets, matchingWallets, widgetMutation]);
+  }, [requestScope, isRequestActive, selectedAsset, isLoadingWallets, walletsSettled, matchingWallets, widgetMutation]);
 
   const resetAndClose = () => {
     requestScope.lifetime.retire();
@@ -322,11 +327,20 @@ export function BuyCryptoModal({
         </>
       )}
 
-      {!isOnAssetStep && matchingWallets.length === 0 && (
+      {!isOnAssetStep && walletsFailed && (
+        <View style={styles.failure}>
+          <Text accessibilityRole="alert" style={text.muted}>
+            Your wallets could not be loaded. Try again before continuing.
+          </Text>
+          <Action label="Try again" onPress={() => void walletsQuery.refetch()} disabled={walletsQuery.isFetching} />
+        </View>
+      )}
+
+      {!isOnAssetStep && !walletsFailed && matchingWallets.length === 0 && (
         <Text style={text.muted}>No verified wallets for {selectedAsset!.name}. Create one in Wallets.</Text>
       )}
 
-      {!isOnAssetStep && matchingWallets.length > 1 && (
+      {!isOnAssetStep && matchingWallets.length > 0 && (
         <>
           <Text style={text.muted}>Choose a wallet to receive {selectedAsset!.name}</Text>
 
@@ -336,7 +350,7 @@ export function BuyCryptoModal({
                 key={wallet.uuid}
                 wallet={wallet}
                 onChoose={() => handleSelectWallet(wallet)}
-                disabled={isLoading}
+                disabled={isLoading || !walletsSettled}
                 busy={isLoading && widgetMutation.variables?.uuid === wallet.uuid}
               />
             ))}
@@ -344,13 +358,9 @@ export function BuyCryptoModal({
         </>
       )}
 
-      {(widgetMutation.isError || walletsQuery.isError) && (
+      {widgetMutation.isError && (
         <Text style={text.error}>
-          {widgetMutation.error instanceof Error
-            ? widgetMutation.error.message
-            : walletsQuery.error instanceof Error
-              ? walletsQuery.error.message
-              : 'Something went wrong'}
+          {widgetMutation.error instanceof Error ? widgetMutation.error.message : 'Something went wrong'}
         </Text>
       )}
     </CustomModal>
