@@ -1,19 +1,19 @@
 import { Text, View } from 'react-native';
 import { formatShareCount, HOLDER_TYPE_LABELS, REGISTER_COPY, type TokenHoldersResponse } from '@ledova/shared';
-import { Row } from '../../components/Ledger';
+import { Row, Rows } from '../../components/Ledger';
 import { useCompanyStyles } from './styles';
 
 export function ClassRegister({ register }: { register: TokenHoldersResponse }) {
   const styles = useCompanyStyles();
   return (
     <View style={styles.group}>
-      <View>
+      <Rows>
         <Row label="Issued shares">
           {register.issuedSupply === null ? 'Not recorded' : formatShareCount(register.issuedSupply)}
         </Row>
         <Row label="Authorised shares">{formatShareCount(register.token.totalSupply)}</Row>
         <Row label="Register">{register.initialized ? 'Opened' : 'Not opened'}</Row>
-      </View>
+      </Rows>
       {!register.initialized ? (
         <Text style={styles.muted}>{REGISTER_COPY.NOT_OPENED_NOTE}</Text>
       ) : (

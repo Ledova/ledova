@@ -10,7 +10,7 @@ import {
   useResolutionStatus,
 } from '@ledova/shared';
 import type { BallotChoice, Publication, ResolutionStatus } from '@ledova/shared';
-import { Action, Row } from '../../components/Ledger';
+import { Action, Row, Rows } from '../../components/Ledger';
 import { useThemedStyles } from '../../contexts';
 
 function statusLabel(status: ResolutionStatus, closesAt: string | null) {
@@ -31,10 +31,10 @@ export function Resolution({
   castError: string | undefined;
 }) {
   const styles = useThemedStyles((theme) => ({
-    box: { gap: 8, paddingVertical: 12 },
+    box: { gap: 8, paddingVertical: theme.spacing.smd },
     label: {
       fontFamily: theme.fontFamily.medium,
-      fontSize: 12,
+      fontSize: theme.fontSize.xs,
       color: theme.colors.text.muted,
       textTransform: 'uppercase' as const,
     },
@@ -42,14 +42,19 @@ export function Resolution({
     detail: { fontFamily: theme.fontFamily.regular, fontSize: 13, lineHeight: 20, color: theme.colors.text.muted },
     status: { fontFamily: theme.fontFamily.semibold, fontSize: 14, lineHeight: 21, color: theme.colors.text.primary },
     choices: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 8, marginTop: 6 },
-    confirmation: { gap: 10, paddingTop: 12, borderTopWidth: 1, borderTopColor: theme.colors.border.subtle },
+    confirmation: {
+      gap: 10,
+      paddingTop: theme.spacing.smd,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border.subtle,
+    },
     error: {
       fontFamily: theme.fontFamily.regular,
       fontSize: 14,
       lineHeight: 21,
       color: theme.colors.status.error.text,
     },
-    result: { marginTop: 12, gap: 8 },
+    result: { marginTop: theme.spacing.smd, gap: 8 },
   }));
   const [choosing, setChoosing] = useState<BallotChoice | null>(null);
   const status = useResolutionStatus(publication);
@@ -115,12 +120,14 @@ export function Resolution({
             <Text style={styles.status}>
               {result.carried ? PUBLICATION_COPY.CARRIED : PUBLICATION_COPY.NOT_CARRIED}
             </Text>
-            {BALLOT_CHOICES.map((choice) => (
-              <Row key={choice} label={PUBLICATION_COPY.CHOICES[choice]}>
-                {describeCount(result[choice])}
-              </Row>
-            ))}
-            <Row label={PUBLICATION_COPY.TURNOUT_LABEL}>{describeTurnout(result)}</Row>
+            <Rows>
+              {BALLOT_CHOICES.map((choice) => (
+                <Row key={choice} label={PUBLICATION_COPY.CHOICES[choice]}>
+                  {describeCount(result[choice])}
+                </Row>
+              ))}
+              <Row label={PUBLICATION_COPY.TURNOUT_LABEL}>{describeTurnout(result)}</Row>
+            </Rows>
           </View>
         ) : (
           <Text style={styles.detail}>{PUBLICATION_COPY.RESULT_PENDING}</Text>

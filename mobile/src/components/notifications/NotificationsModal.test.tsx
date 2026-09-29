@@ -92,6 +92,14 @@ describe('the open modal after a change', () => {
       </QueryClientProvider>,
     );
 
+  it('is titled Notifications and ends with Close before Mark all as read', async () => {
+    const view = await open();
+    const mark = await view.findByRole('button', { name: 'Mark all as read' });
+    expect(view.getByRole('header', { name: 'Notifications' })).toBeTruthy();
+    const closeButton = view.getByRole('button', { name: 'Close' });
+    expect(closeButton.parent!.children).toEqual([closeButton, mark]);
+  });
+
   it('takes a dismissed notice out of the open modal', async () => {
     const view = await open();
     await fireEvent.press(await view.findByRole('button', { name: `Dismiss ${first.title}` }));

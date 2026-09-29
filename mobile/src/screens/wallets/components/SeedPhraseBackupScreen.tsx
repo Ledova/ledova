@@ -4,7 +4,8 @@ import { ShieldWarningIcon, EyeSlashIcon } from 'phosphor-react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { GradientBackground } from '../../../components/GradientBackground';
 import { Panel } from '../../../components/panel';
-import { ButtonGroup } from '../../../components/buttons';
+import { Action } from '../../../components/Ledger';
+import { useDialogStyles } from '../../../components/modal';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { getSeedPhrase } from '../../../services/secureKeyStorage';
 import type { WalletsStackParamList } from '../../../navigation/WalletsStackNavigator';
@@ -17,105 +18,54 @@ const AUTO_HIDE_SECONDS = 60;
 
 export function SeedPhraseBackupScreen() {
   const theme = useAppTheme();
+  const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
     container: {
       flex: 1,
-    },
-    content: {
       paddingTop: theme.spacing.md,
       paddingHorizontal: theme.spacing.sm,
+      paddingBottom: theme.spacing.md,
     },
-    panelContent: {
-      flex: 1,
-      flexDirection: 'column',
-    },
-    scrollWrapper: {
-      flex: 1,
-      padding: theme.spacing.sm,
-    },
-    footer: {
-      paddingVertical: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.xs,
-    },
-    centerContainer: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
+    content: {
       gap: theme.spacing.md,
-      paddingHorizontal: theme.spacing.lg,
+    },
+    errorTitle: {
+      color: theme.colors.status.error.text,
+    },
+    warningText: {
+      color: theme.colors.status.warning.text,
     },
     loadingText: {
+      fontFamily: theme.fontFamily.regular,
       fontSize: theme.fontSize.base,
       color: theme.colors.text.muted,
     },
-    errorTitle: {
-      fontSize: theme.fontSize.lg,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.status.error.text,
-    },
-    errorText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      textAlign: 'center',
-    },
-    hiddenTitle: {
-      fontSize: theme.fontSize.lg,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-    },
-    hiddenText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      textAlign: 'center',
-      lineHeight: 20,
-    },
-    warningBanner: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: theme.spacing.sm,
-      backgroundColor: theme.colors.surface.tertiary,
-      padding: theme.spacing.md,
-      borderRadius: theme.borderRadius.md,
-      marginBottom: theme.spacing.lg,
-    },
-    warningText: {
-      flex: 1,
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.status.warning.text,
-      lineHeight: 20,
-    },
     countdown: {
+      fontFamily: theme.fontFamily.regular,
       fontSize: theme.fontSize.xs,
       color: theme.colors.text.subtle,
-      textAlign: 'center',
-      marginBottom: theme.spacing.md,
     },
     wordGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: theme.spacing.sm,
-      justifyContent: 'center',
+      justifyContent: 'space-between',
+      rowGap: theme.spacing.sm,
     },
     wordItem: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: theme.colors.surface.tertiary,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
-      paddingVertical: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.md,
       width: '47%',
       gap: theme.spacing.sm,
     },
     wordIndex: {
+      fontFamily: theme.fontFamily.regular,
       fontSize: theme.fontSize.xs,
       color: theme.colors.text.subtle,
       minWidth: 18,
     },
     wordText: {
+      fontFamily: theme.fontFamily.medium,
       fontSize: theme.fontSize.base,
-      fontWeight: theme.fontWeight.medium,
       color: theme.colors.text.primary,
     },
   }));
@@ -182,40 +132,48 @@ export function SeedPhraseBackupScreen() {
   const renderContent = () => {
     if (backupState === 'authenticating') {
       return (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={theme.colors.interactive.default} />
-          <Text style={styles.loadingText}>Authenticating...</Text>
+        <View style={text.line}>
+          <ActivityIndicator size="small" color={theme.colors.interactive.default} />
+          <Text style={[styles.loadingText, text.lineText]}>Authenticating...</Text>
         </View>
       );
     }
 
     if (backupState === 'error') {
       return (
-        <View style={styles.centerContainer}>
-          <ShieldWarningIcon size={theme.icon.sizes.xxl} color={theme.colors.status.error.icon} weight="light" />
-          <Text style={styles.errorTitle}>Unable to Load</Text>
-          {error && <Text style={styles.errorText}>{error}</Text>}
+        <View style={text.line}>
+          <ShieldWarningIcon size={theme.icon.sizes.md} color={theme.colors.status.error.icon} weight="fill" />
+          <View style={[text.group, text.lineText]}>
+            <Text accessibilityRole="header" style={[text.heading, styles.errorTitle]}>
+              Unable to Load
+            </Text>
+            {error && <Text style={text.muted}>{error}</Text>}
+          </View>
         </View>
       );
     }
 
     if (backupState === 'hidden') {
       return (
-        <View style={styles.centerContainer}>
-          <EyeSlashIcon size={theme.icon.sizes.xxl} color={theme.colors.text.muted} weight="light" />
-          <Text style={styles.hiddenTitle}>Recovery Phrase Hidden</Text>
-          <Text style={styles.hiddenText}>
-            The phrase was automatically hidden for security. Authenticate again to reveal it.
-          </Text>
+        <View style={text.line}>
+          <EyeSlashIcon size={theme.icon.sizes.md} color={theme.colors.text.muted} weight="regular" />
+          <View style={[text.group, text.lineText]}>
+            <Text accessibilityRole="header" style={text.heading}>
+              Recovery Phrase Hidden
+            </Text>
+            <Text style={text.muted}>
+              The phrase was automatically hidden for security. Authenticate again to reveal it.
+            </Text>
+          </View>
         </View>
       );
     }
 
     return (
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.warningBanner}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={text.line}>
           <ShieldWarningIcon size={theme.icon.sizes.md} color={theme.colors.status.warning.icon} weight="fill" />
-          <Text style={styles.warningText}>
+          <Text style={[text.text, styles.warningText, text.lineText]}>
             Never share your recovery phrase. Anyone with these words can access your funds.
           </Text>
         </View>
@@ -237,31 +195,17 @@ export function SeedPhraseBackupScreen() {
   return (
     <GradientBackground>
       <View style={styles.container}>
-        <View style={styles.content}>
-          <Panel fullHeight>
-            <View style={styles.panelContent}>
-              <View style={styles.scrollWrapper}>{renderContent()}</View>
-
-              <View style={styles.footer}>
-                <ButtonGroup
-                  secondaryButton={
-                    backupState === 'hidden'
-                      ? {
-                          label: 'Reveal Again',
-                          onPress: handleRevealAgain,
-                        }
-                      : undefined
-                  }
-                  primaryButton={{
-                    label: 'Done',
-                    onPress: () => navigation.goBack(),
-                  }}
-                  size="medium"
-                />
-              </View>
-            </View>
-          </Panel>
-        </View>
+        <Panel
+          title="Recovery Phrase"
+          actions={
+            <>
+              {backupState === 'hidden' && <Action label="Reveal Again" onPress={handleRevealAgain} />}
+              <Action label="Done" primary onPress={() => navigation.goBack()} />
+            </>
+          }
+        >
+          {renderContent()}
+        </Panel>
       </View>
     </GradientBackground>
   );

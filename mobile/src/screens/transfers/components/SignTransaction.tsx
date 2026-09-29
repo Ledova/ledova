@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, ActivityIndicator, ScrollView } from 'react-native';
 import { QRDisplay } from '../../../components/qr';
+import { useDialogStyles } from '../../../components/modal';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 
 interface SignTransactionProps {
@@ -9,22 +10,17 @@ interface SignTransactionProps {
 
 export function SignTransaction({ urEncodedTransaction }: SignTransactionProps) {
   const theme = useAppTheme();
+  const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
     scrollContent: {
       flex: 1,
     },
     scrollContentContainer: {
-      paddingHorizontal: theme.spacing.md,
-      paddingTop: theme.spacing.md,
-      paddingBottom: theme.spacing.md,
-    },
-    section: {
-      gap: theme.spacing.sm,
-      marginBottom: theme.spacing.md,
+      gap: theme.spacing.md,
     },
     sectionTitle: {
+      fontFamily: theme.fontFamily.semibold,
       fontSize: theme.fontSize.xs,
-      fontWeight: theme.fontWeight.semibold,
       color: theme.colors.text.secondary,
       textTransform: 'uppercase',
       letterSpacing: 0.5,
@@ -38,40 +34,22 @@ export function SignTransaction({ urEncodedTransaction }: SignTransactionProps) 
     },
     qrLoading: {
       alignItems: 'center',
-      gap: theme.spacing.md,
-    },
-    loadingText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
+      gap: theme.spacing.sm,
     },
     dividerContainer: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginVertical: theme.spacing.md,
     },
     dividerLine: {
       flex: 1,
       height: 1,
-      backgroundColor: theme.colors.border.default,
+      backgroundColor: theme.colors.border.subtle,
     },
     dividerText: {
       marginHorizontal: theme.spacing.md,
+      fontFamily: theme.fontFamily.medium,
       fontSize: theme.fontSize.xs,
       color: theme.colors.text.subtle,
-      fontWeight: theme.fontWeight.medium,
-    },
-    instructionsContainer: {
-      backgroundColor: theme.colors.surface.raised,
-      borderRadius: theme.borderRadius.md,
-      padding: theme.spacing.md,
-      borderWidth: 1,
-      borderColor: theme.colors.border.subtle,
-    },
-    instructionsText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      lineHeight: 20,
-      textAlign: 'center',
     },
   }));
   return (
@@ -80,18 +58,18 @@ export function SignTransaction({ urEncodedTransaction }: SignTransactionProps) 
       contentContainerStyle={styles.scrollContentContainer}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Scan with your Wallet</Text>
-        <View style={styles.qrContainer}>
-          {urEncodedTransaction ? (
-            <QRDisplay data={urEncodedTransaction} isUR />
-          ) : (
-            <View style={styles.qrLoading}>
-              <ActivityIndicator size="large" color={theme.colors.interactive.active} />
-              <Text style={styles.loadingText}>Generating QR code...</Text>
-            </View>
-          )}
-        </View>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>
+        Scan with your Wallet
+      </Text>
+      <View style={styles.qrContainer}>
+        {urEncodedTransaction ? (
+          <QRDisplay data={urEncodedTransaction} isUR />
+        ) : (
+          <View style={styles.qrLoading}>
+            <ActivityIndicator size="small" color={theme.colors.interactive.active} />
+            <Text style={text.muted}>Generating QR code...</Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.dividerContainer}>
@@ -100,11 +78,9 @@ export function SignTransaction({ urEncodedTransaction }: SignTransactionProps) 
         <View style={styles.dividerLine} />
       </View>
 
-      <View style={styles.instructionsContainer}>
-        <Text style={styles.instructionsText}>
-          After signing the transaction on your hardware wallet, scan the signature QR code using the button below.
-        </Text>
-      </View>
+      <Text style={text.muted}>
+        After signing the transaction on your hardware wallet, scan the signature QR code using the button below.
+      </Text>
     </ScrollView>
   );
 }

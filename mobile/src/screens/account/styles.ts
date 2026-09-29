@@ -12,8 +12,8 @@ export function useAccountStyles() {
     input: {
       fontFamily: theme.fontFamily.regular,
       fontSize: 16,
-      paddingHorizontal: 12,
-      paddingVertical: 12,
+      paddingHorizontal: theme.spacing.smd,
+      paddingVertical: theme.spacing.smd,
       borderWidth: 1,
       borderRadius: theme.borderRadius.md,
       borderColor: theme.colors.border.default,

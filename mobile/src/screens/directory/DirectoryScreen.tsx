@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { formatDate, formatMoney, useDirectoryTokens, type DirectoryToken } from '@ledova/shared';
 import type { DirectoryStackParamList } from '../../navigation/DirectoryStackNavigator';
-import { Action, LinkRow, Section } from '../../components/Ledger';
+import { Action, LinkRow, Rows, Section } from '../../components/Ledger';
 import { DirectoryPage, useDirectoryStyles } from './DirectoryPage';
 
 export function DirectoryScreen() {
@@ -45,29 +45,32 @@ export function DirectoryScreen() {
                       {[company.industry, company.city, company.state].filter(Boolean).join(' · ')}
                     </Text>
                   )}
-                  {classes.map((token) => (
-                    <LinkRow
-                      key={token.uuid}
-                      label={token.name}
-                      accessibilityLabel={`Open ${token.name}`}
-                      onPress={() => navigation.navigate('DirectoryClass', { uuid: token.uuid })}
-                    >
-                      <Text style={styles.help}>{token.symbol}</Text>
-                      <Text style={styles.message}>{token.openOffering ? 'Offering open' : 'No offering open'}</Text>
-                      {token.openOffering && (
-                        <>
-                          <Text style={styles.message}>
-                            {formatMoney(token.openOffering.pricePerShare, token.openOffering.priceCurrency)} per share
-                          </Text>
-                          <Text style={styles.help}>
-                            {token.openOffering.closesAt
-                              ? `Closes ${formatDate(token.openOffering.closesAt)}`
-                              : 'No closing date'}
-                          </Text>
-                        </>
-                      )}
-                    </LinkRow>
-                  ))}
+                  <Rows>
+                    {classes.map((token) => (
+                      <LinkRow
+                        key={token.uuid}
+                        label={token.name}
+                        accessibilityLabel={`Open ${token.name}`}
+                        onPress={() => navigation.navigate('DirectoryClass', { uuid: token.uuid })}
+                      >
+                        <Text style={styles.help}>{token.symbol}</Text>
+                        <Text style={styles.message}>{token.openOffering ? 'Offering open' : 'No offering open'}</Text>
+                        {token.openOffering && (
+                          <>
+                            <Text style={styles.message}>
+                              {formatMoney(token.openOffering.pricePerShare, token.openOffering.priceCurrency)} per
+                              share
+                            </Text>
+                            <Text style={styles.help}>
+                              {token.openOffering.closesAt
+                                ? `Closes ${formatDate(token.openOffering.closesAt)}`
+                                : 'No closing date'}
+                            </Text>
+                          </>
+                        )}
+                      </LinkRow>
+                    ))}
+                  </Rows>
                 </Section>
               );
             })

@@ -31,6 +31,7 @@ jest.mock('../../../contexts', () => ({
   useThemedStyles: () => ({}),
 }));
 jest.mock('../../../components/modal', () => ({
+  ...jest.requireActual('../../../components/modal'),
   CustomModal: ({
     visible,
     children,

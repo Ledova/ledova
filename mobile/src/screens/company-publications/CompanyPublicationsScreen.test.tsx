@@ -363,3 +363,13 @@ it.each(['session', 'role', 'unmount'])(
     if (change !== 'unmount') expect(view.queryByText(PUBLICATION_COPY.FAILED)).toBeNull();
   },
 );
+
+it('shows the company name on a publication record as body text under its title', async () => {
+  const view = await render(<CompanyPublicationsScreen />, { wrapper });
+  const title = await view.findByRole('header', { name: statement.title });
+  const record = title.parent!;
+  const name = view.getAllByText(statement.companyName).find((node) => node.parent === record)!;
+  expect(name).toHaveStyle({ fontFamily: 'InstrumentSans_400Regular', fontSize: 14, lineHeight: 21 });
+  expect(name).not.toHaveStyle({ fontSize: 17 });
+  expect(name.props.accessibilityRole).toBeUndefined();
+});
