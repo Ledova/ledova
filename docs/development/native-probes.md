@@ -14,6 +14,16 @@ IOS_SIMULATOR_UDID=your-owned-simulator-uuid npm run test:native -- ios /absolut
 
 The output directory must not already exist. The runner builds and launches the
 ordinary Release app, preserves that artifact and checks its release policy.
+It then requires the launch to show something: from ten seconds after launch,
+two screenshots in a row, a second apart, must each have rows 10% to 90% of the
+screen, below the status bar and above the home indicator, differing from their
+most common colour in at least 0.05% of pixels. The sign-in screen differs in
+over 40%. iOS shows the launch screen, which has content, before a broken
+window turns black: on simulators that took up to about two seconds, four on a
+loaded machine after a fresh install, hence the wait and the pair. The runner
+takes up to 20 screenshots and then fails, which is how a window without a
+scene, black but for the status bar, shows up. `ordinary-screen.json` records
+the final measurement.
 iOS uses Xcode's normal ad hoc simulator signing without an Apple account or
 signing certificate. Before each ordinary/probe installation, it checks both built
 architectures' `__TEXT,__entitlements` sections for the app identity and preserves
