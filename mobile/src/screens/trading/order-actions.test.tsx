@@ -57,40 +57,46 @@ jest.mock('expo-crypto', () => ({ randomUUID: jest.fn() }));
 jest.mock('../../services/secureKeyStorage', () => ({ getSeedPhrase: jest.fn() }));
 jest.mock('../../utils/softwareWallet/localSigner', () => ({ signEthereumTypedData: jest.fn() }));
 jest.mock('../../components/qr', () => ({ QRDisplay: jest.fn(() => null), QRScanner: jest.fn(() => null) }));
+const mockDialogLifecycle: string[] = [];
 jest.mock('../../components/modal', () => {
+  const { useEffect } = jest.requireActual('react');
   const { View, Text, Pressable } = jest.requireActual('react-native');
-  return {
-    CustomModal: jest.fn(
-      ({
-        visible,
-        children,
-        onClose,
-        onConfirm,
-        confirmLabel,
-        confirmDisabled,
-      }: {
-        visible: boolean;
-        children: React.ReactNode;
-        onClose: () => void;
-        onConfirm?: () => void;
-        confirmLabel?: string;
-        confirmDisabled?: boolean;
-      }) =>
-        visible ? (
-          <View>
-            {children}
-            <Pressable onPress={onClose}>
-              <Text>Dismiss window</Text>
-            </Pressable>
-            {onConfirm && (
-              <Pressable disabled={confirmDisabled} onPress={onConfirm}>
-                <Text>{confirmLabel}</Text>
-              </Pressable>
-            )}
-          </View>
-        ) : null,
-    ),
-  };
+  function MockCustomModal({
+    visible,
+    children,
+    onClose,
+    onConfirm,
+    confirmLabel,
+    confirmDisabled,
+  }: {
+    visible: boolean;
+    children: React.ReactNode;
+    onClose: () => void;
+    onConfirm?: () => void;
+    confirmLabel?: string;
+    confirmDisabled?: boolean;
+  }) {
+    useEffect(() => {
+      mockDialogLifecycle.push('mounted');
+      return () => {
+        mockDialogLifecycle.push('unmounted');
+      };
+    }, []);
+    return visible ? (
+      <View>
+        {children}
+        <Pressable onPress={onClose}>
+          <Text>Dismiss window</Text>
+        </Pressable>
+        {onConfirm && (
+          <Pressable disabled={confirmDisabled} onPress={onConfirm}>
+            <Text>{confirmLabel}</Text>
+          </Pressable>
+        )}
+      </View>
+    ) : null;
+  }
+  return { CustomModal: jest.fn(MockCustomModal) };
 });
 jest.mock('./components/MarketList', () => ({ MarketList: () => null }));
 jest.mock('./components/OrdersCard', () => {
@@ -245,6 +251,7 @@ async function begin(view: Screen, purpose: 'cancel' | 'modify' = 'modify') {
 const originalWindow = Dimensions.get('window');
 beforeEach(async () => {
   jest.clearAllMocks();
+  mockDialogLifecycle.length = 0;
   jest.mocked(AsyncStorage.setItem).mockImplementation(nativeSet);
   await AsyncStorage.clear();
   wallet.uuid = walletUuid;
@@ -291,6 +298,36 @@ it('keeps the price draft while the review shrinks with the available window', a
   expect(messagePosts()).toHaveLength(0);
   expect(executes()).toHaveLength(0);
 });
+
+it.each(['modify', 'cancel'] as const)(
+  'keeps one mounted %s dialog while it loads, reviews and records the action',
+  async (purpose) => {
+    const held: (() => void)[] = [];
+    handler = (config) => new Promise((resolve) => held.push(() => resolve(ordinary(config))));
+    const release = async () => {
+      await waitFor(() => expect(held).toHaveLength(1));
+      await act(async () => held.shift()!());
+    };
+    const label = purpose === 'cancel' ? 'cancellation' : 'change';
+    const view = await render(<TradingScreen />, { wrapper });
+    await fireEvent.press(view.getByText(purpose === 'cancel' ? 'Cancel synthetic order' : 'Change synthetic order'));
+    await waitFor(() => expect(view.getByText('Loading current order details...')).toBeTruthy());
+    await release();
+    await waitFor(() => expect(view.getByText(`Review ${label}`)).toBeTruthy());
+    if (purpose === 'modify') await fireEvent.changeText(view.getByLabelText('New price per share'), '14.00');
+    await fireEvent.press(view.getByText(`Review ${label}`));
+    await waitFor(() => expect(view.getByText(`Checking this ${label} and preparing signing details...`)).toBeTruthy());
+    await release();
+    await fireEvent.press(await view.findByText('Sign with biometric'));
+    await waitFor(() =>
+      expect(view.getByText(`Submitting this ${label}. You can close and check its saved status later.`)).toBeTruthy(),
+    );
+    await release();
+    await waitFor(() => expect(view.getByText('Action recorded')).toBeTruthy());
+    expect(mockDialogLifecycle).toEqual(['mounted']);
+    expect(jest.mocked(CustomModal).mock.calls.every(([props]) => props.visible)).toBe(true);
+  },
+);
 
 it('first price-only modification keeps exact context values despite the rounded numeric order DTO', async () => {
   context = actionContext(largeQuantity, largeMinimum);

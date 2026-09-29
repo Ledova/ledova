@@ -54,40 +54,46 @@ jest.mock('@react-navigation/native', () => ({
     }, [callback]);
   },
 }));
+const mockDialogLifecycle: string[] = [];
 jest.mock('../../components/modal', () => {
+  const { useEffect } = jest.requireActual('react');
   const { View, Text, Pressable } = jest.requireActual('react-native');
-  return {
-    CustomModal: jest.fn(
-      ({
-        visible,
-        children,
-        onClose,
-        onConfirm,
-        confirmLabel,
-        confirmDisabled,
-      }: {
-        visible: boolean;
-        children: React.ReactNode;
-        onClose: () => void;
-        onConfirm?: () => void;
-        confirmLabel?: string;
-        confirmDisabled?: boolean;
-      }) =>
-        visible ? (
-          <View>
-            {children}
-            <Pressable onPress={onClose}>
-              <Text>Dismiss settlement</Text>
-            </Pressable>
-            {onConfirm && (
-              <Pressable disabled={confirmDisabled} onPress={onConfirm}>
-                <Text>{confirmLabel}</Text>
-              </Pressable>
-            )}
-          </View>
-        ) : null,
-    ),
-  };
+  function MockCustomModal({
+    visible,
+    children,
+    onClose,
+    onConfirm,
+    confirmLabel,
+    confirmDisabled,
+  }: {
+    visible: boolean;
+    children: React.ReactNode;
+    onClose: () => void;
+    onConfirm?: () => void;
+    confirmLabel?: string;
+    confirmDisabled?: boolean;
+  }) {
+    useEffect(() => {
+      mockDialogLifecycle.push('mounted');
+      return () => {
+        mockDialogLifecycle.push('unmounted');
+      };
+    }, []);
+    return visible ? (
+      <View>
+        {children}
+        <Pressable onPress={onClose}>
+          <Text>Dismiss settlement</Text>
+        </Pressable>
+        {onConfirm && (
+          <Pressable disabled={confirmDisabled} onPress={onConfirm}>
+            <Text>{confirmLabel}</Text>
+          </Pressable>
+        )}
+      </View>
+    ) : null;
+  }
+  return { CustomModal: jest.fn(MockCustomModal) };
 });
 let mockWallets: Wallet[];
 let mockSwaps: SwapOrder[];
@@ -242,6 +248,7 @@ const signatureQr = (index = 0) =>
 const originalWindow = Dimensions.get('window');
 beforeEach(async () => {
   jest.spyOn(Date, 'now').mockReturnValue(settlementNow);
+  mockDialogLifecycle.length = 0;
   current = settlementResponse();
   needsApproval = false;
   mockWallets = [selectedWallet()];
@@ -288,6 +295,28 @@ it('keeps captured settlement terms while the review shrinks with the available 
   expect(view.getByText('Sign settlement')).toBeTruthy();
   expect(posts()).toHaveLength(0);
   expect(getSeedPhrase).not.toHaveBeenCalled();
+});
+
+it('keeps one mounted settlement dialog from review through the recorded signature', async () => {
+  const held: (() => void)[] = [];
+  handler = (config) => new Promise((resolve) => held.push(() => resolve(ordinary(config))));
+  const release = async () => {
+    await waitFor(() => expect(held).toHaveLength(1));
+    await act(async () => held.shift()!());
+  };
+  const view = await render(<TradingScreen />, { wrapper });
+  await fireEvent.press(view.getByText('Open settlement 1'));
+  await waitFor(() => expect(view.getByText('Review settlement')).toBeTruthy());
+  await release();
+  await fireEvent.press(await view.findByText('Check token approval'));
+  await release();
+  await fireEvent.press(await view.findByText('Sign settlement'));
+  await release();
+  await release();
+  await waitFor(() => expect(view.getByText('Check settlement status')).toBeTruthy());
+  expect(view.getByText('Seller signature: recorded')).toBeTruthy();
+  expect(mockDialogLifecycle).toEqual(['mounted']);
+  expect(jest.mocked(CustomModal).mock.calls.every(([props]) => props.visible)).toBe(true);
 });
 
 it('reviews exact captured terms and sends one real signature despite duplicate presses', async () => {

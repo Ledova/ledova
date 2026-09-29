@@ -16,6 +16,7 @@ interface CustomModalProps {
   confirmDisabled?: boolean;
   confirmLoading?: boolean;
   maxHeight?: number;
+  contentKey?: React.Key;
 }
 
 export function CustomModal({
@@ -31,6 +32,7 @@ export function CustomModal({
   confirmDisabled = false,
   confirmLoading = false,
   maxHeight,
+  contentKey,
 }: CustomModalProps) {
   const styles = useThemedStyles((theme) => ({
     overlay: {
@@ -122,7 +124,7 @@ export function CustomModal({
   }));
   return (
     <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={onClose}>
-      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
+      <TouchableOpacity key={contentKey} style={styles.overlay} activeOpacity={1} onPress={onClose}>
         <View style={styles.modalContainer}>
           <TouchableOpacity activeOpacity={1} style={[styles.modal, { maxHeight }]}>
             <ScrollView

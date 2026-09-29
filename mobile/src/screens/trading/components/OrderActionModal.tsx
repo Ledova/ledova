@@ -101,7 +101,7 @@ export function OrderActionModal({ action, wallets, onClose }: Props) {
   return (
     <>
       <CustomModal
-        key={canConfirm ? 'confirmable' : 'status'}
+        contentKey={canConfirm ? 'confirmable' : 'status'}
         visible={!(state.phase === 'ready' && view.step === 'scan-signature')}
         onClose={close}
         maxHeight={height - insets.top - insets.bottom - 48}

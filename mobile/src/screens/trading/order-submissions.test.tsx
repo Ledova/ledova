@@ -1,4 +1,5 @@
 import { Action } from '../../components/Ledger';
+import { CustomModal } from '../../components/modal';
 import React from 'react';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -54,40 +55,46 @@ jest.mock('expo-crypto', () => ({ randomUUID: jest.fn() }));
 jest.mock('../../services/secureKeyStorage', () => ({ getSeedPhrase: jest.fn() }));
 jest.mock('../../utils/softwareWallet/localSigner', () => ({ signEthereumTypedData: jest.fn() }));
 jest.mock('../../components/qr', () => ({ QRDisplay: jest.fn(() => null), QRScanner: jest.fn(() => null) }));
+const mockDialogLifecycle: string[] = [];
 jest.mock('../../components/modal', () => {
+  const { useEffect } = jest.requireActual('react');
   const { View, Text, Pressable } = jest.requireActual('react-native');
-  return {
-    CustomModal: jest.fn(
-      ({
-        visible,
-        children,
-        onClose,
-        onConfirm,
-        confirmLabel,
-        confirmDisabled,
-      }: {
-        visible: boolean;
-        children: React.ReactNode;
-        onClose: () => void;
-        onConfirm?: () => void;
-        confirmLabel?: string;
-        confirmDisabled?: boolean;
-      }) =>
-        visible ? (
-          <View>
-            {children}
-            <Pressable onPress={onClose}>
-              <Text>Dismiss window</Text>
-            </Pressable>
-            {onConfirm && (
-              <Pressable disabled={confirmDisabled} onPress={onConfirm}>
-                <Text>{confirmLabel}</Text>
-              </Pressable>
-            )}
-          </View>
-        ) : null,
-    ),
-  };
+  function MockCustomModal({
+    visible,
+    children,
+    onClose,
+    onConfirm,
+    confirmLabel,
+    confirmDisabled,
+  }: {
+    visible: boolean;
+    children: React.ReactNode;
+    onClose: () => void;
+    onConfirm?: () => void;
+    confirmLabel?: string;
+    confirmDisabled?: boolean;
+  }) {
+    useEffect(() => {
+      mockDialogLifecycle.push('mounted');
+      return () => {
+        mockDialogLifecycle.push('unmounted');
+      };
+    }, []);
+    return visible ? (
+      <View>
+        {children}
+        <Pressable onPress={onClose}>
+          <Text>Dismiss window</Text>
+        </Pressable>
+        {onConfirm && (
+          <Pressable disabled={confirmDisabled} onPress={onConfirm}>
+            <Text>{confirmLabel}</Text>
+          </Pressable>
+        )}
+      </View>
+    ) : null;
+  }
+  return { CustomModal: jest.fn(MockCustomModal) };
 });
 jest.mock('./components/MarketList', () => ({ MarketList: () => null }));
 jest.mock('./components/OrdersCard', () => ({ OrdersCard: () => null }));
@@ -149,6 +156,7 @@ async function newOrder(view: Awaited<ReturnType<typeof render>>) {
   await waitFor(() => expect(view.getByText('Sign with biometric')).toBeTruthy());
 }
 beforeEach(async () => {
+  mockDialogLifecycle.length = 0;
   wallet.signingPreference = 'software';
   jest.mocked(AsyncStorage.setItem).mockImplementation(nativeSet);
   await AsyncStorage.clear();
@@ -200,6 +208,31 @@ it('uses real draft and biometric callbacks and recovers a lost response across 
   expect(signEthereumTypedData).toHaveBeenCalledTimes(1);
   expect(await orderSubmissionStore.list(owner)).toHaveLength(0);
 }, 15_000);
+
+it('keeps one mounted signing dialog while the order is prepared, signed and created', async () => {
+  const held: (() => void)[] = [];
+  const created = handler;
+  handler = (config) => new Promise((resolve) => held.push(() => resolve(created(config))));
+  const release = async () => {
+    await waitFor(() => expect(held).toHaveLength(1));
+    await act(async () => held.shift()!());
+  };
+  const view = await render(<TradingScreen />, { wrapper });
+  await draftForm(view);
+  await fireEvent.press(view.getByText('Buy'));
+  await waitFor(() => expect(view.getByText('Checking order and preparing signing details...')).toBeTruthy());
+  await release();
+  await fireEvent.press(await view.findByText('Sign with biometric'));
+  await waitFor(() =>
+    expect(
+      view.getByText('Submitting this order. You can close this window and check its status from saved orders.'),
+    ).toBeTruthy(),
+  );
+  await release();
+  await waitFor(() => expect(view.getByText('Order created')).toBeTruthy());
+  expect(mockDialogLifecycle).toEqual(['mounted']);
+  expect(jest.mocked(CustomModal).mock.calls.every(([props]) => props.visible)).toBe(true);
+});
 
 it.each(['close', 'unmount', 'account', 'session'])(
   'does not sign after a seed read resolves following %s',
