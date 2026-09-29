@@ -50,6 +50,18 @@ company admin no longer shows an API Access section, and
 [`companies/0011`](#database-migrations) drops the key and its creation time.
 Any script that read or regenerated a key must stop before upgrading.
 
+## Theme and selected-portfolio preferences
+
+Both clients are paper only and neither reads a portfolio selection, so the
+account's saved theme and selected portfolio are removed, and
+[`users/0028`](#database-migrations) drops them. `/api/user-preferences/` now
+answers `uuid`, `userProfile`, `userAccount` and `transactionAlerts`; a request
+that still sends `theme` or `selectedPortfolio` is answered 200 and the field is
+ignored. The account-data export loses its `preferences` section, which held only
+the selected portfolio. A new wallet still joins a portfolio: the account's
+first, the one sign-up creates, which is where sign-up pointed the selection and
+no client changed it. No client is affected.
+
 ## Stablecoin sends need an approval on both sides
 
 `POST /api/wallets/{uuid}/prepare-transfer/` and `/broadcast-transfer/` now
@@ -122,6 +134,13 @@ missing count as 0 and show nothing in its place. No database migration is neede
   recreates `users_notification_preferences` empty and outside the policy
   catalogue and puts everyone back on the default. Export that table before
   applying the migration if you may need to reverse it.
+- `users/0028_remove_theme_and_selected_portfolio` drops `theme` and
+  `selected_portfolio_id` from `users_userpreferences`; every row and its
+  `transaction_alerts` stay. **Reversal does not restore data.** It recreates
+  both columns, sets every theme to `dark`, the old default, and selects each
+  account's first portfolio, which is what sign-up selected; a person with no
+  account or no portfolio selects none. A `light` theme or another selection
+  saved before the upgrade is gone.
 - `companies/0004_company_additional_info_response` stores the applicant's
   answer to a request for more information.
 - `tokens/0035_trading_state_invariants` checks existing order/swap amounts,

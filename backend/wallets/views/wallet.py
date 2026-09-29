@@ -70,7 +70,7 @@ class WalletViewSet(AuthenticatedModelViewSet):
         instance.delete()
 
     def perform_create(self, serializer):
-        wallet = register_wallet(self.request.user, **serializer.validated_data)
+        wallet = register_wallet(**serializer.validated_data)
         serializer.instance = self._with_market_value(wallet)
 
     @extend_schema(request=None, responses=WalletVerificationChallengeSerializer)

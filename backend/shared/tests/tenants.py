@@ -168,7 +168,7 @@ def make_tenant(label, *, staff=False, superuser=False, with_swap=True):
 
     portfolio = Portfolio.objects.create(user_account=account, name=f"{label} portfolio")
     portfolio.wallets.add(wallet)
-    preferences = UserPreferences.objects.create(user_profile=profile, selected_portfolio=portfolio)
+    preferences = UserPreferences.objects.create(user_profile=profile)
     device_token = DeviceToken.objects.create(user=user, push_token=f"ExponentPushToken[{label}]", device_type="ios")
     notification = Notification.objects.create(user=user, title=f"For {label}", body="Body")
     investor_classification = InvestorClassification.objects.create(

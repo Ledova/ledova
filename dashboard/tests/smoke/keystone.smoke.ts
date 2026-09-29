@@ -87,8 +87,6 @@ const USER_PREFERENCES = {
   uuid: '9d4f8a1b-2c3e-4f5a-9b6c-7d8e9f0a1b2c',
   userProfile: USER_PROFILE.uuid,
   userAccount: USER_ACCOUNT,
-  selectedPortfolio: null,
-  theme: 'light',
   transactionAlerts: true,
 };
 

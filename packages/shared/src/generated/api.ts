@@ -2256,7 +2256,6 @@ export interface ApiComponents {
       exportedAt: string;
       financialProfile: ApiComponents['schemas']['ExportedFinancialProfile'] | null;
       portfolios: ApiComponents['schemas']['ExportedPortfolio'][];
-      preferences: ApiComponents['schemas']['ExportedPreferences'] | null;
       profile: ApiComponents['schemas']['ExportedProfile'] | null;
       transactions: ApiComponents['schemas']['ExportedTransaction'][];
       user: ApiComponents['schemas']['ExportedUser'];
@@ -2829,9 +2828,6 @@ export interface ApiComponents {
       isActive: boolean;
       name: string;
       uuid: string;
-    };
-    ExportedPreferences: {
-      selectedPortfolio: string | null;
     };
     ExportedProfile: {
       citizenshipCountry: string | null;
@@ -3584,8 +3580,6 @@ export interface ApiComponents {
       role?: ApiComponents['schemas']['RoleEnum'];
     };
     PatchedUserPreferencesRequest: {
-      selectedPortfolio?: string | null;
-      theme?: ApiComponents['schemas']['ThemeEnum'];
       transactionAlerts?: boolean;
     };
     PatchedUserProfileRequest: {
@@ -3961,12 +3955,6 @@ export interface ApiComponents {
     ResolutionKindEnum: 'ordinary' | 'special';
     ReviewResultEnum: 'GREEN' | 'RED' | 'YELLOW';
     RoleEnum: 'investor' | 'company' | 'both';
-    SelectedPortfolio: {
-      isActive: boolean;
-      name: string;
-      userAccount: string;
-      uuid: string;
-    };
     SettlementApprovalBroadcastRequest: {
       ownerAccountUuid: string;
       settlementDigest: string;
@@ -4496,7 +4484,6 @@ export interface ApiComponents {
       userRole: ApiComponents['schemas']['UserRoleEnum'];
       walletUuid: string;
     };
-    ThemeEnum: 'dark' | 'light';
     TokenDeploymentStarted: {
       message: string;
       token: ApiComponents['schemas']['ShareTokenDetail'];
@@ -4623,16 +4610,12 @@ export interface ApiComponents {
     };
     UserDocumentTypeEnum: 'payslip' | 'bank_statement' | 'tax_return' | 'other';
     UserPreferences: {
-      selectedPortfolio: ApiComponents['schemas']['SelectedPortfolio'] | null;
-      theme?: ApiComponents['schemas']['ThemeEnum'];
       transactionAlerts?: boolean;
       userAccount: ApiComponents['schemas']['AccountSummary'] | null;
       userProfile: string;
       uuid: string;
     };
     UserPreferencesRequest: {
-      selectedPortfolio?: string | null;
-      theme?: ApiComponents['schemas']['ThemeEnum'];
       transactionAlerts?: boolean;
     };
     UserProfile: {

@@ -153,8 +153,9 @@ crypto for current prices, and Wallets and Send still use the AUD exchange rate.
 Unused asset detail, asset/portfolio snapshot and favourite-assets HTTP routes
 are [retired](../operations/upgrades.md#retired-asset-and-portfolio-http-routes),
 and the favourites table, holding snapshots and value-series service behind them
-are [dropped](../operations/upgrades.md#database-migrations). Selected-portfolio
-preferences and portfolio CRUD/add/remove-wallet operator actions remain.
+are [dropped](../operations/upgrades.md#database-migrations). Portfolio CRUD and
+the add/remove-wallet operator actions remain; the selected-portfolio preference
+is [dropped](../operations/upgrades.md#theme-and-selected-portfolio-preferences).
 Native Wallets reads every page into an account- and session-scoped ledger. A
 failed page suppresses partial balances and stale actions until retry succeeds.
 Balances and numeric sorting retain decimal strings; converted fiat values remain
@@ -633,8 +634,8 @@ dashboard's `bg-surface-*`, `text-text-*` and `brand` classes, and any code
 that reads `PAPER_THEME` directly, render in paper. Both
 clients bundle Newsreader for display text and Instrument Sans for everything
 else. Mobile also uses fixed paper and bundles these fonts with a finite
-loading/error/retry gate; saved local and account theme choices do not change
-the palette. Shared tokens and the CSS generator contain only paper; the retired dark and light palettes are removed.
+loading/error/retry gate; the account stores no theme, and a theme an older
+build saved on the device is not read. Shared tokens and the CSS generator contain only paper; the retired dark and light palettes are removed.
 
 On mobile a dialog is `CustomModal` in `mobile/src/components/modal`, the same
 card as `Section` (`useCardStyles` in `mobile/src/components/Ledger.tsx`) over

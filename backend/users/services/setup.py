@@ -23,13 +23,7 @@ def ensure_defaults(user):
         portfolio = Portfolio.objects.create(user_account=account, name="My Portfolio")
         logger.info(f"Created portfolio {portfolio.uuid} for user {user.pk}")
 
-    preferences, created = UserPreferences.objects.get_or_create(
-        user_profile=profile,
-        defaults={"selected_portfolio": portfolio},
-    )
-    if not created and preferences.selected_portfolio_id is None:
-        preferences.selected_portfolio = portfolio
-        preferences.save(update_fields=["selected_portfolio"])
+    preferences, _ = UserPreferences.objects.get_or_create(user_profile=profile)
 
     logger.info(f"Defaults ready for user {user.pk}: Account {account.uuid}, Portfolio {portfolio.uuid}")
     return profile, account, portfolio, preferences

@@ -64,6 +64,7 @@ EXEMPT = {
     ("get", "/api/feature-flags/{}/"): GLOBAL_CATALOGUE,
     ("post", "/api/device-tokens/register/"): CREATES_OWN_ROW,
     ("post", "/api/financial-profiles/"): CREATES_OWN_ROW,
+    ("post", "/api/user-preferences/"): CREATES_OWN_ROW,
     ("post", "/api/user-profiles/"): CREATES_OWN_ROW_SCOPED_FK,
     ("post", "/api/portfolios/"): CREATES_OWN_ROW,
     ("post", "/api/wallets/"): CREATES_OWN_ROW,

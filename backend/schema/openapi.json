@@ -29,14 +29,6 @@
             },
             "type": "array"
           },
-          "preferences": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ExportedPreferences"
-              }
-            ],
-            "nullable": true
-          },
           "profile": {
             "allOf": [
               {
@@ -66,7 +58,6 @@
           "exportedAt",
           "financialProfile",
           "portfolios",
-          "preferences",
           "profile",
           "transactions",
           "user",
@@ -2817,19 +2808,6 @@
           "isActive",
           "name",
           "uuid"
-        ],
-        "type": "object"
-      },
-      "ExportedPreferences": {
-        "properties": {
-          "selectedPortfolio": {
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "selectedPortfolio"
         ],
         "type": "object"
       },
@@ -6688,15 +6666,6 @@
       },
       "PatchedUserPreferencesRequest": {
         "properties": {
-          "selectedPortfolio": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
-          "theme": {
-            "$ref": "#/components/schemas/ThemeEnum"
-          },
           "transactionAlerts": {
             "description": "Notifications for transaction status changes",
             "type": "boolean"
@@ -8584,36 +8553,6 @@
           "both"
         ],
         "type": "string"
-      },
-      "SelectedPortfolio": {
-        "properties": {
-          "isActive": {
-            "readOnly": true,
-            "type": "boolean"
-          },
-          "name": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "userAccount": {
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "uuid": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "isActive",
-          "name",
-          "userAccount",
-          "uuid"
-        ],
-        "type": "object"
       },
       "SettlementApprovalBroadcastRequest": {
         "properties": {
@@ -11321,14 +11260,6 @@
         ],
         "type": "object"
       },
-      "ThemeEnum": {
-        "description": "* `dark` - Dark\n* `light` - Light",
-        "enum": [
-          "dark",
-          "light"
-        ],
-        "type": "string"
-      },
       "ToStatusEnum": {
         "description": "* `cancelled` - cancelled",
         "enum": [
@@ -12014,17 +11945,6 @@
       },
       "UserPreferences": {
         "properties": {
-          "selectedPortfolio": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SelectedPortfolio"
-              }
-            ],
-            "nullable": true
-          },
-          "theme": {
-            "$ref": "#/components/schemas/ThemeEnum"
-          },
           "transactionAlerts": {
             "description": "Notifications for transaction status changes",
             "type": "boolean"
@@ -12052,7 +11972,6 @@
           }
         },
         "required": [
-          "selectedPortfolio",
           "userAccount",
           "userProfile",
           "uuid"
@@ -12061,15 +11980,6 @@
       },
       "UserPreferencesRequest": {
         "properties": {
-          "selectedPortfolio": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
-          "theme": {
-            "$ref": "#/components/schemas/ThemeEnum"
-          },
           "transactionAlerts": {
             "description": "Notifications for transaction status changes",
             "type": "boolean"
