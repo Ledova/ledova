@@ -146,16 +146,24 @@ it.each(['failure', 'refresh'] as const)(
     expect(mockBegin).toHaveBeenCalledWith(expect.objectContaining({ quantity: 3, walletUuid: wallet.uuid }), wallet);
   },
 );
-it('uses the current order record in an already open details dialog', async () => {
+it('opens an order’s details in place on the current record, with no dialog', async () => {
   const view = await render(<TradingScreen />, { wrapper });
-  await fireEvent.press(view.getByRole('button', { name: `Details for order ${mockOrders[0].uuid}` }));
-  expect(view.getByText('Modify Order')).toBeTruthy();
+  const toggle = view.getByRole('button', { name: `Details for order ${mockOrders[0].uuid}` });
+  expect(toggle).toBeCollapsed();
+  expect(view.queryByText('Order ID')).toBeNull();
+  await fireEvent.press(toggle);
+  expect(toggle).toBeExpanded();
+  expect(view.getByText(mockOrders[0].uuid)).toBeTruthy();
+  expect(view.queryByText('Order details')).toBeNull();
+  expect(view.getByRole('button', { name: `Modify order ${mockOrders[0].uuid}` })).toBeTruthy();
   mockOrders = [{ ...mockOrders[0], status: 'cancelled' }];
   await view.rerender(<TradingScreen />);
-  expect(view.queryByText('Modify Order')).toBeNull();
+  expect(view.getByRole('button', { name: `Details for order ${mockOrders[0].uuid}` })).toBeExpanded();
+  expect(view.queryByRole('button', { name: `Modify order ${mockOrders[0].uuid}` })).toBeNull();
   mockOrders = [];
   await view.rerender(<TradingScreen />);
-  expect(view.getByText('This order is unavailable. Refresh your orders to retry.')).toBeTruthy();
+  expect(view.queryByText('Order ID')).toBeNull();
+  expect(view.getByText('No recorded orders.')).toBeTruthy();
 });
 it('refreshes every independent trading read and every saved list from pull to refresh', async () => {
   const view = await render(<TradingScreen />, { wrapper });
