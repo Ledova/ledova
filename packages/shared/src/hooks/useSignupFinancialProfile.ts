@@ -3,9 +3,24 @@ import { useState, useEffect } from 'react';
 import { createFinancialProfile, getFinancialProfiles, updateFinancialProfile } from '../services/financialProfile';
 import { getUserProfiles } from '../services/users';
 import type { CreateFinancialProfile, FinancialProfileFormState, FormErrors } from '../types';
-import { describeFailure } from '../utils/errors';
+import { describeFailure, readApiError } from '../utils/errors';
 import { sourceOfFundsChoices } from '../utils/formatting-labels';
 import { useApiClient } from './useApiClient';
+
+export const FINANCIAL_PROFILE_FIELDS: readonly (keyof FinancialProfileFormState)[] = [
+  'sourceOfFunds',
+  'sourceOfFundsOtherText',
+  'intendedUse',
+  'intendedUseOtherText',
+  'occupation',
+];
+
+const fieldsShown = (form: FinancialProfileFormState) =>
+  FINANCIAL_PROFILE_FIELDS.filter(
+    (field) =>
+      (field !== 'sourceOfFundsOtherText' || form.sourceOfFunds.includes('other')) &&
+      (field !== 'intendedUseOtherText' || form.intendedUse === 'other'),
+  );
 
 export function useSignupFinancialProfile() {
   const apiClient = useApiClient();
@@ -146,21 +161,13 @@ export function useSignupFinancialProfile() {
       onSuccess();
     } catch (error: unknown) {
       console.error(`Financial profile update failed: ${describeFailure(error)}`);
-      const axiosError = error as { response?: { data?: unknown } };
-      if (axiosError.response?.data) {
-        const errorData = axiosError.response.data;
-        if (typeof errorData === 'object' && !Array.isArray(errorData)) {
-          setErrors(errorData as FormErrors);
-
-          const firstError = Object.values(errorData).flat()[0];
-          if (firstError) {
-            setGeneralError(firstError as string);
-          }
-        } else if (typeof errorData === 'string') {
-          setGeneralError(errorData);
-        } else {
-          setGeneralError('Failed to save profile. Please try again.');
-        }
+      if ((error as { response?: unknown })?.response) {
+        const reading = readApiError(error, {
+          fallback: 'Failed to save profile. Please try again.',
+          displayedFields: fieldsShown(form),
+        });
+        setGeneralError(reading.generalError ?? '');
+        setErrors(reading.fieldErrors ?? {});
       } else {
         setGeneralError('Network error. Please check your connection.');
       }
