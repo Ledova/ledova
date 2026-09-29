@@ -140,13 +140,13 @@ Wallets could not read them. Buy crypto goes straight to the widget only when a
 read that has finished finds exactly one verified wallet on the chosen asset's
 network, and asks which one receives it when there are several; while a read is
 running, or waiting for the connection to come back, it opens nothing by itself
-and its chooser's wallets cannot be chosen.
-Both web choosers list a wallet as a Wallets row reads, by its name or short
-address, with its balance and value labelled, and one that cannot read the
-wallets says so and offers Try again, hiding any it listed before, rather than
-saying there are none. Mobile follows later: its Send always starts at the wallet
-choice, and its Buy crypto can still go straight to the widget for, or offer, the
-wallets it read before, and says there are none when a read fails.
+and its chooser's wallets cannot be chosen. Both web choosers list a wallet as a
+Wallets row reads, by its name or short address, with its balance and value
+labelled; neither says there are none before a read has answered, even offline,
+and one that cannot read the wallets says so and offers Try again, hiding any it
+listed before. Mobile follows later: its Send always starts at the wallet choice,
+and its Buy crypto can still go straight to the widget for, or offer, the wallets
+it read before, and says there are none when a read fails.
 The retired portfolio screen's chart, allocation and snapshot helpers are removed
 from both clients and the shared package. The asset list remains in use by Buy
 crypto for current prices, and Wallets and Send still use the AUD exchange rate.
@@ -263,20 +263,23 @@ dialog, states which records are retained, and clears the tab's account data
 after the server confirms success. Identity checks and supporting payslips retain
 their existing provider and deployment boundaries.
 
-Wallets reads every wallet page into a separate ledger cache. A failed read hides
-incomplete or stale rows and offers retry. Each chain's card lists its wallets,
-and each row shows the wallet's verification and signing preference, its balance
-in the chain's native unit and its value in AUD, each with its label, and its own
-actions: Edit, Sync and Delete, with Verify while the wallet awaits verification
-and Derive address where the next hardware address can be derived. Nothing is
-selected first. A failed sync is reported in the row of the wallet it belongs to,
-and every Sync waits while one is running. Add wallet is a title action, since
-the add form chooses the network. Add, edit, derive and delete forms
-preserve refused input and stay open until success; background read failures keep
-the draft but block further submission until recovery. Hardware imports run one
-address at a time and remember confirmed additions for retry within the same import.
-A partial failure explains the number added and leaves the remaining selection
-available. These controls do not change wallet verification or signing authority.
+On the web, Wallets reads every wallet page into a separate ledger cache. A
+failed read hides incomplete or stale rows and offers retry. Each chain's card
+lists its wallets, and each row shows the wallet's verification and signing
+preference, its balance in the chain's native unit and its value in AUD, each
+with its label, and its own actions: Edit, Sync and Delete, with Verify while the
+wallet awaits verification and Derive address where the next hardware address
+can be derived. Nothing is selected first. A failed sync is reported in the row
+of the wallet it belongs to, and every Sync waits while one is running. Add
+wallet is a title action, since the add form chooses the network. Add, edit,
+derive and delete forms preserve refused input and stay open until success;
+background read failures keep the draft but block further submission until
+recovery. Hardware imports run one address at a time and remember confirmed
+additions for retry within the same import. A partial failure explains the
+number added and leaves the remaining selection available. These controls do not
+change wallet verification or signing authority. Mobile's Wallets still gives
+each row a single Open wallet action, to the wallet's own screen, and syncs every
+balance with one Sync balances action.
 
 Activity presents recorded wallet transfers in a read-only ledger, with exact
 decimal amounts, native network fees and the current recorded status. Its history
