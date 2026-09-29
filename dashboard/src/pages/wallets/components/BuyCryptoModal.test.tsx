@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { useState } from 'react';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { ASSET_ENDPOINTS, WALLET_ENDPOINTS } from '@ledova/shared';
@@ -156,6 +156,34 @@ it('asks which wallet receives the chosen asset when several match', async () =>
   fireEvent.click(await screen.findByText('Second wallet'));
   await waitFor(() => expect(navigate).toHaveBeenCalledOnce());
   expect(api.post.mock.calls[0][1]).toMatchObject({ wallet_uuid: 'wallet-2' });
+});
+
+it("labels each wallet's balance and value in the chooser as a Wallets row does", async () => {
+  answer([wallet('wallet-1', 'First wallet'), { ...wallet('wallet-2', 'Second wallet'), nativeBalance: '0.42' }]);
+  show({});
+  fireEvent.click(screen.getByText('Ethereum'));
+
+  const second = await screen.findByRole('button', { name: /Second wallet/ });
+  const figuresOf = (choice: HTMLElement) =>
+    Array.from(within(choice).getByText('Balance').parentElement!.children).map((cell) => cell.textContent);
+  expect(figuresOf(second)).toEqual(['Balance', '0.42 ETH', 'Value', 'A$2']);
+  expect(figuresOf(screen.getByRole('button', { name: /First wallet/ }))).toEqual(['Balance', '1 ETH', 'Value', 'A$2']);
+});
+
+it('holds every wallet while the chosen one opens the purchase, and marks the chosen one', async () => {
+  answer([wallet('wallet-1', 'First wallet'), wallet('wallet-2', 'Second wallet')]);
+  api.post.mockReturnValue(new Promise(() => {}));
+  show({});
+  fireEvent.click(screen.getByText('Ethereum'));
+
+  fireEvent.click(await screen.findByRole('button', { name: /Second wallet/ }));
+
+  await waitFor(() => expect(screen.getByRole('button', { name: /Second wallet/ })).toHaveProperty('disabled', true));
+  expect(screen.getByRole('button', { name: /First wallet/ })).toHaveProperty('disabled', true);
+  expect(screen.getByRole('button', { name: /Second wallet/ }).getAttribute('aria-busy')).toBe('true');
+  expect(screen.getByRole('button', { name: /First wallet/ }).hasAttribute('aria-busy')).toBe(false);
+  fireEvent.click(screen.getByRole('button', { name: /First wallet/ }));
+  expect(api.post).toHaveBeenCalledOnce();
 });
 
 it('explains a missing wallet and goes back to the asset list', async () => {

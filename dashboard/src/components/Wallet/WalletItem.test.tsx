@@ -29,8 +29,7 @@ const wallet: Wallet = {
 afterEach(cleanup);
 
 function figures(view: ReturnType<typeof render>) {
-  const list = view.container.querySelector('dl')!;
-  return Array.from(list.children).map((cell) => `${cell.tagName} ${cell.textContent}`);
+  return Array.from(view.getByText('Balance').parentElement!.children).map((cell) => cell.textContent);
 }
 
 describe('wallet signing preferences on the dashboard', () => {
@@ -60,7 +59,7 @@ describe('a wallet row on the dashboard', () => {
     ['bitcoin', 'BTC'],
   ] as const)("labels a %s wallet's balance in %s and its value, where there were two bare figures", (chain, unit) => {
     const view = render(<WalletItem wallet={{ ...wallet, chain, nativeBalance: '0.25', marketValue: '12.5' }} />);
-    expect(figures(view)).toEqual(['DT Balance', `DD 0.25 ${unit}`, 'DT Value', 'DD AUD 12.50']);
+    expect(figures(view)).toEqual(['Balance', `0.25 ${unit}`, 'Value', 'AUD 12.50']);
   });
 
   it('names the wallet above its address and holds what is passed under it, rather than being a button', () => {

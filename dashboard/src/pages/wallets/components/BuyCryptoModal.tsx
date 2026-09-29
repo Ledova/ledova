@@ -1,34 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
-import {
-  CurrencyEthIcon,
-  CurrencyBtcIcon,
-  CurrencyCircleDollarIcon,
-  HardDriveIcon,
-  CloudIcon,
-  ClockIcon,
-  SpinnerGapIcon,
-} from '@phosphor-icons/react';
+import { CurrencyEthIcon, CurrencyBtcIcon, CurrencyCircleDollarIcon, SpinnerGapIcon } from '@phosphor-icons/react';
 import { useMutation, useQueries, useQuery } from '@tanstack/react-query';
 import {
   BUYABLE_ASSETS,
   CACHE_TIMING,
-  WALLET_SIGNING_PREFERENCE,
-  getWalletSigningPreferenceLabel,
   DESIGN_TOKENS,
   getAssets,
   getWallets,
   getOnRampWidgetUrl,
-  formatWalletAddressShort,
-  formatCryptoBalance,
-  formatSyncAge,
   useCurrency,
 } from '@ledova/shared';
 import type { BuyableAssetConfig, Wallet } from '@ledova/shared';
 import { Modal } from '@components/Modal';
-import { WalletBadge } from '@components/Wallet';
+import { WalletChoice } from '@components/Wallet';
 import apiClient from '@services/apiClient';
 
-const ICON_XS = DESIGN_TOKENS.icon.sizes.xs;
 const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
 
@@ -175,57 +161,18 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
         <>
           <p className="text-sm text-text-muted">Choose a wallet to receive {selectedAsset!.name}</p>
 
-          <div className="mt-2 space-y-1">
-            {matchingWallets.map((wallet) => {
-              const walletLabel = wallet.name || formatWalletAddressShort(wallet.address);
-              const isHardware = wallet.signingPreference === WALLET_SIGNING_PREFERENCE.HARDWARE;
-              const TypeIcon = isHardware ? HardDriveIcon : CloudIcon;
-              const marketValue = parseFloat(wallet.marketValue) || 0;
-              const syncAge = formatSyncAge(wallet.lastSyncedAt);
-              const isSelected = isLoading && widgetMutation.variables?.uuid === wallet.uuid;
-
-              return (
-                <button
-                  key={wallet.uuid}
-                  type="button"
-                  className="w-full flex items-center gap-3 py-2.5 rounded-lg hover:bg-surface-tertiary transition-colors text-left disabled:opacity-50"
-                  onClick={() => handleSelectWallet(wallet)}
+          <ul className="mt-2 divide-y divide-border-subtle">
+            {matchingWallets.map((wallet) => (
+              <li key={wallet.uuid}>
+                <WalletChoice
+                  wallet={wallet}
+                  onChoose={() => handleSelectWallet(wallet)}
                   disabled={isLoading}
-                >
-                  <WalletBadge verificationStatus={wallet.verificationStatus} />
-                  <span className="text-xs text-text-muted truncate">{walletLabel}</span>
-                  {wallet.signingPreference && (
-                    <span
-                      title={getWalletSigningPreferenceLabel(wallet.signingPreference)}
-                      aria-label={getWalletSigningPreferenceLabel(wallet.signingPreference)}
-                      className="inline-flex items-center justify-center p-1"
-                    >
-                      <TypeIcon size={ICON_XS} weight="bold" className="text-text-secondary" />
-                    </span>
-                  )}
-                  <div className="flex-1" />
-                  {isSelected ? (
-                    <SpinnerGapIcon size={ICON_SM} className="animate-spin text-brand-mid" />
-                  ) : (
-                    <>
-                      {syncAge && (
-                        <span className="inline-flex items-center gap-0.5 text-xs text-text-subtle flex-shrink-0">
-                          <ClockIcon size={ICON_XS} />
-                          {syncAge}
-                        </span>
-                      )}
-                      <span className="text-xs text-text-muted flex-shrink-0">
-                        {formatCryptoBalance(wallet.nativeBalance, '').trimEnd()}
-                      </span>
-                      <span className="text-xs text-text-muted flex-shrink-0">
-                        {formatDisplayCurrency(marketValue)}
-                      </span>
-                    </>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+                  busy={isLoading && widgetMutation.variables?.uuid === wallet.uuid}
+                />
+              </li>
+            ))}
+          </ul>
         </>
       )}
 
