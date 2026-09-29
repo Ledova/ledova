@@ -1,5 +1,4 @@
 import contextlib
-import functools
 import socket
 import struct
 import tempfile
@@ -142,12 +141,8 @@ class ScannerProtocolTest(SimpleTestCase):
 
 class ScannerLimitRuleTest(SimpleTestCase):
     def setUp(self):
-        once = patch(
-            "shared.upload_process.report_refused_address_space",
-            functools.cache(report_refused_address_space.__wrapped__),
-        )
-        once.start()
-        self.addCleanup(once.stop)
+        report_refused_address_space.cache_clear()
+        self.addCleanup(report_refused_address_space.cache_clear)
 
     @override_settings(UPLOAD_PROCESS_CPU_SECONDS=4)
     def test_a_refused_address_space_lowering_is_skipped_reported_once_and_the_rest_still_apply(self):
