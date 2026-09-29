@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getUserProfiles, updateUserProfile } from '@ledova/shared';
-import type { UpdateUserProfile } from '@ledova/shared';
-import { apiClient } from '../../../services/apiClient';
 
-export const usePreScreening = () => {
+import { getUserProfiles, updateUserProfile } from '../services/users';
+import type { UpdateUserProfile } from '../types';
+import { describeFailure } from '../utils/errors';
+import { useApiClient } from './useApiClient';
+
+export function useSignupPreScreening() {
+  const apiClient = useApiClient();
   const [acknowledgedWholesaleOnly, setAcknowledgedWholesaleOnly] = useState(false);
   const [form, setForm] = useState<UpdateUserProfile>({
     confirmedOver18: false,
@@ -17,15 +20,12 @@ export const usePreScreening = () => {
   const [existingProfileUuid, setExistingProfileUuid] = useState<string | null>(null);
 
   const loadUserProfile = useCallback(async () => {
-    setIsLoading(true);
-    setGeneralError('');
-
     try {
       const response = await getUserProfiles(apiClient);
       const profileData = response.data;
 
       if (profileData && profileData.results && profileData.count > 0) {
-        const existingProfile = profileData.results[0];
+        const existingProfile = profileData.results[0]!;
         setExistingProfileUuid(existingProfile.uuid);
 
         setForm({
@@ -34,12 +34,13 @@ export const usePreScreening = () => {
           confirmedIndividualAccount: existingProfile.confirmedIndividualAccount || false,
         });
       }
-    } catch {
+    } catch (error) {
+      console.error(`Failed to load profile data: ${describeFailure(error)}`);
       setGeneralError('Failed to load profile data. Please try again.');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [apiClient]);
 
   useEffect(() => {
     loadUserProfile();
@@ -86,6 +87,7 @@ export const usePreScreening = () => {
 
       onSuccess();
     } catch (error: unknown) {
+      console.error(`Pre-screening update failed: ${describeFailure(error)}`);
       const axiosError = error as { response?: { data?: unknown } };
       if (axiosError.response?.data) {
         const errorData = axiosError.response.data;
@@ -103,6 +105,8 @@ export const usePreScreening = () => {
   };
 
   const retryLoad = () => {
+    setIsLoading(true);
+    setGeneralError('');
     loadUserProfile();
   };
 
@@ -124,9 +128,10 @@ export const usePreScreening = () => {
     generalError,
     isLoading,
     isSubmitting,
+    existingProfileUuid,
     isFormValid,
     setFieldValue,
     handleSubmit,
     retryLoad,
   };
-};
+}

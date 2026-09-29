@@ -16,5 +16,6 @@ export { useSubmissionOwner } from './useSubmissionOwner';
 export { useResolutionStatus } from './useResolutionStatus';
 export { useShareHoldings } from './useShareHoldings';
 export { useDirectoryToken, useDirectoryTokens } from './useDirectory';
+export { useSignupPreScreening } from './useSignupPreScreening';
 export { useSignupFinancialProfile } from './useSignupFinancialProfile';
 export { COMPANY_REGISTRATION_FIELDS, useSignupCompanyRegistration } from './useSignupCompanyRegistration';
