@@ -355,6 +355,33 @@ it('keeps a failed later page visible as incomplete and retries it', async () =>
   expect(activityReads().at(-1)?.[1].params.page).toBe(2);
 });
 
+it('holds Load more while the history is read again, then offers the next page', async () => {
+  const later = 'https://example.invalid/api/transactions/?page=2';
+  activity = async () => page([transaction], later);
+  show();
+  expect(await screen.findByRole('button', { name: 'Load more activity' })).toHaveProperty('disabled', false);
+  let finish!: (response: ReturnType<typeof page>) => void;
+  activity = () =>
+    new Promise((resolve) => {
+      finish = resolve;
+    });
+  let refreshing!: Promise<void>;
+  act(() => {
+    refreshing = client.invalidateQueries({ queryKey: ['all-transactions'] });
+  });
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Load more activity' })).toHaveProperty('disabled', true),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Load more activity' }));
+  expect(activityReads().map(([, config]) => config.params.page)).toEqual([1, 1]);
+  await act(async () => {
+    finish(page([{ ...transaction, status: 'confirmed' }], later));
+    await refreshing;
+  });
+  expect(await screen.findByText('✓ Confirmed')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Load more activity' })).toHaveProperty('disabled', false);
+});
+
 it('does not claim an empty first page is complete while a later page is outstanding', async () => {
   activity = async (params) =>
     params.page === 1 ? page([], 'https://example.invalid/api/transactions/?page=2') : page([transaction]);
