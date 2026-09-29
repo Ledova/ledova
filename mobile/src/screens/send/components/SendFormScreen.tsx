@@ -9,7 +9,8 @@ import type { BottomTabParamList } from '../../../navigation/BottomTabNavigator'
 import type { SendStackParamList } from '../../../navigation/SendStackNavigator';
 import { GradientBackground } from '../../../components/GradientBackground';
 import { Panel } from '../../../components/panel';
-import { ButtonGroup, SecondaryButton } from '../../../components/buttons';
+import { Action } from '../../../components/Ledger';
+import { useDialogStyles } from '../../../components/modal';
 import { QRScanner } from '../../../components/qr';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { getChainShortCode, isBitcoinChain, isSupportedEvmChain, WALLET_SIGNING_PREFERENCE } from '@ledova/shared';
@@ -35,55 +36,18 @@ type SendNavigation = CompositeNavigationProp<
 export function SendFormScreen({ onDone }: SendFormScreenProps) {
   const theme = useAppTheme();
   const navigation = useNavigation<SendNavigation>();
+  const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
     container: {
       flex: 1,
-    },
-    content: {
       paddingTop: theme.spacing.md,
       paddingHorizontal: theme.spacing.sm,
+      paddingBottom: theme.spacing.md,
     },
-    panelContent: {
-      flex: 1,
-      flexDirection: 'column',
-    },
-    scrollWrapper: {
-      flex: 1,
-    },
-    placeholderContainer: {
-      flex: 1,
+    status: {
+      flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: theme.spacing.lg,
-      gap: theme.spacing.md,
-    },
-    placeholderTitle: {
-      fontSize: theme.fontSize.lg,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-      textAlign: 'center',
-    },
-    placeholderText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      textAlign: 'center',
-      lineHeight: theme.fontSize.sm * theme.lineHeight.normal,
-    },
-    errorText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.status.error.text,
-      textAlign: 'center',
-    },
-    footer: {
-      padding: theme.spacing.sm,
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.border.default,
-      backgroundColor: theme.colors.surface.tertiary,
-      marginTop: theme.spacing.sm,
-      marginHorizontal: -theme.spacing.sm,
-      marginBottom: -theme.spacing.md,
-      borderBottomLeftRadius: theme.borderRadius.md,
-      borderBottomRightRadius: theme.borderRadius.md,
+      gap: theme.spacing.sm,
     },
   }));
   const [showAddressScanner, setShowAddressScanner] = useState(false);
@@ -216,9 +180,9 @@ export function SendFormScreen({ onDone }: SendFormScreenProps) {
 
     if (!wallet) {
       return (
-        <View style={styles.placeholderContainer}>
+        <View style={styles.status}>
           <ActivityIndicator size="small" color={theme.colors.interactive.active} />
-          <Text style={styles.placeholderText}>Loading wallet...</Text>
+          <Text style={text.muted}>Loading wallet...</Text>
         </View>
       );
     }
@@ -264,11 +228,15 @@ export function SendFormScreen({ onDone }: SendFormScreenProps) {
 
       case 'broadcast':
         return (
-          <View style={styles.placeholderContainer}>
-            <ActivityIndicator size="small" color={theme.colors.interactive.active} />
-            <Text style={styles.placeholderTitle}>Broadcasting Transaction</Text>
-            <Text style={styles.placeholderText}>Submitting your transaction to the network...</Text>
-            {broadcastError && <Text style={styles.errorText}>{broadcastError}</Text>}
+          <View style={text.group}>
+            <View style={styles.status}>
+              <ActivityIndicator size="small" color={theme.colors.interactive.active} />
+              <Text accessibilityRole="header" style={text.heading}>
+                Broadcasting Transaction
+              </Text>
+            </View>
+            <Text style={text.muted}>Submitting your transaction to the network...</Text>
+            {broadcastError && <Text style={text.error}>{broadcastError}</Text>}
           </View>
         );
 
@@ -282,81 +250,48 @@ export function SendFormScreen({ onDone }: SendFormScreenProps) {
     }
   };
 
-  const renderFooter = () => {
+  const renderActions = () => {
     if (step === 'broadcast' || step === 'success') return null;
 
     if (step === 'select-wallet') {
-      return (
-        <View style={styles.footer}>
-          <SecondaryButton onPress={handleDone} size="medium">
-            Cancel
-          </SecondaryButton>
-        </View>
-      );
+      return <Action label="Cancel" onPress={handleDone} />;
     }
 
     if (!wallet) return null;
 
     if (step === 'enter-details') {
       return (
-        <View style={styles.footer}>
-          <ButtonGroup
-            secondaryButton={{
-              label: 'Back',
-              onPress: handleBack,
-            }}
-            primaryButton={{
-              label: 'Continue',
-              onPress: submitTransfer,
-              disabled: !canSubmit,
-              loading: isPreparing,
-            }}
-            size="medium"
+        <>
+          <Action label="Back" onPress={handleBack} />
+          <Action
+            label={isPreparing ? 'Loading...' : 'Continue'}
+            primary
+            disabled={!canSubmit}
+            onPress={submitTransfer}
           />
-        </View>
+        </>
       );
     }
 
     if (step === 'review') {
       return (
-        <View style={styles.footer}>
-          <ButtonGroup
-            secondaryButton={{
-              label: 'Back',
-              onPress: handleBack,
-            }}
-            primaryButton={{
-              label: 'Sign',
-              onPress: proceedToSign,
-            }}
-            size="medium"
-          />
-        </View>
+        <>
+          <Action label="Back" onPress={handleBack} />
+          <Action label="Sign" primary onPress={proceedToSign} />
+        </>
       );
     }
 
     if (step === 'sign') {
       return (
-        <View style={styles.footer}>
-          <ButtonGroup
-            secondaryButton={{
-              label: 'Back',
-              onPress: backToReview,
-            }}
-            primaryButton={
-              isSoftwareWallet
-                ? {
-                    label: 'Sign & Send',
-                    onPress: () => setSoftwareSignTrigger((prev) => prev + 1),
-                  }
-                : {
-                    label: 'Scan Signature',
-                    onPress: handleOpenSignatureScanner,
-                  }
-            }
-            size="medium"
-          />
-        </View>
+        <>
+          <Action label="Back" onPress={backToReview} />
+          {isSoftwareWallet ? (
+            <Action label="Sign & Send" primary onPress={() => setSoftwareSignTrigger((prev) => prev + 1)} />
+          ) : (
+            <Action label="Scan Signature" primary onPress={handleOpenSignatureScanner} />
+          )}
+        </>
       );
     }
 
@@ -366,14 +301,9 @@ export function SendFormScreen({ onDone }: SendFormScreenProps) {
   return (
     <GradientBackground>
       <View style={styles.container}>
-        <View style={styles.content}>
-          <Panel fullHeight={true}>
-            <View style={styles.panelContent}>
-              <View style={styles.scrollWrapper}>{renderContent()}</View>
-              {renderFooter()}
-            </View>
-          </Panel>
-        </View>
+        <Panel title={step === 'select-wallet' ? 'Select your wallet' : 'Send'} actions={renderActions()}>
+          {renderContent()}
+        </Panel>
       </View>
 
       <QRScanner

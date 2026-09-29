@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
-import { CheckCircleIcon, WarningCircleIcon, QrCodeIcon } from 'phosphor-react-native';
 import { ScannerPreview, type ScannerPreviewProps } from '../../../components/qr/ScannerPreview';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
+import { useDialogStyles } from '../../../components/modal';
+import { VerificationError, VerificationSuccess } from './VerificationInstructions';
 
 interface SignatureScanStepProps {
   cameraMessage: string | null;
@@ -20,20 +21,10 @@ export function SignatureScanStep({
   preview,
 }: SignatureScanStepProps) {
   const theme = useAppTheme();
+  const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
     container: {
       gap: theme.spacing.md,
-    },
-    iconContainer: {
-      alignItems: 'center',
-      paddingVertical: theme.spacing.lg,
-    },
-    title: {
-      fontSize: theme.fontSize.xxl,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-      textAlign: 'center',
-      marginBottom: theme.spacing.md,
     },
     cameraContainer: {
       width: '100%',
@@ -67,52 +58,11 @@ export function SignatureScanStep({
       borderRadius: theme.borderRadius.md,
       backgroundColor: theme.colors.utility.transparent,
     },
-    errorContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.sm,
-      backgroundColor: theme.colors.form.errorBackground,
-      borderRadius: theme.borderRadius.md,
-      padding: theme.spacing.md,
-    },
-    errorText: {
-      flex: 1,
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.status.error.text,
-    },
-    verifyingContainer: {
-      alignItems: 'center',
-      padding: theme.spacing.xl,
-      gap: theme.spacing.md,
-    },
-    verifyingText: {
-      fontSize: theme.fontSize.base,
-      color: theme.colors.text.muted,
-    },
-    successContainer: {
-      alignItems: 'center',
-      gap: theme.spacing.md,
-    },
-    successText: {
-      fontSize: theme.fontSize.base,
-      color: theme.colors.text.secondary,
-      textAlign: 'center',
-    },
   }));
   if (verificationSuccess) {
     return (
       <View style={styles.container}>
-        <View style={styles.successContainer}>
-          <View style={styles.iconContainer}>
-            <CheckCircleIcon
-              size={theme.icon.sizes.xxl}
-              weight={theme.icon.weights.light}
-              color={theme.colors.status.success.icon}
-            />
-          </View>
-          <Text style={styles.title}>Verification Successful!</Text>
-          <Text style={styles.successText}>Your wallet ownership has been verified.</Text>
-        </View>
+        <VerificationSuccess />
       </View>
     );
   }
@@ -120,9 +70,9 @@ export function SignatureScanStep({
   if (isVerifying) {
     return (
       <View style={styles.container}>
-        <View style={styles.verifyingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.interactive.default} />
-          <Text style={styles.verifyingText}>Verifying signature...</Text>
+        <View style={text.line}>
+          <ActivityIndicator size="small" color={theme.colors.interactive.default} />
+          <Text style={[text.muted, text.lineText]}>Verifying signature...</Text>
         </View>
       </View>
     );
@@ -130,15 +80,9 @@ export function SignatureScanStep({
 
   return (
     <View style={styles.container}>
-      <View style={styles.iconContainer}>
-        <QrCodeIcon
-          size={theme.icon.sizes.xxl}
-          color={theme.colors.status.info.icon}
-          weight={theme.icon.weights.light}
-        />
-      </View>
-
-      <Text style={styles.title}>Scan Signature QR</Text>
+      <Text accessibilityRole="header" style={text.heading}>
+        Scan Signature QR
+      </Text>
 
       <View style={styles.cameraContainer}>
         <ScannerPreview {...preview} />
@@ -155,16 +99,7 @@ export function SignatureScanStep({
         )}
       </View>
 
-      {verificationError && (
-        <View style={styles.errorContainer}>
-          <WarningCircleIcon
-            size={theme.icon.sizes.md}
-            color={theme.colors.status.error.icon}
-            weight={theme.icon.weights.regular}
-          />
-          <Text style={styles.errorText}>{verificationError}</Text>
-        </View>
-      )}
+      {verificationError && <VerificationError message={verificationError} />}
     </View>
   );
 }

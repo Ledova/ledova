@@ -43,6 +43,8 @@ it('passes the Base transaction and wallet derivation data to the hardware encod
   const navigation = { goBack: jest.fn() } as unknown as ComponentProps<typeof TransferFormScreen>['navigation'];
   const view = await render(<TransferFormScreen route={route} navigation={navigation} />);
   expect(view.getByText('ur:base-transaction')).toBeTruthy();
+  expect(view.getAllByText('Send')).toHaveLength(1);
+  expect(view.getByRole('header', { name: 'Send' })).toBeTruthy();
   expect(encodeEthereumTransaction).toHaveBeenCalledWith(
     wallet.address,
     transaction,

@@ -8,8 +8,8 @@ import {
   type OrderType,
   type WhitelistStatus,
 } from '@ledova/shared';
-import { Action, Row } from '../../../components/Ledger';
-import { AccountModal } from '../../account/AccountModal';
+import { Action, Choice, Row } from '../../../components/Ledger';
+import { CustomModal } from '../../../components/modal';
 import { marketAmount, priceCents } from '../marketData';
 import { useMarketStyles } from '../styles';
 
@@ -125,7 +125,7 @@ export function CreateOrderModal({
     onClose();
   };
   return (
-    <AccountModal
+    <CustomModal
       visible={visible}
       title={`${orderType === 'buy' ? 'Wanted' : 'For sale'} · ${token.symbol}`}
       busy={pending}
@@ -160,9 +160,9 @@ export function CreateOrderModal({
       {wallets.length === 0 && <Text style={styles.muted}>No verified trading wallets are available.</Text>}
       {wallets.map((item) => (
         <View key={item.uuid} style={styles.fields}>
-          <Action
+          <Choice
             label={item.name || item.address}
-            primary={walletUuid === item.uuid}
+            selected={walletUuid === item.uuid}
             disabled={pending || blocked}
             onPress={() => setWalletUuid(item.uuid)}
           />
@@ -226,6 +226,6 @@ export function CreateOrderModal({
         fill cannot exceed quantity.
       </Text>
       <Row label="Total">{amount !== null ? marketAmount(price, amount) : 'Unavailable'}</Row>
-    </AccountModal>
+    </CustomModal>
   );
 }

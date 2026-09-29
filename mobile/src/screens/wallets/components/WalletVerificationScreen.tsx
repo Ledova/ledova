@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { View, ScrollView } from 'react-native';
+import { Action } from '../../../components/Ledger';
 import { useNavigation, useRoute, useIsFocused, RouteProp } from '@react-navigation/native';
 import { useCameraScanner } from '../../../components/qr/useCameraScanner';
 import { GradientBackground } from '../../../components/GradientBackground';
@@ -15,7 +16,6 @@ import {
   WALLET_SIGNING_PREFERENCE,
 } from '@ledova/shared';
 import type { WalletsStackParamList } from '../../../navigation/WalletsStackNavigator';
-import { ButtonGroup } from '../../../components/buttons';
 import { useWalletVerification } from '../useWalletVerification';
 import { VerificationInstructions } from './VerificationInstructions';
 import { ChallengeQRStep } from './ChallengeQRStep';
@@ -27,31 +27,12 @@ export function WalletVerificationScreen() {
   const styles = useThemedStyles((theme) => ({
     container: {
       flex: 1,
-    },
-    content: {
       paddingTop: theme.spacing.md,
       paddingHorizontal: theme.spacing.sm,
-    },
-    panelContent: {
-      flex: 1,
-      flexDirection: 'column',
+      paddingBottom: theme.spacing.md,
     },
     scrollView: {
       flex: 1,
-    },
-    scrollViewContent: {
-      padding: theme.spacing.xs,
-    },
-    footer: {
-      padding: theme.spacing.sm,
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.border.default,
-      backgroundColor: theme.colors.surface.tertiary,
-      marginTop: theme.spacing.sm,
-      marginHorizontal: -theme.spacing.sm,
-      marginBottom: -theme.spacing.md,
-      borderBottomLeftRadius: theme.borderRadius.md,
-      borderBottomRightRadius: theme.borderRadius.md,
     },
   }));
   const navigation = useNavigation();
@@ -157,67 +138,43 @@ export function WalletVerificationScreen() {
     wallet.uuid,
   );
 
-  const renderFooter = () => {
+  const renderActions = () => {
     if (verificationStep === 'instructions') {
       if (isSoftwareWallet) {
+        const busy = isRequestingChallenge || isVerifying;
         return (
-          <View style={styles.footer}>
-            <ButtonGroup
-              primaryButton={{
-                label: verificationError ? 'Retry' : 'Cancel',
-                onPress: verificationError ? autoVerify : () => navigation.goBack(),
-                disabled: isRequestingChallenge || isVerifying,
-                loading: isRequestingChallenge || isVerifying,
-              }}
-              size="medium"
-            />
-          </View>
+          <Action
+            label={busy ? 'Loading...' : verificationError ? 'Retry' : 'Cancel'}
+            primary={Boolean(verificationError)}
+            disabled={busy}
+            onPress={verificationError ? autoVerify : () => navigation.goBack()}
+          />
         );
       }
 
       return (
-        <View style={styles.footer}>
-          <ButtonGroup
-            primaryButton={{
-              label: 'Start',
-              onPress: requestChallenge,
-              disabled: isRequestingChallenge,
-              loading: isRequestingChallenge,
-            }}
-            size="medium"
-          />
-        </View>
+        <Action
+          label={isRequestingChallenge ? 'Loading...' : 'Start'}
+          primary
+          disabled={isRequestingChallenge}
+          onPress={requestChallenge}
+        />
       );
     }
 
     if (verificationStep === 'show-challenge-qr') {
-      return (
-        <View style={styles.footer}>
-          <ButtonGroup
-            primaryButton={{
-              label: 'Continue',
-              onPress: proceedToScanSignature,
-            }}
-            size="medium"
-          />
-        </View>
-      );
+      return <Action label="Continue" primary onPress={proceedToScanSignature} />;
     }
 
     if (verificationStep === 'scan-signature') {
       return (
-        <View style={styles.footer}>
-          <ButtonGroup
-            primaryButton={{
-              label: 'Back',
-              onPress: () => {
-                camera.stop();
-                goBackVerificationStep();
-              },
-            }}
-            size="medium"
-          />
-        </View>
+        <Action
+          label="Back"
+          onPress={() => {
+            camera.stop();
+            goBackVerificationStep();
+          }}
+        />
       );
     }
 
@@ -232,41 +189,29 @@ export function WalletVerificationScreen() {
   return (
     <GradientBackground>
       <View style={styles.container}>
-        <View style={styles.content}>
-          <Panel fullHeight>
-            <View style={styles.panelContent}>
-              <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.scrollViewContent}
-                showsVerticalScrollIndicator={false}
-              >
-                {verificationStep === 'instructions' && (
-                  <VerificationInstructions
-                    isSoftwareWallet={isSoftwareWallet}
-                    isRequestingChallenge={isRequestingChallenge}
-                    isVerifying={isVerifying}
-                    verificationSuccess={verificationSuccess}
-                    verificationError={verificationError}
-                  />
-                )}
-                {verificationStep === 'show-challenge-qr' && (
-                  <ChallengeQRStep urEncodedChallenge={urEncodedChallenge} />
-                )}
-                {verificationStep === 'scan-signature' && (
-                  <SignatureScanStep
-                    cameraMessage={camera.message}
-                    isVerifying={isVerifying}
-                    verificationSuccess={verificationSuccess}
-                    verificationError={scanError || verificationError}
-                    preview={camera.preview}
-                  />
-                )}
-              </ScrollView>
-
-              {renderFooter()}
-            </View>
-          </Panel>
-        </View>
+        <Panel title="Verify Wallet" actions={renderActions()}>
+          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+            {verificationStep === 'instructions' && (
+              <VerificationInstructions
+                isSoftwareWallet={isSoftwareWallet}
+                isRequestingChallenge={isRequestingChallenge}
+                isVerifying={isVerifying}
+                verificationSuccess={verificationSuccess}
+                verificationError={verificationError}
+              />
+            )}
+            {verificationStep === 'show-challenge-qr' && <ChallengeQRStep urEncodedChallenge={urEncodedChallenge} />}
+            {verificationStep === 'scan-signature' && (
+              <SignatureScanStep
+                cameraMessage={camera.message}
+                isVerifying={isVerifying}
+                verificationSuccess={verificationSuccess}
+                verificationError={scanError || verificationError}
+                preview={camera.preview}
+              />
+            )}
+          </ScrollView>
+        </Panel>
       </View>
     </GradientBackground>
   );

@@ -1,12 +1,12 @@
-import type { ReactNode } from 'react';
+import { Children, Fragment, isValidElement, type ReactElement, type ReactNode } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
 import { CaretRightIcon } from 'phosphor-react-native';
 import { useAppTheme, useThemedStyles } from '../contexts';
 
-export function Section({ title, children }: { title: string; children: ReactNode }) {
-  const styles = useThemedStyles((theme) => ({
-    section: {
-      gap: 12,
+export function useCardStyles() {
+  return useThemedStyles((theme) => ({
+    card: {
+      gap: theme.spacing.smd,
       padding: theme.spacing.md,
       borderWidth: 1,
       borderColor: theme.colors.border.default,
@@ -15,8 +15,12 @@ export function Section({ title, children }: { title: string; children: ReactNod
     },
     title: { fontFamily: theme.fontFamily.display, fontSize: 25, color: theme.colors.text.primary },
   }));
+}
+
+export function Section({ title, children }: { title: string; children: ReactNode }) {
+  const styles = useCardStyles();
   return (
-    <View style={styles.section}>
+    <View style={styles.card}>
       <Text accessibilityRole="header" style={styles.title}>
         {title}
       </Text>
@@ -32,15 +36,37 @@ export function Lede({ children }: { children: ReactNode }) {
   return <Text style={styles.lede}>{children}</Text>;
 }
 
-export function Row({ label, children }: { label: string; children: ReactNode }) {
+function items(children: ReactNode, prefix = ''): { key: string; node: ReactElement }[] {
+  return Children.toArray(children).flatMap((child, index) => {
+    if (!isValidElement<{ children?: ReactNode }>(child)) return [];
+    const key = `${prefix}${child.key ?? index}`;
+    return child.type === Fragment ? items(child.props.children, `${key}/`) : [{ key, node: child }];
+  });
+}
+
+export function Rows({ children }: { children: ReactNode }) {
+  const styles = useThemedStyles((theme) => ({
+    rule: { height: 1, backgroundColor: theme.colors.border.subtle },
+  }));
+  return (
+    <View>
+      {items(children).map(({ key, node }, index) => (
+        <Fragment key={key}>
+          {index > 0 && <View style={styles.rule} />}
+          {node}
+        </Fragment>
+      ))}
+    </View>
+  );
+}
+
+export function Row({ label, mono = false, children }: { label: string; mono?: boolean; children: ReactNode }) {
   const styles = useThemedStyles((theme) => ({
     row: {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
-      gap: 8,
+      gap: theme.spacing.sm,
       paddingVertical: 10,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border.subtle,
     },
     label: { flexShrink: 1, fontFamily: theme.fontFamily.regular, fontSize: 14, color: theme.colors.text.muted },
     value: {
@@ -51,11 +77,12 @@ export function Row({ label, children }: { label: string; children: ReactNode })
       color: theme.colors.text.primary,
       textAlign: 'right' as const,
     },
+    mono: { fontFamily: theme.fontFamily.mono },
   }));
   return (
     <View style={styles.row}>
       <Text style={styles.label}>{label}</Text>
-      <Text style={styles.value}>{children}</Text>
+      <Text style={[styles.value, mono && styles.mono]}>{children}</Text>
     </View>
   );
 }
@@ -64,13 +91,11 @@ export function LinkRow({
   label,
   onPress,
   accessibilityLabel,
-  last = false,
   children,
 }: {
   label: string;
   onPress: () => void;
   accessibilityLabel?: string;
-  last?: boolean;
   children?: ReactNode;
 }) {
   const theme = useAppTheme();
@@ -78,12 +103,10 @@ export function LinkRow({
     row: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 12,
-      paddingVertical: 12,
-      borderBottomWidth: last ? 0 : 1,
-      borderBottomColor: theme.colors.border.subtle,
+      gap: theme.spacing.smd,
+      paddingVertical: theme.spacing.smd,
     },
-    text: { flex: 1, gap: 4 },
+    text: { flex: 1, gap: theme.spacing.xs },
     label: { fontFamily: theme.fontFamily.medium, fontSize: 14, lineHeight: 21, color: theme.colors.text.primary },
   }));
   return (
@@ -176,6 +199,53 @@ export function Action({
       disabled={disabled}
       onPress={onPress}
       style={styles.button}
+    >
+      <Text style={styles.label}>{label}</Text>
+    </Pressable>
+  );
+}
+
+export function Choice({
+  label,
+  selected,
+  onPress,
+  disabled = false,
+  accessibilityRole = 'button',
+  accessibilityLabel,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+  disabled?: boolean;
+  accessibilityRole?: 'button' | 'radio';
+  accessibilityLabel?: string;
+}) {
+  const styles = useThemedStyles((theme) => ({
+    choice: {
+      alignSelf: 'flex-start' as const,
+      borderWidth: 1,
+      borderColor: selected ? theme.colors.interactive.defaultSubtle : theme.colors.border.default,
+      borderRadius: 6,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      opacity: disabled ? 0.5 : 1,
+    },
+    label: {
+      fontFamily: theme.fontFamily.regular,
+      fontSize: 14,
+      color: selected ? theme.colors.interactive.active : theme.colors.text.primary,
+    },
+  }));
+  return (
+    <Pressable
+      accessibilityRole={accessibilityRole}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={
+        accessibilityRole === 'radio' ? { checked: selected, selected, disabled } : { selected, disabled }
+      }
+      disabled={disabled}
+      onPress={onPress}
+      style={styles.choice}
     >
       <Text style={styles.label}>{label}</Text>
     </Pressable>
