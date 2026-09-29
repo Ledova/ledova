@@ -121,6 +121,27 @@ it('does not take another list’s first-page failure for this list’s later-pa
   expect(other.result.current.moreFailed).toBe(false);
 });
 
+it('shows a first-page failure after the list is reset as a first-page failure, and reads it again', async () => {
+  const view = await laterPageFailed();
+  read = async () => {
+    throw new Error('offline');
+  };
+
+  await act(async () => {
+    await client.resetQueries({ queryKey: ['list'] });
+  });
+
+  await waitFor(() => expect(view.result.current.hasError).toBe(true));
+  expect(view.result.current.moreFailed).toBe(false);
+  expect(view.result.current.rows).toEqual([]);
+  read = async () => ({ rows: ['first'], next: 2 });
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ['list'] });
+  });
+  await waitFor(() => expect(view.result.current.rows).toEqual(['first']));
+  expect(view.result.current.hasError).toBe(false);
+});
+
 it('still knows the later-page failure when the list is shown again and read afresh', async () => {
   const first = await laterPageFailed();
   first.unmount();
