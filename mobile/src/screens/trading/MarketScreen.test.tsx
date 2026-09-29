@@ -147,7 +147,7 @@ it.each(['failure', 'refresh'] as const)(
   },
 );
 it('opens an order’s details in place on the current record, with no dialog', async () => {
-  const order = 'Wanted, Retained old class, 7 at AUD\u00a014.00 per share';
+  const order = 'Wanted, Retained old class, Open, 7 at AUD\u00a014.00 per share';
   const view = await render(<TradingScreen />, { wrapper });
   const toggle = view.getByRole('button', { name: `Details, ${order}` });
   expect(toggle).toBeCollapsed();
@@ -157,10 +157,11 @@ it('opens an order’s details in place on the current record, with no dialog', 
   expect(view.getByText(mockOrders[0].uuid)).toBeTruthy();
   expect(view.queryByText('Order details')).toBeNull();
   expect(view.getByRole('button', { name: `Modify, ${order}` })).toBeTruthy();
-  mockOrders = [{ ...mockOrders[0], status: 'cancelled' }];
+  mockOrders = [{ ...mockOrders[0], status: 'cancelled', statusDisplay: 'Cancelled' }];
   await view.rerender(<TradingScreen />);
-  expect(view.getByRole('button', { name: `Details, ${order}` })).toBeExpanded();
-  expect(view.queryByRole('button', { name: `Modify, ${order}` })).toBeNull();
+  const cancelled = order.replace('Open', 'Cancelled');
+  expect(view.getByRole('button', { name: `Details, ${cancelled}` })).toBeExpanded();
+  expect(view.queryByRole('button', { name: /^Modify, / })).toBeNull();
   mockOrders = [];
   await view.rerender(<TradingScreen />);
   expect(view.queryByText('Order ID')).toBeNull();

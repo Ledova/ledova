@@ -15,11 +15,16 @@ import { Action, Disclosure, Row, Rows, Section } from '../../../components/Ledg
 import { marketAmount, marketQuantity } from '../marketData';
 import { useMarketStyles } from '../styles';
 
+function orderStatus(order: TransferOrder) {
+  return order.statusDisplay ?? order.status.replace(/_/g, ' ');
+}
+
 function orderName(order: TransferOrder) {
   return [
     order.orderType === 'buy' ? 'Wanted' : 'For sale',
     order.tokenName ?? order.tokenSymbol ?? 'Share class unavailable',
-    `${marketQuantity(order.remainingQuantity ?? order.quantity)} at ${marketAmount(order.pricePerShare)} per share`,
+    orderStatus(order),
+    `${marketQuantity(order.remainingQuantity || order.quantity)} at ${marketAmount(order.pricePerShare)} per share`,
   ].join(', ');
 }
 
@@ -143,7 +148,7 @@ export function OrdersCard({
                 <Text style={styles.text}>{order.tokenName ?? order.tokenSymbol ?? 'Share class unavailable'}</Text>
                 <Rows>
                   <Row label="Order">{order.orderType === 'buy' ? 'Wanted' : 'For sale'}</Row>
-                  <Row label="Status">{order.statusDisplay ?? order.status.replace(/_/g, ' ')}</Row>
+                  <Row label="Status">{orderStatus(order)}</Row>
                   <Row label="Shares remaining">{marketQuantity(order.remainingQuantity ?? order.quantity)}</Row>
                   <Row label="Price per share">{marketAmount(order.pricePerShare)}</Row>
                   <Row label="Remaining value">
