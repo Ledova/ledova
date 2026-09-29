@@ -74,6 +74,8 @@ test('release endpoints cannot use HTTP, carry credentials, a query or a fragmen
     for (const value of [
       'http://localhost:8000',
       'https://user:password@example.test',
+      'https://user@example.test',
+      'https://:pw@example.test',
       'https://example.test?token=secret',
       'https://example.test#fragment',
       'https://api.example.test?',
