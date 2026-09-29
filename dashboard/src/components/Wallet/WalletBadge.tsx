@@ -13,14 +13,25 @@ export function WalletBadge({ verificationStatus }: WalletBadgeProps) {
 
   return (
     <span
+      role="img"
       className="relative inline-flex"
       aria-label={isVerified ? 'Wallet address verified' : 'Wallet address verification pending'}
     >
-      <WalletIcon size={ICON_SM} className={isVerified ? 'text-success-light' : 'text-text-muted'} />
+      <WalletIcon aria-hidden size={ICON_SM} className={isVerified ? 'text-success-light' : 'text-text-muted'} />
       {isVerified ? (
-        <CheckCircleIcon size={ICON_XS} weight="fill" className="absolute -bottom-0.5 -right-0.5 text-success-light" />
+        <CheckCircleIcon
+          aria-hidden
+          size={ICON_XS}
+          weight="fill"
+          className="absolute -bottom-0.5 -right-0.5 text-success-light"
+        />
       ) : (
-        <ClockIcon size={ICON_XS} weight="fill" className="absolute -bottom-0.5 -right-0.5 text-warning-light" />
+        <ClockIcon
+          aria-hidden
+          size={ICON_XS}
+          weight="fill"
+          className="absolute -bottom-0.5 -right-0.5 text-warning-light"
+        />
       )}
     </span>
   );

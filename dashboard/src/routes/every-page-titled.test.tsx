@@ -33,7 +33,7 @@ import { signedInRoutes } from './signedInRoutes';
 
 const KEYS = Object.keys(DESTINATIONS) as DestinationKey[];
 const LEDES: Partial<Record<DestinationKey, string>> = {
-  wallets: 'Select a wallet to edit, verify, derive an address or sync its balances.',
+  wallets: 'Verify a wallet to send from it or buy crypto into it.',
   transactions: 'Select an entry for its status and details.',
   companyRegister:
     "The stored register records your company's members and their shares; wallet balances do not replace it.",

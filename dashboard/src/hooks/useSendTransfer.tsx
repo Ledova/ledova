@@ -8,6 +8,7 @@ import type { Wallet } from '@ledova/shared';
 
 interface SendTransferContextValue {
   openSendTransfer: () => void;
+  openSendTransferFrom: (wallet: Wallet) => void;
 }
 
 const SendTransferContext = createContext<SendTransferContextValue | null>(null);
@@ -18,6 +19,7 @@ export function SendTransferProvider({ children }: { children: ReactNode }) {
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [selectedWallet, setSelectedWallet] = useState<Wallet | null>(null);
   const [sendFormOpen, setSendFormOpen] = useState(false);
+  const [chosenFromList, setChosenFromList] = useState(false);
 
   const transferFlow = useTransferFlow(selectedWallet);
   const { handleTransferSuccess: resetTransferFlow } = transferFlow;
@@ -29,6 +31,17 @@ export function SendTransferProvider({ children }: { children: ReactNode }) {
     setWalletModalOpen(true);
   }, [resetTransferFlow]);
 
+  const openSendTransferFrom = useCallback(
+    (wallet: Wallet) => {
+      resetTransferFlow();
+      setWalletModalOpen(false);
+      setSelectedWallet(wallet);
+      setChosenFromList(false);
+      setSendFormOpen(true);
+    },
+    [resetTransferFlow],
+  );
+
   const resetAll = useCallback(() => {
     setWalletModalOpen(false);
     setSelectedWallet(null);
@@ -38,6 +51,7 @@ export function SendTransferProvider({ children }: { children: ReactNode }) {
 
   const handleWalletSelected = useCallback((wallet: Wallet) => {
     setSelectedWallet(wallet);
+    setChosenFromList(true);
     setWalletModalOpen(false);
     setSendFormOpen(true);
   }, []);
@@ -56,7 +70,7 @@ export function SendTransferProvider({ children }: { children: ReactNode }) {
   }, [queryClient, resetTransferFlow]);
 
   return (
-    <SendTransferContext.Provider value={{ openSendTransfer }}>
+    <SendTransferContext.Provider value={{ openSendTransfer, openSendTransferFrom }}>
       {children}
 
       <WalletSelectionModal isOpen={walletModalOpen} onClose={resetAll} onSelectWallet={handleWalletSelected} />
@@ -74,7 +88,7 @@ export function SendTransferProvider({ children }: { children: ReactNode }) {
           isCheckingRecipientWhitelist={transferFlow.isCheckingRecipientWhitelist}
           senderWhitelistStatus={transferFlow.senderWhitelistStatus}
           recipientWhitelistStatus={transferFlow.recipientWhitelistStatus}
-          onBack={handleBackToWalletSelection}
+          onBack={chosenFromList ? handleBackToWalletSelection : undefined}
           onTransfer={transferFlow.handleCombinedTransfer}
           onAddressChange={transferFlow.setToAddress}
           onAssetChange={transferFlow.setSelectedAsset}
