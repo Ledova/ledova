@@ -75,6 +75,8 @@ export function SignTransaction({ urEncodedTransaction, error = null }: SignTran
         )}
       </View>
 
+      {urEncodedTransaction && error ? <Text style={text.error}>{error}</Text> : null}
+
       <View style={styles.dividerContainer}>
         <View style={styles.dividerLine} />
         <Text style={styles.dividerText}>then scan signature</Text>

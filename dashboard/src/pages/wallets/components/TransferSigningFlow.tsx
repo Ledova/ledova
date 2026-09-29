@@ -197,23 +197,16 @@ export function TransferSigningFlow({
   const { error: scannerError, stopScanner } = useQRScanner({
     scannerId: 'transfer-qr-scanner',
     onScanSuccess: (text) => {
-      const signedTx = decodeKeystoneSignedTransaction(
-        text,
-        unsignedTx
-          ? {
-              to: unsignedTx.to,
-              value: unsignedTx.value,
-              gas: unsignedTx.gas,
-              gasPrice: unsignedTx.gasPrice,
-              nonce: unsignedTx.nonce,
-              data: unsignedTx.data,
-              chainId: unsignedTx.chainId,
-            }
-          : undefined,
-      );
-      if (signedTx) {
-        submitSignedTransaction(signedTx);
+      if (!unsignedTx) return;
+      let signedTx: string;
+      try {
+        signedTx = decodeKeystoneSignedTransaction(text, unsignedTx, wallet.address);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'The scanned code was refused.');
+        setSigningStep('show-qr');
+        return;
       }
+      submitSignedTransaction(signedTx);
     },
     enabled: signingStep === 'scan-signature',
   });

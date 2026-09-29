@@ -2,6 +2,7 @@ import { EthSignRequest, ETHSignature } from '@keystonehq/bc-ur-registry-eth';
 import { HDNodeWallet, Interface, MaxUint256, Transaction, getAddress, parseEther, parseUnits } from 'ethers';
 import type { TransactionData } from '@ledova/shared';
 import fixture from '../../../packages/shared/tests/fixtures/prepared-transfer-api.json';
+import { keystoneSignatureBytes, legacyV } from '../../../packages/shared/tests/fixtures/keystone-signatures';
 import { preparedTransferTransaction, reviewedTransferTransaction } from './preparedTransfer';
 import { signEthereumTransaction } from './softwareWallet/localSigner';
 import { encodeEthereumTransaction } from './keystone/urEncoder';
@@ -118,10 +119,12 @@ it('encodes a reviewed send above 2^53 wei for Keystone and rebuilds the bytes t
   const unsigned = Transaction.from(`0x${request.getSignData().toString('hex')}`);
   expect(unsigned.value).toBe(parseEther(prepared.amountEth));
   const device = HDNodeWallet.fromPhrase(mnemonic, undefined, derivationPath);
-  const signature = device.signingKey.sign(unsigned.unsignedHash);
-  const scanned = new ETHSignature(Buffer.from(signature.serialized.slice(2), 'hex')).toUREncoder(1000).nextPart();
+  const { r, s, yParity } = device.signingKey.sign(unsigned.unsignedHash);
+  const firmware = Buffer.from(keystoneSignatureBytes(r, s, legacyV(unsigned.chainId, yParity)));
+  expect(firmware).toHaveLength(66);
+  const scanned = new ETHSignature(firmware).toUREncoder(1000).nextPart();
   const expected = await signEthereumTransaction(mnemonic, derivationPath, transaction);
-  expect(decodeKeystoneSignature(scanned, transaction)).toBe(expected);
+  expect(decodeKeystoneSignature(scanned, transaction, prepared.fromAddress)).toBe(expected);
 });
 
 it.each(['native', 'nativeBeyondDouble', 'nativeEighteenPlaces'] as const)(

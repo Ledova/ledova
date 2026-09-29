@@ -92,6 +92,7 @@ export function TransferFormScreen({ route, navigation }: Props) {
     () => (transactionData && isEvm ? reviewTransfer(transactionData, selectedAsset?.decimals) : null),
     [transactionData, isEvm, selectedAsset],
   );
+  const [refusedScan, setRefusedScan] = useState<{ review: typeof review; message: string } | null>(null);
 
   const urEncodedTransaction = useMemo(() => {
     if (!review?.transaction || !wallet) return null;
@@ -126,6 +127,7 @@ export function TransferFormScreen({ route, navigation }: Props) {
   );
 
   const handleOpenSignatureScanner = useCallback(() => {
+    setRefusedScan(null);
     setShowSignatureScanner(true);
   }, []);
 
@@ -135,15 +137,16 @@ export function TransferFormScreen({ route, navigation }: Props) {
 
   const handleSignatureScan = useCallback(
     (data: string) => {
-      if (!review?.transaction) return;
+      if (!review?.transaction || !wallet) return;
 
-      const signedTx = decodeKeystoneSignature(data, review.transaction);
-      if (signedTx) {
-        handleSignature(signedTx);
-        setShowSignatureScanner(false);
+      setShowSignatureScanner(false);
+      try {
+        handleSignature(decodeKeystoneSignature(data, review.transaction, wallet.address));
+      } catch (error) {
+        setRefusedScan({ review, message: error instanceof Error ? error.message : 'The scanned code was refused.' });
       }
     },
-    [handleSignature, review],
+    [handleSignature, review, wallet],
   );
 
   const handleSignedHexChange = useCallback((value: string) => {
@@ -236,7 +239,12 @@ export function TransferFormScreen({ route, navigation }: Props) {
             />
           );
         }
-        return <SignTransaction urEncodedTransaction={urEncodedTransaction} error={review?.error ?? null} />;
+        return (
+          <SignTransaction
+            urEncodedTransaction={urEncodedTransaction}
+            error={review?.error ?? (refusedScan?.review === review ? refusedScan.message : null)}
+          />
+        );
 
       case 'broadcast':
         return (

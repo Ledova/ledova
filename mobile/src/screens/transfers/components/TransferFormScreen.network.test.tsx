@@ -1,10 +1,11 @@
 import type { ComponentProps } from 'react';
-import { render } from '@testing-library/react-native';
+import { act, render } from '@testing-library/react-native';
 import type { TransactionData } from '@ledova/shared';
 import fixture from '../../../../../packages/shared/tests/fixtures/prepared-transfer-api.json';
 import { TransferFormScreen } from './TransferFormScreen';
 import { useTransfers } from '../useTransfers';
 import { encodeEthereumTransaction } from '../../../utils/keystone/urEncoder';
+import { decodeKeystoneSignature } from '../../../utils/keystone/urDecoder';
 import { preparedTransferTransaction } from '../../../utils/preparedTransfer';
 
 jest.mock('../useTransfers', () => ({ useTransfers: jest.fn() }));
@@ -15,7 +16,14 @@ jest.mock('../../../utils/keystone/urDecoder', () => ({ decodeKeystoneSignature:
 jest.mock('../../../components/GradientBackground', () => ({
   GradientBackground: ({ children }: { children: React.ReactNode }) => children,
 }));
-jest.mock('../../../components/qr', () => ({ QRScanner: () => null, QRDisplay: () => null }));
+const mockScanners: { title: string; onScan: (data: string) => void }[] = [];
+jest.mock('../../../components/qr', () => ({
+  QRScanner: (props: { title: string; onScan: (data: string) => void }) => {
+    mockScanners.push(props);
+    return null;
+  },
+  QRDisplay: () => null,
+}));
 jest.mock('./SoftwareSignTransaction', () => ({ SoftwareSignTransaction: () => null }));
 jest.mock('./SignTransaction', () => ({
   SignTransaction: ({
@@ -72,4 +80,19 @@ it('shows why it refuses a transaction that differs from the review, and never b
   const view = await signing({ ...base, transaction: { ...base.transaction, value: '500000000000000000' } });
   expect(view.getByText('This transaction does not match your review: the amount is different.')).toBeTruthy();
   expect(encodeEthereumTransaction).not.toHaveBeenCalled();
+});
+
+it('shows why it refuses a scanned signature, which it checks against the wallet address', async () => {
+  jest.mocked(decodeKeystoneSignature).mockImplementation(() => {
+    throw new Error('The scanned signature is not from this wallet.');
+  });
+  const view = await signing(base);
+  const scanner = mockScanners.filter(({ title }) => title === 'Scan Signed Transaction').at(-1)!;
+  await act(async () => scanner.onScan('ur:eth-signature/synthetic'));
+  expect(view.getByText('The scanned signature is not from this wallet.')).toBeTruthy();
+  expect(decodeKeystoneSignature).toHaveBeenCalledWith(
+    'ur:eth-signature/synthetic',
+    preparedTransferTransaction(base.transaction),
+    wallet.address,
+  );
 });

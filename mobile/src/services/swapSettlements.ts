@@ -9,7 +9,7 @@ import {
   type SwapSettlementCrypto,
   type Wallet,
 } from '@ledova/shared';
-import { decodeKeystoneMessageSignature } from '../utils/keystone/urDecoder';
+import { decodeKeystoneSignature } from '../utils/keystone/urDecoder';
 
 export const swapSettlementStore = createSwapSettlementStore(AsyncStorage);
 export const swapSettlementCrypto: SwapSettlementCrypto = {
@@ -90,8 +90,6 @@ export function encodeSettlementApproval(
   return request.toCBOR().toString('hex');
 }
 
-export function decodeSettlementApproval(text: string, transaction: ApprovalTransaction): string {
-  const signature = decodeKeystoneMessageSignature(text);
-  if (!signature || !/^0x[0-9a-f]{130}$/i.test(signature)) throw new Error('The approval signature is invalid.');
-  return Transaction.from({ ...settlementApprovalTransaction(transaction), signature }).serialized;
+export function decodeSettlementApproval(text: string, transaction: ApprovalTransaction, signer: string): string {
+  return decodeKeystoneSignature(text, settlementApprovalTransaction(transaction), signer);
 }

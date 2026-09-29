@@ -38,6 +38,7 @@ export {
 export type { SignInErrorReading, ApiErrorReading, ReadApiErrorOptions } from './errors';
 export { getHoldingTokenDeployment } from './asset-deployment';
 export { importAddressKey, importOnEvmNetwork, importedParentKey, canDeriveNextWalletAddress } from './wallet-import';
+export { readTransactionSignature, type TransactionSignature } from './transaction-signature';
 export { parseFiatValue } from './valuation';
 export { readFeatureFlags, type FeatureFlagInputs } from './feature-flags';
 export {

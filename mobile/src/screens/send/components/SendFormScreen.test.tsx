@@ -1,9 +1,10 @@
-import { cleanup, render } from '@testing-library/react-native';
+import { act, cleanup, render } from '@testing-library/react-native';
 import { Interface } from 'ethers';
 import type { TransactionData } from '@ledova/shared';
 import fixture from '../../../../../packages/shared/tests/fixtures/prepared-transfer-api.json';
 import { useTransfers } from '../../transfers/useTransfers';
 import { encodeEthereumTransaction } from '../../../utils/keystone/urEncoder';
+import { decodeKeystoneSignature } from '../../../utils/keystone/urDecoder';
 import { preparedTransferTransaction } from '../../../utils/preparedTransfer';
 import { SendFormScreen } from './SendFormScreen';
 
@@ -14,7 +15,14 @@ jest.mock('@ledova/shared', () => ({
   ...jest.requireActual('@ledova/shared'),
   useCurrency: () => ({ formatDisplayCurrency: (value: number) => `AUD ${value}` }),
 }));
-jest.mock('../../../components/qr', () => ({ QRScanner: () => null, QRDisplay: () => null }));
+const mockScanners: { title: string; onScan: (data: string) => void }[] = [];
+jest.mock('../../../components/qr', () => ({
+  QRScanner: (props: { title: string; onScan: (data: string) => void }) => {
+    mockScanners.push(props);
+    return null;
+  },
+  QRDisplay: () => null,
+}));
 jest.mock('../../transfers/components/SendForm', () => ({ SendForm: () => null }));
 jest.mock('../../../utils/keystone/urEncoder', () => ({ encodeEthereumTransaction: jest.fn() }));
 jest.mock('../../../utils/keystone/urDecoder', () => ({ decodeKeystoneSignature: jest.fn() }));
@@ -90,4 +98,21 @@ it('shows why it refuses a token transfer that differs from the review, and neve
   const view = await render(<SendFormScreen onDone={jest.fn()} />);
   expect(view.getByText('This transaction does not match your review: the recipient is different.')).toBeTruthy();
   expect(encodeEthereumTransaction).not.toHaveBeenCalled();
+});
+
+it('shows why it refuses a scanned token-transfer signature, checked against the wallet address', async () => {
+  jest.mocked(encodeEthereumTransaction).mockReturnValue({ urString: 'ur:eth-sign-request/synthetic' } as never);
+  jest.mocked(decodeKeystoneSignature).mockImplementation(() => {
+    throw new Error('The scanned signature is not for this network.');
+  });
+  signing(fixture.token);
+  const view = await render(<SendFormScreen onDone={jest.fn()} />);
+  const scanner = mockScanners.filter(({ title }) => title === 'Scan Signed Transaction').at(-1)!;
+  await act(async () => scanner.onScan('ur:eth-signature/synthetic'));
+  expect(view.getByText('The scanned signature is not for this network.')).toBeTruthy();
+  expect(decodeKeystoneSignature).toHaveBeenCalledWith(
+    'ur:eth-signature/synthetic',
+    preparedTransferTransaction(fixture.token.transaction),
+    wallet.address,
+  );
 });
