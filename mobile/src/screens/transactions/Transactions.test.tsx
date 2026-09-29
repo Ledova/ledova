@@ -225,6 +225,46 @@ it('marks a failed later page incomplete, retains known rows and retries that pa
   expect(view.getByText('Pending')).toBeTruthy();
   expect((reads().at(-1)?.[1]?.params as Record<string, unknown>)?.page).toBe(2);
 });
+it('keeps entries and the later-page failure on screen while the history is read again, until that read fails', async () => {
+  const later = 'https://example.invalid/api/transactions/?page=2';
+  let laterBroken = true;
+  const read = async (params: Record<string, unknown>) => {
+    if (params.page !== 2) return page([transaction], later);
+    if (laterBroken) throw Error('offline');
+    return page([{ ...transaction, uuid: 'entry-two', status: 'confirmed' }]);
+  };
+  activity = read;
+  const view = await show();
+  await fireEvent.press(await view.findByText('Load more activity'));
+  expect(await view.findByText('More activity could not be loaded. The list is incomplete.')).toBeTruthy();
+  let fail!: (error: Error) => void;
+  activity = () =>
+    new Promise((_, reject) => {
+      fail = reject;
+    });
+  let refreshing!: Promise<void>;
+  await act(async () => {
+    refreshing = client.invalidateQueries({ queryKey: ['all-transactions'] });
+  });
+  await waitFor(() => expect(view.getByText('Try more activity again')).toBeDisabled());
+  expect(view.getByRole('button', { name: 'Open activity entry-one' })).toBeTruthy();
+  expect(view.getByText('More activity could not be loaded. The list is incomplete.')).toBeTruthy();
+  expect(view.queryByText('Your activity could not be loaded. Try again before continuing.')).toBeNull();
+  await act(async () => {
+    fail(Error('offline'));
+    await refreshing;
+  });
+  expect(await view.findByText('Your activity could not be loaded. Try again before continuing.')).toBeTruthy();
+  expect(view.queryByRole('button', { name: 'Open activity entry-one' })).toBeNull();
+  expect(view.queryByText('More activity could not be loaded. The list is incomplete.')).toBeNull();
+  laterBroken = false;
+  activity = read;
+  await fireEvent.press(view.getByText('Try again'));
+  await fireEvent.press(await view.findByText('Load more activity'));
+  expect(await view.findByText('✓ Confirmed')).toBeTruthy();
+  expect((reads().at(-1)?.[1]?.params as Record<string, unknown>)?.page).toBe(2);
+});
+
 it('does not report an empty first page as complete when another page exists', async () => {
   activity = async (params) =>
     params.page === 1 ? page([], 'https://example.invalid/api/transactions/?page=2') : page([transaction]);
