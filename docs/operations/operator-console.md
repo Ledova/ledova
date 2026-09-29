@@ -100,10 +100,11 @@ printed by the command. A rerun applies the resolved password. It requires DEBUG
 
 The investor and founder are `investor@ledova.io` and `founder@ledova.io`; the
 superuser is `admin@demo.ledova.test`. The command adopts any existing account at
-those addresses: it resets its password, active flag, email verification, profile,
-role and status, adds a verified wallet, and gives the investor a verified
-classification and a whitelist entry. Check that nobody uses the two `ledova.io`
-addresses on an environment before seeding it. A database seeded before the two
+those addresses and resets its password, active flag and email verification. For
+the investor and founder it also overwrites the profile, role and status and adds
+a verified wallet; the founder becomes the demo company's owner, and the investor
+gets a verified classification and a whitelist entry. Check that nobody uses the
+two `ledova.io` addresses on an environment before seeding it. A database seeded before the two
 addresses moved from `demo.ledova.test` still has its demo company owned by
 `founder@demo.ledova.test`, and the command refuses; rename the two accounts
 first, then rerun it:
