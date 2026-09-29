@@ -40,7 +40,8 @@ lacks, and each route hands its page the title from the same entry, detail
 pages included. The audience is `everyone`, `investing` or `company`, and
 `canOpen(role, audience)` says who may open it: an investor opens the pages for
 everyone and for investing, a company those for everyone and for companies, and
-a dual-role account all of them. Every signed-in route is guarded by
+a dual-role account all of them. A role outside the API's list opens only the
+pages for everyone, on both clients, and lands on Holdings. Every signed-in route is guarded by
 `ProtectedRoute` with its entry's audience. A signed-out visitor goes to sign
 in. Email verification issues a full session before sign-up is finished, so a
 signed-in account whose profile does not say `isSignupCompleted` goes back to
