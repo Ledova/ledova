@@ -433,8 +433,10 @@ Pages rebuilt in the paper layout use the ledger blocks in
   optional detail lines, an optional aside such as a status or a price, and a
   trailing chevron; the whole row is the link.
 - `Disclosure`: a row that opens in place: a button with `aria-expanded` and a
-  leading caret that turns when open, controlling the region directly under it,
-  which holds the detail only while open. The page keeps whether it is open, so
+  leading caret that turns when open, controlling the detail directly under it,
+  which it holds only while open. The detail is a landmark (`region`, labelled
+  by the button) only when asked, as Activity's filter is; entries are not,
+  since any number of them can be open. The page keeps whether it is open, so
   it can close it when what it shows changes.
 - `Status`: a status in words with a small mark for waiting, moving, done or closed.
 - `Timeline`: each event with its date.

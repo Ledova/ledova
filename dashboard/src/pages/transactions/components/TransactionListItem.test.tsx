@@ -29,7 +29,10 @@ const transaction: Transaction = {
 
 function detailOf(entry: Transaction) {
   render(<TransactionListItem transaction={entry} open onToggle={() => {}} />);
-  return screen.getByRole('region');
+  const detail = document.getElementById(screen.getByRole('button').getAttribute('aria-controls')!)!;
+  expect(detail.hidden).toBe(false);
+  expect(screen.queryByRole('region')).toBeNull();
+  return detail;
 }
 
 it('shows no detail while closed and hands the entry to its toggle', () => {
@@ -37,7 +40,7 @@ it('shows no detail while closed and hands the entry to its toggle', () => {
   render(<TransactionListItem transaction={transaction} open={false} onToggle={toggle} />);
   const row = screen.getByRole('button', { name: /Outgoing · Ethereum/ });
   expect(row.getAttribute('aria-expanded')).toBe('false');
-  expect(screen.queryByRole('region')).toBeNull();
+  expect(document.getElementById(row.getAttribute('aria-controls')!)!.hidden).toBe(true);
   expect(screen.queryByText('Recorded')).toBeNull();
   fireEvent.click(row);
   expect(toggle).toHaveBeenCalledExactlyOnceWith(transaction);

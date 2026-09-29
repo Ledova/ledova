@@ -6,38 +6,50 @@ import { Disclosure } from './Ledger';
 
 afterEach(cleanup);
 
-function Harness({ opened = false }: { opened?: boolean }) {
+function Harness({ opened = false, region }: { opened?: boolean; region?: boolean }) {
   const [open, setOpen] = useState(opened);
   return (
-    <Disclosure open={open} onToggle={() => setOpen(!open)} summary="Synthetic entry">
+    <Disclosure open={open} onToggle={() => setOpen(!open)} region={region} summary="Synthetic entry">
       <p>Synthetic detail</p>
     </Disclosure>
   );
 }
 
-it('is a button with aria-expanded controlling the region under it, which holds the detail only while open', () => {
+const controlledBy = (button: HTMLElement) => document.getElementById(button.getAttribute('aria-controls')!)!;
+
+it('is a button with aria-expanded controlling the detail under it, which it holds only while open', () => {
   render(<Harness />);
   const button = screen.getByRole('button', { name: 'Synthetic entry' });
-  const controlled = document.getElementById(button.getAttribute('aria-controls')!)!;
+  const detail = controlledBy(button);
   expect(button.getAttribute('aria-expanded')).toBe('false');
-  expect(controlled.hidden).toBe(true);
-  expect(controlled.textContent).toBe('');
-  expect(screen.queryByRole('region')).toBeNull();
+  expect(detail.hidden).toBe(true);
+  expect(detail.textContent).toBe('');
 
   fireEvent.click(button);
-  const region = screen.getByRole('region', { name: 'Synthetic entry' });
-  expect(region).toBe(controlled);
   expect(button.getAttribute('aria-expanded')).toBe('true');
-  expect(region.getAttribute('aria-labelledby')).toBe(button.id);
-  expect(within(region).getByText('Synthetic detail')).toBeTruthy();
-  expect(button.compareDocumentPosition(region) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(detail.hidden).toBe(false);
+  expect(within(detail).getByText('Synthetic detail')).toBeTruthy();
+  expect(button.compareDocumentPosition(detail) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
   fireEvent.click(button);
   expect(button.getAttribute('aria-expanded')).toBe('false');
   expect(screen.queryByText('Synthetic detail')).toBeNull();
 });
 
-it('gives each disclosure its own region and hands its button to a ref', () => {
+it('is no landmark unless asked, and then a region labelled by its button', () => {
+  const view = render(<Harness opened />);
+  expect(controlledBy(screen.getByRole('button', { name: 'Synthetic entry' })).hidden).toBe(false);
+  expect(screen.queryByRole('region')).toBeNull();
+  view.unmount();
+
+  render(<Harness opened region />);
+  const button = screen.getByRole('button', { name: 'Synthetic entry' });
+  const region = screen.getByRole('region', { name: 'Synthetic entry' });
+  expect(region).toBe(controlledBy(button));
+  expect(region.getAttribute('aria-labelledby')).toBe(button.id);
+});
+
+it('gives each disclosure its own detail and hands its button to a ref', () => {
   const ref = createRef<HTMLButtonElement>();
   render(
     <>
@@ -47,7 +59,10 @@ it('gives each disclosure its own region and hands its button to a ref', () => {
       <Harness opened />
     </>,
   );
-  const [first, second] = screen.getAllByRole('region');
-  expect(first.id).not.toBe(second.id);
-  expect(ref.current).toBe(screen.getByRole('button', { name: 'First entry' }));
+  const first = screen.getByRole('button', { name: 'First entry' });
+  const second = screen.getByRole('button', { name: 'Synthetic entry' });
+  expect(first.getAttribute('aria-controls')).not.toBe(second.getAttribute('aria-controls'));
+  expect(within(controlledBy(first)).getByText('First detail')).toBeTruthy();
+  expect(within(controlledBy(second)).getByText('Synthetic detail')).toBeTruthy();
+  expect(ref.current).toBe(first);
 });

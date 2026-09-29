@@ -45,12 +45,14 @@ export function Disclosure({
   summary,
   open,
   onToggle,
+  region = false,
   children,
 }: {
   ref?: Ref<HTMLButtonElement>;
   summary: ReactNode;
   open: boolean;
   onToggle: () => void;
+  region?: boolean;
   children: ReactNode;
 }) {
   const id = useId();
@@ -71,7 +73,13 @@ export function Disclosure({
         />
         <span className="min-w-0 flex-1">{summary}</span>
       </button>
-      <div id={`${id}detail`} role="region" aria-labelledby={`${id}summary`} hidden={!open} className="pb-4 pl-7">
+      <div
+        id={`${id}detail`}
+        role={region ? 'region' : undefined}
+        aria-labelledby={region ? `${id}summary` : undefined}
+        hidden={!open}
+        className="pb-4 pl-7"
+      >
         {open && children}
       </div>
     </div>

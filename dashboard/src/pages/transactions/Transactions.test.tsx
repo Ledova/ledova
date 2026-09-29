@@ -52,6 +52,7 @@ function show() {
   );
 }
 const filterToggle = () => screen.getByRole('button', { name: /^Filter/ });
+const detailOf = (entry: HTMLElement) => document.getElementById(entry.getAttribute('aria-controls')!)!;
 function openFilter() {
   fireEvent.click(filterToggle());
   return screen.getByRole('region', { name: /^Filter/ });
@@ -202,8 +203,9 @@ it('rejects an inverted date range before making a filtered request and can clea
 it('applies and clears from the open filter, closing it and every open entry and returning focus to Filter', async () => {
   wallets = async () => page([wallet, secondWallet]);
   show();
-  fireEvent.click(await screen.findByRole('button', { name: entryName }));
-  expect(screen.getByRole('region', { name: entryName })).toBeTruthy();
+  const entry = await screen.findByRole('button', { name: entryName });
+  fireEvent.click(entry);
+  expect(detailOf(entry).hidden).toBe(false);
   expect(filterToggle().textContent).toContain('All transfers');
   const filter = openFilter();
   await within(filter).findByRole('option', { name: /Reserve wallet/ });
@@ -221,15 +223,19 @@ it('applies and clears from the open filter, closing it and every open entry and
     'Incoming · Base · Reserve wallet · 1 September 2026 to 2 September 2026',
   );
   await waitFor(() => expect(activityReads()).toHaveLength(2));
-  expect((await screen.findByRole('button', { name: entryName })).getAttribute('aria-expanded')).toBe('false');
-  expect(screen.queryByRole('region', { name: entryName })).toBeNull();
+  const filtered = await screen.findByRole('button', { name: entryName });
+  expect(filtered.getAttribute('aria-expanded')).toBe('false');
+  expect(detailOf(filtered).hidden).toBe(true);
 
-  fireEvent.click(screen.getByRole('button', { name: entryName }));
+  fireEvent.click(filtered);
+  expect(detailOf(filtered).hidden).toBe(false);
   fireEvent.click(within(openFilter()).getByRole('button', { name: 'Clear' }));
   expect(filterToggle().getAttribute('aria-expanded')).toBe('false');
   expect(document.activeElement).toBe(filterToggle());
   expect(filterToggle().textContent).toContain('All transfers');
-  expect(screen.queryByRole('region', { name: entryName })).toBeNull();
+  const cleared = await screen.findByRole('button', { name: entryName });
+  expect(cleared.getAttribute('aria-expanded')).toBe('false');
+  expect(detailOf(cleared).hidden).toBe(true);
 });
 
 it.each([
@@ -334,8 +340,9 @@ it('does not claim an empty first page is complete while a later page is outstan
 
 it('suppresses stale activity detail after a failed refresh and recovers the current status', async () => {
   show();
-  fireEvent.click(await screen.findByRole('button', { name: entryName }));
-  expect(screen.getByRole('region', { name: entryName })).toBeTruthy();
+  const entry = await screen.findByRole('button', { name: entryName });
+  fireEvent.click(entry);
+  expect(detailOf(entry).hidden).toBe(false);
   activity = async () => {
     throw Error('Unavailable');
   };
@@ -343,12 +350,14 @@ it('suppresses stale activity detail after a failed refresh and recovers the cur
     await client.invalidateQueries({ queryKey: ['transactions'] });
   });
   expect(await screen.findByRole('alert')).toBeTruthy();
-  await waitFor(() => expect(screen.queryByRole('region', { name: entryName })).toBeNull());
+  await waitFor(() => expect(screen.queryByRole('button', { name: entryName })).toBeNull());
   expect(screen.queryByText('Pending')).toBeNull();
+  expect(screen.queryByText('Recorded')).toBeNull();
   activity = async () => page([{ ...transaction, status: 'confirmed' }]);
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-  const detail = await screen.findByRole('region', { name: entryName });
-  expect(within(detail).getByText('✓ Confirmed')).toBeTruthy();
+  const recovered = await screen.findByRole('button', { name: entryName });
+  expect(recovered.getAttribute('aria-expanded')).toBe('true');
+  expect(within(detailOf(recovered)).getByText('✓ Confirmed')).toBeTruthy();
 });
 
 it.each(['https://example.invalid/api/transactions/?page=1', 'https://example.invalid/api/transactions/'])(
@@ -366,9 +375,10 @@ it('opens an entry in place under its row with exact amounts, native network fee
   const entry = await screen.findByRole('button', { name: entryName });
   expect(entry.getAttribute('aria-expanded')).toBe('false');
   fireEvent.click(entry);
-  const detail = screen.getByRole('region', { name: entryName });
+  const detail = detailOf(entry);
   expect(entry.getAttribute('aria-expanded')).toBe('true');
-  expect(entry.getAttribute('aria-controls')).toBe(detail.id);
+  expect(detail.hidden).toBe(false);
+  expect(screen.queryByRole('region')).toBeNull();
   expect(entry.closest('li')!.contains(detail)).toBe(true);
   expect(within(detail).getByText(transaction.txHash)).toBeTruthy();
   expect(within(detail).getAllByText(transaction.walletAddress)).toHaveLength(2);
@@ -389,8 +399,9 @@ it.each([
 ] as const)('offers no explorer link for an entry %s', async (_, change, hashShown) => {
   activity = async () => page([{ ...transaction, ...change }]);
   show();
-  fireEvent.click(await screen.findByRole('button', { name: entryName }));
-  const detail = screen.getByRole('region', { name: entryName });
+  const entry = await screen.findByRole('button', { name: entryName });
+  fireEvent.click(entry);
+  const detail = detailOf(entry);
   expect(within(detail).getByText('Wallet')).toBeTruthy();
   expect(within(detail).queryByText('Transaction') !== null).toBe(hashShown);
   expect(within(detail).queryByText('View on Explorer')).toBeNull();
@@ -412,11 +423,13 @@ it('toggles entries from the keyboard and leaves another open entry where it is'
   await user.keyboard(' ');
   expect(second.getAttribute('aria-expanded')).toBe('true');
   expect(first.getAttribute('aria-expanded')).toBe('true');
-  expect(screen.getAllByRole('region', { name: entryName })).toHaveLength(2);
+  expect(detailOf(first).hidden).toBe(false);
+  expect(detailOf(second).hidden).toBe(false);
+  expect(screen.queryAllByRole('region')).toHaveLength(0);
   await user.keyboard('{Enter}');
   expect(second.getAttribute('aria-expanded')).toBe('false');
-  expect(screen.getAllByRole('region', { name: entryName })).toHaveLength(1);
-  expect(document.getElementById(first.getAttribute('aria-controls')!)!.hidden).toBe(false);
+  expect(detailOf(second).hidden).toBe(true);
+  expect(detailOf(first).hidden).toBe(false);
 });
 
 it.each([

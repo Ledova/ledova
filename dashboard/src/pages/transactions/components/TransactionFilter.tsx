@@ -76,6 +76,7 @@ export function TransactionFilter({
     <div className="border-b border-border-subtle">
       <Disclosure
         ref={ref}
+        region
         open={open}
         onToggle={onToggle}
         summary={
