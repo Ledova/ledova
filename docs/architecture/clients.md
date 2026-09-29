@@ -481,7 +481,8 @@ top and labels it, its body scrolls inside the card when the screen is too short
 and its actions end the card as one right-aligned row of content-width
 `PageAction`s (`ModalActions`), a plain Cancel, Close or Back before the primary
 action. On a narrow phone the row wraps onto another line rather than
-stretching. A group inside a card is set off by a rule or a small heading
+stretching. Sign-in and the sign-up steps hold their forms in the same card on
+the public layout. A group inside a card is set off by a rule or a small heading
 rather than a card of its own, as the For sale and Wanted lists on Market, the
 saved payslips on Profile, a vote's confirmation on Notices, the saved pause and
 unpause requests on a share class and the steps of a signing dialog are
