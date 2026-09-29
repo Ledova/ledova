@@ -135,9 +135,9 @@ way, on the same table, with the payment record named as well.
 
 A publication, its roll, its read records and, for a resolution or a
 distribution, its event chain are kept for the register's own seven-year floor,
-measured from the publication, and purged together by
-`purge_publications_past_the_clock`, a [daily job](../operations/jobs.md#schedule),
-the chain before the roll it points at. A payment record's stored remittance
+measured from the publication. The [daily job](../operations/jobs.md#schedule)
+`purge_publications_past_the_clock` then purges them together, deleting the
+chain before the roll it points at. A payment record's stored remittance
 evidence is deleted with its row, through the same private-file lifecycle
 receiver as the publication's own document. They share
 `FORMER_MEMBER_RETENTION_DAYS` and its floor with the register's outputs, so one
