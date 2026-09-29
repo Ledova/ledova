@@ -64,21 +64,21 @@ const generateMockEthereumTransactionData = (
   amount: string,
   isNative: boolean = true,
 ): TransactionData => {
-  const gasPrice = '20000000000';
+  const gasPrice = 20000000000;
   const gasLimit = isNative ? 21000 : 65000;
-  const gasCost = (parseInt(gasPrice) * gasLimit) / 1e18;
-  const gasPriceGwei = (parseInt(gasPrice) / 1e9).toString();
+  const gasCost = (gasPrice * gasLimit) / 1e18;
+  const gasPriceGwei = (gasPrice / 1e9).toString();
 
   const transaction = {
     chainId: 11155111,
     nonce: 42,
     to: toAddress,
-    value: isNative ? amount : '0',
+    value: isNative ? Math.round(parseFloat(amount) * 1e18) : 0,
     data: isNative
       ? '0x'
       : `0xa9059cbb000000000000000000000000${toAddress.slice(2)}${parseInt(amount).toString(16).padStart(64, '0')}`,
     gasPrice,
-    gasLimit: gasLimit.toString(),
+    gas: gasLimit,
   };
 
   return {
@@ -90,9 +90,9 @@ const generateMockEthereumTransactionData = (
     gasCostEth: gasCost.toString(),
     totalCostEth: (parseFloat(amount) + gasCost).toString(),
     gasPriceGwei,
-    gasLimit: gasLimit.toString(),
-    transaction: transaction as unknown,
-  } as TransactionData;
+    gasLimit,
+    transaction,
+  };
 };
 
 const generateMockBitcoinTransactionData = (

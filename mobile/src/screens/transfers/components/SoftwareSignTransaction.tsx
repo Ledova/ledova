@@ -7,6 +7,7 @@ import { useDialogStyles } from '../../../components/modal';
 import type { Wallet, TransactionData } from '@ledova/shared';
 import { getSeedPhrase } from '../../../services/secureKeyStorage';
 import { signEthereumTransaction } from '../../../utils/softwareWallet';
+import { preparedTransferTransaction } from '../../../utils/preparedTransfer';
 import { formatWalletAddressShort } from '@ledova/shared';
 
 interface SoftwareSignTransactionProps {
@@ -58,6 +59,15 @@ export function SoftwareSignTransaction({
     }
 
     try {
+      const unsignedTx = preparedTransferTransaction(transactionData.transaction);
+
+      const isNativeTransfer = unsignedTx.data === '0x' || unsignedTx.data === '0x00';
+      if (isNativeTransfer && transactionData.toAddress) {
+        if (unsignedTx.to.toLowerCase() !== transactionData.toAddress.toLowerCase()) {
+          throw new Error('Transaction recipient does not match expected address');
+        }
+      }
+
       setSigningState('authenticating');
       setError(null);
 
@@ -69,16 +79,6 @@ export function SoftwareSignTransaction({
       }
 
       setSigningState('signing');
-
-      const unsignedTx = JSON.parse(transactionData.transaction);
-
-      const txData = unsignedTx.data as string | undefined;
-      const isNativeTransfer = !txData || txData === '0x' || txData === '0x00';
-      if (isNativeTransfer && unsignedTx.to && transactionData.toAddress) {
-        if ((unsignedTx.to as string).toLowerCase() !== transactionData.toAddress.toLowerCase()) {
-          throw new Error('Transaction recipient does not match expected address');
-        }
-      }
 
       const signedTx = await signEthereumTransaction(mnemonic, wallet.derivationPath, unsignedTx);
 
