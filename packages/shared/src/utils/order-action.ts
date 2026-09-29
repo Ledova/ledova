@@ -136,14 +136,19 @@ export class OrderAction {
         this.publish({
           phase: !this.record && this.state.context ? 'editing' : 'error',
           challenge: null,
-          error: apiErrorSentence(
-            error,
-            error instanceof Error ? error.message : 'The action result is unavailable. Please check its saved status.',
-          ),
+          error: apiErrorSentence(error, this.fallback(error)),
         });
     } finally {
       if (generation === this.generation) this.busy = false;
     }
+  }
+
+  private fallback(error: unknown): string {
+    if (isAxiosError(error))
+      return this.purpose === 'cancel'
+        ? 'The order could not be cancelled. Try again.'
+        : 'The order could not be changed. Try again.';
+    return error instanceof Error ? error.message : 'The action result is unavailable. Please check its saved status.';
   }
 
   load = (): Promise<void> => {
