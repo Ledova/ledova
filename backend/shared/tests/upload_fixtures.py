@@ -1,8 +1,10 @@
 import io
+import os
 from pathlib import Path
 from unittest.mock import patch
 
 import pymupdf
+from django.conf import settings
 from PIL import Image
 
 ADDRESS_SPACE_EVERY_KERNEL_ACCEPTS = 2**50
@@ -24,6 +26,19 @@ class StubUploadDependencies:
             stub = patch(target)
             stub.start()
             cls.addClassCleanup(stub.stop)
+
+
+class PrivateDocumentFileChecks:
+    def test_the_document_file_has_no_public_url_at_all(self):
+        with self.assertRaises(ValueError):
+            self.document.file.url
+
+    def test_the_document_bytes_live_outside_the_served_media_root(self):
+        path = self.document.file.path
+
+        self.assertTrue(os.path.isfile(path))
+        self.assertTrue(path.startswith(os.path.abspath(settings.PRIVATE_MEDIA_ROOT)))
+        self.assertFalse(path.startswith(os.path.abspath(settings.MEDIA_ROOT)))
 
 
 def pdf_bytes(pages=1, width=595, height=842):

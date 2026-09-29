@@ -1,5 +1,4 @@
 import importlib
-import os
 import re
 from unittest.mock import patch
 
@@ -12,7 +11,11 @@ from django.urls import clear_url_caches, reverse
 from rest_framework.test import APITestCase
 
 from documents.models import Document, DocumentType
-from shared.tests.upload_fixtures import StubUploadDependencies, pdf_bytes
+from shared.tests.upload_fixtures import (
+    PrivateDocumentFileChecks,
+    StubUploadDependencies,
+    pdf_bytes,
+)
 
 User = get_user_model()
 
@@ -109,7 +112,7 @@ class DocumentUploadAllowlistTest(StubUploadDependencies, APITestCase):
 
 
 @override_settings(STORAGES=ADMIN_STORAGES)
-class DocumentIsNotServedFromMediaTest(TestCase):
+class DocumentIsNotServedFromMediaTest(PrivateDocumentFileChecks, TestCase):
 
     def setUp(self):
         self.staff = User.objects.create_superuser(email="doc-media-staff@example.test", password=PASSWORD)
@@ -122,17 +125,6 @@ class DocumentIsNotServedFromMediaTest(TestCase):
 
         importlib.reload(ledova_backend.urls)
         clear_url_caches()
-
-    def test_the_document_file_has_no_public_url_at_all(self):
-        with self.assertRaises(ValueError):
-            self.document.file.url
-
-    def test_the_document_bytes_live_outside_the_served_media_root(self):
-        path = self.document.file.path
-
-        self.assertTrue(os.path.isfile(path))
-        self.assertTrue(path.startswith(os.path.abspath(settings.PRIVATE_MEDIA_ROOT)))
-        self.assertFalse(path.startswith(os.path.abspath(settings.MEDIA_ROOT)))
 
     def test_an_anonymous_caller_cannot_fetch_the_document_from_media_under_debug(self):
         media_path = f"{settings.MEDIA_URL}{self.document.file.name}"
