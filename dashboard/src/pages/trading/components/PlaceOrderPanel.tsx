@@ -1,13 +1,11 @@
 import { useRef, useState, useCallback } from 'react';
 import type { ShareToken, CreateOrderRequest, Wallet, OrderType, WhitelistStatus } from '@ledova/shared';
 import { ShieldWarningIcon } from '@phosphor-icons/react';
-import { DESIGN_TOKENS } from '@ledova/shared';
+import { ICON_MD } from '@components/iconSizes';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { OrderForm } from './OrderForm';
 import type { OrderFormRef } from './OrderForm';
-
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 
 interface PlaceOrderPanelProps {
   token: ShareToken;

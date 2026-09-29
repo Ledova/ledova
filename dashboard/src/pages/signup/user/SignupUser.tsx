@@ -3,9 +3,7 @@ import { useSignupUser } from './useSignupUser';
 import { Field, Label, Input, Description } from '@headlessui/react';
 import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockIcon, UserIcon, WarningIcon } from '@phosphor-icons/react';
 import { AuthLayout } from '@components/AuthLayout';
-import { DESIGN_TOKENS } from '@ledova/shared';
-
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
+import { ICON_MD } from '@components/iconSizes';
 
 export function SignupUser() {
   const navigate = useNavigate();

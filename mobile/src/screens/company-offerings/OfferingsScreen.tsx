@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RefreshControl, ScrollView, Text, View } from 'react-native';
+import { RefreshControl, Text, View } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   OFFERING_EXEMPTION_LABELS,
@@ -12,6 +12,7 @@ import {
   type OfferingListItem,
 } from '@ledova/shared';
 import { Action, Row, Rows, Section, SwitchRow } from '../../components/Ledger';
+import { Page } from '../../components/Page';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch } from '../../services/sessionScope';
 import { useCompanyProfile } from '../../hooks/useCompanyProfile';
@@ -159,7 +160,7 @@ export function OfferingsScreen() {
     ]);
   if (!companyRead.access.allowed)
     return (
-      <View style={[styles.page, styles.content]}>
+      <Page title="Offerings">
         <Text style={styles.muted}>
           {companyRead.access.isLoading
             ? 'Loading your company access…'
@@ -168,28 +169,26 @@ export function OfferingsScreen() {
         {companyRead.access.isError && (
           <Action label="Retry company access" onPress={() => void companyRead.access.refetch()} />
         )}
-      </View>
+      </Page>
     );
   return (
     <>
-      <ScrollView
+      <Page
         testID="offerings-screen"
-        style={styles.page}
-        contentContainerStyle={styles.content}
+        title="Offerings"
+        actions={
+          <Action
+            label="New offering"
+            disabled={!ready || !data.tokens.some((token) => token.status === 'deployed')}
+            onPress={() => {
+              if (ready) setEditor({ company: company.uuid });
+            }}
+          />
+        }
         refreshControl={
           <RefreshControl refreshing={companyRead.isRefreshing || data.isRefreshing} onRefresh={() => void refresh()} />
         }
       >
-        <Text accessibilityRole="header" style={styles.title}>
-          Offerings
-        </Text>
-        <Action
-          label="New offering"
-          disabled={!ready || !data.tokens.some((token) => token.status === 'deployed')}
-          onPress={() => {
-            if (ready) setEditor({ company: company.uuid });
-          }}
-        />
         {companyRead.isLoading || data.isLoading ? (
           <Text style={styles.muted}>Loading offering information…</Text>
         ) : companyRead.error ? (
@@ -267,7 +266,7 @@ export function OfferingsScreen() {
             </Section>
           </>
         )}
-      </ScrollView>
+      </Page>
       {editor && (
         <OfferingEditor
           key={`${editor.company}:${editor.uuid ?? 'new'}`}

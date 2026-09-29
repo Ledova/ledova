@@ -1,9 +1,7 @@
 import { SpinnerGapIcon } from '@phosphor-icons/react';
-import { DESIGN_TOKENS } from '@ledova/shared';
+import { ICON_SM } from '@components/iconSizes';
 import type { Wallet } from '@ledova/shared';
 import { WalletSummary } from './WalletSummary';
-
-const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
 
 interface WalletChoiceProps {
   wallet: Wallet;

@@ -9,7 +9,8 @@ import {
   TrashIcon,
 } from '@phosphor-icons/react';
 
-import { DESIGN_TOKENS, apiErrorSentence, type InvestorClassification } from '@ledova/shared';
+import { apiErrorSentence, type InvestorClassification } from '@ledova/shared';
+import { ICON_SM, ICON_MD } from '@components/iconSizes';
 
 import {
   useAttachDocument,
@@ -21,9 +22,6 @@ import {
   useUploadDocument,
 } from '@hooks/useDocuments';
 import type { Document, DocumentType, ExtractionStatus } from '../../types/document';
-
-const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 
 const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   payslip: 'Payslip',

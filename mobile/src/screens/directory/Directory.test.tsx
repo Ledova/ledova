@@ -216,6 +216,23 @@ it('suppresses stale class and offering terms after a failed refresh, then refle
   expect(view.getByText('Ordinary shares')).toBeTruthy();
 });
 
+it.each([
+  ['a failed read', () => (failure = detailUrl), /This share class could not be loaded/],
+  ['the class becoming unavailable', () => (notFound = true), 'Share class not available'],
+])('names the company under the title, and drops that lede with the class after %s', async (_, fail, state) => {
+  const view = await render(<ShareClassScreen />, { wrapper });
+  expect(await view.findByText('Ordinary shares')).toBeTruthy();
+  const title = view.getByRole('header', { name: 'Share class' });
+  expect(title.parent!.children[1]).toBe(view.getByText('Fictional Harbour Pty Ltd'));
+  fail();
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: ['directory', 'token'] });
+  });
+  expect(await view.findByText(state)).toBeTruthy();
+  expect(view.getByRole('header', { name: 'Share class' })).toBeTruthy();
+  expect(view.queryByText('Fictional Harbour Pty Ltd')).toBeNull();
+});
+
 it('treats a newly unavailable class as unavailable even with a cached prior record', async () => {
   const view = await render(<ShareClassScreen />, { wrapper });
   expect(await view.findByText('Ordinary shares')).toBeTruthy();

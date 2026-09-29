@@ -1,23 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CurrencyEthIcon, CurrencyBtcIcon, CurrencyCircleDollarIcon, SpinnerGapIcon } from '@phosphor-icons/react';
 import { useMutation, useQueries, useQuery } from '@tanstack/react-query';
-import {
-  BUYABLE_ASSETS,
-  CACHE_TIMING,
-  DESIGN_TOKENS,
-  getAssets,
-  getWallets,
-  getOnRampWidgetUrl,
-  useCurrency,
-} from '@ledova/shared';
+import { BUYABLE_ASSETS, CACHE_TIMING, getAssets, getWallets, getOnRampWidgetUrl, useCurrency } from '@ledova/shared';
+import { ICON_SM, ICON_MD } from '@components/iconSizes';
 import type { BuyableAssetConfig, Wallet } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { WalletChoice } from '@components/Wallet';
 import apiClient from '@services/apiClient';
-
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
-const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
 
 const ASSET_ICONS: Record<string, React.ReactNode> = {
   BTC: <CurrencyBtcIcon size={ICON_MD} className="text-text-primary" />,

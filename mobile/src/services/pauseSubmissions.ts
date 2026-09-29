@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
-import type { OrderSubmissionOwner } from '@ledova/shared';
+import { isUuid, type OrderSubmissionOwner } from '@ledova/shared';
 
 export type SavedPause = OrderSubmissionOwner & {
   tokenUuid: string;
@@ -9,16 +9,15 @@ export type SavedPause = OrderSubmissionOwner & {
 };
 
 const PREFIX = 'ledova.pause-submissions.v1.';
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function prefix(owner: OrderSubmissionOwner, tokenUuid: string) {
-  if (![owner.userUuid, owner.ownerAccountUuid, tokenUuid].every((value) => UUID.test(value)))
+  if (![owner.userUuid, owner.ownerAccountUuid, tokenUuid].every(isUuid))
     throw new Error('The issuer or share class identity is unavailable.');
   return `${PREFIX}${owner.userUuid}.${owner.ownerAccountUuid}.${tokenUuid}.`;
 }
 
 function key(record: SavedPause) {
-  if (!UUID.test(record.submissionId) || typeof record.paused !== 'boolean')
+  if (!isUuid(record.submissionId) || typeof record.paused !== 'boolean')
     throw new Error('The saved pause request is invalid.');
   return `${prefix(record, record.tokenUuid)}${record.submissionId}`;
 }
