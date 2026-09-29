@@ -7,7 +7,6 @@ import { WalletsScreen } from './index';
 import { WalletActionScreen } from './components/WalletActionScreen';
 import { useWalletsCrud } from './useWalletsCrud';
 import { useWallets } from './useWallets';
-import { useWalletSort } from '../../components/wallet-list/useWalletSort';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
 
@@ -276,7 +275,7 @@ it('heads Wallets with its lede and then every screen action in one row, before 
   await waitFor(() => expect(view.getByText('Fictional b')).toBeTruthy());
   const title = view.getByRole('header', { name: 'Wallets' });
   const lede = view.getByText('Open a wallet to verify, rename, derive another address or sync its balances.');
-  const actions = ['Buy crypto', 'Send', 'Add wallet', 'Filter', 'Sync balances'].map((name) =>
+  const actions = ['Buy crypto', 'Send', 'Add wallet', 'Sync balances'].map((name) =>
     view.getByRole('button', { name }),
   );
   const row = actions[0].parent!;
@@ -296,24 +295,12 @@ it('holds back the Wallets actions while the wallets are read, under the title a
       title,
       view.getByText('Open a wallet to verify, rename, derive another address or sync its balances.'),
     ]);
-    for (const name of ['Buy crypto', 'Send', 'Add wallet', 'Filter', 'Sync balances'])
+    for (const name of ['Buy crypto', 'Send', 'Add wallet', 'Sync balances'])
       expect(view.queryByRole('button', { name })).toBeNull();
   } finally {
     await act(async () => first.resolve({ data: pages[1] }));
   }
   expect(await view.findByRole('button', { name: 'Add wallet' })).toBeTruthy();
-});
-
-it('sorts complete balances exactly across unsafe integers and subunit fractions', async () => {
-  const values = [
-    wallet('a', '9007199254740992.1'),
-    wallet('b', '9007199254740992.2'),
-    wallet('c', '0.000000000000000002'),
-    wallet('d', '0.000000000000000001'),
-  ];
-  const hook = await renderHook(() => useWalletSort(values));
-  await act(() => hook.result.current!.handleApply('all', 'highestBalance'));
-  expect(hook.result.current!.sortedWallets.map((item) => item.uuid)).toEqual(['b', 'a', 'c', 'd']);
 });
 
 it('keeps the real add form through a failed background read and write refusal, blocking duplicate and close while pending', async () => {

@@ -1,16 +1,37 @@
-import { useState, useMemo } from 'react';
-import { compareWalletDecimals } from '../../screens/wallets/presentation';
-import { getChainName, BLOCKCHAIN, WALLET_SIGNING_PREFERENCE } from '@ledova/shared';
+import { useState } from 'react';
+import { WALLET_SIGNING_PREFERENCE } from '@ledova/shared';
 import type { Wallet } from '@ledova/shared';
-import type { WalletChainFilter, WalletSortOption } from './WalletSortModal';
 
-const CHAIN_MAP: Record<Exclude<WalletChainFilter, 'all'>, string> = {
-  btc: BLOCKCHAIN.BITCOIN,
-  eth: BLOCKCHAIN.ETHEREUM,
-  base: BLOCKCHAIN.BASE,
-};
+export type WalletSortOption = 'default' | 'verified' | 'name' | 'namedFirst' | 'highestValue' | 'highestBalance';
 
-function sortWallets(wallets: Wallet[], option: WalletSortOption): Wallet[] {
+export const WALLET_SORTS: ReadonlyArray<{ id: WalletSortOption; label: string }> = [
+  { id: 'default', label: 'Hardware first' },
+  { id: 'verified', label: 'Verified first' },
+  { id: 'name', label: 'Name, A to Z' },
+  { id: 'namedFirst', label: 'Named first' },
+  { id: 'highestValue', label: 'Highest value' },
+  { id: 'highestBalance', label: 'Highest balance' },
+];
+
+function compareDecimals(left: string, right: string) {
+  const decimal = (value: string) => (/^-?\d+(\.\d+)?$/.test(value) ? value : '0');
+  const a = decimal(left);
+  const b = decimal(right);
+  const places = Math.max(a.split('.')[1]?.length ?? 0, b.split('.')[1]?.length ?? 0);
+  const integer = (value: string) => {
+    const negative = value.startsWith('-');
+    const [whole, fraction = ''] = (negative ? value.slice(1) : value).split('.');
+    const magnitude = BigInt(whole + fraction.padEnd(places, '0'));
+    return negative ? -magnitude : magnitude;
+  };
+  const x = integer(a);
+  const y = integer(b);
+  return x < y ? -1 : x > y ? 1 : 0;
+}
+
+const label = (wallet: Wallet) => (wallet.name || wallet.address).toLowerCase();
+
+export function sortWallets(wallets: Wallet[], option: WalletSortOption): Wallet[] {
   if (option === 'default') {
     return [...wallets].sort((a, b) => {
       const aIsHardware = a.signingPreference === WALLET_SIGNING_PREFERENCE.HARDWARE;
@@ -26,68 +47,48 @@ function sortWallets(wallets: Wallet[], option: WalletSortOption): Wallet[] {
         const aVerified = a.verificationStatus === 'VERIFIED' ? 0 : 1;
         const bVerified = b.verificationStatus === 'VERIFIED' ? 0 : 1;
         if (aVerified !== bVerified) return aVerified - bVerified;
-        const aLabel = (a.name || a.address).toLowerCase();
-        const bLabel = (b.name || b.address).toLowerCase();
-        return aLabel.localeCompare(bLabel);
+        return label(a).localeCompare(label(b));
       }
-      case 'name': {
-        const aHasName = a.name ? 0 : 1;
-        const bHasName = b.name ? 0 : 1;
-        if (aHasName !== bHasName) return aHasName - bHasName;
-        const aLabel = (a.name || a.address).toLowerCase();
-        const bLabel = (b.name || b.address).toLowerCase();
-        return aLabel.localeCompare(bLabel);
-      }
+      case 'name':
+        return label(a).localeCompare(label(b));
       case 'namedFirst': {
         const aHasName = a.name ? 0 : 1;
         const bHasName = b.name ? 0 : 1;
         if (aHasName !== bHasName) return aHasName - bHasName;
-        const aLabel = (a.name || a.address).toLowerCase();
-        const bLabel = (b.name || b.address).toLowerCase();
-        return aLabel.localeCompare(bLabel);
+        return label(a).localeCompare(label(b));
       }
-      case 'highestValue': {
-        return compareWalletDecimals(b.marketValue || '0', a.marketValue || '0');
-      }
-      case 'highestBalance': {
-        return compareWalletDecimals(b.nativeBalance || '0', a.nativeBalance || '0');
-      }
+      case 'highestValue':
+        return compareDecimals(b.marketValue || '0', a.marketValue || '0');
+      case 'highestBalance':
+        return compareDecimals(b.nativeBalance || '0', a.nativeBalance || '0');
       default:
         return 0;
     }
   });
 }
 
-export function useWalletSort(wallets: Wallet[], initialSort: WalletSortOption = 'default') {
-  const [chainFilter, setChainFilter] = useState<WalletChainFilter>('all');
-  const [sortOption, setSortOption] = useState<WalletSortOption>(initialSort);
-  const [showSortModal, setShowSortModal] = useState(false);
+export function useWalletSort() {
+  const [sorts, setSorts] = useState<Partial<Record<string, WalletSortOption>>>({});
+  const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
 
-  const sortedWallets = useMemo(() => {
-    let filtered = wallets;
+  const sortOf = (chain: string): WalletSortOption => sorts[chain] ?? 'default';
 
-    if (chainFilter !== 'all') {
-      const targetChain = CHAIN_MAP[chainFilter];
-      filtered = wallets.filter((w) => getChainName(w.chain) === targetChain);
-    }
+  const toggle = (chain: string) =>
+    setOpen((current) => {
+      const next = new Set(current);
+      if (next.has(chain)) next.delete(chain);
+      else next.add(chain);
+      return next;
+    });
 
-    return sortWallets(filtered, sortOption);
-  }, [wallets, chainFilter, sortOption]);
-
-  const isFiltered = chainFilter !== 'all' || sortOption !== 'default';
-
-  const handleApply = (chain: WalletChainFilter, sort: WalletSortOption) => {
-    setChainFilter(chain);
-    setSortOption(sort);
+  const choose = (chain: string, option: WalletSortOption) => {
+    setSorts((current) => ({ ...current, [chain]: option }));
+    setOpen((current) => {
+      const next = new Set(current);
+      next.delete(chain);
+      return next;
+    });
   };
 
-  return {
-    sortedWallets,
-    chainFilter,
-    sortOption,
-    isFiltered,
-    showSortModal,
-    setShowSortModal,
-    handleApply,
-  };
+  return { sortOf, isOpen: (chain: string) => open.has(chain), toggle, choose };
 }
