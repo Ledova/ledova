@@ -2064,77 +2064,6 @@
         ],
         "type": "object"
       },
-      "CompanyUpdateRequest": {
-        "properties": {
-          "abn": {
-            "maxLength": 14,
-            "type": "string"
-          },
-          "acn": {
-            "maxLength": 11,
-            "minLength": 1,
-            "type": "string"
-          },
-          "addressLine1": {
-            "maxLength": 255,
-            "type": "string"
-          },
-          "addressLine2": {
-            "maxLength": 255,
-            "type": "string"
-          },
-          "city": {
-            "maxLength": 100,
-            "type": "string"
-          },
-          "companyType": {
-            "$ref": "#/components/schemas/CompanyTypeEnum"
-          },
-          "description": {
-            "type": "string"
-          },
-          "industry": {
-            "maxLength": 100,
-            "type": "string"
-          },
-          "isOpenToInvestors": {
-            "description": "Show this company's share classes in the investor directory.",
-            "type": "boolean"
-          },
-          "name": {
-            "maxLength": 255,
-            "minLength": 1,
-            "type": "string"
-          },
-          "operatorWallet": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
-          "phone": {
-            "maxLength": 20,
-            "type": "string"
-          },
-          "postcode": {
-            "maxLength": 10,
-            "type": "string"
-          },
-          "state": {
-            "maxLength": 50,
-            "type": "string"
-          },
-          "tradingName": {
-            "maxLength": 255,
-            "type": "string"
-          }
-        },
-        "required": [
-          "acn",
-          "name"
-        ],
-        "type": "object"
-      },
       "DeletedAccountResponse": {
         "properties": {
           "message": {
@@ -11569,176 +11498,6 @@
         ],
         "type": "object"
       },
-      "TransferOrderDetail": {
-        "properties": {
-          "canBeModified": {
-            "readOnly": true,
-            "type": "boolean"
-          },
-          "completedAt": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "errorMessage": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "filledQuantity": {
-            "description": "Total quantity already filled across all partial fills.",
-            "readOnly": true,
-            "type": "integer"
-          },
-          "lastModifiedAt": {
-            "description": "Timestamp of the most recent modification.",
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "matchedOrderUuid": {
-            "format": "uuid",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "minQuantity": {
-            "description": "Minimum quantity per fill. 0 means exact match only (min_quantity = remaining).",
-            "readOnly": true,
-            "type": "integer"
-          },
-          "modificationCount": {
-            "description": "Number of times this order has been modified.",
-            "readOnly": true,
-            "type": "integer"
-          },
-          "orderType": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TransferOrderTypeEnum"
-              }
-            ],
-            "readOnly": true
-          },
-          "orderTypeDisplay": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "pricePerShare": {
-            "format": "decimal",
-            "pattern": "^-?\\d{0,16}(?:\\.\\d{0,2})?$",
-            "readOnly": true,
-            "type": "string"
-          },
-          "quantity": {
-            "readOnly": true,
-            "type": "integer"
-          },
-          "remainingQuantity": {
-            "readOnly": true,
-            "type": "integer"
-          },
-          "remainingValue": {
-            "format": "decimal",
-            "pattern": "^-?\\d{0,18}(?:\\.\\d{0,2})?$",
-            "readOnly": true,
-            "type": "string"
-          },
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TransferOrderStatusEnum"
-              }
-            ],
-            "readOnly": true
-          },
-          "statusDisplay": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "token": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "tokenContractAddress": {
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "tokenName": {
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "tokenSymbol": {
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "totalValue": {
-            "format": "decimal",
-            "pattern": "^-?\\d{0,18}(?:\\.\\d{0,2})?$",
-            "readOnly": true,
-            "type": "string"
-          },
-          "txHash": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "uuid": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "walletAddress": {
-            "readOnly": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "canBeModified",
-          "completedAt",
-          "createdAt",
-          "errorMessage",
-          "filledQuantity",
-          "lastModifiedAt",
-          "matchedOrderUuid",
-          "minQuantity",
-          "modificationCount",
-          "orderType",
-          "orderTypeDisplay",
-          "pricePerShare",
-          "quantity",
-          "remainingQuantity",
-          "remainingValue",
-          "status",
-          "statusDisplay",
-          "token",
-          "tokenContractAddress",
-          "tokenName",
-          "tokenSymbol",
-          "totalValue",
-          "txHash",
-          "updatedAt",
-          "uuid",
-          "walletAddress"
-        ],
-        "type": "object"
-      },
       "TransferOrderList": {
         "properties": {
           "createdAt": {
@@ -13537,46 +13296,6 @@
         ]
       }
     },
-    "/api/feature-flags/{uuid}/": {
-      "get": {
-        "operationId": "api_feature_flags_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeatureFlag"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
     "/api/fiat-purchases/transak-widget-url/": {
       "post": {
         "operationId": "api_fiat_purchases_transak_widget_url_create",
@@ -13723,44 +13442,6 @@
       }
     },
     "/api/financial-profiles/{uuid}/": {
-      "get": {
-        "operationId": "api_financial_profiles_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FinancialProfile"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
       "patch": {
         "operationId": "api_financial_profiles_partial_update",
         "parameters": [
@@ -13790,65 +13471,6 @@
             "multipart/form-data": {
               "schema": {
                 "$ref": "#/components/schemas/PatchedFinancialProfileRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FinancialProfile"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
-      "put": {
-        "operationId": "api_financial_profiles_update",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/FinancialProfileRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/FinancialProfileRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/FinancialProfileRequest"
               }
             }
           }
@@ -14037,44 +13659,6 @@
         "tags": [
           "api"
         ]
-      },
-      "get": {
-        "operationId": "api_investor_classifications_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InvestorClassification"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
       }
     },
     "/api/notifications/": {
@@ -14224,44 +13808,6 @@
       }
     },
     "/api/notifications/{uuid}/": {
-      "get": {
-        "operationId": "api_notifications_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Notification"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
       "patch": {
         "operationId": "api_notifications_partial_update",
         "parameters": [
@@ -15220,46 +14766,6 @@
         ]
       }
     },
-    "/api/transactions/{uuid}/": {
-      "get": {
-        "operationId": "api_transactions_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Transaction"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
     "/api/user-accounts/": {
       "get": {
         "operationId": "api_user_accounts_list",
@@ -15309,44 +14815,6 @@
       }
     },
     "/api/user-accounts/{uuid}/": {
-      "get": {
-        "operationId": "api_user_accounts_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserAccount"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
       "patch": {
         "operationId": "api_user_accounts_partial_update",
         "parameters": [
@@ -15536,44 +15004,6 @@
           "api"
         ]
       },
-      "get": {
-        "operationId": "api_user_preferences_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserPreferences"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
       "patch": {
         "operationId": "api_user_preferences_partial_update",
         "parameters": [
@@ -15739,54 +15169,6 @@
         "tags": [
           "api"
         ]
-      },
-      "post": {
-        "operationId": "api_user_profiles_create",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserProfileRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/UserProfileRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/UserProfileRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserProfile"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
       }
     },
     "/api/user-profiles/delete-account/": {
@@ -15868,44 +15250,6 @@
       }
     },
     "/api/user-profiles/{uuid}/": {
-      "get": {
-        "operationId": "api_user_profiles_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserProfile"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
       "patch": {
         "operationId": "api_user_profiles_partial_update",
         "parameters": [
@@ -15938,66 +15282,6 @@
               }
             }
           }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserProfile"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
-      "put": {
-        "operationId": "api_user_profiles_update",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserProfileRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/UserProfileRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/UserProfileRequest"
-              }
-            }
-          },
-          "required": true
         },
         "responses": {
           "200": {
@@ -16395,53 +15679,6 @@
         "tags": [
           "api"
         ]
-      },
-      "get": {
-        "operationId": "api_v1_companies_documents_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "company_uuid",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompanyDocument"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
       }
     },
     "/api/v1/companies/{company_uuid}/documents/{uuid}/file/": {
@@ -16495,39 +15732,6 @@
       }
     },
     "/api/v1/companies/{uuid}/": {
-      "delete": {
-        "operationId": "api_v1_companies_destroy",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No response body"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
       "get": {
         "operationId": "api_v1_companies_retrieve",
         "parameters": [
@@ -16598,66 +15802,6 @@
               }
             }
           }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompanyUpdate"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
-      "put": {
-        "operationId": "api_v1_companies_update",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyUpdateRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyUpdateRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyUpdateRequest"
-              }
-            }
-          },
-          "required": true
         },
         "responses": {
           "200": {
@@ -17432,66 +16576,6 @@
               }
             }
           }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OfferingDetail"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
-      "put": {
-        "operationId": "api_v1_offerings_update",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OfferingWriteRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/OfferingWriteRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/OfferingWriteRequest"
-              }
-            }
-          },
-          "required": true
         },
         "responses": {
           "200": {
@@ -18415,44 +17499,6 @@
           "api"
         ]
       },
-      "get": {
-        "operationId": "api_v1_tokens_capital_increases_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CapitalIncreaseDetail"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
       "patch": {
         "operationId": "api_v1_tokens_capital_increases_partial_update",
         "parameters": [
@@ -18667,46 +17713,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PaginatedShareIssuanceRequestList"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/tokens/issuance-requests/{uuid}/": {
-      "get": {
-        "operationId": "api_v1_tokens_issuance_requests_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ShareIssuanceRequest"
                 }
               }
             },
@@ -19612,39 +18618,6 @@
       }
     },
     "/api/v1/tokens/{uuid}/": {
-      "delete": {
-        "operationId": "api_v1_tokens_destroy",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No response body"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
       "get": {
         "operationId": "api_v1_tokens_retrieve",
         "parameters": [
@@ -20828,46 +19801,6 @@
         ]
       }
     },
-    "/api/v1/trading/orders/{uuid}/": {
-      "get": {
-        "operationId": "api_v1_trading_orders_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TransferOrderDetail"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
     "/api/v1/trading/orders/{uuid}/action-context/": {
       "get": {
         "operationId": "api_v1_trading_orders_action_context_retrieve",
@@ -21082,45 +20015,6 @@
       }
     },
     "/api/v1/trading/orders/{uuid}/cancel/message/": {
-      "get": {
-        "operationId": "api_v1_trading_orders_cancel_message_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": {},
-                  "type": "object"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
       "post": {
         "operationId": "api_v1_trading_orders_cancel_message_create",
         "parameters": [
@@ -22862,44 +21756,6 @@
           "api"
         ]
       },
-      "get": {
-        "operationId": "api_wallets_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Wallet"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
       "patch": {
         "operationId": "api_wallets_partial_update",
         "parameters": [
@@ -22932,66 +21788,6 @@
               }
             }
           }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Wallet"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
-      "put": {
-        "operationId": "api_wallets_update",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WalletRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/WalletRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/WalletRequest"
-              }
-            }
-          },
-          "required": true
         },
         "responses": {
           "200": {

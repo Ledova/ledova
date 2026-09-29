@@ -1,10 +1,10 @@
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
-from rest_framework import status
+from rest_framework import mixins, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from shared.db import atomic, use_operator
-from shared.views.base import AuthenticatedModelViewSet
+from shared.views.base import AuthenticatedGenericViewSet
 from wallets.filters import WalletFilter
 from wallets.models import Wallet
 from wallets.serializers import (
@@ -36,8 +36,16 @@ from whitelist.constants import WALLET_REFRESH_DELAY_SECONDS
 from whitelist.services.refresh import enqueue_for_wallet
 
 
-class WalletViewSet(AuthenticatedModelViewSet):
+class WalletViewSet(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    AuthenticatedGenericViewSet,
+):
     serializer_class = WalletSerializer
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
+    lookup_field = "uuid"
     filterset_class = WalletFilter
     ordering = ["-created_at"]
     ordering_fields = ["created_at", "chain", "verification_status", "signing_preference"]
@@ -50,13 +58,13 @@ class WalletViewSet(AuthenticatedModelViewSet):
 
     def narrow(self, queryset):
         queryset = queryset.owned_by(self.request.user)
-        if self.action in ("update", "partial_update"):
+        if self.action == "partial_update":
             return queryset.select_for_update(of=("self",))
         return queryset.with_market_value()
 
     @atomic()
-    def update(self, request, *args, **kwargs):
-        return super().update(request, *args, **kwargs)
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
 
     def _with_market_value(self, wallet):
         return Wallet.objects.owned_by(self.request.user).with_market_value().get(pk=wallet.pk)

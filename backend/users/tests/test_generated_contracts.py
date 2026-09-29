@@ -62,8 +62,8 @@ class GeneratedClientContractTest(APITestCase):
         UserProfile.objects.filter(pk=self.owner.profile.pk).update(citizenship_country=None, residence_country=None)
         path = "/api/user-profiles/{uuid}/"
         endpoint = f"/api/user-profiles/{self.owner.profile.pk}/"
-        response = self.client.get(endpoint)
-        validator = self.assert_response(path, response)
+        response = self.client.patch(endpoint, {"fullName": "Contract Owner"}, format="json")
+        validator = self.assert_response(path, response, "patch")
         request = self.request_schema(path, "patch")
         for name in ("citizenshipCountry", "residenceCountry"):
             with self.subTest(field=name):

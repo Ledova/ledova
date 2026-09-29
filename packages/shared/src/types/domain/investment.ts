@@ -1,6 +1,6 @@
-import type { ApiRequest, ApiResponse } from '../contracts';
+import type { ApiRequest, ApiSchema } from '../contracts';
 
-export type FinancialProfile = ApiResponse<'api_financial_profiles_retrieve'>;
+export type FinancialProfile = ApiSchema<'FinancialProfile'>;
 
 export type CreateFinancialProfile = ApiRequest<'api_financial_profiles_create'>;
 

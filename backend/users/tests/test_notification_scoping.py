@@ -54,7 +54,6 @@ class NotificationScopingTest(APITestCase):
         self.assertEqual(list_response.status_code, 200)
         self.assertEqual({row["uuid"] for row in self._rows(list_response)}, {str(own.uuid)})
 
-        self.assertEqual(self.client.get(f"{NOTIFICATIONS}{foreign.uuid}/").status_code, 404)
         self.assertEqual(
             self.client.patch(f"{NOTIFICATIONS}{foreign.uuid}/", {"isRead": True}, format="json").status_code, 404
         )
@@ -91,7 +90,6 @@ class NotificationScopingTest(APITestCase):
             f"{PREFERENCES}{self.bob_preferences.uuid}/", {"transactionAlerts": False}, format="json"
         )
         self.assertEqual(foreign_patch.status_code, 404)
-        self.assertEqual(self.client.get(f"{PREFERENCES}{self.bob_preferences.uuid}/").status_code, 404)
         self.bob_preferences.refresh_from_db()
         self.assertTrue(self.bob_preferences.transaction_alerts)
 

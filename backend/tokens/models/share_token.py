@@ -96,10 +96,6 @@ class ShareToken(BaseModel):
     def is_deployed(self) -> bool:
         return self.status == ShareTokenStatus.DEPLOYED and self.contract_address is not None
 
-    @property
-    def is_on_chain(self) -> bool:
-        return bool(self.contract_address)
-
     def bind_deployment_transaction(
         self, tx_hash: str, transaction: BlockchainTransaction, *, previous_hash: str | None = None
     ) -> bool:

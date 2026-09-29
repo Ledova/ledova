@@ -1,11 +1,11 @@
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, inline_serializer
-from rest_framework import serializers, status
+from rest_framework import mixins, serializers, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from shared.views import AuthenticatedModelViewSet
+from shared.views import AuthenticatedGenericViewSet
 from tokens.exceptions import InvalidTokenStateException
 from tokens.filters import CapitalIncreaseFilter
 from tokens.models import CapitalIncreaseRequest, ShareToken
@@ -19,7 +19,14 @@ from tokens.serializers.capital_increase import CapitalIncreaseCreateRequestSeri
 from tokens.services.capital_increase import submit_capital_increase
 
 
-class CapitalIncreaseViewSet(AuthenticatedModelViewSet):
+class CapitalIncreaseViewSet(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    AuthenticatedGenericViewSet,
+):
+    lookup_field = "uuid"
     filterset_class = CapitalIncreaseFilter
     ordering = ["-created_at"]
     ordering_fields = ["created_at", "status", "additional_shares"]

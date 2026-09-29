@@ -1,10 +1,10 @@
-from shared.views import AuthenticatedReadOnlyViewSet
+from shared.views import AuthenticatedListViewSet
 from tokens.filters import ShareIssuanceRequestFilter
 from tokens.models import ShareIssuanceRequest
 from tokens.serializers import ShareIssuanceRequestSerializer
 
 
-class ShareIssuanceRequestViewSet(AuthenticatedReadOnlyViewSet):
+class ShareIssuanceRequestViewSet(AuthenticatedListViewSet):
     serializer_class = ShareIssuanceRequestSerializer
     filterset_class = ShareIssuanceRequestFilter
     ordering = ["-created_at", "-uuid"]

@@ -1,19 +1,20 @@
 from drf_spectacular.helpers import forced_singular_serializer
 from drf_spectacular.utils import extend_schema
-from rest_framework import status
+from rest_framework import mixins, status
 from rest_framework.response import Response
 
 from shared.db import atomic
-from shared.views.base import AuthenticatedModelViewSet
+from shared.views.base import AuthenticatedGenericViewSet
 from users.models import UserAccount
 from users.serializers.user_account import UserAccountSerializer
 
 NO_ACCOUNT = "This user has no account."
 
 
-class UserAccountViewSet(AuthenticatedModelViewSet):
+class UserAccountViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, AuthenticatedGenericViewSet):
     serializer_class = UserAccountSerializer
     http_method_names = ["get", "patch", "head", "options"]
+    lookup_field = "uuid"
 
     ordering = ["-activation_date"]
     ordering_fields = ["activation_date", "created_at"]

@@ -225,7 +225,7 @@ class ScopedTokenDeploymentTest(RunsOnTheScopedConnection, TransactionTestCase):
             self.assertFalse(SignedAttempt.objects.exists())
         self.assertEqual(self.node.broadcasts, [])
 
-    def test_private_history_is_unreadable_and_customer_delete_does_not_traverse_it(self):
+    def test_private_history_is_unreadable_and_a_removed_class_is_not_recovered(self):
         self.node.confirmed = False
         self.run_task()
         with acting_for(self.tenant.user.pk):
@@ -235,8 +235,9 @@ class ScopedTokenDeploymentTest(RunsOnTheScopedConnection, TransactionTestCase):
         client = APIClient()
         client.force_authenticate(self.tenant.user)
         response = client.delete(f"/api/v1/tokens/{self.token.pk}/")
-        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.status_code, 405)
         with use_operator():
+            ShareToken.objects.filter(pk=self.token.pk).delete()
             self.assertTrue(TokenDeployment.objects.filter(pk=self.token.deployment_id).exists())
             attempt = SignedAttempt.objects.get()
             self.node.receipts[attempt.tx_hash] = receipt(attempt)

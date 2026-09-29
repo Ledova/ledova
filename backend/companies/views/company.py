@@ -18,13 +18,14 @@ from companies.serializers import (
     CompanyStatusUpdateSerializer,
     CompanyUpdateSerializer,
 )
-from companies.services import delete_company, submit_application, transition_company
+from companies.services import submit_application, transition_company
 from shared.views import AuthenticatedModelViewSet
 
 
 class CompanyViewSet(AuthenticatedModelViewSet):
     administrative_actions = frozenset({"status_update"})
     operator_actions = administrative_actions
+    http_method_names = ["get", "post", "patch", "head", "options"]
     filterset_class = CompanyFilter
     ordering = ["-created_at"]
     ordering_fields = ["created_at", "name", "status"]
@@ -36,7 +37,7 @@ class CompanyViewSet(AuthenticatedModelViewSet):
             return CompanyRegistrationSerializer
         if self.action == "list":
             return CompanyListSerializer
-        if self.action in ["update", "partial_update"]:
+        if self.action == "partial_update":
             return CompanyUpdateSerializer
         if self.action == "status_update":
             return CompanyStatusUpdateSerializer
@@ -75,9 +76,6 @@ class CompanyViewSet(AuthenticatedModelViewSet):
 
     def perform_update(self, serializer):
         serializer.save()
-
-    def perform_destroy(self, instance):
-        delete_company(instance)
 
     @extend_schema(
         responses=inline_serializer(

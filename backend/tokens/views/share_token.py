@@ -36,10 +36,10 @@ from tokens.services.register import (
     stored_register,
     stored_waiting_list,
 )
-from tokens.services.share_token_service import delete_share_token
 
 
 class ShareTokenViewSet(AuthenticatedModelViewSet):
+    http_method_names = ["get", "post", "put", "patch", "head", "options"]
     filterset_class = ShareTokenFilter
     ordering = ["-created_at"]
     ordering_fields = ["created_at", "name", "symbol", "status", "token_type"]
@@ -67,9 +67,6 @@ class ShareTokenViewSet(AuthenticatedModelViewSet):
     def narrow(self, queryset):
         queryset = queryset.issued_by(self.request.user)
         return queryset.with_company()
-
-    def perform_destroy(self, instance):
-        delete_share_token(instance)
 
     def filter_queryset(self, queryset):
         if self.action == "list":

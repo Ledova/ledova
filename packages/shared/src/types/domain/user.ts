@@ -1,6 +1,6 @@
-import type { ApiRequest, ApiResponse } from '../contracts';
+import type { ApiRequest, ApiSchema } from '../contracts';
 
-export type UserProfile = ApiResponse<'api_user_profiles_retrieve'>;
+export type UserProfile = ApiSchema<'UserProfile'>;
 
 export type UpdateUserProfile = ApiRequest<'api_user_profiles_partial_update'>;
 

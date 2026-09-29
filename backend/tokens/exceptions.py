@@ -237,20 +237,6 @@ class InvalidSignatureException(APIException):
     default_code = "invalid_signature"
 
 
-class DeployedShareClassException(APIException):
-
-    status_code = status.HTTP_409_CONFLICT
-    default_detail = "A deployed share class is a register of members and cannot be deleted."
-    default_code = "deployed_share_class"
-
-    def __init__(self, symbol: str):
-        detail = (
-            f"{symbol} is on chain and is the register of members for its holders, so it cannot be deleted, "
-            "whatever its status. Pause it to stop transfers; the record is kept either way."
-        )
-        super().__init__(detail=detail)
-
-
 class SigningChallengeException(APIException):
     expose_code = True
 
