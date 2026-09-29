@@ -4,7 +4,7 @@ export const useCompanyStyles = () =>
   useThemedStyles((theme) => ({
     page: { flex: 1, backgroundColor: theme.colors.surface.base },
     content: { padding: 20, paddingBottom: 48, gap: 28 },
-    group: { gap: 12 },
+    group: { gap: theme.spacing.smd },
     entry: { gap: 8, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.border.subtle },
     lastEntry: { paddingBottom: 0, borderBottomWidth: 0 },
     title: { fontFamily: theme.fontFamily.display, fontSize: 34, color: theme.colors.text.primary },
@@ -20,6 +20,6 @@ export const useCompanyStyles = () =>
       borderColor: theme.colors.border.default,
       borderWidth: 1,
       borderRadius: 6,
-      padding: 12,
+      padding: theme.spacing.smd,
     },
   }));

@@ -13,7 +13,7 @@ function ShareHolding({ holding }: { holding: ShareHoldingRow }) {
   const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
     row: { borderBottomWidth: 1, borderBottomColor: theme.colors.border.subtle },
-    summary: { paddingVertical: 18, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    summary: { paddingVertical: 18, flexDirection: 'row', alignItems: 'center', gap: theme.spacing.smd },
     names: { flex: 1, gap: 4 },
     company: { fontFamily: theme.fontFamily.regular, fontSize: 14, color: theme.colors.text.muted },
     name: { fontFamily: theme.fontFamily.medium, fontSize: 17, color: theme.colors.text.primary },
@@ -70,7 +70,7 @@ export function HomeScreen() {
   const work = useHoldingWork();
   const { data: holdings = [], isPending, isError, isFetching, refetch } = useShareHoldings();
   const styles = useThemedStyles((theme) => ({
-    content: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 36, gap: 28 },
+    content: { paddingHorizontal: 24, paddingTop: theme.spacing.smd, paddingBottom: 36, gap: 28 },
     title: { fontFamily: theme.fontFamily.display, fontSize: 40, color: theme.colors.text.primary },
     message: { fontFamily: theme.fontFamily.regular, fontSize: 15, lineHeight: 23, color: theme.colors.text.muted },
     state: { gap: 14, alignItems: 'flex-start' },

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Text, View, ScrollView, RefreshControl, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Action, Lede, LinkRow, Section } from '../../components/Ledger';
+import { Action, Lede, LinkRow, Rows, Section } from '../../components/Ledger';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
 import { useCompanyRegister } from './useCompanyRegister';
 import { useCompanyStyles } from './styles';
@@ -78,13 +78,14 @@ export function CompanyRegisterScreen() {
                       </Text>
                       <Text style={styles.muted}>{open ? 'Hide members' : 'Show members'}</Text>
                     </Pressable>
-                    <LinkRow
-                      label="Share class"
-                      accessibilityLabel={`Open ${register.token.name}`}
-                      onPress={() => navigation.navigate('TokenDetail', { uuid, name: register.token.name })}
-                      last={!open}
-                    />
-                    {open && <ClassRegister register={register} />}
+                    <Rows>
+                      <LinkRow
+                        label="Share class"
+                        accessibilityLabel={`Open ${register.token.name}`}
+                        onPress={() => navigation.navigate('TokenDetail', { uuid, name: register.token.name })}
+                      />
+                      {open && <ClassRegister register={register} />}
+                    </Rows>
                   </View>
                 );
               })

@@ -4,6 +4,7 @@ import { DESIGN_TOKENS } from '@ledova/shared';
 
 const THEME = {
   ...DESIGN_TOKENS,
+  spacing: { ...DESIGN_TOKENS.spacing, smd: 12 },
   fontFamily: {
     display: 'Newsreader_500Medium',
     regular: 'InstrumentSans_400Regular',

@@ -11,7 +11,7 @@ import {
   updateCompany,
   type OfferingListItem,
 } from '@ledova/shared';
-import { Action, Row, Section } from '../../components/Ledger';
+import { Action, Row, Rows, Section } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch } from '../../services/sessionScope';
 import { useCompanyProfile } from '../../hooks/useCompanyProfile';
@@ -41,17 +41,19 @@ function OfferingRecord({
       <Text style={styles.heading}>
         {row.tokenName} ({row.tokenSymbol})
       </Text>
-      <Row label="Status">{row.statusDisplay}</Row>
-      <Row label="Price per share">{formatMoney(row.pricePerShare, row.priceCurrency)}</Row>
-      <Row label="Minimum shares">{formatShareCount(String(row.minimumShares))}</Row>
-      <Row label="Target shares">{formatShareCount(String(row.targetShares))}</Row>
-      <Row label="Cap shares">{formatShareCount(String(row.capShares))}</Row>
-      {row.maximumShares !== null && (
-        <Row label="Maximum per investor">{formatShareCount(String(row.maximumShares))}</Row>
-      )}
-      <Row label="Opens">{formatDate(row.opensAt)}</Row>
-      <Row label="Closes">{row.closesAt ? formatDate(row.closesAt) : 'No closing date'}</Row>
-      <Row label="Exemption">{OFFERING_EXEMPTION_LABELS[row.exemption] ?? row.exemptionDisplay}</Row>
+      <Rows>
+        <Row label="Status">{row.statusDisplay}</Row>
+        <Row label="Price per share">{formatMoney(row.pricePerShare, row.priceCurrency)}</Row>
+        <Row label="Minimum shares">{formatShareCount(String(row.minimumShares))}</Row>
+        <Row label="Target shares">{formatShareCount(String(row.targetShares))}</Row>
+        <Row label="Cap shares">{formatShareCount(String(row.capShares))}</Row>
+        {row.maximumShares !== null && (
+          <Row label="Maximum per investor">{formatShareCount(String(row.maximumShares))}</Row>
+        )}
+        <Row label="Opens">{formatDate(row.opensAt)}</Row>
+        <Row label="Closes">{row.closesAt ? formatDate(row.closesAt) : 'No closing date'}</Row>
+        <Row label="Exemption">{OFFERING_EXEMPTION_LABELS[row.exemption] ?? row.exemptionDisplay}</Row>
+      </Rows>
       {row.status === 'rejected' && !!row.rejectionReason && (
         <Text style={styles.muted}>Rejected: {row.rejectionReason}</Text>
       )}

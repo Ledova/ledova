@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { formatDate, formatMoney } from '@ledova/shared';
 import type { ApplicationsStackParamList } from '../../navigation/ApplicationsStackNavigator';
-import { Action, LinkRow, Row, Section } from '../../components/Ledger';
+import { Action, LinkRow, Row, Rows, Section } from '../../components/Ledger';
 import { ApplicationsPage, useApplicationStyles } from './ApplicationsPage';
 import { useSubscriptions } from './useApplications';
 import { applicationShares, applicationState } from './presentation';
@@ -36,12 +36,14 @@ export function ApplicationsScreen() {
             subscriptions.map((application) => (
               <Section key={application.uuid} title={`${application.companyName} · ${application.tokenName}`}>
                 <Text style={styles.message}>{applicationState(application)}</Text>
-                <Row label="Share class">{application.tokenSymbol}</Row>
-                <Row label="Shares applied for">{applicationShares(application.quantity)}</Row>
-                <Row label="Price per share">{formatMoney(application.pricePerShare, application.currency)}</Row>
-                <Row label="Amount due">{formatMoney(application.amountDue, application.currency)}</Row>
-                <Row label="Drafted">{formatDate(application.createdAt)}</Row>
-                {application.reference && <Row label="Payment reference">{application.reference}</Row>}
+                <Rows>
+                  <Row label="Share class">{application.tokenSymbol}</Row>
+                  <Row label="Shares applied for">{applicationShares(application.quantity)}</Row>
+                  <Row label="Price per share">{formatMoney(application.pricePerShare, application.currency)}</Row>
+                  <Row label="Amount due">{formatMoney(application.amountDue, application.currency)}</Row>
+                  <Row label="Drafted">{formatDate(application.createdAt)}</Row>
+                  {application.reference && <Row label="Payment reference">{application.reference}</Row>}
+                </Rows>
                 <LinkRow
                   label="Application"
                   accessibilityLabel={`Open application ${application.reference || application.uuid}`}
