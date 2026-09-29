@@ -140,7 +140,7 @@ export function useWallets() {
     updateError: getErrorMessage(updateMutation.error, 'The wallet could not be saved. Try again.'),
     deleteError: getErrorMessage(deleteMutation.error, 'The wallet could not be deleted. Try again.'),
     syncError: getErrorMessage(syncMutation.error, 'Wallet sync could not finish. Please try again later.'),
-    syncErrorWalletUuid: syncMutation.variables,
+    syncWalletUuid: syncMutation.variables,
     resetCreate,
     resetUpdate: updateMutation.reset,
     resetDelete: deleteMutation.reset,

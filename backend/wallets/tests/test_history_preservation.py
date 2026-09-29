@@ -16,7 +16,7 @@ from shared.db import APP_ALIAS, acting_for, current_alias, use_operator
 from shared.db.aliases import configured
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
-from wallets.models import Holding, HoldingSnapshot, Transaction, Wallet
+from wallets.models import Holding, Transaction, Wallet
 from wallets.services import transaction_confirmation
 from wallets.services.history_receipts import record_history_receipt
 from wallets.services.holdings import sync_holding
@@ -80,7 +80,6 @@ class HistoryPreservationChecks:
             return (
                 list(Transaction.objects.filter(wallet=self.wallet).order_by("pk").values()),
                 list(Holding.objects.filter(wallet=self.wallet).order_by("pk").values()),
-                list(HoldingSnapshot.objects.filter(holding__wallet=self.wallet).order_by("pk").values()),
             )
 
     def import_history(self, *entries, wallet=None):
@@ -111,7 +110,7 @@ class HistoryPreservationChecks:
                 )
                 first = self.import_history(conflict)
                 second = self.import_history(self.history())
-                self.assertEqual(first, {"status": "success", "transactions": 0, "snapshots": 0})
+                self.assertEqual(first, {"status": "success", "transactions": 0})
                 self.assertEqual(second, first)
                 self.assertEqual(self.state(), before)
 
@@ -120,7 +119,7 @@ class HistoryPreservationChecks:
         before = self.state()
         with patch("wallets.services.sync.quarantine_unknown_token") as quarantine:
             result = self.import_history({"tx_hash": self.history()["tx_hash"]})
-        self.assertEqual(result, {"status": "success", "transactions": 0, "snapshots": 0})
+        self.assertEqual(result, {"status": "success", "transactions": 0})
         quarantine.assert_not_called()
         self.assertEqual(self.state(), before)
 
@@ -141,7 +140,7 @@ class HistoryPreservationChecks:
             with self.subTest(status=status):
                 data = self.history(tx_hash="0x" + f"{index:064x}", status=status)
                 first = self.import_history(data)
-                self.assertEqual(first, {"status": "success", "transactions": 1, "snapshots": int(index == 0)})
+                self.assertEqual(first, {"status": "success", "transactions": 1})
                 with use_operator():
                     tx = Transaction.objects.get(wallet=self.wallet, tx_hash=data["tx_hash"])
                     self.assertEqual(tx.status, "pending")
@@ -153,7 +152,7 @@ class HistoryPreservationChecks:
                     self.assertIsNone(tx.deducted_amount)
                     self.assertIsNone(tx.deducted_fee)
                 before = self.state()
-                self.assertEqual(self.import_history(data), {"status": "success", "transactions": 0, "snapshots": 0})
+                self.assertEqual(self.import_history(data), {"status": "success", "transactions": 0})
                 self.assertEqual(self.state(), before)
 
     def test_import_without_status_remains_pending_for_the_confirmation_sweep(self):
@@ -220,7 +219,7 @@ class HistoryPreservationChecks:
                     tx = Transaction.objects.get(wallet=self.wallet, tx_hash=data["tx_hash"])
                 self.assertEqual((tx.block_number, tx.block_timestamp), (75, data["block_timestamp"]))
 
-    def test_history_receipt_updates_available_metadata_without_rewriting_balances_or_snapshots(self):
+    def test_history_receipt_updates_available_metadata_without_rewriting_balances(self):
         data = self.history(block_timestamp=timezone.now() - timezone.timedelta(days=7))
         self.import_history(data)
         before = self.state()[1:]
@@ -266,7 +265,7 @@ class HistoryPreservationChecks:
             self.assertEqual(self.check_receipt(self.history(), self.receipt_client())["status"], "attribution_pending")
             notification.assert_not_called()
 
-    def test_quarantined_history_receipt_never_opens_a_holding_or_snapshot(self):
+    def test_quarantined_history_receipt_never_opens_a_holding(self):
         data = self.history(contract_address="0x" + "cd" * 20)
         self.import_history(data)
         before = self.state()[1:]
@@ -503,7 +502,7 @@ class HistoryPreservationChecks:
         first, second = self.overlapping_history(
             self.pending, "wallets.services.sync.TransactionMonitoringService.queue_new_transaction"
         )
-        self.assertEqual(second, {"status": "success", "transactions": 0, "snapshots": 0})
+        self.assertEqual(second, {"status": "success", "transactions": 0})
         with use_operator():
             first.refresh_from_db()
             self.holding.refresh_from_db()
@@ -514,16 +513,15 @@ class HistoryPreservationChecks:
         self.assertEqual(self.holding.quantity, Decimal("7.99"))
 
     @skipUnless(connections[configured(APP_ALIAS)].vendor == "postgresql", "Concurrent row locks need PostgreSQL")
-    def test_overlapping_history_imports_keep_the_first_observation_and_one_snapshot(self):
+    def test_overlapping_history_imports_keep_the_first_observation(self):
         first, second = self.overlapping_history(
             lambda: self.import_history(self.history()),
             "wallets.services.sync.TransactionMonitoringService.queue_new_transaction",
         )
-        self.assertEqual(first, {"status": "success", "transactions": 1, "snapshots": 1})
-        self.assertEqual(second, {"status": "success", "transactions": 0, "snapshots": 0})
+        self.assertEqual(first, {"status": "success", "transactions": 1})
+        self.assertEqual(second, {"status": "success", "transactions": 0})
         with use_operator():
             self.assertEqual(Transaction.objects.get(wallet=self.wallet).amount, Decimal("2"))
-            self.assertEqual(HoldingSnapshot.objects.filter(holding=self.holding).count(), 1)
 
 
 class HistoryPreservationTest(HistoryPreservationChecks, APITransactionTestCase):

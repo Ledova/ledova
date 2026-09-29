@@ -5,13 +5,19 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 
 from shared.tests.under_the_policies import what_the_policies_admit_to
-from users.models import DeviceToken, Notification, NotificationPreferences, UserProfile
+from users.models import (
+    DeviceToken,
+    Notification,
+    UserAccount,
+    UserPreferences,
+    UserProfile,
+)
 from users.services import IdentityVerificationService
 
 User = get_user_model()
 
 NOTIFICATIONS = "/api/notifications/"
-PREFERENCES = "/api/notification-preferences/"
+PREFERENCES = "/api/user-preferences/"
 IDENTITY_TOKEN = "/api/users/identity-verification/token/"
 IDENTITY_STATUS = "/api/users/identity-verification/status/"
 
@@ -21,11 +27,13 @@ class NotificationScopingTest(APITestCase):
         self.alice = User.objects.create_user(email="alice-notif@example.test", password="pw-12345678")
         self.bob = User.objects.create_user(email="bob-notif@example.test", password="pw-12345678")
         self.profiles = {user: UserProfile.objects.create(user=user) for user in (self.alice, self.bob)}
+        for user, profile in self.profiles.items():
+            UserAccount.objects.create(account_number=f"NOTIF-{user.pk:06d}", user_profile=profile)
         self.notifications = {
             user: Notification.objects.create(user=user, title=f"For {user.email}", body="Body")
             for user in (self.alice, self.bob)
         }
-        self.bob_preferences = NotificationPreferences.objects.create(user_profile=self.profiles[self.bob])
+        self.bob_preferences = UserPreferences.objects.create(user_profile=self.profiles[self.bob])
         self.alice_token = DeviceToken.objects.create(
             user=self.alice, push_token="ExponentPushToken[alice]", device_type="ios"
         )
@@ -66,16 +74,18 @@ class NotificationScopingTest(APITestCase):
         self.assertEqual(archived.status_code, 200)
         self.assertEqual(self._rows(self.client.get(NOTIFICATIONS)), [])
 
-    def test_notification_preferences_are_owner_scoped(self):
+    def test_transaction_alerts_are_owner_scoped(self):
         self.client.force_authenticate(self.alice)
         alice_profile = self.profiles[self.alice]
 
-        self.assertFalse(NotificationPreferences.objects.filter(user_profile=alice_profile).exists())
-        list_response = self.client.get(PREFERENCES)
-        self.assertEqual(list_response.status_code, 200)
-        own = NotificationPreferences.objects.get(user_profile=alice_profile)
-        self.assertEqual(list_response.json()["uuid"], str(own.uuid))
-        self.assertEqual(NotificationPreferences.objects.count(), 2)
+        self.assertFalse(UserPreferences.objects.filter(user_profile=alice_profile).exists())
+        self.assertEqual(self.client.get(PREFERENCES).status_code, 404)
+        own_post = self.client.post(PREFERENCES, {"transactionAlerts": False}, format="json")
+        self.assertEqual(own_post.status_code, 200)
+        own = UserPreferences.objects.get(user_profile=alice_profile)
+        self.assertEqual(own_post.json()["uuid"], str(own.uuid))
+        self.assertFalse(own.transaction_alerts)
+        self.assertEqual(UserPreferences.objects.count(), 2)
 
         foreign_patch = self.client.patch(
             f"{PREFERENCES}{self.bob_preferences.uuid}/", {"transactionAlerts": False}, format="json"
@@ -85,20 +95,17 @@ class NotificationScopingTest(APITestCase):
         self.bob_preferences.refresh_from_db()
         self.assertTrue(self.bob_preferences.transaction_alerts)
 
-        own_patch = self.client.patch(f"{PREFERENCES}{own.uuid}/", {"transactionAlerts": False}, format="json")
+        own_patch = self.client.patch(f"{PREFERENCES}{own.uuid}/", {"transactionAlerts": True}, format="json")
         self.assertEqual(own_patch.status_code, 200)
         own.refresh_from_db()
-        self.assertFalse(own.transaction_alerts)
-        own_post = self.client.post(PREFERENCES, {"transactionAlerts": True}, format="json")
-        self.assertEqual(own_post.status_code, 200)
-        own.refresh_from_db()
         self.assertTrue(own.transaction_alerts)
-        self.assertEqual(NotificationPreferences.objects.count(), 2)
+        self.assertIs(self.client.get(PREFERENCES).json()["transactionAlerts"], True)
+        self.assertEqual(UserPreferences.objects.count(), 2)
 
     def test_device_token_manager_is_owner_scoped(self):
         self.assertEqual(set(what_the_policies_admit_to(self.alice, DeviceToken)), {self.alice_token})
-        self.assertEqual(set(what_the_policies_admit_to(self.bob, NotificationPreferences)), {self.bob_preferences})
-        self.assertFalse(what_the_policies_admit_to(self.alice, NotificationPreferences).exists())
+        self.assertEqual(set(what_the_policies_admit_to(self.bob, UserPreferences)), {self.bob_preferences})
+        self.assertFalse(what_the_policies_admit_to(self.alice, UserPreferences).exists())
 
     def test_identity_verification_uses_only_the_requesters_profile(self):
         self.client.force_authenticate(self.alice)
@@ -128,8 +135,6 @@ class NotificationScopingTest(APITestCase):
             for method, url in (
                 ("get", PREFERENCES),
                 ("post", PREFERENCES),
-                ("get", "/api/user-preferences/"),
-                ("post", "/api/user-preferences/"),
                 ("post", IDENTITY_TOKEN),
                 ("get", IDENTITY_STATUS),
             ):
@@ -138,7 +143,7 @@ class NotificationScopingTest(APITestCase):
         start.assert_not_called()
         st.assert_not_called()
         self.assertEqual(self._rows(self.client.get(NOTIFICATIONS)), [])
-        self.assertEqual(NotificationPreferences.objects.count(), 1)
+        self.assertEqual(UserPreferences.objects.count(), 1)
 
     def test_anonymous_is_rejected(self):
         for method, url in (
@@ -147,7 +152,6 @@ class NotificationScopingTest(APITestCase):
             ("post", f"{NOTIFICATIONS}mark-all-read/"),
             ("get", PREFERENCES),
             ("post", PREFERENCES),
-            ("get", "/api/device-tokens/"),
             ("post", IDENTITY_TOKEN),
             ("get", IDENTITY_STATUS),
         ):

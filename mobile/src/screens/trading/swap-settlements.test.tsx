@@ -11,6 +11,7 @@ import {
   selectSwapSettlement,
   ApiClientProvider,
   AUTH_QUERY_KEY,
+  DESIGN_TOKENS,
   USER_PREFERENCES_QUERY_KEY,
   type SwapOrder,
   type Wallet,
@@ -54,41 +55,68 @@ jest.mock('@react-navigation/native', () => ({
     }, [callback]);
   },
 }));
+const mockDialogLifecycle: string[] = [];
+const dialogEvents = (event: string) => mockDialogLifecycle.filter((entry) => entry === event).length;
 jest.mock('../../components/modal', () => {
+  const { useEffect } = jest.requireActual('react');
   const { View, Text, Pressable } = jest.requireActual('react-native');
-  return {
-    CustomModal: jest.fn(
-      ({
-        visible,
-        children,
-        onClose,
-        onConfirm,
-        confirmLabel,
-        confirmDisabled,
-      }: {
-        visible: boolean;
-        children: React.ReactNode;
-        onClose: () => void;
-        onConfirm?: () => void;
-        confirmLabel?: string;
-        confirmDisabled?: boolean;
-      }) =>
-        visible ? (
-          <View>
-            {children}
-            <Pressable onPress={onClose}>
-              <Text>Dismiss settlement</Text>
-            </Pressable>
-            {onConfirm && (
-              <Pressable disabled={confirmDisabled} onPress={onConfirm}>
-                <Text>{confirmLabel}</Text>
-              </Pressable>
-            )}
-          </View>
-        ) : null,
-    ),
-  };
+  function MockDialogContent({ children }: { children: React.ReactNode }) {
+    useEffect(() => {
+      mockDialogLifecycle.push('content mounted');
+      return () => {
+        mockDialogLifecycle.push('content unmounted');
+      };
+    }, []);
+    return <View>{children}</View>;
+  }
+  function MockCustomModal({
+    visible,
+    contentKey,
+    children,
+    actions,
+    onClose,
+    onConfirm,
+    confirmLabel,
+    confirmDisabled,
+  }: {
+    visible: boolean;
+    contentKey?: React.Key;
+    children: React.ReactNode;
+    actions?: React.ReactNode;
+    onClose: () => void;
+    onConfirm?: () => void;
+    confirmLabel?: string;
+    confirmDisabled?: boolean;
+  }) {
+    useEffect(() => {
+      mockDialogLifecycle.push('modal mounted');
+      return () => {
+        mockDialogLifecycle.push('modal unmounted');
+      };
+    }, []);
+    return visible ? (
+      <View>
+        <MockDialogContent key={contentKey}>{children}</MockDialogContent>
+        {actions}
+        <Pressable onPress={onClose}>
+          <Text>Dismiss settlement</Text>
+        </Pressable>
+        {onConfirm && (
+          <Pressable disabled={confirmDisabled} onPress={onConfirm}>
+            <Text>{confirmLabel}</Text>
+          </Pressable>
+        )}
+      </View>
+    ) : null;
+  }
+  return { ...jest.requireActual('../../components/modal'), CustomModal: jest.fn(MockCustomModal) };
 });
+function actionLabels(node: React.ReactNode): string[] {
+  return React.Children.toArray(node).flatMap((child) => {
+    if (!React.isValidElement<{ label?: string; children?: React.ReactNode }>(child)) return [];
+    return child.props.label ? [child.props.label] : actionLabels(child.props.children);
+  });
+}
 let mockWallets: Wallet[];
 let mockSwaps: SwapOrder[];
 let mockActualOrders: boolean;
@@ -242,6 +270,7 @@ const signatureQr = (index = 0) =>
 const originalWindow = Dimensions.get('window');
 beforeEach(async () => {
   jest.spyOn(Date, 'now').mockReturnValue(settlementNow);
+  mockDialogLifecycle.length = 0;
   current = settlementResponse();
   needsApproval = false;
   mockWallets = [selectedWallet()];
@@ -273,21 +302,62 @@ afterEach(async () => {
   client.clear();
 });
 
-it('keeps captured settlement terms while the review shrinks with the available window', async () => {
+it('keeps captured settlement terms in the self-sizing dialog when the available window changes', async () => {
   Dimensions.set({ window: { width: 390, height: 740, scale: 3, fontScale: 1 } });
   const view = await render(<TradingScreen />, { wrapper });
   await open(view);
-  expect(jest.mocked(CustomModal).mock.calls.at(-1)![0].maxHeight).toBe(644);
+  expect(jest.mocked(CustomModal).mock.calls.at(-1)![0]).toMatchObject({ visible: true, title: 'Review settlement' });
 
   await act(async () => {
     Dimensions.set({ window: { width: 740, height: 430, scale: 3, fontScale: 1 } });
   });
-  expect(jest.mocked(CustomModal).mock.calls.at(-1)![0].maxHeight).toBe(334);
+  expect(jest.mocked(CustomModal).mock.calls.at(-1)![0]).toMatchObject({ visible: true, title: 'Review settlement' });
+  expect(jest.mocked(CustomModal).mock.calls.at(-1)![0]).not.toHaveProperty('maxHeight');
   expect(view.getByText('Shares: 9007199254740993')).toBeTruthy();
   expect(view.getByText('Payment: 13510798882111489.5 TUSD')).toBeTruthy();
   expect(view.getByText('Sign settlement')).toBeTruthy();
   expect(posts()).toHaveLength(0);
   expect(getSeedPhrase).not.toHaveBeenCalled();
+});
+
+it('keeps one mounted settlement dialog from review through the recorded signature', async () => {
+  const held: (() => void)[] = [];
+  handler = (config) => new Promise((resolve) => held.push(() => resolve(ordinary(config))));
+  const release = async () => {
+    await waitFor(() => expect(held).toHaveLength(1));
+    await act(async () => held.shift()!());
+  };
+  const view = await render(<TradingScreen />, { wrapper });
+  await fireEvent.press(view.getByText('Open settlement 1'));
+  await waitFor(() => expect(jest.mocked(CustomModal).mock.calls.at(-1)![0].title).toBe('Review settlement'));
+  await release();
+  await fireEvent.press(await view.findByText('Check token approval'));
+  await release();
+  await fireEvent.press(await view.findByText('Sign settlement'));
+  await release();
+  await release();
+  await waitFor(() => expect(view.getByText('Check settlement status')).toBeTruthy());
+  expect(view.getByText('Seller signature: recorded')).toBeTruthy();
+  expect(dialogEvents('modal mounted')).toBe(1);
+  expect(dialogEvents('modal unmounted')).toBe(0);
+  expect(dialogEvents('content mounted')).toBe(3);
+  expect(jest.mocked(CustomModal).mock.calls.every(([props]) => props.visible)).toBe(true);
+});
+
+it('offers the settlement checks in the dialog action row rather than as links in its body', async () => {
+  const view = await render(<TradingScreen />, { wrapper });
+  await open(view);
+  expect(actionLabels(jest.mocked(CustomModal).mock.calls.at(-1)![0].actions)).toEqual(
+    expect.arrayContaining(['Check settlement status', 'Check token approval']),
+  );
+});
+
+it('sets its closing note as body text, like the rest of the web settlement dialog', async () => {
+  const view = await render(<TradingScreen />, { wrapper });
+  await open(view);
+  expect(view.getByText(/^You can close and check saved settlements later/)).toHaveStyle({
+    color: DESIGN_TOKENS.colors.text.primary,
+  });
 });
 
 it('reviews exact captured terms and sends one real signature despite duplicate presses', async () => {

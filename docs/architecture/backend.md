@@ -13,15 +13,15 @@ package of per-concern modules re-exported by `settings/__init__.py`.
 | --- | --- |
 | `operators` | The single `Operator` configuration row, `GET /api/operator/`, and the operator console: `worklist()` and `configuration_health()` rendered by `OperatorAdmin.changelist_view` |
 | `authentication` | `CustomUser`, the `AuthViewSet`, JWT sessions, email verification codes |
-| `users` | Profiles, accounts, preferences, financial profiles, device tokens, notifications, favourite assets, `InvestorClassification` and the investor-eligibility predicate |
+| `users` | Profiles, accounts, preferences (theme, selected portfolio and the transaction-alerts switch on one `UserPreferences` row), financial profiles, device tokens, notifications, `InvestorClassification` and the investor-eligibility predicate |
 | `companies` | `Company`, its application lifecycle, and company `Document` records |
 | `tokens` | `ShareToken`, `ShareIssuanceRequest`, `ShareIssuance`, `CapitalIncreaseRequest`, `MintRequest`, `YieldToken`, and the trading models |
 | `shareholders` | `Publication`, the `PublicationRecipient` roll frozen at a record date with each entitlement, the `PublicationRead` audit, and the `PublicationEvent` chain of a resolution's ballots and close and of a distribution's payment records |
 | `offerings` | `Offering`, `Subscription`, their review and payment lifecycles, allotment, and the eligibility-gated investor directory at `/api/v1/directory/` |
 | `whitelist` | `WhitelistEntry`, the per-company `WhitelistApproval` mirror, `WhitelistChange` commands and the sync from each company's registry |
-| `wallets` | `Wallet`, `Holding`, `HoldingSnapshot`, `Transaction`, balance sync and transfer confirmation |
+| `wallets` | `Wallet`, `Holding`, `Transaction`, balance sync and transfer confirmation |
 | `assets` | `Asset`, `AssetChainDeployment`, `AssetSnapshot`, `ExchangeRate`, price sync, asset identity |
-| `portfolios` | `Portfolio` and the value series computed on read |
+| `portfolios` | `Portfolio`, its CRUD routes and the operator add-wallet and remove-wallet actions |
 | `blockchain` | `BlockchainTransaction` and transaction monitoring; the durable outgoing-signing foundation (`SigningAccount`, `OutgoingOperation`, `SignedAttempt`) and its immutable history inventory (`OutgoingHistoryCapture`, `OutgoingHistoryEvidence`, `OutgoingCutoverHold`) |
 | `compliance` | Monitoring rules, alerts, procedure templates, risk assessments |
 | `documents` | Uploaded documents and their extraction records |

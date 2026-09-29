@@ -80,6 +80,18 @@ it.each(['profile', 'signup'] as const)('keeps the normal %s launch and submissi
   if (kind === 'signup') expect(view.getByText('Continue')).toBeTruthy();
 });
 
+it('refreshes the profile when the signup step continues after a submission', async () => {
+  const invalidate = jest.spyOn(client, 'invalidateQueries');
+  const view = await render(owner('signup'));
+  await waitFor(() => expect(view.queryByText('Loading status...')).toBeNull());
+  await fireEvent.press(view.getByText('Start Verification'));
+  await waitFor(() => expect(view.getByTestId('provider-owned-form')).toBeTruthy());
+  await fireEvent.press(view.getByText('Finish synthetic provider form'));
+  invalidate.mockClear();
+  await fireEvent.press(view.getByText('Continue'));
+  await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['userProfiles'] }));
+});
+
 it.each(['profile', 'signup'] as const)('retires a pending %s launch when its route loses focus', async (kind) => {
   let resolve!: (value: unknown) => void;
   post.mockReturnValue(
@@ -129,4 +141,31 @@ it.each(['profile', 'signup'] as const)('removes the %s form on session retireme
   await waitFor(() => expect(view.getByTestId('provider-owned-form')).toBeTruthy());
   await act(() => invalidateSessionScope());
   expect(view.queryByTestId('provider-owned-form')).toBeNull();
+});
+
+it('shows a submitted profile check on the dialog card as a plain outcome with a Close action', async () => {
+  get.mockReset().mockResolvedValue({ data: { isVerified: false, status: 'pending' } });
+  const view = await render(owner('profile'));
+  await waitFor(() => expect(view.getByRole('header', { name: 'Verification Submitted' })).toBeTruthy());
+  expect(view.getByRole('header', { name: 'Identity Verification' }).parent).toHaveStyle({ borderRadius: 12 });
+  const outcome = view.getByRole('header', { name: 'Verification Submitted' }).parent!.parent!;
+  expect(outcome).not.toHaveStyle({ borderWidth: 1 });
+  expect(outcome.props.style).not.toHaveProperty('backgroundColor');
+  const closeButton = view.getByRole('button', { name: 'Close' });
+  expect(closeButton.parent!.children).toEqual([closeButton]);
+  await fireEvent.press(closeButton);
+  expect(close).toHaveBeenCalled();
+});
+
+it('offers Retry Verification as the primary action after Skip when the check needs a retry', async () => {
+  get.mockReset().mockResolvedValue({
+    data: { isVerified: false, status: 'completed', reviewAnswer: 'RED', needsRetry: true, rejectionLabels: [] },
+  });
+  const view = await render(owner('profile'));
+  await waitFor(() => expect(view.getByRole('header', { name: 'Retry Needed' })).toBeTruthy());
+  const skip = view.getByRole('button', { name: 'Skip' });
+  expect(skip.parent!.children).toEqual([skip, view.getByRole('button', { name: 'Retry Verification' })]);
+  expect(view.queryByRole('button', { name: 'Start' })).toBeNull();
+  await fireEvent.press(view.getByRole('button', { name: 'Retry Verification' }));
+  await waitFor(() => expect(view.getByTestId('provider-owned-form')).toBeTruthy());
 });

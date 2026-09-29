@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Linking } from 'react-native';
 import { CheckCircleIcon, ArrowSquareOutIcon } from 'phosphor-react-native';
-import { CustomModal } from '../../../components/modal';
+import { CustomModal, useDialogStyles } from '../../../components/modal';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { getBlockchainDisplayName, getBlockExplorerTxUrl } from '@ledova/shared';
 
@@ -14,57 +14,36 @@ interface SuccessModalProps {
 
 export function SuccessModal({ visible, txHash, chainShortName, onDone }: SuccessModalProps) {
   const theme = useAppTheme();
+  const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
-    container: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: theme.spacing.xl,
-      gap: theme.spacing.md,
-    },
-    title: {
-      fontSize: theme.fontSize.xl,
-      fontWeight: theme.fontWeight.bold,
-      color: theme.colors.text.primary,
-      textAlign: 'center',
-    },
-    subtitle: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      textAlign: 'center',
-    },
-    section: {
+    success: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
       gap: theme.spacing.sm,
-      marginTop: theme.spacing.sm,
     },
-    sectionTitle: {
-      fontSize: theme.fontSize.xs,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.secondary,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
+    successText: {
+      flex: 1,
     },
-    hashCard: {
-      backgroundColor: theme.colors.surface.raised,
-      borderRadius: theme.borderRadius.md,
-      padding: theme.spacing.md,
-      borderWidth: 1,
-      borderColor: theme.colors.border.subtle,
+    hash: {
+      gap: theme.spacing.xs,
+      paddingTop: theme.spacing.smd,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border.subtle,
     },
     hashValue: {
       fontSize: theme.fontSize.xs,
-      fontFamily: 'monospace',
+      fontFamily: theme.fontFamily.mono,
       color: theme.colors.text.primary,
     },
     explorerLink: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
       gap: theme.spacing.xs,
-      paddingVertical: theme.spacing.sm,
+      paddingVertical: theme.spacing.xs,
     },
     explorerText: {
+      fontFamily: theme.fontFamily.medium,
       fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.semibold,
       color: theme.colors.interactive.active,
     },
   }));
@@ -74,32 +53,28 @@ export function SuccessModal({ visible, txHash, chainShortName, onDone }: Succes
   return (
     <CustomModal
       visible={visible}
+      title="Transaction Sent"
       onClose={handleOverlayClose}
       showFooter={true}
       showCancelButton={false}
       confirmLabel="Done"
       onConfirm={onDone}
     >
-      <View style={styles.container}>
-        <CheckCircleIcon
-          size={theme.icon.sizes.xxl}
-          color={theme.colors.status.success.icon}
-          weight={theme.icon.weights.light}
-        />
-        <Text style={styles.title}>Transaction Sent</Text>
-        <Text style={styles.subtitle}>
+      <View style={styles.success}>
+        <CheckCircleIcon size={theme.icon.sizes.md} color={theme.colors.status.success.icon} weight="fill" />
+        <Text style={[text.muted, styles.successText]}>
           Your transaction is being processed by the {getBlockchainDisplayName(chainShortName)} network
         </Text>
       </View>
 
       {txHash && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Transaction Hash</Text>
-          <View style={styles.hashCard}>
-            <Text style={styles.hashValue} numberOfLines={1} ellipsizeMode="middle">
-              {txHash}
-            </Text>
-          </View>
+        <View style={styles.hash}>
+          <Text accessibilityRole="header" style={text.heading}>
+            Transaction Hash
+          </Text>
+          <Text style={styles.hashValue} numberOfLines={1} ellipsizeMode="middle">
+            {txHash}
+          </Text>
           {explorerUrl ? (
             <TouchableOpacity style={styles.explorerLink} onPress={() => Linking.openURL(explorerUrl)}>
               <Text style={styles.explorerText}>View on block explorer</Text>

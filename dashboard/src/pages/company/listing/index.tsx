@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
   DESTINATIONS,
+  OPTIONAL_DOCUMENTS,
+  REQUIRED_DOCUMENTS,
   deleteCompanyDocument,
   formatDate,
   getErrorMessage,
@@ -21,13 +23,14 @@ import apiClient from '@services/apiClient';
 import { useCompany } from '../hooks/useCompany';
 import { CompanyReadNotice, CompanyStatusMark } from '../CompanyState';
 import { UploadModal } from './UploadModal';
-import { OPTIONAL_DOCUMENTS, REQUIRED_DOCUMENTS } from './documents';
 
 const FIELD_CLASS =
-  'mt-1 block w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary';
+  'mt-1 block w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary ' +
+  'placeholder:text-text-muted focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid';
 const ACTION_ERROR = 'The request was refused. Please try again.';
 
 export default function ListingPage() {
+  const navigate = useNavigate();
   const data = useCompany();
   const { company } = data;
   const client = useQueryClient();
@@ -49,7 +52,6 @@ export default function ListingPage() {
     Promise.all([
       client.invalidateQueries({ queryKey: ['company'] }),
       client.invalidateQueries({ queryKey: ['companies'] }),
-      client.invalidateQueries({ queryKey: ['company-documents'] }),
     ]);
   const submit = useMutation({
     mutationFn: (uuid: string) => submitApplication(apiClient, uuid),
@@ -171,10 +173,10 @@ export default function ListingPage() {
   );
   return (
     <>
-      <Page loading={data.isLoading}>
-        <Link to={DESTINATIONS.company.path} className="w-fit text-sm text-brand-light underline">
-          Back to Company
-        </Link>
+      <Page
+        loading={data.isLoading}
+        actions={<PageAction label="Back to Company" onClick={() => navigate(DESTINATIONS.company.path)} />}
+      >
         {data.error ? (
           <CompanyReadNotice read={data} />
         ) : !company ? (

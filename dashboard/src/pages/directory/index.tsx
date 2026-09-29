@@ -1,35 +1,32 @@
-import { Link } from 'react-router-dom';
-import { DESTINATIONS, formatDate, formatMoney } from '@ledova/shared';
+import { DESTINATIONS, formatDate, formatMoney, useDirectoryTokens } from '@ledova/shared';
 import type { DirectoryToken } from '@ledova/shared';
-import { Section, Status } from '@components/Ledger';
+import { LinkRow, Section, Status } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
-import { useDirectoryTokens } from './useDirectory';
 
 function ShareClassRow({ token }: { token: DirectoryToken }) {
   const offering = token.openOffering;
   return (
-    <Link
+    <LinkRow
       to={DESTINATIONS.directoryDetail.path.replace(':uuid', token.uuid)}
-      className="flex flex-wrap items-start justify-between gap-3 py-4 hover:bg-surface-tertiary"
+      label={token.name}
+      aside={
+        offering && (
+          <div className="min-w-0 text-right">
+            <p className="break-all tabular-nums text-text-primary">
+              {formatMoney(offering.pricePerShare, offering.priceCurrency)} per share
+            </p>
+            <p className="text-text-muted">
+              {offering.closesAt ? `Closes ${formatDate(offering.closesAt)}` : 'No closing date'}
+            </p>
+          </div>
+        )
+      }
     >
-      <div className="min-w-0 flex-1 basis-48">
-        <h3 className="break-words text-sm font-medium text-text-primary">{token.name}</h3>
-        <p className="mt-1 text-sm text-text-muted">{token.symbol}</p>
-        <p className="mt-2 text-sm text-text-muted">
-          <Status tone={offering ? 'moving' : 'waiting'}>{offering ? 'Offering open' : 'No offering open'}</Status>
-        </p>
-      </div>
-      {offering && (
-        <div className="min-w-0 text-sm sm:text-right">
-          <p className="break-all tabular-nums text-text-primary">
-            {formatMoney(offering.pricePerShare, offering.priceCurrency)} per share
-          </p>
-          <p className="mt-1 text-text-muted">
-            {offering.closesAt ? `Closes ${formatDate(offering.closesAt)}` : 'No closing date'}
-          </p>
-        </div>
-      )}
-    </Link>
+      <p className="text-text-muted">{token.symbol}</p>
+      <p className="text-text-muted">
+        <Status tone={offering ? 'moving' : 'waiting'}>{offering ? 'Offering open' : 'No offering open'}</Status>
+      </p>
+    </LinkRow>
   );
 }
 
@@ -57,12 +54,7 @@ export default function DirectoryPage() {
             The directory shows share classes available to eligible investors. Submit your evidence for the operator to
             review.
           </p>
-          <Link
-            to={DESTINATIONS.investorEligibility.path}
-            className="w-fit text-sm text-brand-light underline underline-offset-4"
-          >
-            Open Verification
-          </Link>
+          <LinkRow to={DESTINATIONS.investorEligibility.path} label={DESTINATIONS.investorEligibility.title} />
         </Section>
       </Page>
     );
@@ -73,13 +65,9 @@ export default function DirectoryPage() {
 
   return (
     <Page>
-      <p className="text-sm text-text-muted">Share classes and current offerings available to you.</p>
       {tokens.length === 0 ? (
-        <Section title="No share classes available">
-          <p className="py-2 text-sm text-text-muted">
-            There are no share classes available to you in the directory right now. The operator can help with questions
-            about an offering.
-          </p>
+        <Section title="Share classes">
+          <p className="py-3 text-sm text-text-muted">No share classes available.</p>
         </Section>
       ) : (
         [...issuers.entries()].map(([uuid, classes]) => {

@@ -1,11 +1,7 @@
 import type { ApiSchema, ApiRequest, ApiResponse, ApiQuery } from '../contracts';
 
-export type TokenStatus = ApiSchema<'ShareTokenStatusEnum'>;
 export type TokenType = ApiSchema<'TokenTypeEnum'>;
-export type IssuanceStatus = ApiSchema<'ShareIssuanceListStatusEnum'>;
-export type IssuanceType = ApiSchema<'IssuanceTypeEnum'>;
 export type CapitalIncreaseStatus = ApiSchema<'CapitalRequestStatusEnum'>;
-export type TokenTabType = 'overview' | 'shares' | 'shareholders' | 'issuances' | 'capital-increases';
 
 export type CompanyShareToken = ApiResponse<'api_v1_tokens_retrieve'>;
 
@@ -16,8 +12,6 @@ export type CompanyShareTokenListItem = ApiResponse<'api_v1_tokens_list'>['resul
 export type CompanyTokenActionResponse = ApiResponse<'api_v1_tokens_deploy_create'>;
 export type PauseSubmissionRequest = ApiRequest<'api_v1_tokens_pause_create'>;
 export type PauseSubmissionResponse = ApiResponse<'api_v1_tokens_pause_create'>;
-
-export type TokenHolder = ApiSchema<'ShareRegisterHolder'>;
 
 export type TokenHoldersResponse = ApiResponse<'api_v1_tokens_holders_retrieve'>;
 

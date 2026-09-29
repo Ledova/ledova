@@ -27,20 +27,10 @@ export const OFFERING_EXEMPTION_LABELS: Record<OfferingExemption, string> = {
   s761g_wholesale_client: 'Wholesale client (s761G)',
 };
 
-export const OFFERING_EDITABLE_STATUSES: OfferingStatus[] = ['draft'];
 export const OFFERING_WITHDRAWABLE_STATUSES: OfferingStatus[] = ['draft', 'submitted', 'under_review', 'rejected'];
 
 export const DIRECTORY_COPY = {
-  EMPTY_TITLE: 'No companies are listed yet',
-  EMPTY_BODY:
-    'A company appears here once its owner has opted in and one of its share classes is deployed on chain. ' +
-    'Both are needed, so the directory can be empty while an issuer has already opted in and is waiting to ' +
-    'deploy. Nothing is hidden from you. Check back, or ask the operator when the first share class is ' +
-    'expected on chain.',
   INELIGIBLE_TITLE: 'Verify your investor status to see the directory',
-  INELIGIBLE_BODY:
-    'Offers on this platform are made only to wholesale and sophisticated investors. Submit a classification ' +
-    'with evidence and the operator will verify it, usually within a few business days.',
   MARKET_INELIGIBLE_BODY:
     'The market list is limited to verified wholesale and sophisticated investors. Once your classification is ' +
     'verified, every deployed share class appears here, whether or not its issuer is listed in the directory.',

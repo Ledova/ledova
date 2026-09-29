@@ -9,7 +9,7 @@ from django.test import TestCase
 from assets.services.identity import native_asset_for_chain
 from shared.tests.tenants import make_tenant
 from wallets.constants import TRANSACTION_STATUS_CONFIRMED
-from wallets.models import Holding, HoldingSnapshot, Transaction
+from wallets.models import Holding, Transaction
 from wallets.services.receipt_readers import get_receipt_reader
 from wallets.tasks.confirmation import confirm_pending_transaction
 
@@ -96,7 +96,6 @@ class ImportedBitcoinConfirmationTaskTest(TestCase):
         return (
             Transaction.objects.filter(pk=self.tx.pk).values().get(),
             Holding.objects.filter(pk=self.holding.pk).values().get(),
-            list(HoldingSnapshot.objects.filter(holding=self.holding).values()),
         )
 
     def test_a_bitcoin_receipt_records_the_block_and_its_timestamp(self):

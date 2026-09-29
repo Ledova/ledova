@@ -76,6 +76,7 @@ vi.mock('@components/Modal', () => ({
         )}
       </div>
     ) : null,
+  ModalActions: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 vi.mock('@components/SeedPhraseInput', () => ({
   SeedPhraseInput: ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
@@ -296,6 +297,22 @@ it('first price-only modification keeps exact context values despite the rounded
   expect(await orderActionStore.list(owner)).toHaveLength(0);
 });
 
+it('ends each step with Close, Back and the next action in one row under unboxed reviewed values', async () => {
+  render(<TradingPage />, { wrapper });
+  await begin('modify');
+  const close = screen.getByRole('button', { name: 'Close' });
+  expect(Array.from(close.parentElement!.children)).toEqual([
+    close,
+    screen.getByRole('button', { name: 'Continue to sign' }),
+  ]);
+  expect(screen.getByText('Reviewed price per share: AUD 12.50').parentElement!.className).not.toContain(
+    'bg-surface-tertiary',
+  );
+  fireEvent.click(screen.getByText('Continue to sign'));
+  const row = screen.getByRole('button', { name: 'Close' }).parentElement!;
+  expect(Array.from(row.children).map((action) => action.textContent)).toEqual(['Close', 'Back', 'Sign change']);
+});
+
 it('cancels with the scoped action ID and no create submission', async () => {
   render(<TradingPage />, { wrapper });
   await begin('cancel');
@@ -493,7 +510,7 @@ it('does not choose a same-address wallet with a different UUID for signing', as
   wallet.uuid = '30000000-0000-4000-8000-000000000009';
   render(<TradingPage />, { wrapper });
   await begin('cancel');
-  expect((screen.getByText('Continue to sign') as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole('button', { name: 'Continue to sign' }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.click(screen.getByText('Continue to sign'));
   expect(signEthereumTypedData).not.toHaveBeenCalled();
   expect(executes()).toHaveLength(0);

@@ -3,10 +3,10 @@ from decimal import Decimal
 from typing import Any, Dict, Optional
 from uuid import uuid4
 
-from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from procrastinate import App
 from procrastinate.contrib.django.django_connector import DjangoConnector
+from web3 import Web3
 
 from assets.models import Asset, AssetType
 from assets.services.identity import (
@@ -14,23 +14,20 @@ from assets.services.identity import (
     recorded_native_asset_for_chain,
 )
 from compliance.services.transaction_monitoring import TransactionMonitoringService
+from operators.models import Operator
 from shared.constants import normalize_chain
-from shared.db import atomic, current_alias
+from shared.db import atomic, current_alias, use_operator
 from users.tasks.notifications import send_transaction_notification
 from wallets.constants import (
-    SNAPSHOT_REASON_TRANSACTION,
     TRANSACTION_STATUS_CONFIRMED,
     TRANSACTION_STATUS_FAILED,
     TRANSACTION_STATUS_PENDING,
 )
-from wallets.exceptions import InvalidTransactionException
-from wallets.models import (
-    Holding,
-    HoldingSnapshot,
-    Transaction,
-    Wallet,
-    WalletChainWatch,
+from wallets.exceptions import (
+    InvalidTransactionException,
+    StablecoinApprovalRequiredException,
 )
+from wallets.models import Holding, Transaction, Wallet, WalletChainWatch
 from wallets.services.chain_observations import (
     final_receipt,
     finality_policy,
@@ -40,10 +37,19 @@ from wallets.services.chain_observations import (
 from wallets.services.holdings import sync_holding
 from wallets.services.receipt_metadata import apply_receipt_metadata
 from wallets.services.receipt_targets import capture_receipt_target
+from whitelist.services import whitelist
 
 logger = logging.getLogger(__name__)
 
 NOT_TRANSFERABLE = "{symbol} is a tokenized security. Shares move by allotment, not by a wallet transfer."
+SENDER_NOT_APPROVED = (
+    "This wallet has no current approval with any company, so it cannot send {symbol}. "
+    "Ask the operator to approve it, then try again."
+)
+RECIPIENT_NOT_APPROVED = (
+    "The recipient has no current approval with any company, so it cannot receive {symbol}. "
+    "Check the address, or ask the recipient to have their wallet approved."
+)
 
 
 def resolve_transfer_asset(wallet: Wallet, token_contract: Optional[str] = None) -> Asset:
@@ -58,6 +64,28 @@ def resolve_transfer_asset(wallet: Wallet, token_contract: Optional[str] = None)
     if asset.asset_type == AssetType.TOKENIZED_SECURITY.value:
         raise InvalidTransactionException(NOT_TRANSFERABLE.format(symbol=asset.symbol))
     return asset
+
+
+def _pays_the_operator(chain: str, recipient: str) -> bool:
+    operator = Operator.get()
+    return (
+        bool(operator.receiving_wallet_address)
+        and normalize_chain(chain) == operator.receiving_wallet_chain
+        and operator.receiving_wallet_address.lower() == recipient.lower()
+    )
+
+
+def require_stablecoin_approvals(asset: Asset, chain: str, sender: str, recipient: str) -> None:
+    if asset.asset_type != AssetType.STABLECOIN.value:
+        return
+    recipient = Web3.to_checksum_address(recipient)
+    if _pays_the_operator(chain, recipient):
+        return
+    with use_operator():
+        if not whitelist.approved_for_any_company(sender):
+            raise StablecoinApprovalRequiredException(SENDER_NOT_APPROVED.format(symbol=asset.symbol))
+        if not whitelist.approved_for_any_company(recipient):
+            raise StablecoinApprovalRequiredException(RECIPIENT_NOT_APPROVED.format(symbol=asset.symbol))
 
 
 def create_pending_transaction(
@@ -214,8 +242,6 @@ def reconcile_transaction(tx_hash: str, *, wallet: Wallet) -> bool:
         for holding in holdings:
             if not Holding.objects.filter(pk=holding.pk, balance_version=holding.balance_version).exists():
                 return False
-        if locked.status == TRANSACTION_STATUS_CONFIRMED:
-            _update_snapshot_on_confirmation(locked)
         locked.deducted_amount = Decimal("0")
         locked.deducted_fee = Decimal("0")
         locked.balance_reconciliation_token = None
@@ -242,16 +268,6 @@ def _move_holding(tx: Transaction, asset: Asset, delta: Decimal) -> tuple[Holdin
     holding.quantity = max(Decimal("0"), before + delta)
     holding.balance_version = uuid4()
     holding.save(update_fields=["quantity", "balance_version", "updated_at"])
-
-    HoldingSnapshot.objects.update_or_create(
-        holding=holding,
-        snapshot_date=timezone.now().date(),
-        defaults={
-            "quantity": holding.quantity,
-            "snapshot_reason": SNAPSHOT_REASON_TRANSACTION,
-            "caused_by_transaction": tx,
-        },
-    )
     return holding, holding.quantity - before
 
 
@@ -261,25 +277,3 @@ def _verify_holding_balance(wallet: Wallet, asset: Asset):
         return None
     holdings = [sync_holding(wallet, held_asset) for held_asset in dict.fromkeys([asset, native])]
     return None if any(holding is None for holding in holdings) else holdings
-
-
-def _update_snapshot_on_confirmation(tx: Transaction) -> None:
-    if not tx.block_timestamp:
-        return
-
-    snapshot_date = tx.block_timestamp.date()
-    holding = Holding.objects.filter(wallet=tx.wallet, asset=tx.asset).first()
-
-    if not holding:
-        return
-
-    HoldingSnapshot.objects.update_or_create(
-        holding=holding,
-        snapshot_date=snapshot_date,
-        defaults={
-            "quantity": holding.quantity,
-            "block_number": tx.block_number,
-            "snapshot_reason": SNAPSHOT_REASON_TRANSACTION,
-            "caused_by_transaction": tx,
-        },
-    )

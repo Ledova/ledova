@@ -5,16 +5,17 @@ import {
   apiErrorSentence,
   createCompanyToken,
   updateCompany,
+  wholeShares,
   type Company,
   type CompanyUpdate,
   type TokenType,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { wholeShares } from './classes/shareQuantities';
 import { CompanyReadNotice, type CompanyRead } from './CompanyState';
 
 const FIELD_CLASS =
-  'mt-1 block w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary';
+  'mt-1 block w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary ' +
+  'placeholder:text-text-muted focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid';
 const EDIT_FIELDS = [
   ['name', 'Company name'],
   ['tradingName', 'Trading name'],

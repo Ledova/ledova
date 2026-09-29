@@ -5,7 +5,6 @@ import type {
   CompanyListItem,
   CompanyUpdate,
   CompanyUpdateResponse,
-  CompanyStats,
   CompanyRegistration,
   CompanyRegistrationResponse,
   CompanyDocument,
@@ -34,12 +33,6 @@ export const updateCompany = (
   config === undefined
     ? apiClient.patch<CompanyUpdateResponse>(COMPANY_ENDPOINTS.DETAIL(uuid), data)
     : apiClient.patch<CompanyUpdateResponse>(COMPANY_ENDPOINTS.DETAIL(uuid), data, config);
-
-export const getCompanyStats = (apiClient: AxiosInstance, uuid: string) =>
-  apiClient.get<CompanyStats>(COMPANY_ENDPOINTS.STATS(uuid));
-
-export const getCompanyDocuments = (apiClient: AxiosInstance, companyUuid: string) =>
-  apiClient.get<PaginatedResponse<CompanyDocument>>(COMPANY_ENDPOINTS.DOCUMENTS(companyUuid));
 
 export const uploadCompanyDocument = (
   apiClient: AxiosInstance,

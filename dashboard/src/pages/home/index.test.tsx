@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { AxiosInstance } from 'axios';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { HOLDING_ASSET_TYPE, WALLET_ENDPOINTS, type WalletHolding } from '@ledova/shared';
+import { ApiClientProvider, HOLDING_ASSET_TYPE, WALLET_ENDPOINTS, type WalletHolding } from '@ledova/shared';
 import { PageTitle } from '@components/PageTitle';
 import { HomePage } from './index';
 
@@ -59,12 +61,20 @@ function page(wallets = [firstWallet], next: string | null = null) {
   return { data: { results: wallets, count: wallets.length, next, previous: null } };
 }
 
+function detailOf(row: HTMLElement) {
+  const detail = document.getElementById(row.getAttribute('aria-controls') ?? '');
+  expect(detail).not.toBeNull();
+  return detail!;
+}
+
 function renderPage() {
   return render(
     <QueryClientProvider client={client}>
-      <PageTitle.Provider value="Holdings">
-        <HomePage />
-      </PageTitle.Provider>
+      <ApiClientProvider client={api as unknown as AxiosInstance}>
+        <PageTitle.Provider value="Holdings">
+          <HomePage />
+        </PageTitle.Provider>
+      </ApiClientProvider>
     </QueryClientProvider>,
   );
 }
@@ -135,12 +145,70 @@ it('reads every wallet page and shows exact share totals with company/class name
   expect(screen.queryByText(/AUD|USD|Coin prices|Total value/)).toBeNull();
   expect(api.get).toHaveBeenCalledWith(WALLET_ENDPOINTS.BASE, { params: { page: 2 } });
 
-  const summary = screen.getByText('Ordinary').closest('summary');
-  expect(summary).not.toBeNull();
-  fireEvent.click(summary!);
-  expect(summary!.closest('details')!.open).toBe(true);
-  expect(screen.getByText('Primary')).toBeTruthy();
-  expect(screen.getAllByText('Reserve').length).toBeGreaterThan(0);
+  const row = screen.getByRole('button', { name: /Harbour Example Pty Ltd\s*Ordinary/ });
+  fireEvent.click(row);
+  expect(within(detailOf(row)).getByText('Primary')).toBeTruthy();
+  expect(within(detailOf(row)).getByText('Reserve')).toBeTruthy();
+});
+
+it('opens each holding in place under its row, all closed at first, independently and from the keyboard', async () => {
+  const user = userEvent.setup();
+  const preference = { uuid: 'class-two', name: 'Preference', companyName: 'Harbour Example Pty Ltd' };
+  api.get.mockImplementation(async (url: string) => {
+    if (url === WALLET_ENDPOINTS.BASE) return page([firstWallet, secondWallet]);
+    if (url === WALLET_ENDPOINTS.HOLDINGS(firstWallet.uuid)) {
+      return {
+        data: [
+          holding({ quantity: '250' }),
+          holding({
+            assetUuid: 'asset-two',
+            assetName: 'Harbour Example Preference',
+            quantity: '1',
+            shareClass: preference,
+          }),
+        ],
+      };
+    }
+    return { data: [holding({ walletUuid: secondWallet.uuid, chain: 'ethereum', quantity: '50' })] };
+  });
+  renderPage();
+
+  const ordinaryRow = await screen.findByRole('button', { name: /Ordinary\s*300 shares/ });
+  const preferenceRow = screen.getByRole('button', { name: /Preference\s*1 share/ });
+  for (const row of [ordinaryRow, preferenceRow]) {
+    expect(row.getAttribute('aria-expanded')).toBe('false');
+    expect(detailOf(row).hidden).toBe(true);
+    expect(detailOf(row).textContent).toBe('');
+    expect(row.querySelector('a, button, input, select, textarea')).toBeNull();
+  }
+  expect(screen.queryByText('Primary')).toBeNull();
+
+  fireEvent.click(ordinaryRow);
+  const detail = detailOf(ordinaryRow);
+  expect(ordinaryRow.getAttribute('aria-expanded')).toBe('true');
+  expect(detail.hidden).toBe(false);
+  expect(ordinaryRow.closest('li')!.contains(detail)).toBe(true);
+  expect(ordinaryRow.compareDocumentPosition(detail) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(within(detail).getByText('Base').parentElement!.textContent).toContain('250 shares');
+  expect(within(detail).getByText('Primary').parentElement!.textContent).toContain('250 shares');
+  expect(within(detail).getByText('Ethereum').parentElement!.textContent).toContain('50 shares');
+  expect(within(detail).getByText('Reserve').parentElement!.textContent).toContain('50 shares');
+  expect(detailOf(preferenceRow).textContent).toBe('');
+  expect(screen.queryAllByRole('region')).toHaveLength(0);
+
+  preferenceRow.focus();
+  await user.keyboard('{Enter}');
+  expect(preferenceRow.getAttribute('aria-expanded')).toBe('true');
+  expect(within(detailOf(preferenceRow)).getByText('Primary').parentElement!.textContent).toContain('1 share');
+  expect(ordinaryRow.getAttribute('aria-expanded')).toBe('true');
+  expect(within(detailOf(ordinaryRow)).getByText('Reserve')).toBeTruthy();
+  expect(screen.queryAllByRole('region')).toHaveLength(0);
+
+  await user.keyboard(' ');
+  expect(preferenceRow.getAttribute('aria-expanded')).toBe('false');
+  expect(detailOf(preferenceRow).hidden).toBe(true);
+  expect(detailOf(preferenceRow).textContent).toBe('');
+  expect(detailOf(ordinaryRow).hidden).toBe(false);
 });
 
 it('treats a crypto-only wallet as an empty share list without inventing a zero valuation', async () => {
@@ -203,12 +271,38 @@ it('refreshes share counts when existing wallet actions invalidate wallets', asy
     url === WALLET_ENDPOINTS.BASE ? page() : { data: [holding({ quantity })] },
   );
   renderPage();
-  const name = await screen.findByText('Ordinary');
-  expect(name.closest('summary')!.textContent).toContain('1 share');
+  const row = await screen.findByRole('button', { name: /Ordinary/ });
+  expect(row.textContent).toContain('1 share');
 
   quantity = '2';
   await act(async () => client.invalidateQueries({ queryKey: ['wallets'] }));
-  await waitFor(() => expect(name.closest('summary')!.textContent).toContain('2 shares'));
+  await waitFor(() => expect(row.textContent).toContain('2 shares'));
+});
+
+it('hides stale holdings after a failed refresh and reopens an opened holding with its current split', async () => {
+  let failing = false;
+  let quantity = '250';
+  api.get.mockImplementation(async (url: string) => {
+    if (failing) throw new Error('Unavailable');
+    return url === WALLET_ENDPOINTS.BASE ? page() : { data: [holding({ quantity })] };
+  });
+  renderPage();
+  fireEvent.click(await screen.findByRole('button', { name: /Ordinary/ }));
+  expect(screen.getByText('Primary').parentElement!.textContent).toContain('250 shares');
+
+  failing = true;
+  await act(async () => client.invalidateQueries({ queryKey: ['wallets'] }));
+  expect(await screen.findByRole('alert')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /Ordinary/ })).toBeNull();
+  expect(screen.queryByText('Primary')).toBeNull();
+
+  failing = false;
+  quantity = '300';
+  await act(async () => client.invalidateQueries({ queryKey: ['wallets'] }));
+  const recovered = await screen.findByRole('button', { name: /Ordinary\s*300 shares/ });
+  expect(recovered.getAttribute('aria-expanded')).toBe('true');
+  expect(screen.getByText('Primary').parentElement!.textContent).toContain('300 shares');
+  expect(screen.queryByRole('alert')).toBeNull();
 });
 
 it('reports a malformed share balance instead of rounding it into a whole-share claim', async () => {

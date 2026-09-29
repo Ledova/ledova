@@ -26,5 +26,11 @@ export function useFetchBalances() {
     }
   }, []);
 
-  return { balances, isLoadingBalances, fetchBalances };
+  const clearBalances = useCallback(() => {
+    generation.current += 1;
+    setBalances(new Map());
+    setIsLoadingBalances(false);
+  }, []);
+
+  return { balances, isLoadingBalances, fetchBalances, clearBalances };
 }

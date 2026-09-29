@@ -1,19 +1,5 @@
-export {
-  formatDate,
-  formatShortDate,
-  formatTime,
-  formatDateTime,
-  formatSyncAge,
-  parseDateString,
-  formatDateToString,
-} from './date';
-export {
-  formatCurrency,
-  type FormatCurrencyOptions,
-  formatCryptoBalance,
-  formatPercentage,
-  getBlockchainShortName,
-} from './formatting';
+export { formatDate, formatTime, formatDateTime, formatSyncAge, parseDateString, formatDateToString } from './date';
+export { formatCurrency, type FormatCurrencyOptions, formatCryptoBalance } from './formatting';
 export {
   isNumericOnly,
   validatePassword,
@@ -93,3 +79,4 @@ export {
   swapSettlementAdmitted,
 } from './swap-settlement-validation';
 export { summarizeShareHoldings, type ShareHoldingRow } from './share-holdings';
+export { MAX_REQUEST_SHARES, raisedSupply, requestShares, wholeShares } from './share-quantities';

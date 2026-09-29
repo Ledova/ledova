@@ -1,7 +1,6 @@
-import { Link } from 'react-router-dom';
-import { DESTINATIONS, SUBSCRIPTION_COPY, formatDate, formatMoney } from '@ledova/shared';
+import { DESTINATIONS, formatDate, formatMoney } from '@ledova/shared';
 import type { Subscription } from '@ledova/shared';
-import { Row, Rows, Section, Status } from '@components/Ledger';
+import { LinkRow, Row, Rows, Section, Status } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { applicationShares, applicationState } from './presentation';
 import { useSubscriptions } from './useSubscriptions';
@@ -30,12 +29,10 @@ function ApplicationRow({ application }: { application: Subscription }) {
             </Row>
           )}
         </Rows>
-        <Link
+        <LinkRow
           to={DESTINATIONS.subscriptionDetail.path.replace(':uuid', application.uuid)}
-          className="w-fit py-2 text-sm text-brand-light underline underline-offset-4"
-        >
-          Open application
-        </Link>
+          label={DESTINATIONS.subscriptionDetail.title}
+        />
       </Section>
     </article>
   );
@@ -49,7 +46,6 @@ export default function SubscriptionsPage() {
 
   return (
     <Page>
-      <p className="text-sm text-text-muted">Your applications for shares, from draft through allotment or closure.</p>
       {hasError ? (
         <div role="alert" className="flex flex-col items-start gap-3 py-6">
           <p className="text-sm text-text-primary">
@@ -60,14 +56,9 @@ export default function SubscriptionsPage() {
       ) : (
         <>
           {subscriptions.length === 0 && !hasMore && !moreFailed ? (
-            <Section title="No applications yet">
-              <p className="py-3 text-sm text-text-muted">{SUBSCRIPTION_COPY.EMPTY_BODY}</p>
-              <Link
-                to={DESTINATIONS.directory.path}
-                className="w-fit text-sm text-brand-light underline underline-offset-4"
-              >
-                Open Directory
-              </Link>
+            <Section title="Your applications">
+              <p className="py-3 text-sm text-text-muted">No applications yet.</p>
+              <LinkRow to={DESTINATIONS.directory.path} label={DESTINATIONS.directory.title} />
             </Section>
           ) : (
             subscriptions.map((application) => <ApplicationRow key={application.uuid} application={application} />)

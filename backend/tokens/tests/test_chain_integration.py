@@ -511,19 +511,6 @@ class SettlementServiceChainTest(SettlementChainMixin, APITransactionTestCase):
         self.assertEqual(receipt["status"], 1)
         self.fund_gas()
 
-    def test_prepared_and_broadcast_transfer_moves_the_exact_signed_shares(self):
-        before = self.balances()
-        nonce = self.w3.eth.get_transaction_count(self.seller.address)
-        transaction = token_transfer_service.prepare_transfer(self.token, self.seller.address, self.buyer.address, 3)
-        raw = self.chain.sign_transaction(transaction, self.seller.key)
-        expected_hash = Web3.to_hex(Web3.keccak(raw))
-        returned_hash, receipt = token_transfer_service.broadcast_transfer(Web3.to_hex(raw))
-        self.assertEqual(returned_hash, expected_hash)
-        self.assertEqual(Web3.to_hex(receipt["transactionHash"]), expected_hash)
-        self.assertEqual(receipt["status"], 1)
-        self.assertEqual(self.w3.eth.get_transaction_count(self.seller.address), nonce + 1)
-        self.assertEqual(self.balances(), (before[0] - 3, before[1] + 3, before[2], before[3]))
-
     def matched_swap(self):
         Asset.objects.filter(pk=self.tenant.refs.stablecoin.pk).update(decimals=6)
         FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
@@ -1554,8 +1541,6 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual(holding.quantity, Decimal("40"))
         self.assertIsNotNone(holding.last_synced_at)
         self.assertIsNone(holding.market_value)
-        snapshot = holding.snapshots.get()
-        self.assertEqual((snapshot.quantity, snapshot.snapshot_reason), (Decimal("40"), "DAILY"))
         self.assertEqual(self._contract().functions.balanceOf(self.investor).call(), 40)
 
     def test_lost_deployment_receipt_keeps_the_original_hash_until_the_sweep_projects_it(self):

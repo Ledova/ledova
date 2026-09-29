@@ -3,8 +3,10 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import type { AxiosInstance } from 'axios';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import {
+  ApiClientProvider,
   DIRECTORY_ENDPOINTS,
   INVESTOR_CLASSIFICATION_ENDPOINTS,
   SUBSCRIPTION_ENDPOINTS,
@@ -67,13 +69,15 @@ function renderPage(detail = false) {
   return render(
     <MemoryRouter initialEntries={[detail ? '/directory/ordinary' : '/directory']}>
       <QueryClientProvider client={client}>
-        <PageTitle.Provider value={detail ? 'Share class' : 'Directory'}>
-          <Routes>
-            <Route path="/directory" element={<DirectoryPage />} />
-            <Route path="/directory/:uuid" element={<DirectoryTokenPage />} />
-            <Route path="/subscriptions/:uuid" element={<h1>Application detail</h1>} />
-          </Routes>
-        </PageTitle.Provider>
+        <ApiClientProvider client={api as unknown as AxiosInstance}>
+          <PageTitle.Provider value={detail ? 'Share class' : 'Directory'}>
+            <Routes>
+              <Route path="/directory" element={<DirectoryPage />} />
+              <Route path="/directory/:uuid" element={<DirectoryTokenPage />} />
+              <Route path="/subscriptions/:uuid" element={<h1>Application detail</h1>} />
+            </Routes>
+          </PageTitle.Provider>
+        </ApiClientProvider>
       </QueryClientProvider>
     </MemoryRouter>,
   );
@@ -115,9 +119,9 @@ it('waits for eligibility and directs an ineligible investor to Verification wit
   );
   renderPage();
   expect(screen.getByRole('status')).toBeTruthy();
-  expect(screen.queryByText('No share classes available')).toBeNull();
+  expect(screen.queryByText('No share classes available.')).toBeNull();
   await act(async () => finish({ data: { ...eligibility.data, isEligible: false } }));
-  expect(await screen.findByRole('link', { name: 'Open Verification' })).toBeTruthy();
+  expect(await screen.findByRole('link', { name: 'Verification' })).toBeTruthy();
   expect(api.get.mock.calls.some(([url]) => url === DIRECTORY_ENDPOINTS.TOKENS.LIST)).toBe(false);
 });
 
@@ -141,7 +145,7 @@ it.each(['eligibility', 'first page', 'later page'])(
     });
     renderPage();
     expect(await screen.findByRole('alert')).toBeTruthy();
-    expect(screen.queryByText('No share classes available')).toBeNull();
+    expect(screen.queryByText('No share classes available.')).toBeNull();
     expect(screen.queryByRole('link', { name: /Ordinary/ })).toBeNull();
     broken = false;
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
@@ -154,7 +158,8 @@ it('distinguishes a successful empty directory from a failure', async () => {
     url === DIRECTORY_ENDPOINTS.TOKENS.LIST ? page([]) : defaults(url),
   );
   renderPage();
-  expect(await screen.findByText('No share classes available')).toBeTruthy();
+  expect(await screen.findByText('No share classes available.')).toBeTruthy();
+  expect(screen.getByRole('heading', { level: 2, name: 'Share classes' })).toBeTruthy();
   expect(screen.queryByRole('alert')).toBeNull();
 });
 
@@ -203,6 +208,8 @@ it('distinguishes an unavailable class from a service failure, which can be retr
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
   expect(await screen.findByText('Share class not available')).toBeTruthy();
   expect(screen.queryByRole('heading', { name: 'Apply for shares' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Back to Directory' }));
+  expect(await screen.findByRole('heading', { name: 'Harbour Example Pty Ltd' })).toBeTruthy();
 });
 
 it('hides stale application actions after a failed class refresh', async () => {
@@ -339,10 +346,7 @@ it('does not fetch wallets or show an application form when no offering is open'
 it('shows a successful empty wallet read with a working Wallets link', async () => {
   api.get.mockImplementation(async (url: string) => (url === WALLET_ENDPOINTS.BASE ? page([]) : defaults(url)));
   renderPage(true);
-  expect(await screen.findByRole('link', { name: 'Open Wallets' })).toHaveProperty(
-    'href',
-    'http://localhost:3000/wallets',
-  );
+  expect(await screen.findByRole('link', { name: 'Wallets' })).toHaveProperty('href', 'http://localhost:3000/wallets');
   expect(screen.queryByRole('alert')).toBeNull();
 });
 

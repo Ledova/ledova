@@ -37,11 +37,9 @@ uploaded register file are evidence, kept like opening and correction evidence
 with no automatic expiry during the synthetic experiment, and their production
 retention is decided before any real data (owner decision, 22 September 2026).
 
-[Publications to members](publications.md), their frozen rolls, their read
-records and a resolution's ballots and close share the same floor and setting,
-measured from the publication, and a
-[second daily job](jobs.md#schedule) purges them together with the stored
-document. Nothing else removes a publication.
+[Publications to members](../architecture/shareholder-publications.md#retention)
+share the same floor and setting, measured from the publication, and a
+[second daily job](jobs.md#schedule) purges them.
 
 ## Media storage
 
@@ -89,6 +87,24 @@ Defaults below are integer environment settings shared by backend and worker.
 The decoder uses Linux resource limits; clean synthetic PDF/PNG/JPEG controls run
 under the default 512 MiB address-space cap in CI. Resource limits contain work;
 they are not a security sandbox or an aggregate concurrency limit.
+
+Each child refuses to run unless its address-space, CPU and file-size limits
+are positive integers, so a setting below 1 fails every upload instead of lifting
+a limit; Python can read a negative value as unlimited. The child then turns core
+dumps off and sets the three limits before it reads the upload. Linux accepts all
+four, so production and CI apply every limit. The address-space limit is the only
+exception: when the kernel refuses to lower it to the configured value, the child
+runs without it instead of failing every upload, and the parent logs one warning
+per process, `Upload workers run without RLIMIT_AS, which this platform refuses to set`.
+Every other refusal still fails the upload, including a refused core-dump, CPU or
+file-size limit and an address-space limit above the hard limit. macOS refuses any
+address-space limit below what a process has already mapped, which is hundreds
+of GiB on Apple silicon, so on macOS the decoder and the scanner client run
+without the `UPLOAD_PROCESS_MEMORY_BYTES` cap. macOS enforces the CPU limit on
+computation, but in testing on macOS 27 it did not stop a child that spent its
+time in back-to-back system calls, such as reading its own CPU clock. The
+parent's wall deadline applies on every platform: it bounds how long such a
+child runs, not how much memory it takes.
 
 | Variable | Default | Bound |
 | --- | --- | --- |

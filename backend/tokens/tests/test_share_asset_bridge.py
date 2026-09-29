@@ -44,7 +44,6 @@ class ShareAssetBridgeTest(TestCase):
         self.addCleanup(patch.stopall)
         self.tenant = make_tenant("owner")
         self.token = self.tenant.token
-        self.token.mark_deploying()
 
     def _bridge(self, token=None, address=CREATED):
         self.chain.load_contract.return_value = factory(address)
@@ -101,7 +100,6 @@ class ShareAssetBridgeTest(TestCase):
         self._bridge()
         other = make_tenant("rival")
         rival_token = other.token
-        rival_token.mark_deploying()
 
         self._bridge(rival_token, ELSEWHERE)
 
@@ -150,7 +148,6 @@ class IssuanceSeedsTheHoldingTest(TransactionTestCase):
         self.assertEqual(request.status, RequestStatus.EXECUTED)
         holding = Holding.objects.get(wallet=self.wallet, asset=self.asset)
         self.assertEqual(holding.quantity, Decimal("25"))
-        self.assertEqual(holding.snapshots.get().quantity, Decimal("25"))
         self.assertIsNone(holding.market_value)
 
     def test_a_treasury_entry_with_no_wallet_is_skipped_and_raises_nothing(self):

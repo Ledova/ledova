@@ -1,6 +1,7 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ApiClientProvider } from '@ledova/shared';
 import { DirectoryScreen } from './DirectoryScreen';
 import { ShareClassScreen } from './ShareClassScreen';
 import { DirectoryStackNavigator } from '../../navigation/DirectoryStackNavigator';
@@ -84,7 +85,11 @@ afterEach(async () => {
 });
 
 function wrapper({ children }: { children: React.ReactNode }) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+    </QueryClientProvider>
+  );
 }
 
 it.each([
@@ -104,7 +109,7 @@ it.each([
 it('shows verification before reading classes and navigates to the existing Verification destination', async () => {
   eligible = false;
   const view = await render(<DirectoryScreen />, { wrapper });
-  await fireEvent.press(await view.findByText('Open Verification'));
+  await fireEvent.press(await view.findByText('Verification'));
   expect(mockParentNavigate).toHaveBeenCalledWith('InvestorEligibility');
   expect(get.mock.calls.map(([url]) => url)).toEqual([eligibilityUrl]);
 });
@@ -131,7 +136,7 @@ it.each([eligibilityUrl, listUrl, `${listUrl}2`])(
     failure = url;
     const view = await render(<DirectoryScreen />, { wrapper });
     expect(await view.findByText(/The directory could not be loaded/)).toBeTruthy();
-    expect(view.queryByText('No share classes available')).toBeNull();
+    expect(view.queryByText('No share classes available.')).toBeNull();
     expect(view.queryByText('Ordinary shares')).toBeNull();
     expect(view.queryByText('Verify your investor status')).toBeNull();
     failure = null;
@@ -154,7 +159,8 @@ it.each([`https://example.test${listUrl}?page=1`, `https://example.test${listUrl
 it('shows a reliable empty directory only after both reads succeed', async () => {
   pages = { 1: { results: [], next: null } };
   const view = await render(<DirectoryScreen />, { wrapper });
-  expect(await view.findByText('No share classes available')).toBeTruthy();
+  expect(await view.findByText('No share classes available.')).toBeTruthy();
+  expect(view.getByText('Share classes')).toBeTruthy();
   expect(view.queryByText('Verify your investor status')).toBeNull();
 });
 

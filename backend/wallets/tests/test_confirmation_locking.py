@@ -116,16 +116,14 @@ class ConfirmationChecks(WalletFinalityFixture):
         self.assertTrue(self.repair())
 
     def test_failure_after_status_commit_keeps_balance_repair_durable(self):
-        for boundary in ("_verify_holding_balance", "_update_snapshot_on_confirmation"):
-            with self.subTest(boundary=boundary):
-                self.balance = Decimal("7.999979")
-                with patch.object(
-                    transaction_confirmation, boundary, side_effect=RuntimeError("Synthetic interruption")
-                ):
-                    with self.assertRaisesRegex(RuntimeError, "Synthetic interruption"):
-                        self.finish()
-                self.assertEqual(self.transactions()[0]["status"], "confirmed")
-                self.assertIsNotNone(self.transactions()[0]["balance_reconciliation_token"])
+        self.balance = Decimal("7.999979")
+        with patch.object(
+            transaction_confirmation, "_verify_holding_balance", side_effect=RuntimeError("Synthetic interruption")
+        ):
+            with self.assertRaisesRegex(RuntimeError, "Synthetic interruption"):
+                self.finish()
+        self.assertEqual(self.transactions()[0]["status"], "confirmed")
+        self.assertIsNotNone(self.transactions()[0]["balance_reconciliation_token"])
         self.assertEqual(self.finish()["status"], "reconciled")
         self.notification.assert_called_once()
         self.assertIsNone(self.transactions()[0]["balance_reconciliation_token"])
@@ -158,7 +156,7 @@ class ConfirmationChecks(WalletFinalityFixture):
                 _process_transactions(
                     self.wallet, [{"tx_hash": self.signed_transfer.hash.to_0x_hex(), "amount": "900"}]
                 ),
-                {"status": "success", "transactions": 0, "snapshots": 0},
+                {"status": "success", "transactions": 0},
             )
         self.assertEqual(self.transactions()[0]["amount"], Decimal("2"))
 

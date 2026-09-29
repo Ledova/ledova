@@ -6,11 +6,10 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 
-from assets.models import Asset
 from authentication.email import normalize_email
 from authentication.managers.user import EmailLookupResult, EmailLookupState
 from authentication.services import TokenService
-from users.models import FavouriteAsset, FinancialProfile, UserAccount, UserProfile
+from users.models import FinancialProfile, UserAccount, UserProfile
 
 User = get_user_model()
 
@@ -54,16 +53,6 @@ class UserMutationLifecycleTest(APITestCase):
             account_number="LIFECYCLE-ACCOUNT",
             user_profile=self.owner_profile,
         )
-        self.asset = Asset.objects.create(
-            symbol="LIFECYCLE",
-            name="Lifecycle asset",
-            asset_type="tokenized_security",
-            is_active=True,
-        )
-        self.favourite = FavouriteAsset.objects.create(
-            user_account=self.account,
-            asset=self.asset,
-        )
 
     def detail_urls(self):
         return (
@@ -82,7 +71,6 @@ class UserMutationLifecycleTest(APITestCase):
         self.assertTrue(UserProfile.objects.filter(pk=self.owner_profile.pk).exists())
         self.assertTrue(FinancialProfile.objects.filter(pk=self.financial_profile.pk).exists())
         self.assertTrue(UserAccount.objects.filter(pk=self.account.pk).exists())
-        self.assertTrue(FavouriteAsset.objects.filter(pk=self.favourite.pk).exists())
 
         self.account.refresh_from_db()
         self.assertEqual(self.account.user_profile_id, self.owner_profile.pk)
@@ -133,7 +121,6 @@ class UserMutationLifecycleTest(APITestCase):
         self.assertFalse(OutstandingToken.objects.filter(user=self.owner, blacklistedtoken__isnull=True).exists())
         self.assertTrue(FinancialProfile.objects.filter(pk=self.financial_profile.pk).exists())
         self.assertTrue(UserAccount.objects.filter(pk=self.account.pk).exists())
-        self.assertTrue(FavouriteAsset.objects.filter(pk=self.favourite.pk).exists())
         self.assertEqual(self.account.user_profile_id, self.owner_profile.pk)
 
     def test_account_deletion_fails_before_mutation_when_tombstone_is_unavailable(self):

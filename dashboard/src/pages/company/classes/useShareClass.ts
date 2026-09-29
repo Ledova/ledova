@@ -10,10 +10,10 @@ import {
   downloadTokenRegister,
   deployCompanyToken,
   submitCapitalIncrease,
+  wholeShares,
   type PaginatedResponse,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { wholeShares } from './shareQuantities';
 
 async function everyPage<T>(read: (page: number) => Promise<{ data: PaginatedResponse<T> }>): Promise<T[]> {
   const results: T[] = [];

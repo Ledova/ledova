@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
+import { ApiClientProvider, AUTH_QUERY_KEY, USER_PREFERENCES_QUERY_KEY } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { clearTokens } from '../../services/tokenStorage';
 import { resetFiles } from '../../testSupport/documentFiles';
@@ -20,7 +21,10 @@ const mockLock = {
   setEnabled: jest.fn(),
 };
 jest.mock('../../contexts', () => ({ ...jest.requireActual('../../contexts'), useAppLock: () => mockLock }));
-jest.mock('../../hooks/useAuth', () => ({ useAuth: () => ({ isAuthenticated: true }) }));
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
+  useAuth: () => ({ isAuthenticated: true }),
+}));
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ reset: mockReset }) }));
 jest.mock('../user-profile/components/VerificationModal', () => ({ VerificationModal: () => null }));
 jest.mock('expo-file-system', () => jest.requireActual('../../testSupport/documentFiles').nativeFileSystem);
@@ -29,7 +33,7 @@ jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), patc
 jest.mock('../../services/tokenStorage', () => ({ clearTokens: jest.fn() }));
 
 const PROFILE = '/api/user-profiles/';
-const PREFERENCES = '/api/notification-preferences/';
+const PREFERENCES = '/api/user-preferences/';
 const PASSWORD = '/api/change-password/';
 const DELETE = '/api/user-profiles/delete-account/';
 const EXPORT = '/api/user-profiles/export-data/';
@@ -61,6 +65,7 @@ beforeEach(() => {
   client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false, gcTime: Infinity } },
   });
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   profileFailure = false;
   preferencesFailure = false;
   transactionAlerts = false;
@@ -93,7 +98,11 @@ afterEach(async () => {
 });
 
 async function screen(element: React.ReactElement) {
-  return render(<QueryClientProvider client={client}>{element}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>{element}</ApiClientProvider>
+    </QueryClientProvider>,
+  );
 }
 
 async function settingsScreen() {
@@ -193,7 +202,7 @@ it('suppresses stale notification controls after a failed refresh', async () => 
   const view = await settingsScreen();
   expect(view.getByLabelText('Transaction alerts').props.value).toBe(true);
   preferencesFailure = true;
-  await act(() => client.invalidateQueries({ queryKey: ['notificationPreferences'] }));
+  await act(() => client.invalidateQueries({ queryKey: USER_PREFERENCES_QUERY_KEY }));
   expect(await view.findByText('Your notification settings could not be loaded.')).toBeTruthy();
   expect(view.queryByLabelText('Transaction alerts')).toBeNull();
 });
@@ -208,6 +217,57 @@ it('reports a notification write refusal without changing its known saved value'
   transactionAlerts = true;
   await fireEvent(view.getByLabelText('Transaction alerts'), 'valueChange', true);
   await waitFor(() => expect(view.getByLabelText('Transaction alerts').props.value).toBe(true));
+});
+
+it('hints each settings switch with the sentence beside it', async () => {
+  const view = await settingsScreen();
+  expect(view.getByLabelText('Touch ID sign in').props.accessibilityHint).toBe(
+    'Sign in with Touch ID instead of your password.',
+  );
+  expect(view.getByLabelText('App lock').props.accessibilityHint).toBe(
+    'Require Touch ID after the app goes into the background.',
+  );
+  expect(view.getByLabelText('Transaction alerts').props.accessibilityHint).toBe(
+    'Notifications for transaction status changes.',
+  );
+});
+
+it('holds the alerts switch while its save is pending', async () => {
+  const view = await settingsScreen();
+  const saving = deferred<{ data: object }>();
+  jest.mocked(apiClient.post).mockReturnValueOnce(saving.promise);
+  try {
+    await fireEvent(view.getByLabelText('Transaction alerts'), 'valueChange', true);
+    await waitFor(() => expect(view.getByLabelText('Transaction alerts').props.disabled).toBe(true));
+    expect(view.getByLabelText('Transaction alerts').props.value).toBe(false);
+  } finally {
+    transactionAlerts = true;
+    await act(() => saving.resolve({ data: {} }));
+  }
+  await waitFor(() => {
+    expect(view.getByLabelText('Transaction alerts').props.disabled).toBe(false);
+    expect(view.getByLabelText('Transaction alerts').props.value).toBe(true);
+  });
+  expect(apiClient.post).toHaveBeenCalledTimes(1);
+});
+
+it.each([
+  ['Touch ID sign in', mockLock.enableBiometricLogin],
+  ['App lock', mockLock.setEnabled],
+] as const)('holds both security switches while %s is saving', async (label, save) => {
+  const saving = deferred<boolean>();
+  save.mockReturnValueOnce(saving.promise);
+  const view = await settingsScreen();
+  try {
+    await fireEvent(view.getByLabelText(label), 'valueChange', true);
+    await waitFor(() => expect(view.getByLabelText('Touch ID sign in').props.disabled).toBe(true));
+    expect(view.getByLabelText('App lock').props.disabled).toBe(true);
+  } finally {
+    await act(() => saving.resolve(true));
+  }
+  await waitFor(() => expect(view.getByLabelText('Touch ID sign in').props.disabled).toBe(false));
+  expect(view.getByLabelText('App lock').props.disabled).toBe(false);
+  expect(save).toHaveBeenCalledTimes(1);
 });
 
 it('validates password confirmation before writing and retains all fields on refusal', async () => {
@@ -237,8 +297,8 @@ it('blocks password duplicate submission and all dismissals until the request se
   await fireEvent.press(view.getByText('Save password'));
   await view.findByText('Saving…');
   await fireEvent.press(view.getByText('Cancel'));
-  await fireEvent.press(view.getByTestId('account-backdrop-Change password', { includeHiddenElements: true }));
-  const modal = view.getByTestId('account-modal-Change password');
+  await fireEvent.press(view.getByTestId('modal-backdrop-Change password', { includeHiddenElements: true }));
+  const modal = view.getByTestId('modal-Change password');
   await fireEvent(modal, 'requestClose');
   await fireEvent.press(view.getByText('Saving…'));
   expect(view.getByLabelText('Current password').props.editable).toBe(false);

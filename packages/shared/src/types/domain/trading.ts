@@ -24,31 +24,12 @@ export type WalletTokenBalance = ApiSchema<'TradingWalletTokenBalance'>;
 
 export type WalletTokenBalancesResponse = ApiResponse<'api_v1_trading_wallets_balances_retrieve'>;
 
-export type MarketData = ApiResponse<'api_v1_trading_tokens_market_data_retrieve'>;
-
 export type SwapOrder = ApiSchema<'SwapOrderList'>;
 
 export type EIP712Domain = ApiSchema<'SigningDomain'>;
 
-export type EIP712TypeField = ApiSchema<'SigningTypes'>[string][number];
-
-export type EIP712Types = ApiSchema<'SigningTypes'>;
-
-export type SwapOrderMessage = ApiSchema<'SwapMessage'>;
-
-export type SigningChallengePurpose =
-  ApiSchema<'OrderCreateChallenge'>['purpose'] | ApiSchema<'OrderActionChallenge'>['purpose'];
-
-export type SigningChallengeTypedData = Pick<ApiSchema<'OrderCreateChallenge'>, 'domain' | 'types' | 'message'>;
-
 export type CreateOrderMessageResponse = ApiSchema<'OrderCreateChallenge'>;
 
 export type SignedCreateOrderRequest = ApiRequest<'api_v1_trading_orders_create_create'>;
-
-export type ShareTokenTransferTokenInfo = ApiSchema<'TransferTokenInfo'>;
-
-export type ShareTokenTransferTransactionData = ApiSchema<'PreparedTokenTransaction'>;
-
-export type ShareTokenTransferPrepareResponse = ApiResponse<'api_v1_trading_transfers_prepare_create'>;
 
 export type ApprovalTransaction = ApiSchema<'ApprovalTransaction'>;

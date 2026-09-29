@@ -80,7 +80,7 @@ class UnknownTokenQuarantineTest(APITestCase):
     def test_unknown_contract_becomes_an_unverified_asset_with_its_deployment_and_no_holding(self):
         result = self.sync(transfer("0xunknown", UNKNOWN, "MYSTERY"))
 
-        self.assertEqual(result, {"status": "success", "transactions": 1, "snapshots": 0, "holdings": 0})
+        self.assertEqual(result, {"status": "success", "transactions": 1, "holdings": 0})
         asset = Asset.objects.get(symbol="MYSTERY")
         self.assertFalse(asset.is_verified)
         self.assertEqual((asset.asset_type, asset.decimals, asset.name), ("erc20_token", 6, "MYSTERY"))
@@ -172,7 +172,7 @@ class UnknownTokenQuarantineTest(APITestCase):
             result = self.sync(transfer("0xoff", REAL_USDC, "USDC"))
 
         self.assertEqual(result["status"], "error")
-        self.assertEqual((result["transactions"], result["snapshots"], result["holdings"]), (0, 0, 0))
+        self.assertEqual((result["transactions"], result["holdings"]), (0, 0))
         self.assertIn("history", result["error"])
         self.assertIn("switched off", "\n".join(logs.output))
         self.assertFalse(Transaction.objects.filter(tx_hash="0xoff").exists())
@@ -205,7 +205,7 @@ class UnknownTokenQuarantineTest(APITestCase):
 
                 result = self.sync(transfer("0xbasefake", REAL_USDC, "USDC"), wallet=base)
 
-                self.assertEqual(result, {"status": "success", "transactions": 1, "snapshots": 0, "holdings": 0})
+                self.assertEqual(result, {"status": "success", "transactions": 1, "holdings": 0})
                 fake = Transaction.objects.get(tx_hash="0xbasefake").asset
                 self.assertNotEqual(fake, self.usdc)
                 self.assertEqual((fake.symbol, fake.is_verified), ("USDC-a0b866", False))

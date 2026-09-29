@@ -18,12 +18,13 @@ import {
   WALLET_SIGNING_PREFERENCE,
   getWalletSigningPreferenceLabel,
   DESIGN_TOKENS,
+  useCurrency,
 } from '@ledova/shared';
-import { useCurrency } from '@hooks/useCurrency';
 
 const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
 import type { Wallet as WalletType } from '@ledova/shared';
 import { Modal } from '@components/Modal';
+import { Row, Rows } from '@components/Ledger';
 
 interface EditWalletModalProps {
   readBlocked?: boolean;
@@ -75,70 +76,45 @@ export function EditWalletModal({
       confirmDisabled={readBlocked}
       onConfirm={handleSave}
     >
-      <div className="space-y-5">
+      <div className="space-y-4">
         {notice}
         {error && (
           <p role="alert" className="text-sm text-error-light">
             {error}
           </p>
         )}
-        <div className="flex flex-col items-center gap-2 py-2">
-          <ChainIcon size={48} className="text-info-light" weight="light" />
-          <span className="text-xl font-semibold text-text-primary">{formatDisplayCurrency(marketValue)}</span>
-        </div>
-
-        <div className="space-y-0">
-          <div className="flex items-center justify-between py-2.5 border-b border-border-subtle">
-            <span className="text-sm text-text-muted">Address</span>
-            <span className="text-sm font-medium text-text-primary">{formatWalletAddressMedium(wallet.address)}</span>
-          </div>
-
-          <div className="flex items-center justify-between py-2.5 border-b border-border-subtle">
-            <span className="text-sm text-text-muted">Balance</span>
-            <span className="text-sm font-medium text-text-primary">
-              {formatCryptoBalance(wallet.nativeBalance, chainShortName)}
+        <Rows>
+          <Row label="Value">
+            <span className="inline-flex items-center gap-1.5">
+              <ChainIcon size={ICON_SM} className="text-text-muted" />
+              {formatDisplayCurrency(marketValue)}
             </span>
-          </div>
+          </Row>
+          <Row label="Address">{formatWalletAddressMedium(wallet.address)}</Row>
+          <Row label="Balance">{formatCryptoBalance(wallet.nativeBalance, chainShortName)}</Row>
+          <Row label="Signing preference">
+            <span className="inline-flex items-center gap-1.5">
+              {getWalletSigningPreferenceLabel(wallet.signingPreference)}
+              {wallet.signingPreference &&
+                (isHardware ? (
+                  <HardDriveIcon size={ICON_SM} weight="bold" className="text-text-secondary" />
+                ) : (
+                  <CloudIcon size={ICON_SM} weight="bold" className="text-text-secondary" />
+                ))}
+            </span>
+          </Row>
+          <Row label="Last Sync">{formatDate(wallet.lastSyncedAt)}</Row>
+          <Row label="Verification">
+            <span
+              className={`inline-flex items-center gap-1.5 ${isVerified ? 'text-success-light' : 'text-warning-light'}`}
+            >
+              {isVerified ? 'Address verified' : 'Pending'}
+              {isVerified ? <ShieldCheckIcon size={ICON_SM} /> : <ShieldIcon size={ICON_SM} />}
+            </span>
+          </Row>
+        </Rows>
 
-          <div className="flex items-center justify-between py-2.5 border-b border-border-subtle">
-            <span className="text-sm text-text-muted">Signing preference</span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm font-medium text-text-primary">
-                {getWalletSigningPreferenceLabel(wallet.signingPreference)}
-              </span>
-              {wallet.signingPreference && (
-                <span className="inline-flex items-center justify-center rounded bg-surface-tertiary p-1">
-                  {isHardware ? (
-                    <HardDriveIcon size={ICON_SM} weight="bold" className="text-text-secondary" />
-                  ) : (
-                    <CloudIcon size={ICON_SM} weight="bold" className="text-text-secondary" />
-                  )}
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between py-2.5 border-b border-border-subtle">
-            <span className="text-sm text-text-muted">Last Sync</span>
-            <span className="text-sm font-medium text-text-primary">{formatDate(wallet.lastSyncedAt)}</span>
-          </div>
-
-          <div className="flex items-center justify-between py-2.5">
-            <span className="text-sm text-text-muted">Verification</span>
-            <div className="flex items-center gap-1.5">
-              <span className={`text-sm font-medium ${isVerified ? 'text-success-light' : 'text-warning-light'}`}>
-                {isVerified ? 'Address verified' : 'Pending'}
-              </span>
-              {isVerified ? (
-                <ShieldCheckIcon size={ICON_SM} className="text-success-light" />
-              ) : (
-                <ShieldIcon size={ICON_SM} className="text-warning-light" />
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-2 pt-2">
+        <div className="space-y-1">
           <label className="text-sm font-medium text-text-primary">Wallet Name</label>
           <input
             type="text"
@@ -147,7 +123,7 @@ export function EditWalletModal({
             maxLength={100}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full bg-surface-tertiary border border-border rounded-lg px-3 py-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-mid"
+            className="block w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid"
             placeholder="Enter wallet name (optional)"
           />
           <p className="text-xs text-text-muted">Give your wallet a memorable name</p>

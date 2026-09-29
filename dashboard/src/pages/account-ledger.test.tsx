@@ -5,18 +5,24 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import {
+  ApiClientProvider,
   AUTH_QUERY_KEY,
   AUTH_ENDPOINTS,
   USER_PROFILE_ENDPOINTS,
-  NOTIFICATION_PREFERENCES_ENDPOINTS,
+  USER_PREFERENCES_ENDPOINTS,
+  USER_PREFERENCES_QUERY_KEY,
 } from '@ledova/shared';
+import apiClient from '@services/apiClient';
 import UserProfilePage from './user-profile';
 import SettingsPage from './settings';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn(), post: vi.fn() }));
 const navigate = vi.hoisted(() => vi.fn());
 vi.mock('@services/apiClient', () => ({ default: api }));
-vi.mock('@hooks/useAuth', () => ({ useAuth: () => ({ isAuthenticated: true }) }));
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
+  useAuth: () => ({ isAuthenticated: true }),
+}));
 vi.mock('@hooks/useDocuments', () => ({ useDocumentsEnabled: () => false }));
 vi.mock('./user-profile/components/IdentityVerificationModal', () => ({
   IdentityVerificationModal: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
@@ -47,9 +53,12 @@ function show(page: 'profile' | 'settings') {
     defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false } },
   });
   clients.push(client);
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   render(
     <QueryClientProvider client={client}>
-      <MemoryRouter>{page === 'profile' ? <UserProfilePage /> : <SettingsPage />}</MemoryRouter>
+      <ApiClientProvider client={apiClient}>
+        <MemoryRouter>{page === 'profile' ? <UserProfilePage /> : <SettingsPage />}</MemoryRouter>
+      </ApiClientProvider>
     </QueryClientProvider>,
   );
   return client;
@@ -59,7 +68,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   api.get.mockImplementation(async (url: string) => {
     if (url === USER_PROFILE_ENDPOINTS.BASE) return { data: { results: [profile], next: null } };
-    if (url === NOTIFICATION_PREFERENCES_ENDPOINTS.BASE) return { data: { transactionAlerts: true } };
+    if (url === USER_PREFERENCES_ENDPOINTS.BASE) return { data: { transactionAlerts: true } };
     throw new Error(`Unexpected read ${url}`);
   });
   api.patch.mockResolvedValue({ data: profile });
@@ -172,12 +181,50 @@ it('retains the confirmed preference when saving fails and allows retry', async 
   expect(screen.queryByRole('alert')).toBeNull();
 });
 
+it('describes the alerts switch with the sentence beside it', async () => {
+  show('settings');
+  expect(
+    await screen.findByRole('switch', {
+      name: 'Transaction alerts',
+      description: 'Notifications for transaction status changes.',
+    }),
+  ).toBeTruthy();
+});
+
+it('holds the switch while the preference is saving', async () => {
+  let save!: () => void;
+  api.post.mockReturnValueOnce(
+    new Promise((resolve) => {
+      save = () => resolve({ data: {} });
+    }),
+  );
+  show('settings');
+  const control = (await screen.findByRole('switch', { name: 'Transaction alerts' })) as HTMLButtonElement;
+  fireEvent.click(control);
+  await waitFor(() => expect(control.disabled).toBe(true));
+  expect(control.getAttribute('aria-checked')).toBe('true');
+  fireEvent.click(control);
+  expect(api.post).toHaveBeenCalledExactlyOnceWith(USER_PREFERENCES_ENDPOINTS.BASE, { transactionAlerts: false });
+  api.get.mockResolvedValue({ data: { transactionAlerts: false } });
+  await act(async () => save());
+  await waitFor(() => {
+    expect(control.disabled).toBe(false);
+    expect(control.getAttribute('aria-checked')).toBe('false');
+  });
+});
+
+it('reaches Profile from its settings row', async () => {
+  show('settings');
+  await screen.findByRole('switch');
+  expect(screen.getByRole('link', { name: 'Profile' }).getAttribute('href')).toBe('/user-profile');
+});
+
 it('hides a stale preference after refresh failure', async () => {
   const client = show('settings');
   await screen.findByRole('switch');
   api.get.mockRejectedValueOnce(new Error('synthetic refresh failure'));
   await act(async () => {
-    await client.invalidateQueries({ queryKey: ['notificationPreferences'] });
+    await client.invalidateQueries({ queryKey: USER_PREFERENCES_QUERY_KEY });
   });
   expect((await screen.findByRole('alert')).textContent).toContain('could not be loaded');
   expect(screen.queryByRole('switch')).toBeNull();

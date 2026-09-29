@@ -1,11 +1,10 @@
 import React, { useEffect } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
-import { ShieldCheckIcon, WarningCircleIcon } from 'phosphor-react-native';
+import { WarningCircleIcon } from 'phosphor-react-native';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { useIdentityVerification } from '../../../hooks/useIdentityVerification';
 import { useIsFocused } from '@react-navigation/native';
-import { CustomModal } from '../../../components/modal';
-import { PrimaryButton } from '../../../components/buttons';
+import { CustomModal, useDialogStyles } from '../../../components/modal';
 import { StatusBanners } from '../../signup/identity-verification/components/StatusBanners';
 import { VerificationFormModal } from '../../signup/identity-verification/components/VerificationFormModal';
 
@@ -19,76 +18,21 @@ export function VerificationModal({ visible, onClose, onRefresh }: VerificationM
   const isFocused = useIsFocused();
   const active = visible && isFocused;
   const theme = useAppTheme();
+  const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
-    modalHeader: {
-      alignItems: 'center',
-      paddingVertical: theme.spacing.md,
-    },
-    modalIconStyle: {
-      marginBottom: theme.spacing.md,
-    },
-    modalTitle: {
-      fontSize: theme.fontSize.xl,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-      marginBottom: theme.spacing.sm,
-      textAlign: 'center',
-    },
-    modalSubtitle: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      textAlign: 'center',
-      lineHeight: theme.lineHeight.normal * theme.fontSize.sm,
-    },
-    modalLoading: {
-      alignItems: 'center',
-      paddingVertical: theme.spacing.xl,
-    },
-    modalLoadingText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      marginTop: theme.spacing.md,
-    },
-    modalError: {
+    loading: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: theme.colors.error.backgroundSubtle,
-      borderWidth: 1,
-      borderColor: theme.colors.form.borderError,
-      borderRadius: theme.borderRadius.md,
-      padding: theme.spacing.md,
-      marginBottom: theme.spacing.lg,
-    },
-    modalErrorText: {
-      flex: 1,
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.form.error,
-      marginLeft: theme.spacing.sm,
-    },
-    retryButtonContainer: {
-      marginTop: theme.spacing.md,
-      width: '100%',
-    },
-    infoBox: {
-      padding: theme.spacing.lg,
-      backgroundColor: theme.colors.surface.tertiary,
-      borderRadius: theme.borderRadius.lg,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-    },
-    infoBoxTitle: {
-      fontSize: theme.fontSize.base,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-      marginBottom: theme.spacing.md,
-    },
-    infoBoxList: {
       gap: theme.spacing.sm,
     },
-    infoBoxItem: {
+    needs: {
+      gap: theme.spacing.xs,
+    },
+    need: {
+      fontFamily: theme.fontFamily.regular,
       fontSize: theme.fontSize.sm,
+      lineHeight: 21,
       color: theme.colors.text.secondary,
-      lineHeight: theme.lineHeight.normal * theme.fontSize.sm,
     },
   }));
   const {
@@ -142,7 +86,6 @@ export function VerificationModal({ visible, onClose, onRefresh }: VerificationM
 
   const showStatusBanner = justSubmitted || hasSubmitted || isPending || isOnHold || isRejected || isVerified;
   const showInitialPhase = !showStatusBanner && !isLoadingStatus;
-  const showModalFooter = showInitialPhase && !isLaunching;
 
   const showPendingBanner = (justSubmitted || (isPending && !isVerified)) && !isRejected;
   const showOnHoldBanner = isOnHold && !justSubmitted;
@@ -153,44 +96,35 @@ export function VerificationModal({ visible, onClose, onRefresh }: VerificationM
     <>
       <CustomModal
         visible={active && !showVerificationForm}
+        title="Identity Verification"
         onClose={handleClose}
-        showFooter={showModalFooter}
-        cancelLabel="Skip"
-        confirmLabel="Start"
-        onConfirm={handleStartVerification}
+        showFooter={!isLaunching}
+        cancelLabel={showInitialPhase ? 'Skip' : 'Close'}
+        confirmLabel={showRetryBanner ? 'Retry Verification' : 'Start'}
+        onConfirm={showInitialPhase || showRetryBanner ? handleStartVerification : undefined}
         confirmLoading={isLaunching}
         confirmDisabled={isLaunching}
       >
-        <View style={styles.modalHeader}>
-          <ShieldCheckIcon
-            size={theme.icon.sizes.xxl}
-            color={theme.colors.interactive.active}
-            weight={theme.icon.weights.regular}
-            style={styles.modalIconStyle}
-          />
-          <Text style={styles.modalTitle}>Identity Verification</Text>
-          <Text style={styles.modalSubtitle}>
-            We need to verify your identity to comply with financial regulations and protect your account.
-          </Text>
-        </View>
+        <Text style={text.muted}>
+          We need to verify your identity to comply with financial regulations and protect your account.
+        </Text>
 
         {(isLaunching || isLoadingStatus) && (
-          <View style={styles.modalLoading}>
-            <ActivityIndicator size="large" color={theme.colors.interactive.active} />
-            <Text style={styles.modalLoadingText}>
-              {isLaunching ? 'Preparing verification...' : 'Loading status...'}
-            </Text>
+          <View style={styles.loading}>
+            <ActivityIndicator size="small" color={theme.colors.interactive.active} />
+            <Text style={text.muted}>{isLaunching ? 'Preparing verification...' : 'Loading status...'}</Text>
           </View>
         )}
 
         {sdkError && (
-          <View style={styles.modalError}>
+          <View style={text.line}>
             <WarningCircleIcon size={theme.icon.sizes.md} color={theme.colors.status.error.icon} weight="regular" />
-            <Text style={styles.modalErrorText}>{sdkError}</Text>
+            <Text style={[text.error, text.lineText]}>{sdkError}</Text>
           </View>
         )}
 
         <StatusBanners
+          plain
           isVerified={isVerified}
           showPendingBanner={showPendingBanner}
           showOnHoldBanner={showOnHoldBanner}
@@ -199,22 +133,14 @@ export function VerificationModal({ visible, onClose, onRefresh }: VerificationM
           rejectionLabels={status?.rejectionLabels}
         />
 
-        {showRetryBanner && (
-          <View style={styles.retryButtonContainer}>
-            <PrimaryButton onPress={handleStartVerification} loading={isLaunching} fullWidth>
-              Retry Verification
-            </PrimaryButton>
-          </View>
-        )}
-
         {showInitialPhase && !isLaunching && (
-          <View style={styles.infoBox}>
-            <Text style={styles.infoBoxTitle}>What You&apos;ll Need:</Text>
-            <View style={styles.infoBoxList}>
-              <Text style={styles.infoBoxItem}>{'\u2022'} A valid government-issued ID</Text>
-              <Text style={styles.infoBoxItem}>{'\u2022'} Good lighting for clear photos</Text>
-              <Text style={styles.infoBoxItem}>{'\u2022'} About 3-5 minutes</Text>
-            </View>
+          <View style={styles.needs}>
+            <Text accessibilityRole="header" style={text.heading}>
+              What You&apos;ll Need:
+            </Text>
+            <Text style={styles.need}>{'\u2022'} A valid government-issued ID</Text>
+            <Text style={styles.need}>{'\u2022'} Good lighting for clear photos</Text>
+            <Text style={styles.need}>{'\u2022'} About 3-5 minutes</Text>
           </View>
         )}
       </CustomModal>

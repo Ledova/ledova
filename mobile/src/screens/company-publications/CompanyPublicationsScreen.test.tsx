@@ -13,7 +13,8 @@ let mockAccessError = false;
 const mockNavigate = jest.fn();
 const mockRetryAccess = jest.fn();
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: mockNavigate }) }));
-jest.mock('../../hooks/useUserPreferences', () => ({
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
   useUserPreferences: () => ({
     userAccount: { role: mockRole },
     isLoading: false,
@@ -168,7 +169,7 @@ it('distinguishes an owned company with no publications from a missing company',
   rows = [];
   const view = await render(<CompanyPublicationsScreen />, { wrapper });
   expect(await view.findByText("Nothing has been published to this company's members yet.")).toBeTruthy();
-  expect(view.queryByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeNull();
+  expect(view.queryByText(PUBLICATION_COPY.EMPTY)).toBeNull();
   expect(view.queryByText(PUBLICATION_COPY.OPEN)).toBeNull();
   await cleanup();
   client.clear();
@@ -362,3 +363,13 @@ it.each(['session', 'role', 'unmount'])(
     if (change !== 'unmount') expect(view.queryByText(PUBLICATION_COPY.FAILED)).toBeNull();
   },
 );
+
+it('shows the company name on a publication record as body text under its title', async () => {
+  const view = await render(<CompanyPublicationsScreen />, { wrapper });
+  const title = await view.findByRole('header', { name: statement.title });
+  const record = title.parent!;
+  const name = view.getAllByText(statement.companyName).find((node) => node.parent === record)!;
+  expect(name).toHaveStyle({ fontFamily: 'InstrumentSans_400Regular', fontSize: 14, lineHeight: 21 });
+  expect(name).not.toHaveStyle({ fontSize: 17 });
+  expect(name.props.accessibilityRole).toBeUndefined();
+});

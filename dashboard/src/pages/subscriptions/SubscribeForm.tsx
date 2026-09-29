@@ -1,11 +1,10 @@
-import { Link } from 'react-router-dom';
 import { DESTINATIONS, SUBSCRIPTION_COPY, formatMoney, getErrorMessage } from '@ledova/shared';
 import type { DirectoryOpenOffering, Wallet } from '@ledova/shared';
-import { Row, Rows, Section } from '@components/Ledger';
+import { LinkRow, Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 
 const FIELD_CLASS =
-  'mt-1 w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary ' +
+  'mt-1 block w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary ' +
   'placeholder:text-text-muted focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid';
 
 interface SubscribeFormProps {
@@ -49,9 +48,7 @@ export function SubscribeForm({
         <p className="py-2 text-sm text-text-muted">
           Shares are issued to a verified Base wallet you control. Add and verify one in Wallets before applying.
         </p>
-        <Link to={DESTINATIONS.wallets.path} className="w-fit text-sm text-brand-light underline underline-offset-4">
-          Open Wallets
-        </Link>
+        <LinkRow to={DESTINATIONS.wallets.path} label={DESTINATIONS.wallets.title} />
       </Section>
     );
   }

@@ -144,7 +144,8 @@ describe('the publications a shareholder has been sent', () => {
 
     showPage();
 
-    expect(await screen.findByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeTruthy();
+    expect(await screen.findByText(PUBLICATION_COPY.EMPTY)).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: 'Your notices' })).toBeTruthy();
     expect(screen.queryByText(PUBLICATION_COPY.OPEN)).toBeNull();
   });
 
@@ -187,7 +188,7 @@ describe('the publications a shareholder has been sent', () => {
     showPage();
 
     expect((await screen.findByRole('alert')).textContent).toContain(PUBLICATION_COPY.LIST_FAILED);
-    expect(screen.queryByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeNull();
+    expect(screen.queryByText(PUBLICATION_COPY.EMPTY)).toBeNull();
     failing = false;
     fireEvent.click(screen.getByText(PUBLICATION_COPY.RETRY));
     expect(await screen.findByText('Annual holding statement 2026')).toBeTruthy();
@@ -506,7 +507,7 @@ describe('personal Notices and preserved dividend behavior', () => {
       });
     showPage();
     expect(screen.getByRole('status', { name: 'Loading' })).toBeTruthy();
-    expect(screen.queryByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeNull();
+    expect(screen.queryByText(PUBLICATION_COPY.EMPTY)).toBeNull();
     expect(screen.queryByRole('button', { name: PUBLICATION_COPY.OPEN })).toBeNull();
     await act(async () => finish({ data: { count: 1, next: null, previous: null, results: rows } }));
     expect(await screen.findByText(statement.title)).toBeTruthy();
@@ -520,7 +521,7 @@ describe('personal Notices and preserved dividend behavior', () => {
     const unfiltered = (await listing(1)) as { data: { results: unknown[] } };
     expect(unfiltered.data.results).toHaveLength(1);
     showPage();
-    expect(await screen.findByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeTruthy();
+    expect(await screen.findByText(PUBLICATION_COPY.EMPTY)).toBeTruthy();
     expect(screen.queryByText('Issuer-only paper')).toBeNull();
     expect(apiClient.get).toHaveBeenCalledWith('/api/v1/publications/', { params: { page: 1, addressed: 'me' } });
   });
@@ -541,7 +542,7 @@ describe('personal Notices and preserved dividend behavior', () => {
       pageParams: [1],
     });
     showPage();
-    expect(await screen.findByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeTruthy();
+    expect(await screen.findByText(PUBLICATION_COPY.EMPTY)).toBeTruthy();
     expect(screen.queryByText('Cached issuer-only paper')).toBeNull();
     expect(apiClient.get).toHaveBeenCalledWith('/api/v1/publications/', { params: { page: 1, addressed: 'me' } });
   });
@@ -604,7 +605,7 @@ describe('personal Notices and preserved dividend behavior', () => {
     fireEvent.click(await screen.findByText(PUBLICATION_COPY.LOAD_MORE));
     expect((await screen.findByRole('alert')).textContent).toContain('The list is incomplete.');
     expect(screen.getByText(statement.title)).toBeTruthy();
-    expect(screen.queryByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeNull();
+    expect(screen.queryByText(PUBLICATION_COPY.EMPTY)).toBeNull();
     failing = false;
     fireEvent.click(screen.getByRole('button', { name: 'Try earlier notices again' }));
     expect(await screen.findByText(dividend.title)).toBeTruthy();
@@ -621,10 +622,10 @@ describe('personal Notices and preserved dividend behavior', () => {
     };
     showPage();
     expect(await screen.findByRole('button', { name: PUBLICATION_COPY.LOAD_MORE })).toBeTruthy();
-    expect(screen.queryByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeNull();
+    expect(screen.queryByText(PUBLICATION_COPY.EMPTY)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: PUBLICATION_COPY.LOAD_MORE }));
     expect((await screen.findByRole('alert')).textContent).toContain('The list is incomplete.');
-    expect(screen.queryByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeNull();
+    expect(screen.queryByText(PUBLICATION_COPY.EMPTY)).toBeNull();
     expect(screen.getByRole('button', { name: 'Try earlier notices again' })).toBeTruthy();
   });
 
@@ -640,7 +641,7 @@ describe('personal Notices and preserved dividend behavior', () => {
     expect((await screen.findByRole('alert')).textContent).toContain('could not be refreshed');
     expect(screen.queryByText(resolution.title)).toBeNull();
     expect(screen.queryByRole('button', { name: 'For' })).toBeNull();
-    expect(screen.queryByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeNull();
+    expect(screen.queryByText(PUBLICATION_COPY.EMPTY)).toBeNull();
     listing = read;
     fireEvent.click(screen.getByText(PUBLICATION_COPY.RETRY));
     expect(await screen.findByRole('button', { name: 'For' })).toBeTruthy();
@@ -699,7 +700,10 @@ describe('personal Notices and preserved dividend behavior', () => {
     );
     expect((screen.getByRole('button', { name: PUBLICATION_COPY.CANCEL }) as HTMLButtonElement).disabled).toBe(true);
     await act(async () => reject({ response: { data: { detail: 'Ballot temporarily refused.' } } }));
-    expect((await screen.findByRole('alert')).textContent).toBe('Ballot temporarily refused.');
+    const refusal = await screen.findByRole('alert');
+    expect(refusal.textContent).toBe('Ballot temporarily refused.');
+    expect(refusal.className).toContain('text-error-light');
+    expect(refusal.className).not.toMatch(/\bbg-/);
     expect(client.getQueryState(['publications', 'summary'])?.isInvalidated).toBe(true);
     vi.mocked(apiClient.post).mockImplementation(async () => {
       const voted = {

@@ -9,7 +9,6 @@ from users.serializers.investor_classification import (
     InvestorEligibilitySerializer,
 )
 from users.serializers.notification import NotificationSerializer
-from users.serializers.notification_preferences import NotificationPreferencesSerializer
 from users.serializers.user_account import UserAccountSerializer
 from users.serializers.user_preferences import UserPreferencesSerializer
 from users.serializers.user_profile import UserProfileSerializer
@@ -20,7 +19,6 @@ __all__ = [
     "InvestorClassificationSerializer",
     "InvestorEligibilitySerializer",
     "NotificationSerializer",
-    "NotificationPreferencesSerializer",
     "RegisterDeviceTokenSerializer",
     "UnregisterDeviceTokenSerializer",
     "UserAccountSerializer",

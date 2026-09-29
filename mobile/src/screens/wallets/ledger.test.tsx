@@ -32,8 +32,11 @@ let mockPreferences: {
   isError: boolean;
   refetch: () => Promise<void>;
 };
-jest.mock('../../hooks/useUserPreferences', () => ({ useUserPreferences: () => mockPreferences }));
-jest.mock('../../hooks/useCurrency', () => ({ useCurrency: () => ({ formatDisplayCurrency: () => 'AUD 42.00' }) }));
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
+  useUserPreferences: () => mockPreferences,
+  useCurrency: () => ({ formatDisplayCurrency: () => 'AUD 42.00' }),
+}));
 jest.mock('expo-clipboard', () => ({ setStringAsync: jest.fn() }));
 jest.mock('../../components/qr', () => {
   const { Text, Pressable } = jest.requireActual('react-native');
@@ -152,7 +155,7 @@ it('reports a failed later wallet page and retries the whole ledger before prese
     expect(view.getByText('Your wallets could not be loaded. Try again before continuing.')).toBeTruthy(),
   );
   expect(view.queryByText('Fictional a')).toBeNull();
-  expect(view.queryByText('No Base wallets')).toBeNull();
+  expect(view.queryByText('No Base wallets yet.')).toBeNull();
   failedPage = null;
   await fireEvent.press(view.getByRole('button', { name: 'Try again' }));
   await waitFor(() => expect(view.getByText('Fictional b')).toBeTruthy());
@@ -170,8 +173,8 @@ it.each(['?page=1', '?page=garbage'])('rejects advertised pagination that cannot
 it('shows truthful empty networks and retains Buy and Send only as wallet destinations', async () => {
   pages = { 1: { results: [], next: null } };
   const view = await mount(<WalletsScreen />);
-  await waitFor(() => expect(view.getByText('No Base wallets')).toBeTruthy());
-  expect(view.getByText('No Bitcoin wallets')).toBeTruthy();
+  await waitFor(() => expect(view.getByText('No Base wallets yet.')).toBeTruthy());
+  expect(view.getByText('No Bitcoin wallets yet.')).toBeTruthy();
   await fireEvent.press(view.getByRole('button', { name: 'Buy crypto' }));
   expect(mockNavigate).toHaveBeenCalledWith('Buy', { screen: 'BuySelect' });
   await fireEvent.press(view.getByRole('button', { name: 'Send' }));
@@ -457,12 +460,12 @@ it('does not call unresolved account ownership an empty wallet list', async () =
   mockPreferences = { ...mockPreferences, userAccount: null, isLoading: true };
   const view = await mount(<WalletsScreen />);
   expect(view.getByLabelText('Loading wallets')).toBeTruthy();
-  expect(view.queryByText('No Base wallets')).toBeNull();
+  expect(view.queryByText('No Base wallets yet.')).toBeNull();
   expect(get).not.toHaveBeenCalled();
   mockPreferences = { ...mockPreferences, isLoading: false, isError: true };
   await view.rerender(<WalletsScreen />);
   expect(view.getByText('Your wallets could not be loaded. Try again before continuing.')).toBeTruthy();
-  expect(view.queryByText('No Base wallets')).toBeNull();
+  expect(view.queryByText('No Base wallets yet.')).toBeNull();
   mockPreferences = { ...mockPreferences, userAccount: { uuid: 'owner' }, isError: false };
   await view.rerender(<WalletsScreen />);
   await waitFor(() => expect(view.getByText('Fictional b')).toBeTruthy());

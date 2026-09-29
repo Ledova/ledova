@@ -1,41 +1,24 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Switch, Text, TextInput, View } from 'react-native';
-import { Action, Section } from '../../components/Ledger';
+import { ActivityIndicator, Alert, ScrollView, Text, TextInput, View } from 'react-native';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { USER_PREFERENCES_QUERY_KEY, upsertCurrentUserPreferences, useUserPreferences } from '@ledova/shared';
+import { Action, Section, SwitchRow } from '../../components/Ledger';
 import { useAppLock } from '../../contexts';
-import { AccountModal } from '../account/AccountModal';
+import { apiClient } from '../../services/apiClient';
+import { CustomModal } from '../../components/modal';
 import { useAccountStyles } from '../account/styles';
-import { useNotificationPreferences } from './useNotificationPreferences';
 import { useSettings } from './useSettings';
-
-function Toggle({
-  label,
-  description,
-  value,
-  disabled,
-  onChange,
-}: {
-  label: string;
-  description: string;
-  value: boolean;
-  disabled: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  const styles = useAccountStyles();
-  return (
-    <View style={styles.toggle}>
-      <View style={styles.toggleText}>
-        <Text style={styles.text}>{label}</Text>
-        <Text style={styles.muted}>{description}</Text>
-      </View>
-      <Switch accessibilityLabel={label} value={value} disabled={disabled} onValueChange={onChange} />
-    </View>
-  );
-}
 
 export function SettingsScreen() {
   const styles = useAccountStyles();
   const lock = useAppLock();
-  const notifications = useNotificationPreferences();
+  const preferences = useUserPreferences();
+  const transactionAlerts = preferences.preferences?.transactionAlerts;
+  const queryClient = useQueryClient();
+  const alerts = useMutation({
+    mutationFn: (value: boolean) => upsertCurrentUserPreferences(apiClient, { transactionAlerts: value }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: USER_PREFERENCES_QUERY_KEY }),
+  });
   const settings = useSettings();
   const [modal, setModal] = useState<'password' | 'export' | 'delete' | null>(null);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -128,17 +111,17 @@ export function SettingsScreen() {
           Settings
         </Text>
         <Section title="Security">
-          <Toggle
+          <SwitchRow
             label={`${lock.biometricType} sign in`}
             description={`Sign in with ${lock.biometricType} instead of your password.`}
-            value={lock.hasBiometricLogin}
+            checked={lock.hasBiometricLogin}
             disabled={!lock.biometricsAvailable || securityPending}
             onChange={biometricLogin}
           />
-          <Toggle
+          <SwitchRow
             label="App lock"
             description={`Require ${lock.biometricType} after the app goes into the background.`}
-            value={lock.isEnabled}
+            checked={lock.isEnabled}
             disabled={!lock.biometricsAvailable || securityPending}
             onChange={(value) => void secure(() => lock.setEnabled(value))}
           />
@@ -152,29 +135,29 @@ export function SettingsScreen() {
           )}
         </Section>
         <Section title="Notifications">
-          {notifications.isLoading ? (
+          {preferences.isLoading ? (
             <ActivityIndicator accessibilityLabel="Loading notification settings" />
-          ) : notifications.isError || notifications.transactionAlerts === undefined ? (
+          ) : preferences.isError || transactionAlerts === undefined ? (
             <View style={styles.fields}>
               <Text accessibilityRole="alert" style={styles.error}>
                 Your notification settings could not be loaded.
               </Text>
               <Action
                 label="Try notifications again"
-                disabled={notifications.isFetching}
-                onPress={() => void notifications.retry()}
+                disabled={preferences.isFetching}
+                onPress={() => void preferences.refetch()}
               />
             </View>
           ) : (
-            <Toggle
+            <SwitchRow
               label="Transaction alerts"
               description="Notifications for transaction status changes."
-              value={notifications.transactionAlerts}
-              disabled={notifications.isUpdating || notifications.isFetching}
-              onChange={notifications.toggleTransactionAlerts}
+              checked={transactionAlerts}
+              disabled={alerts.isPending || preferences.isFetching}
+              onChange={(value) => alerts.mutate(value)}
             />
           )}
-          {notifications.updateError && (
+          {alerts.isError && (
             <Text accessibilityRole="alert" style={styles.error}>
               Your notification setting could not be saved. Try again.
             </Text>
@@ -205,7 +188,7 @@ export function SettingsScreen() {
           )}
         </Section>
       </ScrollView>
-      <AccountModal
+      <CustomModal
         visible={modal === 'password'}
         title="Change password"
         busy={busy}
@@ -251,8 +234,8 @@ export function SettingsScreen() {
             {error}
           </Text>
         )}
-      </AccountModal>
-      <AccountModal
+      </CustomModal>
+      <CustomModal
         visible={modal === 'export'}
         title="Export data"
         busy={busy}
@@ -274,8 +257,8 @@ export function SettingsScreen() {
             {error}
           </Text>
         )}
-      </AccountModal>
-      <AccountModal
+      </CustomModal>
+      <CustomModal
         visible={modal === 'delete'}
         title="Delete account"
         busy={busy}
@@ -299,7 +282,7 @@ export function SettingsScreen() {
             {error}
           </Text>
         )}
-      </AccountModal>
+      </CustomModal>
     </>
   );
 }

@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 import { formatDateTime, type TransferOrder } from '@ledova/shared';
-import { AccountModal } from '../../account/AccountModal';
-import { Action, Row } from '../../../components/Ledger';
+import { CustomModal } from '../../../components/modal';
+import { Action, Row, Rows } from '../../../components/Ledger';
 import { marketAmount, marketQuantity } from '../marketData';
 import { useMarketStyles } from '../styles';
 
@@ -18,7 +18,7 @@ export function OrderDetailModal({ visible, onClose, order, onModify, onCancel, 
   const styles = useMarketStyles();
   const open = order && ['open', 'partially_filled'].includes(order.status);
   return (
-    <AccountModal
+    <CustomModal
       visible={visible}
       title="Order details"
       onClose={onClose}
@@ -43,21 +43,23 @@ export function OrderDetailModal({ visible, onClose, order, onModify, onCancel, 
               Waiting for current order and wallet details.
             </Text>
           )}
-          <Row label="Order">{order.orderType === 'buy' ? 'Wanted' : 'For sale'}</Row>
-          <Row label="Status">{order.statusDisplay ?? order.status.replace(/_/g, ' ')}</Row>
-          <Row label="Price per share">{marketAmount(order.pricePerShare)}</Row>
-          <Row label="Total quantity">{marketQuantity(order.quantity)}</Row>
-          <Row label="Minimum fill">{order.minQuantity == null ? 'None' : marketQuantity(order.minQuantity)}</Row>
-          <Row label="Filled">{marketQuantity(order.filledQuantity ?? 0)}</Row>
-          <Row label="Remaining">
-            {order.remainingQuantity == null ? 'Unavailable' : marketQuantity(order.remainingQuantity)}
-          </Row>
-          <Row label="Total value">{marketAmount(order.pricePerShare, order.quantity)}</Row>
-          <Row label="Wallet">{order.walletAddress}</Row>
-          <Row label="Order ID">{order.uuid}</Row>
-          <Row label="Created">{formatDateTime(order.createdAt)}</Row>
+          <Rows>
+            <Row label="Order">{order.orderType === 'buy' ? 'Wanted' : 'For sale'}</Row>
+            <Row label="Status">{order.statusDisplay ?? order.status.replace(/_/g, ' ')}</Row>
+            <Row label="Price per share">{marketAmount(order.pricePerShare)}</Row>
+            <Row label="Total quantity">{marketQuantity(order.quantity)}</Row>
+            <Row label="Minimum fill">{order.minQuantity == null ? 'None' : marketQuantity(order.minQuantity)}</Row>
+            <Row label="Filled">{marketQuantity(order.filledQuantity ?? 0)}</Row>
+            <Row label="Remaining">
+              {order.remainingQuantity == null ? 'Unavailable' : marketQuantity(order.remainingQuantity)}
+            </Row>
+            <Row label="Total value">{marketAmount(order.pricePerShare, order.quantity)}</Row>
+            <Row label="Wallet">{order.walletAddress}</Row>
+            <Row label="Order ID">{order.uuid}</Row>
+            <Row label="Created">{formatDateTime(order.createdAt)}</Row>
+          </Rows>
         </View>
       )}
-    </AccountModal>
+    </CustomModal>
   );
 }

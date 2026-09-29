@@ -3,8 +3,7 @@ from rest_framework import serializers, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from shared.views.base import AuthenticatedModelViewSet
-from users.models import DeviceToken
+from shared.views.base import AuthenticatedGenericViewSet
 from users.serializers import (
     DeviceTokenSerializer,
     RegisterDeviceTokenSerializer,
@@ -13,16 +12,12 @@ from users.serializers import (
 from users.services import register_device_token, unregister_device_token
 
 
-class DeviceTokenViewSet(AuthenticatedModelViewSet):
+class DeviceTokenViewSet(AuthenticatedGenericViewSet):
     serializer_class = DeviceTokenSerializer
-    http_method_names = ["get", "post"]
-    ordering = ["-created_at"]
-    ordering_fields = ["created_at"]
-
-    scoped_model = DeviceToken
-
-    def narrow(self, queryset):
-        return queryset.filter(is_active=True)
+    unscoped_by_the_base_because = (
+        "it serves no queryset: both actions are detail=False and go through users.services.device_tokens, "
+        "which keys the row by its push token, and the unregister delete runs under the caller's own policies."
+    )
 
     @extend_schema(
         request=RegisterDeviceTokenSerializer,

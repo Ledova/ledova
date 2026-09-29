@@ -3,6 +3,7 @@ import { RefreshControl } from 'react-native';
 import { act, cleanup, fireEvent, render, renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
+import { ApiClientProvider } from '@ledova/shared';
 import { useSubscription } from './useApplications';
 import { ApplicationsScreen } from './ApplicationsScreen';
 import { ApplicationDetailScreen } from './ApplicationDetailScreen';
@@ -150,7 +151,11 @@ afterEach(async () => {
   client.clear();
 });
 function wrapper({ children }: { children: React.ReactNode }) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+    </QueryClientProvider>
+  );
 }
 async function refresh(key: string[]) {
   await act(async () => {
@@ -200,11 +205,13 @@ it('suppresses cached application history on a failed refresh and recovers to a 
   await refresh(['subscriptions']);
   expect(await view.findByText(/Your applications could not be loaded/)).toBeTruthy();
   expect(view.queryByText('Draft')).toBeNull();
-  expect(view.queryByText('No applications yet')).toBeNull();
+  expect(view.queryByText('No applications yet.')).toBeNull();
   pages = { 1: { results: [], next: null } };
   failure = null;
   await fireEvent.press(view.getByText('Try again'));
-  await fireEvent.press(await view.findByText('Open Directory'));
+  expect(await view.findByText('No applications yet.')).toBeTruthy();
+  expect(view.getByText('Your applications')).toBeTruthy();
+  await fireEvent.press(view.getByText('Directory'));
   expect(mockParentNavigate).toHaveBeenCalledWith('Directory', { screen: 'DirectoryMain' });
 });
 
@@ -221,6 +228,12 @@ it('opens the selected recorded application and never converts unsafe numeric sh
   expect(await view.findByText('Unavailable')).toBeTruthy();
   await fireEvent.press(view.getByLabelText('Open application 00-EXACT-REF'));
   expect(mockNavigate).toHaveBeenCalledWith('ApplicationDetail', { uuid: 'item-a' });
+});
+
+it('offers the way back to the applications list from the application detail', async () => {
+  const view = await render(<ApplicationDetailScreen />, { wrapper });
+  await fireEvent.press(await view.findByText('Back to Applications'));
+  expect(mockNavigate).toHaveBeenCalledWith('ApplicationsMain');
 });
 
 it('awaits submit and refreshed status, prevents duplicate actions, and keeps refusal available for retry', async () => {
@@ -473,7 +486,7 @@ it('requires another selection when a receiving wallet disappears and clears a d
 it('offers Wallets only after a complete reliable empty wallet read', async () => {
   walletPages = { 1: { results: [], next: null } };
   const view = await render(<ShareClassScreen />, { wrapper });
-  await fireEvent.press(await view.findByText('Open Wallets'));
+  await fireEvent.press(await view.findByText('Wallets'));
   expect(mockParentNavigate).toHaveBeenCalledWith('Wallets', { screen: 'WalletsList' });
   expect(view.queryByText('Create application')).toBeNull();
 });
@@ -483,7 +496,7 @@ it('rejects incomplete receiving-wallet pagination without enabling a partial ch
   const view = await render(<ShareClassScreen />, { wrapper });
   expect(await view.findByText(/Your receiving wallets could not be loaded/)).toBeTruthy();
   expect(view.queryByText('Create application')).toBeNull();
-  expect(view.queryByText('Open Wallets')).toBeNull();
+  expect(view.queryByText('Wallets')).toBeNull();
 });
 
 it.each([classUrl, walletsUrl])('blocks draft creation during an in-flight prerequisite refresh of %s', async (url) => {

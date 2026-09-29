@@ -1,7 +1,5 @@
 export const API_CONFIG = {
   DEFAULT_TIMEOUT: 30000,
-  DEFAULT_RETRY_ATTEMPTS: 3,
-  DEFAULT_RETRY_DELAY: 1000,
 } as const;
 
 export const CACHE_TIMING = {
@@ -9,13 +7,9 @@ export const CACHE_TIMING = {
   SHORT_STALE_TIME: 2 * 60 * 1000,
   DEFAULT_STALE_TIME: 5 * 60 * 1000,
   LONG_STALE_TIME: 10 * 60 * 1000,
-  VERY_LONG_STALE_TIME: 30 * 60 * 1000,
-  EXTRA_LONG_STALE_TIME: 24 * 60 * 60 * 1000,
-  SIGNED_URL_REFETCH_INTERVAL: 4 * 60 * 1000,
   DEFAULT_GC_TIME: 2 * 60 * 1000,
   MEDIUM_GC_TIME: 5 * 60 * 1000,
   LONG_GC_TIME: 10 * 60 * 1000,
-  VERY_LONG_GC_TIME: 30 * 60 * 1000,
   EXTRA_LONG_GC_TIME: 24 * 60 * 60 * 1000,
 } as const;
 
@@ -55,17 +49,11 @@ export const IDENTITY_VERIFICATION_ENDPOINTS = {
 export const INVESTOR_CLASSIFICATION_ENDPOINTS = {
   BASE: '/api/investor-classifications/',
   DETAIL: (uuid: string) => `/api/investor-classifications/${uuid}/` as const,
-  EVIDENCE: (uuid: string) => `/api/investor-classifications/${uuid}/evidence/` as const,
   ELIGIBILITY: '/api/investor-classifications/eligibility/',
 } as const;
 export const DEVICE_TOKEN_ENDPOINTS = {
-  BASE: '/api/device-tokens/',
   REGISTER: '/api/device-tokens/register/',
   UNREGISTER: '/api/device-tokens/unregister/',
-} as const;
-
-export const NOTIFICATION_PREFERENCES_ENDPOINTS = {
-  BASE: '/api/notification-preferences/',
 } as const;
 
 export const NOTIFICATION_ENDPOINTS = {
@@ -86,11 +74,9 @@ export const OPERATOR_ENDPOINTS = {
 export const COMPANY_ENDPOINTS = {
   BASE: '/api/v1/companies/',
   DETAIL: (uuid: string) => `/api/v1/companies/${uuid}/` as const,
-  STATS: (uuid: string) => `/api/v1/companies/${uuid}/stats/` as const,
   DOCUMENTS: (uuid: string) => `/api/v1/companies/${uuid}/documents/` as const,
   DOCUMENT_DETAIL: (companyUuid: string, documentUuid: string) =>
     `/api/v1/companies/${companyUuid}/documents/${documentUuid}/` as const,
-  APPLICATION_STATUS: (uuid: string) => `/api/v1/companies/${uuid}/application-status/` as const,
   SUBMIT: (uuid: string) => `/api/v1/companies/${uuid}/submit/` as const,
   RESUBMIT: (uuid: string) => `/api/v1/companies/${uuid}/resubmit/` as const,
   WITHDRAW: (uuid: string) => `/api/v1/companies/${uuid}/withdraw/` as const,
@@ -109,7 +95,6 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   ISSUANCES: (uuid: string) => `/api/v1/tokens/${uuid}/issuances/` as const,
   ISSUE: (uuid: string) => `/api/v1/tokens/${uuid}/issue/` as const,
   CAPITAL_INCREASES: '/api/v1/tokens/capital-increases/',
-  CAPITAL_INCREASE_DETAIL: (uuid: string) => `/api/v1/tokens/capital-increases/${uuid}/` as const,
   CAPITAL_INCREASE_SUBMIT: (uuid: string) => `/api/v1/tokens/capital-increases/${uuid}/submit/` as const,
   ISSUANCE_REQUESTS: '/api/v1/tokens/issuance-requests/',
 } as const;

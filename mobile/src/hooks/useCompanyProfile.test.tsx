@@ -5,7 +5,8 @@ import { apiClient } from '../services/apiClient';
 import { useCompanyProfile } from './useCompanyProfile';
 
 jest.mock('../services/apiClient', () => ({ apiClient: { get: jest.fn() } }));
-jest.mock('./useUserPreferences', () => ({
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
   useUserPreferences: () => ({ userAccount: { role: 'company' }, isLoading: false, isError: false }),
 }));
 const get = jest.mocked(apiClient.get);
@@ -32,7 +33,6 @@ it('does not use an incomplete summary when the company detail fails', async () 
   await waitFor(() => expect(result.current.error).toBe(failure));
   expect(result.current.company).toBeNull();
   expect(result.current.companyUuid).toBe('company-1');
-  expect(get).not.toHaveBeenCalledWith(expect.stringContaining('/stats/'));
 });
 
 it('refreshes list and full detail and exposes failed list reads over cached detail', async () => {

@@ -13,10 +13,10 @@ import {
   getBlockchainDisplayName,
   formatDate,
   getErrorMessage,
+  useCurrency,
 } from '@ledova/shared';
 import type { WalletsStackParamList } from '../../../navigation/WalletsStackNavigator';
-import { Section, Row, Action } from '../../../components/Ledger';
-import { useCurrency } from '../../../hooks/useCurrency';
+import { Section, Row, Rows, Action } from '../../../components/Ledger';
 import { DeleteWalletModal } from './DeleteWalletModal';
 import { DeriveAddressModal } from './DeriveAddressModal';
 import { useWalletsCrud } from '../useWalletsCrud';
@@ -120,8 +120,10 @@ function WalletDetails({ uuid }: { uuid: string }) {
         ) : (
           <>
             <Section title={wallet.name || 'Unnamed wallet'}>
-              <Row label="Network">{getBlockchainDisplayName(getChainShortCode(wallet.chain))}</Row>
-              <Row label="Address">{wallet.address}</Row>
+              <Rows>
+                <Row label="Network">{getBlockchainDisplayName(getChainShortCode(wallet.chain))}</Row>
+                <Row label="Address">{wallet.address}</Row>
+              </Rows>
               <Action label="Copy address" disabled={blocked} onPress={() => void copy()} />
               {copied && <Text style={styles.help}>Copied address</Text>}
               {copyError && (
@@ -129,13 +131,15 @@ function WalletDetails({ uuid }: { uuid: string }) {
                   {copyError}
                 </Text>
               )}
-              <Row label="Balance">
-                {walletBalance(wallet.nativeBalance)} {getChainShortCode(wallet.chain) === 'BTC' ? 'BTC' : 'ETH'}
-              </Row>
-              <Row label="Estimated value">{formatDisplayCurrency(Number(wallet.marketValue))}</Row>
-              <Row label="Signing preference">{getWalletSigningPreferenceLabel(wallet.signingPreference)}</Row>
-              <Row label="Verification">{isVerified ? 'Address verified' : 'Pending'}</Row>
-              <Row label="Last synced">{formatDate(wallet.lastSyncedAt)}</Row>
+              <Rows>
+                <Row label="Balance">
+                  {walletBalance(wallet.nativeBalance)} {getChainShortCode(wallet.chain) === 'BTC' ? 'BTC' : 'ETH'}
+                </Row>
+                <Row label="Estimated value">{formatDisplayCurrency(Number(wallet.marketValue))}</Row>
+                <Row label="Signing preference">{getWalletSigningPreferenceLabel(wallet.signingPreference)}</Row>
+                <Row label="Verification">{isVerified ? 'Address verified' : 'Pending'}</Row>
+                <Row label="Last synced">{formatDate(wallet.lastSyncedAt)}</Row>
+              </Rows>
             </Section>
             <Section title="Wallet name">
               <TextInput

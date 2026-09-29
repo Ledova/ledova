@@ -318,10 +318,21 @@ a replacement. Neither this adapter nor approval sync establishes receipt
 finality or complete same-key writer cutover.
 
 Every read the platform makes before acting asks the share class's own
-registry, through the token's `whitelist()`: issuance execution, transfer
-preparation for both parties and order creation. A stablecoin transfer has no
-company registry to ask, so it checks instead that each party holds a live
-stored approval for at least one company. `GET /api/v1/trading/whitelist/<token>/<address>/status/`
+registry, through the token's `whitelist()`: issuance execution and order
+creation. Wallets > Send refuses a share class outright. A stablecoin sent from
+Wallets > Send has no company registry to ask, so
+`wallets.services.transaction_confirmation.require_stablecoin_approvals` checks
+instead that the sending wallet and the recipient each hold a live stored
+approval for at least one company: when the transfer is prepared, and again when
+the signed transfer is submitted, before the submission is recorded or
+broadcast. A transfer to the operator's receiving wallet, on the chain it is
+configured for, is exempt on both sides, because the stablecoin payment
+instruction names it and nothing approves it; an unset receiving wallet, or one
+on another chain, exempts nothing. The refusal is 403
+`stablecoin_approval_required` and says which side lacks an approval. The recipient's wallet belongs to another account, so the
+lookup runs on the operator connection and answers only yes or no. A submission
+already recorded is not checked again: a repeated request and the recovery sweep
+re-send the bytes the check admitted. `GET /api/v1/trading/whitelist/<token>/<address>/status/`
 answers the same question for the share class at contract address `<token>`,
 for any signed-in user and any address. Creating an order and signing a swap
 also require a live investor classification for the share class's company, from

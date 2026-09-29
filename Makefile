@@ -12,7 +12,7 @@ CLIENT_OPERATIONS_REPORT ?= /tmp/ledova-client-operations.json
 
 .PHONY: help install install-backend install-node-if-missing init-local check-local-env build generate-tokens check check-comments check-layers \
 	check-logging check-schema-responses check-test-shadowing check-docs check-ordinary-shards check-api-types check-self-imports check-mobile-test-awaits test-gates audit test \
-	dev-up dev-down dev-logs contracts-compile contracts-test contracts-deploy-local \
+	dev-up dev-down dev-logs contracts-deploy-local \
 	contracts-deploy-testnet chain-test smoke lint check-type-check \
 	install-schema-environment generate-api-schema check-api-schema update-api-schema update-api-types check-client-operations
 
@@ -206,12 +206,6 @@ dev-down:
 dev-logs:
 	docker compose logs -f
 
-contracts-compile:
-	$(NPM) --prefix contracts run compile
-
-contracts-test:
-	$(NPM) --prefix contracts test
-
 contracts-deploy-local:
 	LOCALHOST_RPC_URL=$(CHAIN_TEST_RPC_URL) $(NPM) --prefix contracts run deploy:local:core
 
@@ -238,7 +232,7 @@ chain-test:
 	LOCALHOST_RPC_URL=$(CHAIN_TEST_RPC_URL) $(NPM) --prefix contracts run deploy:local:core; \
 	set -a; . ./.deployed-contracts.env; set +a; \
 	cd backend && \
-	CHAIN_TEST_RPC_URL=$(CHAIN_TEST_RPC_URL) BLOCKCHAIN_RPC_URL=$(CHAIN_TEST_RPC_URL) BLOCKCHAIN_CHAIN_ID=31337 \
+	CHAIN_TEST_RPC_URL=$(CHAIN_TEST_RPC_URL) BLOCKCHAIN_RPC_URL=$(CHAIN_TEST_RPC_URL) \
 	BLOCKCHAIN_OPERATOR_KEY=$(CHAIN_TEST_OPERATOR_KEY) SECRET_KEY=chain-test STORAGE_BACKEND=local \
 	$(PYTHON) manage.py test tokens.tests.test_chain_integration offerings.tests.test_chain_allotment \
 	    wallets.tests.test_submission_chain tokens.tests.test_chain_journey \

@@ -11,7 +11,7 @@ import {
   useResolutionStatus,
   type Publication,
 } from '@ledova/shared';
-import { Row, Rows, Section, Status } from '@components/Ledger';
+import { Row, Rows, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 
 function ResolutionRecord({ publication }: { publication: Publication }) {
@@ -77,33 +77,32 @@ export function PublicationRecord({
   blocked: boolean;
 }) {
   return (
-    <article className="min-w-0 break-words">
-      <Section title={publication.title}>
-        <p className="text-xs uppercase tracking-wide text-text-muted">{PUBLICATION_KIND_LABELS[publication.kind]}</p>
-        <p className="text-sm text-text-primary">{publication.companyName}</p>
-        <p className="text-sm text-text-muted">
-          {publication.tokenName} ({publication.tokenSymbol})
-        </p>
+    <article className="flex min-w-0 flex-col gap-2 break-words py-4">
+      <h3 className="break-words text-sm font-medium text-text-primary">{publication.title}</h3>
+      <p className="text-xs uppercase tracking-wide text-text-muted">{PUBLICATION_KIND_LABELS[publication.kind]}</p>
+      <p className="text-sm text-text-primary">{publication.companyName}</p>
+      <p className="text-sm text-text-muted">
+        {publication.tokenName} ({publication.tokenSymbol})
+      </p>
+      <Rows>
+        <Row label={PUBLICATION_COPY.RECORD_DATE_LABEL}>{formatDate(publication.recordDate)}</Row>
+        <Row label="Published">{formatDate(publication.createdAt)}</Row>
+      </Rows>
+      <ResolutionRecord publication={publication} />
+      {publication.kind === 'distribution' && (
         <Rows>
-          <Row label={PUBLICATION_COPY.RECORD_DATE_LABEL}>{formatDate(publication.recordDate)}</Row>
-          <Row label="Published">{formatDate(publication.createdAt)}</Row>
+          <Row label="Rate per share">
+            <span className="break-all">{describeRate(publication)}</span>
+          </Row>
+          {publication.declaredOn && <Row label="Declared">{formatDate(publication.declaredOn)}</Row>}
+          {publication.paymentDate && <Row label="Payment date">{formatDate(publication.paymentDate)}</Row>}
         </Rows>
-        <ResolutionRecord publication={publication} />
-        {publication.kind === 'distribution' && (
-          <Rows>
-            <Row label="Rate per share">
-              <span className="break-all">{describeRate(publication)}</span>
-            </Row>
-            {publication.declaredOn && <Row label="Declared">{formatDate(publication.declaredOn)}</Row>}
-            {publication.paymentDate && <Row label="Payment date">{formatDate(publication.paymentDate)}</Row>}
-          </Rows>
-        )}
-        <PageAction
-          label={opening ? PUBLICATION_COPY.OPENING : PUBLICATION_COPY.OPEN}
-          onClick={open}
-          disabled={opening || blocked}
-        />
-      </Section>
+      )}
+      <PageAction
+        label={opening ? PUBLICATION_COPY.OPENING : PUBLICATION_COPY.OPEN}
+        onClick={open}
+        disabled={opening || blocked}
+      />
     </article>
   );
 }

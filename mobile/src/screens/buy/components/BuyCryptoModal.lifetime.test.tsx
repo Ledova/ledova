@@ -16,6 +16,7 @@ jest.mock('@ledova/shared', () => ({
   ...jest.requireActual('@ledova/shared'),
   getOnRampWidgetUrl: (...args: unknown[]) => mockWidget(...args),
   getUserVerificationStatus: () => ({ type: 'verified' }),
+  useCurrency: () => ({ formatDisplayCurrency: String }),
 }));
 jest.mock('@tanstack/react-query', () => ({
   ...jest.requireActual('@tanstack/react-query'),
@@ -24,13 +25,13 @@ jest.mock('@tanstack/react-query', () => ({
       ? { data: { data: { results: [{}] } }, isLoading: false }
       : { data: { data: { results: enabled ? mockWallets : [] } }, isLoading: false },
 }));
-jest.mock('../../../hooks/useCurrency', () => ({ useCurrency: () => ({ formatDisplayCurrency: String }) }));
 jest.mock('../../../services/apiClient', () => ({ apiClient: {} }));
 jest.mock('../../../contexts', () => ({
   useAppTheme: () => jest.requireActual('@ledova/shared').DESIGN_TOKENS,
   useThemedStyles: () => ({}),
 }));
 jest.mock('../../../components/modal', () => ({
+  ...jest.requireActual('../../../components/modal'),
   CustomModal: ({
     visible,
     children,

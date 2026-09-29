@@ -10,11 +10,10 @@ import {
   getNextPageParam,
   getErrorMessage,
   CACHE_TIMING,
+  useUserPreferences,
 } from '@ledova/shared';
 import type { CreateWallet, Wallet } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { invalidateHomeDashboard } from '../../utils/queryInvalidation';
-import { useUserPreferences } from '../../hooks/useUserPreferences';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 
 export function useWalletsCrud() {
@@ -48,10 +47,7 @@ export function useWalletsCrud() {
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
   });
 
-  const refresh = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['wallets'] });
-    invalidateHomeDashboard(queryClient);
-  };
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ['wallets'] });
 
   const createMutation = useMutation({
     mutationFn: async ({ data, epoch: captured }: { data: CreateWallet; epoch: number }) => {
@@ -104,7 +100,7 @@ export function useWalletsCrud() {
       });
       if (captured !== getSessionEpoch()) return;
       await refresh();
-      await queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      await queryClient.invalidateQueries({ queryKey: ['all-transactions'] });
     },
   });
   const { mutateAsync } = syncMutation;

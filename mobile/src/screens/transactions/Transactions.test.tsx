@@ -7,8 +7,6 @@ import type { Transaction } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { TransactionsScreen } from './index';
 
-const mockNavigate = jest.fn();
-jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: mockNavigate }) }));
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn() } }));
 jest.mock('../../components/date-picker', () => {
   const { TextInput } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -93,14 +91,13 @@ afterEach(async () => {
   client.clear();
 });
 
-it('opens Notices and reads exact activity independently of an empty wallet list', async () => {
+it('reads exact activity independently of an empty wallet list and leaves Notices to the drawer', async () => {
   wallets = async () => page([]);
   const view = await show();
   expect(await view.findByText('9,007,199,254,740,993.000000000000000001 AUDX')).toBeTruthy();
   expect(view.getByText('Pending')).toBeTruthy();
   expect(reads()).toHaveLength(1);
-  await fireEvent.press(view.getByText('Open Notices'));
-  expect(mockNavigate).toHaveBeenCalledWith('Publications');
+  expect(view.queryByText('Open Notices')).toBeNull();
 });
 it('keeps history usable while wallet filters are still loading', async () => {
   let finish!: (value: unknown) => void;
@@ -181,9 +178,24 @@ it('distinguishes loading from an empty history', async () => {
     });
   const view = await show();
   expect(view.getByText('Loading activity…')).toBeTruthy();
-  expect(view.queryByText('No activity yet')).toBeNull();
+  expect(view.queryByText('No activity yet.')).toBeNull();
   await act(async () => finish(page([])));
-  expect(await view.findByText('No activity yet')).toBeTruthy();
+  expect(await view.findByText('No activity yet.')).toBeTruthy();
+  expect(view.getByText('Transfers')).toBeTruthy();
+});
+it('keeps the Transfers title when filters match nothing and clears them from that state', async () => {
+  activity = async (params) => page(params.direction === 'outgoing' ? [] : [transaction]);
+  const view = await show();
+  await view.findByText('Pending');
+  await fireEvent.press(view.getByText('Filter'));
+  await fireEvent.press(view.getByRole('radio', { name: 'Direction: Outgoing' }));
+  await fireEvent.press(view.getByText('Apply'));
+  expect(await view.findByText('No matching activity.')).toBeTruthy();
+  expect(view.getByText('Transfers')).toBeTruthy();
+  expect(view.queryByText('No activity yet.')).toBeNull();
+  await fireEvent.press(view.getByText('Clear filters'));
+  expect(await view.findByText('Pending')).toBeTruthy();
+  expect(view.queryByText('No matching activity.')).toBeNull();
 });
 it('retries an initial history failure without claiming no records', async () => {
   activity = async () => {
@@ -191,7 +203,7 @@ it('retries an initial history failure without claiming no records', async () =>
   };
   const view = await show();
   expect(await view.findByText('Your activity could not be loaded. Try again before continuing.')).toBeTruthy();
-  expect(view.queryByText('No activity yet')).toBeNull();
+  expect(view.queryByText('No activity yet.')).toBeNull();
   activity = async () => page([transaction]);
   await fireEvent.press(view.getByText('Try again'));
   expect(await view.findByText('Pending')).toBeTruthy();
@@ -216,7 +228,7 @@ it('does not report an empty first page as complete when another page exists', a
     params.page === 1 ? page([], 'https://example.invalid/api/transactions/?page=2') : page([transaction]);
   const view = await show();
   await fireEvent.press(await view.findByText('Load more activity'));
-  expect(view.queryByText('No activity yet')).toBeNull();
+  expect(view.queryByText('No activity yet.')).toBeNull();
   expect(await view.findByText('Pending')).toBeTruthy();
 });
 it.each(['https://example.invalid/api/transactions/?page=1', 'https://example.invalid/api/transactions/?cursor=bad'])(

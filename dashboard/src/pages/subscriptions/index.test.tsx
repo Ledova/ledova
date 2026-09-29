@@ -67,7 +67,7 @@ it('waits for applications without claiming that the list is empty', async () =>
   );
   show();
   expect(screen.getByRole('status')).toBeTruthy();
-  expect(screen.queryByText('No applications yet')).toBeNull();
+  expect(screen.queryByText('No applications yet.')).toBeNull();
   await act(async () => finish(page()));
   expect(await screen.findByRole('article')).toBeTruthy();
 });
@@ -96,7 +96,7 @@ it('shows recorded identities and currency without a current Directory read, inc
   expect(within(first).getByText(/AUD\s2,500.00/)).toBeTruthy();
   expect(within(first).getByText(/AUD\s1.25/)).toBeTruthy();
   expect(within(first).getByText('EXAMPLE0123')).toBeTruthy();
-  expect(within(first).getByRole('link', { name: 'Open application' }).getAttribute('href')).toBe(
+  expect(within(first).getByRole('link', { name: 'Application' }).getAttribute('href')).toBe(
     '/subscriptions/application-one',
   );
   fireEvent.click(screen.getByRole('button', { name: 'Load more applications' }));
@@ -110,8 +110,9 @@ it('shows recorded identities and currency without a current Directory read, inc
 it('shows an empty state only after a successful complete empty response', async () => {
   api.get.mockResolvedValue(page([]));
   show();
-  expect(await screen.findByText('No applications yet')).toBeTruthy();
-  expect(screen.getByRole('link', { name: 'Open Directory' }).getAttribute('href')).toBe('/directory');
+  expect(await screen.findByText('No applications yet.')).toBeTruthy();
+  expect(screen.getByRole('heading', { level: 2, name: 'Your applications' })).toBeTruthy();
+  expect(screen.getByRole('link', { name: 'Directory' }).getAttribute('href')).toBe('/directory');
   expect(screen.queryByRole('alert')).toBeNull();
 });
 
@@ -122,7 +123,7 @@ it('reports an initial failure and retries instead of claiming there are no appl
     'textContent',
     'Your applications could not be loaded. Try again before continuing.Try again',
   );
-  expect(screen.queryByText('No applications yet')).toBeNull();
+  expect(screen.queryByText('No applications yet.')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
   expect(await screen.findByRole('article')).toBeTruthy();
 });
@@ -152,7 +153,7 @@ it('does not call an empty page complete when the next page remains unread or fa
   show();
   fireEvent.click(await screen.findByRole('button', { name: 'Load more applications' }));
   expect(await screen.findByRole('alert')).toBeTruthy();
-  expect(screen.queryByText('No applications yet')).toBeNull();
+  expect(screen.queryByText('No applications yet.')).toBeNull();
 });
 
 it('hides stale application values and links after refresh failure until a successful retry', async () => {
@@ -164,7 +165,7 @@ it('hides stale application values and links after refresh failure until a succe
   });
   expect(await screen.findByRole('alert')).toBeTruthy();
   expect(screen.queryByRole('article')).toBeNull();
-  expect(screen.queryByRole('link', { name: 'Open application' })).toBeNull();
+  expect(screen.queryByRole('link', { name: 'Application' })).toBeNull();
   api.get.mockResolvedValue(page());
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
   expect(await screen.findByRole('article')).toBeTruthy();

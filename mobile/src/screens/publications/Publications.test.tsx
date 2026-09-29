@@ -1,6 +1,6 @@
 import type { AxiosRequestConfig } from 'axios';
 import React from 'react';
-import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
 import { PUBLICATION_COPY, formatDateTime } from '@ledova/shared';
@@ -150,8 +150,8 @@ it('describes the empty personal notice scope without offering a document to ope
 
   const view = await render(<PublicationsScreen />, { wrapper });
 
-  expect(await view.findByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeTruthy();
-  expect(view.getByText(PUBLICATION_COPY.EMPTY_BODY)).toBeTruthy();
+  expect(await view.findByText(PUBLICATION_COPY.EMPTY)).toBeTruthy();
+  expect(view.getByText('Your notices')).toBeTruthy();
   expect(view.queryByText('No publications available')).toBeNull();
   expect(view.queryByText(PUBLICATION_COPY.OPEN)).toBeNull();
 });
@@ -208,7 +208,7 @@ it('says the listing failed rather than that nothing was published, and offers t
   const view = await render(<PublicationsScreen />, { wrapper });
 
   expect(await view.findByText(PUBLICATION_COPY.LIST_FAILED)).toBeTruthy();
-  expect(view.queryByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeNull();
+  expect(view.queryByText(PUBLICATION_COPY.EMPTY)).toBeNull();
   failing = false;
   await fireEvent.press(view.getByText(PUBLICATION_COPY.RETRY));
   expect(await view.findByText('Annual holding statement 2026')).toBeTruthy();
@@ -248,8 +248,12 @@ it('asks the member to confirm a ballot cannot be changed, and casts nothing whe
 
   await fireEvent.press(await view.findByLabelText(choiceButton('Against')));
 
-  expect(view.getByText(`${PUBLICATION_COPY.CONFIRM_TITLE} Against`)).toBeTruthy();
-  expect(view.getByText(PUBLICATION_COPY.CONFIRM_BODY)).toBeTruthy();
+  const confirmation = view.getByText(`${PUBLICATION_COPY.CONFIRM_TITLE} Against`).parent!;
+  expect(within(confirmation).getByText(PUBLICATION_COPY.CONFIRM_BODY)).toBeTruthy();
+  expect(within(confirmation).getByText(PUBLICATION_COPY.CONFIRM)).toBeTruthy();
+  expect(within(confirmation).getByText(PUBLICATION_COPY.CANCEL)).toBeTruthy();
+  expect(confirmation).toHaveStyle({ borderTopWidth: 1 });
+  expect(confirmation).not.toHaveStyle({ borderWidth: 1 });
   expect(view.queryByLabelText(choiceButton('Against'))).toBeNull();
   await fireEvent.press(view.getByText(PUBLICATION_COPY.CANCEL));
   expect(view.getByLabelText(choiceButton('Against'))).toBeTruthy();
@@ -553,7 +557,7 @@ it('keeps earlier-page failure distinct and retries it without losing the loaded
   await fireEvent.press(await view.findByText(PUBLICATION_COPY.LOAD_MORE));
   expect(await view.findByText('Earlier notices could not be loaded. The list is incomplete.')).toBeTruthy();
   expect(view.getByText(statement.title)).toBeTruthy();
-  expect(view.queryByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeNull();
+  expect(view.queryByText(PUBLICATION_COPY.EMPTY)).toBeNull();
   failing = false;
   await fireEvent.press(view.getByText('Try earlier notices again'));
   expect(await view.findByText('Earlier personal notice')).toBeTruthy();
@@ -571,7 +575,7 @@ it('can reach the next page when the first addressed page is empty', async () =>
   const view = await render(<PublicationsScreen />, { wrapper });
   await fireEvent.press(await view.findByText(PUBLICATION_COPY.LOAD_MORE));
   expect(await view.findByText(statement.title)).toBeTruthy();
-  expect(view.queryByText(PUBLICATION_COPY.EMPTY_TITLE)).toBeNull();
+  expect(view.queryByText(PUBLICATION_COPY.EMPTY)).toBeNull();
 });
 
 it.each([

@@ -8,15 +8,58 @@ Apply only the migration notes relevant to the database you are upgrading. Schem
 
 The paper client cleanup removes the unused asset detail and asset snapshots
 GET routes, portfolio snapshots GET route, and favourite-assets list, create,
-detail and delete routes. These paths now return 404. No database migration is
-needed: favourites, asset and holding snapshots, their administration and account
-export remain available. Historical valuations are still computed internally by
-`portfolios/services/value_series.py`.
+detail and delete routes. These paths now return 404. The retirement itself
+needs no database migration: asset snapshots, their administration and the
+account export remain available. The favourites table and the holding snapshots
+behind the value series outlived their routes with no reader, so the
+[`users/0026`, `wallets/0022` and `shared/0013` migrations](#database-migrations)
+drop both tables, and the value-series service goes with them.
 
 `GET /api/assets/` and `GET /api/assets/exchange-rates/` remain available for
 Wallets and Buy crypto. Portfolio CRUD and the documented operator
 `add-wallet` and `remove-wallet` actions retain their contracts. Any external
 consumer of a retired route must stop using it before upgrading.
+
+## Retired trading, company, device-token and file HTTP routes
+
+The backend tidy-up removes the routes that no client, documented consumer or
+operator script called: `POST /api/v1/trading/transfers/prepare/` and
+`/broadcast/` (the clients send through
+`POST /api/wallets/{uuid}/prepare-transfer/` and `/broadcast-transfer/`, which
+refuse a share class),
+`GET /api/v1/trading/tokens/{uuid}/market-data/` (the market list and detail
+carry `lastPrice`, `bestBid` and `bestAsk`),
+`GET /api/v1/trading/orders/{uuid}/modifications/`,
+`GET /api/v1/companies/{uuid}/stats/`,
+`GET /api/v1/companies/{uuid}/application-status/` (the company detail carries
+the same status, timestamps and flags except `reviewCompletedAt`), the
+`/api/device-tokens/` list, create and detail routes (`register/` and
+`unregister/` remain),
+`GET /api/investor-classifications/{uuid}/evidence/` and
+`GET /api/v1/documents/{uuid}/file/`. These paths now return 404, and the
+classification and personal-document responses no longer carry `evidenceUrl`
+or `fileUrl`; staff read both files through admin. No database migration is
+needed. Any external consumer of a retired route must stop using it before
+upgrading.
+
+## Stablecoin sends need an approval on both sides
+
+`POST /api/wallets/{uuid}/prepare-transfer/` and `/broadcast-transfer/` now
+refuse a stablecoin transfer (asset type `stablecoin`, today AUDY) with 403 and
+code `stablecoin_approval_required` unless the sending wallet and the recipient
+each hold a live approval with at least one company. The message says which
+side lacks one. This is the
+[company-scoped approvals](../decisions.md#company-scoped-approvals) rule the
+retired trading transfer route used to enforce; Wallets > Send, where the
+clients send, never did. A transfer to the operator's receiving wallet, on the
+chain it is configured for, is exempt on both sides, so an investor can pay a
+subscription to the address its payment instruction names without an approval;
+an unset receiving wallet, or one on another chain, exempts nothing. Native
+coins and other tokens are unaffected, and a submission recorded before the
+upgrade is still delivered. `prepare-transfer` now also answers 400, "The
+recipient is not a valid address for this wallet's network.", for a recipient
+that is not an address on the wallet's network, where before a Bitcoin prepare
+accepted any string. No database migration is needed.
 
 ## The publication summary's 30-day count
 
@@ -39,15 +82,38 @@ missing count as 0 and show nothing in its place. No database migration is neede
   `compliance/0005`) and `users/0017_delete_waitlist` drop the
   `asset_allocations`, `fiat_transactions` and `accounts_waitlist` tables and
   ten columns. Export any `accounts_waitlist` rows worth keeping first.
-- `portfolios/0005_delete_portfoliosnapshot` drops `portfolio_snapshots`. The
-  value series is computed on read in `portfolios/services/value_series.py`, and
-  that migration kept `GET /api/portfolios/{uuid}/snapshots/` compatible.
-  The later [route retirement](#retired-asset-and-portfolio-http-routes) removes
-  that HTTP surface without removing the value-series service or its source data. The hourly `sync_all_wallets` job upserts one `DAILY` `HoldingSnapshot`
-  per holding per day, so a wallet with no transactions still gets a point, and
-  the series starts at a wallet's first holding snapshot rather than inventing
-  anything before it. The nightly `sync_all_portfolios` periodic job no longer
-  exists: delete any queued Procrastinate jobs under that name.
+- `portfolios/0005_delete_portfoliosnapshot` drops `portfolio_snapshots`. At the
+  time, the value series was computed on read from holding snapshots, which kept
+  `GET /api/portfolios/{uuid}/snapshots/` compatible; the later
+  [route retirement](#retired-asset-and-portfolio-http-routes) removed that HTTP
+  surface, and `wallets/0022` below removes the snapshots and the service. The
+  nightly `sync_all_portfolios` periodic job no longer exists: delete any queued
+  Procrastinate jobs under that name.
+- `users/0026_delete_favouriteasset` drops `favourite_assets` and
+  `wallets/0022_delete_holdingsnapshot` drops `holding_snapshots`. Nothing read
+  either table; the hourly `sync_all_wallets` job, history imports and transfer
+  confirmation stop writing holding snapshots, and the manual sync result no
+  longer reports a `snapshots` count. `shared/0013_policies_without_the_dropped_tables`
+  reinstalls the row-level-security catalogue without their policies and runs
+  after both drops. **Reversal does not restore data.** Both drops are
+  `DeleteModel`, so reversing them recreates the two tables empty and outside
+  the policy catalogue, and none of the rows. Export anything in either table
+  worth keeping before applying them.
+- `users/0027_transaction_alerts_on_user_preferences` moves the transaction-alerts
+  switch onto `users_userpreferences`: it adds the `transaction_alerts` column,
+  on by default, copies each `users_notification_preferences` row's value onto
+  the same person's preferences row, creating that row with the model defaults
+  when the person had none, then drops `users_notification_preferences`. A
+  person with no notification row keeps the default. `/api/notification-preferences/`
+  returns 404; `/api/user-preferences/` carries `transactionAlerts` instead, and
+  the notification-preferences admin page and its bulk actions are gone.
+  `shared/0014_policies_without_notification_preferences` reinstalls the
+  row-level-security catalogue without the dropped table's policies and runs
+  after it. **Reversal does not restore data.** The copy step reverses as a
+  no-op and the column drop takes every carried value with it, so reversing
+  recreates `users_notification_preferences` empty and outside the policy
+  catalogue and puts everyone back on the default. Export that table before
+  applying the migration if you may need to reverse it.
 - `companies/0004_company_additional_info_response` stores the applicant's
   answer to a request for more information.
 - `tokens/0035_trading_state_invariants` checks existing order/swap amounts,
@@ -308,8 +374,9 @@ missing count as 0 and show nothing in its place. No database migration is neede
   `Operator.supported_settlement_assets`. Before the fold the settlement paths
   accepted any active `Stablecoin` with an address; after it they accept only
   what that many-to-many lists, so without the seeding
-  `POST /api/v1/trading/transfer/prepare` would start refusing settlement
-  assets and the wallet balance endpoint would stop listing them. Confirm the
+  `POST /api/v1/trading/orders/create/` would refuse every order for want of a
+  configured settlement asset and the wallet balance endpoint would stop
+  listing them. Confirm the
   list in the operator admin after deploying. `0015` records the ids it
   actually added in a `tokens_stablecoin_fold_grant` table and its reverse
   removes only those, then drops the table, so an asset an operator had already

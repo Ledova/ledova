@@ -6,7 +6,8 @@ import { OfferingsScreen } from './OfferingsScreen';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
 
 let mockRole = 'company';
-jest.mock('../../hooks/useUserPreferences', () => ({
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
   useUserPreferences: () => ({ userAccount: { role: mockRole }, isLoading: false, isError: false }),
 }));
 jest.mock('react-native-safe-area-context', () => ({
@@ -195,6 +196,17 @@ it('reads all owned offering, class and application pages and retains precise mo
   for (const url of [TOKENS, OFFERINGS, SUBSCRIPTIONS]) expect(get).toHaveBeenCalledWith(url, { params: { page: 2 } });
 });
 
+it('puts Your offerings first, then its applications, the directory switch and what happens next', async () => {
+  const view = await start();
+  expect(view.getAllByRole('header').map((header) => header.props.children)).toEqual([
+    'Offerings',
+    'Your offerings (1)',
+    'Applications',
+    'Investor Directory',
+    'What happens next',
+  ]);
+});
+
 it('makes no company or offering read for a member account', async () => {
   mockRole = 'member';
   const view = await render(<OfferingsScreen />, { wrapper });
@@ -290,12 +302,43 @@ it('blocks Directory visibility when company refresh fails and reports a refused
   patch.mockRejectedValueOnce(new Error('Refused'));
   await fireEvent(view.getByLabelText('Show this company to eligible investors'), 'valueChange', true);
   expect(await view.findByText('Directory visibility could not be changed. Try again.')).toBeTruthy();
+  expect(view.getByRole('alert', { name: 'Directory visibility could not be changed. Try again.' })).toBeTruthy();
   expect(view.getByLabelText('Show this company to eligible investors').props.value).toBe(false);
   expect(patch).toHaveBeenLastCalledWith(
     COMPANY,
     { isOpenToInvestors: true },
     { ledovaSessionEpoch: getSessionEpoch() },
   );
+});
+
+it('holds the directory switch while its change is saving', async () => {
+  const view = await start();
+  const saving = deferred<{ data: object }>();
+  patch.mockReturnValueOnce(saving.promise);
+  try {
+    await fireEvent(view.getByLabelText('Show this company to eligible investors'), 'valueChange', true);
+    await waitFor(() =>
+      expect(view.getByLabelText('Show this company to eligible investors').props.disabled).toBe(true),
+    );
+    expect(view.getByLabelText('Show this company to eligible investors').props.value).toBe(false);
+  } finally {
+    current = { ...current, isOpenToInvestors: true };
+    await act(() => saving.resolve({ data: {} }));
+  }
+  await waitFor(() => {
+    expect(view.getByLabelText('Show this company to eligible investors').props.disabled).toBe(false);
+    expect(view.getByLabelText('Show this company to eligible investors').props.value).toBe(true);
+  });
+  expect(patch).toHaveBeenCalledTimes(1);
+});
+
+it('keeps the directory switch disabled for a company that cannot issue shares yet', async () => {
+  current = { ...company, canIssueTokens: false, status: 'approved', statusDisplay: 'Approved' };
+  const view = await start();
+  expect(view.getByLabelText('Show this company to eligible investors').props.disabled).toBe(true);
+  expect(view.getByText(/It is currently Approved/)).toBeTruthy();
+  await fireEvent(view.getByLabelText('Show this company to eligible investors'), 'valueChange', true);
+  expect(patch).not.toHaveBeenCalled();
 });
 
 it('exposes an operator failure, retries it and does not guess settlement rails', async () => {

@@ -94,14 +94,32 @@ it('reads every page for the selected issuer without reusing the personal Notice
   });
   show();
   expect(await screen.findByText('Last issuer record')).toBeTruthy();
-  expect(screen.getByText('2 publications')).toBeTruthy();
+  expect(screen.getByRole('heading', { level: 2, name: 'Publications (2)' })).toBeTruthy();
   expect(screen.getByText('First issuer record')).toBeTruthy();
   expect(screen.queryByText('Personal cached notice')).toBeNull();
   expect(screen.queryByText('Personal foreign-company notice')).toBeNull();
   expect(api.get).toHaveBeenCalledWith(BASE, { params: { page: 1, issuer: 'company-one' } });
   expect(api.get).toHaveBeenCalledWith(BASE, { params: { page: 2, issuer: 'company-one' } });
   expect(screen.getByRole('link', { name: 'Notices' }).getAttribute('href')).toBe('/publications');
-  expect(screen.getByRole('link', { name: 'Back to Company' }).getAttribute('href')).toBe('/company');
+  fireEvent.click(screen.getByRole('button', { name: 'Back to Company' }));
+  expect(await screen.findByText('Company page')).toBeTruthy();
+});
+
+it.each([
+  ['publications', 1, 'Publications (1)'],
+  ['none', 0, 'Publications (0)'],
+])('opens with the Publications card right after the title block when there are %s', async (_, count, title) => {
+  rows = count ? [statement] : [];
+  show();
+
+  const card = (await screen.findByRole('heading', { level: 2, name: title })).closest('section')!;
+  expect(screen.getByRole('heading', { level: 1 }).closest('header')!.nextElementSibling).toBe(card);
+  if (count) {
+    expect(within(card).getByRole('heading', { level: 3, name: 'Annual statement' })).toBeTruthy();
+    expect(within(card).getByRole('button', { name: PUBLICATION_COPY.OPEN })).toBeTruthy();
+  } else {
+    expect(within(card).getByText("Nothing has been published to this company's members yet.")).toBeTruthy();
+  }
 });
 
 it('distinguishes a successful empty list', async () => {

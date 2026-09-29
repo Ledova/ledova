@@ -85,7 +85,6 @@ export default function PublicationsPage() {
 
   return (
     <Page>
-      <p className="text-sm text-text-muted">Documents, votes and dividends addressed to you.</p>
       {openError && (
         <p role="alert" className="text-sm text-error-light">
           {openError}
@@ -103,8 +102,8 @@ export default function PublicationsPage() {
       ) : (
         <>
           {publications.length === 0 && !hasMore && !moreFailed ? (
-            <Section title={PUBLICATION_COPY.EMPTY_TITLE}>
-              <p className="py-3 text-sm text-text-muted">{PUBLICATION_COPY.EMPTY_BODY}</p>
+            <Section title="Your notices">
+              <p className="py-3 text-sm text-text-muted">{PUBLICATION_COPY.EMPTY}</p>
             </Section>
           ) : (
             publications.map((publication) => (

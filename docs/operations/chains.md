@@ -79,14 +79,25 @@ deployment-wide whitelist: the factory creates each company's
 `backend/.env` with `BLOCKCHAIN_RPC_URL`, `BLOCKCHAIN_CHAIN_ID=31337` and the
 Hardhat account #0 key as `BLOCKCHAIN_OPERATOR_KEY`.
 
-A swap on the local chain stays `executing` after its receipt, because
-`evm:31337` has no approved finality policy. To let the local stack settle swaps,
+Only the public testnets have approved finality policies, in
+`backend/ledova_backend/chain_safety.py`: the finalized head on Base Sepolia
+(84532) and Ethereum Sepolia (11155111), and six confirmations on the Bitcoin
+test network. [Transaction evidence](../reference/transaction-evidence.md#wallet-chain-observations)
+says how they are applied. `evm:31337` has none, so a swap on the local chain
+stays `executing` after its receipt. To let the local stack settle swaps,
 set `LOCAL_CHAIN_FINALITY_DEPTH` (for example `3`) in `backend/.env`; the swap
 completes once that many blocks, counted inclusively from the receipt's block,
 sit on a stable tip. Hardhat mines one block per transaction, so the depth is
 reached only as further transactions or `evm_mine` calls land. The setting is
 refused when `BLOCKCHAIN_CHAIN_ID` names a public testnet, whose policies stay
-the approved ones in `backend/ledova_backend/chain_safety.py`.
+the approved ones.
+
+The backend test settings override any `BLOCKCHAIN_CHAIN_ID` and
+`LOCAL_CHAIN_FINALITY_DEPTH` the backend accepts: the suites run on 84532 with
+the approved policies, as in CI, and the real-chain modules below set 31337 for
+themselves. A value the backend refuses stops the suites, as it stops every
+other command. [Backend verification](../development/testing.md#backend-verification)
+says what else the suites read from the environment.
 
 Base Sepolia (chain id 84532) is the supported public testnet:
 `npm --prefix contracts run deploy:testnet`, with `DEPLOYER_PRIVATE_KEY` and
@@ -96,6 +107,19 @@ as the `BLOCKCHAIN_OPERATOR_KEY` you put in `backend/.env`, or you must transfer
 ownership of ShareTokenFactory, AUDY and AtomicSwap to the operator address
 immediately after deploying. Otherwise the backend's `onlyOwner` calls revert
 against the freshly deployed contracts.
+
+The package carries three more npm scripts that neither `deploy:local:core`
+nor `deploy:testnet` runs: `deploy:local:sample-share` (`scripts/deploy.ts`,
+local chains only) deploys a factory and a `DEMO` share class with three
+whitelisted test accounts and an initial mint, and `deploy:testnet:stablecoin`
+and `deploy:testnet:atomicswap` deploy `AUDY` and `AtomicSwap` on their own on
+Base Sepolia, the latter approving `STABLECOIN_ADDRESS`, `SHARE_TOKEN_ADDRESS`
+and `RELAYER_ADDRESS` when they are set. `scripts/deploy-share-token.ts` has
+no npm script: `npx hardhat run scripts/deploy-share-token.ts --network
+localhost` (or `baseSepolia`) from `contracts/` creates one share class on an
+existing `FACTORY_ADDRESS` from the `TOKEN_NAME`, `TOKEN_SYMBOL`,
+`COMPANY_ACN`, `AUTHORIZED_SHARES` and `INITIAL_MINT` inputs listed in
+[deployment configuration](configuration.md#contracts).
 
 `make chain-test` does the local sequence unattended: it compiles, starts a
 node, waits for `eth_chainId`, deploys the core contracts, sources

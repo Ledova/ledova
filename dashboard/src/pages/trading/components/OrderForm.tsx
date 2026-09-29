@@ -4,6 +4,10 @@ import type { ShareToken, CreateOrderRequest, Wallet, OrderType } from '@ledova/
 import { Rows, Row } from '@components/Ledger';
 import { marketAmount, priceCents } from '../marketData';
 
+const FIELD_CLASS =
+  'block w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary ' +
+  'placeholder:text-text-muted focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid';
+
 interface OrderFormProps {
   token: ShareToken;
   orderType: OrderType;
@@ -125,7 +129,7 @@ export const OrderForm = forwardRef<OrderFormRef, OrderFormProps>(function Order
             id="order-wallet"
             value={selectedWalletUuid}
             onChange={(event) => setSelectedWalletUuid(event.target.value)}
-            className="w-full border border-border bg-transparent p-3 text-sm"
+            className={FIELD_CLASS}
           >
             <option value="" disabled>
               Select a wallet
@@ -154,7 +158,7 @@ export const OrderForm = forwardRef<OrderFormRef, OrderFormProps>(function Order
             value={quantity}
             onChange={(event) => setQuantity(event.target.value)}
             placeholder="Enter number of shares"
-            className="w-full border border-border bg-transparent p-3 text-sm"
+            className={FIELD_CLASS}
           />
           {quantity && (qty === null || qty <= 0) && (
             <p role="alert" className="text-sm">
@@ -186,7 +190,7 @@ export const OrderForm = forwardRef<OrderFormRef, OrderFormProps>(function Order
                 value={minQuantity}
                 onChange={(event) => setMinQuantity(event.target.value)}
                 placeholder="0 = accept any partial fill"
-                className="w-full border border-border bg-transparent p-3 text-sm"
+                className={FIELD_CLASS}
               />
               <p className="text-xs text-text-muted">Leave empty or 0 to accept any partial fill.</p>
               {minQuantity && (minimum === null || qty === null || minimum > qty) && (
@@ -209,7 +213,7 @@ export const OrderForm = forwardRef<OrderFormRef, OrderFormProps>(function Order
             value={pricePerShare}
             onChange={(event) => setPricePerShare(event.target.value)}
             placeholder="Enter price per share"
-            className="w-full border border-border bg-transparent p-3 text-sm"
+            className={FIELD_CLASS}
           />
           {pricePerShare && (cents === null || cents <= 0n) && (
             <p role="alert" className="text-sm">

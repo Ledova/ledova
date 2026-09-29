@@ -99,7 +99,6 @@ export function PublicationsScreen() {
         <Text accessibilityRole="header" style={styles.title}>
           Notices
         </Text>
-        <Text style={styles.message}>Documents, votes and dividends addressed to you.</Text>
         {openError && (
           <Text accessibilityRole="alert" style={styles.error}>
             {openError}
@@ -122,8 +121,8 @@ export function PublicationsScreen() {
         ) : (
           <>
             {publications.length === 0 && !hasMore && !moreFailed ? (
-              <Section title={PUBLICATION_COPY.EMPTY_TITLE}>
-                <Text style={styles.message}>{PUBLICATION_COPY.EMPTY_BODY}</Text>
+              <Section title="Your notices">
+                <Text style={styles.message}>{PUBLICATION_COPY.EMPTY}</Text>
               </Section>
             ) : (
               publications.map(renderRow)

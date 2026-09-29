@@ -67,6 +67,17 @@ describe('WalletVerificationModal, signing with a seed phrase', () => {
     expect(seedPhraseBox().value).toBe('');
   });
 
+  it('ends the step with Back then Sign and Verify in the dialog action row', () => {
+    render(<WalletVerificationModal isOpen wallet={wallet} onClose={() => {}} />);
+
+    expect(screen.getByRole('dialog', { name: 'Verify Wallet' })).toBeTruthy();
+    const back = screen.getByRole('button', { name: 'Back' });
+    const sign = screen.getByRole('button', { name: /sign and verify/i });
+    expect(Array.from(back.parentElement!.children)).toEqual([back, sign]);
+    fireEvent.click(back);
+    expect(hookState.goBack).toHaveBeenCalled();
+  });
+
   it('says the phrase was cleared when signing failed and the box is empty', () => {
     hookState.verificationError = 'Seed phrase does not match this wallet address.';
     render(<WalletVerificationModal isOpen wallet={wallet} onClose={() => {}} />);

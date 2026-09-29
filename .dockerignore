@@ -26,7 +26,6 @@ dashboard/*
 !dashboard/tsconfig.app.json
 !dashboard/tsconfig.node.json
 !dashboard/vite.config.ts
-!dashboard/tailwind.config.ts
 !dashboard/playwright.config.ts
 !dashboard/src/
 !dashboard/src/**

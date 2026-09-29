@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RefreshControl, ScrollView, Switch, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   OFFERING_EXEMPTION_LABELS,
@@ -11,7 +11,7 @@ import {
   updateCompany,
   type OfferingListItem,
 } from '@ledova/shared';
-import { Action, Row, Section } from '../../components/Ledger';
+import { Action, Row, Rows, Section, SwitchRow } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch } from '../../services/sessionScope';
 import { useCompanyProfile } from '../../hooks/useCompanyProfile';
@@ -41,17 +41,19 @@ function OfferingRecord({
       <Text style={styles.heading}>
         {row.tokenName} ({row.tokenSymbol})
       </Text>
-      <Row label="Status">{row.statusDisplay}</Row>
-      <Row label="Price per share">{formatMoney(row.pricePerShare, row.priceCurrency)}</Row>
-      <Row label="Minimum shares">{formatShareCount(String(row.minimumShares))}</Row>
-      <Row label="Target shares">{formatShareCount(String(row.targetShares))}</Row>
-      <Row label="Cap shares">{formatShareCount(String(row.capShares))}</Row>
-      {row.maximumShares !== null && (
-        <Row label="Maximum per investor">{formatShareCount(String(row.maximumShares))}</Row>
-      )}
-      <Row label="Opens">{formatDate(row.opensAt)}</Row>
-      <Row label="Closes">{row.closesAt ? formatDate(row.closesAt) : 'No closing date'}</Row>
-      <Row label="Exemption">{OFFERING_EXEMPTION_LABELS[row.exemption] ?? row.exemptionDisplay}</Row>
+      <Rows>
+        <Row label="Status">{row.statusDisplay}</Row>
+        <Row label="Price per share">{formatMoney(row.pricePerShare, row.priceCurrency)}</Row>
+        <Row label="Minimum shares">{formatShareCount(String(row.minimumShares))}</Row>
+        <Row label="Target shares">{formatShareCount(String(row.targetShares))}</Row>
+        <Row label="Cap shares">{formatShareCount(String(row.capShares))}</Row>
+        {row.maximumShares !== null && (
+          <Row label="Maximum per investor">{formatShareCount(String(row.maximumShares))}</Row>
+        )}
+        <Row label="Opens">{formatDate(row.opensAt)}</Row>
+        <Row label="Closes">{row.closesAt ? formatDate(row.closesAt) : 'No closing date'}</Row>
+        <Row label="Exemption">{OFFERING_EXEMPTION_LABELS[row.exemption] ?? row.exemptionDisplay}</Row>
+      </Rows>
       {row.status === 'rejected' && !!row.rejectionReason && (
         <Text style={styles.muted}>Rejected: {row.rejectionReason}</Text>
       )}
@@ -196,35 +198,8 @@ export function OfferingsScreen() {
           <Text style={styles.muted}>No company found. Please register your company first.</Text>
         ) : (
           <>
-            <Section title="Investor Directory">
-              <Text style={styles.muted}>
-                Your company is listed in the investor directory only while this is on. Nothing is listed by default,
-                and {data.operatorName} can switch it off. Turning it off hides your share classes; it does not withdraw
-                an offering already under review.
-              </Text>
-              <Text style={styles.text}>Show this company to eligible investors</Text>
-              <Switch
-                accessibilityLabel="Show this company to eligible investors"
-                value={company.isOpenToInvestors}
-                disabled={!ready || !company.canIssueTokens}
-                onValueChange={(isOpen) => {
-                  if (ready && company.canIssueTokens)
-                    listing.mutate({ uuid: company.uuid, isOpen, epoch: getSessionEpoch() });
-                }}
-              />
-              {!company.canIssueTokens && (
-                <Text style={styles.muted}>
-                  Your company must be active before it can be listed. It is currently {company.statusDisplay}.
-                </Text>
-              )}
-            </Section>
             <CompanyReadNotice read={companyRead} />
             <OfferingReadNotice read={data} />
-            {actionError && actionError.uuid === null && (
-              <Text accessibilityRole="alert" style={styles.error}>
-                {actionError.message}
-              </Text>
-            )}
             {!data.error && (
               <>
                 <Section title={`Your offerings (${data.offerings.length})`}>
@@ -254,6 +229,32 @@ export function OfferingsScreen() {
                 <SubscriptionsLedger offerings={data.offerings} operatorName={data.operatorName} />
               </>
             )}
+            <Section title="Investor Directory">
+              <Text style={styles.muted}>
+                Your company is listed in the investor directory only while this is on. Nothing is listed by default,
+                and {data.operatorName} can switch it off. Turning it off hides your share classes; it does not withdraw
+                an offering already under review.
+              </Text>
+              <SwitchRow
+                label="Show this company to eligible investors"
+                checked={company.isOpenToInvestors ?? false}
+                disabled={!ready || !company.canIssueTokens}
+                onChange={(isOpen) => {
+                  if (ready && company.canIssueTokens)
+                    listing.mutate({ uuid: company.uuid, isOpen, epoch: getSessionEpoch() });
+                }}
+              />
+              {!company.canIssueTokens && (
+                <Text style={styles.muted}>
+                  Your company must be active before it can be listed. It is currently {company.statusDisplay}.
+                </Text>
+              )}
+              {actionError && actionError.uuid === null && (
+                <Text accessibilityRole="alert" style={styles.error}>
+                  {actionError.message}
+                </Text>
+              )}
+            </Section>
             <Section title="What happens next">
               <Text style={styles.muted}>
                 Submit the offering; {data.operatorName} reviews the bounds, the window and the exemption relied on.

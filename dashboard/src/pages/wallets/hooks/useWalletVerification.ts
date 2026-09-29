@@ -103,7 +103,6 @@ export function useWalletVerification(): UseWalletVerificationReturn {
       setVerificationStep('success');
 
       queryClient.invalidateQueries({ queryKey: ['wallets'] });
-      queryClient.invalidateQueries({ queryKey: ['home-wallets'] });
     },
     onError: () => {
       setVerificationError('Signature verification failed. Please try again.');

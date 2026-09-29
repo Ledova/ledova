@@ -64,6 +64,7 @@ vi.mock('@components/Modal', () => ({
         )}
       </div>
     ) : null,
+  ModalActions: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 vi.mock('@components/SeedPhraseInput', () => ({
   SeedPhraseInput: ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
@@ -371,6 +372,18 @@ async function readySubmissionPair() {
   return { first: await prepare(), second: await prepare(), store };
 }
 
+it('ends the order review with Close and Continue to sign, then Close, Back and Sign order', async () => {
+  const { first } = await readySubmissionPair();
+  render(<OrderSigningFlow isOpen submission={first} wallet={wallet} onClose={vi.fn()} />);
+  const actions = () =>
+    Array.from(screen.getByRole('button', { name: 'Close' }).parentElement!.children).map(
+      (action) => action.textContent,
+    );
+  expect(actions()).toEqual(['Close', 'Continue to sign']);
+  fireEvent.click(screen.getByText('Continue to sign'));
+  expect(actions()).toEqual(['Close', 'Back', 'Sign order']);
+});
+
 it('clears the S1 seed when the open wrapper switches directly between saved submissions', async () => {
   const { first, second, store } = await readySubmissionPair();
   const onClose = vi.fn();
@@ -382,7 +395,7 @@ it('clears the S1 seed when the open wrapper switches directly between saved sub
   view.rerender(<OrderSigningFlow isOpen submission={second} wallet={wallet} onClose={onClose} />);
   fireEvent.click(screen.getByText('Continue to sign'));
   expect((screen.getByLabelText('Synthetic seed') as HTMLInputElement).value).toBe('');
-  expect((screen.getByText('Sign order') as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole('button', { name: 'Sign order' }) as HTMLButtonElement).disabled).toBe(true);
   expect(onClose).not.toHaveBeenCalled();
   expect(orderPosts()).toHaveLength(0);
   expect(await store.list(owner)).toHaveLength(2);

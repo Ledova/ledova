@@ -2,12 +2,11 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from django.test import TestCase
-from django.utils import timezone
 
 from assets.models import Asset, AssetChainDeployment
 from shared.tests.tenants import make_tenant
 from tokens.services import share_token_service
-from wallets.models import Holding, HoldingSnapshot, Wallet
+from wallets.models import Holding, Wallet
 from wallets.services.holdings import sync_holding
 
 
@@ -26,16 +25,13 @@ class SyncHoldingTest(TestCase):
     def _chain(self, balance=250, **kwargs):
         return patch.object(share_token_service, "get_token_balance", return_value=balance, **kwargs)
 
-    def test_a_first_allotment_creates_the_holding_and_todays_snapshot(self):
+    def test_a_first_allotment_creates_the_holding(self):
         with self._chain():
             holding = sync_holding(self.wallet, self.share)
 
         self.assertIsNotNone(holding)
         self.assertEqual(holding.quantity, Decimal("250"))
         self.assertIsNotNone(holding.last_synced_at)
-        snapshot = HoldingSnapshot.objects.get(holding=holding)
-        self.assertEqual((snapshot.quantity, snapshot.snapshot_date), (Decimal("250"), timezone.now().date()))
-        self.assertEqual(snapshot.snapshot_reason, "DAILY")
         self.assertIsNone(holding.market_value)
 
     def test_the_balance_comes_from_the_reader_the_register_uses(self):
@@ -44,7 +40,7 @@ class SyncHoldingTest(TestCase):
 
         reader.assert_called_once_with(self.token.contract_address, self.wallet.address)
 
-    def test_a_second_allotment_on_the_same_day_rewrites_one_snapshot(self):
+    def test_a_second_allotment_on_the_same_day_rewrites_the_holding(self):
         with self._chain() as reader:
             sync_holding(self.wallet, self.share)
             reader.return_value = 400
@@ -52,14 +48,12 @@ class SyncHoldingTest(TestCase):
 
         self.assertEqual(holding.quantity, Decimal("400"))
         self.assertEqual(Holding.objects.filter(asset=self.share).count(), 1)
-        self.assertEqual(HoldingSnapshot.objects.get(holding=holding).quantity, Decimal("400"))
 
     def test_a_failed_read_writes_nothing_at_all(self):
         with self._chain(side_effect=RuntimeError("rpc down")):
             self.assertIsNone(sync_holding(self.wallet, self.share))
 
         self.assertFalse(Holding.objects.filter(asset=self.share).exists())
-        self.assertFalse(HoldingSnapshot.objects.filter(holding__asset=self.share).exists())
 
     def test_an_address_that_names_no_share_class_is_left_alone_without_a_chain_read(self):
         AssetChainDeployment.objects.filter(pk=self.deployment.pk).update(contract_address="0x" + "5e" * 20)
@@ -84,7 +78,6 @@ class SyncHoldingTest(TestCase):
 
         existing.refresh_from_db()
         self.assertEqual(existing.quantity, Decimal("99"))
-        self.assertFalse(HoldingSnapshot.objects.filter(holding=existing).exists())
 
     def test_a_wallet_on_another_chain_has_no_deployment_and_is_left_alone(self):
         elsewhere = Wallet.objects.create(

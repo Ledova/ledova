@@ -1954,29 +1954,6 @@
         ],
         "type": "object"
       },
-      "CompanyStats": {
-        "properties": {
-          "pendingActions": {
-            "type": "integer"
-          },
-          "pendingCapitalIncreases": {
-            "type": "integer"
-          },
-          "totalShareholders": {
-            "type": "integer"
-          },
-          "totalTokens": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "pendingActions",
-          "pendingCapitalIncreases",
-          "totalShareholders",
-          "totalTokens"
-        ],
-        "type": "object"
-      },
       "CompanyStatusEnum": {
         "description": "* `draft` - Draft\n* `submitted` - Submitted for Review\n* `review` - Under Review\n* `info_required` - Additional Information Required\n* `approved` - Approved\n* `active` - Active\n* `warning` - Compliance Warning\n* `suspended` - Suspended\n* `delisted` - Delisted\n* `rejected` - Rejected\n* `withdrawn` - Withdrawn",
         "enum": [
@@ -2261,33 +2238,6 @@
         ],
         "type": "object"
       },
-      "DeviceTokenRequest": {
-        "properties": {
-          "deviceType": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DeviceTypeEnum"
-              }
-            ],
-            "description": "Device platform (iOS or Android)\n\n* `ios` - iOS\n* `android` - Android"
-          },
-          "isActive": {
-            "description": "Whether this token is active and can receive notifications",
-            "type": "boolean"
-          },
-          "pushToken": {
-            "description": "Expo push token (e.g., ExponentPushToken[xxx])",
-            "maxLength": 255,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "deviceType",
-          "pushToken"
-        ],
-        "type": "object"
-      },
       "DeviceTypeEnum": {
         "description": "* `ios` - iOS\n* `android` - Android",
         "enum": [
@@ -2540,11 +2490,6 @@
             ],
             "readOnly": true
           },
-          "fileUrl": {
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
           "latestExtraction": {
             "allOf": [
               {
@@ -2595,7 +2540,6 @@
           "classification",
           "createdAt",
           "documentType",
-          "fileUrl",
           "latestExtraction",
           "mimeType",
           "note",
@@ -3848,11 +3792,6 @@
             "readOnly": true,
             "type": "string"
           },
-          "evidenceUrl": {
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
           "expiresAt": {
             "format": "date-time",
             "nullable": true,
@@ -3919,7 +3858,6 @@
           "declarationText",
           "evidenceFileSize",
           "evidenceMimeType",
-          "evidenceUrl",
           "expiresAt",
           "isExpired",
           "isLive",
@@ -4168,80 +4106,6 @@
         ],
         "type": "object"
       },
-      "MarketData": {
-        "properties": {
-          "bestAsk": {
-            "nullable": true,
-            "type": "string"
-          },
-          "bestBid": {
-            "nullable": true,
-            "type": "string"
-          },
-          "lastTrade": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/MarketLastTrade"
-              }
-            ],
-            "nullable": true
-          },
-          "lastTradePrice": {
-            "nullable": true,
-            "type": "string"
-          },
-          "midpointPrice": {
-            "nullable": true,
-            "type": "string"
-          },
-          "symbol": {
-            "type": "string"
-          },
-          "token": {
-            "format": "uuid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "bestAsk",
-          "bestBid",
-          "lastTrade",
-          "lastTradePrice",
-          "midpointPrice",
-          "symbol",
-          "token"
-        ],
-        "type": "object"
-      },
-      "MarketLastTrade": {
-        "properties": {
-          "completedAt": {
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
-          "paymentAmount": {
-            "type": "string"
-          },
-          "paymentToken": {
-            "type": "string"
-          },
-          "price": {
-            "type": "string"
-          },
-          "shares": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "completedAt",
-          "paymentAmount",
-          "paymentToken",
-          "price",
-          "shares"
-        ],
-        "type": "object"
-      },
       "NameEnum": {
         "description": "* `LedovaAtomicSwap` - LedovaAtomicSwap",
         "enum": [
@@ -4323,52 +4187,6 @@
           "updatedAt",
           "uuid"
         ],
-        "type": "object"
-      },
-      "NotificationPreferences": {
-        "properties": {
-          "createdAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "transactionAlerts": {
-            "description": "Notifications for transaction status changes",
-            "type": "boolean"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "userProfile": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "uuid": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "createdAt",
-          "updatedAt",
-          "userProfile",
-          "uuid"
-        ],
-        "type": "object"
-      },
-      "NotificationPreferencesRequest": {
-        "properties": {
-          "transactionAlerts": {
-            "description": "Notifications for transaction status changes",
-            "type": "boolean"
-          }
-        },
         "type": "object"
       },
       "NotificationRequest": {
@@ -4818,9 +4636,6 @@
           "opensAt": {
             "format": "date-time",
             "type": "string"
-          },
-          "priceCurrency": {
-            "$ref": "#/components/schemas/PriceCurrencyEnum"
           },
           "pricePerShare": {
             "format": "decimal",
@@ -5862,37 +5677,6 @@
         ],
         "type": "object"
       },
-      "PaginatedDeviceTokenList": {
-        "properties": {
-          "count": {
-            "example": 123,
-            "type": "integer"
-          },
-          "next": {
-            "example": "http://api.example.org/accounts/?page=4",
-            "format": "uri",
-            "nullable": true,
-            "type": "string"
-          },
-          "previous": {
-            "example": "http://api.example.org/accounts/?page=2",
-            "format": "uri",
-            "nullable": true,
-            "type": "string"
-          },
-          "results": {
-            "items": {
-              "$ref": "#/components/schemas/DeviceToken"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "count",
-          "results"
-        ],
-        "type": "object"
-      },
       "PaginatedDirectoryTokenListList": {
         "properties": {
           "count": {
@@ -6810,15 +6594,6 @@
         },
         "type": "object"
       },
-      "PatchedNotificationPreferencesRequest": {
-        "properties": {
-          "transactionAlerts": {
-            "description": "Notifications for transaction status changes",
-            "type": "boolean"
-          }
-        },
-        "type": "object"
-      },
       "PatchedNotificationRequest": {
         "properties": {
           "isArchived": {
@@ -6872,9 +6647,6 @@
           "opensAt": {
             "format": "date-time",
             "type": "string"
-          },
-          "priceCurrency": {
-            "$ref": "#/components/schemas/PriceCurrencyEnum"
           },
           "pricePerShare": {
             "format": "decimal",
@@ -6942,6 +6714,10 @@
           },
           "theme": {
             "$ref": "#/components/schemas/ThemeEnum"
+          },
+          "transactionAlerts": {
+            "description": "Notifications for transaction status changes",
+            "type": "boolean"
           }
         },
         "type": "object"
@@ -7341,35 +7117,6 @@
         ],
         "type": "object"
       },
-      "PrepareTransferRequest": {
-        "properties": {
-          "amount": {
-            "minimum": 1,
-            "type": "integer"
-          },
-          "fromAddress": {
-            "maxLength": 42,
-            "minLength": 1,
-            "type": "string"
-          },
-          "toAddress": {
-            "maxLength": 42,
-            "minLength": 1,
-            "type": "string"
-          },
-          "token": {
-            "format": "uuid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "amount",
-          "fromAddress",
-          "toAddress",
-          "token"
-        ],
-        "type": "object"
-      },
       "PrepareWalletTransferRequest": {
         "properties": {
           "amountBtc": {
@@ -7529,68 +7276,6 @@
           "gasPriceWei",
           "toAddress",
           "transaction"
-        ],
-        "type": "object"
-      },
-      "PreparedTokenTransaction": {
-        "properties": {
-          "chainId": {
-            "type": "integer"
-          },
-          "data": {
-            "type": "string"
-          },
-          "gas": {
-            "type": "integer"
-          },
-          "gasPrice": {
-            "type": "integer"
-          },
-          "nonce": {
-            "type": "integer"
-          },
-          "to": {
-            "type": "string"
-          },
-          "value": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "chainId",
-          "data",
-          "gas",
-          "gasPrice",
-          "nonce",
-          "to",
-          "value"
-        ],
-        "type": "object"
-      },
-      "PreparedTokenTransfer": {
-        "properties": {
-          "amount": {
-            "type": "integer"
-          },
-          "fromAddress": {
-            "type": "string"
-          },
-          "toAddress": {
-            "type": "string"
-          },
-          "token": {
-            "$ref": "#/components/schemas/TransferTokenInfo"
-          },
-          "transactionData": {
-            "$ref": "#/components/schemas/PreparedTokenTransaction"
-          }
-        },
-        "required": [
-          "amount",
-          "fromAddress",
-          "toAddress",
-          "token",
-          "transactionData"
         ],
         "type": "object"
       },
@@ -11684,27 +11369,6 @@
         ],
         "type": "object"
       },
-      "TokenTransferReceipt": {
-        "properties": {
-          "blockNumber": {
-            "nullable": true,
-            "type": "integer"
-          },
-          "gasUsed": {
-            "nullable": true,
-            "type": "integer"
-          },
-          "txHash": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "blockNumber",
-          "gasUsed",
-          "txHash"
-        ],
-        "type": "object"
-      },
       "TokenTypeEnum": {
         "description": "* `ordinary` - Ordinary\n* `preference` - Preference\n* `redeemable` - Redeemable",
         "enum": [
@@ -11713,18 +11377,6 @@
           "redeemable"
         ],
         "type": "string"
-      },
-      "TradingBroadcastTransferRequest": {
-        "properties": {
-          "signedTransaction": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "signedTransaction"
-        ],
-        "type": "object"
       },
       "TradingWalletBalances": {
         "properties": {
@@ -12305,26 +11957,6 @@
         ],
         "type": "string"
       },
-      "TransferTokenInfo": {
-        "properties": {
-          "contractAddress": {
-            "type": "string"
-          },
-          "symbol": {
-            "type": "string"
-          },
-          "uuid": {
-            "format": "uuid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "contractAddress",
-          "symbol",
-          "uuid"
-        ],
-        "type": "object"
-      },
       "TypeEnum": {
         "description": "* `share_token` - share_token\n* `stablecoin` - stablecoin",
         "enum": [
@@ -12411,6 +12043,10 @@
           "theme": {
             "$ref": "#/components/schemas/ThemeEnum"
           },
+          "transactionAlerts": {
+            "description": "Notifications for transaction status changes",
+            "type": "boolean"
+          },
           "userAccount": {
             "allOf": [
               {
@@ -12451,6 +12087,10 @@
           },
           "theme": {
             "$ref": "#/components/schemas/ThemeEnum"
+          },
+          "transactionAlerts": {
+            "description": "Notifications for transaction status changes",
+            "type": "boolean"
           }
         },
         "type": "object"
@@ -13060,9 +12700,6 @@
             "type": "string"
           },
           "holdings": {
-            "type": "integer"
-          },
-          "snapshots": {
             "type": "integer"
           },
           "status": {
@@ -13786,102 +13423,6 @@
         ]
       }
     },
-    "/api/device-tokens/": {
-      "get": {
-        "operationId": "api_device_tokens_list",
-        "parameters": [
-          {
-            "description": "Which field to use when ordering the results.",
-            "in": "query",
-            "name": "ordering",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "A page number within the paginated result set.",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaginatedDeviceTokenList"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
-      "post": {
-        "operationId": "api_device_tokens_create",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DeviceTokenRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/DeviceTokenRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/DeviceTokenRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeviceToken"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
     "/api/device-tokens/register/": {
       "post": {
         "operationId": "api_device_tokens_register_create",
@@ -13988,46 +13529,6 @@
             "cookieAuth": [],
             "csrfCookie": [],
             "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/device-tokens/{uuid}/": {
-      "get": {
-        "operationId": "api_device_tokens_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeviceToken"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
           }
         ],
         "tags": [
@@ -14677,241 +14178,6 @@
           },
           {
             "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/investor-classifications/{uuid}/evidence/": {
-      "get": {
-        "operationId": "api_investor_classifications_evidence_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "*/*": {
-                "schema": {
-                  "format": "binary",
-                  "type": "string"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/notification-preferences/": {
-      "get": {
-        "operationId": "api_notification_preferences_list",
-        "parameters": [
-          {
-            "description": "Which field to use when ordering the results.",
-            "in": "query",
-            "name": "ordering",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "A page number within the paginated result set.",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotificationPreferences"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
-      "post": {
-        "operationId": "api_notification_preferences_create",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NotificationPreferencesRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/NotificationPreferencesRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/NotificationPreferencesRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotificationPreferences"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/notification-preferences/{uuid}/": {
-      "get": {
-        "operationId": "api_notification_preferences_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotificationPreferences"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
-      "patch": {
-        "operationId": "api_notification_preferences_partial_update",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PatchedNotificationPreferencesRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/PatchedNotificationPreferencesRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/PatchedNotificationPreferencesRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotificationPreferences"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
           }
         ],
         "tags": [
@@ -17608,46 +16874,6 @@
         ]
       }
     },
-    "/api/v1/companies/{uuid}/application-status/": {
-      "get": {
-        "operationId": "api_v1_companies_application_status_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApplicationStatus"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
     "/api/v1/companies/{uuid}/resubmit/": {
       "post": {
         "operationId": "api_v1_companies_resubmit_create",
@@ -17703,46 +16929,6 @@
             "cookieAuth": [],
             "csrfCookie": [],
             "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/companies/{uuid}/stats/": {
-      "get": {
-        "operationId": "api_v1_companies_stats_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompanyStats"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
           }
         ],
         "tags": [
@@ -18227,47 +17413,6 @@
             "cookieAuth": [],
             "csrfCookie": [],
             "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/documents/{uuid}/file/": {
-      "get": {
-        "operationId": "api_v1_documents_file_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "*/*": {
-                "schema": {
-                  "format": "binary",
-                  "type": "string"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
           }
         ],
         "tags": [
@@ -22327,46 +21472,6 @@
         ]
       }
     },
-    "/api/v1/trading/orders/{uuid}/modifications/": {
-      "get": {
-        "operationId": "api_v1_trading_orders_modifications_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TransferOrderList"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
     "/api/v1/trading/orders/{uuid}/modify/": {
       "post": {
         "operationId": "api_v1_trading_orders_modify_create",
@@ -23213,46 +22318,6 @@
         ]
       }
     },
-    "/api/v1/trading/tokens/{uuid}/market-data/": {
-      "get": {
-        "operationId": "api_v1_trading_tokens_market_data_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MarketData"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
     "/api/v1/trading/tokens/{uuid}/order-book/": {
       "get": {
         "operationId": "api_v1_trading_tokens_order_book_retrieve",
@@ -23286,106 +22351,6 @@
           },
           {
             "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/trading/transfers/broadcast/": {
-      "post": {
-        "operationId": "api_v1_trading_transfers_broadcast_create",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TradingBroadcastTransferRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/TradingBroadcastTransferRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/TradingBroadcastTransferRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TokenTransferReceipt"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/trading/transfers/prepare/": {
-      "post": {
-        "operationId": "api_v1_trading_transfers_prepare_create",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PrepareTransferRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/PrepareTransferRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/PrepareTransferRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PreparedTokenTransfer"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
           }
         ],
         "tags": [

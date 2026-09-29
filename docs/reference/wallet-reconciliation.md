@@ -40,7 +40,7 @@ adds an internal marker for new imports without inferring the origin of existing
 rows. Receipt verification for marked imports preserves block metadata when the
 provider cannot supply it and updates available receipt fields under the wallet
 and transaction locks. It sends no lifecycle notifications and changes no
-holdings or snapshots, including for quarantined assets. The wallet sync still
+holdings, including for quarantined assets. The wallet sync still
 refreshes current balances for verified holdings. History imports do not record
 an optimistic deduction.
 A confirmation job whose initial lookup finds no stored transaction returns
@@ -114,8 +114,8 @@ new policy is satisfied. This replaces the observation link without repeating
 the notification; earlier immutable observations remain in the watch's history.
 Unknown evidence continues to hold availability and legacy rows gain no authority.
 
-A worker interruption, provider outage or snapshot failure leaves durable repair
-work for the existing five-minute sweep, including terminal transactions. A retry
+A worker interruption or provider outage leaves durable repair work for the
+existing five-minute sweep, including terminal transactions. A retry
 cannot enqueue a second lifecycle notification. Unattributed legacy rows receive
 no new finality authority: migration `wallets.0021_transaction_finality_observation`
 adds a nullable link without backfilling it or changing balances. Legacy pending,
