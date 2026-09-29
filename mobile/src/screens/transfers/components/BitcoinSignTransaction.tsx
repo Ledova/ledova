@@ -39,7 +39,7 @@ export function BitcoinSignTransaction({
     },
     input: {
       fontSize: theme.fontSize.sm,
-      fontFamily: 'monospace',
+      fontFamily: theme.fontFamily.mono,
       minHeight: 120,
       textAlignVertical: 'top',
     },
@@ -61,12 +61,24 @@ export function BitcoinSignTransaction({
           What to sign
         </Text>
         <Rows>
-          <Row label="From">{formatWalletAddressShort(transactionData.fromAddress)}</Row>
-          <Row label="To">{formatWalletAddressShort(transactionData.toAddress)}</Row>
-          <Row label="Amount">{transactionData.amountBtc} BTC</Row>
-          <Row label="Fee Rate">{transactionData.feePerByte} sat/vB</Row>
-          <Row label="Estimated Size">{transactionData.estimatedTxSize} vB</Row>
-          <Row label="Total">{transactionData.totalCostBtc} BTC</Row>
+          <Row label="From" mono>
+            {formatWalletAddressShort(transactionData.fromAddress)}
+          </Row>
+          <Row label="To" mono>
+            {formatWalletAddressShort(transactionData.toAddress)}
+          </Row>
+          <Row label="Amount" mono>
+            {transactionData.amountBtc} BTC
+          </Row>
+          <Row label="Fee Rate" mono>
+            {transactionData.feePerByte} sat/vB
+          </Row>
+          <Row label="Estimated Size" mono>
+            {transactionData.estimatedTxSize} vB
+          </Row>
+          <Row label="Total" mono>
+            {transactionData.totalCostBtc} BTC
+          </Row>
         </Rows>
       </View>
 

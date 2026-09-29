@@ -32,7 +32,7 @@ export function SuccessModal({ visible, txHash, chainShortName, onDone }: Succes
     },
     hashValue: {
       fontSize: theme.fontSize.xs,
-      fontFamily: 'monospace',
+      fontFamily: theme.fontFamily.mono,
       color: theme.colors.text.primary,
     },
     explorerLink: {

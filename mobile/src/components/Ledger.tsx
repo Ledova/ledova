@@ -60,7 +60,7 @@ export function Rows({ children }: { children: ReactNode }) {
   );
 }
 
-export function Row({ label, children }: { label: string; children: ReactNode }) {
+export function Row({ label, mono = false, children }: { label: string; mono?: boolean; children: ReactNode }) {
   const styles = useThemedStyles((theme) => ({
     row: {
       flexDirection: 'row' as const,
@@ -77,11 +77,12 @@ export function Row({ label, children }: { label: string; children: ReactNode })
       color: theme.colors.text.primary,
       textAlign: 'right' as const,
     },
+    mono: { fontFamily: theme.fontFamily.mono },
   }));
   return (
     <View style={styles.row}>
       <Text style={styles.label}>{label}</Text>
-      <Text style={styles.value}>{children}</Text>
+      <Text style={[styles.value, mono && styles.mono]}>{children}</Text>
     </View>
   );
 }

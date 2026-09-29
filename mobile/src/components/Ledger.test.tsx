@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
-import { cleanup, fireEvent, render } from '@testing-library/react-native';
+import { cleanup, fireEvent, render, renderHook } from '@testing-library/react-native';
+import { useAppTheme } from '../contexts';
 import { Choice, LinkRow, Row, Rows } from './Ledger';
 
 afterEach(async () => {
@@ -28,6 +29,22 @@ it('draws a rule between rows only, never above the first or below the last', as
   expect(last).toBe(view.getByText('Third').parent);
   expect(first).not.toHaveStyle({ borderBottomWidth: 1 });
   expect(last).not.toHaveStyle({ borderBottomWidth: 1 });
+});
+
+it('sets a mono row value in the theme mono face and leaves others in the text face', async () => {
+  const theme = await renderHook(() => useAppTheme());
+  const { mono, regular } = theme.result.current.fontFamily;
+  const view = await render(
+    <Rows>
+      <Row label="From" mono>
+        0x1111...2222
+      </Row>
+      <Row label="Amount">1 ETH</Row>
+    </Rows>,
+  );
+  expect(view.getByText('0x1111...2222')).toHaveStyle({ fontFamily: mono });
+  expect(view.getByText('1 ETH')).toHaveStyle({ fontFamily: regular });
+  expect(view.getByText('From')).toHaveStyle({ fontFamily: regular });
 });
 
 it('draws no rule around a single row or link', async () => {

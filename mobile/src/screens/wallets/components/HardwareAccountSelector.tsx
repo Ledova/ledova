@@ -60,7 +60,7 @@ export function useAccountRowStyles() {
     },
     address: {
       fontSize: theme.fontSize.xs,
-      fontFamily: 'monospace',
+      fontFamily: theme.fontFamily.mono,
       color: theme.colors.text.muted,
     },
   }));

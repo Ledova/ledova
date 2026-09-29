@@ -35,8 +35,12 @@ export function ReviewTransaction({ transactionData, chainShortName }: ReviewTra
       showsVerticalScrollIndicator={false}
     >
       <Rows>
-        <Row label="From">{formatWalletAddressMedium(transactionData.fromAddress)}</Row>
-        <Row label="To">{formatWalletAddressMedium(transactionData.toAddress)}</Row>
+        <Row label="From" mono>
+          {formatWalletAddressMedium(transactionData.fromAddress)}
+        </Row>
+        <Row label="To" mono>
+          {formatWalletAddressMedium(transactionData.toAddress)}
+        </Row>
         <Row label="Amount">
           {transactionData.amountToken
             ? `${transactionData.amountToken} ${transactionData.tokenSymbol}`

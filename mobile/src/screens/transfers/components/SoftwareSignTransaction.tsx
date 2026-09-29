@@ -105,10 +105,22 @@ export function SoftwareSignTransaction({
           Transaction Summary
         </Text>
         <Rows>
-          <Row label="From">{formatWalletAddressShort(transactionData.fromAddress)}</Row>
-          <Row label="To">{formatWalletAddressShort(transactionData.toAddress)}</Row>
-          {transactionData.amountEth && <Row label="Amount">{transactionData.amountEth} ETH</Row>}
-          {transactionData.gasCostEth && <Row label="Gas">{transactionData.gasCostEth} ETH</Row>}
+          <Row label="From" mono>
+            {formatWalletAddressShort(transactionData.fromAddress)}
+          </Row>
+          <Row label="To" mono>
+            {formatWalletAddressShort(transactionData.toAddress)}
+          </Row>
+          {transactionData.amountEth && (
+            <Row label="Amount" mono>
+              {transactionData.amountEth} ETH
+            </Row>
+          )}
+          {transactionData.gasCostEth && (
+            <Row label="Gas" mono>
+              {transactionData.gasCostEth} ETH
+            </Row>
+          )}
         </Rows>
       </View>
 

@@ -76,7 +76,7 @@ export function AddWalletModal({
       alignItems: 'center',
     },
     mono: {
-      fontFamily: 'monospace',
+      fontFamily: theme.fontFamily.mono,
     },
     inputError: {
       borderColor: theme.colors.status.error.text,
