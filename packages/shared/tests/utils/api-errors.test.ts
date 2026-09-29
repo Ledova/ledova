@@ -67,6 +67,21 @@ describe('what it refuses to say', () => {
     expect(reading.fieldErrors).toBeUndefined();
   });
 
+  it('does not repeat a page of markup, such as a proxy error page, as a message for a person', () => {
+    const page =
+      '<!DOCTYPE html><html><head><title>502 Bad Gateway</title></head><body><h1>502 Bad Gateway</h1></body></html>';
+
+    expect(readApiError(refusal(502, page), { fallback: FALLBACK }).generalError).toBe(FALLBACK);
+    expect(readApiError(refusal(502, { detail: page }), { fallback: FALLBACK }).generalError).toBe(FALLBACK);
+    expect(apiErrorSentence(refusal(502, page), FALLBACK)).toBe(FALLBACK);
+  });
+
+  it('still reads a plain sentence that happens to compare numbers', () => {
+    expect(readApiError(refusal(400, 'Amount must be < 5 and > 1.'), { fallback: FALLBACK }).generalError).toBe(
+      'Amount must be < 5 and > 1.',
+    );
+  });
+
   it('announces once when a body carries both a label and a sentence', () => {
     const reading = readApiError(refusal(503, { error: 'Database error', detail: 'A database error occurred.' }), {
       fallback: FALLBACK,

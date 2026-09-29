@@ -85,14 +85,20 @@ const ANNOUNCEMENT_KEYS = ['detail', 'error', 'message'] as const;
 
 const KEYS_BELONGING_TO_NO_FIELD = ['nonFieldErrors', 'non_field_errors'] as const;
 
+const MARKUP = /<[a-z!/?][^>]*>/i;
+
+function isSentence(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0 && !MARKUP.test(value);
+}
+
 function sentenceListOf(value: unknown): string[] | null {
   if (!Array.isArray(value)) return null;
-  const sentences = value.filter((each): each is string => typeof each === 'string' && each.trim().length > 0);
+  const sentences = value.filter(isSentence);
   return sentences.length > 0 ? sentences : null;
 }
 
 function announcementOf(value: unknown): string[] | null {
-  if (typeof value === 'string') return value.trim() ? [value] : null;
+  if (typeof value === 'string') return isSentence(value) ? [value] : null;
   return sentenceListOf(value);
 }
 
