@@ -424,8 +424,6 @@ ROUTES = (
 
 
 OPERATOR_ROUTES = (
-    Route("get", "/api/v1/companies/{company}/api-key/"),
-    Route("post", "/api/v1/companies/{company}/api-key/", {}),
     Route(
         "post",
         "/api/v1/companies/{company}/status/",

@@ -131,7 +131,6 @@ class CompanyDetailSerializer(serializers.ModelSerializer):
             "rejection_reason",
             "withdrawn_at",
             "withdrawal_reason",
-            "api_key",
             "is_active",
             "is_approved",
             "is_pending_review",
@@ -236,12 +235,6 @@ class CompanyUpdateSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         return update_company(instance, validated_data)
-
-
-class CompanyAPIKeySerializer(serializers.Serializer):
-
-    api_key = serializers.CharField(read_only=True)
-    api_key_created_at = serializers.DateTimeField(read_only=True)
 
 
 class CompanyStatusUpdateSerializer(serializers.Serializer):

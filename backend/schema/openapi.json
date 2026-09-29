@@ -1394,24 +1394,6 @@
         ],
         "type": "object"
       },
-      "CompanyAPIKey": {
-        "properties": {
-          "apiKey": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "apiKeyCreatedAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "apiKey",
-          "apiKeyCreatedAt"
-        ],
-        "type": "object"
-      },
       "CompanyApplicationResubmitted": {
         "properties": {
           "company": {
@@ -16773,86 +16755,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CompanyUpdate"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/companies/{uuid}/api-key/": {
-      "get": {
-        "operationId": "api_v1_companies_api_key_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompanyAPIKey"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
-      "post": {
-        "operationId": "api_v1_companies_api_key_create",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompanyAPIKey"
                 }
               }
             },

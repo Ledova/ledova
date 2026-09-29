@@ -269,8 +269,6 @@ class CompanyAdmin(admin.ModelAdmin):
         "delisting_reason",
         "withdrawal_reason",
         "uuid",
-        "api_key",
-        "api_key_created_at",
         "submitted_at",
         "review_started_at",
         "review_completed_at",
@@ -398,16 +396,6 @@ class CompanyAdmin(admin.ModelAdmin):
                     "postcode",
                     "country",
                 ]
-            },
-        ),
-        (
-            "API Access",
-            {
-                "fields": [
-                    "api_key",
-                    "api_key_created_at",
-                ],
-                "classes": ["collapse"],
             },
         ),
         (

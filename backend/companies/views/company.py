@@ -12,7 +12,6 @@ from companies.serializers import (
     ApplicationStatusSerializer,
     ApplicationSubmitSerializer,
     ApplicationWithdrawSerializer,
-    CompanyAPIKeySerializer,
     CompanyDetailSerializer,
     CompanyListSerializer,
     CompanyRegistrationSerializer,
@@ -24,7 +23,7 @@ from shared.views import AuthenticatedModelViewSet
 
 
 class CompanyViewSet(AuthenticatedModelViewSet):
-    administrative_actions = frozenset({"api_key", "status_update"})
+    administrative_actions = frozenset({"status_update"})
     operator_actions = administrative_actions
     filterset_class = CompanyFilter
     ordering = ["-created_at"]
@@ -39,8 +38,6 @@ class CompanyViewSet(AuthenticatedModelViewSet):
             return CompanyListSerializer
         if self.action in ["update", "partial_update"]:
             return CompanyUpdateSerializer
-        if self.action == "api_key":
-            return CompanyAPIKeySerializer
         if self.action == "status_update":
             return CompanyStatusUpdateSerializer
         if self.action == "submit":
@@ -81,24 +78,6 @@ class CompanyViewSet(AuthenticatedModelViewSet):
 
     def perform_destroy(self, instance):
         delete_company(instance)
-
-    @extend_schema(responses=CompanyAPIKeySerializer)
-    @action(detail=True, methods=["get", "post"], url_path="api-key")
-    def api_key(self, request, uuid=None):
-        company = self.get_object()
-
-        if request.method == "GET":
-            serializer = CompanyAPIKeySerializer(company)
-            return Response(serializer.data)
-
-        company.regenerate_api_key()
-        serializer = CompanyAPIKeySerializer(company)
-        return Response(
-            {
-                "message": "API key regenerated successfully",
-                **serializer.data,
-            }
-        )
 
     @extend_schema(
         responses=inline_serializer(

@@ -42,6 +42,14 @@ or `fileUrl`; staff read both files through admin. No database migration is
 needed. Any external consumer of a retired route must stop using it before
 upgrading.
 
+## The company API key is gone
+
+Nothing authenticated with the key a company was issued at registration, so it
+is removed. `GET` and `POST /api/v1/companies/{uuid}/api-key/` return 404, the
+company admin no longer shows an API Access section, and
+[`companies/0011`](#database-migrations) drops the key and its creation time.
+Any script that read or regenerated a key must stop before upgrading.
+
 ## Stablecoin sends need an approval on both sides
 
 `POST /api/wallets/{uuid}/prepare-transfer/` and `/broadcast-transfer/` now
@@ -334,6 +342,11 @@ missing count as 0 and show nothing in its place. No database migration is neede
   which creates no table, only the **Can change company pack** permission and
   the proxy's other defaults. Grant it, with **Can view company document**, to
   the staff who [produce company packs](register-foundation.md#producing-a-company-pack).
+- `companies/0011_remove_company_api_key` drops `api_key` and
+  `api_key_created_at` from `companies_company`. It rewrites no other column.
+  **Reversal does not restore data.** It recreates both columns and issues
+  every company a new random key dated at the reversal, which the unique
+  constraint needs; the keys dropped are gone.
 - `whitelist/0007_per_company_approvals` is a fresh start: it refuses to run while
   any whitelist change exists, because those were written for the retired global
   registry. Follow the [fresh-start redeploy](chains.md#fresh-start-redeploy).

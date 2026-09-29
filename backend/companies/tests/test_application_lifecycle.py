@@ -243,12 +243,9 @@ class ApplicationLifecycleTest(APITestCase):
     def test_non_staff_cannot_reach_administrative_routes(self):
         self.client.force_authenticate(self.owner)
         self.assertEqual(self.client.post(f"{self.url}status/", {"status": "review"}, format="json").status_code, 403)
-        self.assertEqual(self.client.get(f"{self.url}api-key/").status_code, 403)
-        self.assertEqual(self.client.post(f"{self.url}api-key/").status_code, 403)
 
         self.client.force_authenticate(None)
         self.assertEqual(self.client.post(f"{self.url}status/", {"status": "review"}, format="json").status_code, 401)
-        self.assertEqual(self.client.get(f"{self.url}api-key/").status_code, 401)
 
         self.client.force_authenticate(self.other)
         self.assertEqual(self.client.post(f"{self.url}submit/", {"confirm": True}, format="json").status_code, 404)

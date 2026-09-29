@@ -1,5 +1,3 @@
-import secrets
-
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -150,9 +148,6 @@ class Company(BaseModel):
 
     activated_at = models.DateTimeField(null=True, blank=True)
 
-    api_key = models.CharField(max_length=64, unique=True, blank=True)
-    api_key_created_at = models.DateTimeField(null=True, blank=True)
-
     operator_wallet = models.ForeignKey(
         "wallets.Wallet",
         on_delete=models.SET_NULL,
@@ -183,22 +178,6 @@ class Company(BaseModel):
         super().clean()
         if self.abn and self.acn and not abn_carries_acn(self.abn, self.acn):
             raise ValidationError({"abn": ABN_DOES_NOT_CARRY_ACN})
-
-    def save(self, *args, **kwargs):
-        if not self.api_key:
-            self.api_key = self._generate_api_key()
-            self.api_key_created_at = timezone.now()
-        super().save(*args, **kwargs)
-
-    @staticmethod
-    def _generate_api_key():
-        return f"ledova_{secrets.token_hex(28)}"
-
-    def regenerate_api_key(self):
-        self.api_key = self._generate_api_key()
-        self.api_key_created_at = timezone.now()
-        self.save(update_fields=["api_key", "api_key_created_at", "updated_at"])
-        return self.api_key
 
     def _require_status(self, allowed, to_status):
         if self.status not in allowed:

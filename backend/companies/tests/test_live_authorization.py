@@ -201,28 +201,19 @@ class CompanyEndpointIsolationTest(APITestCase):
         )
         self.client.force_authenticate(staff)
 
-        api_key_response = self.client.get(f"/api/v1/companies/{self.bob_company.uuid}/api-key/")
-        regenerate_response = self.client.post(f"/api/v1/companies/{self.bob_company.uuid}/api-key/")
+        status_url = f"/api/v1/companies/{self.bob_company.uuid}/status/"
         status_response = self.client.post(
-            f"/api/v1/companies/{self.bob_company.uuid}/status/",
-            {"status": "warning", "reason": "Administrative review"},
-            format="json",
+            status_url, {"status": "warning", "reason": "Administrative review"}, format="json"
         )
 
-        self.assertEqual(api_key_response.status_code, 200)
-        self.assertEqual(regenerate_response.status_code, 200)
         self.assertEqual(status_response.status_code, 200)
         self.bob_company.refresh_from_db()
         self.assertEqual(self.bob_company.status, "warning")
 
         self.client.force_authenticate(self.alice)
-        self.assertEqual(
-            self.client.get(f"/api/v1/companies/{self.bob_company.uuid}/api-key/").status_code,
-            403,
-        )
+        self.assertEqual(self.client.post(status_url, {"status": "suspended"}, format="json").status_code, 403)
 
         self.client.force_authenticate(None)
-        self.assertEqual(
-            self.client.get(f"/api/v1/companies/{self.bob_company.uuid}/api-key/").status_code,
-            401,
-        )
+        self.assertEqual(self.client.post(status_url, {"status": "suspended"}, format="json").status_code, 401)
+        self.bob_company.refresh_from_db()
+        self.assertEqual(self.bob_company.status, "warning")

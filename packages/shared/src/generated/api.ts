@@ -751,22 +751,6 @@ export interface ApiPaths {
     patch: ApiOperations['api_v1_companies_partial_update'];
     trace?: never;
   };
-  '/api/v1/companies/{uuid}/api-key/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_companies_api_key_retrieve'];
-    put?: never;
-    post: ApiOperations['api_v1_companies_api_key_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/companies/{uuid}/resubmit/': {
     parameters: {
       query?: never;
@@ -2530,10 +2514,6 @@ export interface ApiComponents {
       currentPassword: string;
       newPassword: string;
       newPasswordConfirm: string;
-    };
-    CompanyAPIKey: {
-      apiKey: string;
-      apiKeyCreatedAt: string;
     };
     CompanyApplicationResubmitted: {
       company: ApiComponents['schemas']['ApplicationStatus'];
@@ -6567,48 +6547,6 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['CompanyUpdate'];
-        };
-      };
-    };
-  };
-  api_v1_companies_api_key_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CompanyAPIKey'];
-        };
-      };
-    };
-  };
-  api_v1_companies_api_key_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CompanyAPIKey'];
         };
       };
     };

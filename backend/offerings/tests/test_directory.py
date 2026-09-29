@@ -91,10 +91,9 @@ class DirectoryPayloadTest(APITestCase):
     def test_the_company_block_leaks_no_private_field(self):
         row = self._row()
         body = self.client.get(LIST).content.decode()
-        for leaked in ("acn", "abn", "owner", "apiKey", "api_key", "operatorWallet", "operator_wallet"):
+        for leaked in ("acn", "abn", "owner", "operatorWallet", "operator_wallet"):
             self.assertNotIn(leaked, row["company"])
         self.assertNotIn(self.issuer.company.acn, body)
-        self.assertNotIn(self.issuer.company.api_key, body)
 
     def test_the_company_block_shows_the_trading_name(self):
         self.assertEqual(self._row()["company"]["displayName"], "Issuer Trading")

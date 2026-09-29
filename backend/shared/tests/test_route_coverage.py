@@ -83,8 +83,6 @@ EXEMPT = {
     ("get", "/api/v1/directory/tokens/"): ELIGIBILITY_SCOPED,
     ("get", "/api/v1/trading/tokens/"): ELIGIBILITY_SCOPED,
     ("get", "/api/v1/trading/events/stream/"): ELIGIBILITY_SCOPED_ASYNC,
-    ("get", "/api/v1/companies/{}/api-key/"): STAFF_UNSCOPED,
-    ("post", "/api/v1/companies/{}/api-key/"): STAFF_UNSCOPED,
     ("post", "/api/v1/companies/{}/status/"): STAFF_UNSCOPED,
     ("get", "/api/v1/whitelist/"): STAFF_WHITELIST,
     ("get", "/api/v1/whitelist/{}/"): STAFF_WHITELIST,
