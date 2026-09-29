@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, Alert, ScrollView, Pressable } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   HouseIcon,
@@ -18,7 +18,7 @@ import {
   NewspaperIcon,
   ShieldCheckIcon,
 } from 'phosphor-react-native';
-import { signout, describeFailure, DESTINATIONS, useNotifications } from '@ledova/shared';
+import { signout, describeFailure, DESTINATIONS, getCompanies, useNotifications } from '@ledova/shared';
 import { apiClient } from '../services/apiClient';
 import { notificationsService } from '../services/notificationsService';
 import { clearTokens } from '../services/tokenStorage';
@@ -184,6 +184,12 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { isEnabled } = useFeatureFlags();
   const { isCompany, isInvestor, isLoading } = useRole();
+  const companies = useQuery({
+    queryKey: ['companies'],
+    queryFn: () => getCompanies(apiClient),
+    enabled: isCompany,
+  });
+  const companyName = companies.data?.data.results[0]?.name || DESTINATIONS.company.title;
   const { userProfile } = useUserProfile();
   const person = userProfile?.fullName?.trim() || userProfile?.email;
   const insets = useSafeAreaInsets();
@@ -230,11 +236,12 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
   );
 
   const groups = [
-    ...(isCompany ? [{ label: 'Company', items: COMPANY_MENU_ITEMS }] : []),
-    { label: 'Your shares', items: SHARE_MENU_ITEMS },
+    ...(isCompany ? [{ id: 'company', label: companyName, items: COMPANY_MENU_ITEMS }] : []),
+    { id: 'shares', label: 'Your shares', items: SHARE_MENU_ITEMS },
     ...(isInvestor
       ? [
           {
+            id: 'invest',
             label: 'Invest',
             items: INVEST_MENU_ITEMS.filter((item) => item.target !== 'Trading' || isEnabled('trading_enabled')),
           },
@@ -252,7 +259,7 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
         </View>
         {!isLoading &&
           groups.map((group) => (
-            <View key={group.label} style={styles.group}>
+            <View key={group.id} style={styles.group}>
               <Text accessibilityRole="header" style={styles.groupLabel}>
                 {group.label}
               </Text>
