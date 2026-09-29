@@ -215,6 +215,13 @@ it('suppresses cached application history on a failed refresh and recovers to a 
   expect(mockParentNavigate).toHaveBeenCalledWith('Directory', { screen: 'DirectoryMain' });
 });
 
+it('rejects non-advancing application pagination instead of publishing an incomplete first page', async () => {
+  pages = { 1: { results: [application], next: `https://example.test${listUrl}?page=1` } };
+  const view = await render(<ApplicationsScreen />, { wrapper });
+  expect(await view.findByText(/Your applications could not be loaded/)).toBeTruthy();
+  expect(view.queryByText('Draft')).toBeNull();
+});
+
 it('opens the selected recorded application and never converts unsafe numeric share counts', async () => {
   application.quantity = Number.MAX_SAFE_INTEGER + 1;
   const view = await render(<ApplicationsScreen />, { wrapper });

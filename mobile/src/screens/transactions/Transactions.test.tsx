@@ -231,6 +231,12 @@ it('does not report an empty first page as complete when another page exists', a
   expect(view.queryByText('No activity yet.')).toBeNull();
   expect(await view.findByText('Pending')).toBeTruthy();
 });
+it('rejects a non-advancing history link', async () => {
+  activity = async () => page([transaction], 'https://example.invalid/api/transactions/?page=1');
+  const view = await show();
+  expect(await view.findByText('Your activity could not be loaded. Try again before continuing.')).toBeTruthy();
+  expect(view.queryByText('Pending')).toBeNull();
+});
 it('refreshes actual records and hides a stale open detail on failure, then restores current status', async () => {
   const view = await show();
   await fireEvent.press(await view.findByRole('button', { name: 'Open activity entry-one' }));

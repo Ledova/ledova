@@ -578,6 +578,14 @@ it('can reach the next page when the first addressed page is empty', async () =>
   expect(view.queryByText(PUBLICATION_COPY.EMPTY)).toBeNull();
 });
 
+it('refuses a nonadvancing next page', async () => {
+  listing = async () => ({ data: { count: 2, next: 'https://api.example/?page=1', results: rows } });
+  const view = await render(<PublicationsScreen />, { wrapper });
+  expect(await view.findByText(PUBLICATION_COPY.LIST_FAILED)).toBeTruthy();
+  expect(view.queryByText(statement.title)).toBeNull();
+  expect(view.queryByText(PUBLICATION_COPY.LOAD_MORE)).toBeNull();
+});
+
 it('withdraws stale document and ballot actions after refresh failure, then restores them on retry', async () => {
   rows = [resolution];
   const view = await render(<PublicationsScreen />, { wrapper });
