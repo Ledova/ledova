@@ -9,6 +9,7 @@ import {
   getPublicationsNextPage,
   openPublication,
   publicationFilename,
+  useLaterPages,
 } from '@ledova/shared';
 import type { BallotChoice, UserFriendlyError } from '@ledova/shared';
 import apiClient from '@services/apiClient';
@@ -47,6 +48,7 @@ export function usePublications() {
     initialPageParam: 1,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
+  const pages = useLaterPages(PERSONAL_NOTICES_KEY, listing);
 
   const opening = useMutation({
     mutationFn: async (uuid: string) => {
@@ -63,13 +65,13 @@ export function usePublications() {
   return {
     publications: listing.data?.pages.flatMap((page) => page.data?.results ?? []) ?? [],
     isLoading: listing.isLoading,
-    listFailed: listing.isError && !listing.isFetchNextPageError,
-    moreFailed: listing.isFetchNextPageError,
+    listFailed: pages.hasError,
+    moreFailed: pages.moreFailed,
     isRefreshing: listing.isFetching,
     retry: () => void listing.refetch(),
     hasMore: listing.hasNextPage,
     isLoadingMore: listing.isFetchingNextPage,
-    loadMore: () => void listing.fetchNextPage(),
+    loadMore: () => void pages.loadMore(),
     open: opening.mutate,
     openingUuid: opening.isPending ? opening.variables : undefined,
     openError: opening.isError ? whyItCouldNotBeOpened(opening.error) : undefined,

@@ -1,8 +1,17 @@
-import { useQueryClient, type QueryKey, type UseInfiniteQueryResult } from '@tanstack/react-query';
+import { useQueryClient, type QueryKey } from '@tanstack/react-query';
+
+interface PagedRead {
+  isError: boolean;
+  isFetching: boolean;
+  isFetchNextPageError: boolean;
+  hasNextPage: boolean;
+  errorUpdateCount: number;
+  fetchNextPage: () => Promise<{ isFetchNextPageError: boolean; errorUpdateCount: number }>;
+}
 
 const laterPageFailures = new WeakMap<object, number>();
 
-export function useLaterPages<TData>(queryKey: QueryKey, query: UseInfiniteQueryResult<TData>) {
+export function useLaterPages(queryKey: QueryKey, query: PagedRead) {
   const cached = useQueryClient().getQueryCache().find({ queryKey, exact: true });
   const moreFailed =
     query.isFetchNextPageError ||
