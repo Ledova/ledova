@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import type { ComponentProps } from 'react';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type { PreparedWalletTransfer, Wallet } from '@ledova/shared';
 
@@ -48,6 +48,23 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+});
+
+it('is the shared dialog named by its title, and can be cancelled while the transfer is prepared', () => {
+  const onClose = vi.fn();
+  render(flow({ onClose }));
+  const dialog = screen.getByRole('dialog', { name: 'Sign Transfer' });
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+  expect(onClose).toHaveBeenCalledOnce();
+});
+
+it('lists the transfer as rows and ends the instructions with Cancel then Continue', () => {
+  render(flow({ preparedTransaction: prepared }));
+  expect(screen.getByText('From').tagName).toBe('DT');
+  expect(screen.getByText('Amount').tagName).toBe('DT');
+  const cancel = screen.getByRole('button', { name: 'Cancel' });
+  const next = screen.getByRole('button', { name: 'Continue' });
+  expect(Array.from(cancel.parentElement!.children)).toEqual([cancel, next]);
 });
 
 it('prepares once when opened and shows the instructions when the transaction arrives', () => {

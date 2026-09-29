@@ -63,6 +63,26 @@ it('selects every account again when the network changes', async () => {
   await view.findByText('1 ETH');
 });
 
+it('lists accounts as pressed rows under rules and ends with Cancel then Import', async () => {
+  api.post.mockImplementation(async (_url, body) => ({ data: { chain: body.chain, balances: { [address]: '1' } } }));
+  const cancelled = vi.fn();
+  const view = render(
+    <AccountSelector urString="synthetic-qr" onSelectAccounts={vi.fn()} onCancel={cancelled} isLoading={false} />,
+  );
+  await view.findByText('1 ETH');
+  const row = view.getByRole('button', { pressed: true });
+  expect(row.parentElement!.className).toContain('divide-y');
+  fireEvent.click(row);
+  expect(row.getAttribute('aria-pressed')).toBe('false');
+  const cancel = view.getByRole('button', { name: 'Cancel' });
+  expect(Array.from(cancel.parentElement!.children)).toEqual([
+    cancel,
+    view.getByRole('button', { name: 'Import 0 Wallets' }),
+  ]);
+  fireEvent.click(cancel);
+  expect(cancelled).toHaveBeenCalledOnce();
+});
+
 it('does not display a zero when the provider fails', async () => {
   api.post.mockRejectedValue(new Error('offline'));
   const view = render(

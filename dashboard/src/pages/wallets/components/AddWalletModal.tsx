@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import { QrCodeIcon, CheckIcon, WalletIcon, HardDrivesIcon } from '@phosphor-icons/react';
+import { QrCodeIcon, CheckIcon } from '@phosphor-icons/react';
 import {
   getBlockchainDisplayName,
   getActiveChains,
@@ -13,12 +13,16 @@ import {
 
 const ICON_XS = DESIGN_TOKENS.icon.sizes.xs;
 const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
-const ICON_XXL = DESIGN_TOKENS.icon.sizes.xxl;
 import type { CreateWallet, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
-import { Modal } from '@components/Modal';
+import { Modal, ModalActions } from '@components/Modal';
+import { PageAction } from '@components/Page';
 import apiClient from '@services/apiClient';
 import { useWalletForm } from '../hooks/useWalletForm';
 import { extractFromKeystoneQR } from '@utils/keystone/bcurDecoder';
+
+const FIELD_CLASS =
+  'block w-full rounded-lg border bg-surface-raised px-3 py-2 text-sm text-text-primary ' +
+  'placeholder:text-text-muted focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid';
 
 interface AddWalletModalProps {
   readBlocked?: boolean;
@@ -61,7 +65,7 @@ export function AddWalletModal({
 
   if (form.isSelectingAddresses && form.scannedURString) {
     return (
-      <Modal isOpen={isOpen} onClose={handleClose} showFooter={false}>
+      <Modal isOpen={isOpen} onClose={handleClose} title="Add wallet">
         {notice}
         {error && (
           <p role="alert" className="mb-3 text-sm text-error-light">
@@ -84,6 +88,7 @@ export function AddWalletModal({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
+      title="Add wallet"
       showFooter={!form.showScanner}
       confirmLabel={isLoading ? 'Adding...' : 'Add Wallet'}
       confirmLoading={isLoading}
@@ -99,16 +104,13 @@ export function AddWalletModal({
             {error}
           </p>
         )}
-        <div className="flex flex-col items-center gap-2 pt-2 pb-4">
-          <WalletIcon size={ICON_XXL} weight="light" className="text-info-light" />
-          <p className="text-sm text-text-muted text-center">
-            {form.showScanner ? 'Scan your wallet QR code' : 'Enter wallet details or scan a QR code'}
-          </p>
-        </div>
+        <p className="text-sm text-text-muted">
+          {form.showScanner ? 'Scan your wallet QR code' : 'Enter wallet details or scan a QR code'}
+        </p>
 
-        <div className="space-y-2">
+        <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <label className="text-xs text-text-muted">Wallet Address</label>
+            <label className="text-sm text-text-muted">Wallet Address</label>
             <button
               type="button"
               onClick={form.toggleScanner}
@@ -135,11 +137,7 @@ export function AddWalletModal({
                 </div>
               )}
 
-              {form.scannerError && (
-                <div className="p-3 bg-error-light/10 border border-error-light/20 rounded-lg">
-                  <p className="text-sm text-error-light text-center">{form.scannerError}</p>
-                </div>
-              )}
+              {form.scannerError && <p className="text-center text-sm text-error-light">{form.scannerError}</p>}
             </div>
           ) : (
             <>
@@ -148,9 +146,7 @@ export function AddWalletModal({
                 aria-label="Wallet address"
                 value={form.address}
                 onChange={(e) => form.handleAddressChange(e.target.value)}
-                className={`w-full bg-surface-tertiary border rounded-lg px-3 py-2.5 text-sm text-text-primary font-mono focus:outline-none focus:ring-2 focus:ring-brand-mid ${
-                  form.errors.address ? 'border-error-light' : 'border-border'
-                }`}
+                className={`${FIELD_CLASS} font-mono ${form.errors.address ? 'border-error-light' : 'border-border'}`}
                 placeholder="0x... or tb1..."
                 disabled={isLoading}
               />
@@ -167,7 +163,7 @@ export function AddWalletModal({
               disabled={isLoading}
               value={form.selectedChain ?? ''}
               onChange={(event) => form.setSelectedChain(event.target.value)}
-              className="w-full rounded-lg border border-border bg-surface-tertiary p-2 text-text-primary"
+              className={`${FIELD_CLASS} border-border`}
             >
               {getActiveChains().map((chain) => (
                 <option key={chain.code} value={chain.code}>
@@ -178,14 +174,14 @@ export function AddWalletModal({
           </label>
         )}
         {!form.showScanner && (
-          <div className="space-y-2">
-            <label className="text-xs text-text-muted">Wallet Name (Optional)</label>
+          <div className="space-y-1">
+            <label className="text-sm text-text-muted">Wallet Name (Optional)</label>
             <input
               type="text"
               aria-label="Wallet name"
               value={form.name}
               onChange={(e) => form.setName(e.target.value)}
-              className="w-full bg-surface-tertiary border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-mid"
+              className={`${FIELD_CLASS} border-border`}
               placeholder="e.g., Savings, Trading, Cold Storage"
               disabled={isLoading}
               maxLength={100}
@@ -220,10 +216,7 @@ export function AccountSelector({ urString, onSelectAccounts, onCancel, isLoadin
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col items-center gap-2 pt-2 pb-4">
-        <HardDrivesIcon size={ICON_XXL} weight="light" className="text-info-light" />
-        <p className="text-sm text-text-muted text-center">Review the accounts to import</p>
-      </div>
+      <p className="text-sm text-text-muted">Review the accounts to import</p>
 
       {importData?.addresses.some((item) => item.networkType !== 'BTC') && (
         <label className="block space-y-1 text-sm text-text-muted">
@@ -233,7 +226,7 @@ export function AccountSelector({ urString, onSelectAccounts, onCancel, isLoadin
             disabled={isLoading}
             value={evmNetwork}
             onChange={(event) => setEvmNetwork(event.target.value as 'ETH' | 'BASE')}
-            className="w-full rounded-lg border border-border bg-surface-tertiary p-2 text-text-primary"
+            className={`${FIELD_CLASS} border-border`}
           >
             <option value="ETH">Ethereum</option>
             <option value="BASE">Base</option>
@@ -293,7 +286,7 @@ function ImportAccounts({
 
   return (
     <>
-      <div className="space-y-2 max-h-[300px] overflow-y-auto">
+      <div className="divide-y divide-border-subtle">
         {addresses.map((derivedAddress) => {
           const isSelected = selectedAddresses.has(importAddressKey(derivedAddress));
           const balance = balances.get(importAddressKey(derivedAddress)) || 'Loading...';
@@ -303,13 +296,10 @@ function ImportAccounts({
             <button
               key={importAddressKey(derivedAddress)}
               type="button"
+              aria-pressed={isSelected}
               onClick={() => toggleSelection(importAddressKey(derivedAddress))}
               disabled={isImporting}
-              className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors text-left ${
-                isSelected
-                  ? 'border-brand-mid bg-brand-mid/5'
-                  : 'border-border bg-surface-tertiary hover:bg-surface-raised'
-              }`}
+              className="flex w-full items-center gap-3 py-3 text-left disabled:opacity-50"
             >
               <div
                 className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center ${
@@ -333,26 +323,19 @@ function ImportAccounts({
         })}
       </div>
 
-      <div className="flex gap-3 pt-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isImporting}
-          className="flex-1 px-4 py-2.5 border border-border rounded-lg text-sm font-medium text-text-secondary hover:bg-surface-tertiary transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
+      <ModalActions>
+        <PageAction label="Cancel" onClick={onCancel} disabled={isImporting} />
+        <PageAction
+          label={
+            isImporting
+              ? 'Importing...'
+              : `Import ${selectedAddresses.size} Wallet${selectedAddresses.size !== 1 ? 's' : ''}`
+          }
+          primary
           onClick={handleImport}
           disabled={selectedAddresses.size === 0 || isImporting}
-          className="flex-1 px-4 py-2.5 bg-brand-mid text-white rounded-lg text-sm font-medium hover:bg-brand transition-colors disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed"
-        >
-          {isImporting
-            ? 'Importing...'
-            : `Import ${selectedAddresses.size} Wallet${selectedAddresses.size !== 1 ? 's' : ''}`}
-        </button>
-      </div>
+        />
+      </ModalActions>
     </>
   );
 }

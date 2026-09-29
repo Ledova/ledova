@@ -306,7 +306,7 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
             <select
               value={documentType}
               onChange={(e) => setDocumentType(e.target.value as DocumentType)}
-              className="rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary"
+              className="max-w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary"
               disabled={upload.isPending}
             >
               <option value="payslip">Payslip</option>

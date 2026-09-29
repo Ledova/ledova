@@ -475,12 +475,19 @@ they serve: Market's Saved work follows Trades awaiting signatures, and Offering
 leads with Your offerings. Mobile's `Lede` follows the title and its actions.
 
 Every section is its own card, including forms and things to act on such as a
-payment instruction. A group inside a section is set off by a rule or a small
-heading rather than a card of its own, as the For sale and Wanted lists on
-Market, the saved payslips on Profile and a vote's confirmation on Notices are
-([decision](../decisions.md#the-signed-in-app)). The saved pause and unpause
-requests on a share class are the exception: each still sits in a bordered box
-inside the class's card. Dialogs keep their own panel over the page.
+payment instruction, and a dialog (`Modal` in `dashboard/src/components/Modal`)
+is the same card over the dimmed page: its Newsreader title sits inside at the
+top and labels it, its body scrolls inside the card when the screen is too short,
+and its actions end the card as one right-aligned row of content-width
+`PageAction`s (`ModalActions`), a plain Cancel, Close or Back before the primary
+action. On a narrow phone the row wraps onto another line rather than
+stretching. A group inside a card is set off by a rule or a small heading
+rather than a card of its own, as the For sale and Wanted lists on Market, the
+saved payslips on Profile, a vote's confirmation on Notices, the saved pause and
+unpause requests on a share class and the steps of a signing dialog are
+([decision](../decisions.md#the-signed-in-app)). A field in a card is white with
+a hairline border (`rounded-lg border border-border bg-surface-raised`), and a
+warning is its icon and warning-coloured text rather than a tinted box.
 
 The design tokens are the single source of colour, spacing and radius values.
 `make generate-tokens` runs `packages/scripts/generate-css-tokens.mjs` with

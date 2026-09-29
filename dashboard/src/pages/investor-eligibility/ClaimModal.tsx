@@ -9,7 +9,7 @@ import apiClient from '@services/apiClient';
 import { CATEGORIES, CERTIFIER_BODIES, WHOLESALE_ONLY_NOTICE } from './constants';
 
 const FIELD_CLASS =
-  'mt-1 w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary ' +
+  'mt-1 block w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary ' +
   'placeholder:text-text-muted focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid';
 
 function formatFileSize(bytes: number) {
@@ -144,12 +144,9 @@ export function ClaimModal({
           </div>
         )}
         {error && (
-          <div
-            role="alert"
-            className="rounded-lg border border-error-light/30 bg-error-light/10 p-3 text-sm text-error-light"
-          >
+          <p role="alert" className="text-sm text-error-light">
             {error}
-          </div>
+          </p>
         )}
 
         <p className="text-sm text-text-secondary">{spec?.evidence}</p>
@@ -268,7 +265,7 @@ export function ClaimModal({
             />
           </div>
         ) : (
-          <div className="flex items-center gap-3 p-4 rounded-lg bg-surface-hover">
+          <div className="flex items-center gap-3">
             <FileIcon size={24} className="text-brand-light flex-shrink-0" weight="regular" />
             <div className="min-w-0 flex-1">
               <p className="text-sm text-text-primary truncate">{file.name}</p>
