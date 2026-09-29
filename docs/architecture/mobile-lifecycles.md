@@ -41,7 +41,8 @@ asking again. A pending native response cannot restore an old preview or overrid
 a newer refresh. Closing, unmounting or leaving the verification scan step also
 retires callbacks. Verification pauses while another navigation route covers it.
 A completed scan retires its callback before delivering the result, removes its
-preview on the next render and stays completed across foreground changes.
+preview on the next render and stays completed across foreground changes. In the
+preview's place it shows "✓ Scanned!", which screen readers read as "Scanned!".
 
 The animated importer retains its UR fragments during a permission refresh and
 clears them on a new opening. Wallet verification requests permission at the scan

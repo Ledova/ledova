@@ -112,7 +112,9 @@ export function AnimatedQRScanner({ onComplete, active = true }: AnimatedQRScann
     <View style={styles.container}>
       <ScannerPreview {...camera.preview} />
       {camera.message ? (
-        <Text style={styles.message}>{camera.message}</Text>
+        <Text style={styles.message} accessibilityLabel={camera.message.label}>
+          {camera.message.text}
+        </Text>
       ) : (
         <View style={styles.overlay}>
           <View style={styles.scanArea} />
