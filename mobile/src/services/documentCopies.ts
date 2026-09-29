@@ -75,6 +75,12 @@ async function writeViewCopy(
   return { uri: copy.uri, type };
 }
 
+export const UTI_BY_MIME_TYPE: Record<string, string> = {
+  'application/pdf': 'com.adobe.pdf',
+  'image/png': 'public.png',
+  'image/jpeg': 'public.jpeg',
+};
+
 export async function shareDocumentCopy(
   sessionEpoch: number,
   download: () => Promise<DocumentView>,
