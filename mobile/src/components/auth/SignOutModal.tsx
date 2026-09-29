@@ -16,6 +16,7 @@ export function SignOutModal({ visible, isLoading = false, onConfirm, onClose }:
       visible={visible}
       title="Sign Out"
       onClose={onClose}
+      busy={isLoading}
       showFooter={true}
       confirmLabel="Sign Out"
       onConfirm={onConfirm}
