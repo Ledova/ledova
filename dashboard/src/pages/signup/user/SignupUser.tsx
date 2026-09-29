@@ -1,9 +1,8 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useSignupUser } from './useSignupUser';
 import { Field, Label, Input, Description } from '@headlessui/react';
 import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockIcon, UserIcon, WarningIcon } from '@phosphor-icons/react';
 import { AuthLayout } from '@components/AuthLayout';
-import { DESIGN_TOKENS } from '@ledova/shared';
+import { DESIGN_TOKENS, useSignupUser } from '@ledova/shared';
 
 const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 
@@ -19,7 +18,7 @@ export function SignupUser() {
     setFieldValue,
     togglePassword,
     handleSubmit,
-  } = useSignupUser();
+  } = useSignupUser((email) => localStorage.setItem('signup_email', email));
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();

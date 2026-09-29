@@ -6,7 +6,10 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { SignupUser } from './SignupUser';
 
 const hook = vi.hoisted(() => ({ state: {} as Record<string, unknown> }));
-vi.mock('./useSignupUser', () => ({ useSignupUser: () => hook.state }));
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
+  useSignupUser: () => hook.state,
+}));
 
 afterEach(cleanup);
 

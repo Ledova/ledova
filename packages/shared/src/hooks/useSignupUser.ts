@@ -1,16 +1,14 @@
 import { useState, useMemo } from 'react';
-import {
-  signup,
-  FormErrors,
-  SignupRequest,
-  PASSWORD_VALIDATION,
-  isNumericOnly,
-  validatePassword,
-  describeFailure,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
 
-export const useSignupUser = () => {
+import { PASSWORD_VALIDATION } from '../constants/utilities';
+import { signup } from '../services/auth';
+import type { FormErrors, SignupRequest } from '../types';
+import { describeFailure } from '../utils/errors';
+import { isNumericOnly, validatePassword } from '../utils/validation';
+import { useApiClient } from './useApiClient';
+
+export function useSignupUser(rememberEmail: (email: string) => Promise<void> | void) {
+  const apiClient = useApiClient();
   const [form, setForm] = useState<SignupRequest>({
     email: '',
     password: '',
@@ -79,7 +77,7 @@ export const useSignupUser = () => {
         passwordConfirm: form.password,
       });
 
-      localStorage.setItem('signup_email', form.email);
+      await rememberEmail(form.email);
 
       onSuccess();
     } catch (error: unknown) {
@@ -118,4 +116,4 @@ export const useSignupUser = () => {
     togglePassword,
     handleSubmit,
   };
-};
+}
