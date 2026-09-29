@@ -199,7 +199,7 @@ test('the native smoke runner waits ten seconds after launch, fails a black wind
         events.push(`screenshot ${name}`);
         fs.copyFileSync(frames[Math.min(captures++, frames.length - 1)], path.join(directory, `${name}.png`));
       },
-      waitForContent: (capture, file) => waitForContent(capture, file, { interval: 0 }),
+      waitForContent: (capture, file, options) => waitForContent(capture, file, { ...options, interval: 0 }),
     };
     const run = vm.compileFunction(
       `return (async () => { ${source.slice(start, end)} })()`,
