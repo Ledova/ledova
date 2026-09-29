@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import axios from 'axios';
@@ -83,6 +83,20 @@ it('persists before posting and reports pending without claiming transfers stopp
   expect((screen.getByRole('button', { name: 'Pause' }) as HTMLButtonElement).disabled).toBe(true);
   expect(api.post.mock.calls[0][0]).toBe(COMPANY_TOKEN_ENDPOINTS.PAUSE(tokenUuid));
   expect(screen.queryByRole('button', { name: 'Dismiss outcome' })).toBeNull();
+});
+
+it('shows each saved request as a labelled row between rules, with its outcome and its own actions', async () => {
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Pause' }));
+  await screen.findByText(/Pause request retained/);
+  const request = screen.getByRole('group', { name: `Pause request ${id}` });
+  expect(within(request).getByRole('status').textContent).toMatch(/Pause request retained/);
+  expect(within(request).getByRole('button', { name: 'Check outcome' })).toBeTruthy();
+  expect(within(request).getByRole('button', { name: 'Retry same request' })).toBeTruthy();
+  expect(within(request).queryByRole('button', { name: 'Pause' })).toBeNull();
+  expect(request.className).not.toContain('rounded');
+  expect(request.parentElement!.className).toContain('divide-y');
+  expect(request.parentElement!.className).toContain('border-y');
 });
 
 it('recovers an uncertain post after remount and retries with the original identity', async () => {

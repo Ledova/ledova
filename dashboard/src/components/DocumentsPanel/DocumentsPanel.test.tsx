@@ -93,6 +93,33 @@ describe('supporting payslips', () => {
     expect(screen.queryByText(/not-a-number/)).toBeNull();
   });
 
+  it('states a failed extraction as an error line with its mark, not a tinted box', async () => {
+    rows = [
+      {
+        ...document,
+        latestExtraction: {
+          uuid: 'synthetic-extraction',
+          status: 'failed',
+          modelName: 'synthetic-parser',
+          parsedJson: null,
+          confidence: null,
+          warnings: [],
+          error: 'The synthetic payslip could not be read.',
+          durationMs: null,
+          startedAt: null,
+          finishedAt: null,
+          createdAt: document.createdAt,
+          updatedAt: document.updatedAt,
+        },
+      },
+    ];
+    showPanel();
+    const failure = (await screen.findByText('The synthetic payslip could not be read.')).parentElement!;
+    expect(failure.className).toContain('text-error-light');
+    expect(failure.querySelector('svg')).toBeTruthy();
+    expect(failure.closest('[class*="bg-error"]')).toBeNull();
+  });
+
   it('does not render or fetch payslips in single-issuer mode', async () => {
     mode = 'single_issuer';
     const view = showPanel();
