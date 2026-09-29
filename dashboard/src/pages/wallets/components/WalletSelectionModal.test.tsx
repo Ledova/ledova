@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { WALLET_ENDPOINTS, formatWalletAddressShort } from '@ledova/shared';
 
@@ -53,6 +53,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   client.clear();
+  onlineManager.setOnline(true);
 });
 
 it('lists each verified wallet under its network with its balance and value labelled as a Wallets row does', async () => {
@@ -124,4 +125,20 @@ it('hides the wallets it listed when a refresh fails, and holds Try again while 
   await act(async () => settle());
   expect(await screen.findByRole('button', { name: /Savings/ })).toBeTruthy();
   expect(screen.queryByRole('alert')).toBeNull();
+});
+
+it('waits for its first read while offline, rather than saying there are no wallets', async () => {
+  onlineManager.setOnline(false);
+  show();
+
+  const dialog = await screen.findByRole('dialog', { name: 'Select your wallet' });
+  await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+  expect(within(dialog).getByText('Loading wallets...')).toBeTruthy();
+  expect(within(dialog).queryByText('No verified wallets found')).toBeNull();
+  expect(api.get).not.toHaveBeenCalled();
+
+  act(() => onlineManager.setOnline(true));
+
+  expect(await within(dialog).findByRole('button', { name: /Savings/ })).toBeTruthy();
+  expect(api.get).toHaveBeenCalledOnce();
 });

@@ -42,7 +42,7 @@ export function WalletSelectionModal({ isOpen, onClose, onSelectWallet }: Wallet
       );
     }
 
-    if (walletsQuery.isLoading) {
+    if (walletsQuery.isPending) {
       return (
         <div className="flex items-center justify-center py-8">
           <ArrowsClockwiseIcon size={ICON_LG} className="animate-spin text-text-muted" />
