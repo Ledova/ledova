@@ -2,15 +2,14 @@ import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { CACHE_TIMING } from '../constants/api';
+import { SIGNUP_COMPLETION_FAILED, SIGNUP_LOAD_FAILED } from '../constants/business/signup';
 import { canOpen } from '../constants/ui/destinations';
 import { getCompanies, getCompany } from '../services/companies';
 import { getUserProfiles, updateUserProfileCompletion } from '../services/users';
 import type { AccountRole, ReviewData } from '../types';
-import { describeFailure } from '../utils/errors';
+import { apiErrorSentence, describeFailure } from '../utils/errors';
 import { useApiClient } from './useApiClient';
 import { useFinancialProfile } from './useFinancialProfile';
-
-export const SIGNUP_COMPLETION_FAILED = 'Your sign-up could not be finished. Please try again.';
 
 export function useSignupReview(role: AccountRole, onComplete: () => Promise<void> | void) {
   const apiClient = useApiClient();
@@ -55,17 +54,13 @@ export function useSignupReview(role: AccountRole, onComplete: () => Promise<voi
     (isCompany && (companyQuery.isLoading || detailQuery.isLoading)),
   );
 
-  const error =
-    userProfileQuery.error?.message ||
-    (!isCompany ? financialProfileError?.message : null) ||
-    (isCompany
-      ? companyQuery.error?.message ||
-        detailQuery.error?.message ||
-        (selectedUuid && detailQuery.isSuccess && !company
-          ? 'Company details did not match the selected company. Please try again.'
-          : null)
-      : null) ||
-    null;
+  const loadFailure =
+    userProfileQuery.error ?? (isCompany ? (companyQuery.error ?? detailQuery.error) : financialProfileError);
+  const error = loadFailure
+    ? apiErrorSentence(loadFailure, SIGNUP_LOAD_FAILED)
+    : isCompany && selectedUuid && detailQuery.isSuccess && !company
+      ? 'Company details did not match the selected company. Please try again.'
+      : null;
 
   const canCompleteSignup =
     !isLoading && !error && (isCompany ? Boolean(userProfile && company) : Boolean(userProfile && financialProfile));

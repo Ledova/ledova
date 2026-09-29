@@ -4,7 +4,7 @@ import type { PropsWithChildren } from 'react';
 import type { AxiosInstance } from 'axios';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ApiClientProvider, AUTH_QUERY_KEY, SIGNUP_COMPLETION_FAILED } from '@ledova/shared';
+import { ApiClientProvider, AUTH_QUERY_KEY, SIGNUP_COMPLETION_FAILED, SIGNUP_LOAD_FAILED } from '@ledova/shared';
 import { useRole } from '@hooks/useRole';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -136,7 +136,7 @@ describe('the last click of signup', () => {
 
     act(() => result.current.completeSignup());
 
-    await waitFor(() => expect(result.current.error).toBe('Network unavailable'));
+    await waitFor(() => expect(result.current.error).toBe(SIGNUP_LOAD_FAILED));
     await waitFor(() => expect(result.current.isSubmitting).toBe(false));
     expect(profileReads()).toBe(2);
     expect(navigate).not.toHaveBeenCalled();

@@ -21,6 +21,18 @@ export function queryClient() {
   });
 }
 
+export function refusal(status: number, data: unknown) {
+  return { response: { status, data } };
+}
+
+export function axiosFailure(status: number) {
+  return Object.assign(new Error(`Request failed with status code ${status}`), { response: { status, data: '' } });
+}
+
+export function answerless(message: string) {
+  return Object.assign(new Error(message), { isUserFriendly: true });
+}
+
 export function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason: unknown) => void;

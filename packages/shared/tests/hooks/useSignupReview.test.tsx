@@ -2,9 +2,10 @@
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import type { QueryClient } from '@tanstack/react-query';
 
-import { SIGNUP_COMPLETION_FAILED, useSignupReview } from '../../src/hooks/useSignupReview';
+import { SIGNUP_COMPLETION_FAILED, SIGNUP_LOAD_FAILED } from '../../src/constants/business/signup';
+import { useSignupReview } from '../../src/hooks/useSignupReview';
 import type { AccountRole } from '../../src/types';
-import { deferred, providers, queryClient, signupApi } from '../fixtures/signup';
+import { answerless, axiosFailure, deferred, providers, queryClient, refusal, signupApi } from '../fixtures/signup';
 
 const api = signupApi();
 
@@ -13,11 +14,15 @@ const summaryB = { ...summaryA, uuid: 'company-b', name: 'Saved B' };
 const detailA = { ...summaryA, abn: '51824753556' };
 const detailB = { ...summaryB, abn: '53004085616' };
 const list = (rows = [summaryA]) => ({ data: { count: rows.length, next: null, previous: null, results: rows } });
+const financial = {
+  data: { results: [{ uuid: 'financial-a', occupation: 'Engineer', sourceOfFunds: [], intendedUse: 'savings' }] },
+};
 let client: QueryClient;
 let wrapper: ReturnType<typeof providers>;
 let companyList: () => Promise<ReturnType<typeof list>>;
 let companyA: () => Promise<{ data: typeof detailA }>;
 let companyB: () => Promise<{ data: typeof detailB }>;
+let financialRows: () => Promise<typeof financial>;
 let onComplete: jest.Mock;
 
 beforeEach(() => {
@@ -28,6 +33,7 @@ beforeEach(() => {
   companyList = () => Promise.resolve(list());
   companyA = () => Promise.resolve({ data: detailA });
   companyB = () => Promise.resolve({ data: detailB });
+  financialRows = () => Promise.resolve(financial);
   api.get.mockImplementation((url: string) => {
     if (url === '/api/user-profiles/')
       return Promise.resolve({
@@ -37,12 +43,7 @@ beforeEach(() => {
           ],
         },
       });
-    if (url === '/api/financial-profiles/')
-      return Promise.resolve({
-        data: {
-          results: [{ uuid: 'financial-a', occupation: 'Engineer', sourceOfFunds: [], intendedUse: 'savings' }],
-        },
-      });
+    if (url === '/api/financial-profiles/') return financialRows();
     if (url === '/api/v1/companies/') return companyList();
     if (url === '/api/v1/companies/company-a/') return companyA();
     if (url === '/api/v1/companies/company-b/') return companyB();
@@ -166,4 +167,32 @@ it('says sign-up could not be finished when the client cannot finish it, and all
   expect(result.current.isSubmitting).toBe(false);
   expect(result.current.canCompleteSignup).toBe(true);
   expect(console.error).toHaveBeenCalledWith('Signup completion failed: Error: Session check failed');
+});
+
+it.each([
+  ['a 404 that gives no reason', axiosFailure(404)],
+  ['a failure the app met with no answer', answerless('Unable to connect to our servers.')],
+])('says the details could not be loaded, not what axios said, after %s, and retries them', async (_, failure) => {
+  financialRows = () => Promise.reject(failure);
+  const { result } = review('investor');
+  await waitFor(() => expect(result.current.error).toBe(SIGNUP_LOAD_FAILED));
+  expect(result.current.canCompleteSignup).toBe(false);
+
+  financialRows = () => Promise.resolve(financial);
+  await act(() => result.current.retryLoad());
+
+  await waitFor(() => expect(result.current.canCompleteSignup).toBe(true));
+  expect(result.current.error).toBeNull();
+});
+
+it('shows the reason a load was refused and retries the company', async () => {
+  companyA = () => Promise.reject(refusal(503, { detail: 'Company details are being updated.' }));
+  const { result } = review('company');
+  await waitFor(() => expect(result.current.error).toBe('Company details are being updated.'));
+
+  companyA = () => Promise.resolve({ data: detailA });
+  await act(() => result.current.retryLoad());
+
+  await waitFor(() => expect(result.current.company?.abn).toBe(detailA.abn));
+  expect(result.current.error).toBeNull();
 });

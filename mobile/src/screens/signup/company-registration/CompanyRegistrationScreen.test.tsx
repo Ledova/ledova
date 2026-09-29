@@ -80,7 +80,7 @@ function screen() {
 }
 
 it('uses the real registration retry screen and preserves visible edits on a failed refresh', async () => {
-  companyA = () => Promise.reject(new Error('Detail unavailable'));
+  companyA = () => Promise.reject({ response: { status: 503, data: { detail: 'Detail unavailable' } } });
   const view = await screen();
   await waitFor(() => expect(view.getByText('Detail unavailable')).toBeTruthy());
   expect(api.post).not.toHaveBeenCalled();
@@ -89,7 +89,7 @@ it('uses the real registration retry screen and preserves visible edits on a fai
   await fireEvent.press(view.getByText('Try Again'));
   await waitFor(() => expect(view.getByDisplayValue(detailA.abn)).toBeTruthy());
   await fireEvent.changeText(view.getByDisplayValue(detailA.abn), otherAbn);
-  companyA = () => Promise.reject(new Error('Refresh unavailable'));
+  companyA = () => Promise.reject({ response: { status: 503, data: { detail: 'Refresh unavailable' } } });
   await act(() => client.refetchQueries({ queryKey: ['signup', 'company-detail', 'company-a'] }));
   await waitFor(() => expect(view.getByText('Refresh unavailable')).toBeTruthy());
   expect(view.getByDisplayValue(otherAbn)).toBeTruthy();

@@ -60,7 +60,7 @@ function page() {
 }
 
 it('renders a separately fetched ABN after retrying the real review error screen', async () => {
-  companyA = () => Promise.reject(new Error('Detail unavailable'));
+  companyA = () => Promise.reject({ response: { status: 503, data: { detail: 'Detail unavailable' } } });
   const view = page();
   await waitFor(() => expect(view.getByText('Detail unavailable')).toBeTruthy());
   expect(view.queryByText(detailA.abn)).toBeNull();

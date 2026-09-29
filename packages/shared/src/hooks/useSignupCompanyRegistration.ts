@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { SIGNUP_LOAD_FAILED } from '../constants/business/signup';
 import { getCompanies, getCompany, registerCompany, updateCompany } from '../services/companies';
 import { getUserProfiles } from '../services/users';
 import type { CompanyRegistration, CompanyType } from '../types';
-import { readApiError } from '../utils/errors';
+import { apiErrorSentence, readApiError } from '../utils/errors';
 import { useApiClient } from './useApiClient';
 
 interface CompanyFormData {
@@ -136,16 +137,12 @@ export function useSignupCompanyRegistration() {
   }, [detail, updateState]);
 
   const userProfile = profilesQuery.data?.data.results?.[0] ?? null;
-  const loadError =
-    profilesQuery.error?.message ||
-    companiesQuery.error?.message ||
-    (selectedUuid
-      ? detailQuery.error?.message ||
-        (detailQuery.isSuccess && !detail
-          ? 'Company details did not match the selected company. Please try again.'
-          : null)
-      : null) ||
-    null;
+  const loadFailure = profilesQuery.error ?? companiesQuery.error ?? (selectedUuid ? detailQuery.error : null);
+  const loadError = loadFailure
+    ? apiErrorSentence(loadFailure, SIGNUP_LOAD_FAILED)
+    : selectedUuid && detailQuery.isSuccess && !detail
+      ? 'Company details did not match the selected company. Please try again.'
+      : null;
   const hasLoadedForm = state.hydrated;
   const isLoading =
     profilesQuery.isLoading ||

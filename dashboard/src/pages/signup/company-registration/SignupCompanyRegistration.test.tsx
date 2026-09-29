@@ -64,7 +64,7 @@ afterEach(async () => {
 });
 
 it('uses the real registration retry screen and preserves visible edits on a failed refresh', async () => {
-  companyA = () => Promise.reject(new Error('Detail unavailable'));
+  companyA = () => Promise.reject({ response: { status: 503, data: { detail: 'Detail unavailable' } } });
   const view = render(
     <QueryClientProvider client={client}>
       <ApiClientProvider client={api as unknown as AxiosInstance}>
@@ -79,7 +79,7 @@ it('uses the real registration retry screen and preserves visible edits on a fai
   fireEvent.click(view.getByRole('button', { name: 'Retry' }));
   await waitFor(() => expect(view.getByDisplayValue(detailA.abn)).toBeTruthy());
   fireEvent.change(view.getByDisplayValue(detailA.abn), { target: { value: otherAbn } });
-  companyA = () => Promise.reject(new Error('Refresh unavailable'));
+  companyA = () => Promise.reject({ response: { status: 503, data: { detail: 'Refresh unavailable' } } });
   await act(() => client.refetchQueries({ queryKey: ['signup', 'company-detail', 'company-a'] }));
   await waitFor(() => expect(view.getByText('Refresh unavailable')).toBeTruthy());
   expect(view.getByDisplayValue(otherAbn)).toBeTruthy();

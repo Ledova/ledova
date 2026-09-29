@@ -23,4 +23,4 @@ export { useSignupPreScreening } from './useSignupPreScreening';
 export { USER_PROFILE_FIELDS, useSignupUserProfile } from './useSignupUserProfile';
 export { FINANCIAL_PROFILE_FIELDS, useSignupFinancialProfile } from './useSignupFinancialProfile';
 export { COMPANY_REGISTRATION_FIELDS, useSignupCompanyRegistration } from './useSignupCompanyRegistration';
-export { SIGNUP_COMPLETION_FAILED, useSignupReview } from './useSignupReview';
+export { useSignupReview } from './useSignupReview';

@@ -3,7 +3,8 @@ import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import type { QueryClient } from '@tanstack/react-query';
 
 import { useSignupCompanyRegistration } from '../../src/hooks/useSignupCompanyRegistration';
-import { deferred, providers, queryClient, signupApi } from '../fixtures/signup';
+import { SIGNUP_LOAD_FAILED } from '../../src/constants/business/signup';
+import { answerless, axiosFailure, deferred, providers, queryClient, refusal, signupApi } from '../fixtures/signup';
 
 const api = signupApi();
 
@@ -163,7 +164,7 @@ it('does not hydrate a different UUID returned from the selected detail endpoint
 });
 
 it('keeps a failed detail unresolved and recovers through the real retry path', async () => {
-  companyA = () => Promise.reject(new Error('Detail unavailable'));
+  companyA = () => Promise.reject(refusal(503, { detail: 'Detail unavailable' }));
   const { result } = renderHook(() => useSignupCompanyRegistration(), { wrapper });
   await waitFor(() => expect(result.current.loadError).toBe('Detail unavailable'));
   await act(() => result.current.handleSubmit(jest.fn()));
@@ -175,10 +176,23 @@ it('keeps a failed detail unresolved and recovers through the real retry path', 
   expect(result.current.loadError).toBeNull();
 });
 
+it.each([
+  ['a 404 that gives no reason', axiosFailure(404)],
+  ['a failure the app met with no answer', answerless('Our servers are temporarily unavailable.')],
+])('says the details could not be loaded, not what axios said, after %s, and still retries', async (_, failure) => {
+  profileRows = () => Promise.reject(failure);
+  const { result } = renderHook(() => useSignupCompanyRegistration(), { wrapper });
+  await waitFor(() => expect(result.current.loadError).toBe(SIGNUP_LOAD_FAILED));
+  profileRows = () => Promise.resolve(profiles('Synthetic Person'));
+  await act(() => result.current.retryLoad());
+  await waitFor(() => expect(result.current.loadError).toBeNull());
+  await waitFor(() => expect(result.current.form.abn).toBe(detailA.abn));
+});
+
 it('preserves dirty input after a background failure and explicit retry', async () => {
   const { result } = await loaded();
   await act(() => result.current.setFieldValue('abn', detailB.abn));
-  companyA = () => Promise.reject(new Error('Refresh unavailable'));
+  companyA = () => Promise.reject(refusal(503, { detail: 'Refresh unavailable' }));
   await act(() => client.refetchQueries({ queryKey: detailKey('company-a') }));
   await waitFor(() => expect(result.current.loadError).toBe('Refresh unavailable'));
   expect(result.current.form.abn).toBe(detailB.abn);
@@ -189,7 +203,7 @@ it('preserves dirty input after a background failure and explicit retry', async 
 });
 
 it('does not mistake a failed list load for a new registration', async () => {
-  companyList = () => Promise.reject(new Error('List unavailable'));
+  companyList = () => Promise.reject(refusal(503, { detail: 'List unavailable' }));
   const { result } = renderHook(() => useSignupCompanyRegistration(), { wrapper });
   await waitFor(() => expect(result.current.isLoading).toBe(false));
   await act(() => {
