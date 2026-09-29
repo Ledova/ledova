@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render, renderHook, waitFor, within } from '@testing-library/react-native';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import type { Wallet, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
 import { WalletsScreen } from './index';
@@ -134,6 +134,7 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+  onlineManager.setOnline(true);
 });
 
 it('reads every wallet page and renders full addresses and exact balances, to eight places, without mock totals', async () => {
@@ -265,6 +266,29 @@ describe('Send from Wallets', () => {
     }
     await act(() => refreshed);
     await waitFor(() => expect(view.getByRole('button', { name: 'Sync balances' })).not.toBeDisabled());
+    await fireEvent.press(view.getByRole('button', { name: 'Send' }));
+    expect(mockNavigate).toHaveBeenLastCalledWith('Send', { screen: 'SendMain', params: { wallet: wallet('a') } });
+  });
+
+  it('asks which wallet to send from while a refresh waits for the connection, and opens the form once it has read', async () => {
+    const view = await pressSend([wallet('a')]);
+    const ledger = () => client.getQueryCache().findAll({ queryKey: ['wallets', 'ledger'] })[0]!;
+    const rendered = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+    await act(async () => onlineManager.setOnline(false));
+    let refreshed!: Promise<void>;
+    await act(async () => {
+      refreshed = client.invalidateQueries({ queryKey: ['wallets'] });
+    });
+    await waitFor(() => expect(ledger().state.fetchStatus).toBe('paused'));
+    await rendered();
+
+    await fireEvent.press(view.getByRole('button', { name: 'Send' }));
+    expect(mockNavigate).toHaveBeenLastCalledWith('Send', { screen: 'SendMain' });
+
+    await act(async () => onlineManager.setOnline(true));
+    await act(() => refreshed);
+    await waitFor(() => expect(ledger().state.fetchStatus).toBe('idle'));
+    await rendered();
     await fireEvent.press(view.getByRole('button', { name: 'Send' }));
     expect(mockNavigate).toHaveBeenLastCalledWith('Send', { screen: 'SendMain', params: { wallet: wallet('a') } });
   });

@@ -113,6 +113,7 @@ export function useWalletsCrud() {
     isLoading: owner.isLoading || walletsQuery.isLoading,
     hasError: owner.isError || (!owner.isLoading && !userAccount?.uuid) || walletsQuery.isError,
     isRefreshing: walletsQuery.isFetching,
+    isSettled: walletsQuery.fetchStatus === 'idle',
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,

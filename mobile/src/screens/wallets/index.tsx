@@ -41,7 +41,7 @@ export function WalletsScreen() {
         actions={
           !crud.isLoading && (
             <>
-              <CryptoActions wallets={crud.hasError || crud.isRefreshing ? null : crud.wallets} />
+              <CryptoActions wallets={crud.hasError || !crud.isSettled ? null : crud.wallets} />
               <Action label="Add wallet" onPress={form.openAddModal} disabled={blocked} primary />
               <Action
                 label={syncingAll ? 'Syncing wallets…' : 'Sync balances'}
