@@ -1,3 +1,5 @@
+import { isUuid } from './validation';
+
 export interface OrderSubmissionOwner {
   userUuid: string;
   ownerAccountUuid: string;
@@ -17,17 +19,14 @@ export interface OrderSubmissionStorage {
 }
 
 const PREFIX = 'ledova.order-submissions.v1.';
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function scopePrefix(owner: OrderSubmissionOwner): string {
-  if (!UUID.test(owner.userUuid) || !UUID.test(owner.ownerAccountUuid))
-    throw new Error('Order account is unavailable.');
+  if (!isUuid(owner.userUuid) || !isUuid(owner.ownerAccountUuid)) throw new Error('Order account is unavailable.');
   return `${PREFIX}${owner.userUuid}.${owner.ownerAccountUuid}.`;
 }
 
 function storageKey(record: SavedOrderSubmission): string {
-  if (!UUID.test(record.walletUuid) || !UUID.test(record.submissionId))
-    throw new Error('Order identity is unavailable.');
+  if (!isUuid(record.walletUuid) || !isUuid(record.submissionId)) throw new Error('Order identity is unavailable.');
   return `${scopePrefix(record)}${record.walletUuid}.${record.submissionId}`;
 }
 

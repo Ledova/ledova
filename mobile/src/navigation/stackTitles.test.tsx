@@ -36,10 +36,10 @@ afterEach(async () => {
 });
 
 it('leaves the stack header untitled above the flow screens whose card carries the title', async () => {
-  await render(<WalletsStackNavigator />);
+  await render(<WalletsStackNavigator onNotifications={jest.fn()} unreadCount={0} />);
   expect(titleOf('TransferDetails')).toBe('');
   expect(titleOf('WalletVerification')).toBe('');
   expect(titleOf('SeedPhraseBackup')).toBe('');
-  await render(<SendStackNavigator />);
+  await render(<SendStackNavigator onNotifications={jest.fn()} unreadCount={0} />);
   expect(titleOf('SendMain')).toBe('');
 });

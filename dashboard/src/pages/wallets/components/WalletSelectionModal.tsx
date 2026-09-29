@@ -1,13 +1,12 @@
 import { ArrowsClockwiseIcon } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
-import { DESIGN_TOKENS, getActiveChains, getChainConfig, getWallets } from '@ledova/shared';
+import { getActiveChains, getChainConfig, getWallets } from '@ledova/shared';
+import { ICON_LG } from '@components/iconSizes';
 import type { Wallet } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { WalletChoice } from '@components/Wallet';
 import apiClient from '@services/apiClient';
-
-const ICON_LG = DESIGN_TOKENS.icon.sizes.lg;
 
 interface WalletSelectionModalProps {
   isOpen: boolean;

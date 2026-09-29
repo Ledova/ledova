@@ -36,7 +36,13 @@ export type WalletsStackParamList = {
 
 const Stack = createNativeStackNavigator<WalletsStackParamList>();
 
-export function WalletsStackNavigator() {
+export function WalletsStackNavigator({
+  onNotifications,
+  unreadCount,
+}: {
+  onNotifications: () => void;
+  unreadCount: number;
+}) {
   const theme = useAppTheme();
   return (
     <Stack.Navigator
@@ -46,7 +52,7 @@ export function WalletsStackNavigator() {
           backgroundColor: theme.colors.surface.base,
         },
         ...getMainHeaderStyle(theme),
-        ...MainHeader({ theme, onNotifications: () => {} }),
+        ...MainHeader({ theme, onNotifications, unreadCount }),
       })}
     >
       <Stack.Screen
@@ -56,8 +62,12 @@ export function WalletsStackNavigator() {
           title: '',
         })}
       />
-      <Stack.Screen name="Buy" component={BuyStackNavigator} options={{ headerShown: false }} />
-      <Stack.Screen name="Send" component={SendStackNavigator} options={{ headerShown: false }} />
+      <Stack.Screen name="Buy" options={{ headerShown: false }}>
+        {() => <BuyStackNavigator onNotifications={onNotifications} unreadCount={unreadCount} />}
+      </Stack.Screen>
+      <Stack.Screen name="Send" options={{ headerShown: false }}>
+        {() => <SendStackNavigator onNotifications={onNotifications} unreadCount={unreadCount} />}
+      </Stack.Screen>
       <Stack.Screen
         name="WalletAction"
         component={WalletActionScreen}

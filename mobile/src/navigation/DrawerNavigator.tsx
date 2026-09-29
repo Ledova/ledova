@@ -18,13 +18,12 @@ import {
   NewspaperIcon,
   ShieldCheckIcon,
 } from 'phosphor-react-native';
-import { signout, describeFailure, DESTINATIONS } from '@ledova/shared';
+import { signout, describeFailure, DESTINATIONS, useNotifications } from '@ledova/shared';
 import { apiClient } from '../services/apiClient';
 import { notificationsService } from '../services/notificationsService';
 import { clearTokens } from '../services/tokenStorage';
 import { useAppTheme, useThemedStyles } from '../contexts';
 import { NotificationsModal } from '../components/notifications';
-import { useNotifications } from '@ledova/shared';
 import type { RootStackParamList } from './AppNavigator';
 import { BottomTabNavigator } from './BottomTabNavigator';
 import { MainHeader, getMainHeaderStyle } from './headers';

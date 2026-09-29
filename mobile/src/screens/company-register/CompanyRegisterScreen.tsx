@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Text, View, ScrollView, RefreshControl, Pressable } from 'react-native';
+import { Text, View, RefreshControl, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Action, Lede, LinkRow, Rows, Section } from '../../components/Ledger';
+import { Action, LinkRow, Rows, Section } from '../../components/Ledger';
+import { Page } from '../../components/Page';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
 import { useCompanyRegister } from './useCompanyRegister';
 import { useCompanyStyles } from './styles';
@@ -14,10 +15,10 @@ export function CompanyRegisterScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<CompanyStackParamList>>();
   const [expanded, setExpanded] = useState<string[]>([]);
   return (
-    <ScrollView
+    <Page
       testID="register-screen"
-      style={styles.page}
-      contentContainerStyle={styles.content}
+      title="Register"
+      lede="The stored register records your company’s members and their shares; wallet balances do not replace it."
       refreshControl={
         <RefreshControl
           refreshing={query.isFetching}
@@ -27,12 +28,6 @@ export function CompanyRegisterScreen() {
         />
       }
     >
-      <Text accessibilityRole="header" style={styles.title}>
-        Register
-      </Text>
-      <Lede>
-        The stored register records your company’s members and their shares; wallet balances do not replace it.
-      </Lede>
       {access.isLoading ? (
         <Text style={styles.muted}>Loading your company access…</Text>
       ) : access.isError ? (
@@ -99,6 +94,6 @@ export function CompanyRegisterScreen() {
           </Section>
         </>
       )}
-    </ScrollView>
+    </Page>
   );
 }

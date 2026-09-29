@@ -1,12 +1,11 @@
 import React from 'react';
-import { FormErrors, SOURCE_OF_FUNDS_OPTIONS, INTENDED_USE_OPTIONS, DESIGN_TOKENS } from '@ledova/shared';
+import { FormErrors, SOURCE_OF_FUNDS_OPTIONS, INTENDED_USE_OPTIONS } from '@ledova/shared';
+import { ICON_MD } from '@components/iconSizes';
 import { FinancialProfileFormState } from '../useSignupFinancialProfile';
 import { Field, Label, Input, Description } from '@headlessui/react';
 import { WarningIcon } from '@phosphor-icons/react';
 import RadioGroupField from './RadioGroupField';
 import CheckboxGroupField from './CheckboxGroupField';
-
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 
 export interface FinancialProfileFormProps {
   form: FinancialProfileFormState;
