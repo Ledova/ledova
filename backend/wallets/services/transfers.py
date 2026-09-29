@@ -2,10 +2,12 @@ import logging
 from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, Optional
 
+from django.conf import settings
 from eth_utils import from_wei, to_wei
 from web3 import Web3
 
 from integrations.blockchain import get_blockchain_client
+from integrations.blockchain.bitcoin import is_bitcoin_address_valid
 from shared.constants import (
     BLOCKCHAIN_BITCOIN,
     EVM_BLOCKCHAINS,
@@ -25,6 +27,8 @@ from wallets.services.chain import token_deployment_decimals
 
 logger = logging.getLogger(__name__)
 
+INVALID_RECIPIENT = "The recipient is not a valid address for this wallet's network."
+
 
 def prepare_transfer(
     wallet,
@@ -38,6 +42,9 @@ def prepare_transfer(
 
     if chain not in SUPPORTED_CHAINS:
         raise UnsupportedChainException(wallet.chain.upper())
+
+    if to_address not in (None, "") and not _is_address_on(chain, to_address):
+        raise InvalidTransactionException(INVALID_RECIPIENT)
 
     if chain in EVM_BLOCKCHAINS and token_contract:
         return _prepare_erc20_transfer(
@@ -76,6 +83,14 @@ def prepare_transfer(
         )
 
     raise UnsupportedChainException(chain.upper())
+
+
+def _is_address_on(chain: str, address) -> bool:
+    if not isinstance(address, str):
+        return False
+    if chain == BLOCKCHAIN_BITCOIN:
+        return is_bitcoin_address_valid(address, settings.BITCOIN_NETWORK)
+    return Web3.is_address(address)
 
 
 def _prepare_erc20_transfer(

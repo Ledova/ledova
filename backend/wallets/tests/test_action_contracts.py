@@ -143,7 +143,9 @@ class WalletActionContractTest(APITestCase):
         )
         self.fund_wallet(wallet)
         get_client.return_value.get_gas_price.return_value = Decimal("2")
-        result = self.post_action("prepare-transfer", {"toAddress": "tb1qrecipient", "amountBtc": "1"}, wallet=wallet)
+        result = self.post_action(
+            "prepare-transfer", {"toAddress": "mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn", "amountBtc": "1"}, wallet=wallet
+        )
         self.assertEqual(result["network"], "BTC")
 
     @patch("wallets.services.transfers.get_blockchain_client")

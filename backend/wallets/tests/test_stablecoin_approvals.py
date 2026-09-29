@@ -20,6 +20,7 @@ from wallets.services.transaction_confirmation import (
     RECIPIENT_NOT_APPROVED,
     SENDER_NOT_APPROVED,
 )
+from wallets.services.transfers import INVALID_RECIPIENT
 from wallets.tests.test_broadcast_transfer_guard import (
     RECIPIENT,
     WALLET_ADDRESS,
@@ -110,10 +111,10 @@ class StablecoinApprovalChecks:
         with use_operator():
             WhitelistApproval.objects.filter(entry__wallet=wallet).update(status=WhitelistStatus.REMOVED)
 
-    def prepare(self, contract=None):
+    def prepare(self, contract=None, to=RECIPIENT):
         return self.client.post(
             f"/api/wallets/{self.wallet.uuid}/prepare-transfer/",
-            {"to_address": RECIPIENT, "amount_token": "5", "token_contract": contract or self.contract},
+            {"to_address": to, "amount_token": "5", "token_contract": contract or self.contract},
             format="json",
         )
 
@@ -194,6 +195,43 @@ class StablecoinApprovalChecks:
 
         self.refused(self.broadcast(self.payment()), RECIPIENT_NOT_APPROVED)
         self.nothing_recorded_or_sent()
+
+    def test_a_sender_approval_withdrawn_between_prepare_and_submission_is_refused_at_submission(self):
+        self.approve(self.wallet)
+        self.approve(self.recipient_wallet)
+        self.assertEqual(self.prepare().status_code, 200)
+        self.withdraw_approvals(self.wallet)
+
+        self.refused(self.broadcast(self.payment()), SENDER_NOT_APPROVED)
+        self.nothing_recorded_or_sent()
+
+    def test_an_approval_withdrawn_while_the_nonce_is_observed_is_refused_inside_the_recording_transaction(self):
+        self.approve(self.wallet)
+        self.approve(self.recipient_wallet)
+        observe = self.provider.get_mined_nonce.side_effect
+
+        def withdraw_then_observe(address):
+            self.withdraw_approvals(self.recipient_wallet)
+            return observe(address)
+
+        self.provider.get_mined_nonce.side_effect = withdraw_then_observe
+
+        self.refused(self.broadcast(self.payment()), RECIPIENT_NOT_APPROVED)
+        self.provider.get_mined_nonce.assert_called_once()
+        self.provider.broadcast_transaction.assert_not_called()
+        self.schedule.assert_not_called()
+        with use_operator():
+            self.assertFalse(WalletSubmission.objects.filter(wallet=self.wallet).exists())
+            self.assertFalse(Transaction.objects.filter(wallet=self.wallet).exists())
+
+    def test_a_recipient_that_is_not_an_address_on_the_wallet_network_is_invalid_rather_than_refused(self):
+        self.approve(self.wallet)
+        for name, recipient in (("object", {"address": RECIPIENT}), ("number", 12345), ("malformed", "0x1234")):
+            with self.subTest(recipient=name):
+                response = self.prepare(to=recipient)
+
+                self.assertEqual((response.status_code, response.json()), (400, {"detail": INVALID_RECIPIENT}))
+        self.chain.assert_not_called()
 
     def test_a_payment_between_approved_parties_is_recorded_and_sent(self):
         self.approve(self.wallet)
