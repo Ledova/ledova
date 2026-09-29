@@ -45,7 +45,7 @@ export function SwapSettlementModal({ settlement, wallet, visible = true, onClos
   return (
     <>
       <CustomModal
-        key={current && confirm ? 'confirmable' : 'status'}
+        contentKey={current && confirm ? 'confirmable' : 'status'}
         visible={visible && view.step !== 'scan'}
         title="Review settlement"
         onClose={close}

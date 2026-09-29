@@ -58,44 +58,61 @@ jest.mock('expo-crypto', () => ({ randomUUID: jest.fn() }));
 jest.mock('../../services/secureKeyStorage', () => ({ getSeedPhrase: jest.fn() }));
 jest.mock('../../utils/softwareWallet/localSigner', () => ({ signEthereumTypedData: jest.fn() }));
 jest.mock('../../components/qr', () => ({ QRDisplay: jest.fn(() => null), QRScanner: jest.fn(() => null) }));
+const mockDialogLifecycle: string[] = [];
+const dialogEvents = (event: string) => mockDialogLifecycle.filter((entry) => entry === event).length;
 jest.mock('../../components/modal', () => {
+  const { useEffect } = jest.requireActual('react');
   const { View, Text, Pressable } = jest.requireActual('react-native');
-  return {
-    ...jest.requireActual('../../components/modal'),
-    CustomModal: jest.fn(
-      ({
-        visible,
-        children,
-        actions,
-        onClose,
-        onConfirm,
-        confirmLabel,
-        confirmDisabled,
-      }: {
-        visible: boolean;
-        children: React.ReactNode;
-        actions?: React.ReactNode;
-        onClose: () => void;
-        onConfirm?: () => void;
-        confirmLabel?: string;
-        confirmDisabled?: boolean;
-      }) =>
-        visible ? (
-          <View>
-            {children}
-            {actions}
-            <Pressable onPress={onClose}>
-              <Text>Dismiss window</Text>
-            </Pressable>
-            {onConfirm && (
-              <Pressable disabled={confirmDisabled} onPress={onConfirm}>
-                <Text>{confirmLabel}</Text>
-              </Pressable>
-            )}
-          </View>
-        ) : null,
-    ),
-  };
+  function MockDialogContent({ children }: { children: React.ReactNode }) {
+    useEffect(() => {
+      mockDialogLifecycle.push('content mounted');
+      return () => {
+        mockDialogLifecycle.push('content unmounted');
+      };
+    }, []);
+    return <View>{children}</View>;
+  }
+  function MockCustomModal({
+    visible,
+    contentKey,
+    children,
+    actions,
+    onClose,
+    onConfirm,
+    confirmLabel,
+    confirmDisabled,
+  }: {
+    visible: boolean;
+    contentKey?: React.Key;
+    children: React.ReactNode;
+    actions?: React.ReactNode;
+    onClose: () => void;
+    onConfirm?: () => void;
+    confirmLabel?: string;
+    confirmDisabled?: boolean;
+  }) {
+    useEffect(() => {
+      mockDialogLifecycle.push('modal mounted');
+      return () => {
+        mockDialogLifecycle.push('modal unmounted');
+      };
+    }, []);
+    return visible ? (
+      <View>
+        <MockDialogContent key={contentKey}>{children}</MockDialogContent>
+        {actions}
+        <Pressable onPress={onClose}>
+          <Text>Dismiss window</Text>
+        </Pressable>
+        {onConfirm && (
+          <Pressable disabled={confirmDisabled} onPress={onConfirm}>
+            <Text>{confirmLabel}</Text>
+          </Pressable>
+        )}
+      </View>
+    ) : null;
+  }
+  return { ...jest.requireActual('../../components/modal'), CustomModal: jest.fn(MockCustomModal) };
 });
 jest.mock('./components/MarketList', () => ({ MarketList: () => null }));
 function actionLabels(node: React.ReactNode): string[] {
@@ -256,6 +273,7 @@ async function begin(view: Screen, purpose: 'cancel' | 'modify' = 'modify') {
 const originalWindow = Dimensions.get('window');
 beforeEach(async () => {
   jest.clearAllMocks();
+  mockDialogLifecycle.length = 0;
   jest.mocked(AsyncStorage.setItem).mockImplementation(nativeSet);
   await AsyncStorage.clear();
   wallet.uuid = walletUuid;
@@ -302,6 +320,51 @@ it('keeps the price draft in the self-sizing dialog when the available window ch
   expect(view.getByText('Review change')).toBeTruthy();
   expect(messagePosts()).toHaveLength(0);
   expect(executes()).toHaveLength(0);
+});
+
+it.each(['modify', 'cancel'] as const)(
+  'keeps one mounted %s dialog while it loads, reviews and records the action',
+  async (purpose) => {
+    const held: (() => void)[] = [];
+    handler = (config) => new Promise((resolve) => held.push(() => resolve(ordinary(config))));
+    const release = async () => {
+      await waitFor(() => expect(held).toHaveLength(1));
+      await act(async () => held.shift()!());
+    };
+    const label = purpose === 'cancel' ? 'cancellation' : 'change';
+    const view = await render(<TradingScreen />, { wrapper });
+    await fireEvent.press(view.getByText(purpose === 'cancel' ? 'Cancel synthetic order' : 'Change synthetic order'));
+    await waitFor(() => expect(view.getByText('Loading current order details...')).toBeTruthy());
+    await release();
+    await waitFor(() => expect(view.getByText(`Review ${label}`)).toBeTruthy());
+    if (purpose === 'modify') await fireEvent.changeText(view.getByLabelText('New price per share'), '14.00');
+    await fireEvent.press(view.getByText(`Review ${label}`));
+    await waitFor(() => expect(view.getByText(`Checking this ${label} and preparing signing details...`)).toBeTruthy());
+    await release();
+    await fireEvent.press(await view.findByText('Sign with biometric'));
+    await waitFor(() =>
+      expect(view.getByText(`Submitting this ${label}. You can close and check its saved status later.`)).toBeTruthy(),
+    );
+    await release();
+    await waitFor(() => expect(view.getByText('Action recorded')).toBeTruthy());
+    expect(dialogEvents('modal mounted')).toBe(1);
+    expect(dialogEvents('modal unmounted')).toBe(0);
+    expect(dialogEvents('content mounted')).toBe(5);
+    expect(jest.mocked(CustomModal).mock.calls.every(([props]) => props.visible)).toBe(true);
+  },
+);
+
+it('opens a fresh dialog when another order is chosen', async () => {
+  const view = await render(<TradingScreen />, { wrapper });
+  await fireEvent.press(view.getByText('Change synthetic order'));
+  await waitFor(() => expect(view.getByText('Review change')).toBeTruthy());
+  await fireEvent.press(view.getByText('Change other order'));
+  await waitFor(() =>
+    expect(requests.some((request) => request.url === endpoints.ACTION_CONTEXT(otherOrderUuid))).toBe(true),
+  );
+  await waitFor(() => expect(view.getByText('Review change')).toBeTruthy());
+  expect(dialogEvents('modal mounted')).toBe(2);
+  expect(dialogEvents('modal unmounted')).toBe(1);
 });
 
 it('first price-only modification keeps exact context values despite the rounded numeric order DTO', async () => {

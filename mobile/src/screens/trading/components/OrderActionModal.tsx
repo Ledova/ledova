@@ -93,7 +93,7 @@ export function OrderActionModal({ action, wallets, onClose }: Props) {
   return (
     <>
       <CustomModal
-        key={canConfirm ? 'confirmable' : 'status'}
+        contentKey={canConfirm ? 'confirmable' : 'status'}
         visible={!(state.phase === 'ready' && view.step === 'scan-signature')}
         title={action.purpose === 'cancel' ? 'Cancel order' : 'Change order'}
         onClose={close}
