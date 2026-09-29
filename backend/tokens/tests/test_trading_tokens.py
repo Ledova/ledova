@@ -46,24 +46,17 @@ class TradingMarketScopeTest(APITestCase):
         self.assertEqual((real.status_code, phantom.status_code), (404, 404))
         self.assertEqual(real.content, phantom.content)
 
-    def test_the_market_actions_answer_the_eligible_and_hide_from_the_rest(self):
-        for suffix in ("market-data", "order-book"):
-            with self.subTest(suffix=suffix):
-                path = f"{TRADING}{self.issuer.deployed_token.uuid}/{suffix}/"
-                real = self.client.get(path)
-                phantom = self.client.get(f"{TRADING}{uuid4()}/{suffix}/")
-                self.assertEqual((real.status_code, phantom.status_code), (404, 404))
-                self.assertEqual(real.content, phantom.content)
+    def test_the_order_book_answers_the_eligible_and_hides_from_the_rest(self):
+        path = f"{TRADING}{self.issuer.deployed_token.uuid}/order-book/"
+        real = self.client.get(path)
+        phantom = self.client.get(f"{TRADING}{uuid4()}/order-book/")
+        self.assertEqual((real.status_code, phantom.status_code), (404, 404))
+        self.assertEqual(real.content, phantom.content)
         make_eligible(self.holder)
-        for suffix in ("market-data", "order-book"):
-            with self.subTest(suffix=suffix, eligible=True):
-                path = f"{TRADING}{self.issuer.deployed_token.uuid}/{suffix}/"
-                self.assertEqual(self.client.get(path).status_code, 200)
+        self.assertEqual(self.client.get(path).status_code, 200)
 
-    def test_the_directory_carries_no_market_action(self):
+    def test_the_directory_carries_no_order_book(self):
         make_eligible(self.holder)
         open_to_investors(self.issuer)
-        for suffix in ("market-data", "order-book"):
-            with self.subTest(suffix=suffix):
-                path = f"{DIRECTORY}{self.issuer.deployed_token.uuid}/{suffix}/"
-                self.assertEqual(self.client.get(path).status_code, 404)
+        path = f"{DIRECTORY}{self.issuer.deployed_token.uuid}/order-book/"
+        self.assertEqual(self.client.get(path).status_code, 404)

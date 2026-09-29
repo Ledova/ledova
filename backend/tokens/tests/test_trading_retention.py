@@ -36,11 +36,7 @@ class TradingRetentionTest(APITransactionTestCase):
             record_synthetic_admission(self.sell)
             self.legacy_order = self.order(self.buyer, "buy")
             self.swap = self.make_swap()
-            self.original = {
-                "tokenName": self.token.name,
-                "tokenSymbol": self.token.symbol,
-                "tokenContractAddress": self.token.contract_address,
-            }
+            self.original = {"tokenName": self.token.name, "tokenSymbol": self.token.symbol}
         self.client.force_authenticate(self.buyer.user)
 
     def order(self, tenant, side):
@@ -77,10 +73,9 @@ class TradingRetentionTest(APITransactionTestCase):
         self.assertEqual(response.status_code, 200, response.content)
         return response.json()
 
-    def detail(self, order=None):
-        response = self.client.get(f"/api/v1/trading/orders/{(order or self.buy).pk}/")
-        self.assertEqual(response.status_code, 200, response.content)
-        return response.json()
+    def row(self, order=None):
+        rows = {row["uuid"]: row for row in self.orders()["results"]}
+        return rows[str((order or self.buy).pk)]
 
     def swaps(self, wallet=None):
         response = self.client.get("/api/v1/trading/swaps/", {"wallet_address": (wallet or self.buyer.wallet).address})
@@ -89,7 +84,7 @@ class TradingRetentionTest(APITransactionTestCase):
 
     def test_visible_orders_keep_current_class_identity_and_both_parties_see_the_swap(self):
         self.assertEqual(self.orders()["count"], 2)
-        self.assertEqual(self.detail()["tokenName"], self.original["tokenName"])
+        self.assertEqual(self.row()["tokenName"], self.original["tokenName"])
         for tenant in (self.buyer, self.seller):
             self.client.force_authenticate(tenant.user)
             result = self.swaps(tenant.wallet)
@@ -98,8 +93,8 @@ class TradingRetentionTest(APITransactionTestCase):
         with use_operator():
             ShareToken.objects.filter(pk=self.token.pk).update(name="Current visible class", symbol="LIVE")
         self.client.force_authenticate(self.buyer.user)
-        self.assertEqual(self.detail()["tokenName"], "Current visible class")
-        self.assertEqual(self.detail()["tokenSymbol"], "LIVE")
+        self.assertEqual(self.row()["tokenName"], "Current visible class")
+        self.assertEqual(self.row()["tokenSymbol"], "LIVE")
 
     def test_paused_class_keeps_owned_orders_and_their_recorded_identity(self):
         with use_operator():
@@ -112,19 +107,13 @@ class TradingRetentionTest(APITransactionTestCase):
         self.assertEqual(rows[str(self.buy.pk)]["tokenName"], self.original["tokenName"])
         self.assertEqual(rows[str(self.buy.pk)]["tokenSymbol"], self.original["tokenSymbol"])
         self.assertEqual(rows[str(self.buy.pk)]["token"], str(self.token.pk))
-        detail = self.detail()
-        for field, value in self.original.items():
-            self.assertEqual(detail[field], value)
 
     def test_legacy_order_without_recorded_identity_remains_explicitly_unnamed(self):
         self.pause()
-        detail = self.detail(self.legacy_order)
+        row = self.row(self.legacy_order)
         for field in self.original:
-            self.assertIn(field, detail)
-            self.assertIsNone(detail[field])
-        rows = {row["uuid"]: row for row in self.orders()["results"]}
-        self.assertIsNone(rows[str(self.legacy_order.pk)]["tokenName"])
-        self.assertIsNone(rows[str(self.legacy_order.pk)]["tokenSymbol"])
+            self.assertIn(field, row)
+            self.assertIsNone(row[field])
 
     def test_paused_swaps_keep_recorded_names_and_exact_viewer_wallets(self):
         self.pause()
@@ -146,8 +135,6 @@ class TradingRetentionTest(APITransactionTestCase):
         self.pause()
         for tenant in (self.issuer, self.outsider):
             self.client.force_authenticate(tenant.user)
-            response = self.client.get(f"/api/v1/trading/orders/{self.buy.pk}/")
-            self.assertEqual(response.status_code, 404, response.content)
             self.assertEqual(self.orders(wallet_address=self.buyer.wallet.address)["count"], 0)
             self.assertEqual(self.swaps(tenant.wallet)["count"], 0)
             response = self.client.get("/api/v1/trading/swaps/", {"wallet_address": self.buyer.wallet.address})
@@ -168,7 +155,7 @@ class TradingRetentionTest(APITransactionTestCase):
                 with use_operator():
                     Company.objects.filter(pk=self.issuer.company.pk).update(status=status, is_open_to_investors=opened)
                 self.assertEqual(self.orders()["count"], 2)
-                self.assertEqual(self.detail()["tokenSymbol"], self.original["tokenSymbol"])
+                self.assertEqual(self.row()["tokenSymbol"], self.original["tokenSymbol"])
                 self.assertEqual(self.swaps()["count"], 1)
 
     def test_paused_legacy_swap_remains_visible_without_inventing_identity(self):
@@ -215,5 +202,5 @@ class ScopedTradingRetentionTest(RunsOnTheScopedConnection, TradingRetentionTest
             self.assertFalse(ShareToken.objects.filter(pk=self.token.pk).exists())
             self.assertTrue(TransferOrder.objects.filter(pk=self.buy.pk).exists())
             self.assertTrue(SwapOrder.objects.filter(pk=self.swap.pk).exists())
-        self.assertEqual(self.detail()["tokenName"], self.original["tokenName"])
+        self.assertEqual(self.row()["tokenName"], self.original["tokenName"])
         self.assertEqual(self.swaps()["results"][0]["uuid"], str(self.swap.pk))

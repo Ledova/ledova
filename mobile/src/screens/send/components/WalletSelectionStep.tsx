@@ -1,23 +1,17 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
-import {
-  WalletIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  PaperPlaneTiltIcon,
-  CurrencyEthIcon,
-  CurrencyBtcIcon,
-} from 'phosphor-react-native';
+import { WalletIcon, CheckCircleIcon, ClockIcon, CurrencyEthIcon, CurrencyBtcIcon } from 'phosphor-react-native';
 import {
   BLOCKCHAIN,
   WALLET_VERIFICATION_STATUS,
   formatWalletAddressShort,
   formatCryptoBalance,
   formatSyncAge,
+  useCurrency,
 } from '@ledova/shared';
 import type { Wallet } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
-import { useCurrency } from '../../../hooks/useCurrency';
+import { useDialogStyles } from '../../../components/modal';
 
 interface WalletSelectionStepProps {
   wallets: Wallet[];
@@ -28,44 +22,20 @@ interface WalletSelectionStepProps {
 export function WalletSelectionStep({ wallets, isLoading, onSelectWallet }: WalletSelectionStepProps) {
   const theme = useAppTheme();
   const { formatDisplayCurrency } = useCurrency();
+  const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
     container: {
-      flex: 1,
-      paddingVertical: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.xs,
       gap: theme.spacing.md,
     },
-    heroSection: {
+    loading: {
+      flexDirection: 'row',
       alignItems: 'center',
       gap: theme.spacing.sm,
-      paddingTop: theme.spacing.sm,
-      paddingBottom: theme.spacing.lg,
-    },
-    heroSubtitle: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-    },
-    centerContainer: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: theme.spacing.lg,
-      gap: theme.spacing.md,
-    },
-    loadingText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-    },
-    emptyTitle: {
-      fontSize: theme.fontSize.lg,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-      textAlign: 'center',
     },
     emptySubtitle: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      textAlign: 'center',
+      fontFamily: theme.fontFamily.regular,
+      fontSize: theme.fontSize.xs,
+      color: theme.colors.text.subtle,
     },
     chainGroup: {
       gap: theme.spacing.xs,
@@ -133,18 +103,17 @@ export function WalletSelectionStep({ wallets, isLoading, onSelectWallet }: Wall
 
   if (isLoading) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={styles.loading}>
         <ActivityIndicator size="small" color={theme.colors.interactive.active} />
-        <Text style={styles.loadingText}>Loading wallets...</Text>
+        <Text style={text.muted}>Loading wallets...</Text>
       </View>
     );
   }
 
   if (wallets.length === 0) {
     return (
-      <View style={styles.centerContainer}>
-        <WalletIcon size={theme.icon.sizes.xl} color={theme.colors.text.subtle} weight={theme.icon.weights.light} />
-        <Text style={styles.emptyTitle}>No verified wallets found</Text>
+      <View style={text.group}>
+        <Text style={text.muted}>No verified wallets found</Text>
         <Text style={styles.emptySubtitle}>Create and verify a wallet to send crypto</Text>
       </View>
     );
@@ -214,15 +183,6 @@ export function WalletSelectionStep({ wallets, isLoading, onSelectWallet }: Wall
 
   return (
     <View style={styles.container}>
-      <View style={styles.heroSection}>
-        <PaperPlaneTiltIcon
-          size={theme.icon.sizes.xxl}
-          color={theme.colors.status.info.icon}
-          weight={theme.icon.weights.light}
-        />
-        <Text style={styles.heroSubtitle}>Select your wallet</Text>
-      </View>
-
       {[
         { key: 'ethereum', label: 'Ethereum', icon: CurrencyEthIcon, wallets: ethWallets },
         { key: 'base', label: 'Base', icon: CurrencyEthIcon, wallets: baseWallets },

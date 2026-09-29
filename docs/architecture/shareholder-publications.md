@@ -134,15 +134,19 @@ way, on the same table, with the payment record named as well.
 ## Retention
 
 A publication, its roll, its read records and, for a resolution or a
-distribution, its event chain are kept for the register's own seven-year floor
-and purged together by a daily job, the chain before the roll it points at. A
-payment record's stored remittance evidence is deleted with its row, through the
-same private-file lifecycle receiver as the publication's own document. They share
-`FORMER_MEMBER_RETENTION_DAYS` and its `ImproperlyConfigured` refusal below
-2,557 days with the register's outputs, so the floor cannot be configured away
-and one clock governs both. The purge is the only deletion; removing the row
-deletes its stored bytes with it, through the ordinary private-file lifecycle
-receiver, under the swept `companies/` prefix.
+distribution, its event chain are kept for the register's own seven-year floor,
+measured from the publication. The [daily job](../operations/jobs.md#schedule)
+`purge_publications_past_the_clock` then purges them together, deleting the
+chain before the roll it points at. A payment record's stored remittance
+evidence is deleted with its row, through the same private-file lifecycle
+receiver as the publication's own document. They share
+`FORMER_MEMBER_RETENTION_DAYS` and its floor with the register's outputs, so one
+clock governs both: below 2,557 days the purge refuses to run, with
+`ImproperlyConfigured`, rather than shortening the clock, so the floor cannot be
+configured away ([retention settings](../operations/uploads.md#data-retention)).
+The purge is the only deletion; removing the row deletes its stored bytes with
+it, through the ordinary private-file lifecycle receiver, under the swept
+`companies/` prefix.
 
 ## The member's route
 
@@ -391,11 +395,11 @@ ballot is refused even by a writer who disabled the trigger.
 ### The tally
 
 An ordinary resolution is carried when the shares voted for exceed the shares
-voted against. A special resolution is carried when the shares voted for are at
-least 75% of the votes cast, which is the definition of a special resolution in
-section 9 of the Corporations Act. The comparison is exact, in whole shares
-(four times the shares for against three times the votes cast), so nothing is
-rounded at the threshold. Abstentions are counted and
+voted against; a tie is not carried. A special resolution is carried when the
+shares voted for are at least 75% of the votes cast, which is the definition of
+a special resolution in section 9 of the Corporations Act. The comparison is
+exact, in whole shares (four times the shares for against three times the votes
+cast), so nothing is rounded at the threshold. Abstentions are counted and
 reported but are not votes cast, so they can neither carry nor defeat a
 resolution, and a resolution on which no votes were cast is not carried.
 
@@ -458,9 +462,11 @@ row's own copied company; the roll's policy reads nothing back.
 `verify_publication` replays the chain on the operator connection and refuses
 with `PublicationIntegrityError` on a sequence gap, a broken previous-hash link,
 a stored hash that differs from the one recomputed in SQL, an event under
-another company, a ballot whose member or shares differ from the roll, two
-ballots for one member, an event after the close, or a close whose tally differs
-from the tally recomputed in Python from the ballots. The cross-checks are what catch a forger who rewrote a row and
+another company, an event of a kind a resolution does not take, a ballot whose
+member or shares differ from the roll, a ballot not entered by staff whose actor
+is not the account its roll row names, two ballots for one member, an event
+after the close, or a close whose tally differs from the tally recomputed in
+Python from the ballots. The cross-checks are what catch a forger who rewrote a row and
 recomputed its hash. The [runbook](../operations/publications.md#verifying-a-resolution)
 runs it for every resolution.
 
@@ -580,9 +586,9 @@ and company checks as a resolution's, and also refuses an event of a kind a
 distribution does not take, a payment record for a roll row it does not owe, a
 second standing record for one roll row, a withdrawal with nothing to withdraw,
 an entitlement that is not its shares times the rate rounded down, and a declared
-total or remainder that does not agree with the roll. It reports the number of
-standing records and the remainder. The
-[runbook](../operations/publications.md#verifying-a-distribution) runs it.
+total or remainder that does not agree with the roll. The
+[runbook](../operations/publications.md#verifying-a-distribution) runs it and
+says what it prints.
 
 ### The distribution statement
 

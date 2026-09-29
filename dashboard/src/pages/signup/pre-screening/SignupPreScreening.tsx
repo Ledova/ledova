@@ -3,11 +3,9 @@ import { Checkbox, Description, Field, Label } from '@headlessui/react';
 import { ShieldCheckIcon, WarningIcon, CheckCircleIcon } from '@phosphor-icons/react';
 import LoadingState from '@components/signup/LoadingState';
 import ErrorState from '@components/signup/ErrorState';
-import { useSignupPreScreening } from './useSignupPreScreening';
 import { AuthLayout } from '@components/AuthLayout';
-import { DESIGN_TOKENS } from '@ledova/shared';
-
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
+import { useSignupPreScreening } from '@ledova/shared';
+import { ICON_MD } from '@components/iconSizes';
 
 export function SignupPreScreening() {
   const navigate = useNavigate();
@@ -85,8 +83,8 @@ export function SignupPreScreening() {
         </p>
       </div>
 
-      <div className="bg-surface-raised rounded-lg border border-border">
-        <div className="p-6">
+      <div className="rounded-xl border border-border bg-surface-raised">
+        <div className="p-4 sm:p-5">
           <form onSubmit={handleContinue} className="space-y-6">
             {generalError && (
               <div className="bg-error-subtle border border-error-dark rounded-lg p-4">

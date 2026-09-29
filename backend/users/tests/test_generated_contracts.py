@@ -49,32 +49,21 @@ class GeneratedClientContractTest(APITestCase):
                 self.assertIsInstance(response.json(), dict)
                 self.assertFalse(validator.is_valid({"count": 1, "results": [response.json()]}))
 
-    def test_selected_portfolio_is_a_uuid_input_and_nullable_object_output(self):
+    def test_the_preferences_upsert_takes_only_the_alerts_switch_and_answers_its_contract(self):
         path = "/api/user-preferences/"
-        request = self.request_schema(path)
-        field = Draft4Validator(request["properties"]["selectedPortfolio"])
-        self.assertNotIn("userAccount", request["properties"])
-        self.assertNotIn("userProfile", request["properties"])
-        for value in (None, str(self.owner.portfolio.uuid)):
-            with self.subTest(value=value):
-                self.assertTrue(field.is_valid(value))
-                response = self.client.post(path, {"selectedPortfolio": value}, format="json")
-                self.assertEqual(response.status_code, 200, response.content)
-                validator = self.assert_response(path, response, "post")
-                body = response.json()
-                if value is None:
-                    self.assertIsNone(body["selectedPortfolio"])
-                else:
-                    self.assertEqual(body["selectedPortfolio"]["uuid"], value)
-                    self.assertFalse(field.is_valid(body["selectedPortfolio"]))
-                    self.assertFalse(validator.is_valid({**body, "selectedPortfolio": value}))
+        self.assertEqual(set(self.request_schema(path)["properties"]), {"transactionAlerts"})
+        response = self.client.post(path, {"transactionAlerts": False}, format="json")
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assert_response(path, response, "post")
+        self.assertEqual(set(response.json()), {"uuid", "userProfile", "userAccount", "transactionAlerts"})
+        self.assertIs(response.json()["transactionAlerts"], False)
 
     def test_unset_profile_countries_are_nullable_outputs_without_admitting_null_input(self):
         UserProfile.objects.filter(pk=self.owner.profile.pk).update(citizenship_country=None, residence_country=None)
         path = "/api/user-profiles/{uuid}/"
         endpoint = f"/api/user-profiles/{self.owner.profile.pk}/"
-        response = self.client.get(endpoint)
-        validator = self.assert_response(path, response)
+        response = self.client.patch(endpoint, {"fullName": "Contract Owner"}, format="json")
+        validator = self.assert_response(path, response, "patch")
         request = self.request_schema(path, "patch")
         for name in ("citizenshipCountry", "residenceCountry"):
             with self.subTest(field=name):

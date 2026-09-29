@@ -1,10 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { NavigationProp } from '@react-navigation/native';
-import type { RouteProp } from '@react-navigation/native';
+import type { NavigationProp, RouteProp } from '@react-navigation/native';
 import { GradientBackground } from '../../components/GradientBackground';
-import { useUserPreferences } from '../../hooks/useUserPreferences';
+import { useUserPreferences } from '@ledova/shared';
 import { BuyCryptoModal } from './components/BuyCryptoModal';
 import type { BuyStackParamList } from '../../navigation/BuyStackNavigator';
 import type { RootStackParamList } from '../../navigation/AppNavigator';

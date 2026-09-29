@@ -1,25 +1,24 @@
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, inline_serializer
-from rest_framework import serializers, status
+from rest_framework import mixins, serializers, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from shared.views import AuthenticatedModelViewSet
-from tokens.exceptions import InvalidTokenStateException
+from shared.views import AuthenticatedGenericViewSet
 from tokens.filters import CapitalIncreaseFilter
 from tokens.models import CapitalIncreaseRequest, ShareToken
 from tokens.serializers import (
     CapitalIncreaseCreateSerializer,
     CapitalIncreaseDetailSerializer,
     CapitalIncreaseListSerializer,
-    CapitalIncreaseUpdateSerializer,
 )
 from tokens.serializers.capital_increase import CapitalIncreaseCreateRequestSerializer
 from tokens.services.capital_increase import submit_capital_increase
 
 
-class CapitalIncreaseViewSet(AuthenticatedModelViewSet):
+class CapitalIncreaseViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, AuthenticatedGenericViewSet):
+    lookup_field = "uuid"
     filterset_class = CapitalIncreaseFilter
     ordering = ["-created_at"]
     ordering_fields = ["created_at", "status", "additional_shares"]
@@ -29,8 +28,6 @@ class CapitalIncreaseViewSet(AuthenticatedModelViewSet):
     def get_serializer_class(self):
         if self.action == "create":
             return CapitalIncreaseCreateSerializer
-        if self.action in ["update", "partial_update"]:
-            return CapitalIncreaseUpdateSerializer
         if self.action == "list":
             return CapitalIncreaseListSerializer
         return CapitalIncreaseDetailSerializer
@@ -54,11 +51,6 @@ class CapitalIncreaseViewSet(AuthenticatedModelViewSet):
         serializer.is_valid(raise_exception=True)
         capital_increase = serializer.save(token=token)
         return Response(CapitalIncreaseDetailSerializer(capital_increase).data, status=status.HTTP_201_CREATED)
-
-    def perform_destroy(self, instance):
-        if not instance.can_be_edited:
-            raise InvalidTokenStateException("Only draft requests can be deleted.")
-        instance.delete()
 
     @extend_schema(
         responses=inline_serializer(

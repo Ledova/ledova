@@ -2,38 +2,22 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
   deleteOffering,
-  getNextPageParam,
   getOperator,
   getOffering,
   getOfferings,
   getOfferingSubscriptions,
+  readEveryPage,
   submitOffering,
   withdrawOffering,
-  type PaginatedResponse,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { useTokensList } from '../hooks/useTokens';
-
-async function everyPage<T>(read: (page: number) => Promise<{ data: PaginatedResponse<T> }>) {
-  const rows: T[] = [];
-  let page: number | undefined = 1;
-  while (page !== undefined) {
-    const { data } = await read(page);
-    rows.push(...data.results);
-    const next = getNextPageParam(data);
-    if (data.next && (next === undefined || !Number.isInteger(next) || next <= page)) {
-      throw new Error('Offering pagination did not advance');
-    }
-    page = next;
-  }
-  return rows;
-}
 
 export function useOfferings(companyUuid?: string) {
   const client = useQueryClient();
   const offeringsQuery = useQuery({
     queryKey: ['offerings', companyUuid],
-    queryFn: () => everyPage((page) => getOfferings(apiClient, page)),
+    queryFn: () => readEveryPage((page) => getOfferings(apiClient, page)),
     enabled: !!companyUuid,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
@@ -66,7 +50,7 @@ export function useOfferings(companyUuid?: string) {
 export function useOfferingSubscriptions(uuid?: string) {
   return useQuery({
     queryKey: ['offering-subscriptions', uuid],
-    queryFn: () => everyPage((page) => getOfferingSubscriptions(apiClient, uuid!, page)),
+    queryFn: () => readEveryPage((page) => getOfferingSubscriptions(apiClient, uuid!, page)),
     enabled: !!uuid,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });

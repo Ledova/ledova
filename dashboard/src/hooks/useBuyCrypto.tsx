@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useSelectedPortfolio } from './useSelectedPortfolio';
+import { useUserPreferences } from '@ledova/shared';
 import { BuyCryptoModal } from '@pages/wallets/components/BuyCryptoModal';
 import { BuyCryptoWidgetModal } from '@pages/wallets/components/BuyCryptoWidgetModal';
 
@@ -11,7 +11,7 @@ interface BuyCryptoContextValue {
 const BuyCryptoContext = createContext<BuyCryptoContextValue | null>(null);
 
 export function BuyCryptoProvider({ children }: { children: ReactNode }) {
-  const { userAccount } = useSelectedPortfolio();
+  const { userAccount } = useUserPreferences();
   const queryClient = useQueryClient();
   const userAccountUuid = userAccount?.uuid;
 

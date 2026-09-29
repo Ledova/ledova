@@ -1,34 +1,13 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { Dialog, Transition } from '@headlessui/react';
-import {
-  XIcon,
-  CheckCircleIcon,
-  WarningCircleIcon,
-  SpinnerGapIcon,
-  PaperPlaneTiltIcon,
-  ArrowSquareOutIcon,
-} from '@phosphor-icons/react';
+import { CheckCircleIcon, WarningCircleIcon, SpinnerGapIcon, ArrowSquareOutIcon } from '@phosphor-icons/react';
 import { AnimatedQRCode } from '@keystonehq/animated-qr';
-import {
-  formatWalletAddressMedium,
-  BLOCKCHAIN,
-  DESIGN_TOKENS,
-  getBlockExplorerTxUrl,
-  getNativeAssetSymbol,
-} from '@ledova/shared';
+import { formatWalletAddressMedium, BLOCKCHAIN, getBlockExplorerTxUrl, getNativeAssetSymbol } from '@ledova/shared';
+import { ICON_XS, ICON_MD, ICON_XL } from '@components/iconSizes';
 import { useQRScanner, QRScannerView } from '@components/qr';
-
-const ICON_XS = DESIGN_TOKENS.icon.sizes.xs;
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
-const ICON_XL = DESIGN_TOKENS.icon.sizes.xl;
-const ICON_HERO = DESIGN_TOKENS.icon.sizes.hero;
-const ICON_DISPLAY = DESIGN_TOKENS.icon.sizes.display;
-import type {
-  Wallet,
-  WalletTokenBalance,
-  ShareTokenTransferPrepareResponse,
-  PreparedWalletTransfer,
-} from '@ledova/shared';
+import { Row, Rows } from '@components/Ledger';
+import { Modal, ModalActions } from '@components/Modal';
+import { PageAction } from '@components/Page';
+import type { Wallet, WalletTokenBalance, PreparedWalletTransfer } from '@ledova/shared';
 import { encodeEthereumTransaction } from '@utils/keystone/urEncoder';
 import { decodeKeystoneSignedTransaction } from '@utils/keystone/urDecoder';
 import { BitcoinSignStep } from './BitcoinSignStep';
@@ -46,7 +25,7 @@ interface TransferSigningFlowProps {
   toAddress?: string;
   amount?: string;
   token?: Pick<WalletTokenBalance, 'name' | 'symbol'>;
-  preparedTransaction?: ShareTokenTransferPrepareResponse | PreparedWalletTransfer | null;
+  preparedTransaction?: PreparedWalletTransfer | null;
   isPreparing?: boolean;
   prepareError?: string | null;
   onPrepare?: () => void;
@@ -65,24 +44,7 @@ interface TransactionForQr {
   chainId: string;
 }
 
-function formatTransactionForQr(
-  preparedTx: ShareTokenTransferPrepareResponse | PreparedWalletTransfer,
-  wallet: Wallet,
-): TransactionForQr | null {
-  if ('transactionData' in preparedTx && preparedTx.transactionData) {
-    const tx = preparedTx.transactionData;
-    return {
-      to: tx.to,
-      from: wallet.address,
-      data: tx.data,
-      value: '0x' + tx.value.toString(16),
-      gas: '0x' + tx.gas.toString(16),
-      gasPrice: '0x' + tx.gasPrice.toString(16),
-      nonce: '0x' + tx.nonce.toString(16),
-      chainId: '0x' + tx.chainId.toString(16),
-    };
-  }
-
+function formatTransactionForQr(preparedTx: PreparedWalletTransfer, wallet: Wallet): TransactionForQr | null {
   if ('transaction' in preparedTx && preparedTx.transaction) {
     const tx = preparedTx.transaction;
     return {
@@ -281,12 +243,17 @@ export function TransferSigningFlow({
     }
   }, [signingStep, isBitcoin]);
 
+  const cancel = <PageAction label="Cancel" onClick={handleClose} disabled={signingStep === 'submitting'} />;
+
   const renderStepContent = () => {
     if (signingStep === 'loading' || isPreparing) {
       return (
-        <div className="flex flex-col items-center justify-center py-8 gap-3">
-          <SpinnerGapIcon size={ICON_XL} className="text-brand-mid animate-spin" />
-          <p className="text-sm text-text-muted">Preparing transaction...</p>
+        <div className="space-y-4">
+          <div className="flex flex-col items-center justify-center py-8 gap-3">
+            <SpinnerGapIcon size={ICON_XL} className="text-brand-mid animate-spin" />
+            <p className="text-sm text-text-muted">Preparing transaction...</p>
+          </div>
+          <ModalActions>{cancel}</ModalActions>
         </div>
       );
     }
@@ -294,120 +261,70 @@ export function TransferSigningFlow({
     switch (signingStep) {
       case 'instructions':
         return (
-          <div className="space-y-5">
+          <div className="space-y-4">
             <p className="text-sm text-text-muted">
               Sign this transfer with your hardware wallet to authorize the transaction.
             </p>
 
-            <div className="bg-surface-tertiary rounded-lg p-4 space-y-2">
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                {token && (
-                  <>
-                    <div className="text-text-muted">Token</div>
-                    <div className="text-text-primary font-medium">
-                      {token.symbol} ({token.name})
-                    </div>
-                  </>
-                )}
-                <div className="text-text-muted">From</div>
-                <div className="text-text-primary font-mono text-xs">{formatWalletAddressMedium(wallet.address)}</div>
-                {toAddress && (
-                  <>
-                    <div className="text-text-muted">To</div>
-                    <div className="text-text-primary font-mono text-xs">{formatWalletAddressMedium(toAddress)}</div>
-                  </>
-                )}
-                {amount && (
-                  <>
-                    <div className="text-text-muted">Amount</div>
-                    <div className="text-text-primary font-medium">
-                      {amount} {token?.symbol ?? nativeSymbol}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
+            <Rows>
+              {token && (
+                <Row label="Token">
+                  {token.symbol} ({token.name})
+                </Row>
+              )}
+              <Row label="From">
+                <span className="font-mono text-xs">{formatWalletAddressMedium(wallet.address)}</span>
+              </Row>
+              {toAddress && (
+                <Row label="To">
+                  <span className="font-mono text-xs">{formatWalletAddressMedium(toAddress)}</span>
+                </Row>
+              )}
+              {amount && (
+                <Row label="Amount">
+                  {amount} {token?.symbol ?? nativeSymbol}
+                </Row>
+              )}
+            </Rows>
 
-            <div className="space-y-3">
-              <div className="flex items-start gap-3 p-3 bg-surface-tertiary rounded-lg">
-                <span className="flex-shrink-0 w-6 h-6 bg-brand-mid text-white text-sm font-semibold rounded-full flex items-center justify-center">
-                  1
-                </span>
-                <p className="text-sm text-text-secondary">Scan the QR code with your hardware wallet</p>
-              </div>
-              <div className="flex items-start gap-3 p-3 bg-surface-tertiary rounded-lg">
-                <span className="flex-shrink-0 w-6 h-6 bg-brand-mid text-white text-sm font-semibold rounded-full flex items-center justify-center">
-                  2
-                </span>
-                <p className="text-sm text-text-secondary">Review and sign the transaction on your hardware wallet</p>
-              </div>
-              <div className="flex items-start gap-3 p-3 bg-surface-tertiary rounded-lg">
-                <span className="flex-shrink-0 w-6 h-6 bg-brand-mid text-white text-sm font-semibold rounded-full flex items-center justify-center">
-                  3
-                </span>
-                <p className="text-sm text-text-secondary">Scan the signature QR code from your hardware wallet</p>
-              </div>
-            </div>
+            <ol className="list-decimal space-y-2 pl-5 text-sm text-text-secondary">
+              <li>Scan the QR code with your hardware wallet</li>
+              <li>Review and sign the transaction on your hardware wallet</li>
+              <li>Scan the signature QR code from your hardware wallet</li>
+            </ol>
 
-            {error && (
-              <div className="p-3 bg-error-light/10 border border-error-light/20 rounded-lg">
-                <p className="text-sm text-error-light">{error}</p>
-              </div>
-            )}
+            {error && <p className="text-sm text-error-light">{error}</p>}
 
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                onClick={handleClose}
-                className="flex-1 py-3 rounded-lg font-medium text-text-primary bg-surface-tertiary hover:bg-surface-disabled transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
+            <ModalActions>
+              {cancel}
+              <PageAction
+                label="Continue"
+                primary
                 onClick={generateQrCode}
                 disabled={!preparedTransaction || !wallet}
-                className="flex-1 py-3 rounded-lg font-medium text-white bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed transition-colors"
-              >
-                Continue
-              </button>
-            </div>
+              />
+            </ModalActions>
           </div>
         );
 
       case 'show-qr':
         return (
-          <div className="space-y-5">
+          <div className="space-y-4">
             <p className="text-sm text-text-muted">Scan this QR code with your hardware wallet to sign the transfer.</p>
 
             {qrData && (
-              <div className="flex justify-center p-4 bg-white rounded-lg">
+              <div className="flex justify-center py-2">
                 <AnimatedQRCode cbor={qrData.cborHex} type={qrData.type} />
               </div>
             )}
 
-            {error && (
-              <div className="p-3 bg-error-light/10 border border-error-light/20 rounded-lg">
-                <p className="text-sm text-error-light">{error}</p>
-              </div>
-            )}
+            {error && <p className="text-sm text-error-light">{error}</p>}
 
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                onClick={goBack}
-                className="flex-1 py-3 rounded-lg font-medium text-text-primary bg-surface-tertiary hover:bg-surface-disabled transition-colors"
-              >
-                Back
-              </button>
-              <button
-                type="button"
-                onClick={() => setSigningStep('scan-signature')}
-                className="flex-1 py-3 rounded-lg font-medium text-white bg-brand-mid hover:bg-brand transition-colors"
-              >
-                I&apos;ve Signed It
-              </button>
-            </div>
+            <ModalActions>
+              {cancel}
+              <PageAction label="Back" onClick={goBack} />
+              <PageAction label="I've Signed It" primary onClick={() => setSigningStep('scan-signature')} />
+            </ModalActions>
           </div>
         );
 
@@ -425,59 +342,54 @@ export function TransferSigningFlow({
 
       case 'scan-signature':
         return (
-          <div className="space-y-5">
+          <div className="space-y-4">
             <p className="text-sm text-text-muted">
               Point your camera at the signature QR code on your hardware wallet.
             </p>
 
             <QRScannerView scannerId="transfer-qr-scanner" error={scannerError} />
 
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                onClick={goBack}
-                className="flex-1 py-3 rounded-lg font-medium text-text-primary bg-surface-tertiary hover:bg-surface-disabled transition-colors"
-              >
-                Back
-              </button>
-            </div>
+            <ModalActions>
+              {cancel}
+              <PageAction label="Back" onClick={goBack} />
+            </ModalActions>
           </div>
         );
 
       case 'submitting':
         return (
-          <div className="flex flex-col items-center justify-center py-8 gap-3">
-            <SpinnerGapIcon size={ICON_XL} className="text-brand-mid animate-spin" />
-            <p className="text-sm text-text-muted">Broadcasting transaction...</p>
-            <p className="text-xs text-text-subtle">This may take a moment</p>
+          <div className="space-y-4">
+            <div className="flex flex-col items-center justify-center py-8 gap-3">
+              <SpinnerGapIcon size={ICON_XL} className="text-brand-mid animate-spin" />
+              <p className="text-sm text-text-muted">Broadcasting transaction...</p>
+              <p className="text-xs text-text-subtle">This may take a moment</p>
+            </div>
+            <ModalActions>{cancel}</ModalActions>
           </div>
         );
 
       case 'success': {
         const explorerUrl = txHash ? getBlockExplorerTxUrl(wallet.chain, txHash) : '';
         return (
-          <div className="space-y-6 py-8">
-            <div className="flex justify-center">
-              <div className="p-4 bg-success-light/10 rounded-full">
-                <CheckCircleIcon size={ICON_DISPLAY} className="text-success-light" weight="fill" />
-              </div>
-            </div>
-
-            <div className="text-center">
-              <h3 className="text-xl font-semibold text-success-light mb-2">Transfer Sent!</h3>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <h3 className="flex items-center gap-2 text-sm font-medium text-success-light">
+                <CheckCircleIcon size={ICON_MD} weight="fill" />
+                Transfer Sent!
+              </h3>
               <p className="text-sm text-text-muted">Your transaction has been submitted to the network.</p>
             </div>
 
             {txHash && (
-              <div className="p-4 rounded-lg bg-surface-tertiary border border-border">
-                <p className="text-xs font-semibold text-text-subtle uppercase tracking-wide mb-2">Transaction Hash</p>
+              <div className="space-y-1 border-t border-border-subtle pt-3">
+                <h3 className="text-sm font-medium text-text-primary">Transaction Hash</h3>
                 <p className="text-xs font-mono text-text-primary break-all">{txHash}</p>
                 {explorerUrl && (
                   <a
                     href={explorerUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-brand-mid hover:text-brand-light"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-brand-mid hover:text-brand-light"
                   >
                     View on block explorer
                     <ArrowSquareOutIcon size={ICON_XS} />
@@ -486,43 +398,31 @@ export function TransferSigningFlow({
               </div>
             )}
 
-            {isBitcoin && (
-              <button
-                type="button"
-                onClick={handleClose}
-                className="w-full py-3 rounded-lg font-medium text-white bg-brand-mid hover:bg-brand transition-colors"
-              >
-                Done
-              </button>
-            )}
+            <ModalActions>
+              {isBitcoin ? (
+                <PageAction label="Done" primary onClick={handleClose} />
+              ) : (
+                <PageAction label="Close" onClick={handleClose} />
+              )}
+            </ModalActions>
           </div>
         );
       }
 
       case 'error':
         return (
-          <div className="flex flex-col items-center justify-center py-8 gap-4">
-            <div className="w-16 h-16 rounded-full bg-error-light/10 flex items-center justify-center">
-              <WarningCircleIcon size={ICON_HERO} className="text-error-light" weight="fill" />
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <h3 className="flex items-center gap-2 text-sm font-medium text-error-light">
+                <WarningCircleIcon size={ICON_MD} weight="fill" />
+                Transfer Failed
+              </h3>
+              <p className="text-sm text-text-muted">{error || 'An error occurred'}</p>
             </div>
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-text-primary">Transfer Failed</h3>
-              <p className="text-sm text-text-muted mt-1">{error || 'An error occurred'}</p>
-            </div>
-            <div className="flex gap-3 w-full">
-              <button
-                onClick={handleClose}
-                className="flex-1 py-3 rounded-lg font-medium text-text-primary bg-surface-tertiary hover:bg-surface-disabled transition-colors"
-              >
-                Close
-              </button>
-              <button
-                onClick={goBack}
-                className="flex-1 py-3 rounded-lg font-medium text-white bg-brand-mid hover:bg-brand transition-colors"
-              >
-                Try Again
-              </button>
-            </div>
+            <ModalActions>
+              <PageAction label="Close" onClick={handleClose} />
+              <PageAction label="Try Again" primary onClick={goBack} />
+            </ModalActions>
           </div>
         );
 
@@ -532,50 +432,8 @@ export function TransferSigningFlow({
   };
 
   return (
-    <Transition show={isOpen}>
-      <Dialog onClose={handleClose} className="relative z-50">
-        <Transition.Child
-          enter="ease-out duration-200"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-150"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
-        </Transition.Child>
-
-        <div className="fixed inset-0 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4">
-            <Transition.Child
-              enter="ease-out duration-200"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-150"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
-            >
-              <Dialog.Panel className="w-full max-w-md bg-surface-raised rounded-xl border border-border shadow-xl overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
-                  <Dialog.Title className="text-lg font-semibold text-text-primary flex items-center gap-2">
-                    <PaperPlaneTiltIcon size={ICON_MD} className="text-brand-light" />
-                    {getTitle()}
-                  </Dialog.Title>
-                  <button
-                    onClick={handleClose}
-                    disabled={signingStep === 'submitting'}
-                    className="p-1 rounded-lg hover:bg-surface-tertiary transition-colors disabled:opacity-50"
-                  >
-                    <XIcon size={ICON_MD} className="text-text-muted" />
-                  </button>
-                </div>
-
-                <div className="p-4">{renderStepContent()}</div>
-              </Dialog.Panel>
-            </Transition.Child>
-          </div>
-        </div>
-      </Dialog>
-    </Transition>
+    <Modal isOpen={isOpen} onClose={handleClose} title={getTitle()}>
+      {renderStepContent()}
+    </Modal>
   );
 }

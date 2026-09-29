@@ -17,8 +17,8 @@ account and classification UUIDs in prefixes remain pseudonymous identifiers.
 | Upload | Storage prefix and lifecycle |
 | --- | --- |
 | Register correction authority | `companies/`; retained request prevents ordinary deletion; interrupted-copy orphans are swept |
-| Publication to members | `companies/`; kept with its row on the register's seven-year clock, then purged with it |
-| Dividend payment evidence | `companies/`; kept with its payment record, which is purged with its distribution |
+| Publication to members | `companies/`; retained with its row until the [publication purge](shareholder-publications.md#retention) |
+| Dividend payment evidence | `companies/`; retained with its payment record until the [publication purge](shareholder-publications.md#retention) |
 | Company document | `companies/`; swept after becoming an orphan |
 | Unattached payslip | `documents/`; ordinary deletion and orphan cleanup |
 | Classification evidence | `users/`; retained by the classification clock |
@@ -30,9 +30,11 @@ Staff read company files through admin rather than widening customer ownership
 selectors. `admin_file_path` checks model and object view permission; refused
 staff receive 403, matching the change page.
 
-Serializers return the authenticated route as `file_url`. The dashboard uses a
-top-level navigation with its session cookie. Mobile fetches with its bearer
-client and shares a temporary cached copy; see [mobile lifecycles](mobile-lifecycles.md).
+The company document serializer returns the authenticated route as `file_url`;
+a personal document and classification evidence are read only through admin.
+The dashboard uses a top-level navigation with its session cookie. Mobile
+fetches with its bearer client and shares a temporary cached copy; see
+[mobile lifecycles](mobile-lifecycles.md).
 Admin downloads are attachments. Customer serving is inline only for the allowed
 PDF/PNG/JPEG MIME types; other or absent types become attachments.
 
@@ -66,11 +68,10 @@ an audit write failure refuses delivery. Audit rows survive content purge and
 have no admin mutation path. Single-issuer mode disables supporting payslips;
 conversion is refused while unpurged content remains.
 
-A [publication to members](shareholder-publications.md) follows the same rule
-for a document a member reads rather than a reviewer: every member, company and
-staff read records a `PublicationRead`, and a read that cannot be recorded
-refuses the delivery. Unlike the register's own outputs, the bytes are kept,
-because the member has to be able to reopen the same document later.
+A [publication to members](shareholder-publications.md#every-read-is-audited-and-an-unrecorded-read-is-refused)
+follows the same read-audit rule for a document a member reads rather than a
+reviewer, except that its read records are deleted with it when it is
+[purged](shareholder-publications.md#retention).
 
 A [company pack](company-pack.md#documents) carries a company's documents,
 the evidence copies its register changes retained, its publications' documents

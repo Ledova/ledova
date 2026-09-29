@@ -1,6 +1,6 @@
 import { ActivityIndicator, Text, View } from 'react-native';
 import { DIRECTORY_COPY, formatShareCount, type ShareToken } from '@ledova/shared';
-import { Action, Row, Section } from '../../../components/Ledger';
+import { Action, Row, Rows, Section } from '../../../components/Ledger';
 import { useMarketStyles } from '../styles';
 import { marketAmount } from '../marketData';
 
@@ -51,18 +51,22 @@ export function MarketList({
           </Text>
         </View>
       ) : (
-        tokens.map((token) => (
-          <View key={token.uuid} style={styles.classRow}>
-            <Action
-              label={`${token.companyName || token.name} · ${token.symbol}`}
-              primary={selectedTokenUuid === token.uuid}
-              disabled={disabled}
-              onPress={() => onSelectToken(token.uuid)}
-            />
-            <Row label="Last trade">{token.lastPrice ? marketAmount(token.lastPrice) : 'Not recorded'}</Row>
-            <Row label="Authorised shares">{formatShareCount(token.totalSupply || '0')}</Row>
-          </View>
-        ))
+        <Rows>
+          {tokens.map((token) => (
+            <View key={token.uuid} style={styles.classRow}>
+              <Action
+                label={`${token.companyName || token.name} · ${token.symbol}`}
+                primary={selectedTokenUuid === token.uuid}
+                disabled={disabled}
+                onPress={() => onSelectToken(token.uuid)}
+              />
+              <Rows>
+                <Row label="Last trade">{token.lastPrice ? marketAmount(token.lastPrice) : 'Not recorded'}</Row>
+                <Row label="Authorised shares">{formatShareCount(token.totalSupply || '0')}</Row>
+              </Rows>
+            </View>
+          ))}
+        </Rows>
       )}
     </Section>
   );

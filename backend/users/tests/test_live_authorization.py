@@ -119,8 +119,8 @@ class UserLiveAuthorizationTest(APITestCase):
 
     def test_update_actions_request_database_row_locks(self):
         cases = (
-            (UserProfileViewSet, self.staff, ("self",), ("update", "partial_update")),
-            (FinancialProfileViewSet, self.staff, (), ("update", "partial_update")),
+            (UserProfileViewSet, self.staff, ("self",), ("partial_update",)),
+            (FinancialProfileViewSet, self.staff, (), ("partial_update",)),
             (UserAccountViewSet, self.alice, (), ("partial_update",)),
         )
         for view_class, user, expected_of, actions in cases:

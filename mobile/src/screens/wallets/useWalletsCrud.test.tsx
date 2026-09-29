@@ -6,7 +6,8 @@ import { apiClient } from '../../services/apiClient';
 import { useWalletsCrud } from './useWalletsCrud';
 
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));
-jest.mock('../../hooks/useUserPreferences', () => ({
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
   useUserPreferences: () => ({ userAccount: { uuid: 'owner' } }),
 }));
 jest.mock('../../_mock/mockDataEnabled', () => ({ mockDataEnabled: () => false }));

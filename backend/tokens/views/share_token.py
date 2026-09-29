@@ -3,13 +3,13 @@ import csv
 from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
-from rest_framework import serializers, status
+from rest_framework import mixins, serializers, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from companies.models import Company
-from shared.views import AuthenticatedModelViewSet
+from shared.views import AuthenticatedGenericViewSet
 from tokens.filters import ShareTokenFilter
 from tokens.models import ShareIssuance, ShareToken
 from tokens.serializers import (
@@ -36,10 +36,12 @@ from tokens.services.register import (
     stored_register,
     stored_waiting_list,
 )
-from tokens.services.share_token_service import delete_share_token
 
 
-class ShareTokenViewSet(AuthenticatedModelViewSet):
+class ShareTokenViewSet(
+    mixins.CreateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, AuthenticatedGenericViewSet
+):
+    lookup_field = "uuid"
     filterset_class = ShareTokenFilter
     ordering = ["-created_at"]
     ordering_fields = ["created_at", "name", "symbol", "status", "token_type"]
@@ -67,9 +69,6 @@ class ShareTokenViewSet(AuthenticatedModelViewSet):
     def narrow(self, queryset):
         queryset = queryset.issued_by(self.request.user)
         return queryset.with_company()
-
-    def perform_destroy(self, instance):
-        delete_share_token(instance)
 
     def filter_queryset(self, queryset):
         if self.action == "list":

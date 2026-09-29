@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
 
 import { createRef, type PropsWithChildren } from 'react';
-import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type { ShareToken, TransferOrder } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { allMarketPages, marketAmount, marketQuantity } from './marketData';
+import { marketAmount, marketQuantity } from './marketData';
 import { useShareTokens, useTrading, useUserTradingWallets } from './useTrading';
 import { useSwapOrdersMulti } from './hooks/useAtomicSwaps';
 import { OrdersPanel } from './components/OrdersPanel';
@@ -21,8 +21,9 @@ import {
   accountUuid,
 } from '../../../../packages/shared/tests/fixtures/order-submissions';
 vi.mock('@services/apiClient', async () => ({ default: (await import('axios')).default.create() }));
-vi.mock('@hooks/useSelectedPortfolio', () => ({
-  useSelectedPortfolio: () => ({ userAccount: { uuid: '20000000-0000-4000-8000-000000000001' }, isLoading: false }),
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
+  useUserPreferences: () => ({ userAccount: { uuid: '20000000-0000-4000-8000-000000000001' }, isLoading: false }),
 }));
 let client: QueryClient;
 const token = {
@@ -58,14 +59,6 @@ it('calculates exact AUD cents and never presents unsafe numeric shares as exact
   expect(marketQuantity(9007199254740992)).toBe('Unavailable');
   expect(marketAmount('1.00', 9007199254740992)).toBe('Unavailable');
 });
-it.each([
-  'https://example.test/?page=1',
-  'https://example.test/?page=1.5',
-  'https://example.test/?page=wat',
-  'https://example.test/?cursor=x',
-])('refuses incomplete pagination for %s', async (next) => {
-  await expect(allMarketPages(async () => ({ data: page([order], next) }))).rejects.toThrow();
-});
 it('reads owned orders without a wallet or listed class, through every page', async () => {
   const requests: unknown[] = [];
   apiClient.defaults.adapter = async (config) => {
@@ -81,7 +74,7 @@ it('reads owned orders without a wallet or listed class, through every page', as
   const view = renderHook(() => useTrading(), { wrapper });
   await waitFor(() => expect(view.result.current.userOrders).toHaveLength(2));
   expect(requests).toEqual([
-    ['/api/v1/trading/orders/', undefined],
+    ['/api/v1/trading/orders/', { page: 1 }],
     ['/api/v1/trading/orders/', { page: 2 }],
   ]);
 });
@@ -237,7 +230,7 @@ it('checks the chosen wallet allowlist and preserves a refused pending draft thr
   fireEvent.click(screen.getByText('New buy order — HEX'));
   fireEvent.change(screen.getByLabelText('Quantity (shares)'), { target: { value: '3' } });
   fireEvent.change(screen.getByLabelText('Delivery wallet'), { target: { value: other.uuid } });
-  expect((screen.getByText('Place Buy Order') as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole('button', { name: 'Place Buy Order' }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.change(screen.getByLabelText('Delivery wallet'), { target: { value: wallet.uuid } });
   fireEvent.click(screen.getByText('Place Buy Order'));
   fireEvent.keyDown(document, { key: 'Escape' });
@@ -245,8 +238,34 @@ it('checks the chosen wallet allowlist and preserves a refused pending draft thr
   await act(async () => pending.resolve(false));
   view.rerender(<PlaceOrderPanel {...props} readsUnavailable />);
   expect((screen.getByLabelText('Quantity (shares)') as HTMLInputElement).value).toBe('3');
-  expect((screen.getByText('Place Buy Order') as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole('button', { name: 'Place Buy Order' }) as HTMLButtonElement).disabled).toBe(true);
   expect(submit).toHaveBeenCalledTimes(1);
+});
+
+it('opens orders from content-width actions and states a missing allowlist entry as a warning, not a box', () => {
+  render(
+    <PlaceOrderPanel
+      token={token}
+      wallets={[wallet]}
+      walletsWithHoldings={[]}
+      onSubmit={vi.fn(async () => true)}
+      onNewOrder={vi.fn()}
+      onDismiss={vi.fn()}
+      submissionError={null}
+      isLoadingWhitelistStatus={false}
+      getWalletWhitelistStatus={(address) => ({ status: 'not_whitelisted', isWhitelisted: false, address })}
+    />,
+  );
+  const sell = screen.getByRole('button', { name: 'New sell order — HEX' });
+  const buy = screen.getByRole('button', { name: 'New buy order — HEX' });
+  for (const action of [sell, buy]) expect(action.className).toMatch(/\bw-fit\b/);
+  fireEvent.click(buy);
+  const dialog = screen.getByRole('dialog', { name: 'Buy HEX' });
+  const warning = within(dialog).getByRole('heading', { level: 3, name: 'Wallet Not Allowlisted' });
+  expect(warning.className).toContain('text-warning-light');
+  expect(warning.closest('[class*="bg-warning"]')).toBeNull();
+  expect(within(dialog).getByText(/must add your wallet to the allowlist/)).toBeTruthy();
+  expect((within(dialog).getByRole('button', { name: 'Place Buy Order' }) as HTMLButtonElement).disabled).toBe(true);
 });
 
 it('sends supported large share quantities as exact strings without rounding', () => {

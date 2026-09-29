@@ -85,24 +85,41 @@ const ANNOUNCEMENT_KEYS = ['detail', 'error', 'message'] as const;
 
 const KEYS_BELONGING_TO_NO_FIELD = ['nonFieldErrors', 'non_field_errors'] as const;
 
+const MARKUP = /<[a-z!/?][^<>]*>/i;
+
+function isSentence(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0 && !MARKUP.test(value);
+}
+
 function sentenceListOf(value: unknown): string[] | null {
   if (!Array.isArray(value)) return null;
-  const sentences = value.filter((each): each is string => typeof each === 'string' && each.trim().length > 0);
+  const sentences = value.filter(isSentence);
   return sentences.length > 0 ? sentences : null;
 }
 
 function announcementOf(value: unknown): string[] | null {
-  if (typeof value === 'string') return value.trim() ? [value] : null;
+  if (typeof value === 'string') return isSentence(value) ? [value] : null;
   return sentenceListOf(value);
 }
 
 export interface ReadApiErrorOptions {
   fallback: string;
   displayedFields?: readonly string[];
+  unanswered?: string;
+}
+
+export function unansweredSentence(error: unknown, otherwise: string): string | null {
+  const failure = error as (Partial<UserFriendlyError> & { response?: unknown }) | null | undefined;
+  if (failure?.response) return null;
+  return failure?.isUserFriendly === true && typeof failure.message === 'string' && failure.message.trim()
+    ? failure.message
+    : otherwise;
 }
 
 export function readApiError(error: unknown, options: ReadApiErrorOptions): ApiErrorReading {
-  const { fallback, displayedFields } = options;
+  const { fallback, displayedFields, unanswered } = options;
+  const unansweredReading = unanswered === undefined ? null : unansweredSentence(error, unanswered);
+  if (unansweredReading !== null) return { generalError: unansweredReading };
   const response = (error as { response?: { status?: number; data?: unknown } })?.response;
   if (!response || !('data' in response)) return { generalError: fallback };
 
@@ -135,8 +152,8 @@ export function readApiError(error: unknown, options: ReadApiErrorOptions): ApiE
   return reading;
 }
 
-export function apiErrorSentence(error: unknown, fallback: string): string {
-  const reading = readApiError(error, { fallback });
+export function apiErrorSentence(error: unknown, fallback: string, unanswered?: string): string {
+  const reading = readApiError(error, { fallback, unanswered });
   const everythingItSaid: string[] = [];
   if (reading.generalError) everythingItSaid.push(reading.generalError);
   if (reading.fieldErrors)

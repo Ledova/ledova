@@ -5,6 +5,7 @@ import {
   CACHE_TIMING,
   PUBLICATION_COPY,
   apiErrorSentence,
+  assertNextPageAdvances,
   castBallot,
   downloadPublication,
   getPublications,
@@ -13,14 +14,8 @@ import {
 } from '@ledova/shared';
 import type { BallotChoice, UserFriendlyError } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { shareDocumentCopy } from '../../services/documentCopies';
+import { shareDocumentCopy, UTI_BY_MIME_TYPE } from '../../services/documentCopies';
 import { getSessionEpoch } from '../../services/sessionScope';
-
-const UTI_BY_MIME_TYPE: Record<string, string> = {
-  'application/pdf': 'com.adobe.pdf',
-  'image/png': 'public.png',
-  'image/jpeg': 'public.jpeg',
-};
 
 const SHARING_UNAVAILABLE = 'Sharing is not available on this device.';
 
@@ -43,10 +38,7 @@ export function usePublications() {
     queryKey: [...PUBLICATIONS_KEY, 'addressed', 'me'],
     queryFn: async ({ pageParam }) => {
       const response = await getPublications(apiClient, pageParam, { addressed: 'me' });
-      const next = getPublicationsNextPage(response);
-      if (response.data.next && (next === undefined || !Number.isInteger(next) || next <= pageParam)) {
-        throw new Error('Publication pagination did not advance');
-      }
+      assertNextPageAdvances(pageParam, response.data);
       return response;
     },
     getNextPageParam: getPublicationsNextPage,

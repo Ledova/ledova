@@ -8,3 +8,5 @@ export * from './directory';
 export * from './subscriptions';
 export * from './publications';
 export * from './register';
+export * from './company-documents';
+export * from './signup';

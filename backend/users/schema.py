@@ -1,7 +1,5 @@
 from drf_spectacular.extensions import OpenApiSerializerExtension
 
-from users.serializers.user_preferences import SelectedPortfolioSerializer
-
 
 class UserPreferencesSchema(OpenApiSerializerExtension):
     target_class = "users.serializers.user_preferences.UserPreferencesSerializer"
@@ -10,10 +8,7 @@ class UserPreferencesSchema(OpenApiSerializerExtension):
     def map_serializer(self, auto_schema, direction):
         schema = auto_schema._map_serializer(self.target, direction, bypass_extensions=True)
         if direction == "response":
-            portfolio = auto_schema.resolve_serializer(SelectedPortfolioSerializer(), direction)
-            schema["properties"]["selected_portfolio"] = {"allOf": [portfolio.ref], "nullable": True}
             schema["properties"]["user_account"]["nullable"] = True
-            schema["required"] = sorted(set(schema.get("required", [])) | {"selected_portfolio"})
         return schema
 
 

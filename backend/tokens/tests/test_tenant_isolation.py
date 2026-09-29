@@ -308,7 +308,9 @@ class TransferOrderOwnershipBindingTest(APITestCase):
         self.assertEqual(matches, [(valid_candidate, 10)])
         self.assertEqual(len(sell_levels), 1)
         self.assertEqual(sell_levels[0]["price_per_share"], Decimal("1.20"))
-        self.assertEqual(TransferOrder.objects.best_ask(self.token), valid_candidate)
+        self.assertEqual(
+            list(TransferOrder.objects.advertised_liquidity().sell_orders().filter(token=self.token)), [valid_candidate]
+        )
 
     @patch("tokens.services.share_token_service")
     @patch("tokens.events.publish_trading_event")

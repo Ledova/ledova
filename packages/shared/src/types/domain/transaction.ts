@@ -1,5 +1,5 @@
-import type { ApiResponse, ApiQuery } from '../contracts';
+import type { ApiSchema, ApiQuery } from '../contracts';
 
-export type Transaction = ApiResponse<'api_transactions_retrieve'>;
+export type Transaction = ApiSchema<'Transaction'>;
 
 export type TransactionQueryParams = ApiQuery<'api_transactions_list'>;

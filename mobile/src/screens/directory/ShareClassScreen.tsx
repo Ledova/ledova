@@ -2,11 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { formatDate, formatMoney, formatShareCount } from '@ledova/shared';
+import { formatDate, formatMoney, formatShareCount, useDirectoryToken } from '@ledova/shared';
 import type { DirectoryStackParamList } from '../../navigation/DirectoryStackNavigator';
-import { Action, Row, Section } from '../../components/Ledger';
+import { Action, Row, Rows, Section } from '../../components/Ledger';
 import { DirectoryPage, useDirectoryStyles } from './DirectoryPage';
-import { useDirectoryToken } from './useDirectory';
 import { ApplyForm, type ApplicationDraft } from '../applications/ApplyForm';
 import { useCreateSubscription, useSubscribableWallets } from '../applications/useApplications';
 import { getSessionEpoch } from '../../services/sessionScope';
@@ -45,6 +44,14 @@ export function ShareClassScreen() {
   return (
     <DirectoryPage
       title="Share class"
+      lede={!hasError && token && !notFound ? token.company.displayName : undefined}
+      actions={
+        <Action
+          disabled={create.isPending}
+          label="Back to Directory"
+          onPress={() => navigation.navigate('DirectoryMain')}
+        />
+      }
       loading={isLoading}
       refreshing={isRefreshing || wallets.isRefreshing}
       refresh={() => {
@@ -70,28 +77,29 @@ export function ShareClassScreen() {
         </Section>
       ) : (
         <>
-          <Text style={styles.help}>{token.company.displayName}</Text>
           <Section title={token.name}>
-            <Row label="Symbol">{token.symbol}</Row>
-            <Row label="Authorised shares">{formatShareCount(token.totalSupply)}</Row>
-            <Row label="Shares issued">
-              {Number.isSafeInteger(token.issuedShares) && token.issuedShares >= 0
-                ? formatShareCount(String(token.issuedShares))
-                : 'Unavailable'}
-            </Row>
-            {token.company.industry && <Row label="Industry">{token.company.industry}</Row>}
-            {[token.company.city, token.company.state].some(Boolean) && (
-              <Row label="Location">{[token.company.city, token.company.state].filter(Boolean).join(', ')}</Row>
-            )}
+            <Rows>
+              <Row label="Symbol">{token.symbol}</Row>
+              <Row label="Authorised shares">{formatShareCount(token.totalSupply)}</Row>
+              <Row label="Shares issued">
+                {Number.isSafeInteger(token.issuedShares) && token.issuedShares >= 0
+                  ? formatShareCount(String(token.issuedShares))
+                  : 'Unavailable'}
+              </Row>
+              {token.company.industry && <Row label="Industry">{token.company.industry}</Row>}
+              {[token.company.city, token.company.state].some(Boolean) && (
+                <Row label="Location">{[token.company.city, token.company.state].filter(Boolean).join(', ')}</Row>
+              )}
+            </Rows>
           </Section>
           <Section title="Current offering">
             <Text style={styles.message}>{offering ? 'Open for applications' : 'No offering open'}</Text>
             {offering ? (
-              <>
+              <Rows>
                 <Row label="Price per share">{formatMoney(offering.pricePerShare, offering.priceCurrency)}</Row>
                 <Row label="Opened">{formatDate(offering.opensAt)}</Row>
                 <Row label="Closes">{offering.closesAt ? formatDate(offering.closesAt) : 'No closing date'}</Row>
-              </>
+              </Rows>
             ) : (
               <Text style={styles.help}>
                 An offering will appear here when the operator has approved it and its opening time has arrived.
@@ -151,11 +159,6 @@ export function ShareClassScreen() {
           </Section>
         </>
       )}
-      <Action
-        disabled={create.isPending}
-        label="Back to Directory"
-        onPress={() => navigation.navigate('DirectoryMain')}
-      />
     </DirectoryPage>
   );
 }

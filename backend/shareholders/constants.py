@@ -3,8 +3,6 @@ from fractions import Fraction
 
 from shared.constants import CURRENCY_AUD
 
-PUBLICATION_FILE_SUFFIX = ".bin"
-
 PUBLICATION_NOTICE = "publication"
 
 READ_AS_MEMBER = "member"

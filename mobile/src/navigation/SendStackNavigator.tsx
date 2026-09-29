@@ -10,7 +10,13 @@ export type SendStackParamList = {
 
 const Stack = createNativeStackNavigator<SendStackParamList>();
 
-export function SendStackNavigator() {
+export function SendStackNavigator({
+  onNotifications,
+  unreadCount,
+}: {
+  onNotifications: () => void;
+  unreadCount: number;
+}) {
   const theme = useAppTheme();
   return (
     <Stack.Navigator
@@ -20,14 +26,14 @@ export function SendStackNavigator() {
           backgroundColor: theme.colors.surface.base,
         },
         ...getMainHeaderStyle(theme),
-        ...MainHeader({ theme, onNotifications: () => {} }),
+        ...MainHeader({ theme, onNotifications, unreadCount }),
       })}
     >
       <Stack.Screen
         name="SendMain"
         component={SendScreen}
         options={() => ({
-          title: 'Send',
+          title: '',
         })}
       />
     </Stack.Navigator>

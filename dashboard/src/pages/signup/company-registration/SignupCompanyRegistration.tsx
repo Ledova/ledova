@@ -3,11 +3,9 @@ import { BuildingsIcon } from '@phosphor-icons/react';
 import LoadingState from '@components/signup/LoadingState';
 import ErrorState from '@components/signup/ErrorState';
 import { CompanyRegistrationForm } from './components/CompanyRegistrationForm';
-import { useSignupCompanyRegistration } from './useSignupCompanyRegistration';
 import { AuthLayout } from '@components/AuthLayout';
-import { DESIGN_TOKENS } from '@ledova/shared';
-
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
+import { useSignupCompanyRegistration } from '@ledova/shared';
+import { ICON_MD } from '@components/iconSizes';
 
 export function SignupCompanyRegistration() {
   const navigate = useNavigate();

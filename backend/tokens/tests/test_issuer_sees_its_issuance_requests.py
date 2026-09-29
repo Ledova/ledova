@@ -69,27 +69,25 @@ class AnIssuerCanSeeTheRequestItMadeTest(APITestCase):
         self.assertEqual(body["count"], 1)
         self.assertNotIn(str(foreign.uuid), [row["uuid"] for row in body["results"]])
 
-    def test_list_and_detail_keep_operator_notes_private(self):
+    def test_the_list_keeps_operator_notes_private(self):
         ShareIssuanceRequest.objects.filter(pk=self.request.pk).update(
             review_notes="Private provider credentials and reviewer deliberation",
             execution_notes="Execution failed. Operations review is required.",
         )
 
-        for path in (BASE, f"{BASE}{self.request.uuid}/"):
-            with self.subTest(path=path):
-                response = self.client.get(path)
-                self.assertEqual(response.status_code, 200)
-                body = response.json()
-                row = body["results"][0] if path == BASE else body
-                self.assertEqual(row["executionNotes"], "Execution failed. Operations review is required.")
-                self.assertNotIn("reviewNotes", row)
-                self.assertNotIn(b"Private provider", response.content)
+        response = self.client.get(BASE)
+        self.assertEqual(response.status_code, 200)
+        row = response.json()["results"][0]
+        self.assertEqual(row["executionNotes"], "Execution failed. Operations review is required.")
+        self.assertNotIn("reviewNotes", row)
+        self.assertNotIn(b"Private provider", response.content)
 
-    def test_the_history_endpoint_cannot_change_or_delete_a_request(self):
+    def test_the_history_endpoint_has_no_single_request_route_to_read_change_or_delete(self):
         detail = f"{BASE}{self.request.uuid}/"
         self.assertEqual(self.client.post(BASE, {}).status_code, 405)
-        self.assertEqual(self.client.patch(detail, {"status": "approved"}).status_code, 405)
-        self.assertEqual(self.client.delete(detail).status_code, 405)
+        self.assertEqual(self.client.get(detail).status_code, 404)
+        self.assertEqual(self.client.patch(detail, {"status": "approved"}).status_code, 404)
+        self.assertEqual(self.client.delete(detail).status_code, 404)
         self.assertTrue(ShareIssuanceRequest.objects.filter(pk=self.request.pk).exists())
 
     def test_older_requests_remain_accessible_on_the_next_page(self):
@@ -149,7 +147,6 @@ class AnIssuerCanSeeTheRequestItMadeTest(APITestCase):
 
         self.assertEqual(ShareIssuanceRequest.objects.get(pk=foreign.pk), foreign)
         self.assertEqual(self.client.get(f"{BASE}?token={foreign.token_id}").json()["results"], [])
-        self.assertEqual(self.client.get(f"{BASE}{foreign.uuid}/").status_code, 404)
         self.assertEqual(self.listed()["count"], 1)
 
     def restore_role(self):

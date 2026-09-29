@@ -3,7 +3,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from shared.views.base import AuthenticatedReadOnlyViewSet
+from shared.views.base import AuthenticatedListViewSet
 from users.filters import NotificationFilter
 from users.models.notification import Notification
 from users.serializers.notification import (
@@ -13,10 +13,11 @@ from users.serializers.notification import (
 )
 
 
-class NotificationViewSet(AuthenticatedReadOnlyViewSet):
+class NotificationViewSet(AuthenticatedListViewSet):
     serializer_class = NotificationSerializer
     filterset_class = NotificationFilter
     http_method_names = ["get", "patch", "post", "head", "options"]
+    lookup_field = "uuid"
     ordering = ["-created_at"]
     ordering_fields = ["created_at"]
 

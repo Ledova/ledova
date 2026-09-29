@@ -13,19 +13,23 @@ jest.mock('../../components/qr', () => ({ QRDisplay: jest.fn(() => null), QRScan
 jest.mock('../../components/modal', () => {
   const { View, Text, Pressable } = jest.requireActual('react-native');
   return {
+    ...jest.requireActual('../../components/modal'),
     CustomModal: ({
       children,
+      actions,
       onConfirm,
       confirmLabel,
       confirmDisabled,
     }: {
       children: React.ReactNode;
+      actions?: React.ReactNode;
       onConfirm?: () => void;
       confirmLabel: string;
       confirmDisabled: boolean;
     }) => (
       <View>
         {children}
+        {actions}
         {onConfirm && (
           <Pressable onPress={onConfirm} disabled={confirmDisabled}>
             <Text>{confirmLabel}</Text>

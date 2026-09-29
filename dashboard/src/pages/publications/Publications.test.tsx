@@ -647,15 +647,13 @@ describe('personal Notices and preserved dividend behavior', () => {
     expect(await screen.findByRole('button', { name: 'For' })).toBeTruthy();
   });
 
-  it.each(['https://api.example/api/v1/publications/?page=1', 'https://api.example/api/v1/publications/'])(
-    'rejects nonadvancing or malformed next-page links: %s',
-    async (next) => {
-      listing = async () => ({ data: { count: 2, previous: null, next, results: rows } });
-      showPage();
-      expect(await screen.findByRole('alert')).toBeTruthy();
-      expect(screen.queryByText(statement.title)).toBeNull();
-    },
-  );
+  it('rejects a nonadvancing next-page link', async () => {
+    const next = 'https://api.example/api/v1/publications/?page=1';
+    listing = async () => ({ data: { count: 2, previous: null, next, results: rows } });
+    showPage();
+    expect((await screen.findByRole('alert')).textContent).toContain(PUBLICATION_COPY.LIST_FAILED);
+    expect(screen.queryByText(statement.title)).toBeNull();
+  });
 
   it('keeps a document pending until the download is ready and allows retry after delivery failure', async () => {
     let finish!: (value: { data: Blob }) => void;
@@ -700,7 +698,10 @@ describe('personal Notices and preserved dividend behavior', () => {
     );
     expect((screen.getByRole('button', { name: PUBLICATION_COPY.CANCEL }) as HTMLButtonElement).disabled).toBe(true);
     await act(async () => reject({ response: { data: { detail: 'Ballot temporarily refused.' } } }));
-    expect((await screen.findByRole('alert')).textContent).toBe('Ballot temporarily refused.');
+    const refusal = await screen.findByRole('alert');
+    expect(refusal.textContent).toBe('Ballot temporarily refused.');
+    expect(refusal.className).toContain('text-error-light');
+    expect(refusal.className).not.toMatch(/\bbg-/);
     expect(client.getQueryState(['publications', 'summary'])?.isInvalidated).toBe(true);
     vi.mocked(apiClient.post).mockImplementation(async () => {
       const voted = {

@@ -1,10 +1,10 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APITestCase
 
 from companies.models import Company, CompanyDocument, CompanyType, DocumentType
 from shared.tests.upload_fixtures import StubUploadDependencies, image_bytes, pdf_bytes
-from shared.uploads import MAX_UPLOAD_SIZE
 
 User = get_user_model()
 PDF = pdf_bytes()
@@ -44,7 +44,9 @@ class CompanyDocumentUploadValidationTest(StubUploadDependencies, APITestCase):
                 self.assertEqual(response.status_code, 201, response.content)
 
     def test_a_file_over_ten_megabytes_is_refused(self):
-        oversized = SimpleUploadedFile("big.pdf", b"0" * (MAX_UPLOAD_SIZE + 1), content_type="application/pdf")
+        oversized = SimpleUploadedFile(
+            "big.pdf", b"0" * (settings.UPLOAD_MAX_BYTES + 1), content_type="application/pdf"
+        )
 
         response = self._post(oversized)
 

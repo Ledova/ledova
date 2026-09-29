@@ -434,11 +434,9 @@ ShareIssuanceRequest, CapitalIncreaseRequest, Offering, TransferOrder}`. Those
 relations and `SwapOrder.share_token` use `PROTECT`. Subscription links to its
 offering, account and wallet are also protected.
 
-API company/share-class deletion returns 409 where records must remain.
-`contract_address`, not deployment status, identifies a class that has been on
-chain; a paused class still carries its register. Delist a company with on-chain
-classes. Delete draft classes before deleting a company containing only drafts;
-a company with no classes is deletable. Admin removal of test data still respects
+The API deletes neither a company nor a share class: both routes answer 405, so
+a register is never removed through it. Delist a company that should close;
+pause a class to stop transfers. Admin removal of test data still respects
 protected relations.
 
 Company documents and registry-check history are application evidence rather

@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { createRequire } from 'node:module';
+import { checkSceneProject } from './ios-scene-project.mjs';
 
 const require = createRequire(import.meta.url);
 const { XML, IOSConfig } = require('expo/config-plugins');
@@ -95,10 +96,17 @@ if (platform !== 'android') {
   assert.match(native, /completionHandler\(nil\)/);
   assert.match(native, /#if DEBUG/);
   assert.match(native, /NSURLErrorAppTransportSecurityRequiresSecureConnection/);
+  const generatedDelegate = path.join(source, 'LedovaSceneDelegate.m');
+  checkSceneProject({
+    plists: { 'Info.plist': release, 'Info-Debug.plist': debug },
+    generatedDelegate: fs.existsSync(generatedDelegate) ? fs.readFileSync(generatedDelegate, 'utf8') : undefined,
+    pluginDelegate: fs.readFileSync(path.join(root, 'plugins/native/LedovaSceneDelegate.m'), 'utf8'),
+    sources: project.pbxSourcesBuildPhaseObj(project.getFirstTarget().uuid).files.map(({ comment }) => comment),
+  });
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
   assert.ok(
     manifest.codegenConfig.ios.modulesConformingToProtocol.RCTURLRequestHandler.includes('LedovaHTTPRequestHandler'),
   );
 }
 
-console.log(`Generated ${platform} appearance, transport, backup and native registration controls passed.`);
+console.log(`Generated ${platform} appearance, transport, backup, scene and native registration controls passed.`);

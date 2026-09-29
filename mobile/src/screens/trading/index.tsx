@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
-import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, Text, RefreshControl } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useQueryClient, type QueryCacheNotifyEvent } from '@tanstack/react-query';
 import type { ShareToken, TransferOrder, CreateOrderRequest, SwapOrder, Wallet } from '@ledova/shared';
@@ -14,6 +14,7 @@ import { settlementWalletMaterial, swapSettlementCrypto, swapSettlementStore } f
 import { SwapSettlementModal } from './components/SwapSettlementModal';
 import { orderSubmissionSession, orderSubmissionStore } from '../../services/orderSubmissions';
 import { Action, Section } from '../../components/Ledger';
+import { Page } from '../../components/Page';
 import { useMarketStyles } from './styles';
 import {
   useShareTokens,
@@ -253,6 +254,9 @@ export function TradingScreen() {
         whitelistStatus.refetch(),
         swapOrders.refetch(),
         orderBook.refetch(),
+        submissions.refresh(),
+        actions.refresh(),
+        settlements.refresh(),
       ]);
     } finally {
       setRefreshing(false);
@@ -274,183 +278,149 @@ export function TradingScreen() {
     setSelectedTokenUuid(uuid);
   }, []);
 
+  const savedWorkAlerts = [submissions.error, actions.error, settlementError || settlements.error].filter(
+    (message): message is string => !!message,
+  );
+  const hasSavedWork =
+    submissions.pending.length + actions.pending.length + settlements.pending.length + savedWorkAlerts.length > 0;
+
   return (
     <View style={styles.page}>
-      <View style={styles.page}>
-        <ScrollView
-          testID="market-screen"
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor={theme.colors.interactive.default}
-            />
-          }
-        >
-          <View style={styles.content}>
-            <Text accessibilityRole="header" style={styles.title}>
-              Market
+      <Page
+        testID="market-screen"
+        title="Market"
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={theme.colors.interactive.default}
+          />
+        }
+      >
+        {(eligibilityQuery.isError || tradingWallets.error) && (
+          <Section title="Trading details unavailable">
+            <Text accessibilityRole="alert" style={styles.error}>
+              {eligibilityQuery.isError ? 'Eligibility could not be loaded.' : 'Wallets could not be loaded.'}
             </Text>
-            {(eligibilityQuery.isError || tradingWallets.error) && (
-              <Section title="Trading details unavailable">
-                <Text accessibilityRole="alert" style={styles.error}>
-                  {eligibilityQuery.isError ? 'Eligibility could not be loaded.' : 'Wallets could not be loaded.'}
-                </Text>
-                <Action label="Retry trading details" onPress={() => void handleRefresh()} />
-              </Section>
-            )}
-            <MarketList
-              tokens={tokens || []}
-              selectedTokenUuid={effectiveTokenUuid}
-              onSelectToken={handleSelectToken}
-              isLoading={tokensQuery.isLoading || eligibilityQuery.isLoading}
-              isEligible={isEligible}
-              error={tokensQuery.error || eligibilityQuery.error}
-              onRetry={() => void handleRefresh()}
-              disabled={showCreateOrder || newOrdersBlocked}
-            />
+            <Action label="Retry trading details" onPress={() => void handleRefresh()} />
+          </Section>
+        )}
+        <MarketList
+          tokens={tokens || []}
+          selectedTokenUuid={effectiveTokenUuid}
+          onSelectToken={handleSelectToken}
+          isLoading={tokensQuery.isLoading || eligibilityQuery.isLoading}
+          isEligible={isEligible}
+          error={tokensQuery.error || eligibilityQuery.error}
+          onRetry={() => void handleRefresh()}
+          disabled={showCreateOrder || newOrdersBlocked}
+        />
 
-            {selectedToken && (
-              <BuySellButtons
-                tokenSymbol={selectedToken.symbol}
-                onBuy={handleBuy}
-                onSell={handleSell}
-                disabled={newOrdersBlocked || wallets.length === 0 || showCreateOrder}
+        {selectedToken && (
+          <BuySellButtons
+            tokenSymbol={selectedToken.symbol}
+            onBuy={handleBuy}
+            onSell={handleSell}
+            disabled={newOrdersBlocked || wallets.length === 0 || showCreateOrder}
+          />
+        )}
+
+        <OrdersCard
+          tokenSymbol={selectedToken?.symbol ?? null}
+          orderBook={orderBook.isError ? null : (orderBook.data ?? null)}
+          isLoadingOrderBook={orderBook.isLoading}
+          orderBookError={orderBook.error}
+          onRefreshBook={() => void orderBook.refetch()}
+          userOrders={userOrders.orders}
+          isLoadingUserOrders={userOrders.isLoading}
+          ordersError={userOrders.error}
+          onRefreshOrders={() => void userOrders.refetch()}
+          ordersBlocked={ordersBlocked}
+          onCancelOrder={handleCancelOrder}
+          onEditOrder={handleEditOrder}
+          onViewOrder={handleViewOrder}
+          swaps={swapOrders.isError ? [] : swapOrders.data}
+          isLoadingSwaps={swapOrders.isLoading}
+          swapsError={swapOrders.error || tradingWallets.error}
+          onRefreshSwaps={() => void handleRefresh()}
+          swapsBlocked={swapsBlocked}
+          wallets={wallets}
+          settlementOwner={settlements.owner}
+          onSignSwap={handleSignSwap}
+        />
+
+        {hasSavedWork && (
+          <Section title="Saved work">
+            {savedWorkAlerts.map((message) => (
+              <Text key={message} accessibilityRole="alert" style={styles.error}>
+                {message}
+              </Text>
+            ))}
+            {submissions.pending.length > 0 && (
+              <>
+                <Text style={styles.muted}>
+                  Check unfinished orders here. New buy and sell orders are separate orders, even with the same terms.
+                </Text>
+                {submissions.pending.map((record, index) => (
+                  <Action
+                    key={record.submissionId}
+                    label={`Check saved order ${index + 1}`}
+                    onPress={() => {
+                      signingGeneration.current++;
+                      closeSettlement();
+                      actions.close();
+                      submissions.recover(record);
+                    }}
+                  />
+                ))}
+              </>
+            )}
+            {actions.pending.map((record, index) => (
+              <Action
+                key={record.actionId}
+                label={`Check ${record.purpose === 'cancel' ? 'cancellation' : 'change'} ${index + 1}`}
+                onPress={() => {
+                  signingGeneration.current++;
+                  closeSettlement();
+                  submissions.close();
+                  setShowCreateOrder(false);
+                  actions.recover(record);
+                }}
               />
+            ))}
+            {settlements.pending.length > 0 && (
+              <>
+                <Text style={styles.muted}>
+                  Check signatures and original approval transactions whose outcome is still unconfirmed.
+                </Text>
+                {settlements.pending.map((record, index) => (
+                  <View
+                    key={`${record.swapUuid}/${record.walletUuid}/${record.kind}/${record.kind === 'approval' ? record.txHash : record.signerAddress}`}
+                    style={styles.fields}
+                  >
+                    <Action label={`Check saved settlement ${index + 1}`} onPress={() => recoverSettlement(record)} />
+                    {record.kind === 'approval' && (
+                      <Text selectable style={styles.muted}>
+                        Unconfirmed approval: {record.txHash}
+                      </Text>
+                    )}
+                  </View>
+                ))}
+              </>
             )}
-
-            <View style={{ gap: theme.spacing.sm }} accessibilityLabel="Saved orders">
-              <Text style={{ color: theme.colors.text.primary, fontWeight: theme.fontWeight.semibold }}>
-                Saved orders
-              </Text>
-              <Text style={{ color: theme.colors.text.secondary }}>
-                Check unfinished orders here. New buy and sell orders are separate orders, even with the same terms.
-              </Text>
-              {submissions.error && (
-                <Text accessibilityRole="alert" style={{ color: theme.colors.status.error.icon }}>
-                  {submissions.error}
-                </Text>
-              )}
-              {submissions.pending.map((record, index) => (
-                <TouchableOpacity
-                  key={record.submissionId}
-                  accessibilityRole="button"
-                  onPress={() => {
-                    signingGeneration.current++;
-                    closeSettlement();
-                    actions.close();
-                    submissions.recover(record);
-                  }}
-                >
-                  <Text style={{ color: theme.colors.interactive.default }}>Check saved order {index + 1}</Text>
-                </TouchableOpacity>
-              ))}
-              <TouchableOpacity
-                accessibilityRole="button"
-                onPress={() => void submissions.refresh()}
-                disabled={submissions.isLoading}
-              >
-                <Text style={{ color: theme.colors.interactive.default }}>Refresh saved orders</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={{ gap: theme.spacing.sm }} accessibilityLabel="Saved cancellations and changes">
-              <Text style={{ color: theme.colors.text.primary, fontWeight: theme.fontWeight.semibold }}>
-                Saved cancellations and changes
-              </Text>
-              {actions.error && (
-                <Text accessibilityRole="alert" style={{ color: theme.colors.status.error.icon }}>
-                  {actions.error}
-                </Text>
-              )}
-              {actions.pending.map((record, index) => (
-                <TouchableOpacity
-                  key={record.actionId}
-                  accessibilityRole="button"
-                  onPress={() => {
-                    signingGeneration.current++;
-                    closeSettlement();
-                    submissions.close();
-                    setShowCreateOrder(false);
-                    actions.recover(record);
-                  }}
-                >
-                  <Text style={{ color: theme.colors.interactive.default }}>
-                    Check {record.purpose === 'cancel' ? 'cancellation' : 'change'} {index + 1}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-              <TouchableOpacity
-                accessibilityRole="button"
-                disabled={actions.isLoading}
-                onPress={() => void actions.refresh()}
-              >
-                <Text style={{ color: theme.colors.interactive.default }}>Refresh saved actions</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={{ gap: theme.spacing.sm }} accessibilityLabel="Saved settlements">
-              <Text style={{ color: theme.colors.text.primary, fontWeight: theme.fontWeight.semibold }}>
-                Saved settlements
-              </Text>
-              <Text style={{ color: theme.colors.text.secondary }}>
-                Check signatures and original approval transactions whose outcome is still unconfirmed.
-              </Text>
-              {(settlementError || settlements.error) && (
-                <Text accessibilityRole="alert" style={{ color: theme.colors.status.error.icon }}>
-                  {settlementError || settlements.error}
-                </Text>
-              )}
-              {settlements.pending.map((record, index) => (
-                <View
-                  key={`${record.swapUuid}/${record.walletUuid}/${record.kind}/${record.kind === 'approval' ? record.txHash : record.signerAddress}`}
-                >
-                  <TouchableOpacity accessibilityRole="button" onPress={() => recoverSettlement(record)}>
-                    <Text style={{ color: theme.colors.interactive.default }}>Check saved settlement {index + 1}</Text>
-                  </TouchableOpacity>
-                  {record.kind === 'approval' && (
-                    <Text selectable style={{ color: theme.colors.text.secondary }}>
-                      Unconfirmed approval: {record.txHash}
-                    </Text>
-                  )}
-                </View>
-              ))}
-              <TouchableOpacity
-                accessibilityRole="button"
-                disabled={settlements.isLoading}
-                onPress={() => void settlements.refresh()}
-              >
-                <Text style={{ color: theme.colors.interactive.default }}>Refresh saved settlements</Text>
-              </TouchableOpacity>
-            </View>
-
-            <OrdersCard
-              tokenSymbol={selectedToken?.symbol ?? null}
-              orderBook={orderBook.isError ? null : (orderBook.data ?? null)}
-              isLoadingOrderBook={orderBook.isLoading}
-              orderBookError={orderBook.error}
-              onRefreshBook={() => void orderBook.refetch()}
-              userOrders={userOrders.orders}
-              isLoadingUserOrders={userOrders.isLoading}
-              ordersError={userOrders.error}
-              onRefreshOrders={() => void userOrders.refetch()}
-              ordersBlocked={ordersBlocked}
-              onCancelOrder={handleCancelOrder}
-              onEditOrder={handleEditOrder}
-              onViewOrder={handleViewOrder}
-              swaps={swapOrders.isError ? [] : swapOrders.data}
-              isLoadingSwaps={swapOrders.isLoading}
-              swapsError={swapOrders.error || tradingWallets.error}
-              onRefreshSwaps={() => void handleRefresh()}
-              swapsBlocked={swapsBlocked}
-              wallets={wallets}
-              settlementOwner={settlements.owner}
-              onSignSwap={handleSignSwap}
+            <Action
+              label="Refresh saved work"
+              disabled={submissions.isLoading || actions.isLoading || settlements.isLoading}
+              onPress={() => {
+                void submissions.refresh();
+                void actions.refresh();
+                void settlements.refresh();
+              }}
             />
-          </View>
-        </ScrollView>
-      </View>
+          </Section>
+        )}
+      </Page>
 
       {draftToken && (
         <CreateOrderModal
@@ -494,7 +464,7 @@ export function TradingScreen() {
 
       {actions.active && (
         <OrderActionModal
-          key={actions.active.record?.actionId ?? `${actions.active.orderUuid}/${actions.active.purpose}`}
+          key={`${actions.active.orderUuid}/${actions.active.purpose}`}
           action={actions.active}
           wallets={actionWallets}
           onClose={actions.close}

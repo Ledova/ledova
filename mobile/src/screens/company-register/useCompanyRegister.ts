@@ -2,29 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import {
   getCompanyTokens,
   getCompanyTokenHolders,
-  getNextPageParam,
-  type PaginatedResponse,
+  readEveryPage,
+  useUserPreferences,
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { useUserPreferences } from '../../hooks/useUserPreferences';
-
-export async function everyCompanyPage<T>(
-  read: (page: number) => Promise<{ data: PaginatedResponse<T> }>,
-): Promise<T[]> {
-  const rows: T[] = [];
-  let page: number | undefined = 1;
-  while (page !== undefined) {
-    const { data } = await read(page);
-    rows.push(...data.results);
-    const next = getNextPageParam(data);
-    if (data.next && (next === undefined || !Number.isInteger(next) || next <= page)) {
-      throw new Error('Company pagination did not advance');
-    }
-    page = next;
-  }
-  return rows;
-}
 
 export function checkedRegister(uuid: string, register: TokenHoldersResponse) {
   const quantities = [register.token.totalSupply, ...register.holders.map(({ balance }) => balance)];
@@ -47,7 +29,7 @@ export function useCompanyRegister() {
     queryKey: ['company-tokens', 'register'],
     enabled: access.allowed,
     queryFn: async () => {
-      const classes = await everyCompanyPage((page) => getCompanyTokens(apiClient, { page }));
+      const classes = await readEveryPage((page) => getCompanyTokens(apiClient, { page }));
       return Promise.all(
         classes.map(async (shareClass) => ({
           companyName: shareClass.companyName,

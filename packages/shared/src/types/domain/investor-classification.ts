@@ -6,7 +6,7 @@ export type CertifierBody = ApiSchema<'CertifierBodyEnum'>;
 
 export type InvestorEligibilityReason = InvestorEligibility['reasons'][number];
 
-export type InvestorClassification = ApiResponse<'api_investor_classifications_retrieve'>;
+export type InvestorClassification = ApiSchema<'InvestorClassification'>;
 
 export type InvestorEligibility = ApiResponse<'api_investor_classifications_eligibility_retrieve'>;
 

@@ -85,7 +85,6 @@ export default function PublicationsPage() {
 
   return (
     <Page>
-      <p className="text-sm text-text-muted">Documents, votes and dividends addressed to you.</p>
       {openError && (
         <p role="alert" className="text-sm text-error-light">
           {openError}

@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, TextInput, ActivityIndicator, Pressable, useWindowDimensions } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, TextInput, ActivityIndicator } from 'react-native';
 import { useOrderActionSigning, type OrderAction, type Wallet } from '@ledova/shared';
-import { CustomModal } from '../../../components/modal';
+import { Action } from '../../../components/Ledger';
+import { CustomModal, useDialogStyles } from '../../../components/modal';
 import { QRDisplay, QRScanner } from '../../../components/qr';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { getSeedPhrase } from '../../../services/secureKeyStorage';
@@ -19,24 +19,16 @@ interface Props {
 
 export function OrderActionModal({ action, wallets, onClose }: Props) {
   const theme = useAppTheme();
-  const { height } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
+  const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
     content: { gap: theme.spacing.md },
-    title: { fontSize: theme.fontSize.lg, fontWeight: theme.fontWeight.semibold, color: theme.colors.text.primary },
-    text: { fontSize: theme.fontSize.sm, color: theme.colors.text.secondary },
-    input: {
-      color: theme.colors.text.primary,
-      borderColor: theme.colors.border.default,
-      borderWidth: 1,
-      borderRadius: theme.borderRadius.md,
-      padding: theme.spacing.sm,
-    },
-    reminderButton: {
-      borderColor: theme.colors.border.default,
-      borderWidth: 1,
-      borderRadius: theme.borderRadius.md,
-      padding: theme.spacing.sm,
+    group: { gap: theme.spacing.xs },
+    field: { fontSize: theme.fontSize.sm },
+    replacements: {
+      gap: theme.spacing.xs,
+      paddingTop: theme.spacing.smd,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border.subtle,
     },
   }));
   const signing = useOrderActionSigning(action, wallets, (message, wallet) => {
@@ -101,10 +93,10 @@ export function OrderActionModal({ action, wallets, onClose }: Props) {
   return (
     <>
       <CustomModal
-        key={canConfirm ? 'confirmable' : 'status'}
+        contentKey={canConfirm ? 'confirmable' : 'status'}
         visible={!(state.phase === 'ready' && view.step === 'scan-signature')}
+        title={action.purpose === 'cancel' ? 'Cancel order' : 'Change order'}
         onClose={close}
-        maxHeight={height - insets.top - insets.bottom - 48}
         showFooter
         showCancelButton
         cancelLabel={['applied', 'refused'].includes(state.phase) ? 'Done' : 'Close'}
@@ -112,90 +104,100 @@ export function OrderActionModal({ action, wallets, onClose }: Props) {
         onConfirm={canConfirm ? confirm : undefined}
         confirmDisabled={state.phase === 'ready' && !signing.walletReady}
         confirmLabel={confirmLabel}
+        actions={
+          state.phase === 'error' && state.canRemoveReminder ? (
+            <Action label="Remove saved reminder" onPress={() => void action.removeReminder()} />
+          ) : undefined
+        }
       >
         <View style={styles.content}>
-          <Text style={styles.title}>{action.purpose === 'cancel' ? 'Cancel order' : 'Change order'}</Text>
           {['loading', 'preparing', 'signing', 'submitting'].includes(state.phase) && (
             <ActivityIndicator color={theme.colors.interactive.default} />
           )}
-          {state.phase === 'loading' && <Text style={styles.text}>Loading current order details...</Text>}
+          {state.phase === 'loading' && <Text style={text.text}>Loading current order details...</Text>}
           {state.phase === 'preparing' && (
-            <Text style={styles.text}>Checking this {label} and preparing signing details...</Text>
+            <Text style={text.text}>Checking this {label} and preparing signing details...</Text>
           )}
-          {state.phase === 'signing' && <Text style={styles.text}>Authenticating and signing this {label}...</Text>}
+          {state.phase === 'signing' && <Text style={text.text}>Authenticating and signing this {label}...</Text>}
           {state.phase === 'submitting' && (
-            <Text style={styles.text}>Submitting this {label}. You can close and check its saved status later.</Text>
+            <Text style={text.text}>Submitting this {label}. You can close and check its saved status later.</Text>
           )}
           {review && (
-            <>
-              <Text style={styles.text}>
+            <View style={styles.group}>
+              <Text style={text.text}>
                 Token: {review.token.symbol} — {review.token.name}
               </Text>
-              <Text style={styles.text}>Wallet: {state.snapshot?.walletAddress ?? state.context?.walletAddress}</Text>
-              <Text style={styles.text}>Reviewed quantity: {review.currentValues.quantity} shares</Text>
-              <Text style={styles.text}>Reviewed minimum: {review.currentValues.minQuantity} shares</Text>
-              <Text style={styles.text}>
+              <Text style={text.text}>Wallet: {state.snapshot?.walletAddress ?? state.context?.walletAddress}</Text>
+              <Text style={text.text}>Reviewed quantity: {review.currentValues.quantity} shares</Text>
+              <Text style={text.text}>Reviewed minimum: {review.currentValues.minQuantity} shares</Text>
+              <Text style={text.text}>
                 Reviewed price per share: {marketAmount(review.currentValues.pricePerShare)}
               </Text>
-              <Text style={styles.text}>Filled: {review.currentValues.filledQuantity} shares</Text>
-            </>
+              <Text style={text.text}>Filled: {review.currentValues.filledQuantity} shares</Text>
+            </View>
           )}
           {state.phase === 'editing' && (
             <>
               {action.purpose === 'cancel' ? (
-                <Text style={styles.text}>Cancel the available remainder of this order.</Text>
+                <Text style={text.text}>Cancel the available remainder of this order.</Text>
               ) : (
                 <>
-                  <Text style={styles.text}>New quantity</Text>
-                  <TextInput
-                    accessibilityLabel="New quantity"
-                    keyboardType="number-pad"
-                    style={styles.input}
-                    value={state.values?.quantity ?? ''}
-                    onChangeText={(value) => action.edit('quantity', value)}
-                  />
-                  <Text style={styles.text}>New minimum fill</Text>
-                  <TextInput
-                    accessibilityLabel="New minimum fill"
-                    keyboardType="number-pad"
-                    style={styles.input}
-                    value={state.values?.minQuantity ?? ''}
-                    onChangeText={(value) => action.edit('minQuantity', value)}
-                  />
-                  <Text style={styles.text}>New price per share</Text>
-                  <TextInput
-                    accessibilityLabel="New price per share"
-                    keyboardType="decimal-pad"
-                    style={styles.input}
-                    value={state.values?.pricePerShare ?? ''}
-                    onChangeText={(value) => action.edit('pricePerShare', value)}
-                  />
+                  <View style={styles.group}>
+                    <Text style={text.text}>New quantity</Text>
+                    <TextInput
+                      accessibilityLabel="New quantity"
+                      keyboardType="number-pad"
+                      style={[text.field, styles.field]}
+                      value={state.values?.quantity ?? ''}
+                      onChangeText={(value) => action.edit('quantity', value)}
+                    />
+                  </View>
+                  <View style={styles.group}>
+                    <Text style={text.text}>New minimum fill</Text>
+                    <TextInput
+                      accessibilityLabel="New minimum fill"
+                      keyboardType="number-pad"
+                      style={[text.field, styles.field]}
+                      value={state.values?.minQuantity ?? ''}
+                      onChangeText={(value) => action.edit('minQuantity', value)}
+                    />
+                  </View>
+                  <View style={styles.group}>
+                    <Text style={text.text}>New price per share</Text>
+                    <TextInput
+                      accessibilityLabel="New price per share"
+                      keyboardType="decimal-pad"
+                      style={[text.field, styles.field]}
+                      value={state.values?.pricePerShare ?? ''}
+                      onChangeText={(value) => action.edit('pricePerShare', value)}
+                    />
+                  </View>
                 </>
               )}
               {state.error && (
-                <Text accessibilityRole="alert" style={styles.text}>
+                <Text accessibilityRole="alert" style={text.error}>
                   {state.error}
                 </Text>
               )}
             </>
           )}
           {replacements && (
-            <>
-              <Text style={styles.text}>New quantity: {replacements.quantity} shares</Text>
-              <Text style={styles.text}>New minimum fill: {replacements.minQuantity} shares</Text>
-              <Text style={styles.text}>New price per share: {marketAmount(replacements.pricePerShare)}</Text>
-            </>
+            <View style={styles.replacements}>
+              <Text style={text.text}>New quantity: {replacements.quantity} shares</Text>
+              <Text style={text.text}>New minimum fill: {replacements.minQuantity} shares</Text>
+              <Text style={text.text}>New price per share: {marketAmount(replacements.pricePerShare)}</Text>
+            </View>
           )}
           {state.phase === 'ready' && (
             <>
               {!signing.walletReady && (
-                <Text style={styles.text}>
+                <Text style={text.text}>
                   This exact wallet is unavailable for signing in the current account. The saved action remains
                   available to check.
                 </Text>
               )}
               {view.error && (
-                <Text accessibilityRole="alert" style={styles.text}>
+                <Text accessibilityRole="alert" style={text.error}>
                   {view.error}
                 </Text>
               )}
@@ -203,78 +205,67 @@ export function OrderActionModal({ action, wallets, onClose }: Props) {
             </>
           )}
           {state.phase === 'applied' && (
-            <>
-              <Text style={styles.title}>{state.recovered ? 'Original action recovered' : 'Action recorded'}</Text>
+            <View style={styles.group}>
+              <Text accessibilityRole="header" style={text.heading}>
+                {state.recovered ? 'Original action recovered' : 'Action recorded'}
+              </Text>
               {state.snapshot?.result?.kind === 'cancel' && (
-                <Text style={styles.text}>
+                <Text style={text.text}>
                   This cancellation changed the order from {state.snapshot.result.fromStatus} to cancelled.
                 </Text>
               )}
               {state.snapshot?.result?.kind === 'modify' && (
                 <>
-                  <Text style={styles.text}>
-                    This change is modification {state.snapshot.result.modificationCount}.
-                  </Text>
+                  <Text style={text.text}>This change is modification {state.snapshot.result.modificationCount}.</Text>
                   {state.snapshot.result.changes.length === 0 && (
-                    <Text style={styles.text}>The values were already the requested values.</Text>
+                    <Text style={text.text}>The values were already the requested values.</Text>
                   )}
                   {state.snapshot.result.changes.map((change) => (
-                    <Text key={change.field} style={styles.text}>
+                    <Text key={change.field} style={text.text}>
                       {change.field.replaceAll('_', ' ')}: {change.old} → {change.new}
                     </Text>
                   ))}
                 </>
               )}
-              <Text style={styles.text}>
+              <Text style={text.text}>
                 Current order status:{' '}
                 {state.snapshot?.order.statusDisplay ?? state.snapshot?.order.status.replaceAll('_', ' ')}
               </Text>
-            </>
+            </View>
           )}
           {state.phase === 'refused' && (
-            <>
-              <Text style={styles.title}>
+            <View style={styles.group}>
+              <Text accessibilityRole="header" style={text.heading}>
                 {action.purpose === 'cancel' ? 'Cancellation declined' : 'Change declined'}
               </Text>
-              <Text style={styles.text}>{state.snapshot?.refusal?.detail}</Text>
-              <Text style={styles.text}>This is the recorded result of the original request.</Text>
-            </>
+              <Text style={text.text}>{state.snapshot?.refusal?.detail}</Text>
+              <Text style={text.text}>This is the recorded result of the original request.</Text>
+            </View>
           )}
           {state.phase === 'error' && (
-            <>
-              <Text style={styles.title}>
+            <View style={styles.group}>
+              <Text accessibilityRole="header" style={text.heading}>
                 {state.canRemoveReminder
                   ? 'Signing request rejected'
                   : action.record
                     ? 'Action status unconfirmed'
                     : 'Order details unavailable'}
               </Text>
-              <Text accessibilityRole="alert" style={styles.text}>
+              <Text accessibilityRole="alert" style={text.text}>
                 {state.error}
               </Text>
               {action.record && !state.canRemoveReminder && (
-                <Text style={styles.text}>
+                <Text style={text.text}>
                   Check the saved action before signing again. An unavailable result does not start a replacement
                   action.
                 </Text>
               )}
               {state.canRemoveReminder && (
-                <>
-                  <Text style={styles.text}>
-                    Removing this reminder does not cancel an action you already submitted.
-                  </Text>
-                  <Pressable
-                    accessibilityRole="button"
-                    style={styles.reminderButton}
-                    onPress={() => void action.removeReminder()}
-                  >
-                    <Text style={styles.text}>Remove saved reminder</Text>
-                  </Pressable>
-                </>
+                <Text style={text.text}>Removing this reminder does not cancel an action you already submitted.</Text>
               )}
-            </>
+            </View>
           )}
-          {state.notice && <Text style={styles.text}>{state.notice}</Text>}
+          {state.notice && <Text style={text.text}>{state.notice}</Text>}
         </View>
       </CustomModal>
       <QRScanner

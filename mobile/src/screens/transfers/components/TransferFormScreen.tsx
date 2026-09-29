@@ -3,7 +3,8 @@ import { View, Text, ActivityIndicator } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GradientBackground } from '../../../components/GradientBackground';
 import { Panel } from '../../../components/panel';
-import { ButtonGroup } from '../../../components/buttons';
+import { Action } from '../../../components/Ledger';
+import { useDialogStyles } from '../../../components/modal';
 import { QRScanner } from '../../../components/qr';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import {
@@ -28,55 +29,18 @@ type Props = NativeStackScreenProps<WalletsStackParamList, 'TransferDetails'>;
 
 export function TransferFormScreen({ route, navigation }: Props) {
   const theme = useAppTheme();
+  const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
     container: {
       flex: 1,
-    },
-    content: {
       paddingTop: theme.spacing.md,
       paddingHorizontal: theme.spacing.sm,
+      paddingBottom: theme.spacing.md,
     },
-    panelContent: {
-      flex: 1,
-      flexDirection: 'column',
-    },
-    scrollWrapper: {
-      flex: 1,
-    },
-    placeholderContainer: {
-      flex: 1,
+    status: {
+      flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: theme.spacing.lg,
-      gap: theme.spacing.md,
-    },
-    placeholderTitle: {
-      fontSize: theme.fontSize.lg,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-      textAlign: 'center',
-    },
-    placeholderText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      textAlign: 'center',
-      lineHeight: 20,
-    },
-    errorText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.status.error.text,
-      textAlign: 'center',
-    },
-    footer: {
-      padding: theme.spacing.sm,
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.border.default,
-      backgroundColor: theme.colors.surface.tertiary,
-      marginTop: theme.spacing.sm,
-      marginHorizontal: -theme.spacing.sm,
-      marginBottom: -theme.spacing.md,
-      borderBottomLeftRadius: theme.borderRadius.md,
-      borderBottomRightRadius: theme.borderRadius.md,
+      gap: theme.spacing.sm,
     },
   }));
   const { wallet: routeWallet } = route.params;
@@ -213,9 +177,9 @@ export function TransferFormScreen({ route, navigation }: Props) {
   const renderContent = () => {
     if (!wallet || step === 'select-wallet') {
       return (
-        <View style={styles.placeholderContainer}>
+        <View style={styles.status}>
           <ActivityIndicator size="small" color={theme.colors.interactive.active} />
-          <Text style={styles.placeholderText}>Loading wallet...</Text>
+          <Text style={text.muted}>Loading wallet...</Text>
         </View>
       );
     }
@@ -272,13 +236,15 @@ export function TransferFormScreen({ route, navigation }: Props) {
 
       case 'broadcast':
         return (
-          <View style={styles.placeholderContainer}>
-            {!broadcastError && <ActivityIndicator size="small" color={theme.colors.interactive.active} />}
-            <Text style={styles.placeholderTitle}>Broadcasting Transaction</Text>
-            {!broadcastError && (
-              <Text style={styles.placeholderText}>Submitting your transaction to the network...</Text>
-            )}
-            {broadcastError && <Text style={styles.errorText}>{broadcastError}</Text>}
+          <View style={text.group}>
+            <View style={styles.status}>
+              {!broadcastError && <ActivityIndicator size="small" color={theme.colors.interactive.active} />}
+              <Text accessibilityRole="header" style={text.heading}>
+                Broadcasting Transaction
+              </Text>
+            </View>
+            {!broadcastError && <Text style={text.muted}>Submitting your transaction to the network...</Text>}
+            {broadcastError && <Text style={text.error}>{broadcastError}</Text>}
           </View>
         );
 
@@ -292,81 +258,52 @@ export function TransferFormScreen({ route, navigation }: Props) {
     }
   };
 
-  const renderFooter = () => {
+  const renderActions = () => {
     if (step === 'success' || step === 'select-wallet') return null;
     if (!wallet) return null;
 
     if (step === 'broadcast') {
       if (!broadcastError) return null;
-      return (
-        <View style={styles.footer}>
-          <ButtonGroup primaryButton={{ label: 'Back', onPress: backToReview }} size="medium" />
-        </View>
-      );
+      return <Action label="Back" onPress={backToReview} />;
     }
 
     if (step === 'enter-details') {
       return (
-        <View style={styles.footer}>
-          <ButtonGroup
-            primaryButton={{
-              label: 'Continue',
-              onPress: submitTransfer,
-              disabled: !canSubmit,
-              loading: isPreparing,
-            }}
-            size="medium"
-          />
-        </View>
+        <Action
+          label={isPreparing ? 'Loading...' : 'Continue'}
+          primary
+          disabled={!canSubmit}
+          onPress={submitTransfer}
+        />
       );
     }
 
     if (step === 'review') {
       return (
-        <View style={styles.footer}>
-          <ButtonGroup
-            secondaryButton={{
-              label: 'Back',
-              onPress: handleBack,
-            }}
-            primaryButton={{
-              label: 'Sign',
-              onPress: proceedToSign,
-            }}
-            size="medium"
-          />
-        </View>
+        <>
+          <Action label="Back" onPress={handleBack} />
+          <Action label="Sign" primary onPress={proceedToSign} />
+        </>
       );
     }
 
     if (step === 'sign') {
       return (
-        <View style={styles.footer}>
-          <ButtonGroup
-            secondaryButton={{
-              label: 'Back',
-              onPress: backToReview,
-            }}
-            primaryButton={
-              isBitcoin
-                ? {
-                    label: 'Broadcast',
-                    onPress: handleBroadcastSignedHex,
-                    disabled: signedHexInput.trim().length === 0,
-                  }
-                : isSoftwareWallet
-                  ? {
-                      label: 'Sign & Send',
-                      onPress: () => setSoftwareSignTrigger((prev) => prev + 1),
-                    }
-                  : {
-                      label: 'Scan Signature',
-                      onPress: handleOpenSignatureScanner,
-                    }
-            }
-            size="medium"
-          />
-        </View>
+        <>
+          <Action label="Back" onPress={backToReview} />
+          {isBitcoin ? (
+            <Action
+              label="Broadcast"
+              primary
+              disabled={signedHexInput.trim().length === 0}
+              onPress={handleBroadcastSignedHex}
+            />
+          ) : isSoftwareWallet ? (
+            <Action label="Sign & Send" primary onPress={() => setSoftwareSignTrigger((prev) => prev + 1)} />
+          ) : (
+            <Action label="Scan Signature" primary onPress={handleOpenSignatureScanner} />
+          )}
+        </>
       );
     }
 
@@ -376,14 +313,9 @@ export function TransferFormScreen({ route, navigation }: Props) {
   return (
     <GradientBackground>
       <View style={styles.container}>
-        <View style={styles.content}>
-          <Panel fullHeight={true}>
-            <View style={styles.panelContent}>
-              <View style={styles.scrollWrapper}>{renderContent()}</View>
-              {renderFooter()}
-            </View>
-          </Panel>
-        </View>
+        <Panel title="Send" actions={renderActions()}>
+          {renderContent()}
+        </Panel>
       </View>
 
       <QRScanner

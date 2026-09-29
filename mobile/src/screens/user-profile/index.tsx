@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, Text, TextInput, View } from 'react-native';
 import { formatDate, formatDateTime, getUserVerificationStatus } from '@ledova/shared';
-import { Action, Row, Section } from '../../components/Ledger';
+import { Action, Row, Rows, Section } from '../../components/Ledger';
+import { Page } from '../../components/Page';
 import { useUserProfile } from './useUserProfile';
 import { VerificationModal } from './components/VerificationModal';
 import { useAccountStyles } from '../account/styles';
@@ -16,10 +17,9 @@ export function UserProfileScreen() {
   const verification = getUserVerificationStatus(userProfile);
   return (
     <>
-      <ScrollView
+      <Page
         testID="profile-scroll"
-        style={styles.page}
-        contentContainerStyle={styles.content}
+        title="Profile"
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
@@ -28,9 +28,6 @@ export function UserProfileScreen() {
           />
         }
       >
-        <Text accessibilityRole="header" style={styles.title}>
-          Profile
-        </Text>
         {profile.isLoading ? (
           <ActivityIndicator accessibilityLabel="Loading profile" />
         ) : profile.isError ? (
@@ -44,16 +41,18 @@ export function UserProfileScreen() {
           <Text style={styles.muted}>No profile data is available.</Text>
         ) : (
           <Section title="Personal information">
-            <Row label="Full name">{userProfile.fullName || 'Not provided'}</Row>
-            <Row label="Email">{userProfile.email || 'Not provided'}</Row>
-            <Row label="Phone">
-              {userProfile.phoneNumber
-                ? `${userProfile.phoneCountryCode || ''} ${userProfile.phoneNumber}`.trim()
-                : 'Not provided'}
-            </Row>
-            <Row label="Date of birth">{formatDate(userProfile.dateOfBirth, 'Not provided')}</Row>
-            <Row label="Address">{userProfile.residentialAddress || 'Not provided'}</Row>
-            <Row label="Citizenship">{userProfile.citizenshipCountryName || 'Not provided'}</Row>
+            <Rows>
+              <Row label="Full name">{userProfile.fullName || 'Not provided'}</Row>
+              <Row label="Email">{userProfile.email || 'Not provided'}</Row>
+              <Row label="Phone">
+                {userProfile.phoneNumber
+                  ? `${userProfile.phoneCountryCode || ''} ${userProfile.phoneNumber}`.trim()
+                  : 'Not provided'}
+              </Row>
+              <Row label="Date of birth">{formatDate(userProfile.dateOfBirth, 'Not provided')}</Row>
+              <Row label="Address">{userProfile.residentialAddress || 'Not provided'}</Row>
+              <Row label="Citizenship">{userProfile.citizenshipCountryName || 'Not provided'}</Row>
+            </Rows>
             {!editing && (
               <Action
                 label="Edit phone"
@@ -109,9 +108,11 @@ export function UserProfileScreen() {
         )}
         {userProfile && !profile.isError && (
           <Section title="Account status">
-            <Row label="Identity check">{verification.label}</Row>
-            <Row label="Member since">{formatDate(userProfile.dateJoined, 'Not available')}</Row>
-            <Row label="Last login">{formatDateTime(userProfile.lastLogin)}</Row>
+            <Rows>
+              <Row label="Identity check">{verification.label}</Row>
+              <Row label="Member since">{formatDate(userProfile.dateJoined, 'Not available')}</Row>
+              <Row label="Last login">{formatDateTime(userProfile.lastLogin)}</Row>
+            </Rows>
             <Action
               label="Review identity check"
               disabled={profile.isFetching}
@@ -119,7 +120,7 @@ export function UserProfileScreen() {
             />
           </Section>
         )}
-      </ScrollView>
+      </Page>
       <VerificationModal
         visible={verificationOpen}
         onClose={() => setVerificationOpen(false)}

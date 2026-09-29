@@ -19,10 +19,10 @@ NOT_DELETABLE = "Only a draft offering can be deleted."
 
 @extend_schema_view(
     create=extend_schema(responses=OfferingDetailSerializer),
-    update=extend_schema(responses=OfferingDetailSerializer),
     partial_update=extend_schema(responses=OfferingDetailSerializer),
 )
 class OfferingViewSet(AuthenticatedModelViewSet):
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
     ordering = ["-created_at"]
     ordering_fields = ["created_at", "status", "opens_at"]
 
@@ -33,7 +33,7 @@ class OfferingViewSet(AuthenticatedModelViewSet):
         return queryset.with_relations()
 
     def get_serializer_class(self):
-        if self.action in ["create", "update", "partial_update"]:
+        if self.action in ["create", "partial_update"]:
             return OfferingWriteSerializer
         if self.action == "list":
             return OfferingListSerializer

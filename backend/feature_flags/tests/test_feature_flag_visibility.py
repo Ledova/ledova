@@ -34,9 +34,9 @@ class FeatureFlagVisibilityTests(APITestCase):
         names = [row["name"] for row in response.data["results"]]
         self.assertEqual(names, ["enable_dark_mode"])
 
-    def test_detail_route_404s_on_a_disabled_flag(self):
+    def test_no_flag_has_a_detail_route_even_when_enabled(self):
         self.client.force_authenticate(self.user)
 
-        response = self.client.get(f"/api/feature-flags/{self.disabled.uuid}/")
-
-        self.assertEqual(response.status_code, 404)
+        for flag in (self.enabled, self.disabled):
+            with self.subTest(flag=flag.name):
+                self.assertEqual(self.client.get(f"/api/feature-flags/{flag.uuid}/").status_code, 404)

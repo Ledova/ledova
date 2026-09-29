@@ -22,11 +22,3 @@ def swap_terms(swap):
         swap.settlement_context,
         swap.settlement_digest,
     )
-
-
-def hash_identity(value):
-    if not value:
-        return ""
-    if isinstance(value, bytes):
-        return value.hex()
-    return value.lower().removeprefix("0x")

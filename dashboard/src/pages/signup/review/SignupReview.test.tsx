@@ -3,14 +3,12 @@
 import type { ReactNode } from 'react';
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
-import { COMPLETION_FAILED, type ReviewHookReturn } from './useReview';
+import { SIGNUP_COMPLETION_FAILED } from '@ledova/shared';
+import type { useReview } from './useReview';
 import { SignupReview } from './SignupReview';
 
-const review = vi.hoisted(() => ({ state: {} as Partial<ReviewHookReturn> }));
-vi.mock('./useReview', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('./useReview')>()),
-  useReview: () => review.state,
-}));
+const review = vi.hoisted(() => ({ state: {} as Partial<ReturnType<typeof useReview>> }));
+vi.mock('./useReview', () => ({ useReview: () => review.state }));
 vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }));
 vi.mock('@components/AuthLayout', () => ({
   AuthLayout: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -22,10 +20,10 @@ it('shows why finishing failed next to the button that retries it', () => {
   review.state = {
     data: { userProfile: null, financialProfile: null },
     company: null,
-    signupRole: 'investor',
+    isCompany: false,
     isLoading: false,
     error: null,
-    completionError: COMPLETION_FAILED,
+    completionError: SIGNUP_COMPLETION_FAILED,
     completeSignup: vi.fn(),
     isSubmitting: false,
     canCompleteSignup: true,
@@ -34,6 +32,29 @@ it('shows why finishing failed next to the button that retries it', () => {
 
   render(<SignupReview />);
 
-  expect(screen.getByRole('alert').textContent).toBe(COMPLETION_FAILED);
+  expect(screen.getByRole('alert').textContent).toBe(SIGNUP_COMPLETION_FAILED);
   expect((screen.getByRole('button', { name: 'Complete Signup' }) as HTMLButtonElement).disabled).toBe(false);
+});
+
+it('shows each part of the review as a card with a Newsreader title, like a signed-in section', () => {
+  review.state = {
+    data: { userProfile: null, financialProfile: null },
+    company: null,
+    isCompany: false,
+    isLoading: false,
+    error: null,
+    completionError: null,
+    completeSignup: vi.fn(),
+    isSubmitting: false,
+    canCompleteSignup: false,
+    retryLoad: vi.fn(),
+  };
+
+  render(<SignupReview />);
+
+  for (const title of ['Personal Information', 'Financial Profile']) {
+    const heading = screen.getByRole('heading', { level: 2, name: title });
+    expect(heading.className).toContain('font-display');
+    expect(heading.closest('section')!.className).toContain('rounded-xl');
+  }
 });

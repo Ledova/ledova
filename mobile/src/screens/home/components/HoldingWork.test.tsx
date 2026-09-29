@@ -18,7 +18,8 @@ const mockNavigate = jest.fn();
 const mockRefetchHoldings = jest.fn(async () => undefined);
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: mockNavigate }) }));
 jest.mock('../../../services/apiClient', () => ({ apiClient: { get: jest.fn() } }));
-jest.mock('../useShareHoldings', () => ({
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
   useShareHoldings: () => ({
     data: [],
     isPending: false,

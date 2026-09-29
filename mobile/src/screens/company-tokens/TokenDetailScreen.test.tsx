@@ -10,7 +10,8 @@ import { invalidateSessionScope } from '../../services/sessionScope';
 import { TokenDetailScreen } from './TokenDetailScreen';
 
 let mockCompanyRole = 'company';
-jest.mock('../../hooks/useUserPreferences', () => ({
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
   useUserPreferences: () => ({ userAccount: { role: mockCompanyRole }, isLoading: false, isError: false }),
 }));
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));
@@ -122,6 +123,13 @@ afterEach(async () => {
   client.clear();
   jest.restoreAllMocks();
   jest.useRealTimers();
+});
+
+it('keeps the Share class title while the class is read', async () => {
+  read = (url, number) => (url === URLS.DETAIL(uuid) ? new Promise(() => {}) : defaultRead(url, number));
+  const view = await render(screen(), { wrapper });
+  const title = view.getByRole('header', { name: 'Share class' });
+  expect(title.parent!.parent!.children[1]).toBe(view.getByText('Loading share class…'));
 });
 
 it('reads every page of each history and keeps exact confirmed quantities and register state', async () => {

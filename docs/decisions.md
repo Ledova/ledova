@@ -158,7 +158,21 @@ on 22 September in
   holds a live approval for at least one company, from the stored approvals
   rather than from a registry. The owner chose this on 22 September 2026 over
   dropping the check, keeping the rule the single global registry used to carry.
-  The AUDY contract itself has never restricted transfers.
+  The AUDY contract itself has never restricted transfers. Since #792 the rule is
+  enforced on Wallets > Send, when a transfer is prepared and again when the
+  signed transfer is submitted, before anything is recorded or broadcast: the
+  owner chose that on 29 September 2026 in
+  [PR #807](https://github.com/Ledova/ledova/pull/807#issuecomment-5881408794)
+  over keeping the retired trading transfer route, which had been its only
+  enforcement, or dropping the rule. A payment to the operator's receiving
+  wallet is exempt on both sides: a transfer whose recipient is the configured
+  receiving wallet, on its configured chain, compared case-insensitively on the
+  exact address, because the stablecoin payment instruction sends investors
+  there and nothing approves that address. An unset receiving wallet, or one on
+  another chain, exempts nothing. The owner chose that the same day in
+  [a second decision](https://github.com/Ledova/ledova/pull/807#issuecomment-5882450036)
+  over approving the receiving wallet or accepting such payments only from an
+  outside wallet.
 - **The chain follows within fifteen minutes.** The platform refuses at once,
   and the refresh reaches the registry within one sweep interval plus one
   recovery interval. There is no lease: an approval does not lapse by itself
@@ -502,6 +516,19 @@ requests on #785 carry out the last three:
   into user preferences, the owner chose "Merge them": "Move transaction alerts
   onto the user preferences record; delete the separate model, table, route and
   admin, with a migration carrying each person's setting across."
+
+The owner chose the look of the signed-in pages on 29 September 2026:
+
+- **A card per section.** Shown an older build that grouped Settings, Profile,
+  Wallets and Activity in cards, the owner said: "I like how those cards enhance
+  the look and feel, otherwise everything looks a little cluttered." Shown two
+  treatments, each section as a card with its title inside or a grouped list
+  with the title above the card, the owner chose the first: "A for the cards, A
+  is a better style." Each ledger section is a white card on the paper ground;
+  the page's title and actions stay on the paper above the cards. (Owner
+  decisions, 29 September 2026, on
+  [#791](https://github.com/Ledova/ledova/issues/791#issuecomment-5878354674) and
+  [#791](https://github.com/Ledova/ledova/issues/791#issuecomment-5879159623).)
 
 ## The account-data export
 

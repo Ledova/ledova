@@ -1,104 +1,15 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  verifyEmail,
-  resendVerificationCode,
-  FormErrors,
-  validateEmailConfirmation,
-  formatVerificationToken,
-  EMAIL_CONFIRMATION_VALIDATION,
-  describeFailure,
-} from '@ledova/shared';
-import { AUTH_QUERY_KEY } from '@hooks/useAuth';
-import apiClient from '@services/apiClient';
+import { AUTH_QUERY_KEY, useEmailVerification } from '@ledova/shared';
 
 export const useSignupEmailConfirmation = () => {
   const queryClient = useQueryClient();
   const [email] = useState(() => localStorage.getItem('signup_email') || '');
-  const [verificationCode, setVerificationCode] = useState('');
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [generalError, setGeneralError] = useState<string>('');
-  const [successMessage, setSuccessMessage] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isResending, setIsResending] = useState(false);
 
-  const handleVerify = async (onSuccess: () => void) => {
-    const validation = validateEmailConfirmation(verificationCode, EMAIL_CONFIRMATION_VALIDATION.TOKEN_LENGTH);
+  return useEmailVerification(email, async () => {
+    localStorage.removeItem('signup_email');
 
-    if (!validation.isValid) {
-      setErrors({
-        token: [`Please enter a valid ${EMAIL_CONFIRMATION_VALIDATION.TOKEN_LENGTH}-digit verification code`],
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    setGeneralError('');
-    setErrors({});
-
-    try {
-      await verifyEmail(apiClient, {
-        email,
-        token: formatVerificationToken(verificationCode),
-      });
-
-      localStorage.removeItem('signup_email');
-
-      queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== AUTH_QUERY_KEY[0] });
-      await queryClient.refetchQueries({ queryKey: AUTH_QUERY_KEY, exact: true });
-
-      onSuccess();
-    } catch (error: unknown) {
-      console.error(`Email verification failed: ${describeFailure(error)}`);
-      const axiosError = error as { response?: { data?: unknown } };
-      if (axiosError.response?.data) {
-        const errorData = axiosError.response.data;
-        if (typeof errorData === 'object' && !Array.isArray(errorData)) {
-          setErrors(errorData as FormErrors);
-          const firstError = Object.values(errorData).flat()[0];
-          if (firstError) {
-            setGeneralError(firstError as string);
-          }
-        } else if (typeof errorData === 'string') {
-          setGeneralError(errorData);
-        } else {
-          setGeneralError('Invalid verification code. Please try again.');
-        }
-      } else {
-        setGeneralError('Network error. Please check your connection.');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleResend = async () => {
-    setIsResending(true);
-    setSuccessMessage('');
-    setGeneralError('');
-
-    try {
-      await resendVerificationCode(apiClient, { email });
-      setSuccessMessage('Verification code sent! Please check your email.');
-      setVerificationCode('');
-    } catch (error) {
-      console.error(`Failed to resend verification code: ${describeFailure(error)}`);
-      setGeneralError('Failed to resend code. Please try again.');
-    } finally {
-      setIsResending(false);
-    }
-  };
-
-  return {
-    email,
-    verificationCode,
-    errors,
-    generalError,
-    successMessage,
-    isLoading,
-    isResending,
-    setVerificationCode,
-    handleVerify,
-    handleResend,
-  };
+    queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== AUTH_QUERY_KEY[0] });
+    await queryClient.refetchQueries({ queryKey: AUTH_QUERY_KEY, exact: true });
+  });
 };

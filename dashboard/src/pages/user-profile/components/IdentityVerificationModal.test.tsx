@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import apiClient from '@services/apiClient';
@@ -23,6 +23,21 @@ afterEach(() => {
   client.clear();
   vi.useRealTimers();
   vi.resetAllMocks();
+});
+
+it('states a finished check without a box and closes from its action row', async () => {
+  vi.mocked(apiClient.get).mockResolvedValue({ data: { isVerified: true, status: 'completed' } });
+  const onClose = vi.fn();
+  render(
+    <QueryClientProvider client={client}>
+      <IdentityVerificationModal isOpen onClose={onClose} />
+    </QueryClientProvider>,
+  );
+  const dialog = screen.getByRole('dialog', { name: 'Identity Verification' });
+  expect(await screen.findByRole('heading', { level: 3, name: 'Already Verified' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Start Verification' })).toBeNull();
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+  expect(onClose).toHaveBeenCalledOnce();
 });
 
 it('refreshes the profile and closes shortly after the form is submitted', async () => {

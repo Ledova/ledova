@@ -2,9 +2,9 @@ import { Action } from '../../components/Ledger';
 import type { PropsWithChildren } from 'react';
 import { act, cleanup, fireEvent, render, renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { ShareToken, TransferOrder, WhitelistStatus } from '@ledova/shared';
+import type { OrderBook, ShareToken, TransferOrder, WhitelistStatus } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { allMarketPages, marketAmount, marketQuantity } from './marketData';
+import { marketAmount, marketQuantity } from './marketData';
 import { useAllUserOrders, useShareTokens, useUserTradingWallets, useWalletsWhitelistStatus } from './useTrading';
 import { useSwapOrdersMulti } from './useAtomicSwaps';
 import { OrdersCard } from './components/OrdersCard';
@@ -24,7 +24,8 @@ jest.mock('../../components/Ledger', () => {
   return { ...actual, Action: jest.fn(actual.Action) };
 });
 jest.mock('../../services/apiClient', () => ({ apiClient: jest.requireActual('axios').default.create() }));
-jest.mock('../../hooks/useUserPreferences', () => ({
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
   useUserPreferences: () => ({ userAccount: { uuid: '20000000-0000-4000-8000-000000000001' }, isLoading: false }),
 }));
 let client: QueryClient;
@@ -60,14 +61,6 @@ it('calculates exact AUD cents and never represents unsafe numeric shares as exa
   expect(marketQuantity(9007199254740992)).toBe('Unavailable');
   expect(marketAmount('1.00', 9007199254740992)).toBe('Unavailable');
 });
-it.each([
-  'https://example.test/?page=1',
-  'https://example.test/?page=1.5',
-  'https://example.test/?page=wat',
-  'https://example.test/?cursor=x',
-])('rejects incomplete pagination for %s', async (next) => {
-  await expect(allMarketPages(async () => ({ data: page([order], next) }))).rejects.toThrow();
-});
 it('loads owned orders without a listed class or wallet, through all pages', async () => {
   const requests: unknown[] = [];
   apiClient.defaults.adapter = async (config) => {
@@ -83,7 +76,7 @@ it('loads owned orders without a listed class or wallet, through all pages', asy
   const view = await renderHook(() => useAllUserOrders(), { wrapper });
   await waitFor(() => expect(view.result.current.orders).toHaveLength(2));
   expect(requests).toEqual([
-    ['/api/v1/trading/orders/', undefined],
+    ['/api/v1/trading/orders/', { page: 1 }],
     ['/api/v1/trading/orders/', { page: 2 }],
   ]);
   expect(client.getQueryData(['trading', 'userOrders', 'all', accountUuid])).toHaveLength(2);
@@ -205,6 +198,39 @@ it('keeps recorded orders visible with no class and disables stale actions', asy
   expect(view.queryByText('Share class unavailable')).toBeNull();
   expect(view.getByText('Retry your orders')).toBeTruthy();
 });
+it('sets For sale and Wanted apart as headed blocks with rules between entries only', async () => {
+  const entry = { price: '0.29', quantity: 3, orders: 1 };
+  const view = await render(
+    <OrdersCard
+      tokenSymbol="HEX"
+      orderBook={{ sellOrders: [entry, { ...entry, price: '0.31' }], buyOrders: [] } as unknown as OrderBook}
+      isLoadingOrderBook={false}
+      userOrders={[]}
+      isLoadingUserOrders={false}
+      onCancelOrder={jest.fn()}
+      onEditOrder={jest.fn()}
+      onViewOrder={jest.fn()}
+      swaps={[]}
+      isLoadingSwaps={false}
+      wallets={[]}
+      settlementOwner={null}
+      onSignSwap={jest.fn()}
+    />,
+  );
+  const forSale = view.getByRole('header', { name: 'For sale' }).parent!;
+  expect(forSale).toHaveStyle({ gap: 12 });
+  const [, list] = forSale.children;
+  const [first, rule, second] = (list as typeof forSale).children;
+  expect((list as typeof forSale).children).toHaveLength(3);
+  expect(rule).toHaveStyle({ height: 1 });
+  expect(first).toHaveStyle({ paddingVertical: 14, gap: 8 });
+  expect(second).not.toHaveStyle({ borderBottomWidth: 1 });
+  expect(view.getAllByText('Price per share')).toHaveLength(2);
+  const wanted = view.getByRole('header', { name: 'Wanted' }).parent!;
+  expect(wanted).toHaveStyle({ gap: 12 });
+  expect(wanted.children[1]).toBe(view.getByText('No orders listed.'));
+  expect(forSale.parent!.children).toContain(wanted);
+});
 it('displays exact authorised shares and hides stale class choices on error', async () => {
   const props = {
     tokens: [token],
@@ -305,8 +331,8 @@ it('latches pending submission and guards Android Back, backdrop and Cancel, ret
     press();
   });
   expect(props.onSubmit).toHaveBeenCalledTimes(1);
-  await fireEvent(view.getByTestId('account-modal-Wanted · HEX'), 'requestClose');
-  await fireEvent.press(view.getByTestId('account-backdrop-Wanted · HEX', { includeHiddenElements: true }));
+  await fireEvent(view.getByTestId('modal-Wanted · HEX'), 'requestClose');
+  await fireEvent.press(view.getByTestId('modal-backdrop-Wanted · HEX', { includeHiddenElements: true }));
   await fireEvent.press(view.getByText('Cancel'));
   expect(props.onClose).not.toHaveBeenCalled();
   await act(async () => {

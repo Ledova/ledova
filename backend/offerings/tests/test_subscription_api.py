@@ -274,9 +274,3 @@ class SubscriptionSurvivesDeletionTest(APITestCase):
         self.assertEqual(response.status_code, 409, response.content)
         self.assertTrue(Subscription.objects.filter(pk=self.subscription.pk).exists())
         self.assertTrue(Offering.objects.filter(pk=self.offering.pk).exists())
-
-    def test_deleting_the_company_behind_a_subscription_is_refused(self):
-        response = self.client.delete(f"/api/v1/companies/{self.tenant.company.uuid}/")
-        self.assertEqual(response.status_code, 409, response.content)
-        self.assertIn("cannot be deleted", response.json()["detail"])
-        self.assertTrue(Subscription.objects.filter(pk=self.subscription.pk).exists())

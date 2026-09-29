@@ -1,12 +1,11 @@
 import { useRef, useState, useCallback } from 'react';
 import type { ShareToken, CreateOrderRequest, Wallet, OrderType, WhitelistStatus } from '@ledova/shared';
 import { ShieldWarningIcon } from '@phosphor-icons/react';
-import { DESIGN_TOKENS } from '@ledova/shared';
+import { ICON_MD } from '@components/iconSizes';
 import { Modal } from '@components/Modal';
+import { PageAction } from '@components/Page';
 import { OrderForm } from './OrderForm';
 import type { OrderFormRef } from './OrderForm';
-
-const ICON_LG = DESIGN_TOKENS.icon.sizes.lg;
 
 interface PlaceOrderPanelProps {
   token: ShareToken;
@@ -97,21 +96,18 @@ export function PlaceOrderPanel({
 
   return (
     <>
-      <div className="flex gap-4">
-        <button
+      <div className="flex flex-wrap gap-2">
+        <PageAction
+          label={`New sell order — ${token.symbol}`}
           onClick={() => handleOpen('sell')}
           disabled={wallets.length === 0 || readsUnavailable}
-          className="flex-1 py-2.5 px-6 rounded-lg font-semibold text-text-primary bg-surface-tertiary hover:bg-surface-overlay border border-border-subtle disabled:bg-surface-disabled disabled:cursor-not-allowed transition-colors"
-        >
-          New sell order — {token.symbol}
-        </button>
-        <button
+        />
+        <PageAction
+          label={`New buy order — ${token.symbol}`}
+          primary
           onClick={() => handleOpen('buy')}
           disabled={wallets.length === 0 || readsUnavailable}
-          className="flex-1 py-2.5 px-6 rounded-lg font-semibold text-white bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed transition-colors"
-        >
-          New buy order — {token.symbol}
-        </button>
+        />
       </div>
 
       <Modal
@@ -127,23 +123,27 @@ export function PlaceOrderPanel({
       >
         <div className="space-y-4">
           {readsUnavailable && (
-            <p role="status">Share classes and wallets must finish refreshing before placing this order.</p>
+            <p role="status" className="text-sm text-text-muted">
+              Share classes and wallets must finish refreshing before placing this order.
+            </p>
           )}
-          {submissionError && <p role="alert">{submissionError}</p>}
+          {submissionError && (
+            <p role="alert" className="text-sm text-error-light">
+              {submissionError}
+            </p>
+          )}
           {!walletAllowed && !isLoadingWhitelistStatus && (
-            <div className="p-4 rounded-lg bg-warning-light/10 border border-warning-light/20">
-              <div className="flex items-start gap-3">
-                <ShieldWarningIcon size={ICON_LG} className="text-warning-light flex-shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-sm font-semibold text-warning-light">
-                    {isWhitelistStatusUnknown ? 'Allowlist Status Unavailable' : 'Wallet Not Allowlisted'}
-                  </h4>
-                  <p className="text-sm text-text-muted mt-1">
-                    {isWhitelistStatusUnknown
-                      ? 'We could not reach the network to check your allowlist status. Orders are held until the check succeeds - please try again shortly.'
-                      : 'The operator must add your wallet to the allowlist before you can place orders.'}
-                  </p>
-                </div>
+            <div className="flex items-start gap-2">
+              <ShieldWarningIcon size={ICON_MD} className="mt-px flex-shrink-0 text-warning-light" />
+              <div className="space-y-1">
+                <h3 className="text-sm font-medium text-warning-light">
+                  {isWhitelistStatusUnknown ? 'Allowlist Status Unavailable' : 'Wallet Not Allowlisted'}
+                </h3>
+                <p className="text-sm text-text-muted">
+                  {isWhitelistStatusUnknown
+                    ? 'We could not reach the network to check your allowlist status. Orders are held until the check succeeds - please try again shortly.'
+                    : 'The operator must add your wallet to the allowlist before you can place orders.'}
+                </p>
               </div>
             </div>
           )}

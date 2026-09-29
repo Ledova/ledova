@@ -10,7 +10,6 @@ from tokens.models import (
     TransferOrder,
     TransferOrderType,
 )
-from tokens.serializers import TransferOrderDetailSerializer
 from tokens.services.signing_challenge import (
     assert_payload_matches,
     challenge_response,
@@ -88,23 +87,6 @@ class TradingOrderService:
             "wallet_address": challenge.wallet_address,
             **challenge_response(challenge),
         }
-
-    @staticmethod
-    def build_order_response(order: TransferOrder, match_result: Optional[dict] = None) -> dict:
-        response_data = TransferOrderDetailSerializer(order).data
-
-        if match_result:
-            response_data["match"] = {
-                "matched": True,
-                "counter_order": str(
-                    match_result["buy_order"].uuid
-                    if order.order_type == TransferOrderType.SELL
-                    else match_result["sell_order"].uuid
-                ),
-                "swap_order": str(match_result["swap_order"].uuid),
-            }
-
-        return response_data
 
     @staticmethod
     def get_order_book(token: ShareToken) -> dict:

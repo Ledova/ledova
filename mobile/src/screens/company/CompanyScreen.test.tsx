@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { COMPANY_TOKEN_ENDPOINTS } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
@@ -12,7 +12,8 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 24, bottom: 24, left: 0, right: 0 }),
 }));
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: mockNavigate }) }));
-jest.mock('../../hooks/useUserPreferences', () => ({
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
   useUserPreferences: () => ({ userAccount: { role: mockRole }, isLoading: false, isError: false }),
 }));
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), patch: jest.fn(), post: jest.fn() } }));
@@ -81,7 +82,9 @@ afterEach(async () => {
 
 it('uses complete company detail and every class page with exact quantities and working destinations', async () => {
   const view = await render(<CompanyScreen />, { wrapper });
-  expect(await view.findByText('Fictional Company')).toBeTruthy();
+  expect(await view.findByRole('header', { name: 'Fictional Company' })).toBeTruthy();
+  expect(view.getAllByText('Fictional Company')).toHaveLength(1);
+  expect(view.queryByText('Company details')).toBeNull();
   expect(await view.findByText('9,007,199,254,740,993 authorised shares')).toBeTruthy();
   expect(view.getByText('Share classes (1)')).toBeTruthy();
   expect(view.queryByText('Foreign class')).toBeNull();
@@ -89,10 +92,37 @@ it('uses complete company detail and every class page with exact quantities and 
   expect(mockNavigate).toHaveBeenCalledWith('TokenDetail', { uuid: 'class' });
   await fireEvent.press(view.getByRole('button', { name: 'Application' }));
   expect(mockNavigate).toHaveBeenCalledWith('Listing');
-  await fireEvent.press(view.getByRole('button', { name: 'Open Register' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Register' }));
   expect(mockNavigate).toHaveBeenCalledWith('CompanyMain');
   await fireEvent.press(view.getByText('Published to your members'));
   expect(mockNavigate).toHaveBeenCalledWith('CompanyPublications');
+});
+
+it('offers Edit company under the page title rather than inside the company card', async () => {
+  const view = await render(<CompanyScreen />, { wrapper });
+  const card = (await view.findByRole('header', { name: 'Fictional Company' })).parent!;
+  const title = view.getByRole('header', { name: 'Company' });
+  const edit = view.getByRole('button', { name: 'Edit company' });
+  expect(title.parent!.children).toEqual([title, edit.parent]);
+  expect(within(card).queryByRole('button', { name: 'Edit company' })).toBeNull();
+});
+
+it('keeps the Company title over the access state, with nothing to act on', async () => {
+  mockRole = 'member';
+  const view = await render(<CompanyScreen />, { wrapper });
+  const title = view.getByRole('header', { name: 'Company' });
+  expect(title.parent!.children).toEqual([title]);
+  expect(title.parent!.parent!.children[1]).toBe(view.getByText('Verify your company access before opening Company.'));
+});
+
+it('takes Edit company out of the title when a refresh fails, even with the company still cached', async () => {
+  const view = await render(<CompanyScreen />, { wrapper });
+  expect(await view.findByRole('button', { name: 'Edit company' })).toBeTruthy();
+  failure = DETAIL;
+  await act(() => client.invalidateQueries({ queryKey: ['company'] }));
+  expect(await view.findByText('Company information could not be loaded. Try again before continuing.')).toBeTruthy();
+  expect(view.getByRole('header', { name: 'Company' })).toBeTruthy();
+  expect(view.queryByRole('button', { name: 'Edit company' })).toBeNull();
 });
 
 it('keeps an edit draft after failed refresh and save refusal; submits changed fields only', async () => {
@@ -129,6 +159,8 @@ it('keeps create drafts locked while pending and retains them on refusal without
   await fireEvent.changeText(view.getByLabelText('Class name'), 'Large class');
   await fireEvent.changeText(view.getByLabelText('Symbol'), 'big');
   await fireEvent.changeText(view.getByLabelText('Authorised shares'), '9007199254740993');
+  expect(view.getByRole('button', { name: 'Ordinary', selected: true })).toBeTruthy();
+  expect(view.getByRole('button', { name: 'Preference', selected: false })).toBeTruthy();
   await fireEvent.press(view.getAllByRole('button', { name: 'Create share class' }).at(-1)!);
   await waitFor(() => expect(view.getByRole('button', { name: 'Cancel' })).toBeDisabled());
   expect(view.getByLabelText('Authorised shares').props.editable).toBe(false);

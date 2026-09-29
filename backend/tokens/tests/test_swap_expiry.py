@@ -269,8 +269,7 @@ class UnclaimedSwapExpiryTest(ExpiryFixtures, TransactionTestCase):
         orders = TransferOrder.objects.filter(pk__in=[swap.sell_order_id, swap.buy_order_id])
         for side in ("buy", "sell"):
             self.assertEqual(list(orders.order_book_levels(swap.share_token, side)), [])
-        self.assertIsNone(orders.best_bid(swap.share_token))
-        self.assertIsNone(orders.best_ask(swap.share_token))
+        self.assertEqual(list(orders.advertised_liquidity()), [])
         self.assertTrue(expire_unclaimed_swap(swap, self.expired_at(swap)))
         self.assert_available(swap, 20)
         for side in ("buy", "sell"):
@@ -278,8 +277,9 @@ class UnclaimedSwapExpiryTest(ExpiryFixtures, TransactionTestCase):
             self.assertEqual(len(levels), 1)
             self.assertEqual(levels[0]["total_quantity"], 20)
             self.assertEqual(levels[0]["order_count"], 1)
-        self.assertEqual(orders.best_bid(swap.share_token).pk, swap.buy_order_id)
-        self.assertEqual(orders.best_ask(swap.share_token).pk, swap.sell_order_id)
+        self.assertEqual(
+            set(orders.advertised_liquidity().values_list("pk", flat=True)), {swap.buy_order_id, swap.sell_order_id}
+        )
 
     def test_changed_order_reservations_and_additional_active_matches_are_retained(self):
         for mutation in ("quantity", "status", "counterparty", "another_swap"):

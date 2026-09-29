@@ -9,11 +9,6 @@ from shared.utils.datetime_utils import (
 
 
 class AssetSnapshotQuerySet(QuerySet):
-    def filter_by_asset(self, asset_uuid):
-        if asset_uuid:
-            return self.filter(asset__uuid=asset_uuid)
-        return self
-
     def filter_by_date_range(self, start_date=None, end_date=None):
         queryset = self
         if start_date:

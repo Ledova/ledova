@@ -9,12 +9,15 @@ import type { AccountRole } from '@ledova/shared';
 
 import { InSignedInFrame } from '@components/InSignedInFrame';
 import Layout from '@components/Layout';
-import { useAuth } from '@hooks/useAuth';
+import { useAuth } from '@ledova/shared';
 import { useRole } from '@hooks/useRole';
 import { useUserProfile } from '@pages/user-profile/useUserProfile';
 import NotFoundPage from './NotFound';
 
-vi.mock('@hooks/useAuth', () => ({ useAuth: vi.fn() }));
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
+  useAuth: vi.fn(),
+}));
 vi.mock('@hooks/useRole', () => ({ useRole: vi.fn() }));
 vi.mock('@pages/user-profile/useUserProfile', () => ({ useUserProfile: vi.fn() }));
 vi.mock('@components/Sidebar', () => ({ Sidebar: () => <nav aria-label="Sidebar" /> }));

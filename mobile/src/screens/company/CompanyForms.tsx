@@ -5,15 +5,15 @@ import {
   apiErrorSentence,
   createCompanyToken,
   updateCompany,
+  wholeShares,
   type Company,
   type CompanyUpdate,
   type TokenType,
 } from '@ledova/shared';
-import { CompanyModal } from './CompanyModal';
-import { Action } from '../../components/Ledger';
+import { CustomModal } from '../../components/modal';
+import { Choice } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { useCompanyStyles } from '../company-register/styles';
-import { wholeShares } from '../company-tokens/shareQuantities';
 import { CompanyReadNotice, type CompanyRead } from './CompanyState';
 
 const FIELDS = [
@@ -61,11 +61,19 @@ export function EditCompanyForm({ target, company, read, onClose, onSuccess }: P
     if (!save.isPending) onClose();
   };
   return (
-    <CompanyModal onClose={close}>
+    <CustomModal
+      visible
+      title="Edit company"
+      onClose={close}
+      busy={save.isPending}
+      showFooter
+      onConfirm={() => {
+        if (valid && !save.isPending) save.mutate();
+      }}
+      confirmLabel="Save changes"
+      confirmDisabled={!valid || save.isPending}
+    >
       <View style={styles.group}>
-        <Text accessibilityRole="header" style={styles.heading}>
-          Edit company
-        </Text>
         <CompanyReadNotice read={read} />
         {company?.uuid !== target.uuid && (
           <Text accessibilityRole="alert" style={styles.error}>
@@ -94,17 +102,8 @@ export function EditCompanyForm({ target, company, read, onClose, onSuccess }: P
             />
           </View>
         ))}
-        <Action
-          label="Save changes"
-          primary
-          disabled={!valid || save.isPending}
-          onPress={() => {
-            if (valid && !save.isPending) save.mutate();
-          }}
-        />
-        <Action label="Cancel" disabled={save.isPending} onPress={close} />
       </View>
-    </CompanyModal>
+    </CustomModal>
   );
 }
 
@@ -141,11 +140,19 @@ export function CreateClassForm({ target, company, read, onClose, onSuccess }: P
     if (!create.isPending) onClose();
   };
   return (
-    <CompanyModal onClose={close}>
+    <CustomModal
+      visible
+      title="Create share class"
+      onClose={close}
+      busy={create.isPending}
+      showFooter
+      onConfirm={() => {
+        if (valid && !create.isPending) create.mutate();
+      }}
+      confirmLabel="Create share class"
+      confirmDisabled={!valid || create.isPending}
+    >
       <View style={styles.group}>
-        <Text accessibilityRole="header" style={styles.heading}>
-          Create share class
-        </Text>
         <CompanyReadNotice read={read} />
         {company?.uuid !== target.uuid && (
           <Text accessibilityRole="alert" style={styles.error}>
@@ -175,15 +182,17 @@ export function CreateClassForm({ target, company, read, onClose, onSuccess }: P
           onChangeText={(value) => setSymbol(value.toUpperCase())}
         />
         <Text style={styles.text}>Class type: {tokenType}</Text>
-        {(['ordinary', 'preference', 'redeemable'] as const).map((type) => (
-          <Action
-            key={type}
-            label={type[0].toUpperCase() + type.slice(1)}
-            primary={tokenType === type}
-            disabled={create.isPending}
-            onPress={() => setTokenType(type)}
-          />
-        ))}
+        <View style={styles.choices}>
+          {(['ordinary', 'preference', 'redeemable'] as const).map((type) => (
+            <Choice
+              key={type}
+              label={type[0].toUpperCase() + type.slice(1)}
+              selected={tokenType === type}
+              disabled={create.isPending}
+              onPress={() => setTokenType(type)}
+            />
+          ))}
+        </View>
         <Text style={styles.text}>Authorised shares</Text>
         <TextInput
           accessibilityLabel="Authorised shares"
@@ -198,16 +207,7 @@ export function CreateClassForm({ target, company, read, onClose, onSuccess }: P
             Enter a positive whole number of shares.
           </Text>
         )}
-        <Action
-          label="Create share class"
-          primary
-          disabled={!valid || create.isPending}
-          onPress={() => {
-            if (valid && !create.isPending) create.mutate();
-          }}
-        />
-        <Action label="Cancel" disabled={create.isPending} onPress={close} />
       </View>
-    </CompanyModal>
+    </CustomModal>
   );
 }

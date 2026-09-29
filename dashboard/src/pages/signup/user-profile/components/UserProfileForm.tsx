@@ -2,9 +2,7 @@ import { Field, Label, Input, Textarea, Description } from '@headlessui/react';
 import { UserIcon, HouseIcon, PhoneIcon, WarningIcon, CalendarIcon } from '@phosphor-icons/react';
 import { CountrySelector } from './CountrySelector';
 import type { FormErrors, UserProfileFormValidation, CountryData, UserProfileFormData } from '@ledova/shared';
-import { DESIGN_TOKENS } from '@ledova/shared';
-
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
+import { ICON_MD } from '@components/iconSizes';
 
 interface UserProfileFormProps {
   form: UserProfileFormData;
@@ -35,8 +33,8 @@ export function UserProfileForm({
 }: UserProfileFormProps) {
   return (
     <>
-      <div className="bg-surface-raised rounded-lg border border-border">
-        <div className="p-6">
+      <div className="rounded-xl border border-border bg-surface-raised">
+        <div className="p-4 sm:p-5">
           <form onSubmit={onSubmit} className="space-y-6">
             {generalError && (
               <div className="bg-error-subtle border border-error-dark rounded-lg p-4">

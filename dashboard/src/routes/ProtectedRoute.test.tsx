@@ -5,9 +5,8 @@ import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiClientProvider, CACHE_TIMING } from '@ledova/shared';
+import { ApiClientProvider, CACHE_TIMING, AUTH_QUERY_KEY } from '@ledova/shared';
 
-import { AUTH_QUERY_KEY } from '@hooks/useAuth';
 import { useSignupFinished } from '@hooks/useSignupFinished';
 import apiClient from '@services/apiClient';
 import { InSignedInFrame } from '@components/InSignedInFrame';

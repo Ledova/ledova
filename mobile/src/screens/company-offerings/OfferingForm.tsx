@@ -2,15 +2,16 @@ import { useState } from 'react';
 import { Switch, Text, TextInput, View } from 'react-native';
 import {
   OFFERING_EXEMPTION_LABELS,
+  requestShares,
   type CompanyShareTokenListItem,
   type Offering,
   type OfferingExemption,
   type OfferingInput,
   type OperatorSettlementAsset,
 } from '@ledova/shared';
-import { Action } from '../../components/Ledger';
+import { Action, Choice } from '../../components/Ledger';
+import { ModalActions } from '../../components/modal';
 import { useCompanyStyles } from '../company-register/styles';
-import { requestShares } from '../company-tokens/shareQuantities';
 import { OfferingDateField } from './OfferingDateField';
 
 export function OfferingForm({
@@ -87,25 +88,29 @@ export function OfferingForm({
   return (
     <View style={styles.group}>
       <Text style={styles.text}>Share class</Text>
-      {tokens.map((each) => (
-        <Action
-          key={each.uuid}
-          label={`${each.name} (${each.symbol})`}
-          primary={each.uuid === token}
-          disabled={busy || !!editing}
-          onPress={() => setToken(each.uuid)}
-        />
-      ))}
+      <View style={styles.choices}>
+        {tokens.map((each) => (
+          <Choice
+            key={each.uuid}
+            label={`${each.name} (${each.symbol})`}
+            selected={each.uuid === token}
+            disabled={busy || !!editing}
+            onPress={() => setToken(each.uuid)}
+          />
+        ))}
+      </View>
       <Text style={styles.text}>Exemption relied on</Text>
-      {(Object.entries(OFFERING_EXEMPTION_LABELS) as [OfferingExemption, string][]).map(([value, label]) => (
-        <Action
-          key={value}
-          label={label}
-          primary={exemption === value}
-          disabled={busy}
-          onPress={() => setExemption(value)}
-        />
-      ))}
+      <View style={styles.choices}>
+        {(Object.entries(OFFERING_EXEMPTION_LABELS) as [OfferingExemption, string][]).map(([value, label]) => (
+          <Choice
+            key={value}
+            label={label}
+            selected={exemption === value}
+            disabled={busy}
+            onPress={() => setExemption(value)}
+          />
+        ))}
+      </View>
       {(
         [
           ['Price per share (AUD)', pricePerShare, setPricePerShare],
@@ -220,13 +225,15 @@ export function OfferingForm({
           {error}
         </Text>
       )}
-      <Action
-        label={editing ? 'Save changes' : 'Create draft offering'}
-        primary
-        disabled={!complete || busy || blocked}
-        onPress={submit}
-      />
-      <Action label="Cancel" disabled={busy} onPress={onClose} />
+      <ModalActions>
+        <Action label="Cancel" disabled={busy} onPress={onClose} />
+        <Action
+          label={editing ? 'Save changes' : 'Create draft offering'}
+          primary
+          disabled={!complete || busy || blocked}
+          onPress={submit}
+        />
+      </ModalActions>
     </View>
   );
 }
