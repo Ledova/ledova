@@ -450,26 +450,29 @@ with the menu, the logo and the bell. It has no header bar and no footer; only
 the public layout has a footer.
 
 On mobile every signed-in screen renders in `Page`
-(`mobile/src/components/Page.tsx`), a scroll view on the paper that opens with
-one header block: the screen's title in Newsreader at 36 (`fontSize.xxxxl`),
-marked as the screen's header, then its lede directly under the title when it has
-one, then its screen actions as one wrapping row of content-width `Action`s: a
-way back such as Back to Directory, Back to Applications or Back to Company,
-Refresh on Published to your members, New offering, Edit company, Activity's
-Filter, and Wallets' Buy crypto, Send, Add wallet, Filter and Sync balances.
-Where the web keeps the title and actions on one row, a phone's large title
-leaves no room, so mobile keeps the lede with the title it describes and puts
-the actions after it. The side padding is 24 (`spacing.lg`), and the first card
-follows the header block at the same 24 as between cards, whether or not the
-screen has a lede or actions. A screen's loading, access and failure states
-render in the same frame under the same title; a company's share class is titled
-Share class until the class is read, and then by the class. Each screen keeps its
-own pull to refresh and keyboard handling, which `Page` hands to its scroll view.
-The stack header above the page carries no title of its own, only the menu or
-back button and, on a top-level screen, the bell, which in every stack opens the
-notifications and shows the unread count. Help & Support, reached from the
-drawer's foot, keeps its stack title and contact cards, and the flow screens
-titled inside their card (`Panel`) keep that card.
+(`mobile/src/components/Page.tsx`), except those named at the end of this
+paragraph. `Page` is a scroll view on the paper that opens with one header
+block: the screen's title in Newsreader at 36 (`fontSize.xxxxl`), marked as the
+screen's header, then its lede directly under the title when it has one, then
+its screen actions as one wrapping row of content-width `Action`s: a way back
+such as Back to Directory, Back to Applications or Back to Company, Refresh on
+Published to your members, New offering, Edit company, Activity's Filter, and
+Wallets' Buy crypto, Send, Add wallet, Filter and Sync balances. Where the web
+keeps the title and actions on one row, a phone's large title leaves no room, so
+mobile keeps the lede with the title it describes and puts the actions after it.
+The side padding is 24 (`spacing.lg`), and the first card follows the header
+block at the same 24 as between cards, whether or not the screen has a lede or
+actions. A screen's loading, access and failure states render in the same frame
+under the same title; a company's share class is titled Share class until the
+class is read, and then by the class. Each screen keeps its own pull to refresh
+and keyboard handling, which `Page` hands to its scroll view. The stack header
+above the page carries no title of its own, only the menu or back button and, on
+a top-level screen, the bell, which in every stack opens the notifications and
+shows the unread count. The exceptions keep a frame of their own: Help & Support,
+the last row of the drawer's list, keeps its stack title and contact cards; the
+Send, Transfer, Verify Wallet and Recovery Phrase screens are titled inside their
+`Panel` card; and Buy crypto is its dialog over the plain paper, followed by the
+provider's web view, both under a Buy Crypto stack title.
 
 The sidebar's list holds its destinations and ends with Help & Support, a
 footer-style link to the contact page that opens in a new tab. The list scrolls
