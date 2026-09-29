@@ -30,10 +30,10 @@ import { PlaceOrderPanel } from './components/PlaceOrderPanel';
 import { useTradingEvents } from './hooks/useTradingEvents';
 import { useInvestorEligibilityQuery } from './useTrading';
 import { Page, PageAction } from '@components/Page';
-import { Section } from '@components/Ledger';
+import { Row, Rows, Section } from '@components/Ledger';
 import { marketAmount, marketQuantity } from './marketData';
 
-const ICON_XL = DESIGN_TOKENS.icon.sizes.xl;
+const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 
 function OrderSuccessModal({
   isOpen,
@@ -50,40 +50,29 @@ function OrderSuccessModal({
   const isBuy = order.orderType === 'buy';
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={recovered ? 'Order recovered' : 'Order created'} size="sm">
-      <div className="flex flex-col items-center gap-4 py-4">
-        <div className="w-16 h-16 rounded-full bg-success-light/10 flex items-center justify-center">
-          <CheckCircleIcon size={ICON_XL} className="text-success-light" />
-        </div>
-        <div className="text-center">
-          <h3 className="text-lg font-semibold text-text-primary">
-            {isBuy ? 'Buy' : 'Sell'} order {recovered ? 'recovered' : 'placed'}
-          </h3>
-          <p className="text-sm text-text-muted mt-1">
-            Current status: {order.statusDisplay ?? order.status.replace(/_/g, ' ')}.
-          </p>
-        </div>
-        <div className="w-full p-4 rounded-lg bg-surface-tertiary space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-text-muted">Quantity</span>
-            <span className="text-text-primary">{marketQuantity(order.quantity)} shares</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-text-muted">Price</span>
-            <span className="text-text-primary">{marketAmount(order.pricePerShare)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-text-muted">Total</span>
-            <span className="text-text-primary font-semibold">{marketAmount(order.totalValue)}</span>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="w-full py-3 rounded-lg bg-brand-mid hover:bg-brand text-white font-semibold transition-colors"
-        >
-          Done
-        </button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={recovered ? 'Order recovered' : 'Order created'}
+      size="sm"
+      showFooter
+      showCancelButton={false}
+      confirmLabel="Done"
+      onConfirm={onClose}
+    >
+      <div className="space-y-2">
+        <h3 className="flex items-center gap-2 text-sm font-medium text-success-light">
+          <CheckCircleIcon size={ICON_MD} weight="fill" />
+          {isBuy ? 'Buy' : 'Sell'} order {recovered ? 'recovered' : 'placed'}
+        </h3>
+        <p className="text-sm text-text-muted">
+          Current status: {order.statusDisplay ?? order.status.replace(/_/g, ' ')}.
+        </p>
+        <Rows>
+          <Row label="Quantity">{marketQuantity(order.quantity)} shares</Row>
+          <Row label="Price">{marketAmount(order.pricePerShare)}</Row>
+          <Row label="Total">{marketAmount(order.totalValue)}</Row>
+        </Rows>
       </div>
     </Modal>
   );

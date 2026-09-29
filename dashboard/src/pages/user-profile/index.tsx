@@ -81,7 +81,7 @@ export function UserProfilePage() {
                   value={phoneCode}
                   disabled={isUpdating}
                   onChange={(event) => setPhoneCode(event.target.value)}
-                  className="min-w-0 rounded-lg border border-border bg-paper px-3 py-2 text-text-primary"
+                  className="min-w-0 rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid"
                 />
               </label>
               <label className="flex min-w-0 flex-1 flex-col gap-1 text-sm text-text-muted">
@@ -92,7 +92,7 @@ export function UserProfilePage() {
                   value={phoneNumber}
                   disabled={isUpdating}
                   onChange={(event) => setPhoneNumber(event.target.value)}
-                  className="min-w-0 rounded-lg border border-border bg-paper px-3 py-2 text-text-primary"
+                  className="min-w-0 rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid"
                 />
               </label>
             </div>

@@ -39,8 +39,8 @@ export function SignupUser() {
         <h1 className="font-display text-3xl tracking-[-0.01em] text-text-primary">Create Your Account</h1>
       </div>
 
-      <div className="bg-surface-raised rounded-lg border border-border">
-        <div className="p-6">
+      <div className="rounded-xl border border-border bg-surface-raised">
+        <div className="p-4 sm:p-5">
           <form onSubmit={handleSignUp} className="space-y-6">
             {generalError && (
               <div className="bg-error-subtle border border-error-dark rounded-lg p-4">
@@ -127,7 +127,7 @@ export function SignupUser() {
                 </button>
               </div>
 
-              <div className="bg-surface-tertiary rounded-md p-3 border border-border">
+              <div>
                 <p className="text-xs font-medium text-text-body mb-2">Password must:</p>
                 <ul className="space-y-1">
                   <li className="flex items-center space-x-2 text-xs">

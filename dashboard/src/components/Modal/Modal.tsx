@@ -1,9 +1,11 @@
 import { Fragment, type ReactNode } from 'react';
-import { Dialog, DialogPanel, Transition, TransitionChild } from '@headlessui/react';
+import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
+import { PageAction } from '@components/Page';
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
+  title: string;
   children: ReactNode;
   showFooter?: boolean;
   showCancelButton?: boolean;
@@ -13,7 +15,6 @@ interface ModalProps {
   onConfirm?: () => void;
   confirmDisabled?: boolean;
   confirmLoading?: boolean;
-  title?: ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
   fullHeight?: boolean;
 }
@@ -27,9 +28,14 @@ const sizeClasses = {
   '3xl': 'max-w-3xl',
 };
 
+export function ModalActions({ children }: { children: ReactNode }) {
+  return <div className="flex flex-wrap items-center justify-end gap-2">{children}</div>;
+}
+
 export function Modal({
   isOpen,
   onClose,
+  title,
   children,
   showFooter = false,
   showCancelButton = true,
@@ -39,7 +45,6 @@ export function Modal({
   onConfirm,
   confirmDisabled = false,
   confirmLoading = false,
-  title,
   size = 'md',
   fullHeight = false,
 }: ModalProps) {
@@ -70,45 +75,28 @@ export function Modal({
               leaveTo="opacity-0 scale-95"
             >
               <DialogPanel
-                className={`w-full ${sizeClasses[size]} transform overflow-hidden rounded-xl bg-surface-raised border border-border shadow-2xl transition-all`}
+                className={`flex w-full ${sizeClasses[size]} transform flex-col gap-4 rounded-xl border border-border bg-surface-raised p-4 shadow-2xl transition-all sm:p-5`}
               >
-                {title && (
-                  <div className="px-4 pt-4 pb-2 border-b border-border-subtle">
-                    <h3 className="text-lg font-semibold text-text-primary">{title}</h3>
-                  </div>
-                )}
+                <DialogTitle className="break-words font-display text-xl tracking-[-0.01em] text-text-primary">
+                  {title}
+                </DialogTitle>
 
-                <div className={`p-4 ${fullHeight ? '' : 'max-h-[70vh]'} overflow-y-auto`}>{children}</div>
+                <div className={`-m-1 overflow-y-auto p-1 ${fullHeight ? '' : 'max-h-[70vh]'}`}>{children}</div>
 
                 {showFooter && (
-                  <div className="flex gap-3 p-4 border-t border-border bg-surface-tertiary">
+                  <ModalActions>
                     {showCancelButton && (
-                      <button
-                        type="button"
-                        className={`flex-1 px-4 py-3 rounded-lg font-medium text-text-primary bg-surface-disabled border border-border hover:bg-surface-tertiary transition-colors ${
-                          confirmLoading ? 'opacity-50 cursor-not-allowed' : ''
-                        } ${!onConfirm ? 'flex-none w-full' : ''}`}
-                        onClick={onCancel ?? onClose}
-                        disabled={confirmLoading}
-                      >
-                        {cancelLabel}
-                      </button>
+                      <PageAction label={cancelLabel} onClick={onCancel ?? onClose} disabled={confirmLoading} />
                     )}
                     {onConfirm && (
-                      <button
-                        type="button"
-                        className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-colors ${
-                          confirmDisabled || confirmLoading
-                            ? 'bg-surface-disabled text-text-secondary cursor-not-allowed'
-                            : 'bg-brand-light hover:bg-brand text-white'
-                        } ${!showCancelButton ? 'flex-none w-full' : ''}`}
+                      <PageAction
+                        label={confirmLoading ? 'Loading...' : confirmLabel}
+                        primary
                         onClick={onConfirm}
                         disabled={confirmDisabled || confirmLoading}
-                      >
-                        {confirmLoading ? 'Loading...' : confirmLabel}
-                      </button>
+                      />
                     )}
-                  </div>
+                  </ModalActions>
                 )}
               </DialogPanel>
             </TransitionChild>

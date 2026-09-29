@@ -8,7 +8,10 @@ import { UR, UREncoder } from '@ngraveio/bc-ur';
 import { AnimatedQRCode } from '@keystonehq/animated-qr';
 import { useQRScanner } from '@components/qr';
 import { OrderActionFlow } from './components/OrderActionFlow';
-vi.mock('@components/Modal', () => ({ Modal: ({ children }: { children: ReactNode }) => <div>{children}</div> }));
+vi.mock('@components/Modal', () => ({
+  Modal: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  ModalActions: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+}));
 vi.mock('@components/SeedPhraseInput', () => ({
   SeedPhraseInput: ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
     <input aria-label="Synthetic seed" value={value} onChange={(event) => onChange(event.target.value)} />
