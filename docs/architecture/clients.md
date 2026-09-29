@@ -431,6 +431,10 @@ Pages rebuilt in the paper layout use the ledger blocks in
 - `LinkRow`: a row that opens another page, named after its destination, with
   optional detail lines, an optional aside such as a status or a price, and a
   trailing chevron; the whole row is the link.
+- `SwitchRow`: a row that turns a setting on or off, with its label, an
+  optional muted sentence under it, and an On or Off pill at its end that is
+  the switch itself (`role="switch"`), named by the label and described by the
+  sentence.
 - `Status`: a status in words with a small mark for waiting, moving, done or closed.
 - `Timeline`: each event with its date.
 
@@ -464,6 +468,17 @@ wallet. A destination the sidebar already reaches, such as Notices, is not
 repeated in a title row. An underlined link is part of a sentence ("open
 Notices") or opens an external resource such as a block explorer or a stored
 document. Mobile's `LinkRow` and `Action` follow the same rule.
+
+A setting that takes effect as soon as it changes has one control, a
+`SwitchRow`: Transaction alerts on Settings and Show this company to eligible
+investors on Offerings. Its `aria-checked` is the saved value; it is disabled
+while a change is saving, keeps the saved value when the change is refused, and
+the refusal is an alert in the same card. A choice that is saved with a form
+stays a checkbox, as the payment choices in the offering editor and the
+declaration in a claim do. Mobile's `SwitchRow` puts the native switch at the
+end of the same row, named by the label with the sentence as its hint, for
+biometric sign-in, App lock and Transaction alerts on Settings and Show this
+company to eligible investors on Offerings.
 
 A lede, the one muted sentence under a page's title, appears only where it says
 what the titles do not: an instruction (Wallets, Activity) or a fact (Register,
