@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { test } from 'node:test';
+import { checkSceneProject } from '../ios-scene-project.mjs';
 
 const mobile = path.resolve(import.meta.dirname, '../..');
 const require = createRequire(path.join(mobile, 'package.json'));
 const withSceneLifecycle = require(path.join(mobile, 'plugins/withSceneLifecycle.cjs'));
+const plist = require('@expo/plist').default;
 
 const manifest = {
   UIApplicationSupportsMultipleScenes: false,
@@ -181,4 +184,66 @@ test('an AppDelegate whose window Objective-C cannot read is refused', async () 
   );
   assert.notEqual(notExpo, sdk54AppDelegate);
   await assert.rejects(appDelegate(notExpo), message);
+});
+
+const generatedProject = (change = (project) => project) => {
+  const delegate = fs.readFileSync(path.join(mobile, 'plugins/native/LedovaSceneDelegate.m'), 'utf8');
+  const info = () => plist.parse(plist.build({ CFBundleName: 'Ledova', UIApplicationSceneManifest: manifest }));
+  return change({
+    plists: { 'Info.plist': info(), 'Info-Debug.plist': info() },
+    generatedDelegate: delegate,
+    pluginDelegate: delegate,
+    sources: [
+      'AppDelegate.swift in Sources',
+      'LedovaSceneDelegate.m in Sources',
+      'LedovaHTTPRequestHandler.m in Sources',
+    ],
+  });
+};
+
+test('the generated-project check passes a project the plugin produced', () => {
+  checkSceneProject(generatedProject());
+});
+
+test('the generated-project check names a missing scene manifest instead of failing to parse it', () => {
+  for (const file of ['Info.plist', 'Info-Debug.plist']) {
+    const project = generatedProject((project) => {
+      delete project.plists[file].UIApplicationSceneManifest;
+      return project;
+    });
+    assert.throws(
+      () => checkSceneProject(project),
+      (error) =>
+        error.name === 'AssertionError' &&
+        error.message.startsWith(`${file} has no UIApplicationSceneManifest, so iOS 27 stops the app at launch`),
+      file,
+    );
+  }
+});
+
+test('the generated-project check refuses another delegate, a stale or missing copy, and a delegate compiled twice', () => {
+  const other = copy(manifest);
+  other.UISceneConfigurations.UIWindowSceneSessionRoleApplication[0].UISceneDelegateClassName = 'SceneDelegate';
+  const cases = [
+    [
+      (project) => ({ ...project, plists: { ...project.plists, 'Info.plist': { UIApplicationSceneManifest: other } } }),
+      /Info\.plist declares a scene manifest other than LedovaSceneDelegate's/,
+    ],
+    [
+      (project) => ({ ...project, generatedDelegate: `${project.generatedDelegate}\n` }),
+      /generated LedovaSceneDelegate\.m differs/,
+    ],
+    [(project) => ({ ...project, generatedDelegate: undefined }), /generated project has no LedovaSceneDelegate\.m/],
+    [
+      (project) => ({ ...project, sources: [...project.sources, 'LedovaSceneDelegate.m in Sources'] }),
+      /compile LedovaSceneDelegate\.m exactly once/,
+    ],
+    [
+      (project) => ({ ...project, sources: ['AppDelegate.swift in Sources'] }),
+      /compile LedovaSceneDelegate\.m exactly once/,
+    ],
+  ];
+  for (const [change, message] of cases) {
+    assert.throws(() => checkSceneProject(generatedProject(change)), message);
+  }
 });
