@@ -1,22 +1,54 @@
-import { useState, useEffect, useCallback } from 'react';
-import {
-  getUserProfiles,
-  updateUserProfile,
-  FormErrors,
-  UserProfileFormData,
-  formatPhoneForDisplay,
-  cleanPhoneNumber,
-  COUNTRIES,
-} from '@ledova/shared';
-import type { CountryData } from '@ledova/shared';
-import { apiClient } from '../../../services/apiClient';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 
-export const useUserProfile = () => {
+import { COUNTRIES, type CountryData } from '../constants/countries';
+import { getUserProfiles, updateUserProfile } from '../services/users';
+import type { FormErrors, UserProfileFormData, UserProfileFormValidation } from '../types';
+import { describeFailure } from '../utils/errors';
+import { cleanPhoneNumber, formatPhoneForDisplay } from '../utils/phoneFormatting';
+import { validateUserProfileField } from '../utils/user-validation';
+import { isValidFullName, isValidPhoneFormat } from '../utils/validation';
+import { useApiClient } from './useApiClient';
+
+const DEFAULT_COUNTRY = COUNTRIES[0]!;
+
+const validateUserProfile = (form: UserProfileFormData): UserProfileFormValidation => {
+  const fullNameValidation = validateUserProfileField.fullName(form.fullName);
+  const phoneNumberValidation = validateUserProfileField.phoneNumber(form.phoneNumber);
+  const residentialAddressValidation = validateUserProfileField.residentialAddress(form.residentialAddress);
+
+  const fullName = {
+    isValid: fullNameValidation.isValid,
+    isEmpty: form.fullName.trim().length === 0,
+    hasValidFormat: isValidFullName(form.fullName),
+  };
+
+  const phoneNumber = {
+    isValid: phoneNumberValidation.isValid,
+    isEmpty: form.phoneNumber.trim().length === 0,
+    hasValidFormat: isValidPhoneFormat(form.phoneNumber),
+  };
+
+  const residentialAddress = {
+    isValid: residentialAddressValidation.isValid,
+    isEmpty: form.residentialAddress.trim().length === 0,
+    isTooShort: form.residentialAddress.trim().length > 0 && !residentialAddressValidation.isValid,
+  };
+
+  return {
+    fullName,
+    residentialAddress,
+    phoneNumber,
+    isFormValid: fullName.isValid && residentialAddress.isValid && phoneNumber.isValid,
+  };
+};
+
+export function useSignupUserProfile() {
+  const apiClient = useApiClient();
   const [form, setForm] = useState<UserProfileFormData>({
     fullName: '',
     dateOfBirth: '',
     residentialAddress: '',
-    phoneCountryCode: COUNTRIES[0].phoneCode,
+    phoneCountryCode: DEFAULT_COUNTRY.phoneCode,
     phoneNumber: '',
   });
 
@@ -25,15 +57,19 @@ export const useUserProfile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [existingProfileUuid, setExistingProfileUuid] = useState<string | null>(null);
-  const [selectedCountry, setSelectedCountry] = useState<CountryData>(COUNTRIES[0]);
+  const [selectedCountry, setSelectedCountry] = useState<CountryData>(DEFAULT_COUNTRY);
+
+  const formValidation = useMemo(() => {
+    return validateUserProfile(form);
+  }, [form]);
 
   const loadUserProfile = useCallback(async () => {
     try {
-      const profileResponse = await getUserProfiles(apiClient);
-      const profileData = profileResponse.data;
+      const response = await getUserProfiles(apiClient);
+      const profileData = response.data;
 
       if (profileData && profileData.results && profileData.count > 0) {
-        const existingProfile = profileData.results[0];
+        const existingProfile = profileData.results[0]!;
         setExistingProfileUuid(existingProfile.uuid);
 
         if (existingProfile.phoneCountryCode) {
@@ -45,7 +81,7 @@ export const useUserProfile = () => {
 
         let formattedPhoneNumber = existingProfile.phoneNumber || '';
         if (existingProfile.phoneNumber && existingProfile.phoneCountryCode) {
-          const country = COUNTRIES.find((c) => c.phoneCode === existingProfile.phoneCountryCode) || COUNTRIES[0];
+          const country = COUNTRIES.find((c) => c.phoneCode === existingProfile.phoneCountryCode) || DEFAULT_COUNTRY;
           formattedPhoneNumber = formatPhoneForDisplay(existingProfile.phoneNumber, country);
         }
 
@@ -53,16 +89,17 @@ export const useUserProfile = () => {
           fullName: existingProfile.fullName || '',
           dateOfBirth: existingProfile.dateOfBirth || '',
           residentialAddress: existingProfile.residentialAddress || '',
-          phoneCountryCode: existingProfile.phoneCountryCode || COUNTRIES[0].phoneCode,
+          phoneCountryCode: existingProfile.phoneCountryCode || DEFAULT_COUNTRY.phoneCode,
           phoneNumber: formattedPhoneNumber,
         });
       }
-    } catch {
+    } catch (error) {
+      console.error(`Failed to load profile data: ${describeFailure(error)}`);
       setGeneralError('Failed to load profile data. Please try again.');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [apiClient]);
 
   useEffect(() => {
     loadUserProfile();
@@ -160,6 +197,7 @@ export const useUserProfile = () => {
 
       onSuccess();
     } catch (error: unknown) {
+      console.error(`User profile update failed: ${describeFailure(error)}`);
       const axiosError = error as { response?: { data?: unknown } };
       if (axiosError.response?.data) {
         const errorData = axiosError.response.data;
@@ -195,6 +233,8 @@ export const useUserProfile = () => {
     generalError,
     isLoading,
     isSubmitting,
+    existingProfileUuid,
+    formValidation,
     selectedCountry,
     countries: COUNTRIES,
     setFieldValue,
@@ -202,4 +242,4 @@ export const useUserProfile = () => {
     handleSubmit,
     retryLoad,
   };
-};
+}

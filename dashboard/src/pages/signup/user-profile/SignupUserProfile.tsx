@@ -3,10 +3,9 @@ import { UserIcon } from '@phosphor-icons/react';
 import LoadingState from '@components/signup/LoadingState';
 import ErrorState from '@components/signup/ErrorState';
 import { UserProfileForm } from './components/UserProfileForm';
-import { useSignupUserProfile } from './useSignupUserProfile';
 import { useRole } from '@hooks/useRole';
 import { AuthLayout } from '@components/AuthLayout';
-import { DESIGN_TOKENS } from '@ledova/shared';
+import { DESIGN_TOKENS, useSignupUserProfile } from '@ledova/shared';
 
 const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 

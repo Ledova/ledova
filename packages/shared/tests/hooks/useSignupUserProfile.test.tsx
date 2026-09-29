@@ -1,12 +1,12 @@
-// @vitest-environment jsdom
-
+/** @jest-environment jsdom */
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { COUNTRIES } from '@ledova/shared';
-import { useSignupUserProfile } from './useSignupUserProfile';
 
-const api = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn() }));
-vi.mock('@services/apiClient', () => ({ default: api }));
+import { COUNTRIES } from '../../src/constants/countries';
+import { useSignupUserProfile } from '../../src/hooks/useSignupUserProfile';
+import { providers, signupApi } from '../fixtures/signup';
+
+const api = signupApi();
+const wrapper = providers(api);
 
 const profile = {
   uuid: 'profile-1',
@@ -18,12 +18,12 @@ const profile = {
 };
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  jest.clearAllMocks();
 });
 
-afterEach(() => {
-  cleanup();
-  vi.restoreAllMocks();
+afterEach(async () => {
+  await cleanup();
+  jest.restoreAllMocks();
 });
 
 async function settle() {
@@ -34,7 +34,7 @@ async function settle() {
 
 it('loads the saved profile once and keeps edits and the chosen country after a country change', async () => {
   api.get.mockResolvedValue({ data: { count: 1, results: [profile] } });
-  const { result } = renderHook(() => useSignupUserProfile());
+  const { result } = renderHook(() => useSignupUserProfile(), { wrapper });
   await waitFor(() => expect(result.current.isLoading).toBe(false));
   expect(result.current.selectedCountry.code).toBe('GB');
   expect(result.current.form.fullName).toBe('Synthetic Person');
@@ -43,7 +43,7 @@ it('loads the saved profile once and keeps edits and the chosen country after a 
   act(() => result.current.handleCountryChange(COUNTRIES.find((country) => country.code === 'AU')!));
   await settle();
 
-  expect(api.get).toHaveBeenCalledOnce();
+  expect(api.get).toHaveBeenCalledTimes(1);
   expect(result.current.isLoading).toBe(false);
   expect(result.current.form.fullName).toBe('Edited Person');
   expect(result.current.form.phoneCountryCode).toBe('+61');
@@ -51,16 +51,18 @@ it('loads the saved profile once and keeps edits and the chosen country after a 
 });
 
 it('retries a failed load from a fresh loading state', async () => {
-  vi.spyOn(console, 'error').mockImplementation(() => {});
+  jest.spyOn(console, 'error').mockImplementation(() => {});
   api.get.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ data: { count: 1, results: [profile] } });
-  const { result } = renderHook(() => useSignupUserProfile());
+  const { result } = renderHook(() => useSignupUserProfile(), { wrapper });
   await waitFor(() => expect(result.current.generalError).toBe('Failed to load profile data. Please try again.'));
   expect(result.current.isLoading).toBe(false);
+  expect(console.error).toHaveBeenCalledWith('Failed to load profile data: Error: offline');
 
   act(() => result.current.retryLoad());
   expect(result.current.isLoading).toBe(true);
   expect(result.current.generalError).toBe('');
   await waitFor(() => expect(result.current.isLoading).toBe(false));
+  expect(result.current.generalError).toBe('');
   expect(result.current.form.fullName).toBe('Synthetic Person');
   expect(api.get).toHaveBeenCalledTimes(2);
 });
