@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import {
+  canOpen,
   getCompanyTokens,
   getCompanyTokenHolders,
   readEveryPage,
@@ -20,7 +21,7 @@ export function checkedRegister(uuid: string, register: TokenHoldersResponse) {
 export function useCompanyAccess() {
   const preferences = useUserPreferences();
   const role = preferences.userAccount?.role;
-  return { ...preferences, allowed: !preferences.isError && (role === 'company' || role === 'both') };
+  return { ...preferences, allowed: !preferences.isError && !!role && canOpen(role, 'company') };
 }
 
 export function useCompanyRegister() {

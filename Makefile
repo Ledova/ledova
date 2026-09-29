@@ -189,6 +189,7 @@ audit:
 test:
 	$(NPM) run check:react-singleton -w dashboard
 	node --test mobile/scripts/shared-peer-resolution.test.mjs
+	node --test mobile/scripts/tests/relative-imports.test.mjs
 	$(NPM) test
 	$(NPM) --prefix mobile test
 	$(NPM) --prefix contracts test

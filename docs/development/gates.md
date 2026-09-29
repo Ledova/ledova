@@ -37,12 +37,15 @@ oversight, and documenting it here would fail the gate.
 
 Two rules are gated without a script of their own: one migration per model
 change, through CI's `makemigrations --check --dry-run`, and the generated
-design tokens, through `git diff --exit-code` after `make build`. Four more
+design tokens, through `git diff --exit-code` after `make build`. Other
 checks run from the Makefile rather than from `scripts/`:
 `make check-mobile-test-awaits`, `npm --prefix mobile run check:resolution`,
-and, in `make test`, `dashboard/scripts/check-react-singleton.mjs` and
+and, in `make test`, `dashboard/scripts/check-react-singleton.mjs`,
 `mobile/scripts/shared-peer-resolution.test.mjs`, the negative control for the
-peer step of `check:resolution`.
+peer step of `check:resolution`, and
+`mobile/scripts/tests/relative-imports.test.mjs`, the control for its refusal
+of a relative import that climbs out of `mobile/` into a `node_modules`
+directory, such as the root copy of a package mobile also installs.
 
 ## The PR metadata gate
 

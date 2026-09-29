@@ -4,7 +4,7 @@ import { AUTH_ENDPOINTS, COMPANY_TOKEN_ENDPOINTS, pauseCompanyToken } from '@led
 import { apiClient } from './apiClient';
 import { clearTokens, storeTokens } from './tokenStorage';
 import { assertSessionEpoch, getSessionEpoch, invalidateSessionScope } from './sessionScope';
-import { retainSavedPause, listSavedPauses } from './pauseSubmissions';
+import { pauseSubmissionStore } from './pauseSubmissions';
 import { owner, pauseResponse, resetPauseStorage, tokenUuid } from '../testSupport/pauseRequests';
 import { deferred, response } from '../../../packages/shared/tests/fixtures/order-submissions';
 
@@ -39,7 +39,7 @@ afterEach(() => {
 it.each([false, true])(
   'retries the same pause submission through bearer rotation only in its original session (retired=%s)',
   async (retired) => {
-    await retainSavedPause(record);
+    await pauseSubmissionStore.retain(record);
     const epoch = getSessionEpoch();
     const started = deferred<void>();
     const refresh = deferred<void>();
@@ -78,7 +78,7 @@ it.each([false, true])(
       expect(request.ledovaSessionEpoch).toBe(epoch);
       expect(typeof request.ledovaSubmissionGuard).toBe('function');
     }
-    expect(await listSavedPauses(owner, tokenUuid)).toEqual([record]);
+    expect(await pauseSubmissionStore.list(owner, tokenUuid)).toEqual([record]);
     if (retired) expect(failure?.message).toContain('session changed');
     else {
       expect(failure).toBeNull();

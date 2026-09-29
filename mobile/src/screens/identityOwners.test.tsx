@@ -1,6 +1,8 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { AxiosInstance } from 'axios';
+import { ApiClientProvider } from '@ledova/shared';
 import { apiClient } from '../services/apiClient';
 import { invalidateSessionScope } from '../services/sessionScope';
 import { VerificationModal } from './user-profile/components/VerificationModal';
@@ -60,11 +62,13 @@ afterEach(async () => {
 function owner(kind: 'profile' | 'signup', visible = true) {
   return (
     <QueryClientProvider client={client}>
-      {kind === 'profile' ? (
-        <VerificationModal visible={visible} onClose={close} onRefresh={refresh} />
-      ) : (
-        <IdentityVerificationScreen />
-      )}
+      <ApiClientProvider client={apiClient as unknown as AxiosInstance}>
+        {kind === 'profile' ? (
+          <VerificationModal visible={visible} onClose={close} onRefresh={refresh} />
+        ) : (
+          <IdentityVerificationScreen />
+        )}
+      </ApiClientProvider>
     </QueryClientProvider>
   );
 }

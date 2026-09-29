@@ -22,9 +22,10 @@ vi.mock('@services/apiClient', () => ({ default: api }));
 vi.mock('@ledova/shared', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@ledova/shared')>()),
   useAuth: () => ({ isAuthenticated: true }),
-}));
-vi.mock('@hooks/useFeatureFlags', () => ({
-  useFeatureFlags: () => ({ tradingEnabled: flags.tradingEnabled, isLoading: false }),
+  useFeatureFlags: () => ({
+    isEnabled: (name: string) => name === 'trading_enabled' && flags.tradingEnabled,
+    isLoading: false,
+  }),
 }));
 vi.mock('@pages/user-profile/useUserProfile', () => ({ useUserProfile: () => ({ userProfile: person.profile }) }));
 vi.mock('@components/NotificationBell', () => ({

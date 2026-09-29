@@ -10,18 +10,13 @@ import {
   type CompanyShareToken,
   type OrderSubmissionOwner,
   type PauseSubmissionResponse,
+  type SavedPause,
 } from '@ledova/shared';
 import { Action, Section } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { getSessionEpoch, assertSessionEpoch } from '../../services/sessionScope';
-import {
-  listSavedPauses,
-  removeSavedPause,
-  retainSavedPause,
-  savePause,
-  type SavedPause,
-} from '../../services/pauseSubmissions';
+import { pauseSubmissionStore } from '../../services/pauseSubmissions';
 import { useCompanyStyles } from '../company-register/styles';
 
 type Props = {
@@ -63,7 +58,7 @@ function PauseRequests({
   const load = useCallback(async () => {
     try {
       guard();
-      const saved = await listSavedPauses(owner, token.uuid);
+      const saved = await pauseSubmissionStore.list(owner, token.uuid);
       guard();
       setRecords((previous) => [
         ...previous,
@@ -124,7 +119,9 @@ function PauseRequests({
     setError(null);
     try {
       guard();
-      const record = previous ? await retainSavedPause(previous) : await savePause(owner, token.uuid, paused);
+      const record = previous
+        ? await pauseSubmissionStore.retain(previous)
+        : await pauseSubmissionStore.save(owner, token.uuid, paused);
       guard();
       await load();
       guard();
@@ -150,7 +147,7 @@ function PauseRequests({
   const dismiss = async (record: SavedPause) => {
     try {
       guard();
-      await removeSavedPause(record);
+      await pauseSubmissionStore.remove(record);
       guard();
       setRecords((previous) => previous.filter((existing) => existing.submissionId !== record.submissionId));
       await load();

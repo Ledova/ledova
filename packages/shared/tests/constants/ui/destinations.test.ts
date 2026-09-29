@@ -1,6 +1,8 @@
 import { canOpen, DESTINATIONS, landingFor, type Audience } from '../../../src/constants/ui/destinations';
+import type { AccountRole } from '../../../src/types/domain/user-preferences';
 
 const EVERY_AUDIENCE: Audience[] = ['everyone', 'investing', 'company'];
+const UNDEFINED_ROLES = ['', 'staff', 'Investor', 'toString', '__proto__'] as unknown as AccountRole[];
 
 describe('where a signed-in person lands', () => {
   it('sends an investor to their home', () => {
@@ -11,10 +13,17 @@ describe('where a signed-in person lands', () => {
     expect(landingFor(role)).toBe(DESTINATIONS.companyRegister.path);
   });
 
-  it.each(['investor', 'company', 'both'] as const)('sends a %s account to a page it can open', (role) => {
-    const landing = Object.values(DESTINATIONS).find((destination) => destination.path === landingFor(role));
-    expect(landing && canOpen(role, landing.audience)).toBe(true);
+  it.each(UNDEFINED_ROLES)('sends a role the API does not define (%p) to Holdings', (role) => {
+    expect(landingFor(role)).toBe(DESTINATIONS.home.path);
   });
+
+  it.each<AccountRole>(['investor', 'company', 'both', ...UNDEFINED_ROLES])(
+    'sends a %p account to a page it can open',
+    (role) => {
+      const landing = Object.values(DESTINATIONS).find((destination) => destination.path === landingFor(role));
+      expect(landing && canOpen(role, landing.audience)).toBe(true);
+    },
+  );
 });
 
 describe('who can open a page', () => {
@@ -28,6 +37,10 @@ describe('who can open a page', () => {
 
   it('lets a company open the pages for everyone and for companies, and not the investing pages', () => {
     expect(EVERY_AUDIENCE.filter((audience) => canOpen('company', audience))).toEqual(['everyone', 'company']);
+  });
+
+  it.each(UNDEFINED_ROLES)('lets a role the API does not define (%p) open only the pages for everyone', (role) => {
+    expect(EVERY_AUDIENCE.filter((audience) => canOpen(role, audience))).toEqual(['everyone']);
   });
 });
 
