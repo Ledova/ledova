@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
 import { PUBLICATION_COPY } from '@ledova/shared';
@@ -124,7 +124,7 @@ it.each(['company', 'both'])(
       );
     const view = await render(<CompanyPublicationsScreen />, { wrapper });
     expect(await view.findByText('Last issuer paper')).toBeTruthy();
-    expect(view.getByText('2 publications')).toBeTruthy();
+    expect(view.getByRole('header', { name: 'Publications (2)' })).toBeTruthy();
     expect(view.queryByText('Personal paper')).toBeNull();
     expect(get).toHaveBeenCalledWith(LIST, { params: { page: 1, issuer: 'company-one' } });
     expect(get).toHaveBeenCalledWith(LIST, { params: { page: 2, issuer: 'company-one' } });
@@ -140,9 +140,9 @@ it('does not claim a complete count or expose first-page records while a later p
   expect(await view.findByText('Loading company publications…')).toBeTruthy();
   await waitFor(() => expect(get).toHaveBeenCalledWith(LIST, { params: { page: 2, issuer: 'company-one' } }));
   expect(view.queryByText(statement.title)).toBeNull();
-  expect(view.queryByText('1 publication')).toBeNull();
+  expect(view.queryByRole('header', { name: /^Publications/ })).toBeNull();
   await act(async () => second.resolve(listed([{ ...statement, uuid: 'last', title: 'Last paper' }])));
-  expect(await view.findByText('2 publications')).toBeTruthy();
+  expect(await view.findByRole('header', { name: 'Publications (2)' })).toBeTruthy();
 });
 
 it.each(['refused', 'nonadvancing', 'unparseable'])(
@@ -164,6 +164,30 @@ it.each(['refused', 'nonadvancing', 'unparseable'])(
     expect(await view.findByText(statement.title)).toBeTruthy();
   },
 );
+
+it.each([
+  ['publications', 2, 'Publications (2)'],
+  ['none', 0, 'Publications (0)'],
+])('opens with one Publications card, counted in its title, when there are %s', async (_, count, title) => {
+  rows = count ? [statement, { ...statement, uuid: 'second-paper', title: 'Second issuer paper' }] : [];
+  const view = await render(<CompanyPublicationsScreen />, { wrapper });
+  const card = (await view.findByRole('header', { name: title })).parent!;
+  const header = view.getByRole('header', { name: 'Published to your members' }).parent!;
+  expect(header.parent!.children[1]).toBe(card);
+  expect(view.queryByText(/^\d+ publications?$/)).toBeNull();
+  if (count) {
+    expect(within(card).getByRole('header', { name: statement.title })).toBeTruthy();
+    expect(within(card).getByRole('header', { name: 'Second issuer paper' })).toBeTruthy();
+    expect(within(card).getAllByRole('button', { name: new RegExp(`^${PUBLICATION_COPY.OPEN}: `) })).toHaveLength(2);
+    expect(
+      within(card).getByText(
+        'These are the stored documents as published. Company and share class names are frozen at publication.',
+      ),
+    ).toBeTruthy();
+  } else {
+    expect(within(card).getByText("Nothing has been published to this company's members yet.")).toBeTruthy();
+  }
+});
 
 it('distinguishes an owned company with no publications from a missing company', async () => {
   rows = [];
@@ -224,7 +248,7 @@ it('blocks document actions during publication refresh and hides stale records a
     await view.findByText("Your company's publications could not be loaded. Try again before continuing."),
   ).toBeTruthy();
   expect(view.queryByText(statement.title)).toBeNull();
-  expect(view.queryByText('0 publications')).toBeNull();
+  expect(view.queryByRole('header', { name: /^Publications/ })).toBeNull();
   pages = async () => listed(rows);
   await fireEvent.press(view.getByText('Retry publications'));
   expect(await view.findByText(statement.title)).toBeTruthy();

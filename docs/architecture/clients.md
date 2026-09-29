@@ -403,9 +403,8 @@ owned company's UUID as `issuer`, separately from the personal Notices cache.
 It shows stored documents, frozen company/class names, resolution windows and
 exact share/member tallies, and dividend rates and dates, in one Publications
 card whose title carries the complete count, with each publication set off by a
-rule; with none, the same card says that nothing has been published yet. On
-mobile the count is still a line of its own before the records, and the empty
-list has no card. It has no personal
+rule; with none, the same card says that nothing has been published yet. Both
+clients show it this way. It has no personal
 ballot or entitlement controls, including when the owner is also a member.
 Loading and failed company/publication reads block document actions; retry never
 presents a partial list as complete. Document delivery failures remain visible.

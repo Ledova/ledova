@@ -1,6 +1,6 @@
 import { RefreshControl, Text, View } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
-import { Action } from '../../components/Ledger';
+import { Action, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useCompanyProfile } from '../../hooks/useCompanyProfile';
 import type { BottomTabParamList } from '../../navigation/BottomTabNavigator';
@@ -21,6 +21,7 @@ export function CompanyPublicationsScreen() {
     access.allowed && !companyRead.error,
     !companyRead.isRefreshing,
   );
+  const publications = listing.data;
   const refreshing = companyRead.isRefreshing || listing.isFetching;
   const refresh = () => {
     if (!access.allowed) return;
@@ -63,39 +64,40 @@ export function CompanyPublicationsScreen() {
               <Action label="Retry publications" onPress={() => void listing.refetch()} disabled={listing.isFetching} />
             </View>
           ) : (
-            <>
+            <Section title={publications ? `Publications (${publications.length})` : 'Publications'}>
               {listing.isFetching && <Text style={styles.muted}>Refreshing company publications…</Text>}
               {openError && (
                 <Text accessibilityRole="alert" style={styles.error}>
                   {openError}
                 </Text>
               )}
-              {listing.data?.length === 0 ? (
+              {!publications ? null : publications.length === 0 ? (
                 <Text style={styles.muted}>Nothing has been published to this company&apos;s members yet.</Text>
               ) : (
                 <>
-                  <Text style={styles.muted}>
-                    {listing.data?.length} publication{listing.data?.length === 1 ? '' : 's'}
-                  </Text>
-                  {listing.data?.map((publication) => (
-                    <PublicationRecord
-                      key={publication.uuid}
-                      publication={publication}
-                      open={() => void open(publication.uuid)}
-                      opening={openingUuid === publication.uuid}
-                      blocked={blocked || openingUuid !== undefined}
-                    />
-                  ))}
+                  <Rows>
+                    {publications.map((publication) => (
+                      <PublicationRecord
+                        key={publication.uuid}
+                        publication={publication}
+                        open={() => void open(publication.uuid)}
+                        opening={openingUuid === publication.uuid}
+                        blocked={blocked || openingUuid !== undefined}
+                      />
+                    ))}
+                  </Rows>
                   <Text style={styles.muted}>
                     These are the stored documents as published. Company and share class names are frozen at
                     publication.
                   </Text>
                 </>
               )}
-            </>
+            </Section>
           )}
-          <Text style={styles.muted}>To read notices addressed to you or vote as a member, open Notices.</Text>
-          <Action label="Open Notices" onPress={() => navigation.navigate('Publications')} />
+          <View style={styles.group}>
+            <Text style={styles.muted}>To read notices addressed to you or vote as a member, open Notices.</Text>
+            <Action label="Open Notices" onPress={() => navigation.navigate('Publications')} />
+          </View>
         </>
       )}
     </Page>

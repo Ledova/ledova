@@ -12,7 +12,8 @@ import {
   useResolutionStatus,
   type Publication,
 } from '@ledova/shared';
-import { Action, Row, Rows, Section } from '../../components/Ledger';
+import { Action, Row, Rows } from '../../components/Ledger';
+import { useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../company-register/styles';
 
 function ResolutionRecord({ publication }: { publication: Publication }) {
@@ -71,8 +72,14 @@ export function PublicationRecord({
   blocked: boolean;
 }) {
   const styles = useCompanyStyles();
+  const layout = useThemedStyles((theme) => ({
+    record: { gap: theme.spacing.sm, paddingVertical: theme.spacing.md },
+  }));
   return (
-    <Section title={publication.title}>
+    <View style={layout.record}>
+      <Text accessibilityRole="header" style={styles.heading}>
+        {publication.title}
+      </Text>
       <Text style={styles.muted}>{PUBLICATION_KIND_LABELS[publication.kind]}</Text>
       <Text style={styles.text}>{publication.companyName}</Text>
       <Text style={styles.muted}>
@@ -96,6 +103,6 @@ export function PublicationRecord({
         onPress={open}
         disabled={opening || blocked}
       />
-    </Section>
+    </View>
   );
 }
