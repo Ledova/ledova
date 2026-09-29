@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
-import type { Transaction } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { Section } from '@components/Ledger';
+import { useOpenRows } from '@hooks/useOpenRows';
 import { useTransactions, type TransactionFilters } from './useTransactions';
 import { TransactionFilter } from './components/TransactionFilter';
 import { TransactionListItem } from './components/TransactionListItem';
@@ -30,21 +30,14 @@ export const TransactionsPage = () => {
     clearFilters,
     loadMore,
   } = useTransactions();
-  const [openUuids, setOpenUuids] = useState<ReadonlySet<string>>(() => new Set());
+  const entries = useOpenRows();
   const [filterOpen, setFilterOpen] = useState(false);
   const filterToggle = useRef<HTMLButtonElement>(null);
-  const handleToggleTransaction = (transaction: Transaction) =>
-    setOpenUuids((current) => {
-      const next = new Set(current);
-      if (next.has(transaction.uuid)) next.delete(transaction.uuid);
-      else next.add(transaction.uuid);
-      return next;
-    });
   const handleFilterChange = (field: keyof TransactionFilters, value: string) =>
     updateFilters({ ...filters, [field]: value || undefined });
   const settleFilters = () => {
     setFilterOpen(false);
-    setOpenUuids(new Set());
+    entries.closeAll();
     filterToggle.current?.focus();
   };
   const handleApplyFilters = () => {
@@ -98,8 +91,8 @@ export const TransactionsPage = () => {
                   <li key={transaction.uuid}>
                     <TransactionListItem
                       transaction={transaction}
-                      open={openUuids.has(transaction.uuid)}
-                      onToggle={handleToggleTransaction}
+                      open={entries.isOpen(transaction.uuid)}
+                      onToggle={(entry) => entries.toggle(entry.uuid)}
                     />
                   </li>
                 ))}
