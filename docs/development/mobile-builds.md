@@ -38,7 +38,12 @@ launch options React Native reads, so `Linking.getInitialURL()` returns null; th
 app's JavaScript reads no incoming links. Generated-project checks verify the
 manifest and the delegate. The plugin refuses an `AppDelegate` that no longer
 creates the window, or another scene manifest, so an Expo upgrade that brings its
-own scene delegate stops at prebuild until this plugin is removed.
+own scene delegate stops at prebuild until this plugin is removed. It also
+refuses one whose window Objective-C cannot read, because the scene delegate
+asks for it by selector and would otherwise get nil and a black screen: the
+class must subclass `ExpoAppDelegate` and store `var window: UIWindow?`. Swift
+still exposes a private, weak or implicitly unwrapped `window` there; `@nonobjc`,
+`static`, `let` or a computed property hides it.
 
 The lockfile keeps registry URLs and npm integrity values; the shared workspace
 is the intentional local link. Install with `--ignore-scripts` in native CI.
