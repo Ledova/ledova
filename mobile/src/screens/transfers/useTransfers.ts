@@ -17,6 +17,7 @@ import {
   isSupportedEvmChain,
   getChainConfig,
   WALLET_VERIFICATION_STATUS,
+  formatPlainDecimal,
   getErrorMessage,
   getHoldingTokenDeployment,
   readEveryPage,
@@ -255,25 +256,18 @@ export function useTransfers(initialWallet: Wallet | null = null) {
             { text: 'Cancel', style: 'cancel' },
             {
               text: 'Try Anyway',
-              onPress: () => {
-                const safeAmount = balance * 0.9;
-                const finalAmount = parseFloat(safeAmount.toFixed(8)).toString();
-                setState((prev) => ({ ...prev, amount: finalAmount }));
-              },
+              onPress: () => setAmount(formatPlainDecimal(balance * 0.9, 8)),
             },
           ],
         );
         return;
       }
 
-      const finalAmount = parseFloat(maxAmount.toFixed(8)).toString();
-      setState((prev) => ({ ...prev, amount: finalAmount }));
+      setAmount(formatPlainDecimal(maxAmount, 8));
     } else {
-      const decimals = Math.min(state.selectedAsset.decimals, 8);
-      const finalAmount = parseFloat(balance.toFixed(decimals)).toString();
-      setState((prev) => ({ ...prev, amount: finalAmount }));
+      setAmount(formatPlainDecimal(balance, Math.min(state.selectedAsset.decimals, 8)));
     }
-  }, [state.wallet, state.selectedAsset]);
+  }, [state.wallet, state.selectedAsset, setAmount]);
 
   const submitTransfer = useCallback(() => {
     if (!state.wallet || !state.selectedAsset) return;

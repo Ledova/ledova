@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Alert } from 'react-native';
 import { act, cleanup, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { Wallet } from '@ledova/shared';
@@ -27,6 +28,26 @@ const wallet = {
 type Transfer = ReturnType<typeof useTransfers>;
 
 let client: QueryClient;
+let holdings: object[];
+
+function tokenHolding(quantity: string, decimals: number) {
+  return {
+    uuid: 'token-holding',
+    walletUuid: wallet.uuid,
+    chain: 'base',
+    quantity,
+    assetSymbol: fixture.token.tokenSymbol,
+    assetName: 'Repro token',
+    marketValue: quantity,
+    asset: {
+      isActive: true,
+      assetType: 'erc20_token',
+      decimals,
+      contractAddress: fixture.token.tokenContract,
+      chainDeployments: [{ chain: 'base', contractAddress: fixture.token.tokenContract, decimals, isActive: true }],
+    },
+  };
+}
 
 function Sending({ expose }: { expose: (transfer: Transfer) => void }) {
   const transfer = useTransfers();
@@ -57,29 +78,9 @@ beforeEach(() => {
   client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false, gcTime: 0 } },
   });
+  holdings = [tokenHolding('1000', 2)];
   (apiClient.get as jest.Mock).mockImplementation(async (url: string) => ({
-    data: url.includes('/holdings/')
-      ? [
-          {
-            uuid: 'token-holding',
-            walletUuid: wallet.uuid,
-            chain: 'base',
-            quantity: '1000',
-            assetSymbol: fixture.token.tokenSymbol,
-            assetName: 'Repro token',
-            marketValue: '1000',
-            asset: {
-              isActive: true,
-              assetType: 'erc20_token',
-              decimals: 2,
-              contractAddress: fixture.token.tokenContract,
-              chainDeployments: [
-                { chain: 'base', contractAddress: fixture.token.tokenContract, decimals: 2, isActive: true },
-              ],
-            },
-          },
-        ]
-      : { results: [wallet], count: 1, next: null, previous: null },
+    data: url.includes('/holdings/') ? holdings : { results: [wallet], count: 1, next: null, previous: null },
   }));
 });
 
@@ -89,8 +90,7 @@ afterEach(async () => {
   jest.clearAllMocks();
 });
 
-async function prepare(kind: 'native' | 'token', typedAmount: string, answer: object) {
-  (apiClient.post as jest.Mock).mockResolvedValue({ data: answer });
+async function choose(kind: 'native' | 'token', chosen: Wallet = wallet) {
   let transfer!: Transfer;
   const view = await render(
     <QueryClientProvider client={client}>
@@ -102,21 +102,28 @@ async function prepare(kind: 'native' | 'token', typedAmount: string, answer: ob
     </QueryClientProvider>,
   );
   await act(async () => {
-    transfer.selectWallet(wallet);
+    transfer.selectWallet(chosen);
   });
   await view.findByText(fixture.token.tokenSymbol, { exact: false });
   const asset = transfer.transferableAssets.find((candidate) => candidate.isNative === (kind === 'native'))!;
   await act(async () => {
     transfer.selectAsset(asset);
   });
+  return { view, transfer: () => transfer };
+}
+
+async function prepare(kind: 'native' | 'token', typedAmount: string, answer: object) {
+  (apiClient.post as jest.Mock).mockResolvedValue({ data: answer });
+  const { view, transfer: current } = await choose(kind);
+  const transfer = current();
   await act(async () => {
     transfer.setToAddress(fixture.native.toAddress);
     transfer.setAmount(typedAmount);
   });
   await act(async () => {
-    transfer.submitTransfer();
+    current().submitTransfer();
   });
-  return { view, transfer: () => transfer };
+  return { view, transfer: current };
 }
 
 it.each([
@@ -126,6 +133,47 @@ it.each([
   const { transfer } = await prepare(kind, typed, answer);
   await waitFor(() => expect(transfer().step).toBe('review'));
   expect(transfer().prepareError).toBeNull();
+});
+
+it.each([
+  ['1.500 of a two-decimal token', 'token', '1.500', { ...fixture.token, amountToken: '1.500' }],
+  ['1e-7 ETH', 'native', '1e-7', { ...fixture.native, amountEth: '0.0000001' }],
+] as const)('reviews %s, which the backend accepts and echoes', async (_, kind, typed, answer) => {
+  const { transfer } = await prepare(kind, typed, answer);
+  await waitFor(() => expect(transfer().step).toBe('review'));
+  expect(transfer().prepareError).toBeNull();
+});
+
+it.each([
+  ['a token balance below a millionth', 'token', wallet, tokenHolding('0.0000005', 18), '0.0000005'],
+  [
+    'an ETH balance a millionth above the fee estimate',
+    'native',
+    { ...wallet, nativeBalance: '0.0000205' },
+    tokenHolding('1000', 2),
+    '0.0000005',
+  ],
+] as const)('Use Max writes %s as a plain decimal', async (_, kind, chosen, holding, amount) => {
+  holdings = [holding];
+  const { transfer } = await choose(kind, chosen);
+  await act(async () => {
+    transfer().useMaxAmount();
+  });
+  expect(transfer().amount).toBe(amount);
+});
+
+it('Try Anyway on an ETH balance below the fee estimate writes nine tenths of it as a plain decimal', async () => {
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  const { transfer } = await choose('native', { ...wallet, nativeBalance: '0.000001' });
+  await act(async () => {
+    transfer().useMaxAmount();
+  });
+  const tryAnyway = alert.mock.calls[0][2]!.find((button) => button.text === 'Try Anyway')!;
+  await act(async () => {
+    tryAnyway.onPress!();
+  });
+  expect(transfer().amount).toBe('0.0000009');
+  alert.mockRestore();
 });
 
 it.each([

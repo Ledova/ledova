@@ -1,5 +1,5 @@
 export { formatDate, formatTime, formatDateTime, formatSyncAge, parseDateString, formatDateToString } from './date';
-export { formatCurrency, type FormatCurrencyOptions, formatCryptoBalance } from './formatting';
+export { formatCurrency, type FormatCurrencyOptions, formatCryptoBalance, formatPlainDecimal } from './formatting';
 export {
   isNumericOnly,
   validatePassword,

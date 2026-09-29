@@ -81,6 +81,16 @@ it.each([
 );
 
 it.each([
+  ['1.500 of a two-decimal token', { ...fixture.token, amountToken: '1.500' }, '1.500', fixture.token.tokenContract],
+  ['1e-7 ETH', { ...fixture.native, amountEth: '0.0000001' }, '1e-7', undefined],
+])('offers %s for signing, which the backend accepts and echoes', async (_, answer, amount, token) => {
+  send(answer, amount, token);
+  expect(
+    await screen.findByText('Sign this transfer with your hardware wallet to authorize the transaction.'),
+  ).toBeTruthy();
+});
+
+it.each([
   ['another recipient', { ...fixture.native, toAddress: `0x${'5'.repeat(40)}` }, '0.1', undefined, 'recipient'],
   ['0.5 ETH for 0.1 entered', { ...fixture.native, amountEth: '0.5' }, '0.1', undefined, 'amount'],
   ['15 tokens for 1.5 entered', { ...fixture.token, amountToken: '15' }, '1.5', fixture.token.tokenContract, 'amount'],
