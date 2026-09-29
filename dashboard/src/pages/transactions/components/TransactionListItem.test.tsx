@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-import { afterEach, expect, it } from 'vitest';
-import { cleanup, render } from '@testing-library/react';
+import { afterEach, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import type { Transaction } from '@ledova/shared';
-import { TransactionDetailModal } from './TransactionDetailModal';
+import { TransactionListItem } from './TransactionListItem';
 
 afterEach(cleanup);
 
@@ -27,6 +27,22 @@ const transaction: Transaction = {
   transactionFeeEstimated: null,
 };
 
+function detailOf(entry: Transaction) {
+  render(<TransactionListItem transaction={entry} open onToggle={() => {}} />);
+  return screen.getByRole('region');
+}
+
+it('shows no detail while closed and hands the entry to its toggle', () => {
+  const toggle = vi.fn();
+  render(<TransactionListItem transaction={transaction} open={false} onToggle={toggle} />);
+  const row = screen.getByRole('button', { name: /Outgoing · Ethereum/ });
+  expect(row.getAttribute('aria-expanded')).toBe('false');
+  expect(screen.queryByRole('region')).toBeNull();
+  expect(screen.queryByText('Recorded')).toBeNull();
+  fireEvent.click(row);
+  expect(toggle).toHaveBeenCalledExactlyOnceWith(transaction);
+});
+
 it.each([
   ['confirmed', '✓ Confirmed'],
   ['pending', 'Pending'],
@@ -34,17 +50,10 @@ it.each([
   ['replaced', 'Replaced'],
   ['reorged', 'Confirmation reversed'],
   ['constructor', 'Unknown'],
-] as const)('displays a %s transaction as %s', (status, label) => {
-  const view = render(
-    <TransactionDetailModal
-      isOpen
-      transaction={Object.assign({ ...transaction }, { status })}
-      onClose={() => {}}
-      onViewExplorer={() => {}}
-    />,
-  );
-  expect(view.getByText(label)).toBeTruthy();
-  if (status !== 'failed') expect(view.queryByText('✗ Failed')).toBeNull();
+] as const)('displays a %s transaction as %s in its opened detail', (status, label) => {
+  const detail = detailOf(Object.assign({ ...transaction }, { status }));
+  expect(within(detail).getByText(label)).toBeTruthy();
+  if (status !== 'failed') expect(within(detail).queryByText('✗ Failed')).toBeNull();
 });
 
 it.each([
@@ -56,13 +65,6 @@ it.each([
   ['bitcoin', 'bc1EXAMPLE', 'bc1example', 'bc1other', 'Outgoing'],
   ['solana', 'ExampleWallet', 'examplewallet', 'OtherWallet', 'Direction unavailable'],
 ] as const)('uses %s address identity for %s', (chain, walletAddress, fromAddress, toAddress, label) => {
-  const view = render(
-    <TransactionDetailModal
-      isOpen
-      transaction={{ ...transaction, chain, walletAddress, fromAddress, toAddress }}
-      onClose={() => {}}
-      onViewExplorer={() => {}}
-    />,
-  );
-  expect(view.getByText(label)).toBeTruthy();
+  const detail = detailOf({ ...transaction, chain, walletAddress, fromAddress, toAddress });
+  expect(within(detail).getByText(label)).toBeTruthy();
 });
