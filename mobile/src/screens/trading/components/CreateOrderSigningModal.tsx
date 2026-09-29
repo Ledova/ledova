@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from 'react';
-import { marketAmount, marketQuantity } from '../marketData';
 import { View, Text, ActivityIndicator } from 'react-native';
 import {
   getWalletVerificationEvmChainId,
@@ -9,6 +8,8 @@ import {
   type Wallet,
   type ShareToken,
   formatWalletAddressShort,
+  marketAmount,
+  marketQuantity,
 } from '@ledova/shared';
 import { CustomModal, useDialogStyles } from '../../../components/modal';
 import { QRDisplay, QRScanner } from '../../../components/qr';

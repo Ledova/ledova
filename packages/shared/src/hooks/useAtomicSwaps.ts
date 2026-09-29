@@ -1,9 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
-import { CACHE_TIMING, getSwapOrders, readEveryPage } from '@ledova/shared';
-import type { SwapOrder } from '@ledova/shared';
-import apiClient from '@services/apiClient';
+
+import { CACHE_TIMING } from '../constants/api';
+import { getSwapOrders } from '../services/trading';
+import type { SwapOrder } from '../types';
+import { readEveryPage } from '../utils/pagination';
+import { useApiClient } from './useApiClient';
 
 export function useSwapOrdersMulti(walletAddresses: string[]) {
+  const apiClient = useApiClient();
   return useQuery({
     queryKey: ['trading', 'swaps', 'multi', walletAddresses],
     queryFn: async () => {

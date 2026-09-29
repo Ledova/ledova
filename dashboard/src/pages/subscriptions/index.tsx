@@ -1,9 +1,8 @@
-import { DESTINATIONS, formatDate, formatMoney } from '@ledova/shared';
+import { DESTINATIONS, formatDate, formatMoney, useSubscriptions } from '@ledova/shared';
 import type { Subscription } from '@ledova/shared';
 import { LinkRow, Row, Rows, Section, Status } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { applicationShares, applicationState } from './presentation';
-import { useSubscriptions } from './useSubscriptions';
 
 function ApplicationRow({ application }: { application: Subscription }) {
   const state = applicationState(application);
@@ -68,11 +67,7 @@ export default function SubscriptionsPage() {
               <p className="text-sm text-text-primary">
                 More applications could not be loaded. The list is incomplete.
               </p>
-              <PageAction
-                label="Try more applications again"
-                onClick={() => void loadMore()}
-                disabled={isLoadingMore}
-              />
+              <PageAction label="Try more applications again" onClick={() => void loadMore()} disabled={isRefreshing} />
             </div>
           ) : (
             hasMore && (
@@ -80,7 +75,7 @@ export default function SubscriptionsPage() {
                 <PageAction
                   label={isLoadingMore ? 'Loading applications…' : 'Load more applications'}
                   onClick={() => void loadMore()}
-                  disabled={isLoadingMore}
+                  disabled={isRefreshing}
                 />
               </div>
             )

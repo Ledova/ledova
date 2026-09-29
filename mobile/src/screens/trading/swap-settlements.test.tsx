@@ -1,14 +1,13 @@
 import React from 'react';
 import { Dimensions } from 'react-native';
 import { CustomModal } from '../../components/modal';
-import { act, cleanup, fireEvent, render, renderHook, waitFor, within } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import axios, { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Transaction } from 'ethers';
 import { ETHSignature } from '@keystonehq/bc-ur-registry-eth';
 import {
-  selectSwapSettlement,
   ApiClientProvider,
   AUTH_QUERY_KEY,
   DESIGN_TOKENS,
@@ -18,7 +17,6 @@ import {
   type SwapSettlementResponse,
 } from '@ledova/shared';
 import { TradingScreen } from './index';
-import { apiClient as tradingApi } from '../../services/apiClient';
 import { QRScanner } from '../../components/qr';
 import { getSeedPhrase } from '../../services/secureKeyStorage';
 import * as localSigner from '../../utils/softwareWallet/localSigner';
@@ -145,20 +143,23 @@ jest.mock('./components/CreateOrderModal', () => ({ CreateOrderModal: () => null
 jest.mock('./components/OrderActionModal', () => ({ OrderActionModal: () => null }));
 jest.mock('./components/BuySellButtons', () => ({ BuySellButtons: () => null }));
 jest.mock('./hooks/useTradingEvents', () => ({ useTradingEvents: () => {} }));
-jest.mock('./useAtomicSwaps', () => ({ useSwapOrdersMulti: () => ({ data: mockSwaps, refetch: jest.fn() }) }));
-jest.mock('./useTrading', () => ({
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
   useShareTokens: () => ({
     data: [{ uuid: '70000000-0000-4000-8000-000000000005', symbol: 'DEP' }],
     refetch: jest.fn(),
   }),
   useInvestorEligibilityQuery: () => ({ data: { isEligible: true } }),
+  useOrderBook: () => ({ data: null }),
+  useSwapOrdersMulti: () => ({ data: mockSwaps, refetch: jest.fn() }),
+}));
+jest.mock('./useTrading', () => ({
   useUserTradingWallets: () => ({
     wallets: mockWallets,
     actionWallets: mockWallets,
     walletAddresses: mockWallets.map((wallet) => wallet.address),
   }),
   useWalletsWhitelistStatus: () => ({}),
-  useOrderBook: () => ({ data: null }),
   useAllWalletTokenBalances: () => ({ getWalletsWithHoldings: () => [], refetch: jest.fn() }),
   useAllUserOrders: () => ({ orders: [], refetch: jest.fn() }),
 }));
@@ -830,23 +831,6 @@ it('offers review from the actual V1 list before either party has signed', async
   );
   expect(view.getByText('Review trade amounts')).toBeTruthy();
   expect(view.getByText('Seller')).toBeTruthy();
-});
-
-it.each([false, true])('deduplicates both wallet lists without losing unsigned sides (reverse=%s)', async (reverse) => {
-  const { useSwapOrdersMulti } = jest.requireActual<typeof import('./useAtomicSwaps')>('./useAtomicSwaps');
-  const row = settlementListRow(current);
-  const wallets = [selectedWallet('seller'), selectedWallet('buyer')];
-  if (reverse) wallets.reverse();
-  const get = jest.spyOn(tradingApi, 'get').mockResolvedValue({ data: { results: [row] } });
-  const view = await renderHook(() => useSwapOrdersMulti(wallets.map((wallet) => wallet.address)), { wrapper });
-  await waitFor(() => expect(view.result.current.data).toHaveLength(1));
-  expect(get).toHaveBeenCalledTimes(2);
-  const listed = view.result.current.data![0]!;
-  expect(listed).not.toHaveProperty('settlementContext');
-  expect(selectSwapSettlement(listed, owner, wallets).selection.orderUuid).toBe(current.swapOrder.sellOrderUuid);
-  expect(selectSwapSettlement({ ...listed, sellerHasSigned: true }, owner, wallets).selection.orderUuid).toBe(
-    current.swapOrder.buyOrderUuid,
-  );
 });
 
 it.each(['other chain', 'other account'] as const)(

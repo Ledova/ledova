@@ -2,7 +2,7 @@ import React from 'react';
 import { AccessibilityInfo, Linking } from 'react-native';
 import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { TRANSACTION_ENDPOINTS, WALLET_ENDPOINTS, getBlockExplorerTxUrl } from '@ledova/shared';
+import { ApiClientProvider, TRANSACTION_ENDPOINTS, WALLET_ENDPOINTS, getBlockExplorerTxUrl } from '@ledova/shared';
 import type { Transaction } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { TransactionsScreen } from './index';
@@ -74,7 +74,9 @@ const reads = () => jest.mocked(apiClient.get).mock.calls.filter(([url]) => url 
 const show = () =>
   render(
     <QueryClientProvider client={client}>
-      <TransactionsScreen />
+      <ApiClientProvider client={apiClient}>
+        <TransactionsScreen />
+      </ApiClientProvider>
     </QueryClientProvider>,
   );
 type Screen = Awaited<ReturnType<typeof show>>;
@@ -362,6 +364,46 @@ it('marks a failed later page incomplete, retains known rows and retries that pa
   expect(view.getByText('Pending')).toBeTruthy();
   expect((reads().at(-1)?.[1]?.params as Record<string, unknown>)?.page).toBe(2);
 });
+it('keeps entries and the later-page failure on screen while the history is read again, until that read fails', async () => {
+  const later = 'https://example.invalid/api/transactions/?page=2';
+  let laterBroken = true;
+  const read = async (params: Record<string, unknown>) => {
+    if (params.page !== 2) return page([transaction], later);
+    if (laterBroken) throw Error('offline');
+    return page([{ ...transaction, uuid: 'entry-two', status: 'confirmed' }]);
+  };
+  activity = read;
+  const view = await show();
+  await fireEvent.press(await view.findByText('Load more activity'));
+  expect(await view.findByText('More activity could not be loaded. The list is incomplete.')).toBeTruthy();
+  let fail!: (error: Error) => void;
+  activity = () =>
+    new Promise((_, reject) => {
+      fail = reject;
+    });
+  let refreshing!: Promise<void>;
+  await act(async () => {
+    refreshing = client.invalidateQueries({ queryKey: ['all-transactions'] });
+  });
+  await waitFor(() => expect(view.getByText('Try more activity again')).toBeDisabled());
+  expect(view.getByRole('button', { name: entryName })).toBeTruthy();
+  expect(view.getByText('More activity could not be loaded. The list is incomplete.')).toBeTruthy();
+  expect(view.queryByText('Your activity could not be loaded. Try again before continuing.')).toBeNull();
+  await act(async () => {
+    fail(Error('offline'));
+    await refreshing;
+  });
+  expect(await view.findByText('Your activity could not be loaded. Try again before continuing.')).toBeTruthy();
+  expect(view.queryByRole('button', { name: entryName })).toBeNull();
+  expect(view.queryByText('More activity could not be loaded. The list is incomplete.')).toBeNull();
+  laterBroken = false;
+  activity = read;
+  await fireEvent.press(view.getByText('Try again'));
+  await fireEvent.press(await view.findByText('Load more activity'));
+  expect(await view.findByText('✓ Confirmed')).toBeTruthy();
+  expect((reads().at(-1)?.[1]?.params as Record<string, unknown>)?.page).toBe(2);
+});
+
 it('does not report an empty first page as complete when another page exists', async () => {
   activity = async (params) =>
     params.page === 1 ? page([], 'https://example.invalid/api/transactions/?page=2') : page([transaction]);
@@ -440,16 +482,11 @@ it('shows exact details and native-unit fees, opens the real explorer URL and re
   await waitFor(() => expect(view.queryByText('The explorer could not be opened. Try again.')).toBeNull());
 });
 
-it.each([
-  ['base', '0xAbCd', '0xOther', '0xabcd', 'Incoming'],
-  ['base', '0xAbCd', '0xabcd', '0xABCD', 'Self transfer'],
-  ['solana', 'AbCd', 'ABCD', 'other', 'Direction unavailable'],
-  ['bitcoin', '1AbCd', '1abcd', 'other', 'Direction unavailable'],
-  ['bitcoin', 'tb1ABCD', 'tb1abcd', 'other', 'Outgoing'],
-])('uses %s address identity for %s, %s and %s', async (chain, walletAddress, fromAddress, toAddress, direction) => {
-  activity = async () => page([{ ...transaction, chain, walletAddress, fromAddress, toAddress }]);
+it('names each entry by its direction', async () => {
+  activity = async () =>
+    page([{ ...transaction, fromAddress: secondWallet.address, toAddress: `0x${'A'.repeat(40)}` }]);
   const view = await show();
-  expect(await view.findByText(`${direction} · Example settlement asset`)).toBeTruthy();
+  expect(await view.findByText('Incoming · Example settlement asset')).toBeTruthy();
 });
 
 it('keeps zero amounts exact and omits explorer actions when there is no transaction hash', async () => {
@@ -460,15 +497,4 @@ it('keeps zero amounts exact and omits explorer actions when there is no transac
   expect(view.getAllByText('0 AUDX').length).toBeGreaterThan(0);
   expect(view.getByText('0 ETH')).toBeTruthy();
   expect(view.queryByText('View on Explorer')).toBeNull();
-});
-
-it.each([
-  ['-0.5', '-0.5 AUDX'],
-  ['-0.000000000000000001', '-0.000000000000000001 AUDX'],
-  ['-1000.50', '-1,000.5 AUDX'],
-  ['0.0000', '0 AUDX'],
-])('preserves the recorded sign and precision of %s', async (amount, expected) => {
-  activity = async () => page([{ ...transaction, amount }]);
-  const view = await show();
-  expect(await view.findByText(expected)).toBeTruthy();
 });

@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 import type { AxiosRequestConfig } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import apiClient from '@services/apiClient';
 import { PUBLICATION_COPY, createUserFriendlyError, formatDateTime } from '@ledova/shared';
 import PublicationsPage from './index';
+import { usePublications } from './usePublications';
 
 vi.mock('@services/apiClient', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 
@@ -627,6 +628,109 @@ describe('personal Notices and preserved dividend behavior', () => {
     expect((await screen.findByRole('alert')).textContent).toContain('The list is incomplete.');
     expect(screen.queryByText(PUBLICATION_COPY.EMPTY)).toBeNull();
     expect(screen.getByRole('button', { name: 'Try earlier notices again' })).toBeTruthy();
+  });
+
+  it('keeps notices and the earlier-page failure on screen while the list is read again', async () => {
+    const next = 'https://api.example/api/v1/publications/?page=2';
+    listing = async (page) => {
+      if (page === 2) throw new Error('Unavailable');
+      return { data: { count: 2, previous: null, next, results: [statement] } };
+    };
+    showPage();
+    fireEvent.click(await screen.findByText(PUBLICATION_COPY.LOAD_MORE));
+    expect((await screen.findByRole('alert')).textContent).toContain('The list is incomplete.');
+    let finish!: (value: unknown) => void;
+    listing = () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      });
+    let refreshing!: Promise<void>;
+    act(() => {
+      refreshing = client.invalidateQueries({ queryKey: ['publications'] });
+    });
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Try earlier notices again' })).toHaveProperty('disabled', true),
+    );
+    expect(screen.getByText(statement.title)).toBeTruthy();
+    expect(screen.getByText('Earlier notices could not be loaded. The list is incomplete.')).toBeTruthy();
+    expect(screen.queryByText(/could not be refreshed/)).toBeNull();
+    await act(async () => {
+      finish({ data: { count: 2, previous: null, next, results: [statement] } });
+      await refreshing;
+    });
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: PUBLICATION_COPY.LOAD_MORE })).toHaveProperty('disabled', false),
+    );
+    expect(screen.getByText(statement.title)).toBeTruthy();
+  });
+
+  it('reads no further notices while the list is read again, and the next page once it has been', async () => {
+    const next = 'https://api.example/api/v1/publications/?page=2';
+    listing = async () => ({ data: { count: 2, previous: null, next, results: [statement] } });
+    const view = renderHook(() => usePublications(), {
+      wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
+    });
+    await waitFor(() => expect(view.result.current.hasMore).toBe(true));
+    const read = listing;
+    let finish!: (value: unknown) => void;
+    listing = () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      });
+    let refreshing!: Promise<void>;
+    act(() => {
+      refreshing = client.invalidateQueries({ queryKey: ['publications'] });
+    });
+    await waitFor(() => expect(view.result.current.isRefreshing).toBe(true));
+    const pages = () =>
+      vi
+        .mocked(apiClient.get)
+        .mock.calls.filter(([url]) => url === '/api/v1/publications/')
+        .map(([, config]) => (config as AxiosRequestConfig | undefined)?.params?.page);
+
+    act(() => view.result.current.loadMore());
+
+    expect(pages()).toEqual([1, 1]);
+    listing = read;
+    await act(async () => {
+      finish({ data: { count: 2, previous: null, next, results: [statement] } });
+      await refreshing;
+    });
+    await waitFor(() => expect(view.result.current.isRefreshing).toBe(false));
+    act(() => view.result.current.loadMore());
+    await waitFor(() => expect(pages()).toEqual([1, 1, 2]));
+  });
+
+  it('holds Load more while the list is read again, then offers the next page', async () => {
+    const next = 'https://api.example/api/v1/publications/?page=2';
+    listing = async () => ({ data: { count: 2, previous: null, next, results: [statement] } });
+    showPage();
+    expect(await screen.findByRole('button', { name: PUBLICATION_COPY.LOAD_MORE })).toHaveProperty('disabled', false);
+    let finish!: (value: unknown) => void;
+    listing = () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      });
+    let refreshing!: Promise<void>;
+    act(() => {
+      refreshing = client.invalidateQueries({ queryKey: ['publications'] });
+    });
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: PUBLICATION_COPY.LOAD_MORE })).toHaveProperty('disabled', true),
+    );
+    fireEvent.click(screen.getByRole('button', { name: PUBLICATION_COPY.LOAD_MORE }));
+    const pages = vi
+      .mocked(apiClient.get)
+      .mock.calls.filter(([url]) => url === '/api/v1/publications/')
+      .map(([, config]) => (config as AxiosRequestConfig | undefined)?.params?.page);
+    expect(pages).toEqual([1, 1]);
+    await act(async () => {
+      finish({ data: { count: 2, previous: null, next, results: [statement] } });
+      await refreshing;
+    });
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: PUBLICATION_COPY.LOAD_MORE })).toHaveProperty('disabled', false),
+    );
   });
 
   it('withholds cached rows and vote controls after refresh failure until retry succeeds', async () => {

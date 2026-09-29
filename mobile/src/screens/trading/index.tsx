@@ -5,8 +5,12 @@ import { useQueryClient, type QueryCacheNotifyEvent } from '@tanstack/react-quer
 import type { ShareToken, TransferOrder, CreateOrderRequest, SwapOrder, Wallet } from '@ledova/shared';
 import {
   selectSwapSettlement,
+  useInvestorEligibilityQuery,
+  useOrderBook,
   useOrderSubmissions,
   useOrderActions,
+  useShareTokens,
+  useSwapOrdersMulti,
   useSwapSettlements,
   type SavedSwapSettlement,
 } from '@ledova/shared';
@@ -17,15 +21,11 @@ import { Action, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useMarketStyles } from './styles';
 import {
-  useShareTokens,
-  useInvestorEligibilityQuery,
   useUserTradingWallets,
   useWalletsWhitelistStatus,
   useAllWalletTokenBalances,
   useAllUserOrders,
-  useOrderBook,
 } from './useTrading';
-import { useSwapOrdersMulti } from './useAtomicSwaps';
 import { useTradingEvents } from './hooks/useTradingEvents';
 import { MarketList } from './components/MarketList';
 import { OrdersCard } from './components/OrdersCard';

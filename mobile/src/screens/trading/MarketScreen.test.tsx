@@ -58,18 +58,20 @@ jest.mock('@ledova/shared', () => {
     useOrderSubmissions: () => ({ ...state(mockSaved.orders, mockRefreshOrders), begin: mockBegin }),
     useOrderActions: () => state(mockSaved.actions, mockRefreshActions),
     useSwapSettlements: () => state(mockSaved.settlements, mockRefreshSettlements),
+    useShareTokens: () => ({
+      data: mockTokens,
+      isLoading: false,
+      isFetching: mockPending,
+      isError: mockTokensError,
+      error: mockTokensError ? new Error('fictional') : null,
+      refetch: mockRefetches[0],
+    }),
+    useInvestorEligibilityQuery: () => ({ data: { isEligible: true }, refetch: mockRefetches[1] }),
+    useOrderBook: () => ({ data: null, isLoading: false, refetch: mockRefetches[7] }),
+    useSwapOrdersMulti: () => ({ data: [], refetch: mockRefetches[6] }),
   };
 });
 jest.mock('./useTrading', () => ({
-  useShareTokens: () => ({
-    data: mockTokens,
-    isLoading: false,
-    isFetching: mockPending,
-    isError: mockTokensError,
-    error: mockTokensError ? new Error('fictional') : null,
-    refetch: mockRefetches[0],
-  }),
-  useInvestorEligibilityQuery: () => ({ data: { isEligible: true }, refetch: mockRefetches[1] }),
   useUserTradingWallets: () => {
     const f = jest.requireActual('../../../../packages/shared/tests/fixtures/order-submissions');
     return {
@@ -87,9 +89,7 @@ jest.mock('./useTrading', () => ({
     getStatus: () => ({ status: 'whitelisted', isWhitelisted: true }),
     refetch: mockRefetches[5],
   }),
-  useOrderBook: () => ({ data: null, isLoading: false, refetch: mockRefetches[7] }),
 }));
-jest.mock('./useAtomicSwaps', () => ({ useSwapOrdersMulti: () => ({ data: [], refetch: mockRefetches[6] }) }));
 let client: QueryClient;
 function wrapper({ children }: PropsWithChildren) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;

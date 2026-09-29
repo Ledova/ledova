@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import type { Wallet, OrderSubmissionOwner, TransferOrder, SwapOrder, OrderBook, OrderBookEntry } from '@ledova/shared';
-import { selectSwapSettlement, formatDateTime } from '@ledova/shared';
+import { selectSwapSettlement, formatDateTime, marketAmount, marketQuantity } from '@ledova/shared';
 import { Section, Rows, Row, Status } from '@components/Ledger';
-import { marketAmount, marketQuantity } from '../marketData';
 
 function BookSide({ title, entries }: { title: string; entries: OrderBookEntry[] }) {
   return (

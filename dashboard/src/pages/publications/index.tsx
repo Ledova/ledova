@@ -121,7 +121,7 @@ export default function PublicationsPage() {
           {moreFailed ? (
             <div role="alert" className="flex flex-col items-start gap-3 py-3">
               <p className="text-sm text-text-primary">Earlier notices could not be loaded. The list is incomplete.</p>
-              <PageAction label="Try earlier notices again" onClick={loadMore} disabled={isLoadingMore} />
+              <PageAction label="Try earlier notices again" onClick={loadMore} disabled={isRefreshing} />
             </div>
           ) : (
             hasMore && (
@@ -129,7 +129,7 @@ export default function PublicationsPage() {
                 <PageAction
                   label={isLoadingMore ? PUBLICATION_COPY.LOADING_MORE : PUBLICATION_COPY.LOAD_MORE}
                   onClick={loadMore}
-                  disabled={isLoadingMore}
+                  disabled={isRefreshing}
                 />
               </div>
             )

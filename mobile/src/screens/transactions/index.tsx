@@ -1,10 +1,9 @@
 import { useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, RefreshControl, Text, View } from 'react-native';
-import { useOpenRows } from '@ledova/shared';
+import { useOpenRows, useTransactions } from '@ledova/shared';
 import { Action, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useAppTheme, useThemedStyles } from '../../contexts';
-import { useTransactions } from './useTransactions';
 import { TransactionFilter } from './components/filters/TransactionFilter';
 import { TransactionListItem } from './components/TransactionListItem';
 

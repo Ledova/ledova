@@ -1,5 +1,7 @@
 import { Text, View } from 'react-native';
 import {
+  activityAmount,
+  activityDirection,
   formatDate,
   getBlockchainDisplayName,
   getChainShortCode,
@@ -8,7 +10,6 @@ import {
 } from '@ledova/shared';
 import { Disclosure } from '../../../components/Ledger';
 import { useThemedStyles } from '../../../contexts';
-import { activityAmount, activityDirection } from '../presentation';
 import { TransactionDetail } from './TransactionDetail';
 
 export function TransactionListItem({
