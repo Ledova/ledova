@@ -1,5 +1,10 @@
-import type { Wallet } from '@ledova/shared';
-import { WALLET_SORTS, sortWallets, type WalletSortOption } from './useWalletSort';
+/** @jest-environment jsdom */
+import { act, cleanup, renderHook } from '@testing-library/react';
+
+import { WALLET_SORTS, sortWallets, useWalletSort, type WalletSortOption } from '../../src/hooks/useWalletSort';
+import type { Wallet } from '../../src/types';
+
+afterEach(cleanup);
 
 function wallet(uuid: string, fields: Partial<Wallet>): Wallet {
   return {
@@ -33,7 +38,7 @@ it.each<[WalletSortOption, Wallet[]]>([
   ['namedFirst', [alpha, bravo, charlie, unnamed]],
   ['highestValue', [charlie, alpha, bravo, unnamed]],
   ['highestBalance', [unnamed, bravo, charlie, alpha]],
-])('orders the wallets by %s, as the web does, leaving the list it was given alone', (option, expected) => {
+])('orders the wallets by %s, leaving the list it was given alone', (option, expected) => {
   const input = [...WALLETS];
 
   expect(sortWallets(input, option).map((entry) => entry.uuid)).toEqual(expected.map((entry) => entry.uuid));
@@ -61,4 +66,34 @@ it('offers the six orders once each, starting with hardware first', () => {
     ['highestValue', 'Highest value'],
     ['highestBalance', 'Highest balance'],
   ]);
+});
+
+it('keeps each chain its own order and its own open sort, closing only the chain an order is chosen for', () => {
+  const { result } = renderHook(() => useWalletSort());
+  expect(result.current.sortOf('ethereum')).toBe('default');
+  expect(result.current.isOpen('ethereum')).toBe(false);
+
+  act(() => {
+    result.current.toggle('ethereum');
+    result.current.toggle('base');
+  });
+  expect(result.current.isOpen('ethereum')).toBe(true);
+  expect(result.current.isOpen('base')).toBe(true);
+
+  act(() => result.current.choose('ethereum', 'highestBalance'));
+  expect(result.current.sortOf('ethereum')).toBe('highestBalance');
+  expect(result.current.isOpen('ethereum')).toBe(false);
+  expect(result.current.sortOf('base')).toBe('default');
+  expect(result.current.isOpen('base')).toBe(true);
+
+  act(() => result.current.choose('base', 'name'));
+  expect(result.current.sortOf('base')).toBe('name');
+  expect(result.current.isOpen('base')).toBe(false);
+  expect(result.current.sortOf('ethereum')).toBe('highestBalance');
+
+  act(() => result.current.toggle('ethereum'));
+  expect(result.current.isOpen('ethereum')).toBe(true);
+  act(() => result.current.toggle('ethereum'));
+  expect(result.current.isOpen('ethereum')).toBe(false);
+  expect(result.current.sortOf('ethereum')).toBe('highestBalance');
 });
