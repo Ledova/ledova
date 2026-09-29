@@ -67,7 +67,9 @@ have no admin mutation path. Single-issuer mode disables supporting payslips;
 conversion is refused while unpurged content remains.
 
 A [publication to members](shareholder-publications.md#every-read-is-audited-and-an-unrecorded-read-is-refused)
-follows the same rule for a document a member reads rather than a reviewer.
+follows the same read-audit rule for a document a member reads rather than a
+reviewer, except that its read records are deleted with it when it is
+[purged](shareholder-publications.md#retention).
 
 A [company pack](company-pack.md#documents) carries a company's documents,
 the evidence copies its register changes retained, its publications' documents
