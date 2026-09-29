@@ -340,7 +340,8 @@ it('lists the three latest notices addressed to you, and asks only for your own'
 
 it('names the company, kind and date of each notice, and says until when a vote is open', async () => {
   const hour = 3_600_000;
-  const at = (hours: number) => new Date(Date.now() + hours * hour).toISOString();
+  const now = Date.now();
+  const at = (hours: number) => new Date(now + hours * hour).toISOString();
   published = [
     notice(3, { kind: 'resolution', opensAt: at(-24), closesAt: at(24) }),
     notice(2, { kind: 'resolution', opensAt: at(24), closesAt: at(48) }),

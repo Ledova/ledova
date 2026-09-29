@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Linking, Text } from 'react-native';
+import { Linking, Text, View } from 'react-native';
 import {
   activityAmount,
   activityDirection,
@@ -10,26 +10,17 @@ import {
   getBlockchainDisplayName,
   getTransactionStatus,
   getBlockExplorerTxUrl,
+  type Transaction,
 } from '@ledova/shared';
-import type { Transaction } from '@ledova/shared';
 import { Action, Row, Rows } from '../../../components/Ledger';
 import { useThemedStyles } from '../../../contexts';
-import { CustomModal } from '../../../components/modal';
 
-export function TransactionDetailModal({
-  visible,
-  transaction,
-  onClose,
-}: {
-  visible: boolean;
-  transaction: Transaction | null;
-  onClose: () => void;
-}) {
+export function TransactionDetail({ transaction }: { transaction: Transaction }) {
   const [failedHash, setFailedHash] = useState<string | null>(null);
   const styles = useThemedStyles((theme) => ({
+    detail: { gap: theme.spacing.md },
     error: { fontFamily: theme.fontFamily.regular, fontSize: theme.fontSize.sm, color: theme.colors.status.error.text },
   }));
-  if (!transaction) return null;
   const url = transaction.txHash ? getBlockExplorerTxUrl(transaction.chain, transaction.txHash) : '';
   const openExplorer = async () => {
     setFailedHash(null);
@@ -40,14 +31,7 @@ export function TransactionDetailModal({
     }
   };
   return (
-    <CustomModal
-      visible={visible}
-      title="Activity detail"
-      onClose={onClose}
-      showFooter
-      cancelLabel="Close"
-      actions={url ? <Action label="View on Explorer" onPress={() => void openExplorer()} /> : undefined}
-    >
+    <View style={styles.detail}>
       <Rows>
         <Row label="Direction">{activityDirection(transaction)}</Row>
         <Row label="Status">{getTransactionStatus(transaction.status).label}</Row>
@@ -75,6 +59,7 @@ export function TransactionDetailModal({
           The explorer could not be opened. Try again.
         </Text>
       )}
-    </CustomModal>
+      {!!url && <Action label="View on Explorer" onPress={() => void openExplorer()} />}
+    </View>
   );
 }

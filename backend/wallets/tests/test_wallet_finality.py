@@ -306,17 +306,11 @@ class WalletFinalityChecks(WalletFinalityFixture):
         self.assertEqual(self.quantity(), Decimal("7.999958"))
         self.assertEqual(self.observations()[0]["reason"], "finality_unavailable")
 
-    def test_expired_cleanup_keeps_the_hold_and_the_sweep_eventually_recovers(self):
-        from wallets.tasks.confirmation import (
-            check_all_pending_transactions,
-            cleanup_stale_pending_transactions,
-        )
+    def test_the_sweep_eventually_recovers_an_expired_transaction(self):
+        from wallets.tasks.confirmation import check_all_pending_transactions
 
         with use_operator():
             Transaction.objects.filter(pk=self.tx_id).update(created_at=timezone.now() - timedelta(days=3))
-            before = self.financial_state()
-            self.assertEqual(cleanup_stale_pending_transactions.func(0), {"total": 1, "failed": 0})
-            self.assertEqual(self.financial_state(), before)
             with patch("wallets.tasks.confirmation.confirm_pending_transaction.defer") as queued:
                 self.assertEqual(check_all_pending_transactions.func(0), {"total": 1, "queued": 1})
         self.assertEqual(confirm_pending_transaction.func(**queued.call_args.kwargs)["status"], "confirmed")

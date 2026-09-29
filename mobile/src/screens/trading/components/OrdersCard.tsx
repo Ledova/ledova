@@ -5,6 +5,7 @@ import {
   marketAmount,
   marketQuantity,
   selectSwapSettlement,
+  useOpenRows,
   type Wallet,
   type OrderSubmissionOwner,
   type TransferOrder,
@@ -12,7 +13,7 @@ import {
   type OrderBook,
   type OrderBookEntry,
 } from '@ledova/shared';
-import { Action, Row, Rows, Section } from '../../../components/Ledger';
+import { Action, Disclosure, Row, Rows, Section } from '../../../components/Ledger';
 import { useMarketStyles } from '../styles';
 
 function BookSide({ title, entries }: { title: string; entries: OrderBookEntry[] }) {
@@ -53,7 +54,6 @@ interface OrdersCardProps {
   onRefreshOrders?: () => void;
   onCancelOrder: (uuid: string) => void;
   onEditOrder: (order: TransferOrder) => void;
-  onViewOrder: (order: TransferOrder) => void;
   swaps: SwapOrder[] | undefined;
   isLoadingSwaps: boolean;
   swapsError?: unknown;
@@ -77,7 +77,6 @@ export function OrdersCard({
   onRefreshOrders,
   onCancelOrder,
   onEditOrder,
-  onViewOrder,
   swaps,
   isLoadingSwaps,
   swapsError,
@@ -89,6 +88,7 @@ export function OrdersCard({
   swapsBlocked,
 }: OrdersCardProps) {
   const styles = useMarketStyles();
+  const details = useOpenRows();
   const [confirming, setConfirming] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -144,16 +144,29 @@ export function OrdersCard({
                   </Row>
                   <Row label="Created">{formatDateTime(order.createdAt)}</Row>
                   <Row label="Wallet">{order.walletAddress}</Row>
-                </Rows>
-                <View style={styles.actions}>
-                  <Action
-                    label="Details"
+                  <Disclosure
+                    open={details.isOpen(order.uuid)}
+                    onToggle={() => details.toggle(order.uuid)}
                     accessibilityLabel={`Details for order ${order.uuid}`}
-                    onPress={() => onViewOrder(order)}
-                    disabled={ordersBlocked}
-                  />
-                  {['open', 'partially_filled'].includes(order.status) &&
-                    (confirming === order.uuid ? (
+                    summary={<Text style={styles.label}>Details</Text>}
+                  >
+                    <Rows>
+                      <Row label="Total quantity">{marketQuantity(order.quantity)}</Row>
+                      <Row label="Minimum fill">
+                        {order.minQuantity == null ? 'None' : marketQuantity(order.minQuantity)}
+                      </Row>
+                      <Row label="Filled">{marketQuantity(order.filledQuantity ?? 0)}</Row>
+                      <Row label="Remaining">
+                        {order.remainingQuantity == null ? 'Unavailable' : marketQuantity(order.remainingQuantity)}
+                      </Row>
+                      <Row label="Total value">{marketAmount(order.pricePerShare, order.quantity)}</Row>
+                      <Row label="Order ID">{order.uuid}</Row>
+                    </Rows>
+                  </Disclosure>
+                </Rows>
+                {['open', 'partially_filled'].includes(order.status) && (
+                  <View style={styles.actions}>
+                    {confirming === order.uuid ? (
                       <>
                         <Text style={styles.text}>Cancel this order?</Text>
                         <Action
@@ -181,8 +194,9 @@ export function OrdersCard({
                           onPress={() => setConfirming(order.uuid)}
                         />
                       </>
-                    ))}
-                </View>
+                    )}
+                  </View>
+                )}
               </View>
             ))}
           </Rows>

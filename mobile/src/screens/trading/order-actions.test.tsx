@@ -150,7 +150,6 @@ jest.mock('./components/OrdersCard', () => {
     ),
   };
 });
-jest.mock('./components/OrderDetailModal', () => ({ OrderDetailModal: () => null }));
 jest.mock('./hooks/useTradingEvents', () => ({ useTradingEvents: () => {} }));
 jest.mock('@ledova/shared', () => {
   const f = jest.requireActual('../../../../packages/shared/tests/fixtures/order-submissions');

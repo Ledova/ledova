@@ -34,7 +34,6 @@ import { CreateOrderModal } from './components/CreateOrderModal';
 import { OrderSigningModal } from './components/OrderSigningModal';
 import { OrderActionModal } from './components/OrderActionModal';
 import { orderActionStore } from '../../services/orderActions';
-import { OrderDetailModal } from './components/OrderDetailModal';
 import { useAppTheme } from '../../contexts';
 
 export function TradingScreen() {
@@ -114,10 +113,6 @@ export function TradingScreen() {
 
   const [createOrderType, setCreateOrderType] = useState<'buy' | 'sell'>('buy');
   const [showCreateOrder, setShowCreateOrder] = useState(false);
-
-  const [detailOrderUuid, setDetailOrderUuid] = useState<string | null>(null);
-  const detailOrder = userOrders.orders.find((order) => order.uuid === detailOrderUuid) ?? null;
-  const [showDetailOrder, setShowDetailOrder] = useState(false);
 
   const [settlementError, setSettlementError] = useState<string | null>(null);
   const closeSettlement = () => {
@@ -206,7 +201,6 @@ export function TradingScreen() {
     signingGeneration.current++;
     submissions.close();
     setShowCreateOrder(false);
-    setShowDetailOrder(false);
     actions.open(orderUuid, 'cancel');
   };
 
@@ -216,14 +210,7 @@ export function TradingScreen() {
     signingGeneration.current++;
     submissions.close();
     setShowCreateOrder(false);
-    setShowDetailOrder(false);
     actions.open(order.uuid, 'modify');
-  };
-
-  const handleViewOrder = (order: TransferOrder) => {
-    closeSettlement();
-    setDetailOrderUuid(order.uuid);
-    setShowDetailOrder(true);
   };
 
   const handleSignSwap = (swap: SwapOrder) => {
@@ -339,7 +326,6 @@ export function TradingScreen() {
           ordersBlocked={ordersBlocked}
           onCancelOrder={handleCancelOrder}
           onEditOrder={handleEditOrder}
-          onViewOrder={handleViewOrder}
           swaps={swapOrders.isError ? [] : swapOrders.data}
           isLoadingSwaps={swapOrders.isLoading}
           swapsError={swapOrders.error || tradingWallets.error}
@@ -470,15 +456,6 @@ export function TradingScreen() {
           onClose={actions.close}
         />
       )}
-
-      <OrderDetailModal
-        visible={showDetailOrder}
-        onClose={() => setShowDetailOrder(false)}
-        order={detailOrder}
-        blocked={ordersBlocked}
-        onModify={handleEditOrder}
-        onCancel={handleCancelOrder}
-      />
 
       {settlements.active && (
         <SwapSettlementModal

@@ -1,6 +1,5 @@
 from wallets.tasks.confirmation import (
     check_all_pending_transactions,
-    cleanup_stale_pending_transactions,
     confirm_pending_transaction,
 )
 from wallets.tasks.submissions import recover_wallet_submissions
@@ -11,7 +10,6 @@ __all__ = [
     "sync_all_wallets",
     "confirm_pending_transaction",
     "check_all_pending_transactions",
-    "cleanup_stale_pending_transactions",
     "recover_wallet_submissions",
     "observe_wallet_chains",
 ]

@@ -1,6 +1,6 @@
 import { Action } from '../../components/Ledger';
 import type { PropsWithChildren } from 'react';
-import { act, cleanup, fireEvent, render, renderHook, waitFor } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, renderHook, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { OrderBook, ShareToken, TransferOrder, WhitelistStatus } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
@@ -8,7 +8,6 @@ import { useAllUserOrders, useUserTradingWallets, useWalletsWhitelistStatus } fr
 import { OrdersCard } from './components/OrdersCard';
 import { MarketList } from './components/MarketList';
 import { CreateOrderModal } from './components/CreateOrderModal';
-import { OrderDetailModal } from './components/OrderDetailModal';
 import {
   deferred,
   response,
@@ -143,21 +142,7 @@ it('makes cached allowlist status unavailable during refresh and after refusal',
   expect(view.result.current.getStatus(wallet.address)).toBeUndefined();
 });
 it('keeps recorded orders visible with no class and disables stale actions', async () => {
-  const props = {
-    tokenSymbol: null,
-    orderBook: null,
-    isLoadingOrderBook: false,
-    userOrders: [order],
-    isLoadingUserOrders: false,
-    onCancelOrder: jest.fn(),
-    onEditOrder: jest.fn(),
-    onViewOrder: jest.fn(),
-    swaps: [],
-    isLoadingSwaps: false,
-    wallets: [],
-    settlementOwner: null,
-    onSignSwap: jest.fn(),
-  };
+  const props = ordersProps([order]);
   const view = await render(<OrdersCard {...props} />);
   expect(view.getByText('Share class unavailable')).toBeTruthy();
   await fireEvent.press(view.getByText('Modify'));
@@ -184,7 +169,6 @@ it('sets For sale and Wanted apart as headed blocks with rules between entries o
       isLoadingUserOrders={false}
       onCancelOrder={jest.fn()}
       onEditOrder={jest.fn()}
-      onViewOrder={jest.fn()}
       swaps={[]}
       isLoadingSwaps={false}
       wallets={[]}
@@ -359,13 +343,106 @@ it('requires current allowlist and sufficient exact sell holdings', async () => 
   await fireEvent.press(view.getByText('Sell'));
   expect(props.onSubmit).toHaveBeenCalledWith(expect.objectContaining({ quantity: 3, orderType: 'sell' }));
 });
-it('removes stale detail actions when the current order disappears', async () => {
-  const props = { visible: true, onClose: jest.fn(), order, onModify: jest.fn(), onCancel: jest.fn() };
-  const view = await render(<OrderDetailModal {...props} />);
-  expect(view.getByText('Modify Order')).toBeTruthy();
-  await view.rerender(<OrderDetailModal {...props} order={null} />);
-  expect(view.queryByText('Modify Order')).toBeNull();
-  expect(view.getByRole('alert')).toBeTruthy();
+function ordersProps(userOrders: TransferOrder[]) {
+  return {
+    tokenSymbol: null,
+    orderBook: null,
+    isLoadingOrderBook: false,
+    userOrders,
+    isLoadingUserOrders: false,
+    onCancelOrder: jest.fn(),
+    onEditOrder: jest.fn(),
+    swaps: [],
+    isLoadingSwaps: false,
+    wallets: [],
+    settlementOwner: null,
+    onSignSwap: jest.fn(),
+  };
+}
+type Found = ReturnType<Awaited<ReturnType<typeof render>>['getByText']>;
+const detailsOf = (toggle: Found) => (toggle.parent!.children as Found[])[1];
+const valueOf = (details: Found, label: string) => (within(details).getByText(label).parent!.children as Found[])[1];
+it('opens each order’s details in place under its row, closed at first and each on its own', async () => {
+  const done: TransferOrder = {
+    ...order,
+    uuid: '60000000-0000-4000-8000-000000000002',
+    quantity: 9,
+    minQuantity: 2,
+    filledQuantity: 4,
+    remainingQuantity: 5,
+    status: 'completed',
+  };
+  const view = await render(<OrdersCard {...ordersProps([order, done])} />);
+  const first = view.getByRole('button', { name: `Details for order ${order.uuid}` });
+  const second = view.getByRole('button', { name: `Details for order ${done.uuid}` });
+  expect(first).toBeCollapsed();
+  expect(second).toBeCollapsed();
+  expect(view.queryByText('Order ID')).toBeNull();
+  expect(view.getAllByRole('button', { name: /^Modify order/ })).toHaveLength(1);
+
+  await fireEvent.press(first);
+  expect(first).toBeExpanded();
+  expect(second).toBeCollapsed();
+  const details = detailsOf(first);
+  expect(valueOf(details, 'Total quantity')).toHaveTextContent('7');
+  expect(valueOf(details, 'Minimum fill')).toHaveTextContent('0');
+  expect(valueOf(details, 'Filled')).toHaveTextContent('0');
+  expect(valueOf(details, 'Remaining')).toHaveTextContent('7');
+  expect(valueOf(details, 'Total value')).toHaveTextContent('AUD\u00a098.00');
+  expect(valueOf(details, 'Order ID')).toHaveTextContent(order.uuid);
+  expect(detailsOf(second).children).toHaveLength(0);
+  expect(view.queryByText('Order details')).toBeNull();
+
+  await fireEvent.press(second);
+  expect(first).toBeExpanded();
+  expect(second).toBeExpanded();
+  expect(valueOf(detailsOf(second), 'Total quantity')).toHaveTextContent('9');
+  expect(valueOf(detailsOf(second), 'Minimum fill')).toHaveTextContent('2');
+  expect(valueOf(detailsOf(second), 'Remaining')).toHaveTextContent('5');
+  expect(valueOf(detailsOf(second), 'Total value')).toHaveTextContent('AUD\u00a0126.00');
+
+  await fireEvent.press(first);
+  expect(first).toBeCollapsed();
+  expect(detailsOf(first).children).toHaveLength(0);
+  expect(second).toBeExpanded();
+});
+it('gives a finished order no action row, and an open one its Modify and Cancel order', async () => {
+  const done: TransferOrder = { ...order, uuid: '60000000-0000-4000-8000-000000000002', status: 'completed' };
+  const view = await render(<OrdersCard {...ordersProps([order, done])} />);
+  const [open, finished] = view.getAllByText('Share class unavailable').map((name) => name.parent!);
+  const [, openRows, actions] = open.children as Found[];
+  expect(open.children).toHaveLength(3);
+  expect(within(actions).getByRole('button', { name: `Modify order ${order.uuid}` })).toBeTruthy();
+  expect(within(actions).getByRole('button', { name: `Cancel order ${order.uuid}` })).toBeTruthy();
+  expect(within(openRows).getByRole('button', { name: `Details for order ${order.uuid}` })).toBeTruthy();
+  expect(finished.children).toHaveLength(2);
+  expect(within(finished).getByRole('button', { name: `Details for order ${done.uuid}` })).toBeTruthy();
+  expect(within(finished).queryByRole('button', { name: /^(Modify|Cancel) order/ })).toBeNull();
+});
+it('reads an order’s details while its actions wait for current orders and wallets', async () => {
+  const view = await render(<OrdersCard {...ordersProps([order])} ordersBlocked />);
+  expect(view.getByRole('button', { name: `Modify order ${order.uuid}` })).toBeDisabled();
+  const toggle = view.getByRole('button', { name: `Details for order ${order.uuid}` });
+  expect(toggle).toBeEnabled();
+  await fireEvent.press(toggle);
+  expect(toggle).toBeExpanded();
+  expect(valueOf(detailsOf(toggle), 'Order ID')).toHaveTextContent(order.uuid);
+});
+it('keeps open details on the current order and drops them with it', async () => {
+  const props = ordersProps([order]);
+  const view = await render(<OrdersCard {...props} />);
+  await fireEvent.press(view.getByRole('button', { name: `Details for order ${order.uuid}` }));
+  await view.rerender(
+    <OrdersCard {...props} userOrders={[{ ...order, filledQuantity: 3, remainingQuantity: 4, status: 'cancelled' }]} />,
+  );
+  const toggle = view.getByRole('button', { name: `Details for order ${order.uuid}` });
+  expect(toggle).toBeExpanded();
+  expect(valueOf(detailsOf(toggle), 'Filled')).toHaveTextContent('3');
+  expect(view.queryByRole('button', { name: `Modify order ${order.uuid}` })).toBeNull();
+  await view.rerender(<OrdersCard {...props} userOrders={[]} />);
+  expect(view.queryByRole('button', { name: `Details for order ${order.uuid}` })).toBeNull();
+  expect(view.queryByText('Order ID')).toBeNull();
+  expect(view.getByText('No recorded orders.')).toBeTruthy();
 });
 
 it('retries unavailable allowlist status inside the open draft without discarding its fields', async () => {

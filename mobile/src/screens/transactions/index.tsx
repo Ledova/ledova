@@ -1,12 +1,11 @@
-import { useState } from 'react';
-import { ActivityIndicator, RefreshControl, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { AccessibilityInfo, ActivityIndicator, RefreshControl, Text, View } from 'react-native';
+import { useOpenRows, useTransactions } from '@ledova/shared';
 import { Action, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useAppTheme, useThemedStyles } from '../../contexts';
-import { useTransactions } from '@ledova/shared';
-import { TransactionFiltersModal } from './components/filters/TransactionFiltersModal';
+import { TransactionFilter } from './components/filters/TransactionFilter';
 import { TransactionListItem } from './components/TransactionListItem';
-import { TransactionDetailModal } from './components/TransactionDetailModal';
 
 export function TransactionsScreen() {
   const theme = useAppTheme();
@@ -28,6 +27,7 @@ export function TransactionsScreen() {
     retry,
     isLoadingMore,
     filters,
+    appliedFilters,
     hasActiveFilters,
     totalCount,
     hasNextPage,
@@ -36,33 +36,50 @@ export function TransactionsScreen() {
     clearFilters,
     loadMore,
   } = useTransactions();
-  const [selectedUuid, setSelectedUuid] = useState<string | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
-  const selected = hasError ? null : (transactions.find((transaction) => transaction.uuid === selectedUuid) ?? null);
-  const closeFilters = () => {
-    setShowFilters(false);
-    setSelectedUuid(null);
+  const entries = useOpenRows();
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterToggle = useRef<View>(null);
+  const settleFilters = () => {
+    setFilterOpen(false);
+    entries.closeAll();
+    if (filterToggle.current) AccessibilityInfo.sendAccessibilityEvent(filterToggle.current, 'focus');
+  };
+  const apply = () => {
+    applyFilters();
+    settleFilters();
   };
   const clear = () => {
     clearFilters();
-    closeFilters();
+    settleFilters();
   };
   return (
-    <>
-      <Page
-        title="Activity"
-        lede="Select an entry for its status and details."
-        actions={
-          <Action label={hasActiveFilters ? 'Filter (active)' : 'Filter'} onPress={() => setShowFilters(true)} />
-        }
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing && !isLoading && !isLoadingMore}
-            onRefresh={() => void retry()}
-            tintColor={theme.colors.brand.default}
-          />
-        }
-      >
+    <Page
+      title="Activity"
+      lede="Select an entry for its status and details."
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing && !isLoading && !isLoadingMore}
+          onRefresh={() => void retry()}
+          tintColor={theme.colors.brand.default}
+        />
+      }
+    >
+      <Section title="Transfers">
+        <TransactionFilter
+          ref={filterToggle}
+          open={filterOpen}
+          onToggle={() => setFilterOpen((open) => !open)}
+          applied={appliedFilters}
+          filters={filters}
+          wallets={wallets}
+          walletsLoading={walletsLoading}
+          walletsFailed={walletsFailed}
+          walletsRefreshing={walletsRefreshing}
+          onRetryWallets={() => void retryWallets()}
+          onUpdateFilters={updateFilters}
+          onApplyFilters={apply}
+          onClearFilters={clear}
+        />
         {isLoading ? (
           <View style={styles.state}>
             <ActivityIndicator color={theme.colors.brand.default} />
@@ -76,7 +93,7 @@ export function TransactionsScreen() {
             <Action label="Try again" onPress={() => void retry()} disabled={isRefreshing} />
           </View>
         ) : (
-          <Section title="Transfers">
+          <>
             {transactions.length === 0 && !hasNextPage && !moreFailed ? (
               <>
                 <Text style={styles.message}>{hasActiveFilters ? 'No matching activity.' : 'No activity yet.'}</Text>
@@ -88,7 +105,8 @@ export function TransactionsScreen() {
                   <TransactionListItem
                     key={transaction.uuid}
                     transaction={transaction}
-                    onPress={(row) => setSelectedUuid(row.uuid)}
+                    open={entries.isOpen(transaction.uuid)}
+                    onToggle={(row) => entries.toggle(row.uuid)}
                   />
                 ))}
               </View>
@@ -114,30 +132,9 @@ export function TransactionsScreen() {
                 {transactions.length} of {totalCount} records shown
               </Text>
             )}
-          </Section>
+          </>
         )}
-      </Page>
-      <TransactionFiltersModal
-        isOpen={showFilters}
-        filters={filters}
-        wallets={wallets}
-        walletsLoading={walletsLoading}
-        walletsFailed={walletsFailed}
-        walletsRefreshing={walletsRefreshing}
-        onRetryWallets={() => void retryWallets()}
-        onClose={() => setShowFilters(false)}
-        onUpdateFilters={updateFilters}
-        onApplyFilters={() => {
-          applyFilters();
-          closeFilters();
-        }}
-        onClearFilters={clear}
-      />
-      <TransactionDetailModal
-        visible={selected !== null}
-        transaction={selected}
-        onClose={() => setSelectedUuid(null)}
-      />
-    </>
+      </Section>
+    </Page>
   );
 }
