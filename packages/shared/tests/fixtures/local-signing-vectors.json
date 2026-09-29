@@ -39,6 +39,12 @@
         "signature": "JyLwbF6cmOWE/y6orUqleBQJrwguJHMzsr0DfJ08Lf4HQn1lvm2yt5YKhotBvrMabk6+ytQ9lY6/1kL0b5+SfJ8="
       },
       {
+        "unit": "Ledova sign",
+        "repeat": 23,
+        "utf8_length": 253,
+        "signature": "J+qnsTcw9XWIXm1kpxOeKyX+1pL1FzHmoyXMrmsovav/ZbRL89Cn2m35XUVIh+vVaWDA4aaWUP3cVdD+fhZZXbM="
+      },
+      {
         "unit": "Ledova ",
         "repeat": 40,
         "utf8_length": 280,
@@ -49,6 +55,12 @@
         "repeat": 200,
         "utf8_length": 400,
         "signature": "KManVqZWRqg36w/GyYno2p7VDreEqImKSEf+CuQgjG/ufJl/OLoY1iMru3moeIn+mPAf+84SWXu/5FtZJIWZ8sQ="
+      },
+      {
+        "unit": "✓",
+        "repeat": 21845,
+        "utf8_length": 65535,
+        "signature": "J0rRifP9af1OibaPi5XM1fCZruXNqopINhCD9PpLnax1ea3fiytp0Pan87+1noxsIzMO8ignCIHMsGyct3eMEx8="
       },
       {
         "unit": "Ledova ",
