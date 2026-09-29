@@ -1,12 +1,29 @@
-import type { ComponentProps } from 'react';
-import { Text } from 'react-native';
+import { useEffect, type ComponentProps, type ReactNode } from 'react';
+import { AccessibilityInfo, Text } from 'react-native';
 import { cleanup, fireEvent, render } from '@testing-library/react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { Action } from '../Ledger';
 import { CustomModal } from './CustomModal';
 
+const mockLifecycle: string[] = [];
+jest.mock('react-native/Libraries/Modal/Modal', () => {
+  const { useEffect } = jest.requireActual('react');
+  const JestModal = jest.requireActual('react-native/jest/mocks/Modal').default;
+  function MockModal(props: { children: ReactNode }) {
+    useEffect(() => {
+      mockLifecycle.push('modal mounted');
+      return () => {
+        mockLifecycle.push('modal unmounted');
+      };
+    }, []);
+    return <JestModal {...props} visible />;
+  }
+  return { __esModule: true, default: MockModal };
+});
+
 afterEach(async () => {
   await cleanup();
+  mockLifecycle.length = 0;
 });
 
 function dialog(props: Partial<ComponentProps<typeof CustomModal>> = {}) {
@@ -90,4 +107,61 @@ it('leaves out the action row when a dialog has no actions', async () => {
   expect(view.getByRole('header', { name: 'Rename wallet' })).toBeTruthy();
   expect(view.queryByRole('button', { name: 'Cancel' })).toBeNull();
   expect(view.getByText('Body copy')).toBeTruthy();
+});
+
+function Content() {
+  useEffect(() => {
+    mockLifecycle.push('content mounted');
+    return () => {
+      mockLifecycle.push('content unmounted');
+    };
+  }, []);
+  return <Text>Dialog content</Text>;
+}
+
+function stepped(contentKey: string, onConfirm?: () => void, visible = true) {
+  return (
+    <CustomModal
+      visible={visible}
+      title="Change order"
+      showFooter
+      contentKey={contentKey}
+      onClose={() => {}}
+      onConfirm={onConfirm}
+    >
+      <Content />
+    </CustomModal>
+  );
+}
+
+it('starts fresh dialog content without replacing its modal when the content key changes', async () => {
+  const view = await render(stepped('status'));
+  await view.rerender(stepped('status', () => {}));
+  expect(mockLifecycle).toEqual(['content mounted', 'modal mounted']);
+
+  await view.rerender(stepped('confirmable', () => {}));
+  expect(mockLifecycle).toEqual(['content mounted', 'modal mounted', 'content unmounted', 'content mounted']);
+  expect(view.getByText('Dialog content')).toBeTruthy();
+  expect(view.getByRole('button', { name: 'Confirm' })).toBeTruthy();
+});
+
+it('moves screen reader focus to the title only when content already shown is replaced', async () => {
+  const focus = jest.mocked(AccessibilityInfo.sendAccessibilityEvent);
+  const view = await render(stepped('status'));
+  await view.rerender(stepped('status', () => {}));
+  expect(focus).not.toHaveBeenCalled();
+
+  await view.rerender(stepped('confirmable', () => {}));
+  expect(focus).toHaveBeenCalledTimes(1);
+  const [target, event] = focus.mock.calls[0]!;
+  expect(event).toBe('focus');
+  expect((target as unknown as { props: Record<string, unknown> }).props).toMatchObject({
+    accessibilityRole: 'header',
+    children: 'Change order',
+  });
+
+  await view.rerender(stepped('status', undefined, false));
+  expect(focus).toHaveBeenCalledTimes(1);
+  await view.rerender(stepped('confirmable', () => {}));
+  expect(focus).toHaveBeenCalledTimes(1);
 });
