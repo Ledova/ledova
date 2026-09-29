@@ -145,8 +145,6 @@ jest.mock('./useTrading', () => {
     }),
     useAllWalletTokenBalances: () => ({ getWalletsWithHoldings: () => [], refetch: jest.fn() }),
     useAllUserOrders: () => ({ orders: [], refetch: jest.fn() }),
-    useOrderCancelMessage: () => ({ mutate: jest.fn() }),
-    useCancelOrder: () => ({ mutate: jest.fn() }),
   };
 });
 

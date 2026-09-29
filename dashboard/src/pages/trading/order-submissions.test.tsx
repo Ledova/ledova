@@ -101,8 +101,6 @@ vi.mock('./useTrading', async () => {
       isLoading: false,
     }),
     useTrading: () => ({ userOrders: [], getWalletsWithHoldings: () => [] }),
-    useOrderCancelMessage: () => ({ mutate: vi.fn() }),
-    useCancelOrder: () => ({ mutate: vi.fn() }),
   };
 });
 

@@ -4,7 +4,6 @@ import {
   getWallets,
   getWhitelistStatus,
   getWalletBalances,
-  parseTradingError,
   BLOCKCHAIN,
   CACHE_TIMING,
   WALLET_VERIFICATION_STATUS,
@@ -13,9 +12,6 @@ import {
 } from '@ledova/shared';
 import type { Wallet, WhitelistStatus } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-
-export { parseTradingError };
-export type { WhitelistStatus };
 
 export const tradingQueryKeys = {
   walletBalances: (walletAddress: string) => ['trading', 'walletBalances', walletAddress] as const,
