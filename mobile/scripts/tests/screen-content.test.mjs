@@ -175,7 +175,7 @@ test('the launch check needs content on two screenshots in a row, so a launch sc
   }
 });
 
-test('the native smoke runner waits ten seconds after launch, fails a black window and records a real one', async (context) => {
+test('the native smoke runner waits ten seconds after launch, fails a black window after twenty screenshots and records a real one', async (context) => {
   const source = fs.readFileSync(path.join(mobile, 'scripts/native-smoke.mjs'), 'utf8');
   const start = source.indexOf("  await launch('ordinary');");
   const end = source.indexOf("  if (platform === 'android') {", start);
@@ -208,7 +208,9 @@ test('the native smoke runner waits ten seconds after launch, fails a black wind
     return { events, run };
   };
   const record = path.join(directory, 'ordinary-screen.json');
-  await assert.rejects(launchWith([launchScreen, blackWindow]).run, /ordinary\.png did not show content/);
+  const blank = launchWith([launchScreen, blackWindow]);
+  await assert.rejects(blank.run, /ordinary\.png did not show content on 2 screenshots in a row within 20:/);
+  assert.equal(blank.events.filter((event) => event === 'screenshot ordinary').length, 20);
   assert.equal(fs.existsSync(record), false);
   const launched = launchWith([signIn]);
   await launched.run;

@@ -150,7 +150,6 @@ test('window declarations that Swift still exposes to Objective-C are accepted',
     'private var window: UIWindow?',
     'fileprivate var window: UIWindow?',
     '@objc public var window: UIWindow?',
-    'weak var window: UIWindow?',
     'var window: UIWindow!',
   ]) {
     const source = declaringWindow(declaration);
@@ -159,10 +158,11 @@ test('window declarations that Swift still exposes to Objective-C are accepted',
   }
 });
 
-test('an AppDelegate whose window Objective-C cannot read is refused', async () => {
+test('an AppDelegate whose window Objective-C cannot read, or that releases it at once, is refused', async () => {
   const message = /reads AppDelegate's window through Objective-C/;
   for (const declaration of [
     '@nonobjc var window: UIWindow?',
+    'weak var window: UIWindow?',
     'static var window: UIWindow?',
     'let window: UIWindow? = nil',
     'var window: UIWindow? { nil }',

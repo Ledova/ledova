@@ -40,16 +40,17 @@ until this plugin is removed. It also
 refuses one whose window Objective-C cannot read, because the scene delegate
 asks for it by selector and would otherwise get nil and a black screen: the
 class must subclass `ExpoAppDelegate` and store `var window: UIWindow?`. Swift
-still exposes a private, weak or implicitly unwrapped `window` there; `@nonobjc`,
-`static`, `let` or a computed property hides it.
+still exposes a private or implicitly unwrapped `window` there; `@nonobjc`,
+`static`, `let` or a computed property hides it, and a `weak` one is released as
+soon as it is assigned, which leaves the same black screen.
 
 A link that opens the app from closed does not reach JavaScript. UIKit delivers
 it with the connecting scene, after `AppDelegate` has started React Native with
 launch options that no longer carry it, so `Linking.getInitialURL()` returns null,
 and the `url` event the scene delegate sends fires before any JavaScript listens.
 On iOS 27.0 and 26.5 simulators the launch options React Native keeps for
-`getInitialURL` were empty after a link started the Release build, and held the
-link in the same build without the scene manifest. A link that arrives while the
+`getInitialURL` were empty after a link started the Release build; on iOS 26.5,
+which can launch the same build without the scene manifest, they held the link. A link that arrives while the
 app runs, such as an OAuth redirect back to it, still reaches `Linking`'s `url`
 event. Nothing depends on this today: the app reads no incoming links, and
 `mobile/scripts/tests/ios-scene-lifecycle.test.mjs` fails if `App.tsx`, `index.ts`

@@ -22,7 +22,7 @@ const launchWindow =
 const appDelegateClass =
   /^[ \t]*(?:(?:public|open|internal|final)[ \t]+)*class AppDelegate: ExpoAppDelegate\b[^{\n]*\{/m;
 const objcWindow =
-  /^[ \t]*(?:@objc[ \t]+)?(?:(?:private|fileprivate|internal|public|open)[ \t]+)?(?:weak[ \t]+)?var window: UIWindow[?!](?:[ \t]*=[ \t]*nil)?[ \t]*$/m;
+  /^[ \t]*(?:@objc[ \t]+)?(?:(?:private|fileprivate|internal|public|open)[ \t]+)?var window: UIWindow[?!](?:[ \t]*=[ \t]*nil)?[ \t]*$/m;
 
 function classBody(source, declaration) {
   let depth = 0;
@@ -44,7 +44,7 @@ module.exports = function withSceneLifecycle(config) {
     const declaration = appDelegateClass.exec(source);
     if (!declaration || !objcWindow.test(classBody(source, declaration))) {
       throw new Error(
-        `${delegate} reads AppDelegate's window through Objective-C: AppDelegate must subclass ExpoAppDelegate and store var window: UIWindow? without @nonobjc, static or let.`,
+        `${delegate} reads AppDelegate's window through Objective-C: AppDelegate must subclass ExpoAppDelegate and store var window: UIWindow? without @nonobjc, weak, static or let.`,
       );
     }
     return config;
