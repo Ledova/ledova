@@ -1,3 +1,4 @@
+import { Buffer } from 'buffer';
 import { BtcDataType, EthDataType, createBtcSignRequest, createEthSignRequest } from './registry';
 import { v4 as uuid } from 'uuid';
 import { Transaction } from 'ethers';

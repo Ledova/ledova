@@ -1,3 +1,4 @@
+import { Buffer } from 'buffer';
 import { HDKey } from 'ethereum-cryptography/hdkey';
 import { sha256 } from 'ethereum-cryptography/sha256';
 import { ripemd160 } from 'ethereum-cryptography/ripemd160';
