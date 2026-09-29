@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import {
   formatDateTime,
+  marketAmount,
+  marketQuantity,
   selectSwapSettlement,
   type Wallet,
   type OrderSubmissionOwner,
@@ -11,7 +13,6 @@ import {
   type OrderBookEntry,
 } from '@ledova/shared';
 import { Action, Row, Rows, Section } from '../../../components/Ledger';
-import { marketAmount, marketQuantity } from '../marketData';
 import { useMarketStyles } from '../styles';
 
 function BookSide({ title, entries }: { title: string; entries: OrderBookEntry[] }) {

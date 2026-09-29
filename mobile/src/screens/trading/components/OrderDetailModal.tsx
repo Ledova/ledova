@@ -1,8 +1,7 @@
 import { Text, View } from 'react-native';
-import { formatDateTime, type TransferOrder } from '@ledova/shared';
+import { formatDateTime, marketAmount, marketQuantity, type TransferOrder } from '@ledova/shared';
 import { CustomModal } from '../../../components/modal';
 import { Action, Row, Rows } from '../../../components/Ledger';
-import { marketAmount, marketQuantity } from '../marketData';
 import { useMarketStyles } from '../styles';
 
 interface OrderDetailModalProps {

@@ -2,19 +2,23 @@ import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { CheckCircleIcon } from '@phosphor-icons/react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { TransferOrder, CreateOrderRequest, Wallet, SwapOrder } from '@ledova/shared';
-import { selectSwapSettlement, useOrderSubmissions, useOrderActions, useSwapSettlements } from '@ledova/shared';
+import {
+  marketAmount,
+  marketQuantity,
+  selectSwapSettlement,
+  useInvestorEligibilityQuery,
+  useOrderBook,
+  useOrderSubmissions,
+  useOrderActions,
+  useShareTokens,
+  useSwapOrdersMulti,
+  useSwapSettlements,
+} from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
 import { orderSubmissionStore } from '@services/orderSubmissions';
 import { settlementWalletKey, swapSettlementCrypto, swapSettlementStore } from '@services/swapSettlements';
 import { Modal } from '@components/Modal';
-import {
-  useShareTokens,
-  useTrading,
-  useUserTradingWallets,
-  useWalletsWhitelistStatus,
-  useOrderBook,
-} from './useTrading';
-import { useSwapOrdersMulti } from './hooks/useAtomicSwaps';
+import { useTrading, useUserTradingWallets, useWalletsWhitelistStatus } from './useTrading';
 import { SwapSettlementFlow } from './components/SwapSettlementFlow';
 import { OrderSigningFlow } from './components/OrderSigningFlow';
 import { OrderActionFlow } from './components/OrderActionFlow';
@@ -23,10 +27,8 @@ import { MarketOverview } from './components/MarketOverview';
 import { OrdersPanel } from './components/OrdersPanel';
 import { PlaceOrderPanel } from './components/PlaceOrderPanel';
 import { useTradingEvents } from './hooks/useTradingEvents';
-import { useInvestorEligibilityQuery } from './useTrading';
 import { Page, PageAction } from '@components/Page';
 import { Row, Rows, Section } from '@components/Ledger';
-import { marketAmount, marketQuantity } from './marketData';
 
 function OrderSuccessModal({
   isOpen,

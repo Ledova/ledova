@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { AnimatedQRCode } from '@keystonehq/animated-qr';
-import { useOrderActionSigning, type OrderAction, type Wallet } from '@ledova/shared';
+import { marketAmount, useOrderActionSigning, type OrderAction, type Wallet } from '@ledova/shared';
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
-import { marketAmount } from '../marketData';
 import { SeedPhraseInput } from '@components/SeedPhraseInput';
 import { QRScannerView, useQRScanner } from '@components/qr';
 import { encodeEthereumTypedData } from '@utils/keystone/urEncoder';

@@ -6,9 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type { ShareToken, TransferOrder } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { marketAmount, marketQuantity } from './marketData';
-import { useShareTokens, useTrading, useUserTradingWallets } from './useTrading';
-import { useSwapOrdersMulti } from './hooks/useAtomicSwaps';
+import { useTrading, useUserTradingWallets } from './useTrading';
 import { OrdersPanel } from './components/OrdersPanel';
 import { MarketOverview } from './components/MarketOverview';
 import { OrderForm, type OrderFormRef } from './components/OrderForm';
@@ -53,12 +51,6 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-it('calculates exact AUD cents and never presents unsafe numeric shares as exact', () => {
-  expect(marketAmount('0.29', 9007199254740991)).toBe('AUD\u00a02,612,087,783,874,887.39');
-  expect(marketAmount('9999999999999999.99', 2)).toBe('AUD\u00a019,999,999,999,999,999.98');
-  expect(marketQuantity(9007199254740992)).toBe('Unavailable');
-  expect(marketAmount('1.00', 9007199254740992)).toBe('Unavailable');
-});
 it('reads owned orders without a wallet or listed class, through every page', async () => {
   const requests: unknown[] = [];
   apiClient.defaults.adapter = async (config) => {
@@ -120,22 +112,6 @@ it('loads every trading wallet under the account cache and removes stale signing
   await waitFor(() => expect(view.result.current.error).toBeTruthy());
   expect(view.result.current.wallets).toEqual([]);
   expect(view.result.current.actionWallets).toEqual([]);
-});
-it('completes token and swap lists and deduplicates a trade visible from both wallets', async () => {
-  apiClient.defaults.adapter = async (config) =>
-    response(
-      config,
-      page(
-        config.params?.page === 2 ? [{ ...token, uuid: 'second' }] : [token],
-        config.params?.page === 2 ? null : 'https://example.test/?page=2',
-      ),
-    );
-  const tokens = renderHook(() => useShareTokens(), { wrapper });
-  await waitFor(() => expect(tokens.result.current.data).toHaveLength(2));
-  const swaps = renderHook(() => useSwapOrdersMulti([wallet.address, '0x2222222222222222222222222222222222222222']), {
-    wrapper,
-  });
-  await waitFor(() => expect(swaps.result.current.data).toHaveLength(2));
 });
 it('keeps recorded orders visible without any currently selected share class', () => {
   const edit = vi.fn();

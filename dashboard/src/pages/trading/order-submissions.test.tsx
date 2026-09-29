@@ -80,20 +80,26 @@ vi.mock('@utils/softwareWallet/localSigner', () => ({ deriveAddress: vi.fn(), si
 vi.mock('./components/MarketOverview', () => ({ MarketOverview: () => null }));
 vi.mock('./components/OrdersPanel', () => ({ OrdersPanel: () => null }));
 vi.mock('./hooks/useTradingEvents', () => ({ useTradingEvents: () => {} }));
-vi.mock('./hooks/useAtomicSwaps', () => ({ useSwapOrdersMulti: () => ({ data: [], isLoading: false }) }));
-vi.mock('./useTrading', async () => {
+vi.mock('@ledova/shared', async (importOriginal) => {
   const f = await import('../../../../packages/shared/tests/fixtures/order-submissions');
   const tokens = [{ uuid: f.tokenUuid, name: 'Synthetic', symbol: 'SYN', lastPrice: '12.50' }];
   return {
+    ...(await importOriginal<typeof import('@ledova/shared')>()),
     useShareTokens: () => ({ data: tokens }),
     useInvestorEligibilityQuery: () => ({ data: { isEligible: true } }),
+    useOrderBook: () => ({ data: null }),
+    useSwapOrdersMulti: () => ({ data: [], isLoading: false }),
+  };
+});
+vi.mock('./useTrading', async () => {
+  const f = await import('../../../../packages/shared/tests/fixtures/order-submissions');
+  return {
     useUserTradingWallets: () => ({ wallets: [f.wallet], walletAddresses: [f.wallet.address] }),
     useWalletsWhitelistStatus: () => ({
       isWhitelisted: () => true,
       getStatus: () => ({ status: 'whitelisted', isWhitelisted: true }),
       isLoading: false,
     }),
-    useOrderBook: () => ({ data: null }),
     useTrading: () => ({ userOrders: [], getWalletsWithHoldings: () => [] }),
     useOrderCancelMessage: () => ({ mutate: vi.fn() }),
     useCancelOrder: () => ({ mutate: vi.fn() }),

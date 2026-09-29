@@ -1,8 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { ShareToken } from '@ledova/shared';
-import { formatShareCount, DIRECTORY_COPY } from '@ledova/shared';
+import { formatShareCount, DIRECTORY_COPY, marketAmount } from '@ledova/shared';
 import { Section, Rows, Row } from '@components/Ledger';
-import { marketAmount } from '../marketData';
 
 interface MarketOverviewProps {
   tokens: ShareToken[];

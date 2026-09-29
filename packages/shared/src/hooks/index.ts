@@ -24,3 +24,5 @@ export { USER_PROFILE_FIELDS, useSignupUserProfile } from './useSignupUserProfil
 export { FINANCIAL_PROFILE_FIELDS, useSignupFinancialProfile } from './useSignupFinancialProfile';
 export { COMPANY_REGISTRATION_FIELDS, useSignupCompanyRegistration } from './useSignupCompanyRegistration';
 export { useSignupReview } from './useSignupReview';
+export { useInvestorEligibilityQuery, useOrderBook, useShareTokens } from './useMarket';
+export { useSwapOrdersMulti } from './useAtomicSwaps';

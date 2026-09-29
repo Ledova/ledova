@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TextInput, ActivityIndicator } from 'react-native';
-import { useOrderActionSigning, type OrderAction, type Wallet } from '@ledova/shared';
+import { marketAmount, useOrderActionSigning, type OrderAction, type Wallet } from '@ledova/shared';
 import { Action } from '../../../components/Ledger';
 import { CustomModal, useDialogStyles } from '../../../components/modal';
 import { QRDisplay, QRScanner } from '../../../components/qr';
@@ -9,7 +9,6 @@ import { getSeedPhrase } from '../../../services/secureKeyStorage';
 import { signEthereumTypedData } from '../../../utils/softwareWallet/localSigner';
 import { encodeEthereumTypedData } from '../../../utils/keystone/urEncoder';
 import { decodeKeystoneMessageSignature } from '../../../utils/keystone/urDecoder';
-import { marketAmount } from '../marketData';
 
 interface Props {
   action: OrderAction;
