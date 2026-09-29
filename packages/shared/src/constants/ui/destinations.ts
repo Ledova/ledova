@@ -38,9 +38,11 @@ const AUDIENCES_OF: Record<AccountRole, readonly Audience[]> = {
 };
 
 export function canOpen(role: AccountRole, audience: Audience): boolean {
-  return AUDIENCES_OF[role].includes(audience);
+  return Object.prototype.hasOwnProperty.call(AUDIENCES_OF, role)
+    ? AUDIENCES_OF[role].includes(audience)
+    : audience === 'everyone';
 }
 
 export function landingFor(role: AccountRole): string {
-  return role === 'investor' ? DESTINATIONS.home.path : DESTINATIONS.companyRegister.path;
+  return canOpen(role, 'company') ? DESTINATIONS.companyRegister.path : DESTINATIONS.home.path;
 }
