@@ -1,76 +1,40 @@
 import { URDecoder } from '@ngraveio/bc-ur';
 import { ETHSignature } from '@keystonehq/bc-ur-registry-eth';
 import { BtcSignature } from '@keystonehq/bc-ur-registry-btc';
-import { Transaction } from 'ethers';
+import { Signature, Transaction, type TransactionLike } from 'ethers';
+import { readTransactionSignature, type TransactionSignature } from '@ledova/shared';
 
-export function decodeKeystoneSignature(
-  urSignatureString: string,
-  unsignedTransaction: {
-    nonce: number;
-    to: string;
-    value: number;
-    gas: number;
-    chainId: number;
-    type?: number;
-    gasPrice?: number;
-    maxFeePerGas?: number;
-    maxPriorityFeePerGas?: number;
-    data?: string;
-  },
-): string | null {
+function scannedSignature(urSignatureString: string): Buffer | null {
   try {
     const decoder = new URDecoder();
     decoder.receivePart(urSignatureString.toLowerCase());
-
-    if (!decoder.isComplete()) {
-      return null;
-    }
-
+    if (!decoder.isComplete()) return null;
     const ur = decoder.resultUR();
-    const signature = ETHSignature.fromCBOR(ur.cbor);
-    const signatureBuffer = signature.getSignature();
-
-    if (signatureBuffer.length !== 65) {
-      return null;
-    }
-
-    const r = '0x' + signatureBuffer.slice(0, 32).toString('hex');
-    const s = '0x' + signatureBuffer.slice(32, 64).toString('hex');
-    const v = signatureBuffer[64];
-
-    const isEIP1559 =
-      unsignedTransaction.type === 2 ||
-      (unsignedTransaction.maxFeePerGas !== undefined && unsignedTransaction.maxPriorityFeePerGas !== undefined);
-
-    const ethTx = isEIP1559
-      ? Transaction.from({
-          type: 2,
-          to: unsignedTransaction.to,
-          value: unsignedTransaction.value,
-          gasLimit: unsignedTransaction.gas,
-          maxFeePerGas: unsignedTransaction.maxFeePerGas,
-          maxPriorityFeePerGas: unsignedTransaction.maxPriorityFeePerGas,
-          nonce: unsignedTransaction.nonce,
-          chainId: unsignedTransaction.chainId,
-          data: unsignedTransaction.data || '0x',
-          signature: { r, s, v },
-        })
-      : Transaction.from({
-          type: 0,
-          to: unsignedTransaction.to,
-          value: unsignedTransaction.value,
-          gasLimit: unsignedTransaction.gas,
-          gasPrice: unsignedTransaction.gasPrice,
-          nonce: unsignedTransaction.nonce,
-          chainId: unsignedTransaction.chainId,
-          data: unsignedTransaction.data || '0x',
-          signature: { r, s, v },
-        });
-
-    return ethTx.serialized;
+    return ur.type === 'eth-signature' ? ETHSignature.fromCBOR(ur.cbor).getSignature() : null;
   } catch {
     return null;
   }
+}
+
+function signedBy(transaction: TransactionLike<string>, signature: TransactionSignature, signer: string) {
+  try {
+    const signed = Transaction.from({ ...transaction, signature: Signature.from(signature) });
+    return signed.from?.toLowerCase() === signer.toLowerCase() ? signed.serialized : null;
+  } catch {
+    return null;
+  }
+}
+
+export function decodeKeystoneSignature(
+  urSignatureString: string,
+  unsignedTransaction: TransactionLike<string> & { chainId: bigint },
+  signer: string,
+): string {
+  const scanned = scannedSignature(urSignatureString);
+  if (!scanned) throw new Error('The scanned code is not a Keystone signature.');
+  const signed = signedBy(unsignedTransaction, readTransactionSignature(scanned, unsignedTransaction.chainId), signer);
+  if (!signed) throw new Error('The scanned signature is not from this wallet.');
+  return signed;
 }
 
 export function decodeKeystoneMessageSignature(urSignatureString: string): string | null {

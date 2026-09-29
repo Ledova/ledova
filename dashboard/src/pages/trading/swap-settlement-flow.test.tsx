@@ -7,7 +7,7 @@ import axios, { type InternalAxiosRequestConfig } from 'axios';
 import { DataItem, extend, type DataItemMap } from '@keystonehq/bc-ur-registry';
 import { UR, UREncoder } from '@ngraveio/bc-ur';
 import { AnimatedQRCode } from '@keystonehq/animated-qr';
-import { Interface, keccak256 } from 'ethers';
+import { Interface, Transaction, keccak256 } from 'ethers';
 import {
   SwapSettlement,
   createSwapSettlementStore,
@@ -23,6 +23,7 @@ import * as localSigner from '@utils/softwareWallet/localSigner';
 import { SwapSettlementFlow } from './components/SwapSettlementFlow';
 import apiFixture from '../../../../packages/shared/tests/fixtures/swap-settlement-api.json';
 import { memoryStorage, response, userUuid } from '../../../../packages/shared/tests/fixtures/order-submissions';
+import { keystoneSignatureBytes, legacyV } from '../../../../packages/shared/tests/fixtures/keystone-signatures';
 
 vi.mock('@components/Modal', () => ({
   Modal: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -445,6 +446,45 @@ it('encodes captured hardware values and relays a signature from either captured
     signature: apiFixture.signatures[1],
     signer_address: apiFixture.addresses[1],
   });
+});
+
+it('relays the 67-byte approval signature a Keystone sends on Base Sepolia through the settlement checks', async () => {
+  const { settlement, calls } = setup(true);
+  render(
+    <SwapSettlementFlow
+      settlement={settlement}
+      wallets={[{ ...wallet, signingPreference: 'hardware' }]}
+      onClose={() => {}}
+    />,
+  );
+  await load(settlement);
+  fireEvent.click(screen.getByText('Prepare approval'));
+  await waitFor(() => expect(screen.getByText('Continue to approve')).toBeTruthy());
+  fireEvent.click(screen.getByText('Continue to approve'));
+  const request = extend
+    .decodeToDataItem(Buffer.from(vi.mocked(AnimatedQRCode).mock.calls.at(-1)![0].cbor, 'hex'))
+    .getData() as DataItemMap;
+  const unsigned = Transaction.from(`0x${(request[2] as Buffer).toString('hex')}`);
+  const { r, s, yParity } = Transaction.from(
+    await localSigner.signEthereumTransaction(apiFixture.mnemonic, apiFixture.paths[0]!, unsigned),
+  ).signature!;
+  const firmware = Buffer.from(keystoneSignatureBytes(r, s, legacyV(unsigned.chainId, yParity)));
+  expect(firmware).toHaveLength(67);
+  fireEvent.click(screen.getByText("I've signed it"));
+  const scanner = vi
+    .mocked(useQRScanner)
+    .mock.calls.filter(([options]) => options.enabled)
+    .at(-1)![0];
+  await act(async () => {
+    scanner.onScanSuccess(
+      new UREncoder(new UR(extend.encodeDataItem(new DataItem({ 2: firmware })), 'eth-signature'), 400).nextPart(),
+    );
+  });
+  await waitFor(() => expect(calls.filter((call) => call.method === 'post')).toHaveLength(1));
+  const broadcast = Transaction.from(JSON.parse(calls.find((call) => call.method === 'post')!.data).signed_transaction);
+  expect(broadcast.from).toBe(wallet.address);
+  expect(broadcast.chainId).toBe(84532n);
+  await waitFor(() => expect(settlement.getSnapshot().phase).toBe('ready'));
 });
 
 it('drops a queued valid hardware recovery after the selected device changes', async () => {

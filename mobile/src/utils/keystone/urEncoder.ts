@@ -7,57 +7,23 @@ import {
   isBitcoinTestnetSigningPath,
   isValidBitcoinNativeSegwitTestAddress,
 } from '@ledova/shared';
+import type { TransferTransaction } from '../preparedTransfer';
 
 export function encodeEthereumTransaction(
   address: string,
-  transaction: {
-    nonce: number;
-    to: string;
-    value: number;
-    gas: number;
-    chainId: number;
-    type?: number;
-    gasPrice?: number;
-    maxFeePerGas?: number;
-    maxPriorityFeePerGas?: number;
-    data?: string;
-  },
+  transaction: TransferTransaction,
   derivationPath?: string,
   masterFingerprint?: string,
 ): { type: string; cbor: Buffer; urString: string } | null {
   try {
     const requestId = uuid();
+    const chainId = Number(transaction.chainId);
 
-    if (!derivationPath || !masterFingerprint || !isSupportedEvmTestChainId(transaction.chainId)) {
+    if (!derivationPath || !masterFingerprint || !isSupportedEvmTestChainId(chainId)) {
       return null;
     }
 
-    const isEIP1559 =
-      transaction.type === 2 ||
-      (transaction.maxFeePerGas !== undefined && transaction.maxPriorityFeePerGas !== undefined);
-
-    const ethTx = isEIP1559
-      ? Transaction.from({
-          type: 2,
-          to: transaction.to,
-          value: transaction.value,
-          gasLimit: transaction.gas,
-          maxFeePerGas: transaction.maxFeePerGas,
-          maxPriorityFeePerGas: transaction.maxPriorityFeePerGas,
-          nonce: transaction.nonce,
-          chainId: transaction.chainId,
-          data: transaction.data || '0x',
-        })
-      : Transaction.from({
-          type: 0,
-          to: transaction.to,
-          value: transaction.value,
-          gasLimit: transaction.gas,
-          gasPrice: transaction.gasPrice,
-          nonce: transaction.nonce,
-          chainId: transaction.chainId,
-          data: transaction.data || '0x',
-        });
+    const ethTx = Transaction.from(transaction);
 
     const unsignedTx = ethTx.unsignedSerialized;
     const signDataHex = unsignedTx.startsWith('0x') ? unsignedTx.slice(2) : unsignedTx;
@@ -71,7 +37,7 @@ export function encodeEthereumTransaction(
       derivationPath,
       xfpBuffer as unknown as string,
       requestId,
-      transaction.chainId,
+      chainId,
       address,
       'Ledova',
     );

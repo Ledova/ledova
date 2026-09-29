@@ -3,6 +3,7 @@ import { HDNodeWallet, Transaction, TypedDataEncoder } from 'ethers';
 import { validateSwapSettlementResponse } from '@ledova/shared';
 import fixture from '../../../packages/shared/tests/fixtures/swap-settlement-api.json';
 import { settlementApproval, settlementResponse } from '../../../packages/shared/tests/fixtures/swap-settlements';
+import { keystoneSignatureBytes, legacyV } from '../../../packages/shared/tests/fixtures/keystone-signatures';
 import {
   decodeSettlementApproval,
   encodeSettlementApproval,
@@ -59,8 +60,14 @@ it('encodes and reconstructs exact approval bytes with large gas-price and prese
   const code = encodeSettlementApproval(transaction, wallet);
   const request = EthSignRequest.fromCBOR(Buffer.from(code, 'hex'));
   expect(request.getSignData().toString('hex')).toBe(Transaction.from(input).unsignedSerialized.slice(2));
-  const qr = new ETHSignature(Buffer.from(decoded.signature!.serialized.slice(2), 'hex')).toUREncoder(1000).nextPart();
-  expect(decodeSettlementApproval(qr, transaction)).toBe(signed);
+  const { r, s, yParity } = decoded.signature!;
+  const firmware = Buffer.from(keystoneSignatureBytes(r, s, legacyV(decoded.chainId, yParity)));
+  expect(firmware).toHaveLength(67);
+  const qr = new ETHSignature(firmware).toUREncoder(1000).nextPart();
+  expect(decodeSettlementApproval(qr, transaction, wallet.address)).toBe(signed);
+  expect(() => decodeSettlementApproval(qr, transaction, fixture.addresses[1])).toThrow(
+    'The scanned signature is not from this wallet.',
+  );
   const inspected = await swapSettlementCrypto.inspectSignedApproval(signed);
   expect(inspected.txHash).toBe(decoded.hash);
   expect(BigInt(inspected.transaction.gasPrice)).toBe(9007199254740993n);

@@ -1,0 +1,83 @@
+{
+  "syntheticOnly": true,
+  "signer": {
+    "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+    "derivationPath": "m/44'/60'/0'/0/0",
+    "address": "0x9858EfFD232B4033E47d90003D41EC34EcaEda94"
+  },
+  "native": {
+    "transaction": {
+      "nonce": 7,
+      "to": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
+      "value": "0x16345785d8a0000",
+      "gas": 21000,
+      "gasPrice": 1350428469,
+      "chainId": 31337
+    },
+    "amountEth": "0.1",
+    "gasPriceWei": "1350428469",
+    "gasPriceGwei": "1.350428469",
+    "gasLimit": 21000,
+    "gasCostEth": "0.000028358997849",
+    "totalCostEth": "0.100028358997849",
+    "fromAddress": "0x9858EfFD232B4033E47d90003D41EC34EcaEda94",
+    "toAddress": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
+  },
+  "nativeBeyondDouble": {
+    "transaction": {
+      "nonce": 7,
+      "to": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
+      "value": "0x8ac7230235dc1c00",
+      "gas": 21000,
+      "gasPrice": 1350428469,
+      "chainId": 31337
+    },
+    "amountEth": "9.99999999",
+    "gasPriceWei": "1350428469",
+    "gasPriceGwei": "1.350428469",
+    "gasLimit": 21000,
+    "gasCostEth": "0.000028358997849",
+    "totalCostEth": "10.000028348997849",
+    "fromAddress": "0x9858EfFD232B4033E47d90003D41EC34EcaEda94",
+    "toAddress": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
+  },
+  "nativeEighteenPlaces": {
+    "transaction": {
+      "nonce": 7,
+      "to": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
+      "value": "0x1b69b4ba630f34e",
+      "gas": 21000,
+      "gasPrice": 1350428469,
+      "chainId": 31337
+    },
+    "amountEth": "0.123456789012345678",
+    "gasPriceWei": "1350428469",
+    "gasPriceGwei": "1.350428469",
+    "gasLimit": 21000,
+    "gasCostEth": "0.000028358997849",
+    "totalCostEth": "0.123485148010194678",
+    "fromAddress": "0x9858EfFD232B4033E47d90003D41EC34EcaEda94",
+    "toAddress": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
+  },
+  "token": {
+    "transaction": {
+      "nonce": 7,
+      "to": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+      "value": "0x0",
+      "data": "0xa9059cbb0000000000000000000000007e5f4552091a69125d5dfcb7b8c2659029395bdf0000000000000000000000000000000000000000000000000000000000000096",
+      "gas": 61710,
+      "gasPrice": 1350428469,
+      "chainId": 31337
+    },
+    "amountToken": "1.5",
+    "tokenSymbol": "R779",
+    "tokenDecimals": 2,
+    "tokenContract": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+    "gasPriceWei": "1350428469",
+    "gasPriceGwei": "1.350428469",
+    "gasLimit": 61710,
+    "gasCostEth": "0.00008333494082199",
+    "fromAddress": "0x9858EfFD232B4033E47d90003D41EC34EcaEda94",
+    "toAddress": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
+  }
+}

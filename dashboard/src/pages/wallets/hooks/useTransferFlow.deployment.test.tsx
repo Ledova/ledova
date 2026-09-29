@@ -1,13 +1,18 @@
 // @vitest-environment jsdom
 
-import { cleanup, renderHook, waitFor } from '@testing-library/react';
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { Wallet } from '@ledova/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
-vi.mock('./useCryptoTransferSigning', () => ({ useCryptoTransferSigning: () => ({ reset: vi.fn() }) }));
+const signing = vi.hoisted(() =>
+  vi.fn<(params: { tokenContract?: string; amount: string; decimals?: number }) => { reset: () => void }>(() => ({
+    reset: () => {},
+  })),
+);
+vi.mock('./useCryptoTransferSigning', () => ({ useCryptoTransferSigning: signing }));
 
 import { useTransferFlow } from './useTransferFlow';
 
@@ -74,6 +79,15 @@ describe('dashboard token deployment selection', () => {
     const { result } = renderHook(() => useTransferFlow(wallet), { wrapper });
     await waitFor(() => expect(result.current.isLoadingAssets).toBe(false));
     expect(result.current.assets.some((row) => row.id === 'token-holding')).toBe(false);
+  });
+  it("prepares a transfer of the token in this deployment's zero decimals", async () => {
+    const { result } = renderHook(() => useTransferFlow(wallet), { wrapper });
+    await waitFor(() => expect(result.current.isLoadingAssets).toBe(false));
+    const token = result.current.assets.find((row) => row.id === 'token-holding')!;
+    act(() => result.current.handleCombinedTransfer(token, `0x${'3'.repeat(40)}`, '3'));
+    expect(signing).toHaveBeenLastCalledWith(
+      expect.objectContaining({ tokenContract: contract, amount: '3', decimals: 0 }),
+    );
   });
   it('does not reuse a holding returned for a different wallet', async () => {
     const { result } = renderHook(() => useTransferFlow({ ...wallet, uuid: 'different-wallet' }), { wrapper });

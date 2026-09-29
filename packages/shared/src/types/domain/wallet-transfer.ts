@@ -21,6 +21,8 @@ export interface TransferableAsset {
 
 export type PrepareTransferResponse = ApiSchema<'PreparedEvmTransfer'>;
 
+export type PreparedEvmTransaction = ApiSchema<'PreparedEvmTransaction'>;
+
 export type PrepareBitcoinTransferResponse = ApiSchema<'PreparedBitcoinTransfer'>;
 
 export type PreparedWalletTransfer = ApiResponse<'api_wallets_prepare_transfer_create'>;
@@ -32,14 +34,14 @@ export type BroadcastTransferResponse = ApiResponse<'api_wallets_broadcast_trans
 export type TransferStepSimple = 'select-wallet' | 'enter-details' | 'review' | 'sign' | 'broadcast' | 'success';
 
 export interface TransactionData {
-  transaction: string;
+  transaction?: PreparedEvmTransaction;
   fromAddress: string;
   toAddress: string;
   amountEth?: string;
   gasCostEth?: string;
   totalCostEth?: string;
   gasPriceGwei?: string;
-  gasLimit?: string;
+  gasLimit?: number;
   amountBtc?: string;
   feeBtc?: string;
   totalCostBtc?: string;

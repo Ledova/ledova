@@ -156,8 +156,8 @@ export function useSwapSettlementSigning(settlement: SwapSettlement, wallet: Wal
     if (view.step !== 'scan' || !currentScan() || !state.response || !swapSettlementAdmitted(state.response)) return;
     try {
       if (view.approval) {
-        if (!state.approvalData?.needsApproval) return;
-        const raw = decodeSettlementApproval(text, state.approvalData.transaction);
+        if (!state.approvalData?.needsApproval || !wallet) return;
+        const raw = decodeSettlementApproval(text, state.approvalData.transaction, wallet.address);
         if (!currentScan()) return;
         update({ step: 'review', qr: null });
         await settlement.broadcastApproval(raw);

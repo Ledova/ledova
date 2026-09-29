@@ -7,11 +7,13 @@ import { useDialogStyles } from '../../../components/modal';
 import type { Wallet, TransactionData } from '@ledova/shared';
 import { getSeedPhrase } from '../../../services/secureKeyStorage';
 import { signEthereumTransaction } from '../../../utils/softwareWallet';
+import { reviewedTransferTransaction } from '../../../utils/preparedTransfer';
 import { formatWalletAddressShort } from '@ledova/shared';
 
 interface SoftwareSignTransactionProps {
   wallet: Wallet;
   transactionData: TransactionData;
+  tokenDecimals?: number;
   onSignComplete: (signedTxHex: string) => void;
   signTrigger?: number;
 }
@@ -21,6 +23,7 @@ type SigningState = 'ready' | 'authenticating' | 'signing' | 'success' | 'error'
 export function SoftwareSignTransaction({
   wallet,
   transactionData,
+  tokenDecimals,
   onSignComplete,
   signTrigger = 0,
 }: SoftwareSignTransactionProps) {
@@ -58,6 +61,8 @@ export function SoftwareSignTransaction({
     }
 
     try {
+      const unsignedTx = reviewedTransferTransaction(transactionData, tokenDecimals);
+
       setSigningState('authenticating');
       setError(null);
 
@@ -70,16 +75,6 @@ export function SoftwareSignTransaction({
 
       setSigningState('signing');
 
-      const unsignedTx = JSON.parse(transactionData.transaction);
-
-      const txData = unsignedTx.data as string | undefined;
-      const isNativeTransfer = !txData || txData === '0x' || txData === '0x00';
-      if (isNativeTransfer && unsignedTx.to && transactionData.toAddress) {
-        if ((unsignedTx.to as string).toLowerCase() !== transactionData.toAddress.toLowerCase()) {
-          throw new Error('Transaction recipient does not match expected address');
-        }
-      }
-
       const signedTx = await signEthereumTransaction(mnemonic, wallet.derivationPath, unsignedTx);
 
       setSigningState('success');
@@ -91,7 +86,7 @@ export function SoftwareSignTransaction({
       setError(err instanceof Error ? err.message : 'Failed to sign transaction');
       setSigningState('error');
     }
-  }, [wallet, transactionData, onSignComplete]);
+  }, [wallet, transactionData, tokenDecimals, onSignComplete]);
 
   useEffect(() => {
     if (signTrigger > 0) {

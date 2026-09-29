@@ -23,6 +23,7 @@ import { BitcoinSignTransaction } from './BitcoinSignTransaction';
 import { SuccessModal } from './SuccessModal';
 import { encodeEthereumTransaction } from '../../../utils/keystone/urEncoder';
 import { decodeKeystoneSignature } from '../../../utils/keystone/urDecoder';
+import { reviewTransfer } from '../../../utils/preparedTransfer';
 import { useTransfers } from '../useTransfers';
 
 type Props = NativeStackScreenProps<WalletsStackParamList, 'TransferDetails'>;
@@ -87,13 +88,19 @@ export function TransferFormScreen({ route, navigation }: Props) {
   const isBitcoin = isBitcoinChain(chainShortName);
   const canSubmit = !!toAddress && !!amount && !!selectedAsset && !isPreparing;
 
+  const review = useMemo(
+    () => (transactionData && isEvm ? reviewTransfer(transactionData, selectedAsset?.decimals) : null),
+    [transactionData, isEvm, selectedAsset],
+  );
+  const [refusedScan, setRefusedScan] = useState<{ review: typeof review; message: string } | null>(null);
+
   const urEncodedTransaction = useMemo(() => {
-    if (!transactionData || !wallet || !isEvm) return null;
+    if (!review?.transaction || !wallet) return null;
 
     try {
       const encoded = encodeEthereumTransaction(
         wallet.address,
-        transactionData.transaction as unknown as Parameters<typeof encodeEthereumTransaction>[1],
+        review.transaction,
         wallet.derivationPath ?? undefined,
         wallet.masterFingerprint ?? undefined,
       );
@@ -101,7 +108,7 @@ export function TransferFormScreen({ route, navigation }: Props) {
     } catch {
       return null;
     }
-  }, [transactionData, wallet, isEvm]);
+  }, [review, wallet]);
 
   const handleOpenAddressScanner = useCallback(() => {
     setShowAddressScanner(true);
@@ -120,6 +127,7 @@ export function TransferFormScreen({ route, navigation }: Props) {
   );
 
   const handleOpenSignatureScanner = useCallback(() => {
+    setRefusedScan(null);
     setShowSignatureScanner(true);
   }, []);
 
@@ -129,18 +137,16 @@ export function TransferFormScreen({ route, navigation }: Props) {
 
   const handleSignatureScan = useCallback(
     (data: string) => {
-      if (!transactionData?.transaction) return;
+      if (!review?.transaction || !wallet) return;
 
-      const signedTx = decodeKeystoneSignature(
-        data,
-        transactionData.transaction as unknown as Parameters<typeof decodeKeystoneSignature>[1],
-      );
-      if (signedTx) {
-        handleSignature(signedTx);
-        setShowSignatureScanner(false);
+      setShowSignatureScanner(false);
+      try {
+        handleSignature(decodeKeystoneSignature(data, review.transaction, wallet.address));
+      } catch (error) {
+        setRefusedScan({ review, message: error instanceof Error ? error.message : 'The scanned code was refused.' });
       }
     },
-    [handleSignature, transactionData],
+    [handleSignature, review, wallet],
   );
 
   const handleSignedHexChange = useCallback((value: string) => {
@@ -227,12 +233,18 @@ export function TransferFormScreen({ route, navigation }: Props) {
             <SoftwareSignTransaction
               wallet={wallet}
               transactionData={transactionData}
+              tokenDecimals={selectedAsset?.decimals}
               onSignComplete={handleSignature}
               signTrigger={softwareSignTrigger}
             />
           );
         }
-        return <SignTransaction urEncodedTransaction={urEncodedTransaction} />;
+        return (
+          <SignTransaction
+            urEncodedTransaction={urEncodedTransaction}
+            error={review?.error ?? (refusedScan?.review === review ? refusedScan.message : null)}
+          />
+        );
 
       case 'broadcast':
         return (

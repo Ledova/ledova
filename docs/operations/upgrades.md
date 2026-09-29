@@ -149,6 +149,29 @@ where task_name in (
 A job left behind is harmless: a worker without the task marks it `failed` and
 runs nothing. No database migration is needed.
 
+## Prepared transfers carry the exact amount in wei
+
+`POST /api/wallets/{uuid}/prepare-transfer/` now answers an EVM transaction's
+`value` as a JSON-RPC hex quantity of wei, for example `"0x8ac7230235dc1c00"` for
+9.99999999 ETH and `"0x0"` for a token transfer, where it answered a JSON
+number. JavaScript reads a number above 2^53 approximately, so a client could
+sign a different amount from the one prepared. Native amounts are also
+converted exactly: one with more than 18 decimal places is refused with 400
+instead of being rounded, and `amountEth` and `amountToken` are written in plain
+decimals. `gas`, `gasPrice`, `nonce` and `chainId` stay numbers, far below
+2^53.
+
+Clients built before this change fail closed or sign exactly. An older
+dashboard builds its Keystone code from `'0x' + value.toString(16)`, which gives
+`0x0x…` for a hex string, so it shows "Failed to encode transaction for
+signing" and sends nothing. An older mobile build's software Send fails before
+signing, whatever the value. Its Keystone code reads the hex string exactly,
+but its decoder refuses the longer signature the Keystone returns on the test
+networks. A decimal string would have been the risky form: an older dashboard
+reads its digits as hexadecimal, so a stale tab would have signed 0.001 ETH as
+1.152921504606846976 ETH. Current clients still read a safe JSON number from an
+older backend. No database migration is needed.
+
 ## Database migrations
 
 - `companies/0003_delete_review_and_signature_models` (with

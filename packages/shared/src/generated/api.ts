@@ -3546,7 +3546,7 @@ export interface ApiComponents {
       gasPrice: number;
       nonce: number;
       to: string;
-      value: number;
+      value: string;
     };
     PreparedEvmTransfer: {
       amountEth?: string;
