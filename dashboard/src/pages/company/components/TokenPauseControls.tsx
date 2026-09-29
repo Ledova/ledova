@@ -9,16 +9,11 @@ import {
   type CompanyShareToken,
   type OrderSubmissionOwner,
   type PauseSubmissionResponse,
+  type SavedPause,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { PageAction } from '@components/Page';
-import {
-  listSavedPauses,
-  removeSavedPause,
-  retainSavedPause,
-  savePause,
-  type SavedPause,
-} from '@services/pauseSubmissions';
+import { pauseSubmissionStore } from '@services/pauseSubmissions';
 
 const queryKey = (record: SavedPause) => [
   'pause-submission',
@@ -41,7 +36,7 @@ function checked(record: SavedPause, response: PauseSubmissionResponse) {
 function readSavedPauses(guard: () => void, owner: OrderSubmissionOwner, tokenUuid: string) {
   try {
     guard();
-    return { saved: listSavedPauses(owner, tokenUuid), error: null };
+    return { saved: pauseSubmissionStore.list(owner, tokenUuid), error: null };
   } catch (failure) {
     return { saved: null, error: getErrorMessage(failure, 'Saved pause requests could not be read.') };
   }
@@ -110,7 +105,9 @@ function PauseRequests({
     setError(null);
     try {
       guard();
-      const record = previous ? retainSavedPause(previous) : savePause(owner, token.uuid, paused);
+      const record = previous
+        ? pauseSubmissionStore.retain(previous)
+        : pauseSubmissionStore.save(owner, token.uuid, paused);
       load();
       guard();
       const response = await (paused ? pauseCompanyToken : unpauseCompanyToken)(
@@ -135,7 +132,7 @@ function PauseRequests({
   const dismiss = (record: SavedPause) => {
     try {
       guard();
-      removeSavedPause(record);
+      pauseSubmissionStore.remove(record);
       setRecords((previous) => previous.filter((existing) => existing.submissionId !== record.submissionId));
       load();
     } catch (failure) {

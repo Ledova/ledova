@@ -1,6 +1,8 @@
 import React from 'react';
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { AxiosInstance } from 'axios';
+import { ApiClientProvider } from '@ledova/shared';
 import { apiClient } from '../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../services/sessionScope';
 import { useIdentityVerification } from './useIdentityVerification';
@@ -25,7 +27,11 @@ function deferred() {
 }
 
 function wrapper({ children }: { children: React.ReactNode }) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient as unknown as AxiosInstance}>{children}</ApiClientProvider>
+    </QueryClientProvider>
+  );
 }
 
 beforeEach(() => {

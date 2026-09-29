@@ -4,6 +4,7 @@ import { createRequire, isBuiltin } from 'node:module';
 import path from 'node:path';
 import process from 'node:process';
 import ts from 'typescript';
+import { borrowedModule } from './relative-imports.mjs';
 import { checkSharedPeers } from './shared-peer-resolution.mjs';
 import { sourceImports } from '../../scripts/source-imports.mjs';
 
@@ -80,20 +81,28 @@ function packageOf(specifier) {
 }
 
 const sites = new Map();
+const failures = [];
 
 for await (const file of bundledFiles()) {
   const text = await readFile(file, 'utf8');
   const isTest = TEST_FILE.test(path.relative(MOBILE, file));
   for (const { specifier, line } of sourceImports(ts, text, file)) {
-    if (specifier.startsWith('.') || specifier.startsWith('/')) continue;
+    if (specifier.startsWith('.') || specifier.startsWith('/')) {
+      const borrowed = borrowedModule(MOBILE, file, specifier);
+      if (borrowed) {
+        failures.push(
+          `${path.relative(REPO, file)}:${line}: '${specifier}' climbs out of mobile/ into ` +
+            `${path.relative(REPO, borrowed)}; import the package by name so it resolves from mobile/node_modules`,
+        );
+      }
+      continue;
+    }
     if (isTest && development.has(packageOf(specifier))) continue;
     if (!sites.has(specifier)) {
       sites.set(specifier, `${path.relative(REPO, file)}:${line}`);
     }
   }
 }
-
-const failures = [];
 
 for (const [specifier, site] of [...sites].sort()) {
   if (isBuiltin(specifier)) {

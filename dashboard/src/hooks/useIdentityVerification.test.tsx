@@ -4,6 +4,7 @@ import type { PropsWithChildren } from 'react';
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { ApiClientProvider } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { useIdentityVerification } from './useIdentityVerification';
 
@@ -14,7 +15,11 @@ const FORM_URL = 'https://verification.example.test/form';
 let client: QueryClient;
 
 function wrapper({ children }: PropsWithChildren) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+    </QueryClientProvider>
+  );
 }
 
 function completeForm() {
