@@ -4,93 +4,25 @@ import { HDKey } from 'ethereum-cryptography/hdkey';
 import { mnemonicToSeedSync } from 'ethereum-cryptography/bip39';
 import { secp256k1 } from 'ethereum-cryptography/secp256k1';
 import { sha256 } from '@noble/hashes/sha256';
-import { isBitcoinTestnetSigningPath } from '@ledova/shared';
+import { createLocalSigner, isBitcoinTestnetSigningPath } from '@ledova/shared';
 
-function wipe(...arrays: (Uint8Array | null | undefined)[]): void {
-  for (const arr of arrays) {
-    if (arr) arr.fill(0);
-  }
-}
+const signer = createLocalSigner({ ethers, HDKey, mnemonicToSeedSync });
 
-interface DerivedKey {
-  privateKey: Uint8Array;
-  cleanup: () => void;
-}
-
-function deriveKey(mnemonic: string, derivationPath: string): DerivedKey {
-  const seed = mnemonicToSeedSync(mnemonic);
-  const masterKey = HDKey.fromMasterSeed(seed);
-  const childKey = masterKey.derive(derivationPath);
-
-  if (!childKey.privateKey) {
-    wipe(seed, masterKey.privateKey);
-    throw new Error('Failed to derive private key from mnemonic');
-  }
-
-  const privateKey = new Uint8Array(childKey.privateKey);
-  wipe(seed, masterKey.privateKey, childKey.privateKey);
-
-  return { privateKey, cleanup: () => wipe(privateKey) };
-}
-
-async function withEthereumSigner<T>(
-  mnemonic: string,
-  derivationPath: string,
-  sign: (wallet: ethers.Wallet) => Promise<T>,
-): Promise<T> {
-  const { privateKey, cleanup } = deriveKey(mnemonic, derivationPath);
-  try {
-    const wallet = new ethers.Wallet(new ethers.SigningKey(privateKey));
-    return await sign(wallet);
-  } finally {
-    cleanup();
-  }
-}
-
-export async function signEthereumTransaction(
-  mnemonic: string,
-  derivationPath: string,
-  unsignedTx: ethers.TransactionLike,
-): Promise<string> {
-  return withEthereumSigner(mnemonic, derivationPath, (wallet) => wallet.signTransaction(unsignedTx));
-}
-
-export async function signEthereumMessage(mnemonic: string, derivationPath: string, message: string): Promise<string> {
-  return withEthereumSigner(mnemonic, derivationPath, (wallet) => wallet.signMessage(message));
-}
-
-export async function signEthereumTypedData(
-  mnemonic: string,
-  derivationPath: string,
-  domain: ethers.TypedDataDomain,
-  types: Record<string, ethers.TypedDataField[]>,
-  value: Record<string, unknown>,
-): Promise<string> {
-  return withEthereumSigner(mnemonic, derivationPath, (wallet) => wallet.signTypedData(domain, types, value));
-}
+export const { signEthereumTransaction, signEthereumMessage, signEthereumTypedData } = signer;
 
 export async function signBitcoinMessage(mnemonic: string, derivationPath: string, message: string): Promise<string> {
   if (!isBitcoinTestnetSigningPath(derivationPath)) {
     throw new Error('Bitcoin signing requires a BIP84 testnet derivation path');
   }
 
-  const seed = mnemonicToSeedSync(mnemonic);
-  const masterKey = HDKey.fromMasterSeed(seed);
-  const childKey = masterKey.derive(derivationPath);
-
-  if (!childKey.privateKey) {
-    wipe(seed, masterKey.privateKey);
-    throw new Error('Failed to derive private key from mnemonic');
-  }
-
-  try {
+  return signer.withPrivateKey(mnemonic, derivationPath, (privateKey) => {
     const prefix = '\x18Bitcoin Signed Message:\n';
     const msgBytes = Buffer.from(message, 'utf8');
     const varint = encodeVarint(msgBytes.length);
     const payload = Buffer.concat([Buffer.from(prefix, 'utf8'), varint, msgBytes]);
     const msgHash = sha256(sha256(payload));
 
-    const sig = secp256k1.sign(msgHash, childKey.privateKey);
+    const sig = secp256k1.sign(msgHash, privateKey);
 
     const recoveryFlag = 39 + sig.recovery;
     const rBytes = hexToBytes32(sig.r.toString(16));
@@ -102,9 +34,7 @@ export async function signBitcoinMessage(mnemonic: string, derivationPath: strin
     Buffer.from(sBytes).copy(compactSig, 33);
 
     return compactSig.toString('base64');
-  } finally {
-    wipe(seed, masterKey.privateKey, childKey.privateKey);
-  }
+  });
 }
 
 function encodeVarint(n: number): Buffer {

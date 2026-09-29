@@ -1,0 +1,61 @@
+{
+  "synthetic_only": true,
+  "source": "eth-account 0.14.0 and bitcoin-message-tool 0.1.4, from backend/requirements; RFC 6979 nonces with low s",
+  "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+  "ethereum": {
+    "paths": ["m/44'/60'/0'/0/0", "m/44'/60'/0'/0/1"],
+    "addresses": ["0x9858EfFD232B4033E47d90003D41EC34EcaEda94", "0x6Fac4D18c912343BF86fa7049364Dd4E424Ab9C0"],
+    "messages": [
+      {
+        "message": "Ledova Wallet Verification\n\nAddress: 0x9858EfFD232B4033E47d90003D41EC34EcaEda94\nTimestamp: 1790000000\nNonce: 00112233445566778899aabbccddeeff\n\nPlease sign this message to verify wallet ownership.\nThis request will expire in 10 minutes.",
+        "signature": "0xbcf860e325a4dffeaf92896ff432a66c533a095791914a99a7d7d13d4577c48e070f53c5e18914d665d28c2da774be3b3cace739e5b0d67ab96ffc875171de0d1c"
+      },
+      {
+        "message": "Café déjà vu ✓",
+        "signature": "0x707c3f8ff03a6f936a650b6ba1951e5350513d77d64d98b0eaa0f0ecde8157602616b7ce7af59e7ae75c08027ce24f111fa865bfca44bbbc5f24bdc679bc483d1c"
+      }
+    ],
+    "transaction": {
+      "type": 0,
+      "to": "0x1111111111111111111111111111111111111111",
+      "value": "0",
+      "data": "0x095ea7b30000000000000000000000002222222222222222222222222222222222222222ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "gasLimit": "100000",
+      "gasPrice": "1000000001",
+      "nonce": 7,
+      "chainId": "84532"
+    },
+    "signed_transaction": "0xf8ac07843b9aca01830186a094111111111111111111111111111111111111111180b844095ea7b30000000000000000000000002222222222222222222222222222222222222222ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8302948ca051770dda90611e71eecc73575b71bdef144f901d0b5163e71a785e8a960083f0a05b4ffda5909f44082922620c10cad775d9ce08166769c4245dc79a9a2c7c40a3"
+  },
+  "bitcoin": {
+    "path": "m/84'/1'/0'/0/0",
+    "address": "tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl",
+    "public_key": "02e7ab2537b5d49e970309aae06e9e49f36ce1c9febbd44ec8e0d1cca0b4f9c319",
+    "messages": [
+      {
+        "unit": "Ledova Wallet Verification\n\nAddress: tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl\nTimestamp: 1790000000\nNonce: 00112233445566778899aabbccddeeff\n\nPlease sign this message to verify wallet ownership.\nThis request will expire in 10 minutes.",
+        "repeat": 1,
+        "utf8_length": 235,
+        "signature": "JyLwbF6cmOWE/y6orUqleBQJrwguJHMzsr0DfJ08Lf4HQn1lvm2yt5YKhotBvrMabk6+ytQ9lY6/1kL0b5+SfJ8="
+      },
+      {
+        "unit": "Ledova ",
+        "repeat": 40,
+        "utf8_length": 280,
+        "signature": "KAtKZ7WFSbSfu7o2JqB8v9GmXcZE2oaOcYGm4XC2P5LeH6NMChsyD+lDp2vINgFlR/MMYeV0rJ0jQTVRuGZmPGo="
+      },
+      {
+        "unit": "é",
+        "repeat": 200,
+        "utf8_length": 400,
+        "signature": "KManVqZWRqg36w/GyYno2p7VDreEqImKSEf+CuQgjG/ufJl/OLoY1iMru3moeIn+mPAf+84SWXu/5FtZJIWZ8sQ="
+      },
+      {
+        "unit": "Ledova ",
+        "repeat": 10000,
+        "utf8_length": 70000,
+        "signature": "JzyBTWQW46wdj9OTGWeQ4ZOcr0VqEFaijR4BlSIwhww7ZUDUZutdv67qmrvQLc0dQRzYvgh5UdpqFr4cyZUrn8w="
+      }
+    ]
+  }
+}

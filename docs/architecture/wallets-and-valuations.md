@@ -34,7 +34,11 @@ Bitcoin case, so the gate exercises the EVM branch only.
 wraps the challenge as a UR/CBOR `eth-sign-request`, renders a QR, and reads an
 `eth-signature` UR back through the camera; the dashboard's seed-phrase path
 derives the key in the browser with `localSigner` and never stores or transmits
-the phrase. The buffer hygiene is narrower than it looks: only the derived
+the phrase. Both clients' `localSigner` modules are built on the shared
+`createLocalSigner`, which holds the key handling and the EVM signing, and each
+passes it its own `ethers` and `ethereum-cryptography`, the copies it bundles
+and tests; mobile adds Bitcoin message signing on the same key handling. The
+buffer hygiene is narrower than it looks: only the derived
 private key copy is wiped from a `finally`, while the BIP-39 seed and master
 private key are wiped on `deriveKey`'s straight-line and guarded-throw exits, so
 if `masterKey.derive(derivationPath)` throws, neither is zeroed. That throw is
@@ -63,13 +67,19 @@ they do not establish the combined camera/firmware journey. That check is listed
 
 Reference: `backend/wallets/services/verification.py`,
 `dashboard/src/pages/wallets/hooks/useWalletVerification.ts`,
+`packages/shared/src/utils/local-signer.ts`,
 `dashboard/src/utils/softwareWallet/localSigner.ts`,
+`mobile/src/utils/softwareWallet/localSigner.ts`,
 `mobile/src/screens/wallets/useWalletVerification.ts`,
 `mobile/src/services/secureKeyStorage.ts`. Gate:
 `backend/wallets/tests/test_wallet_verification.py` and
 `dashboard/src/pages/wallets/hooks/useWalletVerification.test.tsx`, whose
 signature assertion recovers the signer with `ethers.verifyMessage` rather than
-re-deriving it through the code that produced the signature.
+re-deriving it through the code that produced the signature. Each client's
+`localSigner.test.ts` checks its signatures byte for byte against
+`packages/shared/tests/fixtures/local-signing-vectors.json`, produced by the
+backend's `eth-account` and `bitcoin-message-tool`, and
+`packages/shared/tests/utils/local-signer.test.ts` checks when each key is wiped.
 
 ## Network identity
 
