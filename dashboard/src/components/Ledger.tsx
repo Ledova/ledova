@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { CaretRightIcon } from '@phosphor-icons/react';
 import { formatDate } from '@ledova/shared';
@@ -36,6 +36,46 @@ export function LinkRow({
       </div>
       {aside}
       <CaretRightIcon aria-hidden="true" className="shrink-0 text-text-muted group-hover:text-brand-mid" />
+    </div>
+  );
+}
+
+export function SwitchRow({
+  label,
+  description,
+  checked,
+  disabled = false,
+  onChange,
+}: {
+  label: string;
+  description?: string;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  const descriptionId = useId();
+  return (
+    <div className="flex items-center justify-between gap-4 py-3">
+      <div className="min-w-0 flex-1">
+        <p className="break-words text-sm font-medium">{label}</p>
+        {description && (
+          <p id={descriptionId} className="text-sm text-text-muted">
+            {description}
+          </p>
+        )}
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-label={label}
+        aria-checked={checked}
+        aria-describedby={description ? descriptionId : undefined}
+        disabled={disabled}
+        onClick={() => onChange(!checked)}
+        className="shrink-0 rounded-lg border border-border px-3 py-2 text-sm disabled:opacity-50"
+      >
+        {checked ? 'On' : 'Off'}
+      </button>
     </div>
   );
 }

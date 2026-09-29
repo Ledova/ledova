@@ -11,7 +11,7 @@ import {
   type OfferingListItem,
 } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
-import { Row, Rows, Section, Status } from '@components/Ledger';
+import { Row, Rows, Section, Status, SwitchRow } from '@components/Ledger';
 import apiClient from '@services/apiClient';
 import { useCompany } from '../hooks/useCompany';
 import { CompanyReadNotice } from '../CompanyState';
@@ -200,18 +200,14 @@ export default function OfferingPage() {
                 and {data.operatorName} can switch it off. Turning it off hides your share classes; it does not withdraw
                 an offering already under review.
               </p>
-              <label className="flex items-center gap-3 text-sm text-text-primary">
-                <input
-                  type="checkbox"
-                  checked={company.isOpenToInvestors}
-                  disabled={!ready || !company.canIssueTokens}
-                  onChange={(event) => {
-                    if (ready && company.canIssueTokens)
-                      listing.mutate({ uuid: company.uuid, isOpen: event.target.checked });
-                  }}
-                />
-                Show this company to eligible investors
-              </label>
+              <SwitchRow
+                label="Show this company to eligible investors"
+                checked={company.isOpenToInvestors ?? false}
+                disabled={!ready || !company.canIssueTokens}
+                onChange={(isOpen) => {
+                  if (ready && company.canIssueTokens) listing.mutate({ uuid: company.uuid, isOpen });
+                }}
+              />
               {!company.canIssueTokens && (
                 <p className="text-sm text-text-muted">
                   Your company must be active before it can be listed. It is currently {company.statusDisplay}.

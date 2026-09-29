@@ -181,6 +181,28 @@ it('retains the confirmed preference when saving fails and allows retry', async 
   expect(screen.queryByRole('alert')).toBeNull();
 });
 
+it('holds the switch while the preference is saving', async () => {
+  let save!: () => void;
+  api.post.mockReturnValueOnce(
+    new Promise((resolve) => {
+      save = () => resolve({ data: {} });
+    }),
+  );
+  show('settings');
+  const control = (await screen.findByRole('switch', { name: 'Transaction alerts' })) as HTMLButtonElement;
+  fireEvent.click(control);
+  await waitFor(() => expect(control.disabled).toBe(true));
+  expect(control.getAttribute('aria-checked')).toBe('true');
+  fireEvent.click(control);
+  expect(api.post).toHaveBeenCalledExactlyOnceWith(USER_PREFERENCES_ENDPOINTS.BASE, { transactionAlerts: false });
+  api.get.mockResolvedValue({ data: { transactionAlerts: false } });
+  await act(async () => save());
+  await waitFor(() => {
+    expect(control.disabled).toBe(false);
+    expect(control.getAttribute('aria-checked')).toBe('false');
+  });
+});
+
 it('reaches Profile from its settings row', async () => {
   show('settings');
   await screen.findByRole('switch');

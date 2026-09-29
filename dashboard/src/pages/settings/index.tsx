@@ -14,7 +14,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@services/apiClient';
 import { Modal } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
-import { LinkRow, Section } from '@components/Ledger';
+import { LinkRow, Section, SwitchRow } from '@components/Ledger';
 
 function ActionRow({ description, label, onClick }: { description: string; label: string; onClick: () => void }) {
   return (
@@ -178,23 +178,13 @@ export function SettingsPage() {
         ) : transactionAlerts === undefined ? (
           <p className="text-sm text-text-muted">Notification preferences are unavailable.</p>
         ) : (
-          <div className="flex items-center justify-between gap-4 py-3">
-            <div>
-              <p className="text-sm font-medium">Transaction alerts</p>
-              <p className="text-sm text-text-muted">Notifications for transaction status changes.</p>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-label="Transaction alerts"
-              aria-checked={transactionAlerts}
-              disabled={alerts.isPending}
-              onClick={() => alerts.mutate(!transactionAlerts)}
-              className="rounded-lg border border-border px-3 py-2 text-sm disabled:opacity-50"
-            >
-              {transactionAlerts ? 'On' : 'Off'}
-            </button>
-          </div>
+          <SwitchRow
+            label="Transaction alerts"
+            description="Notifications for transaction status changes."
+            checked={transactionAlerts}
+            disabled={alerts.isPending}
+            onChange={(value) => alerts.mutate(value)}
+          />
         )}
         {alerts.isError && (
           <p role="alert" className="text-sm text-error-light">
