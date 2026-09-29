@@ -154,6 +154,18 @@ describe('crypto on the Wallets page', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
+  it("states the wallet's native balance once, in its unit, on the asset row and as the most it can send", async () => {
+    await openWallets('investor');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    const form = await screen.findByRole('dialog', { name: 'Send' });
+    const ether = await within(form).findByRole('button', { name: /^ETH/ });
+    expect(within(ether).getByText('5 ETH')).toBeTruthy();
+    expect(within(form).getByText('Max: 5 ETH')).toBeTruthy();
+    expect(within(form).queryByText(/ETH ETH/)).toBeNull();
+  });
+
   it('asks which wallet to send from when several are verified, and goes Back to that choice', async () => {
     answer(listOf([baseWallet, pendingWallet, reserveWallet]));
     await openWallets('investor');

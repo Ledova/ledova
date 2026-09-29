@@ -250,7 +250,9 @@ export function SendFormModal({
                     <span className="flex items-center gap-1.5">
                       {asset.type === 'crypto' && (
                         <>
-                          <span className="text-xs text-text-muted">{asset.displayBalance}</span>
+                          <span className="text-xs text-text-muted">
+                            {asset.displayBalance} {asset.symbol}
+                          </span>
                           <span className="text-xs text-text-subtle">&middot;</span>
                         </>
                       )}
