@@ -66,6 +66,7 @@ export type { SavedSwapSettlement, SwapSettlementStore } from './swap-settlement
 export { createPauseSubmissionStore, createSyncPauseSubmissionStore } from './pause-submission-storage';
 export type { SavedPause } from './pause-submission-storage';
 export { createLocalSigner } from './local-signer';
+export { readIdentityVerification } from './identity-verification';
 export { SwapSettlement } from './swap-settlement';
 export type { SwapSettlementState, SwapSettlementPhase, SwapSettlementDependencies } from './swap-settlement';
 export {

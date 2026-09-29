@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useSyncExternalStore } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getIdentityVerificationToken, getIdentityVerificationStatus, CACHE_TIMING } from '@ledova/shared';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { getIdentityVerificationToken, readIdentityVerification, useIdentityVerificationStatus } from '@ledova/shared';
 import { apiClient } from '../services/apiClient';
 import { getSessionEpoch, subscribeSession } from '../services/sessionScope';
 
@@ -43,26 +43,7 @@ export function useIdentityVerification(enabled = true) {
   }, [scope]);
 
   const { justSubmitted } = submission;
-  const statusQuery = useQuery({
-    queryKey: ['identity-verification', 'status'],
-    queryFn: async () => {
-      const response = await getIdentityVerificationStatus(apiClient);
-      return response.data;
-    },
-    staleTime: CACHE_TIMING.SHORT_STALE_TIME,
-    gcTime: CACHE_TIMING.LONG_GC_TIME,
-    retry: 1,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: true,
-
-    refetchInterval: (query) => {
-      if (!justSubmitted) return false;
-      const data = query.state.data;
-      if (data?.isVerified) return false;
-      if (data?.reviewAnswer === 'RED' && !data?.needsRetry) return false;
-      return 5000;
-    },
-  });
+  const statusQuery = useIdentityVerificationStatus(justSubmitted);
 
   const tokenMutation = useMutation({
     mutationFn: async () => {
@@ -72,14 +53,8 @@ export function useIdentityVerification(enabled = true) {
   });
 
   const status = statusQuery.data;
-  const isVerified = status?.isVerified ?? false;
-  const needsRetry = status?.needsRetry ?? false;
-  const hasApplicant = !!status?.applicantId;
-
-  const isPending = !!status && ['pending', 'queued'].includes(status.status ?? '') && !status.isVerified;
-  const isOnHold = !!status && status.status === 'onHold' && !status.isVerified;
-  const isRejected = !!status && status.reviewAnswer === 'RED' && !status.isVerified && !status.needsRetry;
-  const hasSubmitted = !!status && ['pending', 'queued', 'onHold'].includes(status.status ?? '') && !status.isVerified;
+  const { isVerified, needsRetry, hasApplicant, isPending, isOnHold, isRejected, hasSubmitted } =
+    readIdentityVerification(status, justSubmitted);
 
   useEffect(() => {
     if (!scope.disposed && submission.epoch === getSessionEpoch() && justSubmitted && (isVerified || isRejected)) {

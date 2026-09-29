@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { PropsWithChildren } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { IDENTITY_VERIFICATION_ENDPOINTS } from '@ledova/shared';
+import { ApiClientProvider, IDENTITY_VERIFICATION_ENDPOINTS } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import snsWebSdk from '@sumsub/websdk';
 import { IdentityVerificationModal } from '@pages/user-profile/components/IdentityVerificationModal';
@@ -24,13 +24,15 @@ function showVerification(location: string) {
   clients.push(client);
   render(
     <QueryClientProvider client={client}>
-      <MemoryRouter>
-        {location === 'signup' ? (
-          <SignupIdentityVerification />
-        ) : (
-          <IdentityVerificationModal isOpen onClose={vi.fn()} />
-        )}
-      </MemoryRouter>
+      <ApiClientProvider client={apiClient}>
+        <MemoryRouter>
+          {location === 'signup' ? (
+            <SignupIdentityVerification />
+          ) : (
+            <IdentityVerificationModal isOpen onClose={vi.fn()} />
+          )}
+        </MemoryRouter>
+      </ApiClientProvider>
     </QueryClientProvider>,
   );
 }
