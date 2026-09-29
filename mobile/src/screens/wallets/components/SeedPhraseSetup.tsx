@@ -63,13 +63,16 @@ export function useSeedPhraseSetup({ visible, onClose, onComplete, onCancel, rea
 
   const [derivedData, setDerivedData] = useState<SoftwareWalletImport | null>(null);
   const [selectedAddresses, setSelectedAddresses] = useState<Set<string>>(new Set());
-  const { balances, fetchBalances } = useFetchBalances();
+  const { balances, fetchBalances, clearBalances } = useFetchBalances();
 
   const [storeError, setStoreError] = useState<string | null>(null);
 
+  const showingAccounts = visible && (step === SEED_STEP.SELECT_ACCOUNTS || step === SEED_STEP.STORING);
   useEffect(() => {
-    if (derivedData && visible) void fetchBalances(derivedData.addresses);
-  }, [derivedData, visible, fetchBalances]);
+    if (!derivedData || !showingAccounts) return;
+    void fetchBalances(derivedData.addresses);
+    return clearBalances;
+  }, [derivedData, showingAccounts, fetchBalances, clearBalances]);
 
   const selectEvmNetwork = (network: string) => {
     if (!derivedData) return;

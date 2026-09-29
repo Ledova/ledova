@@ -1,10 +1,11 @@
 import React from 'react';
-import { cleanup, fireEvent, render } from '@testing-library/react-native';
-import type { HardwareWalletImport } from '@ledova/shared';
+import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { importAddressKey, type DerivedAddress, type HardwareWalletImport } from '@ledova/shared';
 import { CustomModal } from '../../../components/modal';
 import { apiClient } from '../../../services/apiClient';
 import { extractFromKeystoneQR } from '../../../utils/keystone/bcurDecoder';
 import { AddWalletModal } from './AddWalletModal';
+import { SeedAccountSelector } from './SeedAccountSelector';
 import { SeedPhraseGenerate } from './SeedPhraseGenerate';
 
 const mockDialogLifecycle: string[] = [];
@@ -74,6 +75,16 @@ jest.mock('../../../services/secureKeyStorage', () => ({
   computeSeedIdentifier: () => 'fictional-identifier',
   storeSeedPhrase: jest.fn(),
 }));
+const mockDerived = {
+  addresses: [
+    { address: '0x' + 'b'.repeat(40), networkType: 'BASE', derivationPath: "m/44'/60'/0'/0/0", addressIndex: 0 },
+  ],
+  parentKeys: [],
+  masterFingerprint: '00000000',
+};
+jest.mock('../../../utils/softwareWallet', () => ({
+  deriveAccountsFromMnemonic: () => JSON.parse(JSON.stringify(mockDerived)),
+}));
 jest.mock('../../../components/qr', () => {
   const { Pressable, Text } = jest.requireActual('react-native');
   return {
@@ -107,6 +118,44 @@ jest.mock('./SeedPhraseGenerate', () => {
     ),
   };
 });
+jest.mock('./SeedPhraseConfirm', () => {
+  const { Pressable, Text } = jest.requireActual('react-native');
+  return {
+    SeedPhraseConfirm: ({ onAnswerChange }: { onAnswerChange: (index: number, text: string) => void }) => (
+      <Pressable
+        onPress={() => {
+          for (let i = 0; i < 3; i++) onAnswerChange(i, 'first');
+        }}
+      >
+        <Text>Complete fictional confirmation</Text>
+      </Pressable>
+    ),
+  };
+});
+jest.mock('./SeedAccountSelector', () => {
+  const { Pressable, Text, View } = jest.requireActual('react-native');
+  const { importAddressKey } = jest.requireActual('@ledova/shared');
+  return {
+    SeedAccountSelector: jest.fn(
+      ({
+        addresses,
+        balances,
+        onBack,
+      }: {
+        addresses: DerivedAddress[];
+        balances: Map<string, string>;
+        onBack: () => void;
+      }) => (
+        <View>
+          <Text>{balances.get(importAddressKey(addresses[0])) ?? 'Loading...'}</Text>
+          <Pressable onPress={onBack}>
+            <Text>Back to the phrase check</Text>
+          </Pressable>
+        </View>
+      ),
+    ),
+  };
+});
 
 const address = '0x' + 'a'.repeat(40);
 const account: HardwareWalletImport = {
@@ -117,6 +166,10 @@ const account: HardwareWalletImport = {
 const firstPhrase = Array(12).fill('first').join(' ');
 const secondPhrase = Array(12).fill('second').join(' ');
 const count = (event: string) => mockDialogLifecycle.filter((entry) => entry === event).length;
+const settle = () =>
+  act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
 
 function renderDialog() {
   return render(
@@ -205,4 +258,36 @@ it('starts the software step in create mode again after Back', async () => {
   await fireEvent.press(view.getByText('Software Wallet'));
   expect(jest.mocked(SeedPhraseGenerate).mock.calls.at(-1)![0].inputMode).toBe('create');
   expect(view.getByText('Continue')).toBeTruthy();
+});
+
+it('discards a balance read that returns after the account step is left', async () => {
+  const held: ((value: unknown) => void)[] = [];
+  jest.mocked(apiClient.post).mockImplementation(() => new Promise((resolve) => held.push(resolve)));
+  const balance = (value: string) => ({
+    data: { chain: 'base', balances: { [mockDerived.addresses[0]!.address]: value } },
+  });
+  const shown = () =>
+    jest
+      .mocked(SeedAccountSelector)
+      .mock.calls.map(([props]) => props.balances.get(importAddressKey(mockDerived.addresses[0] as DerivedAddress)));
+  const view = await renderDialog();
+  await fireEvent.press(view.getByText('Software Wallet'));
+  await fireEvent.press(view.getByText('Continue'));
+  await fireEvent.press(view.getByText('Complete fictional confirmation'));
+  await fireEvent.press(view.getByText('Verify'));
+  await waitFor(() => expect(held).toHaveLength(1));
+  expect(view.getByText('Loading...')).toBeTruthy();
+
+  await fireEvent.press(view.getByText('Back to the phrase check'));
+  jest.mocked(SeedAccountSelector).mockClear();
+  held[0]!(balance('5'));
+  await settle();
+  await fireEvent.press(view.getByText('Complete fictional confirmation'));
+  await fireEvent.press(view.getByText('Verify'));
+  await waitFor(() => expect(held).toHaveLength(2));
+  held[1]!(balance('7'));
+  await settle();
+
+  expect(view.getByText('7 ETH')).toBeTruthy();
+  expect(shown()).not.toContain('5 ETH');
 });
