@@ -413,7 +413,7 @@ it('opens each order’s details in place under its row, closed at first and eac
   expect(valueOf(details, 'Minimum fill')).toHaveTextContent('0');
   expect(valueOf(details, 'Filled')).toHaveTextContent('0');
   expect(valueOf(details, 'Remaining')).toHaveTextContent('7');
-  expect(valueOf(details, 'Total value')).toHaveTextContent('AUD 98.00');
+  expect(valueOf(details, 'Total value')).toHaveTextContent('AUD\u00a098.00');
   expect(valueOf(details, 'Order ID')).toHaveTextContent(order.uuid);
   expect(detailsOf(second).children).toHaveLength(0);
   expect(view.queryByText('Order details')).toBeNull();
@@ -421,13 +421,28 @@ it('opens each order’s details in place under its row, closed at first and eac
   await fireEvent.press(second);
   expect(first).toBeExpanded();
   expect(second).toBeExpanded();
+  expect(valueOf(detailsOf(second), 'Total quantity')).toHaveTextContent('9');
   expect(valueOf(detailsOf(second), 'Minimum fill')).toHaveTextContent('2');
   expect(valueOf(detailsOf(second), 'Remaining')).toHaveTextContent('5');
+  expect(valueOf(detailsOf(second), 'Total value')).toHaveTextContent('AUD\u00a0126.00');
 
   await fireEvent.press(first);
   expect(first).toBeCollapsed();
   expect(detailsOf(first).children).toHaveLength(0);
   expect(second).toBeExpanded();
+});
+it('gives a finished order no action row, and an open one its Modify and Cancel order', async () => {
+  const done: TransferOrder = { ...order, uuid: '60000000-0000-4000-8000-000000000002', status: 'completed' };
+  const view = await render(<OrdersCard {...ordersProps([order, done])} />);
+  const [open, finished] = view.getAllByText('Share class unavailable').map((name) => name.parent!);
+  const [, openRows, actions] = open.children as Found[];
+  expect(open.children).toHaveLength(3);
+  expect(within(actions).getByRole('button', { name: `Modify order ${order.uuid}` })).toBeTruthy();
+  expect(within(actions).getByRole('button', { name: `Cancel order ${order.uuid}` })).toBeTruthy();
+  expect(within(openRows).getByRole('button', { name: `Details for order ${order.uuid}` })).toBeTruthy();
+  expect(finished.children).toHaveLength(2);
+  expect(within(finished).getByRole('button', { name: `Details for order ${done.uuid}` })).toBeTruthy();
+  expect(within(finished).queryByRole('button', { name: /^(Modify|Cancel) order/ })).toBeNull();
 });
 it('reads an order’s details while its actions wait for current orders and wallets', async () => {
   const view = await render(<OrdersCard {...ordersProps([order])} ordersBlocked />);

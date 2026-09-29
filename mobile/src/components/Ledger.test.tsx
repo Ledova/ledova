@@ -39,11 +39,24 @@ it('puts its caret on the first line of the summary and indents the open detail 
   const view = await render(<Harness opened />);
   const toggle = view.getByRole('button', { name: 'Synthetic entry' });
   const [, detail] = toggle.parent!.children as (typeof toggle)[];
-  expect(toggle).toHaveStyle({ flexDirection: 'row', alignItems: 'flex-start', gap: 12 });
+  expect(toggle).toHaveStyle({ flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 16 });
   const [caret, summary] = toggle.children as (typeof toggle)[];
   expect(summary).toBe(view.getByText('Synthetic entry').parent);
   expect(caret).toHaveStyle({ height: 21, justifyContent: 'center' });
   expect(detail).toHaveStyle({ paddingLeft: 28, paddingBottom: 16 });
+});
+
+it('pads its detail only while open, so a closed row adds no space under its button', async () => {
+  const view = await render(<Harness />);
+  const toggle = view.getByRole('button', { name: 'Synthetic entry' });
+  const [, detail] = toggle.parent!.children as (typeof toggle)[];
+  expect(detail).not.toHaveStyle({ paddingBottom: 16 });
+  expect(detail).not.toHaveStyle({ paddingLeft: 28 });
+  await fireEvent.press(toggle);
+  expect(detail).toHaveStyle({ paddingLeft: 28, paddingBottom: 16 });
+  await fireEvent.press(toggle);
+  expect(detail).not.toHaveStyle({ paddingBottom: 16 });
+  expect(detail).not.toHaveStyle({ paddingLeft: 28 });
 });
 
 it('turns its caret a quarter to point at the open detail, and back when it closes', async () => {
