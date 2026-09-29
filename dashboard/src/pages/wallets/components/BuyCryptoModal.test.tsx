@@ -45,6 +45,53 @@ function Provider({ onNavigateToWidget }: { onNavigateToWidget: (url: string) =>
   );
 }
 
+function Reopenable({ onNavigateToWidget }: { onNavigateToWidget: (url: string) => void }) {
+  const [open, setOpen] = useState(true);
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)}>
+        Buy again
+      </button>
+      <BuyCryptoModal
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        onNavigateToWidget={(url) => {
+          setOpen(false);
+          onNavigateToWidget(url);
+        }}
+        userAccountUuid="synthetic-account"
+      />
+    </>
+  );
+}
+
+async function boughtOnceThenAgain(navigate: (url: string) => void, next: () => Promise<unknown>) {
+  answer([wallet('wallet-1', 'First wallet')]);
+  render(
+    <QueryClientProvider client={client}>
+      <Reopenable onNavigateToWidget={navigate} />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByText('Ethereum'));
+  await waitFor(() => expect(navigate).toHaveBeenCalledOnce());
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  const prices = api.get.getMockImplementation()!;
+  api.get.mockImplementation((url: string, config?: { params?: Record<string, unknown> }) =>
+    url === WALLET_ENDPOINTS.BASE ? next() : prices(url, config),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Buy again' }));
+  fireEvent.click(await screen.findByText('Ethereum'));
+  await waitFor(() => expect(walletCalls()).toHaveLength(2));
+}
+
+function pending<T>() {
+  let settle!: (value: T) => void;
+  const promise = new Promise<T>((resolve) => {
+    settle = resolve;
+  });
+  return { promise, settle: (value: T) => act(async () => settle(value)) };
+}
+
 function show(props: { onNavigateToWidget?: (url: string) => void }) {
   return render(
     <QueryClientProvider client={client}>
@@ -239,6 +286,88 @@ it('hides the wallets it listed when a refresh fails, rather than buying into on
   expect(await screen.findByRole('button', { name: /Second wallet/ })).toBeTruthy();
   expect(screen.queryByRole('alert')).toBeNull();
   expect(api.post).not.toHaveBeenCalled();
+});
+
+it('waits for a fresh read before buying into the one wallet it read before, and then goes straight to the widget', async () => {
+  const navigate = vi.fn();
+  const read = pending<ReturnType<typeof page>>();
+  await boughtOnceThenAgain(navigate, () => read.promise);
+
+  expect(screen.getByText('Ethereum').closest('button')).toHaveProperty('disabled', true);
+  expect(api.post).toHaveBeenCalledOnce();
+
+  await read.settle(page([wallet('wallet-1', 'First wallet')]));
+
+  await waitFor(() => expect(navigate).toHaveBeenCalledTimes(2));
+  expect(api.post).toHaveBeenCalledTimes(2);
+});
+
+it('asks which wallet receives the asset when the fresh read finds two, rather than buying into the one it read before', async () => {
+  const navigate = vi.fn();
+  const read = pending<ReturnType<typeof page>>();
+  await boughtOnceThenAgain(navigate, () => read.promise);
+
+  await read.settle(page([wallet('wallet-1', 'First wallet'), wallet('wallet-2', 'Second wallet')]));
+
+  expect(await screen.findByRole('button', { name: /Second wallet/ })).toBeTruthy();
+  expect(screen.getByRole('button', { name: /First wallet/ })).toHaveProperty('disabled', false);
+  expect(api.post).toHaveBeenCalledOnce();
+  expect(navigate).toHaveBeenCalledOnce();
+});
+
+it('says the wallets could not be loaded when the fresh read fails, rather than buying into the one it read before', async () => {
+  const navigate = vi.fn();
+  await boughtOnceThenAgain(navigate, () => Promise.reject(new Error('Request failed with status code 500')));
+
+  expect((await screen.findByRole('alert')).textContent).toContain(
+    'Your wallets could not be loaded. Try again before continuing.',
+  );
+  expect(api.post).toHaveBeenCalledOnce();
+  expect(navigate).toHaveBeenCalledOnce();
+});
+
+it('holds the wallets it listed before while it reads them again', async () => {
+  answer([wallet('wallet-1', 'First wallet'), wallet('wallet-2', 'Second wallet')]);
+  show({});
+  fireEvent.click(screen.getByText('Ethereum'));
+  await screen.findByRole('button', { name: /Second wallet/ });
+  fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+  const read = pending<ReturnType<typeof page>>();
+  const prices = api.get.getMockImplementation()!;
+  api.get.mockImplementation((url: string, config?: { params?: Record<string, unknown> }) =>
+    url === WALLET_ENDPOINTS.BASE ? read.promise : prices(url, config),
+  );
+
+  fireEvent.click(await screen.findByText('Ethereum'));
+
+  const stale = await screen.findByRole('button', { name: /Second wallet/ });
+  expect(stale).toHaveProperty('disabled', true);
+  fireEvent.click(stale);
+  expect(api.post).not.toHaveBeenCalled();
+  await read.settle(page([wallet('wallet-1', 'First wallet'), wallet('wallet-2', 'Second wallet')]));
+  await waitFor(() => expect(screen.getByRole('button', { name: /Second wallet/ })).toHaveProperty('disabled', false));
+  fireEvent.click(screen.getByRole('button', { name: /Second wallet/ }));
+  await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
+  expect(api.post.mock.calls[0][1]).toMatchObject({ wallet_uuid: 'wallet-2' });
+});
+
+it('waits for the account before reading its wallets, rather than saying it has none', async () => {
+  answer([wallet('wallet-1', 'First wallet'), wallet('wallet-2', 'Second wallet')]);
+  const opened = (account?: string) => (
+    <QueryClientProvider client={client}>
+      <BuyCryptoModal isOpen onClose={() => {}} onNavigateToWidget={() => {}} userAccountUuid={account} />
+    </QueryClientProvider>
+  );
+  const view = render(opened(undefined));
+  fireEvent.click(screen.getByText('Ethereum'));
+  await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+
+  expect(screen.queryByText(/No verified wallets for/)).toBeNull();
+  expect(screen.getByText('Ethereum').closest('button')).toHaveProperty('disabled', true);
+  expect(walletCalls()).toHaveLength(0);
+
+  view.rerender(opened('synthetic-account'));
+  expect(await screen.findByRole('button', { name: /Second wallet/ })).toBeTruthy();
 });
 
 it('explains a missing wallet and goes back to the asset list', async () => {
