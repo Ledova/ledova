@@ -1,5 +1,5 @@
 import { EthSignRequest, ETHSignature } from '@keystonehq/bc-ur-registry-eth';
-import { HDNodeWallet, Interface, Transaction, getAddress, parseEther, parseUnits } from 'ethers';
+import { HDNodeWallet, Interface, MaxUint256, Transaction, getAddress, parseEther, parseUnits } from 'ethers';
 import fixture from '../../../packages/shared/tests/fixtures/prepared-transfer-api.json';
 import { preparedTransferTransaction } from './preparedTransfer';
 import { signEthereumTransaction } from './softwareWallet/localSigner';
@@ -47,6 +47,20 @@ it('signs the token send the backend prepared with its transfer call and the gas
   ]);
 });
 
+it.each(['nativeBeyondDouble', 'nativeEighteenPlaces'] as const)(
+  'signs the %s amount to the wei, which a JavaScript number cannot hold',
+  async (kind) => {
+    const prepared = fixture[kind];
+    const signed = await sign(prepared.transaction);
+    expect(signed.value).toBe(parseEther(prepared.amountEth));
+    expect(signed.value.toString()).toBe(prepared.transaction.value);
+  },
+);
+
+it('still reads a value a backend sent as a safe JSON number', () => {
+  expect(preparedTransferTransaction({ ...fixture.native.transaction, value: 1000 }).value).toBe(1000n);
+});
+
 it.each([
   ['gas limit', { gas: undefined }],
   ['gas limit', { gas: 0 }],
@@ -61,7 +75,12 @@ it.each([
   ['value', { value: undefined }],
   ['value', { value: -1 }],
   ['value', { value: 0.5 }],
-  ['value', { value: '100000000000000000' }],
+  ['value', { value: 2 ** 53 }],
+  ['value', { value: '' }],
+  ['value', { value: '0100' }],
+  ['value', { value: '1.5' }],
+  ['value', { value: '0x16345785d8a0000' }],
+  ['value', { value: (MaxUint256 + 1n).toString() }],
   ['to address', { to: undefined }],
   ['to address', { to: '0x7E5F4552091A69125d5DfCb7b8C2659029395BDF' }],
   ['to address', { to: '0x7E5F4552091A69125d5DfCb7b8C2659029395B' }],

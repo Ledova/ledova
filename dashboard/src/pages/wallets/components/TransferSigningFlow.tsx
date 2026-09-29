@@ -47,11 +47,12 @@ interface TransactionForQr {
 function formatTransactionForQr(preparedTx: PreparedWalletTransfer, wallet: Wallet): TransactionForQr | null {
   if ('transaction' in preparedTx && preparedTx.transaction) {
     const tx = preparedTx.transaction;
+    if (typeof tx.value !== 'string' || !/^(0|[1-9][0-9]*)$/.test(tx.value)) return null;
     return {
       to: tx.to,
       from: wallet.address,
       data: tx.data || '0x',
-      value: '0x' + tx.value.toString(16),
+      value: '0x' + BigInt(tx.value).toString(16),
       gas: '0x' + tx.gas.toString(16),
       gasPrice: '0x' + tx.gasPrice.toString(16),
       nonce: '0x' + tx.nonce.toString(16),

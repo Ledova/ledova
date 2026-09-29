@@ -149,6 +149,19 @@ where task_name in (
 A job left behind is harmless: a worker without the task marks it `failed` and
 runs nothing. No database migration is needed.
 
+## Prepared transfers carry the exact amount in wei
+
+`POST /api/wallets/{uuid}/prepare-transfer/` now answers an EVM transaction's
+`value` as a decimal string of wei, for example `"9999999990000000000"`, where it
+answered a JSON number. JavaScript reads a number above 2^53 approximately, so a
+client could sign a different amount from the one prepared. Native amounts are
+also converted exactly: one with more than 18 decimal places is refused with 400
+instead of being rounded. `gas`, `gasPrice`, `nonce` and `chainId` stay numbers,
+far below 2^53. Deploy the dashboard with the backend and reload open
+dashboards: a dashboard built before this change reads the string's digits as
+hexadecimal, so its Keystone code would carry the wrong amount. No database
+migration is needed.
+
 ## Database migrations
 
 - `companies/0003_delete_review_and_signature_models` (with

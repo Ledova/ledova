@@ -29,7 +29,7 @@ const wallet = {
 } as unknown as Wallet;
 
 const prepared = {
-  transaction: { to: `0x${'2'.repeat(40)}`, data: '0x', value: 1, gas: 21000, gasPrice: 1, nonce: 0, chainId: 84532 },
+  transaction: { to: `0x${'2'.repeat(40)}`, data: '0x', value: '1', gas: 21000, gasPrice: 1, nonce: 0, chainId: 84532 },
 } as unknown as PreparedWalletTransfer;
 
 const onPrepare = vi.fn();

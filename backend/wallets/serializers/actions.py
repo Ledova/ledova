@@ -37,7 +37,7 @@ class WalletSyncResponseSerializer(serializers.Serializer):
 class PreparedEvmTransactionSerializer(serializers.Serializer):
     nonce = serializers.IntegerField()
     to = serializers.CharField()
-    value = serializers.IntegerField()
+    value = serializers.RegexField(r"^(0|[1-9][0-9]*)$")
     gas = serializers.IntegerField()
     gasPrice = serializers.IntegerField()
     chainId = serializers.IntegerField()

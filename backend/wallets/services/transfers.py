@@ -3,7 +3,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, Optional
 
 from django.conf import settings
-from eth_utils import from_wei, to_wei
+from eth_utils import from_wei
 from web3 import Web3
 
 from integrations.blockchain import get_blockchain_client
@@ -213,8 +213,15 @@ def prepare_ethereum_transaction(
         if not from_address or not to_address:
             raise InvalidTransactionException("Invalid sender or recipient address")
 
-        if amount_eth <= 0:
+        if not amount_eth.is_finite() or amount_eth <= 0:
             raise InvalidTransactionException("Transfer amount must be greater than zero")
+
+        try:
+            amount_wei = token_base_units(amount_eth, 18)
+        except ValueError:
+            raise InvalidTransactionException(
+                "Amount is too large or uses more than 18 decimal places on this network."
+            ) from None
 
         from_address_checksum = Web3.to_checksum_address(from_address)
         to_address_checksum = Web3.to_checksum_address(to_address)
@@ -236,12 +243,11 @@ def prepare_ethereum_transaction(
             )
 
         nonce = client.w3.eth.get_transaction_count(from_address_checksum)
-        amount_wei = int(to_wei(float(amount_eth), "ether"))
 
         transaction = {
             "nonce": nonce,
             "to": to_address_checksum,
-            "value": amount_wei,
+            "value": str(amount_wei),
             "gas": gas_limit,
             "gasPrice": gas_price_wei,
             "chainId": client.w3.eth.chain_id,
@@ -403,7 +409,7 @@ def prepare_erc20_transaction(
         transaction = {
             "nonce": nonce,
             "to": contract_checksum,
-            "value": 0,
+            "value": "0",
             "data": encoded_data,
             "gas": gas_limit,
             "gasPrice": gas_price_wei,
