@@ -304,6 +304,17 @@ READS_WIDER_THAN_OWNERSHIP = {
         "tokens/tests/test_market_reads_scoped.py proves cross-issuer prices, one bounded summary query, "
         "private order refusal and no operator summary access for ineligible or unknown-token requests.",
     ),
+    "Stablecoin approvals for a wallet send": (
+        "wallets/services/transaction_confirmation.py require_stablecoin_approvals, at prepare in "
+        "wallets/services/transfers.py and at submission in wallets/services/submissions.py _submission_plan",
+        "whitelist_whitelistentry joined to wallets by address, and whitelist_whitelistapproval: whether the sending "
+        "wallet and the recipient address of a stablecoin send each hold a live approval with any company. Only "
+        "that yes or no reaches the sender, as which side is refused; no entry, company, wallet or account of the "
+        "recipient is returned, and the wallets policy is unchanged",
+        "wallets/tests/test_stablecoin_approvals.py - ScopedStablecoinApprovalTest proves a recipient approved on "
+        "another account's wallet is admitted on the app role at prepare and at submission, and an unapproved one "
+        "is refused",
+    ),
     "PolicyQuerysets on an administrative action": (
         "shared/views/scope.py, the get_queryset every AuthenticatedViewSet inherits",
         "every row of the scoped model, and only for an action the view names in "

@@ -176,6 +176,12 @@ def _submission_plan(wallet, raw, decoded, tx_hash, declared_contract):
     plan = plan_signed_transfer(wallet, raw.hex(), declared_contract)
     if plan is None:
         raise InvalidTransactionException("A signed EVM transfer is required.")
+    if plan.token_contract:
+        transaction_confirmation.require_stablecoin_approvals(
+            transaction_confirmation.resolve_transfer_asset(wallet, plan.token_contract),
+            wallet.address,
+            plan.to_address,
+        )
     fee = _signed_fee(decoded)
     return deployment, plan, fee
 

@@ -158,7 +158,13 @@ on 22 September in
   holds a live approval for at least one company, from the stored approvals
   rather than from a registry. The owner chose this on 22 September 2026 over
   dropping the check, keeping the rule the single global registry used to carry.
-  The AUDY contract itself has never restricted transfers.
+  The AUDY contract itself has never restricted transfers. Since #792 the rule is
+  enforced on Wallets > Send, when a transfer is prepared and again when the
+  signed transfer is submitted, before anything is recorded or broadcast: the
+  owner chose that on 29 September 2026 in
+  [PR #807](https://github.com/Ledova/ledova/pull/807#issuecomment-5881408794)
+  over keeping the retired trading transfer route, which had been its only
+  enforcement, or dropping the rule.
 - **The chain follows within fifteen minutes.** The platform refuses at once,
   and the refresh reaches the registry within one sweep interval plus one
   recovery interval. There is no lease: an approval does not lapse by itself

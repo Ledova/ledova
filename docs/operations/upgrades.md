@@ -42,6 +42,19 @@ or `fileUrl`; staff read both files through admin. No database migration is
 needed. Any external consumer of a retired route must stop using it before
 upgrading.
 
+## Stablecoin sends need an approval on both sides
+
+`POST /api/wallets/{uuid}/prepare-transfer/` and `/broadcast-transfer/` now
+refuse a stablecoin transfer (asset type `stablecoin`, today AUDY) with 403 and
+code `stablecoin_approval_required` unless the sending wallet and the recipient
+each hold a live approval with at least one company. The message says which
+side lacks one. This is the
+[company-scoped approvals](../decisions.md#company-scoped-approvals) rule the
+retired trading transfer route used to enforce; Wallets > Send, where the
+clients send, never did. Native coins and other tokens are unaffected, and a
+submission recorded before the upgrade is still delivered. No database
+migration is needed.
+
 ## The publication summary's 30-day count
 
 `GET /api/v1/publications/summary/` no longer answers `publishedSince`; Holdings

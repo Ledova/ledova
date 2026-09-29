@@ -48,7 +48,7 @@ class TransferRoutingTest(SimpleTestCase):
             symbol="USDC",
             is_active=True,
             is_verified=True,
-            asset_type="stablecoin",
+            asset_type="erc20_token",
             get_deployment_for_chain=Mock(return_value=SimpleNamespace(contract_address=TO, decimals=6)),
         )
         holdings.filter.return_value.first.return_value = None

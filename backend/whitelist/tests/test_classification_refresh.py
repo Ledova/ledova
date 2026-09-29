@@ -153,6 +153,7 @@ class ClassificationRefreshTest(TransactionTestCase):
         self.assertEqual(self.approval().status, WhitelistStatus.FAILED)
         self.assertFalse(self.approval().is_listed())
         self.assertFalse(WhitelistApproval.objects.live().filter(pk=self.approval().pk).exists())
+        self.assertFalse(whitelist.approved_for_any_company(ADDRESS))
         self.assertTrue(WhitelistApproval.objects.to_sync().filter(pk=self.approval().pk).exists())
         self.assertNotEqual(self.node.expiries[ADDRESS], 0)
 

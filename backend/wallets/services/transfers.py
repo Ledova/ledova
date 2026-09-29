@@ -94,6 +94,7 @@ def _prepare_erc20_transfer(
     amount = _parse_amount(amount_token)
 
     token_asset = transaction_confirmation.resolve_transfer_asset(wallet, token_contract)
+    transaction_confirmation.require_stablecoin_approvals(token_asset, wallet.address, to_address)
 
     token_holding = Holding.objects.filter(wallet=wallet, asset=token_asset).first()
     token_balance = token_holding.quantity if token_holding else Decimal("0")
