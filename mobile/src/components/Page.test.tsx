@@ -35,6 +35,26 @@ it.each([
   expect(header.parent!.children).toEqual([header, card]);
 });
 
+it('sets the screen actions in one row that wraps rather than squeezing them', async () => {
+  const view = await render(
+    <Page
+      title="Wallets"
+      actions={
+        <>
+          <Action label="Buy crypto" onPress={jest.fn()} />
+          <Action label="Send" onPress={jest.fn()} />
+        </>
+      }
+    >
+      <Text>Wallet list</Text>
+    </Page>,
+  );
+
+  const actions = [view.getByRole('button', { name: 'Buy crypto' }), view.getByRole('button', { name: 'Send' })];
+  expect(actions[0].parent!.children).toEqual(actions);
+  expect(actions[0].parent).toHaveStyle({ flexDirection: 'row', flexWrap: 'wrap' });
+});
+
 it('sets every page in one title style, one side padding and one gap before and between its cards', async () => {
   const view = await render(
     <Page testID="register-screen" title="Register">

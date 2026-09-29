@@ -195,6 +195,25 @@ it('heads Wallets with its lede and then every screen action in one row, before 
   expect(title.parent!.parent!.children[1]).toBe(view.getByRole('header', { name: 'Ethereum' }).parent);
 });
 
+it('holds back the Wallets actions while the wallets are read, under the title and its lede', async () => {
+  const first = deferred<unknown>();
+  get.mockImplementationOnce(() => first.promise as ReturnType<typeof apiClient.get>);
+  const view = await mount(<WalletsScreen />);
+  try {
+    expect(view.getByLabelText('Loading wallets')).toBeTruthy();
+    const title = view.getByRole('header', { name: 'Wallets' });
+    expect(title.parent!.children).toEqual([
+      title,
+      view.getByText('Open a wallet to verify, rename, derive another address or sync its balances.'),
+    ]);
+    for (const name of ['Buy crypto', 'Send', 'Add wallet', 'Filter', 'Sync balances'])
+      expect(view.queryByRole('button', { name })).toBeNull();
+  } finally {
+    await act(async () => first.resolve({ data: pages[1] }));
+  }
+  expect(await view.findByRole('button', { name: 'Add wallet' })).toBeTruthy();
+});
+
 it('sorts complete balances exactly across unsafe integers and subunit fractions', async () => {
   const values = [
     wallet('a', '9007199254740992.1'),

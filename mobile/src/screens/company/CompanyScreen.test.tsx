@@ -107,6 +107,24 @@ it('offers Edit company under the page title rather than inside the company card
   expect(within(card).queryByRole('button', { name: 'Edit company' })).toBeNull();
 });
 
+it('keeps the Company title over the access state, with nothing to act on', async () => {
+  mockRole = 'member';
+  const view = await render(<CompanyScreen />, { wrapper });
+  const title = view.getByRole('header', { name: 'Company' });
+  expect(title.parent!.children).toEqual([title]);
+  expect(title.parent!.parent!.children[1]).toBe(view.getByText('Verify your company access before opening Company.'));
+});
+
+it('takes Edit company out of the title when a refresh fails, even with the company still cached', async () => {
+  const view = await render(<CompanyScreen />, { wrapper });
+  expect(await view.findByRole('button', { name: 'Edit company' })).toBeTruthy();
+  failure = DETAIL;
+  await act(() => client.invalidateQueries({ queryKey: ['company'] }));
+  expect(await view.findByText('Company information could not be loaded. Try again before continuing.')).toBeTruthy();
+  expect(view.getByRole('header', { name: 'Company' })).toBeTruthy();
+  expect(view.queryByRole('button', { name: 'Edit company' })).toBeNull();
+});
+
 it('keeps an edit draft after failed refresh and save refusal; submits changed fields only', async () => {
   const view = await render(<CompanyScreen />, { wrapper });
   await fireEvent.press(await view.findByRole('button', { name: 'Edit company' }));

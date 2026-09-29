@@ -189,6 +189,30 @@ it.each([
   }
 });
 
+it('sets each publication in the card apart by a rule between records', async () => {
+  rows = [statement, { ...statement, uuid: 'second-paper', title: 'Second issuer paper' }];
+  const view = await render(<CompanyPublicationsScreen />, { wrapper });
+  const first = (await view.findByRole('header', { name: statement.title })).parent!;
+  const second = view.getByRole('header', { name: 'Second issuer paper' }).parent!;
+  const [head, rule, tail] = first.parent!.children;
+  expect(first.parent!.children).toHaveLength(3);
+  expect(head).toBe(first);
+  expect(rule).toHaveStyle({ height: 1 });
+  expect(tail).toBe(second);
+});
+
+it('follows the Publications card with the way to your own Notices, outside the card', async () => {
+  const view = await render(<CompanyPublicationsScreen />, { wrapper });
+  const card = (await view.findByRole('header', { name: 'Publications (1)' })).parent!;
+  const header = view.getByRole('header', { name: 'Published to your members' }).parent!;
+  const notices = view.getByRole('button', { name: 'Open Notices' });
+  expect(header.parent!.children).toEqual([header, card, notices.parent]);
+  expect(notices.parent!.children).toEqual([
+    view.getByText('To read notices addressed to you or vote as a member, open Notices.'),
+    notices,
+  ]);
+});
+
 it('distinguishes an owned company with no publications from a missing company', async () => {
   rows = [];
   const view = await render(<CompanyPublicationsScreen />, { wrapper });
