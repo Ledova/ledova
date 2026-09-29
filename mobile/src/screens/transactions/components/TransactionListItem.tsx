@@ -1,8 +1,15 @@
 import { Text, View } from 'react-native';
-import { formatDate, getBlockchainDisplayName, getChainShortCode, type Transaction } from '@ledova/shared';
+import {
+  activityAmount,
+  activityDirection,
+  activityStatus,
+  formatDate,
+  getBlockchainDisplayName,
+  getChainShortCode,
+  type Transaction,
+} from '@ledova/shared';
 import { Disclosure } from '../../../components/Ledger';
 import { useThemedStyles } from '../../../contexts';
-import { activityAmount, activityDirection, activityState } from '../presentation';
 import { TransactionDetail } from './TransactionDetail';
 
 export function TransactionListItem({
@@ -25,7 +32,7 @@ export function TransactionListItem({
   const heading = `${activityDirection(transaction)} · ${asset}`;
   const network = getBlockchainDisplayName(getChainShortCode(transaction.chain));
   const context = `${network} · ${formatDate(transaction.blockTimestamp ?? transaction.createdAt)}`;
-  const status = activityState(transaction);
+  const status = activityStatus(transaction);
   const amount = activityAmount(transaction.amount, transaction.assetSymbol);
   return (
     <View style={styles.row}>

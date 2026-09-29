@@ -1,8 +1,7 @@
 import { useRef, useState } from 'react';
-import { useOpenRows } from '@ledova/shared';
+import { useOpenRows, useTransactions, type TransactionFilters } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { Section } from '@components/Ledger';
-import { useTransactions, type TransactionFilters } from './useTransactions';
 import { TransactionFilter } from './components/TransactionFilter';
 import { TransactionListItem } from './components/TransactionListItem';
 
@@ -101,14 +100,14 @@ export const TransactionsPage = () => {
             {moreFailed ? (
               <div role="alert" className="flex flex-col items-start gap-3 py-3">
                 <p className="text-sm text-text-primary">More activity could not be loaded. The list is incomplete.</p>
-                <PageAction label="Try more activity again" onClick={() => void loadMore()} disabled={isLoadingMore} />
+                <PageAction label="Try more activity again" onClick={() => void loadMore()} disabled={isRefreshing} />
               </div>
             ) : (
               hasNextPage && (
                 <PageAction
                   label={isLoadingMore ? 'Loading activity…' : 'Load more activity'}
                   onClick={() => void loadMore()}
-                  disabled={isLoadingMore}
+                  disabled={isRefreshing}
                 />
               )
             )}

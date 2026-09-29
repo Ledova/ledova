@@ -3,13 +3,13 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
+import type { AxiosInstance } from 'axios';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { SUBSCRIPTION_ENDPOINTS, type Subscription } from '@ledova/shared';
+import { ApiClientProvider, SUBSCRIPTION_ENDPOINTS, type Subscription } from '@ledova/shared';
 import { PageTitle } from '@components/PageTitle';
 import SubscriptionsPage from './index';
 
-const api = vi.hoisted(() => ({ get: vi.fn() }));
-vi.mock('@services/apiClient', () => ({ default: api }));
+const api = { get: vi.fn() };
 let client: QueryClient;
 const application: Subscription = {
   uuid: 'application-one',
@@ -40,9 +40,11 @@ function show() {
   render(
     <MemoryRouter>
       <QueryClientProvider client={client}>
-        <PageTitle.Provider value="Applications">
-          <SubscriptionsPage />
-        </PageTitle.Provider>
+        <ApiClientProvider client={api as unknown as AxiosInstance}>
+          <PageTitle.Provider value="Applications">
+            <SubscriptionsPage />
+          </PageTitle.Provider>
+        </ApiClientProvider>
       </QueryClientProvider>
     </MemoryRouter>,
   );
@@ -143,6 +145,67 @@ it('keeps known applications visible when a later page fails, then retries that 
   fireEvent.click(screen.getByRole('button', { name: 'Try more applications again' }));
   await waitFor(() => expect(screen.getAllByRole('article')).toHaveLength(2));
   expect(api.get).toHaveBeenLastCalledWith(SUBSCRIPTION_ENDPOINTS.BASE, { params: { page: 2 } });
+});
+
+it('holds Load more while the list is read again, then offers the next page', async () => {
+  api.get.mockResolvedValue(page([application], next));
+  show();
+  expect(await screen.findByRole('button', { name: 'Load more applications' })).toHaveProperty('disabled', false);
+  let finish!: (value: ReturnType<typeof page>) => void;
+  api.get.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  let refreshing!: Promise<void>;
+  act(() => {
+    refreshing = client.invalidateQueries({ queryKey: ['subscriptions'] });
+  });
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Load more applications' })).toHaveProperty('disabled', true),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Load more applications' }));
+  expect(api.get.mock.calls.map(([, config]) => config.params.page)).toEqual([1, 1]);
+  await act(async () => {
+    finish(page([application], next));
+    await refreshing;
+  });
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Load more applications' })).toHaveProperty('disabled', false),
+  );
+});
+
+it('keeps applications and the later-page failure on screen while the list is read again', async () => {
+  api.get.mockImplementation(async (_url: string, config?: { params: { page: number } }) => {
+    if (config?.params.page === 1) return page([application], next);
+    throw Error('Unavailable');
+  });
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Load more applications' }));
+  expect(await screen.findByText('More applications could not be loaded. The list is incomplete.')).toBeTruthy();
+  let finish!: (value: ReturnType<typeof page>) => void;
+  api.get.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  let refreshing!: Promise<void>;
+  act(() => {
+    refreshing = client.invalidateQueries({ queryKey: ['subscriptions'] });
+  });
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Try more applications again' })).toHaveProperty('disabled', true),
+  );
+  expect(screen.getByRole('article')).toBeTruthy();
+  expect(screen.queryByText('Your applications could not be loaded. Try again before continuing.')).toBeNull();
+  await act(async () => {
+    finish(page([application, { ...application, uuid: 'application-two' }], next));
+    await refreshing;
+  });
+  await waitFor(() => expect(screen.getAllByRole('article')).toHaveLength(2));
+  expect(screen.getByRole('button', { name: 'Load more applications' })).toHaveProperty('disabled', false);
 });
 
 it('does not call an empty page complete when the next page remains unread or fails', async () => {

@@ -1,11 +1,18 @@
 import { useMutation } from '@tanstack/react-query';
 import { Modal } from '@components/Modal';
-import { apiErrorSentence, createOffering, updateOffering, type Company, type OfferingInput } from '@ledova/shared';
+import {
+  apiErrorSentence,
+  createOffering,
+  updateOffering,
+  useOfferingUnderEdit,
+  type Company,
+  type OfferingInput,
+} from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { CompanyReadNotice, type CompanyRead } from '../CompanyState';
 import { OfferingForm } from './OfferingForm';
 import { OfferingReadNotice } from './OfferingReadNotice';
-import { useOfferingUnderEdit, type useOfferings } from './useOffering';
+import type { useOfferings } from './useOffering';
 
 export function OfferingEditor({
   uuid,

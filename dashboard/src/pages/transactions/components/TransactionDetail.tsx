@@ -1,4 +1,7 @@
 import {
+  activityAmount,
+  activityDirection,
+  feeUnit,
   formatDate,
   formatTime,
   getBlockExplorerTxUrl,
@@ -7,7 +10,7 @@ import {
 } from '@ledova/shared';
 import type { Transaction } from '@ledova/shared';
 import { Row, Rows, Status } from '@components/Ledger';
-import { activityAmount, activityDirection, activityState, feeUnit } from '../presentation';
+import { activityState } from '../presentation';
 
 export function TransactionDetail({ transaction }: { transaction: Transaction }) {
   const state = activityState(transaction);

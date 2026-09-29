@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import {
   formatDateTime,
+  marketAmount,
+  marketQuantity,
   selectSwapSettlement,
   useOpenRows,
   type Wallet,
@@ -12,7 +14,6 @@ import {
   type OrderBookEntry,
 } from '@ledova/shared';
 import { Action, Disclosure, Row, Rows, Section } from '../../../components/Ledger';
-import { marketAmount, marketQuantity } from '../marketData';
 import { useMarketStyles } from '../styles';
 
 function orderStatus(order: TransferOrder) {

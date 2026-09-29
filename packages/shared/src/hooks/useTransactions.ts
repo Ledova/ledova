@@ -1,15 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
-import {
-  CACHE_TIMING,
-  assertNextPageAdvances,
-  getTransactions,
-  getTransactionsNextPage,
-  getWallets,
-  readEveryPage,
-} from '@ledova/shared';
-import type { TransactionQueryParams } from '@ledova/shared';
-import apiClient from '@services/apiClient';
+
+import { CACHE_TIMING } from '../constants/api';
+import { getTransactions, getTransactionsNextPage } from '../services/transactions';
+import { getWallets } from '../services/wallets';
+import type { TransactionQueryParams } from '../types';
+import { assertNextPageAdvances, readEveryPage } from '../utils/pagination';
+import { useApiClient } from './useApiClient';
+import { useLaterPages } from './useLaterPages';
 
 export type TransactionFilters = Pick<
   TransactionQueryParams,
@@ -17,6 +15,7 @@ export type TransactionFilters = Pick<
 >;
 
 export function useTransactions() {
+  const apiClient = useApiClient();
   const [filters, setFilters] = useState<TransactionFilters>({});
   const [appliedFilters, setAppliedFilters] = useState<TransactionFilters>({});
 
@@ -26,8 +25,9 @@ export function useTransactions() {
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
   });
 
+  const queryKey = ['all-transactions', appliedFilters];
   const query = useInfiniteQuery({
-    queryKey: ['transactions', appliedFilters],
+    queryKey,
     queryFn: async ({ pageParam }) => {
       const response = await getTransactions(apiClient, {
         ...appliedFilters,
@@ -47,6 +47,7 @@ export function useTransactions() {
     staleTime: CACHE_TIMING.VERY_SHORT_STALE_TIME,
     gcTime: CACHE_TIMING.MEDIUM_GC_TIME,
   });
+  const pages = useLaterPages(queryKey, query);
 
   return {
     transactions: query.data?.pages.flatMap((page) => page.data.results) ?? [],
@@ -56,8 +57,8 @@ export function useTransactions() {
     walletsRefreshing: walletsQuery.isFetching,
     retryWallets: () => walletsQuery.refetch(),
     isLoading: query.isLoading,
-    hasError: query.isError && !query.isFetchNextPageError,
-    moreFailed: query.isFetchNextPageError,
+    hasError: pages.hasError,
+    moreFailed: pages.moreFailed,
     isRefreshing: query.isFetching,
     retry: () => query.refetch(),
     isLoadingMore: query.isFetchingNextPage,
@@ -72,6 +73,6 @@ export function useTransactions() {
       setFilters({});
       setAppliedFilters({});
     },
-    loadMore: () => query.fetchNextPage(),
+    loadMore: pages.loadMore,
   };
 }

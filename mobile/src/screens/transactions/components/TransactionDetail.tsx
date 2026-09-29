@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { Linking, Text, View } from 'react-native';
 import {
+  activityAmount,
+  activityDirection,
+  activityStatus,
+  feeUnit,
   formatDate,
   formatTime,
   getChainShortCode,
@@ -10,7 +14,6 @@ import {
 } from '@ledova/shared';
 import { Action, Row, Rows } from '../../../components/Ledger';
 import { useThemedStyles } from '../../../contexts';
-import { activityAmount, activityDirection, activityState, feeUnit } from '../presentation';
 
 export function TransactionDetail({ transaction }: { transaction: Transaction }) {
   const [failedHash, setFailedHash] = useState<string | null>(null);
@@ -18,7 +21,7 @@ export function TransactionDetail({ transaction }: { transaction: Transaction })
     detail: { gap: theme.spacing.md },
     error: { fontFamily: theme.fontFamily.regular, fontSize: theme.fontSize.sm, color: theme.colors.status.error.text },
   }));
-  const status = activityState(transaction);
+  const status = activityStatus(transaction);
   const url = transaction.txHash ? getBlockExplorerTxUrl(transaction.chain, transaction.txHash) : '';
   const openExplorer = async () => {
     setFailedHash(null);

@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo, useImperativeHandle, forwardRef } from 'react';
-import { formatWalletAddressShort } from '@ledova/shared';
+import { formatWalletAddressShort, marketAmount, priceCents } from '@ledova/shared';
 import type { ShareToken, CreateOrderRequest, Wallet, OrderType } from '@ledova/shared';
 import { Rows, Row } from '@components/Ledger';
-import { marketAmount, priceCents } from '../marketData';
 
 const FIELD_CLASS =
   'block w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary ' +

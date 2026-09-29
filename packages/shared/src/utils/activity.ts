@@ -1,12 +1,12 @@
-import { formatShareCount, getTransactionStatus } from '@ledova/shared';
-import type { Transaction } from '@ledova/shared';
+import { formatShareCount, getTransactionStatus } from '../constants';
+import type { Transaction } from '../types';
 
 export function activityAmount(amount: string | null, symbol: string) {
   if (amount === null || !/^-?\d+(\.\d+)?$/.test(amount)) return 'Unavailable';
   const sign = amount.startsWith('-') ? '-' : '';
   const [whole, fractional = ''] = amount.replace(/^-/, '').split('.');
   const fraction = fractional.replace(/0+$/, '');
-  return `${sign}${formatShareCount(whole)}${fraction ? `.${fraction}` : ''}${symbol ? ` ${symbol}` : ''}`;
+  return `${sign}${formatShareCount(whole!)}${fraction ? `.${fraction}` : ''}${symbol ? ` ${symbol}` : ''}`;
 }
 
 export function activityDirection(transaction: Transaction) {
@@ -25,7 +25,7 @@ export function activityDirection(transaction: Transaction) {
   return 'Direction unavailable';
 }
 
-export function activityState(transaction: Transaction) {
+export function activityStatus(transaction: Transaction) {
   const { label, mark } = getTransactionStatus(transaction.status);
   return { label, text: mark ? `${mark} ${label}` : label };
 }

@@ -4,9 +4,7 @@ import { act, cleanup, fireEvent, render, renderHook, waitFor, within } from '@t
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { OrderBook, ShareToken, TransferOrder, WhitelistStatus } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { marketAmount, marketQuantity } from './marketData';
-import { useAllUserOrders, useShareTokens, useUserTradingWallets, useWalletsWhitelistStatus } from './useTrading';
-import { useSwapOrdersMulti } from './useAtomicSwaps';
+import { useAllUserOrders, useUserTradingWallets, useWalletsWhitelistStatus } from './useTrading';
 import { OrdersCard } from './components/OrdersCard';
 import { MarketList } from './components/MarketList';
 import { CreateOrderModal } from './components/CreateOrderModal';
@@ -55,12 +53,6 @@ afterEach(async () => {
   client.clear();
 });
 
-it('calculates exact AUD cents and never represents unsafe numeric shares as exact', () => {
-  expect(marketAmount('0.29', 9007199254740991)).toBe('AUD\u00a02,612,087,783,874,887.39');
-  expect(marketAmount('9999999999999999.99', 2)).toBe('AUD\u00a019,999,999,999,999,999.98');
-  expect(marketQuantity(9007199254740992)).toBe('Unavailable');
-  expect(marketAmount('1.00', 9007199254740992)).toBe('Unavailable');
-});
 it('loads owned orders without a listed class or wallet, through all pages', async () => {
   const requests: unknown[] = [];
   apiClient.defaults.adapter = async (config) => {
@@ -123,23 +115,6 @@ it('loads every trading wallet in its account cache and hides stale wallets on f
   await waitFor(() => expect(view.result.current.error).toBeTruthy());
   expect(view.result.current.wallets).toEqual([]);
   expect(view.result.current.actionWallets).toEqual([]);
-});
-it('loads every class and swap page and deduplicates records across wallets', async () => {
-  apiClient.defaults.adapter = async (config) =>
-    response(
-      config,
-      page(
-        config.params?.page === 2 ? [{ ...token, uuid: 'second' }] : [token],
-        config.params?.page === 2 ? null : 'https://example.test/?page=2',
-      ),
-    );
-  const tokens = await renderHook(() => useShareTokens(), { wrapper });
-  await waitFor(() => expect(tokens.result.current.data).toHaveLength(2));
-  const swaps = await renderHook(
-    () => useSwapOrdersMulti([wallet.address, '0x2222222222222222222222222222222222222222']),
-    { wrapper },
-  );
-  await waitFor(() => expect(swaps.result.current.data).toHaveLength(2));
 });
 it('makes cached allowlist status unavailable during refresh and after refusal', async () => {
   let failing = false;

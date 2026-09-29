@@ -1,6 +1,7 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ApiClientProvider } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { OfferingsScreen } from './OfferingsScreen';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
@@ -71,7 +72,11 @@ let client: QueryClient;
 let failure: string | null;
 let badPage: string | null;
 function wrapper({ children }: { children: React.ReactNode }) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+    </QueryClientProvider>
+  );
 }
 function page(results: unknown[], number: number) {
   return { data: { results, count: 2, next: number === 1 ? 'https://example.test/?page=2' : null, previous: null } };

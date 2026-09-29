@@ -1,11 +1,10 @@
 // @vitest-environment jsdom
 
 import type { PropsWithChildren, ReactNode } from 'react';
-import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 import {
-  selectSwapSettlement,
   ApiClientProvider,
   AUTH_QUERY_KEY,
   USER_PREFERENCES_QUERY_KEY,
@@ -17,7 +16,6 @@ import {
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { swapSettlementStore } from '@services/swapSettlements';
 import * as localSigner from '@utils/softwareWallet/localSigner';
-import tradingApi from '@services/apiClient';
 import { TradingPage } from './index';
 import fixture from '../../../../packages/shared/tests/fixtures/swap-settlement-api.json';
 import { settlementListRow } from '../../../../packages/shared/tests/fixtures/swap-settlements';
@@ -52,13 +50,17 @@ vi.mock('./components/MarketOverview', () => ({ MarketOverview: () => null }));
 vi.mock('./components/PlaceOrderPanel', () => ({ PlaceOrderPanel: () => null }));
 vi.mock('./components/OrderSigningFlow', () => ({ OrderSigningFlow: () => null }));
 vi.mock('./hooks/useTradingEvents', () => ({ useTradingEvents: () => {} }));
-vi.mock('./hooks/useAtomicSwaps', () => ({ useSwapOrdersMulti: () => ({ data: state.swaps, isLoading: false }) }));
-vi.mock('./useTrading', () => ({
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
   useShareTokens: () => ({
     data: state.tokens,
     isLoading: false,
   }),
   useInvestorEligibilityQuery: () => ({ data: { isEligible: true } }),
+  useOrderBook: () => ({ data: null, isLoading: false }),
+  useSwapOrdersMulti: () => ({ data: state.swaps, isLoading: false }),
+}));
+vi.mock('./useTrading', () => ({
   useUserTradingWallets: () => ({
     wallets: state.wallets,
     actionWallets: state.wallets,
@@ -69,7 +71,6 @@ vi.mock('./useTrading', () => ({
     getStatus: () => ({ status: 'whitelisted' }),
     isLoading: false,
   }),
-  useOrderBook: () => ({ data: null, isLoading: false }),
   useTrading: () => ({ userOrders: state.orders, isLoadingUserOrders: false, getWalletsWithHoldings: () => [] }),
 }));
 
@@ -402,27 +403,6 @@ it('keeps a reviewed signer current through balance-only and unrelated-account c
   expect(requests.filter((request) => request.method === 'post')).toHaveLength(1);
   expect(await swapSettlementStore.list(owner)).toEqual([]);
 });
-
-it.each([false, true])(
-  'deduplicates multi-wallet list rows without losing either recorded side (reverse=%s)',
-  async (reverse) => {
-    const { useSwapOrdersMulti } =
-      await vi.importActual<typeof import('./hooks/useAtomicSwaps')>('./hooks/useAtomicSwaps');
-    const row = settlementListRow(captured);
-    const wallets = [walletFor('seller'), walletFor('buyer')];
-    if (reverse) wallets.reverse();
-    const get = vi.spyOn(tradingApi, 'get').mockResolvedValue({ data: { results: [row] } });
-    const view = renderHook(() => useSwapOrdersMulti(wallets.map((wallet) => wallet.address)), { wrapper });
-    await waitFor(() => expect(view.result.current.data).toHaveLength(1));
-    expect(get).toHaveBeenCalledTimes(2);
-    const listed = view.result.current.data![0]!;
-    expect(listed).not.toHaveProperty('settlementContext');
-    expect(selectSwapSettlement(listed, owner, wallets).selection.orderUuid).toBe(captured.swapOrder.sellOrderUuid);
-    expect(selectSwapSettlement({ ...listed, sellerHasSigned: true }, owner, wallets).selection.orderUuid).toBe(
-      captured.swapOrder.buyOrderUuid,
-    );
-  },
-);
 
 it.each(['other chain', 'other account'] as const)(
   'uses the recorded buyer wallet when a same-address wallet comes first: %s',

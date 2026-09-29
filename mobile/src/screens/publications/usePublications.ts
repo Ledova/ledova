@@ -11,6 +11,7 @@ import {
   getPublications,
   getPublicationsNextPage,
   publicationFilename,
+  useLaterPages,
 } from '@ledova/shared';
 import type { BallotChoice, UserFriendlyError } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
@@ -20,6 +21,7 @@ import { getSessionEpoch } from '../../services/sessionScope';
 const SHARING_UNAVAILABLE = 'Sharing is not available on this device.';
 
 const PUBLICATIONS_KEY = ['publications'];
+const PERSONAL_NOTICES_KEY = [...PUBLICATIONS_KEY, 'addressed', 'me'];
 
 function whyItCouldNotBeOpened(error: unknown): string {
   const cause = (error as UserFriendlyError | undefined)?.originalError ?? error;
@@ -35,7 +37,7 @@ export function usePublications() {
   const [castError, setCastError] = useState<{ uuid: string; message: string } | undefined>(undefined);
 
   const listing = useInfiniteQuery({
-    queryKey: [...PUBLICATIONS_KEY, 'addressed', 'me'],
+    queryKey: PERSONAL_NOTICES_KEY,
     queryFn: async ({ pageParam }) => {
       const response = await getPublications(apiClient, pageParam, { addressed: 'me' });
       assertNextPageAdvances(pageParam, response.data);
@@ -45,6 +47,7 @@ export function usePublications() {
     initialPageParam: 1,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
+  const pages = useLaterPages(PERSONAL_NOTICES_KEY, listing);
 
   const open = async (uuid: string) => {
     if (openingUuid) return;
@@ -91,13 +94,13 @@ export function usePublications() {
   return {
     publications: listing.data?.pages.flatMap((page) => page.data?.results ?? []) ?? [],
     isLoading: listing.isLoading,
-    listFailed: listing.isError && !listing.isFetchNextPageError,
-    moreFailed: listing.isFetchNextPageError,
+    listFailed: pages.hasError,
+    moreFailed: pages.moreFailed,
     isRefreshing: listing.isFetching,
     retry: () => void listing.refetch(),
     hasMore: listing.hasNextPage,
     isLoadingMore: listing.isFetchingNextPage,
-    loadMore: () => void listing.fetchNextPage(),
+    loadMore: () => void pages.loadMore(),
     open,
     openingUuid,
     openError,

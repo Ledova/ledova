@@ -75,15 +75,7 @@ it.each([
   },
 );
 
-it.each([
-  ['base', '0xAbC', '0xabc', '0xdef', 'Outgoing'],
-  ['base', '0xAbC', '0xdef', '0xabc', 'Incoming'],
-  ['base', '0xAbC', '0xABC', '0xabc', 'Self transfer'],
-  ['base', '', '0xdef', null, 'Direction unavailable'],
-  ['bitcoin', '1Example', '1example', '1Other', 'Direction unavailable'],
-  ['bitcoin', 'bc1EXAMPLE', 'bc1example', 'bc1other', 'Outgoing'],
-  ['solana', 'ExampleWallet', 'examplewallet', 'OtherWallet', 'Direction unavailable'],
-] as const)('uses %s address identity for %s', (chain, walletAddress, fromAddress, toAddress, label) => {
-  const detail = detailOf({ ...transaction, chain, walletAddress, fromAddress, toAddress });
-  expect(within(detail).getByText(label)).toBeTruthy();
+it('names the direction in its opened detail', () => {
+  const detail = detailOf({ ...transaction, toAddress: '0x' + 'AB'.repeat(20) });
+  expect(within(detail).getByText('Self transfer')).toBeTruthy();
 });

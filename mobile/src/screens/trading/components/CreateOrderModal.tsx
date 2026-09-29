@@ -2,6 +2,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import {
   formatShareCount,
+  marketAmount,
+  priceCents,
   type ShareToken,
   type CreateOrderRequest,
   type Wallet,
@@ -10,7 +12,6 @@ import {
 } from '@ledova/shared';
 import { Action, Choice, Row } from '../../../components/Ledger';
 import { CustomModal } from '../../../components/modal';
-import { marketAmount, priceCents } from '../marketData';
 import { useMarketStyles } from '../styles';
 
 interface CreateOrderModalProps {

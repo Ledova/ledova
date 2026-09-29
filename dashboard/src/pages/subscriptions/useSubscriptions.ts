@@ -1,13 +1,8 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
-  assertNextPageAdvances,
   createSubscription,
   getSubscription,
-  getSubscriptions,
-  getNextPageParam,
-  getWallets,
-  readEveryPage,
   submitSubscription,
   withdrawSubscription,
 } from '@ledova/shared';
@@ -15,32 +10,6 @@ import type { SubscriptionInput } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 
 const SUBSCRIPTIONS_KEY = ['subscriptions'];
-
-export function useSubscriptions() {
-  const query = useInfiniteQuery({
-    queryKey: [...SUBSCRIPTIONS_KEY, 'list'],
-    queryFn: async ({ pageParam }) => {
-      const { data } = await getSubscriptions(apiClient, pageParam);
-      assertNextPageAdvances(pageParam, data);
-      return data;
-    },
-    getNextPageParam,
-    initialPageParam: 1,
-    staleTime: CACHE_TIMING.SHORT_STALE_TIME,
-  });
-
-  return {
-    subscriptions: query.data?.pages.flatMap((page) => page.results) ?? [],
-    isLoading: query.isLoading,
-    hasError: query.isError && !query.isFetchNextPageError,
-    moreFailed: query.isFetchNextPageError,
-    hasMore: query.hasNextPage,
-    isLoadingMore: query.isFetchingNextPage,
-    isRefreshing: query.isFetching,
-    retry: () => query.refetch(),
-    loadMore: () => query.fetchNextPage(),
-  };
-}
 
 export function useSubscription(uuid: string | undefined) {
   const queryClient = useQueryClient();
@@ -75,24 +44,6 @@ export function useSubscription(uuid: string | undefined) {
     retry: () => query.refetch(),
     submit,
     withdraw,
-  };
-}
-
-export function useSubscribableWallets(enabled: boolean) {
-  const query = useQuery({
-    queryKey: ['wallets', 'base-verified', 'complete'],
-    queryFn: () =>
-      readEveryPage((page) => getWallets(apiClient, { chain: 'base', verification_status: 'VERIFIED', page })),
-    enabled,
-    staleTime: CACHE_TIMING.SHORT_STALE_TIME,
-  });
-
-  return {
-    wallets: query.data ?? [],
-    isLoading: query.isLoading,
-    hasError: query.isError,
-    isRefreshing: query.isFetching,
-    retry: () => query.refetch(),
   };
 }
 
