@@ -89,14 +89,14 @@ export function SignupAccountType() {
               key={option.role}
               onClick={() => handleSelect(option.role)}
               disabled={isSubmitting || !account}
-              className="w-full text-left bg-surface-raised rounded-lg border border-border p-5 hover:border-brand-light hover:bg-brand-mid/5 transition-all duration-150 group disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group w-full rounded-xl border border-border bg-surface-raised p-4 text-left transition-all duration-150 hover:border-brand-light hover:bg-brand-mid/5 disabled:cursor-not-allowed disabled:opacity-50 sm:p-5"
             >
               <div className="flex items-start gap-4">
                 <div className="p-2 rounded-full bg-surface-tertiary border border-border group-hover:border-brand-light group-hover:bg-brand-mid/10 transition-colors">
                   <Icon size={ICON_LG} className="text-text-muted group-hover:text-brand-light transition-colors" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-base font-semibold text-text-primary">{option.title}</h3>
+                  <h3 className="font-display text-xl tracking-[-0.01em] text-text-primary">{option.title}</h3>
                   <p className="text-sm text-text-muted mt-1">{option.description}</p>
                 </div>
               </div>

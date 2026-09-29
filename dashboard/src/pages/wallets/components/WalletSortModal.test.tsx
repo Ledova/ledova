@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { useState } from 'react';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import type { WalletSortOption } from '../hooks/useWalletSort';
 import { WalletSortModal } from './WalletSortModal';
@@ -28,8 +28,19 @@ function Harness({ applied }: { applied: (sort: WalletSortOption) => void }) {
 }
 
 function chosen(label: string) {
-  return screen.getByText(label).classList.contains('text-brand-light');
+  const option = screen.getByRole('button', { name: new RegExp(`^${label}`) });
+  const pressed = option.getAttribute('aria-pressed') === 'true';
+  expect(screen.getByText(label).classList.contains('text-brand-light')).toBe(pressed);
+  return pressed;
 }
+
+it('is titled Sort Wallets and lists the options as ruled rows in the dialog card', () => {
+  render(<Harness applied={vi.fn()} />);
+  const dialog = screen.getByRole('dialog', { name: 'Sort Wallets' });
+  const option = within(dialog).getByRole('button', { name: /^Alphabetical/ });
+  expect(option.parentElement!.className).toContain('divide-y');
+  expect(option.className).not.toContain('bg-surface-tertiary');
+});
 
 it('opens on the applied sort and discards a choice that was closed without applying', () => {
   const applied = vi.fn();

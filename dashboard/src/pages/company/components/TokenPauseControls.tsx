@@ -11,6 +11,7 @@ import {
   type PauseSubmissionResponse,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
+import { PageAction } from '@components/Page';
 import {
   listSavedPauses,
   removeSavedPause,
@@ -26,9 +27,6 @@ const queryKey = (record: SavedPause) => [
   record.tokenUuid,
   record.submissionId,
 ];
-
-const reminderButtonClassName =
-  'mt-3 mr-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-text-primary hover:bg-surface-tertiary disabled:opacity-50';
 
 function checked(record: SavedPause, response: PauseSubmissionResponse) {
   if (
@@ -145,69 +143,64 @@ function PauseRequests({
     }
   };
   return (
-    <div className="w-full space-y-2 text-text-primary">
-      <button
-        type="button"
+    <div className="w-full space-y-3 text-sm text-text-primary">
+      <PageAction
+        label={sending ? 'Saving request...' : token.status === 'paused' ? 'Unpause' : 'Pause'}
         disabled={blocked}
         onClick={() => void send(token.status !== 'paused')}
-        className="rounded-lg border border-border px-4 py-2.5 text-sm disabled:opacity-50"
-      >
-        {sending ? 'Saving request...' : token.status === 'paused' ? 'Unpause' : 'Pause'}
-      </button>
+      />
       {error && (
-        <div role="alert">
-          <p>{error}</p>
-          <button type="button" className={reminderButtonClassName} onClick={load}>
-            Reload saved requests
-          </button>
+        <div role="alert" className="space-y-2">
+          <p className="text-error-light">{error}</p>
+          <PageAction label="Reload saved requests" onClick={load} />
         </div>
       )}
-      {records.map((record, index) => {
-        const query = queries[index];
-        const response = query.data;
-        return (
-          <div
-            key={record.submissionId}
-            role="group"
-            aria-label={`${record.paused ? 'Pause' : 'Unpause'} request ${record.submissionId}`}
-            className="rounded-lg border border-border p-3 text-sm"
-          >
-            <p className="break-words text-xs text-text-muted">
-              {record.paused ? 'Pause' : 'Unpause'} request {record.submissionId}
-            </p>
-            <p role="status" className="mt-2">
-              {response?.message ?? 'Outcome unresolved. This request remains saved on this device.'}
-            </p>
-            {query.error && (
-              <p role="alert">{getErrorMessage(query.error, 'The request outcome could not be checked.')}</p>
-            )}
-            {response?.submission.completedAt ? (
-              <button type="button" className={reminderButtonClassName} onClick={() => dismiss(record)}>
-                Dismiss outcome
-              </button>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className={reminderButtonClassName}
-                  disabled={query.isFetching}
-                  onClick={() => void query.refetch()}
-                >
-                  Check outcome
-                </button>
-                <button
-                  type="button"
-                  className={reminderButtonClassName}
-                  disabled={sending}
-                  onClick={() => void send(record.paused, record)}
-                >
-                  Retry same request
-                </button>
-              </>
-            )}
-          </div>
-        );
-      })}
+      {records.length > 0 && (
+        <div className="divide-y divide-border-subtle border-y border-border-subtle">
+          {records.map((record, index) => {
+            const query = queries[index];
+            const response = query.data;
+            return (
+              <div
+                key={record.submissionId}
+                role="group"
+                aria-label={`${record.paused ? 'Pause' : 'Unpause'} request ${record.submissionId}`}
+                className="space-y-2 py-3"
+              >
+                <p className="break-words text-xs text-text-muted">
+                  {record.paused ? 'Pause' : 'Unpause'} request {record.submissionId}
+                </p>
+                <p role="status">
+                  {response?.message ?? 'Outcome unresolved. This request remains saved on this device.'}
+                </p>
+                {query.error && (
+                  <p role="alert" className="text-error-light">
+                    {getErrorMessage(query.error, 'The request outcome could not be checked.')}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {response?.submission.completedAt ? (
+                    <PageAction label="Dismiss outcome" onClick={() => dismiss(record)} />
+                  ) : (
+                    <>
+                      <PageAction
+                        label="Check outcome"
+                        disabled={query.isFetching}
+                        onClick={() => void query.refetch()}
+                      />
+                      <PageAction
+                        label="Retry same request"
+                        disabled={sending}
+                        onClick={() => void send(record.paused, record)}
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -215,7 +208,9 @@ function PauseRequests({
 export function TokenPauseControls({ token }: { token: Pick<CompanyShareToken, 'uuid' | 'status'> }) {
   const { owner, boundary } = useSubmissionOwner();
   if (!owner)
-    return <p className="text-text-primary">Verify your issuer session before requesting a pause or unpause.</p>;
+    return (
+      <p className="text-sm text-text-primary">Verify your issuer session before requesting a pause or unpause.</p>
+    );
   return (
     <PauseRequests
       key={`${owner.userUuid}/${owner.ownerAccountUuid}/${token.uuid}`}

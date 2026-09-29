@@ -37,3 +37,26 @@ it('shows why finishing failed next to the button that retries it', () => {
   expect(screen.getByRole('alert').textContent).toBe(COMPLETION_FAILED);
   expect((screen.getByRole('button', { name: 'Complete Signup' }) as HTMLButtonElement).disabled).toBe(false);
 });
+
+it('shows each part of the review as a card with a Newsreader title, like a signed-in section', () => {
+  review.state = {
+    data: { userProfile: null, financialProfile: null },
+    company: null,
+    signupRole: 'investor',
+    isLoading: false,
+    error: null,
+    completionError: null,
+    completeSignup: vi.fn(),
+    isSubmitting: false,
+    canCompleteSignup: false,
+    retryLoad: vi.fn(),
+  };
+
+  render(<SignupReview />);
+
+  for (const title of ['Personal Information', 'Financial Profile']) {
+    const heading = screen.getByRole('heading', { level: 2, name: title });
+    expect(heading.className).toContain('font-display');
+    expect(heading.closest('section')!.className).toContain('rounded-xl');
+  }
+});

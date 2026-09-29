@@ -68,21 +68,17 @@ export function DeriveAddressModal({
       confirmLoading={isCreating}
       onConfirm={handleConfirm}
     >
-      <div className="space-y-5">
+      <div className="space-y-4">
         {notice}
         {requestError && (
           <p role="alert" className="text-sm text-error-light">
             {requestError}
           </p>
         )}
-        <div className="text-center">
-          <p className="text-sm text-text-muted">Add another address from your hardware wallet</p>
-        </div>
+        <p className="text-sm text-text-muted">Add another address from your hardware wallet</p>
 
         {error ? (
-          <div className="p-3 bg-error-light/10 border border-error-light/20 rounded-lg">
-            <p className="text-sm text-error-light text-center">{error}</p>
-          </div>
+          <p className="text-sm text-error-light">{error}</p>
         ) : derivedAddress ? (
           <div className="space-y-0">
             <div className="flex items-center justify-between py-2.5 border-b border-border-subtle">
