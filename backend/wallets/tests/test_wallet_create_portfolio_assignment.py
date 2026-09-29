@@ -8,6 +8,7 @@ from portfolios.models import Portfolio
 from shared.tests.tenants import an_account
 from users.models import UserAccount, UserProfile
 from wallets.models import Wallet
+from wallets.services.registration import register_wallet
 
 User = get_user_model()
 
@@ -45,6 +46,16 @@ class WalletCreatePortfolioAssignmentTest(APITestCase):
         Portfolio.objects.filter(pk=foreign_portfolio.pk).update(created_at=timezone.now() - timedelta(days=1))
 
         wallet = self.create_wallet("b")
+
+        self.assertEqual(list(wallet.portfolios.all()), [self.portfolio])
+        self.assertFalse(foreign_portfolio.wallets.exists())
+
+    def test_the_service_scopes_to_the_account_where_no_policy_would(self):
+        foreign_account = an_account("wallet-create-service-foreig", account_number="WALLET-SERVICE")
+        foreign_portfolio = Portfolio.objects.create(user_account=foreign_account, name="Foreign portfolio")
+        Portfolio.objects.filter(pk=foreign_portfolio.pk).update(created_at=timezone.now() - timedelta(days=1))
+
+        wallet = register_wallet(user_account=self.account, address="0x" + "e" * 40, chain="ethereum")
 
         self.assertEqual(list(wallet.portfolios.all()), [self.portfolio])
         self.assertFalse(foreign_portfolio.wallets.exists())
