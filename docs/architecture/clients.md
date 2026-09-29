@@ -454,7 +454,7 @@ same rule.
 
 Actions use one language. `PageAction` is the button for whatever a page or a
 section does, and it keeps its content width wherever it sits: in the title row
-for the page as a whole (Edit company, Refresh, and the way back to the
+for the page as a whole (Edit company, Wallets' Filter, Refresh, and the way back to the
 parent page such as Back to Register, Back to Company, Back to Directory or Back
 to Applications) and inside a section for what that section does (Create share
 class, Edit phone, Change password beside its sentence). A page reaches each of
@@ -481,8 +481,12 @@ Applying or clearing the filter closes it and every open entry and returns focus
 to the filter's button. Activity's Transfers works this way, so its title row has
 no Filter action. Holdings and the Register also open their rows in place, with a
 native `details` element. A dialog is kept for work that sets the page aside: a
-form that creates or changes something, a signing step or a confirmation.
-Mobile's Activity still opens its filter and each entry's detail in a dialog.
+form that creates or changes something, a signing step or a confirmation. One
+web page still breaks the rule: Wallets' Filter title action opens a Sort Wallets
+dialog that only reorders the list in memory, and it moves in place when Wallets
+is reworked under item 5 of [#791](https://github.com/Ledova/ledova/issues/791).
+On mobile, Activity's filter and entry detail and the Wallets sort still open in
+a dialog.
 
 A lede, the one muted sentence under a page's title, appears only where it says
 what the titles do not: an instruction (Wallets, Activity) or a fact (Register,
