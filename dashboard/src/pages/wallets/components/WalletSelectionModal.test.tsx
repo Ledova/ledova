@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { WALLET_ENDPOINTS, formatWalletAddressShort } from '@ledova/shared';
@@ -83,4 +83,45 @@ it('lists each verified wallet under its network with its balance and value labe
 
   fireEvent.click(within(dialog).getByRole('button', { name: /Cold storage/ }));
   expect(chosen).toHaveBeenCalledExactlyOnceWith(cold);
+});
+
+it('says the wallets could not be loaded when the read fails, rather than that there are none, and tries again', async () => {
+  api.get.mockRejectedValueOnce(new Error('Request failed with status code 500'));
+  show();
+
+  const alert = await screen.findByRole('alert');
+  expect(alert.textContent).toContain('Your wallets could not be loaded. Try again before continuing.');
+  expect(screen.queryByText('No verified wallets found')).toBeNull();
+  expect(screen.queryByText('Request failed with status code 500')).toBeNull();
+
+  fireEvent.click(within(alert).getByRole('button', { name: 'Try again' }));
+
+  expect(await screen.findByRole('button', { name: /Savings/ })).toBeTruthy();
+  expect(screen.queryByRole('alert')).toBeNull();
+  expect(api.get).toHaveBeenCalledTimes(2);
+});
+
+it('hides the wallets it listed when a refresh fails, and holds Try again while it reads them again', async () => {
+  show();
+  await screen.findByRole('button', { name: /Savings/ });
+  api.get.mockRejectedValueOnce(new Error('Request failed with status code 500'));
+
+  await act(async () => client.invalidateQueries({ queryKey: ['wallets'] }));
+
+  const alert = await screen.findByRole('alert');
+  expect(screen.queryByRole('button', { name: /Savings/ })).toBeNull();
+  let settle!: () => void;
+  api.get.mockReturnValueOnce(
+    new Promise((resolve) => {
+      settle = () => resolve({ data: { results: [savings, cold, everyday], count: 3, next: null, previous: null } });
+    }),
+  );
+  fireEvent.click(within(alert).getByRole('button', { name: 'Try again' }));
+
+  await waitFor(() =>
+    expect(within(alert).getByRole('button', { name: 'Try again' })).toHaveProperty('disabled', true),
+  );
+  await act(async () => settle());
+  expect(await screen.findByRole('button', { name: /Savings/ })).toBeTruthy();
+  expect(screen.queryByRole('alert')).toBeNull();
 });

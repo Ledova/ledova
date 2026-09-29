@@ -12,6 +12,7 @@ import {
 } from '@ledova/shared';
 import type { BuyableAssetConfig, Wallet } from '@ledova/shared';
 import { Modal } from '@components/Modal';
+import { PageAction } from '@components/Page';
 import { WalletChoice } from '@components/Wallet';
 import apiClient from '@services/apiClient';
 
@@ -64,7 +65,8 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
     enabled: !!userAccountUuid && !!selectedAsset,
   });
 
-  const matchingWallets = walletsQuery.data?.data.results || [];
+  const walletsFailed = walletsQuery.isError;
+  const matchingWallets = walletsFailed ? [] : walletsQuery.data?.data.results || [];
   const isLoadingWallets = walletsQuery.isLoading;
   const showWalletStep = !!selectedAsset && !isLoadingWallets && matchingWallets.length !== 1;
 
@@ -153,7 +155,18 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
         </>
       )}
 
-      {!isOnAssetStep && matchingWallets.length === 0 && (
+      {!isOnAssetStep && walletsFailed && (
+        <div role="alert" className="flex flex-col items-start gap-3">
+          <p className="text-sm text-text-muted">Your wallets could not be loaded. Try again before continuing.</p>
+          <PageAction
+            label="Try again"
+            disabled={walletsQuery.isFetching}
+            onClick={() => void walletsQuery.refetch()}
+          />
+        </div>
+      )}
+
+      {!isOnAssetStep && !walletsFailed && matchingWallets.length === 0 && (
         <p className="text-sm text-text-muted">No verified wallets for {selectedAsset!.name}. Create one in Wallets.</p>
       )}
 
@@ -176,13 +189,9 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
         </>
       )}
 
-      {(widgetMutation.isError || walletsQuery.isError) && (
+      {widgetMutation.isError && (
         <p className="mt-4 text-sm text-error-light">
-          {widgetMutation.error instanceof Error
-            ? widgetMutation.error.message
-            : walletsQuery.error instanceof Error
-              ? walletsQuery.error.message
-              : 'Something went wrong'}
+          {widgetMutation.error instanceof Error ? widgetMutation.error.message : 'Something went wrong'}
         </p>
       )}
     </Modal>

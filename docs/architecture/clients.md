@@ -137,7 +137,9 @@ opens its form directly when exactly one of the person's wallets is verified,
 and asks which wallet to send from only when several are; Buy crypto asks which
 wallet receives the chosen asset only when more than one verified wallet on that
 asset's network could. Both choosers list a wallet as a Wallets row reads, by its
-name or short address, with its balance and value labelled.
+name or short address, with its balance and value labelled. A chooser that cannot
+read the wallets says so and offers Try again, hiding any it listed before, rather
+than saying there are none.
 The retired portfolio screen's chart, allocation and snapshot helpers are removed
 from both clients and the shared package. The asset list remains in use by Buy
 crypto for current prices, and Wallets and Send still use the AUD exchange rate.

@@ -186,6 +186,61 @@ it('holds every wallet while the chosen one opens the purchase, and marks the ch
   expect(api.post).toHaveBeenCalledOnce();
 });
 
+it('says the wallets could not be loaded when the read fails, rather than that there are none, and tries again', async () => {
+  answer([wallet('wallet-1', 'First wallet'), wallet('wallet-2', 'Second wallet')]);
+  const read = api.get.getMockImplementation()!;
+  api.get.mockImplementation((url: string, config?: { params?: Record<string, unknown> }) =>
+    url === WALLET_ENDPOINTS.BASE
+      ? Promise.reject(new Error('Request failed with status code 500'))
+      : read(url, config),
+  );
+  show({});
+  fireEvent.click(screen.getByText('Ethereum'));
+
+  const alert = await screen.findByRole('alert');
+  expect(alert.textContent).toContain('Your wallets could not be loaded. Try again before continuing.');
+  expect(screen.queryByText(/No verified wallets for/)).toBeNull();
+  expect(screen.queryByText('Request failed with status code 500')).toBeNull();
+  expect(screen.queryByText('Something went wrong')).toBeNull();
+
+  api.get.mockImplementation(read);
+  fireEvent.click(within(alert).getByRole('button', { name: 'Try again' }));
+
+  expect(await screen.findByRole('button', { name: /Second wallet/ })).toBeTruthy();
+  expect(screen.queryByRole('alert')).toBeNull();
+  expect(api.post).not.toHaveBeenCalled();
+});
+
+it('hides the wallets it listed when a refresh fails, rather than buying into one it can no longer vouch for', async () => {
+  answer([wallet('wallet-1', 'First wallet'), wallet('wallet-2', 'Second wallet')]);
+  const read = api.get.getMockImplementation()!;
+  show({});
+  fireEvent.click(screen.getByText('Ethereum'));
+  await screen.findByRole('button', { name: /Second wallet/ });
+  api.get.mockImplementation(() => Promise.reject(new Error('Request failed with status code 500')));
+
+  await act(async () => client.invalidateQueries({ queryKey: ['wallets'] }));
+
+  const alert = await screen.findByRole('alert');
+  expect(screen.queryByRole('button', { name: /Second wallet/ })).toBeNull();
+  let settle!: () => void;
+  api.get.mockImplementation(
+    (url: string, config?: { params?: Record<string, unknown> }) =>
+      new Promise((resolve) => {
+        settle = () => resolve(read(url, config));
+      }),
+  );
+  fireEvent.click(within(alert).getByRole('button', { name: 'Try again' }));
+
+  await waitFor(() =>
+    expect(within(alert).getByRole('button', { name: 'Try again' })).toHaveProperty('disabled', true),
+  );
+  await act(async () => settle());
+  expect(await screen.findByRole('button', { name: /Second wallet/ })).toBeTruthy();
+  expect(screen.queryByRole('alert')).toBeNull();
+  expect(api.post).not.toHaveBeenCalled();
+});
+
 it('explains a missing wallet and goes back to the asset list', async () => {
   answer([]);
   show({});

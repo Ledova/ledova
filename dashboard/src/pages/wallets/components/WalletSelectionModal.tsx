@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { BLOCKCHAIN, DESIGN_TOKENS, getWallets } from '@ledova/shared';
 import type { Wallet } from '@ledova/shared';
 import { Modal } from '@components/Modal';
+import { PageAction } from '@components/Page';
 import { WalletChoice } from '@components/Wallet';
 import apiClient from '@services/apiClient';
 
@@ -33,6 +34,19 @@ export function WalletSelectionModal({ isOpen, onClose, onSelectWallet }: Wallet
   const wallets = walletsQuery.data?.data.results || [];
 
   const renderContent = () => {
+    if (walletsQuery.isError) {
+      return (
+        <div role="alert" className="flex flex-col items-start gap-3">
+          <p className="text-sm text-text-muted">Your wallets could not be loaded. Try again before continuing.</p>
+          <PageAction
+            label="Try again"
+            disabled={walletsQuery.isFetching}
+            onClick={() => void walletsQuery.refetch()}
+          />
+        </div>
+      );
+    }
+
     if (walletsQuery.isLoading) {
       return (
         <div className="flex items-center justify-center py-8">
