@@ -14,6 +14,32 @@ The `expo-system-ui` plugin applies the paper-only light appearance to Android
 native dialogs, including when the device uses dark mode. Generated-project
 checks verify the Android light resource and both iOS light appearance settings.
 
+iOS 27 stops an app built with the iOS 27 SDK at launch, in
+`_UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption`, unless it uses the
+UIKit scene life cycle
+([TN3187](https://developer.apple.com/documentation/technotes/tn3187-migrating-to-the-uikit-scene-based-life-cycle)).
+Expo 54 and React Native 0.81.5 generate an app-delegate app with no scene delegate;
+Expo adds one in SDK 58, and in 57.0.23 behind `ios.enableSceneSupport`. Until the
+upgrade, `plugins/withSceneLifecycle.cjs` declares a `UIApplicationSceneManifest` in
+both Info.plists and adds `LedovaSceneDelegate`, so every iOS version the app
+supports runs the scene life cycle.
+
+`LedovaSceneDelegate` moves the window that `AppDelegate` still creates at launch
+into the connecting window scene. `AppDelegate` keeps creating it because Expo 54's
+dev launcher needs a window in `didFinishLaunching`, and expo-system-ui and React
+Native read `AppDelegate.window`. UIKit no longer calls the app delegate's URL,
+user-activity, foreground and background methods, so the scene delegate forwards
+those events to `AppDelegate`, which hands them to Expo's subscribers and
+`RCTLinkingManager` as before. UIKit still posts the application notifications that
+`AppState`, the app lock, the camera and WebViews observe. A window that becomes
+visible without a scene, such as Expo's developer menu, is moved into the app's
+scene. A link that cold-starts the app now arrives with the scene rather than in the
+launch options React Native reads, so `Linking.getInitialURL()` returns null; the
+app's JavaScript reads no incoming links. Generated-project checks verify the
+manifest and the delegate. The plugin refuses an `AppDelegate` that no longer
+creates the window, or another scene manifest, so an Expo upgrade that brings its
+own scene delegate stops at prebuild until this plugin is removed.
+
 The lockfile keeps registry URLs and npm integrity values; the shared workspace
 is the intentional local link. Install with `--ignore-scripts` in native CI.
 The locked packages declaring install scripts are watcher, fsevents,
