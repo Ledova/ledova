@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode, type Ref } from 'react';
 import { Link } from 'react-router-dom';
 import { CaretRightIcon } from '@phosphor-icons/react';
 import { formatDate } from '@ledova/shared';
@@ -36,6 +36,44 @@ export function LinkRow({
       </div>
       {aside}
       <CaretRightIcon aria-hidden="true" className="shrink-0 text-text-muted group-hover:text-brand-mid" />
+    </div>
+  );
+}
+
+export function Disclosure({
+  ref,
+  summary,
+  open,
+  onToggle,
+  children,
+}: {
+  ref?: Ref<HTMLButtonElement>;
+  summary: ReactNode;
+  open: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  const id = useId();
+  return (
+    <div>
+      <button
+        ref={ref}
+        type="button"
+        id={`${id}summary`}
+        aria-expanded={open}
+        aria-controls={`${id}detail`}
+        onClick={onToggle}
+        className="group flex w-full cursor-pointer items-start gap-3 py-4 text-left"
+      >
+        <CaretRightIcon
+          aria-hidden="true"
+          className={`mt-0.5 shrink-0 text-text-muted group-hover:text-brand-mid ${open ? 'rotate-90' : ''}`}
+        />
+        <span className="min-w-0 flex-1">{summary}</span>
+      </button>
+      <div id={`${id}detail`} role="region" aria-labelledby={`${id}summary`} hidden={!open} className="pb-4 pl-7">
+        {open && children}
+      </div>
     </div>
   );
 }
