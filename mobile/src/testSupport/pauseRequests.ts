@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { SavedPause } from '../services/pauseSubmissions';
+import type { SavedPause } from '@ledova/shared';
 
 export const tokenUuid = '11111111-1111-4111-8111-111111111111';
 export const owner = {
