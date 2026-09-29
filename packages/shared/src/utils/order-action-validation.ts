@@ -6,8 +6,8 @@ import type {
   OrderActionValues,
 } from '../types';
 import type { SavedOrderAction } from './order-action-storage';
+import { isUuid } from './validation';
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ADDRESS = /^0x[0-9a-f]{40}$/i;
 const STATUSES = [
   'open',
@@ -88,7 +88,7 @@ function identity(value: OrderActionContext | OrderActionSnapshot): boolean {
   return (
     value.protocolVersion === 1 &&
     [value.orderUuid, value.ownerAccountUuid, value.walletUuid, value.tokenUuid].every(
-      (id) => typeof id === 'string' && UUID.test(id),
+      (id) => typeof id === 'string' && isUuid(id),
     ) &&
     typeof value.walletAddress === 'string' &&
     ADDRESS.test(value.walletAddress)

@@ -19,8 +19,8 @@ import type {
   Wallet,
 } from '../types';
 import type { OrderSubmissionOwner } from './order-submission-storage';
+import { isUuid } from './validation';
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const HASH = /^0x[0-9a-f]{64}$/i;
 const MAX_UINT = (1n << 256n) - 1n;
 const STATUSES = ['created', 'seller_signed', 'buyer_signed', 'ready', 'executing', 'completed', 'failed', 'expired'];
@@ -72,11 +72,9 @@ function canonical(value: unknown): string {
 function party(value: SwapSettlementParty | undefined): boolean {
   return (
     !!value &&
-    [value.orderUuid, value.ownerAccountUuid, value.walletUuid].every(
-      (id) => typeof id === 'string' && UUID.test(id),
-    ) &&
+    [value.orderUuid, value.ownerAccountUuid, value.walletUuid].every((id) => typeof id === 'string' && isUuid(id)) &&
     (value.paymentAssetUuid === null ||
-      (typeof value.paymentAssetUuid === 'string' && UUID.test(value.paymentAssetUuid))) &&
+      (typeof value.paymentAssetUuid === 'string' && isUuid(value.paymentAssetUuid))) &&
     address(value.address)
   );
 }
@@ -85,7 +83,7 @@ export function validateSwapSettlementLookup(value: SwapSettlementLookup): void 
   requireValue(
     value &&
       [value.orderUuid, value.swapUuid, value.ownerAccountUuid, value.walletUuid].every(
-        (id) => typeof id === 'string' && UUID.test(id),
+        (id) => typeof id === 'string' && isUuid(id),
       ) &&
       (value.settlementDigest === undefined || HASH.test(value.settlementDigest)),
   );
@@ -159,16 +157,16 @@ function typedData(typed: SwapSettlementTypedData): void {
 
 async function context(value: SwapSettlementContext, crypto: SwapSettlementCrypto): Promise<void> {
   requireValue(
-    value && value.protocolVersion === 1 && UUID.test(value.swapUuid) && party(value.seller) && party(value.buyer),
+    value && value.protocolVersion === 1 && isUuid(value.swapUuid) && party(value.seller) && party(value.buyer),
   );
   const share = value.shareToken;
   const payment = value.paymentAsset;
   requireValue(
     share &&
       payment &&
-      UUID.test(share.uuid) &&
-      UUID.test(payment.uuid) &&
-      UUID.test(payment.deploymentUuid) &&
+      isUuid(share.uuid) &&
+      isUuid(payment.uuid) &&
+      isUuid(payment.deploymentUuid) &&
       [share.chain, share.name, share.symbol, payment.name, payment.symbol, payment.deploymentChain].every(
         (item) => typeof item === 'string',
       ) &&
@@ -297,7 +295,7 @@ export function selectSwapSettlement<
         party &&
         (party.userRole === 'seller' || party.userRole === 'buyer') &&
         party.ownerAccountUuid === owner.ownerAccountUuid &&
-        UUID.test(party.walletUuid),
+        isUuid(party.walletUuid),
     ),
   );
   requireValue(new Set(parties.map((party) => party.userRole)).size === parties.length);
