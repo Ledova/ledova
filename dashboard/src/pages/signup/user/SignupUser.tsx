@@ -6,6 +6,20 @@ import { DESIGN_TOKENS, useSignupUser } from '@ledova/shared';
 
 const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 
+function emailRefusal(sentence: string) {
+  if (!/already registered/i.test(sentence)) return sentence;
+  const lead = sentence.split('Please')[0].trim().replace(/\.$/, '');
+  return (
+    <>
+      {`${lead}. Please `}
+      <Link to="/signin" className="underline hover:text-error-light">
+        sign in
+      </Link>
+      {' or use a different email.'}
+    </>
+  );
+}
+
 export function SignupUser() {
   const navigate = useNavigate();
   const {
@@ -77,17 +91,8 @@ export function SignupUser() {
                 <Description className="text-error-light text-sm mt-1" role="alert">
                   {errors.email.map((error, index) => (
                     <span key={index}>
-                      {error.includes('already registered') ? (
-                        <>
-                          {error.split('Please')[0]}Please{' '}
-                          <Link to="/signin" className="underline hover:text-error-light">
-                            sign in
-                          </Link>
-                          {' or use a different email.'}
-                        </>
-                      ) : (
-                        error
-                      )}
+                      {index > 0 && ' '}
+                      {emailRefusal(error)}
                     </span>
                   ))}
                 </Description>

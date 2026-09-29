@@ -49,6 +49,16 @@ it('keeps the email for the confirmation step under signup_email, where that ste
   expect(await AsyncStorage.getItem('signup_email')).toBe('synthetic@example.test');
 });
 
+it('shows the refusal the backend sends for a registered email under the field, as it stands', async () => {
+  api.post.mockRejectedValue({ response: { status: 400, data: { email: ['Email already registered'] } } });
+  const view = await filledIn();
+
+  await fireEvent.press(view.getByText('Continue'));
+
+  await waitFor(() => expect(view.getByText('Email already registered')).toBeTruthy());
+  expect(mockNavigate).not.toHaveBeenCalled();
+});
+
 describe('every field SIGNUP_USER_FIELDS names is one this screen actually renders', () => {
   it.each(SIGNUP_USER_FIELDS)('shows the refusal the server gave for %s under its field', async (field) => {
     api.post.mockRejectedValue({ response: { status: 400, data: { [field]: [A_MESSAGE[field]] } } });
