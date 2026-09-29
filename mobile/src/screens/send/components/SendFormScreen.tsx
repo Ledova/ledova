@@ -22,6 +22,7 @@ import { SuccessModal } from '../../transfers/components/SuccessModal';
 import { WalletSelectionStep } from './WalletSelectionStep';
 import { encodeEthereumTransaction } from '../../../utils/keystone/urEncoder';
 import { decodeKeystoneSignature } from '../../../utils/keystone/urDecoder';
+import { reviewTransfer } from '../../../utils/preparedTransfer';
 import { useTransfers } from '../../transfers/useTransfers';
 
 interface SendFormScreenProps {
@@ -101,13 +102,18 @@ export function SendFormScreen({ onDone }: SendFormScreenProps) {
   );
   const canSubmit = !!toAddress && !!amount && !!selectedAsset && !isPreparing;
 
+  const review = useMemo(
+    () => (transactionData && isEvm ? reviewTransfer(transactionData, selectedAsset?.decimals) : null),
+    [transactionData, isEvm, selectedAsset],
+  );
+
   const urEncodedTransaction = useMemo(() => {
-    if (!transactionData || !wallet || !isEvm) return null;
+    if (!review?.transaction || !wallet) return null;
 
     try {
       const encoded = encodeEthereumTransaction(
         wallet.address,
-        transactionData.transaction as unknown as Parameters<typeof encodeEthereumTransaction>[1],
+        review.transaction,
         wallet.derivationPath ?? undefined,
         wallet.masterFingerprint ?? undefined,
       );
@@ -115,7 +121,7 @@ export function SendFormScreen({ onDone }: SendFormScreenProps) {
     } catch {
       return null;
     }
-  }, [transactionData, wallet, isEvm]);
+  }, [review, wallet]);
 
   const handleOpenAddressScanner = useCallback(() => {
     setShowAddressScanner(true);
@@ -143,18 +149,15 @@ export function SendFormScreen({ onDone }: SendFormScreenProps) {
 
   const handleSignatureScan = useCallback(
     (data: string) => {
-      if (!transactionData?.transaction) return;
+      if (!review?.transaction) return;
 
-      const signedTx = decodeKeystoneSignature(
-        data,
-        transactionData.transaction as unknown as Parameters<typeof decodeKeystoneSignature>[1],
-      );
+      const signedTx = decodeKeystoneSignature(data, review.transaction);
       if (signedTx) {
         handleSignature(signedTx);
         setShowSignatureScanner(false);
       }
     },
-    [handleSignature, transactionData],
+    [handleSignature, review],
   );
 
   const handleBack = useCallback(() => {
@@ -219,12 +222,13 @@ export function SendFormScreen({ onDone }: SendFormScreenProps) {
             <SoftwareSignTransaction
               wallet={wallet}
               transactionData={transactionData}
+              tokenDecimals={selectedAsset?.decimals}
               onSignComplete={handleSignature}
               signTrigger={softwareSignTrigger}
             />
           );
         }
-        return <SignTransaction urEncodedTransaction={urEncodedTransaction} />;
+        return <SignTransaction urEncodedTransaction={urEncodedTransaction} error={review?.error ?? null} />;
 
       case 'broadcast':
         return (

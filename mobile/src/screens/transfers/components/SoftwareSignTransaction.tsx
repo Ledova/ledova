@@ -7,12 +7,13 @@ import { useDialogStyles } from '../../../components/modal';
 import type { Wallet, TransactionData } from '@ledova/shared';
 import { getSeedPhrase } from '../../../services/secureKeyStorage';
 import { signEthereumTransaction } from '../../../utils/softwareWallet';
-import { preparedTransferTransaction } from '../../../utils/preparedTransfer';
+import { reviewedTransferTransaction } from '../../../utils/preparedTransfer';
 import { formatWalletAddressShort } from '@ledova/shared';
 
 interface SoftwareSignTransactionProps {
   wallet: Wallet;
   transactionData: TransactionData;
+  tokenDecimals?: number;
   onSignComplete: (signedTxHex: string) => void;
   signTrigger?: number;
 }
@@ -22,6 +23,7 @@ type SigningState = 'ready' | 'authenticating' | 'signing' | 'success' | 'error'
 export function SoftwareSignTransaction({
   wallet,
   transactionData,
+  tokenDecimals,
   onSignComplete,
   signTrigger = 0,
 }: SoftwareSignTransactionProps) {
@@ -59,14 +61,7 @@ export function SoftwareSignTransaction({
     }
 
     try {
-      const unsignedTx = preparedTransferTransaction(transactionData.transaction);
-
-      const isNativeTransfer = unsignedTx.data === '0x' || unsignedTx.data === '0x00';
-      if (isNativeTransfer && transactionData.toAddress) {
-        if (unsignedTx.to.toLowerCase() !== transactionData.toAddress.toLowerCase()) {
-          throw new Error('Transaction recipient does not match expected address');
-        }
-      }
+      const unsignedTx = reviewedTransferTransaction(transactionData, tokenDecimals);
 
       setSigningState('authenticating');
       setError(null);
@@ -91,7 +86,7 @@ export function SoftwareSignTransaction({
       setError(err instanceof Error ? err.message : 'Failed to sign transaction');
       setSigningState('error');
     }
-  }, [wallet, transactionData, onSignComplete]);
+  }, [wallet, transactionData, tokenDecimals, onSignComplete]);
 
   useEffect(() => {
     if (signTrigger > 0) {

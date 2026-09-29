@@ -2,12 +2,11 @@ import { URDecoder } from '@ngraveio/bc-ur';
 import { ETHSignature } from '@keystonehq/bc-ur-registry-eth';
 import { BtcSignature } from '@keystonehq/bc-ur-registry-btc';
 import { Transaction } from 'ethers';
-import type { PreparedEvmTransaction } from '@ledova/shared';
-import { preparedTransferTransaction } from '../preparedTransfer';
+import type { TransferTransaction } from '../preparedTransfer';
 
 export function decodeKeystoneSignature(
   urSignatureString: string,
-  unsignedTransaction: PreparedEvmTransaction,
+  unsignedTransaction: TransferTransaction,
 ): string | null {
   try {
     const decoder = new URDecoder();
@@ -29,7 +28,7 @@ export function decodeKeystoneSignature(
     const s = '0x' + signatureBuffer.slice(32, 64).toString('hex');
     const v = signatureBuffer[64];
 
-    const ethTx = Transaction.from({ ...preparedTransferTransaction(unsignedTransaction), signature: { r, s, v } });
+    const ethTx = Transaction.from({ ...unsignedTransaction, signature: { r, s, v } });
 
     return ethTx.serialized;
   } catch {

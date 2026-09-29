@@ -6,9 +6,10 @@ import { useAppTheme, useThemedStyles } from '../../../contexts';
 
 interface SignTransactionProps {
   urEncodedTransaction: string | null;
+  error?: string | null;
 }
 
-export function SignTransaction({ urEncodedTransaction }: SignTransactionProps) {
+export function SignTransaction({ urEncodedTransaction, error = null }: SignTransactionProps) {
   const theme = useAppTheme();
   const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
@@ -64,6 +65,8 @@ export function SignTransaction({ urEncodedTransaction }: SignTransactionProps) 
       <View style={styles.qrContainer}>
         {urEncodedTransaction ? (
           <QRDisplay data={urEncodedTransaction} isUR />
+        ) : error ? (
+          <Text style={text.error}>{error}</Text>
         ) : (
           <View style={styles.qrLoading}>
             <ActivityIndicator size="small" color={theme.colors.interactive.active} />

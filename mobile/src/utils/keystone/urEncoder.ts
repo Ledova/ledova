@@ -6,24 +6,24 @@ import {
   isSupportedEvmTestChainId,
   isBitcoinTestnetSigningPath,
   isValidBitcoinNativeSegwitTestAddress,
-  type PreparedEvmTransaction,
 } from '@ledova/shared';
-import { preparedTransferTransaction } from '../preparedTransfer';
+import type { TransferTransaction } from '../preparedTransfer';
 
 export function encodeEthereumTransaction(
   address: string,
-  transaction: PreparedEvmTransaction,
+  transaction: TransferTransaction,
   derivationPath?: string,
   masterFingerprint?: string,
 ): { type: string; cbor: Buffer; urString: string } | null {
   try {
     const requestId = uuid();
+    const chainId = Number(transaction.chainId);
 
-    if (!derivationPath || !masterFingerprint || !isSupportedEvmTestChainId(transaction.chainId)) {
+    if (!derivationPath || !masterFingerprint || !isSupportedEvmTestChainId(chainId)) {
       return null;
     }
 
-    const ethTx = Transaction.from(preparedTransferTransaction(transaction));
+    const ethTx = Transaction.from(transaction);
 
     const unsignedTx = ethTx.unsignedSerialized;
     const signDataHex = unsignedTx.startsWith('0x') ? unsignedTx.slice(2) : unsignedTx;
@@ -37,7 +37,7 @@ export function encodeEthereumTransaction(
       derivationPath,
       xfpBuffer as unknown as string,
       requestId,
-      transaction.chainId,
+      chainId,
       address,
       'Ledova',
     );

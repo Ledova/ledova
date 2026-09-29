@@ -1,5 +1,10 @@
 import { cleanup, render } from '@testing-library/react-native';
+import { Interface } from 'ethers';
+import type { TransactionData } from '@ledova/shared';
+import fixture from '../../../../../packages/shared/tests/fixtures/prepared-transfer-api.json';
 import { useTransfers } from '../../transfers/useTransfers';
+import { encodeEthereumTransaction } from '../../../utils/keystone/urEncoder';
+import { preparedTransferTransaction } from '../../../utils/preparedTransfer';
 import { SendFormScreen } from './SendFormScreen';
 
 const mockNavigation = { navigate: jest.fn() };
@@ -47,4 +52,42 @@ it.each([
   const view = await render(<SendFormScreen onDone={jest.fn()} />);
   expect(view.getAllByText(title)).toHaveLength(1);
   expect(view.getByRole('header', { name: title })).toBeTruthy();
+});
+
+function signing(transactionData: TransactionData) {
+  jest.mocked(useTransfers).mockReturnValue({
+    step: 'sign',
+    wallet: { ...wallet, derivationPath: "m/44'/60'/0'/0/0", masterFingerprint: '12345678' },
+    wallets: [],
+    isLoading: false,
+    transferableAssets: [],
+    isPreparing: false,
+    transactionData,
+    selectedAsset: { isNative: false, decimals: 2, contractAddress: fixture.token.tokenContract },
+    selectWallet: jest.fn(),
+    reset: jest.fn(),
+  } as unknown as ReturnType<typeof useTransfers>);
+}
+
+it('hands the reviewed token transfer to the hardware encoder', async () => {
+  signing(fixture.token);
+  await render(<SendFormScreen onDone={jest.fn()} />);
+  expect(encodeEthereumTransaction).toHaveBeenCalledWith(
+    wallet.address,
+    preparedTransferTransaction(fixture.token.transaction),
+    "m/44'/60'/0'/0/0",
+    '12345678',
+  );
+});
+
+it('shows why it refuses a token transfer that differs from the review, and never builds its code', async () => {
+  const stranger = `0x${'5'.repeat(40)}`;
+  const data = new Interface(['function transfer(address to, uint256 amount)']).encodeFunctionData('transfer', [
+    stranger,
+    999999n,
+  ]);
+  signing({ ...fixture.token, transaction: { ...fixture.token.transaction, data } });
+  const view = await render(<SendFormScreen onDone={jest.fn()} />);
+  expect(view.getByText('This transaction does not match your review: the recipient is different.')).toBeTruthy();
+  expect(encodeEthereumTransaction).not.toHaveBeenCalled();
 });
