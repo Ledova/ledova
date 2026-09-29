@@ -11,6 +11,7 @@ import {
   TRADING_EVENT_INVALIDATION_MAP,
 } from '../../src/constants';
 import { ApiClientProvider } from '../../src/hooks/useApiClient';
+import { useDirectoryTokens } from '../../src/hooks/useDirectory';
 import { useInvestorEligibilityQuery, useOrderBook, useShareTokens } from '../../src/hooks/useMarket';
 import type { InvestorEligibility, OrderBook, ShareToken } from '../../src/types';
 import { response } from '../fixtures/order-submissions';
@@ -142,4 +143,31 @@ it('reads investor eligibility as its body and refreshes it with Verification', 
   await act(() => client.invalidateQueries({ queryKey: ['investor-eligibility'] }));
 
   await waitFor(() => expect(view.result.current.data?.isEligible).toBe(false));
+});
+
+const eligibilityReads = () =>
+  requests.filter((config) => config.url === INVESTOR_CLASSIFICATION_ENDPOINTS.ELIGIBILITY);
+
+it('agrees with Directory on eligibility from one read when the Market reads it first', async () => {
+  const market = renderHook(() => useInvestorEligibilityQuery(), { wrapper });
+  await waitFor(() => expect(market.result.current.isSuccess).toBe(true));
+
+  const directory = renderHook(() => useDirectoryTokens(), { wrapper });
+
+  await waitFor(() => expect(directory.result.current.tokens).toEqual([token]));
+  expect(directory.result.current.isEligible).toBe(true);
+  expect(market.result.current.data).toEqual(eligible);
+  expect(eligibilityReads()).toHaveLength(1);
+});
+
+it('agrees with Directory on eligibility from one read when Directory reads it first', async () => {
+  const directory = renderHook(() => useDirectoryTokens(), { wrapper });
+  await waitFor(() => expect(directory.result.current.tokens).toEqual([token]));
+
+  const market = renderHook(() => useInvestorEligibilityQuery(), { wrapper });
+
+  await waitFor(() => expect(market.result.current.isSuccess).toBe(true));
+  expect(market.result.current.data).toEqual(eligible);
+  expect(directory.result.current.isEligible).toBe(true);
+  expect(eligibilityReads()).toHaveLength(1);
 });

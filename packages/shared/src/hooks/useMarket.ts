@@ -32,7 +32,8 @@ export function useInvestorEligibilityQuery() {
   const apiClient = useApiClient();
   return useQuery({
     queryKey: ['investor-eligibility'],
-    queryFn: () => getInvestorEligibility(apiClient).then((res) => res.data),
+    queryFn: () => getInvestorEligibility(apiClient),
+    select: (response) => response.data,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
 }
