@@ -164,11 +164,11 @@ decimals. `gas`, `gasPrice`, `nonce` and `chainId` stay numbers, far below
 Clients built before this change fail closed or sign exactly. An older
 dashboard builds its Keystone code from `'0x' + value.toString(16)`, which gives
 `0x0x…` for a hex string, so it shows "Failed to encode transaction for
-signing" and sends nothing. An older mobile build's software Send failed before
-signing whatever the value; its Keystone code reads the hex string exactly, and
-its decoder refuses the longer signature the Keystone returns on the test
+signing" and sends nothing. An older mobile build's software Send fails before
+signing, whatever the value. Its Keystone code reads the hex string exactly,
+but its decoder refuses the longer signature the Keystone returns on the test
 networks. A decimal string would have been the risky form: an older dashboard
-reads its digits as hexadecimal, and a stale tab signed 0.001 ETH as
+reads its digits as hexadecimal, so a stale tab would have signed 0.001 ETH as
 1.152921504606846976 ETH. Current clients still read a safe JSON number from an
 older backend. No database migration is needed.
 
