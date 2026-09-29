@@ -198,6 +198,37 @@ it('reads historical snapshots without directory authority and reports later-pag
   expect(get.mock.calls.every(([url]) => url === listUrl)).toBe(true);
 });
 
+it('keeps applications and the later-page failure on screen while the list is read again', async () => {
+  pages = {
+    1: { results: [application], next: `https://example.test${listUrl}?page=2` },
+    2: { results: [record('item-b', 'allotted')], next: null },
+  };
+  failure = `${listUrl}2`;
+  const view = await render(<ApplicationsScreen />, { wrapper });
+  await fireEvent.press(await view.findByText('Load more applications'));
+  expect(await view.findByText('More applications could not be loaded. The list is incomplete.')).toBeTruthy();
+  let finish!: (value: object) => void;
+  get.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  let refreshing!: Promise<void>;
+  await act(async () => {
+    refreshing = client.invalidateQueries({ queryKey: ['subscriptions'] });
+  });
+  await waitFor(() => expect(view.getByText('Try more applications again')).toBeDisabled());
+  expect(view.getByText('Draft')).toBeTruthy();
+  expect(view.getByText('More applications could not be loaded. The list is incomplete.')).toBeTruthy();
+  expect(view.queryByText(/Your applications could not be loaded/)).toBeNull();
+  await act(async () => {
+    finish({ data: pages[1] });
+    await refreshing;
+  });
+  await waitFor(() => expect(view.getByText('Load more applications')).toBeEnabled());
+});
+
 it('suppresses cached application history on a failed refresh and recovers to a reliable empty list', async () => {
   const view = await render(<ApplicationsScreen />, { wrapper });
   expect(await view.findByText('Draft')).toBeTruthy();

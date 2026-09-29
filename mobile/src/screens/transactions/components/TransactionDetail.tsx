@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Linking, Text, View } from 'react-native';
 import {
+  activityAmount,
+  activityDirection,
+  feeUnit,
   formatDate,
   formatTime,
   getChainShortCode,
@@ -11,7 +14,6 @@ import {
 } from '@ledova/shared';
 import { Action, Row, Rows } from '../../../components/Ledger';
 import { useThemedStyles } from '../../../contexts';
-import { activityAmount, activityDirection, feeUnit } from '../presentation';
 
 export function TransactionDetail({ transaction }: { transaction: Transaction }) {
   const [failedHash, setFailedHash] = useState<string | null>(null);

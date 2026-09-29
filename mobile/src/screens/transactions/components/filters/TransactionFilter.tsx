@@ -1,12 +1,11 @@
 import type { Ref } from 'react';
 import { Text, View } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
-import { BLOCKCHAIN, formatDate, type Wallet } from '@ledova/shared';
+import { BLOCKCHAIN, formatDate, type TransactionFilters, type Wallet } from '@ledova/shared';
 import { useThemedStyles } from '../../../../contexts';
 import { Action, Choice, Disclosure } from '../../../../components/Ledger';
 import { DatePickerField } from '../../../../components/date-picker';
 import { ModalActions } from '../../../../components/modal';
-import type { TransactionFilters } from '../../useTransactions';
 
 interface Props {
   ref?: Ref<View>;

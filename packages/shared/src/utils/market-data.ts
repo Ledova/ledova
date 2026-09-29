@@ -1,4 +1,5 @@
-import { formatMoney, formatShareCount } from '@ledova/shared';
+import { formatShareCount } from '../constants';
+import { formatMoney } from './distributions';
 
 export function marketQuantity(value: number): string {
   return Number.isSafeInteger(value) && value >= 0 ? formatShareCount(String(value)) : 'Unavailable';

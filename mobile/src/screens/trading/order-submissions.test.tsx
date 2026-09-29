@@ -122,24 +122,28 @@ jest.mock('../../components/modal', () => {
 jest.mock('./components/MarketList', () => ({ MarketList: () => null }));
 jest.mock('./components/OrdersCard', () => ({ OrdersCard: () => null }));
 jest.mock('./hooks/useTradingEvents', () => ({ useTradingEvents: () => {} }));
-jest.mock('./useAtomicSwaps', () => ({ useSwapOrdersMulti: () => ({ data: [], refetch: jest.fn() }) }));
-jest.mock('./useTrading', () => {
+jest.mock('@ledova/shared', () => {
   const f = jest.requireActual('../../../../packages/shared/tests/fixtures/order-submissions');
   const tokens = [{ uuid: f.tokenUuid, name: 'Synthetic', symbol: 'SYN', lastPrice: '12.50' }];
   return {
+    ...jest.requireActual('@ledova/shared'),
     useShareTokens: () => ({ data: tokens, refetch: jest.fn() }),
     useInvestorEligibilityQuery: () => ({ data: { isEligible: true } }),
+    useOrderBook: () => ({ data: null }),
+    useSwapOrdersMulti: () => ({ data: [], refetch: jest.fn() }),
+  };
+});
+jest.mock('./useTrading', () => {
+  const f = jest.requireActual('../../../../packages/shared/tests/fixtures/order-submissions');
+  return {
     useUserTradingWallets: () => ({ wallets: [f.wallet], walletAddresses: [f.wallet.address] }),
     useWalletsWhitelistStatus: () => ({
       isWhitelisted: () => true,
       getStatus: () => ({ status: 'whitelisted' }),
       isLoading: false,
     }),
-    useOrderBook: () => ({ data: null }),
     useAllWalletTokenBalances: () => ({ getWalletsWithHoldings: () => [], refetch: jest.fn() }),
     useAllUserOrders: () => ({ orders: [], refetch: jest.fn() }),
-    useOrderCancelMessage: () => ({ mutate: jest.fn() }),
-    useCancelOrder: () => ({ mutate: jest.fn() }),
   };
 });
 

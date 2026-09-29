@@ -8,10 +8,10 @@ import {
   type Wallet,
   type ShareToken,
   formatWalletAddressShort,
+  marketAmount,
 } from '@ledova/shared';
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
-import { marketAmount } from '../marketData';
 import { SeedPhraseInput } from '@components/SeedPhraseInput';
 import { QRScannerView, useQRScanner } from '@components/qr';
 import { encodeEthereumTypedData } from '@utils/keystone/urEncoder';

@@ -1,6 +1,6 @@
 import type { AxiosRequestConfig } from 'axios';
 import React from 'react';
-import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, renderHook, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
 import { PUBLICATION_COPY, formatDateTime } from '@ledova/shared';
@@ -8,6 +8,7 @@ import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
 import { cache, files, resetFiles } from '../../testSupport/documentFiles';
 import { PublicationsScreen } from './index';
+import { usePublications } from './usePublications';
 
 jest.mock('expo-file-system', () => jest.requireActual('../../testSupport/documentFiles').nativeFileSystem);
 jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(), shareAsync: jest.fn() }));
@@ -584,6 +585,95 @@ it('refuses a nonadvancing next page', async () => {
   expect(await view.findByText(PUBLICATION_COPY.LIST_FAILED)).toBeTruthy();
   expect(view.queryByText(statement.title)).toBeNull();
   expect(view.queryByText(PUBLICATION_COPY.LOAD_MORE)).toBeNull();
+});
+
+it('keeps notices and the earlier-page failure on screen while the list is read again', async () => {
+  const next = 'https://api.example/api/v1/publications/?page=2';
+  listing = async (page) => {
+    if (page === 2) throw new Error('synthetic earlier-page failure');
+    return { data: { count: 2, next, results: rows } };
+  };
+  const view = await render(<PublicationsScreen />, { wrapper });
+  await fireEvent.press(await view.findByText(PUBLICATION_COPY.LOAD_MORE));
+  expect(await view.findByText('Earlier notices could not be loaded. The list is incomplete.')).toBeTruthy();
+  let finish!: (value: unknown) => void;
+  listing = () =>
+    new Promise((resolve) => {
+      finish = resolve;
+    });
+  let refreshing!: Promise<void>;
+  await act(async () => {
+    refreshing = client.invalidateQueries({ queryKey: ['publications'] });
+  });
+  await waitFor(() => expect(view.getByText('Try earlier notices again')).toBeDisabled());
+  expect(view.getByText(statement.title)).toBeTruthy();
+  expect(view.getByText('Earlier notices could not be loaded. The list is incomplete.')).toBeTruthy();
+  expect(view.queryByText('Your notices could not be refreshed. Try again before continuing.')).toBeNull();
+  await act(async () => {
+    finish({ data: { count: 2, next, results: rows } });
+    await refreshing;
+  });
+  await waitFor(() => expect(view.getByText(PUBLICATION_COPY.LOAD_MORE)).toBeEnabled());
+  expect(view.getByText(statement.title)).toBeTruthy();
+});
+
+it('reads no further notices while the list is read again, and the next page once it has been', async () => {
+  const next = 'https://api.example/api/v1/publications/?page=2';
+  listing = async () => ({ data: { count: 2, next, results: rows } });
+  const view = await renderHook(() => usePublications(), { wrapper });
+  await waitFor(() => expect(view.result.current.hasMore).toBe(true));
+  const read = listing;
+  let finish!: (value: unknown) => void;
+  listing = () =>
+    new Promise((resolve) => {
+      finish = resolve;
+    });
+  let refreshing!: Promise<void>;
+  await act(async () => {
+    refreshing = client.invalidateQueries({ queryKey: ['publications'] });
+  });
+  await waitFor(() => expect(view.result.current.isRefreshing).toBe(true));
+  const pages = () =>
+    jest
+      .mocked(apiClient.get)
+      .mock.calls.filter(([url]) => url === LISTING)
+      .map(([, config]) => (config as AxiosRequestConfig | undefined)?.params?.page);
+
+  await act(async () => view.result.current.loadMore());
+
+  expect(pages()).toEqual([1, 1]);
+  listing = read;
+  await act(async () => {
+    finish({ data: { count: 2, next, results: rows } });
+    await refreshing;
+  });
+  await waitFor(() => expect(view.result.current.isRefreshing).toBe(false));
+  await act(async () => view.result.current.loadMore());
+  await waitFor(() => expect(pages()).toEqual([1, 1, 2]));
+});
+
+it('holds Load more while the list is read again, then offers the next page', async () => {
+  const next = 'https://api.example/api/v1/publications/?page=2';
+  listing = async () => ({ data: { count: 2, next, results: rows } });
+  const view = await render(<PublicationsScreen />, { wrapper });
+  expect(await view.findByText(PUBLICATION_COPY.LOAD_MORE)).toBeEnabled();
+  let finish!: (value: unknown) => void;
+  listing = () =>
+    new Promise((resolve) => {
+      finish = resolve;
+    });
+  let refreshing!: Promise<void>;
+  await act(async () => {
+    refreshing = client.invalidateQueries({ queryKey: ['publications'] });
+  });
+  await waitFor(() => expect(view.getByText(PUBLICATION_COPY.LOAD_MORE)).toBeDisabled());
+  await fireEvent.press(view.getByText(PUBLICATION_COPY.LOAD_MORE));
+  expect(listingCalls()).toBe(2);
+  await act(async () => {
+    finish({ data: { count: 2, next, results: rows } });
+    await refreshing;
+  });
+  await waitFor(() => expect(view.getByText(PUBLICATION_COPY.LOAD_MORE)).toBeEnabled());
 });
 
 it('withdraws stale document and ballot actions after refresh failure, then restores them on retry', async () => {

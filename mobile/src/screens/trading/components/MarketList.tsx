@@ -1,8 +1,7 @@
 import { ActivityIndicator, Text, View } from 'react-native';
-import { DIRECTORY_COPY, formatShareCount, type ShareToken } from '@ledova/shared';
+import { DIRECTORY_COPY, formatShareCount, marketAmount, type ShareToken } from '@ledova/shared';
 import { Action, Row, Rows, Section } from '../../../components/Ledger';
 import { useMarketStyles } from '../styles';
-import { marketAmount } from '../marketData';
 
 interface MarketListProps {
   tokens: ShareToken[];

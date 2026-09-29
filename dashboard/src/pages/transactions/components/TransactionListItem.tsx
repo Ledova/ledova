@@ -1,7 +1,13 @@
-import { formatDate, getBlockchainDisplayName, getChainShortCode } from '@ledova/shared';
+import {
+  activityAmount,
+  activityDirection,
+  formatDate,
+  getBlockchainDisplayName,
+  getChainShortCode,
+} from '@ledova/shared';
 import type { Transaction } from '@ledova/shared';
 import { Disclosure, Status } from '@components/Ledger';
-import { activityAmount, activityDirection, activityState } from '../presentation';
+import { activityState } from '../presentation';
 import { TransactionDetail } from './TransactionDetail';
 
 interface TransactionListItemProps {

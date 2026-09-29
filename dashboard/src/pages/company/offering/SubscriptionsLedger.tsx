@@ -1,7 +1,13 @@
 import { useState } from 'react';
-import { formatDate, formatMoney, formatShareCount, REGISTER_COPY, type OfferingListItem } from '@ledova/shared';
+import {
+  formatDate,
+  formatMoney,
+  formatShareCount,
+  REGISTER_COPY,
+  useOfferingSubscriptions,
+  type OfferingListItem,
+} from '@ledova/shared';
 import { Rows, Row, Section, Status } from '@components/Ledger';
-import { useOfferingSubscriptions } from './useOffering';
 import { OfferingReadNotice } from './OfferingReadNotice';
 
 export function SubscriptionsLedger({

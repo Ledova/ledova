@@ -126,14 +126,14 @@ export function PublicationsScreen() {
               <Text accessibilityRole="alert" style={styles.message}>
                 Earlier notices could not be loaded. The list is incomplete.
               </Text>
-              <Action label="Try earlier notices again" onPress={loadMore} disabled={isLoadingMore} />
+              <Action label="Try earlier notices again" onPress={loadMore} disabled={isRefreshing} />
             </View>
           ) : (
             hasMore && (
               <Action
                 label={isLoadingMore ? PUBLICATION_COPY.LOADING_MORE : PUBLICATION_COPY.LOAD_MORE}
                 onPress={loadMore}
-                disabled={isLoadingMore}
+                disabled={isRefreshing}
               />
             )
           )}

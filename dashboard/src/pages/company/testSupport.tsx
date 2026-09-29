@@ -3,7 +3,8 @@ import { render } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { PageTitle } from '@components/PageTitle';
-import { DESTINATIONS, type Company, type CompanyDocument, type DocumentType } from '@ledova/shared';
+import apiClient from '@services/apiClient';
+import { ApiClientProvider, DESTINATIONS, type Company, type CompanyDocument, type DocumentType } from '@ledova/shared';
 
 export function companyRecord(overrides: Partial<Company> = {}): Company {
   return {
@@ -67,15 +68,17 @@ export function documentRecord(type: DocumentType, uuid: string = type): Company
 export function renderCompanyPage(client: QueryClient, page: ReactNode, title: string) {
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter>
-        <PageTitle.Provider value={title}>
-          <Routes>
-            <Route path="/" element={page} />
-            <Route path={DESTINATIONS.company.path} element={<p>Company page</p>} />
-            <Route path={DESTINATIONS.companyRegister.path} element={<p>Register page</p>} />
-          </Routes>
-        </PageTitle.Provider>
-      </MemoryRouter>
+      <ApiClientProvider client={apiClient}>
+        <MemoryRouter>
+          <PageTitle.Provider value={title}>
+            <Routes>
+              <Route path="/" element={page} />
+              <Route path={DESTINATIONS.company.path} element={<p>Company page</p>} />
+              <Route path={DESTINATIONS.companyRegister.path} element={<p>Register page</p>} />
+            </Routes>
+          </PageTitle.Provider>
+        </MemoryRouter>
+      </ApiClientProvider>
     </QueryClientProvider>,
   );
 }

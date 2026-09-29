@@ -1,9 +1,8 @@
 import type { Ref } from 'react';
 import { BLOCKCHAIN, formatDate } from '@ledova/shared';
-import type { Wallet } from '@ledova/shared';
+import type { TransactionFilters, Wallet } from '@ledova/shared';
 import { Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import type { TransactionFilters } from '../useTransactions';
 import { FIELD_CLASS } from '@components/fieldClass';
 
 interface TransactionFilterProps {

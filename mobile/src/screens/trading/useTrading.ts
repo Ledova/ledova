@@ -1,15 +1,11 @@
 import { useQuery, useQueries } from '@tanstack/react-query';
 import {
-  getShareTokens,
-  getInvestorEligibility,
   getOrders,
   getWallets,
   getWhitelistStatus,
   getWalletBalances,
-  getOrderBook,
   BLOCKCHAIN,
   CACHE_TIMING,
-  TRADING_CONFIG,
   WALLET_VERIFICATION_STATUS,
   readEveryPage,
   useUserPreferences,
@@ -18,7 +14,6 @@ import type { Wallet, WhitelistStatus, WalletTokenBalance } from '@ledova/shared
 import { apiClient } from '../../services/apiClient';
 
 export const tradingQueryKeys = {
-  tokens: ['trading', 'tokens'] as const,
   walletBalances: (walletAddress: string) => ['trading', 'walletBalances', walletAddress] as const,
   whitelistStatus: (tokenAddress: string, walletAddress: string) =>
     ['trading', 'whitelistStatus', tokenAddress, walletAddress] as const,
@@ -159,31 +154,4 @@ export function useAllUserOrders() {
     error: query.error,
     refetch: query.refetch,
   };
-}
-
-export function useShareTokens() {
-  return useQuery({
-    queryKey: tradingQueryKeys.tokens,
-    queryFn: () => readEveryPage((page) => getShareTokens(apiClient, page)),
-    staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
-    gcTime: CACHE_TIMING.DEFAULT_GC_TIME,
-  });
-}
-
-export function useOrderBook(tokenUuid: string | undefined) {
-  return useQuery({
-    queryKey: ['trading', 'orderBook', tokenUuid] as const,
-    queryFn: () => getOrderBook(apiClient, tokenUuid!).then((res) => res.data),
-    enabled: !!tokenUuid,
-    staleTime: CACHE_TIMING.SHORT_STALE_TIME,
-    refetchInterval: TRADING_CONFIG.ORDER_BOOK_FALLBACK_INTERVAL,
-  });
-}
-
-export function useInvestorEligibilityQuery() {
-  return useQuery({
-    queryKey: ['investor-eligibility'],
-    queryFn: () => getInvestorEligibility(apiClient).then((res) => res.data),
-    staleTime: CACHE_TIMING.SHORT_STALE_TIME,
-  });
 }

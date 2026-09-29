@@ -1,6 +1,13 @@
 import { Text, View } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
-import { apiErrorSentence, createOffering, updateOffering, type Company, type OfferingInput } from '@ledova/shared';
+import {
+  apiErrorSentence,
+  createOffering,
+  updateOffering,
+  useOfferingUnderEdit,
+  type Company,
+  type OfferingInput,
+} from '@ledova/shared';
 import { CustomModal } from '../../components/modal';
 import { CompanyReadNotice, type CompanyRead } from '../company/CompanyState';
 import { useCompanyStyles } from '../company-register/styles';
@@ -8,7 +15,7 @@ import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch } from '../../services/sessionScope';
 import { OfferingForm } from './OfferingForm';
 import { OfferingReadNotice } from './OfferingReadNotice';
-import { useOfferingUnderEdit, type useOfferings } from './useOfferings';
+import type { useOfferings } from './useOfferings';
 
 export function OfferingEditor({
   uuid,
