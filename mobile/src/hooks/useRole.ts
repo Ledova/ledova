@@ -1,4 +1,4 @@
-import { AccountRole, useUserPreferences } from '@ledova/shared';
+import { AccountRole, canOpen, useUserPreferences } from '@ledova/shared';
 
 export type { AccountRole };
 
@@ -9,8 +9,8 @@ export function useRole() {
 
   return {
     role,
-    isInvestor: role === 'investor' || role === 'both',
-    isCompany: role === 'company' || role === 'both',
+    isInvestor: canOpen(role, 'investing'),
+    isCompany: canOpen(role, 'company'),
     isLoading,
   };
 }

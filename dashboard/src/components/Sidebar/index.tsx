@@ -15,10 +15,9 @@ import {
   HandCoinsIcon,
   BookOpenIcon,
 } from '@phosphor-icons/react';
-import { DESTINATIONS, getCompanies, type DestinationKey } from '@ledova/shared';
+import { DESTINATIONS, getCompanies, useFeatureFlags, type DestinationKey } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
 import apiClient from '@services/apiClient';
-import { useFeatureFlags } from '@hooks/useFeatureFlags';
 import { useRole } from '@hooks/useRole';
 import { useUserProfile } from '@pages/user-profile/useUserProfile';
 import { MARKETING_URL } from '@utils/marketingUrl';
@@ -107,7 +106,7 @@ interface SidebarProps {
 export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps = {}) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { tradingEnabled } = useFeatureFlags();
+  const tradingEnabled = useFeatureFlags().isEnabled('trading_enabled');
   const { isInvestor, isCompany } = useRole();
   const { userProfile } = useUserProfile();
   const companyName = useCompanyName(isCompany);

@@ -11,7 +11,8 @@ import {
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
-import { listSavedPauses, savePause, type SavedPause } from '../../services/pauseSubmissions';
+import type { SavedPause } from '@ledova/shared';
+import { pauseSubmissionStore } from '../../services/pauseSubmissions';
 import { items, owner, pauseResponse, resetPauseStorage, tokenUuid } from '../../testSupport/pauseRequests';
 import { TokenPauseControls } from './TokenPauseControls';
 
@@ -33,7 +34,7 @@ function screen(status: 'deployed' | 'paused' = 'deployed', refreshing = false) 
   return <TokenPauseControls token={{ uuid: tokenUuid, status }} refreshing={refreshing} />;
 }
 async function firstRecord() {
-  const records = await listSavedPauses(owner, tokenUuid);
+  const records = await pauseSubmissionStore.list(owner, tokenUuid);
   expect(records).toHaveLength(1);
   return records[0];
 }
@@ -51,7 +52,7 @@ beforeEach(() => {
   });
   get.mockReset();
   get.mockImplementation(async (url) => {
-    const record = (await listSavedPauses(owner, tokenUuid)).find(
+    const record = (await pauseSubmissionStore.list(owner, tokenUuid)).find(
       (item) => url === URLS.PAUSE_SUBMISSION(tokenUuid, item.submissionId),
     );
     if (!record) throw new Error('No saved request');
@@ -59,7 +60,7 @@ beforeEach(() => {
   });
   post.mockReset();
   post.mockImplementation(async (_url, body) => {
-    const record = (await listSavedPauses(owner, tokenUuid)).find(
+    const record = (await pauseSubmissionStore.list(owner, tokenUuid)).find(
       (item) => item.submissionId === (body as { submissionId: string }).submissionId,
     );
     expect(record).toBeDefined();
@@ -130,18 +131,18 @@ it('blocks a new write during class refresh and duplicates while the original PO
 });
 
 it('keeps a completed original outcome separate from a later class state and removes only its reminder', async () => {
-  const original = await savePause(owner, tokenUuid, true);
+  const original = await pauseSubmissionStore.save(owner, tokenUuid, true);
   completed = true;
   const view = await render(screen('deployed'), { wrapper });
   await view.findByText(/original pause transaction was confirmed/);
   expect(view.getByText('Pause')).toBeEnabled();
   await fireEvent.press(view.getByText('Pause'));
   await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
-  expect(await listSavedPauses(owner, tokenUuid)).toHaveLength(2);
+  expect(await pauseSubmissionStore.list(owner, tokenUuid)).toHaveLength(2);
   expect(post.mock.calls[0][1]).not.toEqual({ submissionId: original.submissionId });
   await waitFor(() => expect(view.getAllByText('Dismiss outcome')).toHaveLength(2));
   await fireEvent.press(view.getAllByText('Dismiss outcome')[0]);
-  await waitFor(async () => expect(await listSavedPauses(owner, tokenUuid)).toHaveLength(1));
+  await waitFor(async () => expect(await pauseSubmissionStore.list(owner, tokenUuid)).toHaveLength(1));
   expect(post).toHaveBeenCalledTimes(1);
 });
 
@@ -181,7 +182,7 @@ it('does not post when storage loses the write, then permits a deliberate retry 
 });
 
 it('blocks new writes on corrupt saved records, then reloads repaired storage', async () => {
-  const record = await savePause(owner, tokenUuid, true);
+  const record = await pauseSubmissionStore.save(owner, tokenUuid, true);
   const name = [...items.keys()][0];
   items.set(name, '{}');
   const view = await render(screen(), { wrapper });
@@ -196,7 +197,7 @@ it('blocks new writes on corrupt saved records, then reloads repaired storage', 
 });
 
 it('restores a removed displayed request and refuses conflicting stored terms', async () => {
-  const record = await savePause(owner, tokenUuid, true);
+  const record = await pauseSubmissionStore.save(owner, tokenUuid, true);
   const view = await render(screen(), { wrapper });
   await view.findByText(`Pause request ${record.submissionId}`);
   items.clear();
@@ -213,7 +214,7 @@ it('restores a removed displayed request and refuses conflicting stored terms', 
 });
 
 it('retains recovery and blocks completion when the response describes a different submission', async () => {
-  const record = await savePause(owner, tokenUuid, true);
+  const record = await pauseSubmissionStore.save(owner, tokenUuid, true);
   const wrong = { ...record, submissionId: '99999999-9999-4999-8999-999999999999' };
   get.mockResolvedValue(pauseResponse(wrong, true));
   post.mockResolvedValue(pauseResponse(wrong, true));

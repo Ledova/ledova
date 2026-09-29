@@ -150,6 +150,15 @@ describe('which signed-in pages an account can open', () => {
     expect(opened(key)).toBe(true);
   });
 
+  it.each(['wallets', 'trading', 'company'] as const)(
+    'gives a role the API does not define only the pages for everyone, sending it from %s to its home',
+    (key) => {
+      open(key, 'staff' as AccountRole);
+      expect(DESTINATIONS[key].audience === 'everyone' ? opened(key) : sentTo('home')).toBe(true);
+      expect(screen.getByTestId('address').textContent).toBe(addressOf(key === 'wallets' ? key : 'home'));
+    },
+  );
+
   it.each(['trading', 'company'] as const)(
     'keeps %s titled and loading until the role is known, and shows neither the page nor a landing',
     (key) => {

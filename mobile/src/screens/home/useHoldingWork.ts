@@ -3,6 +3,7 @@ import { useIsFetching, useQuery } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
   USER_PREFERENCES_QUERY_KEY,
+  canOpen,
   getPublications,
   getSubscriptions,
   readEveryPage,
@@ -25,7 +26,7 @@ export function useHoldingWork() {
     !preferences.isError &&
     !!account?.uuid &&
     ['investor', 'company', 'both'].includes(account.role);
-  const investing = known && (account?.role === 'investor' || account?.role === 'both');
+  const investing = known && !!account && canOpen(account.role, 'investing');
   const applications = useQuery({
     queryKey: ['subscriptions', 'holdings-work', account?.uuid, epoch],
     enabled: investing,

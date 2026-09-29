@@ -140,7 +140,6 @@ jest.mock('./components/OrdersCard', () => {
   };
 });
 jest.mock('./components/MarketList', () => ({ MarketList: () => null }));
-jest.mock('./components/OrderDetailModal', () => ({ OrderDetailModal: () => null }));
 jest.mock('./components/OrderSigningModal', () => ({ OrderSigningModal: () => null }));
 jest.mock('./components/CreateOrderModal', () => ({ CreateOrderModal: () => null }));
 jest.mock('./components/OrderActionModal', () => ({ OrderActionModal: () => null }));
@@ -759,7 +758,6 @@ it('keeps either owned unsigned side available for review in the actual orders l
     isLoadingUserOrders: false,
     onCancelOrder: jest.fn(),
     onEditOrder: jest.fn(),
-    onViewOrder: jest.fn(),
     swaps: [swap],
     isLoadingSwaps: false,
     wallets: [selectedWallet(), selectedWallet('buyer')],
@@ -823,7 +821,6 @@ it('offers review from the actual V1 list before either party has signed', async
       isLoadingUserOrders={false}
       onCancelOrder={() => {}}
       onEditOrder={() => {}}
-      onViewOrder={() => {}}
       swaps={[swap]}
       isLoadingSwaps={false}
       wallets={[selectedWallet()]}

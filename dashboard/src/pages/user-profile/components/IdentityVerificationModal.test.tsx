@@ -3,6 +3,7 @@
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { ApiClientProvider } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { IdentityVerificationModal } from './IdentityVerificationModal';
 
@@ -30,7 +31,9 @@ it('states a finished check without a box and closes from its action row', async
   const onClose = vi.fn();
   render(
     <QueryClientProvider client={client}>
-      <IdentityVerificationModal isOpen onClose={onClose} />
+      <ApiClientProvider client={apiClient}>
+        <IdentityVerificationModal isOpen onClose={onClose} />
+      </ApiClientProvider>
     </QueryClientProvider>,
   );
   const dialog = screen.getByRole('dialog', { name: 'Identity Verification' });
@@ -45,7 +48,9 @@ it('refreshes the profile and closes shortly after the form is submitted', async
   const invalidate = vi.spyOn(client, 'invalidateQueries');
   render(
     <QueryClientProvider client={client}>
-      <IdentityVerificationModal isOpen onClose={onClose} />
+      <ApiClientProvider client={apiClient}>
+        <IdentityVerificationModal isOpen onClose={onClose} />
+      </ApiClientProvider>
     </QueryClientProvider>,
   );
   fireEvent.click(await screen.findByRole('button', { name: 'Start Verification' }));

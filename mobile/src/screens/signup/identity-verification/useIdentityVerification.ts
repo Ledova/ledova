@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { readIdentityVerification } from '@ledova/shared';
 import { useIdentityVerification as useIdentityVerificationApi } from '../../../hooks/useIdentityVerification';
 
 export const useIdentityVerification = (enabled = true) => {
@@ -13,10 +14,6 @@ export const useIdentityVerification = (enabled = true) => {
     isVerified,
     hasApplicant,
     refetchStatus,
-    isOnHold,
-    isRejected,
-    needsRetry,
-    hasSubmitted,
     launchVerification,
     isLaunching,
     sdkError,
@@ -29,13 +26,8 @@ export const useIdentityVerification = (enabled = true) => {
     closeFormModal,
   } = useIdentityVerificationApi(enabled);
 
-  const showPendingBanner = (justSubmitted || hasSubmitted) && !isVerified && !isRejected;
-  const showOnHoldBanner = isOnHold && !justSubmitted;
-  const showRejectedBanner = isRejected && !justSubmitted;
-  const showRetryBanner = needsRetry && !isVerified && !justSubmitted;
-  const showForm = !isVerified && !showPendingBanner && !showRetryBanner;
-  const showContinue = isVerified || hasSubmitted || justSubmitted;
-  const showSkip = !isVerified && !hasSubmitted && !justSubmitted;
+  const { showPendingBanner, showOnHoldBanner, showRejectedBanner, showRetryBanner, showForm, showContinue, showSkip } =
+    readIdentityVerification(status, justSubmitted);
 
   const prepareForNextScreen = async () => {
     setIsContinuing(true);

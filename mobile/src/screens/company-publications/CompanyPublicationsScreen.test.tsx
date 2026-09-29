@@ -13,15 +13,28 @@ let mockAccessError = false;
 const mockNavigate = jest.fn();
 const mockRetryAccess = jest.fn();
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: mockNavigate }) }));
-jest.mock('@ledova/shared', () => ({
-  ...jest.requireActual('@ledova/shared'),
-  useUserPreferences: () => ({
-    userAccount: { role: mockRole },
-    isLoading: false,
-    isError: mockAccessError,
-    refetch: mockRetryAccess,
-  }),
-}));
+let mockBetweenPages: (() => void) | undefined;
+jest.mock('@ledova/shared', () => {
+  const actual = jest.requireActual<typeof import('@ledova/shared')>('@ledova/shared');
+  return {
+    ...actual,
+    useUserPreferences: () => ({
+      userAccount: { role: mockRole },
+      isLoading: false,
+      isError: mockAccessError,
+      refetch: mockRetryAccess,
+    }),
+    readEveryPage: (read: Parameters<typeof actual.readEveryPage>[0]) =>
+      actual.readEveryPage((page) => {
+        if (page > 1) {
+          const change = mockBetweenPages;
+          mockBetweenPages = undefined;
+          change?.();
+        }
+        return read(page);
+      }),
+  };
+});
 jest.mock('expo-file-system', () => jest.requireActual('../../testSupport/documentFiles').nativeFileSystem);
 jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(), shareAsync: jest.fn() }));
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));
@@ -80,6 +93,7 @@ beforeEach(() => {
   resetFiles();
   mockRole = 'company';
   mockAccessError = false;
+  mockBetweenPages = undefined;
   rows = [statement];
   pages = async () => listed(rows);
   company = async () => ({ data: { uuid: 'company-one', name: 'Synthetic Company' } });
@@ -156,6 +170,35 @@ it('refuses a refused second page without showing an empty or partial list', asy
   pages = async () => listed(rows);
   await fireEvent.press(view.getByText('Retry publications'));
   expect(await view.findByText(statement.title)).toBeTruthy();
+});
+
+it('discards an issuer page that arrives after the session changed', async () => {
+  const first = deferred<unknown>();
+  pages = () => first.promise;
+  const retired = getSessionEpoch();
+  const view = await render(<CompanyPublicationsScreen />, { wrapper });
+  await waitFor(() => expect(get).toHaveBeenCalledWith(LIST, { params: { page: 1, issuer: 'company-one' } }));
+  pages = async () => listed(rows);
+  await act(async () => invalidateSessionScope());
+  await act(async () => first.resolve(listed([{ ...statement, uuid: 'retired-paper', title: 'Retired paper' }])));
+  expect(await view.findByRole('header', { name: 'Publications (1)' })).toBeTruthy();
+  expect(view.queryByText('Retired paper')).toBeNull();
+  expect(client.getQueryData(['publications', 'issuer', 'company-one', retired])).toBeUndefined();
+});
+
+it('asks for no later issuer page once the session changes between pages', async () => {
+  pages = async (page) =>
+    listed(
+      page === 1 ? rows : [{ ...statement, uuid: 'later-paper', title: 'Later paper' }],
+      page === 1 ? 'https://example.test/?page=2' : null,
+    );
+  mockBetweenPages = () => {
+    pages = async () => listed(rows);
+    invalidateSessionScope();
+  };
+  const view = await render(<CompanyPublicationsScreen />, { wrapper });
+  expect(await view.findByRole('header', { name: 'Publications (1)' })).toBeTruthy();
+  expect(get).not.toHaveBeenCalledWith(LIST, { params: { page: 2, issuer: 'company-one' } });
 });
 
 it.each([

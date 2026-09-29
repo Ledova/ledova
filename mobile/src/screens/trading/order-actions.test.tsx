@@ -150,7 +150,6 @@ jest.mock('./components/OrdersCard', () => {
     ),
   };
 });
-jest.mock('./components/OrderDetailModal', () => ({ OrderDetailModal: () => null }));
 jest.mock('./hooks/useTradingEvents', () => ({ useTradingEvents: () => {} }));
 jest.mock('./useAtomicSwaps', () => ({ useSwapOrdersMulti: () => ({ data: [], refetch: jest.fn() }) }));
 jest.mock('./useTrading', () => {
