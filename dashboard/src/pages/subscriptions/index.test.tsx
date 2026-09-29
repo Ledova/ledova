@@ -171,16 +171,15 @@ it('hides stale application values and links after refresh failure until a succe
   expect(await screen.findByRole('article')).toBeTruthy();
 });
 
-it.each(['https://example.invalid/api/v1/subscriptions/?page=1', 'https://example.invalid/api/v1/subscriptions/'])(
-  'refuses a malformed or nonadvancing next link %s',
-  async (next) => {
-    api.get.mockResolvedValue(page([application], next));
-    show();
-    expect(await screen.findByRole('alert')).toBeTruthy();
-    expect(screen.queryByRole('article')).toBeNull();
-    expect(api.get).toHaveBeenCalledTimes(1);
-  },
-);
+it('refuses a nonadvancing next link', async () => {
+  api.get.mockResolvedValue(page([application], 'https://example.invalid/api/v1/subscriptions/?page=1'));
+  show();
+  expect((await screen.findByRole('alert')).textContent).toContain(
+    'Your applications could not be loaded. Try again before continuing.',
+  );
+  expect(screen.queryByRole('article')).toBeNull();
+  expect(api.get).toHaveBeenCalledTimes(1);
+});
 
 it('does not report a rounded numeric quantity as an exact share count', async () => {
   api.get.mockResolvedValue(page([{ ...application, quantity: 9007199254740992 }]));

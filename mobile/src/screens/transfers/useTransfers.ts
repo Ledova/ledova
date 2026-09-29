@@ -18,6 +18,7 @@ import {
   WALLET_VERIFICATION_STATUS,
   getErrorMessage,
   getHoldingTokenDeployment,
+  readEveryPage,
   useUserPreferences,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
@@ -100,7 +101,7 @@ export function useTransfers() {
 
   const walletsQuery = useQuery({
     queryKey: ['wallets', userAccount?.uuid],
-    queryFn: () => getWallets(apiClient),
+    queryFn: () => readEveryPage((page) => getWallets(apiClient, { page })),
     enabled: !USE_MOCK_DATA && !!userAccount?.uuid,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
@@ -325,7 +326,7 @@ export function useTransfers() {
     setPendingBroadcast(false);
   }, []);
 
-  const allWallets = USE_MOCK_DATA ? generateMockWalletsData() : walletsQuery.data?.data.results || [];
+  const allWallets = USE_MOCK_DATA ? generateMockWalletsData() : (walletsQuery.data ?? []);
   const wallets = allWallets.filter((w: Wallet) => w.verificationStatus === WALLET_VERIFICATION_STATUS.VERIFIED);
 
   return {

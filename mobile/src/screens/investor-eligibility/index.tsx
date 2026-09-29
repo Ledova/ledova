@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, Text, TextInput, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { getCompanies, getErrorMessage, formatDate } from '@ledova/shared';
 import type { CertifierBody, InvestorCategory, InvestorClassification } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../contexts';
-import { GradientBackground } from '../../components/GradientBackground';
 import { Action, Choice, Row, Rows, Section } from '../../components/Ledger';
+import { Page } from '../../components/Page';
 import { CustomModal } from '../../components/modal';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch } from '../../services/sessionScope';
@@ -151,9 +151,9 @@ export function InvestorEligibilityScreen() {
   ) : null;
 
   return (
-    <GradientBackground>
-      <ScrollView
-        contentContainerStyle={styles.content}
+    <>
+      <Page
+        title="Verification"
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing && !isLoading}
@@ -162,9 +162,6 @@ export function InvestorEligibilityScreen() {
           />
         }
       >
-        <Text accessibilityRole="header" style={styles.title}>
-          Verification
-        </Text>
         {isLoading ? (
           <View style={styles.group}>
             <ActivityIndicator color={theme.colors.brand.default} />
@@ -249,7 +246,7 @@ export function InvestorEligibilityScreen() {
             </Section>
           </>
         )}
-      </ScrollView>
+      </Page>
       <CustomModal
         visible={category !== null}
         title={spec ? `Claim: ${spec.label}` : 'Claim'}
@@ -377,14 +374,12 @@ export function InvestorEligibilityScreen() {
           {WHOLESALE_ONLY_NOTICE}
         </Text>
       </CustomModal>
-    </GradientBackground>
+    </>
   );
 }
 
 function useStyles() {
   return useThemedStyles((theme) => ({
-    content: { paddingHorizontal: 24, paddingTop: theme.spacing.smd, paddingBottom: 36, gap: 28 },
-    title: { fontFamily: theme.fontFamily.display, fontSize: 40, color: theme.colors.text.primary },
     message: { fontFamily: theme.fontFamily.regular, fontSize: 15, lineHeight: 23, color: theme.colors.text.muted },
     help: { fontFamily: theme.fontFamily.regular, fontSize: 13, lineHeight: 20, color: theme.colors.text.muted },
     label: { fontFamily: theme.fontFamily.medium, fontSize: 15, color: theme.colors.text.primary },

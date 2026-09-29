@@ -10,7 +10,13 @@ export type TradingStackParamList = {
 
 const Stack = createNativeStackNavigator<TradingStackParamList>();
 
-export function TradingStackNavigator() {
+export function TradingStackNavigator({
+  onNotifications,
+  unreadCount,
+}: {
+  onNotifications: () => void;
+  unreadCount: number;
+}) {
   const theme = useAppTheme();
   return (
     <Stack.Navigator
@@ -20,7 +26,7 @@ export function TradingStackNavigator() {
           backgroundColor: theme.colors.surface.base,
         },
         ...getMainHeaderStyle(theme),
-        ...MainHeader({ theme, onNotifications: () => {} }),
+        ...MainHeader({ theme, onNotifications, unreadCount }),
       })}
     >
       <Stack.Screen

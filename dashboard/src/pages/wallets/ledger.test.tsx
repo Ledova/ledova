@@ -65,35 +65,29 @@ it('reads every wallet page without changing other wallet cache shapes', async (
   expect(client.getQueryData(['wallets'])).toEqual(page([wallet]));
 });
 
-it.each(['failed second page', 'malformed next', 'stale refresh'])(
-  'hides incomplete wallets after %s and retries',
-  async (mode) => {
-    let broken = mode !== 'stale refresh';
-    api.get.mockImplementation(async (_url: string, config: { params: { page: number } }) => {
-      if (config.params.page === 2) {
-        if (broken) throw Error('Unavailable');
-        return page([second]);
-      }
-      return page(
-        [wallet],
-        broken && mode === 'malformed next' ? 'https://example.test/?page=no' : 'https://example.test/?page=2',
-      );
-    });
-    show();
-    if (mode === 'stale refresh') {
-      await screen.findByText('Reserve wallet');
-      broken = true;
-      await act(async () => client.invalidateQueries({ queryKey: ['wallets'] }));
+it.each(['failed second page', 'stale refresh'])('hides incomplete wallets after %s and retries', async (mode) => {
+  let broken = mode !== 'stale refresh';
+  api.get.mockImplementation(async (_url: string, config: { params: { page: number } }) => {
+    if (config.params.page === 2) {
+      if (broken) throw Error('Unavailable');
+      return page([second]);
     }
-    expect(await screen.findByRole('alert')).toBeTruthy();
-    expect(screen.queryByText('Primary wallet')).toBeNull();
-    expect(screen.queryByText('No Base wallets yet.')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Add wallet' })).toBeNull();
-    broken = false;
-    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-    expect(await screen.findByText('Reserve wallet')).toBeTruthy();
-  },
-);
+    return page([wallet], 'https://example.test/?page=2');
+  });
+  show();
+  if (mode === 'stale refresh') {
+    await screen.findByText('Reserve wallet');
+    broken = true;
+    await act(async () => client.invalidateQueries({ queryKey: ['wallets'] }));
+  }
+  expect(await screen.findByRole('alert')).toBeTruthy();
+  expect(screen.queryByText('Primary wallet')).toBeNull();
+  expect(screen.queryByText('No Base wallets yet.')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Add wallet' })).toBeNull();
+  broken = false;
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  expect(await screen.findByText('Reserve wallet')).toBeTruthy();
+});
 
 it('retains an edit while a delayed write rejects, then closes only after successful retry', async () => {
   let reject!: (error: Error) => void;

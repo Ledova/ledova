@@ -1,11 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  CACHE_TIMING,
-  getInvestorClassifications,
-  getInvestorEligibility,
-  getNextPageParam,
-  type InvestorClassification,
-} from '@ledova/shared';
+import { CACHE_TIMING, getInvestorClassifications, getInvestorEligibility, readEveryPage } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 
 export function useInvestorEligibility() {
@@ -19,20 +13,7 @@ export function useInvestorEligibility() {
 
   const classificationsQuery = useQuery({
     queryKey: ['investor-classifications', 'verification'],
-    queryFn: async () => {
-      const all: InvestorClassification[] = [];
-      let page: number | undefined = 1;
-      while (page !== undefined) {
-        const { data } = await getInvestorClassifications(apiClient, page);
-        all.push(...data.results);
-        const next = getNextPageParam(data);
-        if (data.next && (next === undefined || !Number.isInteger(next) || next <= page)) {
-          throw new Error('Verification pagination did not advance');
-        }
-        page = next;
-      }
-      return all;
-    },
+    queryFn: () => readEveryPage((page) => getInvestorClassifications(apiClient, page)),
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
 

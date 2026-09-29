@@ -24,6 +24,14 @@ Every client import is `from '@ledova/shared'`. `packages/shared/src/services`
 holds the API call functions both clients share; each takes the caller's axios
 instance as its first argument, so each client keeps its own interceptors.
 
+Wherever this page says a list reads every page, it does so through
+`readEveryPage` (`packages/shared/src/utils/pagination.ts`): it asks for page 1,
+follows each `next` link by the page number the link names, and returns the rows
+in page order. A read fails whole when a page fails or when a `next` link names
+no later page, so a stalled or malformed link is never presented as the end of
+the list. Lists that load further pages on request check each page's link the
+same way with `assertNextPageAdvances`.
+
 The dashboard's signed-in pages are listed once, in `DESTINATIONS`
 (`packages/shared/src/constants/ui/destinations.ts`), each with its address,
 title and audience. The dashboard builds its signed-in routes from a map keyed
@@ -140,13 +148,15 @@ Wallets could not read them. Buy crypto goes straight to the widget only when a
 read that has finished finds exactly one verified wallet on the chosen asset's
 network, and asks which one receives it when there are several; while a read is
 running, or waiting for the connection to come back, it opens nothing by itself
-and its chooser's wallets cannot be chosen. Both web choosers list a wallet as a
-Wallets row reads, by its name or short address, with its balance and value
-labelled; neither says there are none before a read has answered, even offline,
-and one that cannot read the wallets says so and offers Try again, hiding any it
-listed before. Mobile follows later: its Send always starts at the wallet choice,
-and its Buy crypto can still go straight to the widget for, or offer, the wallets
-it read before, and says there are none when a read fails.
+and its chooser's wallets cannot be chosen. Both web choosers read every page of
+verified wallets, so a wallet on a later page is offered and counted, and list
+each as a Wallets row reads, by its name or short address, with its balance and
+value labelled; neither says there are none before a read has answered, even
+offline, and one that cannot read the wallets says so and offers Try again,
+hiding any it listed before. Mobile follows later: its Send always starts at the
+wallet choice, and its Buy crypto can still go straight to the widget for, or
+offer, the wallets it read before, and says there are none when a read fails.
+Both mobile choosers also read every page of wallets.
 The retired portfolio screen's chart, allocation and snapshot helpers are removed
 from both clients and the shared package. The asset list remains in use by Buy
 crypto for current prices, and Wallets and Send still use the AUD exchange rate.
@@ -426,9 +436,8 @@ owned company's UUID as `issuer`, separately from the personal Notices cache.
 It shows stored documents, frozen company/class names, resolution windows and
 exact share/member tallies, and dividend rates and dates, in one Publications
 card whose title carries the complete count, with each publication set off by a
-rule; with none, the same card says that nothing has been published yet. On
-mobile the count is still a line of its own before the records, and the empty
-list has no card. It has no personal
+rule; with none, the same card says that nothing has been published yet. Both
+clients show it this way. It has no personal
 ballot or entitlement controls, including when the owner is also a member.
 Loading and failed company/publication reads block document actions; retry never
 presents a partial list as complete. Document delivery failures remain visible.
@@ -449,6 +458,31 @@ gap, the same gap as between sections (16 px on a phone, 20 px from 640 px and
 sidebar, with the notification bell beside the logo, and on a phone a top bar
 with the menu, the logo and the bell. It has no header bar and no footer; only
 the public layout has a footer.
+
+On mobile every signed-in screen renders in `Page`
+(`mobile/src/components/Page.tsx`), except those named at the end of this
+paragraph. `Page` is a scroll view on the paper that opens with one header
+block: the screen's title in Newsreader at 36 (`fontSize.xxxxl`), marked as the
+screen's header, then its lede directly under the title when it has one, then
+its screen actions as one wrapping row of content-width `Action`s: a way back
+such as Back to Directory, Back to Applications or Back to Company, Refresh on
+Published to your members, New offering, Edit company, Activity's Filter, and
+Wallets' Buy crypto, Send, Add wallet, Filter and Sync balances. Where the web
+keeps the title and actions on one row, a phone's large title leaves no room, so
+mobile keeps the lede with the title it describes and puts the actions after it.
+The side padding is 24 (`spacing.lg`), and the first card follows the header
+block at the same 24 as between cards, whether or not the screen has a lede or
+actions. A screen's loading, access and failure states render in the same frame
+under the same title; a company's share class is titled Share class until the
+class is read, and then by the class. Each screen keeps its own pull to refresh
+and keyboard handling, which `Page` hands to its scroll view. The stack header
+above the page carries no title of its own, only the menu or back button and, on
+a top-level screen, the bell, which in every stack opens the notifications and
+shows the unread count. The exceptions keep a frame of their own: Help & Support,
+the last row of the drawer's list, keeps its stack title and contact cards; the
+Send, Transfer, Verify Wallet and Recovery Phrase screens are titled inside their
+`Panel` card; and Buy crypto is its dialog over the plain paper, followed by the
+provider's web view, both under a Buy Crypto stack title.
 
 The sidebar's list holds its destinations and ends with Help & Support, a
 footer-style link to the contact page that opens in a new tab. The list scrolls
@@ -563,7 +597,8 @@ description; a page whose titles
 already say it, such as Directory, Applications, Verification or Notices, has
 none. Other explanations stay in the section they explain, after the content
 they serve: Market's Saved work follows Trades awaiting signatures, and Offerings
-leads with Your offerings. Mobile's `Lede` follows the title and its actions.
+leads with Your offerings. Mobile's `Page` sets its `lede` directly under the
+title, above the screen's actions.
 
 Every section is its own card, including forms and things to act on such as a
 payment instruction, and a dialog (`Modal` in `dashboard/src/components/Modal`)

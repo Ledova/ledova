@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, Text } from 'react-native';
-import { GradientBackground } from '../../components/GradientBackground';
+import { ActivityIndicator, RefreshControl } from 'react-native';
+import { Page } from '../../components/Page';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 
 export function ApplicationsPage({
@@ -9,44 +9,39 @@ export function ApplicationsPage({
   refreshing,
   refresh,
   title = 'Applications',
+  actions,
 }: {
   children?: ReactNode;
   loading: boolean;
   refreshing: boolean;
   refresh: () => void;
   title?: string;
+  actions?: ReactNode;
 }) {
   const theme = useAppTheme();
-  const styles = useApplicationStyles();
   return (
-    <GradientBackground>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing && !loading}
-            onRefresh={refresh}
-            tintColor={theme.colors.brand.default}
-          />
-        }
-      >
-        <Text accessibilityRole="header" style={styles.title}>
-          {title}
-        </Text>
-        {loading ? (
-          <ActivityIndicator accessibilityLabel="Loading applications" color={theme.colors.brand.default} />
-        ) : (
-          children
-        )}
-      </ScrollView>
-    </GradientBackground>
+    <Page
+      title={title}
+      actions={actions}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing && !loading}
+          onRefresh={refresh}
+          tintColor={theme.colors.brand.default}
+        />
+      }
+    >
+      {loading ? (
+        <ActivityIndicator accessibilityLabel="Loading applications" color={theme.colors.brand.default} />
+      ) : (
+        children
+      )}
+    </Page>
   );
 }
 
 export const useApplicationStyles = () =>
   useThemedStyles((theme) => ({
-    content: { padding: 24, gap: 28, paddingBottom: 48 },
-    title: { fontFamily: theme.fontFamily.display, fontSize: 34, color: theme.colors.text.primary },
     message: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 21, color: theme.colors.text.primary },
     help: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 21, color: theme.colors.text.muted },
     item: { paddingVertical: 16, gap: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.border.subtle },

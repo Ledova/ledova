@@ -1,15 +1,17 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
+  assertNextPageAdvances,
   createSubscription,
   getSubscription,
   getSubscriptions,
   getNextPageParam,
   getWallets,
+  readEveryPage,
   submitSubscription,
   withdrawSubscription,
 } from '@ledova/shared';
-import type { SubscriptionInput, Wallet } from '@ledova/shared';
+import type { SubscriptionInput } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 
 const SUBSCRIPTIONS_KEY = ['subscriptions'];
@@ -19,10 +21,7 @@ export function useSubscriptions() {
     queryKey: [...SUBSCRIPTIONS_KEY, 'list'],
     queryFn: async ({ pageParam }) => {
       const { data } = await getSubscriptions(apiClient, pageParam);
-      const next = getNextPageParam(data);
-      if (data.next && (next === undefined || !Number.isInteger(next) || next <= pageParam)) {
-        throw new Error('Application pagination did not advance');
-      }
+      assertNextPageAdvances(pageParam, data);
       return data;
     },
     getNextPageParam,
@@ -82,20 +81,8 @@ export function useSubscription(uuid: string | undefined) {
 export function useSubscribableWallets(enabled: boolean) {
   const query = useQuery({
     queryKey: ['wallets', 'base-verified', 'complete'],
-    queryFn: async () => {
-      const all: Wallet[] = [];
-      let page: number | undefined = 1;
-      while (page !== undefined) {
-        const { data } = await getWallets(apiClient, { chain: 'base', verification_status: 'VERIFIED', page });
-        all.push(...data.results);
-        const next = getNextPageParam(data);
-        if (data.next && (next === undefined || !Number.isInteger(next) || next <= page)) {
-          throw new Error('Receiving wallet pagination did not advance');
-        }
-        page = next;
-      }
-      return all;
-    },
+    queryFn: () =>
+      readEveryPage((page) => getWallets(apiClient, { chain: 'base', verification_status: 'VERIFIED', page })),
     enabled,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });

@@ -3,13 +3,12 @@ import { useIsFetching, useQuery } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
   USER_PREFERENCES_QUERY_KEY,
-  getNextPageParam,
   getPublications,
   getSubscriptions,
+  readEveryPage,
   useAuth,
   usePublicationSummary,
   useUserPreferences,
-  type Subscription,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
@@ -30,22 +29,13 @@ export function useHoldingWork() {
   const applications = useQuery({
     queryKey: ['subscriptions', 'holdings-work', account?.uuid, epoch],
     enabled: investing,
-    queryFn: async () => {
-      const all: Subscription[] = [];
-      let page: number | undefined = 1;
-      while (page !== undefined) {
+    queryFn: () =>
+      readEveryPage(async (page) => {
         assertSessionEpoch(epoch);
-        const { data } = await getSubscriptions(apiClient, page);
+        const response = await getSubscriptions(apiClient, page);
         assertSessionEpoch(epoch);
-        all.push(...data.results);
-        const next = getNextPageParam(data);
-        if (data.next && (next === undefined || !Number.isInteger(next) || next <= page)) {
-          throw new Error('Application pagination did not advance');
-        }
-        page = next;
-      }
-      return all;
-    },
+        return response;
+      }),
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
 

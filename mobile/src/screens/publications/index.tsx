@@ -1,8 +1,8 @@
-import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, Text, View } from 'react-native';
 import { PUBLICATION_COPY, PUBLICATION_KIND_LABELS, formatDate, formatShareCount } from '@ledova/shared';
 import type { Publication } from '@ledova/shared';
-import { GradientBackground } from '../../components/GradientBackground';
 import { Action, Row, Section } from '../../components/Ledger';
+import { Page } from '../../components/Page';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { Distribution } from './Distribution';
 import { Resolution } from './Resolution';
@@ -11,8 +11,6 @@ import { usePublications } from './usePublications';
 export function PublicationsScreen() {
   const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
-    content: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 36, gap: 28 },
-    title: { fontFamily: theme.fontFamily.display, fontSize: 40, color: theme.colors.text.primary },
     message: { fontFamily: theme.fontFamily.regular, fontSize: 15, lineHeight: 23, color: theme.colors.text.muted },
     kind: {
       fontFamily: theme.fontFamily.medium,
@@ -85,68 +83,63 @@ export function PublicationsScreen() {
   );
 
   return (
-    <GradientBackground>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing && !isLoading && !isLoadingMore}
-            onRefresh={retry}
-            tintColor={theme.colors.brand.default}
-          />
-        }
-      >
-        <Text accessibilityRole="header" style={styles.title}>
-          Notices
+    <Page
+      title="Notices"
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing && !isLoading && !isLoadingMore}
+          onRefresh={retry}
+          tintColor={theme.colors.brand.default}
+        />
+      }
+    >
+      {openError && (
+        <Text accessibilityRole="alert" style={styles.error}>
+          {openError}
         </Text>
-        {openError && (
-          <Text accessibilityRole="alert" style={styles.error}>
-            {openError}
+      )}
+      {isLoading ? (
+        <View style={styles.state}>
+          <ActivityIndicator color={theme.colors.brand.default} />
+          <Text style={styles.message}>Loading publications…</Text>
+        </View>
+      ) : listFailed ? (
+        <View style={styles.state}>
+          <Text accessibilityRole="alert" style={styles.message}>
+            {publications.length
+              ? 'Your notices could not be refreshed. Try again before continuing.'
+              : PUBLICATION_COPY.LIST_FAILED}
           </Text>
-        )}
-        {isLoading ? (
-          <View style={styles.state}>
-            <ActivityIndicator color={theme.colors.brand.default} />
-            <Text style={styles.message}>Loading publications…</Text>
-          </View>
-        ) : listFailed ? (
-          <View style={styles.state}>
-            <Text accessibilityRole="alert" style={styles.message}>
-              {publications.length
-                ? 'Your notices could not be refreshed. Try again before continuing.'
-                : PUBLICATION_COPY.LIST_FAILED}
-            </Text>
-            <Action label={PUBLICATION_COPY.RETRY} onPress={retry} disabled={isRefreshing} />
-          </View>
-        ) : (
-          <>
-            {publications.length === 0 && !hasMore && !moreFailed ? (
-              <Section title="Your notices">
-                <Text style={styles.message}>{PUBLICATION_COPY.EMPTY}</Text>
-              </Section>
-            ) : (
-              publications.map(renderRow)
-            )}
-            {moreFailed ? (
-              <View style={styles.state}>
-                <Text accessibilityRole="alert" style={styles.message}>
-                  Earlier notices could not be loaded. The list is incomplete.
-                </Text>
-                <Action label="Try earlier notices again" onPress={loadMore} disabled={isLoadingMore} />
-              </View>
-            ) : (
-              hasMore && (
-                <Action
-                  label={isLoadingMore ? PUBLICATION_COPY.LOADING_MORE : PUBLICATION_COPY.LOAD_MORE}
-                  onPress={loadMore}
-                  disabled={isLoadingMore}
-                />
-              )
-            )}
-            {publications.length > 0 && <Text style={styles.help}>{PUBLICATION_COPY.FROZEN_HELP}</Text>}
-          </>
-        )}
-      </ScrollView>
-    </GradientBackground>
+          <Action label={PUBLICATION_COPY.RETRY} onPress={retry} disabled={isRefreshing} />
+        </View>
+      ) : (
+        <>
+          {publications.length === 0 && !hasMore && !moreFailed ? (
+            <Section title="Your notices">
+              <Text style={styles.message}>{PUBLICATION_COPY.EMPTY}</Text>
+            </Section>
+          ) : (
+            publications.map(renderRow)
+          )}
+          {moreFailed ? (
+            <View style={styles.state}>
+              <Text accessibilityRole="alert" style={styles.message}>
+                Earlier notices could not be loaded. The list is incomplete.
+              </Text>
+              <Action label="Try earlier notices again" onPress={loadMore} disabled={isLoadingMore} />
+            </View>
+          ) : (
+            hasMore && (
+              <Action
+                label={isLoadingMore ? PUBLICATION_COPY.LOADING_MORE : PUBLICATION_COPY.LOAD_MORE}
+                onPress={loadMore}
+                disabled={isLoadingMore}
+              />
+            )
+          )}
+          {publications.length > 0 && <Text style={styles.help}>{PUBLICATION_COPY.FROZEN_HELP}</Text>}
+        </>
+      )}
+    </Page>
   );
 }

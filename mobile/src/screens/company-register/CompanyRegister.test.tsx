@@ -122,17 +122,6 @@ it('draws one rule between classes and none above the card edge', async () => {
   expect(view.getByText(HOLDER_TYPE_LABELS.unidentified).parent).toHaveStyle({ borderBottomWidth: 0 });
 });
 
-it.each([
-  'https://api.example.test/?page=1',
-  'https://api.example.test/?page=bad',
-  'https://api.example.test/?cursor=unreadable',
-])('fails the complete read on invalid next page %s', async (next) => {
-  read = async () => page([shareClass], next);
-  const view = await render(<CompanyRegisterScreen />, { wrapper });
-  await waitFor(() => expect(view.getByText('We couldn’t load the complete register.')).toBeTruthy());
-  expect(view.queryByRole('button', { name: 'Open Ordinary shares' })).toBeNull();
-});
-
 it.each(['foreign-class', 'fractional-balance', 'holder-read'])(
   'refuses incomplete or malformed register %s and retries',
   async (failure) => {

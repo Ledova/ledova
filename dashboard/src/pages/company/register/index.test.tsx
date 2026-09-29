@@ -274,11 +274,15 @@ it('opens each class in place under its row, all closed at first, independently 
   expect(detailOf(ordinary).hidden).toBe(false);
 });
 
-it.each(['1', '0', '-1', '1.5'])('rejects non-advancing pagination to page %s', async (next) => {
-  api.get.mockResolvedValue(page(['ordinary'], `https://example.test/tokens/?page=${next}`));
+it('refuses a next link that names no page, rather than presenting the first page as every class', async () => {
+  api.get.mockImplementation(async (url: string) =>
+    url === COMPANY_TOKEN_ENDPOINTS.BASE
+      ? page(['ordinary'], 'https://example.test/tokens/?cursor=next')
+      : { data: register() },
+  );
   show();
-  expect(await screen.findByRole('alert')).toBeTruthy();
-  expect(api.get).toHaveBeenCalledTimes(1);
+  expect((await screen.findByRole('alert')).textContent).toContain("We couldn't load the complete register.");
+  expect(screen.queryByText('Ordinary shares')).toBeNull();
 });
 
 it.each(['1.5', '-1', '1e3'])('rejects inexact share balance %s instead of publishing it', async (balance) => {

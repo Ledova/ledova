@@ -34,6 +34,7 @@ import {
   formatCryptoBalance,
   formatSyncAge,
   getUserVerificationStatus,
+  readEveryPage,
   useCurrency,
 } from '@ledova/shared';
 import type { BuyableAssetConfig, Wallet } from '@ledova/shared';
@@ -247,15 +248,18 @@ export function BuyCryptoModal({
       { chain: selectedAsset?.chain, verification_status: 'VERIFIED', ordering: 'signing_preference' },
     ],
     queryFn: () =>
-      getWallets(apiClient, {
-        chain: selectedAsset!.chain,
-        verification_status: 'VERIFIED',
-        ordering: 'signing_preference',
-      }),
+      readEveryPage((page) =>
+        getWallets(apiClient, {
+          chain: selectedAsset!.chain,
+          verification_status: 'VERIFIED',
+          ordering: 'signing_preference',
+          page,
+        }),
+      ),
     enabled: visible && !!selectedAsset,
   });
 
-  const matchingWallets = walletsQuery.data?.data.results || [];
+  const matchingWallets = walletsQuery.data ?? [];
   const isLoadingWallets = walletsQuery.isLoading;
 
   const widgetMutation = useMutation({

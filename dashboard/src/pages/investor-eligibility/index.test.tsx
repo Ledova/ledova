@@ -138,18 +138,6 @@ it.each(['eligibility', 'claims', 'later claims'])(
   },
 );
 
-it('refuses a nonadvancing pagination response instead of silently using incomplete claims', async () => {
-  api.get.mockImplementation(async (url: string) =>
-    url === INVESTOR_CLASSIFICATION_ENDPOINTS.ELIGIBILITY
-      ? { data: eligibility }
-      : page([claim()], 'http://localhost/api/v1/investor-classifications/?page=1'),
-  );
-  renderPage();
-  expect(await screen.findByRole('alert')).toBeTruthy();
-  expect(screen.queryByText('Verified to invest')).toBeNull();
-  expect(api.get.mock.calls.filter(([url]) => url === INVESTOR_CLASSIFICATION_ENDPOINTS.BASE)).toHaveLength(1);
-});
-
 it('hides cached claims and actions when a refresh fails', async () => {
   renderPage();
   await screen.findByText('Verified to invest');

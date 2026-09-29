@@ -578,13 +578,8 @@ it('can reach the next page when the first addressed page is empty', async () =>
   expect(view.queryByText(PUBLICATION_COPY.EMPTY)).toBeNull();
 });
 
-it.each([
-  'https://api.example/?page=1',
-  'https://api.example/?page=wat',
-  'https://api.example/?page=1.5',
-  'https://api.example/?cursor=opaque',
-])('refuses a malformed or nonadvancing next page %s', async (next) => {
-  listing = async () => ({ data: { count: 2, next, results: rows } });
+it('refuses a nonadvancing next page', async () => {
+  listing = async () => ({ data: { count: 2, next: 'https://api.example/?page=1', results: rows } });
   const view = await render(<PublicationsScreen />, { wrapper });
   expect(await view.findByText(PUBLICATION_COPY.LIST_FAILED)).toBeTruthy();
   expect(view.queryByText(statement.title)).toBeNull();

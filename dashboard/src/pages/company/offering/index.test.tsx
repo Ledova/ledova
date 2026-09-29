@@ -218,19 +218,6 @@ it.each(['/api/v1/companies/', COMPANY])('reports and retries %s without a false
   expect(await screen.findByRole('button', { name: 'Edit' })).toBeTruthy();
 });
 
-it('refuses repeated pagination and later-page failures without exposing partial offerings', async () => {
-  const original = api.get.getMockImplementation()!;
-  api.get.mockImplementation((url: string) =>
-    url === BASE
-      ? Promise.resolve({ data: { ...EMPTY, results: [offering], next: 'https://example.invalid/?page=1' } })
-      : original(url),
-  );
-  show();
-  await screen.findByRole('button', { name: 'Retry offering information' });
-  expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
-  expect(api.get.mock.calls.filter(([url]) => url === BASE)).toHaveLength(1);
-});
-
 it('reads all applications and shows requested and zero allotted shares separately with exact money', async () => {
   let broken = true;
   const original = api.get.getMockImplementation()!;

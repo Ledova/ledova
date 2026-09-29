@@ -19,7 +19,13 @@ export type CompanyStackParamList = {
 
 const Stack = createNativeStackNavigator<CompanyStackParamList>();
 
-export function CompanyStackNavigator() {
+export function CompanyStackNavigator({
+  onNotifications,
+  unreadCount,
+}: {
+  onNotifications: () => void;
+  unreadCount: number;
+}) {
   const theme = useAppTheme();
   return (
     <Stack.Navigator
@@ -29,7 +35,7 @@ export function CompanyStackNavigator() {
           backgroundColor: theme.colors.surface.base,
         },
         ...getMainHeaderStyle(theme),
-        ...MainHeader({ theme, onNotifications: () => {} }),
+        ...MainHeader({ theme, onNotifications, unreadCount }),
       })}
     >
       <Stack.Screen name="CompanyMain" component={CompanyRegisterScreen} options={{ title: '' }} />
