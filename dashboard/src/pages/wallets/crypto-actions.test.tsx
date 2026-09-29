@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryRouter, Route, RouterProvider, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { WALLET_ENDPOINTS, type AccountRole } from '@ledova/shared';
+import { WALLET_ENDPOINTS, formatWalletAddressShort, type AccountRole } from '@ledova/shared';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
@@ -22,25 +22,26 @@ vi.mock('@keystonehq/animated-qr', () => ({ AnimatedQRCode: () => null }));
 import Layout from '@components/Layout';
 import { WalletsPage } from './index';
 
-const walletList = {
-  data: {
-    results: [
-      {
-        uuid: 'wallet-1',
-        userAccount: 'owner',
-        name: 'Base wallet',
-        address: `0x${'3'.repeat(40)}`,
-        chain: 'base',
-        verificationStatus: 'VERIFIED',
-        nativeBalance: '5',
-        marketValue: '10',
-      },
-    ],
-    count: 1,
-    next: null,
-    previous: null,
-  },
+const baseWallet = {
+  uuid: 'wallet-1',
+  userAccount: 'owner',
+  name: 'Base wallet',
+  address: `0x${'3'.repeat(40)}`,
+  chain: 'base',
+  verificationStatus: 'VERIFIED',
+  nativeBalance: '5',
+  marketValue: '10',
 };
+const pendingWallet = {
+  ...baseWallet,
+  uuid: 'wallet-2',
+  name: 'Awaiting verification',
+  address: `0x${'4'.repeat(40)}`,
+  verificationStatus: 'PENDING',
+};
+const reserveWallet = { ...baseWallet, uuid: 'wallet-3', name: 'Reserve wallet', address: `0x${'5'.repeat(40)}` };
+const listOf = (results: unknown[]) => ({ data: { results, count: results.length, next: null, previous: null } });
+const walletList = listOf([baseWallet, pendingWallet]);
 let queryClient: QueryClient;
 let router: ReturnType<typeof createMemoryRouter>;
 
@@ -68,9 +69,23 @@ function renderWalletsInTheFrame() {
   );
 }
 
+function answer(wallets: ReturnType<typeof listOf>) {
+  api.get.mockImplementation((url: string, config?: { params?: Record<string, unknown> }) => {
+    if (url.endsWith('/holdings/')) return Promise.resolve({ data: [] });
+    if (url === WALLET_ENDPOINTS.BASE && config?.params?.verification_status === 'VERIFIED') {
+      return Promise.resolve(
+        listOf(
+          wallets.data.results.filter((wallet) => (wallet as typeof baseWallet).verificationStatus === 'VERIFIED'),
+        ),
+      );
+    }
+    return Promise.resolve(wallets);
+  });
+}
+
 beforeEach(() => {
   queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-  api.get.mockResolvedValue(walletList);
+  answer(walletList);
 });
 
 afterEach(() => {
@@ -125,22 +140,41 @@ describe('crypto on the Wallets page', () => {
     expect(screen.getByText('Select your wallet')).toBeTruthy();
   });
 
-  it('opens the Send wallet picker from Send', async () => {
+  it('goes straight to the send form for the only verified wallet, with Cancel where Back would lead nowhere', async () => {
     await openWallets('company');
-    expect(screen.queryByText('Select your wallet')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));
 
-    expect(await screen.findByText('Select your wallet')).toBeTruthy();
+    const form = await screen.findByRole('dialog', { name: 'Send' });
+    expect(screen.queryByText('Select your wallet')).toBeNull();
+    expect(within(form).getByText(formatWalletAddressShort(baseWallet.address))).toBeTruthy();
+    expect(within(form).queryByRole('button', { name: 'Back' })).toBeNull();
+    fireEvent.click(within(form).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
+  it('asks which wallet to send from when several are verified, and goes Back to that choice', async () => {
+    answer(listOf([baseWallet, pendingWallet, reserveWallet]));
+    await openWallets('investor');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    const chooser = await screen.findByRole('dialog', { name: 'Select your wallet' });
+    fireEvent.click(await within(chooser).findByText('Reserve wallet'));
+    const form = await screen.findByRole('dialog', { name: 'Send' });
+    expect(within(form).getByText(formatWalletAddressShort(reserveWallet.address))).toBeTruthy();
+    fireEvent.click(within(form).getByRole('button', { name: 'Back' }));
+    expect(await screen.findByRole('dialog', { name: 'Select your wallet' })).toBeTruthy();
   });
 
   it.each([
-    ['Send', 'Select your wallet'],
-    ['Buy crypto', 'Select an asset to purchase'],
+    ['Send', 'Send'],
+    ['Buy crypto', 'Buy crypto'],
   ])('keeps an open %s flow when the person leaves Wallets, since the frame holds it', async (action, firstStep) => {
     await openWallets('investor');
     fireEvent.click(screen.getByRole('button', { name: action }));
-    expect(await screen.findByText(firstStep)).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: firstStep })).toBeTruthy();
 
     await act(async () => {
       await router.navigate('/elsewhere');
@@ -148,6 +182,6 @@ describe('crypto on the Wallets page', () => {
 
     expect(await screen.findByText('Another page')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Buy crypto', hidden: true })).toBeNull();
-    expect(screen.getByText(firstStep)).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: firstStep })).toBeTruthy();
   });
 });

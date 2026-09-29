@@ -132,7 +132,11 @@ Signing in, and verifying an email, which also signs a new person in, clear
 what the tab cached for whoever was signed in before, as signing out does, so a
 new person is never guarded by, or signs up against, the previous person's
 account. Buying crypto and sending are actions on Wallets for every account,
-not menu items, and the dashboard has no coin-price page or favourites.
+not menu items, and the dashboard has no coin-price page or favourites. Send
+opens its form directly when exactly one of the person's wallets is verified,
+and asks which wallet to send from only when several are; Buy crypto asks which
+wallet receives the chosen asset only when more than one verified wallet on that
+asset's network could.
 The retired portfolio screen's chart, allocation and snapshot helpers are removed
 from both clients and the shared package. The asset list remains in use by Buy
 crypto for current prices, and Wallets and Send still use the AUD exchange rate.

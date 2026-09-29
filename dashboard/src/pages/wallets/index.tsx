@@ -159,7 +159,7 @@ export function WalletsPage() {
       actions={
         <>
           {!hasError && <PageAction label="Add wallet" onClick={openAdd} />}
-          <CryptoActions />
+          <CryptoActions wallets={hasError ? null : wallets} />
         </>
       }
     >

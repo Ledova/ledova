@@ -203,10 +203,6 @@ test.describe('the built dashboard encodes Keystone QR codes', () => {
     const errors = recordErrors(page);
     await page.goto('/wallets');
     await page.getByRole('button', { name: 'Send', exact: true }).click();
-    await page
-      .getByRole('dialog', { name: 'Select your wallet' })
-      .getByRole('button', { name: /Keystone ready to send/ })
-      .click();
 
     const send = page.getByRole('dialog', { name: 'Send' });
     await send.getByPlaceholder('0x...').fill(RECIPIENT);

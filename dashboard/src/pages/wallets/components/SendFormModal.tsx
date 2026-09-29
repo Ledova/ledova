@@ -46,7 +46,7 @@ interface SendFormModalProps {
   isCheckingRecipientWhitelist: boolean;
   senderWhitelistStatus?: WhitelistStatus;
   recipientWhitelistStatus?: WhitelistStatus;
-  onBack: () => void;
+  onBack?: () => void;
   onTransfer: (asset: UnifiedAsset, toAddress: string, amount: string) => void;
   onAssetChange?: (asset: UnifiedAsset | null) => void;
   onAddressChange?: (address: string) => void;
@@ -193,8 +193,8 @@ export function SendFormModal({
       size="md"
       showFooter
       showCancelButton
-      cancelLabel="Back"
-      onCancel={onBack}
+      cancelLabel={onBack ? 'Back' : 'Cancel'}
+      onCancel={onBack ?? onClose}
       confirmLabel="Continue"
       confirmDisabled={!canTransfer}
       onConfirm={handleConfirm}
